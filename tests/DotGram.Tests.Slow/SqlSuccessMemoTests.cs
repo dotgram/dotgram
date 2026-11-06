@@ -707,8 +707,13 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			$"+{kind.GetProperty("Length")!.GetValue(match)}: {kind.GetProperty("Error")!.GetValue(match)} | " +
 			(accepted ? Written(value) : "");
 
-		return (match, text, accepted, position, value);
+		// A record written out may hold an exception the tree keeps as a gap, whose stack trace names the
+		// frames the runtime inlined: not the tree's, and not compared — wherever in the text it stands.
+		return (match, Frames.Replace(text, ""), accepted, position, value);
 	}
+
+	/// <summary>The lines of a stack trace inside a written record.</summary>
+	static readonly Regex Frames = new(@"\s+at [^\r\n]+", RegexOptions.Compiled);
 
 	static string Written(object? value)
 	{
@@ -729,9 +734,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 				}
 				catch (ArgumentException)
 				{
-					// A record written out may hold an exception the tree keeps as a gap, whose stack
-					// trace names the frames the runtime inlined: not the tree's, and not compared.
-					return Regex.Replace(node.ToString() ?? "", @"\s+at [^\r\n]+", "");
+					return node.ToString() ?? "";
 				}
 
 			case System.Collections.IEnumerable items when value is not string:

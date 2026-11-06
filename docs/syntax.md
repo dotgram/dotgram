@@ -1763,8 +1763,12 @@ then remembers where the first rule of that recursion both alternatives enter at
 succeeds, and what it built — two integers a rule and a token and a bit in the memo word,
 beside the memo of failures §6.5 describes, under the same contract (§7.2) — so that a second
 entry at the same token is answered without reading, and every level is read once. What it
-costs is a store at every success of that rule of four tokens or more on the accepted path,
-and 8 bytes a token for it. Over characters, on the tape, in a trace build, where a
+costs is a store at each success of that rule of four tokens or more while the reader is
+inside the earlier alternative of the choice — it counts them, and a text whose first
+alternative wins stores nothing — and 8 bytes a token for it; where some flagged alternative
+is read in place rather than called, or stands in a clone of its rule the reader could not
+match to the choice the analysis named, every success is stored, and the carriers report says
+so. Over characters, on the tape, in a trace build, where a
 construction may throw, inside a lookahead and for a rule that reaches its context nothing is
 remembered, and the message says so: there the shape costs its depth's power until the grammar
 is rewritten.

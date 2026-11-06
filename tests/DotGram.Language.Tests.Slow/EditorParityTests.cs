@@ -77,9 +77,11 @@ public sealed class EditorParityTests
 			grammar.Text, grammar.Options is { } options ? GramAnalysisOptions.Of(options) : null);
 		var tokens   = GramLexer.Tokenize(grammar.Text, RoslynCSharpScanner.Instance).Tokens;
 
-		// Only the compiler's side is narrowed here: the editor's must come narrowed already.
+		// Only the compiler's side is narrowed here: the editor's must come narrowed already. GRAM4054 is
+		// the one message the build reports and the editor leaves to it (GramDocument.CompilerOptions);
+		// everything else the analysis changes in the file — a method past the JIT's size, say — is held.
 		Assert.Equal(
-			GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics, tokens).Select(Shown),
+			GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics.Where(static one => one.Id != GramCompiler.SharedRecursions).ToList(), tokens).Select(Shown),
 			analysed.Diagnostics.Select(Shown));
 	}
 
@@ -154,10 +156,6 @@ public sealed class EditorParityTests
 			SymbolResolver = UnseenHostSymbolResolver.Instance,
 			Own            = own,
 			Cuts           = cuts,
-
-			// The editor leaves the shared-recursion analysis to the build (GramDocument.CompilerOptions):
-			// GRAM4054 is the one message the compiler reports that the editor does not show.
-			AnalyseSharedRecursion = false,
 		};
 
 		if (host is null)

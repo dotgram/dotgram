@@ -109,9 +109,10 @@ public static partial class CSharpEmitter
 			var message = kept is not null
 				? $"'{pair.Rule.Name}' {shape}, and after {pair.Witness} both read the same text through the recursion " +
 				  "the rule stands in before the first can be refused: a nest of that text would be read once per " +
-				  $"alternative at every level, doubling with the depth. The parser remembers where {names} succeeds, " +
+				  $"alternative at every level, doubling with the depth. The parser remembers where {names} {(kept.Count > 1 ? "succeed" : "succeeds")}, " +
 				  "which both alternatives enter at the same token, and reads every level once, at a store at each success of " +
-				  "that rule and 8 bytes a token for it. Written to read the shared text once it would need no memo: " + remedy + guarded
+				  $"{(kept.Count > 1 ? "those rules" : "that rule")} inside the earlier alternative and 8 bytes a token for {(kept.Count > 1 ? "each" : "it")}. " +
+				  "Written to read the shared text once it would need no memo: " + remedy + guarded
 				: $"'{pair.Rule.Name}' {shape}, and after {pair.Witness} both read the same text through the recursion " +
 				  "the rule stands in before the first can be refused: a nest of that text is read once per " +
 				  $"alternative at every level, doubling with the depth, and the parser cannot remember the recursion's successes here ({why ?? "no reader of this file reads the rule"}). " +
@@ -5359,7 +5360,8 @@ file.Line("return spare;");
 					$"; not {unasked.Count}" +
 					(unasked.Count > 0 ? ": " + string.Join(", ", unasked) : "") +
 					$"; kept {kept.Count}" +
-					(kept.Count > 0 ? ": " + string.Join(", ", kept) : ""));
+					(kept.Count > 0 ? ": " + string.Join(", ", kept) : "") +
+					(machine.KeptAlwaysWhy is { } always ? "; every success stored: " + always : ""));
 		}
 	}
 

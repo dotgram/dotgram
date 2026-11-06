@@ -4866,7 +4866,16 @@ sealed partial class Machine
 					code.Line();
 				}
 
+				var (raised, restored) = Pending(body);
+
+				foreach (var line in raised)
+					code.Line(line);
+
 				code.Line($"var {turn} = {call};");
+
+				foreach (var line in restored)
+					code.Line(line);
+
 				code.Line();
 
 				// A turn that ends where it began is not taken, and the loop ends before it — but one

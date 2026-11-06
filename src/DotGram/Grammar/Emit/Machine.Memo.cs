@@ -85,8 +85,13 @@ namespace DotGram.Grammar.Emit;
 /// of that is let go with the reading. And only for the rules the failure memo remembers, under
 /// the same contract (a rule's answer is a function of where it begins), at strength zero,
 /// outside a look, for a reading of four tokens or more, and where the reading builds: a success
-/// read unbuilt left no value to hand over, and is remembered as that. What it costs is a store
-/// at each success of a remembered rule on the accepted path, and 8 bytes a token a rule.
+/// read unbuilt left no value to hand over, and is remembered as that. And a success is stored
+/// only while the reading is inside an earlier alternative of a choice that keeps the rule, which
+/// the reader counts (<see cref="KeepsPending"/>): a text whose first alternative wins stores
+/// nothing. Every success is stored instead where some flagged alternative is not counted around
+/// — read in place rather than called, or in a clone of its rule the reader could not match to the
+/// choice the analysis named — and the carriers report says so. What it costs then is a store at
+/// each success of a remembered rule inside such an alternative, and 8 bytes a token a rule.
 /// </para>
 /// </remarks>
 sealed partial class Machine
@@ -215,10 +220,17 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Whether every success is stored, the count notwithstanding: a flagged alternative the reader
-	/// does not count around (a repetition's turn, an alternative read in place), or a flagged rule
-	/// with a clone the analysis did not name, would otherwise leave its nest unremembered.
+	/// does not count around (an alternative read in place rather than called), or a clone of a
+	/// flagged rule whose own choice could not be matched to the one the analysis named, would
+	/// otherwise leave its nest unremembered.
 	/// </summary>
 	bool _keptAlways;
+
+	/// <summary>Why every success is stored, for the carriers report; empty where the count decides.</summary>
+	readonly List<string> _keptAlwaysWhy = [];
+
+	/// <summary>Why every success is stored rather than those inside a flagged alternative, or null where the count decides.</summary>
+	internal string? KeptAlwaysWhy => _keptAlways && Keeps ? string.Join("; ", _keptAlwaysWhy.Distinct()) : null;
 
 	/// <summary>
 	/// Whether the reader counts the flagged alternatives it is inside, a count a kept rule, and
@@ -279,6 +291,7 @@ sealed partial class Machine
 	{
 		_pendingFirsts.Clear();
 		_wrapped.Clear();
+		_keptAlwaysWhy.Clear();
 		_keptAlways = false;
 
 		if (SharedChoices is null)
@@ -289,26 +302,72 @@ sealed partial class Machine
 			if (pair.Level < SharedRecursion.Remembered || pair.Shape == "?=")
 				continue;
 
-			// A clone of the choice's rule has a choice of its own the analysis did not name.
-			if (rules.Any(rule => !ReferenceEquals(rule, pair.Rule) && ReferenceEquals(_graph.Origin(rule), _graph.Origin(pair.Rule))))
-				_keptAlways = true;
-
-			switch (pair.Choice)
+			// The choice as the analysis named it, in the rule it walked; and the same choice in every
+			// clone of that rule this reader reads — a clone is walked in the same order, so the choice
+			// is the one at the same place among the clone's.
+			foreach (var rule in rules)
 			{
-				case Node.Choice { Selection: null } choice when pair.First <= choice.Nodes.Count:
-					Pend(choice.Nodes[pair.First - 1], pair);
-					break;
+				if (!ReferenceEquals(_graph.Origin(rule), _graph.Origin(pair.Rule)))
+					continue;
 
-				case Node.Repeat { Min: 0, Max: 1 } option:
-					Pend(option.Body, pair);
-					break;
+				var choice = ReferenceEquals(rule, pair.Rule) ? pair.Choice : CloneOf(rule, pair);
 
-				// A repetition's turn is not counted around: its ending is no failure, and nothing restores a count at a loop's end.
-				default:
+				if (choice is null)
+				{
 					_keptAlways = true;
-					break;
+					_keptAlwaysWhy.Add($"'{pair.Rule.Name}' has a clone whose choice could not be matched to the one the analysis named");
+
+					continue;
+				}
+
+				switch (choice)
+				{
+					case Node.Choice { Selection: null } alternatives when pair.First <= alternatives.Nodes.Count:
+						Pend(alternatives.Nodes[pair.First - 1], pair);
+						break;
+
+					// An option's reading, or a repetition's turn: a part called from the loop, counted around as an alternative is.
+					case Node.Repeat repeat:
+						Pend(repeat.Body, pair);
+						break;
+
+					default:
+						_keptAlways = true;
+						_keptAlwaysWhy.Add($"'{pair.Rule.Name}' has a choice of a shape the reader does not count around ({pair.Shape})");
+						break;
+				}
 			}
 		}
+	}
+
+	/// <summary>
+	/// The choice of a clone that stands where the analysis's choice stands in the rule it walked:
+	/// the one at the same place among the clone's choices and repetitions, of the same kind and
+	/// width; null where the clone's body is not laid out as the original's.
+	/// </summary>
+	Node? CloneOf(RuleSymbol clone, SharedRecursion.Pair pair)
+	{
+		if (!_graph.Bodies.TryGetValue(pair.Rule, out var original) || !_graph.Bodies.TryGetValue(clone, out var body))
+			return null;
+
+		var place = Choices(original).FindIndex(node => ReferenceEquals(node, pair.Choice));
+		var own   = Choices(body);
+
+		if (place < 0 || place >= own.Count)
+			return null;
+
+		return (pair.Choice, own[place]) switch
+		{
+			(Node.Choice a, Node.Choice b) when a.Nodes.Count == b.Nodes.Count && (a.Selection is null) == (b.Selection is null) => b,
+			(Node.Repeat a, Node.Repeat b) when a.Min == b.Min && a.Max == b.Max => b,
+			_ => null,
+		};
+	}
+
+	/// <summary>Every choice and repetition of a body, in the order a walk meets them.</summary>
+	static List<Node> Choices(Node body)
+	{
+		return NodeWalk.Descendants(body).Where(static node => node is Node.Choice or Node.Repeat).ToList();
 	}
 
 	void Pend(Node alternative, SharedRecursion.Pair pair)
@@ -322,8 +381,12 @@ sealed partial class Machine
 	/// <summary>After the readers were first rendered: a flagged alternative none counted around means every success is stored.</summary>
 	void SettlePending()
 	{
-		if (_pendingFirsts.Keys.Any(node => !_wrapped.Contains(node)))
-			_keptAlways = true;
+		foreach (var entry in _pendingFirsts)
+			if (!_wrapped.Contains(entry.Key))
+			{
+				_keptAlways = true;
+				_keptAlwaysWhy.Add($"'{entry.Value[0].Rule.Name}' has an alternative the reader reads in place rather than calls");
+			}
 	}
 
 	/// <summary>Whether anything this machine's reader writes is read inside a look: set where a look is written.</summary>
