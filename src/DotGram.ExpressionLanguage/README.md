@@ -1,8 +1,8 @@
-﻿<!--
-  Agents: the skill for this package is SKILL.md, beside this file in the package
-  directory — which entry point to use, who is calling, how names are found, what a text
+<!--
+  Agents: the skill for this package is skills/dotgram-expression-language/SKILL.md
+  in the package directory — which entry point to use, who is calling, how names are found, what a text
   may say and where it is not C#. Read it before writing code against the package. In a
-  restored package that is ~/.nuget/packages/dotgram.expressionlanguage/<version>/SKILL.md.
+  restored package that is ~/.nuget/packages/dotgram.expressionlanguage/<version>/skills/dotgram-expression-language/SKILL.md.
 -->
 # DotGram.ExpressionLanguage
 

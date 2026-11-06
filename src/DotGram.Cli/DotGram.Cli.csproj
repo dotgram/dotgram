@@ -63,8 +63,9 @@
 
 	<ItemGroup>
 		<AdditionalFiles Include="CommandLine.gram" />
-		<EmbeddedResource Include="SKILL.md" LogicalName="DotGram.Cli.SKILL.md" />
-		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+		<EmbeddedResource Include="..\Skills\dotgram-cli\SKILL.md" LogicalName="DotGram.Cli.SKILL.md" />
+		<None Include="..\Skills\dotgram-cli\**\*.md" Pack="true"
+		      PackagePath="skills/dotgram-cli/%(RecursiveDir)%(Filename)%(Extension)" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
 		<InternalsVisibleTo Include="DotGram.Cli.Tests" />
 	</ItemGroup>

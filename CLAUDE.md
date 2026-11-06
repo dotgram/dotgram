@@ -1,4 +1,4 @@
-﻿# Project instructions
+# Project instructions
 
 ## Coding conventions
 
@@ -57,9 +57,8 @@ src/
 		                  which every editor host imports
 		README.md         the package's own front page, not the repository's: what to
 		                  write once it is installed, and links back for the rest
-		SKILL.md          how to write a grammar, for an agent. Ships in the package
-		                  beside that README, which points at it in a comment nothing
-		                  renders
+	Skills/              package skills, one folder per frontmatter name; packed under skills/.
+	                      README.md is for maintainers and is not packed
 	DotGram.Cli/          the generator as a .NET tool, dotnet dotgram: writes the parsers a
 	                      build would generate, so that a project compiles them without
 	                      referencing the package (docs/cli.md)

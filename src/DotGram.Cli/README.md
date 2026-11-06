@@ -1,7 +1,7 @@
 <!--
-  Agents: `dotnet dotgram --skill` prints the guide for this tool, and SKILL.md beside this
-  file in the package is the same text. In a restored package that is
-  ~/.nuget/packages/dotgram.cli/<version>/SKILL.md.
+  Agents: `dotnet dotgram --skill` prints the guide for this tool, and
+  skills/dotgram-cli/SKILL.md in the package is the same text. In a restored package that is
+  ~/.nuget/packages/dotgram.cli/<version>/skills/dotgram-cli/SKILL.md.
 -->
 # DotGram.Cli
 

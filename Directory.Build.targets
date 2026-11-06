@@ -52,19 +52,20 @@
 	</UsingTask>
 
 	<Target Name="_DotGramPinPackedPages" BeforeTargets="_GetPackageFiles">
-		<ItemGroup>
-			<_DotGramPage Include="@(None)" Condition="'%(None.Pack)' == 'true' And ('%(None.Filename)%(None.Extension)' == 'README.md' Or '%(None.Filename)%(None.Extension)' == 'SKILL.md')" />
-		</ItemGroup>
-
 		<PropertyGroup>
 			<_DotGramPinned>$(IntermediateOutputPath)pinned\</_DotGramPinned>
 		</PropertyGroup>
 
+		<ItemGroup>
+			<_DotGramPage Include="@(None)" Condition="'%(None.Pack)' == 'true' And '%(None.Extension)' == '.md'">
+				<PinnedPath>$(_DotGramPinned)$([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '%(None.FullPath)'))</PinnedPath>
+			</_DotGramPage>
+		</ItemGroup>
+
 		<!-- Two pages may share a filename (a package's own README.md and a subfolder's, say),
-		     so the pinned copy keeps the source's own subfolder under the pinned root rather than
-		     flattening every page into one directory, where the second page pinned would overwrite
-		     the first. -->
-		<MakeDir Directories="@(_DotGramPage->'$(_DotGramPinned)%(RelativeDir)')" Condition="'@(_DotGramPage)' != ''" />
+		     so the pinned copy keeps the source's path from the repository root. Shared skill
+		     sources are outside the project directory; their ../ must not escape the pinned root. -->
+		<MakeDir Directories="$([System.IO.Path]::GetDirectoryName('%(_DotGramPage.PinnedPath)'))" Condition="'@(_DotGramPage)' != ''" />
 
 		<!-- The copy is made by a task of its own rather than by WriteLinesToFile over a property
 		     function: MSBuild on Unix takes a backslash in such a value for a path separator and turns it
@@ -73,12 +74,12 @@
 		     stay as they are. -->
 		<_DotGramPinPage Condition="'@(_DotGramPage)' != ''"
 		                 Source="%(_DotGramPage.FullPath)"
-		                 Destination="$(_DotGramPinned)%(_DotGramPage.RelativeDir)%(_DotGramPage.Filename)%(_DotGramPage.Extension)"
+		                 Destination="%(_DotGramPage.PinnedPath)"
 		                 Version="$(Version)" />
 
 		<ItemGroup>
 			<None Remove="@(_DotGramPage)" />
-			<None Include="$(_DotGramPinned)%(_DotGramPage.RelativeDir)%(_DotGramPage.Filename)%(_DotGramPage.Extension)" Pack="true" PackagePath="%(_DotGramPage.PackagePath)" />
+			<None Include="%(_DotGramPage.PinnedPath)" Pack="true" PackagePath="%(_DotGramPage.PackagePath)" />
 		</ItemGroup>
 	</Target>
 </Project>

@@ -167,10 +167,11 @@ KNOWN ISSUES
 		<None Include="README.md" Pack="true" PackagePath="\" />
 		<None Include="build/DotGram.targets" Pack="true" PackagePath="build/" />
 
-		<!-- And the skill beside it, so that an agent working in a project that has
+		<!-- And the skill under skills/dotgram/, so that an agent working in a project that has
 		     restored this package can read how to write a grammar without leaving the
 		     machine. The README says where it is, in a comment nothing renders. -->
-		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+		<None Include="..\Skills\dotgram\**\*.md" Pack="true"
+		      PackagePath="skills/dotgram/%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<!-- Puts the assembly in the analyzer folder of the package. Done as a pack-time

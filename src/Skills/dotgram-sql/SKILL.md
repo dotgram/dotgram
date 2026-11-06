@@ -1,6 +1,6 @@
 ---
 name: dotgram-sql
-description: Parse SQL text into a tree of records with DotGram.Sql — T-SQL as SQL Server reads it (statements, whole texts, scripts cut into batches as sqlcmd cuts them, a database's compatibility level, source locations), ISO SQL:2023 as the standard writes it, and SQL-92. Use when a project references the DotGram.Sql package, or when SQL text has to be read, checked, walked or printed back without a database. Not a database client, a query builder or a formatter: it reads syntax, and a statement it reads may still name tables and columns that do not exist.
+description: Parse SQL text into a tree of records with DotGram.Sql — T-SQL as SQL Server reads it (statements, whole texts, scripts cut into batches as sqlcmd cuts them, a database's compatibility level, source locations), ISO SQL:2023 as the standard writes it, and SQL-92. Use when a project references the DotGram.Sql package, or when SQL text has to be read, checked, walked or printed back without a database. Not a database client, a query builder or a formatter; it reads syntax, and a statement it reads may still name tables and columns that do not exist.
 ---
 
 # DotGram.Sql
@@ -8,7 +8,7 @@ description: Parse SQL text into a tree of records with DotGram.Sql — T-SQL as
 Three parsers, each a grammar of its own, and the trees they build. There is no runtime behind
 them and nothing to configure: the parsers were generated when the package was compiled.
 
-The [README][readme] beside this file lists what each parser reads and what it publishes. This
+The package's [README][readme] lists what each parser reads and what it publishes. This
 is what to decide before using one, the contract they share, and what is easy to get wrong.
 
 [readme]: https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql

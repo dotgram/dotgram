@@ -11,6 +11,9 @@
 
 set -euo pipefail
 
+python3 -B .github/scripts/test-check-skills.py
+python3 -B .github/scripts/check-skills.py artifacts
+
 cd artifacts
 
 # Every page a package ships is its source in the repository, byte for byte, apart from the one
@@ -21,14 +24,17 @@ check_pages() {
   local dir="$1" id="$2" version page source
   version=$(grep -oP '(?<=<version>)[^<]+' "$dir/$id.nuspec")
   while IFS= read -r page; do
-    source="../src/$id/${page#"$dir"/}"
+		case "${page#"$dir"/}" in
+			skills/*) source="../src/Skills/${page#"$dir"/skills/}" ;;
+			*)        source="../src/$id/${page#"$dir"/}" ;;
+		esac
     test -f "$source" || { echo "$id: $page has no source at $source"; exit 1; }
     if ! sed -E "s#/(blob|tree)/main/#/\1/v$version/#g" "$source" | cmp -s - "$page"; then
       echo "$id: $page is not its source with the links pinned:"
       sed -E "s#/(blob|tree)/main/#/\1/v$version/#g" "$source" | diff - "$page" | head -20 || true
       exit 1
     fi
-  done < <(find "$dir" -type f \( -name README.md -o -name SKILL.md \) | sort)
+  done < <(find "$dir" -type f \( -name README.md -o -path "$dir/skills/*.md" \) | sort)
 }
 
 # An analyzer package is the opposite shape of a library: the assembly is in analyzers/ and there
@@ -38,7 +44,6 @@ check_analyzer() {
   unzip -o -q "$2".[0-9]*.nupkg -d "$1"
   test -f "$1/analyzers/dotnet/cs/$2.dll" || { echo "$2: analyzer assembly missing"; exit 1; }
   test -f "$1/README.md"                  || { echo "$2: readme missing";            exit 1; }
-  test -f "$1/SKILL.md"                   || { echo "$2: skill missing";             exit 1; }
   if [ -d "$1/lib" ]; then echo "$2 has a lib/ folder:"; find "$1/lib" -type f; exit 1; fi
   check_pages "$1" "$2"
 }
@@ -56,7 +61,7 @@ check_face() {
 
   # The packed pages link to this version's tag: a link to main would change under a package that
   # cannot, and the pack is what rewrites them, so the packed copies are what to look at.
-  if grep -nE '/(blob|tree)/main/' "$1/README.md" "$1/SKILL.md"; then echo "$1: a packed page links to main"; exit 1; fi
+  if grep -nE '/(blob|tree)/main/' "$1/README.md" "$1"/skills/*/SKILL.md; then echo "$1: a packed page links to main"; exit 1; fi
 }
 check_face generator
 
@@ -85,7 +90,6 @@ check_library() {
     test -f "$dir/lib/$tfm/$id.dll" || { echo "$id: $tfm assembly missing"; exit 1; }
   done
   test -f "$dir/README.md" || { echo "$id: readme missing"; exit 1; }
-  test -f "$dir/SKILL.md"  || { echo "$id: skill missing";  exit 1; }
   if [ -d "$dir/analyzers" ]; then echo "$id carries the generator:"; find "$dir/analyzers" -type f; exit 1; fi
   check_face "$dir"
   check_pages "$dir" "$id"
@@ -107,13 +111,13 @@ check_library expressions DotGram.ExpressionLanguage "System.Memory" ""
 
 # DotGram.Finance ships the FIX reference beside the fields and messages it documents, for an
 # agent reading the restored package with no repository to browse; its pack-time link pinning is
-# checked here too, since check_face only looks at the top-level README.md and SKILL.md.
+# checked here too, since check_face only looks at the package README.md and skill entry point.
 test -f "finance/Fix/README.md" || { echo "DotGram.Finance: Fix/README.md missing"; exit 1; }
 if grep -nE '/(blob|tree)/main/' "finance/Fix/README.md"; then echo "DotGram.Finance: Fix/README.md links to main"; exit 1; fi
 
 # The tool is a third shape: a DotnetTool package, its commands in tools/<tfm>/any/, the assemblies it
 # needs beside them (the reference assemblies it compiles against among them, so that nothing depends on
-# what is installed where it runs), the page and the skill at the root, and no dependency at all — least
+# what is installed where it runs), the page at the root and the skill under skills/, and no dependency at all — least
 # of all on the DotGram package, which the tool carries inside it. It is large, because of those
 # references; a size past the bound below is something that got in.
 check_tool() {
@@ -128,7 +132,6 @@ check_tool() {
     test -f "$dir/tools/net8.0/any/$assembly.dll" || { echo "$id: $assembly.dll missing"; exit 1; }
   done
   test -f "$dir/README.md" || { echo "$id: readme missing"; exit 1; }
-  test -f "$dir/SKILL.md"  || { echo "$id: skill missing";  exit 1; }
   if grep -q '<dependency ' "$dir/$id.nuspec"; then echo "$id depends on:"; grep '<dependency ' "$dir/$id.nuspec"; exit 1; fi
   check_face "$dir"
   check_pages "$dir" "$id"

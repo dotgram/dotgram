@@ -110,10 +110,11 @@ CHANGED
 		     calling. -->
 		<None Include="README.md" Pack="true" PackagePath="\" />
 
-		<!-- And the skill beside it, so that an agent in a project that has restored this
+		<!-- And the skill under skills/dotgram-web/, so that an agent in a project that has restored this
 		     package can read how to use it without leaving the machine. The README says
 		     where it is, in a comment nothing renders. -->
-		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+		<None Include="..\Skills\dotgram-web\**\*.md" Pack="true"
+		      PackagePath="skills/dotgram-web/%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 </Project>

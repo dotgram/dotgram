@@ -1,8 +1,8 @@
-﻿<!--
-  Agents: the skill for this package is SKILL.md, beside this file in the package
-  directory — which parser to take, the contract they share, and what is easy to get
+<!--
+  Agents: the skill for this package is skills/dotgram-sql/SKILL.md
+  in the package directory — which parser to take, the contract they share, and what is easy to get
   wrong. Read it before writing code against the package. In a restored package that is
-  ~/.nuget/packages/dotgram.sql/<version>/SKILL.md.
+  ~/.nuget/packages/dotgram.sql/<version>/skills/dotgram-sql/SKILL.md.
 -->
 # DotGram.Sql
 

@@ -89,10 +89,11 @@ FASTER
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
 
-		<!-- The skill beside it, so that an agent working in a project that has restored
+		<!-- The skill under skills/dotgram-expression-language/, so that an agent working in a project that has restored
 		     this package can read how to use it without leaving the machine. The README
 		     says where it is, in a comment nothing renders. -->
-		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+		<None Include="..\Skills\dotgram-expression-language\**\*.md" Pack="true"
+		      PackagePath="skills/dotgram-expression-language/%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
 	<ItemGroup>

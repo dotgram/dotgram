@@ -261,7 +261,18 @@ static class ShippedPages
 	/// <summary>Where a package's pages are, from a type it ships.</summary>
 	public static string PageOf(Type shipped, string name)
 	{
-		return Path.Combine(Root, "src", shipped.Assembly.GetName().Name!, name);
+		var package = shipped.Assembly.GetName().Name!;
+
+		if (name == "SKILL.md")
+		{
+			var skill = package == "DotGram.ExpressionLanguage"
+				? "dotgram-expression-language"
+				: package.ToLowerInvariant().Replace('.', '-');
+
+			return Path.Combine(Root, "src", "Skills", skill, name);
+		}
+
+		return Path.Combine(Root, "src", package, name);
 	}
 
 	static string Root => SourceRoot.Directory;

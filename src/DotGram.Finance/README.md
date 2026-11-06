@@ -1,8 +1,8 @@
 <!--
-  Agents: the skill for this package is SKILL.md, beside this file in the package
-  directory — which layer to use, how to read fields and messages, and the mistakes
+  Agents: the skill for this package is skills/dotgram-finance/SKILL.md
+  in the package directory — which layer to use, how to read fields and messages, and the mistakes
   that are easy to make. Read it before writing code against the package. In a
-  restored package that is ~/.nuget/packages/dotgram.finance/<version>/SKILL.md.
+  restored package that is ~/.nuget/packages/dotgram.finance/<version>/skills/dotgram-finance/SKILL.md.
 -->
 
 # DotGram.Finance

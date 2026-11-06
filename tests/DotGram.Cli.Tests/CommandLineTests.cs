@@ -257,7 +257,7 @@ public sealed class CommandLineTests
 		Assert.Equal(0, run.Exit);
 		Assert.StartsWith("---\r\nname: dotgram-cli\r\n", run.Output, StringComparison.Ordinal);
 		Assert.Equal(
-			File.ReadAllText(Path.Combine(Repository.Root, "src", "DotGram.Cli", "SKILL.md")),
+			File.ReadAllText(Path.Combine(Repository.Root, "src", "Skills", "dotgram-cli", "SKILL.md")),
 			run.Output);
 	}
 

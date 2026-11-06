@@ -1,6 +1,6 @@
 ---
 name: dotgram-web
-description: Read the formats of the web exactly as their RFCs define them with DotGram.Web — JSON without losing a digit, JSON Pointer and Patch, HTTP header fields (Content-Type, Accept, Structured Fields, Link, Content-Disposition, cookies, Forwarded), URIs and URI Templates, email addresses, RFC 3339 timestamps and BCP 47 language tags. Use when a project references the DotGram.Web package, or when a value has to be read the way its specification says rather than approximately. Not a serializer, an HTTP client or a cookie store: it reads values and writes them back in canonical form, and binds nothing to your types.
+description: Read the formats of the web exactly as their RFCs define them with DotGram.Web — JSON without losing a digit, JSON Pointer and Patch, HTTP header fields (Content-Type, Accept, Structured Fields, Link, Content-Disposition, cookies, Forwarded), URIs and URI Templates, email addresses, RFC 3339 timestamps and BCP 47 language tags. Use when a project references the DotGram.Web package, or when a value has to be read the way its specification says rather than approximately. Not a serializer, an HTTP client or a cookie store; it reads values and writes them back in canonical form, and binds nothing to your types.
 ---
 
 # DotGram.Web
@@ -8,7 +8,7 @@ description: Read the formats of the web exactly as their RFCs define them with 
 One parser per specification, each held to the test suite written for it. Everything is in
 the `DotGram.Web` namespace; there is no runtime behind the parsers and nothing to configure.
 
-The [README][readme] beside this file shows every format with examples. This is what to decide
+The package's [README][readme] shows every format with examples. This is what to decide
 before using one, the contract they all share, and what is easy to get wrong.
 
 [readme]: https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web

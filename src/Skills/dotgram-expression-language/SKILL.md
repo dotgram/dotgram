@@ -1,4 +1,4 @@
-﻿---
+---
 name: dotgram-expression-language
 description: Turn C#-style lambda text into System.Linq.Expressions trees or compiled delegates at run time with DotGram.ExpressionLanguage — ExpressionParser.Compile, Parse and TryParse. Use when a project references the DotGram.ExpressionLanguage package, or when asked to evaluate user-written formulas, rules or small code blocks as .NET delegates or expression trees. Not a C# compiler — one lambda per text, no classes, methods, async or query syntax — and not a sandbox.
 ---
@@ -11,7 +11,7 @@ compiles that tree to a delegate. Everything is `ExpressionParser`, in the
 `DotGram.ExpressionLanguage` namespace. There is no runtime to deploy and nothing to
 configure.
 
-The [README][readme] beside this file is the reference, and the comment at the top of
+The package's [README][readme] is the reference, and the comment at the top of
 [`ExpressionParser.cs`][source] lists every place the language is not C#, with the reason
 for each. This is the order to decide things in, and the mistakes that are easy to make.
 

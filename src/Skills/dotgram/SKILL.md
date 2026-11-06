@@ -1,6 +1,6 @@
-﻿---
+---
 name: dotgram
-description: Write, publish and debug .Gram grammars — the notation, its seam with C#, and what the generator's diagnostics mean. Use when a project references the DotGram package, when a file carries a [Gram] attribute or has a .gram extension, or when asked in so many words for a parser written in .Gram. Not for reading a format in C# generally: a regular expression, System.Text.Json or a hand-written reader is often the right answer, and this says nothing about them.
+description: Write, publish and debug .Gram grammars — the notation, its seam with C#, and what the generator's diagnostics mean. Use when a project references the DotGram package, when a file carries a [Gram] attribute or has a .gram extension, or when asked in so many words for a parser written in .Gram. Not for reading a format in C# generally; a regular expression, System.Text.Json or a hand-written reader is often the right answer, and this says nothing about them.
 ---
 
 # .Gram
@@ -17,8 +17,8 @@ one tree of records; an expression language; a FIX message format; and RFC 3986,
 RFC 9651 among others — are [`DotGram.Sql`][sql], [`DotGram.ExpressionLanguage`][expressions],
 [`DotGram.Finance`][finance] and [`DotGram.Web`][web].
 
-**Each of those four library packages ships its own `SKILL.md` beside its `README.md`** —
-read the one beside the package you are using for what its parsers publish and where they
+**Each of those four library packages ships its own `skills/<name>/SKILL.md`** —
+read the one for the package you are using for what its parsers publish and where they
 are easy to get wrong; this file is only the notation they are written in.
 
 [syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
