@@ -443,6 +443,18 @@ parse Run
 === GRAM4053
 A = 'a' & when @(parserInput.Length > 0)
 parse A
+=== GRAM4054 lexical
+trivia = { ' '* }
+namespace Lexical
+{
+	trivia = none
+	Name = ['a'..'z']+
+}
+Start = A & eof
+A = B | C | Lexical.Name
+B = '(' & A & ')' & '+'
+C = '(' & A & ')' & '-'
+parse Start
 === GRAM5001
 A = 'a' & any* & 'b'
 find A

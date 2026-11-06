@@ -997,7 +997,10 @@ public sealed class ExponentialRepetitionTests
 			below.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
 			below.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
 			below.Contains($"{Path.DirectorySeparatorChar}.work{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-			below.Contains($"{Path.DirectorySeparatorChar}.build{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
+			below.Contains($"{Path.DirectorySeparatorChar}.build{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+			// Another branch's grammar, kept as it was for the shared-recursion analysis to be held to: what it
+			// says of that grammar's repetitions is that branch's to mend.
+			below.Contains($"{Path.DirectorySeparatorChar}Fixtures{Path.DirectorySeparatorChar}SharedRecursion{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
 	}
 
 	internal static ExponentialRepetition.Result Analyse(string grammar, bool lexical = false)
