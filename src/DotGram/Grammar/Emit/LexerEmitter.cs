@@ -57,7 +57,7 @@ namespace DotGram.Grammar.Emit;
 /// locals.
 /// </para>
 /// </remarks>
-public static class LexerEmitter
+static class LexerEmitter
 {
 	/// <summary>Writes the scanner for a machine.</summary>
 	/// <param name="machine">What to write.</param>

@@ -82,9 +82,9 @@ public sealed class ReplayTests
 	/// does not.
 	/// </summary>
 	[Theory]
-	[InlineData("'q'", Replay.Because.Losing)]
-	[InlineData("'b'", Replay.Because.Follows)]
-	public void A_sibling_that_reads_nothing_begins_with_what_follows(string after, Replay.Because expected)
+	[InlineData("'q'", nameof(Replay.Because.Losing))]
+	[InlineData("'b'", nameof(Replay.Because.Follows))]
+	public void A_sibling_that_reads_nothing_begins_with_what_follows(string after, string expected)
 	{
 		var report = Report(
 			$$"""
@@ -94,7 +94,7 @@ public sealed class ReplayTests
 			parse Start
 			""");
 
-		Assert.Equal(expected, Of(report, "M"));
+		Assert.Equal(Enum.Parse<Replay.Because>(expected), Of(report, "M"));
 	}
 
 	/// <summary>
@@ -103,9 +103,9 @@ public sealed class ReplayTests
 	/// <c>'d'</c> does not come, and <c>('t' V 'd')? 't' 'q'</c> reads the <c>'t'</c> again.
 	/// </summary>
 	[Theory]
-	[InlineData("'u'", Replay.Because.Losing)]
-	[InlineData("'t' & 'q'", Replay.Because.Follows)]
-	public void A_failed_turn_is_replaced_only_by_what_can_begin_where_it_did(string after, Replay.Because expected)
+	[InlineData("'u'", nameof(Replay.Because.Losing))]
+	[InlineData("'t' & 'q'", nameof(Replay.Because.Follows))]
+	public void A_failed_turn_is_replaced_only_by_what_can_begin_where_it_did(string after, string expected)
 	{
 		var report = Report(
 			$$"""
@@ -114,7 +114,7 @@ public sealed class ReplayTests
 			parse Start
 			""");
 
-		Assert.Equal(expected, Of(report, "V"));
+		Assert.Equal(Enum.Parse<Replay.Because>(expected), Of(report, "V"));
 	}
 
 	/// <summary>
@@ -124,9 +124,9 @@ public sealed class ReplayTests
 	/// 'z'</c> can.
 	/// </summary>
 	[Theory]
-	[InlineData("'.'", Replay.Because.Losing)]
-	[InlineData("'a' & 'z'", Replay.Because.Follows)]
-	public void Past_the_seam_a_turn_is_told_from_what_follows(string after, Replay.Because expected)
+	[InlineData("'.'", nameof(Replay.Because.Losing))]
+	[InlineData("'a' & 'z'", nameof(Replay.Because.Follows))]
+	public void Past_the_seam_a_turn_is_told_from_what_follows(string after, string expected)
 	{
 		var report = Report(
 			$$"""
@@ -136,7 +136,7 @@ public sealed class ReplayTests
 			parse File
 			""");
 
-		Assert.Equal(expected, Of(report, "S"));
+		Assert.Equal(Enum.Parse<Replay.Because>(expected), Of(report, "S"));
 	}
 
 	/// <summary>

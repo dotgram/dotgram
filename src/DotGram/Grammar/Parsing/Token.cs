@@ -13,7 +13,7 @@ namespace DotGram.Grammar.Parsing;
 /// delimiters removed. Null for kinds with a fixed spelling. The source slice is
 /// still recoverable from <paramref name="Position"/> and <paramref name="Length"/>.
 /// </param>
-public readonly record struct Token(TokenKind Kind, int Position, int Length, string? Value)
+readonly record struct Token(TokenKind Kind, int Position, int Length, string? Value)
 {
 	/// <summary>
 	/// Quotes and backslashes in the value are escaped, so a value that itself
@@ -28,7 +28,7 @@ public readonly record struct Token(TokenKind Kind, int Position, int Length, st
 }
 
 /// <summary>The result of lexing: the tokens, and what went wrong producing them.</summary>
-public sealed class TokenList(
+sealed class TokenList(
 	IReadOnlyList<Token>          tokens,
 	IReadOnlyList<GramDiagnostic> diagnostics)
 {

@@ -32,7 +32,7 @@ namespace DotGram.Grammar.Model;
 /// of the runtime it is run on either.
 /// </para>
 /// </remarks>
-public static partial class CaseFold
+static partial class CaseFold
 {
 	/// <summary>
 	/// The characters an ignore-case <paramref name="value"/> matches, ascending and distinct;

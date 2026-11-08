@@ -21,7 +21,7 @@ namespace DotGram.Grammar.Binding;
 /// parameter order, which is the only place the order is load-bearing.
 /// </para>
 /// </remarks>
-public static class SuppliedNames
+static class SuppliedNames
 {
 	public static readonly IReadOnlyList<string> All =
 		[

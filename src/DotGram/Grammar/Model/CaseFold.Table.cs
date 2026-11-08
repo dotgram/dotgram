@@ -6,7 +6,7 @@ using System;
 
 namespace DotGram.Grammar.Model;
 
-public static partial class CaseFold
+static partial class CaseFold
 {
 	/// <summary>The Unicode version the tables below were written from.</summary>
 	public const string UnicodeVersion = "16.0.0";

@@ -45,7 +45,7 @@ namespace DotGram.Grammar.Model;
 /// repetition past either is counted and not told.
 /// </para>
 /// </remarks>
-public static class ExponentialRepetition
+static class ExponentialRepetition
 {
 	/// <summary>How many letters a repetition's automaton is given before a call is taken as opaque.</summary>
 	const int Positions = 256;

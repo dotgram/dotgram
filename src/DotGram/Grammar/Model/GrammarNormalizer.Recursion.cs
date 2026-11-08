@@ -46,7 +46,7 @@ namespace DotGram.Grammar.Model;
 /// the arena has a shape for it — see docs/next.md.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// Replace a leading call to a pass-through rule that forwards back to

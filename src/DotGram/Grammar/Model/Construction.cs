@@ -21,7 +21,7 @@ namespace DotGram.Grammar.Model;
 /// in which an author's expression happens to spell <c>&lt;sequence&gt;</c>.
 /// </para>
 /// </remarks>
-public abstract record Construction
+abstract record Construction
 {
 	/// <summary>The C# the grammar wrote, and where it wrote it (§7.6).</summary>
 	/// <param name="At">-1 for text this compiler wrote rather than read.</param>
@@ -83,4 +83,4 @@ public abstract record Construction
 }
 
 /// <summary>One property of a result written from one capture (§7.3).</summary>
-public readonly record struct PropertyBinding(string Property, string Capture);
+readonly record struct PropertyBinding(string Property, string Capture);

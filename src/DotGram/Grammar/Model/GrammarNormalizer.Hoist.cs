@@ -36,7 +36,7 @@ namespace DotGram.Grammar.Model;
 /// never happened.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// Rewrite <c>(t: X)+</c> as <c>t: (X+)</c> wherever the two mean the same text, and give

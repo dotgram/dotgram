@@ -2,7 +2,7 @@
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>
 	/// The three sinks a trace build carries ready-made: why an input was refused, an indented log

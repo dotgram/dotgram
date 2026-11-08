@@ -10,7 +10,7 @@ namespace DotGram.Grammar.Model;
 /// Turning the bound tree into nodes: one pass down a rule, and the folds that are
 /// safe to make on the way (§11).
 /// </summary>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// Every declared rule, collected before any of them is lowered.

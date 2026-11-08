@@ -22,7 +22,7 @@ namespace DotGram.Grammar.Model;
 /// is the whole of the feature: the factory reads the literal the call passed.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>What each value parameter stands for, as C#, while a specialization is lowered.</summary>
 	Dictionary<string, string> _values = new(StringComparer.Ordinal);

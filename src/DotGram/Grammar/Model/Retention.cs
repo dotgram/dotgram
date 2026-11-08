@@ -6,7 +6,7 @@ using DotGram.Grammar.Parsing;
 namespace DotGram.Grammar.Model;
 
 /// <summary>How much of a line a construct can take.</summary>
-public enum LineExtent
+enum LineExtent
 {
 	/// <summary>No path through it consumes a line terminator.</summary>
 	None,
@@ -40,7 +40,7 @@ public enum LineExtent
 /// one terminator, and a line ending is a character of a segment (<see cref="Extent"/>).
 /// </para>
 /// </remarks>
-public static class Retention
+static class Retention
 {
 	/// <summary>
 	/// What each rule can take, in lines.

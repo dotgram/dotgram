@@ -5,7 +5,7 @@ using System.Text;
 namespace DotGram.Grammar.Parsing;
 
 /// <summary>Where something is in the grammar text.</summary>
-public readonly record struct Location(int Position, int Length)
+readonly record struct Location(int Position, int Length)
 {
 	public int End => Position + Length;
 
@@ -23,14 +23,14 @@ public readonly record struct Location(int Position, int Length)
 /// they would ever need a common view. Uniform traversal across kinds, should it ever
 /// be wanted, is written against this rather than bought with a base class.
 /// </remarks>
-public interface ILocated
+interface ILocated
 {
 	Location At { get; }
 }
 
 // ── Products: no alternatives, so nothing to match on ────────────────────────────
 
-public sealed record GrammarFile(IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls, Location At) : ILocated
+sealed record GrammarFile(IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls, Location At) : ILocated
 {
 	public override string ToString()
 	{
@@ -38,9 +38,9 @@ public sealed record GrammarFile(IReadOnlyList<Using> Usings, IReadOnlyList<Decl
 	}
 }
 
-public sealed record Using     (bool IsCSharp, string Name, Location At)                  : ILocated;
-public sealed record Param     (string Name, TypeRef? Type, Location At)                  : ILocated;
-public sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Location At) : ILocated
+sealed record Using     (bool IsCSharp, string Name, Location At)                  : ILocated;
+sealed record Param     (string Name, TypeRef? Type, Location At)                  : ILocated;
+sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Location At) : ILocated
 {
 	/// <summary>What a generic C# type was given between its brackets, each a C# type itself.</summary>
 	/// <remarks>
@@ -56,10 +56,10 @@ public sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Loc
 		TypeArguments.Count == 0 ? Name : Name.Substring(0, Name.IndexOf('<')) + "`" + TypeArguments.Count;
 }
 
-public sealed record Rebinding (string Left, string Right, Location At)                   : ILocated;
+sealed record Rebinding (string Left, string Right, Location At)                   : ILocated;
 
 /// <summary><c>#q</c> in a count: the length of the text bound to <c>$q</c>, read when the count is reached.</summary>
-public sealed record LengthOf  (string Name, Location At)                                 : ILocated;
+sealed record LengthOf  (string Name, Location At)                                 : ILocated;
 
 // ── Sums: flat, one level of alternatives each ───────────────────────────────────
 
@@ -67,13 +67,13 @@ public sealed record LengthOf  (string Name, Location At)                       
 /// The two directives of §6, and the whole of the difference between them: whether
 /// input that does not match may sit between the matches.
 /// </summary>
-public enum PublishKind { Parse, Find, Yield }
+enum PublishKind { Parse, Find, Yield }
 
 /// <summary>Who may call what a directive publishes (§6): C#'s three, and public unless it says.</summary>
-public enum PublishAccess { Public, Internal, Private }
+enum PublishAccess { Public, Internal, Private }
 
 /// <summary>What a grammar file declares.</summary>
-public abstract record Decl : ILocated
+abstract record Decl : ILocated
 {
 	/// <remarks>
 	/// An init property rather than a positional parameter, deliberately: as a
@@ -157,10 +157,10 @@ public abstract record Decl : ILocated
 	}
 }
 
-public enum QuantifierKind { Optional, ZeroOrMore, OneOrMore, Count }
+enum QuantifierKind { Optional, ZeroOrMore, OneOrMore, Count }
 
 /// <summary>The shape of a recognition expression.</summary>
-public abstract record Expr : ILocated
+abstract record Expr : ILocated
 {
 	public required Location At { get; init; }
 
@@ -271,7 +271,7 @@ public abstract record Expr : ILocated
 }
 
 /// <summary>One member of an element set.</summary>
-public abstract record Elem : ILocated
+abstract record Elem : ILocated
 {
 	public required Location At { get; init; }
 

@@ -36,7 +36,7 @@ namespace DotGram.Grammar.Model;
 /// is a statement about its own rules too, however odd it would be to mean it.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	void UnweaveTrivia()
 	{

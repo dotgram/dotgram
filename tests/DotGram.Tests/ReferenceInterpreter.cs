@@ -39,7 +39,7 @@ namespace DotGram.Tests;
 /// constructions' C#. The fuzzer's grammar generator stays inside that fence.
 /// </para>
 /// </remarks>
-public static class ReferenceInterpreter
+static class ReferenceInterpreter
 {
 	/// <summary>Whether the whole input reads as <paramref name="rule"/> (§11 `parse`).</summary>
 	public static bool Parses(RecognitionGraph graph, RuleSymbol rule, string text)

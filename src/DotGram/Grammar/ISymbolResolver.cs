@@ -12,7 +12,7 @@ namespace DotGram.Grammar;
 /// a pure function of the grammar text. Keeping the dependency behind one small interface
 /// is what lets the rest be tested, and run, without Roslyn.
 /// </remarks>
-public interface ISymbolResolver
+interface ISymbolResolver
 {
 	/// <summary>Whether a C# type of this name is in scope.</summary>
 	bool TypeExists(string qualifiedName);
@@ -126,7 +126,7 @@ public interface ISymbolResolver
 }
 
 /// <summary>What asking about an external recognizer's value overload found.</summary>
-public enum ExternalValueResolution
+enum ExternalValueResolution
 {
 	/// <summary>
 	/// No <c>(ReadOnlySpan&lt;char&gt;, ref int, out T)</c> overload of this name is in
@@ -142,7 +142,7 @@ public enum ExternalValueResolution
 }
 
 /// <summary>How a grammar calls a C# method it names, which its position says (§7.1).</summary>
-public enum ExternalMethodRole
+enum ExternalMethodRole
 {
 	/// <summary>A bare <c>@Name</c> operand: <c>bool M(ReadOnlySpan&lt;char&gt; input, ref int pos)</c>, with or without <c>out T value</c>.</summary>
 	Recognizer,
@@ -152,7 +152,7 @@ public enum ExternalMethodRole
 }
 
 /// <summary>What asking whether a C# method can be called in its role found.</summary>
-public enum ExternalMethodResolution
+enum ExternalMethodResolution
 {
 	/// <summary>It can — or nothing says for certain that it cannot.</summary>
 	Found,
@@ -182,17 +182,17 @@ public enum ExternalMethodResolution
 /// <c>required</c>: not covering it is not an option, so a type with one the captures
 /// cannot fill is not a type these captures can build.
 /// </param>
-public readonly record struct ObjectMember(string Name, string Type, bool IsRequired);
+readonly record struct ObjectMember(string Name, string Type, bool IsRequired);
 
 /// <summary>One parameter of a C# method or constructor, as the host sees it.</summary>
 /// <param name="Type">Fully qualified, so the grammar half can hand it back unchanged.</param>
-public readonly record struct MethodParameter(string Name, string Type, bool IsOptional);
+readonly record struct MethodParameter(string Name, string Type, bool IsOptional);
 
 /// <summary>
 /// Accepts every name it is asked about. For tests and tooling that exercise the
 /// grammar side without a host compilation; never correct for real generation.
 /// </summary>
-public sealed class PermissiveSymbolResolver : ISymbolResolver
+sealed class PermissiveSymbolResolver : ISymbolResolver
 {
 	public static readonly PermissiveSymbolResolver Instance = new();
 
@@ -315,7 +315,7 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 /// resolver that does see the host can be told to doubt itself.
 /// </para>
 /// </remarks>
-public sealed class UnseenHostSymbolResolver : ISymbolResolver
+sealed class UnseenHostSymbolResolver : ISymbolResolver
 {
 	public static readonly UnseenHostSymbolResolver Instance = new();
 

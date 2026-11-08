@@ -32,7 +32,7 @@ namespace DotGram.Grammar;
 /// what <see cref="ILineMap"/> asks for over a guess.
 /// </para>
 /// </remarks>
-public static class GrammarSplice
+static class GrammarSplice
 {
 	/// <summary>One grammar going into the joined text.</summary>
 	/// <param name="Text">Its own text, which is copied in unchanged.</param>

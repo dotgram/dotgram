@@ -6,7 +6,7 @@ using DotGram.Grammar.Binding;
 
 namespace DotGram.Grammar.Model;
 
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>Shares committed token prefixes after lexical splitting has succeeded.</summary>
 	internal static void FactorCommittedPrefixes(
