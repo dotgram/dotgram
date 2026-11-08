@@ -6,7 +6,7 @@ using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// A nested construction owns its captures and value, just like a named rule.

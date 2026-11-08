@@ -12,7 +12,7 @@ namespace DotGram.Grammar.Model;
 /// the only genuinely new step is splicing a rewritten subtree back into the rule that
 /// contains it, since a `with` declares no block of its own to specialize.
 /// </summary>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// One pending `with` site, recorded while lowering the rule it sits in: which rule

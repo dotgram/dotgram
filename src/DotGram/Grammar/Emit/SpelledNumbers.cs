@@ -26,7 +26,7 @@ namespace DotGram.Grammar.Emit;
 /// be counted as code of the method above it.
 /// </para>
 /// </remarks>
-public static class SpelledNumbers
+static class SpelledNumbers
 {
 	/// <summary>How many bits of a number one byte of its spelling carries.</summary>
 	public const int Bits = 5;

@@ -6,7 +6,7 @@ using DotGram.Grammar.Binding;
 namespace DotGram.Grammar.Model;
 
 /// <summary>An inclusive range of input items.</summary>
-public readonly record struct CharRange(char From, char To)
+readonly record struct CharRange(char From, char To)
 {
 	public bool IsSingle => From == To;
 
@@ -48,7 +48,7 @@ public readonly record struct CharRange(char From, char To)
 /// did would buy speed at the cost of every message.
 /// </para>
 /// </remarks>
-public abstract record Node
+abstract record Node
 {
 	/// <summary>
 	/// The operands this node is written over, in the order the notation writes them.
@@ -485,7 +485,7 @@ public abstract record Node
 /// made for another rule or another specialization gets symbols of its own.
 /// </para>
 /// </remarks>
-public sealed class TextBinding(RuleSymbol rule, int index, string name, int at)
+sealed class TextBinding(RuleSymbol rule, int index, string name, int at)
 {
 	/// <summary>The rule whose text declared it — for a copy, the rule it was copied from.</summary>
 	public RuleSymbol Rule { get; } = rule;
@@ -512,7 +512,7 @@ public sealed class TextBinding(RuleSymbol rule, int index, string name, int at)
 }
 
 /// <summary>One bound of a <see cref="Node.Counted"/>: a number, or the length of a bound text.</summary>
-public abstract record CountBound
+abstract record CountBound
 {
 	/// <summary>A number known when the parser is generated.</summary>
 	public sealed record Items(int Count) : CountBound
@@ -541,7 +541,7 @@ public abstract record CountBound
 /// The whole grammar after normalization: one node per rule, plus what was worked out
 /// about them.
 /// </summary>
-public sealed class RecognitionGraph(
+sealed class RecognitionGraph(
 	IReadOnlyList<RuleSymbol>                                    rules,
 	IReadOnlyDictionary<RuleSymbol, Node>                        bodies,
 	IReadOnlyDictionary<RuleSymbol, bool>                        nullable,

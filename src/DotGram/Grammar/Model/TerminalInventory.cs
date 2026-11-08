@@ -43,7 +43,7 @@ using Text = (string Text, bool IgnoreCase);
 /// for the same reason: this decides nothing that depends on a caller.
 /// </para>
 /// </remarks>
-public sealed class TerminalInventory
+sealed class TerminalInventory
 {
 	TerminalInventory(
 		bool applies,

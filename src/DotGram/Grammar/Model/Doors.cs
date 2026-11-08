@@ -27,7 +27,7 @@ namespace DotGram.Grammar.Model;
 /// contain the same one thing and factoring is invisible.
 /// </para>
 /// </remarks>
-public static class Doors
+static class Doors
 {
 	/// <summary>The same question of every rule, settled rather than walked.</summary>
 	/// <remarks>

@@ -19,7 +19,7 @@ namespace DotGram.Grammar;
 /// <c>ToDisplayString</c> gives back for comparing against.
 /// </para>
 /// </remarks>
-public static class GramMetadataNames
+static class GramMetadataNames
 {
 	/// <summary>The namespace every attribute of the generator is emitted into.</summary>
 	public const string Namespace = "DotGram";

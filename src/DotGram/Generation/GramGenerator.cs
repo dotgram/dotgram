@@ -45,14 +45,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// The stages, named so that what re-ran can be read back.
 	/// </summary>
 	/// <remarks>
-	/// Public because the names are how the incremental behaviour is checked at all —
-	/// Roslyn reports a step under the name it was given and under no other — and a
-	/// property nothing can observe is a property nothing keeps.
+	/// Visible to the tests because the names are how the incremental behaviour is checked
+	/// at all — Roslyn reports a step under the name it was given and under no other — and
+	/// a property nothing can observe is a property nothing keeps.
 	/// </remarks>
-	public const string AskedStage    = "Asked";
-	public const string AnsweredStage = "Answered";
-	public const string CompiledStage = "Compiled";
-	public const string PlacedStage   = "Placed";
+	internal const string AskedStage    = "Asked";
+	internal const string AnsweredStage = "Answered";
+	internal const string CompiledStage = "Compiled";
+	internal const string PlacedStage   = "Placed";
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{

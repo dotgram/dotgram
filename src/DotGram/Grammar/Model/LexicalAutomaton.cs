@@ -32,7 +32,7 @@ namespace DotGram.Grammar.Model;
 /// so it is never a pattern.
 /// </para>
 /// </remarks>
-public sealed class LexicalAutomaton
+sealed class LexicalAutomaton
 {
 	LexicalAutomaton(
 		IReadOnlyList<CharRange> atoms,

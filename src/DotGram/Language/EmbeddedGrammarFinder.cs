@@ -13,7 +13,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.Language;
 
 /// <summary>One grammar string proven by Roslyn to belong to <c>DotGram.GramAttribute</c>.</summary>
-public sealed class EmbeddedGrammar(
+sealed class EmbeddedGrammar(
 	string text,
 	SyntaxToken token,
 	CSharpStringMap sourceMap,
@@ -30,7 +30,7 @@ public sealed class EmbeddedGrammar(
 }
 
 /// <summary>Finds embedded grammars by attribute identity rather than source spelling.</summary>
-public static class EmbeddedGrammarFinder
+static class EmbeddedGrammarFinder
 {
 	const string GramAttribute = "DotGram.GramAttribute";
 	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";

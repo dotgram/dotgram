@@ -10,7 +10,7 @@ namespace DotGram.Grammar;
 /// Pure, so it lives on this side — counting lines in a string needs nothing a host
 /// knows. The inline case is the one that does.
 /// </remarks>
-public sealed class GrammarLineMap : ILineMap
+sealed class GrammarLineMap : ILineMap
 {
 	readonly string     _path;
 	readonly List<int>  _starts = [0];

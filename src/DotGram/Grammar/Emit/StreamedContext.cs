@@ -7,7 +7,7 @@ using DotGram.Grammar.Model;
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>
 	/// An explicit assignment, a compound assignment or <c>++</c>/<c>--</c> of something reached through

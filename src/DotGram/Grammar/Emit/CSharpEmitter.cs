@@ -31,7 +31,7 @@ namespace DotGram.Grammar.Emit;
 /// set of rules from this assembly's own: see .claude/rules/emitted-code.md.
 /// </para>
 /// </remarks>
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <param name="graph">The normalized grammar.</param>
 	/// <param name="className">

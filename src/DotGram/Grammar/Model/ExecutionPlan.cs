@@ -34,7 +34,7 @@ namespace DotGram.Grammar.Model;
 /// with the decisions that need a context, and arrives with them.
 /// </para>
 /// </remarks>
-public sealed class ExecutionPlan
+sealed class ExecutionPlan
 {
 	ExecutionPlan(IReadOnlyCollection<RuleSymbol> compiledInPlace, IReadOnlyCollection<RuleSymbol> writtenInPlace)
 	{

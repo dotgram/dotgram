@@ -10,14 +10,14 @@ using Microsoft.CodeAnalysis;
 
 namespace DotGram.Language;
 
-public enum DslGrammarResolutionKind
+enum DslGrammarResolutionKind
 {
 	Resolved,
 	Missing,
 	Ambiguous,
 }
 
-public sealed class DslGrammarResolution(
+sealed class DslGrammarResolution(
 	DslGrammarResolutionKind kind,
 	string? text,
 	TextDocument? document,
@@ -34,7 +34,7 @@ public sealed class DslGrammarResolution(
 /// the source generator. No candidate is selected when a project contains an
 /// ambiguous suffix match.
 /// </summary>
-public static class DslGrammarSourceResolver
+static class DslGrammarSourceResolver
 {
 	public static async Task<DslGrammarResolution> ResolveAsync(
 		Project project,

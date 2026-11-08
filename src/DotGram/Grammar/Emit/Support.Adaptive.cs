@@ -2,7 +2,7 @@
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	internal const string AdaptiveValuesSupport = """
 		/// <summary>A flat prefix and lazily allocated pages, indexed by stable record numbers.</summary>

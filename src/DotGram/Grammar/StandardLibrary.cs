@@ -22,7 +22,7 @@ namespace DotGram.Grammar;
 /// compilation and nothing in what comes out.
 /// </para>
 /// </remarks>
-public static class StandardLibrary
+static class StandardLibrary
 {
 	/// <summary>The namespace a grammar reaches the library through.</summary>
 	public const string Name = "Std";

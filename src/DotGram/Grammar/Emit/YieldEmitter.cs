@@ -4,7 +4,7 @@ using DotGram.Grammar.Binding;
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <param name="tracing">
 	/// In a trace build, what it numbers by: the iterator is then a method of its own, handed the

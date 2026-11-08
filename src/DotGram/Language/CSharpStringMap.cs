@@ -12,7 +12,7 @@ namespace DotGram.Language;
 /// syntax tree. Unsupported or malformed tokens produce no map rather than an
 /// approximate one.
 /// </summary>
-public sealed class CSharpStringMap
+sealed class CSharpStringMap
 {
 	readonly int[] _starts;
 	readonly int[] _ends;

@@ -21,7 +21,7 @@ namespace DotGram.Grammar;
 /// and only what follows needs translating.
 /// </para>
 /// </remarks>
-public sealed class SplicedLineMap : ILineMap
+sealed class SplicedLineMap : ILineMap
 {
 	/// <summary>One text inside the joined one.</summary>
 	/// <param name="Start">Where it begins in the joined text.</param>

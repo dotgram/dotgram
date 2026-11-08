@@ -32,7 +32,7 @@ namespace DotGram.Grammar.Model;
 /// like a dotted name, which is §4.5's own example of what the compiler cannot tell apart.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>A rule built from single characters, declared where trivia is not empty.</summary>
 	public const string SpacedLexeme = "GRAM4043";

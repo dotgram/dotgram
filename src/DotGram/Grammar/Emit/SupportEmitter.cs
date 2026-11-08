@@ -40,7 +40,7 @@ namespace DotGram.Grammar.Emit;
 /// version and a reason to exist.
 /// </para>
 /// </remarks>
-public static class SupportEmitter
+static class SupportEmitter
 {
 	/// <summary>
 	/// What <c>[Embedded]</c> on the attributes below names, for a compilation the generator

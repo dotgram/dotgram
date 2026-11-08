@@ -499,17 +499,17 @@ public sealed class GramParserTests
 	}
 
 	[Theory]
-	[InlineData("A = 'a'\nparse A",          PublishAccess.Public)]
-	[InlineData("A = 'a'\npublic parse A",   PublishAccess.Public)]
-	[InlineData("A = 'a'\ninternal parse A", PublishAccess.Internal)]
-	[InlineData("A = 'a'\nprivate find A",   PublishAccess.Private)]
-	[InlineData("A = 'a'\nprivate parse ('a' | 'b') as Ab", PublishAccess.Private)]
-	public void A_directive_says_who_may_call_what_it_makes(string source, PublishAccess expected)
+	[InlineData("A = 'a'\nparse A",          nameof(PublishAccess.Public))]
+	[InlineData("A = 'a'\npublic parse A",   nameof(PublishAccess.Public))]
+	[InlineData("A = 'a'\ninternal parse A", nameof(PublishAccess.Internal))]
+	[InlineData("A = 'a'\nprivate find A",   nameof(PublishAccess.Private))]
+	[InlineData("A = 'a'\nprivate parse ('a' | 'b') as Ab", nameof(PublishAccess.Private))]
+	public void A_directive_says_who_may_call_what_it_makes(string source, string expected)
 	{
 		var result = GramParser.Parse(GramLexer.Tokenize(source, null));
 
 		EmittedCode.Quiet(result.Diagnostics);
-		Assert.Equal(expected, Assert.Single(result.File.Decls.OfType<Decl.Publish>()).Access);
+		Assert.Equal(Enum.Parse<PublishAccess>(expected), Assert.Single(result.File.Decls.OfType<Decl.Publish>()).Access);
 	}
 
 	[Fact]

@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.Language;
 
 /// <summary>One grammar classification mapped into its containing C# document.</summary>
-public readonly struct HostClassification(
+readonly struct HostClassification(
 	TextSpan span,
 	GramSyntaxKind kind,
 	string? quickInfo,
@@ -31,20 +31,20 @@ public readonly struct HostClassification(
 }
 
 /// <summary>One grammar diagnostic mapped into its containing C# document.</summary>
-public sealed class HostDiagnostic(GramDiagnostic diagnostic, TextSpan span, bool isExact)
+sealed class HostDiagnostic(GramDiagnostic diagnostic, TextSpan span, bool isExact)
 {
 	public GramDiagnostic Diagnostic { get; } = diagnostic;
 	public TextSpan       Span       { get; } = span;
 	public bool           IsExact    { get; } = isExact;
 }
 
-public readonly record struct HostBracePair(TextSpan OpenSpan, TextSpan CloseSpan, TextSpan GrammarSpan);
+readonly record struct HostBracePair(TextSpan OpenSpan, TextSpan CloseSpan, TextSpan GrammarSpan);
 
-public readonly record struct HostFoldingRange(TextSpan Span, TextSpan GrammarSpan, string CollapsedText);
+readonly record struct HostFoldingRange(TextSpan Span, TextSpan GrammarSpan, string CollapsedText);
 
-public readonly record struct HostPublishedApi(string MethodName, TextSpan Span, TextSpan GrammarSpan);
+readonly record struct HostPublishedApi(string MethodName, TextSpan Span, TextSpan GrammarSpan);
 
-public sealed class HostDocumentSymbol(
+sealed class HostDocumentSymbol(
 	string name,
 	GramDocumentSymbolKind kind,
 	TextSpan span,
@@ -61,7 +61,7 @@ public sealed class HostDocumentSymbol(
 }
 
 /// <summary>One grammar rule occurrence mapped into its containing C# document.</summary>
-public readonly struct HostSymbolOccurrence(
+readonly struct HostSymbolOccurrence(
 	string name,
 	TextSpan span,
 	TextSpan definitionSpan,
@@ -80,7 +80,7 @@ public readonly struct HostSymbolOccurrence(
 }
 
 /// <summary>The editor-facing analysis of one grammar embedded in a C# document.</summary>
-public sealed class EmbeddedGrammarAnalysis(
+sealed class EmbeddedGrammarAnalysis(
 	EmbeddedGrammar grammar,
 	IReadOnlyList<HostClassification> classifications,
 	IReadOnlyList<HostDiagnostic> diagnostics,
@@ -101,7 +101,7 @@ public sealed class EmbeddedGrammarAnalysis(
 }
 
 /// <summary>Runs shared grammar intelligence and maps its answers into a C# document.</summary>
-public static class EmbeddedGrammarService
+static class EmbeddedGrammarService
 {
 	public static IReadOnlyList<EmbeddedGrammarAnalysis> AnalyzeSyntactic(
 		SyntaxNode root, CancellationToken cancellationToken = default)

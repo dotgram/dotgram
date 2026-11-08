@@ -15,7 +15,7 @@ namespace DotGram.Grammar.Binding;
 /// means the same thing wherever it is called, and `trivia` is taken from where a rule
 /// is declared rather than from where it is used.
 /// </remarks>
-public sealed class GrammarBinder
+sealed class GrammarBinder
 {
 	public const string DuplicateRule                = "GRAM3001";
 	public const string UndefinedName                = "GRAM3002";

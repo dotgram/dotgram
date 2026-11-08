@@ -22,7 +22,7 @@ namespace DotGram.Grammar.Emit;
 /// emitter is read as C# that writes it.
 /// </para>
 /// </remarks>
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>What a publication answers with. The name a rule may not take.</summary>
 	internal const string MatchType = "Match";
@@ -2716,7 +2716,7 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 		""";
 }
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>
 	/// What a direct rendering needs beside the methods it writes: the tape of ways back,

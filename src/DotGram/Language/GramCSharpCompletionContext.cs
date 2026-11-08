@@ -2,7 +2,7 @@ using System;
 
 namespace DotGram.Language;
 
-public static class GramCSharpCompletionContext
+static class GramCSharpCompletionContext
 {
 	public static bool TryGetPrefix(string text, int position, out string prefix)
 	{

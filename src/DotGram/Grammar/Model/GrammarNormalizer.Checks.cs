@@ -9,7 +9,7 @@ namespace DotGram.Grammar.Model;
 /// What the graph is asked once it is built: everything a grammar can get wrong that
 /// only the whole of it shows.
 /// </summary>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>A rule nothing reaches, reported once, where it was declared.</summary>
 	/// <remarks>

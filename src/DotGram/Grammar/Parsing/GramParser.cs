@@ -21,7 +21,7 @@ namespace DotGram.Grammar.Parsing;
 /// operand needs an explicit connector and no expression can end there.
 /// </para>
 /// </remarks>
-public sealed class GramParser
+sealed class GramParser
 {
 	public const string ExpectedToken       = "GRAM2001";
 	public const string ExpectedDeclaration = "GRAM2002";
@@ -1819,7 +1819,7 @@ public sealed class GramParser
 }
 
 /// <summary>What parsing produced: a tree, and everything wrong with the source.</summary>
-public sealed class ParseResult(GrammarFile file, IReadOnlyList<GramDiagnostic> diagnostics)
+sealed class ParseResult(GrammarFile file, IReadOnlyList<GramDiagnostic> diagnostics)
 {
 	public GrammarFile                   File        { get; } = file;
 	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;

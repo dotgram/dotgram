@@ -28,7 +28,7 @@ namespace DotGram.Grammar.Emit;
 /// ending, and <c>\n</c> inside a segment is a character like another.
 /// </para>
 /// </remarks>
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>The access a publication is declared with, whatever its forms over text are.</summary>
 	static string PublishedAccess(Publication publication)

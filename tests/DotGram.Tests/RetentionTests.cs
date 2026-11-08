@@ -37,14 +37,14 @@ public sealed class RetentionTests
 	}
 
 	[Theory]
-	[InlineData("Word  = ['a'..'z']+", LineExtent.None)]
-	[InlineData("Word  = \"abc\"", LineExtent.None)]
-	[InlineData("Word  = ['a'..'z']* & '\\n'", LineExtent.AtEnd)]
-	[InlineData("Word  = \"\\r\\n\"", LineExtent.AtEnd)]
-	[InlineData("Word  = '\\n' & ['a'..'z']", LineExtent.Beyond)]
-	public void What_a_rule_takes(string grammar, LineExtent expected)
+	[InlineData("Word  = ['a'..'z']+", nameof(LineExtent.None))]
+	[InlineData("Word  = \"abc\"", nameof(LineExtent.None))]
+	[InlineData("Word  = ['a'..'z']* & '\\n'", nameof(LineExtent.AtEnd))]
+	[InlineData("Word  = \"\\r\\n\"", nameof(LineExtent.AtEnd))]
+	[InlineData("Word  = '\\n' & ['a'..'z']", nameof(LineExtent.Beyond))]
+	public void What_a_rule_takes(string grammar, string expected)
 	{
-		Assert.Equal(expected, ExtentOf(grammar, "Word"));
+		Assert.Equal(Enum.Parse<LineExtent>(expected), ExtentOf(grammar, "Word"));
 	}
 
 	[Fact]

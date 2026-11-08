@@ -8,13 +8,13 @@ using DotGram.Grammar.Parsing;
 namespace DotGram.Grammar.Binding;
 
 /// <summary>A named thing a reference can resolve to.</summary>
-public abstract record Symbol(string Name);
+abstract record Symbol(string Name);
 
 /// <summary>
 /// A rule. Declaration is null for the built-in rules, which have symbols but no
 /// source.
 /// </summary>
-public sealed record RuleSymbol(
+sealed record RuleSymbol(
 	string Name, GrammarNamespace Namespace, Decl.Rule? Declaration) : Symbol(Name)
 {
 	public bool IsBuiltIn => Declaration is null;
@@ -85,13 +85,13 @@ public sealed record RuleSymbol(
 }
 
 /// <summary>A rule's parameter, in scope only inside that rule's body.</summary>
-public sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Name);
+sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Name);
 
 /// <summary>One `A = B` entry in a `with (...)` header, resolved to symbols (§5, §7).</summary>
-public sealed record ResolvedRebinding(RuleSymbol Left, RuleSymbol Right, Location At);
+sealed record ResolvedRebinding(RuleSymbol Left, RuleSymbol Right, Location At);
 
 /// <summary>A name that lives on the C# side.</summary>
-public sealed record CSharpSymbol(string Name) : Symbol(Name);
+sealed record CSharpSymbol(string Name) : Symbol(Name);
 
 /// <summary>
 /// One lexical namespace: the global one at the top of a file, or a `namespace` block.
@@ -103,7 +103,7 @@ public sealed record CSharpSymbol(string Name) : Symbol(Name);
 /// other roots by name. Nothing of the grammar that included it — not its rules, which
 /// were not written for it, and not its <c>trivia</c>, which is its own (§5.2, §6.7).
 /// </param>
-public sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot = false)
+sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot = false)
 {
 	readonly Dictionary<string, RuleSymbol> _rules   = [];
 	readonly List<GrammarNamespace>         _nested  = [];
@@ -345,7 +345,7 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 /// `with` substitutes for the rules only a `when … is …` asks about. The parsers of one rule
 /// share a machine, and this is the number each hands it (<see cref="Model.Node.Reading"/>).
 /// </param>
-public sealed record Publication(
+sealed record Publication(
 	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarNamespace DeclaredIn,
 	IReadOnlyDictionary<RuleSymbol, RuleSymbol> Rebindings,
 	IReadOnlyList<ResolvedRebinding> OwnRebindings,
@@ -401,7 +401,7 @@ public sealed record Publication(
 }
 
 /// <summary>What binding produced: a namespace tree, resolved references, diagnostics.</summary>
-public sealed class GrammarModel(
+sealed class GrammarModel(
 	GrammarNamespace                                                       root,
 	IReadOnlyDictionary<Expr, Symbol>                                      bindings,
 	IReadOnlyDictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> withBindings,

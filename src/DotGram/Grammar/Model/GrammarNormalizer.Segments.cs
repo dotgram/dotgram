@@ -7,7 +7,7 @@ using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// A literal or a class that holds U+0000 in a grammar that names <c>eos</c>, where that

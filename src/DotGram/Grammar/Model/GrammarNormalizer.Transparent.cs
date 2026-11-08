@@ -29,7 +29,7 @@ namespace DotGram.Grammar.Model;
 /// whatever still reaches it by name, unreachable states being the layout's to drop.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// What a forwarding rule says about its own refusal (§4's `on fail`), left to the rules it

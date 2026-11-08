@@ -41,7 +41,7 @@ namespace DotGram.Grammar.Model;
 /// business, and `docs/design/lexical-adt-design.md` carries the design and its measurements.
 /// </para>
 /// </remarks>
-public sealed class LexicalSplit
+sealed class LexicalSplit
 {
 	LexicalSplit(
 		RecognitionGraph syntax,
