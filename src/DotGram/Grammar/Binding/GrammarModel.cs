@@ -52,11 +52,11 @@ public sealed record RuleSymbol(
 	public bool Equals(RuleSymbol? other)
 	{
 		return ReferenceEquals(this, other) ||
-		other is not null &&
-		(_hash == 0 || other._hash == 0 || _hash == other._hash) &&
-		base.Equals(other) &&
-		ReferenceEquals(Namespace, other.Namespace) &&
-		EqualityComparer<Decl.Rule?>.Default.Equals(Declaration, other.Declaration);
+			other is not null &&
+			(_hash == 0 || other._hash == 0 || _hash == other._hash) &&
+			base.Equals(other) &&
+			ReferenceEquals(Namespace, other.Namespace) &&
+			EqualityComparer<Decl.Rule?>.Default.Equals(Declaration, other.Declaration);
 	}
 
 	public override int GetHashCode()
@@ -352,16 +352,16 @@ public sealed record Publication(
 	int Reading = 0)
 {
 	/// <summary>Adds a character reader form.</summary>
-	public bool BufferedInput { get; init; }
+	public bool     BufferedInput { get; init; }
 
 	/// <summary>Adds a byte reader form.</summary>
-	public bool BufferedBytes { get; init; }
+	public bool     BufferedBytes { get; init; }
 
-	public bool Yield { get; init; }
-	public TypeRef? ResultType { get; init; }
-	public int YieldMinimum { get; init; }
-	public bool YieldRecovery { get; init; }
-	public bool YieldBatch { get; init; }
+	public bool     Yield         { get; init; }
+	public TypeRef? ResultType    { get; init; }
+	public int      YieldMinimum  { get; init; }
+	public bool     YieldRecovery { get; init; }
+	public bool     YieldBatch    { get; init; }
 
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName)

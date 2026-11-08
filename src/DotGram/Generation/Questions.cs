@@ -156,11 +156,11 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 /// </remarks>
 readonly record struct Answer(
 	Question Asked,
-	bool Yes,
+	bool     Yes,
 	EquatableArray<EquatableArray<MethodParameter>> Constructors = default,
 	EquatableArray<ObjectMember> Properties = default,
 	string? ExternalType = null,
-	bool ExternalAmbiguous = false,
+	bool    ExternalAmbiguous = false,
 	ExternalMethodResolution Method = ExternalMethodResolution.Found,
 	EquatableArray<string> Fits = default);
 
@@ -226,17 +226,17 @@ static class Questions
 	/// </param>
 	public static ImmutableArray<Question> Of(GrammarFile file, string? locationType = null)
 	{
-		var imports   = new List<string>();
-		var names     = new List<Question>();
-		var declared  = new List<string>();
-		var known     = new HashSet<string>(StringComparer.Ordinal);
-		var externals = new List<string>();
-		var called    = new List<string>();
+		var imports    = new List<string>();
+		var names      = new List<Question>();
+		var declared   = new List<string>();
+		var known      = new HashSet<string>(StringComparer.Ordinal);
+		var externals  = new List<string>();
+		var called     = new List<string>();
 		var predicates = new List<string>();
-		var producers = new List<(string Method, string Against)>();
-		var contexts  = new List<string>();
-		var contracts = new List<string>();
-		var bindings  = new HashSet<string>(StringComparer.Ordinal);
+		var producers  = new List<(string Method, string Against)>();
+		var contexts   = new List<string>();
+		var contracts  = new List<string>();
+		var bindings   = new HashSet<string>(StringComparer.Ordinal);
 
 		Collect(file.Usings, file.Decls);
 
@@ -252,8 +252,9 @@ static class Questions
 				Declare(type + "[]");
 
 		var questions = ImmutableHashSet.CreateBuilder<Question>();
+
 		foreach (var contract in contracts)
-			foreach (var type in declared.Concat(new[] { "string", "byte[]" }))
+			foreach (var type in declared.Concat(["string", "byte[]"]))
 				foreach (var source in new[] { type }.Concat(imports.Select(import => import + "." + type)))
 					foreach (var target in new[] { contract }.Concat(imports.Select(import => import + "." + contract)))
 						questions.Add(Question.Fits(source, target));
@@ -286,8 +287,8 @@ static class Questions
 
 			// Whether a located rule's `Nullable<…>` is the framework's, which has nothing to be
 			// told where it was written on, or a class of the grammar's own that is called so.
-			if (type.StartsWith("Nullable<", StringComparison.Ordinal) ||
-				type.StartsWith("System.Nullable<", StringComparison.Ordinal) ||
+			if (type.StartsWith("Nullable<",                StringComparison.Ordinal) ||
+				type.StartsWith("System.Nullable<",         StringComparison.Ordinal) ||
 				type.StartsWith("global::System.Nullable<", StringComparison.Ordinal))
 			{
 				questions.Add(Question.IsFrameworkNullable(type));
@@ -322,7 +323,7 @@ static class Questions
 			foreach (var import in imports)
 			{
 				questions.Add(Question.Builds(import + "." + type));
-				questions.Add(Question.Sets(import + "." + type));
+				questions.Add(Question.Sets  (import + "." + type));
 			}
 		}
 
@@ -388,8 +389,8 @@ static class Questions
 		[
 			.. questions
 				.OrderBy(static question => question.Name, StringComparer.Ordinal)
-				.ThenBy(static question => question.Kind)
-				.ThenBy(static question => question.Against ?? "", StringComparer.Ordinal),
+				.ThenBy (static question => question.Kind)
+				.ThenBy (static question => question.Against ?? "", StringComparer.Ordinal),
 		];
 
 		void Collect(IReadOnlyList<Using> usings, IReadOnlyList<Decl> declarations)
@@ -580,18 +581,12 @@ static class Questions
 						_                                 => new Answer(question, false),
 					},
 
-				Question.ExternalMethod =>
-					new Answer(question, true, Method: resolver.ResolveExternalMethod(question.Name, question.Role)),
-
-				Question.Rewinds => new Answer(question, resolver.Rewinds(question.Name)),
-
-				Question.ReferenceType => new Answer(question, resolver.IsReferenceType(question.Name)),
-
-				Question.NullableType => new Answer(question, resolver.IsNullable(question.Name)),
-
-				Question.Fitting => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
-
-				Question.CSharpName => new Answer(question, resolver is not ICSharpNames names || names.Answers(question.Name)),
+				Question.ExternalMethod => new Answer(question, true, Method: resolver.ResolveExternalMethod(question.Name, question.Role)),
+				Question.Rewinds        => new Answer(question, resolver.Rewinds(question.Name)),
+				Question.ReferenceType  => new Answer(question, resolver.IsReferenceType(question.Name)),
+				Question.NullableType   => new Answer(question, resolver.IsNullable(question.Name)),
+				Question.Fitting        => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
+				Question.CSharpName     => new Answer(question, resolver is not ICSharpNames names || names.Answers(question.Name)),
 
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});

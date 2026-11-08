@@ -1,4 +1,4 @@
-﻿@using System;
+@using System;
 @using DotGram.Sql;
 @using DotGram.Sql.TransactSql;
 
@@ -120,10 +120,9 @@ namespace TSql
 	// which are not. The list is the engine's own and the same at every level; the type
 	// declared does not narrow it, `DECLARE @m INT = ¤10.00` being read too, and neither does
 	// where it stands: `SELECT ৳10.00` is a value like any other.
-	MoneyLiteral  = ['$' | '¢'..'¥' | '৲'..'৳' | '฿' | '៛' | '₠'..'₱'
-					| '﷼' | '﹩' | '＄' | '￠'..'￡' | '￥'..'￦']
-				  & Spacing? & ['+' | '-']? & Spacing? & MoneyDigits
-	MoneyDigits   = Lexical.Digits & ('.' & Lexical.Digits?)?
+	MoneyLiteral = ['$' | '¢'..'¥' | '৲'..'৳' | '฿' | '៛' | '₠'..'₱' | '﷼' | '﹩' | '＄' | '￠'..'￡' | '￥'..'￦']
+				 & Spacing? & ['+' | '-']? & Spacing? & MoneyDigits
+	MoneyDigits  = Lexical.Digits & ('.' & Lexical.Digits?)?
 
 	// A number whose exponent may be written with no digits at all: `2e` is read wherever a
 	// value stands — `2e + 1`, `WHERE 1 < 2e`, `DECLARE @a FLOAT = 2e` — and so are `2E`,
@@ -131,12 +130,12 @@ namespace TSql
 	// standard's §5.3 wants the digits, so the lexeme is restated here instead of narrowed
 	// there, and the exact form is the one that keeps `ExactNumber` telling the two apart.
 	NumericLiteral = Lexical.ExactNumericLiteral & ('e'i & ['+' | '-']? & Lexical.Digits?)?
-	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']* & ('\\' & ('\r' & '\n'? | '\n') & ['0'..'9' | 'a'..'f' | 'A'..'F']*)*
+	BinaryLiteral  = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']* & ('\\' & ('\r' & '\n'? | '\n') & ['0'..'9' | 'a'..'f' | 'A'..'F']*)*
 
 	// A name the `$` is part of: `$IDENTITY`, `$ROWGUID`, `$PARTITION`, a graph table's
 	// `$node_id`. One token, since the engine refuses `$ IDENTITY`; a digit after the `$`
 	// makes it money instead.
-	PseudoColumn = '$' & Lexical.IdentifierStart & TSql.IdentifierPart*
+	PseudoColumn  = '$' & Lexical.IdentifierStart & TSql.IdentifierPart*
 
 	// A temporary table, local or global. The name is otherwise ordinary.
 	TemporaryName = '#' & '#'? & Lexical.IdentifierStart & TSql.IdentifierPart*
@@ -151,7 +150,7 @@ namespace TSql
 // T-SQL replaces it names the replacement. The names are the standard's production names.
 
 BooleanPrimary : @Ast.Expression
-    = p: TSqlPredicate => @(p)
+    = p: TSqlPredicate               => @(p)
     | '(' & c: SearchCondition & ')' => @(Build.Values.Parenthesized(c))
 
 BooleanTerm : @Ast.Expression
@@ -173,16 +172,16 @@ BooleanTest : @Ast.Expression
 // expression>, not something beside it, and is written here where the standard puts
 // it.
 CaseExpression : @Ast.Expression
-    = name: "NULLIF"i   & '(' & a: TSqlValueExpression & ',' & b: TSqlValueExpression & ')'                           => @(new Build.Values.Call(name, [a, b]))
-    | name: "COALESCE"i & '(' & first: TSqlValueExpression & (',' & rest: TSqlValueExpression)* & ')'                 => @(new Build.Values.Call(name, SqlList.Own(Syntax.Listed(first, rest))))
+    = name: "NULLIF"i   & '(' & a: TSqlValueExpression & ',' & b: TSqlValueExpression & ')'                     => @(new Build.Values.Call(name, [a, b]))
+    | name: "COALESCE"i & '(' & first: TSqlValueExpression & (',' & rest: TSqlValueExpression)* & ')'           => @(new Build.Values.Call(name, SqlList.Own(Syntax.Listed(first, rest))))
     | "CASE"i & operand: TSqlValueExpression & whens: TSqlSimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(Build.Values.Case(operand, SqlList.Own<Build.Clause>(whens), otherwise))
-    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(Build.Values.Case(null, SqlList.Own<Build.Clause>(whens), otherwise))
+    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                                  => @(Build.Values.Case(null, SqlList.Own<Build.Clause>(whens), otherwise))
 
-CastOperand       : @Ast.Expression = v: TSqlValueExpression => @(v) | "NULL"i => @(Build.Values.Null())
+CastOperand : @Ast.Expression = v: TSqlValueExpression => @(v) | "NULL"i => @(Build.Values.Null())
 
-Collate : @string = "COLLATE"i & t: TSqlQualifiedName => @(t)
+Collate     : @string = "COLLATE"i & t: TSqlQualifiedName => @(t)
 
-ColumnList : @string[] = first: ColumnName & (',' & rest: ColumnName)* => @(Syntax.Named(first, rest))
+ColumnList  : @string[] = first: ColumnName & (',' & rest: ColumnName)* => @(Syntax.Named(first, rest))
 
 // A name as a value of its own, so that a list of them gathers into an array rather
 // than into the text between the first and the last (§4.1 case 4).
@@ -193,20 +192,18 @@ ColumnName : @string   = t: TSqlIdentifier => @(t)
 // depth the standard allows and says nothing about what the parts mean.
 ColumnReference : @Ast.Expression = name: TSqlQualifiedName => @(Build.Values.Reference(name))
 
-ExtractField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
+ExtractField = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
 
 // §7.4. The comma list is a cross join written the older way, and it is kept as a list
 // rather than folded into joins: what the standard writes is what the tree says.
 FromClause : @Build.TableReference[]
-    = "FROM"i & first: TSqlTableReference & (',' & rest: TSqlTableReference)*
-        => @(Syntax.Listed(first, rest))
+    = "FROM"i & first: TSqlTableReference & (',' & rest: TSqlTableReference)* => @(Syntax.Listed(first, rest))
 
 HavingClause : @Ast.Expression = "HAVING"i & c: SearchCondition => @(c)
 
 InPredicateValue : @Ast.Expression
-    = q: TableSubquery => @(Build.Values.Subquery(q))
-    | '(' & first: TSqlValueExpression & (',' & rest: TSqlValueExpression)* & ')'
-      => @(Build.Values.Row(SqlList.Own(Syntax.Listed(first, rest))))
+    = q: TableSubquery                                                            => @(Build.Values.Subquery(q))
+    | '(' & first: TSqlValueExpression & (',' & rest: TSqlValueExpression)* & ')' => @(Build.Values.Row(SqlList.Own(Syntax.Listed(first, rest))))
 
 // §5.3. The sign belongs to the literal here and not to <factor>, which is what lets
 // `INTERVAL -'1' DAY` read.
@@ -277,22 +274,22 @@ Quantifier = "ALL"i | "SOME"i | "ANY"i
 // §7.10 <non-join query primary>, and the parenthesized form that lets a query
 // expression stand where a primary does.
 QueryPrimary : @Build.Query
-    = q: TSqlQuerySpecification            => @(q)
-    | v: TSqlTableValueConstructor         => @(v)
-    | "TABLE"i & name: TSqlQualifiedName   => @(Build.Queries.Table(name))
-    | '(' & q: TSqlQueryExpression & ')'   => @(Build.Queries.Parenthesized(q))
+    = q: TSqlQuerySpecification          => @(q)
+    | v: TSqlTableValueConstructor       => @(v)
+    | "TABLE"i & name: TSqlQualifiedName => @(Build.Queries.Table(name))
+    | '(' & q: TSqlQueryExpression & ')' => @(Build.Queries.Parenthesized(q))
 
 Result            : @Ast.Expression = v: TSqlValueExpression => @(v) | "NULL"i => @(Build.Values.Null())
 
 RowValueConstructor : @Ast.Expression
-    = e: RowValueConstructorElement => @e
+    = e: RowValueConstructorElement                                                             => @e
     | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(Build.Values.Row(SqlList.Own(Syntax.Listed(first, rest))))
-    | q: TableSubquery => @(Build.Values.Subquery(q))
+    | q: TableSubquery                                                                          => @(Build.Values.Subquery(q))
 
 RowValueConstructorElement : @Ast.Expression
     = v: TSqlValueExpression => @(v)
-    | "NULL"i    => @(Build.Values.Null())
-    | "DEFAULT"i => @(Build.Values.Default())
+    | "NULL"i                => @(Build.Values.Null())
+    | "DEFAULT"i             => @(Build.Values.Default())
 
 ScalarSubquery : @Ast.Expression = q: TSqlSubquery => @(Build.Values.Subquery(q))
 
@@ -329,13 +326,12 @@ SingleDatetimeField = ExtractField & ('(' & Lexical.Digits & (',' & Lexical.Digi
 
 SortSpecification : @Build.Clause
     = v: TSqlSortKey & how: Collate? & order: ("ASC"i | "DESC"i)?
-        => @(new Build.Clause.SortSpecification(
-                 how is null ? v : Build.Values.Collated(v, how), Build.Rules.Ordered(order)))
+        => @(new Build.Clause.SortSpecification(how is null ? v : Build.Values.Collated(v, how), Build.Rules.Ordered(order)))
 
 // §7.13 <subquery>, and the two §7.11-§7.12 spellings of it that differ only in what
 // they may return — which is a question about the query and not about its syntax, so
 // both read the same thing and the standard's names are kept for the reader.
-TableSubquery  : @Build.Query      = q: TSqlSubquery => @(q)
+TableSubquery : @Build.Query = q: TSqlSubquery => @(q)
 
 TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 
@@ -421,32 +417,32 @@ WhereClause  : @Ast.Expression = "WHERE"i  & c: SearchCondition => @(c)
 // from the token table its parser generator is fed (`TSqlTokenTypes.g`), where a
 // word being a token at all is exactly what makes it unavailable as a name.
 TSqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | "AUTHORIZATION"i
-	| "BACKUP"i | "BEGIN"i | "BETWEEN"i | "BREAK"i | "BROWSE"i | "BULK"i | "BY"i
-	| "CASCADE"i | "CASE"i | "CHECK"i | "CHECKPOINT"i | "CLOSE"i | "CLUSTERED"i
-	| "COALESCE"i | "COLLATE"i | "COLUMN"i | "COMMIT"i | "COMPUTE"i | "CONSTRAINT"i
-	| "CONTAINS"i | "CONTAINSTABLE"i | "CONTINUE"i | "CONVERT"i | "CREATE"i | "CROSS"i
-	| "CURRENT"i | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i
-	| "CURRENT_USER"i | "CURSOR"i | "DATABASE"i | "DBCC"i | "DEALLOCATE"i | "DECLARE"i
-	| "DEFAULT"i | "DELETE"i | "DENY"i | "DESC"i | "DISTINCT"i | "DISTRIBUTED"i
-	| "DOUBLE"i | "DROP"i | "ELSE"i | "END"i | "ERRLVL"i | "ESCAPE"i | "EXCEPT"i
-	| "EXEC"i | "EXECUTE"i | "EXISTS"i | "EXIT"i | "FETCH"i | "FILE"i | "FILLFACTOR"i
-	| "FOR"i | "FOREIGN"i | "FREETEXT"i | "FREETEXTTABLE"i | "FROM"i | "FULL"i
-	| "FUNCTION"i | "GOTO"i | "GRANT"i | "GROUP"i | "HAVING"i | "HOLDLOCK"i
-	| "IDENTITY"i | "IDENTITYCOL"i | "IDENTITY_INSERT"i | "IF"i | "IN"i | "INDEX"i
-	| "INNER"i | "INSERT"i | "INTERSECT"i | "INTO"i | "IS"i | "JOIN"i | "KEY"i | "KILL"i
-	| "LEFT"i | "LIKE"i | "LINENO"i | "NATIONAL"i | "NOCHECK"i | "NONCLUSTERED"i
-	| "NOT"i | "NULL"i | "NULLIF"i | "OF"i | "OFF"i | "OFFSETS"i | "ON"i | "OPEN"i
-	| "OPENDATASOURCE"i | "OPENQUERY"i | "OPENROWSET"i | "OPENXML"i | "OPTION"i | "OR"i
-	| "ORDER"i | "OUTER"i | "OVER"i | "PERCENT"i | "PLAN"i | "PRIMARY"i | "PRINT"i
-	| "PROC"i | "PROCEDURE"i | "PUBLIC"i | "RAISERROR"i | "READ"i | "READTEXT"i
-	| "RECONFIGURE"i | "REFERENCES"i | "REPLICATION"i | "RESTORE"i | "RESTRICT"i
-	| "RETURN"i | "REVOKE"i | "RIGHT"i | "ROLLBACK"i | "ROWCOUNT"i | "ROWGUIDCOL"i
-	| "RULE"i | "SAVE"i | "SCHEMA"i | "SELECT"i | "SESSION_USER"i | "SET"i | "SETUSER"i
-	| "SHUTDOWN"i | "SOME"i | "STATISTICS"i | "SYSTEM_USER"i | "TABLE"i | "TEXTSIZE"i
-	| "THEN"i | "TO"i | "TOP"i | "TRAN"i | "TRANSACTION"i | "TRIGGER"i | "TRUNCATE"i
-	| "TSEQUAL"i | "UNION"i | "UNIQUE"i | "UPDATE"i | "UPDATETEXT"i | "USE"i | "USER"i
-	| "VALUES"i | "VARYING"i | "VIEW"i | "WAITFOR"i | "WHEN"i | "WHERE"i | "WHILE"i
-	| "WITH"i | "WRITETEXT"i
+	| "BACKUP"i         | "BEGIN"i         | "BETWEEN"i         | "BREAK"i             | "BROWSE"i  | "BULK"i       | "BY"i
+	| "CASCADE"i        | "CASE"i          | "CHECK"i           | "CHECKPOINT"i        | "CLOSE"i   | "CLUSTERED"i
+	| "COALESCE"i       | "COLLATE"i       | "COLUMN"i          | "COMMIT"i            | "COMPUTE"i | "CONSTRAINT"i
+	| "CONTAINS"i       | "CONTAINSTABLE"i | "CONTINUE"i        | "CONVERT"i           | "CREATE"i  | "CROSS"i
+	| "CURRENT"i        | "CURRENT_DATE"i  | "CURRENT_TIME"i    | "CURRENT_TIMESTAMP"i
+	| "CURRENT_USER"i   | "CURSOR"i        | "DATABASE"i        | "DBCC"i              | "DEALLOCATE"i   | "DECLARE"i
+	| "DEFAULT"i        | "DELETE"i        | "DENY"i            | "DESC"i              | "DISTINCT"i     | "DISTRIBUTED"i
+	| "DOUBLE"i         | "DROP"i          | "ELSE"i            | "END"i               | "ERRLVL"i       | "ESCAPE"i | "EXCEPT"i
+	| "EXEC"i           | "EXECUTE"i       | "EXISTS"i          | "EXIT"i              | "FETCH"i        | "FILE"i   | "FILLFACTOR"i
+	| "FOR"i            | "FOREIGN"i       | "FREETEXT"i        | "FREETEXTTABLE"i     | "FROM"i         | "FULL"i
+	| "FUNCTION"i       | "GOTO"i          | "GRANT"i           | "GROUP"i             | "HAVING"i       | "HOLDLOCK"i
+	| "IDENTITY"i       | "IDENTITYCOL"i   | "IDENTITY_INSERT"i | "IF"i                | "IN"i           | "INDEX"i
+	| "INNER"i          | "INSERT"i        | "INTERSECT"i       | "INTO"i              | "IS"i           | "JOIN"i    | "KEY"i | "KILL"i
+	| "LEFT"i           | "LIKE"i          | "LINENO"i          | "NATIONAL"i          | "NOCHECK"i      | "NONCLUSTERED"i
+	| "NOT"i            | "NULL"i          | "NULLIF"i          | "OF"i                | "OFF"i          | "OFFSETS"i | "ON"i | "OPEN"i
+	| "OPENDATASOURCE"i | "OPENQUERY"i     | "OPENROWSET"i      | "OPENXML"i           | "OPTION"i       | "OR"i
+	| "ORDER"i          | "OUTER"i         | "OVER"i            | "PERCENT"i           | "PLAN"i         | "PRIMARY"i | "PRINT"i
+	| "PROC"i           | "PROCEDURE"i     | "PUBLIC"i          | "RAISERROR"i         | "READ"i         | "READTEXT"i
+	| "RECONFIGURE"i    | "REFERENCES"i    | "REPLICATION"i     | "RESTORE"i           | "RESTRICT"i
+	| "RETURN"i         | "REVOKE"i        | "RIGHT"i           | "ROLLBACK"i          | "ROWCOUNT"i     | "ROWGUIDCOL"i
+	| "RULE"i           | "SAVE"i          | "SCHEMA"i          | "SELECT"i            | "SESSION_USER"i | "SET"i      | "SETUSER"i
+	| "SHUTDOWN"i       | "SOME"i          | "STATISTICS"i      | "SYSTEM_USER"i       | "TABLE"i        | "TEXTSIZE"i
+	| "THEN"i           | "TO"i            | "TOP"i             | "TRAN"i              | "TRANSACTION"i  | "TRIGGER"i  | "TRUNCATE"i
+	| "TSEQUAL"i        | "UNION"i         | "UNIQUE"i          | "UPDATE"i            | "UPDATETEXT"i   | "USE"i      | "USER"i
+	| "VALUES"i         | "VARYING"i       | "VIEW"i            | "WAITFOR"i           | "WHEN"i         | "WHERE"i    | "WHILE"i
+	| "WITH"i           | "WRITETEXT"i
 	// And ten more, which Microsoft's list of reserved keywords has, the token table does not,
 	// and the engine refuses as a name wherever a name stands — a table, a column, an alias,
 	// after a dot. The list's `DISK`, `DUMP`, `LOAD`, `PRECISION` and `SECURITYAUDIT` it reads
@@ -479,13 +475,10 @@ TSqlSimpleWhen : @Build.Clause.When
 // (`TSqlDirectSelect`), since a guard on an alternative that climbs precedence has no
 // operands to ask; measured with the variable declared.
 TSqlQueryExpression : @Build.Query
-	= left: TSqlQueryExpression & "UNION"i & all: "ALL"i? & right: TSqlQueryExpression  << 1
-		=> @(Build.Queries.Combined("UNION", all, left, right))
-	| left: TSqlQueryExpression & "EXCEPT"i & right: TSqlQueryExpression                << 1
-		=> @(Build.Queries.Combined("EXCEPT", null, left, right))
-	| left: TSqlQueryExpression & "INTERSECT"i & right: TSqlQueryExpression             << 2
-		=> @(Build.Queries.Combined("INTERSECT", null, left, right))
-	| q: QueryPrimary => @(q)
+	= left: TSqlQueryExpression & "UNION"i & all: "ALL"i? & right: TSqlQueryExpression  << 1 => @(Build.Queries.Combined("UNION", all, left, right))
+	| left: TSqlQueryExpression & "EXCEPT"i & right: TSqlQueryExpression                << 1 => @(Build.Queries.Combined("EXCEPT", null, left, right))
+	| left: TSqlQueryExpression & "INTERSECT"i & right: TSqlQueryExpression             << 2 => @(Build.Queries.Combined("INTERSECT", null, left, right))
+	| q: QueryPrimary                                                                        => @(q)
 
 // ── §6.4's qualified name, widened ─────────────────────────────────────────
 //
@@ -494,7 +487,7 @@ TSqlQueryExpression : @Build.Query
 // name, so that `t.*` still ends where it did — a name that could end with a dot would
 // eat the one the star needs.
 TSqlQualifiedName
-	= TSqlIdentifier     & NamePart*
+	= TSqlIdentifier & NamePart*
 	| PartitionName  & NamePart*
 	| SystemFunction & NamePart*
 	| NamePart+
@@ -530,14 +523,10 @@ TSqlIdentifier
 // for. Its own alternatives are restated rather than called: a replacement that
 // named the rule it replaces would be rewritten into itself.
 TSqlValueSpecification : @Ast.Expression
-	= t: (':' & TSqlIdentifier & ("INDICATOR"i? & ':' & TSqlIdentifier)?)
-		=> @(Build.Values.Parameter(t))
-	| '?'
-		=> @(Build.Values.Parameter("?"))
-	| t: TSql.Variable
-		=> @(Build.Values.Parameter(t))
-	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
-		=> @(Build.Values.Special(t))
+	= t: (':' & TSqlIdentifier & ("INDICATOR"i? & ':' & TSqlIdentifier)?)          => @(Build.Values.Parameter(t))
+	| '?'                                                                          => @(Build.Values.Parameter("?"))
+	| t: TSql.Variable                                                             => @(Build.Values.Parameter(t))
+	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i) => @(Build.Values.Special(t))
 
 // ── §6.11's value expression, widened ───────────────────────────────────────
 //
@@ -603,7 +592,7 @@ TSqlPrimaryCore : @Ast.Expression
 	| c: TSqlCast                              => @(c)
 	| f: ValueFunction                         => @(f)
 	| f: TSqlValueFunction                     => @(f)
-	| f: CountStar & tail: CallTail?                => @(Build.Values.Called(f, tail))
+	| f: CountStar & tail: CallTail?           => @(Build.Values.Called(f, tail))
 	| f: SetFunctionSpecification & switch @(f is Build.Values.Call ? 1 : 0) { case 0: none  case 1: tail: CallTail? }
 		=> @(Build.Values.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
@@ -642,12 +631,11 @@ DatePartCall : @Ast.Expression
 		=> @(Build.Values.Called(new Build.Values.Call(name, SqlList.Own(Syntax.Listed(part, rest))), tail))
 
 DatePartFunction : @string
-	= t: ("DATEPART"i | "DATENAME"i | "DATEADD"i | "DATEDIFF_BIG"i | "DATEDIFF"i | "DATETRUNC"i | "DATE_BUCKET"i)
-		=> @(t)
+	= t: ("DATEPART"i | "DATENAME"i | "DATEADD"i | "DATEDIFF_BIG"i | "DATEDIFF"i | "DATETRUNC"i | "DATE_BUCKET"i) => @(t)
 
 DatePart : @Ast.Expression
-	= t: TSqlIdentifier & when @(Syntax.IsDatePart(t)) => @(Build.Values.Worded(t))
-	| '(' & p: DatePart & ')'                     => @(Build.Values.Parenthesized(p))
+	= t: TSqlIdentifier & when @(Syntax.IsDatePart(t))          => @(Build.Values.Worded(t))
+	| '(' & p: DatePart & ')'                                   => @(Build.Values.Parenthesized(p))
 	| v: TSqlValueExpression & when @(!Build.Rules.IsColumn(v)) => @(v)
 
 // ODBC's escapes, which every driver has understood since before this language had a
@@ -716,17 +704,14 @@ Member : @Build.Values.Reach
 // `CONVERT` is a different rule and not a wider one: the standard's takes a value and
 // a character set, T-SQL's takes a type and a value, in that order.
 TSqlCast : @Ast.Expression
-	= name: "CAST"i & '(' & v: CastOperand & "AS"i & type: TSqlDataType & ')' => @(new Build.Values.Call(name, [v], type))
+	= name: "CAST"i & '(' & v: CastOperand & "AS"i & type: TSqlDataType & ')'     => @(new Build.Values.Call(name, [v], type))
 	| name: "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: TSqlDataType & ')' => @(new Build.Values.Call(name, [v], type))
 	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: TSqlDataType & ',' & v: TSqlValueExpression
 	  & (',' & style: TSqlValueExpression)? & ')'
 		=> @(new Build.Values.Call(name, style is null ? [v] : [v, style], type))
 	| name: ("TRY_PARSE"i | "PARSE"i) & '(' & v: TSqlValueExpression & "AS"i & type: TSqlDataType
 	  & ("USING"i & culture: TSqlValueExpression)? & ')'
-		=> @(new Build.Values.Call(
-				 name,
-				 culture is null ? [v] : [v, culture],
-				 type))
+		=> @(new Build.Values.Call(name, culture is null ? [v] : [v, culture], type))
 
 // The T-SQL functions with a syntax of their own rather than an argument list, which
 // is the same reason §6.16's are written out in the standard. What they have in common
@@ -833,18 +818,17 @@ UseModel : @string = t: ("USE"i & "MODEL"i & TSqlQualifiedName & UseModelParamet
 
 UseModelParameters = "PARAMETERS"i & TSqlValueExpression
 
-JsonNullClause : @string = t: ("NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i) => @(t)
-JsonReturningJson : @string = t: ("RETURNING"i & "JSON"i) => @(t)
-JsonValueReturning : @string = "RETURNING"i & type: TSqlDataType & when @(Syntax.JsonValued(type)) => @("RETURNING " + type)
-JsonWrapper : @string = t: ("WITH"i & "ARRAY"i & "WRAPPER"i) => @(t)
-JsonOrder      : @string = t: ("ORDER"i & "BY"i & SortSpecification & (',' & SortSpecification)*) => @(t)
+JsonNullClause     : @string = t: ("NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i)            => @(t)
+JsonReturningJson  : @string = t: ("RETURNING"i & "JSON"i)                                             => @(t)
+JsonValueReturning : @string =     "RETURNING"i & type: TSqlDataType & when @(Syntax.JsonValued(type)) => @("RETURNING " + type)
+JsonWrapper        : @string = t: ("WITH"i  & "ARRAY"i & "WRAPPER"i)                                   => @(t)
+JsonOrder          : @string = t: ("ORDER"i & "BY"i & SortSpecification & (',' & SortSpecification)*)  => @(t)
 
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
 // it is the middle of one three-word name.
 NextValue : @Ast.Expression
 	= word: ("NEXT"i & "VALUE"i & "FOR"i) & name: TSqlQualifiedName & tail: CallTail?
-		=> @(Build.Values.Called(
-				 new Build.Values.Call(word, Build.Values.None, name), tail))
+		=> @(Build.Values.Called(new Build.Values.Call(word, Build.Values.None, name), tail))
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
@@ -863,12 +847,11 @@ NextValue : @Ast.Expression
 // line of their own: no name reads them, and `dbo.CONVERT (1)` is `Msg 156`.
 FunctionCall : @Ast.Expression
 	= ?!((JsonOwnName | "IIF"i | NamedCallName) & '(')
-	  & ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
-	  & name: TSqlQualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
-	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+	& ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
+	& name: TSqlQualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	& '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 		=> @(Build.Values.Called(
-				 new Build.Values.Call(
-					 name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
+				new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
 
 // The names `ValueFunction`, `TSqlValueFunction` and `SetFunctionSpecification` read as calls
 // themselves, from the arguments their own shapes read: read here as well, those arguments were
@@ -904,7 +887,7 @@ Nulls : @string = t: ("RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i) => @(t)
 // `LAST_NODE`. This said the path read at every level once, unmeasured; twelve statements
 // of the corpus said otherwise.
 WithinGroup : @string
-	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') & when Version is Since110 => @(t)
+	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') &      when Version is Since110 => @(t)
 	| t: ("WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')') & when Version is Since110 => @(t)
 
 // `TRIM(LEADING … FROM …)`: the standard's three words, which T-SQL reads from level 160.
@@ -937,8 +920,8 @@ WindowSpecification : @Build.Clause.Window
 	  & by: OrderByClause?
 	  & frame: WindowFrame?
 		=> @(new Build.Clause.Window(
-				 name, first is null ? Build.Values.None : SqlList.Own(Syntax.Listed(first, rest)),
-				 Build.Clause.Ordered(SqlList.OwnOrNull(by), null), frame))
+				name, first is null ? Build.Values.None : SqlList.Own(Syntax.Listed(first, rest)),
+				Build.Clause.Ordered(SqlList.OwnOrNull(by), null), frame))
 
 // The name of a window declared by the query's `WINDOW` clause, standing where the
 // window itself would. Guarded the same way a correlation name is and for the same
@@ -1136,8 +1119,7 @@ FullTextColumns : @Ast.Expression
 	= a: FullTextAll => @(a)
 	| ?=("PROPERTY"i & '(' & TSqlQualifiedName & ',' & Quoted & ')') & p: TSqlValueExpression => @(p)
 	| '(' & a: FullTextAll & ')' => @(Build.Values.Row([a]))
-	| '(' & first: SearchedColumn & (',' & rest: SearchedColumn)* & ')'
-		=> @(Build.Values.Row(SqlList.Own(Syntax.Listed(first, rest))))
+	| '(' & first: SearchedColumn & (',' & rest: SearchedColumn)* & ')' => @(Build.Values.Row(SqlList.Own(Syntax.Listed(first, rest))))
 	| c: SearchedColumn => @(c)
 
 // Every column, or every column of one table.
@@ -1195,7 +1177,7 @@ DistinctTail : @Ast.Expression
 // which is `Expression.OdbcEscape`'s whole purpose and why nothing is added to the writer.
 TSqlEscapeClause : @Build.Values.Escape
 	= "ESCAPE"i & v: TSqlValueExpression                   => @(new Build.Values.Escape(v, false, ""))
-	| '{' & word: "ESCAPE"i & v: TSqlValueExpression & '}'  => @(new Build.Values.Escape(v, true, word))
+	| '{' & word: "ESCAPE"i & v: TSqlValueExpression & '}' => @(new Build.Values.Escape(v, true, word))
 
 // ── §8.12's boolean factor, widened ─────────────────────────────────────────
 //
@@ -1237,12 +1219,9 @@ TSqlQuerySpecification : @Build.Query
 // ((SELECT …) EXCEPT (SELECT …))` are read, and kept as the subquery they are, so that the
 // bracket is written once. A `WITH` or a `VALUES` there is refused.
 Top : @Build.Clause.Top
-	= "TOP"i & ?!('(' & "VALUES"i) & q: TSqlSubquery & suffix: TopSuffix?
-		=> @(Build.Clause.Topped(Build.Values.Subquery(q), suffix))
-	| "TOP"i & '(' & v: TSqlValueExpression & ')' & suffix: TopSuffix?
-		=> @(Build.Clause.Topped(Build.Values.Parenthesized(v), suffix))
-	| "TOP"i & t: Lexical.UnsignedNumericLiteral & suffix: TopSuffix?
-		=> @(Build.Clause.Topped(Build.Values.Number(t), suffix))
+	= "TOP"i & ?!('(' & "VALUES"i) & q: TSqlSubquery & suffix: TopSuffix? => @(Build.Clause.Topped(Build.Values.Subquery(q), suffix))
+	| "TOP"i & '(' & v: TSqlValueExpression & ')' & suffix: TopSuffix?    => @(Build.Clause.Topped(Build.Values.Parenthesized(v), suffix))
+	| "TOP"i & t: Lexical.UnsignedNumericLiteral & suffix: TopSuffix?     => @(Build.Clause.Topped(Build.Values.Number(t), suffix))
 
 // Read as the words they are and taken apart in C#: two questions and a rule, and asking
 // them here would be three captures where one run of words says it.
@@ -1280,14 +1259,13 @@ TSqlSelectList : @Ast.SelectColumn[]
 // be written in front with `=` rather than behind with `AS`. And an alias may be a
 // string, which the standard does not allow and every dialect does.
 TSqlSelectSublist : @Ast.SelectColumn
-	= '*'                                          => @(Build.Queries.All(null))
-	| qualifier: TSqlQualifiedName & '.' & '*'        => @(Build.Queries.All(qualifier))
-	| into: TSql.Variable & by: AssignOp & v: TSqlValueExpression
-		=> @(Build.Queries.Assigned(into, by, v))
-	| label: TSqlAlias & '=' & v: IdentityFunction => @(Build.Queries.Item(v, label, true))
-	| v: IdentityFunction & alias: TSqlAsClause    => @(Build.Queries.Item(v, alias, false))
-	| label: TSqlAlias & '=' & v: TSqlValueExpression  => @(Build.Queries.Item(v, label, true))
-	| v: TSqlValueExpression & alias: TSqlAsClause?    => @(Build.Queries.Item(v, alias, false))
+	= '*'                                                         => @(Build.Queries.All(null))
+	| qualifier: TSqlQualifiedName & '.' & '*'                    => @(Build.Queries.All(qualifier))
+	| into: TSql.Variable & by: AssignOp & v: TSqlValueExpression => @(Build.Queries.Assigned(into, by, v))
+	| label: TSqlAlias & '=' & v: IdentityFunction                => @(Build.Queries.Item(v, label, true))
+	| v: IdentityFunction & alias: TSqlAsClause                   => @(Build.Queries.Item(v, alias, false))
+	| label: TSqlAlias & '=' & v: TSqlValueExpression             => @(Build.Queries.Item(v, label, true))
+	| v: TSqlValueExpression & alias: TSqlAsClause?               => @(Build.Queries.Item(v, alias, false))
 
 // T-SQL's `IDENTITY` function, which gives the table a `SELECT … INTO` makes an identity
 // column: a type, and a seed and a step, numbers with a sign or without — `@a`, `1 + 1`,
@@ -1306,10 +1284,10 @@ IdentityNumber : @Ast.Expression
 AssignOp : @string = t: ('=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||=") => @(t)
 
 TSqlAlias    : @string
-	= t: TSqlIdentifier                                  => @(t)
+	= t: TSqlIdentifier                         => @(t)
 	| t: Lexical.CharacterStringLiteral         => @(t)
 	| t: Lexical.NationalCharacterStringLiteral => @(t)
-TSqlAsClause : @string = "AS"i & t: TSqlAlias => @(t) | ?!Label & t: TSqlAlias => @(t)
+TSqlAsClause : @string = "AS"i & t: TSqlAlias   => @(t) | ?!Label & t: TSqlAlias => @(t)
 
 // ── §7.7's group by, widened ────────────────────────────────────────────────
 //
@@ -1328,8 +1306,9 @@ TSqlGroupByClause : @Build.Clause
 	| "GROUP"i & "BY"i & first: TSqlGrouping & (',' & rest: TSqlGrouping)* & with: GroupWith?
 		=> @(new Build.Clause.GroupBy(false, SqlList.Own(Syntax.Listed(first, rest)), with))
 
-GroupWith : @string = "WITH"i & t: ("CUBE"i | "ROLLUP"i) => @(t)
-					| "WITH"i & '(' & t: TSqlIdentifier & ')' => @(t)
+GroupWith : @string
+    = "WITH"i & t: ("CUBE"i | "ROLLUP"i)      => @(t)
+    | "WITH"i & '(' & t: TSqlIdentifier & ')' => @(t)
 
 TSqlGrouping : @Ast.Expression
 	= "CUBE"i     & g: GroupList => @(new Build.Values.Call("CUBE",   SqlList.Own(g)))
@@ -1360,7 +1339,7 @@ GroupByExpression : @Ast.Expression
 // `ROLLUP`, `CUBE` and `GROUPING SETS`. What a bracket opens here is an ordinary expression —
 // and `()` alone, which is the grand total.
 GroupByItem : @Ast.Expression
-	= '(' & ')' => @(Build.Values.Row(Build.Values.None))
+	= '(' & ')'             => @(Build.Values.Row(Build.Values.None))
 	| c: TSqlGroupingColumn => @(c)
 
 TSqlGroupingColumn : @Ast.Expression
@@ -1379,7 +1358,7 @@ GroupingSet : @Ast.Expression
 GroupingSetItem : @Ast.Expression
 	= "CUBE"i   & g: GroupList => @(new Build.Values.Call("CUBE",   SqlList.Own(g)))
 	| "ROLLUP"i & g: GroupList => @(new Build.Values.Call("ROLLUP", SqlList.Own(g)))
-	| e: GroupByExpression => @(e)
+	| e: GroupByExpression     => @(e)
 
 // ── §7.5's joined table, widened ────────────────────────────────────────────
 //
@@ -1446,7 +1425,7 @@ TSqlTablePrimary : @Build.TableReference
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
 		=> @(Build.Tables.Sourced(Build.Rules.Pivoted(
-				 new Build.TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
+				new Build.TableReference.FunctionCall(f, alias, SqlList.OwnOrNull(columns), SqlList.Own(schema)), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| f: PredictCall & schema: PredictSchema & ("AS"i? & alias: CorrelationName)?
 		=> @(Build.Tables.Sourced(new Build.TableReference.FunctionCall(f, alias, null, SqlList.Own(schema)), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| f: ChunksFunction & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
@@ -1566,7 +1545,7 @@ CorrelationName = ?!SourceClause & ?!Label & TSqlIdentifier
 // took it — an alias, a value, a unit — would not give it back when the colon came.
 Label          = TSqlIdentifier & ':' & ?!':'
 Trailing(word) = ?!(word & ':') & word
-SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
+SourceClause   = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 
 // **Transcribed from `TSql170.g`'s own `tableHint` and `optimizerHints`, and that makes
 // these two rules weaker evidence than the rest of this file.** A rule written from the
@@ -1690,7 +1669,7 @@ TableSample : @Build.Clause
 	  & '(' & v: TSqlValueExpression & unit: SampleUnit? & ')' & seed: TableRepeatable?
 		=> @(new Build.Clause.TableSample(system is not null, v, unit, seed))
 
-SampleUnit      : @string     = t: ("PERCENT"i | "ROWS"i) => @(t)
+SampleUnit      : @string         = t: ("PERCENT"i | "ROWS"i)                          => @(t)
 TableRepeatable : @Ast.Expression = "REPEATABLE"i & '(' & v: TSqlValueExpression & ')' => @(v)
 
 // ── §7.13's subquery, widened ───────────────────────────────────────────────
@@ -1834,8 +1813,8 @@ ForName = '(' & Quoted & ')'
 namespace Dialect
 {
 	Select    : @Build.Statement   = q: TSqlDirectSelect    => @(q)
-	Condition : @Ast.Expression  = c: SearchCondition     => @(Build.Values.Entered(c))
-	Value     : @Ast.Expression  = v: TSqlValueExpression => @(Build.Values.Entered(v))
+	Condition : @Ast.Expression    = c: SearchCondition     => @(Build.Values.Entered(c))
+	Value     : @Ast.Expression    = v: TSqlValueExpression => @(Build.Values.Entered(v))
 	Statement : @Build.Statement   = s: TSqlStatement       => @(s)
 	Sql       : @Build.Statement[] = s: SqlText             => @(s)
 }
@@ -2121,10 +2100,10 @@ SourceName
 	= ?!("AI_GENERATE_CHUNKS"i & '(') & TSqlQualifiedName
 	| "AI_GENERATE_CHUNKS"i & ?='(' & when Version is Until160
 
-ChunksSource  : @Ast.Expression = n: "SOURCE"i & '=' & v: ChunksValue => @(new Build.Values.NamedArgument(n, v))
-ChunksType    : @Ast.Expression = n: "CHUNK_TYPE"i & '=' & w: "FIXED"i => @(new Build.Values.NamedArgument(n, Build.Values.Reference(w)))
-ChunksSize    : @Ast.Expression = n: "CHUNK_SIZE"i & '=' & v: ChunksValue => @(new Build.Values.NamedArgument(n, v))
-ChunksOverlap : @Ast.Expression = n: "OVERLAP"i & '=' & v: ChunksValue => @(new Build.Values.NamedArgument(n, v))
+ChunksSource  : @Ast.Expression = n: "SOURCE"i              & '=' & v: ChunksValue => @(new Build.Values.NamedArgument(n, v))
+ChunksType    : @Ast.Expression = n: "CHUNK_TYPE"i          & '=' & w: "FIXED"i    => @(new Build.Values.NamedArgument(n, Build.Values.Reference(w)))
+ChunksSize    : @Ast.Expression = n: "CHUNK_SIZE"i          & '=' & v: ChunksValue => @(new Build.Values.NamedArgument(n, v))
+ChunksOverlap : @Ast.Expression = n: "OVERLAP"i             & '=' & v: ChunksValue => @(new Build.Values.NamedArgument(n, v))
 ChunksSet     : @Ast.Expression = n: "ENABLE_CHUNK_SET_ID"i & '=' & v: ChunksValue => @(new Build.Values.NamedArgument(n, v))
 
 ChunksValue : @Ast.Expression = "NULL"i => @(Build.Values.Null()) | v: TSqlValueExpression => @(v)
@@ -2212,14 +2191,14 @@ SearchTop : @Ast.Expression = ',' & ?=((Lexical.Digits | TSql.Variable) & ')') &
 // empty ones: a statement cut out of a text may carry them, `… AS staging_data;\n;`.
 TSqlStatement : @Build.Statement
 	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'* => @(Build.Dml.Preceded(SqlList.OwnOrNull(with), s, new SqlSpan(parserSpan.Start, parserSpan.Length)))
-	| c: BareCall & ';'*                                         => @(c)
+	| c: BareCall & ';'*                                        => @(c)
 
 StatementBody : @Build.Statement
-	= s: TSqlInsert   => @(s)
-	| s: TSqlUpdate   => @(s)
-	| s: TSqlDelete   => @(s)
-	| s: TSqlMerge    => @(s)
-	| s: Procedural   => @(s)
+	= s: TSqlInsert       => @(s)
+	| s: TSqlUpdate       => @(s)
+	| s: TSqlDelete       => @(s)
+	| s: TSqlMerge        => @(s)
+	| s: Procedural       => @(s)
 	| s: TSqlDirectSelect => @(s)
 
 // What a statement writes to. Narrower than a table primary on purpose: the syntax gives
@@ -2234,10 +2213,10 @@ StatementBody : @Build.Statement
 // and `GENERATE_SERIES` are not reserved and are read as one, which is what the engine
 // does with them.
 DmlTarget : @Build.TableReference
-	= server: AdHocServer & named: AdHocObject => @(new Build.TableReference.Named(named, null, false, null, null, null, Build.Clause.None, server))
-	| f: OpenQueryCall                  => @(new Build.TableReference.FunctionCall(f, null, null, Build.Clause.None))
-	| t: TSql.Variable & hints: TableHints?    => @(new Build.TableReference.Named(t, null, false, null, null, null, SqlList.Own(hints)))
-	| name: TSqlQualifiedName & hints: TableHints? => @(new Build.TableReference.Named(name, null, false, null, null, null, SqlList.Own(hints)))
+	= server: AdHocServer & named: AdHocObject       => @(new Build.TableReference.Named(named, null, false, null, null, null, Build.Clause.None, server))
+	| f     : OpenQueryCall                          => @(new Build.TableReference.FunctionCall(f, null, null, Build.Clause.None))
+	| t     : TSql.Variable     & hints: TableHints? => @(new Build.TableReference.Named(t, null, false, null, null, null, SqlList.Own(hints)))
+	| name  : TSqlQualifiedName & hints: TableHints? => @(new Build.TableReference.Named(name, null, false, null, null, null, SqlList.Own(hints)))
 
 // A table-valued function is a target too, its arguments and nothing after them: the
 // engine reads `UPDATE dbo.f() SET …`, `DELETE FROM dbo.f(1)` and `MERGE dbo.f() USING …`,
@@ -2245,7 +2224,7 @@ DmlTarget : @Build.TableReference
 DmlCall : @Build.TableReference
 	= name: TSqlQualifiedName & '(' & args: Arguments? & ')'
 		=> @(new Build.TableReference.FunctionCall(
-				 new Build.Values.Call(name, SqlList.Own(args)), null, null, Build.Clause.None))
+				new Build.Values.Call(name, SqlList.Own(args)), null, null, Build.Clause.None))
 
 DmlSubject : @Build.TableReference = c: DmlCall => @(c) | t: DmlTarget => @(t)
 
@@ -2279,10 +2258,10 @@ InsertColumns : @string[] = first: InsertColumn & (',' & rest: InsertColumn)* =>
 InsertColumn : @string = t: WrittenColumn => @(t)
 
 InsertRows : @Build.Query
-	= "DEFAULT"i & "VALUES"i    => @(new Build.Query.DefaultValues())
-	| v: TSqlTableValueConstructor  => @(v)
-	| e: ExecuteStatement       => @(new Build.Query.FromExecute(e))
-	| q: ChangedSource          => @(q)
+	= "DEFAULT"i & "VALUES"i       => @(new Build.Query.DefaultValues())
+	| v: TSqlTableValueConstructor => @(v)
+	| e: ExecuteStatement          => @(new Build.Query.FromExecute(e))
+	| q: ChangedSource             => @(q)
 	| q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause?
 		=> @(Build.Queries.Ordered(q, SqlList.OwnOrNull(by), window, shape))
 
@@ -2328,9 +2307,9 @@ Assignments : @Build.Clause[]
 // and `SET a.b.func()` is `Msg 102`, however many parts follow. A column assigned plainly
 // takes as many as it likes, `SET a.b.c.d = 1` being read.
 Assignment : @Build.Clause
-	= to: TSql.Variable   & s: UpdateVariableTail => @(s with { Target = to })
-	| to: TSqlIdentifier      & s: MethodCallTail     => @(s with { Target = to })
-	| to: WrittenColumn   & s: ChainTail          => @(s with { Target = to })
+	= to: TSql.Variable  & s: UpdateVariableTail => @(s with { Target = to })
+	| to: TSqlIdentifier & s: MethodCallTail     => @(s with { Target = to })
+	| to: WrittenColumn  & s: ChainTail          => @(s with { Target = to })
 
 MethodCallTail : @Build.Clause.Set
 	= '.' & method: TSqlIdentifier & '(' & args: Arguments? & ')'
@@ -2376,15 +2355,15 @@ ChainTail : @Build.Clause.Set
 // chain is an `UPDATE`'s alone: in a `MERGE` `SET @a = t.c = 1` and `SET @a = t.c += 1` are
 // `Msg 10723`, a variable being set to a column or to a value and not to both.
 VariableChainTail : @Build.Clause.Set
-	= '=' & v: AssignedValue    => @(new Build.Clause.Set("", "=", v))
+	= '=' & v: AssignedValue     => @(new Build.Clause.Set("", "=", v))
 	| op: AssignOp & v: SetValue => @(new Build.Clause.Set("", op, v))
 
 AssignedValue : @Ast.Expression
-	= "DEFAULT"i => @(Build.Values.Default())
+	= "DEFAULT"i  => @(Build.Values.Default())
 	| v: SetValue => @(v)
 
 SetValue : @Ast.Expression
-	= "NULL"i    => @(Build.Values.Null())
+	= "NULL"i                => @(Build.Values.Null())
 	| v: TSqlValueExpression => @(v)
 
 // A `WHERE` that may name a cursor's current row instead of a condition.
@@ -2474,8 +2453,8 @@ OutputItem : @Ast.SelectColumn
 // methods, and each is inside the budget. It is the first time this grammar has been large
 // enough for that to happen, and it will not be the last.
 Procedural : @Build.Statement
-	= s: ControlStatement    => @(s)
-	| s: DefinitionStatement => @(s)
+	= s: ControlStatement     => @(s)
+	| s: DefinitionStatement  => @(s)
 
 ControlStatement : @Build.Statement
 	= s: TryCatchStatement    => @(s)
@@ -2489,36 +2468,36 @@ ControlStatement : @Build.Statement
 	| s: ConversationStatement => @(s)
 
 DefinitionStatement : @Build.Statement
-	= s: DeclareStatement     => @(s)
-	| s: SetStatement         => @(s)
-	| s: SessionStatement     => @(s)
-	| e: ExecuteStatement     => @(Build.Routines.Execute(e, new SqlSpan(parserSpan.Start, parserSpan.Length)))
-	| s: BulkInsertStatement  => @(s)
-	| s: CreateTableStatement => @(s)
-	| s: AlterTableStatement  => @(s)
-	| s: CreateRoutine        => @(s)
-	| s: CreateIndexStatement => @(s)
-	| s: AlterIndexStatement  => @(s)
-	| s: PermissionStatement  => @(s)
-	| s: AuditStatement          => @(s)
-	| s: KeyStatement            => @(s)
-	| s: FullTextStatement       => @(s)
-	| s: BackupStatement         => @(s)
-	| s: RestoreStatement        => @(s)
-	| s: CreateDatabaseStatement => @(s)
-	| s: AlterDatabaseStatement  => @(s)
-	| s: DropStatement           => @(s)
-	| s: PrincipalStatement      => @(s)
-	| s: ExternalStatement       => @(s)
-	| s: BrokerStatement         => @(s)
-	| s: ServerStatement         => @(s)
-	| s: AvailabilityStatement   => @(s)
-	| s: PartitionStatement      => @(s)
-	| s: SequenceStatement       => @(s)
-	| s: TypeStatement           => @(s)
-	| s: MaintenanceStatement    => @(s)
-	| s: CodeStatement           => @(s)
-	| s: TextStatement           => @(s)
+	= s: DeclareStatement       => @(s)
+	| s: SetStatement           => @(s)
+	| s: SessionStatement       => @(s)
+	| e: ExecuteStatement       => @(Build.Routines.Execute(e, new SqlSpan(parserSpan.Start, parserSpan.Length)))
+	| s: BulkInsertStatement    => @(s)
+	| s: CreateTableStatement   => @(s)
+	| s: AlterTableStatement    => @(s)
+	| s: CreateRoutine          => @(s)
+	| s: CreateIndexStatement   => @(s)
+	| s: AlterIndexStatement    => @(s)
+	| s: PermissionStatement    => @(s)
+	| s: AuditStatement         => @(s)
+	| s: KeyStatement           => @(s)
+	| s: FullTextStatement      => @(s)
+	| s: BackupStatement        => @(s)
+	| s: RestoreStatement       => @(s)
+	| s: CreateDatabaseStatement=> @(s)
+	| s: AlterDatabaseStatement => @(s)
+	| s: DropStatement          => @(s)
+	| s: PrincipalStatement     => @(s)
+	| s: ExternalStatement      => @(s)
+	| s: BrokerStatement        => @(s)
+	| s: ServerStatement        => @(s)
+	| s: AvailabilityStatement  => @(s)
+	| s: PartitionStatement     => @(s)
+	| s: SequenceStatement      => @(s)
+	| s: TypeStatement          => @(s)
+	| s: MaintenanceStatement   => @(s)
+	| s: CodeStatement          => @(s)
+	| s: TextStatement          => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -2673,8 +2652,8 @@ TranDelayed = "WITH"i & '(' & "DELAYED_DURABILITY"i & '=' & OnOff & ')'
 // number and a plus sign are `Msg 102`. The name has two parts and no more, quoted or not, and
 // no empty one.
 TranName : @string
-	= t: TSqlIdentifier                                              => @(t)
-	| t: TSql.Variable                                           => @(t)
+	= t: TSqlIdentifier                                                        => @(t)
+	| t: TSql.Variable                                                         => @(t)
 	| t: ('-'? & Lexical.Digits & ':' & TSqlIdentifier & '.' & TSqlIdentifier) => @(Syntax.Spaced(t))
 
 // ── Declarations ────────────────────────────────────────────────────────────
@@ -2694,8 +2673,8 @@ Declaration : @Build.Clause
 DeclaredAs : @Build.Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: DeclaredBody & ')' & when @(Build.Rules.Declared(body))
 		=> @(new Build.Clause.VariableDeclaration("", "TABLE", null, SqlList.OwnOrNull(body)))
-	| "CURSOR"i                                    => @(new Build.Clause.VariableDeclaration("", "CURSOR", null))
-	| type: TSqlDataType & ('=' & v: SetValue)?        => @(new Build.Clause.VariableDeclaration("", type, v, null))
+	| "CURSOR"i                                 => @(new Build.Clause.VariableDeclaration("", "CURSOR", null))
+	| type: TSqlDataType & ('=' & v: SetValue)? => @(new Build.Clause.VariableDeclaration("", type, v, null))
 
 // ── Text read and written in place, and a configuration taken up ──────────────────
 //
@@ -2847,7 +2826,7 @@ AssemblyOption : @Build.Clause
 	= "PERMISSION_SET"i & '=' & t: AssemblyPermission
 		=> @(new Build.Clause.Option("PERMISSION_SET", Build.Values.Reference(Syntax.Squared(t)), Build.Clause.None))
 	| "VISIBILITY"i & '=' & on: OnOff => @(new Build.Clause.Option("VISIBILITY", Build.Values.Reference(on), Build.Clause.None))
-	| "UNCHECKED"i & "DATA"i           => @(new Build.Clause.Option("UNCHECKED DATA", null, Build.Clause.None))
+	| "UNCHECKED"i & "DATA"i          => @(new Build.Clause.Option("UNCHECKED DATA", null, Build.Clause.None))
 
 AssemblyDrop = "DROP"i & "FILE"i & ("ALL"i | Quoted & (',' & Quoted)*)
 AssemblyAdd  = "ADD"i & "FILE"i & "FROM"i & AssemblyFile & (',' & AssemblyFile)*
@@ -2872,8 +2851,8 @@ ModelOptions : @Build.Clause[]
 	= '(' & (first: ModelOption & (',' & rest: ModelOption)*)? & ')' => @(first is null ? [] : Syntax.Listed(first, rest))
 
 ModelOption : @Build.Clause
-	= "MODEL_TYPE"i & '=' & t: "EMBEDDINGS"i => @(new Build.Clause.Option("MODEL_TYPE", Build.Values.Reference(t), Build.Clause.None))
-	| "CREDENTIAL"i & '=' & c: TSqlIdentifier    => @(new Build.Clause.Option("CREDENTIAL", Build.Values.Reference(c), Build.Clause.None))
+	= "MODEL_TYPE"i & '=' & t: "EMBEDDINGS"i  => @(new Build.Clause.Option("MODEL_TYPE", Build.Values.Reference(t), Build.Clause.None))
+	| "CREDENTIAL"i & '=' & c: TSqlIdentifier => @(new Build.Clause.Option("CREDENTIAL", Build.Values.Reference(c), Build.Clause.None))
 	| name: ("LOCATION"i | "API_FORMAT"i | "MODEL"i | "PARAMETERS"i | "LOCAL_RUNTIME_PATH"i) & '=' & v: BrokerString
 		=> @(new Build.Clause.Option(Syntax.Squared(name), v, Build.Clause.None))
 
@@ -2883,13 +2862,13 @@ AggregateParameter = TSql.Variable & "AS"i? & TSqlDataType & NullSpec?
 
 SignedModule : @string
 	= t: (("OBJECT"i | "ASSEMBLY"i | "DATABASE"i) & "::" & TSqlQualifiedName) => @(Syntax.Spaced(t))
-	| t: TSqlQualifiedName                                                   => @(t)
+	| t: TSqlQualifiedName                                                    => @(t)
 
 SignatureCrypto : @Ast.Expression
 	= t: ("CERTIFICATE"i & TSqlIdentifier & SignatureProof?)         => @(Build.Values.Reference(Syntax.Spaced(t)))
 	| t: ("ASYMMETRIC"i & "KEY"i & TSqlIdentifier & SignatureProof?) => @(Build.Values.Reference(Syntax.Spaced(t)))
 	| t: ("SYMMETRIC"i & "KEY"i & TSqlIdentifier)                    => @(Build.Values.Reference(Syntax.Spaced(t)))
-	| t: ("PASSWORD"i & '=' & Quoted)                        => @(Build.Values.Reference(Syntax.Spaced(t)))
+	| t: ("PASSWORD"i & '=' & Quoted)                                => @(Build.Values.Reference(Syntax.Spaced(t)))
 
 SignatureProof = "WITH"i & ("PASSWORD"i & '=' & Quoted | "SIGNATURE"i & '=' & TSql.BinaryLiteral)
 
@@ -2939,14 +2918,14 @@ TriggerNames : @string[]
 TriggerName : @string = t: TSqlQualifiedName => @(t)
 
 TriggerScope : @string
-	= "ALL"i & "SERVER"i => @("ALL SERVER")
-	| "DATABASE"i        => @("DATABASE")
-	| t: TSqlQualifiedName   => @(t)
+	= "ALL"i & "SERVER"i   => @("ALL SERVER")
+	| "DATABASE"i          => @("DATABASE")
+	| t: TSqlQualifiedName => @(t)
 
 KillSubscription : @Ast.Expression = "ALL"i => @(Build.Values.Reference("ALL")) | n: KillNumber => @(n)
 KillNumber       : @Ast.Expression = t: ('-'? & Lexical.UnsignedNumericLiteral) => @(Build.Values.Number(Syntax.Compacted(t)))
 KillSession      : @Ast.Expression = n: KillNumber => @(n) | s: BrokerString => @(s)
-KillWith         : @string = "WITH"i & t: ("STATUSONLY"i | "COMMIT"i | "ROLLBACK"i) => @(Syntax.Squared(t))
+KillWith         : @string         = "WITH"i & t: ("STATUSONLY"i | "COMMIT"i | "ROLLBACK"i) => @(Syntax.Squared(t))
 
 ClassifiedColumn : @string = t: (TSqlIdentifier & '.' & TSqlIdentifier & ('.' & TSqlIdentifier)?) => @(t)
 
@@ -3012,14 +2991,13 @@ SequenceStatement : @Build.Statement
 SequenceName : @string = t: TSqlQualifiedName => @(t)
 
 SequenceOption : @Build.Clause
-	= "AS"i & TSqlDataType                          => @(new Build.Clause.Option("AS", null, Build.Clause.None))
+	= "AS"i & TSqlDataType                       => @(new Build.Clause.Option("AS", null, Build.Clause.None))
 	| "START"i & "WITH"i & v: SequenceValue      => @(new Build.Clause.Option("START", v, Build.Clause.None))
 	| "RESTART"i & ("WITH"i & v: SequenceValue)? => @(new Build.Clause.Option("RESTART", v, Build.Clause.None))
 	| "INCREMENT"i & "BY"i & v: SequenceValue    => @(new Build.Clause.Option("INCREMENT", v, Build.Clause.None))
 	| "MINVALUE"i & v: SequenceValue             => @(new Build.Clause.Option("MINVALUE", v, Build.Clause.None))
 	| "MAXVALUE"i & v: SequenceValue             => @(new Build.Clause.Option("MAXVALUE", v, Build.Clause.None))
-	| "CACHE"i & t: ExactNumber?
-		=> @(new Build.Clause.Option("CACHE", t is null ? null : Build.Values.Number(t), Build.Clause.None))
+	| "CACHE"i & t: ExactNumber?                 => @(new Build.Clause.Option("CACHE", t is null ? null : Build.Values.Number(t), Build.Clause.None))
 	| "CYCLE"i                                   => @(new Build.Clause.Option("CYCLE", null, Build.Clause.None))
 	| "NO"i & w: ("MINVALUE"i | "MAXVALUE"i | "CYCLE"i | "CACHE"i)
 		=> @(new Build.Clause.Option(Syntax.Squared(w), null, Build.Clause.None))
@@ -3102,7 +3080,7 @@ ServerSetting
 	| "HADR"i & "CLUSTER"i & "CONTEXT"i & '=' & (BrokerString | "LOCAL"i)
 	| "BUFFER"i & "POOL"i & "EXTENSION"i
 	  & ("OFF"i | "ON"i & '(' & "FILENAME"i & '=' & BrokerString & ',' & "SIZE"i & '=' & Lexical.Digits
-				   & ("KB"i | "MB"i | "GB"i) & ')')
+	  & ("KB"i | "MB"i | "GB"i) & ')')
 	| "SOFTNUMA"i & OnOff
 	| "MEMORY_OPTIMIZED"i
 	  & ("ON"i | "OFF"i
@@ -3124,7 +3102,7 @@ ClusterProperty
 	  & '=' & (Lexical.Digits | "DEFAULT"i)
 
 SnapshotScope = "GROUP"i & '=' & '(' & TSqlIdentifier & (',' & TSqlIdentifier)* & ')' & (',' & "MODE"i & '=' & "COPY_ONLY"i)?
-			  | "MODE"i & '=' & "COPY_ONLY"i
+			  | "MODE"i  & '=' & "COPY_ONLY"i
 
 // ── Availability groups ─────────────────────────────────────────────────────
 //
@@ -3159,22 +3137,22 @@ AvailabilityBody
 
 // What an `ALTER` does, one of them and no more.
 AvailabilityAction
-	= "SET"i & '(' & AvailabilitySetting & ')'
-	| "ADD"i & "DATABASE"i & TSqlIdentifier
-	| "REMOVE"i & "DATABASE"i & TSqlIdentifier
-	| "ADD"i & "REPLICA"i & "ON"i & AvailabilityReplica
-	| "MODIFY"i & "REPLICA"i & "ON"i & AvailabilityReplica
-	| "REMOVE"i & "REPLICA"i & "ON"i & BrokerString
-	| "JOIN"i & "AVAILABILITY"i & "GROUP"i & "ON"i & AvailabilityGroupSpec & (',' & AvailabilityGroupSpec)?
+	= "SET"i    & '(' & AvailabilitySetting & ')'
+	| "ADD"i    & "DATABASE"i     & TSqlIdentifier
+	| "REMOVE"i & "DATABASE"i     & TSqlIdentifier
+	| "ADD"i    & "REPLICA"i      & "ON"i & AvailabilityReplica
+	| "MODIFY"i & "REPLICA"i      & "ON"i & AvailabilityReplica
+	| "REMOVE"i & "REPLICA"i      & "ON"i & BrokerString
+	| "JOIN"i   & "AVAILABILITY"i & "GROUP"i & "ON"i & AvailabilityGroupSpec & (',' & AvailabilityGroupSpec)?
 	| "MODIFY"i & "AVAILABILITY"i & "GROUP"i & "ON"i & AvailabilityGroupSpec & (',' & AvailabilityGroupSpec)?
 	| "JOIN"i
 	| ("GRANT"i | "DENY"i) & "CREATE"i & "ANY"i & "DATABASE"i
 	| "FAILOVER"i
 	| "FORCE_FAILOVER_ALLOW_DATA_LOSS"i
-	| "ADD"i & "LISTENER"i & BrokerString & '(' & AvailabilityListener & ')'
-	| "MODIFY"i & "LISTENER"i & BrokerString & '(' & AvailabilityListenerChange & ')'
+	| "ADD"i     & "LISTENER"i & BrokerString & '(' & AvailabilityListener & ')'
+	| "MODIFY"i  & "LISTENER"i & BrokerString & '(' & AvailabilityListenerChange & ')'
 	| "RESTART"i & "LISTENER"i & BrokerString
-	| "REMOVE"i & "LISTENER"i & BrokerString
+	| "REMOVE"i  & "LISTENER"i & BrokerString
 	| "OFFLINE"i
 
 // And what a `CREATE` is made of, which it may not leave out altogether.
@@ -3203,21 +3181,21 @@ AvailabilitySetting
 AvailabilityReplica = BrokerString & "WITH"i & '(' & AvailabilityReplicaOption & (',' & AvailabilityReplicaOption)* & ')'
 
 AvailabilityReplicaOption
-	= "ENDPOINT_URL"i & '=' & BrokerString
+	= "ENDPOINT_URL"i      & '=' & BrokerString
 	| "AVAILABILITY_MODE"i & '=' & ("SYNCHRONOUS_COMMIT"i | "ASYNCHRONOUS_COMMIT"i | "CONFIGURATION_ONLY"i)
-	| "FAILOVER_MODE"i & '=' & ("AUTOMATIC"i | "MANUAL"i | "EXTERNAL"i)
-	| "SEEDING_MODE"i & '=' & ("AUTOMATIC"i | "MANUAL"i)
-	| "BACKUP_PRIORITY"i & '=' & Lexical.Digits
-	| "SESSION_TIMEOUT"i & '=' & Lexical.Digits
-	| "SECONDARY_ROLE"i & '(' & AvailabilitySecondary & (',' & AvailabilitySecondary)* & ')'
-	| "PRIMARY_ROLE"i & '(' & AvailabilityPrimary & (',' & AvailabilityPrimary)* & ')'
+	| "FAILOVER_MODE"i     & '=' & ("AUTOMATIC"i | "MANUAL"i | "EXTERNAL"i)
+	| "SEEDING_MODE"i      & '=' & ("AUTOMATIC"i | "MANUAL"i)
+	| "BACKUP_PRIORITY"i   & '=' & Lexical.Digits
+	| "SESSION_TIMEOUT"i   & '=' & Lexical.Digits
+	| "SECONDARY_ROLE"i    & '(' & AvailabilitySecondary & (',' & AvailabilitySecondary)* & ')'
+	| "PRIMARY_ROLE"i      & '(' & AvailabilityPrimary & (',' & AvailabilityPrimary)* & ')'
 
 AvailabilitySecondary
-	= "ALLOW_CONNECTIONS"i & '=' & ("NO"i | "READ_ONLY"i | "ALL"i)
+	= "ALLOW_CONNECTIONS"i     & '=' & ("NO"i | "READ_ONLY"i | "ALL"i)
 	| "READ_ONLY_ROUTING_URL"i & '=' & BrokerString
 
 AvailabilityPrimary
-	= "ALLOW_CONNECTIONS"i & '=' & ("READ_WRITE"i | "ALL"i)
+	= "ALLOW_CONNECTIONS"i      & '=' & ("READ_WRITE"i | "ALL"i)
 	| "READ_ONLY_ROUTING_LIST"i & '=' & ('(' & BrokerString & (',' & BrokerString)* & ')' | "NONE"i)
 	| "READ_WRITE_ROUTING_URL"i & '=' & BrokerString
 
@@ -3225,16 +3203,16 @@ AvailabilityPrimary
 AvailabilityGroupSpec = BrokerString & "WITH"i & '(' & AvailabilityGroupOption & (',' & AvailabilityGroupOption)* & ')'
 
 AvailabilityGroupOption
-	= "LISTENER_URL"i & '=' & BrokerString
-	| "LISTENER"i & '=' & BrokerString
+	= "LISTENER_URL"i      & '=' & BrokerString
+	| "LISTENER"i          & '=' & BrokerString
 	| "AVAILABILITY_MODE"i & '=' & ("SYNCHRONOUS_COMMIT"i | "ASYNCHRONOUS_COMMIT"i)
-	| "FAILOVER_MODE"i & '=' & "MANUAL"i
-	| "SEEDING_MODE"i & '=' & ("AUTOMATIC"i | "MANUAL"i)
+	| "FAILOVER_MODE"i     & '=' & "MANUAL"i
+	| "SEEDING_MODE"i      & '=' & ("AUTOMATIC"i | "MANUAL"i)
 
 // A listener takes its address from the network or is given one, and a port with it.
 AvailabilityListener
 	= "WITH"i & "DHCP"i & ("ON"i & '(' & BrokerString & ',' & BrokerString & ')')?
-	| "WITH"i & "IP"i & '(' & AvailabilityAddress & (',' & AvailabilityAddress)* & ')'
+	| "WITH"i & "IP"i   & '(' & AvailabilityAddress & (',' & AvailabilityAddress)* & ')'
 	  & (',' & "PORT"i & '=' & Lexical.Digits)?
 
 AvailabilityAddress = '(' & BrokerString & (',' & BrokerString)? & ')'
@@ -3311,8 +3289,8 @@ ContractMessage = TSqlIdentifier & "SENT"i & "BY"i & ("INITIATOR"i | "TARGET"i |
 QueueWith : @Build.Clause[] = "WITH"i & first: QueueOption & (',' & rest: QueueOption)* => @(Syntax.Listed(first, rest))
 
 QueueOption : @Build.Clause
-	= "STATUS"i & '=' & v: OnOff    => @(new Build.Clause.Option("STATUS", Build.Values.Reference(v), Build.Clause.None))
-	| "RETENTION"i & '=' & v: OnOff => @(new Build.Clause.Option("RETENTION", Build.Values.Reference(v), Build.Clause.None))
+	= "STATUS"i     & '=' & v: OnOff    => @(new Build.Clause.Option("STATUS", Build.Values.Reference(v), Build.Clause.None))
+	| "RETENTION"i  & '=' & v: OnOff => @(new Build.Clause.Option("RETENTION", Build.Values.Reference(v), Build.Clause.None))
 	| "ACTIVATION"i & '(' & "DROP"i & ')'
 		=> @(new Build.Clause.Option("ACTIVATION", null, [new Build.Clause.Option("DROP", null, Build.Clause.None)], null, true))
 	| "ACTIVATION"i & '(' & first: Activation & (',' & rest: Activation)* & ')' & when @(Build.Rules.NamedOnce(first, rest))
@@ -3398,9 +3376,9 @@ ConversationStatement : @Build.Statement
 		=> @(Build.Broker.Dialog(handle, said is not null, from, to, instance, contract, SqlList.Own(options)))
 	| "BEGIN"i & "CONVERSATION"i & "TIMER"i & '(' & h: TSqlValueExpression & ')' & "TIMEOUT"i & '=' & timeout: TSqlValueExpression
 		=> @(Build.Broker.Timer(h, timeout))
-	| "END"i & "CONVERSATION"i & h: TSqlValueExpression & ending: EndConversationWith?
+	| "END"i   & "CONVERSATION"i & h: TSqlValueExpression & ending: EndConversationWith?
 		=> @(Build.Broker.End(h, ending))
-	| "MOVE"i & "CONVERSATION"i & h: TSqlValueExpression & "TO"i & group: TSqlValueExpression
+	| "MOVE"i  & "CONVERSATION"i & h: TSqlValueExpression & "TO"i & group: TSqlValueExpression
 		=> @(Build.Broker.Move(h, group))
 	| "SEND"i & "ON"i & "CONVERSATION"i & targets: SendTargets & ("MESSAGE"i & "TYPE"i & type: MessageTypeName)?
 	  & ('(' & body: TSqlValueExpression & ')')?
@@ -3500,13 +3478,13 @@ DbccArgument : @Ast.Expression
 
 DbccValue : @Ast.Expression
 	= t: ('-'? & Lexical.UnsignedNumericLiteral) => @(Build.Values.Number(Syntax.Compacted(t)))
-	| t: TSql.MoneyLiteral                              => @(Build.Values.Number(t))
-	| t: Lexical.NationalCharacterStringLiteral   => @(Build.Values.National(t))
-	| t: Lexical.CharacterStringLiteral           => @(Build.Values.Text(t))
-	| t: TSql.BinaryLiteral                             => @(Build.Values.Hex(t))
-	| "NULL"i                                           => @(Build.Values.Null())
-	| t: TSql.Variable                                  => @(Build.Values.Parameter(t))
-	| t: TSqlIdentifier                                     => @(Build.Values.Reference(t))
+	| t: TSql.MoneyLiteral                       => @(Build.Values.Number(t))
+	| t: Lexical.NationalCharacterStringLiteral  => @(Build.Values.National(t))
+	| t: Lexical.CharacterStringLiteral          => @(Build.Values.Text(t))
+	| t: TSql.BinaryLiteral                      => @(Build.Values.Hex(t))
+	| "NULL"i                                    => @(Build.Values.Null())
+	| t: TSql.Variable                           => @(Build.Values.Parameter(t))
+	| t: TSqlIdentifier                          => @(Build.Values.Reference(t))
 
 // The first option may be a run joined by `JOIN` — `WITH STAT_HEADER JOIN DENSITY_VECTOR`,
 // `SHOW_STATISTICS`' way of asking for its result sets as one — and only the first: `WITH
@@ -3697,12 +3675,12 @@ SetExpressions : @Build.SetExpression[]
 // both of theirs; SQL Server says it has not heard of any of them (`Msg 195`).
 SetSwitch : @string = t: SetSwitchName => @(t)
 SetSwitchName
-	= "ANSI_DEFAULTS"i | "ANSI_NULL_DFLT_OFF"i | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i | "AUTOCOMMIT"i
-	| "ANSI_PADDING"i | "ANSI_WARNINGS"i | "ARITHABORT"i | "ARITHIGNORE"i
-	| "CONCAT_NULL_YIELDS_NULL"i | "CURSOR_CLOSE_ON_COMMIT"i | "FMTONLY"i | "FORCEPLAN"i
-	| "IMPLICIT_TRANSACTIONS"i | "NO_BROWSETABLE"i | "NOCOUNT"i | "NOEXEC"i
-	| "NUMERIC_ROUNDABORT"i | "PARSEONLY"i | "QUOTED_IDENTIFIER"i | "RECOMMENDATIONS"i
-	| "REMOTE_PROC_TRANSACTIONS"i | "RESULT_SET_CACHING"i | "SHOWPLAN_ALL"i | "SHOWPLAN_TEXT"i | "SHOWPLAN_XML"i | "XACT_ABORT"i
+	= "ANSI_DEFAULTS"i            | "ANSI_NULL_DFLT_OFF"i     | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i | "AUTOCOMMIT"i
+	| "ANSI_PADDING"i             | "ANSI_WARNINGS"i          | "ARITHABORT"i        | "ARITHIGNORE"i
+	| "CONCAT_NULL_YIELDS_NULL"i  | "CURSOR_CLOSE_ON_COMMIT"i | "FMTONLY"i           | "FORCEPLAN"i
+	| "IMPLICIT_TRANSACTIONS"i    | "NO_BROWSETABLE"i         | "NOCOUNT"i           | "NOEXEC"i
+	| "NUMERIC_ROUNDABORT"i       | "PARSEONLY"i              | "QUOTED_IDENTIFIER"i | "RECOMMENDATIONS"i
+	| "REMOTE_PROC_TRANSACTIONS"i | "RESULT_SET_CACHING"i     | "SHOWPLAN_ALL"i      | "SHOWPLAN_TEXT"i | "SHOWPLAN_XML"i | "XACT_ABORT"i
 
 // What `STATISTICS` reports, and the keywords `OFFSETS` returns: `PROC` and `EXEC` spelled
 // short, and `COMPUTE`, which the page no longer has and the engine still knows. Longest first.
@@ -3730,12 +3708,12 @@ SettingValue : @Build.SetExpression
 // A constant, a word or a variable: `DATEFIRST 1.5`, `DATEFORMAT dmy`, `LANGUAGE [us_english]`,
 // `DEADLOCK_PRIORITY @v`. Not an expression — `DATEFIRST 7 + 1` is refused.
 SetConstant : @Ast.Expression
-	= t: ('-'? & Lexical.UnsignedNumericLiteral)  => @(Build.Values.Number(Syntax.Compacted(t)))
-	| t: Lexical.NationalCharacterStringLiteral   => @(Build.Values.National(t))
-	| t: Lexical.CharacterStringLiteral           => @(Build.Values.Text(t))
-	| t: TSql.BinaryLiteral                             => @(Build.Values.Hex(t))
-	| t: TSql.Variable                                  => @(Build.Values.Parameter(t))
-	| t: TSqlIdentifier                                     => @(Build.Values.Reference(t))
+	= t: ('-'? & Lexical.UnsignedNumericLiteral) => @(Build.Values.Number(Syntax.Compacted(t)))
+	| t: Lexical.NationalCharacterStringLiteral  => @(Build.Values.National(t))
+	| t: Lexical.CharacterStringLiteral          => @(Build.Values.Text(t))
+	| t: TSql.BinaryLiteral                      => @(Build.Values.Hex(t))
+	| t: TSql.Variable                           => @(Build.Values.Parameter(t))
+	| t: TSqlIdentifier                          => @(Build.Values.Reference(t))
 
 // A whole number, negative or not: `LOCK_TIMEOUT -1`, `TEXTSIZE 2048`. No variable.
 SetInteger : @Ast.Expression = t: ('-'? & Lexical.Digits) => @(Build.Values.Number(Syntax.Compacted(t)))
@@ -3754,8 +3732,7 @@ SetRowCount : @Ast.Expression
 SetFipsLevel : @Ast.Expression
 	= t: Lexical.CharacterStringLiteral => @(Build.Values.Text(t))
 
-IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
-			   | "SNAPSHOT"i | "SERIALIZABLE"i
+IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i | "SNAPSHOT"i | "SERIALIZABLE"i
 
 // ── Whom the session runs as ────────────────────────────────────────────────
 //
@@ -3770,7 +3747,7 @@ IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE
 SessionStatement : @Build.Statement
 	= ExecWord & "AS"i & who: SessionWho & w: SessionWith?
 		=> @(Build.Procedural.ExecuteAs(who, w, new SqlSpan(parserSpan.Start, parserSpan.Length)))
-	| "REVERT"i & k: RevertCookie? => @(Build.Procedural.Revert(k))
+	| "REVERT"i  & k: RevertCookie? => @(Build.Procedural.Revert(k))
 	| "SETUSER"i & n: SessionUser & r: SessionNoReset? => @(Build.Procedural.SetUser(n, r is not null))
 	| "SETUSER"i => @(Build.Procedural.SetUser())
 
@@ -3793,7 +3770,7 @@ RevertCookie : @Ast.Expression = "WITH"i & "COOKIE"i & '=' & c: TSqlValueExpress
 SessionUser : @Ast.Expression
 	= t: Lexical.NationalCharacterStringLiteral => @(Build.Values.National(t))
 	| t: Lexical.CharacterStringLiteral         => @(Build.Values.Text(t))
-	| t: TSql.Variable                                => @(Build.Values.Parameter(t))
+	| t: TSql.Variable                          => @(Build.Values.Parameter(t))
 
 // ── EXECUTE ─────────────────────────────────────────────────────────────────
 ExecuteStatement : @Build.Statement.Execute = ExecWord & e: ExecuteBody => @(e)
@@ -3864,8 +3841,8 @@ ResultSets = "NONE"i
 // One result set: its columns written out, or the name of something already shaped.
 ResultSet = '(' & ResultColumns & ')'
 		  | "AS"i & "OBJECT"i & TSqlQualifiedName
-		  | "AS"i & "TYPE"i & TSqlQualifiedName
-		  | "AS"i & "FOR"i & "XML"i
+		  | "AS"i & "TYPE"i   & TSqlQualifiedName
+		  | "AS"i & "FOR"i    & "XML"i
 
 ExecArguments : @Ast.Expression[]
 	= first: ExecArgument & (',' & rest: ExecArgument)* => @(Syntax.Listed(first, rest))
@@ -3945,36 +3922,26 @@ BulkStreamWith : @Build.Clause[]
 		=> @(Syntax.Listed(first, rest))
 
 BulkOption : @Build.Clause
-	= o: BulkOrder                    => @(o)
-	| name: BulkFlag                  => @(new Build.Clause.Option(name, null, Build.Clause.None))
-	| name: BulkCount & '=' & v: BulkNumber
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: BulkWhole & '=' & v: BulkDigits
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: "CODEPAGE"i & '=' & v: BulkCodePage
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: BulkText & '=' & v: BulkString
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: "DATAFILETYPE"i & '=' & v: BulkFileType
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: "FORMAT"i & '=' & v: BulkFormat
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
+	= o: BulkOrder                                  => @(o)
+	| name: BulkFlag                                => @(new Build.Clause.Option(name, null, Build.Clause.None))
+	| name: BulkCount & '=' & v: BulkNumber         => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: BulkWhole & '=' & v: BulkDigits         => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: "CODEPAGE"i & '=' & v: BulkCodePage     => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: BulkText & '=' & v: BulkString          => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: "DATAFILETYPE"i & '=' & v: BulkFileType => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: "FORMAT"i & '=' & v: BulkFormat         => @(new Build.Clause.Option(name, v, Build.Clause.None))
 
 BulkStreamOption : @Build.Clause
-	= o: BulkOrder    => @(o)
-	| name: BulkStreamFlag => @(new Build.Clause.Option(name, null, Build.Clause.None))
-	| name: "ROWS_PER_BATCH"i & '=' & v: BulkNumber
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: "KILOBYTES_PER_BATCH"i & '=' & v: BulkDigits
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
+	= o: BulkOrder                                       => @(o)
+	| name: BulkStreamFlag                               => @(new Build.Clause.Option(name, null, Build.Clause.None))
+	| name: "ROWS_PER_BATCH"i & '=' & v: BulkNumber      => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: "KILOBYTES_PER_BATCH"i & '=' & v: BulkDigits => @(new Build.Clause.Option(name, v, Build.Clause.None))
 
 BulkOrder : @Build.Clause
 	= t: ("ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')')
 		=> @(new Build.Clause.Option(Syntax.Spaced(t), null, Build.Clause.None))
 
-BulkFlag
-	= "CHECK_CONSTRAINTS"i | "FIRE_TRIGGERS"i | "KEEPIDENTITY"i | "KEEPNULLS"i
-	| "TABLOCK"i | "NO_TRIGGERS"i
+BulkFlag = "CHECK_CONSTRAINTS"i | "FIRE_TRIGGERS"i | "KEEPIDENTITY"i | "KEEPNULLS"i | "TABLOCK"i | "NO_TRIGGERS"i
 
 BulkStreamFlag = "CHECK_CONSTRAINTS"i | "FIRE_TRIGGERS"i | "TABLOCK"i | "NO_TRIGGERS"i
 
@@ -4017,20 +3984,20 @@ BulkFormat : @Ast.Expression
 
 // ── A word and some values ──────────────────────────────────────────────────
 SimpleCommand : @Build.Statement
-	= "PRINT"i & v: TSqlValueExpression      => @(Build.Procedural.Commanded("PRINT", v))
-	| "RETURN"i & (?!Label & v: TSqlValueExpression)? => @(Build.Procedural.Commanded("RETURN", v))
-	| "THROW"i & (?!Label & args: ThrowArguments)? => @(Build.Procedural.Commanded("THROW", SqlList.OwnOrNull(args)))
-	| "GOTO"i & name: TSqlIdentifier         => @(Build.Procedural.Commanded("GOTO", Build.Values.Reference(name)))
-	| name: TSqlIdentifier & ':' & ?!':'     => @(Build.Procedural.Label(name))
-	| "BREAK"i                           => @(Build.Procedural.Commanded("BREAK", (Ast.Expression?)null))
-	| "CONTINUE"i                        => @(Build.Procedural.Commanded("CONTINUE", (Ast.Expression?)null))
+	= "PRINT"i & v: TSqlValueExpression                   => @(Build.Procedural.Commanded("PRINT", v))
+	| "RETURN"i & (?!Label & v: TSqlValueExpression)?     => @(Build.Procedural.Commanded("RETURN", v))
+	| "THROW"i & (?!Label & args: ThrowArguments)?        => @(Build.Procedural.Commanded("THROW", SqlList.OwnOrNull(args)))
+	| "GOTO"i & name: TSqlIdentifier                      => @(Build.Procedural.Commanded("GOTO", Build.Values.Reference(name)))
+	| name: TSqlIdentifier & ':' & ?!':'                  => @(Build.Procedural.Label(name))
+	| "BREAK"i                                            => @(Build.Procedural.Commanded("BREAK", (Ast.Expression?)null))
+	| "CONTINUE"i                                         => @(Build.Procedural.Commanded("CONTINUE", (Ast.Expression?)null))
 	| "CHECKPOINT"i & (?!Label & v: TSqlValueExpression)? => @(Build.Procedural.Commanded("CHECKPOINT", v))
 	// `SHUTDOWN` and `SHUTDOWN WITH NOWAIT`, and nothing else after the word: `WITH X` is
 	// `Msg 102`, `NOWAIT` alone 1018, the option twice 102. `LINENO n`: a whole number and
 	// only that — a variable, `-1`, `1 + 1`, `'a'`, `1.5` and nothing are each `Msg 102`.
 	| "SHUTDOWN"i & w: ("WITH"i & "NOWAIT"i)? => @(Build.Server.Shutdown(w is not null))
-	| "LINENO"i & n: Lexical.Digits => @(Build.Procedural.LineNumber(Build.Values.Number(n)))
-	| "USE"i & name: TSqlIdentifier          => @(Build.Procedural.Commanded("USE", Build.Values.Reference(name)))
+	| "LINENO"i & n: Lexical.Digits           => @(Build.Procedural.LineNumber(Build.Values.Number(n)))
+	| "USE"i & name: TSqlIdentifier           => @(Build.Procedural.Commanded("USE", Build.Values.Reference(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & how: RaiseWith?
 		=> @(Build.Procedural.RaiseError(SqlList.Own(args), Syntax.Tail(how), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| "WAITFOR"i & '(' & waited: WaitedFor & ')' & (',' & "TIMEOUT"i & timeout: WaitTimeout)?
@@ -4054,7 +4021,7 @@ WaitKind  = "DELAY"i | "TIME"i
 WaitValue : @Ast.Expression
 	= t: Lexical.NationalCharacterStringLiteral => @(Build.Values.National(t))
 	| t: Lexical.CharacterStringLiteral         => @(Build.Values.Text(t))
-	| t: TSql.Variable                                => @(Build.Values.Parameter(t))
+	| t: TSql.Variable                          => @(Build.Values.Parameter(t))
 
 // ── CREATE TABLE, and the column definitions everything shares ──────────────
 //
@@ -4097,17 +4064,17 @@ TablePlacement : @Build.Clause
 // `FILESTREAM_ON`. The engine reads the column after a string or a quoted name as after a
 // scheme's: `ON 'fg' (a)`, `MOVE TO "default" (a)`.
 PlacementTarget : @Build.Clause.Placement
-	= t: "DEFAULT"i                                => @(new Build.Clause.Placement("", t, null))
+	= t: "DEFAULT"i                                                    => @(new Build.Clause.Placement("", t, null))
 	| t: Lexical.CharacterStringLiteral & ('(' & c: ColumnList & ')')? => @(new Build.Clause.Placement("", t, SqlList.OwnOrNull(c)))
 	| t: Lexical.DelimitedIdentifier & ('(' & c: ColumnList & ')')?    => @(new Build.Clause.Placement("", t, SqlList.OwnOrNull(c)))
-	| t: TSqlIdentifier & ('(' & c: ColumnList & ')')? => @(new Build.Clause.Placement("", t, SqlList.OwnOrNull(c)))
+	| t: TSqlIdentifier & ('(' & c: ColumnList & ')')?                 => @(new Build.Clause.Placement("", t, SqlList.OwnOrNull(c)))
 
 OptionsWith : @Build.Clause[] = "WITH"i & '(' & o: OptionList & ')' => @(o)
 
 OptionList  : @Build.Clause[] = first: OptionSetting & (',' & rest: OptionSetting)* => @(Syntax.Listed(first, rest))
 
 OptionSetting : @Build.Clause
-	= "DEFAULT"i & '=' & v: OptionValue => @(new Build.Clause.Option("DEFAULT", v, Build.Clause.None))
+	= "DEFAULT"i & '=' & v: OptionValue    => @(new Build.Clause.Option("DEFAULT", v, Build.Clause.None))
 	| "MOVE"i & "TO"i & m: PlacementTarget => @(new Build.Clause.Option("MOVE TO", null, [m]))
 
 	// `AFFINITY SCHEDULER = AUTO`, `AFFINITY CPU = (0 TO 3)`,
@@ -4160,10 +4127,10 @@ OptionWords = OptionWord & OptionWord+ & ?=(',' | ')')
 // The list before the value: `CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 367)` is a
 // list and not an expression that happens to compare, and only the list reads it as one.
 OptionTail : @Build.Clause.Option
-	= '=' & n: OptionNest & p: OnPartitions?   => @(new Build.Clause.Option("", null, SqlList.Own(n), p))
+	= '=' & n: OptionNest & p: OnPartitions?                   => @(new Build.Clause.Option("", null, SqlList.Own(n), p))
 	| '=' & v: OptionValue & n: OptionNest? & p: OnPartitions? => @(new Build.Clause.Option("", v, SqlList.Own(n), p))
-	| s: OnOff & o: SwitchTail                 => @(new Build.Clause.Option("", Build.Values.Reference(s), SqlList.Own(o), null, true))
-	| '(' & o: OptionList & ')'                => @(new Build.Clause.Option("", null, SqlList.Own(o), null, true))
+	| s: OnOff & o: SwitchTail                                 => @(new Build.Clause.Option("", Build.Values.Reference(s), SqlList.Own(o), null, true))
+	| '(' & o: OptionList & ')'                                => @(new Build.Clause.Option("", null, SqlList.Own(o), null, true))
 
 // Said as a refusal rather than as a demand, because a list without brackets ends at the
 // terminator and a lookahead for a comma would refuse its last option. What a bare switch
@@ -4178,11 +4145,11 @@ OptionNest : @Build.Clause[] = '(' & o: OptionList & ')' => @(o)
 // and the only half a name does not already say. `ON` and `OFF` are values here and not
 // words of the language, so they arrive as themselves.
 OptionValue : @Ast.Expression
-	= "NULL"i => @(Build.Values.Null())
-	| "OFF"i  => @(Build.Values.Reference("OFF"))
-	| "ON"i   => @(Build.Values.Reference("ON"))
+	= "NULL"i                                          => @(Build.Values.Null())
+	| "OFF"i                                           => @(Build.Values.Reference("OFF"))
+	| "ON"i                                            => @(Build.Values.Reference("ON"))
 	| t: ('(' & Lexical.UnsignedNumericLiteral+ & ')') => @(Build.Values.Reference(t))
-	| '(' & a: Arguments & ')'  => @(new Build.Values.Call("", SqlList.Own(a)))
+	| '(' & a: Arguments & ')'                         => @(new Build.Values.Call("", SqlList.Own(a)))
 
 	// A run of words, which several protocols spell their settings with:
 	// `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`, `ENCRYPTION = SUPPORTED ALGORITHM AES
@@ -4201,9 +4168,9 @@ OptionValue : @Ast.Expression
 // identifier, and then `SET b = 5, c = 10 ACTION (…)` read `ACTION` as the unit of ten and
 // lost the clause behind it — the same trap an optional at the end of a rule always is.
 OptionUnit : @string = ?!Label & t: ("KB"i | "MB"i | "GB"i | "TB"i | "PB"i
-		   | "SECOND"i | "SECONDS"i | "MINUTE"i | "MINUTES"i | "HOUR"i | "HOURS"i
-		   | "DAY"i | "DAYS"i | "WEEK"i | "WEEKS"i | "MONTH"i | "MONTHS"i
-		   | "YEAR"i | "YEARS"i
+		   | "SECOND"i  | "SECONDS"i | "MINUTE"i | "MINUTES"i | "HOUR"i  | "HOURS"i
+		   | "DAY"i     | "DAYS"i    | "WEEK"i   | "WEEKS"i   | "MONTH"i | "MONTHS"i
+		   | "YEAR"i    | "YEARS"i
 		   | "PERCENT"i | "ROWS"i
 		   | '%') => @(t)
 
@@ -4217,8 +4184,7 @@ OnPartitions : @string
 PartitionRange = TSqlValueExpression & ("TO"i & TSqlValueExpression)?
 
 // ── The body ────────────────────────────────────────────────────────────────
-TableBody : @Build.Clause[]
-	= first: TableElement & (',' & rest: TableElement)* => @(Syntax.Listed(first, rest))
+TableBody : @Build.Clause[] = first: TableElement & (',' & rest: TableElement)* => @(Syntax.Listed(first, rest))
 
 // A table declared has a column of its own somewhere in it: `CREATE TABLE t (x AS 1)` is
 // `Msg 102` and `(x AS 1, y)` is read, in any order — `(A31 AS -A1, A1 INT)` too. Neither an
@@ -4230,21 +4196,19 @@ DeclaredBody : @Build.Clause[] = body: TableBody & when @(Build.Rules.Stored(bod
 TableElement : @Build.Clause
 	= "PERIOD"i & "FOR"i & "SYSTEM_TIME"i & '(' & columns: ColumnList & ')'
 		=> @(Build.Clause.Constrained("PERIOD FOR SYSTEM_TIME", SqlList.OwnOrNull(Build.Rules.Columns(columns)), null))
-	| i: TableIndex                                => @(i)
+	| i: TableIndex                                            => @(i)
 	| "CONSTRAINT"i & name: TSqlIdentifier & c: ConstraintBody => @(c with { Name = name })
-	| c: ConstraintBody                            => @(c)
-	| f: TableColumn                               => @(f)
+	| c: ConstraintBody                                        => @(c)
+	| f: TableColumn                                           => @(f)
 
-ColumnDefinition : @Build.Clause
-	= name: TSqlIdentifier & f: ColumnBody => @(f with { Name = name })
+ColumnDefinition : @Build.Clause = name: TSqlIdentifier & f: ColumnBody => @(f with { Name = name })
 
 // A table's column, which may leave its type out: the published syntax allows it `timestamp`
 // alone and the engine's parser any column, `Msg 173` — a definition must include a type —
 // being said when the statement runs. Not before what belongs to a type (`Syntax.Untyped`),
 // and not where a column is altered, which says its type again: `ALTER COLUMN timestamp` is
 // refused, and `ALTER COLUMN c ADD ROWGUIDCOL` is not a column called `c` with no type.
-TableColumn : @Build.Clause
-	= name: TSqlIdentifier & f: TableColumnBody => @(f with { Name = name })
+TableColumn : @Build.Clause = name: TSqlIdentifier & f: TableColumnBody => @(f with { Name = name })
 
 TableColumnBody : @Build.Clause.ColumnDefinition
 	= f: ColumnBody => @(f)
@@ -4272,26 +4236,23 @@ ColumnBody : @Build.Clause.ColumnDefinition
 ColumnTail : @Build.Clause = ?!Label & t: ColumnTrait => @(t)
 
 ColumnTrait : @Build.Clause
-	= t: "FILESTREAM"i                => @(Build.Clause.Optioned(t))
-	| "COLLATE"i & q: TSqlQualifiedName   => @(Build.Clause.Optioned("COLLATE", Build.Values.Reference(q)))
-	| t: "SPARSE"i                    => @(Build.Clause.Optioned(t))
-	| "MASKED"i & "WITH"i & '(' & o: MaskOption & ')'
-		=> @(new Build.Clause.ColumnOption("MASKED", Build.Values.None, [o], null))
-	| "IDENTITY"i & ('(' & a: Arguments & ')')?
-		=> @(new Build.Clause.ColumnOption("IDENTITY", SqlList.Own(a), Build.Clause.None, null))
-	| t: ("NOT"i & "FOR"i & "REPLICATION"i) => @(Build.Clause.Optioned(t))
-	| s: NullSpec                     => @(Build.Clause.Optioned(s))
+	= t: "FILESTREAM"i                                => @(Build.Clause.Optioned(t))
+	| "COLLATE"i & q: TSqlQualifiedName               => @(Build.Clause.Optioned("COLLATE", Build.Values.Reference(q)))
+	| t: "SPARSE"i                                    => @(Build.Clause.Optioned(t))
+	| "MASKED"i & "WITH"i & '(' & o: MaskOption & ')' => @(new Build.Clause.ColumnOption("MASKED", Build.Values.None, [o], null))
+	| "IDENTITY"i & ('(' & a: Arguments & ')')?       => @(new Build.Clause.ColumnOption("IDENTITY", SqlList.Own(a), Build.Clause.None, null))
+	| t: ("NOT"i & "FOR"i & "REPLICATION"i)           => @(Build.Clause.Optioned(t))
+	| s: NullSpec                                     => @(Build.Clause.Optioned(s))
 	| t: ("GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen) & h: Trailing("HIDDEN"i)?
 		=> @(new Build.Clause.ColumnOption(Syntax.Squared(t), Build.Values.None, SqlList.Own(Build.Rules.Unit(h)), null))
-	| t: "ROWGUIDCOL"i                => @(Build.Clause.Optioned(t))
+	| t: "ROWGUIDCOL"i                                => @(Build.Clause.Optioned(t))
 	| "ENCRYPTED"i & "WITH"i & '(' & first: EncryptionOption & (',' & rest: EncryptionOption)* & ')'
-	  & when @(Build.Rules.Encrypts(first, rest))
-		=> @(new Build.Clause.ColumnOption("ENCRYPTED", Build.Values.None, SqlList.Own(Syntax.Listed(first, rest)), null))
-	| t: "PERSISTED"i                 => @(Build.Clause.Optioned(t))
-	| t: ("COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i) => @(Build.Clause.Optioned(t))
+	  & when @(Build.Rules.Encrypts(first, rest))     => @(new Build.Clause.ColumnOption("ENCRYPTED", Build.Values.None, SqlList.Own(Syntax.Listed(first, rest)), null))
+	| t: "PERSISTED"i                                 => @(Build.Clause.Optioned(t))
+	| t: ("COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i)       => @(Build.Clause.Optioned(t))
 	| "CONSTRAINT"i & name: TSqlIdentifier & n: NamedConstraint => @(Build.Clause.Named(n, name))
-	| c: ConstraintBody               => @(c)
-	| i: TableIndex                   => @(i)
+	| c: ConstraintBody                                         => @(c)
+	| i: TableIndex                                             => @(i)
 
 // The published syntax gives a nullability a constraint name of its own, and nothing else
 // about a nullability suggests it can have one.
@@ -4807,11 +4768,11 @@ ColumnOnline : @Build.Clause[]
 		=> @(new Build.Clause[] { new Build.Clause.Option("ONLINE", Build.Values.Reference(o), Build.Clause.None) })
 
 AlterColumnFlag  = "HIDDEN"i | "ROWGUIDCOL"i | "PERSISTED"i | "NOT"i & "FOR"i & "REPLICATION"i | "SPARSE"i
-CheckWord        = "CHECK"i | "NOCHECK"i
-SplitOrMerge     = "SPLIT"i | "MERGE"i
-LeftOrRight      = "LEFT"i | "RIGHT"i
+CheckWord        = "CHECK"i  | "NOCHECK"i
+SplitOrMerge     = "SPLIT"i  | "MERGE"i
+LeftOrRight      = "LEFT"i   | "RIGHT"i
 EnableWord       = "ENABLE"i | "DISABLE"i
-ConstraintNames  = "ALL"i | TSqlIdentifier & (',' & TSqlIdentifier)*
+ConstraintNames  = "ALL"i    | TSqlIdentifier & (',' & TSqlIdentifier)*
 PartitionWhich : @Ast.Expression = "ALL"i => @(Build.Values.Reference("ALL")) | v: TSqlValueExpression => @(v)
 
 DropTarget : @Build.Clause
@@ -4974,9 +4935,9 @@ TriggerStatement : @Build.Statement
 				 append is not null, replication is not null, external))
 
 TriggerOn : @string
-	= "ALL"i & "SERVER"i => @("ALL SERVER")
-	| "DATABASE"i        => @("DATABASE")
-	| t: TSqlQualifiedName   => @(t)
+	= "ALL"i & "SERVER"i   => @("ALL SERVER")
+	| "DATABASE"i          => @("DATABASE")
+	| t: TSqlQualifiedName => @(t)
 
 TriggerWhen : @string = t: ("INSTEAD"i & "OF"i | "AFTER"i | "FOR"i) => @(Syntax.Squared(t))
 
@@ -5119,12 +5080,12 @@ SpatialValue : @Ast.Expression
 	| v: SpatialItem      => @(v)
 
 SpatialItem : @Ast.Expression
-	= "NULL"i                                          => @(Build.Values.Null())
+	= "NULL"i                                    => @(Build.Values.Null())
 	| t: ('-'? & Lexical.UnsignedNumericLiteral) => @(Build.Values.Number(Syntax.Compacted(t)))
-	| t: ('-'? & TSql.MoneyLiteral)                    => @(Build.Values.Number(Syntax.Compacted(t)))
-	| v: BrokerString                                  => @(v)
-	| t: TSql.BinaryLiteral                            => @(Build.Values.Hex(t))
-	| t: TSqlIdentifier                                    => @(Build.Values.Reference(t))
+	| t: ('-'? & TSql.MoneyLiteral)              => @(Build.Values.Number(Syntax.Compacted(t)))
+	| v: BrokerString                            => @(v)
+	| t: TSql.BinaryLiteral                      => @(Build.Values.Hex(t))
+	| t: TSqlIdentifier                          => @(Build.Values.Reference(t))
 
 // `FOR ( name = '/a/b' AS XQUERY 'xs:double' MAXLENGTH (200) SINGLETON, … )`, and the
 // three ways `ALTER INDEX` changes one of them.
@@ -5386,10 +5347,10 @@ ProviderOption
 	| SymmetricOption
 
 SymmetricOption
-	= "KEY_SOURCE"i & '=' & Quoted
-	| "ALGORITHM"i & '=' & KeyAlgorithm
-	| "IDENTITY_VALUE"i & '=' & Quoted
-	| "PROVIDER_KEY_NAME"i & '=' & Quoted
+	= "KEY_SOURCE"i           & '=' & Quoted
+	| "ALGORITHM"i            & '=' & KeyAlgorithm
+	| "IDENTITY_VALUE"i       & '=' & Quoted
+	| "PROVIDER_KEY_NAME"i    & '=' & Quoted
 	| "CREATION_DISPOSITION"i & '=' & Disposition
 
 SymmetricEncryption = "ENCRYPTION"i & "BY"i & KeyEncryptor & (',' & KeyEncryptor)*
@@ -5414,12 +5375,12 @@ CertificateBody : @Build.Clause[]
 		=> @(Syntax.Listed(first, rest))
 
 CertificateOption
-	= "SUBJECT"i & '=' & Quoted
-	| "START_DATE"i & '=' & Quoted
+	= "SUBJECT"i     & '=' & Quoted
+	| "START_DATE"i  & '=' & Quoted
 	| "EXPIRY_DATE"i & '=' & Quoted
 
 CertificateSource : @Build.Clause[]
-	= "ASSEMBLY"i & TSqlQualifiedName => @([])
+	= "ASSEMBLY"i    & TSqlQualifiedName => @([])
 	| "EXECUTABLE"i? & "FILE"i & '=' & Quoted
 	  & ("WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
 		=> @(Build.Statement.Holding("PRIVATE KEY", SqlList.OwnOrNull(k)))
@@ -5430,14 +5391,14 @@ PrivateKeyList : @Build.Clause[]
 	= '(' & first: PrivateKeySetting & (',' & rest: PrivateKeySetting)* & ')' => @(Syntax.Listed(first, rest))
 
 PrivateKeyOption
-	= "FILE"i & '=' & Quoted
+	= "FILE"i   & '=' & Quoted
 	| "BINARY"i & '=' & TSql.BinaryLiteral
 	| KeyPassword
 
 CertificateChange : @Build.Clause[]
 	= "REMOVE"i & "PRIVATE"i & "KEY"i => @([])
-	| "WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList => @(Build.Statement.Holding("PRIVATE KEY", SqlList.OwnOrNull(k)))
-	| "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff => @([])
+	| "WITH"i   & "PRIVATE"i & "KEY"i & k: PrivateKeyList => @(Build.Statement.Holding("PRIVATE KEY", SqlList.OwnOrNull(k)))
+	| "WITH"i   & "ACTIVE"i  & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff => @([])
 	| Attestation => @([])
 
 // An Always Encrypted key's value: which master key, which algorithm and the value itself,
@@ -5449,7 +5410,7 @@ ColumnKeyValue : @Build.Clause
 
 ColumnKeyPart
 	= ColumnKeyMaster
-	| "ALGORITHM"i & '=' & Quoted
+	| "ALGORITHM"i       & '=' & Quoted
 	| "ENCRYPTED_VALUE"i & '=' & TSql.BinaryLiteral
 
 ColumnKeyMaster = "COLUMN_MASTER_KEY"i & '=' & TSqlIdentifier
@@ -5458,11 +5419,11 @@ ColumnKeyMaster = "COLUMN_MASTER_KEY"i & '=' & TSqlIdentifier
 // after them and only after them.
 MasterKeyLocation
 	= MasterKeyProvider & ',' & MasterKeyPath
-	| MasterKeyPath & ',' & MasterKeyProvider
+	| MasterKeyPath     & ',' & MasterKeyProvider
 
 MasterKeyProvider = "KEY_STORE_PROVIDER_NAME"i & '=' & Quoted
-MasterKeyPath     = "KEY_PATH"i & '=' & Quoted
-MasterKeyEnclave  = "ENCLAVE_COMPUTATIONS"i & '(' & "SIGNATURE"i & '=' & TSql.BinaryLiteral & ')'
+MasterKeyPath     = "KEY_PATH"i                & '=' & Quoted
+MasterKeyEnclave  = "ENCLAVE_COMPUTATIONS"i    & '(' & "SIGNATURE"i & '=' & TSql.BinaryLiteral & ')'
 
 // The identity first, and the secret after it if there is one.
 CredentialWith = "WITH"i & "IDENTITY"i & '=' & Quoted & (',' & "SECRET"i & '=' & Quoted)?
@@ -5491,13 +5452,13 @@ PolicyPredicate = PolicyChange & PolicyAdded
 				| "DROP"i & PolicyDropped
 
 PolicyAdded   = "FILTER"i & "PREDICATE"i & PolicyFunction & "ON"i & TSqlQualifiedName
-			  | "BLOCK"i & "PREDICATE"i & PolicyFunction & "ON"i & TSqlQualifiedName & PolicyWhen?
+			  | "BLOCK"i  & "PREDICATE"i & PolicyFunction & "ON"i & TSqlQualifiedName & PolicyWhen?
 PolicyDropped = "FILTER"i & "PREDICATE"i & "ON"i & TSqlQualifiedName
-			  | "BLOCK"i & "PREDICATE"i & "ON"i & TSqlQualifiedName & PolicyWhen?
+			  | "BLOCK"i  & "PREDICATE"i & "ON"i & TSqlQualifiedName & PolicyWhen?
 
 PolicyFunction = TSqlQualifiedName & '(' & Arguments? & ')'
 PolicyChange   = "ADD"i | "ALTER"i
-PolicyWhen   = "AFTER"i & ("INSERT"i | "UPDATE"i) | "BEFORE"i & ("UPDATE"i | "DELETE"i)
+PolicyWhen     = "AFTER"i & ("INSERT"i | "UPDATE"i) | "BEFORE"i & ("UPDATE"i | "DELETE"i)
 
 // ── The full-text catalogue, and the index over it ──────────────────────────
 //
@@ -5546,12 +5507,12 @@ FullTextOptions : @string[]
 
 FullTextOption : @string
 	= t: ("CHANGE_TRACKING"i & '='? & FullTextTracking & (',' & "NO"i & "POPULATION"i)?) => @(t)
-	| t: ("STOPLIST"i & '='? & FullTextStopList)                                         => @(t)
+	| t: ("STOPLIST"i        & '='? & FullTextStopList)                                         => @(t)
 	| t: ("SEARCH"i & "PROPERTY"i & "LIST"i & '='? & FullTextPropertyList)              => @(t)
 
 FullTextTracking     = "MANUAL"i | "AUTO"i | "OFF"i
-FullTextStopList     = "OFF"i | "SYSTEM"i | TSqlIdentifier & ?!'.'
-FullTextPropertyList = "OFF"i | TSqlIdentifier & ?!'.'
+FullTextStopList     = "OFF"i    | "SYSTEM"i | TSqlIdentifier & ?!'.'
+FullTextPropertyList = "OFF"i    | TSqlIdentifier & ?!'.'
 
 // A catalog is told whether it minds accents, and nothing else, once and not in brackets.
 CatalogWith = "WITH"i & "ACCENT_SENSITIVITY"i & '=' & OnOff
@@ -5573,12 +5534,12 @@ FullTextAction
 	= "ENABLE"i
 	| "DISABLE"i
 	// One setting at a time; a tracking changed says nothing about population (`Msg 319`).
-	| "SET"i & "CHANGE_TRACKING"i & '='? & FullTextTracking
-	| "SET"i & "STOPLIST"i & '='? & FullTextStopList & NoPopulation?
-	| "SET"i & "SEARCH"i & "PROPERTY"i & "LIST"i & '='? & FullTextPropertyList & NoPopulation?
-	| "ADD"i & '(' & FullTextColumn & (',' & FullTextColumn)* & ')' & NoPopulation?
+	| "SET"i   & "CHANGE_TRACKING"i & '='? & FullTextTracking
+	| "SET"i   & "STOPLIST"i & '='? & FullTextStopList & NoPopulation?
+	| "SET"i   & "SEARCH"i & "PROPERTY"i & "LIST"i & '='? & FullTextPropertyList & NoPopulation?
+	| "ADD"i   & '(' & FullTextColumn & (',' & FullTextColumn)* & ')' & NoPopulation?
 	| "ALTER"i & "COLUMN"i & TSqlIdentifier & AddOrDrop & "STATISTICAL_SEMANTICS"i & NoPopulation?
-	| "DROP"i & '(' & ColumnList & ')' & NoPopulation?
+	| "DROP"i  & '(' & ColumnList & ')' & NoPopulation?
 	| "START"i & ("FULL"i | "INCREMENTAL"i | "UPDATE"i) & "POPULATION"i
 	| PopulationWord & "POPULATION"i
 
@@ -5596,9 +5557,9 @@ StopListFrom = "FROM"i & "SYSTEM"i & "STOPLIST"i
 
 // A stop word is a string, national or not, and its language a string, a number, a binary string
 // or a name: a word unquoted, a variable, and an expression for either are `Msg 102`.
-StopListAction = "ADD"i & Quoted & "LANGUAGE"i & StopListLanguage
+StopListAction = "ADD"i  & Quoted &  "LANGUAGE"i & StopListLanguage
 			   | "DROP"i & "ALL"i & ("LANGUAGE"i & StopListLanguage)?
-			   | "DROP"i & Quoted & "LANGUAGE"i & StopListLanguage
+			   | "DROP"i & Quoted &  "LANGUAGE"i & StopListLanguage
 
 StopListLanguage = Quoted | Lexical.UnsignedNumericLiteral | TSql.BinaryLiteral | TSqlIdentifier
 
@@ -5699,9 +5660,9 @@ BackupBoundary = "FILE"i | "FILEGROUP"i | "READ_WRITE_FILEGROUPS"i | "PAGE"i
 			   | "TO"i | "FROM"i | "WITH"i
 
 BackupName : @string
-	= t: TSqlQualifiedName                       => @(t)
-	| t: TSql.Variable                       => @(t)
-	| t: Lexical.CharacterStringLiteral => @(t)
+	= t: TSqlQualifiedName                                => @(t)
+	| t: TSql.Variable                                    => @(t)
+	| t: Lexical.CharacterStringLiteral                   => @(t)
 	| '(' & first: BackupName & (',' & BackupName)* & ')' => @(first)
 
 // The four the published syntax names, written out. An option's name is a run of words,
@@ -5709,10 +5670,10 @@ BackupName : @string
 // device — the same trap an unbounded run always is.
 BackupFiles = ','? & BackupFile
 
-BackupFile = "FILE"i & '=' & BackupName
+BackupFile = "FILE"i      & '=' & BackupName
 		   | "FILEGROUP"i & '=' & BackupName
 		   | "READ_WRITE_FILEGROUPS"i
-		   | "PAGE"i & '=' & TSqlValueExpression
+		   | "PAGE"i      & '=' & TSqlValueExpression
 
 BackupDevices = BackupDevice & (',' & BackupDevice)*
 
@@ -5742,7 +5703,7 @@ BackupGroup : @string = t: (BackupName & (',' & BackupName)*) => @(t)
 // removed, and the Parallel Data Warehouse's `BASE` and `DIFFERENTIAL` in a restore. A
 // restore takes one option no block names, `KEEP_TEMPORAL_RETENTION`, which the corpus has,
 // and a FILESTREAM directory that is `NULL`.
-BackupWith  = "WITH"i & BackupOption & (',' & BackupOption)*
+BackupWith  = "WITH"i & BackupOption  & (',' & BackupOption)*
 RestoreWith = "WITH"i & RestoreOption & (',' & RestoreOption)*
 
 BackupString = Quoted | TSql.Variable
@@ -5858,9 +5819,9 @@ AuditLog = "APPLICATION_LOG"i | "SECURITY_LOG"i | "URL"i | "EXTERNAL_MONITOR"i
 
 AuditFileOption
 	= AuditFilePath
-	| "MAXSIZE"i & '=' & (ExactNumber & ("MB"i | "GB"i | "TB"i) | "UNLIMITED"i)
+	| "MAXSIZE"i            & '=' & (ExactNumber & ("MB"i | "GB"i | "TB"i) | "UNLIMITED"i)
 	| "MAX_ROLLOVER_FILES"i & '=' & (Lexical.Digits | "UNLIMITED"i)
-	| "MAX_FILES"i & '=' & Lexical.Digits
+	| "MAX_FILES"i          & '=' & Lexical.Digits
 	| "RESERVE_DISK_SPACE"i & '=' & OnOff
 
 AuditFilePath = "FILEPATH"i & '=' & Quoted
@@ -5875,8 +5836,8 @@ AuditCreatedOption = AuditOption | "AUDIT_GUID"i & '=' & Quoted
 AuditAlteredOption = AuditOption | "STATE"i & '=' & OnOff
 
 AuditOption
-	= "QUEUE_DELAY"i & '=' & Lexical.Digits
-	| "ON_FAILURE"i & '=' & ("CONTINUE"i | "SHUTDOWN"i | "FAIL_OPERATION"i)
+	= "QUEUE_DELAY"i    & '=' & Lexical.Digits
+	| "ON_FAILURE"i     & '=' & ("CONTINUE"i | "SHUTDOWN"i | "FAIL_OPERATION"i)
 	| "OPERATOR_AUDIT"i & '=' & OnOff
 
 // A specification is switched on or off, and told nothing else. After an action on an object — `ADD
@@ -5889,7 +5850,7 @@ AuditWhere = "WHERE"i & SearchCondition
 // An audit altered is altered by something: `ALTER SERVER AUDIT a` alone is `Msg 102`.
 AlterAuditBody = "REMOVE"i & "WHERE"i
 			   | "MODIFY"i & "NAME"i & '=' & TSqlIdentifier
-			   | "TO"i & AuditTarget & AuditAlteredWith? & AuditWhere?
+			   | "TO"i     & AuditTarget & AuditAlteredWith? & AuditWhere?
 			   | AuditAlteredWith & AuditWhere?
 			   | AuditWhere
 
@@ -5916,12 +5877,12 @@ AuditActionOn = "ON"i & SecurableClass? & TSqlQualifiedName & "BY"i & Grantees
 // altered adds events, drops events, adds targets or drops targets — one of the four, with commas:
 // `ADD EVENT a.b, DROP EVENT c.d` is `Msg 156` and an event beside a target `102`. Its state is
 // said alone, `START` or `STOP`, and neither with a piece nor with options (`Msg 102`).
-EventAdds  : @Build.Clause[] = first: EventAdd & (',' & rest: EventAdd)* => @(Syntax.Listed(first, rest))
+EventAdds  : @Build.Clause[] = first: EventAdd  & (',' & rest: EventAdd)* => @(Syntax.Listed(first, rest))
 TargetAdds : @Build.Clause[] = first: TargetAdd & (',' & rest: TargetAdd)* => @(Syntax.Listed(first, rest))
 
 EventAlterations : @Build.Clause[]
 	= added: EventAdds => @(added)
-	| first: EventDrop & (',' & rest: EventDrop)* => @(Syntax.Listed(first, rest))
+	| first: EventDrop  & (',' & rest: EventDrop)* => @(Syntax.Listed(first, rest))
 	| targets: TargetAdds => @(targets)
 	| first: TargetDrop & (',' & rest: TargetDrop)* => @(Syntax.Listed(first, rest))
 
@@ -5957,11 +5918,11 @@ EventSessionOption : @Build.Clause = ?=(EventSessionSyntax & OptionEnds) & o: Op
 
 EventSessionSyntax
 	= ("MAX_MEMORY"i | "MAX_EVENT_SIZE"i) & '=' & Lexical.Digits & ("KB"i | "MB"i)
-	| "EVENT_RETENTION_MODE"i & '=' & ("ALLOW_SINGLE_EVENT_LOSS"i | "ALLOW_MULTIPLE_EVENT_LOSS"i | "NO_EVENT_LOSS"i)
-	| "MAX_DISPATCH_LATENCY"i & '=' & (Lexical.Digits & "SECONDS"i | "INFINITE"i)
+	| "EVENT_RETENTION_MODE"i  & '=' & ("ALLOW_SINGLE_EVENT_LOSS"i | "ALLOW_MULTIPLE_EVENT_LOSS"i | "NO_EVENT_LOSS"i)
+	| "MAX_DISPATCH_LATENCY"i  & '=' & (Lexical.Digits & "SECONDS"i | "INFINITE"i)
 	| "MEMORY_PARTITION_MODE"i & '=' & ("NONE"i | "PER_NODE"i | "PER_CPU"i)
 	| ("TRACK_CAUSALITY"i | "STARTUP_STATE"i) & '=' & OnOff
-	| "MAX_DURATION"i & '=' & (Lexical.Digits & ("SECONDS"i | "MINUTES"i | "HOURS"i | "DAYS"i) | "UNLIMITED"i)
+	| "MAX_DURATION"i          & '=' & (Lexical.Digits & ("SECONDS"i | "MINUTES"i | "HOURS"i | "DAYS"i) | "UNLIMITED"i)
 
 // An event is told what it collects, the actions it takes and when it fires, in that order and each
 // once (`Msg 156` for `ACTION` before `SET`, `102` for a second `ACTION`).
@@ -6080,10 +6041,10 @@ EndpointAddress = '(' & (Lexical.UnsignedNumericLiteral | '.' | ':')+ & ')'
 
 // What it speaks, and each language its own list; an empty bracket is read for all four.
 EndpointFor : @Build.Clause.Option
-	= "FOR"i & w: EndpointTsql & '(' & o: EndpointTsqlOptions? & ')' => @(new Build.Clause.Option(w, null, SqlList.Own(o)))
-	| "FOR"i & w: EndpointBroker & '(' & o: EndpointBrokerOptions? & ')' => @(new Build.Clause.Option(w, null, SqlList.Own(o)))
+	= "FOR"i & w: EndpointTsql      & '(' & o: EndpointTsqlOptions?      & ')' => @(new Build.Clause.Option(w, null, SqlList.Own(o)))
+	| "FOR"i & w: EndpointBroker    & '(' & o: EndpointBrokerOptions?    & ')' => @(new Build.Clause.Option(w, null, SqlList.Own(o)))
 	| "FOR"i & w: EndpointMirroring & '(' & o: EndpointMirroringOptions? & ')' => @(new Build.Clause.Option(w, null, SqlList.Own(o)))
-	| "FOR"i & w: EndpointSoap & '(' & o: EndpointSoapOptions? & ')' => @(new Build.Clause.Option(w, null, SqlList.Own(o)))
+	| "FOR"i & w: EndpointSoap      & '(' & o: EndpointSoapOptions?      & ')' => @(new Build.Clause.Option(w, null, SqlList.Own(o)))
 
 EndpointTsql      = "TSQL"i
 EndpointBroker    = "SERVICE_BROKER"i
@@ -6133,12 +6094,9 @@ WebMethodOptions : @Build.Clause[]
 	= first: WebMethodOption & (',' & rest: WebMethodOption)* => @(Syntax.Listed(first, rest))
 
 WebMethodOption : @Build.Clause
-	= "NAME"i & '=' & v: BrokerString
-		=> @(new Build.Clause.Option("NAME", v, Build.Clause.None))
-	| "SCHEMA"i & '=' & t: WebMethodSchema
-		=> @(new Build.Clause.Option("SCHEMA", Build.Values.Reference(t), Build.Clause.None))
-	| "FORMAT"i & '=' & t: WebMethodFormat
-		=> @(new Build.Clause.Option("FORMAT", Build.Values.Reference(t), Build.Clause.None))
+	= "NAME"i   & '=' & v: BrokerString    => @(new Build.Clause.Option("NAME", v, Build.Clause.None))
+	| "SCHEMA"i & '=' & t: WebMethodSchema => @(new Build.Clause.Option("SCHEMA", Build.Values.Reference(t), Build.Clause.None))
+	| "FORMAT"i & '=' & t: WebMethodFormat => @(new Build.Clause.Option("FORMAT", Build.Values.Reference(t), Build.Clause.None))
 
 WebMethodSchema = "NONE"i | "STANDARD"i | "DEFAULT"i
 
@@ -6153,22 +6111,19 @@ EndpointSoapSetting
 	| "HEADER_LIMIT"i & '=' & Lexical.Digits
 WebMethodFormat = "NONE"i | "ALL_RESULTS"i | "ROWSETS_ONLY"i
 
-EndpointTsqlOptions : @Build.Clause[]
-	= first: EndpointEncryption & (',' & rest: EndpointEncryption)* => @(Syntax.Listed(first, rest))
-EndpointBrokerOptions : @Build.Clause[]
-	= first: EndpointBrokerOption & (',' & rest: EndpointBrokerOption)* => @(Syntax.Listed(first, rest))
-EndpointMirroringOptions : @Build.Clause[]
-	= first: EndpointMirroringOption & (',' & rest: EndpointMirroringOption)* => @(Syntax.Listed(first, rest))
+EndpointTsqlOptions : @Build.Clause[]      = first: EndpointEncryption      & (',' & rest: EndpointEncryption)*      => @(Syntax.Listed(first, rest))
+EndpointBrokerOptions : @Build.Clause[]    = first: EndpointBrokerOption    & (',' & rest: EndpointBrokerOption)*    => @(Syntax.Listed(first, rest))
+EndpointMirroringOptions : @Build.Clause[] = first: EndpointMirroringOption & (',' & rest: EndpointMirroringOption)* => @(Syntax.Listed(first, rest))
 
 EndpointBrokerOption : @Build.Clause
 	= e: EndpointEncryption     => @(e)
 	| a: EndpointAuthentication => @(a)
-	| ?=(("MESSAGE_FORWARDING"i & '=' & ("ENABLED"i | "DISABLED"i)
-		 | "MESSAGE_FORWARD_SIZE"i & '=' & '-'? & Lexical.Digits) & OptionEnds) & o: OptionSetting => @(o)
+	| ?=(("MESSAGE_FORWARDING"i   & '=' & ("ENABLED"i | "DISABLED"i)
+		| "MESSAGE_FORWARD_SIZE"i & '=' & '-'? & Lexical.Digits) & OptionEnds) & o: OptionSetting => @(o)
 
 EndpointMirroringOption : @Build.Clause
-	= e: EndpointEncryption     => @(e)
-	| a: EndpointAuthentication => @(a)
+	= e: EndpointEncryption                                                                  => @(e)
+	| a: EndpointAuthentication                                                              => @(a)
 	| ?=("ROLE"i & '=' & ("WITNESS"i | "PARTNER"i | "ALL"i) & OptionEnds) & o: OptionSetting => @(o)
 
 // One encryption for the three languages: the block gives T-SQL `NEGOTIATED` and `STRICT`
@@ -6259,7 +6214,7 @@ WorkloadPool = "EXTERNAL"i? & TSqlIdentifier
 // NUMA nodes; an external pool's percentages and processes, and its affinity to CPUs or to NUMA
 // nodes — each the other's `Msg 102`, and `AFFINITY NUMANODE = AUTO` both's. In any order and as
 // often as wanted; a number in quotes, negative or with a fraction is 102.
-PoolWith         = "WITH"i & '(' & PoolOption & (',' & PoolOption)* & ')'
+PoolWith         = "WITH"i & '(' & PoolOption         & (',' & PoolOption)*         & ')'
 ExternalPoolWith = "WITH"i & '(' & ExternalPoolOption & (',' & ExternalPoolOption)* & ')'
 
 // And four no page publishes and the engine reads, which the corpus writes: a target for memory and
@@ -6273,7 +6228,7 @@ PoolOption
 
 ExternalPoolOption
 	= ("MAX_CPU_PERCENT"i | "MAX_MEMORY_PERCENT"i | "MAX_PROCESSES"i) & '=' & Lexical.Digits
-	| "AFFINITY"i & "CPU"i & '=' & ("AUTO"i | PoolRanges)
+	| "AFFINITY"i & "CPU"i      & '=' & ("AUTO"i | PoolRanges)
 	| "AFFINITY"i & "NUMANODE"i & '=' & PoolRanges
 
 PoolRanges = '(' & PartitionRange & (',' & PartitionRange)* & ')'
@@ -6402,10 +6357,9 @@ FormatOption
 	| "USE_TYPE_DEFAULT"i & '=' & ("TRUE"i | "FALSE"i)
 
 
-LibraryChange = "SET"i | "ADD"i
-LibraryFile   = '(' & LibraryFileOption & (',' & LibraryFileOption)* & ')'
-LibraryFileMade
-	= '(' & (?!"CONTENT"i & LibraryFileOption & ',')* & LibraryContent & (',' & LibraryFileOption)* & ')'
+LibraryChange   = "SET"i | "ADD"i
+LibraryFile     = '(' & LibraryFileOption & (',' & LibraryFileOption)* & ')'
+LibraryFileMade = '(' & (?!"CONTENT"i & LibraryFileOption & ',')* & LibraryContent & (',' & LibraryFileOption)* & ')'
 
 LibraryFileOption = LibraryContent | "PLATFORM"i & '=' & ("WINDOWS"i | "LINUX"i)
 LibraryContent    = "CONTENT"i & '=' & (Quoted | TSql.BinaryLiteral | "NONE"i | TSqlIdentifier | Lexical.UnsignedNumericLiteral)
@@ -6417,8 +6371,7 @@ LibraryContent    = "CONTENT"i & '=' & (Quoted | TSql.BinaryLiteral | "NONE"i | 
 // A sample kept is kept from a scan: `PERSIST_SAMPLE_PERCENT` is `Msg 153` unless `FULLSCAN`,
 // `SAMPLE` or `RESAMPLE` stands in the same list — `NORECOMPUTE`, `ALL` and `MAXDOP` will not
 // do — and both statements say it the same way.
-CreateStatisticsWith : @string
-	= t: ("WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*) & when @(Syntax.Sampled(t)) => @(t)
+CreateStatisticsWith : @string = t: ("WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*) & when @(Syntax.Sampled(t)) => @(t)
 
 CreateStatisticsOption
 	= "FULLSCAN"i
@@ -6437,11 +6390,10 @@ UpdateStatisticsOption
 	= CreateStatisticsOption
 	| "RESAMPLE"i & OnPartitions?
 	| "ALL"i | "COLUMNS"i | "INDEX"i
-	| "ROWCOUNT"i & '=' & Number
+	| "ROWCOUNT"i  & '=' & Number
 	| "PAGECOUNT"i & '=' & Number
 
-StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
-				 | IndexName
+StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')' | IndexName
 
 // ── Who may connect, and as whom ────────────────────────────────────────────
 //
@@ -6458,28 +6410,24 @@ StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
 // — `PASSWORD = 'p' MUST_CHANGE`, `PASSWORD = 'p' OLD_PASSWORD = 'q'` — which is why it is a
 // rule of its own in each list.
 PrincipalStatement : @Build.Statement
-	= "CREATE"i & "LOGIN"i & name: TSqlIdentifier & tail: LoginBody
-		=> @(Build.Defined("CREATE LOGIN", name, Syntax.Tail(tail)))
-	| "ALTER"i & "LOGIN"i & name: TSqlIdentifier & tail: AlterLoginBody
-		=> @(Build.Defined("ALTER LOGIN", name, Syntax.Tail(tail)))
+	= "CREATE"i & "LOGIN"i & name: TSqlIdentifier & tail: LoginBody      => @(Build.Defined("CREATE LOGIN", name, Syntax.Tail(tail)))
+	| "ALTER"i  & "LOGIN"i & name: TSqlIdentifier & tail: AlterLoginBody => @(Build.Defined("ALTER LOGIN",  name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "USER"i & name: TSqlIdentifier & tail: (UserSource? & UserOptions?)
-		=> @(Build.Defined("CREATE USER", name, Syntax.Tail(tail)))
-	| "ALTER"i & "USER"i & name: TSqlIdentifier & tail: AlterUserBody
-		=> @(Build.Defined("ALTER USER", name, Syntax.Tail(tail)))
+	| "CREATE"i & "USER"i & name: TSqlIdentifier & tail: (UserSource? & UserOptions?) => @(Build.Defined("CREATE USER", name, Syntax.Tail(tail)))
+	| "ALTER"i  & "USER"i & name: TSqlIdentifier & tail: AlterUserBody                => @(Build.Defined("ALTER USER", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & scope: RoleWord & name: TSqlIdentifier & tail: ("AUTHORIZATION"i & TSqlIdentifier)?
 		=> @(Build.Defined(
-				 Syntax.Squared(scope) == "ROLE" ? "CREATE ROLE" : "CREATE SERVER ROLE",
-				 name, Syntax.Tail(tail)))
+				Syntax.Squared(scope) == "ROLE" ? "CREATE ROLE" : "CREATE SERVER ROLE",
+				name, Syntax.Tail(tail)))
 	| "ALTER"i & scope: RoleWord & name: TSqlIdentifier & tail: RoleAction
 		=> @(Build.Defined(
-				 Syntax.Squared(scope) == "ROLE" ? "ALTER ROLE" : "ALTER SERVER ROLE",
-				 name, Syntax.Tail(tail)))
+				Syntax.Squared(scope) == "ROLE" ? "ALTER ROLE" : "ALTER SERVER ROLE",
+				name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: TSqlIdentifier & tail: ("WITH"i & CreateRoleOptions)
 		=> @(Build.Defined("CREATE APPLICATION ROLE", name, Syntax.Tail(tail)))
-	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: TSqlIdentifier & tail: ("WITH"i & AlterRoleOptions)
+	| "ALTER"i  & "APPLICATION"i & "ROLE"i & name: TSqlIdentifier & tail: ("WITH"i & AlterRoleOptions)
 		=> @(Build.Defined("ALTER APPLICATION ROLE", name, Syntax.Tail(tail)))
 
 	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
@@ -6504,9 +6452,9 @@ RoleWord : @string = t: ("SERVER"i & "ROLE"i | "ROLE"i) => @(Syntax.Squared(t))
 
 // A member, a new name and a new owner are each one part, as PrincipalName's comment measures:
 // `ADD MEMBER a.b`, `WITH NAME = a.b` and `ALTER AUTHORIZATION ... TO a.b` are all Msg 102.
-RoleAction = "ADD"i & "MEMBER"i & TSqlIdentifier
+RoleAction = "ADD"i  & "MEMBER"i & TSqlIdentifier
 		   | "DROP"i & "MEMBER"i & TSqlIdentifier
-		   | "WITH"i & "NAME"i & '=' & TSqlIdentifier
+		   | "WITH"i & "NAME"i   & '=' & TSqlIdentifier
 
 AuthorizationTo = "SCHEMA"i & "OWNER"i | TSqlIdentifier
 
@@ -6688,30 +6636,19 @@ DropBody : @Build.Statement
 
 	// Statistics are named by their table and themselves, in a list; one part the engine reads
 	// and objects to (`Msg 1053`, "you must provide both the object name and the statistics name").
-	| "STATISTICS"i & names: DropNames
-		=> @(Build.Drop.Dropped("STATISTICS", SqlList.OwnOrNull(names)))
-	| what: DropListedKind & exists: IfExists? & names: DropNames
-		=> @(Build.Drop.Dropped(what, SqlList.OwnOrNull(names), null, exists))
-	| what: DropSingleKind & exists: IfExists? & name: DropOnePart
-		=> @(Build.Drop.Dropped(what, [name], null, exists))
-	| "TYPE"i & exists: IfExists? & name: DropLedName
-		=> @(Build.Drop.Dropped("TYPE", [name], null, exists))
-	| what: DropQualifiedKind & name: DropName
-		=> @(Build.Drop.Dropped(what, [name]))
-	| "XML"i & "SCHEMA"i & "COLLECTION"i & name: DropLedName
-		=> @(Build.Drop.Dropped("XML SCHEMA COLLECTION", [name]))
-	| "WORKLOAD"i & "CLASSIFIER"i & names: DropLedNames
-		=> @(Build.Drop.Dropped("WORKLOAD CLASSIFIER", SqlList.OwnOrNull(names)))
-	| what: DropNamedKind & name: DropOnePart
-		=> @(Build.Drop.Dropped(what, [name]))
+	| "STATISTICS"i & names: DropNames                             => @(Build.Drop.Dropped("STATISTICS", SqlList.OwnOrNull(names)))
+	| what: DropListedKind & exists: IfExists? & names: DropNames  => @(Build.Drop.Dropped(what, SqlList.OwnOrNull(names), null, exists))
+	| what: DropSingleKind & exists: IfExists? & name: DropOnePart => @(Build.Drop.Dropped(what, [name], null, exists))
+	| "TYPE"i & exists: IfExists? & name: DropLedName              => @(Build.Drop.Dropped("TYPE", [name], null, exists))
+	| what: DropQualifiedKind & name: DropName                     => @(Build.Drop.Dropped(what, [name]))
+	| "XML"i & "SCHEMA"i & "COLLECTION"i & name: DropLedName       => @(Build.Drop.Dropped("XML SCHEMA COLLECTION", [name]))
+	| "WORKLOAD"i & "CLASSIFIER"i & names: DropLedNames            => @(Build.Drop.Dropped("WORKLOAD CLASSIFIER", SqlList.OwnOrNull(names)))
+	| what: DropNamedKind & name: DropOnePart                      => @(Build.Drop.Dropped(what, [name]))
 	// After the kinds that begin with its word.
-	| "DATABASE"i & exists: IfExists? & names: DropOneParts
-		=> @(Build.Drop.Dropped("DATABASE", SqlList.OwnOrNull(names), null, exists))
+	| "DATABASE"i & exists: IfExists? & names: DropOneParts        => @(Build.Drop.Dropped("DATABASE", SqlList.OwnOrNull(names), null, exists))
 
-DropNames : @Ast.Expression[]
-	= first: DropName & (',' & rest: DropName)* => @(Syntax.Listed(first, rest))
-
-DropName : @Ast.Expression = t: TSqlQualifiedName => @(Build.Values.Reference(t))
+DropNames : @Ast.Expression[] = first: DropName & (',' & rest: DropName)* => @(Syntax.Listed(first, rest))
+DropName  : @Ast.Expression   = t: TSqlQualifiedName => @(Build.Values.Reference(t))
 
 // A name of one part, and a name that begins with a part and may leave any after it empty.
 DropOnePart  : @Ast.Expression   = t: TSqlIdentifier => @(Build.Values.Reference(t))
@@ -6721,7 +6658,7 @@ DropLedNames : @Ast.Expression[] = first: DropLedName & (',' & rest: DropLedName
 
 DropIndexName : @Ast.Expression
 	= t: (TSqlIdentifier & "ON"i & TSqlQualifiedName & DropIndexWith?) => @(Build.Values.Reference(Syntax.Spaced(t)))
-	| t: TSqlQualifiedName                                       => @(Build.Values.Reference(t))
+	| t: TSqlQualifiedName                                             => @(Build.Values.Reference(t))
 
 // What an index is dropped with: a degree of parallelism, whether it is done online, where the
 // rows go, what they are compressed as and on which partitions, how long it waits, and the
@@ -6774,32 +6711,32 @@ DropQualifiedKind
 // And the rest one name of one part and nothing else: `IF EXISTS` is `Msg 156`, a list and any
 // dot 102. Longest first where one name begins another.
 DropNamedKind
-	= "APPLICATION"i & "ROLE"i
-	| "AVAILABILITY"i & "GROUP"i
-	| "BROKER"i & "PRIORITY"i
+	= "APPLICATION"i   & "ROLE"i
+	| "AVAILABILITY"i  & "GROUP"i
+	| "BROKER"i        & "PRIORITY"i
 	| "CERTIFICATE"i
-	| "COLUMN"i & "ENCRYPTION"i & "KEY"i
-	| "COLUMN"i & "MASTER"i & "KEY"i
+	| "COLUMN"i        & "ENCRYPTION"i & "KEY"i
+	| "COLUMN"i        & "MASTER"i     & "KEY"i
 	| "CREDENTIAL"i
 	| "CRYPTOGRAPHIC"i & "PROVIDER"i
-	| "DATABASE"i & "AUDIT"i & "SPECIFICATION"i
-	| "DATABASE"i & "SCOPED"i & "CREDENTIAL"i
+	| "DATABASE"i      & "AUDIT"i    & "SPECIFICATION"i
+	| "DATABASE"i      & "SCOPED"i   & "CREDENTIAL"i
 	| "ENDPOINT"i
-	| "EXTERNAL"i & "DATA"i & "SOURCE"i
-	| "EXTERNAL"i & "FILE"i & "FORMAT"i
-	| "EXTERNAL"i & "MODEL"i
-	| "EXTERNAL"i & "RESOURCE"i & "POOL"i
-	| "FULLTEXT"i & "CATALOG"i
-	| "FULLTEXT"i & "STOPLIST"i
+	| "EXTERNAL"i      & "DATA"i     & "SOURCE"i
+	| "EXTERNAL"i      & "FILE"i     & "FORMAT"i
+	| "EXTERNAL"i      & "MODEL"i
+	| "EXTERNAL"i      & "RESOURCE"i & "POOL"i
+	| "FULLTEXT"i      & "CATALOG"i
+	| "FULLTEXT"i      & "STOPLIST"i
 	| "LOGIN"i
-	| "PARTITION"i & "FUNCTION"i
-	| "PARTITION"i & "SCHEME"i
-	| "RESOURCE"i & "POOL"i
-	| "SEARCH"i & "PROPERTY"i & "LIST"i
-	| "SERVER"i & "AUDIT"i & "SPECIFICATION"i
-	| "SERVER"i & "AUDIT"i
-	| "SERVER"i & "ROLE"i
-	| "WORKLOAD"i & "GROUP"i
+	| "PARTITION"i     & "FUNCTION"i
+	| "PARTITION"i     & "SCHEME"i
+	| "RESOURCE"i      & "POOL"i
+	| "SEARCH"i        & "PROPERTY"i & "LIST"i
+	| "SERVER"i        & "AUDIT"i    & "SPECIFICATION"i
+	| "SERVER"i        & "AUDIT"i
+	| "SERVER"i        & "ROLE"i
+	| "WORKLOAD"i      & "GROUP"i
 
 // ── The database ────────────────────────────────────────────────────────────
 //
@@ -6837,34 +6774,34 @@ DatabaseTail : @Build.Statement.CreateDatabase
 	| "FOR"i & "ATTACH"i & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
 	  & when @(Build.Rules.Attached(first, rest))
 		=> @(new Build.Statement.CreateDatabase(
-				 "", Build.Clause.None, Tail: "FOR ATTACH",
-				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
+				"", Build.Clause.None, Tail: "FOR ATTACH",
+				With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 	| "FOR"i & "ATTACH_REBUILD_LOG"i & ("WITH"i & first: RebuildLogOption & (',' & rest: RebuildLogOption)*)?
 	  & when @(Build.Rules.NamedOnce(first, rest))
 		=> @(new Build.Statement.CreateDatabase(
-				 "", Build.Clause.None, Tail: "FOR ATTACH_REBUILD_LOG",
-				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
+				"", Build.Clause.None, Tail: "FOR ATTACH_REBUILD_LOG",
+				With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 
 	// Undocumented and read: the same as `FOR ATTACH`, `WITH` and all.
 	| "FOR"i & "ATTACH_FORCE_REBUILD_LOG"i
 	  & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
 	  & when @(Build.Rules.Attached(first, rest))
 		=> @(new Build.Statement.CreateDatabase(
-				 "", Build.Clause.None, Tail: "FOR ATTACH_FORCE_REBUILD_LOG",
-				 With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
+				"", Build.Clause.None, Tail: "FOR ATTACH_FORCE_REBUILD_LOG",
+				With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 
 	// A snapshot takes a database's options too, which the block does not say and the engine
 	// reads.
 	| t: ("AS"i & "SNAPSHOT"i & "OF"i & TSqlIdentifier)
 	  & ("WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*)?
 		=> @(new Build.Statement.CreateDatabase(
-				 "", Build.Clause.None, Tail: Syntax.Spaced(t), With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
+				"", Build.Clause.None, Tail: Syntax.Spaced(t), With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 	// Azure SQL Database's copy, of a database on this server or another: its service objective in
 	// brackets, and its backups' redundancy in brackets after `WITH`.
 	| t: ("AS"i & "COPY"i & "OF"i & TSqlIdentifier & ('.' & TSqlIdentifier)?) & options: EditionOptions?
 	  & ("WITH"i & '(' & first: BackupRedundancy & ')')?
 		=> @(new Build.Statement.CreateDatabase("", Build.Clause.None, Tail: Syntax.Spaced(t), Options: SqlList.OwnOrNull(options),
-				 With: first is null ? null : [first]))
+				With: first is null ? null : [first]))
 
 // ── The files ───────────────────────────────────────────────────────────────
 //
@@ -6902,11 +6839,9 @@ FileSpec : @Build.Clause
 // `LEDGER` and `CATALOG_COLLATION` are a creation's only. What `SET` may say and a creation
 // may not — `AUTO_CLOSE`, `READ_ONLY`, `RESTRICTED_USER` — is refused.
 CreateDatabaseOption : @Build.Clause
-	= ?=CreateDatabaseNames & o: DatabaseSetting => @(o)
-	| name: "LEDGER"i & '=' & s: OnOff
-		=> @(new Build.Clause.Option(name, Build.Values.Reference(s), Build.Clause.None))
-	| name: "CATALOG_COLLATION"i & '=' & t: TSqlIdentifier
-		=> @(new Build.Clause.Option(name, Build.Values.Reference(t), Build.Clause.None))
+	= ?=CreateDatabaseNames & o: DatabaseSetting           => @(o)
+	| name: "LEDGER"i & '=' & s: OnOff                     => @(new Build.Clause.Option(name, Build.Values.Reference(s), Build.Clause.None))
+	| name: "CATALOG_COLLATION"i & '=' & t: TSqlIdentifier => @(new Build.Clause.Option(name, Build.Values.Reference(t), Build.Clause.None))
 	| r: BackupRedundancy => @(r)
 
 // Azure SQL Database's: where a database's backups are kept, as a string.
@@ -6925,9 +6860,9 @@ EditionSyntax
 	| "SERVICE_OBJECTIVE"i & '=' & "ELASTIC_POOL"i & '(' & "NAME"i & '=' & TSqlIdentifier & ')'
 
 CreateDatabaseNames
-	= "TRUSTWORTHY"i | "DB_CHAINING"i | "NESTED_TRIGGERS"i | "TRANSFORM_NOISE_WORDS"i
+	= "TRUSTWORTHY"i      | "DB_CHAINING"i | "NESTED_TRIGGERS"i | "TRANSFORM_NOISE_WORDS"i
 	| "DEFAULT_LANGUAGE"i | "DEFAULT_FULLTEXT_LANGUAGE"i | "TWO_DIGIT_YEAR_CUTOFF"i
-	| "FILESTREAM"i | "PERSISTENT_LOG_BUFFER"i
+	| "FILESTREAM"i       | "PERSISTENT_LOG_BUFFER"i
 
 // An attach takes all of those, and the broker's words and `RESTRICTED_USER` besides; its
 // `FILESTREAM` says only where the directory is.
@@ -6952,9 +6887,9 @@ RebuildLogOption : @Build.Clause
 FileOption : @Build.Clause = ?=(FileOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
 FileOptionSyntax
 	= ("NAME"i | "NEWNAME"i | "FILENAME"i) & '=' & (Quoted | TSqlIdentifier)
-	| "SIZE"i & '=' & Lexical.Digits & SizeUnit?
-	| "MAXSIZE"i & '=' & (Lexical.Digits & SizeUnit? | "UNLIMITED"i)
-	| "FILEGROWTH"i & '=' & Lexical.Digits & (SizeUnit | '%')?
+	| "SIZE"i       & '=' & Lexical.Digits  & SizeUnit?
+	| "MAXSIZE"i    & '=' & (Lexical.Digits & SizeUnit? | "UNLIMITED"i)
+	| "FILEGROWTH"i & '=' & Lexical.Digits  & (SizeUnit | '%')?
 	| "OFFLINE"i
 SizeUnit = "KB"i | "MB"i | "GB"i | "TB"i
 
@@ -6970,8 +6905,7 @@ FileGroupContains = "CONTAINS"i & FileGroupHolds
 // `FOR SECONDARY` is a `SET`'s and nothing else's: the published block puts it inside the
 // braces with `SET`, and the engine refuses `FOR SECONDARY CLEAR PROCEDURE_CACHE`.
 AlterDatabaseStatement : @Build.Statement
-	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & "FOR"i & "SECONDARY"i
-	  & scoped: ScopedSet
+	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & "FOR"i & "SECONDARY"i & scoped: ScopedSet
 		=> @(Build.Database.Scoped(scoped with { Secondary = true }))
 	| "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & scoped: ScopedConfiguration
 		=> @(Build.Database.Scoped(scoped))
@@ -7026,13 +6960,11 @@ AlterDatabaseAction : @Build.Statement.AlterTable
 	| "PERFORM_CUTOVER"i   => @(Build.Statement.Altered("PERFORM_CUTOVER", null))
 
 DatabaseModify : @Build.Statement.AlterTable
-	= "NAME"i & tail: ('=' & TSqlIdentifier)                  => @(Build.Statement.Altered("MODIFY NAME", null, null, tail))
-	| "FILEGROUP"i & tail: (TSqlIdentifier & FileGroupAction) => @(Build.Statement.Altered("MODIFY FILEGROUP", null, null, tail))
-	| "FILE"i & tail: FileSpecText                        => @(Build.Statement.Altered("MODIFY FILE", null, null, tail))
-	| tail: (EditionOptions & ("WITH"i & ManualCutover)?)
-		=> @(Build.Statement.Altered("MODIFY", null, null, tail))
-	| "BACKUP_STORAGE_REDUNDANCY"i & tail: ('=' & Quoted)
-		=> @(Build.Statement.Altered("MODIFY BACKUP_STORAGE_REDUNDANCY", null, null, tail))
+	= "NAME"i & tail: ('=' & TSqlIdentifier)                  => @(Build.Statement.Altered("MODIFY NAME",                      null, null, tail))
+	| "FILEGROUP"i & tail: (TSqlIdentifier & FileGroupAction) => @(Build.Statement.Altered("MODIFY FILEGROUP",                 null, null, tail))
+	| "FILE"i & tail: FileSpecText                            => @(Build.Statement.Altered("MODIFY FILE",                      null, null, tail))
+	| tail: (EditionOptions & ("WITH"i & ManualCutover)?)     => @(Build.Statement.Altered("MODIFY",                           null, null, tail))
+	| "BACKUP_STORAGE_REDUNDANCY"i & tail: ('=' & Quoted)     => @(Build.Statement.Altered("MODIFY BACKUP_STORAGE_REDUNDANCY", null, null, tail))
 
 // An Azure SQL Database altered with its cutover left to the user, which is the one thing its
 // block writes after `WITH`.
@@ -7080,27 +7012,17 @@ FileGroupAction = "DEFAULT"i | "NAME"i & '=' & TSqlIdentifier | word
 // `FLUSH_INTERVAL_SECONDS` inside `QUERY_STORE`. It does not know `DATA_RETENTION`, which
 // is Azure SQL Edge's.
 DatabaseSetting : @Build.Clause
-	= name: DatabaseWords
-		=> @(new Build.Clause.Option(name, null, Build.Clause.None))
-	| name: "AUTO_CREATE_STATISTICS"i & "ON"i & n: IncrementalNest?
-		=> @(new Build.Clause.Option(name, Build.Values.Reference("ON"), SqlList.Own(n), null, true))
-	| name: DatabaseSwitch & s: OnOff
-		=> @(new Build.Clause.Option(name, Build.Values.Reference(s), Build.Clause.None, null, true))
-	| name: DatabaseEqualsSwitch & '=' & s: OnOff
-		=> @(new Build.Clause.Option(name, Build.Values.Reference(s), Build.Clause.None))
+	= name: DatabaseWords                                           => @(new Build.Clause.Option(name, null, Build.Clause.None))
+	| name: "AUTO_CREATE_STATISTICS"i & "ON"i & n: IncrementalNest? => @(new Build.Clause.Option(name, Build.Values.Reference("ON"), SqlList.Own(n), null, true))
+	| name: DatabaseSwitch & s: OnOff                               => @(new Build.Clause.Option(name, Build.Values.Reference(s), Build.Clause.None, null, true))
+	| name: DatabaseEqualsSwitch      & '=' & s: OnOff              => @(new Build.Clause.Option(name, Build.Values.Reference(s), Build.Clause.None))
 
-	| name: "COMPATIBILITY_LEVEL"i & '=' & v: DatabaseInteger
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: "TWO_DIGIT_YEAR_CUTOFF"i & '=' & v: DatabaseInteger
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: ("DEFAULT_LANGUAGE"i | "DEFAULT_FULLTEXT_LANGUAGE"i) & '=' & v: LanguageValue
-		=> @(new Build.Clause.Option(name, v, Build.Clause.None))
-	| name: "TARGET_RECOVERY_TIME"i & '=' & v: DatabaseDecimal & u: RecoveryUnit
-		=> @(new Build.Clause.Option(name, Build.Rules.Measured(v, u), Build.Clause.None))
-	| name: "CONTAINMENT"i & '=' & t: ("NONE"i | "PARTIAL"i)
-		=> @(new Build.Clause.Option(name, Build.Values.Reference(t), Build.Clause.None))
-	| name: "DELAYED_DURABILITY"i & '=' & t: ("DISABLED"i | "ALLOWED"i | "FORCED"i)
-		=> @(new Build.Clause.Option(name, Build.Values.Reference(t), Build.Clause.None))
+	| name: "COMPATIBILITY_LEVEL"i   & '=' & v: DatabaseInteger                           => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: "TWO_DIGIT_YEAR_CUTOFF"i & '=' & v: DatabaseInteger                           => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: ("DEFAULT_LANGUAGE"i | "DEFAULT_FULLTEXT_LANGUAGE"i) & '=' & v: LanguageValue => @(new Build.Clause.Option(name, v, Build.Clause.None))
+	| name: "TARGET_RECOVERY_TIME"i  & '=' & v: DatabaseDecimal & u: RecoveryUnit         => @(new Build.Clause.Option(name, Build.Rules.Measured(v, u), Build.Clause.None))
+	| name: "CONTAINMENT"i           & '=' & t: ("NONE"i | "PARTIAL"i)                    => @(new Build.Clause.Option(name, Build.Values.Reference(t), Build.Clause.None))
+	| name: "DELAYED_DURABILITY"i    & '=' & t: ("DISABLED"i | "ALLOWED"i | "FORCED"i)    => @(new Build.Clause.Option(name, Build.Values.Reference(t), Build.Clause.None))
 
 	// `= AUTO` and `= CUSTOM`; `= INHERIT` and the index recommendations are Azure's.
 	| name: "AUTOMATIC_TUNING"i & '=' & t: ("AUTO"i | "CUSTOM"i)
@@ -7115,8 +7037,7 @@ DatabaseSetting : @Build.Clause
 	| name: "CHANGE_TRACKING"i & n: TrackingNest
 		=> @(new Build.Clause.Option(name, null, SqlList.Own(n), null, true))
 
-	| name: "QUERY_STORE"i & '=' & "OFF"i & n: ForcedNest?
-		=> @(new Build.Clause.Option(name, Build.Values.Reference("OFF"), SqlList.Own(n)))
+	| name: "QUERY_STORE"i & '=' & "OFF"i & n: ForcedNest? => @(new Build.Clause.Option(name, Build.Values.Reference("OFF"), SqlList.Own(n)))
 	| name: "QUERY_STORE"i & '=' & "ON"i & n: StoreNest?
 		=> @(new Build.Clause.Option(name, Build.Values.Reference("ON"), SqlList.Own(n)))
 	| name: "QUERY_STORE"i & n: StoreNest
@@ -7160,14 +7081,13 @@ DatabaseWords
 	| "SINGLE_USER"i | "RESTRICTED_USER"i | "MULTI_USER"i
 	| "ENABLE_BROKER"i | "DISABLE_BROKER"i | "NEW_BROKER"i | "ERROR_BROKER_CONVERSATIONS"i
 	| "CURSOR_DEFAULT"i & ("LOCAL"i | "GLOBAL"i)
-	| "RECOVERY"i & ("FULL"i | "BULK_LOGGED"i | "SIMPLE"i)
-	| "PAGE_VERIFY"i & ("CHECKSUM"i | "TORN_PAGE_DETECTION"i | "NONE"i)
+	| "RECOVERY"i       & ("FULL"i | "BULK_LOGGED"i | "SIMPLE"i)
+	| "PAGE_VERIFY"i    & ("CHECKSUM"i | "TORN_PAGE_DETECTION"i | "NONE"i)
 	| "PARAMETERIZATION"i & ("SIMPLE"i | "FORCED"i)
-	| "ENCRYPTION"i & ("SUSPEND"i | "RESUME"i)
+	| "ENCRYPTION"i  & ("SUSPEND"i | "RESUME"i)
 	| "QUERY_STORE"i & "CLEAR"i & "ALL"i?
-	| "HADR"i & ("SUSPEND"i | "RESUME"i)
-	| "PARTNER"i & ("FAILOVER"i | "FORCE_SERVICE_ALLOW_DATA_LOSS"i | "RESUME"i | "SUSPEND"i
-				   | "SAFETY"i & "FULL"i)
+	| "HADR"i        & ("SUSPEND"i | "RESUME"i)
+	| "PARTNER"i     & ("FAILOVER"i | "FORCE_SERVICE_ALLOW_DATA_LOSS"i | "RESUME"i | "SUSPEND"i | "SAFETY"i & "FULL"i)
 
 // The settings that are switched without `=`.
 DatabaseSwitch
@@ -7184,9 +7104,7 @@ DatabaseSwitch
 	| "SUPPLEMENTAL_LOGGING"i | "VARDECIMAL_STORAGE_FORMAT"i | "RESULT_SET_CACHING"i
 
 // And the ones switched with it.
-DatabaseEqualsSwitch
-	= "NESTED_TRIGGERS"i | "TRANSFORM_NOISE_WORDS"i | "MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT"i
-	| "OPTIMIZED_LOCKING"i
+DatabaseEqualsSwitch = "NESTED_TRIGGERS"i | "TRANSFORM_NOISE_WORDS"i | "MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT"i | "OPTIMIZED_LOCKING"i
 
 // Whole numbers where the engine wants them — `TWO_DIGIT_YEAR_CUTOFF = 2049.5` and `PARTNER
 // TIMEOUT 10.5` are refused — and a fraction where it takes one: `TARGET_RECOVERY_TIME =
@@ -7202,22 +7120,17 @@ DatabaseText : @Ast.Expression
 // is refused where `= English` and `= [us_english]` are read.
 LanguageValue : @Ast.Expression
 	= v: DatabaseInteger => @(v)
-	| t: TSqlIdentifier      => @(Build.Values.Reference(t))
+	| t: TSqlIdentifier  => @(Build.Values.Reference(t))
 
 RecoveryUnit : @string = t: ("SECONDS"i | "MINUTES"i) => @(t)
 
 // The lists in brackets. A list whose block allows one setting is written with one: the
 // engine refuses `(MODE = COPY_ONLY, MODE = COPY_ONLY)` as syntax. Where the block allows a
 // list, a setting written twice is left to a check (SqlWalker) as everywhere else.
-IncrementalNest : @Build.Clause[]
-	= '(' & ?=("INCREMENTAL"i & OnOffValue & ')') & o: OptionSetting & ')' => @(new Build.Clause[] { o })
-LogBufferNest : @Build.Clause[]
-	= '(' & ?=("DIRECTORY_NAME"i & '=' & Quoted & ')') & o: OptionSetting & ')' => @(new Build.Clause[] { o })
-SuspendNest : @Build.Clause[]
-	= '(' & ?=("MODE"i & '=' & "COPY_ONLY"i & ')') & o: OptionSetting & ')' => @(new Build.Clause[] { o })
-VersionStoreNest : @Build.Clause[]
-	= '(' & ?=("PERSISTENT_VERSION_STORE_FILEGROUP"i & '=' & TSqlIdentifier & ')') & o: OptionSetting & ')'
-		=> @(new Build.Clause[] { o })
+IncrementalNest  : @Build.Clause[] = '(' & ?=("INCREMENTAL"i & OnOffValue & ')') & o: OptionSetting & ')'      => @(new Build.Clause[] { o })
+LogBufferNest    : @Build.Clause[] = '(' & ?=("DIRECTORY_NAME"i & '=' & Quoted & ')') & o: OptionSetting & ')' => @(new Build.Clause[] { o })
+SuspendNest      : @Build.Clause[] = '(' & ?=("MODE"i & '=' & "COPY_ONLY"i & ')') & o: OptionSetting & ')'     => @(new Build.Clause[] { o })
+VersionStoreNest : @Build.Clause[] = '(' & ?=("PERSISTENT_VERSION_STORE_FILEGROUP"i & '=' & TSqlIdentifier & ')') & o: OptionSetting & ')' => @(new Build.Clause[] { o })
 
 TuningOption : @Build.Clause
 	= ?=("FORCE_LAST_GOOD_PLAN"i & '=' & ("DEFAULT"i | OnOff) & OptionEnds) & o: OptionSetting => @(o)
@@ -7243,8 +7156,7 @@ StoreOption : @Build.Clause = ?=(StoreSyntax & OptionEnds) & o: OptionSetting =>
 StoreSyntax
 	= ("OPERATION_MODE"i | "DESIRED_STATE"i) & '=' & ("READ_WRITE"i | "READ_ONLY"i)
 	| "CLEANUP_POLICY"i & '=' & '(' & StaleQuery & (',' & StaleQuery)* & ')'
-	| ("DATA_FLUSH_INTERVAL_SECONDS"i | "FLUSH_INTERVAL_SECONDS"i | "INTERVAL_LENGTH_MINUTES"i
-	  | "MAX_STORAGE_SIZE_MB"i | "MAX_PLANS_PER_QUERY"i) & '=' & Lexical.Digits
+	| ("DATA_FLUSH_INTERVAL_SECONDS"i | "FLUSH_INTERVAL_SECONDS"i | "INTERVAL_LENGTH_MINUTES"i | "MAX_STORAGE_SIZE_MB"i | "MAX_PLANS_PER_QUERY"i) & '=' & Lexical.Digits
 	| "SIZE_BASED_CLEANUP_MODE"i & '=' & ("AUTO"i | "OFF"i)
 	| "QUERY_CAPTURE_MODE"i & '=' & ("ALL"i | "AUTO"i | "CUSTOM"i | "NONE"i)
 	| "WAIT_STATS_CAPTURE_MODE"i & OnOffValue
@@ -7253,10 +7165,8 @@ StoreSyntax
 StaleQuery = "STALE_QUERY_THRESHOLD_DAYS"i & '=' & Lexical.Digits
 
 CapturePolicy
-	= "STALE_CAPTURE_POLICY_THRESHOLD"i & '=' & Lexical.Digits
-	  & ("DAYS"i | "DAY"i | "HOURS"i | "HOUR"i)
-	| ("EXECUTION_COUNT"i | "TOTAL_COMPILE_CPU_TIME_MS"i | "TOTAL_EXECUTION_CPU_TIME_MS"i)
-	  & '=' & Lexical.Digits
+	= "STALE_CAPTURE_POLICY_THRESHOLD"i & '=' & Lexical.Digits & ("DAYS"i | "DAY"i | "HOURS"i | "HOUR"i)
+	| ("EXECUTION_COUNT"i | "TOTAL_COMPILE_CPU_TIME_MS"i | "TOTAL_EXECUTION_CPU_TIME_MS"i) & '=' & Lexical.Digits
 
 FilestreamOption : @Build.Clause = ?=(FilestreamSyntax & OptionEnds) & o: OptionSetting => @(o)
 FilestreamSyntax
@@ -7267,7 +7177,7 @@ ArchiveNest : @Build.Clause[]
 	= '(' & first: ArchiveOption & (',' & rest: ArchiveOption)* & ')' => @(Syntax.Listed(first, rest))
 ArchiveOption : @Build.Clause = ?=(ArchiveSyntax & OptionEnds) & o: OptionSetting => @(o)
 ArchiveSyntax
-	= "SERVER"i & '=' & Quoted
+	= "SERVER"i     & '=' & Quoted
 	| "CREDENTIAL"i & '=' & TSqlIdentifier
 	| "FEDERATED_SERVICE_ACCOUNT"i & OnOffValue
 
@@ -7319,8 +7229,8 @@ ScopedSwitch
 	| "XTP_QUERY_EXECUTION_STATISTICS"i
 
 ScopedSwitchValue : @Ast.Expression
-	= s: OnOff       => @(Build.Values.Reference(s))
-	| t: "PRIMARY"i  => @(Build.Values.Reference(t))
+	= s: OnOff      => @(Build.Values.Reference(s))
+	| t: "PRIMARY"i => @(Build.Values.Reference(t))
 
 // A number with a sign, where one may stand: `MAXDOP = -1` is read and then found out of
 // range (12108), `MAXDOP = +4` is refused.
@@ -7396,16 +7306,16 @@ SecurableClassName
 	| "REMOTE"i & "SERVICE"i & "BINDING"i
 	| "SEARCH"i & "PROPERTY"i & "LIST"i
 	| "XML"i & "SCHEMA"i & "COLLECTION"i
-	| "APPLICATION"i & "ROLE"i
-	| "ASYMMETRIC"i & "KEY"i
+	| "APPLICATION"i  & "ROLE"i
+	| "ASYMMETRIC"i   & "KEY"i
 	| "AVAILABILITY"i & "GROUP"i
-	| "EXTERNAL"i & "LANGUAGE"i
-	| "EXTERNAL"i & "MODEL"i
-	| "FULLTEXT"i & "CATALOG"i
-	| "FULLTEXT"i & "STOPLIST"i
-	| "MESSAGE"i & "TYPE"i
-	| "SERVER"i & "ROLE"i
-	| "SYMMETRIC"i & "KEY"i
+	| "EXTERNAL"i     & "LANGUAGE"i
+	| "EXTERNAL"i     & "MODEL"i
+	| "FULLTEXT"i     & "CATALOG"i
+	| "FULLTEXT"i     & "STOPLIST"i
+	| "MESSAGE"i      & "TYPE"i
+	| "SERVER"i       & "ROLE"i
+	| "SYMMETRIC"i    & "KEY"i
 	| "ASSEMBLY"i
 	| "CERTIFICATE"i
 	| "CONTRACT"i
@@ -7424,11 +7334,8 @@ SecurableClassName
 // `ALL` and `ALL PRIVILEGES` are permissions like the others: first in a list, later in one,
 // with columns after them. An alternative of their own read them alone and, being first,
 // left `GRANT ALL, SELECT …` with nowhere to go.
-Permissions : @string[]
-	= first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
-
-Permission : @string
-	= t: (PermissionName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
+Permissions : @string[] = first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
+Permission  : @string   = t: (PermissionName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
 
 // A permission is one of the engine's own — the 166 names `sys.fn_builtin_permissions`
 // gives on SQL Server 2025 — or `EXEC`, `EXECUTE`'s other spelling, or `ALL [PRIVILEGES]`.
@@ -7442,34 +7349,34 @@ Permission : @string
 // Longest first, so that no name is taken for one it begins with: `ALTER ANY DATABASE`
 // before `ALTER`, `CONNECT SQL` before `CONNECT`, `EXECUTE` before `EXEC`.
 PermissionName
-	= "ALL"i & "PRIVILEGES"i?
-	| "VIEW"i & "SERVER"i & "STATE"i
-	| "VIEW"i & "SERVER"i & "SECURITY"i & "STATE"i
-	| "VIEW"i & "SERVER"i & "SECURITY"i & "AUDIT"i
-	| "VIEW"i & "SERVER"i & "PERFORMANCE"i & "STATE"i
-	| "VIEW"i & "SECURITY"i & "DEFINITION"i
+	= "ALL"i  & "PRIVILEGES"i?
+	| "VIEW"i & "SERVER"i      & "STATE"i
+	| "VIEW"i & "SERVER"i      & "SECURITY"i    & "STATE"i
+	| "VIEW"i & "SERVER"i      & "SECURITY"i    & "AUDIT"i
+	| "VIEW"i & "SERVER"i      & "PERFORMANCE"i & "STATE"i
+	| "VIEW"i & "SECURITY"i    & "DEFINITION"i
 	| "VIEW"i & "PERFORMANCE"i & "DEFINITION"i
-	| "VIEW"i & "LEDGER"i & "CONTENT"i
+	| "VIEW"i & "LEDGER"i      & "CONTENT"i
 	| "VIEW"i & "DEFINITION"i
-	| "VIEW"i & "DATABASE"i & "STATE"i
-	| "VIEW"i & "DATABASE"i & "SECURITY"i & "STATE"i
-	| "VIEW"i & "DATABASE"i & "SECURITY"i & "AUDIT"i
-	| "VIEW"i & "DATABASE"i & "PERFORMANCE"i & "STATE"i
+	| "VIEW"i & "DATABASE"i    & "STATE"i
+	| "VIEW"i & "DATABASE"i    & "SECURITY"i    & "STATE"i
+	| "VIEW"i & "DATABASE"i    & "SECURITY"i    & "AUDIT"i
+	| "VIEW"i & "DATABASE"i    & "PERFORMANCE"i & "STATE"i
 	| "VIEW"i & "CRYPTOGRAPHICALLY"i & "SECURED"i & "DEFINITION"i
 	| "VIEW"i & "CHANGE"i & "TRACKING"i
-	| "VIEW"i & "ANY"i & "SENSITIVITY"i & "CLASSIFICATION"i
-	| "VIEW"i & "ANY"i & "SECURITY"i & "DEFINITION"i
-	| "VIEW"i & "ANY"i & "PERFORMANCE"i & "DEFINITION"i
-	| "VIEW"i & "ANY"i & "ERROR"i & "LOG"i
-	| "VIEW"i & "ANY"i & "DEFINITION"i
-	| "VIEW"i & "ANY"i & "DATABASE"i
-	| "VIEW"i & "ANY"i & "CRYPTOGRAPHICALLY"i & "SECURED"i & "DEFINITION"i
-	| "VIEW"i & "ANY"i & "COLUMN"i & "MASTER"i & "KEY"i & "DEFINITION"i
-	| "VIEW"i & "ANY"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i    & "SENSITIVITY"i & "CLASSIFICATION"i
+	| "VIEW"i & "ANY"i    & "SECURITY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i    & "PERFORMANCE"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i    & "ERROR"i & "LOG"i
+	| "VIEW"i & "ANY"i    & "DEFINITION"i
+	| "VIEW"i & "ANY"i    & "DATABASE"i
+	| "VIEW"i & "ANY"i    & "CRYPTOGRAPHICALLY"i & "SECURED"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i    & "COLUMN"i & "MASTER"i & "KEY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i    & "COLUMN"i & "ENCRYPTION"i & "KEY"i & "DEFINITION"i
 	| "UPDATE"i
 	| "UNSAFE"i & "ASSEMBLY"i
 	| "UNMASK"i
-	| "TAKE"i & "OWNERSHIP"i
+	| "TAKE"i      & "OWNERSHIP"i
 	| "SUBSCRIBE"i & "QUERY"i & "NOTIFICATIONS"i
 	| "SHUTDOWN"i
 	| "SHOWPLAN"i
@@ -7482,15 +7389,15 @@ PermissionName
 	| "INSERT"i
 	| "IMPERSONATE"i & "ANY"i & "LOGIN"i
 	| "IMPERSONATE"i
-	| "EXTERNAL"i & "ACCESS"i & "ASSEMBLY"i
-	| "EXECUTE"i & "EXTERNAL"i & "SCRIPT"i
-	| "EXECUTE"i & "ANY"i & "EXTERNAL"i & "SCRIPT"i
-	| "EXECUTE"i & "ANY"i & "EXTERNAL"i & "ENDPOINT"i
+	| "EXTERNAL"i & "ACCESS"i   & "ASSEMBLY"i
+	| "EXECUTE"i  & "EXTERNAL"i & "SCRIPT"i
+	| "EXECUTE"i  & "ANY"i      & "EXTERNAL"i & "SCRIPT"i
+	| "EXECUTE"i  & "ANY"i      & "EXTERNAL"i & "ENDPOINT"i
 	| "EXECUTE"i
 	| "EXEC"i
 	| "ENABLE"i & "LEDGER"i
-	| "DROP"i & "ANY"i & "EVENT"i & "SESSION"i
-	| "DROP"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
+	| "DROP"i   & "ANY"i & "EVENT"i & "SESSION"i
+	| "DROP"i   & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
 	| "DELETE"i
 	| "CREATE"i & "XML"i & "SCHEMA"i & "COLLECTION"i
 	| "CREATE"i & "VIEW"i
