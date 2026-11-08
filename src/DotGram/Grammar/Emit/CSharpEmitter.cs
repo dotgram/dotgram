@@ -251,30 +251,30 @@ public static partial class CSharpEmitter
 		"int ", "bool ", "void ",
 	];
 
-	/// <param name="partSize">
-	/// How large a divided recognizer's parts should be aimed to be, or null for the
-	/// measured default. A wish rather than a requirement — see <c>Machine.PartSize</c>.
+	/// <summary>Writes the C# of one graph: the file the generator adds for a grammar.</summary>
+	/// <param name="options">
+	/// What the grammar's host asked for, read as the compiler reads it: the class and namespace,
+	/// the carrier, the input forms and the rest. Its <c>PartSize</c> is how large a divided
+	/// recognizer's parts should be aimed to be, or null for the measured default — a wish rather
+	/// than a requirement, see <c>Machine.PartSize</c>.
 	/// </param>
-	/// <param name="lexical">
-	/// The split this graph is the syntactic half of, where it is one. Then the file carries
-	/// a lexical machine as well, the seam is skipped rather than woven, and a position is a
-	/// token — so the text a value is cut from travels beside the kinds rather than being what
-	/// is read (docs/design/lexical-adt-design.md).
+	/// <param name="context">
+	/// What the compiler worked out before emission and what it collects from it; null where
+	/// there is neither (<see cref="EmitContext"/>).
 	/// </param>
-	public static string Emit(
-		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
-		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
-		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape,
-		int stacks = 0, string? suffix = null, bool? shared = null, bool inherits = false,
-		string? languageId = null, string? languageSource = null,
-		string? languageClassifications = null, string? languageRecognitionContract = null,
-		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
-		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
-		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
-		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false, bool steps = false,
-		bool constructionsMayThrow = false, bool hostUnseen = false, bool memoiseSuccesses = true, IReadOnlyList<SharedRecursion.Pair>? sharedChoices = null)
+	public static string Emit(RecognitionGraph graph, GramCompilerOptions options, EmitContext? context = null)
 	{
-		statics ??= [];
+		if (options is null)
+			throw new ArgumentNullException(nameof(options));
+
+		var lexical       = context?.Lexical;
+		var diagnostics   = context?.Diagnostics;
+		var grammarSource = context?.GrammarSource;
+		var sourceParts   = context?.SourceParts;
+		var carriers      = context?.Carriers;
+		var sharedChoices = context?.SharedChoices;
+		var hostUnseen    = options.SymbolResolver is UnseenHostSymbolResolver;
+		var carrier       = options.Carrier;
 
 		// What this file gathers as it is written: the masks of categories it tests (CategoryTests)
 		// and the methods that call the author's (HostCall).
@@ -290,19 +290,19 @@ public static partial class CSharpEmitter
 			carrier = CarrierKind.Immediate;
 
 		var overKinds = lexical is not null;
-		var directAllowed = direct;
+		var directAllowed = options.Direct;
 
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
 		var file    = new Writer(0);
 		var scope   = new Stack<IDisposable>();
-		var scoped  = suffix is { Length: > 0 } ? className + "." + suffix : className;
-		var results = new ResultTypes(graph, scoped, @namespace, traced: trace, lexical: lexical is not null);
+		var scoped  = options.Suffix is { Length: > 0 } ? options.ClassName + "." + options.Suffix : options.ClassName;
+		var results = new ResultTypes(graph, scoped, options.Namespace, traced: options.Trace, lexical: lexical is not null);
 
 		// What a trace build numbers its events by, one table for every machine of the file; null
 		// where the build is not one, which writes nothing of it anywhere.
-		var tracing = trace && graph.Publications.Count > 0 ? new TraceTables(graph) : null;
+		var tracing = options.Trace && graph.Publications.Count > 0 ? new TraceTables(graph) : null;
 
 		// One machine per published rule. `parse R` and `find R` share one — the same rule,
 		// two entry states — while two publications of different rules get one each, even
@@ -316,7 +316,7 @@ public static partial class CSharpEmitter
 		var machines = new List<Compiled>();
 		// Exact ordered diagnostic lists may be shared by sibling machines in this scope.
 		// A single machine needs no shared registry: it looks its sets up in its own.
-		var expectedTables = groups.Count > 1 || bufferedInput || bufferedBytes ||
+		var expectedTables = groups.Count > 1 || options.BufferedInput || options.BufferedBytes ||
 			graph.Publications.Any(static one => one.BufferedInput || one.BufferedBytes)
 			? new Dictionary<string, int>(StringComparer.Ordinal)
 			: null;
@@ -355,18 +355,18 @@ public static partial class CSharpEmitter
 			// Compiled later where it counts, so that what it writes for the count is written: the
 			// count is told after construction, and a machine compiled in it would never hear.
 			var made = new Machine(
-				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1 || countRules, quiets: quiets,
-				tracing: tracing, expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput),
-				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput), rereadLocates: RereadLocates(lexical))
+				graph, results, options.LineMap, Streaming(graph, overKinds), only, tag, options.PartSize, overKinds,
+				lexical?.Valued, carrier, options.Stacks, lexical?.Inventory, replay, spanCaptures: options.SpanCaptures, prefixTables: options.PrefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1 || options.CountRules, quiets: quiets,
+				tracing: tracing, expectedSets: expectedSets, places: Places(graph, overKinds, options.BufferedInput),
+				placedRecoveries: PlacedRecoveries(graph, overKinds, options.BufferedInput), rereadLocates: RereadLocates(lexical))
 			{
 				Reporting   = carriers is not null,
-				CountsRules = countRules,
-				ConstructionsMayThrow = constructionsMayThrow,
+				CountsRules = options.CountRules,
+				ConstructionsMayThrow = options.ConstructionsMayThrow,
 
 				// Over tokens only, which the machine asks itself (Machine.Memo.cs).
-				MemoisesFailures   = memoise,
-				MemoisesSuccesses  = memoiseSuccesses,
+				MemoisesFailures   = options.MemoiseFailures,
+				MemoisesSuccesses  = options.MemoiseSuccesses,
 				SharedChoices      = sharedChoices,
 			};
 
@@ -431,20 +431,20 @@ public static partial class CSharpEmitter
 			}
 			if (guests.Count == 0) continue;
 			var made = new Machine(
-				graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
-				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
-				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets,
-				expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput),
-				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput), rereadLocates: RereadLocates(lexical));
+				graph, results, options.LineMap, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
+				owner.Tag, options.PartSize, overKinds, lexical?.Valued, carrier, options.Stacks, lexical?.Inventory,
+				replay, spanCaptures: options.SpanCaptures, prefixTables: options.PrefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets,
+				expectedSets: expectedSets, places: Places(graph, overKinds, options.BufferedInput),
+				placedRecoveries: PlacedRecoveries(graph, overKinds, options.BufferedInput), rereadLocates: RereadLocates(lexical));
 			made.Anchor = owner.Machine.Anchor;
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
-			made.CountsRules = countRules;
-			made.ConstructionsMayThrow = constructionsMayThrow;
+			made.CountsRules = options.CountRules;
+			made.ConstructionsMayThrow = options.ConstructionsMayThrow;
 			made.Tracing = tracing;
 			made.KeepsDoors = made.KeepsDoors && tracing is null;
-			made.MemoisesFailures = memoise;
-			made.MemoisesSuccesses = memoiseSuccesses;
+			made.MemoisesFailures = options.MemoiseFailures;
+			made.MemoisesSuccesses = options.MemoiseSuccesses;
 			made.SharedChoices = sharedChoices;
 			if (!made.CanDirect(publications)) continue;
 			// Kept only where the union carries as its members do.
@@ -490,8 +490,8 @@ public static partial class CSharpEmitter
 			compiled.Machine.CompileRules();
 
 		AddBufferedMachines(
-			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
-			carrier, replay, carriers is not null, directAllowed, countRules, constructionsMayThrow, tracing, expectedSets, hostUnseen);
+			graph, results, options.LineMap, machines, options.BufferedInput, options.BufferedBytes, overKinds, diagnostics, options.PartSize, options.SpanCaptures, options.PrefixTables, expectedTables,
+			carrier, replay, carriers is not null, directAllowed, options.CountRules, options.ConstructionsMayThrow, tracing, expectedSets, hostUnseen);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -504,8 +504,8 @@ public static partial class CSharpEmitter
 		var valuing = lexical is not null && (lexical.Valued.Count > 0 || Measuring(lexical).Count > 0)
 			? new Machine(
 				lexical.Source,
-				new ResultTypes(lexical.Source, scoped, @namespace, lexical: true),
-				lines,
+				new ResultTypes(lexical.Source, scoped, options.Namespace, lexical: true),
+				options.LineMap,
 				only: Rereads(lexical),
 				tag: MachineTag.Value,
 				quiets: true,
@@ -547,11 +547,11 @@ public static partial class CSharpEmitter
 			compiled.Machine.ShareValueTables(tables);
 
 		valuing?.ShareValueTables(tables);
-		Machine.ShareAdaptiveStores(machines.Where(static compiled => compiled.Direct).Select(static compiled => compiled.Machine), valueStorage);
+		Machine.ShareAdaptiveStores(machines.Where(static compiled => compiled.Direct).Select(static compiled => compiled.Machine), options.ValueStorage);
 
 		file.Line("// <auto-generated/>");
 
-		foreach (var alias in ExternAliases(statics))
+		foreach (var alias in ExternAliases(options.StaticImports))
 			file.Line(alias);
 
 		file.Line("#nullable enable");
@@ -560,7 +560,7 @@ public static partial class CSharpEmitter
 		// and both classes are whole parsers — so the derived one hides the base's
 		// members, deliberately: `TransactSql.ParseSelect` reads T-SQL. The question
 		// CS0108 asks is answered here, where the code it is about was written.
-		if (inherits)
+		if (options.Inherits)
 		{
 			file.Line("#pragma warning disable CS0108 // a dialect hides what it inherits, on purpose");
 		}
@@ -569,8 +569,8 @@ public static partial class CSharpEmitter
 
 		// A block namespace rather than a file-scoped one: the consumer's language
 		// version is unknown (.claude/rules/emitted-code.md).
-		if (@namespace is not null)
-			scope.Push(file.Block($"namespace {@namespace}"));
+		if (options.Namespace is not null)
+			scope.Push(file.Block($"namespace {options.Namespace}"));
 
 		// The grammar's own `@using` directives and no others. Everything this file
 		// generates is written with `global::`; these are here for the C# the grammar
@@ -578,7 +578,7 @@ public static partial class CSharpEmitter
 		// one includes, whether or not it has any of its own: they used to be written only
 		// beside those, and a grammar that included another and said no `@using` called the
 		// helpers of the included class by names nothing in its file could see.
-		if (graph.CSharpImports.Count > 0 || statics.Count > 0)
+		if (graph.CSharpImports.Count > 0 || options.StaticImports.Count > 0)
 		{
 			foreach (var import in graph.CSharpImports)
 				file.Line($"using {import};");
@@ -588,30 +588,30 @@ public static partial class CSharpEmitter
 			// same name is an ordinary C# ambiguity and is refused as one; a member the
 			// including class declares under a name an included grammar calls is used instead
 			// of theirs, silently, which is the one collision nothing here can see.
-			foreach (var import in statics)
+			foreach (var import in options.StaticImports)
 				file.Line(StaticImport(import));
 
 			file.Line();
 		}
 
 		var namespaceEnd = file.Length;
-		var classParts = className.Split('.');
+		var classParts = options.ClassName.Split('.');
 		for (var i = 0; i < classParts.Length; i++)
 		{
 			// The grammar itself, so that a class in a referenced assembly can be included
 			// without its `.gram` file being anywhere near. Only on the compilation that owns
 			// the class: a `Suffix` puts a second reading in a nested class, and what an
 			// including grammar names is the class, not the reading.
-			if (i == classParts.Length - 1 && grammarSource is not null && suffix is not { Length: > 0 })
+			if (i == classParts.Length - 1 && grammarSource is not null && options.Suffix is not { Length: > 0 })
 				file.Line($"[global::DotGram.GramSourceAttribute({Quoted(grammarSource)})]");
 
-			if (i == classParts.Length - 1 && languageId is not null && languageSource is not null)
+			if (i == classParts.Length - 1 && options.LanguageId is not null && options.LanguageSource is not null)
 				file.Line(LanguageDescriptorAttribute(
 					graph,
-					languageId,
-					languageSource,
-					languageClassifications ?? "",
-					languageRecognitionContract ?? ""));
+					options.LanguageId,
+					options.LanguageSource,
+					options.LanguageClassifications ?? "",
+					options.LanguageRecognitionContract ?? ""));
 
 			scope.Push(file.Block($"partial class {classParts[i]}"));
 		}
@@ -629,7 +629,7 @@ public static partial class CSharpEmitter
 		// method of the host would otherwise be handing it a type of the same name that is
 		// not the same type. Unconditionally, because what the others need is not known
 		// here — a struct nothing names costs a compilation nothing.
-		if (shared == true)
+		if (options.SharedTypes == true)
 		{
 			file.Write(SourceSpanStruct);
 			file.Line();
@@ -644,14 +644,14 @@ public static partial class CSharpEmitter
 		// Unless the author declared that class, in which case what the author wrote says who
 		// may see it and this part says nothing: `internal static partial class Immediate { }`
 		// beside `[GramOptions(Suffix = "Immediate")]` is a reading nobody outside can reach.
-		if (suffix is { Length: > 0 })
-			scope.Push(file.Block(SuffixClass(suffix, suffixDeclared)));
+		if (options.Suffix is { Length: > 0 })
+			scope.Push(file.Block(SuffixClass(options.Suffix, options.SuffixDeclared)));
 
 		var separated = new List<string>();
-		if (sourceParts is not null && sourceFileSize > 0)
+		if (sourceParts is not null && options.SourceFileSize > 0)
 			file.SeparateMethods = methods =>
 			{
-				if (methods.Length < sourceFileSize)
+				if (methods.Length < options.SourceFileSize)
 					return false;
 				var part = new Writer(file.Depth);
 				part.Write(methods);
@@ -677,7 +677,7 @@ public static partial class CSharpEmitter
 						results,
 						graph.Climbing.ContainsKey(publication.Rule),
 						Streams(graph, publication, overKinds) &&
-							!bufferedInput && !publication.BufferedInput,
+							!options.BufferedInput && !publication.BufferedInput,
 						compiled.Flat,
 						compiled.Machine.Ties,
 						compiled.Machine.UsesInput,
@@ -739,7 +739,7 @@ public static partial class CSharpEmitter
 			foreach (var compiled in machines)
 				foreach (var publication in compiled.Publications)
 					if (compiled.Machine.BufferedInput || publication.BufferedInput || publication.BufferedBytes ||
-						!bufferedInput && Streams(graph, publication, overKinds))
+						!options.BufferedInput && Streams(graph, publication, overKinds))
 						ContextChanges(graph, publication, diagnostics);
 
 		// The hooks a reading handed to another stack calls, once a class however many machines probe.
@@ -765,9 +765,9 @@ public static partial class CSharpEmitter
 
 			foreach (var factory in FactoriesOf(graph, results, rule))
 			{
-				EmitFactory(file, graph, rule, factory, results, lines, spanCaptures);
+				EmitFactory(file, graph, rule, factory, results, options.LineMap, options.SpanCaptures);
 				if (byteRules.Contains(rule))
-					EmitFactory(file, graph, rule, factory with { Method = factory.BytesMethod }, results, lines, true, true);
+					EmitFactory(file, graph, rule, factory with { Method = factory.BytesMethod }, results, options.LineMap, true, true);
 				file.Line();
 			}
 		}
@@ -783,7 +783,7 @@ public static partial class CSharpEmitter
 
 				foreach (var factory in FactoriesOf(lexical.Source, valuing.Results, rule))
 				{
-					EmitFactory(file, lexical.Source, rule, factory, valuing.Results, lines);
+					EmitFactory(file, lexical.Source, rule, factory, valuing.Results, options.LineMap);
 					file.Line();
 				}
 			}
@@ -825,7 +825,7 @@ public static partial class CSharpEmitter
 			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
 			// trivia normalization inserted — have no recognizer of their own, so each gets
 			// one: the driver runs them in order and they have to be runnable one at a time.
-			if (!bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
+			if (!options.BufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
 			{
 				var parts = new List<string>(stages.Count);
 
@@ -898,7 +898,7 @@ public static partial class CSharpEmitter
 		// whole one (EmitStreamingFind, EmitStreamingParse).
 		bool StreamsOverSegments(Publication publication)
 		{
-			return !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) &&
+			return !options.BufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) &&
 				(publication.Kind == PublishKind.Find ||
 				 publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null);
 		}
@@ -1003,13 +1003,13 @@ public static partial class CSharpEmitter
 		}
 		// The source graph too, where there is one: a rule that names a span may have moved
 		// into the second read, and the type it names is the file's either way.
-		if (shared is null && (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source)))
+		if (options.SharedTypes is null && (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source)))
 		{
 			file.Write(SourceSpanStruct);
 			file.Line();
 		}
 
-		if (shared is null && graph.Publications.Count > 0)
+		if (options.SharedTypes is null && graph.Publications.Count > 0)
 		{
 			file.Write(OutcomeEnum);
 			file.Line();
@@ -1063,8 +1063,8 @@ public static partial class CSharpEmitter
 				// entry writes it before the trivia after the rule (Machine.TrimsWhole).
 				ended: RecordsEnded(machines),
 				// Where what a window holds begins in the input, for the values a streamed reading locates.
-				origin: Places(graph, overKinds, bufferedInput),
-				originLines: PlacesLines(graph, overKinds, bufferedInput),
+				origin: Places(graph, overKinds, options.BufferedInput),
+				originLines: PlacesLines(graph, overKinds, options.BufferedInput),
 				trace: tracing is not null));
 			file.Line();
 
@@ -1086,7 +1086,7 @@ public static partial class CSharpEmitter
 			}
 		}
 
-		if (shared is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
+		if (options.SharedTypes is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
 			NodeWalk.CallsTheHost(graph, static external => external.UsesInputView)))
 			file.Write(ParserInputTypes);
 
@@ -1095,9 +1095,9 @@ public static partial class CSharpEmitter
 			// What a streaming overload takes where its caller passes null: the grammar's own
 			// [Gram(MaxRetained, BufferSize)], read-only here, overridden per call.
 			file.Line("/// <summary>What a buffered parse retains at most where a call does not say ([Gram(MaxRetained)]).</summary>");
-			file.Line($"internal const int DefaultMaxRetained = {maxRetained.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+			file.Line($"internal const int DefaultMaxRetained = {options.MaxRetained.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
 			file.Line("/// <summary>A buffered parse's initial capacity where a call does not say ([Gram(BufferSize)]).</summary>");
-			file.Line($"internal const int DefaultBufferSize = {bufferSize.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+			file.Line($"internal const int DefaultBufferSize = {options.BufferSize.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
 			file.Line();
 		}
 
@@ -1186,7 +1186,7 @@ public static partial class CSharpEmitter
 		// calls the same one.
 		if (lexical is not null)
 		{
-			file.Write(Lexical(lexical, valuing, utf8Literals, expectedSets));
+			file.Write(Lexical(lexical, valuing, options.Utf8Literals, expectedSets));
 			file.Line();
 		}
 
@@ -1292,7 +1292,7 @@ public static partial class CSharpEmitter
 		// What is said about the carrier, said here: which carrier a machine took is settled by what
 		// it turned out to hold, and nothing before the readers are written knows.
 		if (diagnostics is not null)
-			Told(diagnostics, requested, carrier, machines, graph, overKinds, constructionsMayThrow);
+			Told(diagnostics, requested, carrier, machines, graph, overKinds, options.ConstructionsMayThrow);
 
 		if (carriers is not null)
 		{
@@ -1341,7 +1341,7 @@ public static partial class CSharpEmitter
 
 		// The sets every machine's refusals name, last: what a machine writes a call to is known
 		// only once all of them are written, the lexical half's included.
-		if (expectedSets.Render(utf8Literals) is { Length: > 0 } sets)
+		if (expectedSets.Render(options.Utf8Literals) is { Length: > 0 } sets)
 		{
 			file.Line();
 			file.Write(sets);
@@ -1413,29 +1413,29 @@ public static partial class CSharpEmitter
 		{
 			// Repeat only the namespace/imports and partial declarations. Attributes,
 			// fields, initializers and constructors remain in the original file.
-			var header = new Writer(@namespace is null ? 0 : 1);
+			var header = new Writer(options.Namespace is null ? 0 : 1);
 			var closing = new Stack<IDisposable>();
 			foreach (var part in classParts)
 				closing.Push(header.Block($"partial class {part}"));
-			if (suffix is { Length: > 0 })
-				closing.Push(header.Block(SuffixClass(suffix, suffixDeclared)));
+			if (options.Suffix is { Length: > 0 })
+				closing.Push(header.Block(SuffixClass(options.Suffix, options.SuffixDeclared)));
 			var opening = written.Substring(0, namespaceEnd) + header.ToString();
 			var closeAt = header.Length;
 			while (closing.Count > 0)
 				closing.Pop().Dispose();
-			var ending = header.ToString().Substring(closeAt) + (@namespace is null ? "" : "}" + Lines.Ending);
+			var ending = header.ToString().Substring(closeAt) + (options.Namespace is null ? "" : "}" + Lines.Ending);
 			foreach (var methods in separated)
 			{
 				var part = Numbered(opening + methods + ending, tables);
 				if (part.IndexOf('\u0001') >= 0)
 					throw new InvalidOperationException("An unsettled state mark reached a generated source part.");
 				Oversee(part, machines.Count > 0 ? machines[0].Machine.Anchor : null, diagnostics);
-				sourceParts!.Add(Finished(part, checks, steps));
+				sourceParts!.Add(Finished(part, options.Checks, options.Steps));
 			}
 		}
 
 		// Last, so that every offset taken in the text above is an offset in the text it was taken in.
-		return Finished(written, checks, steps);
+		return Finished(written, options.Checks, options.Steps);
 	}
 
 	/// <summary>

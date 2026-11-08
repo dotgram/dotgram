@@ -97,7 +97,10 @@ public sealed class ProvenanceTests
 
 		// One file with both halves in it, which is what a split grammar is now: the
 		// publication tokenizes and then parses, and the caller hands over a string.
-		var text = CSharpEmitter.Emit(split.Syntax, "Grammar", null, null, diagnostics, null, split);
+		var text = CSharpEmitter.Emit(
+			split.Syntax,
+			new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Tape, MemoiseFailures = false },
+			new EmitContext { Diagnostics = diagnostics, Lexical = split });
 
 		var grammar = EmittedCode.Compile(text).GetType("Grammar")!;
 		var method  = grammar.GetMethod("TryParseStart", [typeof(string)])!;

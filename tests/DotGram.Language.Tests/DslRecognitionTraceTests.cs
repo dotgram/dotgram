@@ -223,7 +223,9 @@ public sealed class DslRecognitionTraceTests
 				new System.Collections.Generic.Dictionary<string, bool> { [guard.Text] = true },
 				new System.Collections.Generic.Dictionary<string, string> { ["Read"] = "Word" }));
 		var generated = EmittedCode.Compile(
-			DotGram.Grammar.Emit.CSharpEmitter.Emit(graph, "Grammar"),
+			DotGram.Grammar.Emit.CSharpEmitter.Emit(
+				graph,
+				new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Tape, MemoiseFailures = false }),
 			declarationMembers: """
 				static bool Read(global::System.ReadOnlySpan<char> input, ref int pos)
 				{
