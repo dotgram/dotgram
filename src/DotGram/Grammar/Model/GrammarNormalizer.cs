@@ -27,7 +27,7 @@ namespace DotGram.Grammar.Model;
 /// read as shapes, while a diagnostic still has a node to point at.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	public const string NullableRepetition  = "GRAM4001";
 	public const string LeftRecursion       = "GRAM4002";

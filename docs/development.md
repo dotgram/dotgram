@@ -260,7 +260,10 @@ framework's build alone. The generated FIX versions are most of the surface, so 
 
 The generator package, `DotGram`, has no such files and is left out of the review of the public surface
 before a release: it ships as an analyzer, under `analyzers/` with no `lib/`, so no consumer compiles
-against its types, which are public only for the repository's own projects.
+against its types. They are internal, open to its test projects by `InternalsVisibleTo`. Public are only
+what `DotGram.Cli` calls — the generator and the text of the marker attributes — and three enums
+(`CarrierKind`, `ValueStorageKind`, `GramSeverity`) that tests take as theory arguments, which a public
+test method cannot name otherwise.
 
 The lines are written by the analyzer, not by hand. The editor's fix for RS0016 adds one, and a
 build that lets the analyzer warn rather than fail prints every missing one, each RS0016 naming

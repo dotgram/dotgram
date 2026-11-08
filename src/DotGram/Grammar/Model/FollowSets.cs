@@ -40,7 +40,7 @@ namespace DotGram.Grammar.Model;
 /// of them, which is the widest.
 /// </para>
 /// </remarks>
-public static class FollowSets
+static class FollowSets
 {
 	/// <summary>
 	/// What can follow, seen twice: as it stands, and past the seam.

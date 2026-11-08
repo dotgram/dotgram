@@ -7,7 +7,7 @@ using System;
 
 namespace DotGram.Grammar;
 
-public static partial class UnicodeCategories
+static partial class UnicodeCategories
 {
 	/// <summary>The Unicode version the table below was written from.</summary>
 	public const string UnicodeVersion = "16.0.0";

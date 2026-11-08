@@ -48,7 +48,7 @@ namespace DotGram.Grammar.Model;
 /// reached from here yet, and widening to it is a change to this file and nothing else.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>How many strings a side may accept before this gives up on listing them.</summary>
 	const int Listable = 4096;

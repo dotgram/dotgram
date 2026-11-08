@@ -14,7 +14,7 @@ namespace DotGram.Grammar.Model;
 /// call-graph machinery <see cref="SpecializeWithGroup"/> reuses for expression- and
 /// publication-scoped `with`, and the §14 type-compatibility check shared by all three.
 /// </summary>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	public const string IncompatibleRebinding = "GRAM4014";
 

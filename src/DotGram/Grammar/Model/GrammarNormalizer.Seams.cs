@@ -58,7 +58,7 @@ namespace DotGram.Grammar.Model;
 /// tried is the longest.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// Rewrite <c>(t &amp; R)* &amp; t</c> as <c>t &amp; (R &amp; t)*</c>, <c>t &amp; A | t &amp; B</c>

@@ -25,7 +25,7 @@ namespace DotGram.Grammar;
 /// on different runtimes. The analysis and the emitted test both read <see cref="Of"/>.
 /// </para>
 /// </remarks>
-public static partial class UnicodeCategories
+static partial class UnicodeCategories
 {
 	static readonly Dictionary<string, string> _names = new(StringComparer.Ordinal)
 	{

@@ -30,7 +30,7 @@ namespace DotGram.Grammar.Model;
 /// asked by the thing that chooses how to emit.
 /// </para>
 /// </remarks>
-public static class Replay
+static class Replay
 {
 	/// <summary>Why a rule is read where the reading may not stand.</summary>
 	public enum Because

@@ -40,7 +40,7 @@ namespace DotGram.Generation;
 /// </remarks>
 /// <typeparam name="TKey">Everything the value was computed from, compared as values.</typeparam>
 /// <typeparam name="TValue">What was computed.</typeparam>
-public sealed class CompileCache<TKey, TValue>
+sealed class CompileCache<TKey, TValue>
 	where TKey : IEquatable<TKey>
 {
 	readonly ConcurrentDictionary<TKey, Entry> _entries = new();

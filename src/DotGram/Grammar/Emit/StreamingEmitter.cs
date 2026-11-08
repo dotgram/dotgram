@@ -25,7 +25,7 @@ namespace DotGram.Grammar.Emit;
 /// reads two ways. The tests that hold them to that give one feed both doors and compare.
 /// </para>
 /// </remarks>
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>
 	/// <c>find</c> over a reader: the same occurrences, out of input that is never all

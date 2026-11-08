@@ -5,7 +5,7 @@ using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	internal static bool PublicationFits(ISymbolResolver resolver, string from, string to, GrammarNamespace ns)
 	{

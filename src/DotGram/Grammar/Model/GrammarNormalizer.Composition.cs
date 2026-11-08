@@ -7,7 +7,7 @@ using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// Which type the object handed to a parse actually is, given that several grammars in

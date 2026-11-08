@@ -61,7 +61,7 @@ namespace DotGram.Grammar.Model;
 /// work list.
 /// </para>
 /// </remarks>
-public static class Commit
+static class Commit
 {
 	/// <summary>What a point is the end of.</summary>
 	public enum Kind : byte

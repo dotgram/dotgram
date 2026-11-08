@@ -18,7 +18,7 @@ namespace DotGram.Grammar.Emit;
 /// that has no sink more than a field read where an event would be.
 /// </para>
 /// </remarks>
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>
 	/// The sink, the reading it is told about, and the scope that sets it.

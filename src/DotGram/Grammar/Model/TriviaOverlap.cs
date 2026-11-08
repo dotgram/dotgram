@@ -37,7 +37,7 @@ namespace DotGram.Grammar.Model;
 /// which takes the longest run and never gives it back, so there is nothing to tell it.
 /// </para>
 /// </remarks>
-public static class TriviaOverlap
+static class TriviaOverlap
 {
 	/// <summary>Non-atomic trivia reading characters a class beside one of its seams also reads.</summary>
 	public const string Overlapping = "GRAM4051";

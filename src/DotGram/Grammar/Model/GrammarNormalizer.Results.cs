@@ -24,7 +24,7 @@ namespace DotGram.Grammar.Model;
 /// alternative and rebuilds them at the accepting state, the same for all five.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	static IReadOnlyList<Node> ValueAlternatives(Node body)
 	{

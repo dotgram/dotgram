@@ -49,10 +49,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Roslyn reports a step under the name it was given and under no other — and a
 	/// property nothing can observe is a property nothing keeps.
 	/// </remarks>
-	public const string AskedStage    = "Asked";
-	public const string AnsweredStage = "Answered";
-	public const string CompiledStage = "Compiled";
-	public const string PlacedStage   = "Placed";
+	internal const string AskedStage    = "Asked";
+	internal const string AnsweredStage = "Answered";
+	internal const string CompiledStage = "Compiled";
+	internal const string PlacedStage   = "Placed";
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{

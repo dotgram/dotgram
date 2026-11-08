@@ -13,7 +13,7 @@ namespace DotGram.Grammar.Emit;
 /// is what is not an option — a result of an earlier stage, or a place to put what the file
 /// produces besides its text.
 /// </remarks>
-public sealed class EmitContext
+sealed class EmitContext
 {
 	/// <summary>
 	/// The split the graph is the syntactic half of, where it is one. Then the file carries

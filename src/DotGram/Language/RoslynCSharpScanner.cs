@@ -27,7 +27,7 @@ namespace DotGram.Language;
 /// inside one cannot change the nesting depth.
 /// </para>
 /// </remarks>
-public sealed class RoslynCSharpScanner : ICSharpScanner
+sealed class RoslynCSharpScanner : ICSharpScanner
 {
 	public static readonly RoslynCSharpScanner Instance = new();
 
