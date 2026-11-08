@@ -1,4 +1,4 @@
-// ISO/IEC 9075-2:2023, SQL/Foundation: the standard's grammar, written from its BNF
+﻿// ISO/IEC 9075-2:2023, SQL/Foundation: the standard's grammar, written from its BNF
 // (Specification/ISO_IEC_9075-2(E)_Foundation.bnf.txt) and held to it by `--standard`, which
 // puts each line of a file to the BNF itself and to the rule of the same name here.
 //
