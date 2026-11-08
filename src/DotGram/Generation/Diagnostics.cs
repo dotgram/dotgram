@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 
-using DotGram.Grammar;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 

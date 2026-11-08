@@ -72,14 +72,14 @@ readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines
 /// neither can be placed inside the grammar (<c>GramGenerator.Said</c>).
 /// </param>
 readonly record struct Site(
-	string                   Key,
-	Place?                   At,
-	string?                  Path,
-	int                      LiteralAt,
-	int                      Line,
-	int                      Column,
+	string                    Key,
+	Place?                    At,
+	string?                   Path,
+	int                       LiteralAt,
+	int                       Line,
+	int                       Column,
 	EquatableArray<Site.Base> Bases,
-	Place?                   Named = null)
+	Place?                    Named = null)
 {
 	public const int None      = -1;
 	public const int Attribute = 0;
@@ -136,18 +136,18 @@ readonly record struct Site(
 /// </para>
 /// </remarks>
 readonly record struct Report(
-	string           Id,
-	string           Title,
-	string           MessageFormat,
-	DiagnosticSeverity Severity,
-	string?          FilePath,
-	int              Position,
-	int              Length,
-	LinePositionSpan Lines,
-	int              Anchor,
+	string                 Id,
+	string                 Title,
+	string                 MessageFormat,
+	DiagnosticSeverity     Severity,
+	string?                FilePath,
+	int                    Position,
+	int                    Length,
+	LinePositionSpan       Lines,
+	int                    Anchor,
 	EquatableArray<string> Arguments,
-	string?          Written   = null,
-	string?          Grammar   = null)
+	string?                Written = null,
+	string?                Grammar = null)
 {
 	/// <summary>A diagnostic the shell raises about the host, from a fixed descriptor.</summary>
 	/// <param name="at">Which attribute it is about, as a <see cref="Site"/> anchor.</param>
@@ -158,11 +158,11 @@ readonly record struct Report(
 			descriptor.Title.ToString(),
 			descriptor.MessageFormat.ToString(),
 			descriptor.DefaultSeverity,
-			FilePath: null,
-			Position: 0,
-			Length: 0,
-			Lines: default,
-			Anchor: at,
+			FilePath:  null,
+			Position:  0,
+			Length:    0,
+			Lines:     default,
+			Anchor:    at,
 			Arguments: new EquatableArray<string>([.. arguments]));
 	}
 
@@ -274,8 +274,6 @@ readonly record struct Report(
 readonly struct EquatableArray<T>(ImmutableArray<T> items) : IEquatable<EquatableArray<T>>
 	where T : IEquatable<T>
 {
-	readonly ImmutableArray<T> _items = items;
-
 	/// <summary>
 	/// The contents, empty when there are none.
 	/// </summary>
@@ -285,7 +283,7 @@ readonly struct EquatableArray<T>(ImmutableArray<T> items) : IEquatable<Equatabl
 	/// member throws. A record with one of these among its fields is defaulted the moment
 	/// any of its cases has nothing to say.
 	/// </remarks>
-	public ImmutableArray<T> Items => _items.IsDefault ? [] : _items;
+	public ImmutableArray<T> Items => items.IsDefault ? [] : items;
 
 	public bool Equals(EquatableArray<T> other)
 	{

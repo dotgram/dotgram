@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -145,13 +143,12 @@ public static partial class CSharpEmitter
 	/// generator acted under, because the remedy is chosen against them.
 	/// </para>
 	/// </remarks>
-	static void Oversee(
-		string file, RuleSymbol? anchor, ICollection<GramDiagnostic>? diagnostics)
+	static void Oversee(string file, RuleSymbol? anchor, ICollection<GramDiagnostic>? diagnostics)
 	{
 		if (diagnostics is null)
 			return;
 
-		var name = default(string);
+		var name      = default(string);
 		var bodyStart = 0;
 
 		// Inspect slices of the emitted file. Splitting every line and rebuilding each

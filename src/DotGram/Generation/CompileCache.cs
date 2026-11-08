@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace DotGram.Generation;
 
@@ -68,11 +65,11 @@ public sealed class CompileCache<TKey, TValue>
 	/// where it holds equal ones; or null to keep values as they come.
 	/// </param>
 	public CompileCache(
-		long                                         budget,
-		int                                          capacity,
-		Func<TKey, TValue, IEnumerable<string?>>     strings,
-		Func<TKey, TValue, long>?                    weight = null,
-		Func<TValue, IEnumerable<TValue>, TValue>?   share  = null)
+		long                                       budget,
+		int                                        capacity,
+		Func<TKey, TValue, IEnumerable<string?>>   strings,
+		Func<TKey, TValue, long>?                  weight = null,
+		Func<TValue, IEnumerable<TValue>, TValue>? share  = null)
 	{
 		if (budget <= 0)
 			throw new ArgumentOutOfRangeException(nameof(budget));

@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 
 using DotGram.Grammar;
@@ -197,14 +195,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// as written, so that a test can hold a trace build's frames of those rules to the rules
 		// themselves (GramCompilerOptions.CollapseForwarders).
 		var counting = context.ParseOptionsProvider.Combine(tracing).Select(static (input, _) =>
-			(Counts: input.Left.PreprocessorSymbolNames.Contains(CountsSymbol),
-			Memoises: !input.Left.PreprocessorSymbolNames.Contains(NoMemoSymbol),
-			Keeps: !input.Left.PreprocessorSymbolNames.Contains(NoSuccessMemoSymbol),
-			Traces: input.Right,
-			Collapses: !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
-			Utf8: input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
-			Checks: input.Left.PreprocessorSymbolNames.Contains(ChecksSymbol),
-			Steps: input.Left.PreprocessorSymbolNames.Contains(StepsSymbol)));
+			(
+				Counts:     input.Left.PreprocessorSymbolNames.Contains(CountsSymbol),
+				Memoises:  !input.Left.PreprocessorSymbolNames.Contains(NoMemoSymbol),
+				Keeps:     !input.Left.PreprocessorSymbolNames.Contains(NoSuccessMemoSymbol),
+				Traces:     input.Right,
+				Collapses: !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
+				Utf8:       input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
+				Checks:     input.Left.PreprocessorSymbolNames.Contains(ChecksSymbol),
+				Steps:      input.Left.PreprocessorSymbolNames.Contains(StepsSymbol)
+			));
 
 		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
 		// knowing it is also read from a position (GramCompilerOptions.PositionalFollow). Off
@@ -409,11 +409,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// cache of its own, and written down so that nothing has to know that.
 	/// </remarks>
 	readonly record struct CompileKey(
-		Grammar                                                                          Grammar,
-		Reporting                                                                        Reporting,
+		Grammar    Grammar,
+		Reporting  Reporting,
 		(bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) Counting,
-		Positional                                                                       Positional,
-		Guid                                                                             Generator);
+		Positional Positional,
+		Guid       Generator);
 
 	/// <summary>
 	/// The parsers compiled in this process, kept for the next compilation that asks for one of them.
@@ -443,9 +443,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 	static readonly CompileCache<CompileKey, Parser> Compiled = new(
 		budget:   40_000_000,
 		capacity: 64,
-		strings:  static (key, parser) => StringsOf(key, parser),
-		weight:   static (key, parser) => WeightOf(key, parser),
-		share:    static (parser, kept) => Shared(parser, kept));
+		strings:  static (key,    parser) => StringsOf(key, parser),
+		weight:   static (key,    parser) => WeightOf(key, parser),
+		share:    static (parser, kept)   => Shared(parser, kept));
 
 	static readonly Guid GeneratorBuild = typeof(GramGenerator).Assembly.ManifestModule.ModuleVersionId;
 
@@ -504,10 +504,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 	static string Difference(Parser kept, Parser fresh)
 	{
 		return
-			kept.Text != fresh.Text       ? "the text" :
-			kept.Parts != fresh.Parts     ? "the parts" :
+			kept.Text    != fresh.Text    ? "the text" :
+			kept.Parts   != fresh.Parts   ? "the parts" :
 			kept.Reports != fresh.Reports ? "the diagnostics" :
-			kept.Detail != fresh.Detail   ? "the detail of the report" :
+			kept.Detail  != fresh.Detail  ? "the detail of the report" :
 			"the summary or the names";
 	}
 
@@ -895,11 +895,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// the compile's to know (D145).
 	/// </param>
 	readonly record struct Piece(
-		int       Start,
-		int       Length,
-		string?   Path,
-		string?   Literal,
-		int       Anchor);
+		int     Start,
+		int     Length,
+		string? Path,
+		string? Literal,
+		int     Anchor);
 
 	/// <summary>
 	/// Stage one: find the grammar and work out what it needs to know about the host's C#.
@@ -1091,14 +1091,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var timer = reporting != Reporting.None ? Stopwatch.StartNew() : null;
 		var options = new GramCompilerOptions
 		{
-			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
-			ClassName      = host.ClassName,
-			Namespace      = host.Namespace,
-			SymbolResolver = new AnsweredSymbolResolver(grammar.Answers.Items),
-			CSharpScanner  = RoslynCSharpScanner.Instance,
-			LanguageId     = host.LanguageId,
-			LanguageSource = host.LanguageId is null ? null : text,
-			LanguageClassifications = host.LanguageId is null ? null : host.LanguageClassifications,
+			FileName                    = grammar.Path ?? host.SimpleName + GramFileExtension,
+			ClassName                   = host.ClassName,
+			Namespace                   = host.Namespace,
+			SymbolResolver              = new AnsweredSymbolResolver(grammar.Answers.Items),
+			CSharpScanner               = RoslynCSharpScanner.Instance,
+			LanguageId                  = host.LanguageId,
+			LanguageSource              = host.LanguageId is null ? null : text,
+			LanguageClassifications     = host.LanguageId is null ? null : host.LanguageClassifications,
 			LanguageRecognitionContract = host.LanguageId is null ? null : host.LanguageRecognitionContract,
 
 			// §7.6. A grammar that is its own file maps onto itself; one written into an
@@ -1106,9 +1106,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// rather than computed — see InlineLineMap. Where a host inherits grammars the
 			// text is several of them joined, and the map is one per piece with the same
 			// two cases inside it.
-			LineMap        = MapOf(grammar, text, marked),
-			LocationType   = host.LocationType,
-			LocatedFacade  = host.LocatedFacade,
+			LineMap               = MapOf(grammar, text, marked),
+			LocationType          = host.LocationType,
+			LocatedFacade         = host.LocatedFacade,
 			LocatedFacadeDeclared = host.LocatedFacadeDeclared,
 
 			// The host of every grammar this one is built on: what a rule from there calls
@@ -1126,17 +1126,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// The report asked for is the carriers' too: the carrier of each machine and what the
 			// tape would hold back, rule by rule.
 			// Only the full one — this is analysis nobody pays for who is not reading it.
-			ReportCarriers = reporting == Reporting.Full,
-			CountRules     = counting.Counts,
-			MemoiseFailures = counting.Memoises,
-			MemoiseSuccesses = counting.Keeps,
+			ReportCarriers     = reporting == Reporting.Full,
+			CountRules         = counting.Counts,
+			MemoiseFailures    = counting.Memoises,
+			MemoiseSuccesses   = counting.Keeps,
 			CollapseForwarders = counting.Collapses,
-			Utf8Literals    = counting.Utf8,
-			Checks          = counting.Checks,
-			Steps           = counting.Steps,
+			Utf8Literals       = counting.Utf8,
+			Checks             = counting.Checks,
+			Steps              = counting.Steps,
 
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
-			PositionalFollow = positional != Positional.Off,
+			PositionalFollow      = positional != Positional.Off,
 			PositionalFollowSplit = positional == Positional.Split,
 		};
 
@@ -1238,12 +1238,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Cut at the piece's end: an unterminated `@(` runs to the end of the joined
 			// text, and what lies past the piece is not this grammar's to underline.
 			return Report.Of(
-				new GramDiagnostic(
-					diagnostic.Id,
-					diagnostic.Message,
-					diagnostic.Position - piece.Start,
-					Math.Min(diagnostic.Length, piece.Start + piece.Length - diagnostic.Position),
-					diagnostic.Severity),
+				diagnostic with { Position = diagnostic.Position - piece.Start, Length = Math.Min(diagnostic.Length, piece.Start + piece.Length - diagnostic.Position) },
 				piece.Path,
 				text.Substring(piece.Start, piece.Length),
 				piece.Anchor,
@@ -1254,7 +1249,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// cut. Nowhere to point, so the class it is, with no offset into a literal that does
 		// not hold the position.
 		return Report.Of(
-			new GramDiagnostic(diagnostic.Id, diagnostic.Message, 0, 0, diagnostic.Severity),
+			diagnostic with { Position = 0, Length = 0 },
 			null, text, Site.Attribute);
 	}
 
@@ -1413,13 +1408,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <c>global::</c>, or the extern alias of the reference that brings it in.
 	/// </param>
 	readonly record struct Included(
-		string    Name,
-		string    ClassName,
-		string?   Source,
-		string?   Literal,
-		bool      Placed,
-		string?   Portable = null,
-		string    Imported = "");
+		string  Name,
+		string  ClassName,
+		string? Source,
+		string? Literal,
+		bool    Placed,
+		string? Portable = null,
+		string  Imported = "");
 
 	/// <summary>
 	/// A class marked <c>[Gram]</c>, reduced to what generation needs.
@@ -1446,38 +1441,38 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// all — or null when the grammar came from a file.
 	/// </param>
 	readonly record struct Host(
-		string    Key,
-		string    ClassName,
-		string?   Namespace,
-		string    HintName,
-		bool      IsPartial,
-		string?   Source,
-		string?   LanguageId,
-		string    LanguageClassifications,
-		string    LanguageRecognitionContract,
-		string?   Literal    = null,
-		string?   IncludedAs = null,
+		string  Key,
+		string  ClassName,
+		string? Namespace,
+		string  HintName,
+		bool    IsPartial,
+		string? Source,
+		string? LanguageId,
+		string  LanguageClassifications,
+		string  LanguageRecognitionContract,
+		string? Literal    = null,
+		string? IncludedAs = null,
 		EquatableArray<Included> Includes = default,
-		int       PartSize   = 0,
-		bool      Lexical    = false,
-		int       Carrier    = 0,
-		bool      ConstructionsMayThrow = false,
-		bool      BufferedInput = false,
-		bool      BufferedBytes = false,
-		bool      SpanCaptures = false,
-		int       MaxRetained = int.MaxValue,
-		int       BufferSize = 4096,
-		int       Stacks     = 0,
-		string?   Suffix     = null,
-		bool      SuffixDeclared = false,
-		bool      Repeated   = false,
-		bool?     Shared     = null,
-		string?   LocationType = null,
-		bool      Portable   = false,
-		bool      PerCall    = false,
-		string?   LocatedFacade = null,
-		bool      LocatedFacadeDeclared = false,
-		bool      Trace      = false,
+		int     PartSize   = 0,
+		bool    Lexical    = false,
+		int     Carrier    = 0,
+		bool    ConstructionsMayThrow = false,
+		bool    BufferedInput  = false,
+		bool    BufferedBytes  = false,
+		bool    SpanCaptures   = false,
+		int     MaxRetained    = int.MaxValue,
+		int     BufferSize     = 4096,
+		int     Stacks         = 0,
+		string? Suffix         = null,
+		bool    SuffixDeclared = false,
+		bool    Repeated       = false,
+		bool?   Shared         = null,
+		string? LocationType   = null,
+		bool    Portable       = false,
+		bool    PerCall        = false,
+		string? LocatedFacade  = null,
+		bool    LocatedFacadeDeclared = false,
+		bool    Trace            = false,
 		GramHostOptions? Options = null)
 	{
 		/// <summary>
@@ -1740,16 +1735,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 			site = site with { Named = named ? firstRead!.Value.Site.Named : site.At };
 
 			var host = new Host(
-				Key:       key,
-				ClassName: string.Join(".", names),
-				Namespace: type.ContainingNamespace.IsGlobalNamespace
+				Key:        key,
+				ClassName:  string.Join(".", names),
+				Namespace:  type.ContainingNamespace.IsGlobalNamespace
 					? null
 					: type.ContainingNamespace.ToDisplayString(),
-				HintName:  hintName,
-				IsPartial: isPartial,
-				Source:    named ? first!.Value.Source : source,
+				HintName:   hintName,
+				IsPartial:  isPartial,
+				Source:     named ? first!.Value.Source : source,
 				LanguageId: languageId,
-				LanguageClassifications: classifications,
+				LanguageClassifications:     classifications,
 				LanguageRecognitionContract: recognitionContract,
 				// The spelling stays the first's where the grammar is: a diagnostic carries an
 				// offset into the grammar, and putting it where the author can see it means
@@ -1763,23 +1758,23 @@ public sealed class GramGenerator : IIncrementalGenerator
 				// What the author says of the grammar's constructions, which the immediate carrier
 				// pays for on every one of them and so does not assume (docs/syntax.md §7.5).
 				ConstructionsMayThrow: options.ConstructionsMayThrow,
-				SpanCaptures:  options.SpanCaptures,
-				BufferedBytes: options.BufferedBytes,
-				BufferedInput: options.BufferedInput,
-				MaxRetained:   options.MaxRetained,
-				BufferSize:    options.BufferSize,
-				Stacks:     options.Stacks,
-				Suffix:     suffix,
+				SpanCaptures:   options.SpanCaptures,
+				BufferedBytes:  options.BufferedBytes,
+				BufferedInput:  options.BufferedInput,
+				MaxRetained:    options.MaxRetained,
+				BufferSize:     options.BufferSize,
+				Stacks:         options.Stacks,
+				Suffix:         suffix,
 				SuffixDeclared: suffixDeclared,
-				LocationType: options.LocationType,
-				Portable:   options.Portable,
-				PerCall:    options.PerCall,
+				LocationType:   options.LocationType,
+				Portable:       options.Portable,
+				PerCall:        options.PerCall,
 				// A trace build of this reading (GramCompilerOptions.Trace), which a later reading
 				// takes from the first like everything else it does not say.
-				Trace:      options.Trace,
+				Trace:          options.Trace,
 				// The reading as GramHostOptions read it, which is what the compilation is handed
 				// (GramHostOptions.ApplyTo).
-				Options:    options);
+				Options:        options);
 
 			return (host, site, options);
 		}

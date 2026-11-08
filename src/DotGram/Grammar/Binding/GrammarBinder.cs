@@ -17,18 +17,18 @@ namespace DotGram.Grammar.Binding;
 /// </remarks>
 public sealed class GrammarBinder
 {
-	public const string DuplicateRule  = "GRAM3001";
-	public const string UndefinedName  = "GRAM3002";
-	public const string UnknownNamespace = "GRAM3003";
-	public const string UnknownCSharp  = "GRAM3004";
-	public const string DuplicatePublication = "GRAM3005";
-	public const string UnknownRebindingTarget      = "GRAM3006";
-	public const string UnknownRebindingReplacement = "GRAM3007";
-	public const string DuplicateRebinding    = "GRAM3008";
-	public const string ParameterizedRebinding = "GRAM3009";
+	public const string DuplicateRule                = "GRAM3001";
+	public const string UndefinedName                = "GRAM3002";
+	public const string UnknownNamespace             = "GRAM3003";
+	public const string UnknownCSharp                = "GRAM3004";
+	public const string DuplicatePublication         = "GRAM3005";
+	public const string UnknownRebindingTarget       = "GRAM3006";
+	public const string UnknownRebindingReplacement  = "GRAM3007";
+	public const string DuplicateRebinding           = "GRAM3008";
+	public const string ParameterizedRebinding       = "GRAM3009";
 	public const string NamespaceBoundNameRedeclared = "GRAM3010";
-	public const string CircularRebinding     = "GRAM3011";
-	public const string ShadowsEnclosingRule      = "GRAM3012";
+	public const string CircularRebinding            = "GRAM3011";
+	public const string ShadowsEnclosingRule         = "GRAM3012";
 	/// <summary>
 	/// Retired. <c>GRAM3013</c> refused a <c>context</c> inside a namespace, on the
 	/// reasoning that a context for part of a parse is not a thing.
@@ -132,24 +132,21 @@ public sealed class GrammarBinder
 
 	const string TriviaRule = "trivia";
 
-	readonly ISymbolResolver                        _symbols;
-	readonly Dictionary<Expr, Symbol>             _bindings = new(NodeIdentityComparer.Instance);
-	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings =
-		new(NodeIdentityComparer.Instance);
-	readonly Dictionary<Expr, IReadOnlyList<ResolvedRebinding>> _withOwnRebindings =
-		new(NodeIdentityComparer.Instance);
-	readonly Dictionary<GrammarNamespace, RuleSymbol> _trivia   = [];
+	readonly ISymbolResolver                                               _symbols;
+	readonly Dictionary<Expr, Symbol>                                      _bindings = new(NodeIdentityComparer.Instance);
+	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings = new(NodeIdentityComparer.Instance);
+	readonly Dictionary<Expr, IReadOnlyList<ResolvedRebinding>>            _withOwnRebindings = new(NodeIdentityComparer.Instance);
+	readonly Dictionary<GrammarNamespace, RuleSymbol>                      _trivia   = [];
 
 	/// <summary>Where each grammar import was written, by the namespace it was written in and the one it names.</summary>
 	readonly Dictionary<(GrammarNamespace In, GrammarNamespace Imported), Location> _importedAt = [];
 
 	/// <summary>The scopes already told their imports' trivia is ambiguous, so each is told once.</summary>
 	readonly HashSet<GrammarNamespace> _ambiguousTrivia = [];
-	readonly List<Publication>                      _publications = [];
-	readonly List<GramDiagnostic>                   _diagnostics  = [];
+	readonly List<Publication>         _publications = [];
+	readonly List<GramDiagnostic>      _diagnostics  = [];
 
-	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> EmptyBindings =
-		new Dictionary<RuleSymbol, RuleSymbol>();
+	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> EmptyBindings = new Dictionary<RuleSymbol, RuleSymbol>();
 
 	/// <summary>
 	/// Set once, by <see cref="CreateBuiltIn"/> — the one namespace whose own rules
@@ -236,8 +233,8 @@ public sealed class GrammarBinder
 	static string ShadowsMessage(string name)
 	{
 		return $"'{name}' already resolves to a rule from an enclosing namespace or an import. If " +
-		$"this means to replace it rather than declare a new rule under the same name, say " +
-		$"so with a rebinding instead: 'namespace Name with ({name} = ...) {{ ... }}' (§5.1).";
+			$"this means to replace it rather than declare a new rule under the same name, say " +
+			$"so with a rebinding instead: 'namespace Name with ({name} = ...) {{ ... }}' (§5.1).";
 	}
 
 	// ── Pass one: declare ────────────────────────────────────────────────────────
@@ -328,7 +325,9 @@ public sealed class GrammarBinder
 			var target = FindNamespace(ns, import.Name);
 
 			if (target is null)
+			{
 				Report(UnknownNamespace, $"No namespace named '{import.Name}' is in view here.", import.At);
+			}
 			else
 			{
 				ns.Import(target);
@@ -529,7 +528,8 @@ public sealed class GrammarBinder
 						break;
 					}
 
-					if (publish.ResultType is { } resultType) ResolveType(resultType, ns, []);
+					if (publish.ResultType is { } resultType)
+						ResolveType(resultType, ns, []);
 
 					var method = publish.Alias ?? Publication.DefaultMethodName(publish.Kind, published.Name);
 
@@ -689,8 +689,8 @@ public sealed class GrammarBinder
 	static bool IsCSharpKeyword(string name)
 	{
 		return name is
-		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
-		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
+			"bool" or "byte" or "sbyte" or "char"  or "decimal" or "double" or "float"  or
+			"int"  or "uint" or "long"  or "ulong" or "short"   or "ushort" or "string" or "object";
 	}
 
 	/// <summary>
@@ -900,9 +900,9 @@ public sealed class GrammarBinder
 	static bool IsBuiltInCSharpType(string name)
 	{
 		return name is
-		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
-		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or
-		"object" or "void";
+			"bool"   or "byte" or "sbyte" or "char"  or "decimal" or "double" or "float"  or
+			"int"    or "uint" or "long"  or "ulong" or "short"   or "ushort" or "string" or
+			"object" or "void";
 	}
 
 	void ResolveExpression(

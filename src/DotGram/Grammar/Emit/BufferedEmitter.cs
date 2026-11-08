@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -12,13 +10,17 @@ public static partial class CSharpEmitter
 {
 	static string? ByteRefusal(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol> rules)
 	{
-		if (Locating(graph)) return "line and column tracking requires character input";
+		if (Locating(graph))
+			return "line and column tracking requires character input";
+
 		foreach (var rule in rules)
 		foreach (var node in NodeWalk.Reading(graph.Bodies[rule], graph))
 		{
 			if (node is Node.Literal literal && (literal.IgnoreCase || literal.Text.Any(c => c > 255)))
 				return "byte literals must be case-sensitive values in 0..255";
+
 			var element = node as Node.Element ?? (node as Node.Behind)?.Test;
+
 			if (element is not null && (element.Categories.Count > 0 || element.References.Count > 0 ||
 				element.Ranges.Any(range => range.To > 255 && !(range.From == 0 && range.To == char.MaxValue))))
 				return "byte sets must use values in 0..255 without Unicode categories or external sets";
@@ -65,7 +67,7 @@ public static partial class CSharpEmitter
 		{
 			var name = text.Trim();
 
-			while (name.Length > 1 && name[0] == '(' && name[name.Length - 1] == ')')
+			while (name.Length > 1 && name[0] == '(' && name[^1] == ')')
 				name = name.Substring(1, name.Length - 2).Trim();
 
 			return name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_') && name.All(static one => char.IsLetterOrDigit(one) || one == '_')
@@ -141,10 +143,12 @@ public static partial class CSharpEmitter
 		for (var form = 0; form < 2; form++)
 		{
 			var bytes = form == 1;
+
 			if (bytes ? !byteRequested && !publication.BufferedBytes : !requested && !publication.BufferedInput)
 				continue;
 
 			var rules = Reaches(graph, publication.Rule);
+
 			// A recovery's synchronization is read as the body is, and a recognizer of the host there
 			// wants the whole input as much: the walk that reads both (`recover @M`).
 			// Not where the resolver cannot see the host (UnseenHostSymbolResolver): a recognizer it
@@ -153,11 +157,15 @@ public static partial class CSharpEmitter
 			var why = overKinds ? "token-kind input is not supported by this form yet" :
 				!hostUnseen && rules.Any(rule => NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.External { UsesInputView: false }))
 					? "external recognizers require contiguous input" : null;
-			if (why is null && bytes) why = ByteRefusal(graph, rules);
+
+			if (why is null && bytes)
+				why = ByteRefusal(graph, rules);
+
 			// Named after the publication, which no other has the name of, and told from a group's machine
 			// by its variant.
-			var tag = new MachineTag(bytes ? "BufBytes" : "Buf", publication.MethodName);
+			var      tag = new MachineTag(bytes ? "BufBytes" : "Buf", publication.MethodName);
 			Machine? machine = null;
+
 			// Compile before emission so unsupported source-dependent factories cannot leave
 			// an apparently usable public entry point in the generated file.
 			if (why is null)
@@ -171,6 +179,7 @@ public static partial class CSharpEmitter
 					CountsRules = countRules,
 					ConstructionsMayThrow = constructionsMayThrow,
 				};
+
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
 			}
@@ -181,6 +190,7 @@ public static partial class CSharpEmitter
 					publication.At.Position, publication.At.Length, GramSeverity.Error));
 				continue;
 			}
+
 			// Read by methods where the string form is, over the buffer instead of a span
 			// (docs/design/fix-reader-buffered-2026-09-18.md): the same reader, asking the buffer
 			// through the machine's helpers. Only there, so that the two forms of one publication
@@ -208,6 +218,7 @@ public static partial class CSharpEmitter
 					"string it is read by methods: a rule it reaches can reach itself, and a reading that deep goes " +
 					"on in another thread with the whole input, which a buffer cannot hand over.",
 					publication.At.Position, publication.At.Length, GramSeverity.Info));
+
 			added.Add(new Compiled(machine!, [publication], tag.Named("Recognize"), tag, false, direct));
 
 			// Bytes the caller holds whole are read by methods where the string is, even where the
@@ -240,29 +251,32 @@ public static partial class CSharpEmitter
 		}
 		// Keep single-rule release proofs and small parsers independent. Large,
 		// substantially overlapping readers may share states within one input form.
-		var reached = added.ToDictionary(compiled => compiled,
-			compiled => Reaches(graph, compiled.Publications[0].Rule));
+		var reached = added.ToDictionary(compiled => compiled, compiled => Reaches(graph, compiled.Publications[0].Rule));
+
 		for (var host = 0; host < added.Count; host++)
 		{
 			var owner = added[host];
 			var rules = new HashSet<RuleSymbol>(reached[owner]);
+
 			if (owner.Direct || !Large(rules))
 				continue;
 
 			var publications = owner.Publications.ToList();
-			var guests = new List<int>();
+			var guests       = new List<int>();
+
 			for (var guest = host + 1; guest < added.Count; guest++)
 			{
 				var candidate = added[guest];
-				var other = reached[candidate];
+				var other     = reached[candidate];
+
 				if (candidate.Direct || candidate.Machine.BufferedBytes != owner.Machine.BufferedBytes ||
 					candidate.Machine.UsesContext != owner.Machine.UsesContext || !Large(other) ||
 					rules.Count(other.Contains) * 10 < Math.Max(rules.Count, other.Count) * 9)
 					continue;
 
-				rules.UnionWith(other);
+				rules.       UnionWith(other);
 				publications.AddRange(candidate.Publications);
-				guests.Add(guest);
+				guests.      Add(guest);
 			}
 
 			if (guests.Count == 0)
@@ -277,7 +291,9 @@ public static partial class CSharpEmitter
 				CountsRules = countRules,
 				ConstructionsMayThrow = constructionsMayThrow,
 			};
+
 			added[host] = owner with { Machine = shared, Publications = publications };
+
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
 				added.RemoveAt(guests[guest]);
 		}
@@ -285,9 +301,11 @@ public static partial class CSharpEmitter
 		foreach (var compiled in added)
 		{
 			compiled.Machine.CompileRules();
+
 			if (!compiled.Direct)
 				foreach (var publication in compiled.Publications)
 					compiled.Machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
+
 			machines.Add(compiled);
 		}
 
@@ -332,20 +350,20 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, ResultTypes results, Compiled compiled, Publication publication,
 		string inputType, bool buffered, TraceTables? tracing)
 	{
-		var machine = compiled.Machine;
-		var type = results.QualifiedOf(publication.Rule);
-		var bytes = machine.BufferedBytes;
+		var machine    = compiled.Machine;
+		var type       = results.QualifiedOf(publication.Rule);
+		var bytes      = machine.BufferedBytes;
 		var parameters = buffered ? ", int? bufferSize = null, int? maxRetained = null" : "";
-		var construct = buffered ? "(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained)" : "(input)";
-		var forward = buffered ? ", bufferSize, maxRetained" : "";
-		var value = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : type ?? (bytes ? "byte[]" : "string");
-		var match = $"{MatchType}<{value}>";
-		var method = publication.MethodName;
+		var construct  = buffered ? "(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained)" : "(input)";
+		var forward    = buffered ? ", bufferSize, maxRetained" : "";
+		var value      = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : type ?? (bytes ? "byte[]" : "string");
+		var match      = $"{MatchType}<{value}>";
+		var method     = publication.MethodName;
 		// What the author called the rule, which is what its documentation names — not the name a
 		// publication carrying `with (...)` gave the clone it reads.
-		var name   = publication.Rule.Declaration?.Name ?? publication.Rule.Name;
-		var context = machine.UsesContext ? $", {graph.Context} context" : "";
-		var hands = (graph.Climbing.ContainsKey(publication.Rule) ? ", 0" : "") +
+		var name       = publication.Rule.Declaration?.Name ?? publication.Rule.Name;
+		var context    = machine.UsesContext ? $", {graph.Context} context" : "";
+		var hands      = (graph.Climbing.ContainsKey(publication.Rule) ? ", 0" : "") +
 			", ref failure" + (type is null ? "" : ", out var value") +
 			(machine.UsesContext ? ", context" : "") +
 			(machine.UsesReading ? $", {publication.Reading}" : "") +
@@ -383,9 +401,9 @@ public static partial class CSharpEmitter
 
 		// Where the build traces, the sink set where the call is made, handed to the iterator: its
 		// body runs at the first MoveNext, by when the scope may be gone.
-		var traced = tracing is null ? "" : ", GramTrace? trace";
+		var traced         = tracing is null ? "" : ", GramTrace? trace";
 		var tracedArgument = tracing is null ? "" : ", Tracing_DotGram.Value";
-		var machineKind = compiled.Direct ? "methods" : "engine";
+		var machineKind    = compiled.Direct ? "methods" : "engine";
 
 		string Lazily(string returns)
 		{
@@ -445,13 +463,18 @@ public static partial class CSharpEmitter
 		if (publication.Kind == PublishKind.Yield)
 		{
 			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
+
 			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>")))
 			{
 				file.Line($"using var text = new {(bytes ? "BufferedBytes_DotGram" : "BufferedText_DotGram")}{lazyConstruct};");
 				file.Line("var start = 0;");
-				if (publication.YieldRecovery) file.Line("var ordinal = 0;");
+
+				if (publication.YieldRecovery)
+					file.Line("var ordinal = 0;");
+
 				if (publication.YieldMinimum > 0)
 					file.Line("if (!text.Peek(0, out _)) throw new global::System.FormatException(\"Expected at least one element at offset 0.\");");
+
 				using (file.Block("while (text.Peek(start, out _))"))
 				{
 					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
@@ -459,6 +482,7 @@ public static partial class CSharpEmitter
 					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
 					file.Line(publication.YieldBatch ? "foreach (var item in value) yield return item;" : "yield return value;");
 					file.Line("start = end;");
+
 					// What an element read is let go once it is handed back, a line or a column
 					// asked for or not: the buffer counts line breaks as it lets them go (Located).
 					// Only a look behind reads back past where an element began. A binding does not:
@@ -468,40 +492,52 @@ public static partial class CSharpEmitter
 						file.Line("text.ReleaseBefore(start);");
 				}
 			}
+
 			return;
 		}
+
 		if (publication.Kind == PublishKind.Find)
 		{
 			// Each try is a reading of its own, and a binding is read where it was bound, inside
 			// one: only a look behind reads back past where a try began.
 			var retain = Reaches(graph, publication.Rule).Any(rule =>
 				NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.Behind));
+
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
+
 			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{match}>")))
 			{
 				file.Line($"using var text = new {(bytes ? "BufferedBytes_DotGram" : "BufferedText_DotGram")}{lazyConstruct};");
 				file.Line("var start = 0;");
+
 				using (file.Block("while (true)"))
 				{
 					file.Line($"var failure = new {FailureType}();");
 					Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands})", true, "start", "trace");
+
 					using (file.Block("if (end >= 0)"))
 						file.Line($"yield return {match}.Success({(type is null ? bytes ? "text.Slice(start, end - start).ToArray()" : "text.Slice(start, end - start).ToString()" : "value")}, start, end - start);");
+
 					file.Line("if (end <= start && !text.Peek(start, out _)) yield break;");
 					file.Line("start = end > start ? end : checked(start + 1);");
-					if (!retain) file.Line("text.ReleaseBefore(start);");
+
+					if (!retain)
+						file.Line("text.ReleaseBefore(start);");
 				}
 			}
 			return;
 		}
+
 		file.Line("/// <summary>Parses buffered input synchronously without retrying at refill boundaries.</summary>");
 		file.Line("/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>");
-		using (file.Block($"{AccessOf(publication)} static {match} Try{method}(" +
-			$"{inputType} input{context}{parameters})"))
+
+		using (file.Block($"{AccessOf(publication)} static {match} Try{method}({inputType} input{context}{parameters})"))
 		{
 			file.Line($"using var text = new {(bytes ? "BufferedBytes_DotGram" : "BufferedText_DotGram")}{construct};");
 			file.Line($"var failure = new {FailureType}();");
+
 			Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, 0{hands})", false, "0", null);
+
 			using (file.Block("if (end < 0)"))
 			{
 				// A reader that lets go of turns may have let go of where it refused: a place before
@@ -525,13 +561,13 @@ public static partial class CSharpEmitter
 
 			file.Line($"return {match}.Success({(type is null ? bytes ? $"text.Slice({cut}).ToArray()" : $"text.Slice({cut}).ToString()" : "value")}, 0, end);");
 		}
+
 		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
 		file.Line("/// <exception cref=\"global::System.FormatException\">");
 		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
 		file.Line("/// </exception>");
 
-		using (file.Block($"{AccessOf(publication)} static {value} {method}(" +
-			$"{inputType} input{context}{parameters})"))
+		using (file.Block($"{AccessOf(publication)} static {value} {method}({inputType} input{context}{parameters})"))
 		{
 			file.Line($"var match = Try{method}(input{(machine.UsesContext ? ", context" : "")}{forward});");
 			file.Line("if (match.IsSuccess)");

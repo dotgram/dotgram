@@ -88,9 +88,7 @@ BooleanTest : @Expression
 
 TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 
-BooleanPrimary : @Expression
-    = p: Predicate => @(p)
-    | '(' & c: SearchCondition & ')' => @(new Expression.Parenthesized(c))
+BooleanPrimary : @Expression = p: Predicate => @(p) | '(' & c: SearchCondition & ')' => @(new Expression.Parenthesized(c))
 
 // §8.1. Written in the order the standard lists them, except that the ones sharing a
 // left operand are gathered: <row value constructor> opens six of the nine, and
@@ -105,8 +103,8 @@ BooleanPrimary : @Expression
 // without its left operand and then copied it twice to fill it in: the most common
 // predicate, and a third of what a search condition allocated.
 Predicate : @Expression
-    = "EXISTS"i                & q:    TableSubquery => @(new Expression.Exists(q))
-    | "UNIQUE"i                & q:    TableSubquery => @(new Expression.Unique(null, q))
+    = "EXISTS"i & q: TableSubquery => @(new Expression.Exists(q))
+    | "UNIQUE"i & q: TableSubquery => @(new Expression.Unique(null, q))
     | row: RowValueConstructor
       & ( op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) | tail: PredicateTail )
         => @(op is null ? Nodes.Predicated(row, tail!) : Nodes.Compared(row, op, some, sub, right))
@@ -120,36 +118,35 @@ Predicate : @Expression
 // predicate is one record whichever way it was written, and its operands are named
 // rather than numbered. The comparisons are read beside it, in `Predicate`.
 PredicateTail : @Expression
-          // §8.3 to §8.5, the three a `NOT` may stand in front of. The `NOT` is read once and
-          // the word after it says which: written three times, a `NOT` in front of `IN` was
-          // read by the first, which found no `BETWEEN` and gave it back.
-          = negated: "NOT"i? & p: NegatablePredicate => @(Nodes.Negated(p, negated is not null))
+    // §8.3 to §8.5, the three a `NOT` may stand in front of. The `NOT` is read once and
+    // the word after it says which: written three times, a `NOT` in front of `IN` was
+    // read by the first, which found no `BETWEEN` and gave it back.
+    = negated: "NOT"i? & p: NegatablePredicate => @(Nodes.Negated(p, negated is not null))
 
-          // §8.6 <null predicate>
-          | "IS"i & negated: "NOT"i? & "NULL"i => @(new Expression.IsNull(null!, negated is not null))
+    // §8.6 <null predicate>
+    | "IS"i & negated: "NOT"i? & "NULL"i => @(new Expression.IsNull(null!, negated is not null))
 
-          // §8.10 <match predicate>
-          | "MATCH"i & unique: "UNIQUE"i? & kind: ("PARTIAL"i | "FULL"i)? & sub: TableSubquery =>
-              @(new Expression.Match(null!, unique is not null, Nodes.Matching(kind), sub))
+    // §8.10 <match predicate>
+    | "MATCH"i & unique: "UNIQUE"i? & kind: ("PARTIAL"i | "FULL"i)? & sub: TableSubquery =>
+        @(new Expression.Match(null!, unique is not null, Nodes.Matching(kind), sub))
 
-          // §8.12 <overlaps predicate>
-          | "OVERLAPS"i & right: RowValueConstructor =>
-              @(new Expression.Overlaps(null!, right))
+    // §8.12 <overlaps predicate>
+    | "OVERLAPS"i & right: RowValueConstructor => @(new Expression.Overlaps(null!, right))
 
 NegatablePredicate : @Expression
-          // §8.3 <between predicate>
-          = "BETWEEN"i & low: RowValueConstructor & "AND"i & high: RowValueConstructor =>
-              @(new Expression.Between(null!, false, null, low, high))
+    // §8.3 <between predicate>
+    = "BETWEEN"i & low: RowValueConstructor & "AND"i & high: RowValueConstructor =>
+        @(new Expression.Between(null!, false, null, low, high))
 
-          // §8.4 <in predicate>
-          | "IN"i & values: InPredicateValue =>
-              @(new Expression.In(null!, false, values))
+    // §8.4 <in predicate>
+    | "IN"i & values: InPredicateValue =>
+        @(new Expression.In(null!, false, values))
 
-          // §8.5 <like predicate>. The standard narrows both sides to character
-          // strings; that is a type rule and not a syntax one, so it is not written
-          // here — see the note on the collapsed towers above.
-          | "LIKE"i & pattern: ValueExpression & escape: EscapeClause? =>
-              @(new Expression.Like(null!, false, LikeKind.Like, pattern, escape))
+    // §8.5 <like predicate>. The standard narrows both sides to character
+    // strings; that is a type rule and not a syntax one, so it is not written
+    // here — see the note on the collapsed towers above.
+    | "LIKE"i & pattern: ValueExpression & escape: EscapeClause? =>
+        @(new Expression.Like(null!, false, LikeKind.Like, pattern, escape))
 
 // §8.5 writes the escape as two things, the word and the character after it. They are
 // named together here because a dialect may bracket the pair rather than extend it —
@@ -265,19 +262,18 @@ SetQuantifier   = "DISTINCT"i | "ALL"i
 // `BIT_LENGTH` left the standard after 1992, and SQL:2023 reads it as a routine's name:
 // it is built as that call.
 ValueFunction : @Expression
-    = "POSITION"i              & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new Expression.Position(a, b, null))
-    | "EXTRACT"i               & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new Expression.Extract(Nodes.ExtractFieldOf(field), v))
-    | name: "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                => @(new Expression.Length(Nodes.LengthFunctionOf(name), v, null))
-    | name: "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                                => @(new Expression.Length(Nodes.LengthFunctionOf(name), v, null))
-    | "OCTET_LENGTH"i           & '(' & v: ValueExpression & ')'                                => @(new Expression.Length(LengthFunction.OctetLength, v, null))
-    | name: "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                => @(Nodes.Call(name, v))
-    | "SUBSTRING"i        & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
-                          & ("FOR"i & length: ValueExpression)? & ')'
+    = "POSITION"i               & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new Expression.Position(a, b, null))
+    | "EXTRACT"i                & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new Expression.Extract(Nodes.ExtractFieldOf(field), v))
+    | name: "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new Expression.Length(Nodes.LengthFunctionOf(name), v, null))
+    | name: "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                                 => @(new Expression.Length(Nodes.LengthFunctionOf(name), v, null))
+    | "OCTET_LENGTH"i           & '(' & v: ValueExpression & ')'                                 => @(new Expression.Length(LengthFunction.OctetLength, v, null))
+    | name: "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(Nodes.Call(name, v))
+    | "SUBSTRING"i              & '(' & v: ValueExpression & "FROM"i & from: ValueExpression & ("FOR"i & length: ValueExpression)? & ')'
         => @(new Expression.Substring(v, from, length, null))
-    | name: "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(Nodes.Call(name, v))
-    | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(Nodes.Call(name, v))
-    | "CONVERT"i         & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Convert, v, by))
-    | "TRANSLATE"i       & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Translate, v, by))
+    | name: "UPPER"i            & '(' & v: ValueExpression & ')'                                 => @(Nodes.Call(name, v))
+    | name: "LOWER"i            & '(' & v: ValueExpression & ')'                                 => @(Nodes.Call(name, v))
+    | "CONVERT"i                & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'  => @(new Expression.TranslateUsing(TranslateFunction.Convert, v, by))
+    | "TRANSLATE"i              & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'  => @(new Expression.TranslateUsing(TranslateFunction.Translate, v, by))
     // `TRIM (v)` is `TRIM (v FROM x)` with no `FROM`, and both read their head once (`TrimHead`):
     // written as two alternatives, the value was read again, and `TRIM (TRIM (a))` nested n deep
     // was read 2^n times.
@@ -312,8 +308,8 @@ TrimHead : @Nodes.TrimHead
 // expression>, not something beside it, and is written here where the standard puts
 // it.
 CaseExpression : @Expression
-    = name: "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(Nodes.Invoked(name, a, [b]))
-    | name: "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(Nodes.Invoked(name, first, rest))
+    = name: "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                     => @(Nodes.Invoked(name, a, [b]))
+    | name: "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'           => @(Nodes.Invoked(name, first, rest))
     | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new Expression.Case(operand, Sql.SqlList.Own(whens), otherwise))
     | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new Expression.Case(null, Sql.SqlList.Own(whens), otherwise))
 
@@ -365,12 +361,12 @@ IntervalQualifier : @IntervalQualifier
 StartField : @IntervalQualifier = f: NonSecondDatetimeField & ('(' & p: Number & ')')? => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
 
 EndField : @IntervalQualifier
-    = f: NonSecondDatetimeField                    => @(new IntervalQualifier(Nodes.Field(f)))
-    | f: "SECOND"i & ('(' & p: Number & ')')?      => @(new IntervalQualifier(Nodes.Field(f), null, null, Nodes.Integer(p)))
+    = f: NonSecondDatetimeField               => @(new IntervalQualifier(Nodes.Field(f)))
+    | f: "SECOND"i & ('(' & p: Number & ')')? => @(new IntervalQualifier(Nodes.Field(f), null, null, Nodes.Integer(p)))
 
 SingleDatetimeField : @IntervalQualifier
-    = f: NonSecondDatetimeField & ('(' & p: Number & ')')?                  => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
-    | f: "SECOND"i & ('(' & p: Number & (',' & q: Number)? & ')')?          => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p), null, Nodes.Integer(q)))
+    = f: NonSecondDatetimeField & ('(' & p: Number & ')')?         => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
+    | f: "SECOND"i & ('(' & p: Number & (',' & q: Number)? & ')')? => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p), null, Nodes.Integer(q)))
 
 NonSecondDatetimeField = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i
 
@@ -454,10 +450,10 @@ Corresponding : @CorrespondingClause = "CORRESPONDING"i & ("BY"i & '(' & columns
 // §7.10 <non-join query primary>, and the parenthesized form that lets a query
 // expression stand where a primary does.
 QueryPrimary : @Query
-    = q: QuerySpecification            => @(q)
-    | v: TableValueConstructor         => @(v)
-    | "TABLE"i & name: QualifiedName   => @(Nodes.Tabled(name))
-    | '(' & q: QueryExpression & ')'   => @(Nodes.InBrackets(q))
+    = q: QuerySpecification          => @(q)
+    | v: TableValueConstructor       => @(v)
+    | "TABLE"i & name: QualifiedName => @(Nodes.Tabled(name))
+    | '(' & q: QueryExpression & ')' => @(Nodes.InBrackets(q))
 
 // §7.2. A row of one value may be written without its parentheses, which is what makes
 // `VALUES 1, 2` two rows of one column rather than one row of two.
@@ -476,12 +472,12 @@ QuerySpecification : @Query
 // §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
 // `t.*` every column of one — neither is a column reference, so neither is read as one.
 SelectList : @Sql.SqlList<SelectColumn>
-    = '*' => @(Nodes.Everything())
+    = '*'                                                 => @(Nodes.Everything())
     | first: SelectSublist & (',' & rest: SelectSublist)* => @(Nodes.List(first, rest))
 
 SelectSublist : @SelectColumn
     = qualifier: QualifiedNameText & '.' & '*' => @(new SelectColumn.QualifiedAll(new Expression.Reference(Nodes.NameOf(qualifier))))
-    | v: ValueExpression & name: AsClause?   => @(Nodes.Selected(v, name ?? Nodes.Unnamed))
+    | v: ValueExpression & name: AsClause?     => @(Nodes.Selected(v, name ?? Nodes.Unnamed))
 
 // The name in front of a qualified asterisk, read as text and made a name only once the
 // `.*` after it is found: it is also the first thing a value expression reads, and built
@@ -610,7 +606,7 @@ Reserved = ("ABSOLUTE"i | "ACTION"i | "ADD"i | "ALL"i | "ALLOCATE"i | "ALTER"i |
          | "YEAR"i
          | "ZONE"i)
 
-parse DirectSelect as ParseSelect
+parse DirectSelect    as ParseSelect
 parse QueryExpression as ParseQuery
 parse SearchCondition as ParseSearchCondition
 parse ValueExpression as ParseValueExpression

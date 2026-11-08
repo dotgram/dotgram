@@ -99,18 +99,25 @@ public sealed class RoslynSymbolResolver(
 	ITypeSymbol? ResolveValueType(string name)
 	{
 		if (name.StartsWith("global::", StringComparison.Ordinal)) name = name.Substring(8);
+
 		if (name.EndsWith("[]", StringComparison.Ordinal))
 			return ValueTypeNamed(name.Substring(0, name.Length - 2)) is { } element
 				? _compilation.CreateArrayTypeSymbol(element) : null;
+
 		if (name.IndexOf('<') is var open && open >= 0)
 		{
-			var syntax = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseTypeName(name);
-			var generic = syntax as Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax ??
-				(syntax as Microsoft.CodeAnalysis.CSharp.Syntax.QualifiedNameSyntax)?.Right as Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax;
-			if (generic is null) return null;
+			var syntax  = SyntaxFactory.ParseTypeName(name);
+			var generic = syntax as GenericNameSyntax ??
+				(syntax as QualifiedNameSyntax)?.Right as GenericNameSyntax;
+
+			if (generic is null)
+				return null;
+
 			var arguments = generic.TypeArgumentList.Arguments.Select(arg => ValueTypeNamed(arg.ToString())).ToArray();
+
 			if (arguments.Any(arg => arg is null) || TypeNamed(name.Substring(0, open) + "`" + arguments.Length) is not { } definition)
 				return null;
+
 			return definition.Construct(arguments!);
 		}
 		return TypeNamed(name);
@@ -591,7 +598,7 @@ public sealed class RoslynSymbolResolver(
 		if (role != ExternalMethodRole.Recognizer || !IsInputView(method.Parameters[0].Type))
 			return ExternalMethodResolution.Found;
 
-		return method.Parameters.Length > 2 && method.Parameters[method.Parameters.Length - 1].RefKind == RefKind.None
+		return method.Parameters.Length > 2 && method.Parameters[^1].RefKind == RefKind.None
 			? ExternalMethodResolution.FoundInputWithContext
 			: ExternalMethodResolution.FoundInput;
 	}
@@ -637,13 +644,13 @@ public sealed class RoslynSymbolResolver(
 	bool Tests(IMethodSymbol method)
 	{
 		return method is
-		{
-			IsStatic: true,
-			ReturnType.SpecialType: SpecialType.System_Boolean,
-			Parameters: [{ RefKind: RefKind.None } item, ..] parameters,
-		} &&
-		parameters.Skip(1).All(static one => one.IsOptional) &&
-		_compilation.ClassifyCommonConversion(_compilation.GetSpecialType(SpecialType.System_Char), item.Type).IsImplicit;
+			{
+				IsStatic: true,
+				ReturnType.SpecialType: SpecialType.System_Boolean,
+				Parameters: [{ RefKind: RefKind.None } item, ..] parameters,
+			} &&
+			parameters.Skip(1).All(static one => one.IsOptional) &&
+			_compilation.ClassifyCommonConversion(_compilation.GetSpecialType(SpecialType.System_Char), item.Type).IsImplicit;
 	}
 
 	/// <summary>The symbol-typed core of <see cref="IsAssignable"/>, shared rather than
@@ -655,7 +662,7 @@ public sealed class RoslynSymbolResolver(
 
 		var conversion = _compilation.ClassifyCommonConversion(source, target);
 
-		return conversion.IsImplicit && !conversion.IsNumeric && !conversion.IsUserDefined;
+		return conversion is { IsImplicit: true, IsNumeric: false, IsUserDefined: false };
 	}
 
 	/// <summary>Whether this is <c>System.ReadOnlySpan&lt;char&gt;</c>, exactly.</summary>
@@ -663,9 +670,9 @@ public sealed class RoslynSymbolResolver(
 	{
 		return type is INamedTypeSymbol
 		{
-			Name: "ReadOnlySpan",
+			Name:                     "ReadOnlySpan",
 			ContainingNamespace.Name: "System",
-			TypeArguments: [{ SpecialType: SpecialType.System_Char }],
+			TypeArguments:            [{ SpecialType: SpecialType.System_Char }],
 		};
 	}
 
