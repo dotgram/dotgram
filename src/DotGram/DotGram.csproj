@@ -110,8 +110,9 @@
 
 	<ItemGroup>
 		<!-- The package ships no lib/ assembly, so nothing outside this repository compiles against these
-		     types; what is public is only what DotGram.Cli calls (the generator, the marker attributes'
-		     text). The tests call the stages one by one and read what they produce, all internal. -->
+		     types, and they are internal. The tests call the stages one by one and read what they
+		     produce; DotGram.Cli, whose assembly is dotnet-dotgram, reads the marker attributes' text. -->
+		<InternalsVisibleTo Include="dotnet-dotgram" />
 		<InternalsVisibleTo Include="DotGram.Tests" />
 		<InternalsVisibleTo Include="DotGram.Tests.Slow" />
 		<InternalsVisibleTo Include="DotGram.Determinism.Tests" />

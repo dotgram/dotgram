@@ -19,7 +19,7 @@ namespace DotGram.Grammar;
 /// the same method and gets the same answer, which is the point: generated code can be
 /// obtained as a string and inspected as code.
 /// </remarks>
-public static class GramCompiler
+static class GramCompiler
 {
 	/// <summary>
 	/// Reads one grammar: the first two stages, with the standard library spliced on.
@@ -32,7 +32,7 @@ public static class GramCompiler
 	/// method so that whoever reads a grammar ahead of compiling it — the generator, for its
 	/// questions — reads the same text.
 	/// </remarks>
-	internal static ParseResult Read(
+	public static ParseResult Read(
 		string grammarText, ICSharpScanner? scanner = null, int? own = null, IReadOnlyList<int>? cuts = null)
 	{
 		if (grammarText is null)
@@ -62,7 +62,7 @@ public static class GramCompiler
 	/// <summary>Compiles one grammar.</summary>
 	/// <param name="grammarText">Contents of a <c>.gram</c> file.</param>
 	/// <param name="options">Compilation options; defaults are used when null.</param>
-	internal static GramCompilation Compile(string grammarText, GramCompilerOptions? options = null)
+	public static GramCompilation Compile(string grammarText, GramCompilerOptions? options = null)
 	{
 		if (grammarText is null)
 			throw new ArgumentNullException(nameof(grammarText));
@@ -417,43 +417,43 @@ public static class GramCompiler
 	}
 
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>
-	internal const string NotCut = "GRAM5004";
+	public const string NotCut = "GRAM5004";
 
 	/// <summary>A repetition can read one run of text in two ways, so a refused input is read again for every way of cutting it.</summary>
-	internal const string ExponentialRepetitions = "GRAM4052";
+	public const string ExponentialRepetitions = "GRAM4052";
 
 	/// <summary>Two alternatives of a rule read a nested instance of its recursion before either can be refused; the parser remembers the recursion's successes, and the rewrite that needs none is shown.</summary>
-	internal const string SharedRecursions = "GRAM4054";
+	public const string SharedRecursions = "GRAM4054";
 
 	/// <summary>The immediate carrier, asked for by name, could not carry a machine of the grammar.</summary>
-	internal const string CarrierRefused = "GRAM5007";
+	public const string CarrierRefused = "GRAM5007";
 
 	/// <summary>An explicitly requested buffered input form is not supported.</summary>
-	internal const string BufferedUnsupported = "GRAM4026";
+	public const string BufferedUnsupported = "GRAM4026";
 
 	/// <summary>
 	/// A grammar left to choose is carried as Immediate, and the tape would hold back
 	/// constructions that run for a reading the parse then gives up: information.
 	/// </summary>
-	internal const string CarrierChosen = "GRAM5012";
+	public const string CarrierChosen = "GRAM5012";
 
 	/// <summary>A buffered form read by the engine where its string form is read by methods, and why.</summary>
-	internal const string BufferedOnEngine = "GRAM5014";
+	public const string BufferedOnEngine = "GRAM5014";
 
 	/// <summary>
 	/// A grammar left to choose is carried as Immediate, and the tape would be safer: constructions
 	/// share <c>context</c> with hooks that run during recognition, or a refused input rebuilds lists.
 	/// </summary>
-	internal const string CarrierCaution = "GRAM5016";
+	public const string CarrierCaution = "GRAM5016";
 
 	/// <summary>
 	/// A construction of a publication that is read from a reader or a sequence of lines changes the
 	/// grammar's context, which a streamed reading may do a different number of times than a string.
 	/// </summary>
-	internal const string StreamedContextChange = "GRAM5017";
+	public const string StreamedContextChange = "GRAM5017";
 
 	/// <summary>A terminal the host measures has nothing in front of it to be found by.</summary>
-	internal const string Unanchored = "GRAM5011";
+	public const string Unanchored = "GRAM5011";
 
 	/// <summary>
 	/// One error per position, in the order they were raised.

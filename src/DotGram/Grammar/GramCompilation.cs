@@ -44,7 +44,7 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 }
 
 /// <summary>One file of generated C#.</summary>
-public readonly record struct GeneratedSource(string HintName, string Text);
+readonly record struct GeneratedSource(string HintName, string Text);
 
 /// <summary>
 /// A compiler message, positioned in the grammar text.
