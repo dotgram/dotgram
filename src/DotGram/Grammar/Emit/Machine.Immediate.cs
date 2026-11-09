@@ -964,7 +964,7 @@ sealed partial class Machine
 
 			// A terminal that builds, over kinds: the lexer measured it, and the character
 			// machine of its own builds it from the text — now rather than in the walk.
-			if (machine._reread is not null && machine._reread.Contains(rule))
+			if (machine._settings.Reread is not null && machine._settings.Reread.Contains(rule))
 			{
 				if (_start is null)
 					throw new InvalidOperationException($"'{rule.Name}' builds from its text and its reader keeps no positions.");

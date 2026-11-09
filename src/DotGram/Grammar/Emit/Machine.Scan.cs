@@ -401,7 +401,7 @@ sealed partial class Machine
 		if (_scannerRunsOut.TryGetValue(rule, out var known))
 			return known;
 
-		var runsOut = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, recordsRunOut: true, marksRunOut: MarksRunOut)
+		var runsOut = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _settings.Starves, StopCharacters, recordsRunOut: true, marksRunOut: MarksRunOut)
 			.Render(ScanBody(rule))
 			.Contains("ranOut", StringComparison.Ordinal);
 
@@ -440,9 +440,9 @@ sealed partial class Machine
 		// A scan of the seam a look may refuse reports too: a reach of -1 says the refusal was the
 		// look's, which the caller records nothing for (Refuse_q).
 		var reports = SeamReached.Contains(rule)
-			? Tag != MachineTag.Seam && new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: MarksRunOut) { Seam = true }
+			? Tag != MachineTag.Seam && new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _settings.Starves, StopCharacters, marksRunOut: MarksRunOut) { Seam = true }
 				.Render(body, reports: true) is var seamed && (seamed.Contains("> furthest", StringComparison.Ordinal) || seamed.Contains("goto Refuse_q;", StringComparison.Ordinal))
-			: new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: MarksRunOut)
+			: new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _settings.Starves, StopCharacters, marksRunOut: MarksRunOut)
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal);
 
@@ -469,10 +469,10 @@ sealed partial class Machine
 	/// <summary>Every scanner the compiled states call, rendered as methods.</summary>
 	/// <summary>What a scanner takes beyond the input, where it has anything to say.</summary>
 	string ScannerParameters =>
-		_starves ? $", ref {CSharpEmitter.FailureType} failure" : "";
+		_settings.Starves ? $", ref {CSharpEmitter.FailureType} failure" : "";
 
 	/// <summary>And what a call to one hands over.</summary>
-	string ScannerArguments => _starves ? ", ref failure" : "";
+	string ScannerArguments => _settings.Starves ? ", ref failure" : "";
 
 	/// <summary>
 	/// Whether the scanner of <paramref name="rule"/> takes the failure: where a window feeds the
@@ -482,7 +482,7 @@ sealed partial class Machine
 	/// </summary>
 	internal bool ScannerTakesFailure(RuleSymbol rule)
 	{
-		return _starves || ScannerMarks(rule);
+		return _settings.Starves || ScannerMarks(rule);
 	}
 
 	/// <summary>
@@ -498,7 +498,7 @@ sealed partial class Machine
 		if (_scannerMarks.TryGetValue(rule, out var known))
 			return known;
 
-		var marks = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: true)
+		var marks = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _settings.Starves, StopCharacters, marksRunOut: true)
 			.Render(ScanBody(rule))
 			.Contains("failure.OutOfInput", StringComparison.Ordinal);
 
@@ -565,7 +565,7 @@ sealed partial class Machine
 			var rule = pair.Key;
 			var body = ScanBody(rule);
 
-			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), Tag, _starves, StopCharacters, RecordsRunOut, ScannerTakesFailure(rule), ScannerMarks(rule))
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), Tag, _settings.Starves, StopCharacters, RecordsRunOut, ScannerTakesFailure(rule), ScannerMarks(rule))
 			{
 				Seam = SeamReached.Contains(rule) && Tag != MachineTag.Seam,
 			};

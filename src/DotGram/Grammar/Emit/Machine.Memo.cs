@@ -101,20 +101,20 @@ sealed partial class Machine
 	/// Whether this machine's reader may remember where its rules failed
 	/// (<see cref="GramCompilerOptions.MemoiseFailures"/>).
 	/// </summary>
-	internal bool MemoisesFailures;
+	internal bool MemoisesFailures => _settings.MemoisesFailures;
 
 	/// <summary>
 	/// Whether this machine's reader may remember where its rules succeeded as well
 	/// (<see cref="GramCompilerOptions.MemoiseSuccesses"/>).
 	/// </summary>
-	internal bool MemoisesSuccesses;
+	internal bool MemoisesSuccesses => _settings.MemoisesSuccesses;
 
 	/// <summary>
 	/// The choices the shared-recursion analysis found in the grammar, each with the cycle it stands
 	/// in (<see cref="SharedRecursion"/>): what decides which rules' successes are remembered. Null
 	/// where the analysis was not run.
 	/// </summary>
-	internal IReadOnlyList<SharedRecursion.Pair>? SharedChoices;
+	internal IReadOnlyList<SharedRecursion.Pair>? SharedChoices => _settings.SharedChoices;
 
 	/// <summary>The rules whose failures the reader remembers, each with the number of its bit.</summary>
 	readonly Dictionary<RuleSymbol, int> _memo = [];

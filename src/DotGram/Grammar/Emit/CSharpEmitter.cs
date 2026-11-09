@@ -273,7 +273,6 @@ static partial class CSharpEmitter
 		var sourceParts   = context?.SourceParts;
 		var carriers      = context?.Carriers;
 		var sharedChoices = context?.SharedChoices;
-		var hostUnseen    = options.SymbolResolver is UnseenHostSymbolResolver;
 		var carrier       = options.Carrier;
 
 		// What this file gathers as it is written: the masks of categories it tests (CategoryTests)
@@ -348,27 +347,55 @@ static partial class CSharpEmitter
 			publication.Kind == PublishKind.Find ||
 			publication.Kind == PublishKind.Parse && ReadsQuietlyFirst(graph));
 
+		// What every machine of the file is built on: the options as a machine takes them, and what
+		// the file's machines share. Each machine is this with what is its own (MachineSettings).
+		var basis = new MachineSettings
+		{
+			Lines                 = options.LineMap,
+			PartSize              = options.PartSize,
+			Carrier               = carrier,
+			Replay                = replay,
+			SpanCaptures          = options.SpanCaptures,
+			PrefixTables          = options.PrefixTables,
+			ExpectedTables        = expectedTables,
+			ExpectedSets          = expectedSets,
+			Tracing               = tracing,
+			Reporting             = carriers is not null,
+			CountsRules           = options.CountRules,
+			ConstructionsMayThrow = options.ConstructionsMayThrow,
+		};
+
+		// And what the machines over the file's own input add, which a buffered machine does not.
+		var woven = basis with
+		{
+			Starves          = Streaming(graph, overKinds),
+			OverKinds        = overKinds,
+			Reread           = lexical?.Valued,
+			Stacks           = options.Stacks,
+			Inventory        = lexical?.Inventory,
+			Quiets           = quiets,
+			Places           = Places(graph, overKinds, options.BufferedInput),
+			PlacedRecoveries = PlacedRecoveries(graph, overKinds, options.BufferedInput),
+			RereadLocates    = RereadLocates(lexical),
+
+			// Over tokens only, which the machine asks itself (Machine.Memo.cs).
+			MemoisesFailures  = options.MemoiseFailures,
+			MemoisesSuccesses = options.MemoiseSuccesses,
+			SharedChoices     = sharedChoices,
+		};
+
 		foreach (var group in groups)
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? new MachineTag("", IdentifierOf(group.Rule)) : MachineTag.None;
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			// Compiled later where it counts, so that what it writes for the count is written: the
 			// count is told after construction, and a machine compiled in it would never hear.
-			var made = new Machine(
-				graph, results, options.LineMap, Streaming(graph, overKinds), only, tag, options.PartSize, overKinds,
-				lexical?.Valued, carrier, options.Stacks, lexical?.Inventory, replay, spanCaptures: options.SpanCaptures, prefixTables: options.PrefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1 || options.CountRules, quiets: quiets,
-				tracing: tracing, expectedSets: expectedSets, places: Places(graph, overKinds, options.BufferedInput),
-				placedRecoveries: PlacedRecoveries(graph, overKinds, options.BufferedInput), rereadLocates: RereadLocates(lexical))
+			var made = new Machine(graph, results, woven with
 			{
-				Reporting   = carriers is not null,
-				CountsRules = options.CountRules,
-				ConstructionsMayThrow = options.ConstructionsMayThrow,
-
-				// Over tokens only, which the machine asks itself (Machine.Memo.cs).
-				MemoisesFailures   = options.MemoiseFailures,
-				MemoisesSuccesses  = options.MemoiseSuccesses,
-				SharedChoices      = sharedChoices,
-			};
+				Only             = only,
+				Tag              = tag,
+				DeferCompilation = groups.Count > 1 || options.CountRules,
+			});
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -430,22 +457,14 @@ static partial class CSharpEmitter
 				publications.AddRange(candidate.Publications);
 			}
 			if (guests.Count == 0) continue;
-			var made = new Machine(
-				graph, results, options.LineMap, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
-				owner.Tag, options.PartSize, overKinds, lexical?.Valued, carrier, options.Stacks, lexical?.Inventory,
-				replay, spanCaptures: options.SpanCaptures, prefixTables: options.PrefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets,
-				expectedSets: expectedSets, places: Places(graph, overKinds, options.BufferedInput),
-				placedRecoveries: PlacedRecoveries(graph, overKinds, options.BufferedInput), rereadLocates: RereadLocates(lexical));
+			// Reported, traced and remembering as the machines it replaces were.
+			var made = new Machine(graph, results, woven with
+			{
+				Only             = graph.Rules.Where(union.Contains).ToArray(),
+				Tag              = owner.Tag,
+				DeferCompilation = true,
+			});
 			made.Anchor = owner.Machine.Anchor;
-			// Reported as the machines it replaces were: a merged machine said nothing in the report.
-			made.Reporting = carriers is not null;
-			made.CountsRules = options.CountRules;
-			made.ConstructionsMayThrow = options.ConstructionsMayThrow;
-			made.Tracing = tracing;
-			made.KeepsDoors = made.KeepsDoors && tracing is null;
-			made.MemoisesFailures = options.MemoiseFailures;
-			made.MemoisesSuccesses = options.MemoiseSuccesses;
-			made.SharedChoices = sharedChoices;
 			if (!made.CanDirect(publications)) continue;
 			// Kept only where the union carries as its members do.
 			if (immediately && !made.WillCarryImmediately) continue;
@@ -489,9 +508,7 @@ static partial class CSharpEmitter
 		foreach (var compiled in machines)
 			compiled.Machine.CompileRules();
 
-		AddBufferedMachines(
-			graph, results, options.LineMap, machines, options.BufferedInput, options.BufferedBytes, overKinds, diagnostics, options.PartSize, options.SpanCaptures, options.PrefixTables, expectedTables,
-			carrier, replay, carriers is not null, directAllowed, options.CountRules, options.ConstructionsMayThrow, tracing, expectedSets, hostUnseen);
+		AddBufferedMachines(graph, results, machines, options, basis, overKinds, diagnostics);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -505,13 +522,16 @@ static partial class CSharpEmitter
 			? new Machine(
 				lexical.Source,
 				new ResultTypes(lexical.Source, scoped, options.Namespace, lexical: true),
-				options.LineMap,
-				only: Rereads(lexical),
-				tag: MachineTag.Value,
-				quiets: true,
-				expectedSets: expectedSets,
-				// The failure of a trace build has no place for how far a quiet reading got.
-				keepsDoors: tracing is null)
+				new MachineSettings
+				{
+					Lines        = options.LineMap,
+					Only         = Rereads(lexical),
+					Tag          = MachineTag.Value,
+					Quiets       = true,
+					ExpectedSets = expectedSets,
+					// The failure of a trace build has no place for how far a quiet reading got.
+					KeepsDoors   = tracing is null,
+				})
 			: null;
 
 		// Each terminal that builds is a root of its own, and a whole one: the text handed to
@@ -6175,13 +6195,15 @@ file.Line("return spare;");
 		return new(
 			lexical.Source,
 			new ResultTypes(lexical.Source, "Lexical", null, lexical: true),
-			null,
-			only: [.. lexical.Trivia.SelectMany(rule => Reaches(lexical.Source, rule)).Distinct()],
-			// Tagged, because everything a machine emits is named after its tag and this one
-			// stands in a file another machine has already filled: without it the seam's
-			// character tables collide with the syntax's, name for name.
-			tag: MachineTag.Seam,
-			expectedSets: expectedSets)
+			new MachineSettings
+			{
+				Only         = [.. lexical.Trivia.SelectMany(rule => Reaches(lexical.Source, rule)).Distinct()],
+				// Tagged, because everything a machine emits is named after its tag and this one
+				// stands in a file another machine has already filled: without it the seam's
+				// character tables collide with the syntax's, name for name.
+				Tag          = MachineTag.Seam,
+				ExpectedSets = expectedSets,
+			})
 		{
 			RecordsRunOut = true,
 		};

@@ -17,18 +17,19 @@ namespace DotGram.Grammar.Emit;
 /// </summary>
 sealed partial class Machine
 {
-	public   bool BufferedInput { get; }
-	readonly bool _bufferedFind;
-	readonly bool _prefixTables;
-	public   bool BufferedBytes    { get; }
-	public   bool BorrowedCaptures { get; }
+	/// <summary>What this machine is built for (<see cref="MachineSettings"/>), read where it is needed.</summary>
+	readonly MachineSettings _settings;
+
+	public bool BufferedInput    => _settings.BufferedInput;
+	public bool BufferedBytes    => _settings.BufferedBytes;
+	public bool BorrowedCaptures => _settings.BufferedBytes || _settings.SpanCaptures;
 
 	/// <summary>
 	/// Whether this machine reads bytes the caller already holds, whole (D7), and nothing that
 	/// streams: there is no window to let go of, so what keeps a stream on the engine does not
 	/// keep this. Set by the buffered emitter on the machine it makes for the memory entries.
 	/// </summary>
-	public bool InPlace { get; set; }
+	public bool InPlace => _settings.InPlace;
 
 	/// <summary>Whether a machine of its own reads this publication's memory entries (<see cref="InPlace"/>).</summary>
 	public bool MemoryElsewhere { get; set; }
@@ -40,7 +41,7 @@ sealed partial class Machine
 	/// rather than done and thrown away. A machine no such reading reaches is written as it
 	/// always was.
 	/// </remarks>
-	public bool Quiets { get; }
+	public bool Quiets => _settings.Quiets;
 
 	/// <summary>
 	/// Whether the quiet reading writes down how far it got, for the reading that records after it
@@ -53,7 +54,7 @@ sealed partial class Machine
 	/// Not in a trace build, whose sink is told every reading as it was: a machine written into
 	/// one is told so (<c>CSharpEmitter</c>), as the failure it shares has no place for it there.
 	/// </remarks>
-	internal bool KeepsDoors { get; set; }
+	internal bool KeepsDoors => _settings.KeepsDoors ?? (Quiets && Tracing is null);
 
 	string CaptureSpanType => $"global::System.ReadOnlySpan<{CaptureElement}>";
 
@@ -70,7 +71,7 @@ sealed partial class Machine
 	{
 		get
 		{
-			if (!BufferedInput || _bufferedFind || _rules.Count != 1 || _textCaptures.Count != 0)
+			if (!BufferedInput || _settings.BufferedFind || _rules.Count != 1 || _textCaptures.Count != 0)
 				return false;
 
 			if (_factories.Values.SelectMany(factories => factories).Any(factory => CSharpEmitter.WantsText(_graph, factory)))
@@ -142,7 +143,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether a window may feed this machine, so that what it reads ends where the window does.</summary>
-	bool Windowed => _starves;
+	bool Windowed => _settings.Starves;
 
 	/// <summary>
 	/// A test that is true where the text ends — past it, short of room — made to say so where a window
@@ -267,23 +268,6 @@ sealed partial class Machine
 	readonly RecognitionGraph _graph;
 	readonly ResultTypes _results;
 
-	/// <summary>
-	/// The terminals whose value is not built here but read again from their own text.
-	/// </summary>
-	/// <remarks>
-	/// One token stands where a whole rule used to, so the captures its <c>=&gt;</c> was
-	/// written against are inside it and out of reach. What this machine records is the
-	/// extent; a second machine over characters turns that extent into the value
-	/// (`LexicalSplit.Valued`).
-	/// </remarks>
-	readonly IReadOnlyCollection<RuleSymbol>? _reread;
-
-	/// <summary>
-	/// What each kind stands for, where this machine reads kinds — the one thing that can say
-	/// a refusal in the words the grammar wrote rather than in the numbers the lexer made up.
-	/// </summary>
-	readonly TerminalInventory? _inventory;
-
 	/// <summary>Whether a repetition is a fold's loop (§4.3) rather than one the author wrote.</summary>
 	/// <remarks>
 	/// Asked by reference: a node is a record, two of them are equal where they say the same
@@ -373,8 +357,6 @@ sealed partial class Machine
 	/// <summary>One call per distinct set, so the same list is not numbered twice.</summary>
 	readonly Dictionary<string,string>                     _expectedByItems = new(StringComparer.Ordinal);
 
-	// Shared only by sibling machines emitted into the same parser class.
-	readonly Dictionary<string,int>?                       _expectedTables;
 
 	/// <summary>The character classes read from a table rather than written out.</summary>
 	readonly List<(string Name,string Declaration)>        _classes = [];
@@ -384,10 +366,8 @@ sealed partial class Machine
 
 	readonly HashSet<string>                               _classesUsed = [];
 
-	int                _classCount;
-	readonly ILineMap? _lines;
-	readonly bool      _starves;
-	bool               _usesChar;
+	int  _classCount;
+	bool _usesChar;
 
 	/// <summary>
 	/// Whether any state the layout kept reads <c>c</c> — asked of the written bodies
@@ -449,7 +429,7 @@ sealed partial class Machine
 	internal IReadOnlyCollection<RuleSymbol> Reads => _rules;
 
 	/// <summary>What separates this machine's names from a sibling's — the constructor's <c>tag</c>.</summary>
-	internal MachineTag Tag { get; }
+	internal MachineTag Tag => _settings.Tag;
 
 	int  _fail = Fail;
 	bool _materializer;
@@ -531,58 +511,22 @@ sealed partial class Machine
 	/// </summary>
 	public bool Ties { get; private set; }
 
-	/// <param name="only">
-	/// The rules this machine compiles, or null for all of them. A machine is built for one
-	/// published rule and what that rule reaches, so a grammar with several publications has
-	/// several machines and none of them carries the others' states.
+	/// <param name="settings">
+	/// What this machine is built for: the rules it reads, the input it reads them over, and the
+	/// options as it takes them (<see cref="MachineSettings"/>).
 	/// </param>
-	/// <param name="tag">
-	/// What distinguishes this machine's method and array names from another's in the same
-	/// file. Empty where there is only one, so a grammar with a single publication is
-	/// compiled to exactly the names it always was.
-	/// </param>
-	public Machine(
-		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
-		IReadOnlyCollection<RuleSymbol>? only = null, MachineTag? tag = null, int? partSize = null,
-		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
-		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
-		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
-		Dictionary<string, int>? expectedTables = null, bool deferCompilation = false,
-		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null, bool? keepsDoors = null,
-		bool places = false, IReadOnlyList<Recovery>? placedRecoveries = null, bool rereadLocates = false)
+	public Machine(RecognitionGraph graph, ResultTypes results, MachineSettings settings)
 	{
-		// Before anything is compiled: the engine's states write the trace's events as they are compiled.
-		Tracing = tracing;
-		Places  = places;
-		_placedRecoveries = placedRecoveries ?? [];
-		_expectedTables = expectedTables;
-		_expectedSets = expectedSets ?? new ExpectedSets();
-		_ownsExpectedSets = expectedSets is null;
-		_expectedUsed = _expectedSets.Used;
-		Quiets = quiets;
-		// Told outright by a machine written into a trace build without tracing itself (the one
-		// that reads a terminal again): its states are compiled here, before anything could tell it.
-		KeepsDoors = keepsDoors ?? (quiets && tracing is null);
-		BufferedInput = bufferedInput;
-		_bufferedFind = bufferedFind;
-		_prefixTables = prefixTables;
-		BufferedBytes = bufferedBytes;
-		BorrowedCaptures = bufferedBytes || spanCaptures;
-		_graph = graph;
-		_carrierKind = carrier;
-		_replay = replay;
-		_stacks = stacks;
-		_results = results;
-		_lines = lines;
-		_starves = starves;
-		Tag = tag ?? MachineTag.None;
-		OverKinds = overKinds;
-		_reread = reread;
-		_rereadLocates = rereadLocates;
-		_inventory = inventory;
-		PartSize = partSize ?? Part;
-		_rules = only ?? graph.Rules;
-		_guardValues = HasTypedGuards(graph);
+		// Before anything is compiled: what the settings say is read as the states are written, the
+		// trace's events among it.
+		_settings         = settings;
+		_expectedSets     = settings.ExpectedSets ?? new ExpectedSets();
+		_ownsExpectedSets = settings.ExpectedSets is null;
+		_expectedUsed     = _expectedSets.Used;
+		_graph            = graph;
+		_results          = results;
+		_rules            = settings.Only ?? graph.Rules;
+		_guardValues      = HasTypedGuards(graph);
 
 		var doors = Doors.ByRule(graph.Rules, graph.Bodies);
 
@@ -793,7 +737,7 @@ sealed partial class Machine
 			_traceRule = last.Name;
 		}
 
-		if (!deferCompilation)
+		if (!settings.DeferCompilation)
 			CompileRules();
 	}
 
@@ -1506,12 +1450,6 @@ sealed partial class Machine
 	/// </remarks>
 	public bool UsesInput { get; private set; }
 
-	/// <summary>
-	/// How many stacks a parse may take past the one it began on, or nought for as many
-	/// as there is memory for (<c>[Gram(Stacks = …)]</c>).
-	/// </summary>
-	readonly int _stacks;
-
 	string InputParameter => UsesInput ? ", string parserInput" : "";
 
 	string InputArgument  => UsesInput ? ", parserInput" : "";
@@ -1529,13 +1467,13 @@ sealed partial class Machine
 	/// </remarks>
 	/// <summary>Whether what this machine reads is token kinds rather than characters.</summary>
 	/// <remarks>
-	/// A constructor argument and not an <c>init</c> property, which it was until it was
+	/// Handed to the constructor, in its settings, and not an <c>init</c> property, which it was until it was
 	/// wrong: this class does its work <em>in the constructor</em>, so an initializer runs
 	/// after every state has already been written. The declaration of the materializer is
 	/// emitted late enough to have seen the property and the calls to it early enough not
 	/// to, and a guard called one with four arguments where seven were declared.
 	/// </remarks>
-	public bool OverKinds { get; }
+	public bool OverKinds => _settings.OverKinds;
 
 	string TokensParameter =>
 		OverKinds ? ", string parserSource, int[] parserStarts, int[] parserLengths" : "";
@@ -1708,12 +1646,9 @@ sealed partial class Machine
 	string TokenOf(string at)
 	{
 		return OverKinds
-			? $"parserSource, parserStarts[{at}], parserLengths[{at}]" + (_rereadLocates ? UsesLocating ? ", parserLocating" : ", -1" : "")
+			? $"parserSource, parserStarts[{at}], parserLengths[{at}]" + (_settings.RereadLocates ? UsesLocating ? ", parserLocating" : ", -1" : "")
 			: throw new InvalidOperationException("A terminal is read again only over kinds.");
 	}
-
-	/// <summary>Whether the value of a terminal read again over its text asks whether the reading locates.</summary>
-	readonly bool _rereadLocates;
 
 	/// <summary>Where one position of the machine's own stands in the input.</summary>
 	/// <remarks>
@@ -2015,10 +1950,7 @@ sealed partial class Machine
 	/// Asked of the grammar where the machine is made (<see cref="CSharpEmitter.Places"/>): only a
 	/// grammar that tells such places and is read a window at a time pays the field and the add.
 	/// </remarks>
-	public bool Places { get; }
-
-	/// <summary>The engine's recoveries that tell places through a window (<see cref="PlacesRecovery"/>).</summary>
-	readonly IReadOnlyList<Recovery> _placedRecoveries;
+	public bool Places => _settings.Places;
 
 	/// <summary>
 	/// Whether one of them tells a line or a column, for which the reading writes, beside where the
@@ -2028,7 +1960,7 @@ sealed partial class Machine
 	{
 		get
 		{
-			foreach (var recovery in _placedRecoveries)
+			foreach (var recovery in _settings.PlacedRecoveries)
 				if (CSharpEmitter.TellsLines(recovery))
 					return true;
 
@@ -3022,7 +2954,7 @@ sealed partial class Machine
 					}
 				}
 
-				if (_recoveries.Count > 0 && _starves)
+				if (_recoveries.Count > 0 && _settings.Starves)
 					file.Line("failure.Reach = reach;");
 
 				file.Line();
@@ -3567,7 +3499,7 @@ sealed partial class Machine
 				// thing that writes between them is starvation, which marks the failure
 				// before reporting it and belongs to the length alone. Folded rather than
 				// left as two `if`s with the same body, which is what a reader sees.
-				var room = _starves || value.Length == 0 ? null : Short(value.Length, value, ignoreCase);
+				var room = _settings.Starves || value.Length == 0 ? null : Short(value.Length, value, ignoreCase);
 
 				if (room is null)
 				{
@@ -3706,7 +3638,7 @@ sealed partial class Machine
 				// failures may also leave by a door rather than `Fail:`, which the miss knows
 				// nothing of. There the choice is compiled as below, dispatched on its first
 				// character where the alternatives' first characters tell them apart.
-				if (_prefixTables && !OverKinds && !_lowering && PrefixPlan(alternatives) is { } prefixes)
+				if (_settings.PrefixTables && !OverKinds && !_lowering && PrefixPlan(alternatives) is { } prefixes)
 					return CompilePrefixChoice(alternatives, prefixes, next, following);
 
 				if (Predictive(alternatives) is { } predicted)
@@ -4222,7 +4154,7 @@ sealed partial class Machine
 					using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
 					{
 						helper.Line($"switch ({key}(");
-						CSharpEmitter.Handed(helper, _lines, ((Node.Guard)node).At, condition + "))");
+						CSharpEmitter.Handed(helper, _settings.Lines, ((Node.Guard)node).At, condition + "))");
 
 						using (helper.Block(""))
 						{
@@ -4236,7 +4168,7 @@ sealed partial class Machine
 				{
 					helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
 					CSharpEmitter.Handed(
-						helper, _lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
+						helper, _settings.Lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
 				}
 				_extra.Add(helper.ToString());
 
@@ -5342,7 +5274,7 @@ sealed partial class Machine
 			if (most is not null)
 				writer.Line("if (p - runStart >= runMost) break;");
 
-			if (_starves)
+			if (_settings.Starves)
 			{
 				writer.Line($"if ({Short(1)}) break;");
 			}
@@ -5711,7 +5643,7 @@ sealed partial class Machine
 			// A single character has nothing to widen. Its test and the room check fail the
 			// same way, so they are folded into one question wherever starvation does not
 			// have to be marked between them — the same as Node.Literal's own.
-			var room = _starves ? null : Short(1);
+			var room = _settings.Starves ? null : Short(1);
 
 			if (room is null)
 			{
@@ -5846,7 +5778,7 @@ sealed partial class Machine
 
 				// The walk stops at the end of the text only where every character it held agreed with
 				// one of the texts: input that ran out, which a look records nothing of.
-				if (_starves)
+				if (_settings.Starves)
 					writer.Line("if (p >= text.Length) failure.Starved = true;");
 
 				// Inside the trivia, recorded only where the input ran out (§7.5), as EmitTerminalFailure
@@ -5862,7 +5794,7 @@ sealed partial class Machine
 				// and the position is left where they read from. Where a stream reads, also whether
 				// they ran into the end of the text — the alternatives after the run may all be refused
 				// inside a look, which records nothing, and a negative look takes that for an answer.
-				if (_starves)
+				if (_settings.Starves)
 				{
 					_expectedUsed.Add(arrayName);
 					writer.Line($"expected = {arrayName};");
@@ -6440,7 +6372,7 @@ sealed partial class Machine
 		// A run that stops only at a few characters is a search for them, with the answer the
 		// loop would give: `(?!Separator & any)+` before a one-character separator is a FIX
 		// field's value.
-		if (!_starves && max is null && StopCharacters(repeatNode.Body) is { } stops)
+		if (!_settings.Starves && max is null && StopCharacters(repeatNode.Body) is { } stops)
 		{
 			EmitSearch(writer, "stop", "p", stops);
 			writer.Line($"p = stop < 0 ? {EndOfInput} : stop;");
@@ -6456,7 +6388,7 @@ sealed partial class Machine
 			if (max is { } limit)
 				writer.Line($"if (p - runStart >= {limit}) break;");
 
-			if (_starves)
+			if (_settings.Starves)
 			{
 				writer.Line($"if ({Short(1)}) break;");
 			}
@@ -8795,7 +8727,7 @@ sealed partial class Machine
 		if (leading && node is Node.Lookahead(false, var refused) && IsSegmentAny(refused))
 			return [EndOfSegmentSaid];
 
-		if (!OverKinds || _inventory is not { Kinds.Count: > 0 } inventory)
+		if (!OverKinds || _settings.Inventory is not { Kinds.Count: > 0 } inventory)
 			return leading && Leading(node) is { Count: > 0 } items ? items
 				: _graph.Segmented ? [Unjoined(node.ToString())]
 				: [node.ToString()];
@@ -9328,10 +9260,10 @@ sealed partial class Machine
 		// of a refused input reads a set, and a grammar read over kinds has a thousand of them,
 		// hundreds naming every keyword, which the first call of any parse paid for in the
 		// initializer's JIT (D17).
-		if (_expectedTables is null || !_expectedTables.TryGetValue(items, out var id))
+		if (_settings.ExpectedTables is null || !_settings.ExpectedTables.TryGetValue(items, out var id))
 		{
 			id = _expectedSets.Add([.. display.Select(static d => EscapeExpected(Said(d)))]);
-			_expectedTables?.Add(items, id);
+			_settings.ExpectedTables?.Add(items, id);
 		}
 
 		var call = ExpectedSets.Call(id);

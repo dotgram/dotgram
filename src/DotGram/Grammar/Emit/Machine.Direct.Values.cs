@@ -528,7 +528,7 @@ sealed partial class Machine
 			if (IsExtent(rule))
 				return true;
 
-			if (_reread is not null && _reread.Contains(rule))
+			if (_settings.Reread is not null && _settings.Reread.Contains(rule))
 				return true;
 
 			foreach (var factory in _factories[rule])
@@ -576,7 +576,7 @@ sealed partial class Machine
 
 	bool DirectForwards(RuleSymbol? rule, int factory)
 	{
-		if (rule is null || factory < 0 || IsExtent(rule) || _reread is not null && _reread.Contains(rule))
+		if (rule is null || factory < 0 || IsExtent(rule) || _settings.Reread is not null && _settings.Reread.Contains(rule))
 			return false;
 
 		var factories = _factories[rule];
@@ -714,8 +714,8 @@ sealed partial class Machine
 		// the tape it will become; one it would carry has no store of this kind and stays out
 		// of the plan.
 		var all      = machines.ToArray();
-		var readers  = all.Where(static machine => machine._carrierKind == CarrierKind.Tape ||
-			machine._carrierKind == CarrierKind.Immediate && machine.WouldRefuse(CarrierKind.Immediate) is not null).ToArray();
+		var readers  = all.Where(static machine => machine._settings.Carrier == CarrierKind.Tape ||
+			machine._settings.Carrier == CarrierKind.Immediate && machine.WouldRefuse(CarrierKind.Immediate) is not null).ToArray();
 		var dense    = readers.Any(machine => !machine._directBuilds && machine._valueTypes.Count >= 8);
 		var adaptive = !dense && readers.Any(machine => machine._directBuilds && machine._valueTypes.Count >= 32);
 
@@ -1903,7 +1903,7 @@ sealed partial class Machine
 		if (DirectGrow(type, "slot") is { Length: > 0 } grown)
 			file.Line(grown);
 
-		if (_reread is not null && _reread.Contains(rule))
+		if (_settings.Reread is not null && _settings.Reread.Contains(rule))
 		{
 			// A terminal that builds: the lexer measured it, and the character machine of its
 			// own builds it from the text.
@@ -2002,7 +2002,7 @@ sealed partial class Machine
 	{
 		using (file.Block($"case {DirectArm(rule, factory)}:"))
 		{
-			if (!IsExtent(rule) && (_reread is null || !_reread.Contains(rule)))
+			if (!IsExtent(rule) && (_settings.Reread is null || !_settings.Reread.Contains(rule)))
 			{
 				if (IsStep(rule, factory))
 				{

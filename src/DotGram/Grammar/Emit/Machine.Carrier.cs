@@ -11,18 +11,6 @@ namespace DotGram.Grammar.Emit;
 sealed partial class Machine
 {
 	/// <summary>
-	/// Which carrier the machine was asked for — the immediate one where the host left it to the
-	/// generator — and what it gets is <see cref="Carrier"/>.
-	/// </summary>
-	readonly CarrierKind _carrierKind;
-
-	/// <summary>
-	/// Which rules of the graph are read where the reading may not stand, asked once for the
-	/// file and handed to every machine the immediate carrier was asked for; null on the tape.
-	/// </summary>
-	readonly Replay.Report? _replay;
-
-	/// <summary>
 	/// Whose value is ever built, asked of the graph the first time a carrier needs it
 	/// (<see cref="Demand"/>) — the rules a refused input is read again through counted as read
 	/// unbuilt, since that reading asks nothing of them (<see cref="UnaskedEntries"/>), and so
@@ -364,7 +352,7 @@ sealed partial class Machine
 	/// Whether a build asked for the carriers report: then <see cref="OpenedHere"/> is kept, and
 	/// otherwise nothing is.
 	/// </summary>
-	internal bool Reporting;
+	internal bool Reporting => _settings.Reporting;
 
 	/// <summary>The rules whose own reading opened a way back, before their callers were added: the report's.</summary>
 	internal HashSet<RuleSymbol>? OpenedHere { get; private set; }
@@ -644,7 +632,7 @@ sealed partial class Machine
 	/// <param name="ownWays">Those that open one themselves.</param>
 	void AskGates(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens, HashSet<RuleSymbol> ownWays)
 	{
-		if (_carrierKind != CarrierKind.Immediate || _replay is null || GateReasons is not null)
+		if (_settings.Carrier != CarrierKind.Immediate || _settings.Replay is null || GateReasons is not null)
 			return;
 
 		var building = rules.Where(rule => _results.QualifiedOf(rule) is not null).ToList();
@@ -653,8 +641,8 @@ sealed partial class Machine
 			return;
 
 		var replayed = building
-			.Where(rule => !_replay.Keeps(rule))
-			.OrderBy(rule => _replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
+			.Where(rule => !_settings.Replay.Keeps(rule))
+			.OrderBy(rule => _settings.Replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
 			.ToList();
 		var again    = replayed.Count > 0 ? [] : ReadAgain(rules, opens, ownWays);
 
@@ -776,7 +764,7 @@ sealed partial class Machine
 			if (field is not null)
 				return field;
 
-			if (_carrierKind == CarrierKind.Immediate)
+			if (_settings.Carrier == CarrierKind.Immediate)
 			{
 				var asked = new ImmediateCarrier(this);
 
@@ -814,7 +802,7 @@ sealed partial class Machine
 	/// it folds machines together, so that a machine that would have carried immediately on its own
 	/// is never put on the tape by sharing one.
 	/// </remarks>
-	internal bool WillCarryImmediately => _carrierKind == CarrierKind.Immediate && WouldRefuse(CarrierKind.Immediate) is null;
+	internal bool WillCarryImmediately => _settings.Carrier == CarrierKind.Immediate && WouldRefuse(CarrierKind.Immediate) is null;
 
 	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
 	internal bool CarriesImmediately => Carrier is ImmediateCarrier;

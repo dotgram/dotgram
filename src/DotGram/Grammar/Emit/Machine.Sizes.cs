@@ -85,7 +85,7 @@ sealed partial class Machine
 	/// wish and answers every value with a parser, so no number written in a build file
 	/// can fail a compilation.
 	/// </remarks>
-	int PartSize { get; }
+	int PartSize => _settings.PartSize ?? Part;
 
 	/// <summary>
 	/// The count past which the compiler below gives up, as measured — the line the budget

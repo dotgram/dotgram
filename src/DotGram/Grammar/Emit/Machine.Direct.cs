@@ -250,7 +250,7 @@ sealed partial class Machine
 			if (!_recoveryReads.ContainsKey(pair.Key))
 				return Why;
 
-		var commit = Commit.Of(_graph, _replay ?? Replay.Of(_graph));
+		var commit = Commit.Of(_graph, _settings.Replay ?? Replay.Of(_graph));
 
 		foreach (var site in commit.Sites)
 			if (site.Node is Node.Construct && _rules.Contains(site.Owner) &&
