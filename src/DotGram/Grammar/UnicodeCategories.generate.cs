@@ -89,7 +89,7 @@ text.Append("using System;\r\n");
 text.Append("\r\n");
 text.Append("namespace DotGram.Grammar;\r\n");
 text.Append("\r\n");
-text.Append("public static partial class UnicodeCategories\r\n");
+text.Append("static partial class UnicodeCategories\r\n");
 text.Append("{\r\n");
 text.Append("\t/// <summary>The Unicode version the table below was written from.</summary>\r\n");
 text.Append($"\tpublic const string UnicodeVersion = \"{Version}\";\r\n");

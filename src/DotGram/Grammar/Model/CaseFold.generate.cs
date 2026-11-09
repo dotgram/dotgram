@@ -54,7 +54,7 @@ text.Append("using System;\r\n");
 text.Append("\r\n");
 text.Append("namespace DotGram.Grammar.Model;\r\n");
 text.Append("\r\n");
-text.Append("public static partial class CaseFold\r\n");
+text.Append("static partial class CaseFold\r\n");
 text.Append("{\r\n");
 text.Append($"\t/// <summary>The Unicode version the tables below were written from.</summary>\r\n");
 text.Append($"\tpublic const string UnicodeVersion = \"{Version}\";\r\n");

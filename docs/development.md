@@ -1024,8 +1024,10 @@ fields included.
 ## Large generated source files
 
 File splitting is experimental and disabled by default, including in the Roslyn
-source generator. To opt in through `GramCompiler.Compile`, set
-`GramCompilerOptions.SourceFileSize` to a positive character threshold, for example
+source generator, and no attribute or build property sets it: it is an option of the
+generator's internal compiler, which the tests and the measurements call. To opt in through
+`GramCompiler.Compile`, set `GramCompilerOptions.SourceFileSize` to a positive character
+threshold, for example
 `2_000_000`. Complete engine methods and direct-reader groups at least that large
 move into additional partial-class files. This is a group threshold, not a maximum
 file size: an individual method or nested reader type stays whole.
@@ -1037,9 +1039,9 @@ This controls source layout independently of `PartSize`, which controls method
 subdivision for the JIT. Extra files use stable `.part-0001.g.cs` names.
 
 When opting in, compile **all** entries in `GramCompilation.Sources`.
-`SourceFileSize = 0` retains one file and is the default. Direct callers of
-`CSharpEmitter.Emit` must supply both a positive `sourceFileSize` and a
-`sourceParts` collection to receive additional files.
+`SourceFileSize = 0` retains one file and is the default. A direct call of
+`CSharpEmitter.Emit` receives the additional files only where the options carry a positive
+`SourceFileSize` and its `EmitContext` a `SourceParts` collection to add them to.
 
 The [measurements](design/file-split-2026-09-16.md) did not establish enough benefit
 to enable splitting by default: FIX improved modestly with higher memory use,
