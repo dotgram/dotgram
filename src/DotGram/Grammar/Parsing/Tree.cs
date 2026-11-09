@@ -122,6 +122,15 @@ abstract record Decl : ILocated
 		/// <summary><c>internal parse …</c>, <c>private find …</c>: what the methods are declared as.</summary>
 		public PublishAccess Access { get; init; }
 
+		/// <summary>
+		/// <c>positional parse …</c>: the parse is also read from a position and inside a
+		/// window of the input. False on a <c>find</c> and a <c>yield</c>, which refuse it.
+		/// </summary>
+		public bool Positional { get; init; }
+
+		/// <summary>Where each word before the verb stands: the access, <c>positional</c>.</summary>
+		public IReadOnlyList<int> ModifierPositions { get; init; } = [];
+
 		/// <summary>Requests an additional buffered pull-input publication.</summary>
 		public bool BufferedInput { get; init; }
 
@@ -354,7 +363,8 @@ static class Dump
 
 			case Decl.Publish(var kind, var rule, var rebindings, var alias) publish:
 
-				var access = publish.Access == PublishAccess.Public ? "" : publish.Access + " ";
+				var access = (publish.Access == PublishAccess.Public ? "" : publish.Access + " ") +
+					(publish.Positional ? "Positional " : "");
 
 				Write(text, depth, alias is null
 					? $"Publication {access}{kind} {Quote(rule)}"

@@ -378,6 +378,12 @@ sealed record Publication(
 	public PublishAccess Access { get; init; }
 
 	/// <summary>
+	/// Whether the directive said <c>positional</c>: the parse is also read from a position and
+	/// inside a window (docs/syntax.md §6.3). Only where it is asked, whatever reads the rule.
+	/// </summary>
+	public bool Positional { get; init; }
+
+	/// <summary>
 	/// Whether the grammar names <c>eos</c>, so that this publication is read over segments: its
 	/// forms over a string, a reader or a window are the parser's own, private and under a name of
 	/// their own (<see cref="EmittedName"/>), and what is published under <see cref="MethodName"/>

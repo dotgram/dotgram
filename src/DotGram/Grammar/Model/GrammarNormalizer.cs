@@ -124,6 +124,12 @@ sealed partial class GrammarNormalizer
 	/// <summary>A mark placed, or the marks asked for, in a grammar that declares no <c>state</c>.</summary>
 	public const string MarkWithoutState = "GRAM4029";
 
+	/// <summary>
+	/// <c>positional parse</c> in a grammar that names <c>eos</c>: no position of the caller's can
+	/// stand in the segments joined, which only the parser makes.
+	/// </summary>
+	public const string PositionalOverSegments = "GRAM4055";
+
 	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>; or one used as a method, a type or a variable, where it is reserved.</summary>
 	public const string SuppliedNameNotHere = "GRAM4053";
 
@@ -343,7 +349,22 @@ sealed partial class GrammarNormalizer
 		// Last, so that every check above said what the author named: a grammar that names `eos`
 		// publishes its forms over text under names of their own, read through those over segments.
 		if (normalizer._segmented)
-			normalizer._publications = [.. normalizer._publications.Select(static publication => publication with { Joined = true })];
+		{
+			foreach (var publication in normalizer._publications)
+				if (publication.Positional)
+					normalizer.Report(
+						PositionalOverSegments,
+						$"'{publication.MethodName}' cannot be read from a position: the grammar names " +
+						"'eos', so it reads a sequence of segments joined, and only the parser joins " +
+						"them. Drop 'positional'.",
+						publication.At);
+
+			normalizer._publications =
+			[
+				.. normalizer._publications.Select(
+					static publication => publication with { Joined = true, Positional = false }),
+			];
+		}
 
 		normalizer.CheckLocatedAreNotNullable(located, resolver, Imports(model.Root));
 

@@ -568,6 +568,7 @@ sealed class GrammarBinder
 						ChainResolve(EmptyBindings, ownPublicationBindings), ownPublicationBindings)
 					{
 						Access = publish.Access,
+						Positional = publish.Positional,
 						BufferedInput = publish.BufferedInput,
 						BufferedBytes = publish.BufferedBytes,
 						Yield = publish.Yield,
