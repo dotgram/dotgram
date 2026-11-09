@@ -18,6 +18,7 @@ BREAKING CHANGES, and what to do about each. Regenerate the parser to take any o
 - The engine's step trace for generator work is compiled where the build defines DOTGRAM_STEPS; it was DOTGRAM_TRACE, which now means nothing.
 - The names a trace build declares (GramTrace, GramRead, GramWhy, GramTraceLog, GramProfile, Tracing) are reserved in every build, traced or not, so that a project that traces its Debug build alone compiles one grammar to the same names in both. A publication called one of them is now GRAM5018 in every build, and a rule whose type would take one is given the name with Value after it (a rule Tracing builds a TracingValue). Rename the publication with as; code that named such a rule's type follows the new name.
 - GramRead.Forwards(rule), which no sink read and no document described, is no longer generated, nor the table behind it. A sink that called it has the frames of a forwarding rule told as Enter and Exit, as every other rule's.
+- The constructor of a rule's generated result type (a rule with captures and no : @T) is internal. Its parameters are the captures in the order the grammar writes them, so swapping two captures of one type silently swapped what a caller in another assembly passed. Code beside the grammar still builds it; a value to be built elsewhere is a type of the host's own, named with : @T.
 
 NEW
 
