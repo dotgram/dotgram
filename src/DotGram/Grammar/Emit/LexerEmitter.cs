@@ -84,6 +84,8 @@ static class LexerEmitter
 		Lows.Clear();
 		Edges.Clear();
 		Edged.Clear();
+		Tests.Clear();
+		Placements.Clear();
 		Reached = true;
 		Wide = false;
 		Class = null;
@@ -93,7 +95,7 @@ static class LexerEmitter
 		var lows = new int[machine.Next.Count];
 
 		for (var state = 0; state < lows.Length; state++)
-			lows[state] = Window(machine.From(state));
+			lows[state] = Placed(machine.From(state));
 
 		Plan(machine, lows);
 
@@ -319,7 +321,8 @@ static class LexerEmitter
 		//
 		// And only where every row sits at the same place, since a class is a column of the
 		// table and two differently placed rows have no column in common.
-		var distinct = Rows.Select(one => string.Join(" ", one.Row)).Distinct().Count();
+		var distinct = new HashSet<int[]>(Rows.Select(static one => one.Row), SameInts.Instance)
+			.Count;
 
 		Class = distinct * Reach > Roomy && Rows.All(one => one.Low == Rows[0].Low)
 			? Classes(Rows.Select(one => one.Row))
@@ -356,21 +359,19 @@ static class LexerEmitter
 	static void Table(Writer text, string tag)
 	{
 		var cells  = new List<int>();
-		var shared = new Dictionary<string, int>();
+		var shared = new Dictionary<int[], int>(SameInts.Instance);
 		var states = new List<long>();
 		var order  = Class?.Distinct().OrderBy(one => one).ToList();
 
 		foreach (var (low, row) in Rows)
 		{
-			var kept = order is null
+			int[] kept = order is null
 				? row
 				: [.. order.Select(one => row[Array.IndexOf(Class!, one)])];
 
-			var key = string.Join(" ", kept);
-
-			if (!shared.TryGetValue(key, out var at))
+			if (!shared.TryGetValue(kept, out var at))
 			{
-				shared[key] = at = cells.Count;
+				shared[kept] = at = cells.Count;
 				cells.AddRange(kept);
 			}
 
@@ -504,12 +505,15 @@ static class LexerEmitter
 	static byte[]? Classes(IEnumerable<int[]> rows)
 	{
 		var all   = rows.ToList();
-		var named = new Dictionary<string, byte>();
+		var named = new Dictionary<int[], byte>(SameInts.Instance);
 		var map   = new byte[Reach];
 
 		for (var at = 0; at < Reach; at++)
 		{
-			var column = string.Join(" ", all.Select(one => one[at]));
+			var column = new int[all.Count];
+
+			for (var row = 0; row < all.Count; row++)
+				column[row] = all[row][at];
 
 			if (!named.TryGetValue(column, out var which))
 			{
@@ -524,6 +528,48 @@ static class LexerEmitter
 
 		return named.Count < Reach ? map : null;
 	}
+
+	/// <summary>
+	/// <see cref="Window"/>, worked out once for each shape of ways out in the machine being
+	/// written.
+	/// </summary>
+	/// <remarks>
+	/// Where a row goes depends on the characters of each way out and on which way holds them, and
+	/// not on where the ways lead. A keyword trie's states are thousands that differ in where they
+	/// go and hardly ever in that: each is the letters its words continue with and every other
+	/// letter of an identifier — hundreds of ranges, which every one of them weighed again.
+	/// </remarks>
+	static int Placed(IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
+	{
+		var length = ways.Count;
+
+		foreach (var way in ways)
+			length += way.On.Count * 2;
+
+		var shape = new int[length];
+		var at    = 0;
+
+		foreach (var way in ways)
+		{
+			shape[at++] = way.On.Count;
+
+			foreach (var range in way.On)
+			{
+				shape[at++] = range.From;
+				shape[at++] = range.To;
+			}
+		}
+
+		if (!Placements.TryGetValue(shape, out var low))
+			Placements[shape] = low = Window(ways);
+
+		return low;
+	}
+
+	/// <summary>Where each shape of ways out put its row (<see cref="Placed"/>).</summary>
+	[ThreadStatic] static Dictionary<int[], int>? _placements;
+
+	static Dictionary<int[], int> Placements => _placements ??= new(SameInts.Instance);
 
 	/// <summary>
 	/// Where to put one state's row.
@@ -565,14 +611,15 @@ static class LexerEmitter
 
 		Weigh(ref best, ranks, 0);
 
-		foreach (var start in ways
-			.SelectMany(way => way.On)
-			.Select(range => (int)range.From)
-			.Where(from => from >= Reach)
-			.Distinct())
-		{
-			Weigh(ref best, ranks, start);
-		}
+		// Every place above ASCII a range of a way out begins, in the order the ways have them,
+		// each once. Where the ways are disjoint — a deterministic state's always are — no two
+		// ranges begin at one place, and there is nothing to tell apart.
+		var tried = ranks.Disjoint ? null : new HashSet<int>();
+
+		foreach (var way in ways)
+			foreach (var range in way.On)
+				if (range.From >= Reach && (tried is null || tried.Add(range.From)))
+					Weigh(ref best, ranks, range.From);
 
 		return best.Ways == 0 ? -1 : best.Low;
 	}
@@ -598,27 +645,47 @@ static class LexerEmitter
 
 		public static Ranked Of(IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
 		{
-			var all = new List<(int From, int To, int Way)>();
+			var count = 0;
 
-			for (var at = 0; at < ways.Count; at++)
-				foreach (var range in ways[at].On)
-					all.Add((range.From, range.To, at));
+			foreach (var way in ways)
+				count += way.On.Count;
 
-			all.Sort(static (a, b) => a.From.CompareTo(b.From));
+			// Sorted by where each range begins, the range carried along by its place in the
+			// ways. Ranges that begin at one place — only where the ways overlap, which a
+			// deterministic state's do not — may come out in either order: nothing read off the
+			// ranking depends on which, since a window sums, bounds and sets bits over them.
+			var from  = new int[count];
+			var order = new int[count];
+			var to    = new int[count];
+			var owner = new int[count];
+			var at    = 0;
+
+			for (var i = 0; i < ways.Count; i++)
+				foreach (var range in ways[i].On)
+				{
+					from[at]  = range.From;
+					to[at]    = range.To;
+					owner[at] = i;
+					order[at] = at;
+					at++;
+				}
+
+			Array.Sort(from, order);
 
 			var ranked = new Ranked
 			{
-				From     = new int[all.Count],
-				To       = new int[all.Count],
-				Way      = new int[all.Count],
+				From     = from,
+				To       = new int[count],
+				Way      = new int[count],
 				Disjoint = true,
 			};
 
-			for (var i = 0; i < all.Count; i++)
+			for (var i = 0; i < count; i++)
 			{
-				(ranked.From[i], ranked.To[i], ranked.Way[i]) = all[i];
+				ranked.To[i]  = to[order[i]];
+				ranked.Way[i] = owner[order[i]];
 
-				if (i > 0 && all[i].From <= all[i - 1].To)
+				if (i > 0 && from[i] <= ranked.To[i - 1])
 					ranked.Disjoint = false;
 			}
 
@@ -1324,9 +1391,31 @@ static class LexerEmitter
 	/// </remarks>
 	static string Test(IReadOnlyList<CharRange> ranges)
 	{
-		if (ranges.Count > Written)
-			return $"{Searched(ranges)}";
+		// Hundreds of states ask about one set — every state of a keyword trie whether a character
+		// is more of the identifier it is reading — and while one machine is written the test is
+		// the same each time, the fields it names included: worked out once. Whether a character
+		// below ASCII can arrive is part of the question (Searched).
+		var key = new char[ranges.Count * 2 + 1];
 
+		key[0] = Reached ? '1' : '0';
+
+		for (var i = 0; i < ranges.Count; i++)
+		{
+			key[i * 2 + 1] = ranges[i].From;
+			key[i * 2 + 2] = ranges[i].To;
+		}
+
+		var asked = new string(key);
+
+		if (Tests.TryGetValue(asked, out var known))
+			return known;
+
+		return Tests[asked] = ranges.Count > Written ? Searched(ranges) : Compared(ranges);
+	}
+
+	/// <summary>A set's ranges compared one at a time.</summary>
+	static string Compared(IReadOnlyList<CharRange> ranges)
+	{
 		return string.Join(
 			" || ",
 			ranges.Select(range =>
@@ -1334,6 +1423,13 @@ static class LexerEmitter
 					? $"c == {CSharpEmitter.Char(range.From)}"
 					: $"c >= {CSharpEmitter.Char(range.From)} && c <= {CSharpEmitter.Char(range.To)}"));
 	}
+
+	/// <summary>
+	/// Each test written for the machine being written, by its set and <see cref="Reached"/>.
+	/// </summary>
+	[ThreadStatic] static Dictionary<string, string>? _tests;
+
+	static Dictionary<string, string> Tests => _tests ??= new(StringComparer.Ordinal);
 
 	/// <summary>How many ranges are worth writing out before a search is shorter.</summary>
 	const int Written = 4;
@@ -1518,6 +1614,37 @@ static class LexerEmitter
 					bits[at] = 0xff;
 				bits[last] |= endMask;
 			}
+		}
+	}
+
+	/// <summary>Two runs of numbers are the same when every number is.</summary>
+	sealed class SameInts : IEqualityComparer<int[]>
+	{
+		public static readonly SameInts Instance = new();
+
+		public bool Equals(int[]? left, int[]? right)
+		{
+			if (ReferenceEquals(left, right))
+				return true;
+
+			if (left is null || right is null || left.Length != right.Length)
+				return false;
+
+			for (var i = 0; i < left.Length; i++)
+				if (left[i] != right[i])
+					return false;
+
+			return true;
+		}
+
+		public int GetHashCode(int[] numbers)
+		{
+			var hash = unchecked((int)2166136261);
+
+			foreach (var one in numbers)
+				hash = (hash ^ one) * 16777619;
+
+			return hash;
 		}
 	}
 
