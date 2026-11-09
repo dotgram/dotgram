@@ -651,7 +651,7 @@ static partial class CSharpEmitter
 		// here — a struct nothing names costs a compilation nothing.
 		if (options.SharedTypes == true)
 		{
-			file.Write(SourceSpanStruct);
+			file.Write(SourceSpanOf(options, ShowsSourceSpan(graph, results)));
 			file.Line();
 			file.Write(OutcomeEnum);
 			file.Line();
@@ -997,7 +997,7 @@ static partial class CSharpEmitter
 		// into the second read, and the type it names is the file's either way.
 		if (options.SharedTypes is null && (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source)))
 		{
-			file.Write(SourceSpanStruct);
+			file.Write(SourceSpanOf(options, ShowsSourceSpan(graph, results)));
 			file.Line();
 		}
 
@@ -4738,6 +4738,50 @@ file.Line("return spare;");
 					}
 
 		return graph.Recoveries.Count > 0;
+	}
+
+	/// <summary>
+	/// The span as the generated part declares it: <c>public</c> where a public signature the
+	/// generator writes names it, <c>internal</c> where none does — a span the grammar's own C#
+	/// is handed, or a rule's value the host reads, is the host's business and not its callers'
+	/// — and with nothing said of its own where the host declares a part of it, whose
+	/// accessibility is then the author's (GramCompilerOptions.SpanDeclared).
+	/// </summary>
+	/// <remarks>
+	/// <c>partial</c> always, so that a host can raise it with <c>public partial struct
+	/// SourceSpan { }</c>. The <c>readonly</c> of the generated part makes the struct readonly
+	/// whatever the author's part says.
+	/// </remarks>
+	static string SourceSpanOf(GramCompilerOptions options, bool shown)
+	{
+		var access = options.SpanDeclared ? "" : shown ? "public " : "internal ";
+
+		return SourceSpanStruct.Replace("{{access}}", access);
+	}
+
+	/// <summary>
+	/// Whether a public signature the generator writes names the span: the value of a
+	/// publication declared public, and a property of a rule's generated type.
+	/// </summary>
+	static bool ShowsSourceSpan(RecognitionGraph graph, ResultTypes results)
+	{
+		foreach (var publication in graph.Publications)
+			if (AccessOf(publication) == "public" &&
+				(NamesSpan(results.ValueOf(publication.Rule)) || publication.ResultType is { } contract && NamesSpan(contract.Name)))
+				return true;
+
+		foreach (var rule in results.Built)
+			foreach (var member in graph.Results[rule])
+				if (NamesSpan(results.ValueOf(member)))
+					return true;
+
+		return false;
+	}
+
+	/// <summary>Whether a type as the grammar writes it is the span, or holds it (<c>SourceSpan[]</c>, <c>List&lt;SourceSpan&gt;</c>).</summary>
+	static bool NamesSpan(string type)
+	{
+		return System.Text.RegularExpressions.Regex.IsMatch(type, @"(?<![\w.])@?SourceSpan\b");
 	}
 
 	internal static bool Asks(Machine.Factory factory, string name)

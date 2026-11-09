@@ -476,9 +476,10 @@ static partial class CSharpEmitter
 	/// </remarks>
 	/// <summary>
 	/// Emitted into a host whose grammar names it — a rule of that type, or a construction
-	/// asking for <c>parserSpan</c>.
+	/// asking for <c>parserSpan</c>. <c>{{access}}</c> is what the generated part says of who may
+	/// see it (<see cref="SourceSpanOf"/>).
 	/// </summary>
-	internal const string SourceSpanStruct = """
+	const string SourceSpanStruct = """
 		/// <summary>
 		/// Half-open range of the input: [Start, End).
 		/// </summary>
@@ -503,7 +504,7 @@ static partial class CSharpEmitter
 		/// that was parsed, and against nothing else.
 		/// </para>
 		/// </remarks>
-		public readonly struct SourceSpan
+		{{access}}readonly partial struct SourceSpan
 		{
 			/// <summary>A span of <paramref name="length"/> items beginning at <paramref name="start"/>.</summary>
 			public SourceSpan(int start, int length)

@@ -479,6 +479,18 @@ sealed class GramCompilerOptions
 	public IReadOnlyList<string> Readings { get; set; } = [];
 
 	/// <summary>
+	/// Whether the host declares a part of <c>SourceSpan</c> itself, and so says how visible it is.
+	/// </summary>
+	/// <remarks>
+	/// The span is <c>internal</c> unless a public signature the generator writes names it — a
+	/// publication's value, a property of a rule's type. An author whose own public API hands
+	/// one out raises it with <c>public partial struct SourceSpan { }</c> in the host, and the
+	/// part generated beside it then says nothing of its own about accessibility, as a reading's
+	/// class declared by the author does (<see cref="SuffixDeclared"/>).
+	/// </remarks>
+	public bool SpanDeclared { get; set; }
+
+	/// <summary>
 	/// Which compilation of a host writes the types the host's own C# names — the span
 	/// (§7.5) and the match (§6.1). Null where the host has one grammar and they are its
 	/// own; true for the one that writes them for every other; false for the others.

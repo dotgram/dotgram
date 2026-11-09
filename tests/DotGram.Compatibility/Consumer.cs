@@ -110,6 +110,30 @@ namespace DotGram.Compatibility
 	{
 	}
 
+	// A host whose own public API hands out the span its grammar measures, and so declares its
+	// part of the span public: the generated part is `readonly partial` and says nothing of who
+	// may see it, and the two parts are one struct at the floor, where `readonly` on one part
+	// alone has to be enough.
+	/// <summary>A host that raises the span to public for its own API.</summary>
+	[Gram(
+		"Word : @SourceSpan = ['a'..'z']+\n" +
+		"internal parse Word")]
+	public partial class RaisedSpan
+	{
+		/// <summary>Where a word is, as the host's own API says it.</summary>
+		public partial struct SourceSpan
+		{
+		}
+
+		/// <summary>The span of a word, or the empty one where the text is not a word.</summary>
+		public static SourceSpan Find(string text)
+		{
+			var match = TryParseWord(text);
+
+			return match.IsSuccess ? match.Value : default(SourceSpan);
+		}
+	}
+
 	// A guard that names a value built while the text is read, under a mark: the walk that
 	// builds for such a guard is written with a method of its own asking whether what it may
 	// build is handed the marks standing over it, and that method is a local function. What a

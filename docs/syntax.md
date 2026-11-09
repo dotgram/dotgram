@@ -2394,8 +2394,25 @@ position worth naming.
 
 `.Gram` ships no runtime assembly: everything a generated parser needs is emitted
 beside it. What is emitted into a namespace is `internal`; a parser's own types —
-`Match<T>`, `SourceSpan` and the types its grammar generates — are `public` and nested in
-the host class, so their names are the host's. A consumer therefore takes one analyzer
+`Match<T>`, `SourceSpan` and the types its grammar generates — are nested in the host
+class, so their names are the host's, and are `public` where a caller reads them.
+
+`SourceSpan` is the one a caller often never sees: the grammar's own C# is handed it
+(`parserSpan`, a `recover` factory), and what the host builds from it is the host's
+business. So it is `internal` unless a public signature the generator writes names it — a
+public publication whose value is a span, a property of a rule's generated type — and then
+`public`. A host whose own public API hands one out raises it by declaring its part:
+
+```csharp
+[Gram("Expressions.gram")]
+public static partial class Expressions
+{
+    public partial struct SourceSpan { }   // the generated part then says nothing of who may see it
+}
+```
+
+The generated part is `readonly partial struct SourceSpan`, and the struct is readonly
+whatever the host's part says. A consumer therefore takes one analyzer
 package, acquires no dependency, and has nowhere for a "generator of one version, runtime
 of another" skew to come from.
 
@@ -2864,8 +2881,8 @@ neither compilation can see the other. What the host itself declares stays in re
 a nested class reads the static members of the class around it by their simple names,
 which is what a grammar's `=>` calls are.
 
-**What the host's own C# names is the host's.** `SourceSpan` (§4.1) and `Match<T>` (§6.1)
-appear in the signatures a grammar calls and a caller reads, so where a class carries
+**What the host's own C# names is the host's.** `SourceSpan` (§4.1, §6.2) and `Match<T>`
+(§6.1) appear in the signatures a grammar calls and a caller reads, so where a class carries
 several grammars they are written once, in the class itself, and every scope reads them
 from around it. Otherwise a factory handing a span to a method of the host would be
 handing it a type of the same name that is not the same type, and neither compilation

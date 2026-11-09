@@ -6,6 +6,7 @@ BREAKING CHANGES, and what to do
 - A switch expression with no natural type as the operand of a plain operator (1 + (x switch { … }), !(x switch { … })) is refused, naming the two arms that meet in nothing (CS8506), where it reached the operator's factory with no type. String concatenation still takes it, boxed to object.
 - A member's own initializer, Items = { 1, 2 }, reads the member once for each entry inside it, as C# does, where it read it once for all; the tree is then a block of assignments, not a MemberInit.
 - The public type ExpressionParser.ParserInput<T> is removed; nothing public took or returned it.
+- ExpressionParser.SourceSpan is no longer public; nothing public took or returned it.
 
 NEW
 

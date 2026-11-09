@@ -459,8 +459,9 @@ public sealed class GeneratedNameTests
 			foreach (var type in tree.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<TypeDeclarationSyntax>())
 			{
 				// The class the generator writes into is partial, and so is a suffix of it; a rule's type is the
-				// author's, and what it declares is its captures (GRAM5018's last check).
-				var host = type.Modifiers.Any(static modifier => modifier.Text == "partial");
+				// author's, and what it declares is its captures (GRAM5018's last check). The span is a partial
+				// struct, so that a host can raise it, and is a type of the generator's like the others.
+				var host = type is ClassDeclarationSyntax && type.Modifiers.Any(static modifier => modifier.Text == "partial");
 
 				if (!host && type.Parent is TypeDeclarationSyntax && !IsGenerators(type))
 					continue;
