@@ -129,7 +129,12 @@ static class SharedRecursion
 	}
 
 	/// <summary>The rest of a reading: a node to read or a rule to return from, then the rest. Interned, so compared by reference.</summary>
-	sealed class Rest(object head, Rest? tail)
+	/// <remarks>
+	/// Hashed by the number it was interned under. Most rests are hashed once or twice and then
+	/// dropped, and the hash the runtime gives an object by reference is slow the first time it is
+	/// asked: that first time was most of what the search spent on its own.
+	/// </remarks>
+	sealed class Rest(object head, Rest? tail, int number)
 	{
 		public object Head { get; } = head;
 
@@ -137,9 +142,23 @@ static class SharedRecursion
 
 		/// <summary>How many returns the stack holds.</summary>
 		public int Returns { get; } = (head is RuleSymbol ? 1 : 0) + (tail?.Returns ?? 0);
+
+		/// <summary>The order it was interned in, unique within one search.</summary>
+		public int Number { get; } = number;
+
+		public override bool Equals(object? obj)
+		{
+			return ReferenceEquals(this, obj);
+		}
+
+		public override int GetHashCode()
+		{
+			return Number;
+		}
 	}
 
 	/// <summary>The key a <see cref="Rest"/> is interned by: its head and tail, by reference.</summary>
+	/// <remarks>The head is a node of the graph or a rule, hashed by reference once and then from its header.</remarks>
 	readonly struct Link(object head, Rest? tail) : IEquatable<Link>
 	{
 		public object Head { get; } = head;
@@ -158,7 +177,7 @@ static class SharedRecursion
 
 		public override int GetHashCode()
 		{
-			return RuntimeHelpers.GetHashCode(Head) * 31 + (Tail is null ? 0 : RuntimeHelpers.GetHashCode(Tail));
+			return RuntimeHelpers.GetHashCode(Head) * 31 + (Tail?.Number ?? -1);
 		}
 	}
 
@@ -236,22 +255,67 @@ static class SharedRecursion
 	/// <param name="Entered">The rules of a cycle entered on the way to the letter.</param>
 	/// <param name="Guarded">Whether a <c>when</c> was passed on the way.</param>
 	/// <param name="Forbidden">The <c>?!</c> sequences that begin at this letter.</param>
-	sealed record Step(FirstSets.First? Letter, Rest? After, RuleSymbol[] Entered, bool Guarded, Forbid Forbidden);
+	sealed record Step(FirstSets.First? Letter, Rest? After, RuleSymbol[] Entered, bool Guarded, Forbid Forbidden)
+	{
+		/// <summary>The rule whose cycle <see cref="InCycle"/> and <see cref="Self"/> were last worked out for.</summary>
+		public RuleSymbol? AskedFor { get; set; }
 
-	/// <summary>One joint letter of a witness, with the rules each side entered on it where both did, and the rules of the cycle both entered.</summary>
-	sealed record Trail(string Letter, RuleSymbol[] Both, Trail? Before);
+		/// <summary>Whether a rule of that cycle was entered on the way to the letter.</summary>
+		public bool InCycle { get; set; }
+
+		/// <summary>Whether that rule itself was.</summary>
+		public bool Self { get; set; }
+	}
+
+	/// <summary>
+	/// One joint letter of a witness and what each side entered on the way to it, where both entered
+	/// the cycle; spelled out only for the pair that is told.
+	/// </summary>
+	sealed record Trail(FirstSets.First Letter, RuleSymbol[]? EnteredA, RuleSymbol[]? EnteredB, Trail? Before);
 
 	/// <summary>A pair of configurations being simulated.</summary>
 	readonly record struct State(Rest? A, Forbid ForbidA, Rest? B, Forbid ForbidB, int Joint, bool Guarded, Trail? Trail);
 
 	/// <summary>What a pair state is told apart by.</summary>
-	readonly record struct Seen(Rest? A, Forbid ForbidA, Rest? B, Forbid ForbidB, int Joint);
+	readonly struct Seen(Rest? a, Forbid forbidA, Rest? b, Forbid forbidB, int joint) : IEquatable<Seen>
+	{
+		readonly Rest?  _a       = a;
+		readonly Forbid _forbidA = forbidA;
+		readonly Rest?  _b       = b;
+		readonly Forbid _forbidB = forbidB;
+		readonly int    _joint   = joint;
+
+		public bool Equals(Seen other)
+		{
+			return ReferenceEquals(_a, other._a) && ReferenceEquals(_b, other._b) && _joint == other._joint &&
+				_forbidA.Equals(other._forbidA) && _forbidB.Equals(other._forbidB);
+		}
+
+		public override bool Equals(object? obj)
+		{
+			return obj is Seen other && Equals(other);
+		}
+
+		public override int GetHashCode()
+		{
+			var hash = (_a?.Number ?? -1) * 31 + (_b?.Number ?? -1);
+
+			hash = hash * 31 + _forbidA.GetHashCode();
+			hash = hash * 31 + _forbidB.GetHashCode();
+
+			return hash * 4 + _joint;
+		}
+	}
 
 	/// <summary>A choice and the continuations of its alternatives.</summary>
 	sealed record Candidate(Node Choice, string Shape, Rest?[] Alternatives);
 
 	/// <summary>The rules on the way to a letter, as a list that shares its tail.</summary>
-	sealed record Entry(RuleSymbol Rule, Entry? Before);
+	sealed record Entry(RuleSymbol Rule, Entry? Before)
+	{
+		/// <summary>What <see cref="Search.Entered"/> made of it, kept: every step read past this call shares it.</summary>
+		public RuleSymbol[]? Rules { get; set; }
+	}
 
 	/// <summary>What a <c>?!</c> stands for: the letters it refuses outright, and its longer sequences.</summary>
 	sealed record Refusal(FirstSets.First? Single, int[] Sequences);
@@ -267,6 +331,9 @@ static class SharedRecursion
 		readonly List<FirstSets.First[]>                _sequences = [];
 		readonly Dictionary<RuleSymbol, int>            _component = [];
 		readonly HashSet<RuleSymbol>                    _seams     = [];
+		readonly List<State>                            _frontier  = [];
+		readonly List<State>                            _next      = [];
+		readonly HashSet<Seen>                          _seen      = [];
 
 		static readonly Step[] Ending = [new Step(null, null, [], false, Forbid.None)];
 
@@ -362,7 +429,7 @@ static class SharedRecursion
 			var key = new Link(head, tail);
 
 			if (!_rests.TryGetValue(key, out var rest))
-				_rests[key] = rest = new Rest(head, tail);
+				_rests[key] = rest = new Rest(head, tail, _rests.Count);
 
 			return rest;
 		}
@@ -494,14 +561,21 @@ static class SharedRecursion
 			cut  = false;
 			deep = false;
 
-			var frontier = new List<State> { new(first, Forbid.None, second, Forbid.None, 0, false, null) };
-			var seen     = new HashSet<Seen>();
+			var frontier = _frontier;
+			var next     = _next;
+			var seen     = _seen;
+
+			frontier.Clear();
+			seen.Clear();
+			frontier.Add(new State(first, Forbid.None, second, Forbid.None, 0, false, null));
 
 			(int Level, bool Guarded, Trail? Trail)? best = null;
 
+			var past = false;
+
 			for (var depth = 0; depth < Depth && frontier.Count > 0; depth++)
 			{
-				var next = new List<State>();
+				next.Clear();
 
 				foreach (var state in frontier)
 				{
@@ -513,6 +587,9 @@ static class SharedRecursion
 						if (a.Letter is null)
 							continue;
 
+						var inA       = InCycle(a, component, rule);
+						var forbidOne = state.ForbidA.Or(a.Forbidden);
+
 						foreach (var b in other)
 						{
 							if (b.Letter is null)
@@ -523,59 +600,126 @@ static class SharedRecursion
 							if (joint.Nothing)
 								continue;
 
-							var inA     = InCycle(a.Entered, component, rule, out var selfA);
-							var inB     = InCycle(b.Entered, component, rule, out var selfB);
-							var entered = inA.Count > 0 && inB.Count > 0;
-							var count   = state.Joint + (entered ? 1 : 0);
-							var guarded = state.Guarded || a.Guarded || b.Guarded;
+							var entered   = inA && InCycle(b, component, rule);
+							var self      = entered && a.Self && b.Self;
+							var count     = state.Joint + (entered ? 1 : 0);
+							var guarded   = state.Guarded || a.Guarded || b.Guarded;
+							var forbidTwo = state.ForbidB.Or(b.Forbidden);
 
-							foreach (var (letter, forbidA, forbidB) in Advance(joint, state.ForbidA.Or(a.Forbidden), state.ForbidB.Or(b.Forbidden)))
+							// Most pairs are inside no ?! at all, and then the joint letter is the one outcome.
+							if (forbidOne.IsEmpty && forbidTwo.IsEmpty)
 							{
-								var trail = new Trail(Spelled(letter) + (entered ? $"{{{Names(inA)}|{Names(inB)}}}" : ""), entered ? [.. inA.Where(inB.Contains)] : [], state.Trail);
+								if (Reached(joint, Forbid.None, Forbid.None))
+								{
+									cut = past;
 
-								if (selfA && selfB && Survives(a.After, b.After, forbidA, forbidB))
-									return (3, guarded, Written(trail), JointOf(trail));
+									return Told();
+								}
+
+								continue;
+							}
+
+							foreach (var (letter, forbidA, forbidB) in Advance(joint, forbidOne, forbidTwo))
+							{
+								if (Reached(letter, forbidA, forbidB))
+								{
+									cut = past;
+
+									return Told();
+								}
+							}
+
+							// Whether the simulation ends here: at the rule itself, or at the state budget, with
+							// what is told then in best (null where nothing is).
+							bool Reached(FirstSets.First letter, Forbid forbidA, Forbid forbidB)
+							{
+								if (self && Survives(a.After, b.After, forbidA, forbidB))
+								{
+									best = (3, guarded, Along(letter));
+
+									return true;
+								}
 
 								if (!seen.Add(new Seen(a.After, forbidA, b.After, forbidB, Math.Min(count, 2))))
-									continue;
+									return false;
 
 								if (seen.Count > States)
 								{
-									cut = true;
+									past = true;
 
-									return best is { } cutShort ? (cutShort.Level, cutShort.Guarded, Written(cutShort.Trail), JointOf(cutShort.Trail)) : null;
+									return true;
 								}
+
+								var trail = Along(letter);
 
 								if (count >= 1 && (best is null || Math.Min(count, 2) > best.Value.Level) && Survives(a.After, b.After, forbidA, forbidB))
 									best = (Math.Min(count, 2), guarded, trail);
 
 								next.Add(new State(a.After, forbidA, b.After, forbidB, count, guarded, trail));
+
+								return false;
+							}
+
+							Trail Along(FirstSets.First letter)
+							{
+								return new Trail(letter, entered ? a.Entered : null, entered ? b.Entered : null, state.Trail);
 							}
 						}
 					}
 				}
 
-				frontier = next;
+				(frontier, next) = (next, frontier);
 			}
 
 			deep = frontier.Count > 0;
 
-			return best is { } reached ? (reached.Level, reached.Guarded, Written(reached.Trail), JointOf(reached.Trail)) : null;
+			return Told();
+
+			// The witness is spelled out for the pair told alone, not for every state on the way.
+			(int Level, bool Guarded, string Witness, IReadOnlyList<IReadOnlyList<RuleSymbol>> Joint)? Told()
+			{
+				frontier.Clear();
+				next.Clear();
+				seen.Clear();
+
+				return best is { } reached ? (reached.Level, reached.Guarded, Written(reached.Trail, component), JointOf(reached.Trail, component)) : null;
+			}
 		}
 
-		/// <summary>The rules of the cycle among those entered, and whether the rule itself is one.</summary>
-		List<RuleSymbol> InCycle(RuleSymbol[] entered, int component, RuleSymbol rule, out bool self)
+		/// <summary>
+		/// Whether a step entered a rule of the cycle on the way to its letter, its <see cref="Step.Self"/>
+		/// set to whether the rule itself was one; worked out once per step and rule.
+		/// </summary>
+		bool InCycle(Step step, int component, RuleSymbol rule)
+		{
+			if (ReferenceEquals(step.AskedFor, rule))
+				return step.InCycle;
+
+			var inside = false;
+			var self   = false;
+
+			foreach (var one in step.Entered)
+				if (_component.TryGetValue(one, out var at) && at == component)
+				{
+					inside = true;
+					self  |= ReferenceEquals(one, rule) || one.Equals(rule);
+				}
+
+			step.AskedFor = rule;
+			step.InCycle  = inside;
+			step.Self     = self;
+
+			return inside;
+		}
+
+		/// <summary>The rules of the cycle among those entered.</summary>
+		List<RuleSymbol> Inside(RuleSymbol[] entered, int component)
 		{
 			var inside = new List<RuleSymbol>();
 
-			self = false;
-
 			foreach (var one in entered)
 				if (_component.TryGetValue(one, out var at) && at == component)
-				{
 					inside.Add(one);
-					self |= ReferenceEquals(one, rule) || one.Equals(rule);
-				}
 
 			return inside;
 		}
@@ -590,25 +734,41 @@ static class SharedRecursion
 		}
 
 		/// <summary>The rules both sides entered at each joint entry of the witness, in order, the entries where they entered none left out.</summary>
-		static IReadOnlyList<IReadOnlyList<RuleSymbol>> JointOf(Trail? trail)
+		IReadOnlyList<IReadOnlyList<RuleSymbol>> JointOf(Trail? trail, int component)
 		{
 			var joint = new List<IReadOnlyList<RuleSymbol>>();
 
 			for (var at = trail; at is not null; at = at.Before)
-				if (at.Both.Length > 0)
-					joint.Add(at.Both);
+			{
+				if (at.EnteredA is null || at.EnteredB is null)
+					continue;
+
+				var inB  = Inside(at.EnteredB, component);
+				var both = Inside(at.EnteredA, component).Where(inB.Contains).ToArray();
+
+				if (both.Length > 0)
+					joint.Add(both);
+			}
 
 			joint.Reverse();
 
 			return joint;
 		}
 
-		static string Written(Trail? trail)
+		/// <summary>The joint letters of a witness, each joint entry marked with the rules of the cycle each side entered.</summary>
+		string Written(Trail? trail, int component)
 		{
 			var letters = new List<string>();
 
 			for (var at = trail; at is not null; at = at.Before)
-				letters.Add(at.Letter);
+			{
+				var letter = Spelled(at.Letter);
+
+				if (at.EnteredA is not null && at.EnteredB is not null)
+					letter += $"{{{Names(Inside(at.EnteredA, component))}|{Names(Inside(at.EnteredB, component))}}}";
+
+				letters.Add(letter);
+			}
 
 			letters.Reverse();
 
@@ -625,6 +785,8 @@ static class SharedRecursion
 				if (a.Letter is null)
 					continue;
 
+				var forbidOne = forbidA.Or(a.Forbidden);
+
 				foreach (var b in Expand(second))
 				{
 					if (b.Letter is null)
@@ -632,7 +794,12 @@ static class SharedRecursion
 
 					var joint = Meet(a.Letter, b.Letter);
 
-					if (!joint.Nothing && Advance(joint, forbidA.Or(a.Forbidden), forbidB.Or(b.Forbidden)).Count > 0)
+					if (joint.Nothing)
+						continue;
+
+					var forbidTwo = forbidB.Or(b.Forbidden);
+
+					if (forbidOne.IsEmpty && forbidTwo.IsEmpty || Advance(joint, forbidOne, forbidTwo).Count > 0)
 						return true;
 				}
 			}
@@ -924,20 +1091,28 @@ static class SharedRecursion
 			return count;
 		}
 
+		/// <summary>
+		/// The rules on the way, each once, in the order entered, the last entry of a rule standing
+		/// for it: the ones before the last call with the last call's rule left out, then that rule.
+		/// </summary>
 		static RuleSymbol[] Entered(Entry? entered)
 		{
 			if (entered is null)
 				return [];
 
-			var rules = new List<RuleSymbol>();
+			if (entered.Rules is { } known)
+				return known;
 
-			for (var at = entered; at is not null; at = at.Before)
-				if (!rules.Contains(at.Rule))
-					rules.Add(at.Rule);
+			var before = Entered(entered.Before);
+			var rules  = new List<RuleSymbol>(before.Length + 1);
 
-			rules.Reverse();
+			foreach (var rule in before)
+				if (!rule.Equals(entered.Rule))
+					rules.Add(rule);
 
-			return [.. rules];
+			rules.Add(entered.Rule);
+
+			return entered.Rules = [.. rules];
 		}
 
 		/// <summary>A literal past its first character.</summary>
@@ -1036,6 +1211,10 @@ static class SharedRecursion
 		{
 			if (one.Ends || other.Ends)
 				return one.Ends && other.Ends ? FirstSets.First.End : FirstSets.First.None;
+
+			// Most letters of two configurations are apart, and telling so needs no new set.
+			if (!one.Stops && !other.Stops && !one.Overlaps(other))
+				return FirstSets.First.None;
 
 			return one.And(other);
 		}
