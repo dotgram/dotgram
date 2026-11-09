@@ -2412,7 +2412,10 @@ public static partial class Expressions
 ```
 
 The generated part is `readonly partial struct SourceSpan`, and the struct is readonly
-whatever the host's part says. A consumer therefore takes one analyzer
+whatever the host's part says. A host whose one reading goes into a class of its own (§6.6)
+may declare the part there or in the host, and the span is written where it is declared;
+a host with several readings has one span, in the host, and a part declared in the class
+of a reading is refused (`GRAM5018`). A consumer therefore takes one analyzer
 package, acquires no dependency, and has nowhere for a "generator of one version, runtime
 of another" skew to come from.
 

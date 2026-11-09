@@ -1212,6 +1212,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			SuffixDeclared = host.SuffixDeclared,
 			Readings       = host.Readings.Items,
 			SpanDeclared   = host.SpanDeclared,
+			SpanDeclaredInReading = host.SpanDeclaredInReading,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
@@ -1561,6 +1562,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		bool    SuffixDeclared = false,
 		bool    SpanDeclared   = false,
+		bool    SpanDeclaredInReading = false,
 		bool    Repeated       = false,
 		bool    Shared         = false,
 		string? LocationType   = null,
@@ -1784,6 +1786,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// The same for the span the host's C# names (GramCompilerOptions.SpanDeclared).
 			var spanDeclared = type.GetTypeMembers("SourceSpan").Length > 0;
 
+			// And in the reading's own class, where the author declares that (GramCompilerOptions.SpanDeclaredInReading).
+			var spanDeclaredInReading = suffixDeclared &&
+				type.GetTypeMembers(suffix!).Any(static reading => reading.GetTypeMembers("SourceSpan").Length > 0);
+
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
 			// The literal as written, kept beside the value it decodes to. A diagnostic
@@ -1868,6 +1874,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Includes:   new EquatableArray<Included>([.. included.Select(static one => one.Included)]),
 				SuffixDeclared: suffixDeclared,
 				SpanDeclared:   spanDeclared,
+				SpanDeclaredInReading: spanDeclaredInReading,
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType);
 

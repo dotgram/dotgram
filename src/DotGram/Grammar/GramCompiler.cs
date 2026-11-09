@@ -146,6 +146,15 @@ static class GramCompiler
 				options.Namespace,
 				CSharpEmitter.ClassesOf(options),
 				options.Lexical));
+
+			// A host with several readings has one span, in the host; a part the author declared in the
+			// class of a reading would be a second span of the same name, which the reading reads instead.
+			if (options.SharedTypes && options.SpanDeclaredInReading)
+				diagnostics.Add(new GramDiagnostic(
+					CSharpEmitter.GeneratedNameClash,
+					$"'SourceSpan' is declared in '{options.Suffix}', the class of a reading of a host that has several: " +
+					"they share one span, written in the host. Declare its part in the host instead (docs/syntax.md §6.2).",
+					0, 0, GramSeverity.Error));
 		}
 
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule

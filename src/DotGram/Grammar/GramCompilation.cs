@@ -525,6 +525,19 @@ sealed class GramCompilerOptions
 	public bool SpanDeclared { get; set; }
 
 	/// <summary>
+	/// Whether the class of this reading (<see cref="Suffix"/>), declared by the author, declares a
+	/// part of <c>SourceSpan</c>.
+	/// </summary>
+	/// <remarks>
+	/// A host with one reading in a class of its own has the span written where the author declared a
+	/// part of it — in the host, which the reading's class reads it from, or in the reading's class —
+	/// so that there is one span, of the author's accessibility. A host with several readings has one
+	/// span, in the host, and a part declared in a reading's class would be a second: refused
+	/// (GRAM5018).
+	/// </remarks>
+	public bool SpanDeclaredInReading { get; set; }
+
+	/// <summary>
 	/// Whether the host has several readings, so that the types the host's own C# names — the
 	/// span (§7.5), the match (§6.1) and the input a recognizer reads (§7.1) — are not written
 	/// by this compilation but once for every reading, in a file of the host's own, from what

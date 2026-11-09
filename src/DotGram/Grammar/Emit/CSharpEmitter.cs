@@ -649,6 +649,20 @@ static partial class CSharpEmitter
 		// A nested class reads them by their simple names, and a grammar whose `=>` hands a
 		// span to a method of the host hands it the host's span.
 
+		// The span is the one type a host with one reading may hold either way: the reading's class
+		// writes it, unless the author declared a part of it in the host, which the reading's class
+		// then reads it from. Written there rather than beside the reading, so that there is one
+		// span and it is the author's (GramCompilerOptions.SpanDeclaredInReading).
+		var spanNeeded = UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source);
+		var spanShown  = spanNeeded && ShowsSourceSpan(graph, results);
+		var spanInHost = options.Suffix is { Length: > 0 } && options.SpanDeclared;
+
+		if (!options.SharedTypes && spanNeeded && spanInHost)
+		{
+			file.Write(SourceSpanOf(declared: true, spanShown));
+			file.Line();
+		}
+
 		// Unless the author declared that class, in which case what the author wrote says who
 		// may see it and this part says nothing: `internal static partial class Immediate { }`
 		// beside `[GramOptions(Suffix = "Immediate")]` is a reading nobody outside can reach.
@@ -983,12 +997,9 @@ static partial class CSharpEmitter
 		}
 		// The source graph too, where there is one: a rule that names a span may have moved
 		// into the second read, and the type it names is the file's either way.
-		var spanNeeded = UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source);
-		var spanShown  = spanNeeded && ShowsSourceSpan(graph, results);
-
-		if (!options.SharedTypes && spanNeeded)
+		if (!options.SharedTypes && spanNeeded && !spanInHost)
 		{
-			file.Write(SourceSpanOf(options.SpanDeclared, spanShown));
+			file.Write(SourceSpanOf(options.Suffix is { Length: > 0 } ? options.SpanDeclaredInReading : options.SpanDeclared, spanShown));
 			file.Line();
 		}
 

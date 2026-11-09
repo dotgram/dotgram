@@ -108,6 +108,47 @@ public sealed class GeneratedSurfaceTests
 		Assert.Null(two.GetType("Probe+Fast+Match`1"));
 	}
 
+	/// <summary>
+	/// A host whose one reading goes into a class of its own has its span declared where the author
+	/// declared a part of it: in the host, which the reading's class reads it from, or in the reading's
+	/// class. Either way there is one span, of the author's accessibility.
+	/// </summary>
+	[Theory]
+	[InlineData("public partial struct SourceSpan { }\npublic static SourceSpan Measure() { return new SourceSpan(1, 2); }", "Probe+SourceSpan", "Probe+Fast+SourceSpan")]
+	[InlineData("public static partial class Fast\n{\npublic partial struct SourceSpan { }\npublic static SourceSpan Measure() { return new SourceSpan(1, 2); }\n}", "Probe+Fast+SourceSpan", "Probe+SourceSpan")]
+	public void A_span_declared_beside_a_reading_in_a_class_of_its_own_is_one_span(string members, string declared, string absent)
+	{
+		var assembly = GeneratorDriverTests.Build(
+			"[DotGram.Gram(\"\"\"\nWord = ['a'..'z']+ & when @(parserSpan.Length > 0)\nparse Word\n\"\"\", Suffix = \"Fast\")]\n" +
+			"public static partial class Probe\n{\n" + members + "\n}\n");
+
+		Assert.True(assembly.GetType(declared)!.IsNestedPublic);
+		Assert.Null(assembly.GetType(absent));
+	}
+
+	/// <summary>
+	/// A host with several readings has one span, in the host: a part declared there raises it, and a
+	/// part declared in the class of a reading would be a second span, which is refused.
+	/// </summary>
+	[Fact]
+	public void A_shared_host_has_its_span_declared_in_the_host()
+	{
+		const string attributes =
+			"[DotGram.Gram(\"\"\"\nWord = ['a'..'z']+ & when @(parserSpan.Length > 0)\nparse Word\n\"\"\")]\n" +
+			"[DotGram.GramOptions(Suffix = \"Slow\", Carrier = DotGram.GramCarrier.Tape)]\n";
+
+		var assembly = GeneratorDriverTests.Build(
+			attributes + "public static partial class Probe\n{\npublic partial struct SourceSpan { }\npublic static SourceSpan Measure() { return new SourceSpan(1, 2); }\n}\n");
+
+		Assert.True(assembly.GetType("Probe+SourceSpan")!.IsNestedPublic);
+		Assert.Null(assembly.GetType("Probe+Slow+SourceSpan"));
+
+		var run = GeneratorDriverTests.RunGenerator(
+			attributes + "public static partial class Probe\n{\npublic static partial class Slow\n{\npublic partial struct SourceSpan { }\n}\n}\n");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM5018" && one.GetMessage().Contains("SourceSpan"));
+	}
+
 	static Type Span(string grammar, string members)
 	{
 		var assembly = GeneratorDriverTests.Build(
