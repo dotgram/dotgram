@@ -211,16 +211,36 @@ static partial class CSharpEmitter
 	}
 
 	/// <summary>
+	/// The classes a member written into the host or a reading of it may not be named after: the host,
+	/// and the class of each of its readings (<see cref="GramCompilerOptions.Readings"/>). The same set in
+	/// every reading, so that what a reading may call a publication and what it calls a rule's type does
+	/// not depend on which reading it is.
+	/// </summary>
+	internal static string[] ClassesOf(GramCompilerOptions options)
+	{
+		var classes = new List<string> { ResultTypes.SimpleNameOf(options.ClassName) };
+
+		if (options.Suffix is { Length: > 0 } suffix)
+			classes.Add(suffix);
+
+		classes.AddRange(options.Readings);
+
+		return [.. classes.Distinct(StringComparer.Ordinal)];
+	}
+
+	/// <summary>
 	/// The names the generated class keeps whatever the grammar says, which an author's publication or
-	/// rule's type may not take: the host class, which a member may not be called, and the closed lists of
-	/// the plain names it writes. The names a trace build declares are among them whether or not this
+	/// rule's type may not take: the host class and the classes of its readings, which a member may not be
+	/// called, and the closed lists of the plain names it writes. The names a trace build declares are among them whether or not this
 	/// build is one: a project that traces its Debug build alone (§6.9) compiles one grammar both ways, and
 	/// what the grammar may call its publications and what its rules' types are called must not differ
 	/// between the two.
 	/// </summary>
-	static HashSet<string> Reserved(string host, bool lexical)
+	static HashSet<string> Reserved(IEnumerable<string> classes, bool lexical)
 	{
-		var reserved = new HashSet<string>(PublicNames.Concat(SupportNames).Concat(TraceNames), StringComparer.Ordinal) { host };
+		var reserved = new HashSet<string>(PublicNames.Concat(SupportNames).Concat(TraceNames), StringComparer.Ordinal);
+
+		reserved.UnionWith(classes);
 
 		if (lexical)
 			reserved.UnionWith(LexerNames);
@@ -233,9 +253,9 @@ static partial class CSharpEmitter
 	/// method a publication is written as. A name the generator makes from the grammar's own names is none
 	/// of them, since it carries the mark.
 	/// </summary>
-	internal static HashSet<string> TypeNamesTaken(string host, RecognitionGraph graph, bool lexical = false)
+	internal static HashSet<string> TypeNamesTaken(IEnumerable<string> classes, RecognitionGraph graph, bool lexical = false)
 	{
-		var taken = Reserved(host, lexical);
+		var taken = Reserved(classes, lexical);
 
 		foreach (var publication in graph.Publications)
 			taken.UnionWith(MembersOf(publication));
@@ -256,19 +276,14 @@ static partial class CSharpEmitter
 	/// name is made from these by <see cref="Named"/>, and is one name only where they are.
 	/// </para>
 	/// </remarks>
-	/// <param name="className">The host class, as a chain.</param>
+	/// <param name="className">The class the publications are written into, as a chain.</param>
+	/// <param name="classes">The host and the classes of its readings (<see cref="ClassesOf"/>).</param>
 	internal static List<GramDiagnostic> NameClashes(
-		RecognitionGraph graph, string className, string? @namespace, bool lexical = false)
+		RecognitionGraph graph, string className, string? @namespace, IReadOnlyCollection<string> classes, bool lexical = false)
 	{
 		var said    = new List<GramDiagnostic>();
-		var results = new ResultTypes(graph, className, @namespace, lexical);
-		var host    = className.Substring(className.LastIndexOf('.') + 1);
-		var angle   = host.IndexOf('<');
-
-		if (angle >= 0)
-			host = host.Substring(0, angle);
-
-		var members = Reserved(host, lexical);
+		var results = new ResultTypes(graph, className, @namespace, lexical, classes);
+		var members = Reserved(classes, lexical);
 		var names   = new Dictionary<string, Publication>(StringComparer.Ordinal);
 
 		foreach (var publication in graph.Publications)
@@ -278,8 +293,9 @@ static partial class CSharpEmitter
 				{
 					said.Add(Clash(
 						$"'{publication.MethodName}' " + (name == publication.MethodName ? "" : $"writes '{name}', which ") +
-						"is the name of a member of the generated class" +
-						(name == host ? ", which no member may share its name with" : "") +
+						(classes.Contains(name)
+							? "is the name of the generated class or of the class of a reading of it, which no member may share its name with"
+							: "is the name of a member of the generated class") +
 						". Give the publication another name with 'as' (docs/syntax.md §6).",
 						publication.At.Position, publication.At.Length));
 
@@ -368,9 +384,10 @@ static partial class CSharpEmitter
 	/// apart: every rule's identifier and publication's name, which a derived name is made from; the
 	/// methods the publications are written as; and the rules' types.
 	/// </summary>
-	internal static GramNames NamesOf(RecognitionGraph graph, IEnumerable<RecognitionGraph> more, string className, string? @namespace, bool lexical)
+	internal static GramNames NamesOf(
+		RecognitionGraph graph, IEnumerable<RecognitionGraph> more, string className, string? @namespace, IReadOnlyCollection<string> classes, bool lexical)
 	{
-		var results     = new ResultTypes(graph, className, @namespace, lexical);
+		var results     = new ResultTypes(graph, className, @namespace, lexical, classes);
 		var identifiers = new SortedSet<string>(StringComparer.Ordinal);
 
 		foreach (var one in more.Prepend(graph))

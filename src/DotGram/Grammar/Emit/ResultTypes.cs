@@ -47,14 +47,21 @@ sealed class ResultTypes
 		return found;
 	}
 
-	/// <param name="className">The host class, as a chain — <c>Outer.Inner</c>.</param>
+	/// <param name="className">
+	/// The class the types are nested in, as a chain — <c>Outer.Inner</c>, and a reading's class after
+	/// the host's (<c>Url.Traced</c>).
+	/// </param>
 	/// <param name="lexical">Whether the grammar is read over tokens, whose lexer has a public <c>Scan</c>.</param>
-	public ResultTypes(RecognitionGraph graph, string className, string? @namespace, bool lexical = false)
+	/// <param name="classes">
+	/// The classes a type may not be named after: the host and every class of a reading of it
+	/// (<see cref="CSharpEmitter.ClassesOf"/>), the same in each reading, so that a rule's type is one
+	/// name in all of them. Null names only the innermost class of <paramref name="className"/>.
+	/// </param>
+	public ResultTypes(RecognitionGraph graph, string className, string? @namespace, bool lexical = false, IReadOnlyCollection<string>? classes = null)
 	{
 		_prefix = "global::" + (@namespace is null ? "" : @namespace + ".") + className + ".";
 
-		var host   = SimpleNameOf(className);
-		var taken  = CSharpEmitter.TypeNamesTaken(host, graph, lexical);
+		var taken  = CSharpEmitter.TypeNamesTaken(classes ?? [SimpleNameOf(className)], graph, lexical);
 		var wanted = new List<(RuleSymbol Rule, string Name)>();
 		var spans  = BuildsSpans(graph);
 
@@ -206,7 +213,7 @@ sealed class ResultTypes
 	public string? Facade { get; set; }
 
 	/// <summary>The innermost class, without its type parameters.</summary>
-	static string SimpleNameOf(string className)
+	internal static string SimpleNameOf(string className)
 	{
 		var name = className;
 		var dot  = name.LastIndexOf('.');

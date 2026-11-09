@@ -24,6 +24,14 @@ static class SnapshotRenderings
 	public const string Namespace = "DotGram.Snapshots";
 
 	/// <summary>
+	/// The classes of the readings of a grammar rendered more than once, which each of its readings is
+	/// told, as the generator tells every reading of a host (GramCompilerOptions.Readings).
+	/// </summary>
+	static readonly string[] TwiceReadings   = ["Immediate", "Traced"];
+	static readonly string[] UrlReadings     = ["Traced", "Stepped"];
+	static readonly string[] LexicalReadings = ["Chained", "Utf8"];
+
+	/// <summary>
 	/// What a grammar here is compiled with: the defaults, unless the grammar is one of the few
 	/// that exist to hold a path the defaults do not reach.
 	/// </summary>
@@ -93,7 +101,8 @@ static class SnapshotRenderings
 				// both readings immediately otherwise, and there would be one reading twice.
 				var tape = Options();
 
-				tape.Carrier = CarrierKind.Tape;
+				tape.Carrier  = CarrierKind.Tape;
+				tape.Readings = TwiceReadings;
 
 				yield return (tape, null);
 
@@ -102,6 +111,7 @@ static class SnapshotRenderings
 				immediate.Suffix         = "Immediate";
 				immediate.SuffixDeclared = true;
 				immediate.Carrier        = CarrierKind.Immediate;
+				immediate.Readings       = TwiceReadings;
 
 				yield return (immediate, null);
 
@@ -110,9 +120,10 @@ static class SnapshotRenderings
 				// readers, every return of a rule reporting it, read against the file above it.
 				var traced = Options();
 
-				traced.Suffix  = "Traced";
-				traced.Trace   = true;
-				traced.Carrier = CarrierKind.Tape;
+				traced.Suffix   = "Traced";
+				traced.Trace    = true;
+				traced.Carrier  = CarrierKind.Tape;
+				traced.Readings = TwiceReadings;
 
 				yield return (traced, null);
 
@@ -124,12 +135,17 @@ static class SnapshotRenderings
 			// `Fail:` pops it, a scanned rule around its scanner — read against the file above it.
 			case "Url":
 			{
-				yield return (Options(), null);
+				var url = Options();
+
+				url.Readings = UrlReadings;
+
+				yield return (url, null);
 
 				var traced = Options();
 
-				traced.Suffix = "Traced";
-				traced.Trace  = true;
+				traced.Suffix   = "Traced";
+				traced.Trace    = true;
+				traced.Readings = UrlReadings;
 
 				yield return (traced, null);
 
@@ -137,8 +153,9 @@ static class SnapshotRenderings
 				// DOTGRAM_STEPS carries no text of: the calls at every step and the methods they call.
 				var stepped = Options();
 
-				stepped.Suffix = "Stepped";
-				stepped.Steps  = true;
+				stepped.Suffix   = "Stepped";
+				stepped.Steps    = true;
+				stepped.Readings = UrlReadings;
 
 				yield return (stepped, null);
 
@@ -159,7 +176,8 @@ static class SnapshotRenderings
 			{
 				var tower = Options();
 
-				tower.Carrier = CarrierKind.Tape;
+				tower.Carrier  = CarrierKind.Tape;
+				tower.Readings = ["Checked"];
 
 				yield return (tower, null);
 
@@ -168,9 +186,10 @@ static class SnapshotRenderings
 				// it is compiled with the symbol defined.
 				var checks = Options();
 
-				checks.Carrier = CarrierKind.Tape;
-				checks.Checks  = true;
-				checks.Suffix  = "Checked";
+				checks.Carrier  = CarrierKind.Tape;
+				checks.Checks   = true;
+				checks.Suffix   = "Checked";
+				checks.Readings = ["Checked"];
 
 				yield return (checks, null);
 
@@ -220,7 +239,8 @@ static class SnapshotRenderings
 			{
 				var lexical = Options();
 
-				lexical.Lexical = true;
+				lexical.Lexical  = true;
+				lexical.Readings = LexicalReadings;
 
 				yield return (lexical, null);
 
@@ -229,10 +249,11 @@ static class SnapshotRenderings
 				// attribute, so nothing else in this set can show what they are instead of.
 				var chained = Options();
 
-				chained.Lexical      = true;
-				chained.PrefixTables = false;
-				chained.Suffix       = "Chained";
+				chained.Lexical        = true;
+				chained.PrefixTables   = false;
+				chained.Suffix         = "Chained";
 				chained.SuffixDeclared = true;
+				chained.Readings       = LexicalReadings;
 
 				yield return (chained, null);
 
@@ -244,6 +265,7 @@ static class SnapshotRenderings
 				utf8.Utf8Literals   = true;
 				utf8.Suffix         = "Utf8";
 				utf8.SuffixDeclared = true;
+				utf8.Readings       = LexicalReadings;
 
 				yield return (utf8, null);
 

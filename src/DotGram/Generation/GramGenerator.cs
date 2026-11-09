@@ -1152,6 +1152,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// including class having to derive from anything.
 			StaticImports  = [.. host.Includes.Items.Select(static one => one.Imported)],
 			SuffixDeclared = host.SuffixDeclared,
+			Readings       = host.Readings.Items,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
@@ -1494,7 +1495,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool?   Shared         = null,
 		string? LocationType   = null,
 		string? LocatedFacade  = null,
-		bool    LocatedFacadeDeclared = false)
+		bool    LocatedFacadeDeclared = false,
+		EquatableArray<string> Readings = default)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1646,6 +1648,22 @@ public sealed class GramGenerator : IIncrementalGenerator
 						LocatedFacadeDeclared = facadeDeclared,
 					},
 					hosts[0].Site);
+
+			// The class of every reading, and the per-call facade's, told to each of them: what a
+			// member may not be called and what a rule's type is named against, alike in all of them
+			// (GramCompilerOptions.Readings).
+			if (hosts.Count > 1 || facade is not null)
+			{
+				var classes = new EquatableArray<string>([.. hosts
+					.Select(static one => one.Host.Options.Suffix)
+					.Append(facade)
+					.OfType<string>()
+					.Where(static one => one.Length > 0)
+					.Distinct(StringComparer.Ordinal)]);
+
+				for (var at = 0; at < hosts.Count; at++)
+					hosts[at] = (hosts[at].Host with { Readings = classes }, hosts[at].Site);
+			}
 
 			return hosts.ToImmutable();
 		}

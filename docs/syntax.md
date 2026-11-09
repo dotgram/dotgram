@@ -2889,7 +2889,13 @@ which is the scope the `[Gram]` already has — is refused (`GRAM0006`), because
 would silently win.
 
 The value types a grammar generates are the compilation's own, so two compilations of a
-grammar that builds its own types build two families of them. Where the types are
+grammar that builds its own types build two families of them. They are named alike in
+every reading: a rule's type is named against the host and the classes of all its readings,
+whichever reading writes it, so a rule `Url` in a host `Url` builds `Url.UrlValue` and
+`Url.Traced.UrlValue`, and code written against one reading moves to another by its
+prefix. For the same reason no publication, and no rule's type, may take the name of a
+reading's class: `parse Body as Traced` beside a reading `Traced` is refused (`GRAM5018`)
+in every reading, and a rule `Traced` builds a `TracedValue`. Where the types are
 written by hand and named with `@`, both build the same ones, which is what makes two
 carriers over one grammar comparable at all.
 

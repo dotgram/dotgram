@@ -464,6 +464,21 @@ sealed class GramCompilerOptions
 	public bool SuffixDeclared { get; set; }
 
 	/// <summary>
+	/// The classes nested in the host that its readings are compiled into — every reading's
+	/// <see cref="Suffix"/>, this one's among them — and the class the methods of a per-call
+	/// reading stand in. Empty where the host has one reading.
+	/// </summary>
+	/// <remarks>
+	/// What a member of the host or of a reading may not be called, as the host itself may not:
+	/// a publication named after a reading's class is a method beside a class of one name. And
+	/// what a rule's type is named against, by every reading alike, so that the type of a rule
+	/// is one name in every reading of the host — <c>Url.UrlValue</c> and
+	/// <c>Url.Traced.UrlValue</c>, not <c>Url.Traced.Url</c>, which a reading named against its
+	/// own class alone would leave it.
+	/// </remarks>
+	public IReadOnlyList<string> Readings { get; set; } = [];
+
+	/// <summary>
 	/// Which compilation of a host writes the types the host's own C# names — the span
 	/// (§7.5) and the match (§6.1). Null where the host has one grammar and they are its
 	/// own; true for the one that writes them for every other; false for the others.

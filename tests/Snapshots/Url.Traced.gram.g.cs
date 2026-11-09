@@ -11,7 +11,7 @@ namespace DotGram.Snapshots
 			/// <exception cref="global::System.FormatException">
 			/// The input is not <c>Url</c>. <c>TryParseUrl</c> answers instead.
 			/// </exception>
-			public static global::DotGram.Snapshots.Url.Traced.Url ParseUrl(string input)
+			public static global::DotGram.Snapshots.Url.Traced.UrlValue ParseUrl(string input)
 			{
 				var match = TryParseUrl(input);
 
@@ -26,13 +26,13 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Parses the whole input as <c>Url</c>, answering rather than throwing.</summary>
-			public static Match<global::DotGram.Snapshots.Url.Traced.Url> TryParseUrl(string input)
+			public static Match<global::DotGram.Snapshots.Url.Traced.UrlValue> TryParseUrl(string input)
 			{
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, 0, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -70,23 +70,23 @@ namespace DotGram.Snapshots
 						? "Expected more input."
 						: "Input does not match 'Url'.";
 
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
+					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
 				}
 
-				return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, 0, end);
+				return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, 0, end);
 			}
 
 			/// <summary>Parses the whole input as <c>Url</c>, answering only whether it is one.</summary>
 			/// <remarks>
 			/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
 			/// </remarks>
-			public static bool TryParseUrl(string input, out global::DotGram.Snapshots.Url.Traced.Url value)
+			public static bool TryParseUrl(string input, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, 0, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -117,18 +117,18 @@ namespace DotGram.Snapshots
 			/// reading began and how far it got, so a caller may go on from it. A position
 			/// is an offset into the text.
 			/// </remarks>
-			public static Match<global::DotGram.Snapshots.Url.Traced.Url> TryParseUrl(string input, int at)
+			public static Match<global::DotGram.Snapshots.Url.Traced.UrlValue> TryParseUrl(string input, int at)
 			{
 				if (at < 0 || at > input.Length)
 				{
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null));
+					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null));
 				}
 
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -169,10 +169,10 @@ namespace DotGram.Snapshots
 						? "Expected more input."
 						: "Input does not match 'Url'.";
 
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
+					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
 				}
 
-				return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, at, end - at);
+				return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, at, end - at);
 			}
 
 			/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
@@ -181,7 +181,7 @@ namespace DotGram.Snapshots
 			/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
 			/// refusal it stays where it was.
 			/// </remarks>
-			public static bool TryParseUrl(string input, ref int at, out global::DotGram.Snapshots.Url.Traced.Url value)
+			public static bool TryParseUrl(string input, ref int at, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				if (at < 0 || at > input.Length)
 					throw new global::System.ArgumentOutOfRangeException(nameof(at));
@@ -190,7 +190,7 @@ namespace DotGram.Snapshots
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -222,18 +222,18 @@ namespace DotGram.Snapshots
 			/// <c>at + length</c> on; it is not required to reach that far, and what comes back
 			/// says how far it got. Positions are offsets into the whole input.
 			/// </remarks>
-			public static Match<global::DotGram.Snapshots.Url.Traced.Url> TryParseUrl(string input, int at, int length)
+			public static Match<global::DotGram.Snapshots.Url.Traced.UrlValue> TryParseUrl(string input, int at, int length)
 			{
 				if (at < 0 || length < 0 || at > input.Length - length)
 				{
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null));
+					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null));
 				}
 
 				var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -274,10 +274,10 @@ namespace DotGram.Snapshots
 						? "Expected more input."
 						: "Input does not match 'Url'.";
 
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
+					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
 				}
 
-				return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, at, end - at);
+				return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, at, end - at);
 			}
 
 			/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
@@ -286,7 +286,7 @@ namespace DotGram.Snapshots
 			/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
 			/// refusal it stays where it was.
 			/// </remarks>
-			public static bool TryParseUrl(string input, ref int at, int length, out global::DotGram.Snapshots.Url.Traced.Url value)
+			public static bool TryParseUrl(string input, ref int at, int length, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				if (at < 0 || length < 0 || at > input.Length - length)
 					throw new global::System.ArgumentOutOfRangeException(nameof(at));
@@ -295,7 +295,7 @@ namespace DotGram.Snapshots
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -322,19 +322,19 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Every occurrence of <c>Url</c>, in order, found as it is asked for.</summary>
-			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(string input)
+			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> AllUrls(string input)
 			{
 				return Traced_DotGram_AllUrls(input, Tracing_DotGram.Value);
 			}
 
-			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> Traced_DotGram_AllUrls(string input, GramTrace? trace)
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> Traced_DotGram_AllUrls(string input, GramTrace? trace)
 			{
 				for (var start = 0; start <= input.Length; )
 				{
 					var failure = new Failure { Quiet = true };
 
 					var read = Began_DotGram(ref failure, trace, "Url", true, start, "engine", input, null, 0, 0, 0);
-					global::DotGram.Snapshots.Url.Traced.Url recognized;
+					global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 					int end;
 
 					var asked = Tracing_DotGram.Value;
@@ -364,7 +364,7 @@ namespace DotGram.Snapshots
 						continue;
 					}
 
-					yield return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, start, end - start);
+					yield return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, start, end - start);
 
 					// A rule that matches nothing would otherwise find it for ever.
 					start = end > start ? end : start + 1;
@@ -376,12 +376,12 @@ namespace DotGram.Snapshots
 			/// The input is read through a buffer that is reused, so what is held is what the
 			/// occurrence being read needs and not the input (docs/syntax.md §6.3).
 			/// </remarks>
-			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(global::System.IO.TextReader input)
+			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> AllUrls(global::System.IO.TextReader input)
 			{
 				return Traced_DotGram_AllUrls(input, Tracing_DotGram.Value);
 			}
 
-			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> Traced_DotGram_AllUrls(global::System.IO.TextReader input, GramTrace? trace)
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> Traced_DotGram_AllUrls(global::System.IO.TextReader input, GramTrace? trace)
 			{
 				var window = new Window_DotGram(input, 4096);
 				var start  = 0;
@@ -391,7 +391,7 @@ namespace DotGram.Snapshots
 					var failure = new Failure();
 
 					var read = Began_DotGram(ref failure, trace, "Url", true, start, "engine", null, null, 0, 0, (int)window.Offset);
-					global::DotGram.Snapshots.Url.Traced.Url recognized;
+					global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 					int end;
 
 					var asked = Tracing_DotGram.Value;
@@ -430,7 +430,7 @@ namespace DotGram.Snapshots
 						continue;
 					}
 
-					yield return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, window.Offset + start, end - start);
+					yield return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, window.Offset + start, end - start);
 
 					// A rule that matches nothing would otherwise find it for ever.
 					start = end > start ? end : start + 1;
@@ -446,14 +446,14 @@ namespace DotGram.Snapshots
 			/// end of each: a sequence of lines has had its terminators taken off, and <c>Url</c>
 			/// may well be looking for one.
 			/// </remarks>
-			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(global::System.Collections.Generic.IEnumerable<string> input)
+			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> AllUrls(global::System.Collections.Generic.IEnumerable<string> input)
 			{
 				if (input is null)
 					throw new global::System.ArgumentNullException(nameof(input));
 
 				return OverLines_DotGram(input);
 
-				static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> OverLines_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
+				static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> OverLines_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
 				{
 					using var lines_DotGram = new Lines_DotGram(input);
 
@@ -463,9 +463,9 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What the rule <c>Url</c> recognized.</summary>
-			public sealed class Url
+			public sealed class UrlValue
 			{
-				internal Url(string scheme, global::DotGram.Snapshots.Url.Traced.Authority authority, string path, string? query, string? fragment)
+				internal UrlValue(string scheme, global::DotGram.Snapshots.Url.Traced.Authority authority, string path, string? query, string? fragment)
 				{
 					Scheme = scheme;
 					Authority = authority;
@@ -3947,19 +3947,19 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int RecWhole_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
+			static int RecWhole_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				object? recognized;
 				var end = Recognize_DotGram(text, pos, 3, 0, true, true, ref failure, out recognized);
-				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.Url)recognized!;
+				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.UrlValue)recognized!;
 				return end;
 			}
 
-			static int Rec_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
+			static int Rec_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				object? recognized;
 				var end = Recognize_DotGram(text, pos, 3, 0, false, true, ref failure, out recognized);
-				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.Url)recognized!;
+				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.UrlValue)recognized!;
 				return end;
 			}
 
@@ -4157,7 +4157,7 @@ namespace DotGram.Snapshots
 							#endif
 							var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
 
-							values0[completedAt] = new global::DotGram.Snapshots.Url.Traced.Url(
+							values0[completedAt] = new global::DotGram.Snapshots.Url.Traced.UrlValue(
 								captured0!,
 								captured1!,
 								captured2!,
@@ -6684,7 +6684,7 @@ namespace DotGram.Snapshots
 			{
 				internal readonly ParserArena_DotGram Entries = new ParserArena_DotGram();
 				object?[] _values = global::System.Array.Empty<object?>();
-				global::DotGram.Snapshots.Url.Traced.Url[] _values0 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Traced.Url>();
+				global::DotGram.Snapshots.Url.Traced.UrlValue[] _values0 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Traced.UrlValue>();
 				global::DotGram.Snapshots.Url.Traced.Authority[] _values1 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Traced.Authority>();
 				int[] _linkHeads = global::System.Array.Empty<int>();
 				int[] _linkNexts = global::System.Array.Empty<int>();
@@ -6725,7 +6725,7 @@ namespace DotGram.Snapshots
 					return _values;
 				}
 
-				internal global::DotGram.Snapshots.Url.Traced.Url[] Materialization0() { return _values0; }
+				internal global::DotGram.Snapshots.Url.Traced.UrlValue[] Materialization0() { return _values0; }
 				internal global::DotGram.Snapshots.Url.Traced.Authority[] Materialization1() { return _values1; }
 
 				internal int[] MaterializationHeads() => _linkHeads;
