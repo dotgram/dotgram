@@ -25,7 +25,10 @@ namespace DotGram.Tests;
 /// </summary>
 public sealed class GeneratedNameTests
 {
-	/// <summary>A publication cannot be called what the class declares beside it.</summary>
+	/// <summary>
+	/// A publication cannot be called what the class declares beside it, nor what a trace build of the
+	/// same grammar would declare: the names a grammar may use do not change with the build.
+	/// </summary>
 	[Theory]
 	[InlineData("Match")]
 	[InlineData("Outcome")]
@@ -37,6 +40,12 @@ public sealed class GeneratedNameTests
 	[InlineData("Failure")]
 	[InlineData("ParserEntry")]
 	[InlineData("Probe")]
+	[InlineData("Tracing")]
+	[InlineData("GramTrace")]
+	[InlineData("GramRead")]
+	[InlineData("GramWhy")]
+	[InlineData("GramTraceLog")]
+	[InlineData("GramProfile")]
 	public void A_publication_named_like_a_member_of_the_class_is_refused(string name)
 	{
 		var result = Compile($"W = 'w'\nparse W as {name}");
@@ -143,7 +152,8 @@ public sealed class GeneratedNameTests
 	/// <summary>
 	/// Every type the class nests for its own use has a name no name of the author's can be (it holds
 	/// <c>_DotGram</c>), but two, which are reserved instead, and the public ones: a rule called after
-	/// one of those gets a type of another name, and a rule called after any other keeps its own.
+	/// one of those gets a type of another name, and a rule called after any other keeps its own. The
+	/// names of a trace build are among those in every build, so that the type is one name either way.
 	/// </summary>
 	[Theory]
 	[InlineData("Failure", true)]
@@ -153,6 +163,8 @@ public sealed class GeneratedNameTests
 	[InlineData("SourceSpan", true)]
 	[InlineData("ParserInput", true)]
 	[InlineData("OnRecovered", true)]
+	[InlineData("Tracing", true)]
+	[InlineData("GramRead", true)]
 	[InlineData("Window", false)]
 	[InlineData("Lines", false)]
 	[InlineData("Held", false)]

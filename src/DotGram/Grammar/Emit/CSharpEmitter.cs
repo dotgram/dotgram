@@ -297,7 +297,7 @@ static partial class CSharpEmitter
 		var file    = new Writer(0);
 		var scope   = new Stack<IDisposable>();
 		var scoped  = options.Suffix is { Length: > 0 } ? options.ClassName + "." + options.Suffix : options.ClassName;
-		var results = new ResultTypes(graph, scoped, options.Namespace, traced: options.Trace, lexical: lexical is not null);
+		var results = new ResultTypes(graph, scoped, options.Namespace, lexical: lexical is not null);
 
 		// What a trace build numbers its events by, one table for every machine of the file; null
 		// where the build is not one, which writes nothing of it anywhere.
