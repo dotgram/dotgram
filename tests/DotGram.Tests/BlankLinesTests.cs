@@ -4,9 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
+using static System.IO.SearchOption;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 using Xunit;
 
@@ -19,23 +22,30 @@ namespace DotGram.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Three things are counted, file by file, over every handwritten <c>.cs</c> under <c>src/</c> and
+/// Four things are counted, file by file, over every handwritten <c>.cs</c> under <c>src/</c> and
 /// <c>tests/</c>, from the syntax tree and its trivia alone:
 /// </para>
 /// <list type="bullet">
 /// <item><c>declarations</c>: a run of local declarations that touches a neighbouring statement which is not
-/// a declaration, with no blank line between them;</item>
+/// a declaration, with no blank line between them — except one declaration of one variable directly before
+/// the <c>return</c> after it;</item>
 /// <item><c>control</c>: an <c>if</c>, <c>for</c>, <c>foreach</c>, <c>while</c>, <c>do</c>, <c>switch</c>,
-/// <c>using</c>, <c>lock</c> or <c>try</c> with a neighbouring statement and no blank line between them;</item>
+/// <c>using</c>, <c>lock</c>, <c>try</c>, <c>checked</c>, <c>unsafe</c>, <c>fixed</c> or a bare block with a
+/// neighbouring statement and no blank line between them;</item>
 /// <item><c>short-if-group</c>: the same for a group of short <c>if</c>s — an <c>if</c> with no <c>else</c>
 /// and no braces whose single statement is on its line or the next — which may stand together with no
-/// blank line inside, and the group as a whole apart.</item>
+/// blank line inside, and the group as a whole apart; a block that holds nothing but the group and a
+/// <c>break</c> or <c>return</c> after it, a case's body say, needs no blank line before that;</item>
+/// <item><c>directives</c>: an <c>#if</c> with no blank line above it, or an <c>#endif</c> with none below,
+/// in front of a statement — except directly after a <c>{</c> or a case label, or directly before a
+/// <c>}</c>.</item>
 /// </list>
 /// <para>
 /// Only neighbours in one statement list are compared, so the first statement after a <c>{</c> and the
 /// last before a <c>}</c> need nothing, and <c>else</c>, <c>catch</c> and <c>finally</c>, which are no
 /// statements of their own, are never counted. A comment directly above a statement belongs to it: the
-/// blank line goes before the comment, and a comment with no blank line above it is no separation.
+/// blank line goes before the comment, and a comment with no blank line above it is no separation, nor is an
+/// <c>#endif</c>.
 /// </para>
 /// <para>
 /// The baseline holds a count per file and rule, not lines, which move with every edit. A file that does
@@ -65,24 +75,28 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 
 		var baseline = Read();
 		var faults   = new List<string>();
-		var counted  = found.GroupBy(static one => (one.File, one.Rule)).ToDictionary(static group => group.Key, static group => group.ToList());
+		var counted  = found
+			.GroupBy(static one => (one.File, one.Rule))
+			.ToDictionary(static group => group.Key, static group => group.ToList());
 
-		foreach (var (key, places) in counted.OrderBy(static one => one.Key.File, StringComparer.Ordinal).ThenBy(static one => one.Key.Rule, StringComparer.Ordinal))
+		foreach (var (key, places) in counted.OrderBy(static one => Order(one.Key), StringComparer.Ordinal))
 		{
 			var then = baseline.GetValueOrDefault(key);
 
 			if (places.Count > then)
 				faults.Add(
 					$"{key.File}: {places.Count} breaks of `{key.Rule}` where the baseline has {then}:" +
-					string.Concat(places.Select(static one => $"{Environment.NewLine}  {one.File}:{one.Line}: {one.What}")));
+					string.Concat(places.Select(static one => $"\n  {one.File}:{one.Line}: {one.What}")));
 		}
 
-		foreach (var (key, then) in baseline.OrderBy(static one => one.Key.File, StringComparer.Ordinal).ThenBy(static one => one.Key.Rule, StringComparer.Ordinal))
+		foreach (var (key, then) in baseline.OrderBy(static one => Order(one.Key), StringComparer.Ordinal))
 		{
 			var now = counted.TryGetValue(key, out var places) ? places.Count : 0;
 
 			if (now < then)
-				faults.Add($"{key.File}: {now} breaks of `{key.Rule}` where the baseline has {then}. Lower the baseline: {RecordName}=1 and run this test again.");
+				faults.Add(
+					$"{key.File}: {now} breaks of `{key.Rule}` where the baseline has {then}. " +
+					$"Lower the baseline: {RecordName}=1 and run this test again.");
 		}
 
 		foreach (var fault in faults)
@@ -142,6 +156,37 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 						Write(e.ToString());
 				}
 
+				int One(string a)
+				{
+					var b = a.Length;
+					return b;
+				}
+
+				void Case(int k)
+				{
+					switch (k)
+					{
+						case 1:
+							if (k > 0) Fail();
+							break;
+
+						case 2:
+							if (k > 1)
+								return;
+							if (k > 2)
+								Fail();
+							return;
+					}
+
+					Load();
+
+			#if DEBUG
+					Fail();
+			#endif
+
+					Load();
+				}
+
 				void Prepare() { }
 				void Load() { }
 				void Fail() { }
@@ -176,6 +221,35 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 					Load();
 				}
 
+				int Two(string a)
+				{
+					var b = a.Length;
+					var c = b + 1;
+					return c;
+				}
+
+				void Case(int k)
+				{
+					switch (k)
+					{
+						case 1:
+							Load();
+							if (k > 0) Load();
+							break;
+					}
+
+					{
+						Load();
+					}
+					Load();
+					foreach (var c in "ab") Load();
+					Load();
+			#if DEBUG
+					Load();
+			#endif
+					Load();
+				}
+
 				void Prepare() { }
 				void Load() { }
 				void Write(string s) { }
@@ -191,12 +265,22 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 				"16 short-if-group",
 				"17 control",
 				"21 control",
+				"28 declarations",
+				"37 short-if-group",
+				"38 short-if-group",
+				"44 control",
+				"45 control",
+				"46 control",
+				"47 directives",
+				"49 directives",
 			],
 			Breaks(broken));
 
 		static string[] Breaks(string text)
 		{
-			return [.. Check("C.cs", CSharpSyntaxTree.ParseText(text)).Select(static one => $"{one.Line} {one.Rule}")];
+			var breaks = Check("C.cs", CSharpSyntaxTree.ParseText(text));
+
+			return [.. breaks.OrderBy(static one => one.Line).Select(static one => $"{one.Line} {one.Rule}")];
 		}
 	}
 
@@ -209,8 +293,9 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 	{
 		var found   = new List<Break>();
 		var options = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var paths   = Roots.SelectMany(one => Directory.EnumerateFiles(Path.Combine(root, one), "*.cs", AllDirectories));
 
-		foreach (var path in Roots.SelectMany(one => Directory.EnumerateFiles(Path.Combine(root, one), "*.cs", SearchOption.AllDirectories)))
+		foreach (var path in paths)
 		{
 			var file = Path.GetRelativePath(root, path).Replace('\\', '/');
 
@@ -232,18 +317,21 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 		if (file.Contains("/obj/", StringComparison.Ordinal) || file.Contains("/bin/", StringComparison.Ordinal))
 			return true;
 
-		if (file.EndsWith(".g.cs", StringComparison.Ordinal) || file.EndsWith(".generate.cs", StringComparison.Ordinal) || file.EndsWith(".Table.cs", StringComparison.Ordinal))
+		if (file.EndsWith(".g.cs",        StringComparison.Ordinal) ||
+			file.EndsWith(".generate.cs", StringComparison.Ordinal) ||
+			file.EndsWith(".Table.cs",    StringComparison.Ordinal))
 			return true;
 
 		// Every version of FIX is written by generate.cs from the FIX repository.
-		if (file.StartsWith("src/DotGram.Finance/Fix/Fix", StringComparison.Ordinal) && file.Count(static one => one == '/') > 3)
+		if (file.StartsWith("src/DotGram.Finance/Fix/Fix", StringComparison.Ordinal) && file.Count(static c => c == '/') > 3)
 			return true;
 
 		using var reader = new StreamReader(path);
 
 		for (var line = 0; line < 8 && reader.ReadLine() is { } text; line++)
 		{
-			if (text.Contains("<auto-generated", StringComparison.Ordinal) || text.Contains("not edited by hand", StringComparison.Ordinal))
+			if (text.Contains("<auto-generated",    StringComparison.Ordinal) ||
+				text.Contains("not edited by hand", StringComparison.Ordinal))
 				return true;
 		}
 
@@ -253,6 +341,8 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 	/// <summary>Every statement list of a file, its neighbours compared.</summary>
 	static IEnumerable<Break> Check(string file, SyntaxTree tree)
 	{
+		var text = tree.GetText();
+
 		foreach (var node in tree.GetRoot().DescendantNodes())
 		{
 			var statements = node switch
@@ -262,12 +352,18 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 				_                           => default,
 			};
 
+			for (var at = 0; at < statements.Count; at++)
+			{
+				foreach (var directive in Directives(statements[at], text))
+					yield return directive with { File = file };
+			}
+
 			for (var at = 1; at < statements.Count; at++)
 			{
 				var before = statements[at - 1];
 				var after  = statements[at];
 
-				if (BlankBefore(after))
+				if (BlankBefore(after) || Excused(statements, at))
 					continue;
 
 				if (Rule(KindOf(before), KindOf(after)) is not { } rule)
@@ -275,7 +371,62 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 
 				var line = after.GetFirstToken().GetLocation().GetLineSpan().StartLinePosition.Line + 1;
 
-				yield return new Break(file, rule, line, $"{Describe(before)} then {Describe(after)} with no blank line between");
+				var what = $"{Describe(before)} then {Describe(after)} with no blank line between";
+
+				yield return new Break(file, rule, line, what);
+			}
+		}
+	}
+
+	/// <summary>
+	/// Whether the statement at <paramref name="at"/> may touch the one before it though their kinds say otherwise:
+	/// one declaration of one variable and the <c>return</c> after it, or the <c>break</c> or <c>return</c> that
+	/// ends a block holding nothing but short <c>if</c>s before it.
+	/// </summary>
+	static bool Excused(SyntaxList<StatementSyntax> statements, int at)
+	{
+		var after = statements[at];
+
+		var before = statements[at - 1];
+
+		if (after is ReturnStatementSyntax && before is LocalDeclarationStatementSyntax { Declaration.Variables.Count: 1 })
+			return at == 1 || statements[at - 2] is not LocalDeclarationStatementSyntax || BlankBefore(before);
+
+		if (after is BreakStatementSyntax or ReturnStatementSyntax && at == statements.Count - 1)
+			return statements.Take(at).All(static one => KindOf(one) == Kind.ShortIf);
+
+		return false;
+	}
+
+	/// <summary>
+	/// The <c>#if</c>s with no blank line above and the <c>#endif</c>s with none below, of those in front of a
+	/// statement. The line above may also open the block or be a case label; the line below may close the block
+	/// or be another directive.
+	/// </summary>
+	static IEnumerable<Break> Directives(StatementSyntax statement, SourceText text)
+	{
+		foreach (var trivia in statement.GetFirstToken().LeadingTrivia)
+		{
+			var kind = trivia.Kind();
+
+			if (kind is not (SyntaxKind.IfDirectiveTrivia or SyntaxKind.EndIfDirectiveTrivia))
+				continue;
+
+			var line = text.Lines.GetLineFromPosition(trivia.SpanStart).LineNumber;
+
+			if (kind == SyntaxKind.IfDirectiveTrivia)
+			{
+				var above = line > 0 ? text.Lines[line - 1].ToString().Trim() : "";
+
+				if (above.Length > 0 && !above.EndsWith('{') && !above.EndsWith(':') && !above.StartsWith('#'))
+					yield return new Break("", "directives", line + 1, "`#if` with no blank line above it");
+			}
+			else
+			{
+				var below = line + 1 < text.Lines.Count ? text.Lines[line + 1].ToString().Trim() : "";
+
+				if (below.Length > 0 && !below.StartsWith('}') && !below.StartsWith('#'))
+					yield return new Break("", "directives", line + 1, "`#endif` with no blank line below it");
 			}
 		}
 	}
@@ -309,8 +460,11 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 			IfStatementSyntax shortIf when IsShort(shortIf)      => Kind.ShortIf,
 			LocalFunctionStatementSyntax or EmptyStatementSyntax => Kind.Neutral,
 
-			IfStatementSyntax or ForStatementSyntax or CommonForEachStatementSyntax or WhileStatementSyntax or DoStatementSyntax or
-				SwitchStatementSyntax or UsingStatementSyntax or LockStatementSyntax or TryStatementSyntax => Kind.Control,
+			IfStatementSyntax  or ForStatementSyntax     or CommonForEachStatementSyntax or WhileStatementSyntax or
+			DoStatementSyntax  or SwitchStatementSyntax  or UsingStatementSyntax         or LockStatementSyntax or
+			TryStatementSyntax or CheckedStatementSyntax or UnsafeStatementSyntax        or FixedStatementSyntax or
+			BlockSyntax
+				=> Kind.Control,
 
 			_ => Kind.Other,
 		};
@@ -322,14 +476,19 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 	/// </summary>
 	static bool IsShort(IfStatementSyntax statement)
 	{
-		if (statement.Else is not null || statement.Statement is BlockSyntax || KindOf(statement.Statement) is Kind.Control or Kind.ShortIf)
+		if (statement.Else is not null || statement.Statement is BlockSyntax)
+			return false;
+
+		if (KindOf(statement.Statement) is Kind.Control or Kind.ShortIf)
 			return false;
 
 		var condition = statement.GetLocation().GetLineSpan().StartLinePosition.Line;
 		var closing   = statement.CloseParenToken.GetLocation().GetLineSpan().StartLinePosition.Line;
 		var body      = statement.Statement.GetLocation().GetLineSpan();
 
-		return closing == condition && body.StartLinePosition.Line == body.EndLinePosition.Line && body.StartLinePosition.Line - condition <= 1;
+		return closing == condition &&
+			body.StartLinePosition.Line == body.EndLinePosition.Line &&
+			body.StartLinePosition.Line - condition <= 1;
 	}
 
 	/// <summary>
@@ -376,6 +535,12 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 		};
 	}
 
+	/// <summary>A file's counts in the order of its path, then of the rule's name.</summary>
+	static string Order((string File, string Rule) key)
+	{
+		return key.File + " " + key.Rule;
+	}
+
 	static string Baseline()
 	{
 		return Path.Combine(SourceRoot.Directory, "tests", "DotGram.Tests", BaselineName);
@@ -402,11 +567,16 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 	{
 		var text = new StringBuilder();
 
-		text.Append("# Breaks of the blank-line rule (docs/coding-conventions.md) the sources had when it was written: `path rule count`.\r\n");
+		text.Append("# Breaks of the blank-line rule (docs/coding-conventions.md) the sources had\r\n");
+		text.Append("# when it was written: `path rule count`.\r\n");
 		text.Append("# BlankLinesTests holds every file to its counts and fails when one goes up or comes down.\r\n");
 		text.Append("# Written by the test, not by hand: DOTGRAM_RECORD_BLANK_LINES_BASELINE=1.\r\n");
 
-		foreach (var group in found.GroupBy(static one => (one.File, one.Rule)).OrderBy(static one => one.Key.File, StringComparer.Ordinal).ThenBy(static one => one.Key.Rule, StringComparer.Ordinal))
+		var groups = found
+			.GroupBy(static one => (one.File, one.Rule))
+			.OrderBy(static one => Order(one.Key), StringComparer.Ordinal);
+
+		foreach (var group in groups)
 			text.Append($"{group.Key.File} {group.Key.Rule} {group.Count()}\r\n");
 
 		File.WriteAllText(Baseline(), text.ToString(), new UTF8Encoding(false));
