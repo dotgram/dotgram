@@ -913,6 +913,13 @@ sealed class RecognitionGraph(
 	/// </remarks>
 	public (string Facade, string Type, bool Declared)? PerCall { get; set; }
 
+	/// <summary>
+	/// Whether the lexical automata built over this graph may be taken from, and kept for, the
+	/// other compiles of the process (<see cref="LexicalAutomaton"/>). Off unless the compile that
+	/// made the graph says otherwise (<c>GramCompilerOptions.ReuseAutomata</c>).
+	/// </summary>
+	public AutomatonReuse ReuseAutomata { get; set; }
+
 	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
 		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
 

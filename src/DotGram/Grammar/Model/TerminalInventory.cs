@@ -1114,7 +1114,10 @@ sealed class TerminalInventory
 			return order.ConvertAll(at => members[at]);
 		}
 
-		/// <summary><see cref="Laminar(List{Text}, IReadOnlyList{HashSet{Text}})"/> over the members' positions.</summary>
+		/// <summary>
+		/// <see cref="Laminar(List{Text}, IReadOnlyList{HashSet{Text}})"/> over the members'
+		/// positions.
+		/// </summary>
 		static List<int> Laminar(List<int> members, List<bool[]> holds)
 		{
 			bool[]? largest = null;

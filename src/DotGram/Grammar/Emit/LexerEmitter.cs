@@ -321,7 +321,8 @@ static class LexerEmitter
 		//
 		// And only where every row sits at the same place, since a class is a column of the
 		// table and two differently placed rows have no column in common.
-		var distinct = new HashSet<int[]>(Rows.Select(static one => one.Row), SameInts.Instance).Count;
+		var distinct = new HashSet<int[]>(Rows.Select(static one => one.Row), SameInts.Instance)
+			.Count;
 
 		Class = distinct * Reach > Roomy && Rows.All(one => one.Low == Rows[0].Low)
 			? Classes(Rows.Select(one => one.Row))
@@ -1409,21 +1410,23 @@ static class LexerEmitter
 		if (Tests.TryGetValue(asked, out var known))
 			return known;
 
-		var test = ranges.Count > Written
-			? Searched(ranges)
-			: string.Join(
-				" || ",
-				ranges.Select(range =>
-					range.From == range.To
-						? $"c == {CSharpEmitter.Char(range.From)}"
-						: $"c >= {CSharpEmitter.Char(range.From)} && c <= {CSharpEmitter.Char(range.To)}"));
-
-		Tests[asked] = test;
-
-		return test;
+		return Tests[asked] = ranges.Count > Written ? Searched(ranges) : Compared(ranges);
 	}
 
-	/// <summary>Each test written for the machine being written, by its set and <see cref="Reached"/>.</summary>
+	/// <summary>A set's ranges compared one at a time.</summary>
+	static string Compared(IReadOnlyList<CharRange> ranges)
+	{
+		return string.Join(
+			" || ",
+			ranges.Select(range =>
+				range.From == range.To
+					? $"c == {CSharpEmitter.Char(range.From)}"
+					: $"c >= {CSharpEmitter.Char(range.From)} && c <= {CSharpEmitter.Char(range.To)}"));
+	}
+
+	/// <summary>
+	/// Each test written for the machine being written, by its set and <see cref="Reached"/>.
+	/// </summary>
 	[ThreadStatic] static Dictionary<string, string>? _tests;
 
 	static Dictionary<string, string> Tests => _tests ??= new(StringComparer.Ordinal);

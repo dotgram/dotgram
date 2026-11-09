@@ -6,6 +6,7 @@ using System.Text;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Emit;
+using DotGram.Grammar.Model;
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
@@ -412,11 +413,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Split,
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, BuildSwitches counting, Positional positional)
+	static Parser CompileSafely(
+		Grammar       grammar,
+		Reporting     reporting,
+		BuildSwitches counting,
+		Positional    positional,
+		Caching       caching)
 	{
 		try
 		{
-			return Compile(grammar, reporting, counting, positional);
+			return Compile(grammar, reporting, counting, positional, caching);
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -493,14 +499,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 	{
 		// No text is a grammar that never got as far as the compile, which only hands its reports on.
 		if (caching == Caching.Off || grammar.Text is null)
-			return CompileSafely(grammar, reporting, counting, positional);
+			return CompileSafely(grammar, reporting, counting, positional, caching);
 
 		var key = new CompileKey(grammar, reporting, counting, positional, GeneratorBuild);
 
 		if (Compiled.TryGet(key, out var kept))
 			return caching == Caching.Verify ? Verified(key, kept) : kept;
 
-		var parser = CompileSafely(grammar, reporting, counting, positional);
+		var parser = CompileSafely(grammar, reporting, counting, positional, caching);
 
 		// A compile that failed inside is a defect, and is answered again next time rather than
 		// remembered: it may have been the moment and not the input.
@@ -516,7 +522,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </summary>
 	static Parser Verified(CompileKey key, Parser kept)
 	{
-		var fresh = CompileSafely(key.Grammar, key.Reporting, key.Counting, key.Positional);
+		var fresh = CompileSafely(
+			key.Grammar, key.Reporting, key.Counting, key.Positional, Caching.Verify);
 
 		if (Recalled(fresh) == kept)
 			return kept with { Summary = Recalled(kept.Summary, "cached and verified") };
@@ -1098,7 +1105,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, BuildSwitches counting, Positional positional)
+	static Parser Compile(
+		Grammar       grammar,
+		Reporting     reporting,
+		BuildSwitches counting,
+		Positional    positional,
+		Caching       caching)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -1174,6 +1186,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow      = positional != Positional.Off,
 			PositionalFollowSplit = positional == Positional.Split,
+
+			// The lexical automata the compile builds are kept and taken as the parsers are: not
+			// where a build asks for nothing kept, and verified where it verifies what it keeps.
+			ReuseAutomata = caching switch
+			{
+				Caching.Off    => AutomatonReuse.Off,
+				Caching.Verify => AutomatonReuse.Verify,
+				_              => AutomatonReuse.On,
+			},
 		};
 
 		// What the reading's attribute says, mapped where the editor maps it too, so that it analyses a
