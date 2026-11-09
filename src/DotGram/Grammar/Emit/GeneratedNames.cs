@@ -173,7 +173,9 @@ static partial class CSharpEmitter
 		"DefaultBufferSize", "DefaultMaxRetained",
 	];
 
-	/// <summary>The public method of a lexer, which only a grammar read over tokens has.</summary>
+	/// <summary>
+	/// The method of a lexer that keeps its plain name, which only a grammar read over tokens has.
+	/// </summary>
 	public static readonly string[] LexerNames = ["Scan"];
 
 	/// <summary>

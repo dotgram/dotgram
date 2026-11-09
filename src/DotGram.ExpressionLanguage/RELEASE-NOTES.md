@@ -7,6 +7,7 @@ BREAKING CHANGES, and what to do
 - A member's own initializer, Items = { 1, 2 }, reads the member once for each entry inside it, as C# does, where it read it once for all; the tree is then a block of assignments, not a MemberInit.
 - The public type ExpressionParser.ParserInput<T> is removed; nothing public took or returned it.
 - ExpressionParser.SourceSpan is no longer public; nothing public took or returned it.
+- ExpressionParser.Scan, the scanner of its lexer, is no longer public: the kind it gave was the grammar's own numbering of its tokens, which changed with the grammar. Migration: none in the package; a caller that cut text into tokens with it has no replacement.
 
 NEW
 

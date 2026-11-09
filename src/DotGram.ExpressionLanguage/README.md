@@ -127,10 +127,6 @@ line of the grammar that asked for it rather than an exception at run time.
 The grammar and the C# it calls are one file,
 [`ExpressionParser.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionParser.cs).
 
-`ExpressionParser` also has a public `Scan(ReadOnlySpan<char> text, int pos, out int kind)`, the
-scanner of its lexer. The `kind` it gives is the grammar's own numbering of its tokens, which no
-constant names and which changes whenever the grammar does: it is not stable before 1.0.
-
 ## It is not a sandbox
 
 **Parse only text you would run as code.** A text can name any type the reading can reach and

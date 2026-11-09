@@ -2200,8 +2200,8 @@ whether the result is lazy. The words on the left are written in that order, eac
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
 `ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `DefaultBufferSize` or
-`DefaultMaxRetained`, or in a grammar read over tokens `Scan`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
-declares for its own use, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
+`DefaultMaxRetained`, which the class declares for its callers, nor `Failure` or `ParserEntry`, or in a
+grammar read over tokens `Scan`, which it declares for its own use, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
 which a trace build of the grammar declares (§6.9) — in every build, traced or not, so that a grammar a
 project traces in Debug alone means the same names in Release — nor the name of the class itself, and neither of its two names may be the other
 publication's. That is refused where the directive is written (`GRAM5018`); give it another name with `as`.
@@ -3058,7 +3058,7 @@ of it fails a build.
 | `PartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
 | `Stacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
 | `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
-| `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
+| `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. The lexer's `Scan(text, pos, out kind)` is internal: the kind it answers with is the grammar's own numbering, which changes with the grammar. A host that wants token boundaries writes a method of its own under another name that calls it. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the tape would have (§7.5). Ignored on the tape. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |

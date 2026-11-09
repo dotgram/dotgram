@@ -17,6 +17,7 @@ BREAKING CHANGES, and what to write instead
 - Syntax, the helpers the T-SQL grammar's rules call, is no longer public, nor are the rule-value helper types nested in the parsers (the …_Dialect types of TransactSqlParser and TransactSqlParser.Located, CreateStatisticsWith, UpdateStatisticsWith, DottedType, Sql92Parser.Reserved, TransactSqlParser.ParserInput<T>).
 - QualifiedName.Of is no longer public, and EndpointEncryptionLevel, EndpointAlgorithm and EndpointWindowsMode, which no node held, are removed. Migration: new QualifiedName(first, rest) or new QualifiedName([.. parts]).
 - TransactSqlParser.SourceSpan is no longer public; nothing public took or returned it.
+- Scan, the scanner of the lexer of Sql92Parser, SqlStandardParser and TransactSqlParser, is no longer public: the kind it gave was the grammar's own numbering of its tokens, which changed with the grammar. Migration: none in the package; a caller that cut text into tokens with it has no replacement.
 - In a located T-SQL reading, an OVER spans the keyword and the window's name or brackets, as a located reading of SQL:2023 spans it.
 
 NEW

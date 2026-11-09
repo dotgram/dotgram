@@ -7,3 +7,4 @@
 *REMOVED*DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.SourceSpan(int start, int length) -> void
 *REMOVED*DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.Start.get -> int
 *REMOVED*override DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.ToString() -> string!
+*REMOVED*static DotGram.ExpressionLanguage.ExpressionParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int

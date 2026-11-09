@@ -156,3 +156,6 @@
 *REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.Start.get -> int
 *REMOVED*override DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.ToString() -> string!
 *REMOVED*static DotGram.Sql.Ast.QualifiedName.Of(params DotGram.Sql.Ast.Identifier![]! parts) -> DotGram.Sql.Ast.QualifiedName
+*REMOVED*static DotGram.Sql.Standard.Sql92Parser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
+*REMOVED*static DotGram.Sql.Standard.SqlStandardParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
+*REMOVED*static DotGram.Sql.TransactSql.TransactSqlParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
