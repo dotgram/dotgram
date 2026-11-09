@@ -120,6 +120,11 @@ Each package's notes list them with what to write instead. The ones most project
   construction writes into the context sees it before that construction runs, since the tape runs
   constructions once the parse is accepted. DotGram.Finance's FIX grammar is pinned to the
   immediate carrier for this.
+- DotGram.ExpressionLanguage never converts a lambda to an expression-tree type
+  (`Expression<TDelegate>`): over an `IQueryable`, LINQ operators that take a lambda bind to
+  `Enumerable` and run in memory, and `Queryable`'s methods written out are refused. Reading a text
+  can already run code: a constant converted through a user-defined implicit operator is converted
+  while the text is read (README, It is not a sandbox).
 - In Visual Studio, information-level diagnostics of a standalone `.gram` file (the GRAM5001 and
   GRAM5002 notes, for example) are underlined in the editor but not listed in the Error List,
   which asks only about C#, Visual Basic and F# documents. Errors and warnings of a `.gram` file

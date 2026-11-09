@@ -137,7 +137,8 @@ constant names and which changes whenever the grammar does: it is not stable bef
 call any member on it — the file system, the process, reflection — and what it compiles to runs
 with the host's permissions, in the host's process, for as long as the delegate is called. There
 is no allow-list, no timeout and no quota, and none is planned: this compiles expressions, it
-does not contain them.
+does not contain them. Reading a text can already run code: a constant converted
+through a user-defined implicit operator is converted while the text is read.
 
 That is the same position `System.Linq.Expressions` itself takes, and the same one
 `CSharpScript` takes. It matters here because the input LOOKS like data — a formula in a

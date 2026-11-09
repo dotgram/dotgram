@@ -20,3 +20,7 @@ FASTER
 
 - The parser reads with the immediate carrier, building the tree as it reads: accepted text parses about 30 to 55% faster (deeply nested text the most) and the generated parser is about 9% smaller. A text refused late is about 30% slower and allocates more; one refused early costs what it did. The answers - tree, refusal, message, exception - are unchanged.
 - Member initializers nested and never closed are read once at every level, where they were read twice (three quarters of a second at seventeen levels). A string left unclosed inside an interpolated string's hole, $"{x", is refused at once, where the time doubled with every further character.
+
+KNOWN ISSUES
+
+- A lambda is never converted to an expression-tree type (Expression<TDelegate>): over an IQueryable, LINQ operators that take a lambda bind to Enumerable and run in memory, and Queryable's methods written out are refused.
