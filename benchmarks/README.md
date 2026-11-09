@@ -358,7 +358,8 @@ generator included: what a build pays once per compiler-server process, and what
 time. Warm is the same compilation run again in a process that has already run it, which is what a solution build (its
 compilations share a server) and the IDE pay. `benchmarks/DotGram.GenerationWarm` takes it: built once from the head's tree,
 it loads the generator each side just built, runs it over the project's own sources and grammars `-WarmRuns` (8) more times
-after the first, with the compile cache off, and prints the generation report's figure per host and run. The first runs are still tiering
+after the first (`-WarmRunsSmall`, 48, for a project whose hosts together read below `-SmallMilliseconds`, 1000 ms, on that first
+reading: a host that small is still tiering up and noisy at eight runs; the report says which hosts came from how many runs), with the compile cache off, and prints the generation report's figure per host and run. The first runs are still tiering
 up (a host that settles at 90 ms took 750, 400 and 250 ms in runs 0-2), so a round's warm figure is the median of the
 second half of those runs, and the warm table is held by the rule of the cold one, its deviations marked `(warm)`. On a small
 grammar cold is two to three times warm, a third of it the generator's own JIT, so a cold ratio of a host of a few hundred
