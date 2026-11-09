@@ -2188,7 +2188,9 @@ A publication is a method of the generated class, and a `parse` is two, `Name` a
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
 `ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `DefaultBufferSize` or
 `DefaultMaxRetained`, or in a grammar read over tokens `Scan`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
-declares for its own use, nor the name of the class itself, and neither of its two names may be the other
+declares for its own use, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
+which a trace build of the grammar declares (§6.9) — in every build, traced or not, so that a grammar a
+project traces in Debug alone means the same names in Release — nor the name of the class itself, and neither of its two names may be the other
 publication's. That is refused where the directive is written (`GRAM5018`); give it another name with `as`.
 A rule whose type would be called one of them is given another name for the type (§7.3). Every other type
 and member the class writes for its own use has `_DotGram` in its name (§7.1), which no publication can

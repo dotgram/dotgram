@@ -48,17 +48,13 @@ sealed class ResultTypes
 	}
 
 	/// <param name="className">The host class, as a chain — <c>Outer.Inner</c>.</param>
-	/// <param name="traced">
-	/// Whether the parser is a trace build, whose sink types stand beside the parser and take their
-	/// names the way the support types do.
-	/// </param>
 	/// <param name="lexical">Whether the grammar is read over tokens, whose lexer has a public <c>Scan</c>.</param>
-	public ResultTypes(RecognitionGraph graph, string className, string? @namespace, bool traced = false, bool lexical = false)
+	public ResultTypes(RecognitionGraph graph, string className, string? @namespace, bool lexical = false)
 	{
 		_prefix = "global::" + (@namespace is null ? "" : @namespace + ".") + className + ".";
 
 		var host   = SimpleNameOf(className);
-		var taken  = CSharpEmitter.TypeNamesTaken(host, traced, graph, lexical);
+		var taken  = CSharpEmitter.TypeNamesTaken(host, graph, lexical);
 		var wanted = new List<(RuleSymbol Rule, string Name)>();
 		var spans  = BuildsSpans(graph);
 

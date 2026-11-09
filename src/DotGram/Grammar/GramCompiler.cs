@@ -144,7 +144,6 @@ static class GramCompiler
 				graph,
 				options.Suffix is { Length: > 0 } nested ? options.ClassName + "." + nested : options.ClassName,
 				options.Namespace,
-				options.Trace,
 				options.Lexical));
 		}
 
@@ -246,7 +245,7 @@ static class GramCompiler
 			Names = sources.Count == 0 ? null : CSharpEmitter.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source],
 				options.Suffix is { Length: > 0 } suffixed ? options.ClassName + "." + suffixed : options.ClassName,
-				options.Namespace, options.Trace, options.Lexical),
+				options.Namespace, options.Lexical),
 		};
 	}
 
