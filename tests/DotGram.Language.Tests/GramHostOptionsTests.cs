@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 
 using DotGram.Grammar.Emit;
 
@@ -25,23 +26,25 @@ public sealed class GramHostOptionsTests
 			""");
 
 		Assert.Equal(
-			new GramHostOptions(
-				IncludedAs:            null,
-				PartSize:              0,
-				Lexical:               false,
-				Portable:              true,
-				LocationType:          null,
-				Carrier:               0,
-				Stacks:                0,
-				Suffix:                null,
-				ConstructionsMayThrow: false,
-				SpanCaptures:          false,
-				BufferedBytes:         false,
-				BufferedInput:         false,
-				MaxRetained:           int.MaxValue,
-				BufferSize:            4096,
-				PerCall:               false,
-				Trace:                 false),
+			new GramHostOptions
+			{
+				IncludedAs            = null,
+				PartSize              = 0,
+				Lexical               = false,
+				Portable              = true,
+				LocationType          = null,
+				Carrier               = 0,
+				Stacks                = 0,
+				Suffix                = null,
+				ConstructionsMayThrow = false,
+				SpanCaptures          = false,
+				BufferedBytes         = false,
+				BufferedInput         = false,
+				MaxRetained           = int.MaxValue,
+				BufferSize            = 4096,
+				PerCall               = false,
+				Trace                 = false,
+			},
 			options[0]);
 	}
 
@@ -73,23 +76,25 @@ public sealed class GramHostOptionsTests
 			""").Single();
 
 		Assert.Equal(
-			new GramHostOptions(
-				IncludedAs:            "Inc",
-				PartSize:              7,
-				Lexical:               true,
-				Portable:              false,
-				LocationType:          "N.Where",
-				Carrier:               Carrier("Tape"),
-				Stacks:                3,
-				Suffix:                "S",
-				ConstructionsMayThrow: true,
-				SpanCaptures:          true,
-				BufferedBytes:         true,
-				BufferedInput:         true,
-				MaxRetained:           9,
-				BufferSize:            64,
-				PerCall:               true,
-				Trace:                 true),
+			new GramHostOptions
+			{
+				IncludedAs            = "Inc",
+				PartSize              = 7,
+				Lexical               = true,
+				Portable              = false,
+				LocationType          = "N.Where",
+				Carrier               = Carrier("Tape"),
+				Stacks                = 3,
+				Suffix                = "S",
+				ConstructionsMayThrow = true,
+				SpanCaptures          = true,
+				BufferedBytes         = true,
+				BufferedInput         = true,
+				MaxRetained           = 9,
+				BufferSize            = 64,
+				PerCall               = true,
+				Trace                 = true,
+			},
 			options);
 	}
 
@@ -127,8 +132,8 @@ public sealed class GramHostOptionsTests
 			.Select(static property => property.Name)
 			.ToHashSet(StringComparer.Ordinal);
 
-		foreach (var parameter in typeof(GramHostOptions).GetConstructors().Single().GetParameters())
-			Assert.Contains(parameter.Name!, declared);
+		foreach (var property in typeof(GramHostOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+			Assert.Contains(property.Name, declared);
 	}
 
 	static GramHostOptions[] Read(string source)
