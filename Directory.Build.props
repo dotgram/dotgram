@@ -64,6 +64,10 @@
 		<PackageProjectUrl>https://github.com/dotgram/dotgram</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
 
+		<!-- A package's release notes are prose, kept beside its project as RELEASE-NOTES.md
+		     rather than inside the XML. The text goes into the package as it is in the file. -->
+		<PackageReleaseNotes Condition="Exists('$(MSBuildProjectDirectory)/RELEASE-NOTES.md')">$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/RELEASE-NOTES.md'))</PackageReleaseNotes>
+
 		<!-- SourceLink, which the SDK carries itself: with the repository's URL above, a debugger
 		     steps from a package's line into the source on GitHub. The symbols are in the assembly
 		     (`DebugType embedded` in each package), so no symbol package is published. -->
