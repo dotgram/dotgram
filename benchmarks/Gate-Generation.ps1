@@ -122,6 +122,7 @@ $summary = [regex]'DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<b
 $taken = @{ base = @{}; head = @{} }
 $warmed = @{ base = @{}; head = @{} }
 $warmRunsOf = @{ base = @{}; head = @{} }
+$runsOfProject = @{}
 $perProject = @{ base = @{}; head = @{} }
 
 # The compiler's count: at detailed verbosity with ReportAnalyzer, each compilation prints the generators' seconds after its command line (`/out:` and the path of the assembly in `.build/obj/<project>/release_<tfm>`). Only the compilations
