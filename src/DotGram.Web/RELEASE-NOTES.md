@@ -5,6 +5,7 @@ BREAKING CHANGES, and what to do
 - A Link field is refused where a parameter value breaks the syntax RFC 8288 gives it: a rel or rev that is not relation types separated by spaces, each a registered name or an absolute URI; an anchor that is not a URI-Reference; an hreflang that is not a language tag; a type that is not a type and subtype. Of rel and type only the first is asked. There is no option to accept such a field.
 - A Forwarded element read from a position stops earlier, or is refused, where a pair's value is invalid (by, for, host, proto) or a name repeats; a Content-Disposition read from a position refuses a parameter name written twice. Migration: read the whole field (ParseField, TryParseField, Parse, TryParse), which is unchanged.
 - An Accept refusal may no longer list Token among what could stand at its position ("Expected Token, ';' or end of input" is now "Expected ';' or end of input"), at the same position.
+- JsonPointer.ArrayIndex, JsonPointer.IsPastTheEnd and AddrSpec.IsDotAtom are no longer public. Migration: JsonPointer.Resolve reads an array element the way ArrayIndex did; a token is past the end where it is "-"; a local part is a dot-atom where AddrSpec.ToString writes it unquoted.
 
 NEW
 

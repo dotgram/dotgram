@@ -12,8 +12,8 @@ namespace DotGram.Web;
 /// <para>
 /// What a pointer refers to is a question about a document, and the document is not here: a token
 /// names an object member or an array element, and which one it is depends on what the pointer has
-/// reached. <see cref="Tokens"/> is everything the pointer says, and <see cref="ArrayIndex"/> is the
-/// one rule §4 adds for the case where the value reached is an array.
+/// reached. <see cref="Tokens"/> is everything the pointer says, and <see cref="Resolve"/> takes the steps,
+/// with the one rule §4 adds for the case where the value reached is an array.
 /// </para>
 /// </remarks>
 /// <param name="Tokens">The reference tokens in order, with <c>~1</c> and <c>~0</c> turned back into <c>/</c> and <c>~</c>.</param>
@@ -114,7 +114,7 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	/// says whether a token is it. A number too large for an <c>int</c> is no element of any array a
 	/// .NET collection can hold.
 	/// </remarks>
-	public static int? ArrayIndex(string token)
+	internal static int? ArrayIndex(string token)
 	{
 		if (token is null)
 			throw new ArgumentNullException(nameof(token));
@@ -139,7 +139,7 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	}
 
 	/// <summary>Whether a token is <c>-</c>, the element after an array's last (§4).</summary>
-	public static bool IsPastTheEnd(string token)
+	internal static bool IsPastTheEnd(string token)
 	{
 		return token == "-";
 	}
