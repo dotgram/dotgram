@@ -434,7 +434,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 		return false;
 	}
 
-	/// <summary>The grammars of the document, each with its own navigable symbols, in document order.</summary>
+	/// <summary>The grammars of the document, each with its own navigable symbols.</summary>
 	public bool TryGetOutlines(
 		ITextSnapshot snapshot,
 		out IReadOnlyList<EmbeddedGrammarOutline> outlines)
