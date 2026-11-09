@@ -195,16 +195,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// as written, so that a test can hold a trace build's frames of those rules to the rules
 		// themselves (GramCompilerOptions.CollapseForwarders).
 		var counting = context.ParseOptionsProvider.Combine(tracing).Select(static (input, _) =>
-			(
-				Counts:     input.Left.PreprocessorSymbolNames.Contains(CountsSymbol),
-				Memoises:  !input.Left.PreprocessorSymbolNames.Contains(NoMemoSymbol),
-				Keeps:     !input.Left.PreprocessorSymbolNames.Contains(NoSuccessMemoSymbol),
-				Traces:     input.Right,
-				Collapses: !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
-				Utf8:       input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
-				Checks:     input.Left.PreprocessorSymbolNames.Contains(ChecksSymbol),
-				Steps:      input.Left.PreprocessorSymbolNames.Contains(StepsSymbol)
-			));
+			new BuildSwitches
+			{
+				Counts    =  input.Left.PreprocessorSymbolNames.Contains(CountsSymbol),
+				Memoises  = !input.Left.PreprocessorSymbolNames.Contains(NoMemoSymbol),
+				Keeps     = !input.Left.PreprocessorSymbolNames.Contains(NoSuccessMemoSymbol),
+				Traces    =  input.Right,
+				Collapses = !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
+				Utf8      =  input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
+				Checks    =  input.Left.PreprocessorSymbolNames.Contains(ChecksSymbol),
+				Steps     =  input.Left.PreprocessorSymbolNames.Contains(StepsSymbol),
+			});
 
 		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
 		// knowing it is also read from a position (GramCompilerOptions.PositionalFollow). Off
@@ -320,7 +321,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 						compilation,
 						grammar.Host.MetadataName,
 						[.. grammar.Host.Includes.Items.Select(static one => one.Imported)],
-						grammar.Host.Suffix,
+						grammar.Host.Options.Suffix,
 						grammar.Host.SuffixDeclared,
 						grammar.Published.Items))),
 			};
@@ -368,6 +369,41 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which a test compiles a parser that calls its forwarding rules as written.</summary>
 	const string NoCollapseSymbol = "DOTGRAM_NO_COLLAPSE";
 
+	/// <summary>
+	/// What the consuming project's parse options say about how every grammar of it is compiled:
+	/// the preprocessor symbols a test or a build defines, and the language version.
+	/// </summary>
+	/// <remarks>
+	/// A value, as everything the pipeline carries is, and compared as one: a kept parser is found
+	/// by it (<see cref="CompileKey"/>).
+	/// </remarks>
+	readonly record struct BuildSwitches
+	{
+		/// <summary>Whether the parsers count their rules' entries (<c>DOTGRAM_COUNTS</c>).</summary>
+		public bool Counts { get; init; }
+
+		/// <summary>Whether they may remember where a rule failed (not <c>DOTGRAM_NO_MEMO</c>).</summary>
+		public bool Memoises { get; init; }
+
+		/// <summary>Whether they may remember where a rule succeeded (not <c>DOTGRAM_NO_SUCCESS_MEMO</c>).</summary>
+		public bool Keeps { get; init; }
+
+		/// <summary>Whether the build asks for traces everywhere (<c>DotGramTrace</c>).</summary>
+		public bool Traces { get; init; }
+
+		/// <summary>Whether a rule that only forwards another's value is collapsed (not <c>DOTGRAM_NO_COLLAPSE</c>).</summary>
+		public bool Collapses { get; init; }
+
+		/// <summary>Whether the consumer's C# has UTF-8 literals (C# 11 or later).</summary>
+		public bool Utf8 { get; init; }
+
+		/// <summary>Whether the checks are written into the parsers (<c>DOTGRAM_CHECKS</c>, GramCompilerOptions.Checks).</summary>
+		public bool Checks { get; init; }
+
+		/// <summary>Whether the engine writes its step trace (<c>DOTGRAM_STEPS</c>).</summary>
+		public bool Steps { get; init; }
+	}
+
 	/// <summary>What <c>DotGramPositionalFollow</c> asks for: nothing, <c>true</c> or <c>split</c>.</summary>
 	enum Positional
 	{
@@ -376,7 +412,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Split,
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional)
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, BuildSwitches counting, Positional positional)
 	{
 		try
 		{
@@ -411,7 +447,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	readonly record struct CompileKey(
 		Grammar    Grammar,
 		Reporting  Reporting,
-		(bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) Counting,
+		BuildSwitches Counting,
 		Positional Positional,
 		Guid       Generator);
 
@@ -453,7 +489,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <see cref="CompileSafely"/>, or the parser an earlier compilation in this process made of the
 	/// same input.
 	/// </summary>
-	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional, Caching caching)
+	static Parser CompileCached(Grammar grammar, Reporting reporting, BuildSwitches counting, Positional positional, Caching caching)
 	{
 		// No text is a grammar that never got as far as the compile, which only hands its reports on.
 		if (caching == Caching.Off || grammar.Text is null)
@@ -919,7 +955,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// Said before the grammar is read, because it is about the host rather than about
 		// the grammar, and because a name that cannot be a namespace would otherwise reach
 		// the splice and come back as a parse error in a text nobody wrote.
-		if (host.IncludedAs is { } included && !IsIdentifier(included))
+		if (host.Options.IncludedAs is { } included && !IsIdentifier(included))
 			reports.Add(Report.Of(
 				Diagnostics.InvalidIncludedName, Site.Attribute, host.ClassName, included));
 
@@ -932,7 +968,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
-		if (host.Suffix is { Length: > 0 } scope && !IsIdentifier(scope))
+		if (host.Options.Suffix is { Length: > 0 } scope && !IsIdentifier(scope))
 		{
 			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, Site.Attribute, host.ClassName, scope));
 
@@ -941,7 +977,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		// A limit or a capacity of nothing is no reading of any input: say so where it is
 		// written, rather than let every call throw ArgumentOutOfRangeException.
-		foreach (var (option, value) in new[] { (nameof(Host.MaxRetained), host.MaxRetained), (nameof(Host.BufferSize), host.BufferSize) })
+		foreach (var (option, value) in new[] { (nameof(GramHostOptions.MaxRetained), host.Options.MaxRetained), (nameof(GramHostOptions.BufferSize), host.Options.BufferSize) })
 		{
 			if (value > 0)
 				continue;
@@ -1062,7 +1098,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional)
+	static Parser Compile(Grammar grammar, Reporting reporting, BuildSwitches counting, Positional positional)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -1142,7 +1178,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		// What the reading's attribute says, mapped where the editor maps it too, so that it analyses a
 		// grammar with the options this compiles it with; and a trace build of the whole project on top.
-		(host.Options ?? throw new InvalidOperationException("A host is made with the reading it was read from.")).ApplyTo(options);
+		host.Options.ApplyTo(options);
 		options.Trace |= counting.Traces;
 
 		// The compile alone runs on a stack of its own (DeepStack.Entry): what it reads was gathered
@@ -1175,9 +1211,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 					"DotGram: {0}, mode={1}, options: Lexical={2}, " +
 					"Carrier={3}, ConstructionsMayThrow={7}, BufferedInput={4}, BufferedBytes={5}, SpanCaptures={6}",
 					host.HintName,
-					result.UsesLexical ? "lexical" : "characters", host.Lexical,
-					(CarrierKind)host.Carrier,
-					host.BufferedInput, host.BufferedBytes, host.SpanCaptures, host.ConstructionsMayThrow) +
+					result.UsesLexical ? "lexical" : "characters", host.Options.Lexical,
+					(CarrierKind)host.Options.Carrier,
+					host.Options.BufferedInput, host.Options.BufferedBytes, host.Options.SpanCaptures, host.Options.ConstructionsMayThrow) +
 					string.Concat((result.Carriers ?? []).Select(static line => "\n// " + line))
 				: null,
 			marked);
@@ -1450,30 +1486,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string? LanguageId,
 		string  LanguageClassifications,
 		string  LanguageRecognitionContract,
+		GramHostOptions Options,
 		string? Literal    = null,
-		string? IncludedAs = null,
 		EquatableArray<Included> Includes = default,
-		int     PartSize   = 0,
-		bool    Lexical    = false,
-		int     Carrier    = 0,
-		bool    ConstructionsMayThrow = false,
-		bool    BufferedInput  = false,
-		bool    BufferedBytes  = false,
-		bool    SpanCaptures   = false,
-		int     MaxRetained    = int.MaxValue,
-		int     BufferSize     = 4096,
-		int     Stacks         = 0,
-		string? Suffix         = null,
 		bool    SuffixDeclared = false,
 		bool    Repeated       = false,
 		bool?   Shared         = null,
 		string? LocationType   = null,
-		bool    Portable       = false,
-		bool    PerCall        = false,
 		string? LocatedFacade  = null,
-		bool    LocatedFacadeDeclared = false,
-		bool    Trace            = false,
-		GramHostOptions? Options = null)
+		bool    LocatedFacadeDeclared = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1485,7 +1506,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		/// senses of the word were separated on purpose (docs/next.md, the `context` to
 		/// `namespace` rename) and are kept apart here by not using it.
 		/// </remarks>
-		public string IncludedName => IncludedAs ?? SimpleName;
+		public string IncludedName => Options.IncludedAs ?? SimpleName;
 
 		/// <summary>
 		/// The host as metadata names it, for looking its own members up.
@@ -1578,10 +1599,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			{
 				var (perCall, _, _) = From(candidate, readings[index], index);
 
-				if (!perCall.PerCall || perCall.LocationType is null || perCall.Suffix is not { Length: > 0 } || facade is not null)
+				if (!perCall.Options.PerCall || perCall.LocationType is null || perCall.Options.Suffix is not { Length: > 0 } || facade is not null)
 					continue;
 
-				facade         = perCall.Suffix;
+				facade         = perCall.Options.Suffix;
 				facadeLocation = perCall.LocationType;
 				facadeDeclared = perCall.SuffixDeclared;
 				readings.RemoveAt(index);
@@ -1604,7 +1625,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				hosts.Add((
 					host with
 					{
-						Repeated = !taken.Add(host.Suffix ?? ""),
+						Repeated = !taken.Add(host.Options.Suffix ?? ""),
 
 						// The first writes what the host's own C# names; the rest read it from the
 						// class around them. Null where there is nothing to share it with.
@@ -1746,35 +1767,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 				LanguageId: languageId,
 				LanguageClassifications:     classifications,
 				LanguageRecognitionContract: recognitionContract,
+				// The reading as GramHostOptions read it, which is what the compilation is handed
+				// (GramHostOptions.ApplyTo): what the attribute says is read from there.
+				Options:    options,
 				// The spelling stays the first's where the grammar is: a diagnostic carries an
 				// offset into the grammar, and putting it where the author can see it means
 				// finding it in the text they actually wrote.
 				Literal:    named ? first!.Value.Literal   : written == default ? null : written.Text,
-				IncludedAs: options.IncludedAs,
 				Includes:   new EquatableArray<Included>([.. included.Select(static one => one.Included)]),
-				PartSize:   options.PartSize,
-				Lexical:    options.Lexical,
-				Carrier:    options.Carrier,
-				// What the author says of the grammar's constructions, which the immediate carrier
-				// pays for on every one of them and so does not assume (docs/syntax.md §7.5).
-				ConstructionsMayThrow: options.ConstructionsMayThrow,
-				SpanCaptures:   options.SpanCaptures,
-				BufferedBytes:  options.BufferedBytes,
-				BufferedInput:  options.BufferedInput,
-				MaxRetained:    options.MaxRetained,
-				BufferSize:     options.BufferSize,
-				Stacks:         options.Stacks,
-				Suffix:         suffix,
 				SuffixDeclared: suffixDeclared,
-				LocationType:   options.LocationType,
-				Portable:       options.Portable,
-				PerCall:        options.PerCall,
-				// A trace build of this reading (GramCompilerOptions.Trace), which a later reading
-				// takes from the first like everything else it does not say.
-				Trace:          options.Trace,
-				// The reading as GramHostOptions read it, which is what the compilation is handed
-				// (GramHostOptions.ApplyTo).
-				Options:        options);
+				// The reading's own until the per-call facade's is given to the first (All).
+				LocationType:   options.LocationType);
 
 			return (host, site, options);
 		}
