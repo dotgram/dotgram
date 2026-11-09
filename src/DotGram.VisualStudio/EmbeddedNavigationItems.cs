@@ -44,26 +44,45 @@ static class EmbeddedNavigationItems
 {
 	/// <summary>
 	/// The grammars, sorted by name as C# sorts its types. A name two grammars share, or none at
-	/// all, has the line the grammar starts on after it, so that each entry says which one it is.
+	/// all, has the line the grammar starts on after it, and the column too where two such grammars
+	/// start on one line, so that each entry says which one it is.
 	/// </summary>
-	/// <param name="lineAt">The one-based line number of a position in the document.</param>
+	/// <param name="locate">The one-based line and column of a position in the document.</param>
 	public static IReadOnlyList<EmbeddedGrammarItem> Grammars(
 		IReadOnlyList<EmbeddedGrammarOutline> outlines,
-		Func<int, int>                        lineAt)
+		Func<int, (int Line, int Column)>     locate)
 	{
-		var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+		var names = new Dictionary<string, int>(StringComparer.Ordinal);
 
 		foreach (var outline in outlines)
 			if (outline.Name is { } name)
-				counts[name] = counts.TryGetValue(name, out var count) ? count + 1 : 1;
+				Count(names, name);
+
+		var lines  = new Dictionary<string, int>(StringComparer.Ordinal);
+		var placed = new (string Name, int Line, int Column)[outlines.Count];
+
+		for (var index = 0; index < outlines.Count; index++)
+		{
+			var outline = outlines[index];
+			if (outline.Name is { } name && names[name] == 1)
+				continue;
+
+			var (line, column) = locate(outline.Span.Start);
+
+			placed[index] = (outline.Name ?? "Grammar", line, column);
+			Count(lines, OnLine(placed[index].Name, line));
+		}
 
 		var result = new List<EmbeddedGrammarItem>(outlines.Count);
 
-		foreach (var outline in outlines)
+		for (var index = 0; index < outlines.Count; index++)
 		{
-			var display = outline.Name is { } name && counts[name] == 1
+			var outline = outlines[index];
+			var display = outline.Name is { } name && names[name] == 1
 				? name
-				: (outline.Name ?? "Grammar") + " (line " + lineAt(outline.Span.Start) + ")";
+				: lines[OnLine(placed[index].Name, placed[index].Line)] == 1
+					? OnLine(placed[index].Name, placed[index].Line)
+					: placed[index].Name + " (line " + placed[index].Line + ", column " + placed[index].Column + ")";
 
 			result.Add(new EmbeddedGrammarItem(display, outline.Span, outline.HostSpan, Symbols(outline.Symbols)));
 		}
@@ -73,6 +92,58 @@ static class EmbeddedNavigationItems
 			var byName = StringComparer.OrdinalIgnoreCase.Compare(left.Display, right.Display);
 			return byName != 0 ? byName : left.Span.Start.CompareTo(right.Span.Start);
 		});
+
+		return result;
+
+		static string OnLine(string name, int line)
+		{
+			return name + " (line " + line + ")";
+		}
+
+		static void Count(Dictionary<string, int> counts, string key)
+		{
+			counts[key] = counts.TryGetValue(key, out var count) ? count + 1 : 1;
+		}
+	}
+
+	/// <summary>
+	/// The outlines moved onto a later snapshot of the document: every position in them, the
+	/// symbols' and their children's too, put through <paramref name="translate"/>.
+	/// </summary>
+	public static IReadOnlyList<EmbeddedGrammarOutline> Translate(
+		IReadOnlyList<EmbeddedGrammarOutline> outlines,
+		Func<TextSpan, TextSpan>              translate)
+	{
+		var result = new EmbeddedGrammarOutline[outlines.Count];
+
+		for (var index = 0; index < outlines.Count; index++)
+		{
+			var outline = outlines[index];
+			result[index] = new EmbeddedGrammarOutline(
+				outline.Name,
+				translate(outline.Span),
+				translate(outline.HostSpan),
+				Translate(outline.Symbols, translate));
+		}
+
+		return result;
+	}
+
+	static IReadOnlyList<HostDocumentSymbol> Translate(IReadOnlyList<HostDocumentSymbol> symbols, Func<TextSpan, TextSpan> translate)
+	{
+		var result = new HostDocumentSymbol[symbols.Count];
+
+		for (var index = 0; index < symbols.Count; index++)
+		{
+			var symbol = symbols[index];
+			result[index] = new HostDocumentSymbol(
+				symbol.Name,
+				symbol.Kind,
+				translate(symbol.Span),
+				translate(symbol.SelectionSpan),
+				translate(symbol.GrammarSpan),
+				Translate(symbol.Children, translate));
+		}
 
 		return result;
 	}

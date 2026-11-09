@@ -26,7 +26,7 @@ public sealed class EmbeddedNavigationItemsTests
 	[Fact]
 	public void ListsTheGrammarsByNameEachWithItsOwnSymbols()
 	{
-		var grammars = EmbeddedNavigationItems.Grammars(Outlines, Line);
+		var grammars = EmbeddedNavigationItems.Grammars(Outlines, Locate);
 
 		Assert.Equal(new[] { "Alpha", "Beta", "Beta.Tape" }, grammars.Select(grammar => grammar.Display));
 		Assert.Equal(new[] { "Inner", "Start", "Word" }, grammars[0].Symbols.Select(symbol => symbol.Display));
@@ -44,7 +44,7 @@ public sealed class EmbeddedNavigationItemsTests
 			Outline("Inspect(grammar)", 100, 10,  90, 50),
 		};
 
-		var grammars = EmbeddedNavigationItems.Grammars(outlines, Line);
+		var grammars = EmbeddedNavigationItems.Grammars(outlines, Locate);
 
 		Assert.Equal(
 			new[] { "Grammar (line 50)", "Inspect(grammar) (line 10)", "Inspect(grammar) (line 30)" },
@@ -67,7 +67,7 @@ public sealed class EmbeddedNavigationItemsTests
 	[InlineData(250, "Beta")]
 	public void ChoosesTheGrammarAtThePosition(int position, string expected)
 	{
-		var grammars = EmbeddedNavigationItems.Grammars(Outlines, Line);
+		var grammars = EmbeddedNavigationItems.Grammars(Outlines, Locate);
 
 		Assert.Equal(expected, grammars[EmbeddedNavigationItems.GrammarAt(grammars, position)].Display);
 	}
@@ -81,7 +81,7 @@ public sealed class EmbeddedNavigationItemsTests
 			Outline("Outer.Inner", 60, 10, 50,  30),
 		};
 
-		var grammars = EmbeddedNavigationItems.Grammars(outlines, Line);
+		var grammars = EmbeddedNavigationItems.Grammars(outlines, Locate);
 
 		Assert.Equal("Outer",       grammars[EmbeddedNavigationItems.GrammarAt(grammars, 40)].Display);
 		Assert.Equal("Outer.Inner", grammars[EmbeddedNavigationItems.GrammarAt(grammars, 55)].Display);
@@ -105,15 +105,56 @@ public sealed class EmbeddedNavigationItemsTests
 	[InlineData(55, null)]
 	public void ChoosesTheInnermostSymbolAtThePositionOrNone(int position, string? expected)
 	{
-		var symbols = EmbeddedNavigationItems.Grammars(Outlines, Line)[0].Symbols;
+		var symbols = EmbeddedNavigationItems.Grammars(Outlines, Locate)[0].Symbols;
 		var index   = EmbeddedNavigationItems.SymbolAt(symbols, position);
 
 		Assert.Equal(expected, index < 0 ? null : symbols[index].Display);
 	}
 
-	static int Line(int position)
+	// Two calls on one line, `Inspect("A = 'a'"); Inspect("B = 'b'");`, share the line as well as
+	// the name: the column tells them apart.
+	[Fact]
+	public void TellsApartGrammarsOfOneNameOnOneLine()
 	{
-		return position / 10;
+		var outlines = new[]
+		{
+			Outline("Inspect(grammar)", 105, 2, 100, 50),
+			Outline("Inspect(grammar)", 102, 2, 100, 50),
+			Outline("Inspect(grammar)", 300, 2, 290, 50),
+		};
+
+		var grammars = EmbeddedNavigationItems.Grammars(outlines, Locate);
+
+		Assert.Equal(
+			new[] { "Inspect(grammar) (line 10, column 3)", "Inspect(grammar) (line 10, column 6)", "Inspect(grammar) (line 30)" },
+			grammars.Select(grammar => grammar.Display));
+	}
+
+	// Text typed before the grammars moves every position in the outlines: what the bar chooses at
+	// the caret and where it navigates to are read in the edited document, not the one analysed.
+	[Fact]
+	public void FollowsAnEditBeforeTheGrammars()
+	{
+		const int inserted = 1000;
+
+		var moved    = EmbeddedNavigationItems.Translate(Outlines, span => new TextSpan(span.Start + inserted, span.Length));
+		var grammars = EmbeddedNavigationItems.Grammars(moved, Locate);
+		var alpha    = grammars[EmbeddedNavigationItems.GrammarAt(grammars, 25 + inserted)];
+		var inner    = alpha.Symbols[EmbeddedNavigationItems.SymbolAt(alpha.Symbols, 35 + inserted)];
+
+		Assert.Equal("Alpha", alpha.Display);
+		Assert.Equal(20 + inserted, alpha.Span.Start);
+		Assert.Equal(10 + inserted, alpha.HostSpan.Start);
+		Assert.Equal("Inner", inner.Display);
+		Assert.Equal(34 + inserted, inner.Position);
+		Assert.Equal(34 + inserted, inner.SelectionPosition);
+		Assert.Equal("Beta", grammars[EmbeddedNavigationItems.GrammarAt(grammars, 105 + inserted)].Display);
+		Assert.Equal("Alpha", grammars[EmbeddedNavigationItems.GrammarAt(grammars, 105)].Display);
+	}
+
+	static (int Line, int Column) Locate(int position)
+	{
+		return (position / 10, position % 10 + 1);
 	}
 
 	static EmbeddedGrammarOutline Outline(

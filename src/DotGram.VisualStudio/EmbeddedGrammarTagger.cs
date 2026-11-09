@@ -258,6 +258,9 @@ sealed class EmbeddedGrammarBufferAnalysis
 	IReadOnlyList<HostBracePair>       _braces        = [];
 	IReadOnlyList<HostFoldingRange>    _foldingRanges = [];
 	IReadOnlyList<EmbeddedGrammarOutline> _outlines = [];
+	// The snapshot _outlines were analysed on; older than _snapshot after an edit, a provisional
+	// publication or a transient syntax error, and translated to it when they are next read.
+	ITextSnapshot?                     _outlinesSnapshot;
 	IReadOnlyList<HostPublishedApi>    _publishedApis = [];
 
 	EmbeddedGrammarBufferAnalysis(
@@ -443,6 +446,14 @@ sealed class EmbeddedGrammarBufferAnalysis
 		{
 			if (_snapshot == snapshot)
 			{
+				if (_outlinesSnapshot is { } source && source != snapshot)
+				{
+					_outlines = source.Version.VersionNumber < snapshot.Version.VersionNumber
+						? EmbeddedNavigationItems.Translate(_outlines, span => Translate(span, source, snapshot))
+						: [];
+					_outlinesSnapshot = snapshot;
+				}
+
 				outlines = _outlines;
 				return true;
 			}
@@ -650,7 +661,10 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_braces          = braces;
 				_foldingRanges   = foldingRanges;
 				if (!preserveEmbeddedAnalysis)
-					_outlines = outlines;
+				{
+					_outlines         = outlines;
+					_outlinesSnapshot = snapshot;
+				}
 				_publishedApis   = publishedApis;
 
 				if (_retrySnapshot != snapshot)

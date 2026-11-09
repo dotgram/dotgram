@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.PlatformUI;
@@ -51,6 +53,10 @@ sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 	readonly ComboBox                      _symbols;
 	bool _updating;
 
+	// The entry the user clicked in an open list while it was already the selected one: picking it
+	// changes no selection, yet C#'s bar navigates to it again, and so does this one once the list closes.
+	object? _repicked;
+
 	public EmbeddedGramNavigationMargin(IWpfTextView view, EmbeddedGrammarBufferAnalysis analysis)
 	{
 		_view     = view;
@@ -82,6 +88,9 @@ sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 			DisplayMemberPath   = nameof(EmbeddedNavigationItem.Display),
 		};
 
+		combo.PreviewMouseLeftButtonUp += ComboClicked;
+		combo.DropDownOpened           += DropDownOpened;
+		combo.DropDownClosed           += DropDownClosed;
 		SetColumn(combo, column);
 		Children.Add(combo);
 
@@ -100,7 +109,11 @@ sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 			IReadOnlyList<EmbeddedGrammarItem> grammars = _analysis.TryGetOutlines(snapshot, out var outlines)
 				? EmbeddedNavigationItems.Grammars(
 					outlines,
-					position => snapshot.GetLineNumberFromPosition(Math.Min(position, snapshot.Length)) + 1)
+					position =>
+					{
+						var line = snapshot.GetLineFromPosition(Math.Min(position, snapshot.Length));
+						return (line.LineNumber + 1, Math.Min(position, snapshot.Length) - line.Start.Position + 1);
+					})
 				: [];
 
 			_grammars.ItemsSource = grammars;
@@ -186,6 +199,50 @@ sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 		});
 	}
 
+	void DropDownOpened(object sender, EventArgs args)
+	{
+		_repicked = null;
+	}
+
+	void ComboClicked(object sender, MouseButtonEventArgs args)
+	{
+		EditorGuard.Run("Navigation margin click", () =>
+		{
+			if (sender is ComboBox { IsDropDownOpen: true } combo &&
+				ItemAt(args.OriginalSource as DependencyObject) is { } item &&
+				ReferenceEquals(item, combo.SelectedItem))
+				_repicked = item;
+		});
+	}
+
+	void DropDownClosed(object sender, EventArgs args)
+	{
+		EditorGuard.Run("Navigation margin repick", () =>
+		{
+			var item = _repicked;
+			_repicked = null;
+
+			if (_updating || item is null || sender is not ComboBox combo || !ReferenceEquals(item, combo.SelectedItem))
+				return;
+
+			switch (item)
+			{
+				case EmbeddedGrammarItem grammar:   MoveTo(grammar.Span.Start, 0);                                break;
+				case EmbeddedNavigationItem symbol: MoveTo(symbol.SelectionPosition, symbol.SelectionLength); break;
+			}
+		});
+	}
+
+	/// <summary>The entry of an open list a click landed in, or null where it landed on none.</summary>
+	static object? ItemAt(DependencyObject? source)
+	{
+		for (var at = source; at is not null; at = at is Visual ? VisualTreeHelper.GetParent(at) : LogicalTreeHelper.GetParent(at))
+			if (at is ComboBoxItem item)
+				return item.DataContext;
+
+		return null;
+	}
+
 	void MoveTo(int position, int length)
 	{
 		var snapshot = _view.TextSnapshot;
@@ -213,6 +270,13 @@ sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 
 	public void Dispose()
 	{
+		foreach (var combo in new[] { _grammars, _symbols })
+		{
+			combo.PreviewMouseLeftButtonUp -= ComboClicked;
+			combo.DropDownOpened           -= DropDownOpened;
+			combo.DropDownClosed           -= DropDownClosed;
+		}
+
 		_grammars.SelectionChanged  -= GrammarSelectionChanged;
 		_symbols.SelectionChanged   -= SymbolSelectionChanged;
 		_view.Caret.PositionChanged -= CaretChanged;
