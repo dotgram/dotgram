@@ -33,7 +33,7 @@ param(
 	[Parameter(Mandatory)][string]$Base,
 	[string]$Head = 'HEAD',
 	[int]$Rounds = 3,
-	[int]$WarmRuns = 3,
+	[int]$WarmRuns = 5,
 	[double]$Tolerance = 0.20,
 	[double]$FloorMilliseconds = 100,
 	[string]$Worktrees,
