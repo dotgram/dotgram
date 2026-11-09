@@ -15,8 +15,10 @@
 	same compilation run again in a process that has already run it (DotGram.GenerationWarm, which loads the generator of the commit it
 	is measuring and runs it over the project's own files `-WarmRuns` more times, the compile cache off): the cost a solution build, whose
 	compilations share a server, and the IDE pay. On a small grammar cold is two to three times warm, 30-40% of it the generator's own JIT,
-	so the cold ratio of a small host overstates what a change to the generator costs; the warm one does not. Each round's warm figure is
-	the median of its runs after the first, and the ratio is held by the same rule as the cold one, named on a line of its own marked warm.
+	so the cold ratio of a small host overstates what a change to the generator costs; the warm one does not. The runs after the first are
+	still tiering up (a host of 90 ms steady took 750, 400, 250 ms in runs 0-2 and was not level before run 4), so a round's warm figure
+	is the median of the second half of them, once the code is optimized, and the ratio is held by the same rule as the cold one, named on a
+	line of its own marked warm.
 
 	DotGram.Sql and DotGram.Examples are rebuilt in a worktree of each commit (`-t:Rebuild`, so that the
 	generator runs), and the generator's own reports are read. The compiler's own count of the generator's time
@@ -33,7 +35,7 @@ param(
 	[Parameter(Mandatory)][string]$Base,
 	[string]$Head = 'HEAD',
 	[int]$Rounds = 3,
-	[int]$WarmRuns = 5,
+	[int]$WarmRuns = 8,
 	[double]$Tolerance = 0.20,
 	[double]$FloorMilliseconds = 100,
 	[string]$Worktrees,
@@ -178,13 +180,13 @@ try {
 
 					if (-not $generator) { throw "$name`: no DotGram.dll built for the warm reading" }
 
-					# Run 0 of the process is cold again and is left to the builds' own reports; the runs after it are the warm ones, and a round's figure for a host is their median.
+					# Run 0 of the process is cold again and is left to the builds' own reports. The runs after it are still tiering up for the first few, so a round's figure for a host is the median of the second half of them.
 					$runsOfHost = @{}
 
 					& taskset -c $cpus dotnet $warmDll $generator (Join-Path $dir $project) ($WarmRuns + 1) | ForEach-Object {
 						$fields = $_ -split "`t"
 
-						if ($fields.Count -eq 4 -and $fields[0] -eq 'host' -and [int]$fields[2] -gt 0) {
+						if ($fields.Count -eq 4 -and $fields[0] -eq 'host' -and [int]$fields[2] -gt $WarmRuns / 2) {
 							if (-not $runsOfHost.ContainsKey($fields[1])) { $runsOfHost[$fields[1]] = @() }
 							$runsOfHost[$fields[1]] += [double]::Parse($fields[3], [Globalization.CultureInfo]::InvariantCulture)
 						}
@@ -244,7 +246,7 @@ else { "The base wrote no generation reports (they arrived on 2026-09-17; v0.1.0
 
 if ($WarmRuns -gt 0 -and $warmed.head.Count -gt 0) {
 	''
-	"The same hosts warm: the compilation run $WarmRuns more times in a process that has run the generator once (DotGram.GenerationWarm; each round's figure is the median of those runs), held by the same rule. The table above is a fresh process's, the generator's JIT in it; this one is the cost of a compile after that, which is what a solution build and the IDE pay:"
+	"The same hosts warm: the compilation run $WarmRuns more times in a process that has run the generator once (DotGram.GenerationWarm; each round's figure is the median of the second half of those runs), held by the same rule. The table above is a fresh process's, the generator's JIT in it; this one is the cost of a compile after that, which is what a solution build and the IDE pay:"
 	''
 	if ($warmed.base.Count -gt 0) { Held 'host (warm)' $warmed.base $warmed.head ' (warm)' }
 	else { 'The base wrote no generation reports, so no host is held warm either.' }
