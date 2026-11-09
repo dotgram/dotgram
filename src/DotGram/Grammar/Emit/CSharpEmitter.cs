@@ -3951,7 +3951,10 @@ file.Line("return spare;");
 	/// <c>public</c>, unlike the support types of §6.1 — those are shared between
 	/// assemblies and so have a version to skew, while this one is generated from the
 	/// grammar it belongs to, in the assembly that uses it. That is what lets a published
-	/// method hand it back.
+	/// method hand it back. Its constructor is <c>internal</c>: its parameters are the captures in the
+	/// order the grammar writes them, so two captures of one type swapped in the grammar would swap
+	/// what a caller outside passes without a word from the compiler. The parser builds it, and code
+	/// beside the grammar may; a caller reads it.
 	/// </remarks>
 	static void EmitResultType(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
@@ -3971,7 +3974,7 @@ file.Line("return spare;");
 
 			file.Line($"/// <summary>Builds what the rule <c>{rule.Name}</c> recognized from its captures.</summary>");
 
-			using (file.Block($"public {name}({string.Join(", ", parameters)})"))
+			using (file.Block($"internal {name}({string.Join(", ", parameters)})"))
 				foreach (var member in members)
 					file.Line($"{ResultTypes.PropertyOf(member, name)} = {ResultTypes.ParameterOf(member)};");
 

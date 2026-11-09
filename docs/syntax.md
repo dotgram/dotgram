@@ -3674,7 +3674,7 @@ Url = scheme: ("https" | "http" | "ftp") & "://" & host: Host
 // generated when no C# type exists
 public sealed class Url
 {
-    public Url(string scheme, Host host) { Scheme = scheme; Host = host; }
+    internal Url(string scheme, Host host) { Scheme = scheme; Host = host; }
 
     public string Scheme { get; }
     public Host   Host   { get; }
@@ -3687,7 +3687,12 @@ time. And it can be typed all the way — `scheme: Scheme` with `Scheme : @UriSc
 hands back the enum instead of the text.
 
 When no accessible C# type exists for a rule, an ordinary class with the same members
-is generated — a constructor and a get-only property per capture, and nothing else. Not
+is generated — a constructor and a get-only property per capture, and nothing else. The
+constructor is `internal`: its parameters are the captures in the order the grammar writes
+them, so a grammar that swapped two captures of one type would swap what a caller in another
+assembly passes, and nothing would say so. The parser builds the value and code in the same
+assembly may; outside it, the value is read. A value to be built elsewhere — by hand, by a
+test, by another assembly — is a type of the host's own, named with `: @T` (§7.1). Not
 a bespoke node framework, and not a `record`: a positional record needs `IsExternalInit`,
 which lives in `System.Runtime.CompilerServices`, and §6.2 is why nothing is ever emitted
 into a namespace that is not ours. A consumer targeting an older framework has their own
