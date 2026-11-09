@@ -30,6 +30,12 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 	/// </summary>
 	public GramNames? Names { get; init; }
 
+	/// <summary>
+	/// Where the host has several readings (<see cref="GramCompilerOptions.SharedTypes"/>), the types
+	/// this reading reads from the host and so needs written there; nothing otherwise.
+	/// </summary>
+	public SharedNeeds SharedNeeds { get; init; }
+
 	public bool HasErrors
 	{
 		get
@@ -45,6 +51,34 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 
 /// <summary>One file of generated C#.</summary>
 readonly record struct GeneratedSource(string HintName, string Text);
+
+/// <summary>
+/// The types a host with several readings has written once, in the host, for all of them: what one
+/// reading needs of them. The host gets the union of its readings' (CSharpEmitter.SharedTypes).
+/// </summary>
+[Flags]
+enum SharedNeeds
+{
+	None = 0,
+
+	/// <summary><c>SourceSpan</c>, which the grammar's C# or a rule's value names.</summary>
+	Span = 1,
+
+	/// <summary><c>SourceSpan</c> as a public signature names it, and so public.</summary>
+	SpanShown = 2,
+
+	/// <summary><c>Outcome</c> and <c>Match&lt;T&gt;</c>, which a publication answers with.</summary>
+	Match = 4,
+
+	/// <summary>The match of a reading that locates per call, which says where its reading ended.</summary>
+	ReadingEnd = 8,
+
+	/// <summary><c>ParserInput&lt;T&gt;</c>, which a buffered reader or a recognizer of the host reads.</summary>
+	Input = 16,
+
+	/// <summary>A reading of a host that inherits a grammar, whose types hide the base's (CS0108).</summary>
+	Hides = 32,
+}
 
 /// <summary>
 /// A compiler message, positioned in the grammar text.
@@ -491,11 +525,13 @@ sealed class GramCompilerOptions
 	public bool SpanDeclared { get; set; }
 
 	/// <summary>
-	/// Which compilation of a host writes the types the host's own C# names — the span
-	/// (§7.5) and the match (§6.1). Null where the host has one grammar and they are its
-	/// own; true for the one that writes them for every other; false for the others.
+	/// Whether the host has several readings, so that the types the host's own C# names — the
+	/// span (§7.5), the match (§6.1) and the input a recognizer reads (§7.1) — are not written
+	/// by this compilation but once for every reading, in a file of the host's own, from what
+	/// each reading says it needs (<see cref="GramCompilation.SharedNeeds"/>). False where the
+	/// host has one grammar and they are its own.
 	/// </summary>
-	public bool? SharedTypes { get; set; }
+	public bool SharedTypes { get; set; }
 
 	/// <summary>
 	/// Whether the host inherits a grammar from a base class, so that what this
