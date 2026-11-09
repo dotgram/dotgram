@@ -249,6 +249,50 @@ public sealed class GeneratedNameTests
 	}
 
 	/// <summary>
+	/// A rule's type is named against the host and the class of every reading of it, in each reading
+	/// alike: <c>Probe</c> is <c>ProbeValue</c> in the reading nested in <c>Probe.Traced</c> as it is in
+	/// <c>Probe</c>, and a rule called after a reading's class is renamed in both.
+	/// </summary>
+	[Fact]
+	public void A_rules_type_is_one_name_in_every_reading_of_the_host()
+	{
+		var assembly = GeneratorDriverTests.Build(""""
+			[DotGram.Gram("""
+				Probe  = x: 'a' & y: Traced
+				Traced = z: 'b'
+				parse Probe as Read
+				""")]
+			[DotGram.GramOptions(Suffix = "Traced", Trace = true)]
+			public static partial class Probe { }
+			"""");
+
+		foreach (var reading in new[] { "Probe", "Probe+Traced" })
+		{
+			Assert.NotNull(assembly.GetType(reading + "+ProbeValue"));
+			Assert.NotNull(assembly.GetType(reading + "+TracedValue"));
+		}
+	}
+
+	/// <summary>
+	/// A publication named after the class of a reading is a method beside a class of one name, in the
+	/// host, and is refused in every reading.
+	/// </summary>
+	[Fact]
+	public void A_publication_named_like_a_reading_is_refused()
+	{
+		var run = GeneratorDriverTests.RunGenerator(""""
+			[DotGram.Gram("""
+				W = 'w'
+				parse W as Other
+				""")]
+			[DotGram.GramOptions(Suffix = "Other")]
+			public static partial class Probe { }
+			"""");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == CSharpEmitter.GeneratedNameClash);
+	}
+
+	/// <summary>
 	/// The kinds are one closed table, and no two of its entries write one kind: a number written into a
 	/// kind is read as <c>#</c>, and every entry with every variant is a different word. No kind holds an
 	/// underscore or the mark, and no name the generator keeps plain begins with one.
