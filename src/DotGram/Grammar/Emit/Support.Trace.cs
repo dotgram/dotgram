@@ -300,15 +300,6 @@ static partial class CSharpEmitter
 			}
 
 			/// <summary>
-			/// Whether a rule only hands on another rule's value, and so is compiled into the
-			/// rules that call it: its events are written where it was called.
-			/// </summary>
-			public bool Forwards(int rule)
-			{
-				return (uint)rule < (uint)TraceForwarders_DotGram.Length && TraceForwarders_DotGram[rule];
-			}
-
-			/// <summary>
 			/// Where a position is, in characters of the input: itself over characters, and over
 			/// tokens where its token begins — past the last, where the tokens end. Good until
 			/// the reading ends.

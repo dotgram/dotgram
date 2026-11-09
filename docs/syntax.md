@@ -3264,9 +3264,10 @@ the one that goes out.
 `GramRead` says what the reading is: the rule published, whether it is `Quiet`, whether it is one
 start of a `find`, which `Machine` reads it — `methods`, a method a rule; `engine`, one automaton
 over an arena; `flat`, one method for the whole reading — the `Text`, the names of the rules and the
-C# of the guards by the numbers the events carry (`RuleName`, `GuardText`), and `CharacterOf`, which
-turns a position into a character of the input — a position over tokens is a token — and `Locate`,
-its line and column. A reading over a `TextReader`, a `Stream` or bytes (§6.3) has no `Text`, and
+C# of the guards by the numbers the events carry (`RuleName`, `GuardText`), `OverTokens`, whether
+the positions the events carry are tokens rather than characters (a grammar read over tokens, §4), and
+`CharacterOf`, which turns a position into a character of the input — a position over tokens is a
+token, and is turned into the character its token begins at — and `Locate`, its line and column. A reading over a `TextReader`, a `Stream` or bytes (§6.3) has no `Text`, and
 counts its positions from the beginning of the input, not of the part of it held in its buffer.
 
 #### Three sinks, ready-made
