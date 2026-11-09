@@ -48,6 +48,7 @@ sealed class LexicalAutomaton
 		Sets             = sets;
 		Nondeterministic = nondeterministic;
 		Walked           = walked;
+		_from            = new IReadOnlyList<(IReadOnlyList<CharRange> On, int To)>?[next.Count];
 	}
 
 	/// <summary>The alphabet: disjoint character ranges, in order.</summary>
@@ -94,27 +95,59 @@ sealed class LexicalAutomaton
 	/// </remarks>
 	public IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> From(int state)
 	{
-		var grouped = new Dictionary<int, List<CharRange>>();
-		var row     = Next[state];
+		// A machine is read again and again once it is built — every state of it several times by
+		// the emitter alone — and it does not change, so neither does what leaves a state. Two
+		// readers that ask at once both work it out, and either answer is the same.
+		if (_from[state] is { } known)
+			return known;
 
+		var grouped = new Dictionary<int, List<CharRange>>();
+		var targets = new List<int>();
+		var row     = Next[state];
+		var ranges  = default(List<CharRange>);
+		var last    = -1;
+
+		// The atoms are disjoint and in order, so each target's ranges arrive in order too, and a
+		// range that begins where the one before it ends is that range made longer: what this
+		// writes is already the maximal ranges the set is, with no sort or merge left to do.
 		for (var atom = 0; atom < row.Length; atom++)
 		{
-			if (row[atom] < 0)
+			var to = row[atom];
+
+			if (to < 0)
 				continue;
 
-			if (!grouped.TryGetValue(row[atom], out var ranges))
-				grouped[row[atom]] = ranges = [];
+			if (to != last)
+			{
+				if (!grouped.TryGetValue(to, out ranges))
+				{
+					grouped[to] = ranges = [];
+					targets.Add(to);
+				}
 
-			ranges.Add(Atoms[atom]);
+				last = to;
+			}
+
+			var range = Atoms[atom];
+
+			if (ranges!.Count > 0 && ranges[ranges.Count - 1].To + 1 == range.From)
+				ranges[ranges.Count - 1] = ranges[ranges.Count - 1] with { To = range.To };
+			else
+				ranges.Add(range);
 		}
 
-		return
-		[
-			.. grouped
-				.OrderBy(one => one.Key)
-				.Select(one => ((IReadOnlyList<CharRange>)FirstSets.First.Normalized(one.Value), one.Key)),
-		];
+		targets.Sort();
+
+		var ways = new (IReadOnlyList<CharRange> On, int To)[targets.Count];
+
+		for (var i = 0; i < ways.Length; i++)
+			ways[i] = (grouped[targets[i]].ToArray(), targets[i]);
+
+		return _from[state] = ways;
 	}
+
+	/// <summary>By state, what <see cref="From"/> answered for it.</summary>
+	readonly IReadOnlyList<(IReadOnlyList<CharRange> On, int To)>?[] _from;
 
 	/// <summary>
 	/// The machine, or null where one of the patterns is not a regular language.
@@ -1008,22 +1041,29 @@ sealed class LexicalAutomaton
 		LexicalAutomaton Subsets(int start)
 		{
 			var numbered = new Dictionary<int[], int>(Members.Same);
-			var pending  = new Queue<(HashSet<int> States, int Number)>();
+			var pending  = new Queue<(int[] States, int Number)>();
 			var sets     = new List<IReadOnlyList<int>>();
-			var named    = new Dictionary<string, int>();
+			var named    = new Dictionary<int[], int>(Members.Same);
 			var accepts  = new List<int>();
 			var rows     = new List<int[]>();
 
-			var first = Closed([start], []);
+			// What each state accepts, read once rather than looked up for every member of every
+			// subset.
+			var acceptOf = new int[_on.Count];
 
-			// Kept across the states rather than made for each: most of what a set reaches on an
-			// atom closes to a state already numbered, and then everything built to find that out
-			// was thrown away at once — a set per atom, a set per closure, a stack per closure.
-			var moves = new Dictionary<int, HashSet<int>>();
-			var free  = new Stack<HashSet<int>>();
-			var spare = (HashSet<int>?)null;
+			for (var state = 0; state < acceptOf.Length; state++)
+				acceptOf[state] = _accepts.TryGetValue(state, out var pattern) ? pattern : -1;
 
-			numbered[Key(first)] = 0;
+			var first = Closed([start]);
+
+			// Kept across the states rather than made for each: the edges of a subset are bucketed
+			// by the atom they leave on, and most of what a set reaches on an atom is what it
+			// reached on the atom before — every letter of an identifier leads to the same places.
+			var byAtom    = new List<int>?[_atoms.Count];
+			var touched   = new List<int>();
+			var accepting = new List<int>();
+
+			numbered[first] = 0;
 			pending.Enqueue((first, 0));
 			Room(rows, accepts, 0);
 
@@ -1034,22 +1074,20 @@ sealed class LexicalAutomaton
 
 				var (here, number) = pending.Dequeue();
 
-				var accepting = here
-					.Select(one => Owing(one).State)
-					.Where(_accepts.ContainsKey)
-					.Select(one => _accepts[one])
-					.Distinct()
-					.ToList();
+				accepting.Clear();
+
+				foreach (var one in here)
+					if (acceptOf[Owing(one).State] is >= 0 and var pattern)
+						accepting.Add(pattern);
+
 				if (accepting.Count > 0)
 				{
-					accepting.Sort();
+					var set = Distinct(accepting);
 
-					var key = string.Join(",", accepting);
-
-					if (!named.TryGetValue(key, out var which))
+					if (!named.TryGetValue(set, out var which))
 					{
-						named[key] = which = sets.Count;
-						sets.Add(accepting);
+						named[set] = which = sets.Count;
+						sets.Add(set);
 					}
 
 					accepts[number] = which;
@@ -1060,13 +1098,7 @@ sealed class LexicalAutomaton
 				// this replaces was `atoms × states × edges` where the work is `states ×
 				// edges`, and an alphabet of a few hundred ranges made that the whole cost
 				// of cutting a grammar in two.
-				foreach (var reached in moves.Values)
-				{
-					reached.Clear();
-					free.Push(reached);
-				}
-
-				moves.Clear();
+				touched.Clear();
 
 				foreach (var one in here)
 				{
@@ -1074,40 +1106,137 @@ sealed class LexicalAutomaton
 
 					foreach (var (on, to) in steps)
 					{
-						if (!moves.TryGetValue(on, out var reached))
-							moves[on] = reached = free.Count > 0 ? free.Pop() : [];
+						var bucket = byAtom[on] ??= [];
 
-						reached.Add(to);
+						if (bucket.Count == 0)
+							touched.Add(on);
+
+						bucket.Add(to);
 					}
 				}
 
 				// In atom order still, because a row is indexed by atom and the states are
 				// numbered in the order they are first reached — which is what `Ordered`
 				// below and every snapshot beside it were written against.
-				for (var atom = 0; atom < _atoms.Count; atom++)
+				touched.Sort();
+
+				foreach (var atom in touched)
 				{
-					if (!moves.TryGetValue(atom, out var next))
-						continue;
+					var moved = Moved(byAtom[atom]!);
 
-					var closed = Closed(next, spare ??= []);
-					var key    = Key(closed);
-
-					if (!numbered.TryGetValue(key, out var to2))
-					{
-						numbered[key] = to2 = numbered.Count;
-
-						Room(rows, accepts, to2);
-						pending.Enqueue((closed, to2));
-
-						// Kept by the queue now, so the next closure needs a set of its own.
-						spare = null;
-					}
-
-					rows[number][atom] = to2;
+					rows[number][atom] = Reached(moved, numbered, pending, rows, accepts);
 				}
 			}
 
 			return Ordered(_atoms, rows, accepts, sets, _on.Count + _owing.Count, _walked);
+		}
+
+		/// <summary>
+		/// The number of the state a subset reaches where it moves to <paramref name="moved"/>,
+		/// numbered and queued where it is new.
+		/// </summary>
+		/// <remarks>
+		/// A closure is a function of what it closes, so the state a set of moves closes to is
+		/// remembered by the moves: an identifier's letters are hundreds of atoms that all move to
+		/// the same few states, from every state of a keyword trie, and closing them again for
+		/// every atom of every state was most of the construction. What the closure walked is
+		/// counted again where it is remembered, so that <see cref="LexicalAutomaton.Walked"/> and
+		/// the budget read off it are what walking it again would make them. Not remembered once
+		/// the machine is past its budget, where a closure meets new elements owing nothing
+		/// (Element), and the same moves may close to something else.
+		/// </remarks>
+		int Reached(
+			int[]                             moved,
+			Dictionary<int[], int>            numbered,
+			Queue<(int[] States, int Number)> pending,
+			List<int[]>                       rows,
+			List<int>                         accepts)
+		{
+			var kept = _on.Count + _owing.Count <= Budget;
+
+			if (kept && _closes.TryGetValue(moved, out var known))
+			{
+				_walked      += known.Walked;
+				_walkedOwing += known.Owing;
+
+				return known.Number;
+			}
+
+			var walked = _walked;
+			var owing  = _walkedOwing;
+			var closed = Closed(moved);
+
+			if (!numbered.TryGetValue(closed, out var number))
+			{
+				numbered[closed] = number = numbered.Count;
+
+				Room(rows, accepts, number);
+				pending.Enqueue((closed, number));
+			}
+
+			if (kept && _on.Count + _owing.Count <= Budget)
+				_closes[(int[])moved.Clone()] = (number, _walked - walked, _walkedOwing - owing);
+
+			return number;
+		}
+
+		/// <summary>
+		/// The state each set of moves closed to, and what closing it walked (<see
+		/// cref="Reached"/>).
+		/// </summary>
+		readonly Dictionary<int[], (int Number, long Walked, long Owing)> _closes =
+			new(Members.Same);
+
+		/// <summary>
+		/// A bucket of moves as its members in ascending order, each once, in an array kept for
+		/// sets of its length; the bucket is emptied for the next state.
+		/// </summary>
+		/// <remarks>
+		/// Not a new array: the moves are looked up far more often than they are new, and an array
+		/// is copied out of this one only where they are (<see cref="Reached"/>).
+		/// </remarks>
+		int[] Moved(List<int> bucket)
+		{
+			bucket.Sort();
+
+			var distinct = 1;
+
+			for (var i = 1; i < bucket.Count; i++)
+				if (bucket[i] != bucket[distinct - 1])
+					bucket[distinct++] = bucket[i];
+
+			while (_scratch.Count <= distinct)
+				_scratch.Add(new int[_scratch.Count]);
+
+			var moved = _scratch[distinct];
+
+			bucket.CopyTo(0, moved, 0, distinct);
+			bucket.Clear();
+
+			return moved;
+		}
+
+		/// <summary>
+		/// By length, the array <see cref="Moved"/> writes a bucket of that many into.
+		/// </summary>
+		readonly List<int[]> _scratch = [];
+
+		/// <summary>The patterns a subset accepts, in ascending order, each once.</summary>
+		static int[] Distinct(List<int> accepting)
+		{
+			accepting.Sort();
+
+			var distinct = 1;
+
+			for (var i = 1; i < accepting.Count; i++)
+				if (accepting[i] != accepting[distinct - 1])
+					accepting[distinct++] = accepting[i];
+
+			var set = new int[distinct];
+
+			accepting.CopyTo(0, set, 0, distinct);
+
+			return set;
 		}
 
 		/// <summary>
@@ -1174,23 +1303,47 @@ sealed class LexicalAutomaton
 		/// <summary>What <see cref="Closed"/> walks with, one stack for every closure.</summary>
 		readonly Stack<int> _closing = new();
 
-		/// <summary>The states reached from these without reading, written into <paramref name="reached"/>.</summary>
-		HashSet<int> Closed(IEnumerable<int> states, HashSet<int> reached)
+		/// <summary>What <see cref="Closed"/> has reached, one list for every closure.</summary>
+		readonly List<int> _reached = [];
+
+		/// <summary>
+		/// By element, the closure that last reached it: an element is in the closure being walked
+		/// where its stamp is <see cref="_stamp"/>, which is a set cleared by counting one up.
+		/// </summary>
+		int[] _stamps = new int[64];
+
+		int _stamp;
+
+		/// <summary>The states reached from these without reading, in ascending order.</summary>
+		/// <remarks>
+		/// The order is what identifies a subset (<see cref="Members"/>), and the array is the
+		/// subset.
+		/// </remarks>
+		int[] Closed(IReadOnlyList<int> states)
 		{
 			var pending = _closing;
+			var reached = _reached;
 
 			reached.Clear();
 			pending.Clear();
 
-			foreach (var one in states)
-				pending.Push(one);
+			if (++_stamp == int.MaxValue)
+			{
+				Array.Clear(_stamps, 0, _stamps.Length);
+				_stamp = 1;
+			}
+
+			for (var i = 0; i < states.Count; i++)
+				pending.Push(states[i]);
 
 			while (pending.Count > 0)
 			{
 				var one = pending.Pop();
 
-				if (!reached.Add(one))
+				if (!Stamp(one))
 					continue;
+
+				reached.Add(one);
 
 				if (one >= _on.Count)
 				{
@@ -1208,9 +1361,6 @@ sealed class LexicalAutomaton
 						pending.Push(Element(to, Owe(0, delimiter, matched)));
 			}
 
-			// A state reached owing nothing reads everything it reads owing something, and more:
-			// a debt only takes ways away. Kept, the debts multiplied every subset by what each run
-			// hands on, since an empty run lets every later run's start be reached both ways.
 			_walked += reached.Count;
 
 			// A state reached owing nothing reads everything it reads owing something, and more:
@@ -1219,16 +1369,52 @@ sealed class LexicalAutomaton
 			// state reached owing two debts, one of which finishes no later than the other on any
 			// text, is still held twice: asking that of every pair in every subset cost more than
 			// holding them did.
+			var count = reached.Count;
+
 			if (_owing.Count > 0)
 			{
-				foreach (var one in reached)
+				count = 0;
+
+				for (var i = 0; i < reached.Count; i++)
+				{
+					var one = reached[i];
+
 					if (one >= _on.Count)
+					{
 						_walkedOwing++;
 
-				reached.RemoveWhere(one => one >= _on.Count && reached.Contains(_owing[one - _on.Count].State));
+						// The element's state is below every element that owes, and was stamped by
+						// now if it was reached at all.
+						if (_stamps[_owing[one - _on.Count].State] == _stamp)
+							continue;
+					}
+
+					reached[count++] = one;
+				}
 			}
 
-			return reached;
+			var key = new int[count];
+
+			reached.CopyTo(0, key, 0, count);
+			Array.Sort(key);
+
+			return key;
+		}
+
+		/// <summary>
+		/// Marks an element reached by the closure being walked; false where it was already.
+		/// </summary>
+		bool Stamp(int element)
+		{
+			if (element >= _stamps.Length)
+				Array.Resize(ref _stamps, Math.Max(element + 1, _stamps.Length * 2));
+
+			if (_stamps[element] == _stamp)
+				return false;
+
+			_stamps[element] = _stamp;
+
+			return true;
 		}
 
 		// ── What a run hands on ─────────────────────────────────────────────────────
@@ -1425,24 +1611,6 @@ sealed class LexicalAutomaton
 			}
 
 			return number;
-		}
-
-		/// <summary>A subset as its members in ascending order, which is what identifies it.</summary>
-		/// <remarks>
-		/// It was a comma-joined string of the sorted members, and then a bit per state of the
-		/// whole nondeterministic machine. The string cost an allocation and a walk of its text;
-		/// the bits cost a word per sixty-four states on every transition — hundreds of words
-		/// for T-SQL, hashed and compared each time, where a subset holds a few dozen members.
-		/// The members themselves are as long as the subset and no longer.
-		/// </remarks>
-		static int[] Key(HashSet<int> states)
-		{
-			var key = new int[states.Count];
-
-			states.CopyTo(key);
-			Array.Sort(key);
-
-			return key;
 		}
 
 		/// <summary>Two subsets are the same when they hold the same members.</summary>
