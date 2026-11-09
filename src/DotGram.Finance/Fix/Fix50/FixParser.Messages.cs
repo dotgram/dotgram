@@ -120,7 +120,7 @@ public static partial class FixParser
 		// A message ends with its CheckSum, read and closed by its separator: where it does not, the
 		// input stopped short or is not one message, and nothing after this can say what it was.
 		// Everything else wrong with it is a finding of Validate.
-		var last = fields.Count == 0 ? null : fields[fields.Count - 1];
+		var last = fields.Count == 0 ? null : fields[^1];
 
 		if (last is not FixField.Text { Tag: FixTag.CheckSum, IsValid: true } || !last.Terminated)
 		{

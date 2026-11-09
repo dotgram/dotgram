@@ -112,7 +112,9 @@ sealed partial class Machine
 			return null;
 
 		padding = DelimiterBody(padding);
+
 		var stop = DelimiterBody(parts[1]);
+
 		if (padding is not (Node.Element or Node.Literal) ||
 			stop is not (Node.Element or Node.Literal) ||
 			RunTest(padding) is not { } paddingTest || RunTest(stop) is not { } stopTest ||
@@ -133,14 +135,17 @@ sealed partial class Machine
 		FollowSets.Continuation following)
 	{
 		var state = Reserve(out var writer);
+
 		_usesRuns = true;
 		_usesChar = true;
 
 		writer.Line("var runStart = p;");
 		EmitDelimiterScan(writer, padding, stop);
+
 		// Re-enter the original path only on a minimum-length failure, so its
 		// exact diagnostic and failure position remain unchanged.
 		var retry = repeat.Min > 0 ? CompileRepeat(repeat, next, following) : (int?)null;
+
 		// A run whose continuation reads padding first and cannot begin inside it keeps no entry
 		// to give back from (Determinism.SettlesPaddedRun); a give-back there only failed, after
 		// reading the padding again.
@@ -153,19 +158,23 @@ sealed partial class Machine
 	{
 		_usesChar = true;
 		writer.Line("// Linear delimiter scan: remember the start of trailing padding.");
+
 		if (padding != null)
 			writer.Line("var paddingStart = p;");
 
 		using (writer.Block($"while ({RawRoom(1)})"))
 		{
 			writer.Line($"c = {ReadAt("p")};");
+
 			using (writer.Block($"if ({stop})"))
 			{
 				if (padding != null)
 					writer.Line("p = paddingStart;");
 				writer.Line("break;");
 			}
+
 			writer.Line("p++;");
+
 			if (padding != null)
 				writer.Line($"if (!({padding})) paddingStart = p;");
 		}
@@ -520,7 +529,7 @@ sealed partial class Machine
 			case Node.Element { Categories.Count: 0, References.Count: 0 } element:
 				return FirstSets.OfElement(element) is { IsKnown: true } first ? first.Ranges : null;
 
-			case Node.Literal(var value) { IgnoreCase: false } when value.Length == 1:
+			case Node.Literal({ Length: 1 } value) { IgnoreCase: false }:
 				return [new CharRange(value[0], value[0])];
 
 			case Node.Call(var rule, { Count: 0 }) when CanInline(rule):
@@ -593,11 +602,10 @@ sealed partial class Machine
 
 		return node switch
 		{
-			Node.Element element =>
-				FirstSets.OfElement(element) is { IsKnown: true, Ranges: [{ From: '\0', To: '\uFFFF' }] },
+			Node.Element element                        => FirstSets.OfElement(element) is { IsKnown: true, Ranges: [{ From: '\0', To: '\uFFFF' }] },
 			Node.Call(var rule, _) when CanInline(rule) => ReadsAnything(_graph.Bodies[rule]),
-			Node.Sequence([var only]) => ReadsAnything(only),
-			_ => false,
+			Node.Sequence([var only])                   => ReadsAnything(only),
+			_                                           => false,
 		};
 	}
 
@@ -628,10 +636,10 @@ sealed partial class Machine
 				switch (one)
 				{
 					case Node.Guard or Node.Condition or Node.External or Node.Marked or Node.Construct:
-					case Node.Choice { Selection: not null }:
+					case Node.Choice  { Selection: not null }:
 					case Node.Call(_, { Count: > 0 }):
 					case Node.Element { References.Count: > 0 }:
-					case Node.Behind { Test.References.Count: > 0 }:
+					case Node.Behind  { Test.References.Count: > 0 }:
 						return false;
 
 					case Node.Literal(var text):

@@ -262,12 +262,12 @@ sealed partial class Machine
 
 			return node switch
 			{
-				Node.Call(var rule, _) => rule,
-				Node.Construct(var body, _) => Called(body),
-				Node.Atomic(var body) => Called(body),
-				Node.Bind(_, var body, _) => Called(body),
-				Node.Sequence(var parts) when parts.Count == 1 => Called(parts[0]),
-				_ => null,
+				Node.Call     (var rule, _)                     => rule,
+				Node.Construct(var body, _)                     => Called(body),
+				Node.Atomic   (var body)                        => Called(body),
+				Node.Bind     (_, var body, _)                  => Called(body),
+				Node.Sequence (var parts) when parts.Count == 1 => Called(parts[0]),
+				_                                               => null,
 			};
 		}
 	}
@@ -363,26 +363,13 @@ sealed partial class Machine
 					return NodeWalk.Descendants(inside)
 						.Any(one => one is Node.Call(var seen, _) && Valued(seen));
 
-				case Node.Construct(var built, _):
-					return Strays(built, kept);
-
-				case Node.Sequence(var parts):
-					return parts.Any(part => Strays(part, false));
-
-				case Node.Choice(var alternatives):
-					return alternatives.Any(one => Strays(one, kept));
-
-				case Node.Repeat(var repeated, _, _):
-					return Strays(repeated, kept);
-
-				case Node.Atomic(var body):
-					return Strays(body, kept);
-
-				case Node.Marked(var body, _):
-					return Strays(body, kept);
-
-				default:
-					return false;
+				case Node.Construct(var built, _):       return Strays(built, kept);
+				case Node.Sequence (var parts):          return parts.Any(part => Strays(part,      false));
+				case Node.Choice   (var alternatives):   return alternatives.Any(one => Strays(one, kept));
+				case Node.Repeat   (var repeated, _, _): return Strays(repeated, kept);
+				case Node.Atomic   (var body):           return Strays(body,     kept);
+				case Node.Marked   (var body, _):        return Strays(body,     kept);
+				default:                                 return false;
 			}
 		}
 	}
@@ -611,7 +598,7 @@ sealed partial class Machine
 			CSharpEmitter.TakesSpan(_graph, made) ||
 			CSharpEmitter.Asks(_graph, made, "parserInput") ||
 			_graph.Context is not null && CSharpEmitter.Asks(_graph, made, "context") ||
-			_graph.State is not null && CSharpEmitter.Asks(_graph, made, "parserState"))
+			_graph.State   is not null && CSharpEmitter.Asks(_graph, made, "parserState"))
 		{
 			return false;
 		}
@@ -635,7 +622,7 @@ sealed partial class Machine
 	{
 		text = text.Trim();
 
-		while (text.Length > 2 && text[0] == '(' && text[text.Length - 1] == ')')
+		while (text.Length > 2 && text[0] == '(' && text[^1] == ')')
 		{
 			var depth = 0;
 
@@ -710,11 +697,12 @@ sealed partial class Machine
 	internal static void ShareDirectStores(IEnumerable<Machine> machines)
 	{
 		var readers = machines.Where(machine => machine.Carrier is TapeCarrier).ToArray();
-		var dense = readers.Any(machine => machine.DenseDirectValues);
+		var dense   = readers.Any(machine => machine.DenseDirectValues);
 		var indexed = readers.Any(machine => machine._indexedWalk);
+
 		foreach (var reader in readers)
 		{
-			((TapeCarrier)reader.Carrier).DenseStore = dense;
+			((TapeCarrier)reader.Carrier).DenseStore   = dense;
 			((TapeCarrier)reader.Carrier).IndexedStore = indexed;
 		}
 	}
@@ -725,17 +713,17 @@ sealed partial class Machine
 		// machine asked for the immediate carrier that the carrier would refuse is planned as
 		// the tape it will become; one it would carry has no store of this kind and stays out
 		// of the plan.
-		var all = machines.ToArray();
-		var readers = all.Where(static machine => machine._carrierKind == CarrierKind.Tape ||
+		var all      = machines.ToArray();
+		var readers  = all.Where(static machine => machine._carrierKind == CarrierKind.Tape ||
 			machine._carrierKind == CarrierKind.Immediate && machine.WouldRefuse(CarrierKind.Immediate) is not null).ToArray();
-		var dense = readers.Any(machine => !machine._directBuilds && machine._valueTypes.Count >= 8);
+		var dense    = readers.Any(machine => !machine._directBuilds && machine._valueTypes.Count >= 8);
 		var adaptive = !dense && readers.Any(machine => machine._directBuilds && machine._valueTypes.Count >= 32);
+
 		foreach (var machine in all)
 		{
-			machine._valueStorage = storage;
-			machine._adaptiveStore = storage == ValueStorageKind.Adaptive ||
-				storage == ValueStorageKind.Auto && adaptive && readers.Contains(machine);
-			machine._denseStore = storage == ValueStorageKind.Auto && dense && readers.Contains(machine);
+			machine._valueStorage  = storage;
+			machine._adaptiveStore = storage == ValueStorageKind.Adaptive || storage == ValueStorageKind.Auto && adaptive && readers.Contains(machine);
+			machine._denseStore    = storage == ValueStorageKind.Auto && dense && readers.Contains(machine);
 		}
 	}
 
@@ -864,18 +852,20 @@ sealed partial class Machine
 			// A guard builds while the text is read, so the walk at the end must know what
 			// it already built; where no guard builds, nothing is ever built twice and the
 			// flags and the clearing of them are work for a question with one answer.
-			var twice  = _directBuilds;
-			var strays = DirectStrays(rules);
-			var placed = DirectPositions(rules);
+			var twice    = _directBuilds;
+			var strays   = DirectStrays(rules);
+			var placed   = DirectPositions(rules);
 			// Small materializers retain their straight walk. Large split methods can
 			// amortize selection; marks still need every record visited in order.
 			var selected = twice && strays && !UsesMarks && parts.Count > 1;
+
 			// Rendered whole first and in parts only where that is too large, so the last rendering
 			// is the one kept, and what it says is what the store is written for.
 			_indexedWalk = selected;
+
 			// Whether the arms are methods of their own (CallDirectArm): wherever the walk is
 			// divided, and where it holds enough of them that their locals are a frame worth zeroing.
-			var alone = parts.Count > 1 || parts[0].Count >= AloneArms;
+			var alone   = parts.Count > 1 || parts[0].Count >= AloneArms;
 			// Such an arm is a static method of the class and not a local function of the walk
 			// (DirectArmMethod), so it is handed whatever of the walk it names, rendered first
 			// to learn what that is.
@@ -982,11 +972,13 @@ sealed partial class Machine
 			if (!selected)
 			{
 				file.Line("if (roots < 0 && ways.AllBuilt > first && ways.AllBuilt <= root)");
+
 				using (file.Block(""))
 				{
 					file.Line("first = ways.AllBuilt;");
 					file.Line("from  = ways.AllBuiltAt;");
 				}
+
 				file.Line();
 			}
 
@@ -998,11 +990,13 @@ sealed partial class Machine
 			if (selected)
 			{
 				file.Line("if (values.Indexed > ways.Built)");
+
 				using (file.Block(""))
 				{
 					file.Line("values.Indexed   = ways.Built;");
 					file.Line("values.IndexedAt = values.Starts[ways.Built];");
 				}
+
 				file.Line();
 			}
 
@@ -1048,6 +1042,7 @@ sealed partial class Machine
 				{
 					file.Line();
 					file.Line("if (roots < 0 && root >= first && root < ways.Records && built[root])");
+
 					using (file.Block(""))
 					{
 						file.Line("ways.Built = ways.Records;");
@@ -1092,11 +1087,13 @@ sealed partial class Machine
 						file.Line("if (at >= ways.LogCount || at + log[at] != ways.LogCount) throw new global::System.InvalidOperationException(\"record \" + root + \" is built where it stands, but the record there begins at \" + at + \" and the log ends at \" + ways.LogCount);");
 						file.Line("#endif");
 						file.Line("var slot  = root;");
+
 						if (placed)
 						{
 							file.Line($"var start = {PositionRead(rules, "at + 2")};");
 							file.Line($"var end   = {PositionRead(rules, "at + 3")};");
 						}
+
 						file.Line($"var read  = at + {HeadLength(rules, placed)};");
 						file.Line();
 						file.Line("built[slot] = true;");
@@ -1117,6 +1114,7 @@ sealed partial class Machine
 						// first, because the suites will not stop them.
 						file.Line("if (known || ways.AllBuilt >= first) { ways.AllBuilt = root + 1; ways.AllBuiltAt = ways.LogCount; }");
 						file.Line();
+
 						// Divided, the parts are asked in turn, each answering whether the kind was
 						// one of its own: the walk's own switch written twice was past the JIT's budget.
 						if (parts.Count > 1)
@@ -1167,7 +1165,9 @@ sealed partial class Machine
 					file.Line("for (var at = roots; at < ways.RefsCount; at += 3)");
 					file.Then("if ((rootSlots & (1L << ways.Refs[at])) != 0) live[ways.Refs[at + 1]] = true;");
 				}
+
 				file.Line();
+
 				using (file.Block("for (var back = listed - 1; back >= 0; back--)"))
 				{
 					file.Line("var at   = starts[back];");
@@ -1256,6 +1256,7 @@ sealed partial class Machine
 						// of the walk, which on n bracketing constructs was 1 + 2 + ... + n.
 						file.Line("var standing = ways.MarkOpen;");
 						file.Line();
+
 						using (file.Block("for (var open = 0; open < ways.MarkDepth && standing[open] < from; open++)"))
 						{
 							file.Line("var at = standing[open];");
@@ -1672,8 +1673,8 @@ sealed partial class Machine
 		var shared = new List<(string Type, string Name)>
 		{
 			(InputType, "text"),
-			("int", "read"),
-			("int", "slot"),
+			("int",     "read"),
+			("int",     "slot"),
 		};
 
 		if (placed)
@@ -1686,17 +1687,10 @@ sealed partial class Machine
 		shared.Add(("DirectValues_DotGram", "values"));
 		shared.Add(("int[]", "log"));
 
-		if (strays)
-			shared.Add(("bool[]", "live"));
-
-		if (twice)
-			shared.Add(("bool[]", "built"));
-
-		if (UsesMarks)
-			shared.Add(("int", "marked"));
-
-		if (UsesInput)
-			shared.Add(("string", "parserInput"));
+		if (strays)    shared.Add(("bool[]", "live"));
+		if (twice)     shared.Add(("bool[]", "built"));
+		if (UsesMarks) shared.Add(("int",    "marked"));
+		if (UsesInput) shared.Add(("string", "parserInput"));
 
 		if (OverKinds)
 		{
@@ -1705,14 +1699,9 @@ sealed partial class Machine
 			shared.Add(("int[]", "parserLengths"));
 		}
 
-		if (UsesContext)
-			shared.Add((_graph.Context!, "context"));
-
-		if (UsesReading)
-			shared.Add(("int", "parserReading"));
-
-		if (UsesLocating)
-			shared.Add(("int", "parserLocating"));
+		if (UsesContext)  shared.Add((_graph.Context!, "context"));
+		if (UsesReading)  shared.Add(("int",           "parserReading"));
+		if (UsesLocating) shared.Add(("int",           "parserLocating"));
 
 		return shared;
 	}
@@ -1800,7 +1789,7 @@ sealed partial class Machine
 		// arms' own total says one, which is the answer to a question nobody asked. What
 		// moving them out buys is their bodies; what stays behind is a label each.
 		var parts   = new List<List<(RuleSymbol Rule, int Factory)>>();
-		var count   = global::System.Math.Max(2, (whole + Budget * 9 / 10 - 1) / (Budget * 9 / 10));
+		var count   = Math.Max(2, (whole + Budget * 9 / 10 - 1) / (Budget * 9 / 10));
 		var each    = whole / count + 1;
 		var current = new List<(RuleSymbol Rule, int Factory)>();
 		var carried = 0;
@@ -2209,6 +2198,7 @@ sealed partial class Machine
 					optional
 						? $"{valueType}? captured{i} = record{i} < 0 ? default({valueType}?) : {RecordValue(valueType, $"record{i}")};"
 						: $"var captured{i} = {RecordValue(valueType, $"record{i}")};");
+
 				break;
 			}
 
@@ -2219,6 +2209,7 @@ sealed partial class Machine
 				file.Line($"var count{i} = log[read++];");
 				file.Line($"var captured{i} = {CSharpEmitter.FilledArray(element, $"count{i}")};");
 				file.Line();
+
 				using (file.Block($"for (var item = 0; item < count{i}; item++)"))
 				{
 					file.Line($"var record{i} = log[read++];");
@@ -2231,6 +2222,7 @@ sealed partial class Machine
 
 					file.Line($"captured{i}[item] = {value};");
 				}
+
 				break;
 			}
 
@@ -2241,11 +2233,13 @@ sealed partial class Machine
 				file.Line($"var count{i} = log[read++];");
 				file.Line($"var captured{i} = {CSharpEmitter.FilledArray(valueType, $"count{i}")};");
 				file.Line();
+
 				using (file.Block($"for (var item = 0; item < count{i}; item++)"))
 				{
 					file.Line($"var record{i} = log[read++];");
 					file.Line($"captured{i}[item] = {RecordValue(valueType, $"record{i}")};");
 				}
+
 				break;
 			}
 		}

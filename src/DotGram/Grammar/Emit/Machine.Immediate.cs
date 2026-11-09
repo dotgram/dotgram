@@ -71,15 +71,20 @@ sealed partial class Machine
 		{
 			text.Append('\n');
 			CSharpEmitter.Spares(text, "ImmediateValues_DotGram", releases: stacks.Count != 0);
+
 			// A required stack can still be unused by this particular parse. Its high-water
 			// mark includes values discarded by backtracking, so every retained reference
 			// is cleared before the store is made available to another parse.
 			text.Append("\tinternal static void Return(ImmediateValues_DotGram values)\n\t{\n");
+
 			// Taken before the emptying below, which zeroes the high-water marks.
-			var high = stacks.OrderBy(stack => stack, StringComparer.Ordinal)
+			var high = stacks
+				.OrderBy(stack => stack, StringComparer.Ordinal)
 				.Select(stack => "values.High" + stack).ToList();
+
 			if (high.Count != 0)
 				text.Append("\t\tvar used = 0L + ").Append(string.Join(" + ", high)).Append(";\n\n");
+
 			Emptied(text, "Text");
 			Emptied(text, "Spans");
 
@@ -90,12 +95,15 @@ sealed partial class Machine
 			// a store kept past the bound reaches no line below it, and one parked with its
 			// stacks still full kept every value of the last parse alive for as long as the
 			// thread kept the store - which is the sentence above this method, unmet.
-			var capacities = stacks.OrderBy(stack => stack, StringComparer.Ordinal)
+			var capacities = stacks
+				.OrderBy(stack => stack, StringComparer.Ordinal)
 				.Select(stack => "values.Stack" + stack + ".Length").ToList();
+
 			if (stateType is not null)
 				capacities.Add("values.MarkState.Length");
 			if (stateType is not null && markPositions)
 				capacities.Add("values.MarkAt.Length");
+
 			var roomy = high.Count == 0 ? null : "0L + " + string.Join(" + ", capacities) + " > 4L * used";
 
 			text.Append("\n\t\t// Past the bound the store is not thrown away - that was a cliff\n");
@@ -103,6 +111,7 @@ sealed partial class Machine
 			text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
 			text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
 			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
+
 			CSharpEmitter.Outsized(text, "ImmediateValues_DotGram", "values", roomy);
 
 			// Room against use, and here the two are the same quantity: every capacity summed
@@ -127,8 +136,11 @@ sealed partial class Machine
 				return;
 
 			text.Append("\t\tif (values.High").Append(tag).Append(" > 0)\n\t\t{\n");
-			text.Append("\t\t\tglobal::System.Array.Clear(values.Stack").Append(tag)
-				.Append(", 0, values.High").Append(tag).Append(");\n");
+			text.Append("\t\t\tglobal::System.Array.Clear(values.Stack")
+				.Append(tag)
+				.Append(", 0, values.High")
+				.Append(tag)
+				.Append(");\n");
 			text.Append("\t\t\tvalues.Count").Append(tag).Append(" = values.High").Append(tag).Append(" = 0;\n");
 			text.Append("\t\t}\n\n");
 		}
@@ -168,7 +180,10 @@ sealed partial class Machine
 				text.Append("\t\tnew global::System.Span<").Append(type).Append(">(Stack").Append(tag).Append(")[Count").Append(tag).Append("++] = item;\n\n");
 			}
 			else
+			{
 				text.Append("\t\tStack").Append(tag).Append("[Count").Append(tag).Append("++] = item;\n\n");
+			}
+
 			text.Append("\t\tif (Count").Append(tag).Append(" > High").Append(tag).Append(") High").Append(tag).Append(" = Count").Append(tag).Append(";\n\t}\n\n");
 			text.Append("\t/// <summary>What was pushed since the mark, as one array, and the stack back at the mark.</summary>\n");
 			text.Append("\tinternal ").Append(type).Append("[] Take").Append(tag).Append("(int from)\n\t{\n");
@@ -259,17 +274,10 @@ sealed partial class Machine
 					foreach (var token in Machine.TokenState)
 						yield return token;
 
-				if (machine.UsesInput)
-					yield return ("string", "parserInput");
-
-				if (machine.UsesContext)
-					yield return (machine._graph.Context!, "context");
-
-				if (machine.UsesReading)
-					yield return ("int", "parserReading");
-
-				if (machine.UsesLocating)
-					yield return ("int", "parserLocating");
+				if (machine.UsesInput)    yield return ("string",                "parserInput");
+				if (machine.UsesContext)  yield return (machine._graph.Context!, "context");
+				if (machine.UsesReading)  yield return ("int",                   "parserReading");
+				if (machine.UsesLocating) yield return ("int",                   "parserLocating");
 			}
 		}
 
@@ -391,8 +399,7 @@ sealed partial class Machine
 		/// </summary>
 		bool _folded;
 
-		const string NoInlining =
-			"[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+		const string NoInlining = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
 
 		/// <summary>
 		/// What was kept of the demand report, forgotten: the readers were settled, and the report
@@ -799,8 +806,10 @@ sealed partial class Machine
 			_factory = factory;
 			_start   = start;
 			_end     = end;
-			_puts.Clear();
+
+			_puts. Clear();
 			_drops.Clear();
+
 			_accumulated = false;
 			_folded      = false;
 
@@ -993,7 +1002,7 @@ sealed partial class Machine
 				return $"{into} = new {type}({string.Join(", ", passed)});";
 			}
 
-			var made = machine._factories[rule][_factory];
+			var made        = machine._factories[rule][_factory];
 			var accumulated = _accumulated;
 			var arguments   = machine.DirectArguments(
 				rule, made, machine.DirectMembers(rule, _factory), Text, Span,
@@ -1111,8 +1120,10 @@ sealed partial class Machine
 			// The `recover` factory is the author's construction as any `=>` is, and what it
 			// throws is held the same way (Held).
 			var made      = $"{Last(element)} = {plan.Method}({arguments});";
+
 			if (Holds)
 				made = $"try {{ {made} }} catch (global::System.Exception thrown) {{ {Last(element)} = default!; Faulted_DotGram(thrown); }}";
+
 			// A yield's step keeps its element as the item it hands out, gathering nothing.
 			var built     = (WordsOnce(plan.Recovery, "expecting") is { } once ? once + " " : "") + (plan.Recovery.YieldStep
 				? made

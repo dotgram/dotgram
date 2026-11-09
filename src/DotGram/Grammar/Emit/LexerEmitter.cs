@@ -227,10 +227,10 @@ static class LexerEmitter
 
 	static Dictionary<byte[], int> Fields  => _fields  ??= new(SameBytes.Instance);
 	static byte[]                  Filling => _filling ??= new byte[8192];
-	static List<string>            Low    => _low    ??= [];
-	static Dictionary<string, int> Lows   => _lows   ??= [];
-	static List<string>            Edges  => _edges  ??= [];
-	static Dictionary<string, int> Edged  => _edged  ??= [];
+	static List<string>            Low     => _low    ??= [];
+	static Dictionary<string, int> Lows    => _lows   ??= [];
+	static List<string>            Edges   => _edges  ??= [];
+	static Dictionary<string, int> Edged   => _edged  ??= [];
 
 	/// <summary>Whether any state is numbered past what a <c>short</c> holds.</summary>
 	[ThreadStatic] static bool Wide;
@@ -358,7 +358,7 @@ static class LexerEmitter
 		var cells  = new List<int>();
 		var shared = new Dictionary<string, int>();
 		var states = new List<long>();
-		var order  = Class is null ? null : Class.Distinct().OrderBy(one => one).ToList();
+		var order  = Class?.Distinct().OrderBy(one => one).ToList();
 
 		foreach (var (low, row) in Rows)
 		{
@@ -594,7 +594,7 @@ static class LexerEmitter
 		public int[] From = [];
 		public int[] To   = [];
 		public int[] Way  = [];
-		public bool Disjoint;
+		public bool  Disjoint;
 
 		public static Ranked Of(IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
 		{

@@ -29,12 +29,14 @@ sealed partial class Machine
 	{
 		var seed = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
 
-		_roots.Clear();
-		_checkpoints.Clear();
+		_roots.       Clear();
+		_checkpoints. Clear();
 		_namedOutside.Clear();
-		_checkpointIds      = 0;
-		_seam               = FollowSets.SeamOf(rule, _graph);
-		_recordsBeforeFail  = false;
+
+		_checkpointIds     = 0;
+		_seam              = FollowSets.SeamOf(rule, _graph);
+		_recordsBeforeFail = false;
+
 		int entry;
 
 		using (var modes = Keeping())
@@ -126,11 +128,12 @@ sealed partial class Machine
 
 			file.Line();
 			file.Line("Accept:");
+
 			if (whole)
 				file.Line($"if (p != text.Length) {{ expected = {EndOfInputExpected()}; goto Fail; }}");
+
 			TraceFlatLeft(file, rule, "p");
 			file.Line("return p;");
-
 			file.Line();
 			file.Line("Fail:");
 
@@ -153,6 +156,7 @@ sealed partial class Machine
 
 				// The quiet reading writes down how far it got and no more (KeepsDoors).
 				file.Line($"if ({(KeepsDoors ? "" : quiet)}p > failure.Position)");
+
 				using (file.Block(""))
 				{
 					file.Line("failure.Position = p;");
@@ -163,14 +167,18 @@ sealed partial class Machine
 						file.Line("failure.ExpectedMore?.Clear();");
 					}
 				}
+
 				using (file.Block($"else if ({quiet}p == failure.Position && expected != null)"))
 				{
 					file.Line("Tie_DotGram(ref failure, expected);");
 				}
+
 				if (Tracing is not null)
 					file.Line("failure.Trace?.Refused(p, expected);");
-								file.Line();
+
+				file.Line();
 				file.Line("Resume:");
+
 				using (file.Block("switch (pending)"))
 					foreach (var site in _checkpoints.OrderBy(static site => site.Id))
 					{
@@ -185,6 +193,7 @@ sealed partial class Machine
 							file.Line("goto Resume;");
 						}
 					}
+
 				TraceFlatLeft(file, rule, "-1");
 				file.Line("return -1;");
 			}
@@ -337,12 +346,12 @@ sealed partial class Machine
 
 	bool ComputeFlatValued(RuleSymbol rule)
 	{
-		if (!_graph.Types.ContainsKey(rule) ||
+		if (!_graph.Types.ContainsKey(rule)    ||
 			_results.QualifiedOf(rule) is null ||
-			_graph.Folds.ContainsKey(rule) ||
-			_graph.Climbing.ContainsKey(rule) ||
-			_graph.Recursive.Contains(rule) ||
-			!_graph.Bodies.TryGetValue(rule, out var body) ||
+			_graph.Folds.ContainsKey(rule)     ||
+			_graph.Climbing.ContainsKey(rule)  ||
+			_graph.Recursive.Contains(rule)    ||
+			!_graph.Bodies.TryGetValue(rule, out var body)   ||
 			!_factories.TryGetValue(rule, out var factories) ||
 			factories.Count == 0)
 			return false;
@@ -401,11 +410,11 @@ sealed partial class Machine
 	RuleSymbol? SiteCallee(Node node)
 	{
 		return node is Node.Capture(_, Node.Call(var called, { Count: 0 })) &&
-		FlatValued(called) &&
-		_owners.TryGetValue(node, out var owner) &&
-		ReferenceEquals(FollowSets.SeamOf(called, _graph), FollowSets.SeamOf(owner, _graph))
-			? called
-			: null;
+			FlatValued(called) &&
+			_owners.TryGetValue(node, out var owner) &&
+			ReferenceEquals(FollowSets.SeamOf(called, _graph), FollowSets.SeamOf(owner, _graph))
+				? called
+				: null;
 	}
 
 	/// <summary>
@@ -420,19 +429,16 @@ sealed partial class Machine
 
 		return node switch
 		{
-			Node.Capture(_, var captured) => !repeated &&
-												 (Extent(captured) || SiteCallee(node) is not null),
-			Node.Sequence(var parts) => parts.All(part => CapturesAreExtents(part, repeated)),
-			Node.Choice(var alternatives) => alternatives.All(part => CapturesAreExtents(part, repeated)),
-			Node.Repeat(var body, _, var max) => CapturesAreExtents(body, repeated || max != 1),
-			Node.Atomic(var body) => CapturesAreExtents(body, repeated),
-			Node.Marked(var body, _) => CapturesAreExtents(body, repeated),
-
-			Node.Lookahead(_, var seen) => NodeWalk.Descendants(seen).All(
-													 static inner => inner is not Node.Capture),
-			Node.Construct => false,
-			Node.Guard => false,
-			Node.External { HasValue: true } => false,
+			Node.Capture  (_, var captured)      => !repeated && (Extent(captured) || SiteCallee(node) is not null),
+			Node.Sequence (var parts)            => parts.All(part => CapturesAreExtents(part,        repeated)),
+			Node.Choice   (var alternatives)     => alternatives.All(part => CapturesAreExtents(part, repeated)),
+			Node.Repeat   (var body, _, var max) => CapturesAreExtents(body, repeated || max != 1),
+			Node.Atomic   (var body)             => CapturesAreExtents(body, repeated),
+			Node.Marked   (var body, _)          => CapturesAreExtents(body, repeated),
+			Node.Lookahead(_, var seen)          => NodeWalk.Descendants(seen).All(static inner => inner is not Node.Capture),
+			Node.Construct                       => false,
+			Node.Guard                           => false,
+			Node.External { HasValue: true }     => false,
 
 			// A binding is kept where the reader keeps it, which a flat method has no slot for.
 			Node.Bind or Node.Same or Node.Counted => false,
@@ -456,12 +462,11 @@ sealed partial class Machine
 		return node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
-			Node.Sequence(var parts) => parts.All(Extent),
-			Node.Choice(var alternatives) => alternatives.All(Extent),
-			Node.Repeat(var body, _, _) => Extent(body),
-			Node.Atomic(var body) => Extent(body),
-			Node.Call(var called, _) => _graph.Results[called].Count == 0 &&
-											 !_graph.Types.ContainsKey(called),
+			Node.Sequence(var parts)        => parts.All(Extent),
+			Node.Choice  (var alternatives) => alternatives.All(Extent),
+			Node.Repeat  (var body, _, _)   => Extent(body),
+			Node.Atomic  (var body)         => Extent(body),
+			Node.Call    (var called, _)    => _graph.Results[called].Count == 0 && !_graph.Types.ContainsKey(called),
 
 			// A binding, a reference and a count are text too, but kept off the flat and sited
 			// renderings, which have no slot for a binding: a capture over one is no extent.
@@ -493,19 +498,20 @@ sealed partial class Machine
 		var seed = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
 		var type = _results.QualifiedOf(rule);
 
-		_roots.Clear();
-		_checkpoints.Clear();
+		_roots.       Clear();
+		_checkpoints. Clear();
 		_namedOutside.Clear();
-		_flatSites.Clear();
-		_flatLocals.Clear();
-		_flatTags.Clear();
-		_flatRuleOf.Clear();
-		_flatInstance   = 0;
-		_flatInstances  = 1;
-		_flatRuleOf[0]  = rule;
-		_seam           = FollowSets.SeamOf(rule, _graph);
-		_valuesInLocals = true;
-		_lowering       = true;
+		_flatSites.   Clear();
+		_flatLocals.  Clear();
+		_flatTags.    Clear();
+		_flatRuleOf.  Clear();
+
+		_flatInstance      = 0;
+		_flatInstances     = 1;
+		_flatRuleOf[0]     = rule;
+		_seam              = FollowSets.SeamOf(rule, _graph);
+		_valuesInLocals    = true;
+		_lowering          = true;
 		_recordsBeforeFail = false;
 
 		var entry = whole ? CompileWhole(rule, Accept) : Compile(BodyOf(rule, whole), Accept, seed);
@@ -580,8 +586,10 @@ sealed partial class Machine
 
 			file.Line();
 			file.Line("Accept:");
+
 			if (whole)
 				file.Line($"if (p != text.Length) {{ expected = {EndOfInputExpected()}; goto Fail; }}");
+
 			TraceFlatLeft(file, rule, "p");
 
 			// The constructions, deferred to here: the parse is decided, and only now
@@ -602,7 +610,6 @@ sealed partial class Machine
 
 			EmitFlatConstruction(file, 0, rule, "value");
 			file.Line("return p;");
-
 			file.Line();
 			file.Line("Fail:");
 			file.Line("value = default!;");

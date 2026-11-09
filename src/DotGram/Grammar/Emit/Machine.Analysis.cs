@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -100,13 +101,13 @@ sealed partial class Machine
 
 			// One comparison against the character behind, no entry — its compile already
 			// routes failure through `_fail` like every other silent node.
-			Node.Behind => true,
+			Node.Behind  => true,
 
 			// One test of the reading, no entry, its failure routed like the look-behind's.
 			Node.Reading => true,
 
 			// Nothing read and nothing kept, whichever half of a split grammar it lands in.
-			Node.Glue => true,
+			Node.Glue    => true,
 
 			// A lookahead over a silent body needs no entry either: the body writes
 			// nothing, so entering is a checkpoint local and leaving is putting the
@@ -119,17 +120,18 @@ sealed partial class Machine
 			// backtracks over it, which is what every other case here already proves,
 			// and only the flat-value rendering compiles it that way. A capture of a
 			// flat-valued call is the call's body compiled in place, silent when it is.
-			Node.Capture(_, var captured) => _valuesInLocals &&
-														  (SiteCallee(node) is { } called
-															  ? Silent(Expanded(called), Handed(called, following))
-															  : Silent(captured, following)),
+			Node.Capture(_, var captured) =>
+				_valuesInLocals && (SiteCallee(node) is { } called
+					? Silent(Expanded(called), Handed(called, following))
+					: Silent(captured, following)),
 
 			// The single construction a flat-value method runs at Accept, once the
 			// whole parse is decided — deferred construction kept, no entry written.
 			Node.Construct(var built, _) => _valuesInLocals && Silent(built, following),
 
-			Node.Sequence(var parts) => AllSilent(parts, following),
+			Node.Sequence(var parts)            => AllSilent(parts, following),
 			Node.Choice { Selection: not null } => false,
+
 			// Three ways a choice writes nothing. One character telling every alternative
 			// apart is the first, and the second is the whole choice being one run of
 			// literals: `CompileLiterals` decides those where their texts differ and never
@@ -139,19 +141,18 @@ sealed partial class Machine
 			// whose way back three locals hold — sound only where failure routes through
 			// `Fail:`, which is what <see cref="_checkpointsAllowed"/> stands for, and
 			// only in the valueless rendering, whose retries have no captures to unset.
-			Node.Choice(var alternatives) => Predictive(alternatives) is not null &&
-														  AllSilent(alternatives, following, sequence: false) ||
-														  LiteralRun(
-															  alternatives,
-															  alternatives.Count - 1,
-															  following.Taught.Plain) == alternatives.Count ||
-														  CheckpointSilent(alternatives, following),
+			Node.Choice(var alternatives) =>
+				Predictive(alternatives) is not null &&
+				AllSilent(alternatives, following, sequence: false)                                            ||
+				LiteralRun(alternatives, alternatives.Count - 1, following.Taught.Plain) == alternatives.Count ||
+				CheckpointSilent(alternatives, following),
+
 			// A scanner call is one method call that writes nothing; failing one already
 			// goes through `_fail`. Otherwise the call is silent when its inlined body is.
-			Node.Call(var rule, _) => ScannerOf(rule) is not null ||
-														  CanInline(rule) &&
-														  _graph.Bodies.ContainsKey(rule) &&
-														  Silent(Expanded(rule), Handed(rule, following)),
+			Node.Call(var rule, _) =>
+				ScannerOf(rule) is not null || CanInline(rule) &&
+				_graph.Bodies.ContainsKey(rule)                &&
+				Silent(Expanded(rule), Handed(rule, following)),
 
 			// A repetition inside another is silent exactly when it is itself the loop and
 			// nothing else — which is the same question, asked of it. `Path = ('/' & Segment)*`
@@ -262,12 +263,11 @@ sealed partial class Machine
 		// reads the view (Continuation.Taught); the body's own nodes are asked under their own.
 		// Not one that ends at a turn that stood still: the general loop is what asks (EndsWhenStill).
 		return !EndsWhenStill(repeat) &&
-		Unrolls(repeat) &&
-		Possessive(repeat.Body, following.Taught) &&
-		SilentWithin(
-			repeat.Body,
-			following.Or(new FollowSets.Continuation(
-				FirstSets.Of(repeat.Body, _graph), FirstSets.Of(repeat.Body, _graph))));
+			Unrolls   (repeat) &&
+			Possessive(repeat.Body, following.Taught) &&
+			SilentWithin(
+				repeat.Body,
+				following.Or(new FollowSets.Continuation(FirstSets.Of(repeat.Body, _graph), FirstSets.Of(repeat.Body, _graph))));
 	}
 
 	/// <summary>
@@ -1010,26 +1010,13 @@ sealed partial class Machine
 			case Node.Choice { Selection: null } choice:
 				return choice.Nodes.Count > 0 && choice.Nodes.All(one => WantsToken(one));
 
-			case Node.Repeat(var body, var min, _):
-				return min > 0 && WantsToken(body);
-
-			case Node.Capture(_, var body):
-				return WantsToken(body);
-
-			case Node.Construct(var body, _):
-				return WantsToken(body);
-
-			case Node.Atomic(var body):
-				return WantsToken(body);
-
-			case Node.Marked(var body, _):
-				return WantsToken(body);
-
-			case Node.Bind(_, var body, _):
-				return WantsToken(body);
-
-			case Node.Lookahead(true, var body):
-				return WantsToken(body);
+			case Node.Repeat   (var body, var min, _):  return min > 0 && WantsToken(body);
+			case Node.Capture  (_,        var body):    return WantsToken(body);
+			case Node.Construct(var body, _):           return WantsToken(body);
+			case Node.Atomic   (var body):              return WantsToken(body);
+			case Node.Marked   (var body, _):           return WantsToken(body);
+			case Node.Bind     (_,        var body, _): return WantsToken(body);
+			case Node.Lookahead(true,     var body):    return WantsToken(body);
 
 			// Once a rule: a rule met again on the way down is taken not to want one, which is never
 			// wrong — the door is only left off.

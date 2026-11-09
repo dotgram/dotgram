@@ -169,5 +169,4 @@ sealed partial class Machine
 	}
 
 	static readonly Edges None = new();
-
 }
