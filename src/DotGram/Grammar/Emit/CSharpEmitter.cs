@@ -1053,39 +1053,39 @@ static partial class CSharpEmitter
 		if (machines.Count > 0)
 		{
 			file.Write(FailureStructWith(
-				reach: graph.Recoveries.Count > 0 && (Streaming(graph, overKinds) || readsRecovery),
+				(graph.Recoveries.Count > 0 && (Streaming(graph, overKinds) || readsRecovery) ? FailureFields.Reach : 0) |
 				// What stood where a turn of a recovering repetition began, where its element is told
 				// what would have fit (Expecting_DotGram).
-				stood: machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsExplainedRecovery),
-				starved: Streaming(graph, overKinds),
-				expected: true,
+				(machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsExplainedRecovery) ? FailureFields.Stood : 0) |
+				(Streaming(graph, overKinds) ? FailureFields.Starved : 0) |
+				FailureFields.Expected |
 				// The machine that reads a terminal again is an engine too, and an engine
 				// writes the ties it meets. It is not among `machines`, so a grammar whose
 				// syntax was all flat declared a failure its lexical half could not compile.
-				expectedMore: moreField,
-				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery),
+				(moreField ? FailureFields.ExpectedMore : 0) |
+				(graph.Publications.Any(publication => publication.YieldRecovery) ? FailureFields.RecoveryOrdinal : 0) |
 				// A reader's refusals inside a lookahead are counted on the failure (Refuse_DotGram).
-				looking: machines.Exists(static compiled => compiled.Direct),
+				(machines.Exists(static compiled => compiled.Direct) ? FailureFields.Looking : 0) |
 				// How many readings of the trivia a reading is inside, where a rule both the trivia and
 				// the grammar call records as the call stands (Machine.CountsSeam).
-				seaming: machines.Exists(static compiled => compiled.Machine.CountsSeam),
+				(machines.Exists(static compiled => compiled.Machine.CountsSeam) ? FailureFields.Seaming : 0) |
 				// A reading whose failure nothing reads records none (Q7.2): a `find` over text, and the
 				// lexer measuring or valuing a token again.
-				quiet: quietField,
-				unasked: unaskedField,
+				(quietField ? FailureFields.Quiet : 0) |
+				(unaskedField ? FailureFields.Unasked : 0) |
 				// Where the quiet reading got, below which the reading that records after it tries
 				// no turn behind a shut door (Machine.KeepsDoors); not in a trace build.
-				doors: quietField && tracing is null,
+				(quietField && tracing is null ? FailureFields.Doors : 0) |
 				// Where the value began, for a reading that begins where it is told over characters
 				// (§6.3): the entry writes it past the trivia it started on.
-				began: RecordsBegan(graph, overKinds),
+				(RecordsBegan(graph, overKinds) ? FailureFields.Began : 0) |
 				// Where a whole reading's value ended, for one whose value is its rule's extent: the
 				// entry writes it before the trivia after the rule (Machine.TrimsWhole).
-				ended: RecordsEnded(machines),
+				(RecordsEnded(machines) ? FailureFields.Ended : 0) |
 				// Where what a window holds begins in the input, for the values a streamed reading locates.
-				origin: Places(graph, overKinds, options.BufferedInput),
-				originLines: PlacesLines(graph, overKinds, options.BufferedInput),
-				trace: tracing is not null));
+				(Places(graph, overKinds, options.BufferedInput) ? FailureFields.Origin : 0) |
+				(PlacesLines(graph, overKinds, options.BufferedInput) ? FailureFields.OriginLines : 0) |
+				(tracing is not null ? FailureFields.Trace : 0)));
 			file.Line();
 
 			// The thread's list for a reading's ties, where some machine writes ties at all.
