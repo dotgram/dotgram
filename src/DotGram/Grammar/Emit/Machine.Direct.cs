@@ -758,5 +758,4 @@ sealed partial class Machine
 
 	/// <summary>The name of the tape of ways back, shared by every direct rendering in a file.</summary>
 	internal const string WaysType = "Ways_DotGram";
-
 }

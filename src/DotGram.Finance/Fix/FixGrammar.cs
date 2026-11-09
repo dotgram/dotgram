@@ -90,7 +90,7 @@ sealed partial class FixGrammar
 		/// </summary>
 		public FixField Field(int tag, ReadOnlySpan<char> wire)
 		{
-			var value = wire.Slice(wire.IndexOf('=') + 1);
+			var value = wire[(wire.IndexOf('=') + 1)..];
 
 			if (context.Kind(tag) > 0)
 				Expect(tag, value.ToTag());
@@ -100,7 +100,7 @@ sealed partial class FixGrammar
 
 		public FixField Field(int tag, ReadOnlySpan<byte> wire)
 		{
-			var value = wire.Slice(wire.IndexOf((byte)'=') + 1);
+			var value = wire[(wire.IndexOf((byte)'=') + 1)..];
 
 			if (context.Kind(tag) > 0)
 				Expect(tag, value.ToTag());

@@ -194,8 +194,8 @@ sealed partial class Machine
 		// out once and held; this is the one moment either of those changes. A machine
 		// plans a layout for its engine and again for each lowered recognizer beside it,
 		// so the answers do not survive between them.
-		_dispatched    = null;
-		_dispatching   = null;
+		_dispatched     = null;
+		_dispatching    = null;
 		_namedForRender = null;
 	}
 

@@ -59,8 +59,10 @@ sealed partial class Machine
 
 		file.Line("var values = parser.Materialization(entries.Count);");
 		DeclareTables(file);
+
 		if (cached)
 			file.Line("var built  = parser.Materialized();");
+
 		file.Line("var linkHeads = parser.MaterializationHeads();");
 		file.Line("var linkNexts = parser.MaterializationNexts();");
 		file.Line();

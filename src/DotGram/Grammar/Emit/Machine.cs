@@ -17,11 +17,11 @@ namespace DotGram.Grammar.Emit;
 /// </summary>
 sealed partial class Machine
 {
-	public bool BufferedInput { get; }
+	public   bool BufferedInput { get; }
 	readonly bool _bufferedFind;
 	readonly bool _prefixTables;
-	public bool BufferedBytes { get; }
-	public bool BorrowedCaptures { get; }
+	public   bool BufferedBytes    { get; }
+	public   bool BorrowedCaptures { get; }
 
 	/// <summary>
 	/// Whether this machine reads bytes the caller already holds, whole (D7), and nothing that
@@ -70,19 +70,29 @@ sealed partial class Machine
 	{
 		get
 		{
-			if (!BufferedInput || _bufferedFind || _rules.Count != 1 || _textCaptures.Count != 0) return false;
-			if (_factories.Values.SelectMany(factories => factories).Any(factory => CSharpEmitter.WantsText(_graph, factory))) return false;
+			if (!BufferedInput || _bufferedFind || _rules.Count != 1 || _textCaptures.Count != 0)
+				return false;
+
+			if (_factories.Values.SelectMany(factories => factories).Any(factory => CSharpEmitter.WantsText(_graph, factory)))
+				return false;
+
 			var rule = _rules.First();
-			if (!_graph.Types.ContainsKey(rule)) return false;
+
+			if (!_graph.Types.ContainsKey(rule))
+				return false;
+
 			var body = _graph.Bodies[rule];
+
 			while (body is Node.Construct construct)
 			{
 				if (construct.How is Construction.Expression expression &&
 					(CSharpEmitter.Uses(_graph, expression.Text, "parserLine") ||
 					 CSharpEmitter.Uses(_graph, expression.Text, "parserColumn") ||
-					 CSharpEmitter.Uses(_graph, expression.Text, "parserInput"))) return false;
+					 CSharpEmitter.Uses(_graph, expression.Text, "parserInput")))
+					return false;
 				body = construct.Body;
 			}
+
 			// A synchronization is read as the body is: a keyword in one looks behind.
 			return NodeWalk.Reading(body, _graph).All(node => node is
 				Node.Empty or Node.Literal or Node.Element or Node.Sequence or Node.Repeat) &&
@@ -91,6 +101,7 @@ sealed partial class Machine
 	}
 
 	internal string InputType => BufferedBytes ? "BufferedBytes_DotGram" : BufferedInput ? "BufferedText_DotGram" : "global::System.ReadOnlySpan<char>";
+
 	string ReadAt(string position)
 	{
 		return BufferedInput ? $"text.Get({position})" : $"text[{position}]";
@@ -289,17 +300,17 @@ sealed partial class Machine
 	}
 
 	/// <summary>The types this machine builds, for whoever renders a way into it.</summary>
-	public ResultTypes Results => _results;
-	readonly List<Writer> _states = [];
-	readonly Dictionary<RuleSymbol, int> _entries = [];
-	readonly Dictionary<RuleSymbol, int> _ruleIds = [];
-	readonly Dictionary<RuleSymbol, int> _captureOffsets = [];
-	readonly Dictionary<Node, int> _captureSlots = new(NodeIdentity.Instance);
+	public ResultTypes Results =>        _results;
+	readonly List<Writer>                _states = [];
+	readonly Dictionary<RuleSymbol,int>  _entries = [];
+	readonly Dictionary<RuleSymbol,int>  _ruleIds = [];
+	readonly Dictionary<RuleSymbol,int>  _captureOffsets = [];
+	readonly Dictionary<Node,int>        _captureSlots = new(NodeIdentity.Instance);
 
 	/// <summary>The rule whose value each slot holds, or null where it holds text.</summary>
-	readonly Dictionary<int, RuleSymbol?> _slotRules = [];
-	readonly Dictionary<Node, RuleSymbol> _owners = new(NodeIdentity.Instance);
-	readonly HashSet<int> _textCaptures = [];
+	readonly Dictionary<int,RuleSymbol?> _slotRules = [];
+	readonly Dictionary<Node,RuleSymbol> _owners = new(NodeIdentity.Instance);
+	readonly HashSet<int>                _textCaptures = [];
 
 	/// <summary>
 	/// The text captures whose start cannot be held in a variable.
@@ -330,7 +341,7 @@ sealed partial class Machine
 	readonly HashSet<int> _repeatedCaptures = [];
 
 	/// <summary>The machine-wide slot each binding is recorded in (<see cref="CompileBind"/>).</summary>
-	readonly Dictionary<TextBinding, int> _bindingSlots = [];
+	readonly Dictionary<TextBinding,int> _bindingSlots = [];
 
 	/// <summary>The bindings a reference or a count of this machine reads.</summary>
 	readonly HashSet<TextBinding> _bindingsRead = [];
@@ -339,44 +350,44 @@ sealed partial class Machine
 	/// The repeated captures whose pieces can overlap, which are those of a positive lookahead: see
 	/// <see cref="Overlaps"/>.
 	/// </summary>
-	readonly HashSet<int> _overlappingCaptures = [];
-	readonly Dictionary<RuleSymbol, IReadOnlyList<Factory>> _factories = [];
-	readonly Dictionary<Node, int> _constructs = new(NodeIdentity.Instance);
-	readonly Dictionary<Node, RecoveryPlan> _recoveries = new(NodeIdentity.Instance);
-	readonly List<RecoveryPlan> _recoveryPlans = [];
-	readonly Dictionary<RuleSymbol, int> _wholeEntries = [];
+	readonly HashSet<int>                                  _overlappingCaptures = [];
+	readonly Dictionary<RuleSymbol,IReadOnlyList<Factory>> _factories = [];
+	readonly Dictionary<Node,int>                          _constructs = new(NodeIdentity.Instance);
+	readonly Dictionary<Node,RecoveryPlan>                 _recoveries = new(NodeIdentity.Instance);
+	readonly List<RecoveryPlan>                            _recoveryPlans = [];
+	readonly Dictionary<RuleSymbol,int>                    _wholeEntries = [];
 
 	/// <summary>The entry a reading that begins where it is told uses: the trivia there, then the rule (§6.3).</summary>
-	readonly Dictionary<RuleSymbol, int> _leadEntries = [];
-	readonly List<string> _extra = [];
+	readonly Dictionary<RuleSymbol,int>                    _leadEntries = [];
+	readonly List<string>                                  _extra = [];
 
 	/// <summary>The sets of the parser class this machine writes into, which number and write them.</summary>
-	readonly ExpectedSets _expectedSets;
+	readonly ExpectedSets                                  _expectedSets;
 
 	/// <summary>Whether the sets are this machine's alone, and so written among its <see cref="Extras"/>.</summary>
-	readonly bool _ownsExpectedSets;
+	readonly bool                                          _ownsExpectedSets;
 
 	/// <summary>The calls something actually wrote into a state, for every machine of the class.</summary>
-	readonly HashSet<string> _expectedUsed;
+	readonly HashSet<string>                               _expectedUsed;
 
 	/// <summary>One call per distinct set, so the same list is not numbered twice.</summary>
-	readonly Dictionary<string, string> _expectedByItems = new(StringComparer.Ordinal);
+	readonly Dictionary<string,string>                     _expectedByItems = new(StringComparer.Ordinal);
 
 	// Shared only by sibling machines emitted into the same parser class.
-	readonly Dictionary<string, int>? _expectedTables;
+	readonly Dictionary<string,int>?                       _expectedTables;
 
 	/// <summary>The character classes read from a table rather than written out.</summary>
-	readonly List<(string Name, string Declaration)> _classes = [];
+	readonly List<(string Name,string Declaration)>        _classes = [];
 
 	/// <summary>The same set of ranges asked for twice is the same table.</summary>
-	readonly Dictionary<string, string> _classesByRanges = new(StringComparer.Ordinal);
+	readonly Dictionary<string,string>                     _classesByRanges = new(StringComparer.Ordinal);
 
-	readonly HashSet<string> _classesUsed = [];
+	readonly HashSet<string>                               _classesUsed = [];
 
-	int _classCount;
+	int                _classCount;
 	readonly ILineMap? _lines;
-	readonly bool _starves;
-	bool _usesChar;
+	readonly bool      _starves;
+	bool               _usesChar;
 
 	/// <summary>
 	/// Whether any state the layout kept reads <c>c</c> — asked of the written bodies
@@ -440,12 +451,12 @@ sealed partial class Machine
 	/// <summary>What separates this machine's names from a sibling's — the constructor's <c>tag</c>.</summary>
 	internal MachineTag Tag { get; }
 
-	int _fail = Fail;
+	int  _fail = Fail;
 	bool _materializer;
 	bool _guardValues;
-	int _guards;
+	int  _guards;
 	readonly Dictionary<Node, (Node.SwitchSelection Selection, int[] Targets)> _switches = new(NodeIdentity.Instance);
-	int _sharpens;
+	int      _sharpens;
 	string? _agreeing;
 	readonly Dictionary<string, string> _sharpenings = [];
 	int _captures;
@@ -2309,7 +2320,7 @@ sealed partial class Machine
 
 		var file = new Writer(0);
 
-		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
+		var strength  = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
 		var hasValues = false;
 
 		foreach (var rule in _rules)
@@ -2324,25 +2335,33 @@ sealed partial class Machine
 		// Large split machines would otherwise put thousands of case labels back
 		// into the outer dispatcher, defeating the JIT budget of the parts.
 		var indexedDispatch = Divided && Dispatching().Count > 1000;
+
 		if (indexedDispatch)
 		{
 			var dispatch = Dispatching();
 			var numbered = Enumerable.Range(0, _parts.Count)
 				.SelectMany(part => Numbering(dispatch, part).Select(state => (State: state, Part: part)))
 				.ToArray();
-			var table = Enumerable.Repeat(-1, numbered.Max(one => one.State) + 1).ToArray();
+			var table    = Enumerable.Repeat(-1, numbered.Max(one => one.State) + 1).ToArray();
+
 			table[Return] = Return;
 			table[Accept] = Accept;
-			table[Fail] = Fail;
-			foreach (var one in numbered) table[one.State] = one.Part + First;
+			table[Fail]   = Fail;
+
+			foreach (var one in numbered)
+				table[one.State] = one.Part + First;
+
 			var field = $"static readonly int[] {Tag.Named("RecognizeDispatch")} = new int[] {{ {string.Join(", ", table)} }};";
+
 			if (declaration is null)
 			{
 				file.Line(field);
 				file.Line();
 			}
 			else
+			{
 				declaration(field);
+			}
 		}
 
 		if (CountsRules && _nestedCaptures.Count > 0)
@@ -2385,6 +2404,7 @@ sealed partial class Machine
 				file.Line("parser.OriginColumn = failure.OriginColumn;");
 				file.Line("parser.OriginSkip = failure.OriginSkip;");
 			}
+
 			file.Line();
 
 			using (file.Block("try"))
@@ -2395,6 +2415,7 @@ sealed partial class Machine
 				file.Line("var atomic  = -1;");
 				file.Line("var repeat  = -1;");
 				file.Line("var lookahead = -1;");
+
 				if (_usesNegating)
 					file.Line("var negating = 0;");
 				if (CountsSeam)
@@ -2454,9 +2475,11 @@ sealed partial class Machine
 				for (var i = 0; i < _captures; i++)
 					if (_textCaptures.Contains(i) && !_nestedCaptures.Contains(i) && UsesCapture(i))
 						file.Line($"var capture{i} = 0;");
+
 				for (var i = 0; i < _captures; i++)
 					if (_nestedCaptures.Contains(i) && UsesOpened(i))
 						file.Line($"var opened{i} = -1;");
+
 				foreach (var slot in _bindingSlots.Values.OrderBy(static slot => slot))
 					if (UsesBound(slot))
 						file.Line($"var bound{slot} = -1;");
@@ -2467,11 +2490,11 @@ sealed partial class Machine
 				// only where the root itself refused — past its end the call has returned, and a whole
 				// parse refused for what follows it is not the root's refusal.
 				var saying = _tracedRoots
-					.Where(pair => SaysOf(pair.Value) is not null)
-					.Select(pair => (State: Numbered(pair.Key), Said: SaidOnFail(SaysOf(pair.Value)!)))
+					.Where   (pair => SaysOf(pair.Value) is not null)
+					.Select  (pair => (State: Numbered(pair.Key), Said: SaidOnFail(SaysOf(pair.Value)!)))
 					.Distinct()
-					.OrderBy(static one => one.State)
-					.ToList();
+					.OrderBy (static one => one.State)
+					.ToList  ();
 
 				if (saying.Count > 0)
 					file.Line(
@@ -2571,11 +2594,14 @@ sealed partial class Machine
 				file.Line(
 					"global::System.Diagnostics.Debug.Assert(" +
 					"returned.Kind == ParserEntry.Call || returned.Kind == ParserEntry.Completed);");
+
 				if (Tracing is not null)
 					file.Line("failure.Trace?.Returned(call, p);");
 				file.Line("state = returned.State;");
+
 				if (_graph.Climbing.Count > 0)
 					file.Line("power = returned.Power;");
+
 				// A reading of the trivia returned: counted back, and the entry, where it stays below
 				// others, no longer counts as one when Fail: takes it back.
 				if (CountsSeam)
@@ -2586,12 +2612,16 @@ sealed partial class Machine
 						file.Line("if (entries.Count != call + 1) entries[call] = new ParserEntry(returned.Kind, returned.State, returned.Position, returned.CallIndex, returned.AtomicIndex, returned.RepeatIndex, returned.LookaheadIndex, returned.Value, -1" + (_graph.Climbing.Count > 0 ? ", returned.Power" : "") + ");");
 					}
 				}
+
 				file.Line("var previousCall = returned.CallIndex;");
+
 				if (_usesCompleted)
 					file.Line("completedCall = call;");
+
 				file.Line("repeat = returned.RepeatIndex;");
 				file.Line("lookahead = returned.LookaheadIndex;");
 				file.Line();
+
 				using (file.Block("if (returned.RuleIndex >= 0)"))
 				{
 					file.Line(
@@ -2613,6 +2643,7 @@ sealed partial class Machine
 					file.Line("else if (entries.Count == call + 1)");
 					file.Then("entries.RemoveAt(call);");
 				}
+
 				file.Line();
 				file.Line("call = previousCall;");
 				file.Line("Step_DotGram(\"return\", state, p, entries.Count, text, \"\");");
@@ -2684,6 +2715,7 @@ sealed partial class Machine
 				var recording = Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0";
 
 				file.Line($"if ({(KeepsDoors ? "lookahead < 0" : recording)} && p > failure.Position)");
+
 				using (file.Block(""))
 				{
 					file.Line("failure.Position = p;");
@@ -2694,22 +2726,27 @@ sealed partial class Machine
 						file.Line("failure.ExpectedMore?.Clear();");
 					}
 				}
+
 				file.Line($"else if ({recording} && p == failure.Position && expected != null)");
+
 				using (file.Block(""))
 				{
 					file.Line("Tie_DotGram(ref failure, expected);");
 				}
+
 				if (_recoveries.Count > 0)
 				{
 					file.Line("if (lookahead < 0 && p > reach)");
 					file.Then("reach = p;");
 					RecoveryReaches(file);
 				}
+
 				if (Tracing is not null)
 				{
 					file.Line("if (lookahead < 0)");
 					file.Then("failure.Trace?.Refused(p, expected);");
 				}
+
 				file.Line("Step_DotGram(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();
 
@@ -2723,8 +2760,10 @@ sealed partial class Machine
 				{
 					file.Line("var last = entries.Count - 1;");
 					file.Line("var entry = entries[last];");
+
 					if (Caches)
 						file.Line("parser.Truncate(last, entries);");
+
 					file.Line("entries.RemoveAt(last);");
 					file.Line();
 
@@ -2773,12 +2812,11 @@ sealed partial class Machine
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
-						if (Ceiled)
-							file.Line("power  = entry.Power;");
-						if (Tracing is not null)
-							file.Line("failure.Trace?.Resumed(call);");
-						if (Caches)
-							file.Line("parser.Reopen(call, entries);");
+
+						if (Ceiled)              file.Line("power  = entry.Power;");
+						if (Tracing is not null) file.Line("failure.Trace?.Resumed(call);");
+						if (Caches)              file.Line("parser.Reopen(call, entries);");
+
 						file.Line("Step_DotGram(\"resume\", state, p, entries.Count, text, \"\");");
 						file.Line("goto Dispatch;");
 					}
@@ -2822,12 +2860,11 @@ sealed partial class Machine
 							file.Line("atomic = entry.AtomicIndex;");
 							file.Line("repeat = entry.RepeatIndex;");
 							file.Line("lookahead = entry.LookaheadIndex;");
-							if (Ceiled)
-								file.Line("power  = entry.Power;");
-							if (Tracing is not null)
-								file.Line("failure.Trace?.Resumed(call);");
-							if (Caches)
-								file.Line("parser.Reopen(call, entries);");
+
+							if (Ceiled)              file.Line("power  = entry.Power;");
+							if (Tracing is not null) file.Line("failure.Trace?.Resumed(call);");
+							if (Caches)              file.Line("parser.Reopen(call, entries);");
+
 							file.Line("Step_DotGram(\"resume exit\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
@@ -2900,16 +2937,17 @@ sealed partial class Machine
 					using (file.Block("if (entry.Kind == ParserEntry.Call || entry.Kind == ParserEntry.Completed)"))
 					{
 						// A call still open fails here, and one that returned is taken back.
-						if (Tracing is not null)
-							file.Line("failure.Trace?.Popped(last);");
-						if (CountsSeam)
-							file.Line("if (entry.RuleIndex == -2) seaming--;");
+						if (Tracing is not null) file.Line("failure.Trace?.Popped(last);");
+						if (CountsSeam)          file.Line("if (entry.RuleIndex == -2) seaming--;");
+
 						file.Line("call   = entry.CallIndex;");
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
+
 						if (_graph.Climbing.Count > 0)
 							file.Line("power  = entry.Power;");
+
 						file.Line("p      = entry.Position;");
 					}
 					using (file.Block("else if (entry.Kind == ParserEntry.Atomic)"))
@@ -2943,8 +2981,10 @@ sealed partial class Machine
 						using (file.Block(""))
 						{
 							file.Line("state = entry.State;");
+
 							if (_usesNegating)
 								file.Line("negating--;");
+
 							using (file.Block("if (entry.RuleIndex >= 0)"))
 							{
 								file.Line(
@@ -2953,8 +2993,10 @@ sealed partial class Machine
 								file.Line(
 									$"Step_DotGram(\"capture negative lookahead\", entry.RuleIndex, p, entries.Count, text, \"\");");
 							}
+
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
+
 							file.Line("Step_DotGram(\"negative lookahead succeeds\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
@@ -3448,6 +3490,7 @@ sealed partial class Machine
 				if (value.Length > 1 && (!ignoreCase || Ascii(value)))
 				{
 					writer.Line($"if ({Short(value.Length, value, ignoreCase)})");
+
 					using (writer.Block(""))
 					{
 						ShortOf(writer, value, ignoreCase);
@@ -3457,9 +3500,8 @@ sealed partial class Machine
 					writer.Line(BufferedBytes
 						? $"if (!text.Matches(p, {Quoted(value)}))"
 						: ignoreCase
-						? $"if ({FoldedDiffers($"text.Slice(p, {value.Length})", value)})"
-						: "if (!global::System.MemoryExtensions.SequenceEqual(" +
-						  $"text.Slice(p, {value.Length}), {Spanned(value)}))");
+							? $"if ({FoldedDiffers($"text.Slice(p, {value.Length})", value)})"
+							: $"if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {value.Length}), {Spanned(value)}))");
 
 					using (writer.Block(""))
 					{
@@ -3749,6 +3791,7 @@ sealed partial class Machine
 					return _slotRules[slot] is { } looked
 						? CompileLookaheadValueCapture(slot, looked, seen, next)
 						: CompileLookaheadCapture(slot, seen, next);
+
 				if (body is Node.Lookahead(false, var rejected))
 					return CompileNegativeLookaheadCapture(slot, rejected, next);
 
@@ -3981,7 +4024,9 @@ sealed partial class Machine
 				if (node is Node.Call(_, { Count: 0 }) && ScalarScanner(rule) is { } scalar)
 				{
 					_usesCompleted = true;
+
 					writer.Line($"var scalarEnd = {scalar.Name}(text, p{ScannerArguments});");
+
 					using (writer.Block("if (scalarEnd >= 0)"))
 					{
 						writer.Line("completedCall = entries.Count;");
@@ -3989,8 +4034,10 @@ sealed partial class Machine
 							$"entries.Add(new ParserEntry(ParserEntry.Completed, {Resuming(writer, next)}, p, " +
 							$"call, atomic, repeat, lookahead, scalarEnd, {ValueRule(rule)}" +
 							(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
+
 						if (Tracing is not null)
 							writer.Line($"failure.Trace?.Scanned(completedCall, call, {Tracing.RuleOf(rule)}, p, scalarEnd);");
+
 						writer.Line("p = scalarEnd;");
 						writer.Line($"Step_DotGram(\"read {Escape(rule.Name)}\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 						writer.Line($"goto {Label(writer, next)};");
@@ -4009,11 +4056,15 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
 					$"lookahead, {(saying < 0 ? "0" : (-1 - saying).ToString(System.Globalization.CultureInfo.InvariantCulture))}, {(seams ? "-2" : ValueRule(rule))}" +
 					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
+
 				if (Tracing is not null)
 					writer.Line($"failure.Trace?.Called(callIndex, call, {Tracing.RuleOf(rule)}, p);");
+
 				writer.Line("call = callIndex;");
+
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
+
 				writer.Line(
 					$"Step_DotGram(\"call {Escape(_graph.Origin(rule).Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, _entries[rule])};");
@@ -4059,10 +4110,10 @@ sealed partial class Machine
 					: CaptureLayout.Of(
 						_graph.Bodies[own], other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
 						lifted: _graph.LiftedBody);
-				var guard  = _guards++;
-				var method = Tag.Named("RecognizeGuard", guard);
-				var key    = Tag.Named("RecognizeGuardKey", guard);
-				var helper = new Writer(0);
+				var guard      = _guards++;
+				var method     = Tag.Named("RecognizeGuard", guard);
+				var key        = Tag.Named("RecognizeGuardKey", guard);
+				var helper     = new Writer(0);
 				var parameters = new List<string>();
 				var arguments  = new List<string>();
 
@@ -4167,10 +4218,12 @@ sealed partial class Machine
 					helper.Line($"static long {key}(long value) => value;");
 					helper.Line($"static ulong {key}(ulong value) => value;");
 					helper.Line($"static string? {key}(string? value) => value;");
+
 					using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
 					{
 						helper.Line($"switch ({key}(");
 						CSharpEmitter.Handed(helper, _lines, ((Node.Guard)node).At, condition + "))");
+
 						using (helper.Block(""))
 						{
 							for (var index = 0; index < selection.Selection.Labels.Count; index++)
@@ -4206,8 +4259,7 @@ sealed partial class Machine
 					writer.Line();
 
 					using (writer.Block("for (var floorAt = entries.Count - 1; floorAt > call; floorAt--)"))
-					using (writer.Block(
-						"if (entries[floorAt].Kind == ParserEntry.Construct && entries[floorAt].CallIndex == call)"))
+					using (writer.Block("if (entries[floorAt].Kind == ParserEntry.Construct && entries[floorAt].CallIndex == call)"))
 					{
 						writer.Line("guardFloor = floorAt;");
 						writer.Line("break;");
@@ -4233,8 +4285,10 @@ sealed partial class Machine
 					writer.Line("var guardValues = parser.Materialization(entries.Count);");
 					DeclareTables(writer);
 					writer.Line("var guardBuilt  = parser.Materialized();");
+
 					if (!scalarGuard)
 						writer.Line("var guardNeedsMaterialization = false;");
+
 					// Both captured calls and directly requested recovery entries contribute
 					// their arena index below. Their dependencies are written after them.
 					if (!scalarGuard)
@@ -4260,6 +4314,7 @@ sealed partial class Machine
 							using (writer.Block($"if ({collected})"))
 							{
 								writer.Line("var guardValueAt = candidate.Kind == ParserEntry.Recovery ? candidateAt : candidate.Position;");
+
 								using (writer.Block("if (!guardBuilt[guardValueAt])"))
 								{
 									writer.Line("guardValues[guardValueAt] = parser;");
@@ -4435,16 +4490,17 @@ sealed partial class Machine
 							writer.Line($"case {index}: goto {Label(writer, selection.Targets[index])};");
 						writer.Line($"default: {Cleared()} goto {Label(writer, _fail)};");
 					}
+
 					return state;
 				}
+
 				if (Tracing is not null)
 				{
 					Tracing.AsksGuards = true;
 					guardCall = $"GuardAsked_DotGram(ref failure, {Tracing.GuardOf((Node.Guard)node)}, p, {guardCall})";
 				}
-				writer.Line(
-					$"if (!{guardCall}) " +
-					$"{{ {Cleared()} goto {Label(writer, _fail)}; }}");
+
+				writer.Line($"if (!{guardCall}) {{ {Cleared()} goto {Label(writer, _fail)}; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
@@ -4519,6 +4575,7 @@ sealed partial class Machine
 				atGlue.Line(
 					"if (p > 0 && p < text.Length && " +
 					"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])");
+
 				using (atGlue.Block(""))
 					EmitTerminalFailure(atGlue, _fail, DeclareExpected(Displays(node)));
 
@@ -4696,13 +4753,16 @@ sealed partial class Machine
 					var entered = Reserve(out var atEnter);
 
 					atEnter.Line($"{begun} = p;");
+
 					if (marks)
 						atEnter.Line($"ranOut{mine} = failure.OutOfInput;");
-					atEnter.Line($"goto {Label(atEnter, refused)};");
 
+					atEnter.  Line($"goto {Label(atEnter, refused)};");
 					atMatched.Line($"p = {begun};");
+
 					if (marks)
 						atMatched.Line($"failure.OutOfInput = ranOut{mine};");
+
 					EmitLookRefusal(atMatched, node, arrayName);
 
 					if (marks)
@@ -4734,27 +4794,33 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? quietly ? 2 : 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
+
 				if (!isPositive)
 					writer.Line("negating++;");
+
 				writer.Line($"Step_DotGram(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, inner)};");
 
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 				atSuccess.Line("var looked = entries[lookahead];");
 				atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+
 				if (Caches)
 					atSuccess.Line("parser.Truncate(lookahead, entries);");
+
 				atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 				atSuccess.Line("p         = looked.Position;");
 				atSuccess.Line("call      = looked.CallIndex;");
 				atSuccess.Line("atomic    = looked.AtomicIndex;");
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
+
 				if (!isPositive)
 				{
 					atSuccess.Line("negating--;");
 					_usesNegating = true;
 				}
+
 				atSuccess.Line($"Step_DotGram(\"lookahead body matched\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 
 				// A negative look in the seam records nothing when refused (Unrecorded). Elsewhere its
@@ -5139,8 +5205,7 @@ sealed partial class Machine
 
 		atEntry.Line("var repeatIndex = entries.Count;");
 		atEntry.Line($"entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0{(stands ? ", p" : "")}));");
-		atEntry.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Dead, 0, {least}, call, atomic, repeatIndex, lookahead, {most ?? "-1"}));");
+		atEntry.Line($"entries.Add(new ParserEntry(ParserEntry.Dead, 0, {least}, call, atomic, repeatIndex, lookahead, {most ?? "-1"}));");
 		atEntry.Line("repeat = repeatIndex;");
 		atEntry.Line($"Step_DotGram(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(atEntry, loop)};");
@@ -5332,8 +5397,10 @@ sealed partial class Machine
 		atSuccess.Line("var seenTo = p;");
 		atSuccess.Line("var looked = entries[lookahead];");
 		atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+
 		if (Caches)
 			atSuccess.Line("parser.Truncate(lookahead, entries);");
+
 		atSuccess.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atSuccess.Line("p         = looked.Position;");
 		atSuccess.Line("call      = looked.CallIndex;");
@@ -5453,15 +5520,19 @@ sealed partial class Machine
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
 		writer.Line("negating++;");
+
 		_usesNegating = true;
+
 		writer.Line($"Step_DotGram(\"enter captured negative lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, inner)};");
 
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
 		atMatched.Line("var looked = entries[lookahead];");
 		atMatched.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+
 		if (Caches)
 			atMatched.Line("parser.Truncate(lookahead, entries);");
+
 		atMatched.Line("entries.RemoveRange(lookahead, entries.Count - lookahead);");
 		atMatched.Line("p         = looked.Position;");
 		atMatched.Line("call      = looked.CallIndex;");
@@ -5601,6 +5672,7 @@ sealed partial class Machine
 			// Input that ends inside what they all begin with: refused where the first of
 			// those characters that does not fit stands, or at the end where they all do.
 			writer.Line($"if ({Short(shared.Length, shared)})");
+
 			using (writer.Block(""))
 			{
 				// Where the run gives way to the alternatives after it, which read from where it
@@ -5644,11 +5716,13 @@ sealed partial class Machine
 			if (room is null)
 			{
 				writer.Line($"if ({Short(1)})");
+
 				using (writer.Block(""))
 					EmitTerminalFailure(writer, fail, arrayName);
 			}
 
 			writer.Line($"if ({(room is not null ? room + " || " : "")}{At(0)} != {CSharpEmitter.Char(shared[0])})");
+
 			using (writer.Block(""))
 			{
 				EmitTerminalFailure(writer, fail, arrayName);
@@ -5915,7 +5989,10 @@ sealed partial class Machine
 		var target = run > 0
 			? CompileLiterals(alternatives, last - run + 1, last, next, _fail)
 			: CompileAlternative(alternatives[last], next, following, bodies);
-		if (prefixHeads is not null) prefixHeads[alternatives[last]] = target;
+
+		if (prefixHeads is not null)
+			prefixHeads[alternatives[last]] = target;
+
 		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
 
 		for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
@@ -6100,10 +6177,11 @@ sealed partial class Machine
 	/// </para>
 	/// </remarks>
 	int CompileDispatchedChoice(
-		IReadOnlyList<Node> alternatives,
-		IReadOnlyList<(FirstSets.First Set, List<Node> Members)> groups,
-		int next,
-		FollowSets.Continuation following, Dictionary<Node, int>? prefixHeads = null)
+		IReadOnlyList<Node>                                     alternatives,
+		IReadOnlyList<(FirstSets.First Set,List<Node> Members)> groups,
+		int                                                     next,
+		FollowSets.Continuation                                 following,
+		Dictionary<Node,int>?                                   prefixHeads = null)
 	{
 		var heads  = new int[groups.Count];
 		var bodies = new Dictionary<Node, int>(NodeIdentity.Instance);
@@ -6117,6 +6195,7 @@ sealed partial class Machine
 		_usesChar = true;
 
 		writer.Line($"if ({Short(1)})");
+
 		using (writer.Block(""))
 			EmitTerminalFailure(writer, _fail, arrayName);
 
@@ -6150,8 +6229,7 @@ sealed partial class Machine
 	int CompilePredictedChoice(
 		IReadOnlyList<Node> alternatives, string[] tests, int next, FollowSets.Continuation following)
 	{
-		var targets = new int[alternatives.Count];
-
+		var targets  = new int[alternatives.Count];
 		var advanced = new bool[alternatives.Count];
 
 		for (var i = 0; i < alternatives.Count; i++)
@@ -6172,6 +6250,7 @@ sealed partial class Machine
 		var arrayName = DeclareExpected(PredictedDisplays(alternatives));
 
 		writer.Line($"if ({Short(1)})");
+
 		using (writer.Block(""))
 			EmitTerminalFailure(writer, _fail, arrayName);
 
@@ -6293,12 +6372,10 @@ sealed partial class Machine
 
 		return node switch
 		{
-			Node.Element element => CSharpEmitter.Test(element) == $"({test})",
-			Node.Call(var rule, _) => CanInline(rule) &&
-										_graph.Bodies.TryGetValue(rule, out var body) &&
-										BeginsWith(body, test),
-			Node.Sequence(var nodes) => nodes.Count > 0 && BeginsWith(nodes[0], test),
-			_ => false,
+			Node.Element element       => CSharpEmitter.Test(element) == $"({test})",
+			Node.Call    (var rule, _) => CanInline(rule) && _graph.Bodies.TryGetValue(rule, out var body) && BeginsWith(body, test),
+			Node.Sequence(var nodes)   => nodes.Count > 0 && BeginsWith(nodes[0], test),
+			_                          => false,
 		};
 	}
 
@@ -6396,8 +6473,8 @@ sealed partial class Machine
 			writer.Line("p++;");
 		}
 
-		var retry = min > 0 && GuardedCharacterTest(repeatNode.Body) != null
-			? CompileRepeat(repeatNode, next, following) : (int?)null;
+		var retry = min > 0 && GuardedCharacterTest(repeatNode.Body) != null ? CompileRepeat(repeatNode, next, following) : (int?)null;
+
 		FinishScan(writer, repeatNode, next, retry);
 
 		return state;
@@ -6462,6 +6539,7 @@ sealed partial class Machine
 			var arrayName = DeclareExpected(Displays(repeatNode.Body));
 
 			writer.Line($"if (p < {floor})");
+
 			using (writer.Block(""))
 			{
 				if (retry is { } fallback)
@@ -6470,7 +6548,9 @@ sealed partial class Machine
 					writer.Line($"goto {Label(writer, fallback)};");
 				}
 				else
+				{
 					EmitTerminalFailure(writer, Fail, arrayName);
+				}
 			}
 		}
 
@@ -6534,13 +6614,13 @@ sealed partial class Machine
 		return node switch
 		{
 			Node.Empty or Node.Behind => true,
-			Node.Glue => true,
-			Node.Reading => true,
-			Node.Element => true,
-			Node.Literal(var text) => text.Length == 1,
-			Node.Atomic(var kept) => FailsWhereItBegan(kept),
-			Node.Marked(var kept, _) => FailsWhereItBegan(kept),
-			_ => false,
+			Node.Glue                 => true,
+			Node.Reading              => true,
+			Node.Element              => true,
+			Node.Literal(var text)    => text.Length == 1,
+			Node.Atomic (var kept)    => FailsWhereItBegan(kept),
+			Node.Marked (var kept, _) => FailsWhereItBegan(kept),
+			_                         => false,
 		};
 	}
 
@@ -6760,6 +6840,7 @@ sealed partial class Machine
 				atLoop.Line($"turn{mine} = p;");
 			if (mine == 0 && CanReleaseBuffered)
 				atLoop.Line("text.ReleaseBefore(p);");
+
 			atLoop.Line($"goto {Label(atLoop, inner)};");
 
 			target = loop;
@@ -6778,6 +6859,7 @@ sealed partial class Machine
 
 				if (!direct)
 					atBegan.Line($"turn{mine} = p;");
+
 				atBegan.Line($"goto {Label(atBegan, target)};");
 
 				target = began;
@@ -6810,8 +6892,7 @@ sealed partial class Machine
 		// with a refused guard falling to the tail behind it. No choice entry, no
 		// atomic boundary, no commit walk — nothing is written that a commit
 		// would have to put out, which is the whole of what the braces meant.
-		if (body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
-			decided.All(Weightless))
+		if (body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 && decided.All(Weightless))
 		{
 			var chosen = Compile(decided[decided.Count - 1], next, inside);
 
@@ -6892,9 +6973,10 @@ sealed partial class Machine
 
 				_turns.Add((mine, entered));
 			}
+
 			atEnter.Line($"goto {Label(atEnter, target)};");
 
-			_depth = mine;
+			_depth              = mine;
 			_checkpointsAllowed = checkpoints;
 
 			return entered;
@@ -7263,10 +7345,10 @@ sealed partial class Machine
 				return test == "false" ? null : test;
 			}
 
-			case Node.Capture(_, var captured):  return EntryTest(captured, seen);
-			case Node.Construct(var built, _):   return EntryTest(built, seen);
-			case Node.Atomic(var kept):          return EntryTest(kept, seen);
-			case Node.Marked(var kept, _):       return EntryTest(kept, seen);
+			case Node.Capture(_, var captured): return EntryTest(captured, seen);
+			case Node.Construct(var built, _):  return EntryTest(built, seen);
+			case Node.Atomic(var kept):         return EntryTest(kept, seen);
+			case Node.Marked(var kept, _):      return EntryTest(kept, seen);
 
 			// A repetition that recovers steps over a bad first element whatever it begins with.
 			case Node.Repeat when _graph.Recoveries.ContainsKey(node):
@@ -7395,8 +7477,10 @@ sealed partial class Machine
 			using (atAfter.Block("while (true)"))
 			{
 				atAfter.Line("var given = entries[entries.Count - 1];");
+
 				if (Caches)
 					atAfter.Line("parser.Truncate(entries.Count - 1, entries);");
+
 				atAfter.Line("entries.RemoveAt(entries.Count - 1);");
 				atAfter.Line($"if (given.Kind == ParserEntry.Choice && given.RepeatIndex == repeat && given.State == {Mark(Lands, exit)}) break;");
 			}
@@ -7419,6 +7503,7 @@ sealed partial class Machine
 		writer.Line("var finished = entries[repeat];");
 		writer.Line("global::System.Diagnostics.Debug.Assert(finished.Kind == ParserEntry.Repeat);");
 		writer.Line("var previousRepeat = finished.RepeatIndex;");
+
 		if (Caches)
 		{
 			using (writer.Block("if (entries.Count == repeat + 1)"))
@@ -7428,7 +7513,10 @@ sealed partial class Machine
 			}
 		}
 		else
+		{
 			writer.Line("if (entries.Count == repeat + 1) entries.RemoveAt(repeat);");
+		}
+
 		writer.Line("repeat = previousRepeat;");
 		writer.Line("lookahead = finished.LookaheadIndex;");
 		writer.Line($"Step_DotGram(\"leave repeat\", {Mark(Lands, next)}, p, entries.Count{Traced});");
@@ -7549,9 +7637,7 @@ sealed partial class Machine
 		var at    = target;
 		var steps = 0;
 
-		while (_dispatchers.TryGetValue(at, out var link) &&
-			known.Covers(link.Mine) &&
-			steps++ <= _dispatchers.Count)
+		while (_dispatchers.TryGetValue(at, out var link) && known.Covers(link.Mine) && steps++ <= _dispatchers.Count)
 		{
 			at = link.Target;
 		}
@@ -7642,8 +7728,9 @@ sealed partial class Machine
 	/// <summary><see cref="Short"/> without saying that it ran out, for a walk (<see cref="RawPast"/>).</summary>
 	string RawShort(int count, string? literal = null, bool fold = false)
 	{
-		return BufferedInput ? "!" + BufferedRoom(count, literal, fold) :
-		count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
+		return BufferedInput
+			? "!" + BufferedRoom(count, literal, fold)
+			: count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
 	}
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
@@ -7656,8 +7743,9 @@ sealed partial class Machine
 	/// <summary><see cref="Room"/> without saying that it ran out, for a walk (<see cref="RawPast"/>).</summary>
 	string RawRoom(int count, string? literal = null, bool fold = false)
 	{
-		return BufferedInput ? BufferedRoom(count, literal, fold) :
-		count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
+		return BufferedInput
+			? BufferedRoom(count, literal, fold)
+			: count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
 	}
 
 	/// <summary>The literal as a span, for a comparison to be made against.</summary>
@@ -7756,9 +7844,9 @@ sealed partial class Machine
 		void Deepest(IReadOnlyList<int> here, int depth, Writer writer)
 		{
 			var branches = here
-				.Where(one => texts[one].Length > depth)
+				.Where  (one => texts[one].Length > depth)
 				.GroupBy(one => texts[one][depth])
-				.ToList();
+				.ToList ();
 
 			if (branches.Count == 0)
 				return;
@@ -7770,8 +7858,7 @@ sealed partial class Machine
 				// `p` moves as the walk descends, so every level reads the character it
 				// stands on and steps one — which is also why the room test is the same
 				// one at every level.
-				writer.Line(
-					$"{(first ? "if" : "else if")} ({RawRoom(1)} && {At(0)} == {CSharpEmitter.Char(branch.Key)})");
+				writer.Line($"{(first ? "if" : "else if")} ({RawRoom(1)} && {At(0)} == {CSharpEmitter.Char(branch.Key)})");
 
 				using (writer.Block(""))
 				{
@@ -8514,7 +8601,7 @@ sealed partial class Machine
 
 		_kindTables[items] = name;
 		_classesUsed.Add(name);
-		_classes.Add((name, $"static global::System.ReadOnlySpan<byte> {name} => new byte[] {{ {items} }};"));
+		_classes.    Add((name, $"static global::System.ReadOnlySpan<byte> {name} => new byte[] {{ {items} }};"));
 
 		return (name, from);
 	}
@@ -8572,7 +8659,7 @@ sealed partial class Machine
 
 		_setsByRanges[key] = name;
 		_classesUsed.Add(name);
-		_classes.Add((name, $"static readonly char[] {name} = {{ {items} }};"));
+		_classes.    Add((name, $"static readonly char[] {name} = {{ {items} }};"));
 
 		if (_classesUsed.Add(Search))
 			_classes.Add((Search, SearchMethod));
@@ -8584,25 +8671,27 @@ sealed partial class Machine
 
 	/// <summary>Whether a character stands in one of a set's ranges.</summary>
 	string SearchMethod =>
-		$"static bool {Search}(char[] set, {(BufferedBytes ? "int" : "char")} c)\n" +
-		"{\n" +
-		"\tvar low  = 0;\n" +
-		"\tvar high = set.Length / 2 - 1;\n" +
-		"\n" +
-		"\twhile (low <= high)\n" +
-		"\t{\n" +
-		"\t\tvar mid = (low + high) / 2;\n" +
-		"\n" +
-		"\t\tif (c < set[mid * 2])\n" +
-		"\t\t\thigh = mid - 1;\n" +
-		"\t\telse if (c > set[mid * 2 + 1])\n" +
-		"\t\t\tlow = mid + 1;\n" +
-		"\t\telse\n" +
-		"\t\t\treturn true;\n" +
-		"\t}\n" +
-		"\n" +
-		"\treturn false;\n" +
-		"}";
+		$$"""
+		static bool {{Search}}(char[] set, {{(BufferedBytes ? "int" : "char")}} c)
+		{
+			var low  = 0;
+			var high = set.Length / 2 - 1;
+
+			while (low <= high)
+			{
+				var mid = (low + high) / 2;
+
+				if (c < set[mid * 2])
+					high = mid - 1;
+				else if (c > set[mid * 2 + 1])
+					low = mid + 1;
+				else
+					return true;
+			}
+
+			return false;
+		}
+		""";
 
 	readonly Dictionary<IReadOnlyList<CharRange>, string> _setsByRanges = new(SameRanges.Instance);
 
@@ -8713,15 +8802,11 @@ sealed partial class Machine
 
 		return node switch
 		{
-			Node.Literal literal =>
-				[string.Join(" ", literal.Text.Select(kind => Said(inventory, kind)))],
-			Node.Element { Categories.Count: 0, References.Count: 0 } element =>
-				Covered(inventory, element),
-			Node.Choice choice =>
-				[.. choice.Nodes.SelectMany(one => Displays(one, leading)).Distinct()],
-			Node.Sequence { Nodes.Count: > 0 } sequence =>
-				Displays(sequence.Nodes[0], leading),
-			_ => [node.ToString()],
+			Node.Literal literal                                              => [string.Join(" ", literal.Text.Select(kind => Said(inventory, kind)))],
+			Node.Element { Categories.Count: 0, References.Count: 0 } element => Covered(inventory, element),
+			Node.Choice choice                                                => [.. choice.Nodes.SelectMany(one => Displays(one, leading)).Distinct()],
+			Node.Sequence { Nodes.Count: > 0 } sequence                       => Displays(sequence.Nodes[0], leading),
+			_                                                                 => [node.ToString()],
 		};
 	}
 
@@ -8789,39 +8874,17 @@ sealed partial class Machine
 					Add(arguments.Count == 0 && rule.Declaration?.Name is { } declared ? declared : node.ToString());
 				break;
 
-			case Node.Capture(_, var body):
-				Lead(body, items);
-				break;
-
-			case Node.Construct(var body, _):
-				Lead(body, items);
-				break;
-
-			case Node.Atomic(var body):
-				Lead(body, items);
-				break;
-
-			case Node.Marked(var body, _):
-				Lead(body, items);
-				break;
-
-			case Node.Repeat(var body, _, _):
-				Lead(body, items);
-				break;
+			case Node.Capture  (_, var body):    Lead(body, items); break;
+			case Node.Construct(var body, _):    Lead(body, items); break;
+			case Node.Atomic   (var body):       Lead(body, items); break;
+			case Node.Marked   (var body, _):    Lead(body, items); break;
+			case Node.Repeat   (var body, _, _): Lead(body, items); break;
 
 			// A binding is said by what it binds, a count by what it repeats, and a reference
 			// as written: what it matches is known only while parsing.
-			case Node.Bind(_, var body, _):
-				Lead(body, items);
-				break;
-
-			case Node.Counted(var body, _, _):
-				Lead(body, items);
-				break;
-
-			case Node.Same:
-				Add(node.ToString());
-				break;
+			case Node.Bind   (_, var body, _): Lead(body, items);    break;
+			case Node.Counted(var body, _, _): Lead(body, items);    break;
+			case Node.Same:                    Add(node.ToString()); break;
 
 			case Node.Choice(var alternatives):
 				foreach (var alternative in alternatives)
@@ -8858,20 +8921,13 @@ sealed partial class Machine
 	{
 		switch (node)
 		{
-			case Node.Capture(_, var body):
-				return BeginsWithSeam(body);
-			case Node.Construct(var body, _):
-				return BeginsWithSeam(body);
-			case Node.Atomic(var body):
-				return BeginsWithSeam(body);
-			case Node.Marked(var body, _):
-				return BeginsWithSeam(body);
-			case Node.Bind(_, var body, _):
-				return BeginsWithSeam(body);
-			case Node.Counted(var body, _, _):
-				return BeginsWithSeam(body);
-			case Node.Choice(var alternatives):
-				return alternatives.Any(BeginsWithSeam);
+			case Node.Capture(_, var body):     return BeginsWithSeam(body);
+			case Node.Construct(var body, _):   return BeginsWithSeam(body);
+			case Node.Atomic(var body):         return BeginsWithSeam(body);
+			case Node.Marked(var body, _):      return BeginsWithSeam(body);
+			case Node.Bind(_, var body, _):     return BeginsWithSeam(body);
+			case Node.Counted(var body, _, _):  return BeginsWithSeam(body);
+			case Node.Choice(var alternatives): return alternatives.Any(BeginsWithSeam);
 			case Node.Sequence(var parts):
 				foreach (var part in parts)
 				{
@@ -8985,26 +9041,13 @@ sealed partial class Machine
 
 					return false;
 
-				case Node.Construct(var built, _):
-					return FirstSets.Nullable(built, _graph) || Leads(built, seen);
-
-				case Node.Repeat(var body, _, _):
-					return Leads(body, seen);
-
-				case Node.Capture(_, var captured):
-					return Leads(captured, seen);
-
-				case Node.Bind(_, var bound, _):
-					return Leads(bound, seen);
-
-				case Node.Counted(var counted, _, _):
-					return Leads(counted, seen);
-
-				case Node.Atomic(var body):
-					return Leads(body, seen);
-
-				case Node.Lookahead(_, var looked):
-					return Leads(looked, seen);
+				case Node.Construct(var built, _):      return FirstSets.Nullable(built, _graph) || Leads(built, seen);
+				case Node.Repeat   (var body, _, _):    return Leads(body,     seen);
+				case Node.Capture  (_, var captured):   return Leads(captured, seen);
+				case Node.Bind     (_, var bound, _):   return Leads(bound,    seen);
+				case Node.Counted  (var counted, _, _): return Leads(counted,  seen);
+				case Node.Atomic   (var body):          return Leads(body,     seen);
+				case Node.Lookahead(_, var looked):     return Leads(looked,   seen);
 
 				case Node.Call(var rule, var arguments):
 					return arguments.Count > 0 ||
@@ -9060,23 +9103,12 @@ sealed partial class Machine
 
 					return false;
 
-				case Node.Construct(var built, _):
-					return Looks(built, seen);
-
-				case Node.Repeat(var body, _, _):
-					return Looks(body, seen);
-
-				case Node.Counted(var counted, _, _):
-					return Looks(counted, seen);
-
-				case Node.Capture(_, var captured):
-					return Looks(captured, seen);
-
-				case Node.Bind(_, var bound, _):
-					return Looks(bound, seen);
-
-				case Node.Atomic(var body):
-					return Looks(body, seen);
+				case Node.Construct(var built, _):      return Looks(built,    seen);
+				case Node.Repeat   (var body, _, _):    return Looks(body,     seen);
+				case Node.Counted  (var counted, _, _): return Looks(counted,  seen);
+				case Node.Capture  (_, var captured):   return Looks(captured, seen);
+				case Node.Bind     (_, var bound, _):   return Looks(bound,    seen);
+				case Node.Atomic   (var body):          return Looks(body,     seen);
 
 				case Node.Call(var rule, var arguments):
 					return arguments.Count > 0 ||
@@ -9447,9 +9479,9 @@ sealed partial class Machine
 		foreach (var character in display)
 			said.Append(character switch
 			{
-				'\r' => "\\r",
-				'\n' => "\\n",
-				'\t' => "\\t",
+				'\r'  => "\\r",
+				'\n'  => "\\n",
+				'\t'  => "\\t",
 				< ' ' => "\\u" + ((int)character).ToString("X4", System.Globalization.CultureInfo.InvariantCulture),
 				_ => character.ToString(),
 			});
@@ -9499,17 +9531,17 @@ sealed partial class Machine
 
 			text.Append(character switch
 			{
-				'\\'              => "\\\\",
-				'"'               => "\\\"",
-				'\0'              => "\\0",
-				'\a'              => "\\a",
-				'\b'              => "\\b",
-				'\f'              => "\\f",
-				'\n'              => "\\n",
-				'\r'              => "\\r",
-				'\t'              => "\\t",
-				'\v'              => "\\v",
-				_                 => $"\\u{(int)character:X4}",
+				'\\' => "\\\\",
+				'"'  => "\\\"",
+				'\0' => "\\0",
+				'\a' => "\\a",
+				'\b' => "\\b",
+				'\f' => "\\f",
+				'\n' => "\\n",
+				'\r' => "\\r",
+				'\t' => "\\t",
+				'\v' => "\\v",
+				_    => $"\\u{(int)character:X4}",
 			});
 		}
 
@@ -9636,8 +9668,8 @@ sealed partial class Machine
 		{
 			Return => "Return",
 			Accept => "Accept",
-			Fail => "Fail",
-			_ => "S" + state,
+			Fail   => "Fail",
+			_      => "S" + state,
 		};
 	}
 }
