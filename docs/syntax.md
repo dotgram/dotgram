@@ -2881,12 +2881,27 @@ neither compilation can see the other. What the host itself declares stays in re
 a nested class reads the static members of the class around it by their simple names,
 which is what a grammar's `=>` calls are.
 
-**What the host's own C# names is the host's.** `SourceSpan` (§4.1, §6.2) and `Match<T>`
-(§6.1) appear in the signatures a grammar calls and a caller reads, so where a class carries
-several grammars they are written once, in the class itself, and every scope reads them
-from around it. Otherwise a factory handing a span to a method of the host would be
-handing it a type of the same name that is not the same type, and neither compilation
-would build.
+**What the host's own C# names is the host's.** `SourceSpan` (§4.1, §6.2), `Match<T>`
+(§6.1) and `ParserInput<T>` (§7.1) appear in the signatures a grammar calls and a caller
+reads, so where a class carries several grammars they are written once, in the class
+itself, and every scope reads them from around it. Otherwise a factory handing a span to a
+method of the host would be handing it a type of the same name that is not the same type,
+and neither compilation would build. Each is written where at least one reading needs it,
+and only there: a traced reading beside a plain one adds no `SourceSpan` and no
+`ParserInput<T>` to a host whose grammar asks for neither. They go in a file of the host's
+own, `Host.gram-shared.g.cs`, beside the readings' files.
+
+A host with one reading keeps them in the reading's own class, so a second reading moves
+them. `[Gram("…", Suffix = "Fast")]` alone answers with `Host.Fast.Match<T>`; add a
+`[GramOptions(Suffix = "Slow")]` and both answer with `Host.Match<T>`:
+
+```csharp
+Host.Fast.Match<Row> m = Host.Fast.TryParseRow(text);   // one reading
+Host.Match<Row>      m = Host.Fast.TryParseRow(text);   // two: the same call, the host's match
+```
+
+Code that names the type through the class it calls — `var`, or `Host.Fast.Match<Row>` only
+where the host has one reading — is the code a second reading leaves alone.
 
 **The nested class is public unless the host declares it.** A nested class would be
 private by default, so the generator writes it `public`. Declared by the author, it is the

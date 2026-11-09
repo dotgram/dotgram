@@ -644,22 +644,10 @@ static partial class CSharpEmitter
 		// `partial` so that the pooling hooks it declares have somewhere to be written.
 		// The types the host's own C# names — the span a factory is handed, and the match a
 		// caller reads — belong to the host and not to a compilation of it. Where there are
-		// several they are written here, outside every scope, by the first: a nested class
-		// reads them by their simple names, and a grammar whose `=>` hands a span to a
-		// method of the host would otherwise be handing it a type of the same name that is
-		// not the same type. Unconditionally, because what the others need is not known
-		// here — a struct nothing names costs a compilation nothing.
-		if (options.SharedTypes == true)
-		{
-			file.Write(SourceSpanOf(options, ShowsSourceSpan(graph, results)));
-			file.Line();
-			file.Write(OutcomeEnum);
-			file.Line();
-			file.Write(MatchStructOf(graph));
-			file.Line();
-			file.Write(ParserInputTypes);
-			file.Line();
-		}
+		// several readings no reading writes them: each says what it needs, and the host has
+		// them written once, in a file of its own, where at least one needs them (SharedTypes).
+		// A nested class reads them by their simple names, and a grammar whose `=>` hands a
+		// span to a method of the host hands it the host's span.
 
 		// Unless the author declared that class, in which case what the author wrote says who
 		// may see it and this part says nothing: `internal static partial class Immediate { }`
@@ -995,17 +983,20 @@ static partial class CSharpEmitter
 		}
 		// The source graph too, where there is one: a rule that names a span may have moved
 		// into the second read, and the type it names is the file's either way.
-		if (options.SharedTypes is null && (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source)))
+		var spanNeeded = UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source);
+		var spanShown  = spanNeeded && ShowsSourceSpan(graph, results);
+
+		if (!options.SharedTypes && spanNeeded)
 		{
-			file.Write(SourceSpanOf(options, ShowsSourceSpan(graph, results)));
+			file.Write(SourceSpanOf(options.SpanDeclared, spanShown));
 			file.Line();
 		}
 
-		if (options.SharedTypes is null && graph.Publications.Count > 0)
+		if (!options.SharedTypes && graph.Publications.Count > 0)
 		{
 			file.Write(OutcomeEnum);
 			file.Line();
-			file.Write(MatchStructOf(graph));
+			file.Write(MatchStructOf(graph.PerCall is not null));
 			file.Line();
 		}
 
@@ -1078,9 +1069,21 @@ static partial class CSharpEmitter
 			}
 		}
 
-		if (options.SharedTypes is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
-			NodeWalk.CallsTheHost(graph, static external => external.UsesInputView)))
+		var inputNeeded = machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
+			NodeWalk.CallsTheHost(graph, static external => external.UsesInputView);
+
+		if (!options.SharedTypes && inputNeeded)
 			file.Write(ParserInputTypes);
+
+		// What this reading reads from the host, where the host writes it for all of its readings.
+		if (options.SharedTypes && context is not null)
+			context.SharedNeeds =
+				(spanNeeded ? SharedNeeds.Span : 0) |
+				(spanShown ? SharedNeeds.SpanShown : 0) |
+				(graph.Publications.Count > 0 ? SharedNeeds.Match : 0) |
+				(graph.Publications.Count > 0 && graph.PerCall is not null ? SharedNeeds.ReadingEnd : 0) |
+				(inputNeeded ? SharedNeeds.Input : 0) |
+				(options.Inherits ? SharedNeeds.Hides : 0);
 
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput))
 		{
@@ -4752,11 +4755,67 @@ file.Line("return spare;");
 	/// SourceSpan { }</c>. The <c>readonly</c> of the generated part makes the struct readonly
 	/// whatever the author's part says.
 	/// </remarks>
-	static string SourceSpanOf(GramCompilerOptions options, bool shown)
+	static string SourceSpanOf(bool declared, bool shown)
 	{
-		var access = options.SpanDeclared ? "" : shown ? "public " : "internal ";
+		var access = declared ? "" : shown ? "public " : "internal ";
 
 		return SourceSpanStruct.Replace("{{access}}", access);
+	}
+
+	/// <summary>
+	/// The file a host with several readings has of its own: the types its readings read from the
+	/// host — the span, the match and the input a recognizer reads — each written where at least
+	/// one reading needs it (<see cref="GramCompilation.SharedNeeds"/>), in the host's namespace
+	/// and chain of classes.
+	/// </summary>
+	/// <remarks>
+	/// Written apart from every reading's file because what one reading needs is known only once
+	/// it is compiled, and the readings are compiled apart; the generator, which sees all of them,
+	/// joins what they say. So what the host declares does not depend on how many readings it has:
+	/// a second reading adds a type to the host only where it needs one the first did not.
+	/// </remarks>
+	/// <param name="spanDeclared">Whether the host declares a part of the span itself (GramCompilerOptions.SpanDeclared).</param>
+	internal static string SharedTypes(string? @namespace, string className, SharedNeeds needs, bool spanDeclared)
+	{
+		var file  = new Writer(0);
+		var scope = new Stack<IDisposable>();
+
+		file.Line("// <auto-generated/>");
+		file.Line("#nullable enable");
+
+		// A dialect's types hide the base's of the same names, on purpose, as in its readings' files.
+		if ((needs & SharedNeeds.Hides) != 0)
+			file.Line("#pragma warning disable CS0108 // a dialect hides what it inherits, on purpose");
+
+		file.Line();
+
+		if (@namespace is not null)
+			scope.Push(file.Block($"namespace {@namespace}"));
+
+		foreach (var part in className.Split('.'))
+			scope.Push(file.Block($"partial class {part}"));
+
+		if ((needs & SharedNeeds.Span) != 0)
+		{
+			file.Write(SourceSpanOf(spanDeclared, (needs & SharedNeeds.SpanShown) != 0));
+			file.Line();
+		}
+
+		if ((needs & SharedNeeds.Match) != 0)
+		{
+			file.Write(OutcomeEnum);
+			file.Line();
+			file.Write(MatchStructOf((needs & SharedNeeds.ReadingEnd) != 0));
+			file.Line();
+		}
+
+		if ((needs & SharedNeeds.Input) != 0)
+			file.Write(ParserInputTypes);
+
+		while (scope.Count > 0)
+			scope.Pop().Dispose();
+
+		return file.ToString();
 	}
 
 	/// <summary>

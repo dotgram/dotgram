@@ -573,12 +573,13 @@ static partial class CSharpEmitter
 		""";
 
 	/// <summary>
-	/// <see cref="MatchStruct"/>, and where the grammar decides locations per call, where each
-	/// reading stopped looking: what a located reading needs to say what follows its last token.
+	/// <see cref="MatchStruct"/>, and where the grammar decides locations per call
+	/// (<paramref name="readingEnd"/>), where each reading stopped looking: what a located reading
+	/// needs to say what follows its last token.
 	/// </summary>
-	internal static string MatchStructOf(Model.RecognitionGraph graph)
+	internal static string MatchStructOf(bool readingEnd)
 	{
-		if (graph.PerCall is null)
+		if (!readingEnd)
 			return MatchStruct;
 
 		var text = MatchStruct.Replace("\r\n", "\n");

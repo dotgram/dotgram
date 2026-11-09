@@ -46,4 +46,10 @@ sealed class EmitContext
 	/// them: what the readers remember successes for, and what is told about each.
 	/// </summary>
 	public IReadOnlyList<SharedRecursion.Pair>? SharedChoices { get; init; }
+
+	/// <summary>
+	/// Where the host has several readings, what of the types written once for all of them this
+	/// reading needs, set as the file is written (GramCompilerOptions.SharedTypes).
+	/// </summary>
+	public SharedNeeds SharedNeeds { get; set; }
 }

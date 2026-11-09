@@ -217,23 +217,22 @@ static class GramCompiler
 
 		var sourceParts = new List<string>();
 		var carriers    = options.ReportCarriers ? new List<string>() : null;
+		var context     = new EmitContext
+		{
+			Lexical       = lexical,
+			Diagnostics   = diagnostics,
+			GrammarSource = options.Portable ? grammarText : null,
+			SourceParts   = sourceParts,
+			Carriers      = carriers,
+			SharedChoices = shared,
+		};
+
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				options.Suffix is { Length: > 0 } suffix
 					? $"{options.ClassName}.{suffix}.gram.g.cs"
 					: $"{options.ClassName}.gram.g.cs",
-				CSharpEmitter.Emit(
-					lexical?.Syntax ?? graph,
-					options,
-					new EmitContext
-					{
-						Lexical       = lexical,
-						Diagnostics   = diagnostics,
-						GrammarSource = options.Portable ? grammarText : null,
-						SourceParts   = sourceParts,
-						Carriers      = carriers,
-						SharedChoices = shared,
-					})));
+				CSharpEmitter.Emit(lexical?.Syntax ?? graph, options, context)));
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));
@@ -242,6 +241,7 @@ static class GramCompiler
 		{
 			NormalizedRuleCount = graph.Rules.Count,
 			UsesLexical = lexical is not null,
+			SharedNeeds = context.SharedNeeds,
 			Carriers = carriers,
 			Names = sources.Count == 0 ? null : CSharpEmitter.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source],

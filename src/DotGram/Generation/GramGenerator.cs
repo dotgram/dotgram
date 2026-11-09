@@ -254,6 +254,28 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		context.RegisterSourceOutput(placed, static (production, parser) => parser.Deliver(production));
 
+		// The types a host with several readings has written once for all of them, from what each
+		// reading says it needs: known only once every reading is compiled, so joined here, where
+		// all of them are seen, and written in a file of the host's own.
+		var shared = compiled
+			.Select(static (parser, _) => parser.Shared)
+			.Collect()
+			.Select(static (readings, _) => SharedTypes(readings));
+
+		context.RegisterSourceOutput(shared, static (production, files) =>
+		{
+			foreach (var file in files.Items)
+				try
+				{
+					production.AddSource(file.HintName, file.Text);
+				}
+				catch (Exception exception) when (Recoverable(exception))
+				{
+					production.ReportDiagnostic(InternalDiagnostic(
+						"adding generated C# to the compilation", exception, null, static _ => null));
+				}
+		});
+
 		// The diagnostics need a tree to point into, and the trees are a projection of the
 		// compilation, which changes on every keystroke. So they are combined HERE and nowhere
 		// earlier: the compile keeps its cached value and only the reporting runs again. The map is
@@ -753,7 +775,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Whether any mark in the text is the compile's. False where the grammar holds the mark's
 	/// character itself, and then nothing in the text is rewritten.
 	/// </param>
-	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false)
+	/// <param name="Shared">
+	/// Where the host has several readings, what of the types written once for all of them this one
+	/// needs, and where they go.
+	/// </param>
+	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false, SharedTypesOf? Shared = null)
 	{
 		/// <summary>The diagnostics, which need a tree to point into and so cannot be cached.</summary>
 		/// <param name="said">
@@ -846,6 +872,38 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 	/// <summary>A compiled parser and where its host is written, met at the end of the pipeline.</summary>
 	readonly record struct Located(Parser Parser, Site Site);
+
+	/// <summary>
+	/// What one reading of a host with several needs of the types written once for all of them
+	/// (CSharpEmitter.SharedTypes), and the host they are written into.
+	/// </summary>
+	/// <param name="HintName">The file they are written into, one a host.</param>
+	/// <param name="SpanDeclared">Whether the host declares a part of the span itself.</param>
+	readonly record struct SharedTypesOf(string HintName, string? Namespace, string ClassName, SharedNeeds Needs, bool SpanDeclared);
+
+	/// <summary>
+	/// The files of the hosts with several readings: each host's types, each written where one of
+	/// its readings needs it.
+	/// </summary>
+	static EquatableArray<GeneratedSource> SharedTypes(ImmutableArray<SharedTypesOf?> readings)
+	{
+		var files = ImmutableArray.CreateBuilder<GeneratedSource>();
+
+		foreach (var host in readings.OfType<SharedTypesOf>().GroupBy(static one => one.HintName, StringComparer.Ordinal).OrderBy(static one => one.Key, StringComparer.Ordinal))
+		{
+			var first = host.First();
+			var needs = SharedNeeds.None;
+
+			foreach (var reading in host)
+				needs |= reading.Needs;
+
+			if (needs != SharedNeeds.None)
+				files.Add(new GeneratedSource(
+					host.Key, CSharpEmitter.SharedTypes(first.Namespace, first.ClassName, needs, first.SpanDeclared)));
+		}
+
+		return new EquatableArray<GeneratedSource>(files.ToImmutable());
+	}
 
 	/// <summary>The place that comes first in the project: by file, then by where in it.</summary>
 	static Place? Foremost(ImmutableArray<Place?> places)
@@ -1218,7 +1276,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 					host.Options.BufferedInput, host.Options.BufferedBytes, host.Options.SpanCaptures, host.Options.ConstructionsMayThrow) +
 					string.Concat((result.Carriers ?? []).Select(static line => "\n// " + line))
 				: null,
-			marked);
+			marked,
+			// What it reads from the host where the host writes that for every reading: in a file
+			// no reading's suffix can name, since a suffix is an identifier.
+			host.Shared
+				? new SharedTypesOf(
+					(host.Namespace is null ? "" : host.Namespace + ".") + host.ClassName.Replace('<', '_').Replace('>', '_') + ".gram-shared.g.cs",
+					host.Namespace,
+					host.ClassName,
+					result.SharedNeeds,
+					host.SpanDeclared)
+				: null);
 	}
 
 	/// <summary>Where each piece of the joined text belongs (§7.6).</summary>
@@ -1494,7 +1562,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool    SuffixDeclared = false,
 		bool    SpanDeclared   = false,
 		bool    Repeated       = false,
-		bool?   Shared         = null,
+		bool    Shared         = false,
 		string? LocationType   = null,
 		string? LocatedFacade  = null,
 		bool    LocatedFacadeDeclared = false,
@@ -1631,9 +1699,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 					{
 						Repeated = !taken.Add(host.Options.Suffix ?? ""),
 
-						// The first writes what the host's own C# names; the rest read it from the
-						// class around them. Null where there is nothing to share it with.
-						Shared   = readings.Count > 1 ? hosts.Count == 0 : null,
+						// What the host's own C# names is written once for every reading, in a file of
+						// the host's own, from what each says it needs (SharedTypes).
+						Shared   = readings.Count > 1,
 					},
 					site));
 			}
