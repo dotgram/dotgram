@@ -2713,9 +2713,9 @@ SqlStatementBody : @Statement
 SqlStatement : @Statement = s: SqlStatementBody & (';' | eof) => @(s)
 Sql          : @Statement[] = s: SqlStatement* => @(s ?? System.Array.Empty<Statement>())
 
-parse Value               as ParseValue
-parse DataType            as ParseDataType
-parse ValueExpressionTree as ParseExpression
-parse SearchConditionTree as ParseSearchCondition
-parse SqlStatement        as ParseStatement
-parse Sql                 as ParseSql
+positional parse Value               as ParseValue
+positional parse DataType            as ParseDataType
+positional parse ValueExpressionTree as ParseExpression
+positional parse SearchConditionTree as ParseSearchCondition
+positional parse SqlStatement        as ParseStatement
+positional parse Sql                 as ParseSql

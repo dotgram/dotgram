@@ -1819,11 +1819,11 @@ namespace Dialect
 	Sql       : @Build.Statement[] = s: SqlText             => @(s)
 }
 
-internal parse Dialect.Select    as ParseSyntaxSelect
-internal parse Dialect.Condition as ParseSyntaxCondition
-internal parse Dialect.Value     as ParseSyntaxExpression
-internal parse Dialect.Statement as ParseSyntaxStatement
-internal parse Dialect.Sql       as ParseSyntaxSql
+internal positional parse Dialect.Select    as ParseSyntaxSelect
+internal positional parse Dialect.Condition as ParseSyntaxCondition
+internal positional parse Dialect.Value     as ParseSyntaxExpression
+internal positional parse Dialect.Statement as ParseSyntaxStatement
+internal positional parse Dialect.Sql       as ParseSyntaxSql
 
 // ── Which level of the language ─────────────────────────────────────────────
 //
@@ -1846,23 +1846,23 @@ Until100 = "100"
 Until120 = "100" | "110" | "120"
 Until160 = "100" | "110" | "120" | "130" | "140" | "150" | "160"
 
-internal parse Dialect.Statement with (Version = "100") as ParseSyntaxStatement100
-internal parse Dialect.Statement with (Version = "110") as ParseSyntaxStatement110
-internal parse Dialect.Statement with (Version = "120") as ParseSyntaxStatement120
-internal parse Dialect.Statement with (Version = "130") as ParseSyntaxStatement130
-internal parse Dialect.Statement with (Version = "140") as ParseSyntaxStatement140
-internal parse Dialect.Statement with (Version = "150") as ParseSyntaxStatement150
-internal parse Dialect.Statement with (Version = "160") as ParseSyntaxStatement160
-internal parse Dialect.Statement with (Version = "170") as ParseSyntaxStatement170
+internal positional parse Dialect.Statement with (Version = "100") as ParseSyntaxStatement100
+internal positional parse Dialect.Statement with (Version = "110") as ParseSyntaxStatement110
+internal positional parse Dialect.Statement with (Version = "120") as ParseSyntaxStatement120
+internal positional parse Dialect.Statement with (Version = "130") as ParseSyntaxStatement130
+internal positional parse Dialect.Statement with (Version = "140") as ParseSyntaxStatement140
+internal positional parse Dialect.Statement with (Version = "150") as ParseSyntaxStatement150
+internal positional parse Dialect.Statement with (Version = "160") as ParseSyntaxStatement160
+internal positional parse Dialect.Statement with (Version = "170") as ParseSyntaxStatement170
 
-internal parse Dialect.Sql with (Version = "100") as ParseSyntaxSql100
-internal parse Dialect.Sql with (Version = "110") as ParseSyntaxSql110
-internal parse Dialect.Sql with (Version = "120") as ParseSyntaxSql120
-internal parse Dialect.Sql with (Version = "130") as ParseSyntaxSql130
-internal parse Dialect.Sql with (Version = "140") as ParseSyntaxSql140
-internal parse Dialect.Sql with (Version = "150") as ParseSyntaxSql150
-internal parse Dialect.Sql with (Version = "160") as ParseSyntaxSql160
-internal parse Dialect.Sql with (Version = "170") as ParseSyntaxSql170
+internal positional parse Dialect.Sql with (Version = "100") as ParseSyntaxSql100
+internal positional parse Dialect.Sql with (Version = "110") as ParseSyntaxSql110
+internal positional parse Dialect.Sql with (Version = "120") as ParseSyntaxSql120
+internal positional parse Dialect.Sql with (Version = "130") as ParseSyntaxSql130
+internal positional parse Dialect.Sql with (Version = "140") as ParseSyntaxSql140
+internal positional parse Dialect.Sql with (Version = "150") as ParseSyntaxSql150
+internal positional parse Dialect.Sql with (Version = "160") as ParseSyntaxSql160
+internal positional parse Dialect.Sql with (Version = "170") as ParseSyntaxSql170
 
 // ── The graph pattern, which is a language of its own ───────────────────────
 //

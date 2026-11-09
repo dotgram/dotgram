@@ -606,7 +606,7 @@ Reserved = ("ABSOLUTE"i | "ACTION"i | "ADD"i | "ALL"i | "ALLOCATE"i | "ALTER"i |
          | "YEAR"i
          | "ZONE"i)
 
-parse DirectSelect    as ParseSelect
-parse QueryExpression as ParseQuery
-parse SearchCondition as ParseSearchCondition
-parse ValueExpression as ParseValueExpression
+positional parse DirectSelect    as ParseSelect
+positional parse QueryExpression as ParseQuery
+positional parse SearchCondition as ParseSearchCondition
+positional parse ValueExpression as ParseValueExpression
