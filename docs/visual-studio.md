@@ -139,6 +139,17 @@ To update a local installation, build a package with a higher `Version` in
 repository's, which the `GetVsixVersion` target hands to the manifest — then run the new
 VSIX. Visual Studio identifies updates by the stable `DotGram.VisualStudio` extension ID.
 
+## The .gram file icon
+
+`.gram` files take their Solution Explorer icon from `DotGram.VisualStudio.Icon.pkgdef`, whose
+`ShellFileAssociations` entry names an image in `DotGram.VisualStudio.imagemanifest`. That image is
+a pack URI into `DotGram.VisualStudio.dll`, and Visual Studio reads it whenever it rebuilds its
+image cache (`ImageLibrary` in the instance's local folder): at install time, and at startup when
+the cache is missing or out of date. The startup rebuild finds an extension's assembly only through
+the binding paths the extension registers, so the same pkgdef registers the extension's folder as
+one. Without it the icon survived an install but not the next rebuild Visual Studio made itself,
+and every `.gram` file showed no icon until the extension was installed again.
+
 ## Verify
 
 Open the files in `tests/DotGram.VisualStudio.Tests/Playground/`:

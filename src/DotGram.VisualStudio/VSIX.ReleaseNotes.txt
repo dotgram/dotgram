@@ -35,6 +35,8 @@
 - A failure inside the extension no longer reaches Visual Studio as a gold bar or a disabled
   editor component: the feature it broke says nothing that time, and the failure is written to
   the activity log (`devenv /log`) with the operation it broke.
+- .gram files keep their icon in Solution Explorer when Visual Studio rebuilds its image cache;
+  before, the icon could vanish after such a rebuild until the extension was installed again.
 
 0.2.0
 
