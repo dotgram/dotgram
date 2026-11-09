@@ -95,15 +95,24 @@ public sealed class PositionalSplitWebTests
 	}
 
 	/// <summary>Every name a publication answers to: the <c>TryParse</c> methods that read from a position.</summary>
+	/// <remarks>
+	/// Never none: a parser that writes no such form would make every comparison over it pass with
+	/// nothing compared, and these forms are written only where a directive asks for them.
+	/// </remarks>
 	internal static IEnumerable<string> Publications(Type type, int extra = 0)
 	{
-		return type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
+		var names = type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static)
 			.Where(one => one.Name.StartsWith("TryParse", StringComparison.Ordinal) &&
 				one.GetParameters() is var taken && taken.Length == 2 + extra &&
 				taken[0].ParameterType == typeof(string) && taken[1].ParameterType == typeof(int))
 			.Select(one => one.Name)
 			.Distinct()
-			.OrderBy(one => one, StringComparer.Ordinal);
+			.OrderBy(one => one, StringComparer.Ordinal)
+			.ToList();
+
+		Assert.True(names.Count > 0, $"{type.Name} reads nothing from a position.");
+
+		return names;
 	}
 
 	/// <summary>Where a text is read from: the start, the end, and up to six places between.</summary>
@@ -469,7 +478,10 @@ public sealed class PositionalSplitWebTests
 
 			var close     = source.IndexOf("\"\"\"", open, StringComparison.Ordinal);
 			var attribute = source.Substring(close, source.IndexOf(")]", close, StringComparison.Ordinal) - close);
-			var grammar   = Dedented(source[open..close]);
+			// The package asks for no form from a position, which is what this compares: every
+			// `parse` here asks for them, so that each publication is held to all four forms.
+			var grammar   = Regex.Replace(
+				Dedented(source[open..close]), @"^((?:public |internal |private )?)parse ", "$1positional parse ", RegexOptions.Multiline);
 
 			var generated = GramCompiler.Compile(grammar, new GramCompilerOptions
 			{

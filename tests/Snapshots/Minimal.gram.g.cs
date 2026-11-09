@@ -1774,6 +1774,132 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		/// <summary>Reads a <c>Text</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<string> TryParseText(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = RecAt_DotGram_Text_DotGram_Text(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				if (failure.Position < at)
+					failure.Position = at;
+
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Text'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
+			}
+
+			return Match<string>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Text</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseText</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseText(string input, ref int at, out string value)
+		{
+			if (at < 0 || at > input.Length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = RecAt_DotGram_Text_DotGram_Text(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
+		/// <summary>Reads a <c>Text</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<string> TryParseText(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = RecAt_DotGram_Text_DotGram_Text(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				if (failure.Position < at)
+					failure.Position = at;
+
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Text'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
+			}
+
+			return Match<string>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Text</c> at <paramref name="at"/>, answering only whether one is there.</summary>
+		/// <remarks>
+		/// Nothing is said about a refusal: <c>TryParseText</c> returning a match says where and why.
+		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
+		/// refusal it stays where it was.
+		/// </remarks>
+		public static bool TryParseText(string input, ref int at, int length, out string value)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+				throw new global::System.ArgumentOutOfRangeException(nameof(at));
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = RecAt_DotGram_Text_DotGram_Text(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			value = recognized;
+			at = end;
+
+			return true;
+		}
+
 		static partial void OnHandingOff(ref object? state);
 
 		static partial void OnTakingOver(ref object? state);
@@ -5335,6 +5461,87 @@ namespace DotGram.Snapshots
 			value = end < 0 ? default! : (string)recognized!;
 			return end;
 		}
+
+		private ref struct ReaderAt_DotGram_Text
+		{
+			readonly global::System.ReadOnlySpan<char> text;
+			internal Failure failure;
+			internal string last0;
+
+			internal ReaderAt_DotGram_Text(global::System.ReadOnlySpan<char> text)
+			{
+				this.text    = text;
+				this.failure = default;
+				this.last0 = default!;
+			}
+
+			public int Read_Text(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var a0 = -1;
+				var b0 = -1;
+				a0 = p;
+				var m0 = p;
+				while (true)
+				{
+					if ((uint)p >= (uint)text.Length)
+						break;
+
+					c = text[p];
+
+					if (!(((c >= 'a' && c <= 'z'))))
+						break;
+
+					p++;
+				}
+
+				if (p < m0 + 1)
+				{
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(10));
+					return -1;
+				}
+
+				b0 = p;
+				last0 = New_DotGram_Text((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				return p;
+			}
+
+			public int RecRead_Text(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Text(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
+		}
+
+		static int RecAt_DotGram_Text_DotGram_Text(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		{
+
+			var reader = new ReaderAt_DotGram_Text(text);
+
+			reader.failure = failure;
+
+			var end = reader.RecRead_Text(pos);
+
+			failure = reader.failure;
+
+			if (end < 0)
+			{
+				value = default!;
+
+				return end;
+			}
+
+			value = reader.last0;
+
+			return end;
+		}
+
+
 
 		/// <summary>Reads <c>Sheet</c> from a reader, a part at a time.</summary>
 		/// <remarks>

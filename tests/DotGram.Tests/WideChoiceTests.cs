@@ -88,7 +88,7 @@ public sealed class WideChoiceTests
 		return $"""
 			Start : @int = {string.Join("\n\t| ", valued)}
 			Plain = {string.Join("\n\t| ", alternatives)}
-			parse Start stream bytes
+			positional parse Start stream bytes
 			parse Plain
 			""";
 	}
@@ -139,11 +139,11 @@ public sealed class WideChoiceTests
 				Same(expected, Streamed(host, input, bytes: true), context + ", bytes");
 
 				// Begun at the start and not held to the end: the alternative the first reading took.
-				// A publication lowered to a flat reading has no such entry (§6.3).
+				// Written because the directive asks, flat or not (§6.3).
 				var end = ReferenceInterpreter.Reads(graph, plain, input, 0);
 
-				if (Positional(host))
-					Same(end < 0 ? null : Number(shape, input.Substring(0, end)), Positioned(host, input), context + ", positioned");
+				Assert.True(Positional(host), context + ": no form from a position");
+				Same(end < 0 ? null : Number(shape, input.Substring(0, end)), Positioned(host, input), context + ", positioned");
 			}
 		}
 	}

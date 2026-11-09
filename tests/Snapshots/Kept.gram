@@ -19,4 +19,4 @@ A : @string = b: B => @(b) | c: C => @(c) | n: Lexical.Name => @(n)
 B : @string = '(' & a: A & ')' & '+' => @("+" + a)
 C : @string = '(' & a: A & ')' & '-' => @("-" + a)
 
-parse Start
+positional parse Start

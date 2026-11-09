@@ -33,13 +33,13 @@ public sealed class TokenReadingFindingsTests
 	/// engine, the direct reader and the reading over characters answer it the same.
 	/// </summary>
 	[Theory]
-	[InlineData("trivia = { ' '* }\nStart = 'a'\nparse Start\n", "TryParseStart", "a| a |aa| |")]
-	[InlineData("trivia = { ' '* }\nStart = \"ab\"\nparse Start\n", "TryParseStart", "ab| ab |a b|")]
-	[InlineData("trivia = { ' '* }\nStart = ['a'..'c']\nparse Start\n", "TryParseStart", "a| b |ab|d")]
-	[InlineData("trivia = { ' '* }\nStart = (\"a\" | \"b\")?\nparse Start\n", "TryParseStart", "| |a|ab")]
-	[InlineData("trivia = { ' '* }\nKw = (\"if\" | \"do\")\nStart = Kw & Kw\nparse Start\nparse Kw\n", "TryParseKw", "if| do |ifdo|if do")]
-	[InlineData("trivia = { ' '* }\nX = (\"a\" | \"ab\")\nY = \"abc\"\nStart = X & Y\nparse Start\nparse X\n", "TryParseX", "a|ab|abc")]
-	[InlineData("trivia = { ' '* }\nStart = (\"a\" | \"b\") & eof\nparse Start\n", "TryParseStart", "a|a |ab")]
+	[InlineData("trivia = { ' '* }\nStart = 'a'\npositional parse Start\n", "TryParseStart", "a| a |aa| |")]
+	[InlineData("trivia = { ' '* }\nStart = \"ab\"\npositional parse Start\n", "TryParseStart", "ab| ab |a b|")]
+	[InlineData("trivia = { ' '* }\nStart = ['a'..'c']\npositional parse Start\n", "TryParseStart", "a| b |ab|d")]
+	[InlineData("trivia = { ' '* }\nStart = (\"a\" | \"b\")?\npositional parse Start\n", "TryParseStart", "| |a|ab")]
+	[InlineData("trivia = { ' '* }\nKw = (\"if\" | \"do\")\nStart = Kw & Kw\npositional parse Start\npositional parse Kw\n", "TryParseKw", "if| do |ifdo|if do")]
+	[InlineData("trivia = { ' '* }\nX = (\"a\" | \"ab\")\nY = \"abc\"\nStart = X & Y\npositional parse Start\npositional parse X\n", "TryParseX", "a|ab|abc")]
+	[InlineData("trivia = { ' '* }\nStart = (\"a\" | \"b\") & eof\npositional parse Start\n", "TryParseStart", "a|a |ab")]
 	public void A_published_rule_the_lexer_holds_reads_as_it_does_over_characters(string grammar, string method, string inputs)
 	{
 		var chars  = Built(grammar, lexical: false, direct: true);
@@ -61,10 +61,10 @@ public sealed class TokenReadingFindingsTests
 	/// space — its publication refuses trivia before its first token or after its last.
 	/// </summary>
 	[Theory]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tKw = (\"if\" | \"do\")\n}\nStart = Lex.Kw & Lex.Kw\nparse Start\nparse Lex.Kw\n", "TryParseKw", " if")]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tKw = (\"if\" | \"do\")\n}\nStart = Lex.Kw & Lex.Kw\nparse Start\nparse Lex.Kw\n", "TryParseKw", "if ")]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9']+\n}\nStart = Lex.Digits & ',' & Lex.Digits\nparse Start\nparse Lex.Digits\n", "TryParseDigits", " 12")]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9']+\n}\nStart = Lex.Digits & ',' & Lex.Digits\nparse Start\nparse Lex.Digits\n", "TryParseDigits", "12 ")]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tKw = (\"if\" | \"do\")\n}\nStart = Lex.Kw & Lex.Kw\npositional parse Start\npositional parse Lex.Kw\n", "TryParseKw", " if")]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tKw = (\"if\" | \"do\")\n}\nStart = Lex.Kw & Lex.Kw\npositional parse Start\npositional parse Lex.Kw\n", "TryParseKw", "if ")]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9']+\n}\nStart = Lex.Digits & ',' & Lex.Digits\npositional parse Start\npositional parse Lex.Digits\n", "TryParseDigits", " 12")]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigits = ['0'..'9']+\n}\nStart = Lex.Digits & ',' & Lex.Digits\npositional parse Start\npositional parse Lex.Digits\n", "TryParseDigits", "12 ")]
 	public void A_published_rule_of_a_namespace_without_trivia_reads_none_over_tokens(string grammar, string method, string input)
 	{
 		Assert.False(EmittedCode.Match(Built(grammar, lexical: false, direct: true), "Grammar", method, input).IsSuccess);
@@ -87,7 +87,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		var result = GramCompiler.Compile(
 			"trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tNum : @int = ['0'..'9']+ => @int.Parse(parserText)\n}\n" +
-			"Start = Lex.Num & ',' & Lex.Num\nparse Start\nparse Lex.Num\n",
+			"Start = Lex.Num & ',' & Lex.Num\npositional parse Start\npositional parse Lex.Num\n",
 			Options(lexical: true, direct: true));
 
 		Assert.Contains(result.Diagnostics, static one => one.Id == GramCompiler.NotCut);
@@ -117,7 +117,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		var grammar =
 			"trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tX = ['a'..'z']+\n\tC = " + terminal + "\n}\n" +
-			rules + "\nparse Start\n";
+			rules + "\npositional parse Start\n";
 
 		foreach (var direct in new[] { false, true })
 		{
@@ -145,7 +145,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		var grammar =
 			"trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tX = ['a'..'z']+\n\tC = $q: X & c: ':' & $q\n}\n" +
-			"Start = Lex.C & Lex.C & eof\nparse Start\n";
+			"Start = Lex.C & Lex.C & eof\npositional parse Start\n";
 
 		var result = GramCompiler.Compile(grammar, Options(lexical: true, direct: true));
 		var said   = Assert.Single(result.Diagnostics, static one => one.Id == GramCompiler.NotCut);
@@ -164,9 +164,9 @@ public sealed class TokenReadingFindingsTests
 	/// outside the window it was read in. The engine and the direct reader say the same.
 	/// </summary>
 	[Theory]
-	[InlineData("trivia = { ' '* }\nStart = ('b' | 'b' & 'c')?\nOther = 'a' & 'c'\nparse Start\nparse Other\n")]
-	[InlineData("trivia = { ' '* }\nStart = (\"ab\" | 'a')* & ('z' | 'z' & 'q')?\nOther = 'c' & 'b'\nparse Start\nparse Other\n")]
-	[InlineData("trivia = { ' '* }\nStart = 'a'? & 'b'? & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n")]
+	[InlineData("trivia = { ' '* }\nStart = ('b' | 'b' & 'c')?\nOther = 'a' & 'c'\npositional parse Start\npositional parse Other\n")]
+	[InlineData("trivia = { ' '* }\nStart = (\"ab\" | 'a')* & ('z' | 'z' & 'q')?\nOther = 'c' & 'b'\npositional parse Start\npositional parse Other\n")]
+	[InlineData("trivia = { ' '* }\nStart = 'a'? & 'b'? & ('z' | 'z' & 'q')?\nOther = 'c'\npositional parse Start\npositional parse Other\n")]
 	public void Every_reading_from_a_position_over_tokens_answers_consistently(string grammar)
 	{
 		var engine = Built(grammar, lexical: true, direct: false);
@@ -226,7 +226,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("a b", 0, null)]
 	public void Eof_over_tokens_is_not_where_the_tokens_stopped(string input, int at, int? length)
 	{
-		const string grammar = "trivia = { ' '* }\nStart = 'a'* & ('z' | 'z' & 'q')? & eof\nOther = 'c' & 'b'\nparse Start\nparse Other\n";
+		const string grammar = "trivia = { ' '* }\nStart = 'a'* & ('z' | 'z' & 'q')? & eof\nOther = 'c' & 'b'\npositional parse Start\npositional parse Other\n";
 
 		ReadsAsOverCharacters(grammar, input, at, length);
 	}
@@ -266,7 +266,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		foreach (var end in new[] { "eof", "?!any" })
 		{
-			var grammar = $"trivia = {{ ' '* }}\nStart = 'a'* & ('z' | 'z' & 'q')? & {end}\nOther = 'c' & 'b'\nparse Start\nparse Other\n";
+			var grammar = $"trivia = {{ ' '* }}\nStart = 'a'* & ('z' | 'z' & 'q')? & {end}\nOther = 'c' & 'b'\npositional parse Start\npositional parse Other\n";
 
 			foreach (var assembly in OverTokens(grammar))
 				Assert.Equal(said, Refusal(assembly, input, at, length));
@@ -297,7 +297,7 @@ public sealed class TokenReadingFindingsTests
 			trivia = { ' '* }
 			Start = (when @(++Guards > 0) & 'z')? & (m: Made & 'y')? & 'a' & when @(Guards + Made_ == 1)
 			Made : @int = 'q'? => @(++Made_)
-			parse Start
+			positional parse Start
 			""";
 
 		const string members = "public static int Guards; public static int Made_;";
@@ -361,16 +361,16 @@ public sealed class TokenReadingFindingsTests
 	/// </remarks>
 	[Theory]
 	[InlineData(
-		"Start = (\"mn\")? & 'a' & (?!('x' & 'y') & 'b' & 'c')+ & when @(Keep())\nparse Start\n",
+		"Start = (\"mn\")? & 'a' & (?!('x' & 'y') & 'b' & 'c')+ & when @(Keep())\npositional parse Start\n",
 		"axy", "NoMatch at 1: Input does not match 'Start'.", "NoMatch at 1: Expected ?!\"xy\".")]
 	[InlineData(
-		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & 'q' & when @(Keep())\nparse Start\n",
+		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & 'q' & when @(Keep())\npositional parse Start\n",
 		"ax", "NoMatch at 1: Expected \"aq\".", null)]
 	[InlineData(
-		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & when @(Reject())\nparse Start\n",
+		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & when @(Reject())\npositional parse Start\n",
 		"ax", "NoMatch at 1: Input does not match 'Start'.", null)]
 	[InlineData(
-		"Start = (\"mn\")? & Expr & ?!'x' & when @(Keep())\nExpr : @int = l: Expr & ?!'x' & '+' & 'a' => @(l + 1) | 'a' => @(1)\nparse Start\n",
+		"Start = (\"mn\")? & Expr & ?!'x' & when @(Keep())\nExpr : @int = l: Expr & ?!'x' & '+' & 'a' => @(l + 1) | 'a' => @(1)\npositional parse Start\n",
 		"ax", "NoMatch at 1: Input does not match 'Start'.", "NoMatch at 1: Expected ?!'x'.")]
 	public void A_turn_behind_a_shut_door_below_where_the_quiet_reading_got_is_said_as_it_was(string grammar, string input, string said, string? saidByTheEngine)
 	{
@@ -407,7 +407,7 @@ public sealed class TokenReadingFindingsTests
 	[Fact]
 	public void How_far_the_quiet_reading_got_is_not_written_inside_a_look()
 	{
-		const string grammar = "Start = ('a' & ?=('b' & 'c' & 'd'))? & 'a' & ('z' & 'y')? & 'x'\nparse Start\n";
+		const string grammar = "Start = ('a' & ?=('b' & 'c' & 'd'))? & 'a' & ('z' & 'y')? & 'x'\npositional parse Start\n";
 
 		// The engine names the look's own literal, which the reader does not: today's difference, kept.
 		foreach (var (assembly, engine) in OverCharacters(grammar).Select(static (one, i) => (one, i == 0)))
@@ -429,7 +429,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("a c#", 0, 3)]
 	public void Any_over_tokens_reads_a_character_no_token_begins_with_as_one(string input, int at, int? length)
 	{
-		const string grammar = "trivia = { ' '* }\nStart = 'a' & any & eof & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
+		const string grammar = "trivia = { ' '* }\nStart = 'a' & any & eof & ('z' | 'z' & 'q')?\nOther = 'c'\npositional parse Start\npositional parse Other\n";
 
 		ReadsAsOverCharacters(grammar, input, at, length);
 	}
@@ -456,7 +456,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("'a' & ?![^ 'b'] & any & eof", "ac", 0, null)]
 	public void A_complement_over_tokens_reads_a_character_no_token_begins_with(string start, string input, int at, int? length)
 	{
-		var grammar = $"trivia = {{ ' '* }}\nStart = {start} & ('z' | 'z' & 'q')?\nOther = ('b' | 'c')\nparse Start\nparse Other\n";
+		var grammar = $"trivia = {{ ' '* }}\nStart = {start} & ('z' | 'z' & 'q')?\nOther = ('b' | 'c')\npositional parse Start\npositional parse Other\n";
 
 		ReadsAsOverCharacters(grammar, input, at, length);
 	}
@@ -474,7 +474,7 @@ public sealed class TokenReadingFindingsTests
 	[Fact]
 	public void A_character_no_token_begins_with_before_the_position_does_not_refuse_the_reading()
 	{
-		const string grammar = "trivia = { ' '* }\nStart = 'a' & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
+		const string grammar = "trivia = { ' '* }\nStart = 'a' & ('z' | 'z' & 'q')?\nOther = 'c'\npositional parse Start\npositional parse Other\n";
 
 		foreach (var assembly in OverTokens(grammar))
 		{
@@ -524,7 +524,7 @@ public sealed class TokenReadingFindingsTests
 	public void A_reading_that_begins_at_a_character_no_token_begins_with(
 		string start, string input, int at, int? length, string tokens, string? characters)
 	{
-		var grammar = $"trivia = {{ ' '* }}\nStart = {start} & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
+		var grammar = $"trivia = {{ ' '* }}\nStart = {start} & ('z' | 'z' & 'q')?\nOther = 'c'\npositional parse Start\npositional parse Other\n";
 		var said    = $"\"{input}\" at {at}, length {length?.ToString() ?? "none"}";
 
 		foreach (var assembly in OverTokens(grammar))
@@ -587,7 +587,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("", 1)]
 	public void A_position_outside_the_input_is_no_match_over_tokens(string input, int at)
 	{
-		const string grammar = "trivia = { ' '* }\nStart = 'a' & ('z' | 'z' & 'q')?\nOther = 'c'\nparse Start\nparse Other\n";
+		const string grammar = "trivia = { ' '* }\nStart = 'a' & ('z' | 'z' & 'q')?\nOther = 'c'\npositional parse Start\npositional parse Other\n";
 
 		foreach (var assembly in OverTokens(grammar))
 		{
@@ -612,11 +612,11 @@ public sealed class TokenReadingFindingsTests
 	/// too. The engine now reads each call over kinds as if braced.
 	/// </remarks>
 	[Theory]
-	[InlineData("trivia = { ' '* }\nR1 = (R2 & 'b')\nR2 = 'b'?\nparse R1\n", "TryParseR1", "b|bb|bbb|")]
-	[InlineData("trivia = { ' '* }\nR1 = ('c' | R2 & ['a'..'b'])\nR2 = ('b' | 'a')?\nparse R1\n", "TryParseR1", "b|a|ab|ba|c|")]
-	[InlineData("trivia = { ' '* }\nR1 = 'a' & R2 & 'b'\nR2 = 'b'?\nparse R1\n", "TryParseR1", "ab|abb|a b|abbb")]
-	[InlineData("trivia = { ' '* }\nR1 = R2 & 'b'\nR2? = 'a' & 'b'?\nparse R1\n", "TryParseR1", "ab|abb|a|")]
-	[InlineData("trivia = { ' '* }\nR1 = (R2 & 'c' | 'a' & 'b' & 'd')\nR2 = ('a' & 'b' | 'a')\nparse R1\n", "TryParseR1", "abc|ac|abd|ab")]
+	[InlineData("trivia = { ' '* }\nR1 = (R2 & 'b')\nR2 = 'b'?\npositional parse R1\n", "TryParseR1", "b|bb|bbb|")]
+	[InlineData("trivia = { ' '* }\nR1 = ('c' | R2 & ['a'..'b'])\nR2 = ('b' | 'a')?\npositional parse R1\n", "TryParseR1", "b|a|ab|ba|c|")]
+	[InlineData("trivia = { ' '* }\nR1 = 'a' & R2 & 'b'\nR2 = 'b'?\npositional parse R1\n", "TryParseR1", "ab|abb|a b|abbb")]
+	[InlineData("trivia = { ' '* }\nR1 = R2 & 'b'\nR2? = 'a' & 'b'?\npositional parse R1\n", "TryParseR1", "ab|abb|a|")]
+	[InlineData("trivia = { ' '* }\nR1 = (R2 & 'c' | 'a' & 'b' & 'd')\nR2 = ('a' & 'b' | 'a')\npositional parse R1\n", "TryParseR1", "abc|ac|abd|ab")]
 	public void The_engine_and_the_direct_reader_over_tokens_agree(string grammar, string method, string inputs)
 	{
 		var renderings = OverTokens(grammar).ToArray();
@@ -649,7 +649,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("x bb", 1, 2, false)]
 	public void A_called_rule_over_tokens_is_not_sent_back_into(string input, int at, int? length, bool read)
 	{
-		const string grammar = "trivia = { ' '* }\nR1 = R2 & 'b' & ('z' | 'z' & 'q')?\nR2 = 'b'?\nOther = 'x'\nparse R1\nparse Other\n";
+		const string grammar = "trivia = { ' '* }\nR1 = R2 & 'b' & ('z' | 'z' & 'q')?\nR2 = 'b'?\nOther = 'x'\npositional parse R1\npositional parse Other\n";
 
 		var answers = OverTokens(grammar)
 			.Select(assembly => EmittedCode.Positioned(assembly, "Grammar", "TryParseR1", input, at, length))
@@ -715,7 +715,7 @@ public sealed class TokenReadingFindingsTests
 			(start.Contains("Given", StringComparison.Ordinal) ? "Given? = Lex.Text* & Lex.Text\n" : "") +
 			(start.Contains("Choice", StringComparison.Ordinal) ? "Choice = (Lex.Text | Lex.Text & Lex.Text) & Lex.Text\n" : "") +
 			(start.Contains("Pair", StringComparison.Ordinal) ? "Pair = (Lex.Text & Lex.Text | Lex.Text)\n" : "") +
-			"parse Start\n";
+			"positional parse Start\n";
 
 		foreach (var assembly in OverTokens(grammar))
 			Assert.Equal(tokens, Answer(assembly));
@@ -778,21 +778,21 @@ public sealed class TokenReadingFindingsTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "a;|a;a;|aa;a;|a;aa;|a||aa|a;aa", "engine")]
-	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nStart = Rows & 'z'\nparse Start\n", "a;z|z|a;a;z|a;|aa;z|a a ;z|aa ; z|aa;aa;z", "engine")]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'a' & eof\nparse Start\n", "a|a;a|a;a;a|a;|aa;a|aa;aa;a", "engine")]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'z' & eof\nparse Start\n", "aa;z|a;z|z|aa|aa;", "engine")]
-	[InlineData("Row = 'a' & ';'\nSep = ';'\nStart = Row* recover Sep & 'z' & eof\nparse Start\n", "aa;z|a;z|z|aa", "engine")]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover (';' | '#') & 'z' & eof\nparse Start\n", "aa#z|aa;z|a;a#z|#z|z", "engine")]
-	[InlineData("Row = 'a' & ';'\nStart = Row* recover ('x' & 'y') & 'z' & eof\nparse Start\n", "aa;xyz|aa;x yz|a;xyz|xyz|z|aa;x", "engine")]
-	[InlineData("Row = 'a' & 'b'\nStart = Row* recover '#' & eof\nparse Start\n", "ab|aab#ab|ab#|a#|#|a", "engine")]
-	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nBlock = '[' & Rows & ']'\nStart = Block & 'z' & eof\nparse Start\n", "[aa;]z|[a;]z|[]z|[aa;a;]z|[aa]z|[a;aa", "engine")]
-	[InlineData("Cell = 'a' & ','\nRow = '[' & Cell* recover ',' & ']' & ';'\nStart = Row* recover ';' & eof\nparse Start\n", "[a,];|[aa,];|[a,[;|[a,];[;[a,];|[a,a,];|;|[a,]|[a,];[", "engine")]
-	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';' & 'z'\nStart = ?=Rows & 'a' & ';' & 'z' & eof\nparse Start\n", "a;z|z|a;a;z", "engine")]
-	[InlineData("Start = ?= ('a' & 'b' | 'a') & 'a' & ('b' | 'c')\nparse Start\n", "a b|a c|a|b", "flat")]
-	[InlineData("Start = ?! ('a' & 'a' | 'b') & ['a'..'c']+\nparse Start\n", "aa|ab|b|ca|a", "flat")]
-	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Lex.Num => @(left - right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 - 3|9|9 -|- 9", "methods")]
-	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Start << 1 => @(left - right) | left: Start & '*' & right: Start << 2 => @(left * right) | value: Lex.Num => @(value)\nparse Start\n", "9 - 2 * 3 - 1|2 * 3|9 -|9 - 2 *", "methods")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & eof\npositional parse Start\n", "a;|a;a;|aa;a;|a;aa;|a||aa|a;aa", "engine")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nStart = Rows & 'z'\npositional parse Start\n", "a;z|z|a;a;z|a;|aa;z|a a ;z|aa ; z|aa;aa;z", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'a' & eof\npositional parse Start\n", "a|a;a|a;a;a|a;|aa;a|aa;aa;a", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ';' & 'z' & eof\npositional parse Start\n", "aa;z|a;z|z|aa|aa;", "engine")]
+	[InlineData("Row = 'a' & ';'\nSep = ';'\nStart = Row* recover Sep & 'z' & eof\npositional parse Start\n", "aa;z|a;z|z|aa", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover (';' | '#') & 'z' & eof\npositional parse Start\n", "aa#z|aa;z|a;a#z|#z|z", "engine")]
+	[InlineData("Row = 'a' & ';'\nStart = Row* recover ('x' & 'y') & 'z' & eof\npositional parse Start\n", "aa;xyz|aa;x yz|a;xyz|xyz|z|aa;x", "engine")]
+	[InlineData("Row = 'a' & 'b'\nStart = Row* recover '#' & eof\npositional parse Start\n", "ab|aab#ab|ab#|a#|#|a", "engine")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';'\nBlock = '[' & Rows & ']'\nStart = Block & 'z' & eof\npositional parse Start\n", "[aa;]z|[a;]z|[]z|[aa;a;]z|[aa]z|[a;aa", "engine")]
+	[InlineData("Cell = 'a' & ','\nRow = '[' & Cell* recover ',' & ']' & ';'\nStart = Row* recover ';' & eof\npositional parse Start\n", "[a,];|[aa,];|[a,[;|[a,];[;[a,];|[a,a,];|;|[a,]|[a,];[", "engine")]
+	[InlineData("Row = 'a' & ';'\nRows = Row* recover ';' & 'z'\nStart = ?=Rows & 'a' & ';' & 'z' & eof\npositional parse Start\n", "a;z|z|a;a;z", "engine")]
+	[InlineData("Start = ?= ('a' & 'b' | 'a') & 'a' & ('b' | 'c')\npositional parse Start\n", "a b|a c|a|b", "flat")]
+	[InlineData("Start = ?! ('a' & 'a' | 'b') & ['a'..'c']+\npositional parse Start\n", "aa|ab|b|ca|a", "flat")]
+	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Lex.Num => @(left - right) | value: Lex.Num => @(value)\npositional parse Start\n", "9 - 2 - 3|9|9 -|- 9", "methods")]
+	[InlineData(Numbers + "Start : @int = left: Start & '-' & right: Start << 1 => @(left - right) | left: Start & '*' & right: Start << 2 => @(left * right) | value: Lex.Num => @(value)\npositional parse Start\n", "9 - 2 * 3 - 1|2 * 3|9 -|9 - 2 *", "methods")]
 	public void A_construct_that_tries_a_way_out_first_reads_alike_over_tokens(string grammar, string inputs, string carried)
 	{
 		grammar = "trivia = { ' '* }\n" + grammar;
@@ -831,8 +831,7 @@ public sealed class TokenReadingFindingsTests
 			foreach (var assembly in characters)
 				Assert.Equal(Accepted(expected), Accepted(Read(assembly, input)));
 
-			if (tokens[0].GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string), typeof(int)]) is null)
-				continue;
+			Assert.NotNull(tokens[0].GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string), typeof(int)]));
 
 			for (var at = 0; at <= input.Length; at++)
 				foreach (var length in new int?[] { null, input.Length - at, (input.Length - at) / 2 })
@@ -902,12 +901,12 @@ public sealed class TokenReadingFindingsTests
 	/// </remarks>
 	[Theory]
 	[InlineData(
-		"Row = 'a' & ';'\nRows = Row* recover \";;\"\nStart = ';' & ';' & Rows & eof\nparse Start\n",
-		"Row = 'a' & ';'\nRows = Row* recover ';'\nStart = ';' & ';' & Rows & \";;\"? & eof\nparse Start\n",
+		"Row = 'a' & ';'\nRows = Row* recover \";;\"\nStart = ';' & ';' & Rows & eof\npositional parse Start\n",
+		"Row = 'a' & ';'\nRows = Row* recover ';'\nStart = ';' & ';' & Rows & \";;\"? & eof\npositional parse Start\n",
 		";;|; ;|; ; ;;|; ; a;|; ; aa;;|;;;;|; ; a;a;;;|; ;a")]
 	[InlineData(
-		"wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\nRow = Lex.Name & ';'\nStart = Row* recover \"end\" & eof\nparse Start\n",
-		"wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\nRow = Lex.Name & ';'\nStart = Row* recover ';' & \"end\"? & eof\nparse Start\n",
+		"wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\nRow = Lex.Name & ';'\nStart = Row* recover \"end\" & eof\npositional parse Start\n",
+		"wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\nRow = Lex.Name & ';'\nStart = Row* recover ';' & \"end\"? & eof\npositional parse Start\n",
 		"a;|end;|a end;|aend;|enda;|a;end|end|a end|ab cd;end")]
 	public void A_synchronization_is_lexed_as_a_body_is(string synced, string bodied, string inputs)
 	{
@@ -972,7 +971,7 @@ public sealed class TokenReadingFindingsTests
 		"\tNote  = \"{-\" & (?!\"-}\" & any)* & \"-}\"\n}\n" +
 		"Item  = (Lex.Name | Lex.Text | Lex.Arrow | Lex.Note)\n" +
 		"Other = 'c'\n" +
-		"parse Start\nparse Other\n";
+		"positional parse Start\npositional parse Other\n";
 
 	/// <summary>
 	/// A text that ends inside a token — an unclosed string or comment, half an operator — is
@@ -1115,7 +1114,7 @@ public sealed class TokenReadingFindingsTests
 		const string grammar =
 			"trivia = { ' '* }\n" +
 			"namespace Lex\n{\n\ttrivia = none\n\tT = '@' & Tail\n\tTail = 'a'* & \"abc\" & ?!'z'\n}\n" +
-			"Start = Lex.T & ('!' | '!' & '?')?\nOther = 'c'\nparse Start\nparse Other\n";
+			"Start = Lex.T & ('!' | '!' & '?')?\nOther = 'c'\npositional parse Start\npositional parse Other\n";
 
 		var said = $"\"{input}\" at {at}, length {length?.ToString() ?? "none"}";
 
@@ -1178,19 +1177,19 @@ public sealed class TokenReadingFindingsTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("wordboundary = ['a'..'z']\nStart = \"go\"* & ';' & eof\nparse Start\n", "gogo;|go go;|go;|;|got;|go gogo;|gog;|ogo;|go  go ;")]
-	[InlineData("wordboundary = ['a'..'z']\nStart = \"go\" & ['x'..'y'] & eof\nparse Start\n", "gox|go x|go|gox x")]
-	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n\tNum = ['0'..'9']+\n}\nStart = (\"go\" | Lex.Name | Lex.Num)* & ';' & eof\nparse Start\n", "go1;|go;|gogo;|1go;|go1go;|1go1;|go1go1;")]
-	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Lex\n{\n\ttrivia = none\n\tNum = ['0'..'9']+\n}\nStart = \"go\" & Lex.Num & eof\nparse Start\n", "go1|go 1|go|1")]
-	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g' & 'o'\n}\nStart = (\"go\" & '!' | Lex.G & ['x'..'y'])* & ';' & eof\nparse Start\n", "gox;|go!;|go x;|go!gox;|go!go!;")]
-	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g'\n\tO = 'o'\n}\nStart = (\"go\" | Lex.G & Lex.O) & ['x'..'y'] & eof\nparse Start\n", "gox|go x|g ox|go|goy|gog")]
-	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Inner\n{\n\twordboundary = ['a'..'z']\n\tPart = \"go\" & ['1'..'2'] & eof\n}\nStart = \"hi\" & ['1'..'2'] & eof | Inner.Part\nparse Start\n", "go1|go 1|hi1|hi 1|gogo1|higo1")]
-	[InlineData("wordboundary = [^ ' ' | ';']\nStart = \"go\"* & ';' & eof\nparse Start\n", "gogo;|go go;|go;|;|go  go ;")]
-	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g' & 'o'\n\tR = 'g' & Tail\n\tTail = 'o' & 'x' & ?!'z'\n}\nStart = (\"go\" & '!' | Lex.G & '?' | Lex.R) & eof\nparse Start\n", "gox|go!|go?|go x|gogo!")]
-	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = \"go\"* & ';'\n}\nStart = Inner.Part & eof | \"go\" & '!' & eof\nparse Start\n", "gogo;|go!|gogo!|gogo;go")]
-	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = \"go\" & \"to\" & ';'\n}\nStart = Inner.Part & eof | \"go\" & '!' & eof\nparse Start\n", "goto;|go to;|go!|goto!")]
-	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = (\"ab\" | \"c\")* & ';'\n}\nStart = Inner.Part & eof | (\"ab\" | \"c\") & '!' & eof\nparse Start\n", "abc;|ab!|cab;|abc!|cc;")]
-	[InlineData("wordboundary = ['a']\nStart = \"a\" & \"aa\" & ';' & eof\nparse Start\n", "aaa;|a aa;|aa a;|a a a;")]
+	[InlineData("wordboundary = ['a'..'z']\nStart = \"go\"* & ';' & eof\npositional parse Start\n", "gogo;|go go;|go;|;|got;|go gogo;|gog;|ogo;|go  go ;")]
+	[InlineData("wordboundary = ['a'..'z']\nStart = \"go\" & ['x'..'y'] & eof\npositional parse Start\n", "gox|go x|go|gox x")]
+	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Lex\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n\tNum = ['0'..'9']+\n}\nStart = (\"go\" | Lex.Name | Lex.Num)* & ';' & eof\npositional parse Start\n", "go1;|go;|gogo;|1go;|go1go;|1go1;|go1go1;")]
+	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Lex\n{\n\ttrivia = none\n\tNum = ['0'..'9']+\n}\nStart = \"go\" & Lex.Num & eof\npositional parse Start\n", "go1|go 1|go|1")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g' & 'o'\n}\nStart = (\"go\" & '!' | Lex.G & ['x'..'y'])* & ';' & eof\npositional parse Start\n", "gox;|go!;|go x;|go!gox;|go!go!;")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g'\n\tO = 'o'\n}\nStart = (\"go\" | Lex.G & Lex.O) & ['x'..'y'] & eof\npositional parse Start\n", "gox|go x|g ox|go|goy|gog")]
+	[InlineData("wordboundary = ['a'..'z' | '0'..'9']\nnamespace Inner\n{\n\twordboundary = ['a'..'z']\n\tPart = \"go\" & ['1'..'2'] & eof\n}\nStart = \"hi\" & ['1'..'2'] & eof | Inner.Part\npositional parse Start\n", "go1|go 1|hi1|hi 1|gogo1|higo1")]
+	[InlineData("wordboundary = [^ ' ' | ';']\nStart = \"go\"* & ';' & eof\npositional parse Start\n", "gogo;|go go;|go;|;|go  go ;")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Lex\n{\n\ttrivia = none\n\tG = 'g' & 'o'\n\tR = 'g' & Tail\n\tTail = 'o' & 'x' & ?!'z'\n}\nStart = (\"go\" & '!' | Lex.G & '?' | Lex.R) & eof\npositional parse Start\n", "gox|go!|go?|go x|gogo!")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = \"go\"* & ';'\n}\nStart = Inner.Part & eof | \"go\" & '!' & eof\npositional parse Start\n", "gogo;|go!|gogo!|gogo;go")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = \"go\" & \"to\" & ';'\n}\nStart = Inner.Part & eof | \"go\" & '!' & eof\npositional parse Start\n", "goto;|go to;|go!|goto!")]
+	[InlineData("wordboundary = ['a'..'z']\nnamespace Inner\n{\n\twordboundary = none\n\tPart = (\"ab\" | \"c\")* & ';'\n}\nStart = Inner.Part & eof | (\"ab\" | \"c\") & '!' & eof\npositional parse Start\n", "abc;|ab!|cab;|abc!|cc;")]
+	[InlineData("wordboundary = ['a']\nStart = \"a\" & \"aa\" & ';' & eof\npositional parse Start\n", "aaa;|a aa;|aa a;|a a a;")]
 	public void A_worded_keyword_is_matched_over_tokens_only_at_a_word_boundary(string grammar, string inputs)
 	{
 		grammar = "trivia = { ' '* }\n" + grammar;
@@ -1210,8 +1209,10 @@ public sealed class TokenReadingFindingsTests
 				answers == string.Join(", ", Enumerable.Repeat(expected ? "read" : "refused", characters.Length + tokens.Length)),
 				$"\"{input}\": over characters, then over tokens: {answers}");
 
-			// From a position, where a rendering has the form that begins where it is told.
-			var positioned = characters.Concat(tokens).Where(Positional).ToArray();
+			// From a position, which every rendering reads: the directive asks for it.
+			var positioned = characters.Concat(tokens).ToArray();
+
+			Assert.All(positioned, static one => Assert.True(Positional(one)));
 
 			for (var at = 0; at <= input.Length && positioned.Length > 1; at++)
 			{
@@ -1257,7 +1258,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		foreach (var spaced in new[] { false, true })
 		{
-			var grammar = (spaced ? "trivia = { ' '* }\n" : "") + $"Start = 'x' & R1 & 'y'\nR1 = {{ {shape} }}\nparse Start\n";
+			var grammar = (spaced ? "trivia = { ' '* }\n" : "") + $"Start = 'x' & R1 & 'y'\nR1 = {{ {shape} }}\npositional parse Start\n";
 
 			foreach (var lexical in new[] { false, true })
 				foreach (var direct in new[] { false, true })
@@ -1275,13 +1276,13 @@ public sealed class TokenReadingFindingsTests
 	/// every later one. Such a rule is not scanned.
 	/// </remarks>
 	[Theory]
-	[InlineData("Start = R1\nR1 = ('b'? | 'a'i)\nparse Start\n", "a")]
-	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = ('b'? | 'a'i)\nparse Start\n", "a")]
-	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = ('b'? | 'a')\nparse Start\n", "xay")]
-	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = ('a' | 'b'? | 'c')\nparse Start\n", "xcy")]
-	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = (['a'..'b']* | 'c')\nparse Start\n", "xcy")]
-	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = ((?! 'a') | 'b')\nparse Start\n", "xby")]
-	[InlineData("trivia = { ' '* }\nStart = ['a'..'b']? | (R2 | ['a'..'b'])\nR2 = ('c'* | (\"b\"i & \"a\"i))\nparse Start\n", "ba")]
+	[InlineData("Start = R1\nR1 = ('b'? | 'a'i)\npositional parse Start\n", "a")]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = ('b'? | 'a'i)\npositional parse Start\n", "a")]
+	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = ('b'? | 'a')\npositional parse Start\n", "xay")]
+	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = ('a' | 'b'? | 'c')\npositional parse Start\n", "xcy")]
+	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = (['a'..'b']* | 'c')\npositional parse Start\n", "xcy")]
+	[InlineData("trivia = { ' '* }\nStart = 'x' & R1 & 'y'\nR1 = ((?! 'a') | 'b')\npositional parse Start\n", "xby")]
+	[InlineData("trivia = { ' '* }\nStart = ['a'..'b']? | (R2 | ['a'..'b'])\nR2 = ('c'* | (\"b\"i & \"a\"i))\npositional parse Start\n", "ba")]
 	public void An_unbraced_choice_whose_earlier_alternative_reads_nothing_still_gives_back(string grammar, string input)
 	{
 		foreach (var direct in new[] { false, true })
@@ -1302,7 +1303,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData(true)]
 	public void A_bounded_repetition_that_fails_part_way_in_a_scanned_choice_gives_back(bool spaced)
 	{
-		var grammar = (spaced ? "trivia = { ' '* }\n" : "") + "Start = 'x' & R1 & 'y'\nR1 = { ('b'{2} | 'a')? }\nparse Start\n";
+		var grammar = (spaced ? "trivia = { ' '* }\n" : "") + "Start = 'x' & R1 & 'y'\nR1 = { ('b'{2} | 'a')? }\npositional parse Start\n";
 
 		foreach (var direct in new[] { false, true })
 			AgreesWithTheSemantics(grammar, lexical: false, direct, "xby|xbby|xay|xy");
@@ -1320,7 +1321,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("{ (('a' | 'b')? | ('c' | 'a')?) }")]
 	public void A_flat_choice_after_an_alternative_that_reads_nothing_compiles(string shape)
 	{
-		var result = GramCompiler.Compile($"Start = 'x' & R1 & 'y'\nR1 = {shape}\nparse Start\n", Options(lexical: false, direct: true));
+		var result = GramCompiler.Compile($"Start = 'x' & R1 & 'y'\nR1 = {shape}\npositional parse Start\n", Options(lexical: false, direct: true));
 
 		EmittedCode.Quiet(result.Diagnostics);
 		EmittedCode.Compile(result.Sources[0].Text);

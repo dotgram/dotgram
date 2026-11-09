@@ -33,4 +33,4 @@ Expression : @string
 	| one: Token.Number                              => @(one)
 	| named: Token.Name                              => @(named)
 
-parse Program
+positional parse Program

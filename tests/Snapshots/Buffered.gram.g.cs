@@ -73,144 +73,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>Feed</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseFeed(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Feed(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Feed(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Feed'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Feed</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseFeed</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseFeed(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Feed(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Feed</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseFeed(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Feed(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Feed(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Feed'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Feed</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseFeed</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseFeed(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Feed(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
 		/// <summary>Every occurrence of <c>Record</c>, in order, found as it is asked for.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> FindRecord(string input)
 		{
@@ -812,34 +674,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Feed(int pos)
-			{
-				var s  = ways.Cursor;
-
-				while (true)
-				{
-					var q = RecReadBody_Feed(pos);
-
-					if (q >= 0)
-						return q;
-
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			public int RecReadBody_Feed(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWhole_DotGram_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -853,28 +687,6 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.RecWholeRead_Feed(pos);
-
-				failure = reader.failure;
-
-				return end;
-			}
-			finally
-			{
-				Ways_DotGram.Return(ways);
-			}
-		}
-
-		static int Rec_DotGram_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var ways = Ways_DotGram.Rent();
-
-			try
-			{
-				var reader = new Reader_DotGram_Feed(text, ways);
-
-				reader.failure = failure;
-
-				var end = reader.RecRead_Feed(pos);
 
 				failure = reader.failure;
 
@@ -1634,34 +1446,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Feed(int pos)
-			{
-				var s  = ways.Cursor;
-
-				while (true)
-				{
-					var q = RecReadBody_Feed(pos);
-
-					if (q >= 0)
-						return q;
-
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			public int RecReadBody_Feed(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWholeBuf_DotGram_Feed_DotGram_ParseFeed(BufferedText_DotGram text, int pos, ref Failure failure)
@@ -1675,28 +1459,6 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.RecWholeRead_Feed(pos);
-
-				failure = reader.failure;
-
-				return end;
-			}
-			finally
-			{
-				Ways_DotGram.Return(ways);
-			}
-		}
-
-		static int RecBuf_DotGram_Feed_DotGram_ParseFeed(BufferedText_DotGram text, int pos, ref Failure failure)
-		{
-			var ways = Ways_DotGram.Rent();
-
-			try
-			{
-				var reader = new ReaderBuf_DotGram_ParseFeed(text, ways);
-
-				reader.failure = failure;
-
-				var end = reader.RecRead_Feed(pos);
 
 				failure = reader.failure;
 
@@ -2107,34 +1869,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Feed(int pos)
-			{
-				var s  = ways.Cursor;
-
-				while (true)
-				{
-					var q = RecReadBody_Feed(pos);
-
-					if (q >= 0)
-						return q;
-
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			public int RecReadBody_Feed(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWholeBufBytes_DotGram_Feed_DotGram_ParseFeed(BufferedBytes_DotGram text, int pos, ref Failure failure)
@@ -2148,28 +1882,6 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.RecWholeRead_Feed(pos);
-
-				failure = reader.failure;
-
-				return end;
-			}
-			finally
-			{
-				Ways_DotGram.Return(ways);
-			}
-		}
-
-		static int RecBufBytes_DotGram_Feed_DotGram_ParseFeed(BufferedBytes_DotGram text, int pos, ref Failure failure)
-		{
-			var ways = Ways_DotGram.Rent();
-
-			try
-			{
-				var reader = new ReaderBufBytes_DotGram_ParseFeed(text, ways);
-
-				reader.failure = failure;
-
-				var end = reader.RecRead_Feed(pos);
 
 				failure = reader.failure;
 

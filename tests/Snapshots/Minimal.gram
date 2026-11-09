@@ -150,7 +150,7 @@ parse C
 parse D
 parse E
 parse F
-parse Text
+positional parse Text
 parse Number
 parse Alias
 parse Predicted
@@ -160,10 +160,10 @@ parse Maybe
 parse Ahead
 parse Not
 parse Committed
-parse Sum
+positional parse Sum
 parse Either
 parse Wrapped
-parse Sheet
+positional parse Sheet
 parse Ci
 parse Upper
 parse Spaced.Pair

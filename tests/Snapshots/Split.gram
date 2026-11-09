@@ -35,4 +35,4 @@ Word : @string = t: ['a'..'z']+ => @(t)
 
 Number : @string = t: ['0'..'9']+ => @(t)
 
-parse Script
+positional parse Script
