@@ -20,8 +20,12 @@ namespace DotGram.VisualStudio.Tests.Playground;
 
 	// Hover Sum or its Product references: classified Quick Info should appear and
 	// referenced rules should expand by link. F12/Shift+F12 on Product should navigate
-	// to its declaration/show every occurrence. The navigation dropdown should track
-	// the current rule and navigate when another rule is selected.
+	// to its declaration/show every occurrence. The navigation bar above this file should
+	// span the whole width in two halves, as C#'s does: on the left this file's grammars
+	// (VisualStudioToolingPlayground, Inspect(grammar), MultiQueryLanguage,
+	// PublicationSyntaxPlayground), on the right the rules of the one chosen there. Both
+	// should track the caret, the left one on the class too; choosing a grammar should move
+	// the caret to its string, choosing a rule to the rule.
 	Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
 	                   | value: Product                                   => @(value)
 

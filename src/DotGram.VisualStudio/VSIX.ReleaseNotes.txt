@@ -2,6 +2,9 @@
 
 0.3.0
 
+- The navigation bar over a C# file with grammars spans the width in two lists, as C#'s does:
+  the file's grammars, by class (and Suffix), and the rules of the one chosen, both following
+  the caret. The rules of different grammars no longer share one list.
 - A standalone .gram file follows its host as the solution changes: a project that finishes
   loading, an edited host class or an edited included grammar is picked up without reopening
   the file.
