@@ -2183,6 +2183,19 @@ is allowed to sit between the matches.**
 | --- | --- | --- |
 | `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)`<br>`bool TryParseR(input, out R value)` — whether it is one, and nothing about why not |
 | `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
+| `positional parse R` | as `parse R`, and an `R` may also be read where the caller says it begins | the three above, and `TryParseR(input, at)`, `TryParseR(input, at, length)` and their `bool` forms (§6.3) |
+
+The whole directive, every part after the verb optional:
+
+```
+[access] [positional] parse|find <operand> [with (…)] [as Name] [: @T] [stream [bytes]] [yield [: @T]]
+```
+
+Left of the verb are modifiers of the methods the directive makes: who may call them, and
+whether they may begin where the caller says. Right of it is what is read and what is returned:
+the operand, the rebindings it is read with, the method's name, the result, the input forms and
+whether the result is lazy. The words on the left are written in that order, each once
+(`GRAM2013`).
 
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
@@ -2293,19 +2306,24 @@ Anything else is a consequence rather than a directive. Where a match may sit is
 grammar's business, how much is held is the input's (§6.3), and picking things out of
 a sequence is the caller's.
 
-**Who may call it.** A directive publishes `public` methods unless it says otherwise, and it
-may say so the way C# does:
+**What a directive says about its methods.** A directive publishes `public` methods unless it
+says otherwise, and it may say so the way C# does; and a `parse` publishes the forms that read the
+whole input unless it also says `positional`:
 
 ```dotgram
 parse Lambda as ParseLambda                                     // public
 internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda // the assembly and its friends
-private parse Assignment as ParseHole                           // the class the grammar is attached to
+private positional parse Assignment as ParseHole                // the class, and from a position
 ```
 
-The modifier is every method the directive makes: the whole form, the one taking a
+The access is every method the directive makes: the whole form, the one taking a
 position, the one taking a window, the ones over a reader. An entry point left public beside
-a private pair is exactly what it is for. It is a word only in front of `parse` or `find`, so
-a rule may still be called `internal`. A `private` publication in a nested reading
+a private pair is exactly what it is for. `positional` adds the four forms that begin where the
+caller says and may stop short of the end (§6.3); the access comes first, `internal positional
+parse`, and a wrong order or a word written twice is `GRAM2013`. A `find` already looks at every
+position of the input, and a `yield` has no `Try` form to begin anywhere, so neither takes the word
+(`GRAM2012`). Each word is one only in front of `parse` or `find`, so a rule may still be called
+`internal` or `positional`. A `private` publication in a nested reading
 (`[GramOptions]`, §6.6) is private to that nested class, which is where that reading's own
 constructions call it from.
 
@@ -2654,8 +2672,8 @@ External recognizers using `ParserInput<T>` support buffered input (§7.1).
 Async refill, caller-fed chunks, and a contiguous byte publication are not supplied
 by these options.
 
-**A position and a window.** Beside `TryParseX(string input)` a `parse` gets two more
-forms wherever it is read by the shared automaton or by methods:
+**A position and a window.** Beside `TryParseX(string input)` a `positional parse` gets two
+more forms, and two that answer only whether:
 
 ```csharp
 Match<T> TryParseX(string input, int at);              // begins at `at`, need not reach the end
@@ -2718,9 +2736,17 @@ read: one character the language does not know in the last line of a script leav
 statements before it readable. The window form cuts only the window into tokens, so it may
 also begin anywhere: a hole in an interpolated string, read up to the `:` its format begins
 with, is the shape it is for. Only the whole-input forms refuse there, because reaching the
-end is what they are for. A publication compiled as a plain
-method, with the one entry a whole parse needs, gets neither: its rules were proved to
-need nothing else only against the end of the input.
+end is what they are for.
+
+They are written because the directive asks for them, and only then: whether the generator reads
+the rule by methods, by the shared automaton or by one flat method does not decide it. A
+publication compiled as a flat method keeps it for the whole input, whose speed the request does
+not touch, and is read from a position by a second entry of its own, by methods or by the shared
+automaton, since its rules were proved to need nothing else only against the end of the input:
+that entry is the size the request costs. A position is the string forms': `positional parse X
+stream` adds the reader as `stream` always does, and the reader begins at its start. A grammar that
+names `eos` reads its segments joined, which no position of the caller's can stand in, and
+refuses the word (`GRAM4055`).
 
 **What a reading from a position still costs, said here rather than discovered.** Over a
 grammar cut into tokens it cuts the whole input, and the cutting is kept for the next
