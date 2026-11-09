@@ -135,7 +135,7 @@ static partial class CSharpEmitter
 					file.Line($"var end = {MethodOf(publication.Rule)}(window.Span(), start{hands});");
 				else
 				{
-					file.Line(TraceBegin("read", name, "start", machine, "null", null, finding: true, sink: "trace", offset: "(int)window.Offset"));
+					file.Line(TraceBegin("read", name, "start", machine, "null", null, finding: true, sink: "trace", offset: "window.Offset"));
 					TracedRead(file, $"{MethodOf(publication.Rule)}(window.Span(), start{hands})", built, declare: true, sink: "trace");
 				}
 
@@ -569,7 +569,7 @@ static partial class CSharpEmitter
 					{
 						file.Line(TraceBegin(
 							$"read{i}", Named(stage), "start", "engine", "null", null, sink: "trace",
-							offset: "(int)window.Offset", failure: $"failure{i}"));
+							offset: "window.Offset", failure: $"failure{i}"));
 						TracedRead(
 							file, $"{method}(window.Span(), start, {hands})", null, declare: false, sink: "trace",
 							read: $"read{i}", failure: $"failure{i}", end: $"end{i}");

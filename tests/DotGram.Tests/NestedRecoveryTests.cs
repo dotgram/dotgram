@@ -742,7 +742,7 @@ public sealed class NestedRecoveryTests
 				_read = read;
 			}
 
-			public override void Recovered(int rule, int from, int to, int reach)
+			public override void Recovered(int rule, long from, long to, long reach)
 			{
 				Lines.Add((_read != null ? _read.RuleName(rule) : "#" + rule) + " " + from + " " + to + " " + reach);
 			}
