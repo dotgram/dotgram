@@ -112,7 +112,7 @@ try {
 	$warmDll     = $null
 
 	if ($WarmRuns -gt 0) {
-		if (-not (Test-Path $warmProject)) { throw "The head has no $warmProject: -WarmRuns 0 turns the warm reading off." }
+		if (-not (Test-Path $warmProject)) { throw "The head has no $warmProject`: -WarmRuns 0 turns the warm reading off." }
 
 		& taskset -c $cpus dotnet build $warmProject -c Release -v:quiet -m:1 -nodeReuse:false | Out-Null
 
