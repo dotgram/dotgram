@@ -31,7 +31,7 @@ public static partial class FixParser
 	/// characters take two bytes each, so a field at the limit holds up to 32 MiB of buffer. A reading
 	/// that needs more gives its context a larger one.
 	/// </remarks>
-	public static int DefaultMaxRetained => FixGrammar.DefaultMaxRetained;
+	internal static int DefaultMaxRetained => FixGrammar.DefaultMaxRetained;
 
 	/// <summary>
 	/// Reads wire fields separated by SOH.

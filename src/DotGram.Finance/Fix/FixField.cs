@@ -185,7 +185,7 @@ public abstract class FixField : IFixLocation
 		/// <param name="position">The absolute zero-based start of the skipped input.</param>
 		/// <param name="message">The diagnostic describing the recognition failure.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="raw"/> or <paramref name="message"/> is null.</exception>
-		public Invalid(string raw, int position, string message) : base(0, false)
+		internal Invalid(string raw, int position, string message) : base(0, false)
 		{
 			RawText = raw ?? throw new ArgumentNullException(nameof(raw));
 			Message = message ?? throw new ArgumentNullException(nameof(message));
@@ -202,7 +202,7 @@ public abstract class FixField : IFixLocation
 		/// <param name="position">The absolute zero-based start of the skipped input.</param>
 		/// <param name="message">The diagnostic describing the recognition failure.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="message"/> is null.</exception>
-		public Invalid(ReadOnlySpan<char> raw, int position, string message) : this(raw.ToString(), position, message) { }
+		internal Invalid(ReadOnlySpan<char> raw, int position, string message) : this(raw.ToString(), position, message) { }
 
 		/// <summary>
 		/// Creates a recovery field from byte input, copying the span into owned storage.
@@ -211,7 +211,7 @@ public abstract class FixField : IFixLocation
 		/// <param name="position">The absolute zero-based start of the skipped input.</param>
 		/// <param name="message">The diagnostic describing the recognition failure.</param>
 		/// <exception cref="ArgumentNullException"><paramref name="message"/> is null.</exception>
-		public Invalid(ReadOnlySpan<byte> raw, int position, string message) : base(0, false)
+		internal Invalid(ReadOnlySpan<byte> raw, int position, string message) : base(0, false)
 		{
 			RawBytes = raw.ToArray();
 			Message  = message ?? throw new ArgumentNullException(nameof(message));
@@ -309,7 +309,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is a single character: FIX <c>char</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToCharacter(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Character(int tag, (bool Valid, char Value) value)
 		: Typed<char>(tag, value);
 
@@ -317,7 +317,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is a boolean, <c>Y</c> or <c>N</c>: FIX <c>Boolean</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToBoolean(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Boolean(int tag, (bool Valid, bool Value) value)
 		: Typed<bool>(tag, value);
 
@@ -325,7 +325,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is an integer: FIX <c>int</c>, <c>Length</c>, <c>SeqNum</c>, <c>NumInGroup</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToInteger(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Integer(int tag, (bool Valid, long Value) value)
 		: Typed<long>(tag, value);
 
@@ -333,7 +333,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is a decimal number: FIX <c>float</c>, <c>Qty</c>, <c>Price</c>, <c>PriceOffset</c>, <c>Amt</c>, <c>Percentage</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToDecimal(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Decimal(int tag, (bool Valid, decimal Value) value)
 		: Typed<decimal>(tag, value);
 
@@ -341,7 +341,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is an instant: FIX <c>UTCTimestamp</c>, at offset zero, and <c>TZTimestamp</c>, at the offset it was written with.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToTimestamp(ReadOnlySpan{char})"/> or <see cref="FixConvert.ToZonedTimestamp(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Timestamp(int tag, (bool Valid, DateTimeOffset Value) value)
 		: Typed<DateTimeOffset>(tag, value);
 
@@ -349,7 +349,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is a UTC time of day: FIX <c>UTCTimeOnly</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToTime(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Time(int tag, (bool Valid, TimeOnly Value) value)
 		: Typed<TimeOnly>(tag, value);
 
@@ -357,7 +357,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is a time of day and its offset from UTC: FIX <c>TZTimeOnly</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToZonedTime(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class ZonedTime(int tag, (bool Valid, (TimeOnly Time, TimeSpan Offset) Value) value)
 		: Typed<(TimeOnly Time, TimeSpan Offset)>(tag, value);
 
@@ -365,7 +365,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is a date: FIX <c>UTCDateOnly</c>, <c>LocalMktDate</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToDate(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Date(int tag, (bool Valid, DateOnly Value) value)
 		: Typed<DateOnly>(tag, value);
 
@@ -376,7 +376,7 @@ public abstract class FixField : IFixLocation
 	/// The value is the text itself, <c>YYYYMM</c>, <c>YYYYMMDD</c> or <c>YYYYMMwN</c>.
 	/// </remarks>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToMonthYear(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class MonthYear(int tag, (bool Valid, string Value) value)
 		: Typed<string>(tag, value);
 
@@ -384,7 +384,7 @@ public abstract class FixField : IFixLocation
 	/// A field whose value is a list of values separated by spaces: FIX <c>MultipleValueString</c>.
 	/// </summary>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToMultiple(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Multiple(int tag, (bool Valid, string[] Value) value)
 		: Typed<string[]>(tag, value);
 
@@ -396,7 +396,7 @@ public abstract class FixField : IFixLocation
 	/// part of the value.
 	/// </remarks>
 	/// <param name="tag">The FIX tag.</param>
-	/// <param name="value">What <see cref="FixConvert.ToData(ReadOnlySpan{char})"/> answers: whether the value is valid, and the value.</param>
+	/// <param name="value">Whether the text read as the field's type, and the value it read as; with false the field is not valid and its Value throws.</param>
 	public sealed class Data(int tag, (bool Valid, ReadOnlyMemory<byte> Value) value)
 		: Typed<ReadOnlyMemory<byte>>(tag, value);
 }

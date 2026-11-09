@@ -874,11 +874,11 @@ nothing new.
 A nested group may also construct a value:
 
 ```dotgram
-Fields : @FixField[] =
+Fields : @Field[] =
     (value: Field & end: (Separator | eof)
-        => @(value.WithTerminator(end.Length)))*
+        => @(value.Ended(end.Length)))*
     recover Separator
-        => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
+        => @(new Field.Skipped(parserText, parserSpan.Start, parserMessage))
 ```
 
 The group takes its expected result type from the enclosing rule: `T` for `@T`,

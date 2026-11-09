@@ -13,7 +13,7 @@ namespace DotGram.Finance.Fix;
 /// reads no exponent and no culture. Each is an extension of the span it reads, <c>value.ToInteger()</c>,
 /// and may be called as <c>FixConvert.ToInteger(value)</c> as well.
 /// </remarks>
-public static class FixConvert
+static class FixConvert
 {
 	/// <summary>Reads a tag: decimal digits that fit an <see cref="int"/>.</summary>
 	/// <param name="value">The digits as the wire had them.</param>

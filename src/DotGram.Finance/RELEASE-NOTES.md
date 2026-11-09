@@ -11,6 +11,7 @@ BREAKING CHANGES, and what to write instead
 - The limits are the context's. The largest message read from a reader or a stream is the context's MaxMessageLength (16 MiB unless given); the maxMessageLength parameter of ReadMessage, TryReadMessage, ReadMessages and ParseMessages and FixParser.DefaultMaxMessageLength are gone: ReadMessage(input, maxMessageLength: n) -> ReadMessage(input, context with { MaxMessageLength = n }). Fix44Context.WithLogFraming -> Fix44Context.Log, one shared value (likewise Fix42Context and Fix50Context). FixMessageFactory -> MessageFactory. The emitTo parameter of With, Load and LoadFile is gone: Load(text, directory) -> (context with { CheckSourceDirectory = directory }).Load(text). A Framing that is neither Wire nor Log throws ArgumentOutOfRangeException when it is set.
 - FixDictionaryField takes its tag in its constructor, and applying a dictionary refuses a field stored under a key other than its tag.
 - A null argument throws ArgumentNullException from every Try call; TryParseMessage of a null byte array used to answer false.
+- What only the package's own readers use is no longer public: FixConvert, the FixField.Invalid constructors and FixParser.DefaultMaxRetained. A value is converted by reading its field (ParseFields), as its tag's type; FixParser.DefaultMaxRetained -> Fix44Context.Default.MaxRetained (likewise Fix42Context and Fix50Context).
 
 CHANGED
 
