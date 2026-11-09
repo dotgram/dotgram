@@ -89,9 +89,6 @@ untouched older code as a reason to undo the user's style.
   A simple `if`, `foreach` or `while` may omit braces, with its body on the next
   indented line. Short `switch` cases may keep their action on the case line when
   this forms a readable decision table.
-- Separate logical phases with blank lines: guards, related local declarations,
-  mutations, loops and the final return. Keep closely related declarations together;
-  avoid both a solid wall of statements and a blank line after every statement.
 - Align adjacent, related declarations and assignments in columns: member names,
   property accessors, `=`, `=>`, corresponding constructor arguments and comments.
   Align switch keys and arms, grammar definitions/publications and attribute options
@@ -117,6 +114,71 @@ static Entry ReadEntry(int tag, bool required)
 }
 ```
 
+More of the same, as the maintainer applies it:
+
+- **Join what fits on one line.** A signature, a field initializer, a call or a `with` that
+  was wrapped only to keep a line short goes back onto one line: there is no fixed line
+  length. A statement that does wrap indents its continuation lines one tab deeper than
+  the line it starts on — a `return` over several `&&` or `or` lines, a concatenation of
+  strings, a property pattern opened after `is`.
+- **A table is aligned to its body, not to its longest row.** Within a run of similar lines
+  — a record's or constructor's parameters (the type column, then the names), named
+  arguments (`Key:        key`), an object initializer's `=`, a tuple's element names,
+  property accessors (`{ get; init; }`), switch arms, a chain of `?:` conditions, a list
+  of `or` patterns laid out as a grid — the column is set by the rows around it. A row
+  much longer than the rest stays unpadded and runs past the column rather than pushing
+  every other row out.
+- **What sits in the padding lines up the operands.** A prefix such as `!` takes one
+  column of the padding (`Memoises:  !input…` under `Counts:     input…`); a call in a
+  table of calls on different receivers may be padded before `(` (`Sets  (` under
+  `Builds(`) or after the `.` (`rules.       UnionWith(other);` under
+  `publications.AddRange(…);`) so that the arguments start in one column.
+- **A tuple or argument list written over several lines** puts `(` and `)` on lines of
+  their own, one element a line, aligned.
+- **A lone short `if` takes two lines**: the condition, then the statement indented on the
+  next. The one-line form is for a table of them (below).
+- **Braces on one branch mean braces on both**: where the `else` of an `if` needs a block,
+  the `if` gets one too.
+- **Short switch arms form one table**, with no blank line between them, even where one of
+  them was once written over two lines.
+
+#### Blank lines between statements
+
+- A run of local declarations is one block. Separate it from the statements around it by
+  a blank line.
+- `if`, `for`, `foreach`, `while`, `do`, `switch`, `using`, `lock` and `try` stand apart:
+  a blank line before and after each, so that a control statement is never squeezed
+  between calls. The blank line is left out only directly after `{` or before `}`.
+  `else`, `catch` and `finally` continue their statement and take no blank line.
+- Exception: short `if`s that belong together may form a group with no blank line
+  inside — one-line ones (condition and statement on one line, no braces), which then
+  make a table whose statements start in one column, and guards whose single statement
+  is on the next line (`if (a is null)` / `return;` twice in a row). The group as a whole
+  is separated by blank lines.
+- A comment directly above a statement belongs to it: the blank line goes above the
+  comment.
+
+The aim is the one it always was: neither a solid wall of statements nor a blank line
+after every statement.
+
+```csharp
+Prepare();
+Load();
+
+if (a is null)  return;
+if (b is null)  Fail();
+if (n < 0)      n = 0;
+
+Write(a);
+Write(b);
+```
+
+`BlankLinesTests` in `tests/DotGram.Tests` holds every handwritten file to this and to
+`BlankLinesBaseline.txt`, the count per file of what the sources did otherwise when the
+rule was written. A new break fails, and so does a file that improved until its count is
+lowered: `DOTGRAM_RECORD_BLANK_LINES_BASELINE=1` and run the test again rewrites the file.
+Do not reformat untouched code to bring the counts down; lower them as code is edited.
+
 ### C# constructs and naming
 
 - Prefer primary constructors for simple data holders whose constructors only
@@ -135,6 +197,15 @@ static Entry ReadEntry(int tag, bool required)
 - Name private instance fields `_camelCase`, parameters and locals `camelCase`.
   Keep public members in `PascalCase`; follow the surrounding convention for static
   fields rather than inferring a new static-field rule from the instance-field edits.
+- Prefer the shorter modern spelling where it says the same thing: `record with { … }`
+  rather than a new record built from the old one's members field by field; `x[^1]` rather
+  than `x[x.Length - 1]`; a property pattern (`is { IsImplicit: true, IsNumeric: false }`)
+  rather than a chain of `&&` over one value's members; a primary constructor's parameter
+  used directly rather than copied into a private field of the same value; one
+  interpolated string rather than two concatenated.
+- Do not qualify a name a `using` already brings in. Remove `using` directives and aliases
+  nothing uses, and those the project's implicit global usings already cover —
+  `using System;` excepted, which every file keeps.
 - In handwritten project code, rely on the shared `<Nullable>enable</Nullable>`;
   do not repeat `#nullable enable` without a file-specific reason.
 
@@ -155,3 +226,34 @@ static Entry ReadEntry(int tag, bool required)
 - These modern C# preferences apply to handwritten repository sources. Code emitted
   into consumer assemblies must still follow [the emitted-code rules](../.claude/rules/emitted-code.md),
   including the supported language-version floor and explicit nullable context.
+
+## Grammar layout
+
+How the hand-written `.gram` files are laid out — the SQL grammars are the model. The
+grammar language itself is `docs/syntax.md`; this is only how it is spaced.
+
+- **A run of one-line rules is a table.** The `:`, the result type and the `=` each start
+  in one column, one space past the longest name or type of the run; a run's padding
+  never grows wider than that. A rule standing alone takes no padding (`trivia = …`).
+- **The alternatives of a rule are a table too.** `=>` starts in one column across them;
+  labels of different lengths are padded after the `:` so the rules they name line up
+  (`| s:  SchemaDefinition`, `| sr: SchemaRoutine`); where every alternative begins with a
+  key word of its own, the `&` after it lines up (`"ADD"i   & …`, `"ALTER"i & …`). Inside
+  a table of nearly identical rules even the C# of the actions is padded so that the
+  differing part lines up.
+- **A row much longer than the rest stays unpadded** and does not set the column.
+- **Two short alternatives share the rule's line**, and in a table of such rules the second
+  `|` lines up as well:
+
+  ```
+  PeriodContained : @PeriodRight = d: DatetimeValueExpression => @(new PeriodRight.Point(d.Node)) | p: PeriodPredicand => @(new PeriodRight.Period(p))
+  PeriodPredicand : @PeriodValue = c: PeriodConstructor => @(c)                                   | n: IdentifierChain => @(new PeriodValue.Reference(n))
+  ```
+- **One alternative, one line.** A `=>` wrapped onto the next line is joined back to its
+  alternative; only an alternative far too long to read on one line breaks before its `=>`,
+  which is indented one level under the rule.
+- **Continuation lines are indented one level**, the `=` and every `|` of a rule's
+  alternatives alike; a choice of a rule written on its line continues with its `|` under
+  the `=`.
+- **A long choice of key words is a grid**: one column a word, as many columns as the lines
+  carry, so that the list can be read down as well as across.
