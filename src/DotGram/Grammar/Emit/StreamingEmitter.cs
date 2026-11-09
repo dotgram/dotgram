@@ -28,6 +28,46 @@ namespace DotGram.Grammar.Emit;
 static partial class CSharpEmitter
 {
 	/// <summary>
+	/// What the driver of a streamed <c>parse</c> reads: the stages of the rule in turn, the
+	/// recognizer of each part, and what it does about a bad element (<see cref="EmitStreamingParse"/>).
+	/// </summary>
+	sealed record StreamedParse
+	{
+		/// <summary>The stages of the rule, in the order they are read.</summary>
+		public required IReadOnlyList<Stage> Stages { get; init; }
+
+		/// <summary>The recognizer of each stage that is not a call, by its index; empty for one that is.</summary>
+		public required IReadOnlyList<string> Parts { get; init; }
+
+		/// <summary>The recognizer of the trivia between the stages, where the rule has any.</summary>
+		public string? Trivia { get; init; }
+
+		/// <summary>What the repetition was told to do about a bad element, where it was told.</summary>
+		public Recovery? Recovery { get; init; }
+
+		/// <summary>The recognizer of where the parse may pick up again, where it recovers.</summary>
+		public string? Sync { get; init; }
+
+		/// <summary>The method that builds what stands for a bad element.</summary>
+		public required string Factory { get; init; }
+
+		/// <summary>The probe that asks whether a stage's rest stands next, by the stage's index; null for none.</summary>
+		public required Func<int, string?> Continuation { get; init; }
+
+		/// <summary>Whether a recognizer the stages call takes the whole input.</summary>
+		public bool Input { get; init; }
+
+		/// <summary>The recognizer of a stage's rule.</summary>
+		public required Func<RuleSymbol, string> Recognize { get; init; }
+
+		/// <summary>The grammar's context as the parts take it, or nothing.</summary>
+		public string Takes { get; init; } = "";
+
+		/// <summary>Whether a rule's recognizer asks whether the reading locates.</summary>
+		public bool Locates { get; init; }
+	}
+
+	/// <summary>
 	/// <c>find</c> over a reader: the same occurrences, out of input that is never all
 	/// there at once.
 	/// </summary>
@@ -46,19 +86,19 @@ static partial class CSharpEmitter
 	/// apart is whether the reader is finished.
 	/// </para>
 	/// </remarks>
-	/// <param name="tracing">
-	/// Where the build traces, what it numbers events by: each start is then a reading told to the
-	/// sink set where the call is made, its positions counted from the beginning of the input.
+	/// <param name="text">
+	/// The publication's names and arguments. Where the build traces, its <c>Tracing</c> is what it
+	/// numbers events by: each start is then a reading told to the sink set where the call is made,
+	/// its positions counted from the beginning of the input.
 	/// </param>
-	/// <param name="machine">What reads the rule: <c>methods</c> or <c>engine</c>.</param>
-	/// <param name="built">The type of the value the rule builds, where it builds one.</param>
-	/// <param name="places">Whether the machine is told where the window begins (<see cref="Places"/>).</param>
-	/// <param name="lines">And the lines before it (<see cref="PlacesLines"/>).</param>
-	static void EmitStreamingFind(
-		Writer file, ResultTypes results, Publication publication, string method, string name,
-		string match, string hands, bool builds, string takes, bool places, bool lines,
-		TraceTables? tracing = null, string machine = "engine", string? built = null)
+	static void EmitStreamingFind(Writer file, ResultTypes results, PublicationText text, string hands)
 	{
+		var (publication, method, name, match, takes, machine, built, tracing) =
+			(text.Publication, text.Method, text.Name, text.Match, text.Takes, text.Machine, text.Built, text.Tracing);
+		var builds = built is not null;
+		var places = text.Places;
+		var lines  = text.PlacesLines;
+
 		var recognized = builds ? "recognized" : "window.Text(start, end - start)";
 		var returns    = $"global::System.Collections.Generic.IEnumerable<{match}>";
 
@@ -249,12 +289,15 @@ static partial class CSharpEmitter
 	/// What is only asked — whether the trivia, the rest of the rule or the synchronization stands
 	/// next — is not.
 	/// </param>
+	/// <param name="parse">The stages the driver reads in turn and what it reads each of them with.</param>
 	static void EmitStreamingParse(
-		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
-		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts, string? trivia,
-		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation,
-		bool input, Func<RuleSymbol, string> recognize, TraceTables? tracing = null, string takes = "", bool locates = false)
+		Writer file, RecognitionGraph graph, ResultTypes results, Publication publication, TraceTables? tracing,
+		StreamedParse parse)
 	{
+		var (stages, parts, trivia, recovery, sync, factory, continuation, input, recognize, takes, locates) =
+			(parse.Stages, parse.Parts, parse.Trivia, parse.Recovery, parse.Sync, parse.Factory, parse.Continuation,
+			 parse.Input, parse.Recognize, parse.Takes, parse.Locates);
+
 		// The grammar's context, where the parts take one: handed to every part the stages read.
 		var context = takes.Length > 0 ? ", context" : "";
 

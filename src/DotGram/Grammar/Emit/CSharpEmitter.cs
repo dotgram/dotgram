@@ -691,39 +691,7 @@ static partial class CSharpEmitter
 						continue;
 					}
 
-					EmitPublication(
-						file,
-						publication,
-						results,
-						graph.Climbing.ContainsKey(publication.Rule),
-						Streams(graph, publication, overKinds) &&
-							!options.BufferedInput && !publication.BufferedInput,
-						compiled.Flat,
-						compiled.Machine.Ties,
-						compiled.Machine.UsesInput,
-						compiled.Machine.UsesContext ? graph.Context : null,
-						overKinds,
-						compiled.Direct && compiled.Machine.Probes,
-						compiled.Machine.UsesReading ? publication.Reading : null,
-						compiled.Direct,
-						diagnostics,
-						compiled.Tag,
-						ReadsQuietlyFirst(graph),
-						compiled.Machine.UsesContext && graph.ContextRewinds,
-						// Whether a reading that begins where it is told writes down where the value began:
-						// over characters it reads the trivia at the position and says where it ended.
-						graph.Trivia.ContainsKey(publication.Rule) && !overKinds,
-						lexical is not null && lexical.Bare.Contains(publication.Rule),
-						compiled.Machine.UsesLocating ? locating : null,
-						tracing,
-						compiled.Direct ? "methods" : compiled.Flat ? "flat" : "engine",
-						tracing is not null && RunsNothingOfTheAuthors(graph),
-						// A refused input read again for its message is read with nothing asked of its
-						// value, which a reader that builds as it reads acts on (Machine.ReplaysUnasked).
-						compiled.Machine.ReplaysUnasked,
-						TrimsWhole(graph, publication, overKinds),
-						compiled.Machine.Places,
-						compiled.Machine.PlacesLines);
+					EmitPublication(file, graph, results, compiled, publication, options, context, tracing, locating);
 
 					file.Line();
 				}
@@ -898,18 +866,22 @@ static partial class CSharpEmitter
 					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? MachineTag.None);
 				}
 
-				EmitStreamingParse(
-					file, graph, publication, results, stages, parts,
-					streamedParts.TryGetValue((publication.Rule, -1), out var trivia) ? trivia.Name : null,
-					found?.Recovery, sync, factory,
-					stage => continuationProbes.TryGetValue((publication.Rule, stage), out var probe)
+				EmitStreamingParse(file, graph, results, publication, tracing, new StreamedParse
+				{
+					Stages       = stages,
+					Parts        = parts,
+					Trivia       = streamedParts.TryGetValue((publication.Rule, -1), out var trivia) ? trivia.Name : null,
+					Recovery     = found?.Recovery,
+					Sync         = sync,
+					Factory      = factory,
+					Continuation = stage => continuationProbes.TryGetValue((publication.Rule, stage), out var probe)
 						? probe.Name
 						: null,
-					machines.Exists(static compiled => compiled.Machine.UsesInput),
-					Recognizer,
-					tracing,
-					compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "",
-					compiled is { Machine.UsesLocating: true });
+					Input        = machines.Exists(static compiled => compiled.Machine.UsesInput),
+					Recognize    = Recognizer,
+					Takes        = compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "",
+					Locates      = compiled is { Machine.UsesLocating: true },
+				});
 				file.Line();
 			}
 		}
@@ -2007,19 +1979,52 @@ static partial class CSharpEmitter
 		return true;
 	}
 
+	/// <summary>Writes the methods one publication is called by, over what reads it.</summary>
+	/// <param name="compiled">The machine that reads the publication, as the file keeps it.</param>
+	/// <param name="locating">
+	/// Where locations are decided per call, whether this door locates; null where they are not, and
+	/// for a machine that never asks.
+	/// </param>
 	static void EmitPublication(
-		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
-		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
-		MachineTag? tag = null, bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
-		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false,
-		bool unasked = false, bool trims = false, bool places = false, bool lines = false)
+		Writer file, RecognitionGraph graph, ResultTypes results, Compiled compiled, Publication publication,
+		GramCompilerOptions options, EmitContext? context, TraceTables? tracing, bool? locating)
 	{
+		var lexical     = context?.Lexical;
+		var diagnostics = context?.Diagnostics;
+		var overKinds   = lexical is not null;
+		var climbs      = graph.Climbing.ContainsKey(publication.Rule);
+		var streams     = Streams(graph, publication, overKinds) && !options.BufferedInput && !publication.BufferedInput;
+		var flat        = compiled.Flat;
+		var ties        = compiled.Machine.Ties;
+		var input       = compiled.Machine.UsesInput;
+		var direct      = compiled.Direct;
+		var probes      = compiled.Direct && compiled.Machine.Probes;
+		var reading     = compiled.Machine.UsesReading ? publication.Reading : (int?)null;
+		var tag         = compiled.Tag;
+		var quietFirst  = ReadsQuietlyFirst(graph);
+		var rewinds     = compiled.Machine.UsesContext && graph.ContextRewinds;
+		// Whether a reading that begins where it is told writes down where the value began:
+		// over characters it reads the trivia at the position and says where it ended.
+		var leads       = graph.Trivia.ContainsKey(publication.Rule) && !overKinds;
+		var bare        = lexical is not null && lexical.Bare.Contains(publication.Rule);
+		var machine     = compiled.Direct ? "methods" : compiled.Flat ? "flat" : "engine";
+		var inert       = tracing is not null && RunsNothingOfTheAuthors(graph);
+		// A refused input read again for its message is read with nothing asked of its
+		// value, which a reader that builds as it reads acts on (Machine.ReplaysUnasked).
+		var unasked     = compiled.Machine.ReplaysUnasked;
+		var trims       = TrimsWhole(graph, publication, overKinds);
+		var places      = compiled.Machine.Places;
+		var lines       = compiled.Machine.PlacesLines;
+
+		if (!compiled.Machine.UsesLocating)
+			locating = null;
+
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
 		// and never names it, is published exactly as it was before the name existed.
-		var takes = context is null ? "" : $", {context} context";
-		var gives = context is null ? "" : ", context";
+		var state = compiled.Machine.UsesContext ? graph.Context : null;
+		var takes = state is null ? "" : $", {state} context";
+		var gives = state is null ? "" : ", context";
 
 		// Which reading of the grammar this publication is (`when … is …`), where the machine it
 		// shares with the others asks. A number and not an argument the caller writes: the
@@ -2190,7 +2195,7 @@ static partial class CSharpEmitter
 		string Recognized(string from, string to)
 		{
 			return built is not null ? "recognized" :
-			overKinds ? $"{(tag ?? MachineTag.None).Named("Text")}(source, starts, lengths, {from}, {to})" :
+			overKinds ? $"{tag.Named("Text")}(source, starts, lengths, {from}, {to})" :
 			$"input.Substring({from}, {to})";
 		}
 
@@ -2208,22 +2213,38 @@ static partial class CSharpEmitter
 		var position = "0";
 		var extent   = overKinds ? "over" : "end";
 
+		// What the methods of a `yield` and a `find` are written with, which are written apart.
+		var text = new PublicationText
+		{
+			Publication = publication,
+			Method      = method,
+			Name        = name,
+			Value       = value,
+			Match       = match,
+			Built       = built,
+			Takes       = takes,
+			Gives       = gives,
+			Machine     = machine,
+			Tracing     = tracing,
+			Places      = places,
+			PlacesLines = lines,
+		};
+
 		if (publication.Kind == PublishKind.Yield)
 		{
-			EmitYield(file, publication, hands, takes, gives, tracing, name, machine, built);
+			EmitYield(file, text, hands);
 			return;
 		}
 
 		if (publication.Kind == PublishKind.Find)
 		{
-			EmitFind(file, publication, method, name, value, match, hands, Recognized, takes, gives, tracing, machine, built);
+			EmitFind(file, text, hands, Recognized);
 
 			if (streams)
 			{
 				file.Line();
 
-				EmitStreamingFind(
-					file, results, publication, method, name, match, streamedHands, built is not null, takes, places, lines, tracing, machine, built);
+				EmitStreamingFind(file, results, text, streamedHands);
 			}
 
 			return;
@@ -2417,7 +2438,7 @@ static partial class CSharpEmitter
 					}
 					else if (positional)
 					{
-						file.Line($"var from = {(tag ?? MachineTag.None).Named("TokenAt")}(starts, count, at);");
+						file.Line($"var from = {tag.Named("TokenAt")}(starts, count, at);");
 						file.Line();
 
 						using (file.Block("if (from < 0)"))
@@ -2622,7 +2643,7 @@ static partial class CSharpEmitter
 								file.Line($"Unlexed_DotGram(source, {halt});");
 								file.Line();
 
-								if (context is null && inert)
+								if (state is null && inert)
 									ExplainUnlexed(halt, $"{reader}(prefix, 0{hands})");
 
 								if (!kept)
@@ -2668,7 +2689,7 @@ static partial class CSharpEmitter
 					{
 						// Named with this machine's tag, as everything it writes is: two machines
 						// in one class must not collide (Machine.Provenance).
-						file.Line($"var from = {(tag ?? MachineTag.None).Named("TokenAt")}(starts, count, at);");
+						file.Line($"var from = {tag.Named("TokenAt")}(starts, count, at);");
 						file.Line();
 
 						// Nothing at or after it is a token, so there is nothing there to read: the
@@ -3857,16 +3878,17 @@ file.Line("return spare;");
 	/// are LINQ's rather than three more directives. The span is made where it is passed
 	/// and never held in a local, which is what lets this be an iterator at all.
 	/// </remarks>
-	/// <param name="tracing">
-	/// In a trace build, what it numbers by: the iterator is then a method of its own, handed the
-	/// sink by a method that is not one, since an iterator's body runs at the first <c>MoveNext</c>
-	/// and the sink is the one set where the call was made.
+	/// <param name="text">
+	/// The publication's names and arguments. In a trace build its <c>Tracing</c> is what it numbers
+	/// by: the iterator is then a method of its own, handed the sink by a method that is not one,
+	/// since an iterator's body runs at the first <c>MoveNext</c> and the sink is the one set where
+	/// the call was made.
 	/// </param>
-	static void EmitFind(
-		Writer file, Publication publication, string method, string name,
-		string value, string match, string hands, Func<string, string, string> recognized,
-		string takes, string gives = "", TraceTables? tracing = null, string machine = "methods", string? built = null)
+	static void EmitFind(Writer file, PublicationText text, string hands, Func<string, string, string> recognized)
 	{
+		var (publication, method, name, value, match, built, takes, gives, machine, tracing) =
+			(text.Publication, text.Method, text.Name, text.Value, text.Match, text.Built, text.Takes, text.Gives, text.Machine, text.Tracing);
+
 		file.Line($"/// <summary>Every occurrence of <c>{name}</c>, in order, found as it is asked for.</summary>");
 
 		if (tracing is not null)
@@ -5658,6 +5680,48 @@ file.Line("return spare;");
 	static string Finished(string text, bool checks, bool steps)
 	{
 		return PublicDocs.Keep(StepCalls.Settle(CheckBlocks.Settle(text, checks), steps));
+	}
+
+	/// <summary>
+	/// What the methods of one publication are written with: its names, the type of what it answers,
+	/// the arguments its methods take and hand on, and what reads it.
+	/// </summary>
+	sealed record PublicationText
+	{
+		public required Publication Publication { get; init; }
+
+		/// <summary>The name its methods are emitted under.</summary>
+		public required string Method { get; init; }
+
+		/// <summary>What the author called it, which is what its documentation and its refusals say.</summary>
+		public required string Name { get; init; }
+
+		/// <summary>The type of the value it answers.</summary>
+		public required string Value { get; init; }
+
+		/// <summary>The match type over that value.</summary>
+		public required string Match { get; init; }
+
+		/// <summary>The type of the value the rule builds, where it builds one.</summary>
+		public string? Built { get; init; }
+
+		/// <summary>The grammar's context as its methods take it, or nothing.</summary>
+		public string Takes { get; init; } = "";
+
+		/// <summary>And as they hand it on.</summary>
+		public string Gives { get; init; } = "";
+
+		/// <summary>What reads the rule: <c>methods</c>, <c>flat</c> or <c>engine</c>.</summary>
+		public required string Machine { get; init; }
+
+		/// <summary>What a trace build numbers its events by; null where the build is not one.</summary>
+		public TraceTables? Tracing { get; init; }
+
+		/// <summary>Whether the machine is told where a window begins (<see cref="Places"/>).</summary>
+		public bool Places { get; init; }
+
+		/// <summary>And the lines before it (<see cref="PlacesLines"/>).</summary>
+		public bool PlacesLines { get; init; }
 	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>
