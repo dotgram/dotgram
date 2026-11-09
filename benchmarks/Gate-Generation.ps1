@@ -118,7 +118,7 @@ try {
 
 		if ($LASTEXITCODE -ne 0) { throw 'DotGram.GenerationWarm did not build' }
 
-		$warmDll = Get-ChildItem (Join-Path $sides.head.Dir '.build') -Recurse -Filter DotGram.GenerationWarm.dll | Where-Object { $_.FullName -notmatch '[\\/]obj[\\/]' } | Select-Object -First 1 -ExpandProperty FullName
+		$warmDll = Get-ChildItem (Join-Path $sides.head.Dir '.build') -Recurse -Force -Filter DotGram.GenerationWarm.dll | Where-Object { $_.FullName -notmatch '[\\/]obj[\\/]' } | Select-Object -First 1 -ExpandProperty FullName
 	}
 
 	for ($round = 1; $round -le $Rounds; $round++) {
@@ -174,7 +174,7 @@ try {
 
 				if ($WarmRuns -gt 0 -and $hosts -gt 0) {
 					# The generator the build above just made, in whichever folder the commit's build output is: `.build/bin/DotGram/release*` since the output moved, `src/DotGram/bin/Release` before.
-					$generator = Get-ChildItem $dir -Recurse -Filter DotGram.dll | Where-Object { $_.FullName -match '[\\/]DotGram[\\/](bin[\\/])?[Rr]elease' -and $_.FullName -notmatch '[\\/]obj[\\/]' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+					$generator = Get-ChildItem $dir -Recurse -Force -Filter DotGram.dll | Where-Object { $_.FullName -match '[\\/]DotGram[\\/](bin[\\/])?[Rr]elease' -and $_.FullName -notmatch '[\\/]obj[\\/]' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 
 					if (-not $generator) { throw "$name`: no DotGram.dll built for the warm reading" }
 
