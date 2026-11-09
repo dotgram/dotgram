@@ -16,6 +16,7 @@ BREAKING CHANGES, and what to write instead
 - Types closed to derivation: the concrete records of DotGram.Sql.Ast are sealed; the abstract records their families derive from (Statement, Expression, LiteralValue, Query, DataType and the rest) have no protected parameterless constructor, only the copy constructor C# requires of a record that is not sealed, so a type outside the package can derive from one only by calling that copy constructor explicitly, and no family is designed for it; Sql92Parser, SqlStandardParser and TransactSqlParser have no protected constructor. Migration: hold a node or call a parser rather than derive from it.
 - Syntax, the helpers the T-SQL grammar's rules call, is no longer public, nor are the rule-value helper types nested in the parsers (the …_Dialect types of TransactSqlParser and TransactSqlParser.Located, CreateStatisticsWith, UpdateStatisticsWith, DottedType, Sql92Parser.Reserved, TransactSqlParser.ParserInput<T>).
 - QualifiedName.Of is no longer public, and EndpointEncryptionLevel, EndpointAlgorithm and EndpointWindowsMode, which no node held, are removed. Migration: new QualifiedName(first, rest) or new QualifiedName([.. parts]).
+- TransactSqlParser.SourceSpan is no longer public; nothing public took or returned it.
 - In a located T-SQL reading, an OVER spans the keyword and the window's name or brackets, as a located reading of SQL:2023 spans it.
 
 NEW
