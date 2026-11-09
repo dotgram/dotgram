@@ -43,24 +43,24 @@ public sealed class PositionalFollowTests
 	{
 		// An optional at the end whose every way fails after reading a character: entered on
 		// the `a`, the engine kept no way back to its skip.
-		["Optional"] = ("Start = (R1 | R1)?\nR1 = 'a' & 'k'\nparse Start\n", "ab", 0),
+		["Optional"] = ("Start = (R1 | R1)?\nR1 = 'a' & 'k'\npositional parse Start\n", "ab", 0),
 
 		// A repetition whose turns share a first character, then a negative lookahead: the
 		// second turn fails after its `a`, and the reading must stop after the first turn.
-		["Star"] = ("Start = ('a' & 'b' | 'a' & 'c')* & ?!'x'\nparse Start\n", "abacx", 0),
+		["Star"] = ("Start = ('a' & 'b' | 'a' & 'c')* & ?!'x'\npositional parse Start\n", "abacx", 0),
 
 		// The same with a turn that reads one character or two.
-		["StarShort"] = ("Start = ('a' | 'a' & 'c')* & ?!'b'\nparse Start\n", "aab", 0),
+		["StarShort"] = ("Start = ('a' | 'a' & 'c')* & ?!'b'\npositional parse Start\n", "aab", 0),
 
 		// An optional before a negative lookahead: the lookahead fails after the optional's
 		// reading, and the skip must still be there to fall back on.
-		["OptionalBeforeLook"] = ("Start = ('a' & 'b' | 'a' & 'c')? & ?!'b'\nparse Start\n", "abb", 0),
+		["OptionalBeforeLook"] = ("Start = ('a' & 'b' | 'a' & 'c')? & ?!'b'\npositional parse Start\n", "abb", 0),
 
 		// A quoted string with doubled quotes inside: from a position the reading ends at the
 		// first closing quote, which over the end of input could not have been the last.
 		["Quoted"] = ("""
 			Start = '"' & ("\"\"" | [^'"'])* & '"'
-			parse Start
+			positional parse Start
 
 			""", "\"a\"\"x", 0),
 
@@ -70,7 +70,7 @@ public sealed class PositionalFollowTests
 			Start = (R2 | ('b' | 'k' | R1 | R1)? | "AB"i | (?! 'B' & R2 & R2?))
 			R1 = R2
 			R2 = ('a' & (?! 'b'i & "Ka"i))
-			parse Start
+			positional parse Start
 
 			""", "aKK1", 0),
 	};
@@ -219,7 +219,7 @@ public sealed class PositionalFollowTests
 			foreach (var repeat in new[] { "?", "*", "+", "{0,2}" })
 				foreach (var tail in Tails)
 				{
-					text.Append($"S{index} = {body}{repeat}{tail}\nparse S{index}\n");
+					text.Append($"S{index} = {body}{repeat}{tail}\npositional parse S{index}\n");
 					index++;
 				}
 
@@ -356,7 +356,7 @@ public sealed class PositionalFollowTests
 	{
 		var graph = GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(GramParser.Parse(GramLexer.Tokenize(
-				"trivia = { ' '* }\nStart = \"ab\" & (\"c\" | \"d\")?\nparse Start\n", RoslynCSharpScanner.Instance)).File),
+				"trivia = { ' '* }\nStart = \"ab\" & (\"c\" | \"d\")?\npositional parse Start\n", RoslynCSharpScanner.Instance)).File),
 			positionalFollow: positionalFollow,
 			positionalSplit: true);
 
@@ -464,14 +464,14 @@ public sealed class PositionalFollowTests
 	/// </summary>
 	static readonly string[] SelectorTails =
 	[
-		"D = ['0'..'9']\nStart = (y: D)* & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
-		"D = ['0'..'9']\nStart = y: D* & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
-		"D = ['0'..'9']\nStart = (y: D)? & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
-		"D = ['0'..'9']\nStart = (y: D)+ & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
-		"D = ['0'..'9']\nStart = (y: D){0,2} & switch @(y) { case \"12\": none default: 'z' }\nparse Start\n",
-		"D = ['0'..'9']\nStart = (y: D)* & switch @(y) { case \"12\": 'z' default: none }\nparse Start\n",
-		"Start = (y: (\"12\" | \"1\")) & switch @(y) { case \"1\": none default: 'z' }\nparse Start\n",
-		"Start = (y: (\"12\" | \"1\"))? & switch @(y) { case \"12\": 'z' default: none }\nparse Start\n",
+		"D = ['0'..'9']\nStart = (y: D)* & switch @(y) { case \"1\": none default: 'z' }\npositional parse Start\n",
+		"D = ['0'..'9']\nStart = y: D* & switch @(y) { case \"1\": none default: 'z' }\npositional parse Start\n",
+		"D = ['0'..'9']\nStart = (y: D)? & switch @(y) { case \"1\": none default: 'z' }\npositional parse Start\n",
+		"D = ['0'..'9']\nStart = (y: D)+ & switch @(y) { case \"1\": none default: 'z' }\npositional parse Start\n",
+		"D = ['0'..'9']\nStart = (y: D){0,2} & switch @(y) { case \"12\": none default: 'z' }\npositional parse Start\n",
+		"D = ['0'..'9']\nStart = (y: D)* & switch @(y) { case \"12\": 'z' default: none }\npositional parse Start\n",
+		"Start = (y: (\"12\" | \"1\")) & switch @(y) { case \"1\": none default: 'z' }\npositional parse Start\n",
+		"Start = (y: (\"12\" | \"1\"))? & switch @(y) { case \"12\": 'z' default: none }\npositional parse Start\n",
 	];
 
 	public static TheoryData<int, bool> SelectorCases()
@@ -525,13 +525,13 @@ public sealed class PositionalFollowTests
 	/// </summary>
 	static readonly string[] ScannedShapes =
 	[
-		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp\nparse Start\n",
-		"Sp = ' '* & '|' & ' '*\nStart = ('a' & Sp)+\nparse Start\n",
-		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp & ?!' '\nparse Start\n",
-		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp & 'b'?\nparse Start\n",
-		"Sp = ' '* & '|' & ' '*\nStart = 'a' & (Sp | 'b')\nparse Start\n",
-		"Sp = ('a' | 'b' & 'c')*\nStart = '|' & Sp\nparse Start\n",
-		"Sp = ('a' | 'b' & 'c')*\nStart = '|' & Sp & ?!'b'\nparse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp\npositional parse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = ('a' & Sp)+\npositional parse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp & ?!' '\npositional parse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & Sp & 'b'?\npositional parse Start\n",
+		"Sp = ' '* & '|' & ' '*\nStart = 'a' & (Sp | 'b')\npositional parse Start\n",
+		"Sp = ('a' | 'b' & 'c')*\nStart = '|' & Sp\npositional parse Start\n",
+		"Sp = ('a' | 'b' & 'c')*\nStart = '|' & Sp & ?!'b'\npositional parse Start\n",
 	];
 
 	public static TheoryData<int, bool> ScannedCases()

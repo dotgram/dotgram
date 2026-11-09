@@ -92,9 +92,11 @@ static partial class CSharpEmitter
 	/// <summary>
 	/// What a machine's kinds say about the machine (<c>{v}</c> in <see cref="HostKinds"/>): nothing for the
 	/// machine of a published rule, or which of the file's own it is — the one that reads a terminal's value
-	/// again, the seam's — or that it reads buffered input, over bytes or over memory the caller holds.
+	/// again, the seam's — or that it reads buffered input, over bytes or over memory the caller
+	/// holds, or that it reads from a position what a flat method reads whole.
 	/// </summary>
-	public static readonly string[] Variants = ["", "Value", "Seam", "Buf", "BufBytes", "BufMemory", "BufBytesMemory"];
+	public static readonly string[] Variants =
+		["", "Value", "Seam", "Buf", "BufBytes", "BufMemory", "BufBytesMemory", "At"];
 
 	/// <summary>A name made from an author's names, in the class the generator writes into.</summary>
 	/// <param name="kind">A kind of <see cref="HostKinds"/>, its variant and numbers written in.</param>

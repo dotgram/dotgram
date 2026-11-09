@@ -315,7 +315,7 @@ public sealed class RejectionMessageTests
 	[MemberData(nameof(Renderings))]
 	public void A_reading_from_a_position_says_the_place_in_the_whole_input(string rendering, bool direct, CarrierKind carrier)
 	{
-		var host  = Compiled(Rows + "Start : @string = rows: Row* recover eol => " + Where + " & eof => @(Join(rows))\nparse Start as ParseStart\n", direct, carrier);
+		var host  = Compiled(Rows + "Start : @string = rows: Row* recover eol => " + Where + " & eof => @(Join(rows))\npositional parse Start as ParseStart\n", direct, carrier);
 		var type  = host.GetType("Grammar")!;
 		const string Input = "zz\na\nx\na\n";
 

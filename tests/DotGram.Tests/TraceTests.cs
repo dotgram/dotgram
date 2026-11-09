@@ -36,7 +36,7 @@ public sealed class TraceTests(ITestOutputHelper output)
 
 		Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))
 
-		parse Sum
+		positional parse Sum
 		""";
 
 	/// <summary>

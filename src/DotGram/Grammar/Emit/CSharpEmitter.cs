@@ -509,6 +509,7 @@ static partial class CSharpEmitter
 			compiled.Machine.CompileRules();
 
 		AddBufferedMachines(graph, results, machines, options, basis, overKinds, diagnostics);
+		AddPositionalMachines(graph, results, machines, woven, directAllowed);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -857,12 +858,16 @@ static partial class CSharpEmitter
 				string Recognizer(RuleSymbol rule)
 				{
 					if (staging is not null)
-						return staging.Publications.Any(one => one.Rule == rule && (one.Kind != PublishKind.Parse || !graph.Segmented))
+						return staging.Publications.Any(one =>
+								one.Rule == rule &&
+								(one.Kind != PublishKind.Parse || one.Positional && !graph.Segmented))
 							? MethodOf(rule)
 							: MethodOf(graph, rule, staging.Machine.Anchor, staging.Tag);
 
-					// Joined publications already share the plain wrapper in this machine.
-					if (compiled is not null && compiled.Publications.Any(one => one.Rule == rule))
+					// Joined publications already share the plain wrapper in this machine, where one
+					// of them reads the rule without demanding the end.
+					if (compiled is not null && compiled.Publications.Any(one =>
+							one.Rule == rule && (one.Kind != PublishKind.Parse || one.Positional)))
 						return MethodOf(rule);
 
 					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? MachineTag.None);
@@ -1861,29 +1866,33 @@ static partial class CSharpEmitter
 
 					continue;
 
-
-
-				file.Write(machine.RenderWrapper(
-
-					publication.Rule,
-
-					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
-
-					engine,
-
-					whole));
-
-				file.Line();
-
-				// And the same rule entered where the caller says it begins, which is what a
-				// positional overload calls. A grammar that names `eos` publishes no positional overload
-				// (SegmentEmitter), so none calls it. The state is already a root — `Register` adds the
-				// one that demands no end whatever the publication asked for — so this is a
-				// wrapper over it and nothing more.
-				if (whole && !graph.Segmented && wrappers.Add((publication.Rule, false)))
+				// A machine that reads only from a position has no whole form to call this.
+				if (!compiled.PositionalOnly)
 				{
 					file.Write(machine.RenderWrapper(
-						publication.Rule, MethodOf(publication.Rule), engine, whole: false));
+						publication.Rule,
+						whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
+						engine,
+						whole));
+
+					file.Line();
+				}
+
+				// And the same rule entered where the caller says it begins, which is what a
+				// positional overload calls: only where the directive asked for one (§6.3). A
+				// grammar that names `eos` publishes no positional overload (SegmentEmitter), so none
+				// calls it. The state is already a root — `Register` adds the one that demands no
+				// end whatever the publication asked for — so this is a wrapper over it and nothing
+				// more.
+				// Asked of the rule, not of this directive: two may publish it, one of them positional.
+				var positional = compiled.Publications.Any(one =>
+					one.Rule == publication.Rule && one.Kind == PublishKind.Parse && one.Positional);
+
+				if (whole && positional && !graph.Segmented && wrappers.Add((publication.Rule, false)))
+				{
+					file.Write(machine.RenderWrapper(
+						publication.Rule, EntryOf(publication.Rule, false, compiled.Tag), engine,
+						whole: false));
 
 					file.Line();
 				}
@@ -2264,44 +2273,50 @@ static partial class CSharpEmitter
 			return;
 		}
 
-		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
-		file.Line("/// <exception cref=\"global::System.FormatException\">");
-		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
-		file.Line("/// </exception>");
-
-		using (file.Block($"{AccessOf(publication)} static {value} {method}(string input{takes})"))
+		// A machine that reads only from a position leaves the whole forms to the flat one.
+		if (!compiled.PositionalOnly)
 		{
-			file.Line($"var match = Try{method}(input{gives});");
+			file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
+			file.Line("/// <exception cref=\"global::System.FormatException\">");
+			file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
+			file.Line("/// </exception>");
+
+			using (file.Block($"{AccessOf(publication)} static {value} {method}(string input{takes})"))
+			{
+				file.Line($"var match = Try{method}(input{gives});");
+				file.Line();
+				file.Line("if (match.IsSuccess)");
+				file.Then("return match.Value;");
+				file.Line();
+				ThrowRefusal(file, publication.Joined ? "input" : null);
+			}
+
 			file.Line();
-			file.Line("if (match.IsSuccess)");
-			file.Then("return match.Value;");
+			file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
+
+			Asking("string input", positional: false);
+
 			file.Line();
-			ThrowRefusal(file, publication.Joined ? "input" : null);
+			Answering(positional: false);
 		}
-
-		file.Line();
-		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
-
-		Asking("string input", positional: false);
-
-		file.Line();
-		Answering(positional: false);
 
 		// And the same rule read where the caller says it begins. No end of input is
 		// demanded — what comes back says how far the reading got — which is what lets a
 		// host read one piece of a text it is already holding, with every position in it
 		// still meaning what it meant.
 		//
-		// Offered where the rules are read by the engine or by methods. A lowered publication
-		// was compiled with the single entry a whole parse asks for — its rules were proved to
-		// need nothing more only against the end of the input — so it has no entry for these
-		// to call. §6.3 says so, and the grammar is not told on every compilation: the
-		// overload's absence is plain where it is called, and nothing in the grammar is wrong.
-		// Over segments a position is the caller's to make only by joining the segments, which is the
-		// parser's to do: no form begins where it is told.
-		if (!flat && !publication.Joined)
+		// Written where the directive says `positional`, and only there: whether the rules are
+		// read by methods, by the engine or by one flat method does not decide it (§6.3). A
+		// lowered publication was compiled with the single entry a whole parse asks for — its
+		// rules were proved to need nothing more only against the end of the input — so its
+		// forms from a position are written by the machine beside it (AddPositionalMachines),
+		// and not here. Over segments a position is the caller's to make only by joining the
+		// segments, which is the parser's to do: no form begins where it is told (GRAM4055).
+		if (publication.Positional && !flat && !publication.Joined)
 		{
-			file.Line();
+			if (!compiled.PositionalOnly)
+				file.Line();
+
 			file.Line($"/// <summary>Reads a <c>{name}</c> beginning at <paramref name=\"at\"/>.</summary>");
 			file.Line("/// <remarks>");
 			file.Line("/// The input is not required to end there: what comes back says where the");
@@ -2313,7 +2328,7 @@ static partial class CSharpEmitter
 			file.Line("/// </remarks>");
 
 			begins   = overKinds ? "from" : "at";
-			reader   = MethodOf(publication.Rule);
+			reader   = EntryOf(publication.Rule, false, compiled.Tag);
 			// The reading may have begun past the position it was handed: over kinds the trivia
 			// between two tokens is the lexer's to skip, and over characters the entry reads the
 			// trivia at the position and says where it ended (§6.3).
@@ -3312,6 +3327,12 @@ file.Line("return spare;");
 		file.Line("/// the input stopped being this language.");
 		file.Line("/// </remarks>");
 
+		// The kept cutting is what a reading from a position cuts the input with, and a grammar
+		// none of whose directives asks for one has no use for it.
+		var whole = file;
+
+		file = new Writer(whole.Depth);
+
 		file.Line();
 		file.Line("/// <summary>The inputs whose kinds this thread still holds, and the kinds it holds for them.</summary>");
 		file.Line("/// <remarks>");
@@ -3395,6 +3416,14 @@ file.Line("return spare;");
 		}
 
 		file.Line();
+
+		if (lexical.Source.Publications.Any(static one => one.Positional))
+			whole.Write(file.ToString());
+		else
+			whole.Line();
+
+		file = whole;
+
 		file.Line("static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length, false);");
 		file.Line();
 		file.Line("/// <summary>The kinds between two offsets of the input, with where each one was.</summary>");
@@ -5842,13 +5871,82 @@ file.Line("return spare;");
 	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>
+	/// <param name="PositionalOnly">
+	/// Whether the machine reads only the forms of its publications that begin where they are told
+	/// (<see cref="AddPositionalMachines"/>): their whole forms are the flat machine's.
+	/// </param>
 	sealed record Compiled(
 		Machine Machine,
 		IReadOnlyList<Publication> Publications,
 		string Engine,
 		MachineTag Tag,
 		bool Flat,
-		bool Direct = false);
+		bool Direct = false,
+		bool PositionalOnly = false);
+
+	/// <summary>
+	/// A second machine for the <c>positional</c> publications of each flat one, which reads them
+	/// from a position and inside a window.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A lowered publication is compiled with the one entry a whole parse asks for: its rules were
+	/// proved to need nothing more only against the end of the input. The forms the directive asked
+	/// for begin anywhere and end anywhere, so they are read by a machine of their own, by methods
+	/// where the rules can be and by the engine where they cannot, as they would be with no flat
+	/// path at all. The flat path stays the whole parse's: asking for a position must not slow the
+	/// call that reads the whole input, and what it costs is the size of the second machine, which
+	/// the author asked for.
+	/// </para>
+	/// <para>
+	/// Its entries are named for its tag (<see cref="EntryOf"/>), so they meet neither the flat
+	/// methods nor a <c>find</c> of the same rule, which the flat machine enters by the plain name.
+	/// </para>
+	/// </remarks>
+	static void AddPositionalMachines(
+		RecognitionGraph graph, ResultTypes results, List<Compiled> machines, MachineSettings woven,
+		bool directAllowed)
+	{
+		var count = machines.Count;
+
+		for (var index = 0; index < count; index++)
+		{
+			var flat = machines[index];
+
+			if (!flat.Flat)
+				continue;
+
+			var asked = flat.Publications
+				.Where(static one => one.Positional && one.Kind == PublishKind.Parse)
+				.ToList();
+
+			if (asked.Count == 0)
+				continue;
+
+			var reached = new HashSet<RuleSymbol>(
+				asked.SelectMany(one => Reaches(graph, one.Rule)));
+			var tag     = new MachineTag(PositionalVariant, flat.Tag.Id);
+			var machine = new Machine(graph, results, woven with
+			{
+				Only             = graph.Rules.Where(reached.Contains).ToArray(),
+				Tag              = tag,
+				PositionalOnly   = true,
+				DeferCompilation = true,
+			});
+
+			machine.Anchor = asked[0].Rule;
+
+			var direct = directAllowed && machine.CanDirect(asked);
+
+			machine.CompileRules();
+
+			machines.Add(new Compiled(
+				machine, asked, tag.Named("Recognize"), tag, false, direct, PositionalOnly: true));
+		}
+	}
+
+	/// <summary>The tag variant of a machine of <see cref="AddPositionalMachines"/>.</summary>
+	const string PositionalVariant = "At";
 
 	/// <summary>
 	/// The published rules, each with its own publications, in the order they were written.
@@ -6644,7 +6742,8 @@ file.Line("return spare;");
 	/// </summary>
 	internal static string EntryOf(RuleSymbol rule, bool whole, MachineTag tag)
 	{
-		if (tag.Variant.StartsWith("Buf", StringComparison.Ordinal))
+		if (tag.Variant.StartsWith("Buf", StringComparison.Ordinal) ||
+			tag.Variant == PositionalVariant)
 			return tag.Of(whole ? "RecWhole" : "Rec", IdentifierOf(rule));
 
 		return whole ? WholeOf(rule) : MethodOf(rule);

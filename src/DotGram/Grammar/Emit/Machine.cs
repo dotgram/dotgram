@@ -1483,33 +1483,9 @@ sealed partial class Machine
 	/// <summary>The tokens as locals a lambda may capture without hoisting the closure.</summary>
 	string TokensLocals => OverKinds ? ", lexedSource, lexedStarts, lexedLengths" : "";
 
-	/// <summary>
-	/// What a run of tokens came from: its text, and where in the input it stood.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// The first token's start and the last one's end, so that trivia standing after the run
-	/// is left out — a capture is what was written, not what was written plus the space
-	/// following it. A run of none is the empty string and an empty span at where it would
-	/// have begun, which is what an optional capture that never ran hands over.
-	/// </para>
-	/// <para>
-	/// Both are emitted whenever a machine reads kinds, because whether the grammar asks for
-	/// a span is known here only per site and a static nobody calls costs a build warning at
-	/// worst. Over characters neither exists: a position already is one.
-	/// </para>
-	/// </remarks>
-	string Provenance()
+	/// <summary>The token a character offset begins at, which a reading from a position asks.</summary>
+	void TokenAt(Writer helper)
 	{
-		var helper = new Writer(1);
-
-		helper.Line("/// <summary>The strings of one character, made once each rather than per cut.</summary>");
-		helper.Line("/// <remarks>");
-		helper.Line("/// Filled where it is missed. Two threads that miss the same character write");
-		helper.Line("/// the same string, so the race is between two answers that are equal.");
-		helper.Line("/// </remarks>");
-		helper.Line($"static readonly string[] {Tag.Named("Letters")} = new string[128];");
-		helper.Line();
 		helper.Line("/// <summary>The token beginning at a character offset, or -1 where none does.</summary>");
 		helper.Line("/// <remarks>");
 		helper.Line("/// A position is a character offset to a caller holding the text and a token to the");
@@ -1546,6 +1522,40 @@ sealed partial class Machine
 		}
 
 		helper.Line();
+	}
+
+	/// <summary>
+	/// What a run of tokens came from: its text, and where in the input it stood.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The first token's start and the last one's end, so that trivia standing after the run
+	/// is left out — a capture is what was written, not what was written plus the space
+	/// following it. A run of none is the empty string and an empty span at where it would
+	/// have begun, which is what an optional capture that never ran hands over.
+	/// </para>
+	/// <para>
+	/// Both are emitted whenever a machine reads kinds, because whether the grammar asks for
+	/// a span is known here only per site and a static nobody calls costs a build warning at
+	/// worst. Over characters neither exists: a position already is one.
+	/// </para>
+	/// </remarks>
+	string Provenance()
+	{
+		var helper = new Writer(1);
+
+		helper.Line("/// <summary>The strings of one character, made once each rather than per cut.</summary>");
+		helper.Line("/// <remarks>");
+		helper.Line("/// Filled where it is missed. Two threads that miss the same character write");
+		helper.Line("/// the same string, so the race is between two answers that are equal.");
+		helper.Line("/// </remarks>");
+		helper.Line($"static readonly string[] {Tag.Named("Letters")} = new string[128];");
+		helper.Line();
+
+		// Asked only by a form that begins where it is told, which a directive asks for.
+		if (_graph.Publications.Any(static one => one.Positional))
+			TokenAt(helper);
+
 		helper.Line("/// <summary>The text a run of tokens came from.</summary>");
 
 		using (helper.Block(

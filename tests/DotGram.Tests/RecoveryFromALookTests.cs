@@ -36,10 +36,10 @@ public sealed class RecoveryFromALookTests
 		Ahead  = ?=Rows & any*
 		Not    = ?!Rows & any*
 		Direct = Rows & any*
-		parse Rows
-		parse Ahead
-		parse Not
-		parse Direct
+		positional parse Rows
+		positional parse Ahead
+		positional parse Not
+		positional parse Direct
 		""";
 
 	/// <summary>The same rule as the synchronization of another recovering repetition.</summary>
@@ -49,8 +49,8 @@ public sealed class RecoveryFromALookTests
 		Rows  = Row+ recover ';' & '.'
 		Item  = 'x'
 		Outer = Item* recover Rows & 'z'
-		parse Rows
-		parse Outer
+		positional parse Rows
+		positional parse Outer
 		""";
 
 	public static TheoryData<bool> Directs => [true, false];
@@ -132,7 +132,7 @@ public sealed class RecoveryFromALookTests
 	{
 		get
 		{
-			const string ahead = "Ahead = ?=R & any*\nparse R\nparse Ahead\n";
+			const string ahead = "Ahead = ?=R & any*\npositional parse R\npositional parse Ahead\n";
 
 			var data = new TheoryData<string, bool>();
 
@@ -182,9 +182,9 @@ public sealed class RecoveryFromALookTests
 	{
 		get
 		{
-			const string rows    = "Row = 'a' & ';'\nRows = Row+ recover ';' & '.'\nAhead = 'b' & ?=Rows & any*\nparse Ahead\n";
-			const string nested  = "R = '(' & R & ')' | 'x'\nAhead = ?=R & any*\nparse Ahead\n";
-			const string guarded = "R = 'x'+ & when @(true)\nAhead = 'y' & ?=R & any*\nparse Ahead\n";
+			const string rows    = "Row = 'a' & ';'\nRows = Row+ recover ';' & '.'\nAhead = 'b' & ?=Rows & any*\npositional parse Ahead\n";
+			const string nested  = "R = '(' & R & ')' | 'x'\nAhead = ?=R & any*\npositional parse Ahead\n";
+			const string guarded = "R = 'x'+ & when @(true)\nAhead = 'y' & ?=R & any*\npositional parse Ahead\n";
 
 			var data = new TheoryData<string, string, int, string, long, bool>();
 

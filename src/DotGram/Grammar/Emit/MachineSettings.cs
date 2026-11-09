@@ -105,6 +105,12 @@ sealed record MachineSettings
 	/// <summary>Whether a buffered machine is read by a <c>find</c> as well as a <c>parse</c>.</summary>
 	public bool BufferedFind { get; init; }
 
+	/// <summary>
+	/// Whether the machine reads its publications only from a position, a flat machine beside it
+	/// reading them whole (CSharpEmitter.AddPositionalMachines): it has no entry that demands the end.
+	/// </summary>
+	public bool PositionalOnly { get; init; }
+
 	/// <summary>Whether a choice may be decided by a table of prefixes (<see cref="GramCompilerOptions.PrefixTables"/>).</summary>
 	public bool PrefixTables { get; init; }
 

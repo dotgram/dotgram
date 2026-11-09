@@ -131,14 +131,15 @@ namespace DotGram.Examples.Languages;
 	// What a directive names is an expression, not only a rule (§6) — one operand, so
 	// the `with` that may follow is the directive's own rather than the operand's, and
 	// the type is the third part a rule has, in the place that reads as the method's.
-	// Who may call the methods it makes comes first, and public is what saying nothing means.
+	// Who may call the methods it makes comes first, and public is what saying nothing means;
+	// then whether they may begin where the caller says.
 	Publication : @GramDecl
-		= access: ("public" | "internal" | "private")?
+		= access: ("public" | "internal" | "private")? & positional: "positional"?
 		& kind: ("parse" | "find") & target: PublicationTarget & With?
 		& ("as" & alias: Identifier)? & (':' & type: Type)?
 		& (stream: "stream" & bytes: "bytes"?)?
 		& (yielded: "yield" & (':' & yieldType: Type)?)?
-		=> @(new GramPublication(kind, target, alias, type, access, stream != null, bytes != null, yielded != null, yieldType))
+		=> @(new GramPublication(kind, target, alias, type, access, stream != null, bytes != null, yielded != null, yieldType, positional != null))
 
 	PublicationTarget : @GramExpr
 		= value: Reference & ?=':' => @(value)
@@ -322,7 +323,8 @@ public partial class GramGrammar
 
 	public sealed record GramPublication(
 		string Kind, GramExpr Target, string? Alias, string? Type, string? Access = null,
-		bool Stream = false, bool Bytes = false, bool Yield = false, string? YieldType = null) : GramDecl;
+		bool Stream = false, bool Bytes = false, bool Yield = false, string? YieldType = null,
+		bool Positional = false) : GramDecl;
 
 	public sealed record GramRule(
 		string Name, string? Type, GramExpr Body, bool GivesBack, string? OnFail = null) : GramDecl;

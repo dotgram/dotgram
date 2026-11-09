@@ -115,8 +115,8 @@ public sealed class SequenceOrderTests
 					C : @Circle = 'c' => @(new Circle())
 					S : @Square = 's' => @(new Square())
 					Pairs : @Shape[] = (C & S)* & eof
-					parse Shapes
-					parse Pairs
+					positional parse Shapes
+					positional parse Pairs
 					""", Lexical = {{(lexical ? "true" : "false")}}, Carrier = GramCarrier.{{carrier}})]
 				public static partial class P
 				{
@@ -151,14 +151,14 @@ public sealed class SequenceOrderTests
 		var grammar = $"""
 			Rows : @Item[] = {shape}
 			{Elements}
-			parse Rows stream bytes
+			positional parse Rows stream bytes
 			""";
 
 		// The same rule as a recognizer: no sequence, so nothing the sequence rewrite does.
 		var plain = $"""
 			Rows = {shape}
 			{Elements}
-			parse Rows
+			positional parse Rows
 			""";
 		var graph = Normalized(plain);
 		var rows  = graph.Rules.First(static rule => rule.Name == "Rows");
@@ -209,7 +209,7 @@ public sealed class SequenceOrderTests
 				trivia = { ' '* }
 				Rows? : @Item[] = ({{shape}}){{tail}}
 				{{Elements}}
-				parse Rows
+				positional parse Rows
 				""";
 			var graph = Normalized($"""
 				Rows = ({shape}){tail}
@@ -245,7 +245,7 @@ public sealed class SequenceOrderTests
 			trivia = { ' '* }
 			Rows? : @int[] = (A | A & 'b')+ & 'c' & eof
 			A : @int = 'a' => @(1)
-			parse Rows
+			positional parse Rows
 			""", carrier, lexical: true, types: false);
 
 		Assert.Equal([1], Values(same, "abc"));
@@ -257,7 +257,7 @@ public sealed class SequenceOrderTests
 			Rows? : @Item[] = (A | D & 'b')+ & 'c' & eof
 			D : @ItemC = 'a' => @(new ItemC())
 			{{Elements}}
-			parse Rows
+			positional parse Rows
 			""", carrier, lexical: true);
 
 		Assert.Equal("c", Text(mixed, "abc"));
@@ -278,7 +278,7 @@ public sealed class SequenceOrderTests
 			Rows : @int[] = 'x' & (A & B & when @(parserText.StartsWith("x")))+
 			A : @int = 'a' => @(1)
 			B : @int = 'b' => @(2)
-			parse Rows
+			positional parse Rows
 			""", carrier, types: false, buffered: false);
 
 		Assert.Equal([1, 2], Values(same, "xab"));
@@ -287,7 +287,7 @@ public sealed class SequenceOrderTests
 		var mixed = Compile($"""
 			Rows : @Item[] = 'x' & (A & B & when @(parserText.StartsWith("x") && parserSpan.Start == 0))+
 			{Elements}
-			parse Rows
+			positional parse Rows
 			""", carrier, buffered: false);
 
 		Assert.Equal("abab", Text(mixed, "xabab"));
@@ -310,7 +310,7 @@ public sealed class SequenceOrderTests
 			S : @string = 'a' => @("a")
 			L : @string = 'a' & 'b' => @("ab")
 			B : @int = 'd' => @(1)
-			parse Rows
+			positional parse Rows
 			""", carrier, lexical: true, types: false);
 
 		Assert.Equal("ab", Objects(host, "abc"));
@@ -329,8 +329,8 @@ public sealed class SequenceOrderTests
 			A : @int = 'a' => @(1)
 			B : @int = 'b' => @(2)
 			One : @object[] = A*
-			parse Rows
-			parse One
+			positional parse Rows
+			positional parse One
 			""", carrier, types: false, buffered: false);
 
 		Assert.Equal("1,2,1", Objects(host, "aba"));
@@ -364,7 +364,7 @@ public sealed class SequenceOrderTests
 			Start = ?=Rows & value: Rows & eof
 			Rows : @Item[] = {shape}
 			{Elements}
-			parse Start
+			positional parse Start
 			""", new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, ReportCarriers = true });
 
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("Rows_"));
@@ -403,12 +403,12 @@ public sealed class SequenceOrderTests
 		const string Mixed = """
 			A : @int = 'a' => @(1)
 			B : @string = 'b' => @("b")
-			parse Rows
+			positional parse Rows
 			""";
 		const string Same = """
 			A : @int = 'a' => @(1)
 			B : @int = 'b' => @(2)
-			parse Rows
+			positional parse Rows
 			""";
 
 		var cases = new (string Grammar, string Input, string Expected)[]
@@ -452,7 +452,7 @@ public sealed class SequenceOrderTests
 		var host = Compile($"""
 			Rows : @Item[] = (A | B)+ | ';'
 			{Elements}
-			parse Rows
+			positional parse Rows
 			""", carrier);
 
 		Assert.Equal("aba", Text(host, "aba"));

@@ -44,20 +44,20 @@ public sealed class RecoveryWhereReachedTests
 		Probed   = Probe | 'q'
 		ProbeOpt = Probe?
 		Probes   = Probe*
-		parse Rows
-		parse Choice
-		parse Second
-		parse Three
-		parse Optional
-		parse Ahead
-		parse Not
-		parse Prefix
-		parse Nullable
-		parse Repeated
-		parse Probe
-		parse Probed
-		parse ProbeOpt
-		parse Probes
+		positional parse Rows
+		positional parse Choice
+		positional parse Second
+		positional parse Three
+		positional parse Optional
+		positional parse Ahead
+		positional parse Not
+		positional parse Prefix
+		positional parse Nullable
+		positional parse Repeated
+		positional parse Probe
+		positional parse Probed
+		positional parse ProbeOpt
+		positional parse Probes
 		""";
 
 	public static TheoryData<bool> Directs => [true, false];
@@ -225,13 +225,13 @@ public sealed class RecoveryWhereReachedTests
 			Probed   = Probe | 'q'
 			ProbeOpt = Probe?
 			Probes   = Probe*
-			parse Rows
-			parse R3
-			parse Opt
-			parse Look
-			parse Probed
-			parse ProbeOpt
-			parse Probes
+			positional parse Rows
+			positional parse R3
+			positional parse Opt
+			positional parse Look
+			positional parse Probed
+			positional parse ProbeOpt
+			positional parse Probes
 			""",
 			direct,
 			positional: false,
@@ -264,8 +264,8 @@ public sealed class RecoveryWhereReachedTests
 				Row    = 'a' & ';'
 				Rows   = Row+ recover ';' & '.'
 				Before = {before}
-				parse Rows
-				parse Before
+				positional parse Rows
+				positional parse Before
 				""",
 				direct,
 				positional: false);

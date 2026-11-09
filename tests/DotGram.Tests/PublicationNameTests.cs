@@ -66,9 +66,9 @@ public sealed class PublicationNameTests
 
 		var directive = kind switch
 		{
-			"buffered" => $"parse Expr as {name} stream bytes",
+			"buffered" => $"positional parse Expr as {name} stream bytes",
 			"find"     => $"find Word as {name}",
-			_          => $"parse Recs as {name}",
+			_          => $"positional parse Recs as {name}",
 		};
 
 		return $$""""
