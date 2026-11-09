@@ -4785,15 +4785,6 @@ namespace DotGram.Snapshots
 				}
 
 				/// <summary>
-				/// Whether a rule only hands on another rule's value, and so is compiled into the
-				/// rules that call it: its events are written where it was called.
-				/// </summary>
-				public bool Forwards(int rule)
-				{
-					return (uint)rule < (uint)TraceForwarders_DotGram.Length && TraceForwarders_DotGram[rule];
-				}
-
-				/// <summary>
 				/// Where a position is, in characters of the input: itself over characters, and over
 				/// tokens where its token begins — past the last, where the tokens end. Good until
 				/// the reading ends.
@@ -5208,31 +5199,6 @@ namespace DotGram.Snapshots
 
 			static readonly string[] TraceGuards_DotGram = new string[]
 			{
-			};
-
-			static readonly bool[] TraceForwarders_DotGram = new bool[]
-			{
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
 			};
 
 			/// <summary>
