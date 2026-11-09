@@ -9117,12 +9117,15 @@ sealed partial class Machine
 	static IReadOnlyList<string> Covered(TerminalInventory inventory, bool[] kinds)
 	{
 		var said = new List<string>();
+		var once = new HashSet<string>(StringComparer.Ordinal);
 		var left = (bool[])kinds.Clone();
 
+		// Each name once, in the order first said: a list asked whether it holds a name was a scan
+		// of every name said so far for each of a few thousand kinds.
 		foreach (var (pattern, covered) in _coveringOf.GetValue(inventory, static inventory => new Covering(inventory)).Classes)
 			if (Within(covered, kinds) && Meets(covered, left))
 			{
-				if (!said.Contains(Named(pattern)))
+				if (once.Add(Named(pattern)))
 					said.Add(Named(pattern));
 
 				foreach (var kind in covered)
@@ -9130,7 +9133,7 @@ sealed partial class Machine
 			}
 
 		for (var kind = 1; kind < left.Length; kind++)
-			if (left[kind] && Said(inventory, kind) is var name && !said.Contains(name))
+			if (left[kind] && Said(inventory, kind) is var name && once.Add(name))
 				said.Add(name);
 
 		return said;
