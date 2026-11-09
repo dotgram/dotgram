@@ -15,6 +15,7 @@ BREAKING CHANGES, and what to write instead
 - Sql92Parser reserves every word SQL-92 reserves (section 5.2), so year, month, zone, with, names and the like are refused as names - write them delimited ("year"); SELECT b DAY FROM t reads b qualified by DAY. It refuses an interval qualifier SQL-92 does not have and a length, precision or scale above 2,147,483,647.
 - Types closed to derivation: the 426 records of DotGram.Sql.Ast are sealed, the 134 abstract records their families derive from (Statement, Expression, LiteralValue, Query, DataType and the rest) have no protected constructor but the copy constructor C# requires of a record that is not sealed, and Sql92Parser, SqlStandardParser and TransactSqlParser have no protected constructor, so a type outside the package does not derive from them. Migration: hold a node or call a parser rather than derive from it.
 - Syntax, the helpers the T-SQL grammar's rules call, is no longer public, nor are the rule-value helper types nested in the parsers (the …_Dialect types of TransactSqlParser and TransactSqlParser.Located, CreateStatisticsWith, UpdateStatisticsWith, DottedType, Sql92Parser.Reserved, TransactSqlParser.ParserInput<T>).
+- QualifiedName.Of is no longer public, and EndpointEncryptionLevel, EndpointAlgorithm and EndpointWindowsMode, which no node held, are removed. Migration: new QualifiedName(first, rest) or new QualifiedName([.. parts]).
 - In a located T-SQL reading, an OVER spans the keyword and the window's name or brackets, as a located reading of SQL:2023 spans it.
 
 NEW

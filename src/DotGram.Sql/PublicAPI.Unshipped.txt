@@ -42,8 +42,23 @@
 *REMOVED*DotGram.Sql.Ast.DroppedIndex.DroppedIndex() -> void
 *REMOVED*DotGram.Sql.Ast.DynamicArguments.DynamicArguments() -> void
 *REMOVED*DotGram.Sql.Ast.EmbeddedSql.EmbeddedSql() -> void
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.Aes = 0 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.AesRc4 = 2 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.Rc4 = 1 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.Rc4Aes = 3 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Disabled = 0 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Negotiated = 1 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Required = 4 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Strict = 2 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Supported = 3 -> DotGram.Sql.Ast.EndpointEncryptionLevel
 *REMOVED*DotGram.Sql.Ast.EndpointPayload.EndpointPayload() -> void
 *REMOVED*DotGram.Sql.Ast.EndpointTransport.EndpointTransport() -> void
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode.Kerberos = 1 -> DotGram.Sql.Ast.EndpointWindowsMode
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode.Negotiate = 2 -> DotGram.Sql.Ast.EndpointWindowsMode
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode.Ntlm = 0 -> DotGram.Sql.Ast.EndpointWindowsMode
 *REMOVED*DotGram.Sql.Ast.EventPredicate.EventPredicate() -> void
 *REMOVED*DotGram.Sql.Ast.EventSessionPiece.EventSessionPiece() -> void
 *REMOVED*DotGram.Sql.Ast.ExecuteOption.ExecuteOption() -> void
@@ -132,3 +147,4 @@
 *REMOVED*DotGram.Sql.Ast.ViewSpecification.ViewSpecification() -> void
 *REMOVED*DotGram.Sql.Ast.WindowFrameExtent.WindowFrameExtent() -> void
 *REMOVED*DotGram.Sql.Ast.WindowReference.WindowReference() -> void
+*REMOVED*static DotGram.Sql.Ast.QualifiedName.Of(params DotGram.Sql.Ast.Identifier![]! parts) -> DotGram.Sql.Ast.QualifiedName

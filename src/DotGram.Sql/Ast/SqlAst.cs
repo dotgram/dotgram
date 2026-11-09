@@ -2106,7 +2106,7 @@ public readonly record struct QualifiedName : ISqlNode
 		_rest  = parts.Length > 1 ? parts.AsSpan().Slice(1).ToArray() : null;
 	}
 
-	public static QualifiedName Of(params Identifier[] parts)
+	internal static QualifiedName Of(params Identifier[] parts)
 	{
 		return new(SqlList.From(parts));
 	}

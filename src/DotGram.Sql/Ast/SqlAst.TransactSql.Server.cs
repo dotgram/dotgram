@@ -318,15 +318,6 @@ public abstract record SoapItem : ISqlNode
 	}
 }
 
-/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). An endpoint's encryption: <c>DISABLED</c>, <c>NEGOTIATED</c>, <c>STRICT</c>, <c>SUPPORTED</c> or <c>REQUIRED</c>.</summary>
-public enum EndpointEncryptionLevel { Disabled, Negotiated, Strict, Supported, Required }
-
-/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). <c>ALGORITHM AES</c>, <c>RC4</c>, <c>AES RC4</c> or <c>RC4 AES</c>.</summary>
-public enum EndpointAlgorithm { Aes, Rc4, AesRc4, Rc4Aes }
-
-/// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). The protocol Windows authentication is told: <c>NTLM</c>, <c>KERBEROS</c> or <c>NEGOTIATE</c>.</summary>
-public enum EndpointWindowsMode { Ntlm, Kerberos, Negotiate }
-
 /// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). What is done to a SOAP endpoint's web method.</summary>
 public enum WebMethodAction { Add, Alter, Drop }
 
