@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The generator's time on one project's grammars in a process that has already run it: the cost a
+	     solution build (one compiler server, several compilations) and the IDE pay, which a fresh process's
+	     first run (its JIT included) does not show. Gate-Generation.ps1 runs it against the generator of
+	     each commit it compares, so the generator is loaded from a path and not referenced: this project
+	     is built once, from the head's tree, and reads the base's generator too. Not part of the solution,
+	     as DotGram.CompileRow is not. -->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
+
+</Project>

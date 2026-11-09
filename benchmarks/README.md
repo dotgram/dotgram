@@ -351,7 +351,19 @@ host whose ratio of medians is more than 20% from 1 by at least 100 ms. Beside t
 own count of the generator (`-p:ReportAnalyzer=true`), one row per project and target framework, to the same
 rule: a base older than the generator's reports (they arrived on 2026-09-17, so v0.1.0 has none) is held by that
 table alone, and the report says so. It is a timing run: it takes the window itself, and its builds run on the
-stand's processors. The worktrees stay under `/ramdisk/build/dotgram/gate` for the next run; remove them with
+stand's processors.
+
+Every host is read cold and warm. Cold is the generator's own report of a build in a fresh process, the JIT of the
+generator included: what a build pays once per compiler-server process, and what a build with the server off pays every
+time. Warm is the same compilation run again in a process that has already run it, which is what a solution build (its
+compilations share a server) and the IDE pay. `benchmarks/DotGram.GenerationWarm` takes it: built once from the head's tree,
+it loads the generator each side just built, runs it over the project's own sources and grammars `-WarmRuns` (8) more times
+after the first, with the compile cache off, and prints the generation report's figure per host and run. The first runs are still tiering
+up (a host that settles at 90 ms took 750, 400 and 250 ms in runs 0-2), so a round's warm figure is the median of the
+second half of those runs, and the warm table is held by the rule of the cold one, its deviations marked `(warm)`. On a small
+grammar cold is two to three times warm, a third of it the generator's own JIT, so a cold ratio of a host of a few hundred
+milliseconds overstates a regression that the warm one does not show: read both, and treat a deviation that is cold only as the
+JIT's or the fixed costs' until the warm table agrees. `-WarmRuns 0` leaves the warm reading out. The worktrees stay under `/ramdisk/build/dotgram/gate` for the next run; remove them with
 `git worktree remove` when done.
 
 ### The base of a row, and the regular expression
