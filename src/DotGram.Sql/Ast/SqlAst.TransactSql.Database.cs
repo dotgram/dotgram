@@ -373,6 +373,10 @@ public abstract record PartitionFunctionAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected PartitionFunctionAction()
+	{
+	}
+
 	/// <summary>
 	/// T-SQL: ALTER PARTITION FUNCTION (Transact-SQL). <c>SPLIT [RANGE (boundary)]</c>; the boundary null where
 	/// <c>RANGE</c> is left out, which the grammar reads.
@@ -392,6 +396,10 @@ public abstract record FullTextCatalogAction : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected FullTextCatalogAction()
+	{
 	}
 
 	/// <summary>
@@ -418,6 +426,10 @@ public abstract record StopListSource : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected StopListSource()
+	{
+	}
+
 	/// <summary>T-SQL: CREATE FULLTEXT STOPLIST (Transact-SQL). <c>FROM SYSTEM STOPLIST</c>.</summary>
 	public sealed record SystemStopList : StopListSource;
 
@@ -434,6 +446,10 @@ public abstract record StopListAction : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected StopListAction()
+	{
 	}
 
 	/// <summary>T-SQL: ALTER FULLTEXT STOPLIST (Transact-SQL). <c>ADD 'stopword' LANGUAGE language_term</c>.</summary>
@@ -460,6 +476,10 @@ public abstract record SearchPropertyListAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected SearchPropertyListAction()
+	{
+	}
+
 	/// <summary>
 	/// T-SQL: ALTER SEARCH PROPERTY LIST (Transact-SQL). <c>ADD 'property_name' WITH (PROPERTY_SET_GUID = …, PROPERTY_INT_ID
 	/// = … [, PROPERTY_DESCRIPTION = …])</c>: the settings, in that order.
@@ -482,6 +502,10 @@ public abstract record BackupDevice : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected BackupDevice()
+	{
 	}
 
 	/// <summary>
@@ -513,6 +537,10 @@ public abstract record BackupFile : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected BackupFile()
+	{
 	}
 
 	/// <summary>T-SQL: BACKUP (Transact-SQL). <c>FILE = { logical_file_name | @var }</c>.</summary>
@@ -574,6 +602,10 @@ public abstract record DatabaseSource : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected DatabaseSource()
+	{
+	}
+
 	/// <summary>
 	/// T-SQL: CREATE DATABASE (Transact-SQL). <c>FOR ATTACH</c>, <c>FOR ATTACH_REBUILD_LOG</c> or
 	/// <c>FOR ATTACH_FORCE_REBUILD_LOG</c>: files that already exist.
@@ -607,6 +639,10 @@ public abstract record Termination : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected Termination()
+	{
+	}
+
 	/// <summary>T-SQL: ALTER DATABASE SET Options (Transact-SQL). <c>ROLLBACK AFTER number [SECONDS]</c>.</summary>
 	public sealed record RollbackAfter(LiteralValue.Numeric Number) : Termination
 	{
@@ -630,6 +666,10 @@ public abstract record ScopedConfigurationAction : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ScopedConfigurationAction()
+	{
 	}
 
 	/// <summary>

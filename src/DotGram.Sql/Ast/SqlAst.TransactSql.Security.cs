@@ -359,6 +359,10 @@ public abstract record RoleAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected RoleAction()
+	{
+	}
+
 	/// <summary><c>ADD MEMBER principal</c>.</summary>
 	public sealed record AddMember(Identifier Member) : RoleAction;
 
@@ -382,6 +386,10 @@ public abstract record AuthorizationTo : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AuthorizationTo()
+	{
+	}
+
 	/// <summary><c>TO principal_name</c>.</summary>
 	public sealed record Principal(Identifier Name) : AuthorizationTo;
 
@@ -400,6 +408,10 @@ public abstract record LoginSource : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected LoginSource()
+	{
 	}
 
 	/// <summary>
@@ -444,6 +456,10 @@ public abstract record AlterLoginAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AlterLoginAction()
+	{
+	}
+
 	/// <summary><c>ENABLE</c>.</summary>
 	public sealed record Enable : AlterLoginAction;
 
@@ -474,6 +490,10 @@ public abstract record UserSource : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected UserSource()
+	{
 	}
 
 	/// <summary><c>{ FOR | FROM } LOGIN login_name</c>.</summary>
@@ -523,6 +543,10 @@ public abstract record KeyEncryptor : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected KeyEncryptor()
+	{
+	}
+
 	/// <summary><c>PASSWORD = 'p'</c>: a string, never a variable.</summary>
 	public sealed record Password(LiteralValue.String Value) : KeyEncryptor;
 
@@ -560,6 +584,10 @@ public abstract record AsymmetricKeySource : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AsymmetricKeySource()
+	{
+	}
+
 	/// <summary><c>FROM PROVIDER p</c>. Its settings are the statement's <see cref="Statement.CreateAsymmetricKey.Options"/>.</summary>
 	public sealed record Provider(Identifier Name) : AsymmetricKeySource;
 
@@ -585,6 +613,10 @@ public abstract record CertificateSource : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected CertificateSource()
+	{
 	}
 
 	/// <summary><c>FROM ASSEMBLY name</c>.</summary>
@@ -624,6 +656,10 @@ public abstract record AsymmetricKeyChange : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AsymmetricKeyChange()
+	{
+	}
+
 	/// <summary><c>REMOVE PRIVATE KEY</c>.</summary>
 	public sealed record RemovePrivateKey : AsymmetricKeyChange;
 
@@ -648,6 +684,10 @@ public abstract record CertificateChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected CertificateChange()
+	{
 	}
 
 	/// <summary><c>REMOVE PRIVATE KEY</c>.</summary>
@@ -679,6 +719,10 @@ public abstract record SymmetricKeyChange : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected SymmetricKeyChange()
+	{
+	}
+
 	/// <summary><c>ADD ENCRYPTION BY encryptor, …</c>: one at least.</summary>
 	public sealed record AddEncryption(SqlList<KeyEncryptor> By) : SymmetricKeyChange;
 
@@ -697,6 +741,10 @@ public abstract record MasterKeyChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected MasterKeyChange()
+	{
 	}
 
 	/// <summary><c>[FORCE] REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'</c>.</summary>
@@ -726,6 +774,10 @@ public abstract record ServiceMasterKeyChange : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ServiceMasterKeyChange()
+	{
+	}
+
 	/// <summary><c>[FORCE] REGENERATE</c>.</summary>
 	public sealed record Regenerate : ServiceMasterKeyChange
 	{
@@ -751,6 +803,10 @@ public abstract record DatabaseEncryptionKeyChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DatabaseEncryptionKeyChange()
+	{
 	}
 
 	/// <summary><c>REGENERATE WITH ALGORITHM = a</c>.</summary>
@@ -790,6 +846,10 @@ public abstract record ColumnKeyChange : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ColumnKeyChange()
+	{
+	}
+
 	/// <summary><c>ADD VALUE (…)</c>.</summary>
 	public sealed record AddValue(ColumnKeyValue Value) : ColumnKeyChange;
 
@@ -808,6 +868,10 @@ public abstract record CryptographicProviderChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected CryptographicProviderChange()
+	{
 	}
 
 	/// <summary><c>ENABLE</c>.</summary>
@@ -831,6 +895,10 @@ public abstract record SecurityPolicyChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected SecurityPolicyChange()
+	{
 	}
 
 	/// <summary>The predicates, <c>ADD FILTER PREDICATE f(c) ON t, DROP BLOCK PREDICATE ON u</c>: one at least.</summary>
@@ -857,6 +925,10 @@ public abstract record PolicyPredicate : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected PolicyPredicate()
+	{
 	}
 
 	/// <summary><c>ADD FILTER PREDICATE f(c) ON t</c>.</summary>

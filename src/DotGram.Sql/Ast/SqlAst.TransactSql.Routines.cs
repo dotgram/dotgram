@@ -70,6 +70,10 @@ public abstract record ModuleReference : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ModuleReference()
+	{
+	}
+
 	/// <summary>T-SQL: EXECUTE (Transact-SQL). <c>[server.][database.][schema.]name</c>.</summary>
 	public sealed record Named(QualifiedName Name) : ModuleReference
 	{
@@ -117,6 +121,10 @@ public abstract record ExecuteOption : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ExecuteOption()
+	{
+	}
+
 	/// <summary>T-SQL: EXECUTE (Transact-SQL). <c>RECOMPILE</c>, or any word the grammar reads there.</summary>
 	public sealed record Named(Identifier Name) : ExecuteOption;
 
@@ -139,6 +147,10 @@ public abstract record ResultSet : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ResultSet()
+	{
 	}
 
 	/// <summary>T-SQL: EXECUTE (Transact-SQL). <c>(column type, …)</c>: the columns, each with its type.</summary>
@@ -260,6 +272,10 @@ public abstract record RoutineOption : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected RoutineOption()
+	{
 	}
 
 	/// <summary>

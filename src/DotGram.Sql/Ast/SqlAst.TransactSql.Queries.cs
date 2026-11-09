@@ -373,6 +373,10 @@ public abstract record GraphPattern : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected GraphPattern()
+	{
+	}
+
 	/// <summary><c>a-(e)->b&lt;-(f)-c</c>: a node, then each edge and the node it reaches; either end may be <c>LAST_NODE (x)</c>.</summary>
 	public sealed record Chain(GraphNode Start, SqlList<GraphStep> Steps) : GraphPattern;
 

@@ -158,6 +158,10 @@ public abstract record ExternalLibraryChange : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ExternalLibraryChange()
+	{
+	}
+
 	/// <summary><c>SET (file), …</c>: the files the library has, one at least.</summary>
 	public sealed record Set(SqlList<ExternalFile> Files) : ExternalLibraryChange;
 
@@ -176,6 +180,10 @@ public abstract record ExternalLanguageChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ExternalLanguageChange()
+	{
 	}
 
 	/// <summary><c>SET (file)</c>.</summary>

@@ -94,6 +94,10 @@ public abstract record ForClause : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ForClause()
+	{
+	}
+
 	/// <summary>
 	/// <c>FOR XML RAW</c>, <c>AUTO</c>, <c>EXPLICIT</c> or <c>PATH</c>, the element each row is written as
 	/// (<c>RAW ('row')</c>, <c>PATH ('')</c>), which the grammar reads after every mode, and the directives in the
@@ -151,6 +155,10 @@ public abstract record TableHint : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected TableHint()
+	{
+	}
+
 	/// <summary>A hint the grammar reads by name, with its values: <c>NOLOCK</c>, <c>INDEX (ix, 2)</c>, <c>INDEX = ix</c>.</summary>
 	public sealed record Named(Identifier Name, SqlList<Expression> Arguments) : TableHint
 	{
@@ -174,6 +182,10 @@ public abstract record QueryHint : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected QueryHint()
+	{
 	}
 
 	/// <summary>
@@ -354,6 +366,10 @@ public abstract record SetOption : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected SetOption()
+	{
 	}
 
 	/// <summary>T-SQL: SET Statements (Transact-SQL). An option that is only turned on or off, such as <c>SET ANSI_NULLS ON</c>.</summary>
@@ -637,6 +653,10 @@ public abstract record AlterDatabaseAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AlterDatabaseAction()
+	{
+	}
+
 	/// <summary><c>COLLATE collation_name</c>.</summary>
 	public sealed record Collate(CollationName Collation) : AlterDatabaseAction;
 
@@ -731,6 +751,10 @@ public abstract record FileGroupChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected FileGroupChange()
+	{
 	}
 
 	/// <summary>Whether the filegroup may be written to.</summary>
@@ -986,6 +1010,10 @@ public abstract record DroppedIndex : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected DroppedIndex()
+	{
+	}
+
 	/// <summary>
 	/// <c>index_name ON object [ WITH ( … ) ]</c>: the relational, XML and spatial form.
 	/// </summary>
@@ -1011,6 +1039,10 @@ public abstract record SignedBy : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected SignedBy()
+	{
 	}
 
 	/// <summary><c>CERTIFICATE cert_name [WITH PASSWORD = 'p' | WITH SIGNATURE = 0x…]</c>.</summary>
@@ -1047,6 +1079,10 @@ public abstract record SignatureProof : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected SignatureProof()
+	{
+	}
+
 	/// <summary><c>WITH PASSWORD = 'p'</c>: the password of the key.</summary>
 	public sealed record Password(LiteralValue.String Value) : SignatureProof;
 
@@ -1075,6 +1111,10 @@ public abstract record NotificationScope : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected NotificationScope()
+	{
 	}
 
 	/// <summary><c>ON SERVER</c>.</summary>

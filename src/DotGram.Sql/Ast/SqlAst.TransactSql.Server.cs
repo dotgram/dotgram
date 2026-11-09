@@ -230,6 +230,10 @@ public abstract record EndpointTransport : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected EndpointTransport()
+	{
+	}
+
 	/// <summary><c>AS TCP (setting, …)</c>: LISTENER_PORT and LISTENER_IP, in any order and as often as wanted, one at least.</summary>
 	public sealed record Tcp(SqlList<Option> Options) : EndpointTransport;
 
@@ -251,6 +255,10 @@ public abstract record EndpointPayload : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected EndpointPayload()
+	{
 	}
 
 	/// <summary><c>FOR TSQL (setting, …)</c>: ENCRYPTION and nothing else; none, with the brackets, where it is left out.</summary>
@@ -284,6 +292,10 @@ public abstract record SoapItem : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected SoapItem()
+	{
 	}
 
 	/// <summary>A setting: WSDL, BATCHES, SESSIONS, LOGIN_TYPE, SESSION_TIMEOUT, DATABASE, NAMESPACE, SCHEMA, CHARACTER_SET or HEADER_LIMIT.</summary>
@@ -331,6 +343,10 @@ public abstract record AvailabilitySource : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AvailabilitySource()
+	{
+	}
+
 	/// <summary>
 	/// <c>FOR [DATABASE db, …] REPLICA ON 'server' WITH (setting, …), …</c>: the databases, none where no <c>DATABASE</c> is written,
 	/// and the replicas, one at least.
@@ -376,6 +392,10 @@ public abstract record AvailabilityListener : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AvailabilityListener()
+	{
+	}
+
 	/// <summary><c>WITH DHCP [ON ('address', 'mask')]</c>: the address from the network, and, where it is told, the network it is on; both strings.</summary>
 	public sealed record Dhcp(ListenerAddress? On) : AvailabilityListener;
 
@@ -409,6 +429,10 @@ public abstract record AvailabilityAction : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected AvailabilityAction()
+	{
 	}
 
 	/// <summary><c>SET (setting)</c>: one of the settings of the group's <c>WITH</c>, or <c>ROLE = SECONDARY</c>.</summary>
@@ -476,6 +500,10 @@ public abstract record ListenerChange : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ListenerChange()
+	{
+	}
+
 	/// <summary><c>ADD IP ('address' [, 'mask'])</c>.</summary>
 	public sealed record AddIp(ListenerAddress Address) : ListenerChange;
 
@@ -509,6 +537,10 @@ public abstract record ResourceGovernorAction : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ResourceGovernorAction()
+	{
 	}
 
 	/// <summary><c>RECONFIGURE</c>.</summary>

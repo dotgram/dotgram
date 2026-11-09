@@ -140,6 +140,10 @@ public abstract record VariableDeclaration : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected VariableDeclaration()
+	{
+	}
+
 	/// <summary>
 	/// T-SQL: DECLARE @local_variable (Transact-SQL). <c>@v [AS] type [= value]</c>; <c>@c [AS] CURSOR</c> is the type
 	/// <see cref="DataType.Named"/> of the one-part name <c>CURSOR</c>, with no value.
@@ -173,6 +177,10 @@ public abstract record AtomicOption : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected AtomicOption()
+	{
 	}
 
 	/// <summary>T-SQL: CREATE PROCEDURE (Transact-SQL). <c>TRANSACTION ISOLATION LEVEL = SNAPSHOT</c>.</summary>
