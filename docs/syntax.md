@@ -3151,6 +3151,12 @@ the server has loaded, and at most 64 parsers — and a parser the compile faile
 (`GRAM0001`) is not kept. Builds inside an editor keep nothing. A generation report says `cached` where its time would
 be.
 
+Beside the parsers it keeps the lexical automata of the grammars it cuts in two (`Lexical = true`), found by the
+patterns they were built from and nothing else: a grammar compiled again with other options, or for another target
+framework, or after an edit that leaves its terminals as they were, takes the automaton instead of building it again.
+Only the large ones are kept, up to about 96 MB and 32 automata for each version of the generator. The property turns
+this off too.
+
 ```xml
 <PropertyGroup>
   <DotGramNoCache>true</DotGramNoCache>

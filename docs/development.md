@@ -118,7 +118,8 @@ And the cache is found by every input of the compile, which is a claim a test ca
 `-p:DotGramVerifyCache=true`, a property only this repository declares (`Directory.Build.targets`),
 compiles afresh every grammar it finds in the cache, holds the two parsers to each other and fails
 the build with `GRAM0001` where they differ; a report line reads `cached and verified` where it
-took one. The `checked` job in CI builds the solution with it — which hits only where two
+took one. It does the same for the lexical automata the generator keeps beside the parsers
+(`LexicalAutomaton.Reused`): one taken is built again, and the two must be the same machine. The `checked` job in CI builds the solution with it — which hits only where two
 compilations happen to share every input — and then rebuilds `DotGram.Sql` after touching a C#
 file, once for both target frameworks and once for each on its own, and requires each of its three
 parsers to be cached and verified for each framework.
