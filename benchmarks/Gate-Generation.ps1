@@ -18,8 +18,8 @@
 	so the cold ratio of a small host overstates what a change to the generator costs; the warm one does not. The runs after the first are
 	still tiering up (a host of 90 ms steady took 750, 400, 250 ms in runs 0-2 and was not level before run 4), so a round's warm figure
 	is the median of the second half of them, once the code is optimized, and the ratio is held by the same rule as the cold one, named on a
-	line of its own marked warm. Eight runs are too few for a small host (warm under `-SmallMilliseconds`, 100 ms), which is still
-	tiering up and noisy: a project whose every host reads below that on its first warm reading is read again with `-WarmRunsSmall`
+	line of its own marked warm. Eight runs are too few for a small host (some tens of milliseconds), which is still
+	tiering up and noisy: a project whose hosts together read below `-SmallMilliseconds` (1000 ms; Web holds a dozen hosts of 10-30 ms beside one of 150) on its first warm reading is read again with `-WarmRunsSmall`
 	(48) runs, that reading is kept, and the project keeps that count on both sides and in every round. The projects of large hosts
 	(T-SQL, SQL:2023) stay at `-WarmRuns`, so the gate's wall time hardly grows. The warm table is followed by a line saying how
 	many runs the figures come from.
@@ -41,7 +41,7 @@ param(
 	[int]$Rounds = 3,
 	[int]$WarmRuns = 8,
 	[int]$WarmRunsSmall = 48,
-	[double]$SmallMilliseconds = 100,
+	[double]$SmallMilliseconds = 1000,
 	[double]$Tolerance = 0.20,
 	[double]$FloorMilliseconds = 100,
 	[string]$Worktrees,
@@ -209,13 +209,13 @@ try {
 					if (-not $generator) { throw "$name`: no DotGram.dll built for the warm reading" }
 
 					# Run 0 of the process is cold again and is left to the builds' own reports. The runs after it are still tiering up for the first few, so a round's figure for a host is the median of the second half of them.
-					# A project whose every host reads below -SmallMilliseconds on its first reading is read with -WarmRunsSmall runs from then on, on both sides and in every round, and the first reading is
+					# A project whose hosts together (one run of each) read below -SmallMilliseconds on its first reading is read with -WarmRunsSmall runs from then on, on both sides and in every round, and the first reading is
 					# repeated at that count and replaced: eight runs are too few for a host that small, which is still tiering up and noisy.
 					$runs    = if ($runsOfProject.ContainsKey($project)) { $runsOfProject[$project] } else { $WarmRuns }
 					$medians = Read-Warm $warmDll $generator (Join-Path $dir $project) $cpus $runs
 
 					if (-not $runsOfProject.ContainsKey($project)) {
-						if ($WarmRunsSmall -gt $WarmRuns -and $medians.Count -gt 0 -and -not ($medians.Values | Where-Object { $_ -ge $SmallMilliseconds })) {
+						if ($WarmRunsSmall -gt $WarmRuns -and $medians.Count -gt 0 -and ($medians.Values | Measure-Object -Sum).Sum -lt $SmallMilliseconds) {
 							$runs    = $WarmRunsSmall
 							$medians = Read-Warm $warmDll $generator (Join-Path $dir $project) $cpus $runs
 						}
@@ -276,7 +276,7 @@ else { "The base wrote no generation reports (they arrived on 2026-09-17; v0.1.0
 
 if ($WarmRuns -gt 0 -and $warmed.head.Count -gt 0) {
 	''
-	"The same hosts warm: the compilation run more times in a process that has run the generator once (DotGram.GenerationWarm; each round's figure is the median of the second half of those runs), held by the same rule. A project whose every host read below $SmallMilliseconds ms after $WarmRuns runs is read again with $WarmRunsSmall runs, and that reading is the one in the table. The table above is a fresh process's, the generator's JIT in it; this one is the cost of a compile after that, which is what a solution build and the IDE pay:"
+	"The same hosts warm: the compilation run more times in a process that has run the generator once (DotGram.GenerationWarm; each round's figure is the median of the second half of those runs), held by the same rule. A project whose hosts together read below $SmallMilliseconds ms after $WarmRuns runs is read again with $WarmRunsSmall runs, and that reading is the one in the table. The table above is a fresh process's, the generator's JIT in it; this one is the cost of a compile after that, which is what a solution build and the IDE pay:"
 	''
 	if ($warmed.base.Count -gt 0) { Held 'host (warm)' $warmed.base $warmed.head ' (warm)' }
 	else { 'The base wrote no generation reports, so no host is held warm either.' }
