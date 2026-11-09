@@ -56,21 +56,21 @@ static partial class CSharpEmitter
 			int _depth;
 			GramRead? _read;
 			Frame_DotGram? _top;
-			int _furthest = -1;
+			long _furthest = -1;
 			readonly global::System.Collections.Generic.List<Candidate_DotGram> _candidates =
 				new global::System.Collections.Generic.List<Candidate_DotGram>();
-			int _since = -1;
+			long _since = -1;
 			readonly global::System.Collections.Generic.List<Candidate_DotGram> _sinceCandidates =
 				new global::System.Collections.Generic.List<Candidate_DotGram>();
 			Frame_DotGram? _frontier;
-			int _frontierAt = -1;
+			long _frontierAt = -1;
 			readonly global::System.Collections.Generic.List<Element> _elements =
 				new global::System.Collections.Generic.List<Element>();
 
 			GramRead? _pendingRead;
 			Path[]? _pendingPaths;
 			string _pendingCause = "";
-			int _unlexed = -1;
+			long _unlexed = -1;
 
 			/// <summary>Whether the last call watched answered with a refusal.</summary>
 			public bool IsRefused { get; private set; }
@@ -99,7 +99,7 @@ static partial class CSharpEmitter
 			/// <summary>One stack of rules, outermost first, and what the innermost wanted.</summary>
 			public sealed class Path
 			{
-				internal Path(string[] rules, int[] at, int[] lines, int[] columns, string[]? expected, string? guard)
+				internal Path(string[] rules, long[] at, int[] lines, int[] columns, string[]? expected, string? guard)
 				{
 					Rules     = rules;
 					Positions = at;
@@ -113,7 +113,7 @@ static partial class CSharpEmitter
 				public global::System.Collections.Generic.IReadOnlyList<string> Rules { get; }
 
 				/// <summary>Where each was entered, in characters of the input.</summary>
-				public global::System.Collections.Generic.IReadOnlyList<int> Positions { get; }
+				public global::System.Collections.Generic.IReadOnlyList<long> Positions { get; }
 
 				/// <summary>The line each was entered on, from one.</summary>
 				public global::System.Collections.Generic.IReadOnlyList<int> Lines { get; }
@@ -170,7 +170,7 @@ static partial class CSharpEmitter
 			/// <summary>An element a repetition marked <c>recover</c> stepped over, and why it was refused.</summary>
 			public sealed class Element
 			{
-				internal Element(string rule, int from, int to, int reach, Path[] paths)
+				internal Element(string rule, long from, long to, long reach, Path[] paths)
 				{
 					Rule  = rule;
 					From  = from;
@@ -183,13 +183,13 @@ static partial class CSharpEmitter
 				public string Rule { get; }
 
 				/// <summary>Where it began, in characters of the input.</summary>
-				public int From { get; }
+				public long From { get; }
 
 				/// <summary>Where reading went on after it.</summary>
-				public int To { get; }
+				public long To { get; }
 
 				/// <summary>How far it got.</summary>
-				public int Reach { get; }
+				public long Reach { get; }
 
 				/// <summary>The rules open where it got furthest, each with what it wanted.</summary>
 				public global::System.Collections.Generic.IReadOnlyList<Path> Paths { get; }
@@ -198,11 +198,11 @@ static partial class CSharpEmitter
 			sealed class Frame_DotGram
 			{
 				internal readonly int Rule;
-				internal readonly int At;
+				internal readonly long At;
 				internal readonly Frame_DotGram? Parent;
 				internal readonly int Depth;
 
-				internal Frame_DotGram(int rule, int at, Frame_DotGram? parent)
+				internal Frame_DotGram(int rule, long at, Frame_DotGram? parent)
 				{
 					Rule   = rule;
 					At     = at;
@@ -269,7 +269,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Enter(int rule, int position)
+			public override void Enter(int rule, long position)
 			{
 				if (!Watching)
 					return;
@@ -284,7 +284,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Exit(int rule, int position, int end)
+			public override void Exit(int rule, long position, long end)
 			{
 				if (!Watching)
 					return;
@@ -301,26 +301,26 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Guard(int guard, int position, bool passed)
+			public override void Guard(int guard, long position, bool passed)
 			{
 				if (Watching && !passed)
 					Consider(position, null, guard);
 			}
 
 			/// <inheritdoc/>
-			public override void Refused(int position, string[]? expected)
+			public override void Refused(long position, string[]? expected)
 			{
 				if (Watching)
 					Consider(position, expected, -1);
 			}
 
-			void Consider(int position, string[]? set, int guard)
+			void Consider(long position, string[]? set, int guard)
 			{
 				Keep(_candidates, ref _furthest, position, set, guard);
 				Keep(_sinceCandidates, ref _since, position, set, guard);
 			}
 
-			void Keep(global::System.Collections.Generic.List<Candidate_DotGram> kept, ref int furthest, int position, string[]? set, int guard)
+			void Keep(global::System.Collections.Generic.List<Candidate_DotGram> kept, ref long furthest, long position, string[]? set, int guard)
 			{
 				if (position < furthest)
 					return;
@@ -349,7 +349,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Recovered(int rule, int from, int to, int reach)
+			public override void Recovered(int rule, long from, long to, long reach)
 			{
 				if (!Watching)
 					return;
@@ -372,7 +372,7 @@ static partial class CSharpEmitter
 
 			/// <inheritdoc/>
 			public override void End(
-				GramRead read, int end, int position, string[]? expected,
+				GramRead read, long end, long position, string[]? expected,
 				global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 			{
 				// An end it was not told the beginning of leaves its count where it was.
@@ -465,7 +465,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Unlexed(string text, int position)
+			public override void Unlexed(string text, long position)
 			{
 				if (_depth != 0)
 					return;
@@ -502,7 +502,7 @@ static partial class CSharpEmitter
 					int line;
 					int column;
 
-					read.Locate((int)position, out line, out column);
+					read.Locate(position, out line, out column);
 
 					Line   = line;
 					Column = column;
@@ -567,7 +567,7 @@ static partial class CSharpEmitter
 			{
 				var count   = frame == null ? 0 : frame.Depth;
 				var rules   = new string[count];
-				var at      = new int[count];
+				var at      = new long[count];
 				var lines   = new int[count];
 				var columns = new int[count];
 
@@ -652,8 +652,8 @@ static partial class CSharpEmitter
 			long _dropped;
 			long _noted;
 			int _refusedStarts;
-			int _firstRefused;
-			int _lastRefused;
+			long _firstRefused;
+			long _lastRefused;
 
 			/// <summary>A log written to <paramref name="writer"/>, of at most <paramref name="budget"/> lines.</summary>
 			public GramTraceLog(global::System.IO.TextWriter writer, int budget = 10000)
@@ -690,7 +690,7 @@ static partial class CSharpEmitter
 
 			/// <inheritdoc/>
 			public override void End(
-				GramRead read, int end, int position, string[]? expected,
+				GramRead read, long end, long position, string[]? expected,
 				global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 			{
 				var last = _reads.Count - 1;
@@ -736,7 +736,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Enter(int rule, int position)
+			public override void Enter(int rule, long position)
 			{
 				var read = Current;
 
@@ -747,7 +747,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Exit(int rule, int position, int end)
+			public override void Exit(int rule, long position, long end)
 			{
 				if (_depth > (_bases.Count > 0 ? _bases[_bases.Count - 1] : 0))
 					_depth--;
@@ -761,7 +761,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Retracted(int rule, int position)
+			public override void Retracted(int rule, long position)
 			{
 				var read = Current;
 
@@ -770,7 +770,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Remembered(int rule, int position)
+			public override void Remembered(int rule, long position)
 			{
 				var read = Current;
 
@@ -779,7 +779,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Guard(int guard, int position, bool passed)
+			public override void Guard(int guard, long position, bool passed)
 			{
 				var read = Current;
 
@@ -788,7 +788,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Refused(int position, string[]? expected)
+			public override void Refused(long position, string[]? expected)
 			{
 				var read = Current;
 
@@ -797,7 +797,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Recovered(int rule, int from, int to, int reach)
+			public override void Recovered(int rule, long from, long to, long reach)
 			{
 				var read = Current;
 
@@ -807,7 +807,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Deepened(int position)
+			public override void Deepened(long position)
 			{
 				var read = Current;
 
@@ -816,7 +816,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Unlexed(string text, int position)
+			public override void Unlexed(string text, long position)
 			{
 				Summed();
 				Write("no token begins at character " + position.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
@@ -891,7 +891,7 @@ static partial class CSharpEmitter
 				_noted = _dropped;
 			}
 
-			static string Where(GramRead read, int position)
+			static string Where(GramRead read, long position)
 			{
 				if (position < 0)
 					return "-";
@@ -906,17 +906,19 @@ static partial class CSharpEmitter
 					column.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
 			}
 
-			static string Window(GramRead read, int position)
+			static string Window(GramRead read, long position)
 			{
 				var text = read.Text;
 
 				if (text == null)
 					return "";
 
-				var from = read.CharacterOf(position);
+				var at = read.CharacterOf(position);
 
-				if (from < 0 || from > text.Length)
+				if (at < 0 || at > text.Length)
 					return "";
+
+				var from = (int)at;
 
 				var length = text.Length - from < 24 ? text.Length - from : 24;
 				var shown  = new global::System.Text.StringBuilder(length + 8);
@@ -1001,8 +1003,8 @@ static partial class CSharpEmitter
 				new global::System.Collections.Generic.List<GramRead>();
 			readonly global::System.Collections.Generic.List<int> _bases =
 				new global::System.Collections.Generic.List<int>();
-			readonly global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>> _seen =
-				new global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>>();
+			readonly global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<Seen_DotGram>> _seen =
+				new global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<Seen_DotGram>>();
 
 			/// <summary>Every rule entered, with its counts, in the order they were first entered.</summary>
 			public global::System.Collections.Generic.IReadOnlyCollection<Row> Rows
@@ -1076,10 +1078,38 @@ static partial class CSharpEmitter
 			struct Open_DotGram
 			{
 				internal int Rule;
-				internal int At;
+				internal long At;
 				internal long Started;
 				internal long Children;
 				internal bool Quiet;
+			}
+
+			/// <summary>A rule entered at a position, as a reading keeps the entries it has seen.</summary>
+			readonly struct Seen_DotGram : global::System.IEquatable<Seen_DotGram>
+			{
+				readonly int _rule;
+				readonly long _position;
+
+				internal Seen_DotGram(int rule, long position)
+				{
+					_rule     = rule;
+					_position = position;
+				}
+
+				public bool Equals(Seen_DotGram other)
+				{
+					return _rule == other._rule && _position == other._position;
+				}
+
+				public override bool Equals(object? obj)
+				{
+					return obj is Seen_DotGram other && Equals(other);
+				}
+
+				public override int GetHashCode()
+				{
+					return unchecked(_rule * 397 ^ _position.GetHashCode());
+				}
 			}
 
 			/// <inheritdoc/>
@@ -1088,12 +1118,12 @@ static partial class CSharpEmitter
 				Readings++;
 				_reads.Add(read);
 				_bases.Add(_open.Count);
-				_seen.Add(new global::System.Collections.Generic.HashSet<long>());
+				_seen.Add(new global::System.Collections.Generic.HashSet<Seen_DotGram>());
 			}
 
 			/// <inheritdoc/>
 			public override void End(
-				GramRead read, int end, int position, string[]? expected,
+				GramRead read, long end, long position, string[]? expected,
 				global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 			{
 				var last = _reads.Count - 1;
@@ -1111,7 +1141,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Enter(int rule, int position)
+			public override void Enter(int rule, long position)
 			{
 				if (rule < 0)
 					return;
@@ -1121,7 +1151,7 @@ static partial class CSharpEmitter
 
 				counts.Entries++;
 
-				if (_seen.Count > 0 && !_seen[_seen.Count - 1].Add(((long)rule << 32) | (uint)position))
+				if (_seen.Count > 0 && !_seen[_seen.Count - 1].Add(new Seen_DotGram(rule, position)))
 					counts.Rereads++;
 
 				var depth = _open.Count - (_bases.Count > 0 ? _bases[_bases.Count - 1] : 0) + 1;
@@ -1143,7 +1173,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Exit(int rule, int position, int end)
+			public override void Exit(int rule, long position, long end)
 			{
 				var floor = _bases.Count > 0 ? _bases[_bases.Count - 1] : 0;
 
@@ -1161,14 +1191,14 @@ static partial class CSharpEmitter
 			}
 
 			/// <inheritdoc/>
-			public override void Remembered(int rule, int position)
+			public override void Remembered(int rule, long position)
 			{
 				if (rule >= 0)
 					CountsOf(rule, Quiet).Remembered++;
 			}
 
 			/// <inheritdoc/>
-			public override void Retracted(int rule, int position)
+			public override void Retracted(int rule, long position)
 			{
 				if (rule >= 0)
 					CountsOf(rule, Quiet).Retracted++;
@@ -1179,7 +1209,7 @@ static partial class CSharpEmitter
 				get { return _reads.Count > 0 && _reads[_reads.Count - 1].Quiet; }
 			}
 
-			void Close(int end, bool counted)
+			void Close(long end, bool counted)
 			{
 				var last = _open.Count - 1;
 				var open = _open[last];

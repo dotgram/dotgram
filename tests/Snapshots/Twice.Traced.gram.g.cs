@@ -1846,13 +1846,13 @@ namespace DotGram.Snapshots
 				/// worded from. The arrays are the parser's own and are not to be written into.
 				/// </summary>
 				public virtual void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 				}
 
 				/// <summary>A rule is entered at a position.</summary>
-				public virtual void Enter(int rule, int position)
+				public virtual void Enter(int rule, long position)
 				{
 				}
 
@@ -1860,7 +1860,7 @@ namespace DotGram.Snapshots
 				/// The rule entered at <paramref name="position"/> ends at <paramref name="end"/>, or
 				/// fails where that is -1, or was left by an exception where it is <see cref="Thrown"/>.
 				/// </summary>
-				public virtual void Exit(int rule, int position, int end)
+				public virtual void Exit(int rule, long position, long end)
 				{
 				}
 
@@ -1870,7 +1870,7 @@ namespace DotGram.Snapshots
 				/// inside it. Told after its <see cref="Exit"/>; where the engine goes on inside the
 				/// rule, an <see cref="Enter"/> at the same position follows.
 				/// </summary>
-				public virtual void Retracted(int rule, int position)
+				public virtual void Retracted(int rule, long position)
 				{
 				}
 
@@ -1878,12 +1878,12 @@ namespace DotGram.Snapshots
 				/// A rule entered where it has already failed in this reading fails at once, without
 				/// being read again: the reading remembers. It is neither entered nor exited.
 				/// </summary>
-				public virtual void Remembered(int rule, int position)
+				public virtual void Remembered(int rule, long position)
 				{
 				}
 
 				/// <summary>A guard (<c>when</c>) was asked at a position, and let the reading on or not.</summary>
-				public virtual void Guard(int guard, int position, bool passed)
+				public virtual void Guard(int guard, long position, bool passed)
 				{
 				}
 
@@ -1893,7 +1893,7 @@ namespace DotGram.Snapshots
 				/// readings and lookaheads refuse without a word, as their refusals are never the
 				/// answer.
 				/// </summary>
-				public virtual void Refused(int position, string[]? expected)
+				public virtual void Refused(long position, string[]? expected)
 				{
 				}
 
@@ -1902,12 +1902,12 @@ namespace DotGram.Snapshots
 				/// where the element began to where reading goes on, the element having got as far as
 				/// <paramref name="reach"/>.
 				/// </summary>
-				public virtual void Recovered(int rule, int from, int to, int reach)
+				public virtual void Recovered(int rule, long from, long to, long reach)
 				{
 				}
 
 				/// <summary>The reading ran its stack low at a position and goes on on a stack of its own.</summary>
-				public virtual void Deepened(int position)
+				public virtual void Deepened(long position)
 				{
 				}
 
@@ -1915,7 +1915,7 @@ namespace DotGram.Snapshots
 				/// No token of the grammar begins at a character of <paramref name="text"/>, so the
 				/// input was refused before any rule was read.
 				/// </summary>
-				public virtual void Unlexed(string text, int position)
+				public virtual void Unlexed(string text, long position)
 				{
 				}
 
@@ -1949,7 +1949,7 @@ namespace DotGram.Snapshots
 				readonly int[]? _starts;
 				readonly int _count;
 				readonly int _end;
-				readonly int _offset;
+				readonly long _offset;
 				int[]? _lines;
 				int[]? _openRules;
 				int[]? _openAt;
@@ -1968,7 +1968,7 @@ namespace DotGram.Snapshots
 
 				internal GramRead(
 					GramTrace sink, string publication, bool quiet, bool finding, int start, string machine, string? text,
-					int[]? starts, int count, int end, int offset)
+					int[]? starts, int count, int end, long offset)
 				{
 					Sink        = sink;
 					Publication = publication;
@@ -2000,7 +2000,7 @@ namespace DotGram.Snapshots
 				/// Where the reading begins, in its own unit. Over a reader, as every position, counted
 				/// from the beginning of the input rather than of what is held of it.
 				/// </summary>
-				public int Start { get; }
+				public long Start { get; }
 
 				/// <summary>
 				/// What reads it: <c>methods</c>, a method a rule; <c>engine</c>, one automaton over an
@@ -2051,7 +2051,7 @@ namespace DotGram.Snapshots
 				/// tokens where its token begins — past the last, where the tokens end. Good until
 				/// the reading ends.
 				/// </summary>
-				public int CharacterOf(int position)
+				public long CharacterOf(long position)
 				{
 					if (_starts == null)
 						return position;
@@ -2059,14 +2059,18 @@ namespace DotGram.Snapshots
 					if (position < 0)
 						return 0;
 
-					return position < _count ? _starts[position] : _end;
+					return position < _count ? _starts[(int)position] : _end;
 				}
 
-				/// <summary>The line and column of a character, both counted from one.</summary>
-				public void Locate(int character, out int line, out int column)
+				/// <summary>
+				/// The line and column of a character, both counted from one. Where the text is not
+				/// known — a reading over a reader, a stream or bytes — every character is on line one,
+				/// and its column, past what a column holds, is <see cref="int.MaxValue"/>.
+				/// </summary>
+				public void Locate(long character, out int line, out int column)
 				{
 					line   = 1;
-					column = character + 1;
+					column = character < int.MaxValue ? (int)character + 1 : int.MaxValue;
 
 					var text = Text;
 
@@ -2100,7 +2104,7 @@ namespace DotGram.Snapshots
 					}
 
 					line   = low + 1;
-					column = character - _lines[low] + 1;
+					column = (int)(character - _lines[low]) + 1;
 				}
 
 				internal void Enter(int rule, int position)
@@ -2319,7 +2323,7 @@ namespace DotGram.Snapshots
 					Sink.Deepened(position + _offset);
 				}
 
-				internal int Absolute(int position)
+				internal long Absolute(int position)
 				{
 					return position < 0 ? position : position + _offset;
 				}
@@ -2368,7 +2372,7 @@ namespace DotGram.Snapshots
 
 			static GramRead? Began_DotGram(
 				ref Failure failure, GramTrace? sink, string publication, bool finding, int start, string machine, string? text,
-				int[]? starts, int count, int end, int offset)
+				int[]? starts, int count, int end, long offset)
 			{
 				if (sink == null)
 					return null;
@@ -2481,21 +2485,21 @@ namespace DotGram.Snapshots
 				int _depth;
 				GramRead? _read;
 				Frame_DotGram? _top;
-				int _furthest = -1;
+				long _furthest = -1;
 				readonly global::System.Collections.Generic.List<Candidate_DotGram> _candidates =
 					new global::System.Collections.Generic.List<Candidate_DotGram>();
-				int _since = -1;
+				long _since = -1;
 				readonly global::System.Collections.Generic.List<Candidate_DotGram> _sinceCandidates =
 					new global::System.Collections.Generic.List<Candidate_DotGram>();
 				Frame_DotGram? _frontier;
-				int _frontierAt = -1;
+				long _frontierAt = -1;
 				readonly global::System.Collections.Generic.List<Element> _elements =
 					new global::System.Collections.Generic.List<Element>();
 
 				GramRead? _pendingRead;
 				Path[]? _pendingPaths;
 				string _pendingCause = "";
-				int _unlexed = -1;
+				long _unlexed = -1;
 
 				/// <summary>Whether the last call watched answered with a refusal.</summary>
 				public bool IsRefused { get; private set; }
@@ -2524,7 +2528,7 @@ namespace DotGram.Snapshots
 				/// <summary>One stack of rules, outermost first, and what the innermost wanted.</summary>
 				public sealed class Path
 				{
-					internal Path(string[] rules, int[] at, int[] lines, int[] columns, string[]? expected, string? guard)
+					internal Path(string[] rules, long[] at, int[] lines, int[] columns, string[]? expected, string? guard)
 					{
 						Rules     = rules;
 						Positions = at;
@@ -2538,7 +2542,7 @@ namespace DotGram.Snapshots
 					public global::System.Collections.Generic.IReadOnlyList<string> Rules { get; }
 
 					/// <summary>Where each was entered, in characters of the input.</summary>
-					public global::System.Collections.Generic.IReadOnlyList<int> Positions { get; }
+					public global::System.Collections.Generic.IReadOnlyList<long> Positions { get; }
 
 					/// <summary>The line each was entered on, from one.</summary>
 					public global::System.Collections.Generic.IReadOnlyList<int> Lines { get; }
@@ -2595,7 +2599,7 @@ namespace DotGram.Snapshots
 				/// <summary>An element a repetition marked <c>recover</c> stepped over, and why it was refused.</summary>
 				public sealed class Element
 				{
-					internal Element(string rule, int from, int to, int reach, Path[] paths)
+					internal Element(string rule, long from, long to, long reach, Path[] paths)
 					{
 						Rule  = rule;
 						From  = from;
@@ -2608,13 +2612,13 @@ namespace DotGram.Snapshots
 					public string Rule { get; }
 
 					/// <summary>Where it began, in characters of the input.</summary>
-					public int From { get; }
+					public long From { get; }
 
 					/// <summary>Where reading went on after it.</summary>
-					public int To { get; }
+					public long To { get; }
 
 					/// <summary>How far it got.</summary>
-					public int Reach { get; }
+					public long Reach { get; }
 
 					/// <summary>The rules open where it got furthest, each with what it wanted.</summary>
 					public global::System.Collections.Generic.IReadOnlyList<Path> Paths { get; }
@@ -2623,11 +2627,11 @@ namespace DotGram.Snapshots
 				sealed class Frame_DotGram
 				{
 					internal readonly int Rule;
-					internal readonly int At;
+					internal readonly long At;
 					internal readonly Frame_DotGram? Parent;
 					internal readonly int Depth;
 
-					internal Frame_DotGram(int rule, int at, Frame_DotGram? parent)
+					internal Frame_DotGram(int rule, long at, Frame_DotGram? parent)
 					{
 						Rule   = rule;
 						At     = at;
@@ -2694,7 +2698,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					if (!Watching)
 						return;
@@ -2709,7 +2713,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					if (!Watching)
 						return;
@@ -2726,26 +2730,26 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Guard(int guard, int position, bool passed)
+				public override void Guard(int guard, long position, bool passed)
 				{
 					if (Watching && !passed)
 						Consider(position, null, guard);
 				}
 
 				/// <inheritdoc/>
-				public override void Refused(int position, string[]? expected)
+				public override void Refused(long position, string[]? expected)
 				{
 					if (Watching)
 						Consider(position, expected, -1);
 				}
 
-				void Consider(int position, string[]? set, int guard)
+				void Consider(long position, string[]? set, int guard)
 				{
 					Keep(_candidates, ref _furthest, position, set, guard);
 					Keep(_sinceCandidates, ref _since, position, set, guard);
 				}
 
-				void Keep(global::System.Collections.Generic.List<Candidate_DotGram> kept, ref int furthest, int position, string[]? set, int guard)
+				void Keep(global::System.Collections.Generic.List<Candidate_DotGram> kept, ref long furthest, long position, string[]? set, int guard)
 				{
 					if (position < furthest)
 						return;
@@ -2774,7 +2778,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Recovered(int rule, int from, int to, int reach)
+				public override void Recovered(int rule, long from, long to, long reach)
 				{
 					if (!Watching)
 						return;
@@ -2797,7 +2801,7 @@ namespace DotGram.Snapshots
 
 				/// <inheritdoc/>
 				public override void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					// An end it was not told the beginning of leaves its count where it was.
@@ -2890,7 +2894,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Unlexed(string text, int position)
+				public override void Unlexed(string text, long position)
 				{
 					if (_depth != 0)
 						return;
@@ -2927,7 +2931,7 @@ namespace DotGram.Snapshots
 						int line;
 						int column;
 
-						read.Locate((int)position, out line, out column);
+						read.Locate(position, out line, out column);
 
 						Line   = line;
 						Column = column;
@@ -2992,7 +2996,7 @@ namespace DotGram.Snapshots
 				{
 					var count   = frame == null ? 0 : frame.Depth;
 					var rules   = new string[count];
-					var at      = new int[count];
+					var at      = new long[count];
 					var lines   = new int[count];
 					var columns = new int[count];
 
@@ -3077,8 +3081,8 @@ namespace DotGram.Snapshots
 				long _dropped;
 				long _noted;
 				int _refusedStarts;
-				int _firstRefused;
-				int _lastRefused;
+				long _firstRefused;
+				long _lastRefused;
 
 				/// <summary>A log written to <paramref name="writer"/>, of at most <paramref name="budget"/> lines.</summary>
 				public GramTraceLog(global::System.IO.TextWriter writer, int budget = 10000)
@@ -3115,7 +3119,7 @@ namespace DotGram.Snapshots
 
 				/// <inheritdoc/>
 				public override void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					var last = _reads.Count - 1;
@@ -3161,7 +3165,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					var read = Current;
 
@@ -3172,7 +3176,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					if (_depth > (_bases.Count > 0 ? _bases[_bases.Count - 1] : 0))
 						_depth--;
@@ -3186,7 +3190,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Retracted(int rule, int position)
+				public override void Retracted(int rule, long position)
 				{
 					var read = Current;
 
@@ -3195,7 +3199,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Remembered(int rule, int position)
+				public override void Remembered(int rule, long position)
 				{
 					var read = Current;
 
@@ -3204,7 +3208,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Guard(int guard, int position, bool passed)
+				public override void Guard(int guard, long position, bool passed)
 				{
 					var read = Current;
 
@@ -3213,7 +3217,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Refused(int position, string[]? expected)
+				public override void Refused(long position, string[]? expected)
 				{
 					var read = Current;
 
@@ -3222,7 +3226,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Recovered(int rule, int from, int to, int reach)
+				public override void Recovered(int rule, long from, long to, long reach)
 				{
 					var read = Current;
 
@@ -3232,7 +3236,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Deepened(int position)
+				public override void Deepened(long position)
 				{
 					var read = Current;
 
@@ -3241,7 +3245,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Unlexed(string text, int position)
+				public override void Unlexed(string text, long position)
 				{
 					Summed();
 					Write("no token begins at character " + position.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
@@ -3314,7 +3318,7 @@ namespace DotGram.Snapshots
 					_noted = _dropped;
 				}
 
-				static string Where(GramRead read, int position)
+				static string Where(GramRead read, long position)
 				{
 					if (position < 0)
 						return "-";
@@ -3329,17 +3333,19 @@ namespace DotGram.Snapshots
 						column.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
 				}
 
-				static string Window(GramRead read, int position)
+				static string Window(GramRead read, long position)
 				{
 					var text = read.Text;
 
 					if (text == null)
 						return "";
 
-					var from = read.CharacterOf(position);
+					var at = read.CharacterOf(position);
 
-					if (from < 0 || from > text.Length)
+					if (at < 0 || at > text.Length)
 						return "";
+
+					var from = (int)at;
 
 					var length = text.Length - from < 24 ? text.Length - from : 24;
 					var shown  = new global::System.Text.StringBuilder(length + 8);
@@ -3423,8 +3429,8 @@ namespace DotGram.Snapshots
 					new global::System.Collections.Generic.List<GramRead>();
 				readonly global::System.Collections.Generic.List<int> _bases =
 					new global::System.Collections.Generic.List<int>();
-				readonly global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>> _seen =
-					new global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>>();
+				readonly global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<Seen_DotGram>> _seen =
+					new global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<Seen_DotGram>>();
 
 				/// <summary>Every rule entered, with its counts, in the order they were first entered.</summary>
 				public global::System.Collections.Generic.IReadOnlyCollection<Row> Rows
@@ -3498,10 +3504,37 @@ namespace DotGram.Snapshots
 				struct Open_DotGram
 				{
 					internal int Rule;
-					internal int At;
+					internal long At;
 					internal long Started;
 					internal long Children;
 					internal bool Quiet;
+				}
+
+				readonly struct Seen_DotGram : global::System.IEquatable<Seen_DotGram>
+				{
+					readonly int _rule;
+					readonly long _position;
+
+					internal Seen_DotGram(int rule, long position)
+					{
+						_rule     = rule;
+						_position = position;
+					}
+
+					public bool Equals(Seen_DotGram other)
+					{
+						return _rule == other._rule && _position == other._position;
+					}
+
+					public override bool Equals(object? obj)
+					{
+						return obj is Seen_DotGram other && Equals(other);
+					}
+
+					public override int GetHashCode()
+					{
+						return unchecked(_rule * 397 ^ _position.GetHashCode());
+					}
 				}
 
 				/// <inheritdoc/>
@@ -3510,12 +3543,12 @@ namespace DotGram.Snapshots
 					Readings++;
 					_reads.Add(read);
 					_bases.Add(_open.Count);
-					_seen.Add(new global::System.Collections.Generic.HashSet<long>());
+					_seen.Add(new global::System.Collections.Generic.HashSet<Seen_DotGram>());
 				}
 
 				/// <inheritdoc/>
 				public override void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					var last = _reads.Count - 1;
@@ -3533,7 +3566,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					if (rule < 0)
 						return;
@@ -3543,7 +3576,7 @@ namespace DotGram.Snapshots
 
 					counts.Entries++;
 
-					if (_seen.Count > 0 && !_seen[_seen.Count - 1].Add(((long)rule << 32) | (uint)position))
+					if (_seen.Count > 0 && !_seen[_seen.Count - 1].Add(new Seen_DotGram(rule, position)))
 						counts.Rereads++;
 
 					var depth = _open.Count - (_bases.Count > 0 ? _bases[_bases.Count - 1] : 0) + 1;
@@ -3565,7 +3598,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					var floor = _bases.Count > 0 ? _bases[_bases.Count - 1] : 0;
 
@@ -3583,14 +3616,14 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Remembered(int rule, int position)
+				public override void Remembered(int rule, long position)
 				{
 					if (rule >= 0)
 						CountsOf(rule, Quiet).Remembered++;
 				}
 
 				/// <inheritdoc/>
-				public override void Retracted(int rule, int position)
+				public override void Retracted(int rule, long position)
 				{
 					if (rule >= 0)
 						CountsOf(rule, Quiet).Retracted++;
@@ -3601,7 +3634,7 @@ namespace DotGram.Snapshots
 					get { return _reads.Count > 0 && _reads[_reads.Count - 1].Quiet; }
 				}
 
-				void Close(int end, bool counted)
+				void Close(long end, bool counted)
 				{
 					var last = _open.Count - 1;
 					var open = _open[last];

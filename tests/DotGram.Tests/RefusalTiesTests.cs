@@ -221,7 +221,7 @@ public sealed class RefusalTiesTests
 			public static string[][] Last;
 			public static int Ends;
 
-			public override void End(GramRead read, int end, int position, string[] expected, System.Collections.Generic.IReadOnlyList<string[]> expectedMore)
+			public override void End(GramRead read, long end, long position, string[] expected, System.Collections.Generic.IReadOnlyList<string[]> expectedMore)
 			{
 				Ends++;
 				Last = expectedMore == null ? null : System.Linq.Enumerable.ToArray(expectedMore);

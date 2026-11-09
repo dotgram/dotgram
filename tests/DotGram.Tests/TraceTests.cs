@@ -61,48 +61,48 @@ public sealed class TraceTests(ITestOutputHelper output)
 				Lines.Add("begin " + (read.Quiet ? "quiet " : "recording ") + read.Publication + " " + read.Machine + (read.Finding ? " find" : "") + " at " + read.Start);
 			}
 
-			public override void End(GramRead read, int end, int position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
+			public override void End(GramRead read, long end, long position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 			{
 				_reads.RemoveAt(_reads.Count - 1);
 				Lines.Add("end " + end + " furthest " + position + (expected != null ? " " + string.Join(",", expected) : ""));
 			}
 
-			public override void Enter(int rule, int position)
+			public override void Enter(int rule, long position)
 			{
 				Lines.Add("enter " + Rule(rule) + " " + position);
 			}
 
-			public override void Exit(int rule, int position, int end)
+			public override void Exit(int rule, long position, long end)
 			{
 				Lines.Add("exit " + Rule(rule) + " " + position + " " + end);
 			}
 
-			public override void Retracted(int rule, int position)
+			public override void Retracted(int rule, long position)
 			{
 				Lines.Add("retracted " + Rule(rule) + " " + position);
 			}
 
-			public override void Remembered(int rule, int position)
+			public override void Remembered(int rule, long position)
 			{
 				Lines.Add("remembered " + Rule(rule) + " " + position);
 			}
 
-			public override void Guard(int guard, int position, bool passed)
+			public override void Guard(int guard, long position, bool passed)
 			{
 				Lines.Add("guard " + (_reads.Count > 0 ? _reads[_reads.Count - 1].GuardText(guard) : "#" + guard) + " " + position + " " + passed);
 			}
 
-			public override void Refused(int position, string[]? expected)
+			public override void Refused(long position, string[]? expected)
 			{
 				Lines.Add("refused " + position + (expected != null ? " " + string.Join(",", expected) : ""));
 			}
 
-			public override void Recovered(int rule, int from, int to, int reach)
+			public override void Recovered(int rule, long from, long to, long reach)
 			{
 				Lines.Add("recovered " + Rule(rule) + " " + from + " " + to + " " + reach);
 			}
 
-			public override void Deepened(int position)
+			public override void Deepened(long position)
 			{
 				Lines.Add("deepened " + position);
 			}
@@ -110,7 +110,7 @@ public sealed class TraceTests(ITestOutputHelper output)
 			/// <summary>Run when the sink is told of a lexer stop: what a sink may do there, read another text.</summary>
 			public global::System.Action? WhenUnlexed;
 
-			public override void Unlexed(string text, int position)
+			public override void Unlexed(string text, long position)
 			{
 				Lines.Add("unlexed " + position);
 
@@ -755,12 +755,12 @@ public sealed class TraceTests(ITestOutputHelper output)
 				public long Enters;
 				public long Exits;
 
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					Enters++;
 				}
 
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					Exits++;
 				}
@@ -1350,12 +1350,12 @@ public sealed class TraceTests(ITestOutputHelper output)
 					Begins++;
 				}
 
-				public override void End(GramRead read, int end, int position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
+				public override void End(GramRead read, long end, long position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					Ends++;
 				}
 
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					Enters++;
 
@@ -1363,7 +1363,7 @@ public sealed class TraceTests(ITestOutputHelper output)
 						throw new global::System.InvalidOperationException("The sink threw.");
 				}
 
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					Exits++;
 				}
@@ -1431,17 +1431,17 @@ public sealed class TraceTests(ITestOutputHelper output)
 						throw new global::System.InvalidOperationException("The sink threw.");
 				}
 
-				public override void End(GramRead read, int end, int position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
+				public override void End(GramRead read, long end, long position, string[]? expected, global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					Ends++;
 				}
 
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					Enters++;
 				}
 
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					Exits++;
 				}

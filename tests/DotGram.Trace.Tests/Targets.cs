@@ -310,8 +310,8 @@ static class Targets
 	/// </summary>
 	public sealed class Tally
 	{
-		readonly Stack<(int Rule, int At)> _open = new();
-		readonly List<(int Rule, int At)> _read = [];
+		readonly Stack<(int Rule, long At)> _open = new();
+		readonly List<(int Rule, long At)> _read = [];
 
 		public long Enters { get; private set; }
 
@@ -324,13 +324,13 @@ static class Targets
 		/// <summary>Exits that left another rule than the innermost open, and retractions of a rule that had not read.</summary>
 		public long Unmatched { get; private set; }
 
-		public void Enter(int rule, int position)
+		public void Enter(int rule, long position)
 		{
 			Enters++;
 			_open.Push((rule, position));
 		}
 
-		public void Exit(int rule, int position, int end)
+		public void Exit(int rule, long position, long end)
 		{
 			Exits++;
 
@@ -340,7 +340,7 @@ static class Targets
 				_read.Add((rule, position));
 		}
 
-		public void Retracted(int rule, int position)
+		public void Retracted(int rule, long position)
 		{
 			Retractions++;
 
@@ -364,22 +364,22 @@ static class Targets
 	{
 		public Tally Tally { get; } = new();
 
-		public override void Enter(int rule, int position)
+		public override void Enter(int rule, long position)
 		{
 			Tally.Enter(rule, position);
 		}
 
-		public override void Exit(int rule, int position, int end)
+		public override void Exit(int rule, long position, long end)
 		{
 			Tally.Exit(rule, position, end);
 		}
 
-		public override void Retracted(int rule, int position)
+		public override void Retracted(int rule, long position)
 		{
 			Tally.Retracted(rule, position);
 		}
 
-		public override void Refused(int position, string[]? expected)
+		public override void Refused(long position, string[]? expected)
 		{
 			Tally.Refused();
 		}
@@ -389,22 +389,22 @@ static class Targets
 	{
 		public Tally Tally { get; } = new();
 
-		public override void Enter(int rule, int position)
+		public override void Enter(int rule, long position)
 		{
 			Tally.Enter(rule, position);
 		}
 
-		public override void Exit(int rule, int position, int end)
+		public override void Exit(int rule, long position, long end)
 		{
 			Tally.Exit(rule, position, end);
 		}
 
-		public override void Retracted(int rule, int position)
+		public override void Retracted(int rule, long position)
 		{
 			Tally.Retracted(rule, position);
 		}
 
-		public override void Refused(int position, string[]? expected)
+		public override void Refused(long position, string[]? expected)
 		{
 			Tally.Refused();
 		}
@@ -414,22 +414,22 @@ static class Targets
 	{
 		public Tally Tally { get; } = new();
 
-		public override void Enter(int rule, int position)
+		public override void Enter(int rule, long position)
 		{
 			Tally.Enter(rule, position);
 		}
 
-		public override void Exit(int rule, int position, int end)
+		public override void Exit(int rule, long position, long end)
 		{
 			Tally.Exit(rule, position, end);
 		}
 
-		public override void Retracted(int rule, int position)
+		public override void Retracted(int rule, long position)
 		{
 			Tally.Retracted(rule, position);
 		}
 
-		public override void Refused(int position, string[]? expected)
+		public override void Refused(long position, string[]? expected)
 		{
 			Tally.Refused();
 		}
@@ -439,22 +439,22 @@ static class Targets
 	{
 		public Tally Tally { get; } = new();
 
-		public override void Enter(int rule, int position)
+		public override void Enter(int rule, long position)
 		{
 			Tally.Enter(rule, position);
 		}
 
-		public override void Exit(int rule, int position, int end)
+		public override void Exit(int rule, long position, long end)
 		{
 			Tally.Exit(rule, position, end);
 		}
 
-		public override void Retracted(int rule, int position)
+		public override void Retracted(int rule, long position)
 		{
 			Tally.Retracted(rule, position);
 		}
 
-		public override void Refused(int position, string[]? expected)
+		public override void Refused(long position, string[]? expected)
 		{
 			Tally.Refused();
 		}
@@ -464,22 +464,22 @@ static class Targets
 	{
 		public Tally Tally { get; } = new();
 
-		public override void Enter(int rule, int position)
+		public override void Enter(int rule, long position)
 		{
 			Tally.Enter(rule, position);
 		}
 
-		public override void Exit(int rule, int position, int end)
+		public override void Exit(int rule, long position, long end)
 		{
 			Tally.Exit(rule, position, end);
 		}
 
-		public override void Retracted(int rule, int position)
+		public override void Retracted(int rule, long position)
 		{
 			Tally.Retracted(rule, position);
 		}
 
-		public override void Refused(int position, string[]? expected)
+		public override void Refused(long position, string[]? expected)
 		{
 			Tally.Refused();
 		}
@@ -489,22 +489,22 @@ static class Targets
 	{
 		public Tally Tally { get; } = new();
 
-		public override void Enter(int rule, int position)
+		public override void Enter(int rule, long position)
 		{
 			Tally.Enter(rule, position);
 		}
 
-		public override void Exit(int rule, int position, int end)
+		public override void Exit(int rule, long position, long end)
 		{
 			Tally.Exit(rule, position, end);
 		}
 
-		public override void Retracted(int rule, int position)
+		public override void Retracted(int rule, long position)
 		{
 			Tally.Retracted(rule, position);
 		}
 
-		public override void Refused(int position, string[]? expected)
+		public override void Refused(long position, string[]? expected)
 		{
 			Tally.Refused();
 		}
@@ -514,22 +514,22 @@ static class Targets
 	{
 		public Tally Tally { get; } = new();
 
-		public override void Enter(int rule, int position)
+		public override void Enter(int rule, long position)
 		{
 			Tally.Enter(rule, position);
 		}
 
-		public override void Exit(int rule, int position, int end)
+		public override void Exit(int rule, long position, long end)
 		{
 			Tally.Exit(rule, position, end);
 		}
 
-		public override void Retracted(int rule, int position)
+		public override void Retracted(int rule, long position)
 		{
 			Tally.Retracted(rule, position);
 		}
 
-		public override void Refused(int position, string[]? expected)
+		public override void Refused(long position, string[]? expected)
 		{
 			Tally.Refused();
 		}

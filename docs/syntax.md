@@ -3274,7 +3274,9 @@ C# of the guards by the numbers the events carry (`RuleName`, `GuardText`), `Ove
 the positions the events carry are tokens rather than characters (a grammar read over tokens, §4), and
 `CharacterOf`, which turns a position into a character of the input — a position over tokens is a
 token, and is turned into the character its token begins at — and `Locate`, its line and column. A reading over a `TextReader`, a `Stream` or bytes (§6.3) has no `Text`, and
-counts its positions from the beginning of the input, not of the part of it held in its buffer.
+counts its positions from the beginning of the input, not of the part of it held in its buffer. Every
+position the trace tells or hands back — an event's, `Start`, `CharacterOf`, the positions of `GramWhy`'s
+paths and elements — is a `long`, as `Match.Position` is (§6.3).
 
 #### Three sinks, ready-made
 
