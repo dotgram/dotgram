@@ -32,7 +32,7 @@ namespace DotGram.Grammar.Model;
 /// so it is never a pattern.
 /// </para>
 /// </remarks>
-sealed class LexicalAutomaton
+sealed partial class LexicalAutomaton
 {
 	LexicalAutomaton(
 		IReadOnlyList<CharRange> atoms,
@@ -175,7 +175,7 @@ sealed class LexicalAutomaton
 		if (patterns is null)
 			throw new ArgumentNullException(nameof(patterns));
 
-		return new Builder(graph, blocked, exact).Run(patterns);
+		return Reused(graph, patterns, blocked, exact);
 	}
 
 	/// <summary>
@@ -1057,8 +1057,8 @@ sealed class LexicalAutomaton
 			var first = Closed([start]);
 
 			// Kept across the states rather than made for each: the edges of a subset are bucketed
-			// by the atom they leave on, and most of what a set reaches on an atom is what it reached
-			// on the atom before — every letter of an identifier leads to the same places.
+			// by the atom they leave on, and most of what a set reaches on an atom is what it
+			// reached on the atom before — every letter of an identifier leads to the same places.
 			var byAtom    = new List<int>?[_atoms.Count];
 			var touched   = new List<int>();
 			var accepting = new List<int>();
@@ -1138,14 +1138,19 @@ sealed class LexicalAutomaton
 		/// <remarks>
 		/// A closure is a function of what it closes, so the state a set of moves closes to is
 		/// remembered by the moves: an identifier's letters are hundreds of atoms that all move to
-		/// the same few states, from every state of a keyword trie, and closing them again for every
-		/// atom of every state was most of the construction. What the closure walked is counted
-		/// again where it is remembered, so that <see cref="LexicalAutomaton.Walked"/> and the budget
-		/// read off it are what walking it again would make them. Not remembered once the machine is
-		/// past its budget, where a closure meets new elements owing nothing (Element), and the same
-		/// moves may close to something else.
+		/// the same few states, from every state of a keyword trie, and closing them again for
+		/// every atom of every state was most of the construction. What the closure walked is
+		/// counted again where it is remembered, so that <see cref="LexicalAutomaton.Walked"/> and
+		/// the budget read off it are what walking it again would make them. Not remembered once
+		/// the machine is past its budget, where a closure meets new elements owing nothing
+		/// (Element), and the same moves may close to something else.
 		/// </remarks>
-		int Reached(int[] moved, Dictionary<int[], int> numbered, Queue<(int[] States, int Number)> pending, List<int[]> rows, List<int> accepts)
+		int Reached(
+			int[]                             moved,
+			Dictionary<int[], int>            numbered,
+			Queue<(int[] States, int Number)> pending,
+			List<int[]>                       rows,
+			List<int>                         accepts)
 		{
 			var kept = _on.Count + _owing.Count <= Budget;
 
@@ -1175,8 +1180,12 @@ sealed class LexicalAutomaton
 			return number;
 		}
 
-		/// <summary>The state each set of moves closed to, and what closing it walked (<see cref="Reached"/>).</summary>
-		readonly Dictionary<int[], (int Number, long Walked, long Owing)> _closes = new(Members.Same);
+		/// <summary>
+		/// The state each set of moves closed to, and what closing it walked (<see
+		/// cref="Reached"/>).
+		/// </summary>
+		readonly Dictionary<int[], (int Number, long Walked, long Owing)> _closes =
+			new(Members.Same);
 
 		/// <summary>
 		/// A bucket of moves as its members in ascending order, each once, in an array kept for
@@ -1207,6 +1216,7 @@ sealed class LexicalAutomaton
 			return moved;
 		}
 
+		/// <summary>By length, the array <see cref="Moved"/> writes a bucket of that many into.</summary>
 		readonly List<int[]> _scratch = [];
 
 		/// <summary>The patterns a subset accepts, in ascending order, each once.</summary>
@@ -1304,7 +1314,8 @@ sealed class LexicalAutomaton
 
 		/// <summary>The states reached from these without reading, in ascending order.</summary>
 		/// <remarks>
-		/// The order is what identifies a subset (<see cref="Members"/>), and the array is the subset.
+		/// The order is what identifies a subset (<see cref="Members"/>), and the array is the
+		/// subset.
 		/// </remarks>
 		int[] Closed(IReadOnlyList<int> states)
 		{
@@ -1388,7 +1399,9 @@ sealed class LexicalAutomaton
 			return key;
 		}
 
-		/// <summary>Marks an element reached by the closure being walked; false where it was already.</summary>
+		/// <summary>
+		/// Marks an element reached by the closure being walked; false where it was already.
+		/// </summary>
 		bool Stamp(int element)
 		{
 			if (element >= _stamps.Length)

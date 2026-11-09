@@ -99,6 +99,8 @@ static class GramCompiler
 		if (options.LocatedFacade is { Length: > 0 } facade && options.LocationType is { } located)
 			graph.PerCall = (facade, located, options.LocatedFacadeDeclared);
 
+		graph.ReuseAutomata = options.ReuseAutomata;
+
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
 		// reported, and only for the declarations that actually broke — a rule that is

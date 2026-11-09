@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using DotGram.Grammar.Emit;
+using DotGram.Grammar.Model;
 
 namespace DotGram.Grammar;
 
@@ -295,6 +296,18 @@ sealed class GramCompilerOptions
 	/// refusal's expected list can differ.
 	/// </remarks>
 	public bool CollapseForwarders { get; set; } = true;
+
+	/// <summary>
+	/// Whether the lexical automata this compile builds may be taken from, and kept for, the other
+	/// compiles of the process. On by default: an automaton is a function of the patterns alone,
+	/// and the same patterns are compiled again far more often than they change.
+	/// </summary>
+	/// <remarks>
+	/// The generator turns it off where a build asks for nothing to be kept (<c>DotGramNoCache</c>,
+	/// a design-time build), and to <see cref="AutomatonReuse.Verify"/> where the build verifies
+	/// what it keeps (<c>DotGramVerifyCache</c>).
+	/// </remarks>
+	public AutomatonReuse ReuseAutomata { get; set; } = AutomatonReuse.On;
 
 	/// <summary>
 	/// Whether a reader over tokens remembers where a rule that can reach itself has failed, and
