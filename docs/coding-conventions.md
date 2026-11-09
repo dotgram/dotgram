@@ -116,11 +116,12 @@ static Entry ReadEntry(int tag, bool required)
 
 More of the same, as the maintainer applies it:
 
-- **Join what fits on one line.** A signature, a field initializer, a call or a `with` that
-  was wrapped only to keep a line short goes back onto one line: there is no fixed line
-  length. A statement that does wrap indents its continuation lines one tab deeper than
-  the line it starts on — a `return` over several `&&` or `or` lines, a concatenation of
-  strings, a property pattern opened after `is`.
+- **Lines are up to 100 characters, and what fits is joined.** A signature, a field
+  initializer, a call or a `with` that fits in 100 characters goes on one line. A longer
+  one is wrapped — unless wrapping would carry only some 20 to 30 characters onto the next
+  line: then it stays on one line. A statement that does wrap indents its continuation
+  lines one tab deeper than the line it starts on — a `return` over several `&&` or `or`
+  lines, a concatenation of strings, a property pattern opened after `is`.
 - **A table is aligned to its body, not to its longest row.** Within a run of similar lines
   — a record's or constructor's parameters (the type column, then the names), named
   arguments (`Key:        key`), an object initializer's `=`, a tuple's element names,
@@ -149,12 +150,22 @@ More of the same, as the maintainer applies it:
 - `if`, `for`, `foreach`, `while`, `do`, `switch`, `using`, `lock` and `try` stand apart:
   a blank line before and after each, so that a control statement is never squeezed
   between calls. The blank line is left out only directly after `{` or before `}`.
-  `else`, `catch` and `finally` continue their statement and take no blank line.
+  `else`, `catch` and `finally` continue their statement and take no blank line. A
+  statement after the `}` of any block takes a blank line too, and a one-line `foreach`
+  is no exception.
 - Exception: short `if`s that belong together may form a group with no blank line
   inside — one-line ones (condition and statement on one line, no braces), which then
   make a table whose statements start in one column, and guards whose single statement
   is on the next line (`if (a is null)` / `return;` twice in a row). The group as a whole
-  is separated by blank lines.
+  is separated by blank lines — except from a `break` or `return` that ends a block
+  holding nothing but the group and it, such as a case's body (`case 1:` / `if (a) b();`
+  / `break;`). Anything else in the block, and the blank line is back.
+- One declaration of one variable may stand directly above the `return` after it
+  (`var value = Read();` / `return value;`). Two or more declarations, or one declaring two
+  variables, take the blank line.
+- Conditional compilation stands apart: a blank line above each `#if` and below each
+  `#endif`, except directly after `{` or before `}`. An `#endif` directly above a statement
+  is no separation.
 - A comment directly above a statement belongs to it: the blank line goes above the
   comment.
 
@@ -252,6 +263,8 @@ grammar language itself is `docs/syntax.md`; this is only how it is spaced.
 - **One alternative, one line.** A `=>` wrapped onto the next line is joined back to its
   alternative; only an alternative far too long to read on one line breaks before its `=>`,
   which is indented one level under the rule.
+- **Indentation is tabs**, as in C#; alignment after it is spaces. Grammars still indented
+  with spaces are converted when they are next edited, not all at once.
 - **Continuation lines are indented one level**, the `=` and every `|` of a rule's
   alternatives alike; a choice of a rule written on its line continues with its `|` under
   the `=`.
