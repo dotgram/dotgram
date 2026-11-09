@@ -47,6 +47,14 @@ sealed class EmbeddedGramNavigationMarginProvider : IWpfTextViewMarginProvider
 /// </summary>
 sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 {
+	/// <summary>
+	/// The combo box Visual Studio 2026 builds C#'s bar from,
+	/// Microsoft.VisualStudio.Shell.Controls.ComboBox, themed by the shell's own style; null in Visual
+	/// Studio 2022, which has no such control. The SDK this extension compiles against is 2022's, so
+	/// the type is found by name.
+	/// </summary>
+	static readonly Type? ShellComboBoxType = FindShellComboBox();
+
 	readonly IWpfTextView                  _view;
 	readonly EmbeddedGrammarBufferAnalysis _analysis;
 	readonly ComboBox                      _grammars;
@@ -62,13 +70,23 @@ sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 		_view     = view;
 		_analysis = analysis;
 
-		Height     = 26;
-		Background = Application.Current.TryFindResource(EnvironmentColors.ToolWindowBackgroundBrushKey) as System.Windows.Media.Brush;
 		ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 		ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-		_grammars = Combo(0, new Thickness(4, 2, 2, 2));
-		_symbols  = Combo(1, new Thickness(2, 2, 4, 2));
+		// Like C#'s bar under it: in Visual Studio 2026 the shell's own combo boxes, flush with the
+		// edges and 4 apart, with no background of the bar's own; in Visual Studio 2022 the themed
+		// combo box style over the command bar colour. Both are resource references, so a theme
+		// switch repaints them.
+		var shell = ShellComboBoxType is not null;
+
+		if (!shell)
+		{
+			Height = 26;
+			SetResourceReference(BackgroundProperty, EnvironmentColors.CommandBarMenuBorderBrushKey);
+		}
+
+		_grammars = Combo(0, shell ? new Thickness(0, 0, 2, 0) : new Thickness(4, 2, 2, 2));
+		_symbols  = Combo(1, shell ? new Thickness(2, 0, 0, 0) : new Thickness(2, 2, 4, 2));
 		_grammars.SelectionChanged += GrammarSelectionChanged;
 		_symbols.SelectionChanged  += SymbolSelectionChanged;
 
@@ -79,14 +97,34 @@ sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 		Refresh(view.TextSnapshot);
 	}
 
+	static Type? FindShellComboBox()
+	{
+		return EditorGuard.Run<Type?>("Navigation margin combo box type", null, () =>
+		{
+			var type = Type.GetType(
+				"Microsoft.VisualStudio.Shell.Controls.ComboBox, Microsoft.VisualStudio.Shell.Styles",
+				throwOnError: false);
+
+			var usable = type is not null &&
+				typeof(ComboBox).IsAssignableFrom(type) &&
+				type.GetConstructor(Type.EmptyTypes) is not null;
+
+			return usable ? type : null;
+		});
+	}
+
 	ComboBox Combo(int column, Thickness margin)
 	{
-		var combo = new ComboBox
-		{
-			Margin              = margin,
-			HorizontalAlignment = HorizontalAlignment.Stretch,
-			DisplayMemberPath   = nameof(EmbeddedNavigationItem.Display),
-		};
+		var combo = ShellComboBoxType is null
+			? new ComboBox()
+			: (ComboBox)Activator.CreateInstance(ShellComboBoxType);
+
+		combo.Margin              = margin;
+		combo.HorizontalAlignment = HorizontalAlignment.Stretch;
+		combo.DisplayMemberPath   = nameof(EmbeddedNavigationItem.Display);
+
+		if (ShellComboBoxType is null)
+			combo.SetResourceReference(StyleProperty, VsResourceKeys.ComboBoxStyleKey);
 
 		combo.PreviewMouseLeftButtonUp += ComboClicked;
 		combo.DropDownOpened           += DropDownOpened;
