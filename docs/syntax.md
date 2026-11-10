@@ -2185,7 +2185,7 @@ is allowed to sit between the matches.**
 | `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
 | `positional parse R` | as `parse R`, and an `R` may also be read where the caller says it begins | the three above, and `TryParseR(input, at)`, `TryParseR(input, at, length)` and their `bool` forms (§6.3) |
 
-The whole directive, every part after the verb optional:
+The whole directive, every bracketed part optional:
 
 ```
 [access] [positional] parse|find <operand> [with (…)] [as Name] [: @T] [stream [bytes]] [yield [: @T]]
@@ -2200,8 +2200,9 @@ whether the result is lazy. The words on the left are written in that order, eac
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
 `ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `DefaultBufferSize` or
-`DefaultMaxRetained`, which the class declares for its callers, nor `Failure` or `ParserEntry`, or in a
-grammar read over tokens `Scan`, which it declares for its own use, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
+`DefaultMaxRetained`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
+declares for its own use, nor in a grammar read over tokens `Scan`, which it declares internal for the
+host's own code, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
 which a trace build of the grammar declares (§6.9) — in every build, traced or not, so that a grammar a
 project traces in Debug alone means the same names in Release — nor the name of the class itself, and neither of its two names may be the other
 publication's. That is refused where the directive is written (`GRAM5018`); give it another name with `as`.
@@ -3168,8 +3169,8 @@ compiles, and is off unless set to `true`.
 </PropertyGroup>
 ```
 
-A `parse` has whole forms, which demand the end of the input, and the forms that begin at a
-position or read a window (§6.3), which demand nothing after the rule. The rule is compiled
+A `positional parse` has whole forms, which demand the end of the input, and the forms that begin
+at a position or read a window (§6.3), which demand nothing after the rule. The rule is compiled
 once for both, and by default against the end of the input. Some decisions taken on the
 strength of that end hold for the whole forms only: a way back to an optional's skip is not
 kept, a repetition's turn is taken as final because the end could not begin where it stopped.
@@ -3181,8 +3182,8 @@ rule reads nothing, in the shared automaton only; `'"' & ("\"\"" | [^'"'])* & '"
 `('a' & 'b' | 'a' & 'c')* & ?!'x'` from 0 in `abacx` refuses where it reads `ab` in both. The
 whole forms are right either way.
 
-Set, every `parse` is compiled knowing that it is also read from a position, and those forms
-give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
+Set, every `parse` is compiled knowing that it is also read from a position, whether or not its
+directive says `positional`, and the forms of those that do give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
 rested on, and that is the cost: in this repository's own packages the JSON, JSON Pointer and
 URI Template readers stay on the immediate carrier and are told (`GRAM5012`) that their
 constructions can now run again for text read a second time. A token grammar (`Lexical`) changes only the
@@ -4122,7 +4123,7 @@ Feed : FeedItem[] = Header
 A reading that ends where the rule does — one that begins at a position or reads a
 window (§6.3) — has nothing after the rule, so a marked repetition at the end of it finds
 its continuation at once: past its minimum it reads no further. To read a recovering list
-from a position, publish a rule that ends with what ends the list — `eof`, or a terminator:
+from a position, publish with `positional parse` a rule that ends with what ends the list — `eof`, or a terminator:
 `RowsToEnd = Rows & eof` where `Rows` builds no value, and where `Rows : @int[]` builds the
 list, `RowsToEnd : @int[] = r: Rows & eof => @(r)`.
 
