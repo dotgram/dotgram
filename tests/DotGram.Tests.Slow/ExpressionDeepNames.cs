@@ -22,3 +22,9 @@ public static class C1
 		}
 	}
 }
+
+/// <summary>A member that is its own type, for a member chain as long as a test wants.</summary>
+public sealed class Chain
+{
+	public Chain A => this;
+}
