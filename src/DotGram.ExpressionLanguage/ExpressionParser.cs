@@ -4746,6 +4746,18 @@ public static partial class ExpressionParser
 		/// <summary>As many parts as any name may have without the scope being asked how deep its types go.</summary>
 		const int Shallow = 8;
 
+		/// <summary>How many parts a dotted name has.</summary>
+		static int PartsOf(string name)
+		{
+			var parts = 1;
+
+			foreach (var c in name)
+				if (c == '.')
+					parts++;
+
+			return parts;
+		}
+
 		/// <summary>
 		/// Where the dotted name <see cref="Nests"/> counts began, how many parts the last one asked
 		/// about closes and where it ends, and the two ends the repetition stopped between.
@@ -4829,6 +4841,17 @@ public static partial class ExpressionParser
 		/// </summary>
 		int Meanings(string name, out Type? first, out Type? second)
 		{
+			// A name longer than any type in reach means none, by any of the ways below
+			// (Loaded.Depth), and is not walked: the walk asks every prefix of it of every assembly,
+			// which for a generic name of n parts, refused only here, was the square of n.
+			if (!Admits(PartsOf(name) - 1))
+			{
+				first  = null;
+				second = null;
+
+				return 0;
+			}
+
 			// C#'s order, and not a count over equals. A name is looked for in the enclosing
 			// namespace first — for a text that declares none of its own, the global one — and
 			// the `using`s are consulted only where it means nothing there. So a name written
