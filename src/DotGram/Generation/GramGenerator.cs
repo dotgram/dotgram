@@ -205,6 +205,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Utf8      =  input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
 				Checks    =  input.Left.PreprocessorSymbolNames.Contains(ChecksSymbol),
 				Steps     =  input.Left.PreprocessorSymbolNames.Contains(StepsSymbol),
+				OnePass   =  input.Left.PreprocessorSymbolNames.Contains(OnePassSymbol),
 			});
 
 		// `DotGramPositionalFollow`: an experimental build-wide switch that compiles every `parse`
@@ -382,6 +383,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which the engine writes one line per step of the automaton to standard error.</summary>
 	const string StepsSymbol = "DOTGRAM_STEPS";
 
+	/// <summary>The symbol under which an experiment compiles a parser that reads a refused input once (GramCompilerOptions.OnePassRefusal).</summary>
+	const string OnePassSymbol = "DOTGRAM_ONE_PASS";
+
 	/// <summary>The symbol under which a test compiles a parser without the memo of failures.</summary>
 	const string NoMemoSymbol = "DOTGRAM_NO_MEMO";
 
@@ -424,6 +428,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		/// <summary>Whether the engine writes its step trace (<c>DOTGRAM_STEPS</c>).</summary>
 		public bool Steps { get; init; }
+
+		/// <summary>Whether a refused input is read once, recording (<c>DOTGRAM_ONE_PASS</c>, GramCompilerOptions.OnePassRefusal).</summary>
+		public bool OnePass { get; init; }
 	}
 
 	/// <summary>What <c>DotGramPositionalFollow</c> asks for: nothing, <c>true</c> or <c>split</c>.</summary>
@@ -1231,6 +1238,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Utf8Literals       = counting.Utf8,
 			Checks             = counting.Checks,
 			Steps              = counting.Steps,
+			OnePassRefusal     = counting.OnePass,
 
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow      = positional != Positional.Off,

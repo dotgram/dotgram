@@ -56,6 +56,15 @@ sealed partial class Machine
 	/// </remarks>
 	internal bool KeepsDoors => _settings.KeepsDoors ?? (Quiets && Tracing is null);
 
+	/// <summary>
+	/// Whether the one reading of a refused input records as it goes (GramCompilerOptions.OnePassRefusal):
+	/// a door the first set shuts says what the turn behind it would have begun with and is not
+	/// tried, in every reading alike, so that a parse that recorded nothing and read again for
+	/// the message reads once. Only where the quiet reading wrote down how far it got
+	/// (<see cref="KeepsDoors"/>): a trace build keeps its readings as they were.
+	/// </summary>
+	internal bool OnePass => _settings.OnePass && KeepsDoors;
+
 	string CaptureSpanType => $"global::System.ReadOnlySpan<{CaptureElement}>";
 
 	/// <summary>What a borrowed capture is a span of: the input's own element.</summary>
@@ -7243,9 +7252,39 @@ sealed partial class Machine
 			// is wiped when the furthest refusal moves on — unless the turn looks around before
 			// its first item, which may read past where it stands (LooksBeforeItsFirstItem).
 			if (Quiets && !_lowering && !InSeam(repeatNode) && !RunsCodeBeforeItsFirstItem(body))
-				atProbe.Line(KeepsDoors && !LooksBeforeItsFirstItem(body)
-					? $"if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto {Label(atProbe, entry)};"
-					: $"if (lookahead < 0 && !failure.Quiet) goto {Label(atProbe, entry)};");
+			{
+				// Read once (OnePass): the turn is not tried; what it would have begun with is
+				// said at the door, as the reader's door says it (Machine.Reader.cs, SaidAtTheDoor).
+				if (OnePass)
+				{
+					var said = DeclareExpected(Displays(body));
+
+					_expectedUsed.Add(said);
+
+					// Recorded as the settled optional above records at its door: the engine's own
+					// states, whose failure carries the list of ties.
+					using (atProbe.Block("if (lookahead < 0 && !failure.Quiet)"))
+					{
+						atProbe.Line("if (p > failure.Position)");
+
+						using (atProbe.Block(""))
+						{
+							atProbe.Line("failure.Position = p;");
+							atProbe.Line($"failure.Expected = {said};");
+							atProbe.Line("failure.ExpectedMore?.Clear();");
+						}
+
+						atProbe.Line("else if (p == failure.Position)");
+						atProbe.Then($"Tie_DotGram(ref failure, {said});");
+					}
+				}
+				else
+				{
+					atProbe.Line(KeepsDoors && !LooksBeforeItsFirstItem(body)
+						? $"if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto {Label(atProbe, entry)};"
+						: $"if (lookahead < 0 && !failure.Quiet) goto {Label(atProbe, entry)};");
+				}
+			}
 
 			atProbe.Line($"goto {Label(atProbe, next)};");
 

@@ -363,6 +363,9 @@ static partial class CSharpEmitter
 			Reporting             = carriers is not null,
 			CountsRules           = options.CountRules,
 			ConstructionsMayThrow = options.ConstructionsMayThrow,
+			// An experiment: the one reading of a refused input records (Machine.OnePass); not in a
+			// trace build, whose readings are kept as they were.
+			OnePass               = options.OnePassRefusal && tracing is null,
 		};
 
 		// And what the machines over the file's own input add, which a buffered machine does not.
@@ -1070,7 +1073,7 @@ static partial class CSharpEmitter
 			// The thread's list for a reading's ties, where some machine writes ties at all.
 			if (moreField)
 			{
-				file.Write(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null));
+				file.Write(Region(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null), "returned", options.OnePassRefusal && tracing is null));
 				file.Line();
 			}
 
@@ -2782,10 +2785,14 @@ static partial class CSharpEmitter
 				// is the furthest the input was followed and not merely "no".
 				// Over a context the reading writes into, where it was when the reading began: the
 				// second reading begins there too (§7.7).
-				if (quietFirst && rewinds)
+				// Read once, recording (GramCompilerOptions.OnePassRefusal): no quiet reading, no
+				// second one, and nothing to put back.
+				var onePass = quietFirst && compiled.Machine.OnePass;
+
+				if (quietFirst && rewinds && !onePass)
 					file.Line("var mark    = context.Mark();");
 
-				file.Line($"var failure = {Fresh(quietFirst)};");
+				file.Line($"var failure = {Fresh(quietFirst && !onePass)};");
 				file.Line();
 				Begun(begins, windowed);
 				Reads($"{reader}(text, {begins}{hands})", declare: true);
@@ -2795,7 +2802,7 @@ static partial class CSharpEmitter
 				// it. Where it refused, the same reading is run again recording, and what that one
 				// says is the refusal — the one a single recording reading would have given, as
 				// nothing the first did depended on what it did not record (Q7.2).
-				if (quietFirst)
+				if (quietFirst && !onePass)
 				{
 					using (file.Block("if (end < 0)"))
 					{
@@ -2937,6 +2944,7 @@ static partial class CSharpEmitter
 					file.Line();
 					if (!kept) file.Line("Recycle_DotGram(tokens);");
 					file.Line();
+					Returned();
 					file.Line($"return {match}.Success(whole, {position}, {extent}{ReadingEnd(positional, windowed)});");
 				}
 				else
@@ -2945,7 +2953,19 @@ static partial class CSharpEmitter
 					// trivia before it is the reading's to skip and nobody's to carry (§6.3).
 					var cut = !positional && trims ? trimmed : Recognized(positional ? begun : begins, extent);
 
+					Returned();
 					file.Line($"return {match}.Success({cut}, {position}, {extent}{ReadingEnd(positional, windowed)});");
+				}
+
+				// The one reading that records (OnePass) may have tied on its way to accepting: the
+				// list goes back to the thread, as a refusal hands it back (Handed_DotGram).
+				void Returned()
+				{
+					if (onePass && ties)
+					{
+						file.Line("if (failure.ExpectedMore != null) Returned_DotGram(failure.ExpectedMore);");
+						file.Line();
+					}
 				}
 			}
 		}

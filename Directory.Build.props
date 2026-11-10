@@ -51,6 +51,11 @@
 		     read it ask for: `-p:DotGramReportGeneration=full`, as the carriers run needs. An
 		     ordinary build here is not a measurement and should not read like one. -->
 		<DotGramReportGeneration>summary</DotGramReportGeneration>
+
+		<!-- An experiment, measured and not shipped: `-p:DotGramOnePass=true` compiles every grammar of
+		     the build to read a refused input once, recording, instead of quietly first and again for
+		     its message (GramCompilerOptions.OnePassRefusal). -->
+		<DefineConstants Condition="'$(DotGramOnePass)' == 'true'">$(DefineConstants);DOTGRAM_ONE_PASS</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup>

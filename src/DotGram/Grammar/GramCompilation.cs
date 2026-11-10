@@ -331,6 +331,19 @@ sealed class GramCompilerOptions
 	public bool CollapseForwarders { get; set; } = true;
 
 	/// <summary>
+	/// Whether a parse that reads quietly first and reads a refused input again for its message
+	/// (§7.7) reads once instead: recording as it goes, and saying at a door the first set shuts
+	/// what the turn behind it would have begun with, where the reading that records used to try
+	/// the turn. An experiment, measured and not shipped: off by default; the generator sets it on
+	/// where the compilation defines <c>DOTGRAM_ONE_PASS</c>, and a test that compiles outside the
+	/// generator sets <see cref="OnePassDefault"/> once, for every compile of its process.
+	/// </summary>
+	public bool OnePassRefusal { get; set; } = OnePassDefault;
+
+	/// <summary>What <see cref="OnePassRefusal"/> starts as: an experiment's switch, for the tests.</summary>
+	public static bool OnePassDefault { get; set; }
+
+	/// <summary>
 	/// Whether a reader over tokens remembers where a rule that can reach itself has failed, and
 	/// answers a second entry there at once. On by default; off is for a test that holds the
 	/// parser with the memo to the parser without it.

@@ -139,6 +139,12 @@ sealed record MachineSettings
 	/// </summary>
 	public bool? KeepsDoors { get; init; }
 
+	/// <summary>
+	/// Whether a refused input is read once, recording, instead of quietly first and again for its
+	/// message (<see cref="Machine.OnePass"/>, GramCompilerOptions.OnePassRefusal).
+	/// </summary>
+	public bool OnePass { get; init; }
+
 	/// <summary>Whether the machine tells where a position stands through a window (<see cref="Machine.Places"/>).</summary>
 	public bool Places { get; init; }
 

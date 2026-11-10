@@ -1402,6 +1402,18 @@ static partial class CSharpEmitter
 			return tied;
 		}
 		// </handed>
+		// <returned>
+
+		/// <summary>
+		/// The list of a reading that tied and went on to accept, given back to the thread for the next
+		/// reading: what it holds was recorded below where the reading got, and nobody reads it.
+		/// </summary>
+		private static void Returned_DotGram(global::System.Collections.Generic.List<string[]> ties)
+		{
+			ties.Clear();
+			_spareTies = ties;
+		}
+		// </returned>
 		""";
 
 	/// <summary>The reusable state owned by the automaton.</summary>

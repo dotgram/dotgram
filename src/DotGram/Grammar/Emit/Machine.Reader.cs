@@ -4810,8 +4810,21 @@ sealed partial class Machine
 
 					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
 					// there is wiped when the furthest refusal moves on.
-					using (code.Block(FromTheQuiet(body) ? $"if (!{open} && (failure.Quiet || p < failure.Doors))" : $"if (!{open} && failure.Quiet)"))
-						code.Line("break;");
+					// Read once (OnePass), the turn is not tried in any reading: the door says what
+					// it would have begun with.
+					if (machine.OnePass)
+					{
+						using (code.Block($"if (!{open})"))
+						{
+							SaidAtTheDoor(code, body);
+							code.Line("break;");
+						}
+					}
+					else
+					{
+						using (code.Block(FromTheQuiet(body) ? $"if (!{open} && (failure.Quiet || p < failure.Doors))" : $"if (!{open} && failure.Quiet)"))
+							code.Line("break;");
+					}
 
 					code.Line();
 				}
@@ -5064,7 +5077,21 @@ sealed partial class Machine
 				}
 
 				code.Line();
-				scopes.Push(code.Block(FromTheQuiet(body) ? $"if ({open} || (!failure.Quiet && p >= failure.Doors))" : $"if ({open} || !failure.Quiet)"));
+
+				// Read once (OnePass), the turn is not tried in any reading: the door says what it
+				// would have begun with.
+				if (machine.OnePass)
+				{
+					using (code.Block($"if (!{open})"))
+						SaidAtTheDoor(code, body);
+
+					code.Line();
+					scopes.Push(code.Block($"if ({open})"));
+				}
+				else
+				{
+					scopes.Push(code.Block(FromTheQuiet(body) ? $"if ({open} || (!failure.Quiet && p >= failure.Doors))" : $"if ({open} || !failure.Quiet)"));
+				}
 			}
 			else if (Door([body]) is { } closed)
 			{
@@ -5876,7 +5903,10 @@ sealed partial class Machine
 
 					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
 					// there is wiped when the furthest refusal moves on.
-					var shut = quietly && FromTheQuiet(body)
+					// Read once (OnePass), the turn is not tried in any reading: shut is shut.
+					var shut = quietly && machine.OnePass
+						? $"if (!{open})"
+						: quietly && FromTheQuiet(body)
 						? $"if (!{open} && (failure.Quiet || p < failure.Doors))"
 						: quietly
 						? $"if (!{open} && failure.Quiet)"
@@ -5896,6 +5926,14 @@ sealed partial class Machine
 							using (code.Block($"if ({turn} < {min})"))
 								Refused(code, machine.DeclareExpected(machine.Displays(body)), furthest: !quietly);
 
+							code.Line();
+						}
+
+						// Read once (OnePass), the loop ending at a shut door says what the turn
+						// would have begun with, as the reading that records said it by trying the turn.
+						if (quietly && machine.OnePass)
+						{
+							SaidAtTheDoor(code, body);
 							code.Line();
 						}
 
@@ -6851,6 +6889,19 @@ sealed partial class Machine
 			var asks = machine.Quiets && !(machine.KeepsDoors && furthest);
 
 			return asks ? "{ " + Refusal(expected, furthest) + " }" : Refusal(expected, furthest);
+		}
+
+		/// <summary>
+		/// What a turn behind a shut door would have begun with, recorded at the door where the
+		/// turn is tried in no reading (<see cref="Machine.OnePass"/>): the first set of the turn,
+		/// in place of what the turn tried would have said at its first item.
+		/// </summary>
+		void SaidAtTheDoor(Writer code, Node body)
+		{
+			var expected = machine.DeclareExpected(machine.Displays(body));
+
+			machine._expectedUsed.Add(expected);
+			code.Line(Refusal(expected));
 		}
 
 		/// <param name="furthest">
