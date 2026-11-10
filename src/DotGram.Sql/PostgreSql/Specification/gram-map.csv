@@ -457,7 +457,7 @@ vacuum_relation,1,VacuumRelation,
 vacuum_relation_list,2,VacuumRelations,
 opt_vacuum_relation_list,2,VacuumRelations,
 ExplainStmt,4,ExplainStmt,
-ExplainableStmt,10,ExplainStmt,the CREATE and REFRESH forms are tier 2
+ExplainableStmt,10,ExplainStmt,CREATE TABLE AS among them; CREATE MATERIALIZED VIEW and REFRESH are tier 2
 PrepareStmt,1,PrepareStmt,
 prep_type_clause,2,PrepareStmt,
 PreparableStmt,5,PreparableStmt,a SELECT or a data change statement as a common table expression's body

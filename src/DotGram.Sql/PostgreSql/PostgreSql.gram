@@ -1068,7 +1068,7 @@ ExplainStmt : @Statement
 	= "EXPLAIN"i & '(' & o1: UtilityOption & (',' & on: UtilityOption)* & ')' & ?=ExplainableStart & s: Stmt & when @(Nodes.Explainable(s)) => @(new Statement.Explain(Nodes.List(o1, on), s))
 	| "EXPLAIN"i & (a: AnalyzeWord & v: "VERBOSE"i? | v: "VERBOSE"i)? & ?=ExplainableStart & s: Stmt & when @(Nodes.Explainable(s)) => @(Nodes.Explained(a, v, s))
 
-ExplainableStart = "SELECT"i | "WITH"i | "VALUES"i | "TABLE"i | '(' | "INSERT"i | "UPDATE"i | "DELETE"i | "MERGE"i | "EXECUTE"i | "DECLARE"i
+ExplainableStart = "SELECT"i | "WITH"i | "VALUES"i | "TABLE"i | '(' | "INSERT"i | "UPDATE"i | "DELETE"i | "MERGE"i | "EXECUTE"i | "DECLARE"i | "CREATE"i
 PreparableStart  = "SELECT"i | "WITH"i | "VALUES"i | "TABLE"i | '(' | "INSERT"i | "UPDATE"i | "DELETE"i | "MERGE"i
 
 // gram.y utility_option_elem, utility_option_name, utility_option_arg: a name — any word but a
