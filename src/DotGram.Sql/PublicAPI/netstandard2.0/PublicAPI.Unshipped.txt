@@ -566,19 +566,6 @@ DotGram.Sql.PostgreSql.PostgreSqlParser.Outcome
 DotGram.Sql.PostgreSql.PostgreSqlParser.Outcome.NoMatch = 1 -> DotGram.Sql.PostgreSql.PostgreSqlParser.Outcome
 DotGram.Sql.PostgreSql.PostgreSqlParser.Outcome.Starved = 2 -> DotGram.Sql.PostgreSql.PostgreSqlParser.Outcome
 DotGram.Sql.PostgreSql.PostgreSqlParser.Outcome.Success = 0 -> DotGram.Sql.PostgreSql.PostgreSqlParser.Outcome
-DotGram.Sql.PostgreSql.PostgreSqlParser.ParserInput<T>
-DotGram.Sql.PostgreSql.PostgreSqlParser.ParserInput<T>.Ensure(int position, int length) -> bool
-DotGram.Sql.PostgreSql.PostgreSqlParser.ParserInput<T>.ParserInput() -> void
-DotGram.Sql.PostgreSql.PostgreSqlParser.ParserInput<T>.Peek(int position, out T value) -> bool
-DotGram.Sql.PostgreSql.PostgreSqlParser.ParserInput<T>.Slice(int position, int length) -> System.ReadOnlySpan<T>
-DotGram.Sql.PostgreSql.PostgreSqlParser.ParserInput<T>.TryAdvance(ref int position, int length) -> bool
-DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan
-DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.End.get -> int
-DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.Length.get -> int
-DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.On(System.ReadOnlySpan<char> text) -> System.ReadOnlySpan<char>
-DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.SourceSpan() -> void
-DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.SourceSpan(int start, int length) -> void
-DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.Start.get -> int
 abstract DotGram.Sql.Ast.ConflictResolution.<Clone>$() -> DotGram.Sql.Ast.ConflictResolution!
 abstract DotGram.Sql.Ast.ConflictTarget.<Clone>$() -> DotGram.Sql.Ast.ConflictTarget!
 abstract DotGram.Sql.Ast.QuantifiedOperator.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator!
@@ -752,7 +739,6 @@ override DotGram.Sql.Ast.TransactionMode.Deferrable.ToString() -> string!
 override DotGram.Sql.Ast.VacuumRelation.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.VacuumRelation.GetHashCode() -> int
 override DotGram.Sql.Ast.VacuumRelation.ToString() -> string!
-override DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.ToString() -> string!
 override sealed DotGram.Sql.Ast.ConflictResolution.Nothing.Equals(DotGram.Sql.Ast.ConflictResolution? other) -> bool
 override sealed DotGram.Sql.Ast.ConflictResolution.Update.Equals(DotGram.Sql.Ast.ConflictResolution? other) -> bool
 override sealed DotGram.Sql.Ast.ConflictTarget.Columns.Equals(DotGram.Sql.Ast.ConflictTarget? other) -> bool
@@ -882,7 +868,6 @@ static DotGram.Sql.Ast.VacuumRelation.operator ==(DotGram.Sql.Ast.VacuumRelation
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseExpression(string! input) -> DotGram.Sql.Ast.Expression!
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseSql(string! input) -> DotGram.Sql.Ast.Statement![]!
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseStatement(string! input) -> DotGram.Sql.Ast.Statement!
-static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseExpression(string! input) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Expression!>
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseExpression(string! input, int at) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Expression!>
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseExpression(string! input, int at, int length) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Expression!>
@@ -904,7 +889,6 @@ static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseStatement(string!
 static DotGram.Sql.PostgreSql.PostgreSqlParser.ParseExpression(string! input) -> DotGram.Sql.Ast.Expression!
 static DotGram.Sql.PostgreSql.PostgreSqlParser.ParseSql(string! input) -> DotGram.Sql.Ast.Statement![]!
 static DotGram.Sql.PostgreSql.PostgreSqlParser.ParseStatement(string! input) -> DotGram.Sql.Ast.Statement!
-static DotGram.Sql.PostgreSql.PostgreSqlParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseExpression(string! input) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Expression!>
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseExpression(string! input, int at) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Expression!>
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseExpression(string! input, int at, int length) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Expression!>
