@@ -673,7 +673,7 @@ public abstract partial record Query : ISqlNode
 		if (OrderBy is not null || Limit is not null || For is not null || Locking.Count > 0)
 			return new Parenthesized(this) { SetOperations = [operation] };
 
-		return this with { SetOperations = [.. SetOperations, operation] };
+		return this with { SetOperations = SetOperations.Appended(operation) };
 	}
 }
 

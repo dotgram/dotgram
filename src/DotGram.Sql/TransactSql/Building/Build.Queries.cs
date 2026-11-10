@@ -152,7 +152,8 @@ static partial class Build
 				if (first.OrderBy is not null || first.Limit is not null || first.For is not null)
 					throw BuildGap.Open(parts.left, "inventory Query.Union (a left operand with an order of its own and no brackets)");
 
-				return first with { SetOperations = [.. first.SetOperations, new Ast.SetOperation(parts.op, QueryOf(parts.right))] };
+				// Appended, not copied: the fold hands every step the list of the one before (SqlList.Appended).
+				return first with { SetOperations = first.SetOperations.Appended(new Ast.SetOperation(parts.op, QueryOf(parts.right))) };
 			}, out var made, out var gap);
 
 			var facts = (Rules.Cursorable(left) && Rules.Cursorable(right) ? Query.Built.Facts.Cursorable : Query.Built.Facts.None)

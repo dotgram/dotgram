@@ -1289,7 +1289,13 @@ static class Nodes
 		if (first.SetOperations.Count == 0)
 			return first with { SetOperations = SqlList.Own(rest) };
 
-		return first with { SetOperations = [.. first.SetOperations, .. rest] };
+		var operations = first.SetOperations;
+
+		// Appended, not copied: the fold hands every step the list of the one before (SqlList.Appended).
+		foreach (var operation in rest)
+			operations = operations.Appended(operation);
+
+		return first with { SetOperations = operations };
 	}
 
 	/// <summary>One `UNION`, `EXCEPT` or `INTERSECT`, its quantifier and correspondence, and the operand after it.</summary>

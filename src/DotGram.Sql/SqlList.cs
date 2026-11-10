@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 namespace DotGram.Sql;
 
@@ -38,9 +39,10 @@ namespace DotGram.Sql;
 [CollectionBuilder(typeof(SqlList), nameof(SqlList.Create))]
 public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 {
-	// Null is the empty list, a T[] holds the elements, and anything else is the one element of a list of
-	// one. Only an element of a reference type that is not itself an array is held so: an array element
-	// would read as the list's array, and a value would be boxed.
+	// Null is the empty list, a T[] holds the elements, a Run holds the first elements of a buffer a list
+	// was appended into (Appended), and anything else is the one element of a list of one. Only an element
+	// of a reference type that is not itself an array or a run is held so: an array element would read as
+	// the list's array, and a value would be boxed.
 	readonly object? _items;
 
 	/// <summary>Takes the array as it is; the caller hands it over and keeps no other reference.</summary>
@@ -54,6 +56,56 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 		_items = one;
 	}
 
+	/// <summary>This list with <paramref name="item"/> after its last element, in amortized constant time.</summary>
+	/// <remarks>
+	/// <para>
+	/// What a left fold appends with. <c>A UNION B UNION C …</c> is read one operator at a time, and each
+	/// step is the list of the step before with one operation more: copied every time, n operators copied
+	/// the square of n elements — 2 GB for a chain of sixteen thousand, refused or not.
+	/// </para>
+	/// <para>
+	/// So the elements go into a buffer with room to spare, and the list is the buffer's first
+	/// <c>Count</c> elements. Appending to the list that ends where the buffer's filled part does writes
+	/// the next slot and hands back a list one longer over the same buffer; the shorter list still reads
+	/// only the slots it had, which nothing writes again. Appending to any other list — one a later
+	/// append has already gone past, as a reading given up and read again can do — copies, as before.
+	/// </para>
+	/// </remarks>
+	internal SqlList<T> Appended(T item)
+	{
+		if (_items is Run run && run.Count < run.Buffer.Items.Length &&
+			Interlocked.CompareExchange(ref run.Buffer.Used, run.Count + 1, run.Count) == run.Count)
+		{
+			run.Buffer.Items[run.Count] = item;
+
+			return new SqlList<T>(new Run(run.Buffer, run.Count + 1));
+		}
+
+		var count = Count;
+		var items = new T[Math.Max(4, count * 2)];
+
+		AsSpan().CopyTo(items);
+		items[count] = item;
+
+		return new SqlList<T>(new Run(new Buffer(items, count + 1), count + 1));
+	}
+
+	/// <summary>A buffer lists are appended into, and how many of its slots are written.</summary>
+	sealed class Buffer(T[] items, int used)
+	{
+		public readonly T[] Items = items;
+		public int          Used  = used;
+	}
+
+	/// <summary>A list that is the first <see cref="Count"/> elements of a <see cref="Buffer"/>.</summary>
+	sealed class Run(Buffer buffer, int count) : IRun
+	{
+		public readonly Buffer Buffer = buffer;
+		public readonly int    Count  = count;
+
+		public ReadOnlySpan<T> Span => new(Buffer.Items, 0, Count);
+	}
+
 	/// <summary>A list of <paramref name="item"/> alone, held without an array where it can be.</summary>
 	internal static SqlList<T> Of(T item)
 	{
@@ -63,7 +115,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	/// <summary>The element as a list of one holds it, or null where it needs an array.</summary>
 	static object? Alone(T item)
 	{
-		return !typeof(T).IsValueType && item is not null and not Array ? item : null;
+		return !typeof(T).IsValueType && item is not null and not Array and not IRun ? item : null;
 	}
 
 	/// <summary>The elements as an array: the list's own, or a new one for a list of one.</summary>
@@ -71,6 +123,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	{
 		null      => Array.Empty<T>(),
 		T[] items => items,
+		Run run   => run.Span.ToArray(),
 		var one   => new[] { (T)one },
 	};
 
@@ -79,6 +132,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 	{
 		null      => 0,
 		T[] items => items.Length,
+		Run run   => run.Count,
 		_         => 1,
 	};
 
@@ -96,6 +150,9 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 		{
 			if (_items is T[] items)
 				return items[index];
+
+			if (_items is Run run)
+				return (uint)index < (uint)run.Count ? run.Buffer.Items[index] : throw new IndexOutOfRangeException();
 
 			if (_items is null || index != 0)
 				throw new IndexOutOfRangeException();
@@ -117,6 +174,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 		{
 			null      => default,
 			T[] items => items,
+			Run run   => run.Span,
 			var one   => new[] { (T)one },
 		};
 	}
@@ -134,7 +192,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 			return Of(this[start]);
 
 		// A span read only, which takes an array of a type derived from T as it is; a writable one would refuse it.
-		return new SqlList<T>(new ReadOnlySpan<T>((T[])_items!, start, length).ToArray());
+		return new SqlList<T>(AsSpan().Slice(start, length).ToArray());
 	}
 
 	/// <summary>Whether any element matches <paramref name="match"/>, as <see cref="Array.Exists{T}(T[], Predicate{T})"/> asks of an array.</summary>
@@ -170,6 +228,7 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 		{
 			null      => Array.Empty<T>(),
 			T[] items => ((ReadOnlySpan<T>)items).ToArray(),
+			Run run   => run.Span.ToArray(),
 			var one   => new[] { (T)one },
 		};
 	}
@@ -351,6 +410,9 @@ public static class SqlList
 		return items is null ? null : new SqlList<T>(items);
 	}
 }
+
+/// <summary>What a <see cref="SqlList{T}"/> holds a run of a buffer in, told from an element by this alone.</summary>
+interface IRun;
 
 /// <summary>
 /// The hash a list combines its elements with: ordered, the length in it, the same on every

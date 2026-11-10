@@ -91,6 +91,41 @@ public sealed class SqlRefusalAllocationTests
 	}
 
 	/// <summary>
+	/// A chain of set operators, accepted or cut short, allocates what its branches need. Each operator
+	/// was the list of the ones before it copied with one more: 17 KB a branch at 2,048 branches and twice
+	/// that at every doubling, 2.1 GB at 16,384 — accepted texts as much as refused ones.
+	/// </summary>
+	[Theory]
+	[InlineData("UNION")]
+	[InlineData("UNION ALL")]
+	[InlineData("INTERSECT")]
+	[InlineData("EXCEPT")]
+	public void A_set_operator_chain_allocates_about_as_many_bytes_a_branch_at_every_size(string op)
+	{
+		AssertLinear($"SQL-92, {op}", Chains, size => Combined(op, size), static text => Sql92Parser.TryParseSelect(text).IsSuccess);
+		AssertLinear($"SQL-92, {op}, cut", Chains, size => Combined(op, size) + " " + op + " SELECT", static text => Sql92Parser.TryParseSelect(text).IsSuccess);
+		AssertLinear($"SQL-92, {op}, in a subquery", Chains, size => Selected("a IN (" + Combined(op, size) + ")"), static text => Sql92Parser.TryParseSelect(text).IsSuccess);
+		AssertLinear($"T-SQL, {op}", Chains, size => Combined(op, size), static text => TransactSqlParser.TryParseStatement(text).IsSuccess);
+		AssertLinear($"T-SQL, {op}, cut", Chains, size => Combined(op, size) + " " + op + " SELECT", static text => TransactSqlParser.TryParseStatement(text).IsSuccess);
+		AssertLinear($"T-SQL, {op}, in a subquery", Chains, size => Selected("a IN (" + Combined(op, size) + ")"), static text => TransactSqlParser.TryParseStatement(text).IsSuccess);
+	}
+
+	[Fact]
+	public void A_set_operator_chain_still_reads_as_it_did()
+	{
+		Assert.True(Sql92Parser.TryParseSelect(Combined("UNION", 1024)).IsSuccess);
+		Assert.True(TransactSqlParser.TryParseStatement(Combined("UNION ALL", 1024)).IsSuccess);
+		Assert.False(Sql92Parser.TryParseSelect(Combined("EXCEPT", 1024) + " EXCEPT SELECT").IsSuccess);
+		Assert.False(TransactSqlParser.TryParseStatement(Combined("INTERSECT", 1024) + " INTERSECT SELECT").IsSuccess);
+	}
+
+	/// <summary><paramref name="branches"/> queries joined by <paramref name="op"/>.</summary>
+	static string Combined(string op, int branches)
+	{
+		return string.Join(" " + op + " ", Enumerable.Range(0, branches).Select(static i => "SELECT a" + i + " FROM t"));
+	}
+
+	/// <summary>
 	/// Asserts bytes an element grow by no more than <see cref="Tolerance"/> at every doubling in
 	/// <paramref name="sizes"/>: a square doubles them at each of the three steps.
 	/// </summary>
