@@ -6425,7 +6425,18 @@ file.Line("return spare;");
 				}
 
 				file.Line();
-				file.Line($"return {read}({text}, at, ref failure, out {type} value{input}) < 0 ? default! : value;");
+
+				// The lexer read the token as this rule: a reading again that refuses it is the two readings
+				// disagreeing — a guard that answers otherwise by now (GRAM5019) — and not a value to make up.
+				using (file.Block($"if ({read}({text}, at, ref failure, out {type} value{input}) < 0)"))
+					file.Line(
+						"throw new global::System.InvalidOperationException(" +
+						$"\"The {rule.Name} token read at \" + " +
+						"at.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + " +
+						"\" was refused when read again for its value: a check in it answered otherwise by then.\");");
+
+				file.Line();
+				file.Line("return value;");
 			}
 
 			file.Line();

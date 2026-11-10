@@ -3342,7 +3342,12 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure { Quiet = true };
 
-				return Reread_DotGram_Token_Heredoc(global::System.MemoryExtensions.AsSpan(source, 0, at + length), at, ref failure, out string value) < 0 ? default! : value;
+				if (Reread_DotGram_Token_Heredoc(global::System.MemoryExtensions.AsSpan(source, 0, at + length), at, ref failure, out string value) < 0)
+				{
+					throw new global::System.InvalidOperationException("The Heredoc token read at " + at.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + " was refused when read again for its value: a check in it answered otherwise by then.");
+				}
+
+				return value;
 			}
 
 			static int Measure_DotGram_Token_Raw(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)

@@ -511,20 +511,31 @@ public sealed class LexicalContextTests
 
 	/// <summary>
 	/// A guard of a terminal built from its token that names the context is asked again where the value is built, against
-	/// the context as the syntax has written it by then: what §7.1 says comes of it — the value is null, or another
-	/// alternative's — held here so that a change to it is a decision rather than an accident.
+	/// the context as the syntax has written it by then: the generator warns of it (GRAM5019), and where the guard now
+	/// refuses the token the parse throws, naming the terminal and where its token stood; where another alternative
+	/// takes it, the value is that alternative's (§7.1). A terminal whose value is its token's own text is not read
+	/// again: its guard runs once, the value is the token, and nothing is said.
 	/// </summary>
+	/// <remarks>
+	/// Not said either where no guard of a terminal read again names the context: every other test here builds its
+	/// grammar refusing any warning, a context named only by a construction among them.
+	/// </remarks>
 	[Theory]
-	[InlineData("Tape",      false)]
-	[InlineData("Immediate", false)]
-	[InlineData("Tape",      true)]
-	[InlineData("Immediate", true)]
-	public void A_guard_asked_again_where_the_value_is_built_sees_the_context_as_written(string carrier, bool other)
+	[InlineData("Tape",      "refused")]
+	[InlineData("Immediate", "refused")]
+	[InlineData("Tape",      "other")]
+	[InlineData("Immediate", "other")]
+	[InlineData("Tape",      "verbatim")]
+	[InlineData("Immediate", "verbatim")]
+	public void A_guard_asked_again_where_the_value_is_built_sees_the_context_as_written(string carrier, string shape)
 	{
-		var terminal = other
-			? "Num : @string = { d: (['0'..'9'] & ['0'..'9']*) & when @(context.Ok) | e: (['0'..'9'] & ['0'..'9']*) } => @(d != null ? \"guarded:\" + d : \"other:\" + e)"
-			: "Num : @string = { d: ['0'..'9'] & ['0'..'9']* & when @(context.Ok) } => @(d)";
-		var assembly = GeneratorDriverTests.Build($$""""
+		var terminal = shape switch
+		{
+			"refused"  => "Num : @string = { d: ['0'..'9'] & ['0'..'9']* & when @(context.Ok) } => @(d)",
+			"other"    => "Num : @string = { d: (['0'..'9'] & ['0'..'9']*) & when @(context.Ok) | e: (['0'..'9'] & ['0'..'9']*) } => @(d != null ? \"guarded:\" + d : \"other:\" + e)",
+			_          => "Num : @string = { d: (['0'..'9'] & ['0'..'9']*) & when @(context.Ok) } => @(d)",
+		};
+		var source   = $$""""
 			using DotGram;
 
 			namespace LexicalWritten
@@ -562,7 +573,15 @@ public sealed class LexicalContextTests
 				{
 				}
 			}
-			"""", "GRAM5012");
+			"""";
+		var warned   = GeneratorDriverTests.RunGenerator(source).Diagnostics.Where(static one => one.Id == "GRAM5019").ToArray();
+
+		if (shape == "verbatim")
+			Assert.Empty(warned);
+		else
+			Assert.Contains("'Num' is read again from its token", Assert.Single(warned).GetMessage(), StringComparison.Ordinal);
+
+		var assembly = GeneratorDriverTests.Build(source, "GRAM5019");
 		var host     = assembly.GetType("LexicalWritten.P")!;
 		var context  = assembly.GetType("LexicalWritten.Ctx")!;
 		var parse    = host.GetMethods(BindingFlags.Public | BindingFlags.Static).Single(static one =>
@@ -570,8 +589,18 @@ public sealed class LexicalContextTests
 
 		object?[] arguments = ["go 12", Activator.CreateInstance(context)!, null];
 
+		if (shape == "refused")
+		{
+			var thrown = Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, arguments));
+			var inner  = Assert.IsType<InvalidOperationException>(thrown.InnerException);
+
+			Assert.Contains("Num token read at 3", inner.Message, StringComparison.Ordinal);
+
+			return;
+		}
+
 		Assert.True((bool)parse.Invoke(null, arguments)!);
-		Assert.Equal(other ? "other:12" : "null", arguments[2]);
+		Assert.Equal(shape == "other" ? "other:12" : "12", arguments[2]);
 	}
 
 	/// <summary>What a door reads of the whole input under a context, and where it was told it was; null on a refusal.</summary>
