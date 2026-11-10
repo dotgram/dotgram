@@ -1,0 +1,583 @@
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http://example.com/TheBook/chapter2>; rel="previous"; title="previous chapter" | same
+"<" | Starved at 1: Expected ['\u0000'..'￿']. | same
+"<htt" | Starved at 4: Expected '>'. | same
+"<http:/" | Starved at 7: Expected '>'. | same
+"<http://ex" | Starved at 10: Expected '>'. | same
+"<http://examp" | Starved at 13: Expected '>'. | same
+"<http://example." | Starved at 16: Expected '>'. | same
+"<http://example.com" | Starved at 19: Expected '>'. | same
+"<http://example.com/Th" | Starved at 22: Expected '>'. | same
+"<http://example.com/TheBo" | Starved at 25: Expected '>'. | same
+"<http://example.com/TheBook/" | Starved at 28: Expected '>'. | same
+"<http://example.com/TheBook/cha" | Starved at 31: Expected '>'. | same
+"<http://example.com/TheBook/chapte" | Starved at 34: Expected '>'. | same
+"<http://example.com/TheBook/chapter2>" | accepted <http://example.com/TheBook/chapter2> | same
+"<http://example.com/TheBook/chapter2>; r" | accepted <http://example.com/TheBook/chapter2>; r="" | same
+"<http://example.com/TheBook/chapter2>; rel=" | Starved at 43: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<http://example.com/TheBook/chapter2>; rel=\"pr" | Starved at 46: Expected '"'. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previ" | Starved at 49: Expected '"'. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous" | Starved at 52: Expected '"'. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; " | Starved at 55: Expected Tchar. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; tit" | accepted <http://example.com/TheBook/chapter2>; rel="previous"; tit="" | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=" | Starved at 61: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"pr" | Starved at 64: Expected '"'. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previ" | Starved at 67: Expected '"'. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous" | Starved at 70: Expected '"'. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous ch" | Starved at 73: Expected '"'. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous chapt" | Starved at 76: Expected '"'. | same
+"http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous chapter\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<http//example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http//example.com/TheBook/chapter2>; rel="previous"; title="previous chapter" | same
+"<http://exmple.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http://exmple.com/TheBook/chapter2>; rel="previous"; title="previous chapter" | same
+"<http://examplecom/TheBook/chapter2>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http://examplecom/TheBook/chapter2>; rel="previous"; title="previous chapter" | same
+"<http://example.com/heBook/chapter2>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http://example.com/heBook/chapter2>; rel="previous"; title="previous chapter" | same
+"<http://example.com/TheBok/chapter2>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http://example.com/TheBok/chapter2>; rel="previous"; title="previous chapter" | same
+"<http://example.com/TheBook/chpter2>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http://example.com/TheBook/chpter2>; rel="previous"; title="previous chapter" | same
+"<http://example.com/TheBook/chapter>; rel=\"previous\"; title=\"previous chapter\"" | accepted <http://example.com/TheBook/chapter>; rel="previous"; title="previous chapter" | same
+"<http://example.com/TheBook/chapter2>; rl=\"previous\"; title=\"previous chapter\"" | accepted <http://example.com/TheBook/chapter2>; rl="previous"; title="previous chapter" | same
+"<http://example.com/TheBook/chapter2>; rel=\"pevious\"; title=\"previous chapter\"" | accepted <http://example.com/TheBook/chapter2>; rel="pevious"; title="previous chapter" | same
+"<http://example.com/TheBook/chapter2>; rel=\"previos\"; title=\"previous chapter\"" | accepted <http://example.com/TheBook/chapter2>; rel="previos"; title="previous chapter" | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; itle=\"previous chapter\"" | accepted <http://example.com/TheBook/chapter2>; rel="previous"; itle="previous chapter" | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title\"previous chapter\"" | NoMatch at 60: Expected '=', ';', ',' or end of input. | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"preious chapter\"" | accepted <http://example.com/TheBook/chapter2>; rel="previous"; title="preious chapter" | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previouschapter\"" | accepted <http://example.com/TheBook/chapter2>; rel="previous"; title="previouschapter" | same
+"<http://example.com/TheBook/chapter2>; rel=\"previous\"; title=\"previous chaper\"" | accepted <http://example.com/TheBook/chapter2>; rel="previous"; title="previous chaper" | same
+"</>; rel=\"http://example.net/foo\"" | accepted </>; rel="http://example.net/foo" | same
+"</>;" | Starved at 4: Expected Tchar. | same
+"</>; re" | accepted </>; re="" | same
+"</>; rel=\"" | Starved at 10: Expected '"'. | same
+"</>; rel=\"htt" | Starved at 13: Expected '"'. | same
+"</>; rel=\"http:/" | Starved at 16: Expected '"'. | same
+"</>; rel=\"http://ex" | Starved at 19: Expected '"'. | same
+"</>; rel=\"http://examp" | Starved at 22: Expected '"'. | same
+"</>; rel=\"http://example." | Starved at 25: Expected '"'. | same
+"</>; rel=\"http://example.net" | Starved at 28: Expected '"'. | same
+"</>; rel=\"http://example.net/fo" | Starved at 31: Expected '"'. | same
+"/>; rel=\"http://example.net/foo\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"</>; el=\"http://example.net/foo\"" | accepted </>; el="http://example.net/foo" | same
+"</>; rel=\"ttp://example.net/foo\"" | accepted </>; rel="ttp://example.net/foo" | same
+"</>; rel=\"http:/example.net/foo\"" | accepted </>; rel="http:/example.net/foo" | same
+"</>; rel=\"http://exaple.net/foo\"" | accepted </>; rel="http://exaple.net/foo" | same
+"</>; rel=\"http://example.et/foo\"" | accepted </>; rel="http://example.et/foo" | same
+"</>; rel=\"http://example.net/fo\"" | accepted </>; rel="http://example.net/fo" | same
+"</terms>; rel=\"copyright\"; anchor=\"#foo\"" | accepted </terms>; rel="copyright"; anchor="#foo" | same
+"</te" | Starved at 4: Expected '>'. | same
+"</terms" | Starved at 7: Expected '>'. | same
+"</terms>; " | Starved at 10: Expected Tchar. | same
+"</terms>; rel" | Starved at 13: Expected '=' or ';'. | same
+"</terms>; rel=\"c" | Starved at 16: Expected '"'. | same
+"</terms>; rel=\"copy" | Starved at 19: Expected '"'. | same
+"</terms>; rel=\"copyrig" | Starved at 22: Expected '"'. | same
+"</terms>; rel=\"copyright\"" | accepted </terms>; rel="copyright" | same
+"</terms>; rel=\"copyright\"; a" | accepted </terms>; rel="copyright"; a="" | same
+"</terms>; rel=\"copyright\"; anch" | accepted </terms>; rel="copyright"; anch="" | same
+"</terms>; rel=\"copyright\"; anchor=" | Starved at 34: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"</terms>; rel=\"copyright\"; anchor=\"#f" | Starved at 37: Expected '"'. | same
+"/terms>; rel=\"copyright\"; anchor=\"#foo\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"</ters>; rel=\"copyright\"; anchor=\"#foo\"" | accepted </ters>; rel="copyright"; anchor="#foo" | same
+"</terms>; el=\"copyright\"; anchor=\"#foo\"" | accepted </terms>; el="copyright"; anchor="#foo" | same
+"</terms>; rel=\"opyright\"; anchor=\"#foo\"" | accepted </terms>; rel="opyright"; anchor="#foo" | same
+"</terms>; rel=\"copyrght\"; anchor=\"#foo\"" | accepted </terms>; rel="copyrght"; anchor="#foo" | same
+"</terms>; rel=\"copyright\" anchor=\"#foo\"" | NoMatch at 26: Expected ';', ',' or end of input. | same
+"</terms>; rel=\"copyright\"; ancor=\"#foo\"" | accepted </terms>; rel="copyright"; ancor="#foo" | same
+"</terms>; rel=\"copyright\"; anchor=\"foo\"" | accepted </terms>; rel="copyright"; anchor="foo" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</Th" | Starved at 4: Expected '>'. | same
+"</TheBo" | Starved at 7: Expected '>'. | same
+"</TheBook/" | Starved at 10: Expected '>'. | same
+"</TheBook/cha" | Starved at 13: Expected '>'. | same
+"</TheBook/chapte" | Starved at 16: Expected '>'. | same
+"</TheBook/chapter2>" | accepted </TheBook/chapter2> | same
+"</TheBook/chapter2>; r" | accepted </TheBook/chapter2>; r="" | same
+"</TheBook/chapter2>; rel=" | Starved at 25: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"</TheBook/chapter2>; rel=\"pr" | Starved at 28: Expected '"'. | same
+"</TheBook/chapter2>; rel=\"previ" | Starved at 31: Expected '"'. | same
+"</TheBook/chapter2>; rel=\"previous" | Starved at 34: Expected '"'. | same
+"</TheBook/chapter2>; rel=\"previous\"; " | Starved at 37: Expected Tchar. | same
+"</TheBook/chapter2>; rel=\"previous\"; tit" | accepted </TheBook/chapter2>; rel="previous"; tit="" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*" | accepted </TheBook/chapter2>; rel="previous"; title*="" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UT" | accepted </TheBook/chapter2>; rel="previous"; title*="UT" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'le" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'le" {UTF-8'de'"le"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letzt" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letzt" {UTF-8'de'"letzt"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20K" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20K" {UTF-8'de'"letztes K"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapi" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapi" {UTF-8'de'"letztes Kapi"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, <" | Starved at 73: Expected ['\u0000'..'￿']. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </Th" | Starved at 76: Expected '>'. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBo" | Starved at 79: Expected '>'. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/" | Starved at 82: Expected '>'. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/cha" | Starved at 85: Expected '>'. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapte" | Starved at 88: Expected '>'. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4> | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; r" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; r="" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=" | Starved at 97: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"ne" | Starved at 100: Expected '"'. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; t" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; t="" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; titl" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; titl="" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=" | Starved at 112: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'" {UTF-8'de'""} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4ch" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4ch" {UTF-8'de'"n\u00E4ch"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chste" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chste" {UTF-8'de'"n\u00E4chste"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%2" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%2" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Ka" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Ka" {UTF-8'de'"n\u00E4chstes Ka"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapit" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapit" {UTF-8'de'"n\u00E4chstes Kapit"} | same
+"/TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"</Theook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </Theook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/hapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/hapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chaptr2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chaptr2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>;rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | NoMatch at 33: Expected ';', ',' or end of input. | same
+"</TheBook/chapter2>; rel=\"prevous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="prevous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\" title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | NoMatch at 36: Expected ';', ',' or end of input. | same
+"</TheBook/chapter2>; rel=\"previous\"; tite*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; tite*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UF-8'de'letztes%20Kapitel" {UF-8'de'null}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'e'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'e'letztes%20Kapitel", </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'leztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'leztes%20Kapitel" {UTF-8'de'"leztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes20Kapitel" {UTF-8'de'"letztes20Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kaitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kaitel" {UTF-8'de'"letztes Kaitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | NoMatch at 71: Expected ';', ',' or end of input. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TeBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TeBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBoo/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBoo/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chater4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chater4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | Starved at 143: Expected more input. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; re=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; re="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"net\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="net"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; itle*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; itle*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title="UTF-8'de'n%c3%a4chstes%20Kapitel" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF8'de'n%c3%a4chstes%20Kapitel" {UTF8'de'null} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'den%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'den%c3%a4chstes%20Kapitel" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3a4chstes%20Kapitel" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chtes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chtes%20Kapitel" {UTF-8'de'"n\u00E4chtes Kapitel"} | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%0Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%0Kapitel" | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kaptel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kaptel" {UTF-8'de'"n\u00E4chstes Kaptel"} | same
+"<http://example.org/>; rel=\"start http://example.net/relation/other\"" | accepted <http://example.org/>; rel="start http://example.net/relation/other" | same
+"<http://example.org" | Starved at 19: Expected '>'. | same
+"<http://example.org/>;" | Starved at 22: Expected Tchar. | same
+"<http://example.org/>; re" | accepted <http://example.org/>; re="" | same
+"<http://example.org/>; rel=\"" | Starved at 28: Expected '"'. | same
+"<http://example.org/>; rel=\"sta" | Starved at 31: Expected '"'. | same
+"<http://example.org/>; rel=\"start " | Starved at 34: Expected '"'. | same
+"<http://example.org/>; rel=\"start htt" | Starved at 37: Expected '"'. | same
+"<http://example.org/>; rel=\"start http:/" | Starved at 40: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://ex" | Starved at 43: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://examp" | Starved at 46: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://example." | Starved at 49: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://example.net" | Starved at 52: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://example.net/re" | Starved at 55: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://example.net/relat" | Starved at 58: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://example.net/relation" | Starved at 61: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://example.net/relation/ot" | Starved at 64: Expected '"'. | same
+"<http://example.org/>; rel=\"start http://example.net/relation/other" | Starved at 67: Expected '"'. | same
+"http://example.org/>; rel=\"start http://example.net/relation/other\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<http//example.org/>; rel=\"start http://example.net/relation/other\"" | accepted <http//example.org/>; rel="start http://example.net/relation/other" | same
+"<http://exmple.org/>; rel=\"start http://example.net/relation/other\"" | accepted <http://exmple.org/>; rel="start http://example.net/relation/other" | same
+"<http://exampleorg/>; rel=\"start http://example.net/relation/other\"" | accepted <http://exampleorg/>; rel="start http://example.net/relation/other" | same
+"<http://example.org/; rel=\"start http://example.net/relation/other\"" | Starved at 67: Expected more input. | same
+"<http://example.org/>; re=\"start http://example.net/relation/other\"" | accepted <http://example.org/>; re="start http://example.net/relation/other" | same
+"<http://example.org/>; rel=\"strt http://example.net/relation/other\"" | accepted <http://example.org/>; rel="strt http://example.net/relation/other" | same
+"<http://example.org/>; rel=\"start htp://example.net/relation/other\"" | accepted <http://example.org/>; rel="start htp://example.net/relation/other" | same
+"<http://example.org/>; rel=\"start http:/example.net/relation/other\"" | accepted <http://example.org/>; rel="start http:/example.net/relation/other" | same
+"<http://example.org/>; rel=\"start http://examle.net/relation/other\"" | accepted <http://example.org/>; rel="start http://examle.net/relation/other" | same
+"<http://example.org/>; rel=\"start http://example.nt/relation/other\"" | accepted <http://example.org/>; rel="start http://example.nt/relation/other" | same
+"<http://example.org/>; rel=\"start http://example.net/reation/other\"" | accepted <http://example.org/>; rel="start http://example.net/reation/other" | same
+"<http://example.org/>; rel=\"start http://example.net/relatio/other\"" | accepted <http://example.org/>; rel="start http://example.net/relatio/other" | same
+"<http://example.org/>; rel=\"start http://example.net/relation/othr\"" | accepted <http://example.org/>; rel="start http://example.net/relation/othr" | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>; rel=\"index\"" | accepted <https://example.org/>; rel="start", <https://example.org/index>; rel="index" | same
+"<https:" | Starved at 7: Expected '>'. | same
+"<https://e" | Starved at 10: Expected '>'. | same
+"<https://exam" | Starved at 13: Expected '>'. | same
+"<https://example" | Starved at 16: Expected '>'. | same
+"<https://example.or" | Starved at 19: Expected '>'. | same
+"<https://example.org/>" | accepted <https://example.org/> | same
+"<https://example.org/>; r" | accepted <https://example.org/>; r="" | same
+"<https://example.org/>; rel=" | Starved at 28: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<https://example.org/>; rel=\"st" | Starved at 31: Expected '"'. | same
+"<https://example.org/>; rel=\"start" | Starved at 34: Expected '"'. | same
+"<https://example.org/>; rel=\"start\", " | accepted <https://example.org/>; rel="start" | same
+"<https://example.org/>; rel=\"start\", <ht" | Starved at 40: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https" | Starved at 43: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https://" | Starved at 46: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https://exa" | Starved at 49: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https://exampl" | Starved at 52: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https://example.o" | Starved at 55: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https://example.org/" | Starved at 58: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https://example.org/ind" | Starved at 61: Expected '>'. | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>" | accepted <https://example.org/>; rel="start", <https://example.org/index> | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>; r" | accepted <https://example.org/>; rel="start", <https://example.org/index>; r="" | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>; rel=" | Starved at 70: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>; rel=\"in" | Starved at 73: Expected '"'. | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>; rel=\"index" | Starved at 76: Expected '"'. | same
+"https://example.org/>; rel=\"start\", <https://example.org/index>; rel=\"index\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<http://example.org/>; rel=\"start\", <https://example.org/index>; rel=\"index\"" | accepted <http://example.org/>; rel="start", <https://example.org/index>; rel="index" | same
+"<https://eample.org/>; rel=\"start\", <https://example.org/index>; rel=\"index\"" | accepted <https://eample.org/>; rel="start", <https://example.org/index>; rel="index" | same
+"<https://exampl.org/>; rel=\"start\", <https://example.org/index>; rel=\"index\"" | accepted <https://exampl.org/>; rel="start", <https://example.org/index>; rel="index" | same
+"<https://example.org>; rel=\"start\", <https://example.org/index>; rel=\"index\"" | accepted <https://example.org>; rel="start", <https://example.org/index>; rel="index" | same
+"<https://example.org/>; rl=\"start\", <https://example.org/index>; rel=\"index\"" | accepted <https://example.org/>; rl="start", <https://example.org/index>; rel="index" | same
+"<https://example.org/>; rel=\"sart\", <https://example.org/index>; rel=\"index\"" | accepted <https://example.org/>; rel="sart", <https://example.org/index>; rel="index" | same
+"<https://example.org/>; rel=\"start\" <https://example.org/index>; rel=\"index\"" | NoMatch at 36: Expected ';', ',' or end of input. | same
+"<https://example.org/>; rel=\"start\", <htps://example.org/index>; rel=\"index\"" | accepted <https://example.org/>; rel="start", <htps://example.org/index>; rel="index" | same
+"<https://example.org/>; rel=\"start\", <https:/example.org/index>; rel=\"index\"" | accepted <https://example.org/>; rel="start", <https:/example.org/index>; rel="index" | same
+"<https://example.org/>; rel=\"start\", <https://examle.org/index>; rel=\"index\"" | accepted <https://example.org/>; rel="start", <https://examle.org/index>; rel="index" | same
+"<https://example.org/>; rel=\"start\", <https://example.og/index>; rel=\"index\"" | accepted <https://example.org/>; rel="start", <https://example.og/index>; rel="index" | same
+"<https://example.org/>; rel=\"start\", <https://example.org/inex>; rel=\"index\"" | accepted <https://example.org/>; rel="start", <https://example.org/inex>; rel="index" | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>;rel=\"index\"" | accepted <https://example.org/>; rel="start", <https://example.org/index>; rel="index" | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>; rel=index\"" | NoMatch at 75: Expected ';', ',' or end of input. | same
+"<https://example.org/>; rel=\"start\", <https://example.org/index>; rel=\"inde\"" | accepted <https://example.org/>; rel="start", <https://example.org/index>; rel="inde" | same
+"<https://example.com/1>; rel=Next" | accepted <https://example.com/1>; rel="Next" | Starved at 33: Expected ';'.
+"<https://example.co" | Starved at 19: Expected '>'. | same
+"<https://example.com/1" | Starved at 22: Expected '>'. | same
+"<https://example.com/1>; " | Starved at 25: Expected Tchar. | same
+"<https://example.com/1>; rel" | Starved at 28: Expected '=' or ';'. | same
+"<https://example.com/1>; rel=Ne" | accepted <https://example.com/1>; rel="Ne" | Starved at 31: Expected ';'.
+"https://example.com/1>; rel=Next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<http://example.com/1>; rel=Next" | accepted <http://example.com/1>; rel="Next" | Starved at 32: Expected ';'.
+"<https://eample.com/1>; rel=Next" | accepted <https://eample.com/1>; rel="Next" | Starved at 32: Expected ';'.
+"<https://exampl.com/1>; rel=Next" | accepted <https://exampl.com/1>; rel="Next" | Starved at 32: Expected ';'.
+"<https://example.com1>; rel=Next" | accepted <https://example.com1>; rel="Next" | Starved at 32: Expected ';'.
+"<https://example.com/1>; el=Next" | accepted <https://example.com/1>; el="Next" | same
+"<https://example.com/1>; rel=Nxt" | accepted <https://example.com/1>; rel="Nxt" | Starved at 32: Expected ';'.
+"<https://example.com/1>; rel=\"Next Prev\"; rev=UP" | accepted <https://example.com/1>; rel="Next Prev"; rev="UP" | Starved at 48: Expected ';'.
+"<https://example.com/1>; rel=\"N" | Starved at 31: Expected '"'. | same
+"<https://example.com/1>; rel=\"Next" | Starved at 34: Expected '"'. | same
+"<https://example.com/1>; rel=\"Next Pr" | Starved at 37: Expected '"'. | same
+"<https://example.com/1>; rel=\"Next Prev\"" | accepted <https://example.com/1>; rel="Next Prev" | Starved at 40: Expected ';'.
+"<https://example.com/1>; rel=\"Next Prev\"; r" | accepted <https://example.com/1>; rel="Next Prev"; r="" | Starved at 43: Expected '=' or ';'.
+"<https://example.com/1>; rel=\"Next Prev\"; rev=" | Starved at 46: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"https://example.com/1>; rel=\"Next Prev\"; rev=UP" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<http://example.com/1>; rel=\"Next Prev\"; rev=UP" | accepted <http://example.com/1>; rel="Next Prev"; rev="UP" | Starved at 47: Expected ';'.
+"<https://eample.com/1>; rel=\"Next Prev\"; rev=UP" | accepted <https://eample.com/1>; rel="Next Prev"; rev="UP" | Starved at 47: Expected ';'.
+"<https://exampl.com/1>; rel=\"Next Prev\"; rev=UP" | accepted <https://exampl.com/1>; rel="Next Prev"; rev="UP" | Starved at 47: Expected ';'.
+"<https://example.com1>; rel=\"Next Prev\"; rev=UP" | accepted <https://example.com1>; rel="Next Prev"; rev="UP" | Starved at 47: Expected ';'.
+"<https://example.com/1>; el=\"Next Prev\"; rev=UP" | accepted <https://example.com/1>; el="Next Prev"; rev="UP" | Starved at 47: Expected ';'.
+"<https://example.com/1>; rel=\"ext Prev\"; rev=UP" | accepted <https://example.com/1>; rel="ext Prev"; rev="UP" | Starved at 47: Expected ';'.
+"<https://example.com/1>; rel=\"Next rev\"; rev=UP" | accepted <https://example.com/1>; rel="Next rev"; rev="UP" | Starved at 47: Expected ';'.
+"<https://example.com/1>; rel=\"Next Prev\" rev=UP" | NoMatch at 41: Expected ';', ',' or end of input. | NoMatch at 41: Expected ';'.
+"<https://example.com/1>; rel=\"Next Prev\"; revUP" | accepted <https://example.com/1>; rel="Next Prev"; revup="" | Starved at 47: Expected '=' or ';'.
+", ,<a>;rel=next ,  , <b> ; rel = prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
+"," | accepted  | same
+", ,<" | Starved at 4: Expected ['\u0000'..'￿']. | same
+", ,<a>;" | Starved at 7: Expected Tchar. | same
+", ,<a>;rel" | Starved at 10: Expected '=' or ';'. | same
+", ,<a>;rel=ne" | accepted <a>; rel="ne" | same
+", ,<a>;rel=next " | accepted <a>; rel="next" | same
+", ,<a>;rel=next ,  " | accepted <a>; rel="next" | same
+", ,<a>;rel=next ,  , <" | Starved at 22: Expected ['\u0000'..'￿']. | same
+", ,<a>;rel=next ,  , <b> " | accepted <a>; rel="next", <b> | same
+", ,<a>;rel=next ,  , <b> ; r" | accepted <a>; rel="next", <b>; r="" | same
+", ,<a>;rel=next ,  , <b> ; rel " | Starved at 31: Expected '=' or ';'. | same
+", ,<a>;rel=next ,  , <b> ; rel = p" | accepted <a>; rel="next", <b>; rel="p" | same
+", ,<a>;rel=next ,  , <b> ; rel = prev" | accepted <a>; rel="next", <b>; rel="prev" | same
+", ,<a>;rel=next ,  , <b> ; rel = prev ;x" | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
+" ,<a>;rel=next ,  , <b> ; rel = prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
+", ,<a;rel=next ,  , <b> ; rel = prev ;x, " | NoMatch at 22: Input does not match 'Field'. | same
+", ,<a>;relnext ,  , <b> ; rel = prev ;x, " | accepted <a>; relnext="", <b>; rel="prev"; x="" | same
+", ,<a>;rel=next,  , <b> ; rel = prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
+", ,<a>;rel=next ,  ,<b> ; rel = prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
+", ,<a>;rel=next ,  , <b>  rel = prev ;x, " | NoMatch at 26: Expected ';', ',' or end of input. | same
+", ,<a>;rel=next ,  , <b> ; rel= prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
+", ,<a>;rel=next ,  , <b> ; rel = prv ;x, " | accepted <a>; rel="next", <b>; rel="prv"; x="" | same
+", ,<a>;rel=next ,  , <b> ; rel = prev ;x " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-US; hreflang=de" | accepted <a>; type="text/html"; media="screen"; hreflang="en-US"; hreflang="de" | same
+"<a>;" | Starved at 4: Expected Tchar. | same
+"<a>; ty" | accepted <a>; ty="" | same
+"<a>; type=" | Starved at 10: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<a>; type=\"te" | Starved at 13: Expected '"'. | same
+"<a>; type=\"text/" | Starved at 16: Expected '"'. | same
+"<a>; type=\"text/htm" | Starved at 19: Expected '"'. | same
+"<a>; type=\"text/html\";" | Starved at 22: Expected Tchar. | same
+"<a>; type=\"text/html\"; me" | accepted <a>; type="text/html"; me="" | same
+"<a>; type=\"text/html\"; media" | accepted <a>; type="text/html"; media="" | same
+"<a>; type=\"text/html\"; media=sc" | accepted <a>; type="text/html"; media="sc" | same
+"<a>; type=\"text/html\"; media=scree" | accepted <a>; type="text/html"; media="scree" | same
+"<a>; type=\"text/html\"; media=screen; " | Starved at 37: Expected Tchar. | same
+"<a>; type=\"text/html\"; media=screen; hre" | accepted <a>; type="text/html"; media="screen"; hre="" | same
+"<a>; type=\"text/html\"; media=screen; hrefla" | accepted <a>; type="text/html"; media="screen"; hrefla="" | same
+"<a>; type=\"text/html\"; media=screen; hreflang=" | Starved at 46: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-" | Starved at 49: Expected ';'. | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-US;" | Starved at 52: Expected Tchar. | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-US; hr" | accepted <a>; type="text/html"; media="screen"; hreflang="en-US"; hr="" | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-US; hrefl" | accepted <a>; type="text/html"; media="screen"; hreflang="en-US"; hrefl="" | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-US; hreflang" | Starved at 61: Expected '=' or ';'. | same
+"a>; type=\"text/html\"; media=screen; hreflang=en-US; hreflang=de" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; ype=\"text/html\"; media=screen; hreflang=en-US; hreflang=de" | accepted <a>; ype="text/html"; media="screen"; hreflang="en-US"; hreflang="de" | same
+"<a>; type=text/html\"; media=screen; hreflang=en-US; hreflang=de" | NoMatch at 14: Expected ';'. | same
+"<a>; type=\"texthtml\"; media=screen; hreflang=en-US; hreflang=de" | Starved at 63: Expected ';'. | same
+"<a>; type=\"text/html; media=screen; hreflang=en-US; hreflang=de" | Starved at 63: Expected '"'. | same
+"<a>; type=\"text/html\"; meia=screen; hreflang=en-US; hreflang=de" | accepted <a>; type="text/html"; meia="screen"; hreflang="en-US"; hreflang="de" | same
+"<a>; type=\"text/html\"; media=sreen; hreflang=en-US; hreflang=de" | accepted <a>; type="text/html"; media="sreen"; hreflang="en-US"; hreflang="de" | same
+"<a>; type=\"text/html\"; media=screen hreflang=en-US; hreflang=de" | NoMatch at 36: Expected ';', ',' or end of input. | same
+"<a>; type=\"text/html\"; media=screen; hrelang=en-US; hreflang=de" | accepted <a>; type="text/html"; media="screen"; hrelang="en-US"; hreflang="de" | same
+"<a>; type=\"text/html\"; media=screen; hreflangen-US; hreflang=de" | accepted <a>; type="text/html"; media="screen"; hreflangen-us=""; hreflang="de" | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-U; hreflang=de" | Starved at 63: Expected ';'. | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-US; hrflang=de" | accepted <a>; type="text/html"; media="screen"; hreflang="en-US"; hrflang="de" | same
+"<a>; type=\"text/html\"; media=screen; hreflang=en-US; hreflan=de" | accepted <a>; type="text/html"; media="screen"; hreflang="en-US"; hreflan="de" | same
+"<a>; title=\"a \\\"quoted\\\" \\\\ value\"; flag" | accepted <a>; title="a \"quoted\" \\ value"; flag="" | same
+"<a>; ti" | accepted <a>; ti="" | same
+"<a>; title" | accepted <a>; title="" | same
+"<a>; title=\"a" | Starved at 13: Expected '"'. | same
+"<a>; title=\"a \\\"" | Starved at 16: Expected '"'. | same
+"<a>; title=\"a \\\"quo" | Starved at 19: Expected '"'. | same
+"<a>; title=\"a \\\"quoted" | Starved at 22: Expected '"'. | same
+"<a>; title=\"a \\\"quoted\\\" " | Starved at 25: Expected '"'. | same
+"<a>; title=\"a \\\"quoted\\\" \\\\ " | Starved at 28: Expected '"'. | same
+"<a>; title=\"a \\\"quoted\\\" \\\\ val" | Starved at 31: Expected '"'. | same
+"<a>; title=\"a \\\"quoted\\\" \\\\ value\"" | accepted <a>; title="a \"quoted\" \\ value" | same
+"<a>; title=\"a \\\"quoted\\\" \\\\ value\"; f" | accepted <a>; title="a \"quoted\" \\ value"; f="" | same
+"a>; title=\"a \\\"quoted\\\" \\\\ value\"; flag" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; itle=\"a \\\"quoted\\\" \\\\ value\"; flag" | accepted <a>; itle="a \"quoted\" \\ value"; flag="" | same
+"<a>; title\"a \\\"quoted\\\" \\\\ value\"; flag" | NoMatch at 10: Expected '=', ';', ',' or end of input. | same
+"<a>; title=\"a \\quoted\\\" \\\\ value\"; flag" | accepted <a>; title="a quoted\" \\ value"; flag="" | same
+"<a>; title=\"a \\\"quotd\\\" \\\\ value\"; flag" | accepted <a>; title="a \"quotd\" \\ value"; flag="" | same
+"<a>; title=\"a \\\"quoted\\\" \\ value\"; flag" | accepted <a>; title="a \"quoted\"  value"; flag="" | same
+"<a>; title=\"a \\\"quoted\\\" \\\\ vaue\"; flag" | accepted <a>; title="a \"quoted\" \\ vaue"; flag="" | same
+"<a>; title=\"a \\\"quoted\\\" \\\\ value\";flag" | accepted <a>; title="a \"quoted\" \\ value"; flag="" | same
+"<a>; rel=next; rel=prev" | accepted <a>; rel="next"; rel="prev" | same
+"<a>; re" | accepted <a>; re="" | same
+"<a>; rel=n" | accepted <a>; rel="n" | same
+"<a>; rel=next" | accepted <a>; rel="next" | same
+"<a>; rel=next; r" | accepted <a>; rel="next"; r="" | same
+"<a>; rel=next; rel=" | Starved at 19: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<a>; rel=next; rel=pre" | accepted <a>; rel="next"; rel="pre" | same
+"a>; rel=next; rel=prev" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=next; rel=prev" | accepted <a>; el="next"; rel="prev" | same
+"<a>; rel=nxt; rel=prev" | accepted <a>; rel="nxt"; rel="prev" | same
+"<a>; rel=next; el=prev" | accepted <a>; rel="next"; el="prev" | same
+"<a>; rel=next; rel=pev" | accepted <a>; rel="next"; rel="pev" | same
+"<a>; anchor=\"#x\"; anchor=y" | accepted <a>; anchor="#x"; anchor="y" | same
+"<a>; an" | accepted <a>; an="" | same
+"<a>; ancho" | accepted <a>; ancho="" | same
+"<a>; anchor=\"" | Starved at 13: Expected '"'. | same
+"<a>; anchor=\"#x\"" | accepted <a>; anchor="#x" | same
+"<a>; anchor=\"#x\"; a" | accepted <a>; anchor="#x"; a="" | same
+"<a>; anchor=\"#x\"; anch" | accepted <a>; anchor="#x"; anch="" | same
+"<a>; anchor=\"#x\"; anchor=" | Starved at 25: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"a>; anchor=\"#x\"; anchor=y" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; nchor=\"#x\"; anchor=y" | accepted <a>; nchor="#x"; anchor="y" | same
+"<a>; ancho=\"#x\"; anchor=y" | accepted <a>; ancho="#x"; anchor="y" | same
+"<a>; anchor=\"#x; anchor=y" | Starved at 25: Expected '"'. | same
+"<a>; anchor=\"#x\"; anhor=y" | accepted <a>; anchor="#x"; anhor="y" | same
+"<a>; title*=bad" | accepted <a>; title*="bad" | same
+"<a>; title*=b" | accepted <a>; title*="b" | same
+"a>; title*=bad" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; itle*=bad" | accepted <a>; itle*="bad" | same
+"<a>; title=bad" | accepted <a>; title="bad" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%20rates" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%A3%20rates" {iso-8859-1'en'"\u00A3 rates"} | same
+"<a>; title*=U" | accepted <a>; title*="U" | same
+"<a>; title*=UTF-" | accepted <a>; title*="UTF-" | same
+"<a>; title*=UTF-8''" | accepted <a>; title*="UTF-8''" {UTF-8''""} | same
+"<a>; title*=UTF-8''%e2" | accepted <a>; title*="UTF-8''%e2" | same
+"<a>; title*=UTF-8''%e2%82" | accepted <a>; title*="UTF-8''%e2%82" | same
+"<a>; title*=UTF-8''%e2%82%ac" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"} | same
+"<a>; title*=UTF-8''%e2%82%ac; t" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; t="" | same
+"<a>; title*=UTF-8''%e2%82%ac; titl" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; titl="" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=" | Starved at 37: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-88" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-88" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'e" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'e" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%A3%" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%20r" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%A3%20r" {iso-8859-1'en'"\u00A3 r"} | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%20rate" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%A3%20rate" {iso-8859-1'en'"\u00A3 rate"} | same
+"a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%20rates" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; itle*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%20rates" | accepted <a>; itle*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%A3%20rates" {iso-8859-1'en'"\u00A3 rates"} | same
+"<a>; title=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%20rates" | accepted <a>; title="UTF-8''%e2%82%ac"; title*="iso-8859-1'en'%A3%20rates" {iso-8859-1'en'"\u00A3 rates"} | same
+"<a>; title*=UTF8''%e2%82%ac; title*=iso-8859-1'en'%A3%20rates" | accepted <a>; title*="UTF8''%e2%82%ac" {UTF8''null}; title*="iso-8859-1'en'%A3%20rates" {iso-8859-1'en'"\u00A3 rates"} | same
+"<a>; title*=UTF-8''%2%82%ac; title*=iso-8859-1'en'%A3%20rates" | accepted <a>; title*="UTF-8''%2%82%ac"; title*="iso-8859-1'en'%A3%20rates" {iso-8859-1'en'"\u00A3 rates"} | same
+"<a>; title*=UTF-8''%e2%82ac; title*=iso-8859-1'en'%A3%20rates" | accepted <a>; title*="UTF-8''%e2%82ac"; title*="iso-8859-1'en'%A3%20rates" {iso-8859-1'en'"\u00A3 rates"} | same
+"<a>; title*=UTF-8''%e2%82%ac; itle*=iso-8859-1'en'%A3%20rates" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; itle*="iso-8859-1'en'%A3%20rates" {iso-8859-1'en'"\u00A3 rates"} | same
+"<a>; title*=UTF-8''%e2%82%ac; title=iso-8859-1'en'%A3%20rates" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title="iso-8859-1'en'%A3%20rates" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso8859-1'en'%A3%20rates" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso8859-1'en'%A3%20rates" {iso8859-1'en'null} | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-88591'en'%A3%20rates" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-88591'en'%A3%20rates" {iso-88591'en'null} | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en%A3%20rates" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en%A3%20rates" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%0rates" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%A3%0rates" | same
+"<a>; title*=UTF-8''%e2%82%ac; title*=iso-8859-1'en'%A3%20rats" | accepted <a>; title*="UTF-8''%e2%82%ac" {UTF-8''"\u20AC"}; title*="iso-8859-1'en'%A3%20rats" {iso-8859-1'en'"\u00A3 rats"} | same
+"<a>; type=\"bad type\"" | Starved at 20: Expected ';'. | same
+"<a>; type=\"ba" | Starved at 13: Expected '"'. | same
+"<a>; type=\"bad t" | Starved at 16: Expected '"'. | same
+"<a>; type=\"bad type" | Starved at 19: Expected '"'. | same
+"a>; type=\"bad type\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; ype=\"bad type\"" | accepted <a>; ype="bad type" | same
+"<a>; type=bad type\"" | NoMatch at 14: Expected ';'. | same
+"<a>; type=\"bad ype\"" | Starved at 19: Expected ';'. | same
+"<a>; type=text/html" | NoMatch at 14: Expected ';'. | same
+"<a>; type=tex" | Starved at 13: Expected ';'. | same
+"<a>; type=text/h" | NoMatch at 14: Expected ';'. | same
+"a>; type=text/html" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; ype=text/html" | NoMatch at 13: Expected ';', ',' or end of input. | same
+"<a>; type=ext/html" | NoMatch at 13: Expected ';'. | same
+"<a>; type=text/tml" | NoMatch at 14: Expected ';'. | same
+"<a>; hreflang=\"!!\"" | Starved at 18: Expected ';'. | same
+"<a>; hr" | accepted <a>; hr="" | same
+"<a>; hrefl" | accepted <a>; hrefl="" | same
+"<a>; hreflang" | Starved at 13: Expected '=' or ';'. | same
+"<a>; hreflang=\"!" | Starved at 16: Expected '"'. | same
+"a>; hreflang=\"!!\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; reflang=\"!!\"" | accepted <a>; reflang="!!" | same
+"<a>; hreflng=\"!!\"" | accepted <a>; hreflng="!!" | same
+"<a>; hreflang=\"!\"" | Starved at 17: Expected ';'. | same
+"<a>; media=\"(min-width: 10px)\"" | accepted <a>; media="(min-width: 10px)" | same
+"<a>; me" | accepted <a>; me="" | same
+"<a>; media" | accepted <a>; media="" | same
+"<a>; media=\"(" | Starved at 13: Expected '"'. | same
+"<a>; media=\"(min" | Starved at 16: Expected '"'. | same
+"<a>; media=\"(min-wi" | Starved at 19: Expected '"'. | same
+"<a>; media=\"(min-width" | Starved at 22: Expected '"'. | same
+"<a>; media=\"(min-width: 1" | Starved at 25: Expected '"'. | same
+"<a>; media=\"(min-width: 10px" | Starved at 28: Expected '"'. | same
+"a>; media=\"(min-width: 10px)\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; edia=\"(min-width: 10px)\"" | accepted <a>; edia="(min-width: 10px)" | same
+"<a>; media\"(min-width: 10px)\"" | NoMatch at 10: Expected '=', ';', ',' or end of input. | same
+"<a>; media=\"(mi-width: 10px)\"" | accepted <a>; media="(mi-width: 10px)" | same
+"<a>; media=\"(min-widh: 10px)\"" | accepted <a>; media="(min-widh: 10px)" | same
+"<a>; media=\"(min-width: 1px)\"" | accepted <a>; media="(min-width: 1px)" | same
+"<a b>; rel=next" | NoMatch at 4: Input does not match 'Field'. | same
+"<a b" | Starved at 4: Expected more input. | same
+"<a b>; " | NoMatch at 4: Input does not match 'Field'. | same
+"<a b>; rel" | NoMatch at 4: Input does not match 'Field'. | same
+"<a b>; rel=ne" | NoMatch at 4: Input does not match 'Field'. | same
+"a b>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a b> rel=next" | NoMatch at 4: Input does not match 'Field'. | same
+"<a b>; relnext" | NoMatch at 4: Input does not match 'Field'. | same
+"<%zz>; rel=next" | NoMatch at 4: Input does not match 'Field'. | same
+"<%zz" | Starved at 4: Expected more input. | same
+"<%zz>; " | NoMatch at 4: Input does not match 'Field'. | same
+"<%zz>; rel" | NoMatch at 4: Input does not match 'Field'. | same
+"<%zz>; rel=ne" | NoMatch at 4: Input does not match 'Field'. | same
+"%zz>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<%zz> rel=next" | NoMatch at 4: Input does not match 'Field'. | same
+"<%zz>; relnext" | NoMatch at 4: Input does not match 'Field'. | same
+"https://example.com/>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"h" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"http" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https:/" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://ex" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://examp" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example." | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example.com" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example.com/>;" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example.com/>; re" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example.com/>; rel=n" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"ttps://example.com/>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https//example.com/>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://exmple.com/>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://examplecom/>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example.com/; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example.com/>; re=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"https://example.com/>; rel=nex" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; rel=next x" | NoMatch at 14: Expected ';', ',' or end of input. | same
+"a>; rel=next x" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=next x" | NoMatch at 13: Expected ';', ',' or end of input. | same
+"<a>; rel=nxt x" | NoMatch at 13: Expected ';', ',' or end of input. | same
+"<a>; a\u0001" | NoMatch at 6: Expected '=', ';', ',' or end of input. | same
+"a>; a\u0001" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; \u0001" | NoMatch at 5: Expected Tchar. | same
+"<unclosed" | Starved at 9: Expected '>'. | same
+"<unc" | Starved at 4: Expected '>'. | same
+"<unclos" | Starved at 7: Expected '>'. | same
+"unclosed" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<unclsed" | Starved at 8: Expected '>'. | same
+"" | accepted  | same
+" " | accepted  | same
+"<a>,<b>" | accepted <a>, <b> | same
+"<a>," | accepted <a> | same
+"a>,<b>" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>,<>" | accepted <a>, <> | same
+"<a>;;rel=next" | NoMatch at 4: Expected Tchar. | same
+"<a>;;re" | NoMatch at 4: Expected Tchar. | same
+"<a>;;rel=n" | NoMatch at 4: Expected Tchar. | same
+"a>;;rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>;;el=next" | NoMatch at 4: Expected Tchar. | same
+"<a>;;rel=nxt" | NoMatch at 4: Expected Tchar. | same
+"<a>; =x" | NoMatch at 5: Expected Tchar. | same
+"a>; =x" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; x" | accepted <a>; x="" | same
+"<a>; rel=\"unclosed" | Starved at 18: Expected '"'. | same
+"<a>; rel=\"" | Starved at 10: Expected '"'. | same
+"<a>; rel=\"unc" | Starved at 13: Expected '"'. | same
+"<a>; rel=\"unclos" | Starved at 16: Expected '"'. | same
+"a>; rel=\"unclosed" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=\"unclosed" | Starved at 17: Expected '"'. | same
+"<a>; rel=\"nclosed" | Starved at 17: Expected '"'. | same
+"<a>; rel=\"uncloed" | Starved at 17: Expected '"'. | same
+"<a>; rel=" | Starved at 9: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"a>; rel=" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=" | Starved at 8: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<a> rel=next" | NoMatch at 4: Expected ';', ',' or end of input. | same
+"<a> " | accepted <a> | same
+"<a> rel" | NoMatch at 4: Expected ';', ',' or end of input. | same
+"<a> rel=ne" | NoMatch at 4: Expected ';', ',' or end of input. | same
+"a> rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a> rl=next" | NoMatch at 4: Expected ';', ',' or end of input. | same
+"<a> rel=net" | NoMatch at 4: Expected ';', ',' or end of input. | same
+"<a>; rel=next,, <b>; rel=PREV" | accepted <a>; rel="next", <b>; rel="PREV" | Starved at 29: Expected ';'.
+"<a>; rel=next,, " | accepted <a>; rel="next" | same
+"<a>; rel=next,, <b>" | accepted <a>; rel="next", <b> | same
+"<a>; rel=next,, <b>; r" | accepted <a>; rel="next", <b>; r="" | same
+"<a>; rel=next,, <b>; rel=" | Starved at 25: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<a>; rel=next,, <b>; rel=PRE" | accepted <a>; rel="next", <b>; rel="PRE" | Starved at 28: Expected ';'.
+"a>; rel=next,, <b>; rel=PREV" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=next,, <b>; rel=PREV" | accepted <a>; el="next", <b>; rel="PREV" | Starved at 28: Expected ';'.
+"<a>; rel=nxt,, <b>; rel=PREV" | accepted <a>; rel="nxt", <b>; rel="PREV" | Starved at 28: Expected ';'.
+"<a>; rel=next,,<b>; rel=PREV" | accepted <a>; rel="next", <b>; rel="PREV" | Starved at 28: Expected ';'.
+"<a>; rel=next,, <b>;rel=PREV" | accepted <a>; rel="next", <b>; rel="PREV" | Starved at 28: Expected ';'.
+"<a>; rel=next,, <b>; rel=REV" | accepted <a>; rel="next", <b>; rel="REV" | Starved at 28: Expected ';'.
+"<a>; REL=Next" | accepted <a>; rel="Next" | Starved at 13: Expected ';'.
+"<a>; RE" | accepted <a>; re="" | same
+"<a>; REL=N" | accepted <a>; rel="N" | Starved at 10: Expected ';'.
+"a>; REL=Next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; EL=Next" | accepted <a>; el="Next" | same
+"<a>; REL=Nxt" | accepted <a>; rel="Nxt" | Starved at 12: Expected ';'.
+"<a>; rel=\"next PREV\"; rev=\"Up\"" | accepted <a>; rel="next PREV"; rev="Up" | Starved at 30: Expected ';'.
+"<a>; rel=\"nex" | Starved at 13: Expected '"'. | same
+"<a>; rel=\"next P" | Starved at 16: Expected '"'. | same
+"<a>; rel=\"next PREV" | Starved at 19: Expected '"'. | same
+"<a>; rel=\"next PREV\"; " | Starved at 22: Expected Tchar. | same
+"<a>; rel=\"next PREV\"; rev" | Starved at 25: Expected '=' or ';'. | same
+"<a>; rel=\"next PREV\"; rev=\"U" | Starved at 28: Expected '"'. | same
+"a>; rel=\"next PREV\"; rev=\"Up\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=\"next PREV\"; rev=\"Up\"" | accepted <a>; el="next PREV"; rev="Up" | Starved at 29: Expected ';'.
+"<a>; rel=\"ext PREV\"; rev=\"Up\"" | accepted <a>; rel="ext PREV"; rev="Up" | Starved at 29: Expected ';'.
+"<a>; rel=\"next REV\"; rev=\"Up\"" | accepted <a>; rel="next REV"; rev="Up" | Starved at 29: Expected ';'.
+"<a>; rel=\"next PREV\" rev=\"Up\"" | NoMatch at 21: Expected ';', ',' or end of input. | NoMatch at 21: Expected ';'.
+"<a>; rel=\"next PREV\"; rev\"Up\"" | NoMatch at 25: Expected '=' or ';'. | same
+"<a>; rel=http://x/y" | NoMatch at 13: Expected ';', ',' or end of input. | same
+"<a>; rel=h" | accepted <a>; rel="h" | same
+"<a>; rel=http" | accepted <a>; rel="http" | same
+"<a>; rel=http://" | NoMatch at 13: Expected ';', ',' or end of input. | same
+"a>; rel=http://x/y" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=http://x/y" | NoMatch at 12: Expected ';', ',' or end of input. | same
+"<a>; rel=htp://x/y" | NoMatch at 12: Expected ';', ',' or end of input. | same
+"<a>; rel=http:/x/y" | NoMatch at 13: Expected ';', ',' or end of input. | same
+"<a>; rel=\"\"" | Starved at 11: Expected ';'. | same
+"a>; rel=\"\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=\"\"" | accepted <a>; el="" | same
+"<a>; rel=\"next  prev\"" | accepted <a>; rel="next  prev" | same
+"<a>; rel=\"next  " | Starved at 16: Expected '"'. | same
+"<a>; rel=\"next  pre" | Starved at 19: Expected '"'. | same
+"a>; rel=\"next  prev\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=\"next  prev\"" | accepted <a>; el="next  prev" | same
+"<a>; rel=\"ext  prev\"" | accepted <a>; rel="ext  prev" | same
+"<a>; rel=\"next prev\"" | accepted <a>; rel="next prev" | same
+"<a>; rel=\"next  prev" | Starved at 20: Expected '"'. | same
+"<a>; rel=\" next\"" | Starved at 16: Expected ';'. | same
+"<a>; rel=\" ne" | Starved at 13: Expected '"'. | same
+"a>; rel=\" next\"" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>; el=\" next\"" | accepted <a>; el=" next" | same
+"<a>; rel=\"next\"" | accepted <a>; rel="next" | same
+"<a>; rel=\" next" | Starved at 15: Expected '"'. | same
+"<a>\u0009;\u0009rel=next" | accepted <a>; rel="next" | same
+"<a>\u0009" | accepted <a> | same
+"<a>\u0009;\u0009r" | accepted <a>; r="" | same
+"<a>\u0009;\u0009rel=" | Starved at 10: Expected ['!' | '#'..'\'' | '*'..'+' | '-'..'.' | '0'..'9' | 'A'..'Z' | '^'..'z' | '|' | '~' | '"']. | same
+"<a>\u0009;\u0009rel=nex" | accepted <a>; rel="nex" | same
+"a>\u0009;\u0009rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
+"<a>\u0009;rel=next" | accepted <a>; rel="next" | same
+"<a>\u0009;\u0009rel=ext" | accepted <a>; rel="ext" | same
