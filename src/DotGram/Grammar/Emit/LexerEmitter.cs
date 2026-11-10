@@ -1065,6 +1065,7 @@ static class LexerEmitter
 			text.Line("var found = 0;");
 			text.Line("var p     = pos;");
 			text.Line();
+			Tables(scan: true);
 
 			using (text.Braces("while (p < text.Length)", ""))
 			{
@@ -1101,14 +1102,14 @@ static class LexerEmitter
 
 				using (text.Braces())
 				{
-					text.Line($"var over = Lex_DotGram{tag}_Runs[state] << 8;");
+					text.Line("var over = runs[state] << 8;");
 					text.Line();
 
 					using (text.Braces("while (p < text.Length)", ""))
 					{
 						text.Line("var ahead = text[p];");
 						text.Line();
-						text.Line($"if (ahead > {Reach * 2 - 1} || Lex_DotGram{tag}_Running[over + ahead] == 0)");
+						text.Line($"if (ahead > {Reach * 2 - 1} || running[over + ahead] == 0)");
 
 						using (text.Indent())
 							text.Line("break;");
@@ -1118,7 +1119,7 @@ static class LexerEmitter
 					}
 				}
 				text.Line();
-				text.Line($"var accepts = Lex_DotGram{tag}_Accepts[state];");
+				text.Line("var accepts = accepting[state];");
 				text.Line();
 				text.Line("if (accepts != 0)");
 
@@ -1151,6 +1152,7 @@ static class LexerEmitter
 		{
 			text.Line("var state = 0;");
 			text.Line();
+			Tables(scan: false);
 
 			using (text.Braces("for (var p = pos; p < text.Length; p++)", ""))
 			{
@@ -1170,11 +1172,32 @@ static class LexerEmitter
 			text.Line("return true;");
 		}
 
+		// The tables the loop reads, each read from its static field once, before the loop: a
+		// static field is loaded again at every character, from the address of the type's
+		// statics, where a local stays in a register for the whole token.
+		void Tables(bool scan)
+		{
+			text.Line($"var states  = Lex_DotGram{tag}_States;");
+			text.Line($"var cells   = Lex_DotGram{tag}_Cells;");
+
+			if (Class is not null)
+				text.Line($"var classes = Lex_DotGram{tag}_Class;");
+
+			if (scan)
+			{
+				text.Line($"var runs    = Lex_DotGram{tag}_Runs;");
+				text.Line($"var running = Lex_DotGram{tag}_Running;");
+				text.Line($"var accepting = Lex_DotGram{tag}_Accepts;");
+			}
+
+			text.Line();
+		}
+
 		// One transition: where `state` goes on `text[p]`, into `next`.
 		void Step()
 		{
 			text.Line("var c    = text[p];");
-			text.Line($"var row  = Lex_DotGram{tag}_States[state];");
+			text.Line("var row  = states[state];");
 			text.Line("var at   = c - (int)(row >> 32);");
 			text.Line("int next;");
 			text.Line();
@@ -1189,8 +1212,8 @@ static class LexerEmitter
 			using (text.Indent())
 				text.Line(
 					Class is null
-						? $"next = Lex_DotGram{tag}_Cells[(int)row + at];"
-						: $"next = Lex_DotGram{tag}_Cells[(int)row + Lex_DotGram{tag}_Class[at]];");
+						? "next = cells[(int)row + at];"
+						: "next = cells[(int)row + classes[at]];");
 
 			text.Line("else");
 

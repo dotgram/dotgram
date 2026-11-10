@@ -1479,15 +1479,21 @@ namespace DotGram.Snapshots
 			var found = 0;
 			var p     = pos;
 
+			var states  = Lex_DotGram_States;
+			var cells   = Lex_DotGram_Cells;
+			var runs    = Lex_DotGram_Runs;
+			var running = Lex_DotGram_Running;
+			var accepting = Lex_DotGram_Accepts;
+
 			while (p < text.Length)
 			{
 				var c    = text[p];
-				var row  = Lex_DotGram_States[state];
+				var row  = states[state];
 				var at   = c - (int)(row >> 32);
 				int next;
 
 				if ((uint)at < 128u)
-					next = Lex_DotGram_Cells[(int)row + at];
+					next = cells[(int)row + at];
 				else
 				{
 					next =
@@ -1505,20 +1511,20 @@ namespace DotGram.Snapshots
 				// A run of one class, which the row above already decided.
 				if (again)
 				{
-					var over = Lex_DotGram_Runs[state] << 8;
+					var over = runs[state] << 8;
 
 					while (p < text.Length)
 					{
 						var ahead = text[p];
 
-						if (ahead > 255 || Lex_DotGram_Running[over + ahead] == 0)
+						if (ahead > 255 || running[over + ahead] == 0)
 							break;
 
 						p++;
 					}
 				}
 
-				var accepts = Lex_DotGram_Accepts[state];
+				var accepts = accepting[state];
 
 				if (accepts != 0)
 					(end, found) = (p, accepts);
@@ -1534,15 +1540,18 @@ namespace DotGram.Snapshots
 		{
 			var state = 0;
 
+			var states  = Lex_DotGram_States;
+			var cells   = Lex_DotGram_Cells;
+
 			for (var p = pos; p < text.Length; p++)
 			{
 				var c    = text[p];
-				var row  = Lex_DotGram_States[state];
+				var row  = states[state];
 				var at   = c - (int)(row >> 32);
 				int next;
 
 				if ((uint)at < 128u)
-					next = Lex_DotGram_Cells[(int)row + at];
+					next = cells[(int)row + at];
 				else
 				{
 					next =
