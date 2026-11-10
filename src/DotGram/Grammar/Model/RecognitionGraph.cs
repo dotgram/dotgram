@@ -994,6 +994,16 @@ sealed class RecognitionGraph(
 	/// </remarks>
 	internal bool FirstSettled { get; set; }
 
+	/// <summary>
+	/// Whether <see cref="FirstByRule"/> is still growing, so that a part of a sequence that
+	/// begins with nothing may yet begin: such a part stops the sequence rather than being
+	/// passed over, so that an answer grows as its parts do (<c>FirstSets.ByRule</c>).
+	/// </summary>
+	internal bool FirstGrowing { get; set; }
+
+	/// <summary>Whether the answer just worked out while <see cref="FirstGrowing"/> stopped at such a part.</summary>
+	internal bool FirstStopped { get; set; }
+
 	/// <summary>What each node can begin with, once the rules have settled. A memo, not model state.</summary>
 	/// <remarks>
 	/// The emitter asks it of the same nodes over and over — of a repetition's body for every
