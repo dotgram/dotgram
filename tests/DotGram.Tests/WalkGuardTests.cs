@@ -60,7 +60,7 @@ public sealed class WalkGuardTests
 		["Retention.IsTerminator"] = "at most sixteen levels",
 		["SeamSplits.Walk"] = "one rule's tree; a call ends the walk",
 		["Dump.Write"] = "prints one tree, for a reader",
-		["Search.Expand | Search.Refused | Search.Then"] =
+		["Search.Expand | Search.Read | Search.Refused | Search.Then"] =
 			"SharedRecursion's expansion of one continuation to its next letters: at most SharedRecursion.Nested nodes an expansion and SharedRecursion.Stack calls deep, a look listed once (Refused) and a continuation reached again not expanded again (looping)",
 		["FirstSets.Following | FirstSets.Inner | FirstSets.Of"] =
 			"one node's tree; a call is read off the rules' settled first sets, not entered",
