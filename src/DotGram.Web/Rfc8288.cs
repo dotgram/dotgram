@@ -206,10 +206,16 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 	// where the first of a once-only parameter is known. Each entry has one of the two alternatives: the
 	// strict reading asks a registered relation type to be lowercase, as reg-rel-type is; the other takes
 	// it in any case, as relation types compare (§2.1.1) and as Appendix B and HTML read them.
+	//
+	// The reading is asked as soon as the `<` is read, before the target. Asked after the parameters,
+	// where it used to be, the strict alternative read and built every link of the default reading — the
+	// target, its check against RFC 3986, every parameter — only to be refused on the reading, and the
+	// other alternative then read and built it all again. Not before the `<`: an alternative that begins
+	// with a guard has no first character to name, and a refusal there said `['<']` where it says `'<'`.
 	LinkValue : @WebLink
-		= '<' & target: Target & '>' & Ows & parameters: Parameters & when Reading is "strict"
+		= '<' & when Reading is "strict" & target: Target & '>' & Ows & parameters: Parameters
 		  & when @(Rfc8288.AreValid(parameters!, strict: true)) => @(new WebLink(target, parameters))
-		| '<' & target: Target & '>' & Ows & parameters: Parameters & when Reading is "practice"
+		| '<' & when Reading is "practice" & target: Target & '>' & Ows & parameters: Parameters
 		  & when @(Rfc8288.AreValid(parameters!, strict: false)) => @(new WebLink(target, parameters))
 
 	Reading = "strict" | "practice"
