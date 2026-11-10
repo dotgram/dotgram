@@ -195,7 +195,10 @@ DotGram.Sql.Ast.NumericTypeKind.Float8 = 15 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.NumericTypeKind.Int2 = 11 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.NumericTypeKind.Int4 = 12 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.NumericTypeKind.Int8 = 13 -> DotGram.Sql.Ast.NumericTypeKind
+DotGram.Sql.Ast.ParameterDefinition.InOutTwoWords.get -> bool
+DotGram.Sql.Ast.ParameterDefinition.InOutTwoWords.init -> void
 DotGram.Sql.Ast.ParameterKind.Positional = 4 -> DotGram.Sql.Ast.ParameterKind
+DotGram.Sql.Ast.ParameterMode.Variadic = 3 -> DotGram.Sql.Ast.ParameterMode
 DotGram.Sql.Ast.ParameterSpelling
 DotGram.Sql.Ast.ParameterSpelling.SessionAuthorization = 2 -> DotGram.Sql.Ast.ParameterSpelling
 DotGram.Sql.Ast.ParameterSpelling.TimeZone = 0 -> DotGram.Sql.Ast.ParameterSpelling
@@ -262,6 +265,10 @@ DotGram.Sql.Ast.ReturningClause.Returned.OldAlias.init -> void
 DotGram.Sql.Ast.ReturningClause.Returned.Returned(DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, DotGram.Sql.Ast.Identifier? OldAlias = null, DotGram.Sql.Ast.Identifier? NewAlias = null) -> void
 DotGram.Sql.Ast.ReturningClause.ReturningClause(DotGram.Sql.Ast.ReturningClause! original) -> void
 DotGram.Sql.Ast.ReturningClause.Span.get -> DotGram.Sql.SqlSpan
+DotGram.Sql.Ast.RoutineDesignator.Deconstruct(out DotGram.Sql.Ast.RoutineKind Kind, out DotGram.Sql.Ast.QualifiedName Name, out DotGram.Sql.SqlList<DotGram.Sql.Ast.ParameterDefinition!>? Parameters, out DotGram.Sql.Ast.QualifiedName? ForType, out bool SpecificKeyword, out DotGram.Sql.Ast.MethodModifier? MethodModifier) -> void
+DotGram.Sql.Ast.RoutineDesignator.Parameters.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.ParameterDefinition!>?
+DotGram.Sql.Ast.RoutineDesignator.Parameters.init -> void
+DotGram.Sql.Ast.RoutineDesignator.RoutineDesignator(DotGram.Sql.Ast.RoutineKind Kind, DotGram.Sql.Ast.QualifiedName Name, DotGram.Sql.SqlList<DotGram.Sql.Ast.ParameterDefinition!>? Parameters = null, DotGram.Sql.Ast.QualifiedName? ForType = null, bool SpecificKeyword = false, DotGram.Sql.Ast.MethodModifier? MethodModifier = null) -> void
 DotGram.Sql.Ast.RowsFromItem
 DotGram.Sql.Ast.RowsFromItem.<Clone>$() -> DotGram.Sql.Ast.RowsFromItem!
 DotGram.Sql.Ast.RowsFromItem.ColumnDefinitions.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.FieldDefinition!>?
@@ -984,6 +991,10 @@ virtual DotGram.Sql.Ast.ReturningClause.PrintMembers(System.Text.StringBuilder! 
 *REMOVED*DotGram.Sql.Ast.OutputClause.Next.init -> void
 *REMOVED*DotGram.Sql.Ast.OutputClause.OutputClause(DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, DotGram.Sql.Ast.TableSource? Into, DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>? Columns, DotGram.Sql.Ast.OutputClause? Next) -> void
 *REMOVED*DotGram.Sql.Ast.OutputClause.Span.get -> DotGram.Sql.SqlSpan
+*REMOVED*DotGram.Sql.Ast.RoutineDesignator.Deconstruct(out DotGram.Sql.Ast.RoutineKind Kind, out DotGram.Sql.Ast.QualifiedName Name, out DotGram.Sql.SqlList<DotGram.Sql.Ast.DataType!>? ParameterTypes, out DotGram.Sql.Ast.QualifiedName? ForType, out bool SpecificKeyword, out DotGram.Sql.Ast.MethodModifier? MethodModifier) -> void
+*REMOVED*DotGram.Sql.Ast.RoutineDesignator.ParameterTypes.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.DataType!>?
+*REMOVED*DotGram.Sql.Ast.RoutineDesignator.ParameterTypes.init -> void
+*REMOVED*DotGram.Sql.Ast.RoutineDesignator.RoutineDesignator(DotGram.Sql.Ast.RoutineKind Kind, DotGram.Sql.Ast.QualifiedName Name, DotGram.Sql.SqlList<DotGram.Sql.Ast.DataType!>? ParameterTypes = null, DotGram.Sql.Ast.QualifiedName? ForType = null, bool SpecificKeyword = false, DotGram.Sql.Ast.MethodModifier? MethodModifier = null) -> void
 *REMOVED*DotGram.Sql.Ast.Statement.Delete.Output.get -> DotGram.Sql.Ast.OutputClause?
 *REMOVED*DotGram.Sql.Ast.Statement.Delete.Output.init -> void
 *REMOVED*DotGram.Sql.Ast.Statement.Insert.Output.get -> DotGram.Sql.Ast.OutputClause?

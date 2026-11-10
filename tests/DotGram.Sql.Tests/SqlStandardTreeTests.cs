@@ -513,7 +513,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("ALTER SPECIFIC PROCEDURE s.p NAME x MODIFIES SQL DATA RESTRICT",
 		"AlterRoutine(Routine: RoutineDesignator(Procedure, s.p, null, null, true, null), Characteristics: [ExternalName(x), DataAccess(ModifiesSqlData)], Behavior: Restrict)")]
 	[InlineData("DROP FUNCTION f (INT, DATE) FOR s.t CASCADE",
-		"DropRoutine(Routines: [RoutineDesignator(Function, f, [Numeric(Int, null, null), DateTime(Date, null, null)], s.t, false, null)], Behavior: Cascade)")]
+		"DropRoutine(Routines: [RoutineDesignator(Function, f, [ParameterDefinition(null, null, Numeric(Int, null, null), false, null, false, false, false, null), ParameterDefinition(null, null, DateTime(Date, null, null), false, null, false, false, false, null)], s.t, false, null)], Behavior: Cascade)")]
 	public void A_schema_statement_is_built_as_written(string input, string tree)
 	{
 		Assert.Equal(tree, Show(Both.ParseSQLSchemaStatement(input)));

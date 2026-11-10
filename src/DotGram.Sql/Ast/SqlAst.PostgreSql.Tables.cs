@@ -7,6 +7,12 @@ namespace DotGram.Sql.Ast;
 // partition key and ON CONFLICT share. Every record and member here carries `PostgreSQL:` with the title of the page of
 // the PostgreSQL manual it comes from.
 
+public sealed partial record ParameterDefinition
+{
+	/// <summary>PostgreSQL: CREATE FUNCTION. <c>IN OUT</c> written in two words, with Mode InOut.</summary>
+	[Spelling] public bool InOutTwoWords { get; init; }
+}
+
 /// <summary>
 /// PostgreSQL: CREATE INDEX, CREATE TABLE, INSERT. One key of an index, of an exclusion constraint, of a partition key or
 /// of an ON CONFLICT target: a column by its name, a call, or an expression in brackets, with its collation, its
