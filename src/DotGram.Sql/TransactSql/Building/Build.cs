@@ -225,9 +225,9 @@ static partial class Build
 	/// <summary>
 	/// Whether a name is one of the records a family lists.
 	/// </summary>
-	static bool Owned(string[] owns, object read)
+	static bool Owned(HashSet<string> owns, object read)
 	{
-		return Array.IndexOf(owns, NameOf(read)) >= 0;
+		return owns.Contains(NameOf(read));
 	}
 
 	// ── The words a record leaves out ───────────────────────────────────────────
@@ -259,6 +259,23 @@ static partial class Build
 			return null;
 
 		return source.Substring(span.At, span.Length);
+	}
+
+	/// <summary>The text a node was read from (<see cref="Spelled"/>), where it can be told, as a stretch of the source and not a string of its own.</summary>
+	static bool Spelling(ISqlSpan node, out ReadOnlySpan<char> text)
+	{
+		var span = SpanOf(node);
+
+		if (!Cuttable(span) || span.End > source.Length)
+		{
+			text = default;
+
+			return false;
+		}
+
+		text = source.AsSpan(span.At, span.Length);
+
+		return true;
 	}
 
 	/// <summary>Whether the text a node was read from can be told (<see cref="Spelled"/>), without cutting it.</summary>
@@ -415,13 +432,16 @@ static partial class Build
 	/// </summary>
 	static List<string> Words(string text)
 	{
-		var tokens = SqlTokens.Of(text);
-		var words  = new List<string>(tokens.Count);
+		return SqlTokens.Words(text);
+	}
 
-		foreach (var one in tokens)
-			words.Add(one.Kind == SqlTokens.Kind.Word ? one.Text.ToUpperInvariant() : one.Text);
-
-		return words;
+	/// <summary>
+	/// The first tokens of a stretch of text as <see cref="Words"/> gives them, at most <paramref name="most"/>: what a
+	/// pattern over its first words needs, without the rest of a statement cut into words.
+	/// </summary>
+	static List<string> Leading(string text, int most)
+	{
+		return SqlTokens.Words(text, most);
 	}
 
 	/// <summary>
@@ -438,6 +458,17 @@ static partial class Build
 		return SqlTokens.First(source, span.End) is { } token
 			? token.Kind == SqlTokens.Kind.Word ? token.Text.ToUpperInvariant() : token.Text
 			: null;
+	}
+
+	/// <summary>
+	/// Whether the first token written after a located node is the word given, in any case: <see cref="WordAfter"/> said
+	/// to be it, false where the text is not there or nothing follows — without the token cut out.
+	/// </summary>
+	static bool WordAfterIs(ISqlSpan node, string word)
+	{
+		var span = SpanOf(node);
+
+		return Cuttable(span) && span.End <= source.Length && SqlTokens.FirstIs(source, span.End, word);
 	}
 
 	/// <summary>

@@ -17,7 +17,7 @@ static partial class Build
 	/// </remarks>
 	internal static class Routines
 	{
-		public static readonly string[] Owns =
+		public static readonly HashSet<string> Owns =
 		[
 			"Statement.CreateProcedure", "Statement.CreateFunction", "Statement.CreateTrigger",
 			"Statement.Execute", "Statement.TriggerSwitch", "Statement.AggregateDefinition",
@@ -92,7 +92,7 @@ static partial class Build
 
 				return new Ast.Statement.ExecuteString(Values.Of(sql), Each(values, Values.Of))
 				{
-					Exec       = Recover(spelled, static text => Words(text) is ["EXEC", ..], false),
+					Exec       = Recover(spelled, static text => Leading(text, 1) is ["EXEC", ..], false),
 					Context    = old.Context is null ? null : Context(old, old.Context),
 					At         = old.At is null ? null : Values.Part(old, old.At),
 					DataSource = old.DataSource is null ? null : Values.Part(old, old.DataSource),
@@ -113,7 +113,7 @@ static partial class Build
 				};
 
 			var keyword = old.Bare ? (Ast.ExecuteKeyword?)null
-				: Recover(spelled, static text => Words(text) is ["EXEC", ..] ? Ast.ExecuteKeyword.Exec : Ast.ExecuteKeyword.Execute, Ast.ExecuteKeyword.Execute);
+				: Recover(spelled, static text => Leading(text, 1) is ["EXEC", ..] ? Ast.ExecuteKeyword.Exec : Ast.ExecuteKeyword.Execute, Ast.ExecuteKeyword.Execute);
 
 			return new Ast.Statement.ExecuteModule(module, Each(old.Arguments, one => ExecuteArgument(old, one)))
 			{
@@ -155,7 +155,7 @@ static partial class Build
 				Options        = RoutineOptions(old, old.Options),
 				ForReplication = old.ForReplication,
 				Number         = old.Number is null ? null : new Ast.LiteralValue.Numeric(old.Number, Ast.NumericLiteralKind.DecimalInteger),
-				Proc           = Recover(Spelled(old), static text => Words(text) is [.., "PROC"] or ["CREATE" or "ALTER", "PROC", ..] or ["CREATE", "OR", "ALTER", "PROC", ..], false),
+				Proc           = Recover(Spelled(old), static text => Leading(text, 4) is ["CREATE" or "ALTER", "PROC", ..] or ["CREATE", "OR", "ALTER", "PROC", ..] || SqlTokens.LastIs(text, "PROC"), false),
 				Unbracketed    = old.Parameters.Length > 0 && Recover(Spelled(old), static text => !Bracketed(text), false),
 			};
 
@@ -359,7 +359,7 @@ static partial class Build
 			{
 				var from  = Index(tokens, "FROM");
 				var with  = Index(tokens, "WITH");
-				var owner = Words(tail) is ["AUTHORIZATION", _, ..] ? Values.Part(old, tokens[1].Token.Text) : null;
+				var owner = Leading(tail, 2) is ["AUTHORIZATION", _, ..] ? Values.Part(old, tokens[1].Token.Text) : null;
 
 				if (from < 0)
 					throw BuildGap.Open(old, $"inventory Statement.AssemblyDefinition ({tail})");
@@ -374,7 +374,7 @@ static partial class Build
 			}
 
 			// ALTER's own FROM stands first; the FROM of ADD FILE FROM is ADD's.
-			var parts = new[] { Words(tail) is ["FROM", ..] ? 0 : -1, Index(tokens, "WITH"), Index(tokens, "DROP"), Index(tokens, "ADD") };
+			var parts = new[] { Leading(tail, 1) is ["FROM", ..] ? 0 : -1, Index(tokens, "WITH"), Index(tokens, "DROP"), Index(tokens, "ADD") };
 			var made  = new Ast.Statement.AlterAssembly(name);
 
 			string Part(int which)
@@ -421,7 +421,7 @@ static partial class Build
 				var files = Part(3);
 				var read  = Located(files);
 
-				if (Words(files) is not ["FILE", "FROM", ..])
+				if (Leading(files, 2) is not ["FILE", "FROM", ..])
 					throw BuildGap.Open(old, $"inventory Statement.AssemblyDefinition (ADD {files})");
 
 				made = made with
@@ -457,7 +457,7 @@ static partial class Build
 		{
 			var tail = old.Tail ?? "";
 
-			return Words(tail) is ["AS", ..]
+			return Leading(tail, 1) is ["AS", ..]
 				? Checked(old, new Ast.Statement.CreateRule(Values.Name(old, old.Name), ConditionOf(old, Slice(tail, Located(tail), 1, Located(tail).Count))))
 				: throw BuildGap.Open(old, $"inventory Statement.RuleDefinition ({tail})");
 		}
@@ -467,7 +467,7 @@ static partial class Build
 		{
 			var tail = old.Tail ?? "";
 
-			return Words(tail) is ["AS", ..]
+			return Leading(tail, 1) is ["AS", ..]
 				? Checked(old, new Ast.Statement.CreateDefault(Values.Name(old, old.Name), ValueOf(old, Slice(tail, Located(tail), 1, Located(tail).Count))))
 				: throw BuildGap.Open(old, $"inventory Statement.DefaultDefinition ({tail})");
 		}
@@ -512,7 +512,7 @@ static partial class Build
 			var tail   = old.Tail ?? "";
 			var tokens = Located(tail);
 
-			if (Words(tail) is not [var word, ..] || word != (alter ? "ADD" : "AS"))
+			if (Leading(tail, 1) is not [var word, ..] || word != (alter ? "ADD" : "AS"))
 				throw BuildGap.Open(old, $"inventory {NameOf(old)} ({tail})");
 
 			var schema = ValueOf(old, Slice(tail, tokens, 1, tokens.Count));
@@ -712,7 +712,7 @@ static partial class Build
 					})
 				{
 					ShortOutput = back is ["OUT"],
-					AsKeyword   = Recover(Spelled(one), static text => Words(text) is [_, "AS", ..], false),
+					AsKeyword   = Recover(Spelled(one), static text => Leading(text, 2) is [_, "AS", ..], false),
 				};
 			});
 		}

@@ -14,7 +14,7 @@ static partial class Build
 	/// </summary>
 	internal static class Database
 	{
-		public static readonly string[] Owns =
+		public static readonly HashSet<string> Owns =
 		[
 			"Statement.CreateDatabase", "Statement.AlterDatabaseSet", "Statement.AlterDatabaseScopedConfiguration",
 			"Statement.AlterDatabaseCollate", "Statement.AlterDatabaseModifyName", "Statement.AlterDatabaseModifyFileGroup",
@@ -434,7 +434,7 @@ static partial class Build
 			var tokens = Located(text);
 			var words  = Words(text);
 
-			if (Spelled(old) is { } spelled && Words(spelled) is [_, "DATABASE" or "LOG", "(", ..])
+			if (Spelled(old) is { } spelled && Leading(spelled, 3) is [_, "DATABASE" or "LOG", "(", ..])
 				throw BuildGap.Lost(old, $"{NameOf(old)} (a bracketed list of names, of which the old tree keeps the first)");
 
 			switch (old)
@@ -522,7 +522,7 @@ static partial class Build
 			var tokens = Located(text);
 			var words  = Words(text);
 
-			if (Spelled(old) is { } spelled && Words(spelled) is [_, "DATABASE" or "LOG", "(", ..])
+			if (Spelled(old) is { } spelled && Leading(spelled, 3) is [_, "DATABASE" or "LOG", "(", ..])
 				throw BuildGap.Lost(old, $"{NameOf(old)} (a bracketed list of names, of which the old tree keeps the first)");
 
 			switch (old)

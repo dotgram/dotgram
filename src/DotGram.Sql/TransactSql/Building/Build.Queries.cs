@@ -15,7 +15,7 @@ static partial class Build
 	/// </summary>
 	internal static class Queries
 	{
-		public static readonly string[] Owns =
+		public static readonly HashSet<string> Owns =
 		[
 			"Statement.Select",
 			"Query.Specification", "Query.TableValueConstructor", "Query.Parenthesized", "Query.Ordered",
@@ -236,10 +236,10 @@ static partial class Build
 		/// </summary>
 		public static Ast.WithClause With(SqlList<Clause> with)
 		{
-			var namespaces = with is [Clause.Option { Name: var text } first, ..] && Words(text) is ["XMLNAMESPACES", ..]
+			var namespaces = with is [Clause.Option { Name: var text } first, ..] && Leading(text, 1) is ["XMLNAMESPACES", ..]
 				? XmlNamespaces(first, text)
 				: [];
-			var context    = with is [Clause.Option { Name: var said } leading, ..] && Words(said) is ["CHANGE_TRACKING_CONTEXT", "(", ..]
+			var context    = with is [Clause.Option { Name: var said } leading, ..] && Leading(said, 2) is ["CHANGE_TRACKING_CONTEXT", "(", ..]
 				? Context(leading, said)
 				: null;
 
@@ -840,7 +840,7 @@ static partial class Build
 			// follows the value; a reading with no text to look at says neither.
 			var first = front && Cut(value);
 
-			return new Ast.SelectColumn.ExpressionItem(value, alias, !first && Recover(WordAfter(value), static word => word == "AS", false))
+			return new Ast.SelectColumn.ExpressionItem(value, alias, !first && WordAfterIs(value, "AS"))
 			{
 				AliasFirst = first,
 			};
@@ -1002,7 +1002,7 @@ static partial class Build
 				limit = new Ast.Limit
 				{
 					Offset        = Values.Of(offset),
-					OffsetRowWord = Recover(after, static text => Words(text) is ["ROW", ..] ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
+					OffsetRowWord = Recover(after, static text => Leading(text, 1) is ["ROW", ..] ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
 				};
 
 				if (by.Fetch is { } fetch)
@@ -1010,7 +1010,7 @@ static partial class Build
 					{
 						Count        = Values.Of(fetch),
 						Position     = Recover(after, static text => Words(text).Contains("FIRST") ? Ast.FetchPosition.First : Ast.FetchPosition.Next, Ast.FetchPosition.Next),
-						FetchRowWord = Recover(WordAfter(fetch), static word => word == "ROW" ? Ast.RowWord.Row : Ast.RowWord.Rows, Ast.RowWord.Rows),
+						FetchRowWord = WordAfterIs(fetch, "ROW") ? Ast.RowWord.Row : Ast.RowWord.Rows,
 					};
 			}
 			else if (by.Fetch is not null)

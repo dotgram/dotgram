@@ -14,7 +14,7 @@ static partial class Build
 	/// </summary>
 	internal static class Tables
 	{
-		public static readonly string[] Owns =
+		public static readonly HashSet<string> Owns =
 		[
 			.. typeof(TableReference).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(TableReference)) && one != typeof(TableReference.Changed)).Select(NameOf),
 			"Clause.SystemTime", "Clause.TableSample", "Clause.JsonColumn", "Clause.ColumnDefinition", "Clause.ColumnOption",
@@ -168,7 +168,7 @@ static partial class Build
 				SystemTime = old.SystemTime is null ? null : SystemTime(old.SystemTime),
 				ForPath    = old.ForPath,
 				Alias      = Alias(old, null, old.Name, old.Columns),
-				Hints      = Each(old.Hints, static one => one is Clause.Hint(var text) && SqlTokens.Of(text) is [{ Kind: SqlTokens.Kind.Number }]
+				Hints      = Each(old.Hints, static one => one is Clause.Hint(var text) && SqlTokens.Lone(text) is SqlTokens.Kind.Number
 					? throw BuildGap.Open(one, "inventory Clause.Hint (the old WITH (n))")
 					: Queries.TableHint(one)),
 			};
@@ -439,26 +439,34 @@ static partial class Build
 
 			// A word AS, not a name `"as"` or `[as]`, not the AS of FOR SYSTEM_TIME AS OF, and not one inside
 			// brackets, a method's arguments (`@v.f (CAST (1 AS INT))`).
-			var said = Recover(before is null ? Spelled(old) : WordsAfter(before, old), static text => SqlTokens.AliasAs(text), false);
+			var said = (before is null ? Spelling(old, out var text) : WordsAfter(before, old, out text)) && SqlTokens.AliasAs(text);
 
 			return new Ast.Alias(Values.Part(old, name), columns is { } list ? Values.Parts(old, list) : null, said);
 		}
 
 		/// <summary>
-		/// The text from the end of one located node to the end of the node it stands in.
+		/// The text from the end of one located node to the end of the node it stands in, where both are located, as a
+		/// stretch of the source.
 		/// </summary>
-		static string? WordsAfter(ISqlSpan node, ISqlSpan within)
+		static bool WordsAfter(ISqlSpan node, ISqlSpan within, out ReadOnlySpan<char> text)
 		{
 			var span  = SpanOf(node);
 			var outer = SpanOf(within);
 
+			text = default;
+
 			if (!Cuttable(span) || !Cuttable(outer))
-				return null;
+				return false;
 
 			var from = span.End;
 			var to   = outer.End;
 
-			return from <= to && to <= source.Length ? source.Substring(from, to - from) : null;
+			if (from > to || to > source.Length)
+				return false;
+
+			text = source.AsSpan(from, to - from);
+
+			return true;
 		}
 
 		static Ast.SystemTimeSpecification SystemTime(Clause old)
@@ -1969,9 +1977,9 @@ static partial class Build
 
 			Ast.Expression? where = null;
 
-			if (Words(head) is ["WHERE", ..])
+			if (Leading(head, 1) is ["WHERE", ..])
 				where = Condition(old, head[(SqlTokens.Find(head, "WHERE") + "WHERE".Length)..]);
-			else if (Words(head).Count > 0)
+			else if (Leading(head, 1).Count > 0)
 				throw BuildGap.Open(old, $"inventory Statement.StatisticsDefinition ({tail})");
 
 			return new Ast.Statement.CreateStatistics(table, Values.Part(old, old.Name), columns)
@@ -2120,7 +2128,7 @@ static partial class Build
 		{
 			var tail = old.Tail ?? "";
 
-			if (Words(tail) is not ["FOR", ..])
+			if (Leading(tail, 1) is not ["FOR", ..])
 				throw BuildGap.Open(old, $"inventory Statement.SynonymDefinition ({tail})");
 
 			return new Ast.Statement.CreateSynonym(Values.Name(old, old.Name), Values.Name(old, tail[(SqlTokens.Find(tail, "FOR") + "FOR".Length)..].Trim()));

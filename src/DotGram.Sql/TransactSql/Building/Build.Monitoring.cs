@@ -21,7 +21,7 @@ static partial class Build
 	/// </remarks>
 	internal static class Monitoring
 	{
-		public static readonly string[] Owns =
+		public static readonly HashSet<string> Owns =
 		[
 			"Statement.EventSessionDefinition", "Statement.EventNotificationDefinition", "Statement.ServerAuditDefinition",
 			"Statement.AuditSpecificationDefinition", "Statement.DatabaseAuditSpecificationDefinition", "Clause.EventPiece",

@@ -959,13 +959,20 @@ static partial class Build
 			["CURRENT_TIME"]      = Ast.CurrentValue.Time,
 		};
 
+		/// <summary>Whether a name upper-cased is the upper-case name given, as the invariant culture raises it (<see cref="SqlTokens.Raises"/>).</summary>
+		static bool Names(string name, string upper)
+		{
+			return SqlTokens.Raises(name, upper);
+		}
+
 		public static Ast.Expression Function(Call old)
 		{
-			var name  = old.Name;
-			var upper = name.ToUpperInvariant();
+			// The name is held to the built-ins' upper-case names as it would be upper-cased (Names), rather than upper-cased:
+			// a call written in lower case would make a string of it each time.
+			var name = old.Name;
 
 			// IdentityFunction: the type the old tree keeps as the call's word, and the seed and the step.
-			if (upper == "IDENTITY" && old.Word is { } typed && old.Arguments.Length is 0 or 2)
+			if (Names(name, "IDENTITY") && old.Word is { } typed && old.Arguments.Length is 0 or 2)
 				return new Ast.Expression.Identity(Type(old, typed))
 				{
 					Seed      = old.Arguments.Length == 2 ? (Ast.LiteralValue.Numeric)Of(old.Arguments[0]) : null,
@@ -973,26 +980,26 @@ static partial class Build
 				};
 
 			// AI_GENERATE_EMBEDDINGS: what is embedded, and the model after USE MODEL, which the old tree keeps as words.
-			if (upper == "AI_GENERATE_EMBEDDINGS" && old is { Word: null, Arguments: [Hinted(var source, var words)] })
+			if (Names(name, "AI_GENERATE_EMBEDDINGS") && old is { Word: null, Arguments: [Hinted(var source, var words)] })
 				return Embeddings(old, source, words);
 
 			// FullTextPredicate: the columns, what is searched for, and LANGUAGE and its value.
-			if (upper is "CONTAINS" or "FREETEXT" && old.Word is null)
-				return FullText(old, upper == "CONTAINS" ? Ast.FullTextPredicateKind.Contains : Ast.FullTextPredicateKind.FreeText);
+			if ((Names(name, "CONTAINS") || Names(name, "FREETEXT")) && old.Word is null)
+				return FullText(old, Names(name, "CONTAINS") ? Ast.FullTextPredicateKind.Contains : Ast.FullTextPredicateKind.FreeText);
 
 			// `CAST (DISTINCT 1)` reads, as any call does, with a quantifier where the type would stand.
 			var type = old.Word is { } word && word.ToUpperInvariant() is not ("DISTINCT" or "ALL" or "*") ? word : null;
 
-			if (upper is "CAST" or "TRY_CAST" && type is not null)
+			if ((Names(name, "CAST") || Names(name, "TRY_CAST")) && type is not null)
 			{
 				if (old.Arguments.Length != 1)
 					throw BuildGap.Open(old, "inventory Expression.RoutineInvocation (a CAST that is not one value and a type)");
 
-				return new Ast.Expression.Cast(Of(old.Arguments[0]), Type(old, type)) { Try = upper == "TRY_CAST" };
+				return new Ast.Expression.Cast(Of(old.Arguments[0]), Type(old, type)) { Try = Names(name, "TRY_CAST") };
 			}
 
 			// `[TRY_]CONVERT (type, value [, style])`: the type is the old call's word, and the arguments are the rest.
-			if (upper is "CONVERT" or "TRY_CONVERT" && type is not null)
+			if ((Names(name, "CONVERT") || Names(name, "TRY_CONVERT")) && type is not null)
 			{
 				if (old.Arguments.Length is < 1 or > 2)
 					throw BuildGap.Open(old, "inventory Expression.RoutineInvocation (a CONVERT that is not a type, a value and a style)");
@@ -1001,11 +1008,11 @@ static partial class Build
 					Type(old, type),
 					Of(old.Arguments[0]),
 					old.Arguments.Length > 1 ? Of(old.Arguments[1]) : null,
-					upper == "TRY_CONVERT");
+					Names(name, "TRY_CONVERT"));
 			}
 
 			// `[TRY_]PARSE (value AS type [USING culture])`: the culture is the second argument.
-			if (upper is "PARSE" or "TRY_PARSE" && type is not null)
+			if ((Names(name, "PARSE") || Names(name, "TRY_PARSE")) && type is not null)
 			{
 				if (old.Arguments.Length is < 1 or > 2)
 					throw BuildGap.Open(old, "inventory Expression.RoutineInvocation (a PARSE that is not a value, a type and a culture)");
@@ -1014,7 +1021,7 @@ static partial class Build
 					Of(old.Arguments[0]),
 					Type(old, type),
 					old.Arguments.Length > 1 ? Of(old.Arguments[1]) : null,
-					upper == "TRY_PARSE");
+					Names(name, "TRY_PARSE"));
 			}
 
 			// `NEXT VALUE FOR s`: the sequence is the old call's word. The three words are fourteen characters at least, and
@@ -1038,10 +1045,12 @@ static partial class Build
 			if (name.Equals("TRIM", StringComparison.OrdinalIgnoreCase))
 				return Trim(old);
 
-			if (Json.Contains(name) && JsonCall(old, upper) is { } json)
+			if (Json.Contains(name) && JsonCall(old, name.ToUpperInvariant()) is { } json)
 				return json;
 
-			if (Syntax.IsDatePartFunction(upper) && old.Word is null)
+			// No date part function's name has a letter that upper-cases otherwise than it compares ignoring case (the long s
+			// is raised to S), so the name is asked as written.
+			if (Syntax.IsDatePartFunction(name) && old.Word is null)
 				return DatePart(old);
 
 			if (old.Arguments.Length == 0 && old.Word is null && Niladic.TryGetValue(name, out var current))
@@ -1049,7 +1058,7 @@ static partial class Build
 
 			// A call with no arguments written without its brackets, where the text says so: the common tree's invocation
 			// has them, so that is a gap; a call not located is taken to have had them.
-			if (old.Arguments.Length == 0 && old.Word is null && Recover(Spelled(old), static text => !text.TrimEnd().EndsWith(')'), false))
+			if (old.Arguments.Length == 0 && old.Word is null && Spelling(old, out var spelled) && spelled.TrimEnd() is not [.., ')'])
 				throw BuildGap.Lost(old, "whether a call with no arguments was written with brackets");
 
 			Ast.SetQuantifier? quantifier = null;
@@ -2005,6 +2014,22 @@ static partial class Build
 		};
 
 		/// <summary>
+		/// Each of <see cref="StandardWords"/>, in any case, to the upper case <see cref="Standard"/> compares it in: a word
+		/// equal to one of them ignoring case upper-cases to that one's upper case, so the word need not be upper-cased.
+		/// </summary>
+		static readonly Dictionary<string, string> RaisedWords = Raised(StandardWords);
+
+		static Dictionary<string, string> Raised(HashSet<string> words)
+		{
+			var raised = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+			foreach (var word in words)
+				raised.Add(word, word.ToUpperInvariant());
+
+			return raised;
+		}
+
+		/// <summary>
 		/// A data type the old tree keeps as text. On SQL Server a system type's name bracketed, quoted or qualified by
 		/// <c>sys</c> is the same type as the bare word. In order: a one-word standard spelling, bare or so written, is
 		/// the standard's record, with <c>WrittenName</c> unless it was bare (never <c>timestamp</c>, T-SQL's
@@ -2047,7 +2072,7 @@ static partial class Build
 			var system = name.Parts.Count == 1 || name.Parts.Count == 2 && Unquoted(name.Parts[0].Text).Equals("sys", StringComparison.OrdinalIgnoreCase);
 			var bare   = name.Parts is [{ Style: Ast.IdentifierStyle.Regular }];
 
-			if (system && StandardWords.Contains(last) && Standard(last.ToUpperInvariant(), arguments) is { } standard)
+			if (system && RaisedWords.TryGetValue(last, out var raised) && Standard(raised, arguments) is { } standard)
 				return bare ? standard : standard with { WrittenName = name };
 
 			// A vector's dimensions or MAX, and its base type, one of the page's two words; any other word is a gap.
@@ -2173,7 +2198,7 @@ static partial class Build
 
 			var word = text.Substring(0, end);
 
-			if (StandardWords.Contains(word) && Standard(word.ToUpperInvariant(), arguments) is { } standard)
+			if (RaisedWords.TryGetValue(word, out var raised) && Standard(raised, arguments) is { } standard)
 				return standard;
 
 			if (word.Equals("xml", StringComparison.OrdinalIgnoreCase) || word.Equals("vector", StringComparison.OrdinalIgnoreCase))
