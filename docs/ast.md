@@ -1,4 +1,4 @@
-# The tree
+﻿# The tree
 
 `src/DotGram.Sql/Ast` holds the one tree every SQL parser of the package builds, in the namespace
 `DotGram.Sql.Ast`: `SqlStandardParser` reads SQL:2023 into it, `Sql92Parser` SQL-92, and
@@ -661,6 +661,8 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Constraint.Check` | SQL:2023 | &lt;check constraint definition&gt; |
 | `Constraint.Default` | T-SQL | table_constraint (Transact-SQL) |
 | `Constraint.Connection` | T-SQL | CREATE TABLE (SQL Graph) |
+| `Constraint.Null` | PostgreSQL | CREATE TABLE |
+| `Constraint.Exclude` | PostgreSQL | CREATE TABLE |
 | `ConstraintTarget.All` | SQL:2023 | &lt;constraint name list&gt; |
 | `ConstraintTarget.Names` | SQL:2023 | &lt;constraint name list&gt; |
 | `CryptographicProviderChange.Enable` | T-SQL | ENABLE — under ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) |
@@ -978,6 +980,10 @@ it. The families stand in alphabetical order, each family's records in the order
 | `OrderingCategory.Relative` | SQL:2023 | &lt;ordering category&gt; |
 | `OrderingCategory.Map` | SQL:2023 | &lt;ordering category&gt; |
 | `OrderingCategory.State` | SQL:2023 | &lt;ordering category&gt; |
+| `PartitionBound.In` | PostgreSQL | CREATE TABLE |
+| `PartitionBound.Range` | PostgreSQL | CREATE TABLE |
+| `PartitionBound.Hash` | PostgreSQL | CREATE TABLE |
+| `PartitionBound.Default` | PostgreSQL | CREATE TABLE |
 | `PartitionFunctionAction.Split` | T-SQL | ALTER PARTITION FUNCTION (Transact-SQL) |
 | `PartitionFunctionAction.Merge` | T-SQL | ALTER PARTITION FUNCTION (Transact-SQL) |
 | `PathAction.Add` | T-SQL | ALTER INDEX (Selective XML Indexes) |
@@ -1083,6 +1089,9 @@ it. The families stand in alphabetical order, each family's records in the order
 | `SequenceOption.Restart` | SQL:2023 | &lt;alter identity column option&gt; |
 | `SequenceOption.Cache` | T-SQL | CREATE SEQUENCE (Transact-SQL) |
 | `SequenceOption.NoCache` | T-SQL | CREATE SEQUENCE (Transact-SQL) |
+| `SequenceOption.OwnedBy` | PostgreSQL | CREATE SEQUENCE |
+| `SequenceOption.Logged` | PostgreSQL | CREATE SEQUENCE |
+| `SequenceOption.SequenceName` | PostgreSQL | CREATE TABLE |
 | `ServiceMasterKeyChange.Regenerate` | T-SQL | [FORCE] REGENERATE — under ALTER SERVICE MASTER KEY (Transact-SQL) |
 | `ServiceMasterKeyChange.OldAccount` | T-SQL | WITH OLD_ACCOUNT = 'a', OLD_PASSWORD = 'p' — under ALTER SERVICE MASTER KEY (Transact-SQL) |
 | `ServiceMasterKeyChange.NewAccount` | T-SQL | WITH NEW_ACCOUNT = 'a', NEW_PASSWORD = 'p' — under ALTER SERVICE MASTER KEY (Transact-SQL) |

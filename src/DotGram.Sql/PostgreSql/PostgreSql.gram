@@ -1221,6 +1221,203 @@ CopyLegacyOption : @Option
 DiscardStmt    : @Statement = "DISCARD"i & w: ("ALL"i | "TEMPORARY"i | "TEMP"i | "PLANS"i | "SEQUENCES"i) => @(Nodes.Discarded(w))
 CheckpointStmt : @Statement = "CHECKPOINT"i => @(new Statement.Checkpoint(null))
 
+// ── CREATE TABLE: gram.y CreateStmt, CreateAsStmt, OptTemp, TableElement, columnDef, ColConstraint, ───
+//    TableConstraint, ConstraintElem, TableLikeClause, PartitionSpec, PartitionBoundSpec
+//
+// The standard's records, CreateTable and the elements of its TableContents, with PostgreSQL's members
+// where it says more: the partitions, the inheritance, the access method, the storage parameters, ON
+// COMMIT DROP and the tablespace, and the exclusion constraint. A column's qualifiers come in any order
+// in gram.y's ColQualList; the tree keeps the standard's slots — one default or generation, the
+// constraints in the order written, one collation — so the server's own refusals of a second default or
+// of NULL beside NOT NULL, made in analysis, are made here, where the tree has no room for what they
+// refuse. A constraint attribute after a column's constraint is that constraint's, as the server
+// attaches it; one with no constraint before it that takes it is refused, as the server refuses it.
+//
+// The table's parenthesis is read once: a list of elements, or of names alone where AS follows, which
+// is CREATE TABLE AS's column list; what follows the parenthesis says which, and a list of names with
+// no AS, or of elements before an AS, is refused as gram.y refuses it.
+CreateStmt : @Statement
+	= "CREATE"i & temp: OptTemp? & "TABLE"i & ifNot: ("IF"i & "NOT"i & "EXISTS"i)? & name: Qualified & body: TableBody & tail: TableTail & when @(Nodes.TableFits(body, tail))
+		=> @(Nodes.Created(temp, ifNot is not null, name, body, tail))
+
+// gram.y qualified_name: a name of at most three parts, as the server has it (improper qualified name).
+Qualified : @QualifiedName = name: AnyName & when @(name.Count <= 3) => @(name)
+
+// gram.y OptTemp: TEMPORARY or TEMP, alone or after LOCAL or GLOBAL; or UNLOGGED.
+OptTemp : @Nodes.Temp
+	= scope: ("LOCAL"i | "GLOBAL"i)? & word: ("TEMPORARY"i | "TEMP"i) => @(new Nodes.Temp(scope, word, false))
+	| "UNLOGGED"i => @(new Nodes.Temp(null, null, true))
+
+// What stands after the table's name: the elements or the names in brackets, OF a type and its
+// elements, PARTITION OF a parent with its elements and its bound, or nothing before an AS.
+TableBody : @Nodes.TableBody
+	= '(' & (first: TableItem & (',' & rest: TableItem)*)? & ')' => @(new Nodes.TableBody.Elements(Nodes.Items(first, rest)))
+	| "OF"i & type: AnyName & typed: TypedElements? => @(new Nodes.TableBody.Of(type, typed))
+	| "PARTITION"i & "OF"i & parent: Qualified & typed: TypedElements? & bound: PartitionBoundSpec => @(new Nodes.TableBody.PartitionOf(parent, typed, bound))
+	| none => @(new Nodes.TableBody.None())
+
+// gram.y TableElement: a constraint, which begins with a reserved word or with EXCLUDE and its bracket
+// or USING; LIKE; a name alone, which is CREATE TABLE AS's; or a column.
+TableItem : @Nodes.TableItem
+	= constraint: TableConstraint => @(new Nodes.TableItem.Element(new TableElement.TableConstraint(constraint)))
+	| like: TableLikeClause => @(new Nodes.TableItem.Element(like))
+	| name: ColId & ?=(',' | ')') => @(new Nodes.TableItem.Name(name))
+	| column: TableColumnDef => @(new Nodes.TableItem.Element(new TableElement.Column(column)))
+
+// gram.y OptTypedTableElementList, TypedTableElement, columnOptions: a constraint, or a column's name with
+// its qualifiers, WITH OPTIONS before them or not.
+TypedElements : @TableElement[] = '(' & first: TypedElement & (',' & rest: TypedElement)* & ')' => @(Nodes.Items(first, rest))
+TypedElement : @TableElement
+	= c: TableConstraint => @(new TableElement.TableConstraint(c))
+	| name: ColId & with: ("WITH"i & "OPTIONS"i)? & quals: ColQual* & when @(Nodes.OptionsFit(quals)) => @(Nodes.ColumnOptions(name, with is null, quals))
+
+// What follows the elements, in gram.y's order: INHERITS, PARTITION BY, USING, WITH or WITHOUT OIDS,
+// ON COMMIT, TABLESPACE, and CREATE TABLE AS's query and WITH [NO] DATA.
+TableTail : @Nodes.TableTail
+	= ("INHERITS"i & '(' & i1: Qualified & (',' & iN: Qualified)* & ')')? & by: PartitionSpec? & ("USING"i & method: ColId)? & with: OptWith?
+	  & commit: OnCommitOption? & ("TABLESPACE"i & space: ColId)? & ("AS"i & ?=SelectStart & query: Stmt & when @(query is Statement.Select) & data: WithData?)?
+		=> @(new Nodes.TableTail(Nodes.Names(i1, iN), by, method, with, commit, space, query, data))
+
+WithData : @WithDataMode = "WITH"i & no: "NO"i? & "DATA"i => @(no is null ? WithDataMode.WithData : WithDataMode.WithNoData)
+
+// gram.y OptWith, reloptions: the storage parameters, or WITHOUT OIDS.
+OptWith : @Nodes.With
+	= "WITH"i & '(' & o1: RelOption & (',' & on: RelOption)* & ')' => @(new Nodes.With(Nodes.List(o1, on), false))
+	| "WITHOUT"i & "OIDS"i => @(new Nodes.With([], true))
+
+// gram.y OnCommitOption.
+OnCommitOption : @TableCommitAction
+	= "ON"i & "COMMIT"i & "DROP"i => @(TableCommitAction.Drop)
+	| "ON"i & "COMMIT"i & "DELETE"i & "ROWS"i => @(TableCommitAction.Delete)
+	| "ON"i & "COMMIT"i & "PRESERVE"i & "ROWS"i => @(TableCommitAction.Preserve)
+
+// gram.y PartitionSpec, part_elem: the strategy, which gram.y holds to list, range and hash in its action
+// (unrecognized partitioning strategy), and the keys, each with a collation and an operator class.
+PartitionSpec : @PartitionSpecification
+	= "PARTITION"i & "BY"i & strategy: ColId & when @(Nodes.IsStrategy(strategy)) & '(' & k1: PartElem & (',' & kn: PartElem)* & ')' => @(new PartitionSpecification(strategy, Nodes.List(k1, kn)))
+PartElem : @IndexElement = key: IndexKey & ("COLLATE"i & collation: AnyName)? & opclass: AnyName? => @(Nodes.Indexed(key, collation, opclass, null, null, null, null))
+
+// gram.y PartitionBoundSpec, hash_partbound: a modulus and a remainder, each once, as gram.y's action
+// holds them; a list of values; a range; or DEFAULT.
+PartitionBoundSpec : @PartitionBound
+	= "FOR"i & "VALUES"i & "WITH"i & '(' & h1: HashBound & (',' & hn: HashBound)* & ')' & when @(Nodes.HashFits(h1, hn)) => @(new PartitionBound.Hash(Nodes.List(h1, hn)))
+	| "FOR"i & "VALUES"i & "IN"i & values: ExprList => @(new PartitionBound.In(SqlList.Own(values)))
+	| "FOR"i & "VALUES"i & "FROM"i & from: ExprList & "TO"i & to: ExprList => @(new PartitionBound.Range(SqlList.Own(from), SqlList.Own(to)))
+	| "DEFAULT"i => @(new PartitionBound.Default())
+ExprList  : @Expression[] = '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(Nodes.Items(first, rest))
+HashBound : @Option = name: NonReservedWord & ?!GluedNumber & n: Integer & when @(Nodes.FitsInteger(n)) => @(new Option(name, Nodes.Number(n), []))
+
+// gram.y columnDef: the name, the type, STORAGE, COMPRESSION, and the qualifiers. A column's OPTIONS (…),
+// a foreign table's, has no slot in a column and is refused.
+TableColumnDef : @ColumnDefinition
+	= name: ColId & type: Typename & storage: ColumnStorage? & compression: ColumnCompression? & quals: ColQual* & when @(Nodes.QualsFit(quals)) => @(Nodes.Column(name, type, storage, compression, quals))
+
+ColumnStorage     : @Identifier = "STORAGE"i & (d: "DEFAULT"i | n: ColId) => @(n ?? new Identifier(d!))
+ColumnCompression : @Identifier = "COMPRESSION"i & (d: "DEFAULT"i | n: ColId) => @(n ?? new Identifier(d!))
+
+// gram.y ColConstraint: a constraint with its name or without, an attribute of the constraint before
+// it, or a collation.
+ColQual : @Nodes.Qual
+	= "CONSTRAINT"i & name: ColId & e: ColConstraintElem => @(Nodes.QualNamed(e, name))
+	| e: ColConstraintElem => @(e)
+	| a: ConstraintAttr => @(new Nodes.Qual.Attribute(a))
+	| "COLLATE"i & c: AnyName => @(new Nodes.Qual.Collate(new CollationName(c)))
+
+// gram.y ColConstraintElem. GENERATED BY DEFAULT AS (…) is refused, as gram.y's action refuses it.
+ColConstraintElem : @Nodes.Qual
+	= "NOT"i & "NULL"i & no: ("NO"i & "INHERIT"i)? => @(new Nodes.Qual.Constraint(new Constraint.NotNull { NoInherit = no is not null }))
+	| "NULL"i => @(new Nodes.Qual.Constraint(new Constraint.Null()))
+	| "UNIQUE"i & nulls: NullsTreatment? & with: Definition? & space: ConsTableSpace? => @(new Nodes.Qual.Constraint(Nodes.Key(UniqueKind.Unique, nulls, [], with, space)))
+	| "PRIMARY"i & "KEY"i & with: Definition? & space: ConsTableSpace? => @(new Nodes.Qual.Constraint(Nodes.Key(UniqueKind.PrimaryKey, null, [], with, space)))
+	| "CHECK"i & '(' & condition: AExpr & ')' & no: ("NO"i & "INHERIT"i)? => @(new Nodes.Qual.Constraint(new Constraint.Check(condition) { NoInherit = no is not null }))
+	| "DEFAULT"i & v: BExpr & when @(Nodes.IsBExpr(v)) => @(new Nodes.Qual.Generation(new ColumnGeneration.Default(v), null))
+	| "GENERATED"i & generation: ("ALWAYS"i | "BY"i & "DEFAULT"i) & "AS"i & "IDENTITY"i & ('(' & o1: SeqOptElem & on: SeqOptElem* & ')')? => @(Nodes.Identity(generation, o1, on))
+	| "GENERATED"i & "ALWAYS"i & "AS"i & '(' & e: AExpr & ')' & storage: ("STORED"i | "VIRTUAL"i)? => @(Nodes.Generated(e, storage))
+	| r: ColumnReferences => @(new Nodes.Qual.Constraint(new Constraint.ForeignKey([], null, r)))
+
+// gram.y ConstraintAttr: what may stand after a column's constraint, and is that constraint's.
+ConstraintAttr : @string = w: ("DEFERRABLE"i | "NOT"i & "DEFERRABLE"i | "INITIALLY"i & "DEFERRED"i | "INITIALLY"i & "IMMEDIATE"i | "ENFORCED"i | "NOT"i & "ENFORCED"i) => @(w)
+
+NullsTreatment : @NullDistinctness = "NULLS"i & not: "NOT"i? & "DISTINCT"i => @(not is null ? NullDistinctness.Distinct : NullDistinctness.NotDistinct)
+Definition     : @Option[] = "WITH"i & '(' & o1: RelOption & (',' & on: RelOption)* & ')' => @(Nodes.Items(o1, on))
+ConsTableSpace : @Identifier = "USING"i & "INDEX"i & "TABLESPACE"i & n: ColId => @(n)
+IncludeColumns : @Identifier[] = "INCLUDE"i & '(' & c1: ColId & (',' & cn: ColId)* & ')' => @(Nodes.Items(c1, cn))
+
+// gram.y SeqOptElem: a sequence's options, which an identity column's brackets hold too; WITH after
+// START and RESTART and BY after INCREMENT may be left out.
+SeqOptElem : @SequenceOption
+	= "AS"i & type: SimpleTypename => @(new SequenceOption.DataTypeOption(type))
+	| "CACHE"i & n: NumericOnly => @(new SequenceOption.Cache(n))
+	| "CYCLE"i => @(new SequenceOption.Cycle(true))
+	| "NO"i & "CYCLE"i => @(new SequenceOption.Cycle(false))
+	| "INCREMENT"i & by: "BY"i? & n: NumericOnly => @(new SequenceOption.Increment(n) { ByOmitted = by is null })
+	| "LOGGED"i => @(new SequenceOption.Logged(true))
+	| "UNLOGGED"i => @(new SequenceOption.Logged(false))
+	| "MAXVALUE"i & n: NumericOnly => @(new SequenceOption.Max(n))
+	| "MINVALUE"i & n: NumericOnly => @(new SequenceOption.Min(n))
+	| "NO"i & "MAXVALUE"i => @(new SequenceOption.Max(null, true))
+	| "NO"i & "MINVALUE"i => @(new SequenceOption.Min(null, true))
+	| "OWNED"i & "BY"i & column: AnyName => @(new SequenceOption.OwnedBy(column))
+	| "SEQUENCE"i & "NAME"i & name: AnyName => @(new SequenceOption.SequenceName(name))
+	| "START"i & with: "WITH"i? & n: NumericOnly => @(new SequenceOption.Start(n) { WithOmitted = with is null })
+	| "RESTART"i & with: "WITH"i? & n: NumericOnly => @(new SequenceOption.Restart(n) { WithOmitted = with is null })
+	| "RESTART"i => @(new SequenceOption.Restart(null))
+
+// gram.y ColConstraintElem's REFERENCES, key_match, key_actions.
+ColumnReferences : @ReferencesSpecification
+	= "REFERENCES"i & table: Qualified & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & match: KeyMatch? & actions: KeyActions? => @(Nodes.References(table, Nodes.List(c1, cn), null, match, actions))
+
+KeyMatch : @MatchType = "MATCH"i & w: ("FULL"i | "PARTIAL"i | "SIMPLE"i) => @(Nodes.MatchOf(w))
+
+// gram.y key_actions: ON UPDATE and ON DELETE in either order, each once. A column list after SET NULL or
+// SET DEFAULT is ON DELETE's alone: gram.y's key_update refuses one in its action.
+KeyActions : @Nodes.KeyActions
+	= "ON"i & "UPDATE"i & u: KeyAction & when @(u.Columns.Count == 0) & ("ON"i & "DELETE"i & d: KeyAction)? => @(new Nodes.KeyActions(u, d, false))
+	| "ON"i & "DELETE"i & d: KeyAction & ("ON"i & "UPDATE"i & u: KeyAction & when @(u.Columns.Count == 0))? => @(new Nodes.KeyActions(u, d, true))
+
+KeyAction : @Nodes.KeyAction
+	= "NO"i & "ACTION"i => @(new Nodes.KeyAction(ReferentialAction.NoAction, []))
+	| "RESTRICT"i => @(new Nodes.KeyAction(ReferentialAction.Restrict, []))
+	| "CASCADE"i => @(new Nodes.KeyAction(ReferentialAction.Cascade, []))
+	| "SET"i & "NULL"i & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? => @(new Nodes.KeyAction(ReferentialAction.SetNull, Nodes.List(c1, cn)))
+	| "SET"i & "DEFAULT"i & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? => @(new Nodes.KeyAction(ReferentialAction.SetDefault, Nodes.List(c1, cn)))
+
+// gram.y TableLikeClause, TableLikeOptionList, TableLikeOption.
+TableLikeClause : @TableElement = "LIKE"i & table: Qualified & options: TableLikeOption* => @(new TableElement.Like(table, Nodes.List(options)))
+TableLikeOption : @LikeOption
+	= w: ("INCLUDING"i | "EXCLUDING"i) & k: ("COMMENTS"i | "COMPRESSION"i | "CONSTRAINTS"i | "DEFAULTS"i | "IDENTITY"i | "GENERATED"i | "INDEXES"i | "STATISTICS"i | "STORAGE"i | "ALL"i)
+		=> @(Nodes.LikeOptionOf(w, k))
+
+// gram.y TableConstraint, ConstraintElem: the name, the constraint, and its attributes in any order,
+// which gram.y's processCASbits holds to what each kind of constraint takes.
+TableConstraint : @Constraint = ("CONSTRAINT"i & name: ColId)? & c: ConstraintElem => @(Nodes.Named(c, name))
+
+ConstraintElem : @Constraint
+	= "CHECK"i & '(' & condition: AExpr & ')' & spec: ConstraintAttributeElem* & when @(Nodes.AttributesFit(spec, Nodes.Takes.Check))
+		=> @(Nodes.Attributed(new Constraint.Check(condition), spec))
+	| "NOT"i & "NULL"i & column: ColId & spec: ConstraintAttributeElem* & when @(Nodes.AttributesFit(spec, Nodes.Takes.NotNull))
+		=> @(Nodes.Attributed(new Constraint.NotNull { Column = column }, spec))
+	| kind: ("UNIQUE"i | "PRIMARY"i & "KEY"i) & nulls: NullsTreatment? & '(' & first: ColId & (',' & rest: ColId)* & overlaps: ("WITHOUT"i & "OVERLAPS"i)? & ')' & include: IncludeColumns? & with: Definition? & space: ConsTableSpace?
+	  & spec: ConstraintAttributeElem* & when @((nulls is null || (kind[0] | 0x20) == 'u') && (overlaps is null || rest is { Length: > 0 }) && Nodes.AttributesFit(spec, Nodes.Takes.Key))
+		=> @(Nodes.Attributed(Nodes.TableKey(kind, nulls, first, rest, overlaps is not null, include, with, space), spec))
+	| kind: ("UNIQUE"i | "PRIMARY"i & "KEY"i) & "USING"i & "INDEX"i & index: ColId & spec: ConstraintAttributeElem* & when @(Nodes.AttributesFit(spec, Nodes.Takes.Key))
+		=> @(Nodes.Attributed(new Constraint.Unique((kind[0] | 0x20) == 'u' ? UniqueKind.Unique : UniqueKind.PrimaryKey, null, []) { ExistingIndex = index }, spec))
+	| "EXCLUDE"i & ("USING"i & method: ColId)? & '(' & e1: ExclusionConstraintElem & (',' & en: ExclusionConstraintElem)* & ')' & include: IncludeColumns? & with: Definition? & space: ConsTableSpace?
+	  & ("WHERE"i & '(' & where: AExpr & ')')? & spec: ConstraintAttributeElem* & when @(Nodes.AttributesFit(spec, Nodes.Takes.Key))
+		=> @(Nodes.Attributed(Nodes.Excluded(method, e1, en, include, with, space, where), spec))
+	| "FOREIGN"i & "KEY"i & keys: KeyColumns & "REFERENCES"i & table: Qualified & referenced: KeyColumns? & match: KeyMatch? & actions: KeyActions? & spec: ConstraintAttributeElem* & when @(Nodes.AttributesFit(spec, Nodes.Takes.ForeignKey))
+		=> @(Nodes.Attributed(Nodes.Foreign(keys, table, referenced, match, actions), spec))
+
+// gram.y columnList with optionalPeriodName: the columns, and PERIOD and a column after them.
+KeyColumns : @Nodes.KeyColumns = '(' & c1: ColId & (',' & ?!("PERIOD"i & ColId) & cn: ColId)* & (',' & "PERIOD"i & period: ColId)? & ')' => @(new Nodes.KeyColumns(Nodes.Items(c1, cn), period))
+
+ConstraintAttributeElem : @string
+	= w: ("NOT"i & "DEFERRABLE"i | "DEFERRABLE"i | "INITIALLY"i & "IMMEDIATE"i | "INITIALLY"i & "DEFERRED"i | "NOT"i & "VALID"i | "NO"i & "INHERIT"i | "NOT"i & "ENFORCED"i | "ENFORCED"i) => @(w)
+
+// gram.y ExclusionConstraintElem: a key and its operator, bare or in OPERATOR(…).
+ExclusionConstraintElem : @ExclusionElement
+	= e: IndexElem & "WITH"i & (keyword: "OPERATOR"i & '(' & named: AnyOperator & ')' | op: AnyOperator) => @(new ExclusionElement(e, (named ?? op)!.Value, keyword is not null))
+
 BareStmt : @Statement
 	= s: InsertStmt => @(s)
 	| s: UpdateStmt => @(s)
@@ -1250,6 +1447,7 @@ BareStmt : @Statement
 	| s: VacuumStmt => @(s)
 	| s: AnalyzeStmt => @(s)
 	| s: CopyStmt => @(s)
+	| s: CreateStmt => @(s)
 	| body: SelectClause & order: SortClause? & tail: SelectTail? & when @(Nodes.ClausesFit(null, body, order, tail)) => @(new Statement.Select { Query = Nodes.Finished(null, body, order, tail) })
 
 // gram.y stmtmulti: statements each ended by `;` or by the end of the text, with empty statements
