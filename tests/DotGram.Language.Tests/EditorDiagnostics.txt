@@ -533,3 +533,13 @@ parse Rows as ReadRows
 === GRAM5018
 A = 'a'
 parse A as Match
+=== GRAM5019 lexical
+context : @Ctx
+trivia = { ' '* }
+namespace Tokens
+{
+	trivia = none
+	Num : @string = { d: ['0'..'9'] & ['0'..'9']* & when @(context.Ok) } => @(d)
+}
+Start : @string = n: Tokens.Num => @(n)
+parse Start

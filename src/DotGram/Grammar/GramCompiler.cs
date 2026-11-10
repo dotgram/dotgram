@@ -465,6 +465,12 @@ static class GramCompiler
 	public const string Unanchored = "GRAM5011";
 
 	/// <summary>
+	/// A terminal of a grammar read over tokens whose value is built by reading its token again holds a guard that
+	/// names the context, which then runs again against the context as the parse has written it by then.
+	/// </summary>
+	public const string RereadContextGuard = "GRAM5019";
+
+	/// <summary>
 	/// One error per position, in the order they were raised.
 	/// </summary>
 	/// <remarks>
