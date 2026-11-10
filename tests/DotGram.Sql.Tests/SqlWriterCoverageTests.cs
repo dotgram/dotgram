@@ -369,6 +369,7 @@ public sealed class SqlWriterCoverageTests
 		[typeof(ComparisonOperator)] = v => new Expression.Comparison(A, (ComparisonOperator)v, B),
 		[typeof(BinaryOperator)]     = v => new Expression.Binary(A, (BinaryOperator)v, B),
 		[typeof(UnaryOperator)]      = v => new Expression.Unary((UnaryOperator)v, A),
+		[typeof(RoleWord)]           = v => new Statement.DropRole { Names = [new Identifier("r")], Word = (RoleWord)v },
 		[typeof(ParameterMode)]      = v => new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Function, new QualifiedName(new Identifier("f")), [new ParameterDefinition((ParameterMode)v, null, new DataType.Numeric(NumericTypeKind.Int), false, null)])] },
 		[typeof(LikeKind)]           = v => new Expression.Like(A, false, (LikeKind)v, B),
 		[typeof(CastSpelling)]       = v => new Expression.Cast(new LiteralValue.String("'1'", StringLiteralKind.Character), new DataType.Numeric(NumericTypeKind.Int)) { Spelling = (CastSpelling)v },

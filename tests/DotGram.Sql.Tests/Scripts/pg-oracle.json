@@ -2334,6 +2334,527 @@
 			"text": "SELECT 1 INTO x, y",
 			"accepted": false,
 			"error": "syntax error at or near \",\", at index 15"
+		},
+		{
+			"name": "drop_table",
+			"text": "DROP TABLE t",
+			"accepted": true
+		},
+		{
+			"name": "drop_tables",
+			"text": "DROP TABLE IF EXISTS a, s.b, c.s.d CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_sequence",
+			"text": "DROP SEQUENCE s RESTRICT",
+			"accepted": true
+		},
+		{
+			"name": "drop_view",
+			"text": "DROP VIEW v",
+			"accepted": true
+		},
+		{
+			"name": "drop_materialized_view",
+			"text": "DROP MATERIALIZED VIEW IF EXISTS m, n",
+			"accepted": true
+		},
+		{
+			"name": "drop_schema",
+			"text": "DROP SCHEMA IF EXISTS s, t CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_index",
+			"text": "DROP INDEX i",
+			"accepted": true
+		},
+		{
+			"name": "drop_index_concurrently",
+			"text": "DROP INDEX CONCURRENTLY IF EXISTS s.i, j",
+			"accepted": true
+		},
+		{
+			"name": "drop_foreign_table",
+			"text": "DROP FOREIGN TABLE f",
+			"accepted": true
+		},
+		{
+			"name": "drop_text_search_configuration",
+			"text": "DROP TEXT SEARCH CONFIGURATION IF EXISTS c CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_statistics",
+			"text": "DROP STATISTICS s.st",
+			"accepted": true
+		},
+		{
+			"name": "drop_extension",
+			"text": "DROP EXTENSION IF EXISTS e, f CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_foreign_data_wrapper",
+			"text": "DROP FOREIGN DATA WRAPPER w",
+			"accepted": true
+		},
+		{
+			"name": "drop_event_trigger",
+			"text": "DROP EVENT TRIGGER et",
+			"accepted": true
+		},
+		{
+			"name": "drop_access_method",
+			"text": "DROP ACCESS METHOD am",
+			"accepted": true
+		},
+		{
+			"name": "drop_language",
+			"text": "DROP LANGUAGE plpgsql",
+			"accepted": true
+		},
+		{
+			"name": "drop_server",
+			"text": "DROP SERVER s RESTRICT",
+			"accepted": true
+		},
+		{
+			"name": "drop_publication",
+			"text": "DROP PUBLICATION p",
+			"accepted": true
+		},
+		{
+			"name": "drop_trigger",
+			"text": "DROP TRIGGER IF EXISTS tr ON s.t CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_policy",
+			"text": "DROP POLICY p ON t",
+			"accepted": true
+		},
+		{
+			"name": "drop_rule",
+			"text": "DROP RULE IF EXISTS r ON t RESTRICT",
+			"accepted": true
+		},
+		{
+			"name": "drop_type",
+			"text": "DROP TYPE IF EXISTS t, s.u CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_domain",
+			"text": "DROP DOMAIN d",
+			"accepted": true
+		},
+		{
+			"name": "drop_function_bare",
+			"text": "DROP FUNCTION f",
+			"accepted": true
+		},
+		{
+			"name": "drop_functions",
+			"text": "DROP FUNCTION IF EXISTS f(), s.g(int, text[]) CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_function_modes",
+			"text": "DROP FUNCTION f(IN a int, OUT text, INOUT b int, VARIADIC int[])",
+			"accepted": true
+		},
+		{
+			"name": "drop_function_in_out",
+			"text": "DROP FUNCTION f(IN OUT int, double precision)",
+			"accepted": true
+		},
+		{
+			"name": "drop_procedure",
+			"text": "DROP PROCEDURE p(int)",
+			"accepted": true
+		},
+		{
+			"name": "drop_routine",
+			"text": "DROP ROUTINE r",
+			"accepted": true
+		},
+		{
+			"name": "drop_aggregates",
+			"text": "DROP AGGREGATE IF EXISTS a(*), b(int, \"any\")",
+			"accepted": true
+		},
+		{
+			"name": "drop_operators",
+			"text": "DROP OPERATOR IF EXISTS + (int, int), pg_catalog.@@ (NONE, text), ! (bigint, NONE) CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_operator_class",
+			"text": "DROP OPERATOR CLASS c USING btree",
+			"accepted": true
+		},
+		{
+			"name": "drop_operator_family",
+			"text": "DROP OPERATOR FAMILY IF EXISTS s.f USING hash CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_cast",
+			"text": "DROP CAST IF EXISTS (int AS text) CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_transform",
+			"text": "DROP TRANSFORM FOR int LANGUAGE sql",
+			"accepted": true
+		},
+		{
+			"name": "drop_role",
+			"text": "DROP ROLE r",
+			"accepted": true
+		},
+		{
+			"name": "drop_user",
+			"text": "DROP USER IF EXISTS a, b",
+			"accepted": true
+		},
+		{
+			"name": "drop_group",
+			"text": "DROP GROUP g",
+			"accepted": true
+		},
+		{
+			"name": "drop_database",
+			"text": "DROP DATABASE IF EXISTS d",
+			"accepted": true
+		},
+		{
+			"name": "drop_tablespace",
+			"text": "DROP TABLESPACE IF EXISTS ts",
+			"accepted": true
+		},
+		{
+			"name": "drop_subscription",
+			"text": "DROP SUBSCRIPTION s CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_refused_no_name",
+			"text": "DROP TABLE",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "drop_refused_a_trigger_with_no_table",
+			"text": "DROP TRIGGER tr",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "drop_refused_a_schema_of_two_parts",
+			"text": "DROP SCHEMA s.t",
+			"accepted": false,
+			"error": "syntax error at or near \".\", at index 13"
+		},
+		{
+			"name": "drop_refused_an_aggregate_with_no_arguments",
+			"text": "DROP AGGREGATE a",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "drop_refused_an_ordered_set_aggregate",
+			"text": "DROP AGGREGATE a(int ORDER BY int)",
+			"known": "a designator's parameters are one list; gram.y's aggr_args reads an ordered-set aggregate's direct arguments before ORDER BY and the aggregated ones after it",
+			"accepted": true
+		},
+		{
+			"name": "drop_refused_an_operator_with_one_type",
+			"text": "DROP OPERATOR + (int)",
+			"accepted": false,
+			"error": "missing argument, at index 20"
+		},
+		{
+			"name": "drop_refused_an_operator_with_no_types",
+			"text": "DROP OPERATOR + (NONE, NONE)",
+			"accepted": false,
+			"error": "syntax error at or near \"NONE\", at index 23"
+		},
+		{
+			"name": "drop_refused_a_role_specifier",
+			"text": "DROP ROLE CURRENT_USER",
+			"server": false,
+			"note": "user.c DropRole; the server refuses (cannot use special role specifier in DROP ROLE), libpg_query 18.6 reads it",
+			"accepted": true
+		},
+		{
+			"name": "drop_refused_concurrently_with_no_name",
+			"text": "DROP INDEX CONCURRENTLY",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "drop_refused_two_casts",
+			"text": "DROP CAST (int AS text), (text AS int)",
+			"accepted": false,
+			"error": "syntax error at or near \",\", at index 23"
+		},
+		{
+			"name": "drop_refused_a_tablespace_with_a_behavior",
+			"text": "DROP TABLESPACE ts CASCADE",
+			"accepted": false,
+			"error": "syntax error at or near \"CASCADE\", at index 19"
+		},
+		{
+			"name": "comment_table",
+			"text": "COMMENT ON TABLE s.t IS 'a table'",
+			"accepted": true
+		},
+		{
+			"name": "comment_column",
+			"text": "COMMENT ON COLUMN t.c IS NULL",
+			"accepted": true
+		},
+		{
+			"name": "comment_materialized_view",
+			"text": "COMMENT ON MATERIALIZED VIEW m IS $$x$$",
+			"accepted": true
+		},
+		{
+			"name": "comment_index",
+			"text": "COMMENT ON INDEX i IS E'\\n'",
+			"accepted": true
+		},
+		{
+			"name": "comment_schema",
+			"text": "COMMENT ON SCHEMA s IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_role",
+			"text": "COMMENT ON ROLE r IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_database",
+			"text": "COMMENT ON DATABASE d IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_type",
+			"text": "COMMENT ON TYPE s.t IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_domain",
+			"text": "COMMENT ON DOMAIN d IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_aggregate",
+			"text": "COMMENT ON AGGREGATE a(*) IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_function",
+			"text": "COMMENT ON FUNCTION f(a int) IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_procedure",
+			"text": "COMMENT ON PROCEDURE p IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_routine",
+			"text": "COMMENT ON ROUTINE r() IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_operator",
+			"text": "COMMENT ON OPERATOR ## (int, NONE) IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_operator_class",
+			"text": "COMMENT ON OPERATOR CLASS c USING gist IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_constraint",
+			"text": "COMMENT ON CONSTRAINT c ON t IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_domain_constraint",
+			"text": "COMMENT ON CONSTRAINT c ON DOMAIN d IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_trigger",
+			"text": "COMMENT ON TRIGGER tr ON t IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_policy",
+			"text": "COMMENT ON POLICY p ON s.t IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_rule",
+			"text": "COMMENT ON RULE r ON t IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_transform",
+			"text": "COMMENT ON TRANSFORM FOR int LANGUAGE sql IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_large_object",
+			"text": "COMMENT ON LARGE OBJECT 12345 IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_cast",
+			"text": "COMMENT ON CAST (int AS text) IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_event_trigger",
+			"text": "COMMENT ON EVENT TRIGGER e IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_text_search_dictionary",
+			"text": "COMMENT ON TEXT SEARCH DICTIONARY d IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "comment_refused_a_number",
+			"text": "COMMENT ON TABLE t IS 1",
+			"accepted": false,
+			"error": "syntax error at or near \"1\", at index 22"
+		},
+		{
+			"name": "comment_refused_no_text",
+			"text": "COMMENT ON TABLE t",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "comment_refused_a_schema_of_two_parts",
+			"text": "COMMENT ON SCHEMA s.t IS 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \".\", at index 19"
+		},
+		{
+			"name": "comment_refused_a_trigger_with_no_table",
+			"text": "COMMENT ON TRIGGER tr IS 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \"IS\", at index 22"
+		},
+		{
+			"name": "drop_one_tree",
+			"text": "DROP TABLE t CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2",
+			"text": "DROP VIEW v RESTRICT",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2",
+			"text": "DROP SEQUENCE s CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2",
+			"text": "DROP SCHEMA s CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2",
+			"text": "DROP TYPE t CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2",
+			"text": "DROP DOMAIN d CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2",
+			"text": "DROP FUNCTION f (INT, DATE) CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2_2",
+			"text": "DROP PROCEDURE s.p RESTRICT",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2_2_2",
+			"text": "DROP TABLE IF EXISTS a, s.b",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2_2_2_2",
+			"text": "DROP VIEW IF EXISTS v",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2_2_2_2_2",
+			"text": "DROP SEQUENCE s",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2_2_2_2_2_2",
+			"text": "DROP PROCEDURE IF EXISTS p, q",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2_2_2_2_2_2_2",
+			"text": "DROP TYPE s.t",
+			"accepted": true
+		},
+		{
+			"name": "drop_one_tree_2_2_2_2_2_2_2_2_2_2_2_2_2",
+			"text": "DROP SCHEMA IF EXISTS s",
+			"accepted": true
+		},
+		{
+			"name": "drop_procedural_language",
+			"text": "DROP PROCEDURAL LANGUAGE x",
+			"known": "PROCEDURAL before LANGUAGE says nothing more and has no slot; gram.y reads it",
+			"accepted": true
+		},
+		{
+			"name": "drop_type_array",
+			"text": "DROP TYPE int4[]",
+			"known": "DropType holds names; gram.y's type_name_list reads any Typename, the server finds the array type and refuses to drop it",
+			"accepted": true
+		},
+		{
+			"name": "drop_database_with_options",
+			"text": "DROP DATABASE IF EXISTS d WITH (FORCE)",
+			"known": "DropDatabase holds names; gram.y's DropdbStmt reads its options",
+			"accepted": true
+		},
+		{
+			"name": "drop_name_first_argument",
+			"text": "DROP FUNCTION f(a IN int)",
+			"known": "a designator's parameter writes its mode before its name; gram.y's func_arg reads the name first too",
+			"accepted": true
+		},
+		{
+			"name": "drop_type_argument",
+			"text": "DROP FUNCTION f(t.c%TYPE)",
+			"known": "a parameter's type is a DataType; gram.y's func_type reads a column's type by reference, %TYPE",
+			"accepted": true
 		}
 	]
 }

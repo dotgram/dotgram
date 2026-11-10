@@ -14,6 +14,14 @@ public static partial class SqlWriter
 		{
 			switch (statement)
 			{
+				case Statement.DropObject drop:
+					PutDropObject(drop);
+					return true;
+
+				case Statement.Comment comment:
+					PutComment(comment);
+					return true;
+
 				case Statement.PrepareTransaction prepare:
 					OnlyPostgreSql(prepare);
 					Word("PREPARE TRANSACTION");

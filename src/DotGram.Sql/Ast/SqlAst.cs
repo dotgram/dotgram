@@ -340,7 +340,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <drop view statement>
-	public sealed record DropView : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed partial record DropView : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <domain definition>, <alter domain statement>, <drop domain statement>
 	public sealed record CreateDomain : Statement { public required QualifiedName Name { get; init; } public bool AsKeyword { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public SqlList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
@@ -371,7 +371,7 @@ public abstract partial record Statement : ISqlNode
 	}
 	// T-SQL: DROP TRIGGER (Transact-SQL). `On` is the DDL trigger's scope, which the page publishes as
 	// `ON { DATABASE | ALL SERVER }` and requires there; null is the DML form, which has no scope.
-	public sealed record DropTrigger : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public TriggerScope? On { get; init; } }
+	public sealed partial record DropTrigger : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public TriggerScope? On { get; init; } }
 
 	// BNF: user-defined type/cast/ordering/transform statements
 	public sealed record CreateType : Statement { public required UserDefinedTypeDefinition Definition { get; init; } }
@@ -402,7 +402,7 @@ public abstract partial record Statement : ISqlNode
 	public sealed record Grant : Statement { public required GrantBody Body { get; init; } }
 	public sealed record Revoke : Statement { public required RevokeBody Body { get; init; } }
 	public sealed partial record CreateRole : Statement { public required Identifier Name { get; init; } public Grantor? Admin { get; init; } }
-	public sealed record DropRole : Statement { public SqlList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed partial record DropRole : Statement { public SqlList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: cursor/data control statements
 	// T-SQL: DECLARE CURSOR (Transact-SQL). The page publishes two forms: the ISO one writes the
@@ -2492,7 +2492,9 @@ public sealed partial record RoutineDefinition(RoutineKind Kind, QualifiedName N
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum RoutineKind { Routine, Procedure, Function, Method }
+// PostgreSQL: DROP AGGREGATE, COMMENT. `Aggregate` is an aggregate function; its designator's parameters are never
+// null, and an empty list is `(*)`, an aggregate of no argument.
+public enum RoutineKind { Routine, Procedure, Function, Method, Aggregate }
 // BNF: <SQL parameter declaration>. Locator is <locator indication>, `AS LOCATOR`.
 // T-SQL: CREATE PROCEDURE, CREATE FUNCTION (Transact-SQL). `ReadOnly`, `Varying` and `Nullable` are T-SQL's;
 // its `OUTPUT` is `ParameterMode.Out` and needs nothing of its own.

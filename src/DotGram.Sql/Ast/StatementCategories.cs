@@ -131,6 +131,8 @@ public static class StatementCategories
 		["Vacuum"] = StatementCategory.Admin,
 		["Analyze"] = StatementCategory.Admin,
 		["Copy"] = StatementCategory.Dml,
+		["DropObject"] = StatementCategory.Ddl,
+		["Comment"] = StatementCategory.Ddl,
 
 		["Execute"] = StatementCategory.Execute,
 		["ExecuteModule"] = StatementCategory.Execute,

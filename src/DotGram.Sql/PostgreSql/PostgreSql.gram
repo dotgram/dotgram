@@ -1425,6 +1425,159 @@ ConstraintAttributeElem : @string
 ExclusionConstraintElem : @ExclusionElement
 	= e: IndexElem & "WITH"i & (keyword: "OPERATOR"i & '(' & named: AnyOperator & ')' | op: AnyOperator) => @(new ExclusionElement(e, (named ?? op)!.Value, keyword is not null))
 
+// ── DROP and COMMENT: gram.y DropStmt, RemoveFuncStmt, RemoveAggrStmt, RemoveOperStmt, DropCastStmt, ─────
+//    DropOpClassStmt, DropOpFamilyStmt, DropTransformStmt, DropRoleStmt, DropdbStmt, DropTableSpaceStmt,
+//    DropSubscriptionStmt, CommentStmt
+//
+// gram.y names an object one of a few ways, the same in every statement that names one: by a name, a
+// routine with its arguments, a name on a table, an operator with its operands' types, a cast, an
+// operator class with its method, a transform. Each is an ObjectReference. Where the standard or T-SQL
+// has a record for a kind's DROP — TABLE, SEQUENCE, VIEW, SCHEMA, TYPE, DOMAIN, TRIGGER, the routines,
+// ROLE, DATABASE — that record is built; every other kind is a DropObject that says its kind. DROP is
+// read once and the kind's words after it say which.
+DropStmt : @Statement = "DROP"i & s: DropBody => @(s)
+
+DropBody : @Statement
+	= s: DropNamed => @(s)
+	| s: DropOnTable => @(s)
+	| s: DropTyped => @(s)
+	| s: DropRoutines => @(s)
+	| s: DropOperators => @(s)
+	| s: DropCastOrTransform => @(s)
+	| s: DropRoles => @(s)
+	| s: DropDatabaseOrOther => @(s)
+
+DropNamed : @Statement
+	= kind: ObjectTypeAnyName & ifExists: IfExists? & n1: AnyName & (',' & nn: AnyName)* & behavior: DropBehaviorWord? => @(Nodes.Dropped(kind, ifExists is not null, n1, nn, behavior))
+	| "INDEX"i & "CONCURRENTLY"i & ifExists: IfExists? & n1: AnyName & (',' & nn: AnyName)* & behavior: DropBehaviorWord? => @(Nodes.DroppedConcurrently(ifExists is not null, n1, nn, behavior))
+	| kind: DropTypeName & ifExists: IfExists? & i1: ColId & (',' & iN: ColId)* & behavior: DropBehaviorWord? => @(Nodes.Dropped(kind, ifExists is not null, i1, iN, behavior))
+
+DropOnTable : @Statement
+	= "TRIGGER"i & ifExists: IfExists? & name: ColId & "ON"i & table: AnyName & behavior: DropBehaviorWord?
+		=> @(new Statement.DropTrigger { Names = [new QualifiedName(name)], IfExists = ifExists is not null, Table = table, Behavior = behavior })
+	| word: ("POLICY"i | "RULE"i) & ifExists: IfExists? & name: ColId & "ON"i & table: AnyName & behavior: DropBehaviorWord? => @(Nodes.DroppedOnTable(word, ifExists is not null, name, table, behavior))
+
+DropTyped : @Statement
+	= word: ("TYPE"i | "DOMAIN"i) & ifExists: IfExists? & t1: TypeNameOnly & (',' & tn: TypeNameOnly)* & behavior: DropBehaviorWord? => @(Nodes.DroppedTypes(word, ifExists is not null, t1, tn, behavior))
+
+DropRoutines : @Statement
+	= word: ("FUNCTION"i | "PROCEDURE"i | "ROUTINE"i) & ifExists: IfExists? & r1: FunctionWithArgtypes & (',' & rn: FunctionWithArgtypes)* & behavior: DropBehaviorWord?
+		=> @(Nodes.DroppedRoutines(word, ifExists is not null, r1, rn, behavior))
+	| "AGGREGATE"i & ifExists: IfExists? & a1: AggregateWithArgtypes & (',' & an: AggregateWithArgtypes)* & behavior: DropBehaviorWord? => @(Nodes.DroppedRoutines("AGGREGATE", ifExists is not null, a1, an, behavior))
+
+DropOperators : @Statement
+	= "OPERATOR"i & word: ("CLASS"i | "FAMILY"i) & ifExists: IfExists? & className: AnyName & "USING"i & method: ColId & behavior: DropBehaviorWord?
+		=> @(Nodes.DroppedClass(word, ifExists is not null, className, method, behavior))
+	| "OPERATOR"i & ifExists: IfExists? & o1: OperatorWithArgtypes & (',' & on: OperatorWithArgtypes)* & behavior: DropBehaviorWord?
+		=> @(Nodes.DroppedOperators(ifExists is not null, o1, on, behavior))
+
+DropCastOrTransform : @Statement
+	= "CAST"i & ifExists: IfExists? & cast: CastReference & behavior: DropBehaviorWord? => @(new Statement.DropObject(ObjectKind.Cast, [cast], ifExists is not null, behavior))
+	| "TRANSFORM"i & ifExists: IfExists? & transform: TransformReference & behavior: DropBehaviorWord? => @(new Statement.DropObject(ObjectKind.Transform, [transform], ifExists is not null, behavior))
+
+DropRoles : @Statement
+	= word: ("ROLE"i | "USER"i | "GROUP"i) & ifExists: IfExists? & role1: NonReservedWord & (',' & roleN: NonReservedWord)* => @(Nodes.DroppedRoles(word, ifExists is not null, role1, roleN))
+
+DropDatabaseOrOther : @Statement
+	= "DATABASE"i & ifExists: IfExists? & database: ColId => @(new Statement.DropDatabase([database]) { IfExists = ifExists is not null })
+	| "TABLESPACE"i & ifExists: IfExists? & space: ColId => @(new Statement.DropObject(ObjectKind.Tablespace, [new ObjectReference.Named(ObjectKind.Tablespace, new QualifiedName(space))], ifExists is not null))
+	| "SUBSCRIPTION"i & ifExists: IfExists? & subscription: ColId & behavior: DropBehaviorWord?
+		=> @(new Statement.DropObject(ObjectKind.Subscription, [new ObjectReference.Named(ObjectKind.Subscription, new QualifiedName(subscription))], ifExists is not null, behavior))
+
+IfExists : @string = w: ("IF"i & "EXISTS"i) => @(w)
+
+DropBehaviorWord : @DropBehavior = "CASCADE"i => @(DropBehavior.Cascade) | "RESTRICT"i => @(DropBehavior.Restrict)
+
+// gram.y object_type_any_name: the kinds named by any_name.
+ObjectTypeAnyName : @ObjectKind
+	= "TABLE"i => @(ObjectKind.Table)
+	| "SEQUENCE"i => @(ObjectKind.Sequence)
+	| "VIEW"i => @(ObjectKind.View)
+	| "MATERIALIZED"i & "VIEW"i => @(ObjectKind.MaterializedView)
+	| "INDEX"i => @(ObjectKind.Index)
+	| "FOREIGN"i & "TABLE"i => @(ObjectKind.ForeignTable)
+	| "COLLATION"i => @(ObjectKind.Collation)
+	| "CONVERSION"i => @(ObjectKind.Conversion)
+	| "STATISTICS"i => @(ObjectKind.Statistics)
+	| "TEXT"i & "SEARCH"i & "PARSER"i => @(ObjectKind.TextSearchParser)
+	| "TEXT"i & "SEARCH"i & "DICTIONARY"i => @(ObjectKind.TextSearchDictionary)
+	| "TEXT"i & "SEARCH"i & "TEMPLATE"i => @(ObjectKind.TextSearchTemplate)
+	| "TEXT"i & "SEARCH"i & "CONFIGURATION"i => @(ObjectKind.TextSearchConfiguration)
+
+// gram.y drop_type_name: the kinds named by a name of one part. PROCEDURAL before LANGUAGE, which gram.y
+// reads and which says nothing more, has no slot and is refused.
+DropTypeName : @ObjectKind
+	= "ACCESS"i & "METHOD"i => @(ObjectKind.AccessMethod)
+	| "EVENT"i & "TRIGGER"i => @(ObjectKind.EventTrigger)
+	| "EXTENSION"i => @(ObjectKind.Extension)
+	| "FOREIGN"i & "DATA"i & "WRAPPER"i => @(ObjectKind.ForeignDataWrapper)
+	| "LANGUAGE"i => @(ObjectKind.Language)
+	| "PUBLICATION"i => @(ObjectKind.Publication)
+	| "SCHEMA"i => @(ObjectKind.Schema)
+	| "SERVER"i => @(ObjectKind.Server)
+
+// gram.y object_type_name: drop_type_name's kinds and four more.
+ObjectTypeName : @ObjectKind
+	= k: DropTypeName => @(k)
+	| "DATABASE"i => @(ObjectKind.Database)
+	| "ROLE"i => @(ObjectKind.Role)
+	| "SUBSCRIPTION"i => @(ObjectKind.Subscription)
+	| "TABLESPACE"i => @(ObjectKind.Tablespace)
+
+// gram.y Typename where a type is named to be dropped or commented on: a name, which is the standard's
+// shape for DROP TYPE and DROP DOMAIN; a type with modifiers, array bounds or a key word of its own has no
+// slot in a name and is refused.
+TypeNameOnly : @QualifiedName = first: TypeFunctionName & ('.' & rest: AttrName)* & ?!('(' | '[' | '.' | "ARRAY"i | '%') => @(Nodes.Chain(first, rest))
+
+// gram.y function_with_argtypes, func_args, func_arg, arg_class: a routine's name and, where written,
+// its arguments, each a mode, a name and a type. A name before the mode, `a IN int`, has no slot and is
+// refused; so is %TYPE.
+FunctionWithArgtypes : @RoutineDesignator
+	= name: FuncName & '(' & (p1: FuncArgument & (',' & pn: FuncArgument)*)? & ')' => @(new RoutineDesignator(RoutineKind.Function, name, Nodes.List(p1, pn)))
+	| name: RoutineName => @(new RoutineDesignator(RoutineKind.Function, name))
+
+RoutineName : @QualifiedName = n: FuncName => @(n) | c: ColId => @(new QualifiedName(c))
+
+FuncArgument : @ParameterDefinition = mode: ArgClass? & argument: ArgumentType => @(Nodes.Argument(mode, argument.Name, argument.Type))
+ArgumentType : @Nodes.ArgumentType
+	= name: TypeFunctionName & type: Typename => @(new Nodes.ArgumentType(name, type))
+	| type: Typename => @(new Nodes.ArgumentType(null, type))
+
+ArgClass : @string = w: ("IN"i & "OUT"i | "INOUT"i | "IN"i | "OUT"i | "VARIADIC"i) => @(w)
+
+// gram.y aggregate_with_argtypes, aggr_args: an aggregate's name and its arguments, or `(*)`, which is an
+// empty list. An ordered-set aggregate's ORDER BY among them has no slot and is refused.
+AggregateWithArgtypes : @RoutineDesignator
+	= name: FuncName & '(' & (star: '*' | p1: FuncArgument & (',' & pn: FuncArgument)*) & ')' => @(new RoutineDesignator(RoutineKind.Aggregate, name, star is null ? Nodes.List(p1, pn) : []))
+
+// gram.y operator_with_argtypes, oper_argtypes: the operator and its two operands' types, NONE for one a
+// prefix operator lacks; one type alone is refused, as gram.y's action refuses it.
+OperatorWithArgtypes : @ObjectReference
+	= op: AnyOperator & '(' & (none1: "NONE"i | left: Typename) & ',' & (none2: "NONE"i | right: Typename) & ')' & when @(left is not null || right is not null)
+		=> @(new ObjectReference.Operator(op, left, right))
+
+CastReference      : @ObjectReference = '(' & from: Typename & "AS"i & to: Typename & ')' => @(new ObjectReference.Cast(from, to))
+TransformReference : @ObjectReference = "FOR"i & type: Typename & "LANGUAGE"i & language: ColId => @(new ObjectReference.Transform(type, language))
+
+// gram.y CommentStmt, comment_text: the object, in any of the shapes above, and its text, or NULL.
+CommentStmt : @Statement
+	= "COMMENT"i & "ON"i & target: CommentTarget & "IS"i & (text: Sconst | "NULL"i) => @(new Statement.Comment(target, (LiteralValue.String?)text))
+
+CommentTarget : @ObjectReference
+	= kind: ObjectTypeAnyName & name: AnyName => @(new ObjectReference.Named(kind, name))
+	| "COLUMN"i & name: AnyName => @(new ObjectReference.Named(ObjectKind.Column, name))
+	| kind: ObjectTypeName & single: ColId => @(new ObjectReference.Named(kind, new QualifiedName(single)))
+	| word: ("TYPE"i | "DOMAIN"i) & name: TypeNameOnly => @(new ObjectReference.Named((word[0] | 0x20) == 't' ? ObjectKind.Type : ObjectKind.Domain, name))
+	| "AGGREGATE"i & a: AggregateWithArgtypes => @(new ObjectReference.Routine(a))
+	| word: ("FUNCTION"i | "PROCEDURE"i | "ROUTINE"i) & r: FunctionWithArgtypes => @(new ObjectReference.Routine(r with { Kind = Nodes.RoutineKindOf(word) }))
+	| "OPERATOR"i & word: ("CLASS"i | "FAMILY"i) & name: AnyName & "USING"i & method: ColId => @(new ObjectReference.OperatorClass(Nodes.ClassKindOf(word), name, method))
+	| "OPERATOR"i & op: OperatorWithArgtypes => @(op)
+	| "CONSTRAINT"i & constraint: ColId & "ON"i & domain: "DOMAIN"i? & table: AnyName => @(new ObjectReference.OnTable(ObjectKind.Constraint, constraint, table) { DomainWord = domain is not null })
+	| word: ("POLICY"i | "RULE"i | "TRIGGER"i) & onTable: ColId & "ON"i & table: AnyName => @(new ObjectReference.OnTable(Nodes.OnTableKindOf(word), onTable, table))
+	| "TRANSFORM"i & transform: TransformReference => @(transform)
+	| "LARGE"i & "OBJECT"i & id: NumericOnly => @(new ObjectReference.LargeObject(id))
+	| "CAST"i & cast: CastReference => @(cast)
+
 BareStmt : @Statement
 	= s: InsertStmt => @(s)
 	| s: UpdateStmt => @(s)
@@ -1455,6 +1608,8 @@ BareStmt : @Statement
 	| s: AnalyzeStmt => @(s)
 	| s: CopyStmt => @(s)
 	| s: CreateStmt => @(s)
+	| s: DropStmt => @(s)
+	| s: CommentStmt => @(s)
 	| body: SelectClause & order: SortClause? & tail: SelectTail? & when @(Nodes.ClausesFit(null, body, order, tail)) => @(new Statement.Select { Query = Nodes.Finished(null, body, order, tail) })
 
 // gram.y stmtmulti: statements each ended by `;` or by the end of the text, with empty statements
