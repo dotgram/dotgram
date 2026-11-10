@@ -399,6 +399,18 @@ sealed partial class Machine
 		/// </summary>
 		bool _folded;
 
+		/// <summary>
+		/// Whether the construction just written is called through a held wrapper (<see cref="HeldCall"/>),
+		/// which holds what it throws itself, so that <see cref="Held"/> writes no <c>try</c> around it.
+		/// </summary>
+		bool _heldCall;
+
+		/// <summary>
+		/// The held wrappers the reader's methods call, by name: the construction each one calls, what it
+		/// hands back and the parameters it is declared with (<see cref="HeldCall"/>).
+		/// </summary>
+		readonly Dictionary<string, (string Type, IReadOnlyList<string> Parameters, string Callee)> _held = new(StringComparer.Ordinal);
+
 		const string NoInlining = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
 
 		/// <summary>
@@ -954,6 +966,12 @@ sealed partial class Machine
 
 			_folded = fold.Length > 0;
 
+			// The wrapper holds what the construction throws, and the reader's own method keeps no
+			// handler: a protected region in a method the JIT compiles as one keeps its locals on the
+			// stack across it, and a reader is entered for every operand.
+			if (_heldCall)
+				return $"{{ if (faults > {mark}f) {{ {fold}{into} = default!; }} else {{ {fold}{built} }} }}";
+
 			return $"{{ if (faults > {mark}f) {{ {fold}{into} = default!; }} else {{ try {{ {fold}{built} }} catch (global::System.Exception thrown) {{ {fold}{into} = default!; Faulted_DotGram(thrown); }} }} }}";
 		}
 
@@ -962,6 +980,8 @@ sealed partial class Machine
 			var type = machine._results.QualifiedOf(rule)!;
 			var into = Register(type);
 
+			_heldCall = false;
+
 			// A terminal that builds, over kinds: the lexer measured it, and the character
 			// machine of its own builds it from the text — now rather than in the walk.
 			if (machine._settings.Reread is not null && machine._settings.Reread.Contains(rule))
@@ -969,7 +989,19 @@ sealed partial class Machine
 				if (_start is null)
 					throw new InvalidOperationException($"'{rule.Name}' builds from its text and its reader keeps no positions.");
 
-				return $"{into} = {CSharpEmitter.Named("Value", CSharpEmitter.IdentifierOf(rule))}({machine.TokenOf(_start)});";
+				var reread = CSharpEmitter.Named("Value", CSharpEmitter.IdentifierOf(rule));
+
+				if (Holds)
+				{
+					// What CSharpEmitter declares every Value method with.
+					var taken = machine._settings.RereadLocates
+						? new[] { "string source", "int at", "int length", "int parserLocating" }
+						: new[] { "string source", "int at", "int length" };
+
+					return $"{into} = {HeldCall(reread, type, taken, machine.TokenOf(_start))};";
+				}
+
+				return $"{into} = {reread}({machine.TokenOf(_start)});";
 			}
 
 			// The span an alternative stands on, where the record would have carried one —
@@ -1008,9 +1040,20 @@ sealed partial class Machine
 				rule, made, machine.DirectMembers(rule, _factory), Text, Span,
 				() => accumulated ? "fold" : "default!", Value);
 
-			var call = $"{made.Method}({string.Join(", ", arguments)})";
+			var call    = $"{made.Method}({string.Join(", ", arguments)})";
+			var offered = start is null ? call : machine.Offered(made, call, start, $"{end} - {start}");
 
-			return $"{into} = {(start is null ? call : machine.Offered(made, call, start, $"{end} - {start}"))};";
+			// A construction offered its range is told it after it is made, and what the offer
+			// throws is held as the construction's is: that stays inside the reader's own handler.
+			if (Holds && ReferenceEquals(offered, call))
+			{
+				var parameters = CSharpEmitter.FactoryParameters(
+					machine._graph, rule, made, machine._results, machine._settings.SpanCaptures, bytes: false);
+
+				return $"{into} = {HeldCall(made.Method, type, parameters, string.Join(", ", arguments))};";
+			}
+
+			return $"{into} = {offered};";
 
 			string Value(DirectMember member)
 			{
@@ -1019,6 +1062,56 @@ sealed partial class Machine
 						return value;
 
 				throw new InvalidOperationException($"Member '{member.Member.Name}' of '{rule.Name}' was never put.");
+			}
+		}
+
+		/// <summary>
+		/// A construction called through a wrapper of its own that holds what it throws, as the
+		/// <c>try</c> <see cref="Held"/> writes does: the exception kept (<c>Faulted_DotGram</c>) and
+		/// the value default. What the arguments are is worked out before the call, by the reader, and
+		/// none of them throws: positions, the captures already made, the marks, a cut of the text.
+		/// </summary>
+		/// <param name="method">The construction, a static method of the class written into.</param>
+		/// <param name="type">What it hands back, the register's type.</param>
+		/// <param name="parameters">Its parameters as it declares them, each its type and its name.</param>
+		/// <param name="arguments">What this call hands it.</param>
+		string HeldCall(string method, string type, IReadOnlyList<string> parameters, string arguments)
+		{
+			var name = "Held" + method;
+
+			if (!_held.ContainsKey(name))
+				_held[name] = (type, parameters, method);
+
+			_heldCall = true;
+
+			return $"{name}({arguments})";
+		}
+
+		/// <summary>The held wrappers the reader's methods called (<see cref="HeldCall"/>), in the order of their names.</summary>
+		void HeldMethods(Writer file)
+		{
+			foreach (var name in _held.Keys.OrderBy(static one => one, StringComparer.Ordinal))
+			{
+				var (type, parameters, callee) = _held[name];
+				var names = parameters.Select(static one => one.Substring(one.LastIndexOf(' ') + 1));
+
+				file.Line($"/// <summary><c>{callee}</c>, what it throws held (<c>Faulted_DotGram</c>) and its value then default.</summary>");
+				file.Line(NoInlining);
+
+				using (file.Block($"{type} {name}({string.Join(", ", parameters)})"))
+				{
+					using (file.Block("try"))
+						file.Line($"return {callee}({string.Join(", ", names)});");
+
+					using (file.Block("catch (global::System.Exception caught_DotGram)"))
+					{
+						file.Line("Faulted_DotGram(caught_DotGram);");
+						file.Line();
+						file.Line("return default!;");
+					}
+				}
+
+				file.Line();
 			}
 		}
 
@@ -1055,7 +1148,10 @@ sealed partial class Machine
 					ReplayMethods(file);
 
 				if (Holds)
+				{
 					HoldMethods(file);
+					HeldMethods(file);
+				}
 
 				if (machine._directRules is not { } rules ||
 					!rules.Any(rule => machine.DirectMembers(rule).Exists(static one => one.Shape == MemberShape.Pieces)))
