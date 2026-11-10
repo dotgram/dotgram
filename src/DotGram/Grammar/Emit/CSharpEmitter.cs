@@ -3579,6 +3579,11 @@ file.Line("return spare;");
 				// standing in the beginning (TerminalInventory.Continuation.FromStart).
 				var continued = 0;
 
+				// What a measuring is handed besides the text: the whole input where that machine asks for it, and,
+				// where locations are decided per call, that this reading does not locate — it builds no value, so
+				// there is nothing to offer a location to (RecognitionGraph.PerCall).
+				var measuring = valuing is null ? "" : (valuing.UsesInput ? ", input" : "") + (valuing.UsesLocating ? ", -1" : "");
+
 				// Where a keyword is taken back below, the shorter token found instead may be one
 				// of these too, and is measured as the first was.
 				var remeasured = lexical.Inventory.Asked.Count > 0 && lexical.Inventory.Continued.Count > 0;
@@ -3643,7 +3648,7 @@ file.Line("return spare;");
 								// terminal's value may be a piece of the text it has to read again later.
 								file.Line(
 									$"var measured = {Named("Measure", IdentifierOf(rule))}(text, {from}, ref failure{output}" +
-									$"{(valuing!.UsesInput ? ", input" : "")});");
+									$"{measuring});");
 								file.Line();
 
 								// A terminal that binds text: its rule decides the token, from the
@@ -3679,7 +3684,7 @@ file.Line("return spare;");
 											file.Line();
 											file.Line(
 												$"{Named("Measure", IdentifierOf(rule))}(text, {from}, ref again{output}" +
-												$"{(valuing!.UsesInput ? ", input" : "")});");
+												$"{measuring});");
 											file.Line();
 											file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
 										}
@@ -3697,7 +3702,7 @@ file.Line("return spare;");
 										file.Line();
 										file.Line(
 											$"{Named("Measure", IdentifierOf(rule))}(text, {from}, ref again{output}" +
-											$"{(valuing!.UsesInput ? ", input" : "")});");
+											$"{measuring});");
 										file.Line();
 										file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
 									}
@@ -3750,7 +3755,7 @@ file.Line("return spare;");
 								file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
 								file.Line(
 									$"var measured = {Named("Measure", IdentifierOf(rule))}(text, {from}, ref failure{output}" +
-									$"{(valuing!.UsesInput ? ", input" : "")});");
+									$"{measuring});");
 							}
 							else
 							{
