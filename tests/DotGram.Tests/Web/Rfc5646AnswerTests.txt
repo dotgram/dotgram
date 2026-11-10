@@ -1,0 +1,317 @@
+"en" | accepted en [] - - [] [] [] -
+"e" | Starved at 1: Expected "en-GB-oed"i or Alpha.
+"n" | Starved at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-US" | accepted en [] - US [] [] [] -
+"en-U" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"n-US" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"zh-Hant-TW" | accepted zh [] Hant TW [] [] [] -
+"z" | Starved at 1: Expected "zh-guoyu"i, "zh-hakka"i, "zh-min-nan"i, "zh-min"i, "zh-xiang"i or Alpha.
+"zh-H" | Starved at 4: Expected "zh-hakka"i, Alpha, Alphanum or '-'.
+"zh-Hant" | accepted zh [] Hant - [] [] [] -
+"h-Hant-TW" | NoMatch at 1: Expected Alpha.
+"zh-Hat-TW" | accepted zh [Hat] - TW [] [] [] -
+"sr-Latn-RS" | accepted sr [] Latn RS [] [] [] -
+"s" | Starved at 1: Expected "sgn-BE-FR"i, "sgn-BE-NL"i, "sgn-CH-DE"i or Alpha.
+"sr-L" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"sr-Latn" | accepted sr [] Latn - [] [] [] -
+"r-Latn-RS" | NoMatch at 1: Expected Alpha.
+"sr-Lan-RS" | accepted sr [Lan] - RS [] [] [] -
+"de-CH-1901" | accepted de [] - CH [1901] [] [] -
+"d" | Starved at 1: Expected Alpha.
+"de-C" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"de-CH-1" | Starved at 7: Expected Alphanum or '-'.
+"e-CH-1901" | NoMatch at 1: Expected "en-GB-oed"i or Alpha.
+"de-CH1901" | accepted de [] - - [CH1901] [] [] -
+"sl-rozaj-biske" | accepted sl [] - - [rozaj,biske] [] [] -
+"sl-r" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"sl-roza" | accepted sl [] roza - [] [] [] -
+"sl-rozaj-b" | Starved at 10: Expected Alphanum or '-'.
+"sl-rozaj-bisk" | Starved at 13: Expected Alphanum.
+"l-rozaj-biske" | NoMatch at 1: Expected Alpha.
+"sl-roaj-biske" | accepted sl [] roaj - [biske] [] [] -
+"sl-rozaj-bske" | Starved at 13: Expected Alphanum.
+"hy-Latn-IT-arevela" | accepted hy [] Latn IT [arevela] [] [] -
+"h" | Starved at 1: Expected Alpha.
+"hy-L" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"hy-Latn" | accepted hy [] Latn - [] [] [] -
+"hy-Latn-IT" | accepted hy [] Latn IT [] [] [] -
+"hy-Latn-IT-ar" | Starved at 13: Expected Alphanum.
+"hy-Latn-IT-areve" | accepted hy [] Latn IT [areve] [] [] -
+"y-Latn-IT-arevela" | NoMatch at 1: Expected Alpha.
+"hy-Lan-IT-arevela" | accepted hy [Lan] - IT [arevela] [] [] -
+"hy-Latn-ITarevela" | NoMatch at 16: Expected End.
+"hy-Latn-IT-arevla" | accepted hy [] Latn IT [arevla] [] [] -
+"zh-yue-HK" | accepted zh [yue] - HK [] [] [] -
+"zh-y" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"zh-yue-" | Starved at 7: Expected Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"h-yue-HK" | NoMatch at 1: Expected Alpha.
+"zh-yu-HK" | Starved at 8: Expected Alphanum.
+"zh-cmn-Hans-CN" | accepted zh [cmn] Hans CN [] [] [] -
+"zh-c" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"zh-cmn-" | Starved at 7: Expected Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"zh-cmn-Han" | accepted zh [cmn,Han] - - [] [] [] -
+"zh-cmn-Hans-C" | Starved at 13: Expected Alpha, Alphanum or '-'.
+"h-cmn-Hans-CN" | NoMatch at 1: Expected Alpha.
+"zh-cm-Hans-CN" | NoMatch at 10: Expected Alphanum.
+"zh-cmn-Han-CN" | accepted zh [cmn,Han] - CN [] [] [] -
+"en-a-bbb-x-a-ccc" | accepted en [] - - [] [a:bbb] [a,ccc] -
+"en-a" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"en-a-bb" | accepted en [] - - [] [a:bb] [] -
+"en-a-bbb-x" | Starved at 10: Expected Alphanum or '-'.
+"en-a-bbb-x-a-" | Starved at 13: Expected Alphanum.
+"n-a-bbb-x-a-ccc" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-a-bb-x-a-ccc" | accepted en [] - - [] [a:bb] [a,ccc] -
+"en-a-bbb-xa-ccc" | accepted en [] - - [] [a:bbb,xa,ccc] [] -
+"en-a-bbb-x-a-cc" | accepted en [] - - [] [a:bbb] [a,cc] -
+"en-a-abc-b-def-ghij-x-private" | accepted en [] - - [] [a:abc,b:def,ghij] [private] -
+"en-a-ab" | accepted en [] - - [] [a:ab] [] -
+"en-a-abc-b" | Starved at 10: Expected Alphanum or '-'.
+"en-a-abc-b-de" | accepted en [] - - [] [a:abc,b:de] [] -
+"en-a-abc-b-def-g" | Starved at 16: Expected Alphanum or '-'.
+"en-a-abc-b-def-ghij" | accepted en [] - - [] [a:abc,b:def,ghij] [] -
+"en-a-abc-b-def-ghij-x-" | Starved at 22: Expected Alphanum.
+"en-a-abc-b-def-ghij-x-pri" | accepted en [] - - [] [a:abc,b:def,ghij] [pri] -
+"en-a-abc-b-def-ghij-x-privat" | accepted en [] - - [] [a:abc,b:def,ghij] [privat] -
+"n-a-abc-b-def-ghij-x-private" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-a-bc-b-def-ghij-x-private" | accepted en [] - - [] [a:bc,b:def,ghij] [private] -
+"en-a-abc-bdef-ghij-x-private" | accepted en [] - - [] [a:abc,bdef,ghij] [private] -
+"en-a-abc-b-def-hij-x-private" | accepted en [] - - [] [a:abc,b:def,hij] [private] -
+"en-a-abc-b-def-ghij--private" | NoMatch at 20: Expected Alphanum, ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en-a-abc-b-def-ghij-x-priate" | accepted en [] - - [] [a:abc,b:def,ghij] [priate] -
+"en-Latn-US-valencia-a-abc-12-u-ca-gregory-co-phonebk" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gregory,co,phonebk] [] -
+"en-L" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"en-Latn" | accepted en [] Latn - [] [] [] -
+"en-Latn-US" | accepted en [] Latn US [] [] [] -
+"en-Latn-US-va" | Starved at 13: Expected Alphanum.
+"en-Latn-US-valen" | accepted en [] Latn US [valen] [] [] -
+"en-Latn-US-valencia" | accepted en [] Latn US [valencia] [] [] -
+"en-Latn-US-valencia-a-" | Starved at 22: Expected Alphanum.
+"en-Latn-US-valencia-a-abc" | accepted en [] Latn US [valencia] [a:abc] [] -
+"en-Latn-US-valencia-a-abc-12" | accepted en [] Latn US [valencia] [a:abc,12] [] -
+"en-Latn-US-valencia-a-abc-12-u-" | Starved at 31: Expected Alphanum.
+"en-Latn-US-valencia-a-abc-12-u-ca-" | Starved at 34: Expected Alphanum, ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en-Latn-US-valencia-a-abc-12-u-ca-gre" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gre] [] -
+"en-Latn-US-valencia-a-abc-12-u-ca-gregor" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gregor] [] -
+"en-Latn-US-valencia-a-abc-12-u-ca-gregory-c" | Starved at 43: Expected Alphanum or '-'.
+"en-Latn-US-valencia-a-abc-12-u-ca-gregory-co-p" | Starved at 46: Expected Alphanum or '-'.
+"en-Latn-US-valencia-a-abc-12-u-ca-gregory-co-phon" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gregory,co,phon] [] -
+"n-Latn-US-valencia-a-abc-12-u-ca-gregory-co-phonebk" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-Lan-US-valencia-a-abc-12-u-ca-gregory-co-phonebk" | accepted en [Lan] - US [valencia] [a:abc,12,u:ca,gregory,co,phonebk] [] -
+"en-Latn-USvalencia-a-abc-12-u-ca-gregory-co-phonebk" | NoMatch at 16: Expected End.
+"en-Latn-US-valecia-a-abc-12-u-ca-gregory-co-phonebk" | accepted en [] Latn US [valecia] [a:abc,12,u:ca,gregory,co,phonebk] [] -
+"en-Latn-US-valencia--abc-12-u-ca-gregory-co-phonebk" | NoMatch at 20: Expected ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en-Latn-US-valencia-a-abc12-u-ca-gregory-co-phonebk" | accepted en [] Latn US [valencia] [a:abc12,u:ca,gregory,co,phonebk] [] -
+"en-Latn-US-valencia-a-abc-12-uca-gregory-co-phonebk" | accepted en [] Latn US [valencia] [a:abc,12,uca,gregory,co,phonebk] [] -
+"en-Latn-US-valencia-a-abc-12-u-ca-gegory-co-phonebk" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gegory,co,phonebk] [] -
+"en-Latn-US-valencia-a-abc-12-u-ca-gregor-co-phonebk" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gregor,co,phonebk] [] -
+"en-Latn-US-valencia-a-abc-12-u-ca-gregory-co-honebk" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gregory,co,honebk] [] -
+"en-Latn-US-valencia-a-abc-12-u-ca-gregory-co-phonek" | accepted en [] Latn US [valencia] [a:abc,12,u:ca,gregory,co,phonek] [] -
+"de-Latn-DE-1996-u-co-phonebk-x-priv1-priv2" | accepted de [] Latn DE [1996] [u:co,phonebk] [priv1,priv2] -
+"de-L" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"de-Latn" | accepted de [] Latn - [] [] [] -
+"de-Latn-DE" | accepted de [] Latn DE [] [] [] -
+"de-Latn-DE-19" | Starved at 13: Expected Alphanum.
+"de-Latn-DE-1996-" | Starved at 16: Expected ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"de-Latn-DE-1996-u-c" | Starved at 19: Expected Alphanum.
+"de-Latn-DE-1996-u-co-p" | Starved at 22: Expected Alphanum or '-'.
+"de-Latn-DE-1996-u-co-phon" | accepted de [] Latn DE [1996] [u:co,phon] [] -
+"de-Latn-DE-1996-u-co-phonebk" | accepted de [] Latn DE [1996] [u:co,phonebk] [] -
+"de-Latn-DE-1996-u-co-phonebk-x-" | Starved at 31: Expected Alphanum.
+"de-Latn-DE-1996-u-co-phonebk-x-pri" | accepted de [] Latn DE [1996] [u:co,phonebk] [pri] -
+"de-Latn-DE-1996-u-co-phonebk-x-priv1-" | Starved at 37: Expected Alphanum.
+"de-Latn-DE-1996-u-co-phonebk-x-priv1-pri" | accepted de [] Latn DE [1996] [u:co,phonebk] [priv1,pri] -
+"e-Latn-DE-1996-u-co-phonebk-x-priv1-priv2" | NoMatch at 1: Expected "en-GB-oed"i or Alpha.
+"de-Lan-DE-1996-u-co-phonebk-x-priv1-priv2" | accepted de [Lan] - DE [1996] [u:co,phonebk] [priv1,priv2] -
+"de-Latn-DE1996-u-co-phonebk-x-priv1-priv2" | accepted de [] Latn - [DE1996] [u:co,phonebk] [priv1,priv2] -
+"de-Latn-DE-1996u-co-phonebk-x-priv1-priv2" | NoMatch at 19: Expected Alphanum.
+"de-Latn-DE-1996-u-cophonebk-x-priv1-priv2" | NoMatch at 26: Expected End.
+"de-Latn-DE-1996-u-co-phonbk-x-priv1-priv2" | accepted de [] Latn DE [1996] [u:co,phonbk] [priv1,priv2] -
+"de-Latn-DE-1996-u-co-phonebk-xpriv1-priv2" | accepted de [] Latn DE [1996] [u:co,phonebk,xpriv1,priv2] [] -
+"de-Latn-DE-1996-u-co-phonebk-x-priv-priv2" | accepted de [] Latn DE [1996] [u:co,phonebk] [priv,priv2] -
+"de-Latn-DE-1996-u-co-phonebk-x-priv1-pri2" | accepted de [] Latn DE [1996] [u:co,phonebk] [priv1,pri2] -
+"x-whatever-it-is" | accepted - [] - - [] [] [whatever,it,is] -
+"x" | Starved at 1: Expected Alpha or '-'.
+"x-wh" | accepted - [] - - [] [] [wh] -
+"x-whate" | accepted - [] - - [] [] [whate] -
+"x-whatever" | accepted - [] - - [] [] [whatever] -
+"x-whatever-it" | accepted - [] - - [] [] [whatever,it] -
+"-whatever-it-is" | NoMatch at 0: Expected ['A' | 'C' | 'E' | 'I' | 'N' | 'S' | 'Z' | 'a' | 'c' | 'e' | 'i' | 'n' | 's' | 'z' | 'A'..'Z' | 'a'..'z'].
+"x-whaever-it-is" | accepted - [] - - [] [] [whaever,it,is] -
+"x-whateverit-is" | NoMatch at 10: Expected End.
+"x-whatever-it-i" | accepted - [] - - [] [] [whatever,it,i] -
+"i-klingon" | accepted - [] - - [] [] [] i-klingon
+"i" | Starved at 1: Expected "i-ami"i, "i-bnn"i, "i-default"i, "i-enochian"i, "i-hak"i, "i-klingon"i, "i-lux"i, "i-mingo"i, "i-navajo"i, "i-pwn"i, "i-tao"i, "i-tay"i, "i-tsu"i or Alpha.
+"i-kl" | Starved at 4: Expected "i-klingon"i.
+"i-kling" | Starved at 7: Expected "i-klingon"i.
+"-klingon" | NoMatch at 0: Expected ['A' | 'C' | 'E' | 'I' | 'N' | 'S' | 'Z' | 'a' | 'c' | 'e' | 'i' | 'n' | 's' | 'z' | 'A'..'Z' | 'a'..'z'].
+"i-kligon" | NoMatch at 5: Expected "i-klingon"i.
+"zh-min-nan" | accepted - [] - - [] [] [] zh-min-nan
+"zh-m" | Starved at 4: Expected "zh-min-nan"i, "zh-min"i, Alpha, Alphanum or '-'.
+"zh-min-" | Starved at 7: Expected "zh-min-nan"i, Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"h-min-nan" | NoMatch at 1: Expected Alpha.
+"zh-mi-nan" | Starved at 9: Expected Alphanum.
+"zh-min-xyz" | accepted zh [min,xyz] - - [] [] [] -
+"h-min-xyz" | NoMatch at 1: Expected Alpha.
+"zh-mi-xyz" | Starved at 9: Expected Alphanum.
+"en-GB-oed" | accepted - [] - - [] [] [] en-GB-oed
+"en-G" | Starved at 4: Expected "en-GB-oed"i, Alpha, Alphanum or '-'.
+"en-GB-o" | Starved at 7: Expected "en-GB-oed"i, Alphanum or '-'.
+"n-GB-oed" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-GBoed" | accepted en [] - - [GBoed] [] [] -
+"art-lojban" | accepted - [] - - [] [] [] art-lojban
+"a" | Starved at 1: Expected "art-lojban"i or Alpha.
+"art-" | Starved at 4: Expected "art-lojban"i, Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"art-loj" | accepted art [loj] - - [] [] [] -
+"rt-lojban" | accepted rt [] - - [lojban] [] [] -
+"art-ljban" | accepted art [] - - [ljban] [] [] -
+"qaa-Qaaa-QM-x-southern" | accepted qaa [] Qaaa QM [] [] [southern] -
+"q" | Starved at 1: Expected Alpha.
+"qaa-" | Starved at 4: Expected Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"qaa-Qaa" | accepted qaa [Qaa] - - [] [] [] -
+"qaa-Qaaa-Q" | Starved at 10: Expected Alpha, Alphanum or '-'.
+"qaa-Qaaa-QM-x" | Starved at 13: Expected Alphanum or '-'.
+"qaa-Qaaa-QM-x-so" | accepted qaa [] Qaaa QM [] [] [so] -
+"qaa-Qaaa-QM-x-south" | accepted qaa [] Qaaa QM [] [] [south] -
+"aa-Qaaa-QM-x-southern" | accepted aa [] Qaaa QM [] [] [southern] -
+"qaa-Qaa-QM-x-southern" | accepted qaa [Qaa] - QM [] [] [southern] -
+"qaa-Qaaa-Q-x-southern" | NoMatch at 12: Expected Alphanum.
+"qaa-Qaaa-QM-x-suthern" | accepted qaa [] Qaaa QM [] [] [suthern] -
+"qaa-Qaaa-QM-x-southen" | accepted qaa [] Qaaa QM [] [] [southen] -
+"en-a-abc-a-abc-a-abc-a" | Starved at 22: Expected Alphanum or '-'.
+"en-a-abc-a" | Starved at 10: Expected Alphanum or '-'.
+"en-a-abc-a-ab" | accepted en [] - - [] [a:abc,a:ab] [] -
+"en-a-abc-a-abc-a" | Starved at 16: Expected Alphanum or '-'.
+"en-a-abc-a-abc-a-ab" | accepted en [] - - [] [a:abc,a:abc,a:ab] [] -
+"n-a-abc-a-abc-a-abc-a" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-a-bc-a-abc-a-abc-a" | Starved at 21: Expected Alphanum or '-'.
+"en-a-abc-aabc-a-abc-a" | Starved at 21: Expected Alphanum or '-'.
+"en-a-abc-a-abc--abc-a" | NoMatch at 15: Expected Alphanum, ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en-a-abc-a-abc-a-abca" | accepted en [] - - [] [a:abc,a:abc,a:abca] [] -
+"n-a-abc-a" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-a-bc-a" | Starved at 9: Expected Alphanum or '-'.
+"n-a" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-a-" | Starved at 5: Expected Alphanum.
+"n-a-" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-x" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"n-x" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-x-" | Starved at 5: Expected Alphanum.
+"n-x-" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-US-" | Starved at 6: Expected ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"n-US-" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en--US" | NoMatch at 3: Expected "en-GB-oed"i, Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en--" | NoMatch at 3: Expected "en-GB-oed"i, Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"n--US" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en--U" | NoMatch at 3: Expected "en-GB-oed"i, Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en-u-ca-gregory-x" | Starved at 17: Expected Alphanum or '-'.
+"en-u" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"en-u-ca" | accepted en [] - - [] [u:ca] [] -
+"en-u-ca-gr" | accepted en [] - - [] [u:ca,gr] [] -
+"en-u-ca-grego" | accepted en [] - - [] [u:ca,grego] [] -
+"en-u-ca-gregory-" | Starved at 16: Expected Alphanum, ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"n-u-ca-gregory-x" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-u-a-gregory-x" | NoMatch at 6: Expected Alphanum.
+"en-u-ca-grgory-x" | Starved at 16: Expected Alphanum or '-'.
+"en-u-ca-gregoryx" | accepted en [] - - [] [u:ca,gregoryx] [] -
+"en-12345-abcde-abc" | Starved at 18: Expected Alphanum.
+"en-1" | Starved at 4: Expected Digit, Alphanum or '-'.
+"en-1234" | accepted en [] - - [1234] [] [] -
+"en-12345-a" | Starved at 10: Expected Alphanum or '-'.
+"en-12345-abcd" | Starved at 13: Expected Alphanum.
+"en-12345-abcde-a" | Starved at 16: Expected Alphanum or '-'.
+"n-12345-abcde-abc" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-1245-abcde-abc" | Starved at 17: Expected Alphanum.
+"en-12345-acde-abc" | NoMatch at 13: Expected Alphanum.
+"en-12345-abcde-bc" | Starved at 17: Expected Alphanum.
+"en-Latn-US-abcde-abcde-abcdefghi" | NoMatch at 31: Expected End.
+"en-Latn-US-ab" | Starved at 13: Expected Alphanum.
+"en-Latn-US-abcde" | accepted en [] Latn US [abcde] [] [] -
+"en-Latn-US-abcde-ab" | Starved at 19: Expected Alphanum.
+"en-Latn-US-abcde-abcde" | accepted en [] Latn US [abcde,abcde] [] [] -
+"en-Latn-US-abcde-abcde-ab" | Starved at 25: Expected Alphanum.
+"en-Latn-US-abcde-abcde-abcde" | accepted en [] Latn US [abcde,abcde,abcde] [] [] -
+"en-Latn-US-abcde-abcde-abcdefgh" | accepted en [] Latn US [abcde,abcde,abcdefgh] [] [] -
+"n-Latn-US-abcde-abcde-abcdefghi" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-Lan-US-abcde-abcde-abcdefghi" | NoMatch at 30: Expected End.
+"en-Latn-USabcde-abcde-abcdefghi" | NoMatch at 30: Expected End.
+"en-Latn-US-abcd-abcde-abcdefghi" | NoMatch at 15: Expected Alphanum.
+"en-Latn-US-abcde-abce-abcdefghi" | NoMatch at 21: Expected Alphanum.
+"en-Latn-US-abcde-abcde-abdefghi" | accepted en [] Latn US [abcde,abcde,abdefghi] [] [] -
+"en-Latn-US-abcde-abcde-abcdefgi" | accepted en [] Latn US [abcde,abcde,abcdefgi] [] [] -
+"en-a-abcdefghi" | NoMatch at 13: Expected End.
+"en-a-abcde" | accepted en [] - - [] [a:abcde] [] -
+"en-a-abcdefgh" | accepted en [] - - [] [a:abcdefgh] [] -
+"n-a-abcdefghi" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-a-bcdefghi" | accepted en [] - - [] [a:bcdefghi] [] -
+"en-a-abcdeghi" | accepted en [] - - [] [a:abcdeghi] [] -
+"en-x-abcdefghi" | NoMatch at 13: Expected End.
+"en-x-ab" | accepted en [] - - [] [] [ab] -
+"en-x-abcde" | accepted en [] - - [] [] [abcde] -
+"en-x-abcdefgh" | accepted en [] - - [] [] [abcdefgh] -
+"n-x-abcdefghi" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-x-bcdefghi" | accepted en [] - - [] [] [bcdefghi] -
+"en-x-abcdeghi" | accepted en [] - - [] [] [abcdeghi] -
+"enabcdefghi" | NoMatch at 8: Expected End.
+"enab" | accepted enab [] - - [] [] [] -
+"enabcde" | accepted enabcde [] - - [] [] [] -
+"enabcdefgh" | NoMatch at 8: Expected End.
+"nabcdefghi" | NoMatch at 8: Expected End.
+"enabcefghi" | NoMatch at 8: Expected End.
+"" | Starved at 0: Expected ['A' | 'C' | 'E' | 'I' | 'N' | 'S' | 'Z' | 'a' | 'c' | 'e' | 'i' | 'n' | 's' | 'z' | 'A'..'Z' | 'a'..'z'].
+"-" | NoMatch at 0: Expected ['A' | 'C' | 'E' | 'I' | 'N' | 'S' | 'Z' | 'a' | 'c' | 'e' | 'i' | 'n' | 's' | 'z' | 'A'..'Z' | 'a'..'z'].
+"1234" | NoMatch at 0: Expected ['A' | 'C' | 'E' | 'I' | 'N' | 'S' | 'Z' | 'a' | 'c' | 'e' | 'i' | 'n' | 's' | 'z' | 'A'..'Z' | 'a'..'z'].
+"1" | NoMatch at 0: Expected ['A' | 'C' | 'E' | 'I' | 'N' | 'S' | 'Z' | 'a' | 'c' | 'e' | 'i' | 'n' | 's' | 'z' | 'A'..'Z' | 'a'..'z'].
+"234" | NoMatch at 0: Expected ['A' | 'C' | 'E' | 'I' | 'N' | 'S' | 'Z' | 'a' | 'c' | 'e' | 'i' | 'n' | 's' | 'z' | 'A'..'Z' | 'a'..'z'].
+"en_US" | NoMatch at 2: Expected "en-GB-oed"i, '-', end of input or Alpha.
+"en_U" | NoMatch at 2: Expected "en-GB-oed"i, '-', end of input or Alpha.
+"n_US" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-US-u-ca-gregory-u-nu-latn" | accepted en [] - US [] [u:ca,gregory,u:nu,latn] [] -
+"en-US-u" | Starved at 7: Expected Alphanum or '-'.
+"en-US-u-ca" | accepted en [] - US [] [u:ca] [] -
+"en-US-u-ca-gr" | accepted en [] - US [] [u:ca,gr] [] -
+"en-US-u-ca-grego" | accepted en [] - US [] [u:ca,grego] [] -
+"en-US-u-ca-gregory-" | Starved at 19: Expected Alphanum, ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en-US-u-ca-gregory-u-n" | Starved at 22: Expected Alphanum.
+"en-US-u-ca-gregory-u-nu-l" | Starved at 25: Expected Alphanum or '-'.
+"n-US-u-ca-gregory-u-nu-latn" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-USu-ca-gregory-u-nu-latn" | accepted en [USu] - ca [gregory] [u:nu,latn] [] -
+"en-US-u-cagregory-u-nu-latn" | NoMatch at 16: Expected End.
+"en-US-u-ca-gregry-u-nu-latn" | accepted en [] - US [] [u:ca,gregry,u:nu,latn] [] -
+"en-US-u-ca-gregory-unu-latn" | accepted en [] - US [] [u:ca,gregory,unu,latn] [] -
+"en-US-u-ca-gregory-u-nu-ltn" | accepted en [] - US [] [u:ca,gregory,u:nu,ltn] [] -
+"abcd-Latn" | accepted abcd [] Latn - [] [] [] -
+"abcd" | accepted abcd [] - - [] [] [] -
+"abcd-La" | accepted abcd [] - La [] [] [] -
+"bcd-Latn" | accepted bcd [] Latn - [] [] [] -
+"abcd-atn" | Starved at 8: Expected Alpha or Alphanum.
+"abcdefgh-US" | accepted abcdefgh [] - US [] [] [] -
+"abcdefg" | accepted abcdefg [] - - [] [] [] -
+"abcdefgh-U" | Starved at 10: Expected Alpha, Alphanum or '-'.
+"bcdefgh-US" | accepted bcdefgh [] - US [] [] [] -
+"abcdegh-US" | accepted abcdegh [] - US [] [] [] -
+"en-abc-def-ghi-jkl" | Starved at 18: Expected Alpha or Alphanum.
+"en-abc-" | Starved at 7: Expected Alpha, ['A'..'Z' | 'a'..'z' | '0'..'9'], ['0'..'9' | 'A'..'Z' | 'a'..'z'], ['0'..'9' | 'A'..'W' | 'Y'..'Z' | 'a'..'w' | 'y'..'z'] or ['X' | 'x'].
+"en-abc-def" | accepted en [abc,def] - - [] [] [] -
+"en-abc-def-gh" | accepted en [abc,def] - gh [] [] [] -
+"en-abc-def-ghi-j" | Starved at 16: Expected Alpha, Alphanum or '-'.
+"n-abc-def-ghi-jkl" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-ab-def-ghi-jkl" | NoMatch at 9: Expected Alphanum.
+"en-abc-defghi-jkl" | Starved at 17: Expected Alphanum.
+"en-abc-def-ghi-kl" | accepted en [abc,def,ghi] - kl [] [] [] -
+"en-x-a-b-c-1-2-3" | accepted en [] - - [] [] [a,b,c,1,2,3] -
+"en-x-a-" | Starved at 7: Expected Alphanum.
+"en-x-a-b-c" | accepted en [] - - [] [] [a,b,c] -
+"en-x-a-b-c-1-" | Starved at 13: Expected Alphanum.
+"n-x-a-b-c-1-2-3" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"en-x--b-c-1-2-3" | NoMatch at 5: Expected Alphanum.
+"en-x-a-b-c1-2-3" | accepted en [] - - [] [] [a,b,c1,2,3] -
+"en-x-a-b-c-1-2-" | Starved at 15: Expected Alphanum.
+"EN-latn-us-A-ABC" | accepted EN [] latn us [] [A:ABC] [] -
+"E" | Starved at 1: Expected "en-GB-oed"i or Alpha.
+"EN-l" | Starved at 4: Expected Alpha, Alphanum or '-'.
+"EN-latn" | accepted EN [] latn - [] [] [] -
+"EN-latn-us" | accepted EN [] latn us [] [] [] -
+"EN-latn-us-A-" | Starved at 13: Expected Alphanum.
+"N-latn-us-A-ABC" | NoMatch at 1: Expected "no-bok"i, "no-nyn"i or Alpha.
+"EN-lan-us-A-ABC" | accepted EN [lan] - us [] [A:ABC] [] -
+"EN-latn-usA-ABC" | NoMatch at 11: Expected Alphanum.
+"EN-latn-us-A-AB" | accepted EN [] latn us [] [A:AB] [] -

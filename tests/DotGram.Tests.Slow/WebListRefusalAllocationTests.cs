@@ -177,6 +177,51 @@ public sealed class WebListRefusalAllocationTests
 		Assert.Equal(token, pairs[0].Name);
 	}
 
+	/// <summary>A language tag cut after a long run of extensions is refused in about as long an extension at every size.</summary>
+	/// <remarks>
+	/// <c>en-a-abc-…-a</c>: the last singleton has no subtag. The repetitions of a tag gave their turns back one
+	/// at a time and read the rest again after each, to find what can never be there — nothing that may follow
+	/// one begins the way one does — and 8,192 extensions took 750 ms, four times what 4,096 took; the bytes were
+	/// flat. Held to time: at most twice as many times as long as there are times the extensions.
+	/// </remarks>
+	[Fact]
+	public void A_language_tag_cut_after_many_extensions_takes_about_as_long_an_extension_at_every_size()
+	{
+		AssertLinearTime(static n => "en" + string.Concat(Enumerable.Repeat("-a-abc", n)) + "-a", 1024, 8192, static text => LanguageTag.TryParse(text, out _));
+		AssertLinearTime(static n => "en" + string.Concat(Enumerable.Repeat("-abcde", n)) + "-a", 1024, 8192, static text => LanguageTag.TryParse(text, out _));
+		AssertLinearTime(static n => "en-x" + string.Concat(Enumerable.Repeat("-ab", n)) + "-", 1024, 8192, static text => LanguageTag.TryParse(text, out _));
+	}
+
+	static void AssertLinearTime(Func<int, string> textFor, int small, int large, Func<string, bool> parse)
+	{
+		var (few, many) = (textFor(small), textFor(large));
+
+		Assert.False(parse(many));
+
+		var times = new[] { Fewest(few), Fewest(many) };
+
+		TestContext.Current.TestOutputHelper?.WriteLine($"{small}: {times[0]:F2} ms, {large}: {times[1]:F2} ms");
+		Assert.True(
+			times[1] <= times[0] * (large / small) * 2,
+			$"{small} took {times[0]:F2} ms and {large} took {times[1]:F2} ms — {times[1] / times[0]:F1} times as long for {large / small} times as many.");
+
+		double Fewest(string text)
+		{
+			var fewest = double.MaxValue;
+
+			for (var run = 0; run < 3; run++)
+			{
+				var clock = System.Diagnostics.Stopwatch.StartNew();
+
+				parse(text);
+
+				fewest = Math.Min(fewest, clock.Elapsed.TotalMilliseconds);
+			}
+
+			return fewest;
+		}
+	}
+
 	/// <summary>
 	/// Asserts bytes an element stay within 15% of one another at every doubling in <see cref="Sizes"/>. A
 	/// quadratic allocator doubles bytes an element at every doubling in the count; this catches that at
