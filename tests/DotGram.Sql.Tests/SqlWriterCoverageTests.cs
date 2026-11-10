@@ -971,6 +971,12 @@ public sealed class SqlWriterCoverageTests
 			["ColumnOptions.WithOptionsOmitted"] = (
 				new Statement.CreateTable { Name = T, Contents = new TableContents.Typed(T, null, [new TableElement.ColumnOptions(new Identifier("a"), new ColumnOptionList(null, null, []))]) },
 				new Statement.CreateTable { Name = T, Contents = new TableContents.Typed(T, null, [new TableElement.ColumnOptions(new Identifier("a"), new ColumnOptionList(null, null, [])) { WithOptionsOmitted = true }]) }),
+			["SelectIntoTable.TempWord"] = (
+				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], IntoTable = new SelectIntoTable(T, null) { Scope = TableScope.Temporary } } },
+				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], IntoTable = new SelectIntoTable(T, null) { Scope = TableScope.Temporary, TempWord = true } } }),
+			["SelectIntoTable.TableKeyword"] = (
+				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], IntoTable = new SelectIntoTable(T, null) } },
+				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], IntoTable = new SelectIntoTable(T, null) { TableKeyword = true } } }),
 			["Start.WithOmitted"] = (
 				Identified(new SequenceOption.Start(One)),
 				Identified(new SequenceOption.Start(One) { WithOmitted = true })),
@@ -1045,7 +1051,7 @@ public sealed class SqlWriterCoverageTests
 			"StartTransaction.Begin", "Commit.End", "Rollback.Abort", "Rollback.SavepointKeywordOmitted", "ReleaseSavepoint.SavepointKeywordOmitted", "SetTransaction.Session", "DeallocatePrepare.PrepareOmitted",
 			"FetchCursor.InKeyword", "MoveCursor.InKeyword", "FetchOrientation.WordOmitted", "Vacuum.Bare", "Analyze.Bare", "Analyze.British", "Copy.WithKeyword", "Copy.Bare",
 			"Copy.BinaryBeforeTable", "Copy.DelimitersClause", "ParameterDefinition.InOutTwoWords", "CreateTable.TempWord", "CreateTable.WithoutOids",
-			"ColumnOptions.WithOptionsOmitted", "Start.WithOmitted", "Increment.ByOmitted", "Restart.WithOmitted",
+			"ColumnOptions.WithOptionsOmitted", "Start.WithOmitted", "Increment.ByOmitted", "Restart.WithOmitted", "SelectIntoTable.TempWord", "SelectIntoTable.TableKeyword",
 		};
 
 		foreach (var (name, pair) in pairs)

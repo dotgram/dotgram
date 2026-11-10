@@ -398,6 +398,14 @@ DotGram.Sql.Ast.RowsFromItem.Invocation.init -> void
 DotGram.Sql.Ast.RowsFromItem.Locate(int at, int length) -> void
 DotGram.Sql.Ast.RowsFromItem.RowsFromItem(DotGram.Sql.Ast.Expression.Invocation! Invocation, DotGram.Sql.SqlList<DotGram.Sql.Ast.FieldDefinition!>? ColumnDefinitions = null) -> void
 DotGram.Sql.Ast.RowsFromItem.Span.get -> DotGram.Sql.SqlSpan
+DotGram.Sql.Ast.SelectIntoTable.Scope.get -> DotGram.Sql.Ast.TableScope?
+DotGram.Sql.Ast.SelectIntoTable.Scope.init -> void
+DotGram.Sql.Ast.SelectIntoTable.TableKeyword.get -> bool
+DotGram.Sql.Ast.SelectIntoTable.TableKeyword.init -> void
+DotGram.Sql.Ast.SelectIntoTable.TempWord.get -> bool
+DotGram.Sql.Ast.SelectIntoTable.TempWord.init -> void
+DotGram.Sql.Ast.SelectIntoTable.Unlogged.get -> bool
+DotGram.Sql.Ast.SelectIntoTable.Unlogged.init -> void
 DotGram.Sql.Ast.SequenceOption.Increment.ByOmitted.get -> bool
 DotGram.Sql.Ast.SequenceOption.Increment.ByOmitted.init -> void
 DotGram.Sql.Ast.SequenceOption.Logged

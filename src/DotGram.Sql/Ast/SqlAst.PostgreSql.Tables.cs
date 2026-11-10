@@ -197,6 +197,22 @@ public abstract partial record SequenceOption
 	public sealed record SequenceName(QualifiedName Name) : SequenceOption;
 }
 
+/// <summary>PostgreSQL: SELECT INTO. <c>SELECT … INTO [TEMP | UNLOGGED] [TABLE] t</c>, which makes a table as CREATE TABLE AS does.</summary>
+public sealed partial record SelectIntoTable
+{
+	/// <summary>PostgreSQL: SELECT INTO. <c>TEMPORARY</c> or <c>TEMP</c>, alone or after GLOBAL or LOCAL; null for a persistent table.</summary>
+	public TableScope? Scope { get; init; }
+
+	/// <summary>PostgreSQL: SELECT INTO. <c>TEMP</c> written for <c>TEMPORARY</c>.</summary>
+	[Spelling] public bool TempWord { get; init; }
+
+	/// <summary>PostgreSQL: SELECT INTO. <c>UNLOGGED</c>.</summary>
+	public bool Unlogged { get; init; }
+
+	/// <summary>PostgreSQL: SELECT INTO. The word <c>TABLE</c> written before the name.</summary>
+	[Spelling] public bool TableKeyword { get; init; }
+}
+
 /// <summary>PostgreSQL: CREATE TABLE. <c>PARTITION OF parent FOR VALUES …</c>: the parent, and the rows the partition holds.</summary>
 public sealed record PartitionParent(QualifiedName Parent, PartitionBound Bound) : ISqlNode
 {

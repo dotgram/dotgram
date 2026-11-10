@@ -423,10 +423,40 @@ public static partial class SqlWriter
 				Each(targets.Targets, PutExpression);
 			}
 
-			// T-SQL: INTO Clause (Transact-SQL).
+			// T-SQL: INTO Clause (Transact-SQL). PostgreSQL: SELECT INTO, with its scope, UNLOGGED and TABLE.
 			if (query.IntoTable is { } made)
 			{
+				if (!postgreSql && (made.Scope is not null || made.TempWord || made.Unlogged || made.TableKeyword))
+					throw Misplaced(made, "Scope, TempWord, Unlogged or TableKeyword", "which only PostgreSQL reads on SELECT INTO");
+
+				if (postgreSql && made.FileGroup is not null)
+					throw Misplaced(made, nameof(made.FileGroup), "T-SQL's, which PostgreSQL does not read");
+
 				Word("INTO");
+
+				if (made.Unlogged)
+				{
+					if (made.Scope is not null)
+						throw Both(made, nameof(made.Unlogged), nameof(made.Scope));
+
+					Word("UNLOGGED");
+				}
+
+				if (made.Scope is { } scope)
+				{
+					if (scope != TableScope.Temporary)
+						Word(scope switch { TableScope.GlobalTemporary => "GLOBAL", TableScope.LocalTemporary => "LOCAL", _ => throw NoText(scope) });
+
+					Word(made.TempWord ? "TEMP" : "TEMPORARY");
+				}
+				else if (made.TempWord)
+				{
+					throw Misplaced(made, nameof(made.TempWord), "without a temporary scope, whose spelling it is");
+				}
+
+				if (made.TableKeyword)
+					Word("TABLE");
+
 				PutName(made.Table);
 
 				if (made.FileGroup is { } fileGroup)

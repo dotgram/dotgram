@@ -689,12 +689,19 @@ SelectPrimary : @Query
 
 // gram.y simple_select: the SELECT itself, with its clauses; VALUES; and TABLE t, which is
 // `SELECT * FROM t` and says so. An empty target list is read, as the server reads it, after SELECT
-// or SELECT ALL; DISTINCT asks for one. INTO is not read here (SELECT INTO is CREATE TABLE AS).
+// or SELECT ALL; DISTINCT asks for one. INTO stands after the targets, as T-SQL's does.
 SimpleSelect : @Query
-	= "SELECT"i & d: DistinctClause? & (first: TargetEl & (',' & rest: TargetEl)*)? & when @(Nodes.TargetsFit(d, first)) & from: FromClause? & ("WHERE"i & where: AExpr)? & group: GroupClause? & ("HAVING"i & having: AExpr)? & window: WindowClause?
-		=> @(Nodes.Selected(d, first, rest, from, where, group, having, window))
+	= "SELECT"i & d: DistinctClause? & (first: TargetEl & (',' & rest: TargetEl)*)? & when @(Nodes.TargetsFit(d, first)) & into: IntoClause? & from: FromClause? & ("WHERE"i & where: AExpr)? & group: GroupClause? & ("HAVING"i & having: AExpr)? & window: WindowClause?
+		=> @(Nodes.Selected(d, first, rest, into, from, where, group, having, window))
 	| "VALUES"i & row: ValuesRow & (',' & rows: ValuesRow)* => @(new Query.Select { Values = Nodes.List(row, rows) })
 	| "TABLE"i & t: RelationExpr => @(Nodes.Tabled(t))
+
+// gram.y into_clause, OptTempTableName: SELECT INTO's table, which the server makes as CREATE TABLE AS does, with
+// its temporary or unlogged word and TABLE before the name. A word of those with no name after it is the name.
+IntoClause : @SelectIntoTable
+	= "INTO"i & scope: ("LOCAL"i | "GLOBAL"i)? & word: ("TEMPORARY"i | "TEMP"i) & table: "TABLE"i? & name: Qualified => @(Nodes.Into(scope, word, false, table is not null, name))
+	| "INTO"i & "UNLOGGED"i & table: "TABLE"i? & name: Qualified => @(Nodes.Into(null, null, true, table is not null, name))
+	| "INTO"i & table: "TABLE"i? & name: Qualified => @(Nodes.Into(null, null, false, table is not null, name))
 
 ValuesRow : @RowValue = '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new RowValue(Nodes.List(first, rest)))
 

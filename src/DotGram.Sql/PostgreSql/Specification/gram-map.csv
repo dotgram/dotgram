@@ -507,7 +507,7 @@ SelectStmt,2,Stmt,
 select_with_parens,2,SelectWithParens,and Bracket, where a bracket inside an expression holds a query
 select_no_parens,8,SelectNoParens,the in-action refusals of gram.y (a second ORDER BY, LIMIT, OFFSET or WITH on a bracketed query; WITH TIES without ORDER BY) are ClausesFit
 select_clause,2,SelectClause,
-simple_select,7,SimpleSelect,INTO is not read (SELECT INTO is CREATE TABLE AS)
+simple_select,7,SimpleSelect,
 with_clause,3,WithClause,
 cte_list,2,WithClause,
 common_table_expr,1,Cte,
@@ -515,9 +515,9 @@ opt_materialized,3,Cte,
 opt_search_clause,3,SearchClause,
 opt_cycle_clause,3,CycleClause,
 opt_with_clause,2,Stmt,read once before the statement
-into_clause,2,refused,SELECT INTO is CREATE TABLE AS; the DDL tier
-OptTempTableName,9,refused,with into_clause
-opt_table,2,TruncateStmt,
+into_clause,2,IntoClause,
+OptTempTableName,9,IntoClause,
+opt_table,2,TruncateStmt,and IntoClause
 set_quantifier,3,UnionOrExcept,
 distinct_clause,2,DistinctClause,
 opt_all_clause,2,DistinctClause,
