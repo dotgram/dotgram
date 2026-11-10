@@ -977,9 +977,9 @@ implementation-defined character set name,name/value,CharacterSetName,Identifier
 user-defined character set name,name/value,CharacterSetName,Identifier / QualifiedName,yes,yes,1,<character set name>
 specific routine designator,record/value,RoutineDesignator; RoutineDesignator.SpecificKeyword; RoutineDesignator.ForType,Structural helper AST,no,no,5,SPECIFIC <routine type> <specific name> | <routine type> <member name> [ FOR <schema-resolved user-defined type name> ]
 routine type,type/value/enum,RoutineDesignator.Kind; RoutineKind; RoutineDesignator.MethodModifier,DataType / type helper,no,no,0,ROUTINE | FUNCTION | PROCEDURE | [ INSTANCE | STATIC | CONSTRUCTOR ] METHOD
-member name,name/value,RoutineDesignator.Name; RoutineDesignator.ParameterTypes,Identifier / QualifiedName,no,no,2,<member name alternatives> [ <data type list> ]
+member name,name/value,RoutineDesignator.Name; RoutineDesignator.Parameters,Identifier / QualifiedName,no,no,2,<member name alternatives> [ <data type list> ]
 member name alternatives,name/value,RoutineDesignator.Name,Identifier / QualifiedName,no,yes,2,<schema qualified routine name> | <method name>
-data type list,type/value/enum,RoutineDesignator.ParameterTypes,DataType / type helper,no,no,5,<left paren> [ <data type> [ { <comma> <data type> }... ] ] <right paren>
+data type list,type/value/enum,RoutineDesignator.Parameters,DataType / type helper,no,no,5,<left paren> [ <data type> [ { <comma> <data type> }... ] ] <right paren>
 collate clause,property/value,CollationName; Expression.Collate.Collation,Clause/helper/property,no,no,1,COLLATE <collation name>
 constraint name definition,name/value,Constraint.Name,Identifier / QualifiedName,no,no,1,CONSTRAINT <constraint name>
 constraint characteristics,enum/value,ConstraintCharacteristics; Constraint.Characteristics; ConstraintCharacteristics.DeferrableFirst,Enum/value/helper,no,no,5,<constraint check time> [ [ NOT ] DEFERRABLE ] [ <constraint enforcement> ] | [ NOT ] DEFERRABLE [ <constraint check time> ] [ <constraint enforcement> ] | <constraint enforcement>

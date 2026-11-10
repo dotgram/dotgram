@@ -684,6 +684,9 @@ public static partial class SqlWriter
 				if (parameter.ShortOutput && parameter.Mode != ParameterMode.Out)
 					throw Misplaced(parameter, "ShortOutput", "without Mode Out, which it is the spelling of");
 
+				if (parameter.InOutTwoWords)
+					throw Misplaced(parameter, "InOutTwoWords", "PostgreSQL's IN OUT, which T-SQL does not write");
+
 				var cursor = parameter.Type is DataType.Named { Name: [{ Text: "CURSOR", Style: IdentifierStyle.Regular }], Arguments.Count: 0 };
 
 				if (cursor != parameter.Varying

@@ -1820,20 +1820,20 @@ partial class HandSqlStandard
 
 		if (RoutineType(ref cursor, out var routine, out var method) && Names(ref cursor, 3, out var named))
 		{
-			Sql.SqlList<DataType>? types = null;
+			Sql.SqlList<ParameterDefinition>? types = null;
 
 			var bracket = cursor;
 
 			if (cursor.Take(SqlTokenKind.LeftParen))
 			{
-				var written = new List<DataType>();
+				var written = new List<ParameterDefinition>();
 
 				while (true)
 				{
 					if (!DataType(ref cursor, out var type))
 						break;
 
-					written.Add(type);
+					written.Add(new ParameterDefinition(null, null, type, false, null));
 
 					if (!cursor.Take(SqlTokenKind.Comma))
 						break;

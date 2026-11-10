@@ -2121,8 +2121,11 @@ DropRoutineStatement : @Statement.DropRoutine = "DROP"i & r: SpecificRoutineDesi
 // <specific routine designator>: a routine by its specific name, or by its name and its parameters' types.
 SpecificRoutineDesignator : @RoutineDesignator
 	= "SPECIFIC"i & t: RoutineType & n: SchemaQualifiedName => @(new RoutineDesignator(t.Kind, n, null, null, true, t.Modifier))
-	| t: RoutineType & n: SchemaQualifiedName & ('(' & (first: DataType & (',' & rest: DataType)*)? & p: ')')? & ("FOR"i & f: SchemaQualifiedName)?
+	| t: RoutineType & n: SchemaQualifiedName & ('(' & (first: DesignatedType & (',' & rest: DesignatedType)*)? & p: ')')? & ("FOR"i & f: SchemaQualifiedName)?
 	  => @(new RoutineDesignator(t.Kind, n, p is null ? null : Nodes.ListOrEmpty(first, rest), f, false, t.Modifier))
+
+// Not a production: one of a designator's parameter types, a parameter with no mode and no name.
+DesignatedType : @ParameterDefinition = t: DataType => @(new ParameterDefinition(null, null, t, false, null))
 
 RoutineType : @Nodes.RoutineTypeOf = "ROUTINE"i   => @(new Nodes.RoutineTypeOf(RoutineKind.Routine, null))
                                    | "FUNCTION"i  => @(new Nodes.RoutineTypeOf(RoutineKind.Function, null))

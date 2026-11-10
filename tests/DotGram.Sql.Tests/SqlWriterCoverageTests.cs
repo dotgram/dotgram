@@ -358,6 +358,7 @@ public sealed class SqlWriterCoverageTests
 		[typeof(ComparisonOperator)] = v => new Expression.Comparison(A, (ComparisonOperator)v, B),
 		[typeof(BinaryOperator)]     = v => new Expression.Binary(A, (BinaryOperator)v, B),
 		[typeof(UnaryOperator)]      = v => new Expression.Unary((UnaryOperator)v, A),
+		[typeof(ParameterMode)]      = v => new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Function, new QualifiedName(new Identifier("f")), [new ParameterDefinition((ParameterMode)v, null, new DataType.Numeric(NumericTypeKind.Int), false, null)])] },
 		[typeof(LikeKind)]           = v => new Expression.Like(A, false, (LikeKind)v, B),
 		[typeof(CastSpelling)]       = v => new Expression.Cast(new LiteralValue.String("'1'", StringLiteralKind.Character), new DataType.Numeric(NumericTypeKind.Int)) { Spelling = (CastSpelling)v },
 		[typeof(TriggerScope)]       = v => new Statement.DropTrigger { Names = [T], On = (TriggerScope)v },
@@ -944,6 +945,10 @@ public sealed class SqlWriterCoverageTests
 			["Compare.Exclamation"] = (
 				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) }]),
 				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { Exclamation = true } }])),
+			// PostgreSQL's IN OUT in a designator's parameters, against INOUT.
+			["ParameterDefinition.InOutTwoWords"] = (
+				new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Function, new QualifiedName(new Identifier("f")), [new ParameterDefinition(ParameterMode.InOut, null, new DataType.Numeric(NumericTypeKind.Int), false, null)])] },
+				new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Function, new QualifiedName(new Identifier("f")), [new ParameterDefinition(ParameterMode.InOut, null, new DataType.Numeric(NumericTypeKind.Int), false, null) { InOutTwoWords = true }])] }),
 			// The remainder of the DDL statements.
 			["IndexDefinition.OptionsUnbracketed"] = (
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new IndexElement(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
@@ -1008,7 +1013,7 @@ public sealed class SqlWriterCoverageTests
 			"SetParameter.EqualsSign", "Explain.Bare", "Do.LanguageFirst", "DeallocateAll.PrepareKeyword", "LockTable.TableOmitted", "Discard.Temporary",
 			"StartTransaction.Begin", "Commit.End", "Rollback.Abort", "Rollback.SavepointKeywordOmitted", "ReleaseSavepoint.SavepointKeywordOmitted", "SetTransaction.Session", "DeallocatePrepare.PrepareOmitted",
 			"FetchCursor.InKeyword", "MoveCursor.InKeyword", "FetchOrientation.WordOmitted", "Vacuum.Bare", "Analyze.Bare", "Analyze.British", "Copy.WithKeyword", "Copy.Bare",
-			"Copy.BinaryBeforeTable", "Copy.DelimitersClause",
+			"Copy.BinaryBeforeTable", "Copy.DelimitersClause", "ParameterDefinition.InOutTwoWords",
 		};
 
 		foreach (var (name, pair) in pairs)

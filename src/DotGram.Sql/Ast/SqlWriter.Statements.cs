@@ -1739,6 +1739,9 @@ public static partial class SqlWriter
 			Open();
 			Each(parameters, parameter =>
 			{
+				if (parameter.InOutTwoWords)
+					throw Misplaced(parameter, "InOutTwoWords", "PostgreSQL's IN OUT, which the standard's grammar does not read");
+
 				if (parameter.Mode is { } mode)
 					Word(mode switch { ParameterMode.In => "IN", ParameterMode.Out => "OUT", ParameterMode.InOut => "INOUT", _ => throw NoText(mode) });
 
@@ -1967,10 +1970,10 @@ public static partial class SqlWriter
 		{
 			PutName(designator.Name);
 
-			if (designator.ParameterTypes is { } types)
+			if (designator.Parameters is { } parameters)
 			{
 				Open();
-				Each(types, PutType);
+				Each(parameters, PutDesignatedParameter);
 				Close();
 			}
 
@@ -1979,6 +1982,30 @@ public static partial class SqlWriter
 				Word("FOR");
 				PutName(forType);
 			}
+		}
+
+		/// <summary>
+		/// One parameter of a designator: its type, which is all the standard and T-SQL write there; PostgreSQL's
+		/// function_with_argtypes writes the mode and the name before it.
+		/// </summary>
+		void PutDesignatedParameter(ParameterDefinition parameter)
+		{
+			if (parameter is not { Result: false, Default: null, Locator: false, ReadOnly: false, Varying: false, Nullable: null, ShortOutput: false, AsKeyword: false })
+				throw Misplaced(parameter, "Default, Result or the T-SQL members", "on a designator's parameter, which names its type");
+
+			if (!postgreSql && (parameter.Mode is not null || parameter.Name is not null))
+				throw Misplaced(parameter, "Mode or Name", "on a designator's parameter, which only PostgreSQL writes beside its type");
+
+			if (parameter.InOutTwoWords && parameter.Mode != ParameterMode.InOut)
+				throw Misplaced(parameter, "InOutTwoWords", "with a mode other than InOut");
+
+			if (parameter.Mode is { } mode)
+				Word(mode switch { ParameterMode.In => "IN", ParameterMode.Out => "OUT", ParameterMode.InOut => parameter.InOutTwoWords ? "IN OUT" : "INOUT", ParameterMode.Variadic => "VARIADIC", _ => throw NoText(mode) });
+
+			if (parameter.Name is { } name)
+				PutIdentifier(name);
+
+			PutType(parameter.Type);
 		}
 
 		// ── §11 User-defined types, casts, orderings and transforms ────────────────

@@ -2492,7 +2492,8 @@ public sealed partial record ParameterDefinition(ParameterMode? Mode, Identifier
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum ParameterMode { In, Out, InOut }
+// PostgreSQL: CREATE FUNCTION. `Variadic` is `VARIADIC`, a last parameter that takes the rest of the arguments as an array.
+public enum ParameterMode { In, Out, InOut, Variadic }
 // BNF: <returns clause>, <returns type>, <result cast>. `RETURNS TABLE` with no columns is TableKeyword alone.
 public sealed partial record ReturnsDefinition(DataType? Type, SqlList<FieldDefinition>? TableColumns, bool OnlyPassThrough = false) : ISqlNode
 {
@@ -2565,7 +2566,9 @@ public sealed record PolymorphicTableFunctionBody(SqlList<ParameterDefinition>? 
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record RoutineDesignator(RoutineKind Kind, QualifiedName Name, SqlList<DataType>? ParameterTypes = null, QualifiedName? ForType = null, bool SpecificKeyword = false, MethodModifier? MethodModifier = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+// Parameters is null where no brackets were written. The standard's and T-SQL's designators name the types alone, each a
+// parameter with no mode and no name; PostgreSQL's function_with_argtypes may say a mode and a name beside the type.
+public sealed record RoutineDesignator(RoutineKind Kind, QualifiedName Name, SqlList<ParameterDefinition>? Parameters = null, QualifiedName? ForType = null, bool SpecificKeyword = false, MethodModifier? MethodModifier = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
