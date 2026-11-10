@@ -183,6 +183,36 @@ public sealed class SqlListTests
 				Check(two.Equals(SqlList.Own(new[] { "a", "b" })) && two.GetHashCode() == SqlList.Own(new[] { "a", "b" }).GetHashCode(), "a list of two");
 				Check(!two.Equals(one) && !one.Equals(two) && two.Slice(1, 1).Equals(SqlList.Create<string>(new[] { "b" })), "a list of two against one");
 
+				// Appended: one longer each time over a buffer the lists share, and every list keeps what it had.
+				var grown = default(SqlList<string>);
+				var lists = new List<SqlList<string>>();
+
+				for (var at = 0; at < 20; at++)
+				{
+					grown = grown.Appended("e" + at);
+					lists.Add(grown);
+				}
+
+				var whole = SqlList.Create<string>(Enumerable.Range(0, 20).Select(static at => "e" + at).ToArray());
+
+				Check(lists.Select(static (list, at) => list.Count == at + 1 && list[0] == "e0" && list[at] == "e" + at).All(static ok => ok), "an appended list is one longer and keeps what it had");
+				Check(grown.Equals(whole) && whole.Equals(grown) && grown.GetHashCode() == whole.GetHashCode(), "an appended list equals and hashes as one made whole");
+				Check(grown.AsSpan().Length == 20 && grown.ToArray().Length == 20 && grown.Slice(18, 2) is ["e18", "e19"] && grown is [.., "e19"], "an appended list spans, copies, slices and matches");
+
+				var fork = lists[4].Appended("x");
+
+				Check(fork.Count == 6 && fork[5] == "x" && lists[5][5] == "e5" && lists[19].Count == 20 && lists[19][5] == "e5", "a list appended to after a longer one was copies, and the longer one is unchanged");
+
+				var walkedShort = new List<string>();
+
+				foreach (var item in lists[2])
+					walkedShort.Add(item);
+
+				Check(walkedShort is ["e0", "e1", "e2"] && ((IEnumerable<string>)lists[2]).ToList() is ["e0", "e1", "e2"], "an appended list walks only its own");
+				Check(Throws<IndexOutOfRangeException>(() => lists[2][3]) && Throws<IndexOutOfRangeException>(() => lists[2][-1]), "an appended list has no place past its own end");
+				Check(default(SqlList<object>).Appended("a").Appended("b") is ["a", "b"], "a list of objects appended");
+				Check(default(SqlList<int>).Appended(1).Appended(2).Appended(3) is [1, 2, 3], "a list of values appended");
+
 				return failed.ToArray();
 			}
 
