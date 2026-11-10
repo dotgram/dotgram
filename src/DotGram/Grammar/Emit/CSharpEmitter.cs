@@ -1706,7 +1706,10 @@ static partial class CSharpEmitter
 
 			{
 
-				machine.Register(publication.Rule, publication.Kind == PublishKind.Parse);
+				// A machine that reads only from a position has no whole entry to compile: the whole
+				// reading is the flat machine's, and its root here would be states nothing enters.
+				machine.Register(
+					publication.Rule, publication.Kind == PublishKind.Parse && !compiled.PositionalOnly);
 
 
 

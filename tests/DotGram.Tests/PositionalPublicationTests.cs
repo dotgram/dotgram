@@ -66,11 +66,17 @@ public sealed class PositionalPublicationTests
 		var (plain, _)          = Compiled("parse Pair", direct);
 		var (asked, assembly)   = Compiled("positional parse Pair", direct);
 
-		// Flat without the word, and still flat with it: the method the whole input is read by is
-		// written alike, and the machine beside it is named for the forms it reads.
-		Assert.DoesNotContain("RecognizeAt_DotGram", plain, StringComparison.Ordinal);
+		// Flat without the word: neither a reader of methods nor an engine is written, so the one
+		// method the whole input is read by is the flat one. Were the rule ever not lowered, this
+		// fails rather than the test going on to hold the engine against itself.
+		Assert.False(Rendered(plain), "Pair is no longer lowered to a flat method.");
+		Assert.DoesNotContain("RecAt_DotGram_Pair(", plain, StringComparison.Ordinal);
+
+		// And still flat with it: the whole method is written alike, and the forms from a position
+		// enter the machine beside it, by methods or by the engine, under its tag.
 		Assert.Contains(FlatWhole(plain), asked, StringComparison.Ordinal);
-		Assert.Contains("At_DotGram", asked, StringComparison.Ordinal);
+		Assert.True(Rendered(asked), "No machine beside the flat method reads from a position.");
+		Assert.Contains("RecAt_DotGram_Pair(", asked, StringComparison.Ordinal);
 
 		var read = EmittedCode.Positioned(assembly, "Grammar", "TryParsePair", "##ab,cd##", 2);
 
@@ -131,8 +137,10 @@ public sealed class PositionalPublicationTests
 	[Fact]
 	public void A_grammar_over_segments_refuses_the_word()
 	{
+		const string Grammar = "Start : @int = (any* & eos)* => @(0)\npositional parse Start";
+
 		var result = GramCompiler.Compile(
-			"Start : @int = (any* & eos)* => @(0)\npositional parse Start",
+			Grammar,
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
 		var refused = result.Diagnostics.SingleOrDefault(static one => one.Id == GrammarNormalizer.PositionalOverSegments);
@@ -141,6 +149,9 @@ public sealed class PositionalPublicationTests
 
 		Assert.Equal(GramSeverity.Error, refused.Severity);
 		Assert.Contains("'eos'", refused.Message, StringComparison.Ordinal);
+
+		// At the word, as the parser places what it refuses before the verb.
+		Assert.Equal("positional", Grammar.Substring(refused.Position, refused.Length));
 	}
 
 	static (string Source, Assembly Assembly) Compiled(string directives, bool direct)
@@ -164,6 +175,14 @@ public sealed class PositionalPublicationTests
 		Assert.NotEmpty(all);
 
 		return all.Count(static one => one.GetParameters().Skip(1).FirstOrDefault()?.Name == "at");
+	}
+
+	/// <summary>Whether a reader of methods or an engine is written: anything but a flat method.</summary>
+	static bool Rendered(string source)
+	{
+		// `Reader_` for a group's reader, `ReaderAt_` for the one beside a flat method.
+		return source.Contains("ref struct Reader", StringComparison.Ordinal) ||
+			source.Contains("entries.Add(new ParserEntry(", StringComparison.Ordinal);
 	}
 
 	/// <summary>The flat method that reads the whole input, from its declaration to the next member's.</summary>
