@@ -345,7 +345,9 @@ public abstract partial record Statement : ISqlNode
 	// BNF: <domain definition>, <alter domain statement>, <drop domain statement>
 	public sealed record CreateDomain : Statement { public required QualifiedName Name { get; init; } public bool AsKeyword { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public SqlList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
 	public sealed record AlterDomain : Statement { public required QualifiedName Name { get; init; } public required AlterDomainAction Action { get; init; } }
-	public sealed record DropDomain : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	// PostgreSQL: DROP DOMAIN. Several names, IF EXISTS, and the behavior left out, as DropType reads them; the standard's
+	// is one name with its behavior.
+	public sealed record DropDomain : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: character set/collation/translation/assertion statements
 	public sealed record CreateCharacterSet : Statement { public required CharacterSetName Name { get; init; } public bool AsKeyword { get; init; } public required CharacterSetName Source { get; init; } public CollationName? Collation { get; init; } }

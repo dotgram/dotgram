@@ -202,7 +202,7 @@ partial class HandSqlStandard
 
 				if (Names(ref cursor, 3, out var name) && DropBehavior(ref cursor) is { } behaviour)
 				{
-					statement = new Statement.DropDomain { Name = name, Behavior = behaviour };
+					statement = new Statement.DropDomain { Names = [name], Behavior = behaviour };
 
 					return true;
 				}

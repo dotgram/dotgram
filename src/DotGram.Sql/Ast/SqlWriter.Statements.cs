@@ -239,8 +239,16 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.DropDomain drop:
+					if (drop.Names.Count == 0)
+						throw Empty(drop, "Names");
+
+					// PostgreSQL: DROP DOMAIN. The standard drops one domain, and says how.
+					if (!postgreSql && (drop.Names.Count > 1 || drop.IfExists || drop.Behavior is null))
+						throw Misplaced(drop, "Names, IfExists or Behavior", "several names, IF EXISTS or no behavior, which only PostgreSQL reads on DROP DOMAIN");
+
 					Word("DROP DOMAIN");
-					PutName(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutName);
 					PutBehavior(drop.Behavior);
 					break;
 
