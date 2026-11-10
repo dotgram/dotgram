@@ -190,6 +190,15 @@ public sealed class ResolutionScope
 	/// not at scope creation, and once for the life of the scope.
 	/// </para>
 	/// <para>
+	/// <b>A long name costs once more.</b> The first dotted name of more than nine parts that may
+	/// be a type asks how deep the types in reach go, which lists the public and forwarded types
+	/// of every assembly in the closure, and every type of the caller's where its internals are
+	/// seen: measured 2026-11-10, about 12 ms and 260 KB over 29 assemblies. Each assembly is
+	/// counted once in the process, whatever scopes it is in, so a scope over assemblies already
+	/// counted pays a lookup each. A name whose head the text declared — a member chain on a
+	/// parameter — never asks, and walks nothing.
+	/// </para>
+	/// <para>
 	/// It is paid ONCE for an assembly, in the process that reads texts for it, and a host that
 	/// reads more than one text never pays it again. A host whose texts name no types does not pay
 	/// it at all. Reading each assembly's names off its file instead, with metadata and loading

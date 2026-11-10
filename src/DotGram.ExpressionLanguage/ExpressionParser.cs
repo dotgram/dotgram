@@ -4709,6 +4709,7 @@ public static partial class ExpressionParser
 				_dottedEnd   = -1;
 				_cutAfter    = -1;
 				_cutAt       = -1;
+				_headAsked   = false;
 			}
 
 			_dottedParts = read.End > _dottedEnd ? _dottedParts + 1 : 1;
@@ -4717,7 +4718,11 @@ public static partial class ExpressionParser
 
 			_dottedEnd = read.End;
 
-			if (Admits(_dottedParts))
+			// A head the text declared is no type whatever follows it, so a long name on one is cut
+			// where the scope would first be asked, and the scope is not asked: a text that names no
+			// type must not walk the closure (ResolutionScope.Around), and a member chain on a
+			// parameter names none.
+			if (_dottedParts <= Shallow || !HeadBinds(read) && Admits(_dottedParts))
 				return true;
 
 			// Where the name stopped being read part by part: after the part before this one, and
@@ -4726,6 +4731,33 @@ public static partial class ExpressionParser
 			_cutAt    = read.End;
 
 			return false;
+		}
+
+		/// <summary>Whether the head of the dotted name this span begins with is a name the text declared.</summary>
+		/// <remarks>
+		/// Read off the text, as a word is lexed, because the head is a capture the reader would build
+		/// a string for at every part asked about; asked once a name, and only of a long one. Where
+		/// the reading did not say what its text is, the answer is no, and the scope is asked.
+		/// </remarks>
+		bool HeadBinds(SourceSpan read)
+		{
+			if (_headAsked)
+				return _headBinds;
+
+			_headAsked = true;
+			_headBinds = false;
+
+			if (Text is { } text && read.Start < text.Length)
+			{
+				var end = read.Start;
+
+				while (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_'))
+					end++;
+
+				_headBinds = end > read.Start && Binds(text.Substring(read.Start, end - read.Start), read);
+			}
+
+			return _headBinds;
 		}
 
 		/// <summary>Whether the parts read before this span's last `.` are as many as <see cref="Nests"/> lets a name take.</summary>
@@ -4771,6 +4803,10 @@ public static partial class ExpressionParser
 		int _dottedEnd  = -1;
 		int _cutAfter   = -1;
 		int _cutAt      = -1;
+
+		/// <summary>Whether <see cref="HeadBinds"/> has been asked about the name begun at <see cref="_dottedFrom"/>, and its answer.</summary>
+		bool _headAsked;
+		bool _headBinds;
 
 		/// <summary>Whether that name is a local, a parameter or something else the text declared.</summary>
 		/// <remarks>
