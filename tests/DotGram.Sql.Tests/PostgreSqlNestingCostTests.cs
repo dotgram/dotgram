@@ -106,6 +106,9 @@ public sealed class PostgreSqlNestingCostTests
 	[InlineData("explains with options nested",      "", "EXPLAIN (VERBOSE) ", "SELECT 1", "", "", false)]
 	[InlineData("prepares nested",                   "", "PREPARE p AS ", "SELECT 1", "", "", false)]
 	[InlineData("bracketed joins, unclosed",         "SELECT * FROM ", "(", "a JOIN b ON x", "", "", false)]
+	[InlineData("a table made of bracketed queries, closed", "CREATE TABLE t AS ", "(", "SELECT 1", ")", " WITH DATA", true)]
+	[InlineData("a table made of bracketed queries, unclosed", "CREATE TABLE t AS ", "(", "SELECT 1", "", "", false)]
+	[InlineData("checks of brackets in a column, closed", "CREATE TABLE t (a int CHECK ", "(", "a > 0", ")", ")", true)]
 	public void A_nest_costs_what_its_depth_does(string what, string head, string opener, string core, string closer, string tail, bool accepted)
 	{
 		PostgreSqlParser.TryParseStatement(Nest(head, opener, core, closer, tail, 2));
@@ -122,6 +125,50 @@ public sealed class PostgreSqlNestingCostTests
 
 			if (bytes.Count > 0)
 				Assert.True(allocated <= bytes[^1] * DepthSlack, $"{what}: {depth / 2} levels allocated {bytes[^1]:N0} bytes and {depth} allocated {allocated:N0}, {(double)allocated / bytes[^1]:F1} times as much.");
+
+			bytes.Add(allocated);
+		}
+	}
+
+	/// <summary>
+	/// A DDL list costs what its length does: a table's columns and a column's constraints, read once from the parenthesis
+	/// and each element decided by its first word; a partition's bound values and its keys; a routine's argument types and a
+	/// list of routines; operators with their operands' types, each a type with modifiers and brackets — accepted and
+	/// refused at the end alike.
+	/// </summary>
+	[Theory]
+	[InlineData("table columns, closed",                  "CREATE TABLE t (", "c int, ", "z int)", true)]
+	[InlineData("table columns, unclosed",                "CREATE TABLE t (", "c int, ", "z int", false)]
+	[InlineData("table columns, a bad last one",          "CREATE TABLE t (", "c int, ", "z)", false)]
+	[InlineData("table constraints, closed",              "CREATE TABLE t (a int", ", CONSTRAINT k UNIQUE (a) DEFERRABLE", ")", true)]
+	[InlineData("a column's constraints, closed",         "CREATE TABLE t (a int", " NOT NULL CHECK (a > 0)", ")", true)]
+	[InlineData("a column's constraints, a bad last one", "CREATE TABLE t (a int", " NOT NULL CHECK (a > 0)", " CHECK)", false)]
+	[InlineData("partition bound values, closed",         "CREATE TABLE p PARTITION OF t FOR VALUES IN (", "1, ", "1)", true)]
+	[InlineData("partition bound values, unclosed",       "CREATE TABLE p PARTITION OF t FOR VALUES IN (", "1, ", "1", false)]
+	[InlineData("partition keys, closed",                 "CREATE TABLE t (a int) PARTITION BY RANGE (", "lower(a) COLLATE \"C\" text_ops, ", "a)", true)]
+	[InlineData("argument types, closed",                 "DROP FUNCTION f(", "numeric(10, 2)[], ", "int)", true)]
+	[InlineData("argument types, unclosed",               "DROP FUNCTION f(", "numeric(10, 2)[], ", "int", false)]
+	[InlineData("routines dropped, the last one unclosed", "DROP FUNCTION ", "f(int, text), ", "f(int", false)]
+	[InlineData("comment argument types, closed",         "COMMENT ON FUNCTION f(", "IN a character varying(3), ", "int) IS 'x'", true)]
+	[InlineData("operators dropped, closed",              "DROP OPERATOR ", "+ (character varying(3), int[]), ", "+ (int, int)", true)]
+	[InlineData("operators dropped, the last one unclosed", "DROP OPERATOR ", "+ (character varying(3), int[]), ", "+ (int, ", false)]
+	[InlineData("tables dropped, closed",                 "DROP TABLE IF EXISTS ", "s.t, ", "u CASCADE", true)]
+	public void A_DDL_list_costs_what_its_length_does(string what, string head, string unit, string tail, bool accepted)
+	{
+		PostgreSqlParser.TryParseStatement(head + unit + tail);
+
+		var bytes = new List<long>();
+
+		foreach (var size in new[] { 64, 256, 1024, 4096 })
+		{
+			var text = head + string.Concat(Enumerable.Repeat(unit, size)) + tail;
+			var (finished, read, allocated) = Read(text, static t => PostgreSqlParser.TryParseStatement(t).IsSuccess);
+
+			Assert.True(finished, $"{what}: {size} items were not read in {Watchdog.TotalSeconds:F0} s, where the sizes before allocated {string.Join(", ", bytes.Select(static one => one.ToString("N0")))} bytes.");
+			Assert.Equal(accepted, read);
+
+			if (bytes.Count > 0)
+				Assert.True(allocated <= bytes[^1] * Slack, $"{what}: {size / 4} items allocated {bytes[^1]:N0} bytes and {size} allocated {allocated:N0}, {(double)allocated / bytes[^1]:F1} times as much.");
 
 			bytes.Add(allocated);
 		}
