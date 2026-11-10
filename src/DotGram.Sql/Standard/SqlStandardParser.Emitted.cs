@@ -5840,6 +5840,7 @@ namespace DotGram.Sql.Standard
 				this.unbuilt = default!;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Value(int pos)
 			{
 				var p = pos;
@@ -5881,6 +5882,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SignedNumericLiteral(int pos)
 			{
 				var p = pos;
@@ -5929,6 +5931,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SignedNumericLiteral(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -5950,6 +5953,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GeneralLiteral(int pos)
 			{
 				var p = pos;
@@ -6077,6 +6081,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Lexical_IntroducedStringLiteral(int pos)
 			{
 				var p = pos;
@@ -6091,6 +6096,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DateLiteral(int pos)
 			{
 				var p = pos;
@@ -6122,6 +6128,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimeLiteral(int pos)
 			{
 				var p = pos;
@@ -6153,6 +6160,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimestampLiteral(int pos)
 			{
 				var p = pos;
@@ -6183,6 +6191,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalLiteral(int pos)
 			{
 				var p = pos;
@@ -6242,6 +6251,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalLiteral(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -6263,6 +6273,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalQualifier(int pos)
 			{
 				var p = pos;
@@ -6302,6 +6313,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalQualifier(int pos, int start)
 			{
 				var p = pos;
@@ -6325,6 +6337,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StartField(int pos)
 			{
 				var p = pos;
@@ -6384,6 +6397,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_StartField(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -6408,6 +6422,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalLeadingFieldPrecision(int pos)
 			{
 				var p = pos;
@@ -6427,6 +6442,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_EndField(int pos)
 			{
 				var p = pos;
@@ -6501,6 +6517,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_EndField(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -6525,6 +6542,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalFractionalSecondsPrecision(int pos)
 			{
 				var p = pos;
@@ -6544,6 +6562,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SingleDatetimeField(int pos)
 			{
 				var p = pos;
@@ -6661,6 +6680,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SingleDatetimeField(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -6684,6 +6704,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SingleDatetimeField(int pos, int start, ref int a3, ref int b3, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -6730,6 +6751,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SingleDatetimeField(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -6748,6 +6770,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanLiteral(int pos)
 			{
 				var p = pos;
@@ -7549,6 +7572,7 @@ namespace DotGram.Sql.Standard
 				return end;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueExpressionTree(int pos)
 			{
 				var p = pos;
@@ -7561,6 +7585,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueExpression(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -7612,6 +7637,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Disjunction(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -7691,6 +7717,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Disjunction(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -7701,6 +7728,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Conjunction(int pos)
 			{
 				var p = pos;
@@ -7750,6 +7778,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Conjunction(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -7760,6 +7789,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanFactor(int pos)
 			{
 				var p = pos;
@@ -7800,6 +7830,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanTest(int pos)
 			{
 				var p = pos;
@@ -7826,6 +7857,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanPrimary(int pos)
 			{
 				var p = pos;
@@ -7935,6 +7967,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_BooleanPrimary(int pos, int start, ref int a2, ref int b2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -7978,6 +8011,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_BooleanPrimary(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -7992,6 +8026,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Subquery(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -8046,6 +8081,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryExpression(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -8181,6 +8217,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryExpression(int pos, int start, ref WithClause? r0)
 			{
 				var p = pos;
@@ -8191,6 +8228,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_QueryExpression(int pos, int start, ref OrderByClause? r2)
 			{
 				var p = pos;
@@ -8201,6 +8239,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_QueryExpression(int pos, int start, ref Limit? r3)
 			{
 				var p = pos;
@@ -8211,6 +8250,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_QueryExpression(int pos, int start, ref Limit? r4)
 			{
 				var p = pos;
@@ -8221,6 +8261,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WithClause(int pos)
 			{
 				var p = pos;
@@ -8294,6 +8335,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WithClause(int pos, int start, int refs_100, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -8308,6 +8350,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WithClause(int pos, int start, int refs_100)
 			{
 				var p = pos;
@@ -8324,6 +8367,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WithListElement(int pos)
 			{
 				var p = pos;
@@ -8394,6 +8438,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WithListElement(int pos, int start, ref Sql.SqlList<Identifier>? r1)
 			{
 				var p = pos;
@@ -8416,6 +8461,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WithListElement(int pos, int start, ref Nodes.SearchOrCycle? r3)
 			{
 				var p = pos;
@@ -8426,6 +8472,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Identifier(int pos)
 			{
 				var p = pos;
@@ -8448,6 +8495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Identifier(int pos, int start)
 			{
 				var p = pos;
@@ -8468,6 +8516,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ActualIdentifier(int pos)
 			{
 				var p = pos;
@@ -8513,6 +8562,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnNameList(int pos)
 			{
 				var p = pos;
@@ -8554,6 +8604,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ColumnNameList(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -8570,6 +8621,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SearchOrCycleClause(int pos)
 			{
 				var p = pos;
@@ -8634,6 +8686,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SearchOrCycleClause(int pos, int start, ref CycleClause? r1)
 			{
 				var p = pos;
@@ -8644,6 +8697,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SearchClause(int pos)
 			{
 				var p = pos;
@@ -8712,6 +8766,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CycleClause(int pos)
 			{
 				var p = pos;
@@ -8777,6 +8832,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CycleClause(int pos, int start, ref Expression? r2, ref Expression? r3)
 			{
 				var p = pos;
@@ -8803,6 +8859,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueNode(int pos)
 			{
 				var p = pos;
@@ -8815,6 +8872,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryExpressionBody(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -8886,6 +8944,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryExpressionBody(int pos, int start, int refs_101)
 			{
 				var p = pos;
@@ -8896,6 +8955,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryTerm(int pos)
 			{
 				var p = pos;
@@ -8937,6 +8997,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryTerm(int pos, int start, int refs_101)
 			{
 				var p = pos;
@@ -8947,6 +9008,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryPrimary(int pos)
 			{
 				var p = pos;
@@ -9061,6 +9123,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryPrimary(int pos, int start, ref OrderByClause? r2)
 			{
 				var p = pos;
@@ -9071,6 +9134,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_QueryPrimary(int pos, int start, ref Limit? r3)
 			{
 				var p = pos;
@@ -9081,6 +9145,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_QueryPrimary(int pos, int start, ref Limit? r4)
 			{
 				var p = pos;
@@ -9091,6 +9156,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleTable(int pos)
 			{
 				var p = pos;
@@ -9138,6 +9204,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QuerySpecification(int pos)
 			{
 				var p = pos;
@@ -9186,6 +9253,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QuerySpecification(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -9207,6 +9275,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SelectList(int pos)
 			{
 				var p = pos;
@@ -9267,6 +9336,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SelectList(int pos, int start, int refs_97)
 			{
 				var p = pos;
@@ -9283,6 +9353,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SelectSublist(int pos)
 			{
 				var p = pos;
@@ -9309,6 +9380,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AllFields(int pos)
 			{
 				var p = pos;
@@ -9326,6 +9398,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AllFields(int pos, int start)
 			{
 				var p = pos;
@@ -9356,6 +9429,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AsClause(int pos)
 			{
 				var p = pos;
@@ -9393,6 +9467,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AsClause(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -9407,6 +9482,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableExpression(int pos)
 			{
 				var p = pos;
@@ -9512,6 +9588,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableExpression(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -9522,6 +9599,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TableExpression(int pos, int start, ref GroupByClause? r2)
 			{
 				var p = pos;
@@ -9532,6 +9610,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TableExpression(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -9542,6 +9621,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_TableExpression(int pos, int start, ref WindowClause? r4)
 			{
 				var p = pos;
@@ -9552,6 +9632,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FromClause(int pos)
 			{
 				var p = pos;
@@ -9599,6 +9680,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FromClause(int pos, int start, int refs_62)
 			{
 				var p = pos;
@@ -9615,6 +9697,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableReference(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -9662,6 +9745,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableFactor(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -9728,6 +9812,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableFactor(int pos, int start, ref SampleClause? r1)
 			{
 				var p = pos;
@@ -9738,6 +9823,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TablePrimary(int pos)
 			{
 				var p = pos;
@@ -10115,6 +10201,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TablePrimary(int pos, int start, int refs_4, ref SystemTimeSpecification? r3)
 			{
 				var p = pos;
@@ -10125,6 +10212,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r4)
 			{
 				var p = pos;
@@ -10135,6 +10223,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TablePrimary(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -10153,6 +10242,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r15)
 			{
 				var p = pos;
@@ -10163,6 +10253,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r1)
 			{
 				var p = pos;
@@ -10173,6 +10264,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_TablePrimary(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -10200,6 +10292,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r1)
 			{
 				var p = pos;
@@ -10210,6 +10303,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_TablePrimary(int pos, int start, int refs_4, ref SystemTimeSpecification? r3)
 			{
 				var p = pos;
@@ -10220,6 +10314,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r4)
 			{
 				var p = pos;
@@ -10230,6 +10325,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_TablePrimary(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -10246,6 +10342,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_TablePrimary(int pos, int start, int refs_4, ref int a9, ref int b9)
 			{
 				var p = pos;
@@ -10266,6 +10363,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataChangeDeltaTable(int pos)
 			{
 				var p = pos;
@@ -10328,6 +10426,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataChangeStatement(int pos)
 			{
 				var p = pos;
@@ -10389,6 +10488,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DeleteStatementSearched(int pos)
 			{
 				var p = pos;
@@ -10483,6 +10583,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DeleteStatementSearched(int pos, int start, ref PeriodPortion? r1)
 			{
 				var p = pos;
@@ -10493,6 +10594,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_DeleteStatementSearched(int pos, int start, ref Alias? r2)
 			{
 				var p = pos;
@@ -10503,6 +10605,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_DeleteStatementSearched(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -10513,6 +10616,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TargetTable(int pos)
 			{
 				var p = pos;
@@ -10561,6 +10665,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LocalOrSchemaQualifiedName(int pos)
 			{
 				var p = pos;
@@ -10640,6 +10745,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_LocalOrSchemaQualifiedName(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -10657,6 +10763,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LocalQualifier(int pos)
 			{
 				var p = pos;
@@ -10674,6 +10781,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ForPortionOf(int pos)
 			{
 				var p = pos;
@@ -10726,6 +10834,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DatetimeValueExpression(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -10775,6 +10884,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CommonValueExpression(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -10824,6 +10934,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CommonValueExpressionOrRow(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -10903,6 +11014,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CommonValueExpressionOrRow(int pos, int start, int refs_21)
 			{
 				var p = pos;
@@ -10913,6 +11025,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Operand(int pos)
 			{
 				var p = pos;
@@ -10970,6 +11083,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Operand(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -10991,6 +11105,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Primary(int pos)
 			{
 				var p = pos;
@@ -11037,6 +11152,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueFunction(int pos)
 			{
 				var p = pos;
@@ -11167,6 +11283,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericValueFunction(int pos)
 			{
 				var p = pos;
@@ -11745,6 +11862,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NumericValueFunction(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -11786,6 +11904,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NumericValueFunction(int pos, int start)
 			{
 				var p = pos;
@@ -11797,6 +11916,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NumericValueFunction(int pos, int start, ref Expression? r4)
 			{
 				var p = pos;
@@ -11813,6 +11933,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NumericValueFunction(int pos, int start, ref Expression? r5)
 			{
 				var p = pos;
@@ -11829,6 +11950,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_NumericValueFunction(int pos, int start, ref int a9, ref int b9)
 			{
 				var p = pos;
@@ -11856,6 +11978,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PositionExpression(int pos)
 			{
 				var p = pos;
@@ -11913,6 +12036,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StringValueExpression(int pos)
 			{
 				var p = pos;
@@ -11933,6 +12057,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UsingUnits(int pos)
 			{
 				var p = pos;
@@ -11946,6 +12071,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UsingUnits(int pos, int start)
 			{
 				var p = pos;
@@ -11976,6 +12102,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RegexSearch(int pos)
 			{
 				var p = pos;
@@ -12070,6 +12197,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RegexSearch(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -12086,6 +12214,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RegexSearch(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -12102,6 +12231,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RegexSearch(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -12129,6 +12259,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterValueExpression(int pos)
 			{
 				var p = pos;
@@ -12150,6 +12281,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterNode(int pos)
 			{
 				var p = pos;
@@ -12162,6 +12294,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericNode(int pos)
 			{
 				var p = pos;
@@ -12174,6 +12307,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericValueExpression(int pos)
 			{
 				var p = pos;
@@ -12195,6 +12329,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExtractExpression(int pos)
 			{
 				var p = pos;
@@ -12246,6 +12381,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExtractField(int pos)
 			{
 				var p = pos;
@@ -12285,6 +12421,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionValueExpression(int pos)
 			{
 				var p = pos;
@@ -12304,6 +12441,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ArrayValueExpression(int pos)
 			{
 				var p = pos;
@@ -12323,6 +12461,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AbsoluteValue(int pos)
 			{
 				var p = pos;
@@ -12364,6 +12503,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StringValueFunction(int pos)
 			{
 				var p = pos;
@@ -12980,6 +13120,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_StringValueFunction(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -12996,6 +13137,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_StringValueFunction(int pos, int start, ref Expression? r4)
 			{
 				var p = pos;
@@ -13012,6 +13154,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_StringValueFunction(int pos, int start, ref Expression? r11)
 			{
 				var p = pos;
@@ -13028,6 +13171,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_StringValueFunction(int pos, int start, ref Expression? r13)
 			{
 				var p = pos;
@@ -13044,6 +13188,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_StringValueFunction(int pos, int start, ref Expression? r14)
 			{
 				var p = pos;
@@ -13060,6 +13205,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_StringValueFunction(int pos, int start, ref int a15, ref int b15)
 			{
 				var p = pos;
@@ -13087,6 +13233,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_StringValueFunction(int pos, int start, ref Expression? r16, ref int a17, ref int b17)
 			{
 				var p = pos;
@@ -13123,6 +13270,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_StringValueFunction(int pos, int start, ref Expression? r21)
 			{
 				var p = pos;
@@ -13139,6 +13287,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_StringValueFunction(int pos, int start, ref Expression? r25)
 			{
 				var p = pos;
@@ -13155,6 +13304,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_StringValueFunction(int pos, int start, ref int a28, ref int b28, ref Nodes.Length? r29)
 			{
 				var p = pos;
@@ -13204,6 +13354,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_StringValueFunction(int pos, int start, ref Nodes.Length? r29)
 			{
 				var p = pos;
@@ -13220,6 +13371,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_StringValueFunction(int pos, int start, ref Identifier? r31)
 			{
 				var p = pos;
@@ -13230,6 +13382,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SubstringFunction(int pos)
 			{
 				var p = pos;
@@ -13274,6 +13427,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SubstringTail(int pos)
 			{
 				var p = pos;
@@ -13352,6 +13506,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SubstringTail(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -13368,6 +13523,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONSerialize(int pos)
 			{
 				var p = pos;
@@ -13422,6 +13578,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONSerialize(int pos, int start, ref JsonOutput? r1)
 			{
 				var p = pos;
@@ -13432,6 +13589,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONValueExpression(int pos)
 			{
 				var p = pos;
@@ -13451,6 +13609,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONOutputClause(int pos)
 			{
 				var p = pos;
@@ -13493,6 +13652,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONOutputClause(int pos, int start, ref JsonRepresentation? r1)
 			{
 				var p = pos;
@@ -13509,6 +13669,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataType(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -13562,6 +13723,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DataType(int pos, int start, int refs_6)
 			{
 				var p = pos;
@@ -13572,6 +13734,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataTypeBase(int pos)
 			{
 				var p = pos;
@@ -13616,6 +13779,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PredefinedType(int pos)
 			{
 				var p = pos;
@@ -13768,6 +13932,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PredefinedType(int pos, int start, ref CharacterSetName? r1)
 			{
 				var p = pos;
@@ -13790,6 +13955,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PredefinedType(int pos, int start, ref CollationName? r2)
 			{
 				var p = pos;
@@ -13800,6 +13966,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PredefinedType(int pos, int start, ref CollationName? r4)
 			{
 				var p = pos;
@@ -13810,6 +13977,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterStringType(int pos)
 			{
 				var p = pos;
@@ -13949,6 +14117,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -14012,6 +14181,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CharacterStringType(int pos, int start, ref Nodes.Length? r1)
 			{
 				var p = pos;
@@ -14034,6 +14204,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_CharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -14103,6 +14274,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_CharacterStringType(int pos, int start, ref Nodes.Length? r3)
 			{
 				var p = pos;
@@ -14125,6 +14297,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_CharacterStringType(int pos, int start, ref Nodes.Length? r5)
 			{
 				var p = pos;
@@ -14147,6 +14320,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_CharacterStringType(int pos, int start, ref Nodes.Length? r6)
 			{
 				var p = pos;
@@ -14169,6 +14343,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_CharacterStringType(int pos, int start, ref Nodes.Length? r7)
 			{
 				var p = pos;
@@ -14191,6 +14366,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterLength(int pos)
 			{
 				var p = pos;
@@ -14260,6 +14436,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterLength(int pos, int start)
 			{
 				var p = pos;
@@ -14279,6 +14456,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CharacterLength(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -14300,6 +14478,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterLargeObjectLength(int pos)
 			{
 				var p = pos;
@@ -14337,6 +14516,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterLargeObjectLength(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -14358,6 +14538,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LargeObjectLength(int pos)
 			{
 				var p = pos;
@@ -14443,6 +14624,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_LargeObjectLength(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -14464,6 +14646,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterSetSpecification(int pos)
 			{
 				var p = pos;
@@ -14510,6 +14693,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterSetSpecification(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -14527,6 +14711,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LanguageName(int pos)
 			{
 				var p = pos;
@@ -14551,6 +14736,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollateClause(int pos)
 			{
 				var p = pos;
@@ -14569,6 +14755,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaQualifiedName(int pos)
 			{
 				var p = pos;
@@ -14615,6 +14802,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SchemaQualifiedName(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -14631,6 +14819,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NationalCharacterStringType(int pos)
 			{
 				var p = pos;
@@ -14854,6 +15043,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -14917,6 +15107,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r1)
 			{
 				var p = pos;
@@ -14939,6 +15130,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -14988,6 +15180,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r2)
 			{
 				var p = pos;
@@ -15010,6 +15203,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r4)
 			{
 				var p = pos;
@@ -15032,6 +15226,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -15095,6 +15290,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r1)
 			{
 				var p = pos;
@@ -15117,6 +15313,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r4)
 			{
 				var p = pos;
@@ -15139,6 +15336,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -15176,6 +15374,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r5)
 			{
 				var p = pos;
@@ -15198,6 +15397,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -15241,6 +15441,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r6)
 			{
 				var p = pos;
@@ -15263,6 +15464,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r7)
 			{
 				var p = pos;
@@ -15285,6 +15487,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart13_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r8)
 			{
 				var p = pos;
@@ -15307,6 +15510,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BinaryStringType(int pos)
 			{
 				var p = pos;
@@ -15454,6 +15658,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_BinaryStringType(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -15501,6 +15706,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_BinaryStringType(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -15534,6 +15740,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_BinaryStringType(int pos, int start)
 			{
 				var p = pos;
@@ -15577,6 +15784,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_BinaryStringType(int pos, int start, ref LargeObjectSize? r1)
 			{
 				var p = pos;
@@ -15599,6 +15807,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_BinaryStringType(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -15632,6 +15841,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_BinaryStringType(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -15665,6 +15875,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_BinaryStringType(int pos, int start, ref LargeObjectSize? r4)
 			{
 				var p = pos;
@@ -15687,6 +15898,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericType(int pos)
 			{
 				var p = pos;
@@ -15933,6 +16145,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NumericType(int pos, int start, ref int a1, ref int b1, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -15988,6 +16201,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NumericType(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -16015,6 +16229,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NumericType(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -16048,6 +16263,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NumericType(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -16081,6 +16297,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DatetimeType(int pos)
 			{
 				var p = pos;
@@ -16196,6 +16413,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DatetimeType(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -16229,6 +16447,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_DatetimeType(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -16272,6 +16491,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalQualifier(int pos)
 			{
 				var p = pos;
@@ -16311,6 +16531,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalQualifier(int pos, int start)
 			{
 				var p = pos;
@@ -16334,6 +16555,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StartField(int pos)
 			{
 				var p = pos;
@@ -16393,6 +16615,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_StartField(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -16417,6 +16640,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalLeadingFieldPrecision(int pos)
 			{
 				var p = pos;
@@ -16436,6 +16660,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_EndField(int pos)
 			{
 				var p = pos;
@@ -16510,6 +16735,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_EndField(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -16534,6 +16760,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalFractionalSecondsPrecision(int pos)
 			{
 				var p = pos;
@@ -16553,6 +16780,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SingleDatetimeField(int pos)
 			{
 				var p = pos;
@@ -16670,6 +16898,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SingleDatetimeField(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -16693,6 +16922,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SingleDatetimeField(int pos, int start, ref int a3, ref int b3, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -16739,6 +16969,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SingleDatetimeField(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -16756,6 +16987,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowType(int pos)
 			{
 				var p = pos;
@@ -16815,6 +17047,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowType(int pos, int start, int refs_9)
 			{
 				var p = pos;
@@ -16831,6 +17064,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FieldDefinition(int pos)
 			{
 				var p = pos;
@@ -16848,6 +17082,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferenceType(int pos)
 			{
 				var p = pos;
@@ -16902,6 +17137,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ReferenceType(int pos, int start, ref QualifiedName? r1)
 			{
 				var p = pos;
@@ -16918,6 +17154,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PathResolvedUserDefinedTypeName(int pos)
 			{
 				var p = pos;
@@ -16964,6 +17201,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PathResolvedUserDefinedTypeName(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -16980,6 +17218,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionTypeSuffix(int pos)
 			{
 				var p = pos;
@@ -17048,6 +17287,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CollectionTypeSuffix(int pos, int start, ref int a0, ref int b0, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -17095,6 +17335,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONRepresentation(int pos)
 			{
 				var p = pos;
@@ -17133,6 +17374,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONRepresentation(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -17175,6 +17417,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimFunction(int pos)
 			{
 				var p = pos;
@@ -17212,6 +17455,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimOperands(int pos)
 			{
 				var p = pos;
@@ -17267,6 +17511,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimAfterSpecification(int pos)
 			{
 				var p = pos;
@@ -17314,6 +17559,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimFrom(int pos)
 			{
 				var p = pos;
@@ -17327,6 +17573,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TrimFrom(int pos, int start)
 			{
 				var p = pos;
@@ -17345,6 +17592,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OverlayFunction(int pos)
 			{
 				var p = pos;
@@ -17437,6 +17685,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OverlayFunction(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -17453,6 +17702,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DatetimeValueFunction(int pos)
 			{
 				var p = pos;
@@ -17543,6 +17793,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DatetimeValueFunction(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -17576,6 +17827,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MultisetValueExpression(int pos)
 			{
 				var p = pos;
@@ -17595,6 +17847,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTypedValueFunction(int pos)
 			{
 				var p = pos;
@@ -17707,6 +17960,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTypedValueFunction(int pos, int start, ref JsonInputClause? r1)
 			{
 				var p = pos;
@@ -17717,6 +17971,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTypedValueFunction(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -17728,6 +17983,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONInputClause(int pos)
 			{
 				var p = pos;
@@ -17746,6 +18002,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONKeyUniquenessConstraint(int pos)
 			{
 				var p = pos;
@@ -17799,6 +18056,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONKeyUniquenessConstraint(int pos, int start)
 			{
 				var p = pos;
@@ -17811,6 +18069,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FunctionSubscript(int pos)
 			{
 				var p = pos;
@@ -17832,6 +18091,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FunctionSubscript(int pos, int start, int refs_27)
 			{
 				var p = pos;
@@ -17873,6 +18133,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_FunctionSubscript(int pos, int start, int refs_27)
 			{
 				var p = pos;
@@ -17883,6 +18144,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ArrayElementStep(int pos)
 			{
 				var p = pos;
@@ -17924,6 +18186,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimaryStep(int pos)
 			{
 				var p = pos;
@@ -18189,6 +18452,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimaryStep(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -18205,6 +18469,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PrimaryStep(int pos, int start, int refs_47, ref Sql.SqlList<Argument>? r2)
 			{
 				var p = pos;
@@ -18215,6 +18480,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PrimaryStep(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -18228,6 +18494,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PrimaryStep(int pos, int start, int refs_47, ref Sql.SqlList<Argument>? r2)
 			{
 				var p = pos;
@@ -18238,6 +18505,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_PrimaryStep(int pos, int start, int refs_47, ref Sql.SqlList<Argument>? r4)
 			{
 				var p = pos;
@@ -18248,6 +18516,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONMethod(int pos)
 			{
 				var p = pos;
@@ -18495,6 +18764,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONMethod(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -18516,6 +18786,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONMethod(int pos, int start, ref int a2, ref int b2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -18559,6 +18830,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONMethod(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -18586,6 +18858,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLArgumentList(int pos)
 			{
 				var p = pos;
@@ -18632,6 +18905,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLArgumentList(int pos, int start, int refs_31, ref Argument? r0)
 			{
 				var p = pos;
@@ -18670,6 +18944,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLArgumentList(int pos, int start, int refs_31)
 			{
 				var p = pos;
@@ -18686,6 +18961,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLArgument(int pos)
 			{
 				var p = pos;
@@ -18799,6 +19075,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLArgument(int pos, int start)
 			{
 				var p = pos;
@@ -18867,6 +19144,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLArgument(int pos, int start, ref Expression r1)
 			{
 				var p = pos;
@@ -18877,6 +19155,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLArgument(int pos, int start, ref QualifiedName? r4)
 			{
 				var p = pos;
@@ -18893,6 +19172,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLArgument(int pos, int start, ref QualifiedName? r4)
 			{
 				var p = pos;
@@ -18909,6 +19189,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_SQLArgument(int pos, int start)
 			{
 				var p = pos;
@@ -18945,6 +19226,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_SQLArgument(int pos, int start, ref QualifiedName? r4)
 			{
 				var p = pos;
@@ -18961,6 +19243,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedValueSpecification(int pos)
 			{
 				var p = pos;
@@ -18996,6 +19279,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ImplicitlyTypedValueSpecification(int pos)
 			{
 				var p = pos;
@@ -19080,6 +19364,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONSubscript(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -19128,6 +19413,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONSubscript(int pos, int start, ref JsonPathExpression? r1)
 			{
 				var p = pos;
@@ -19144,6 +19430,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathWff(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -19215,6 +19502,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathWff(int pos, int start, int refs_49)
 			{
 				var p = pos;
@@ -19225,6 +19513,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathMultiplicative(int pos)
 			{
 				var p = pos;
@@ -19266,6 +19555,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathMultiplicative(int pos, int start, int refs_49)
 			{
 				var p = pos;
@@ -19276,6 +19566,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathUnary(int pos)
 			{
 				var p = pos;
@@ -19317,6 +19608,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathUnary(int pos, int start, int refs_50)
 			{
 				var p = pos;
@@ -19328,6 +19620,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathSign(int pos)
 			{
 				var p = pos;
@@ -19359,6 +19652,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathAccessor(int pos)
 			{
 				var p = pos;
@@ -19400,6 +19694,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathAccessor(int pos, int start, int refs_51)
 			{
 				var p = pos;
@@ -19410,6 +19705,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathPrimary(int pos)
 			{
 				var p = pos;
@@ -19458,6 +19754,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathAccessorOp(int pos)
 			{
 				var p = pos;
@@ -19606,6 +19903,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathAccessorOp(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -19622,6 +19920,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONPathAccessorOp(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -19642,6 +19941,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathPredicate(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -19695,6 +19995,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathPredicate(int pos, int start, int refs_52)
 			{
 				var p = pos;
@@ -19711,6 +20012,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPredicatePrimary(int pos)
 			{
 				var p = pos;
@@ -19861,6 +20163,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPredicatePrimary(int pos, int start)
 			{
 				var p = pos;
@@ -19910,6 +20213,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONPredicatePrimary(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -19930,6 +20234,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathMultiplied(int pos)
 			{
 				var p = pos;
@@ -19959,6 +20264,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathAdded(int pos)
 			{
 				var p = pos;
@@ -19988,6 +20294,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimaryReading(int pos)
 			{
 				var p = pos;
@@ -20060,6 +20367,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimaryReading(int pos, int start, ref Towers.Stepping r1)
 			{
 				var p = pos;
@@ -20085,6 +20393,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Bracketed(int pos)
 			{
 				var p = pos;
@@ -20117,6 +20426,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BracketTail(int pos)
 			{
 				var p = pos;
@@ -20242,6 +20552,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_BracketTail(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -20258,6 +20569,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_BracketTail(int pos, int start, int refs_4, ref Sql.SqlList<Argument>? r3)
 			{
 				var p = pos;
@@ -20268,6 +20580,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimarySteps(int pos)
 			{
 				var p = pos;
@@ -20304,6 +20617,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimarySteps(int pos, int start, int refs_27)
 			{
 				var p = pos;
@@ -20314,6 +20628,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimaryBase(int pos)
 			{
 				var p = pos;
@@ -20677,6 +20992,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -20693,6 +21009,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -20706,6 +21023,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -20719,6 +21037,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -20732,6 +21051,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -20745,6 +21065,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -20758,6 +21079,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UnsignedLiteral(int pos)
 			{
 				var p = pos;
@@ -20796,6 +21118,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GeneralLiteral(int pos)
 			{
 				var p = pos;
@@ -20923,6 +21246,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Lexical_IntroducedStringLiteral(int pos)
 			{
 				var p = pos;
@@ -20937,6 +21261,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DateLiteral(int pos)
 			{
 				var p = pos;
@@ -20968,6 +21293,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimeLiteral(int pos)
 			{
 				var p = pos;
@@ -20999,6 +21325,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimestampLiteral(int pos)
 			{
 				var p = pos;
@@ -21029,6 +21356,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalLiteral(int pos)
 			{
 				var p = pos;
@@ -21088,6 +21416,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalLiteral(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -21110,6 +21439,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanLiteral(int pos)
 			{
 				var p = pos;
@@ -21149,6 +21479,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GeneralValueSpecification(int pos)
 			{
 				var p = pos;
@@ -21321,6 +21652,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GeneralValueSpecification(int pos, int start, ref int a1, ref int b1, ref Identifier? r2)
 			{
 				var p = pos;
@@ -21360,6 +21692,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GeneralValueSpecification(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -21374,6 +21707,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CaseExpression(int pos)
 			{
 				var p = pos;
@@ -21662,6 +21996,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CaseExpression(int pos, int start, int refs_4, int refs_29)
 			{
 				var p = pos;
@@ -21678,6 +22013,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CaseExpression(int pos, int start, int refs_4, int refs_29)
 			{
 				var p = pos;
@@ -21688,6 +22024,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_CaseExpression(int pos, int start, int refs_4, int refs_29, ref Expression? r10)
 			{
 				var p = pos;
@@ -21698,6 +22035,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_CaseExpression(int pos, int start, int refs_4, int refs_29)
 			{
 				var p = pos;
@@ -21708,6 +22046,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_CaseExpression(int pos, int start, int refs_4, int refs_29, ref Expression? r8)
 			{
 				var p = pos;
@@ -21718,6 +22057,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowValuePredicand(int pos)
 			{
 				var p = pos;
@@ -21737,6 +22077,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleWhenClause(int pos)
 			{
 				var p = pos;
@@ -21795,6 +22136,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SimpleWhenClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -21811,6 +22153,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WhenOperand(int pos)
 			{
 				var p = pos;
@@ -21853,6 +22196,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PredicatePart2(int pos)
 			{
 				var p = pos;
@@ -22135,6 +22479,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PredicatePart2(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -22149,6 +22494,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PredicatePart2(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -22163,6 +22509,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PredicatePart2(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -22177,6 +22524,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PredicatePart2(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -22213,6 +22561,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_PredicatePart2(int pos, int start)
 			{
 				var p = pos;
@@ -22231,6 +22580,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_PredicatePart2(int pos, int start, ref int a11, ref int b11)
 			{
 				var p = pos;
@@ -22245,6 +22595,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_PredicatePart2(int pos, int start, ref int a12, ref int b12)
 			{
 				var p = pos;
@@ -22266,6 +22617,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_PredicatePart2(int pos, int start, ref int a13, ref int b13)
 			{
 				var p = pos;
@@ -22278,6 +22630,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CompOp(int pos)
 			{
 				var p = pos;
@@ -22317,6 +22670,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ComparisonTail(int pos)
 			{
 				var p = pos;
@@ -22433,6 +22787,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ComparisonTail(int pos, int start)
 			{
 				var p = pos;
@@ -22445,6 +22800,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NegatablePredicatePart2(int pos)
 			{
 				var p = pos;
@@ -22749,6 +23105,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NegatablePredicatePart2(int pos, int start, int refs_12, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -22780,6 +23137,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NegatablePredicatePart2(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -22793,6 +23151,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NegatablePredicatePart2(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -22809,6 +23168,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NegatablePredicatePart2(int pos, int start, int refs_12, ref Expression? r9)
 			{
 				var p = pos;
@@ -22825,6 +23185,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_NegatablePredicatePart2(int pos, int start, int refs_12, ref Expression? r11)
 			{
 				var p = pos;
@@ -22841,6 +23202,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_NegatablePredicatePart2(int pos, int start, int refs_12, ref int a13, ref int b13)
 			{
 				var p = pos;
@@ -22855,6 +23217,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowValueExpression(int pos)
 			{
 				var p = pos;
@@ -22874,6 +23237,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LikeEscape(int pos)
 			{
 				var p = pos;
@@ -22887,6 +23251,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_LikeEscape(int pos, int start)
 			{
 				var p = pos;
@@ -22905,6 +23270,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IsPredicatePart2(int pos)
 			{
 				var p = pos;
@@ -23105,6 +23471,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IsPredicatePart2(int pos, int start, int refs_15, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -23126,6 +23493,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_IsPredicatePart2(int pos, int start, int refs_15, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -23147,6 +23515,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_IsPredicatePart2(int pos, int start, int refs_15, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -23158,6 +23527,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_IsPredicatePart2(int pos, int start, int refs_15)
 			{
 				var p = pos;
@@ -23174,6 +23544,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UserDefinedTypeSpecification(int pos)
 			{
 				var p = pos;
@@ -23211,6 +23582,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UserDefinedTypeSpecification(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -23225,6 +23597,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodPredicatePart2(int pos)
 			{
 				var p = pos;
@@ -23337,6 +23710,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodPredicand(int pos)
 			{
 				var p = pos;
@@ -23369,6 +23743,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodConstructor(int pos)
 			{
 				var p = pos;
@@ -23410,6 +23785,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IdentifierChain(int pos)
 			{
 				var p = pos;
@@ -23451,6 +23827,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IdentifierChain(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -23467,6 +23844,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodContained(int pos)
 			{
 				var p = pos;
@@ -23521,6 +23899,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PeriodContained(int pos, int start)
 			{
 				var p = pos;
@@ -23533,6 +23912,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Result(int pos)
 			{
 				var p = pos;
@@ -23561,6 +23941,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ElseClause(int pos)
 			{
 				var p = pos;
@@ -23579,6 +23960,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SearchedWhenClause(int pos)
 			{
 				var p = pos;
@@ -23608,6 +23990,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanValueExpression(int pos)
 			{
 				var p = pos;
@@ -23629,6 +24012,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CastSpecification(int pos)
 			{
 				var p = pos;
@@ -23739,6 +24123,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CastSpecification(int pos, int start, ref Expression r0)
 			{
 				var p = pos;
@@ -23749,6 +24134,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CastSpecification(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -23776,6 +24162,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NextValueExpression(int pos)
 			{
 				var p = pos;
@@ -23806,6 +24193,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SubtypeTreatment(int pos)
 			{
 				var p = pos;
@@ -23847,6 +24235,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TargetSubtype(int pos)
 			{
 				var p = pos;
@@ -23879,6 +24268,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NewSpecification(int pos)
 			{
 				var p = pos;
@@ -23902,6 +24292,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferenceResolution(int pos)
 			{
 				var p = pos;
@@ -23932,6 +24323,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueExpressionPrimary(int pos)
 			{
 				var p = pos;
@@ -23951,6 +24343,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionValueConstructor(int pos)
 			{
 				var p = pos;
@@ -24063,6 +24456,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CollectionValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -24158,6 +24552,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CollectionValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -24174,6 +24569,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MultisetElementReference(int pos)
 			{
 				var p = pos;
@@ -24208,6 +24604,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GreatestOrLeastFunction(int pos)
 			{
 				var p = pos;
@@ -24295,6 +24692,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GreatestOrLeastFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -24311,6 +24709,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowedFunction(int pos)
 			{
 				var p = pos;
@@ -24982,6 +25381,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowedFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -24998,6 +25398,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WindowedFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -25037,6 +25438,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_WindowedFunction(int pos, int start, int refs_4, ref WindowReference? r3)
 			{
 				var p = pos;
@@ -25047,6 +25449,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_WindowedFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -25114,6 +25517,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_WindowedFunction(int pos, int start, int refs_4, ref int a14, ref int b14, ref Expression? r15)
 			{
 				var p = pos;
@@ -25165,6 +25569,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_WindowedFunction(int pos, int start, int refs_4, ref Expression? r15)
 			{
 				var p = pos;
@@ -25181,6 +25586,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_WindowedFunction(int pos, int start, int refs_4, ref int a16, ref int b16)
 			{
 				var p = pos;
@@ -25192,6 +25598,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_WindowedFunction(int pos, int start, int refs_4, ref int a20, ref int b20)
 			{
 				var p = pos;
@@ -25203,6 +25610,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_WindowedFunction(int pos, int start, int refs_4, ref int a25, ref int b25)
 			{
 				var p = pos;
@@ -25240,6 +25648,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_WindowedFunction(int pos, int start, int refs_4, ref int a26, ref int b26)
 			{
 				var p = pos;
@@ -25251,6 +25660,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_WindowedFunction(int pos, int start, int refs_4, ref int a32, ref int b32, ref Expression? r33)
 			{
 				var p = pos;
@@ -25276,6 +25686,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_WindowedFunction(int pos, int start, int refs_4, ref Expression? r34)
 			{
 				var p = pos;
@@ -25292,6 +25703,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_WindowedFunction(int pos, int start, int refs_4, ref WindowReference? r3)
 			{
 				var p = pos;
@@ -25302,6 +25714,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AggregateFunction(int pos)
 			{
 				var p = pos;
@@ -25338,6 +25751,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AggregateFunction(int pos, int start, ref FilterClause? r1)
 			{
 				var p = pos;
@@ -25348,6 +25762,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AggregateCall(int pos)
 			{
 				var p = pos;
@@ -25821,6 +26236,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AggregateCall(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -25857,6 +26273,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_AggregateCall(int pos, int start, int refs_4, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -25878,6 +26295,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_AggregateCall(int pos, int start, int refs_4, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -25899,6 +26317,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_AggregateCall(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -25915,6 +26334,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_AggregateCall(int pos, int start, int refs_4, ref OrderByClause? r17)
 			{
 				var p = pos;
@@ -25937,6 +26357,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_AggregateCall(int pos, int start, int refs_4, ref int a19, ref int b19)
 			{
 				var p = pos;
@@ -25958,6 +26379,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_AggregateCall(int pos, int start, int refs_4, ref ListaggOverflow? r22)
 			{
 				var p = pos;
@@ -25968,6 +26390,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONAggregateFunction(int pos)
 			{
 				var p = pos;
@@ -26173,6 +26596,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONAggregateFunction(int pos, int start, ref OrderByClause? r1)
 			{
 				var p = pos;
@@ -26195,6 +26619,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONAggregateFunction(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -26206,6 +26631,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONAggregateFunction(int pos, int start, ref JsonOutput? r3)
 			{
 				var p = pos;
@@ -26216,6 +26642,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONAggregateFunction(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -26227,6 +26654,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONAggregateFunction(int pos, int start, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -26238,6 +26666,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_JSONAggregateFunction(int pos, int start, ref JsonOutput? r7)
 			{
 				var p = pos;
@@ -26248,6 +26677,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONInputExpression(int pos)
 			{
 				var p = pos;
@@ -26284,6 +26714,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONInputExpression(int pos, int start, ref JsonInputClause? r1)
 			{
 				var p = pos;
@@ -26294,6 +26725,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SortSpecificationList(int pos)
 			{
 				var p = pos;
@@ -26335,6 +26767,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SortSpecificationList(int pos, int start, int refs_108)
 			{
 				var p = pos;
@@ -26351,6 +26784,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SortSpecification(int pos)
 			{
 				var p = pos;
@@ -26412,6 +26846,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SortSpecification(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -26443,6 +26878,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SortSpecification(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -26481,6 +26917,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONConstructorNullClause(int pos)
 			{
 				var p = pos;
@@ -26522,6 +26959,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONNameAndValue(int pos)
 			{
 				var p = pos;
@@ -26649,6 +27087,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONNameAndValue(int pos, int start)
 			{
 				var p = pos;
@@ -26678,6 +27117,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WithinGroupSpecification(int pos)
 			{
 				var p = pos;
@@ -26726,6 +27166,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ListaggOverflowClause(int pos)
 			{
 				var p = pos;
@@ -26750,6 +27191,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OverflowBehavior(int pos)
 			{
 				var p = pos;
@@ -26837,6 +27279,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OverflowBehavior(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -26858,6 +27301,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FilterClause(int pos)
 			{
 				var p = pos;
@@ -26894,6 +27338,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowOver(int pos)
 			{
 				var p = pos;
@@ -26912,6 +27357,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowNameOrSpecification(int pos)
 			{
 				var p = pos;
@@ -26947,6 +27393,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowSpecification(int pos)
 			{
 				var p = pos;
@@ -26971,6 +27418,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowSpecificationDetails(int pos)
 			{
 				var p = pos;
@@ -27095,6 +27543,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowSpecificationDetails(int pos, int start, ref Identifier? r0)
 			{
 				var p = pos;
@@ -27105,6 +27554,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WindowSpecificationDetails(int pos, int start, ref Sql.SqlList<Expression>? r1)
 			{
 				var p = pos;
@@ -27115,6 +27565,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_WindowSpecificationDetails(int pos, int start, ref OrderByClause? r2)
 			{
 				var p = pos;
@@ -27125,6 +27576,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_WindowSpecificationDetails(int pos, int start, ref WindowFrame? r3)
 			{
 				var p = pos;
@@ -27135,6 +27587,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExistingWindowName(int pos)
 			{
 				var p = pos;
@@ -27157,6 +27610,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ExistingWindowName(int pos, int start)
 			{
 				var p = pos;
@@ -27211,6 +27665,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowPartitionClause(int pos)
 			{
 				var p = pos;
@@ -27264,6 +27719,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowPartitionClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -27280,6 +27736,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PartitionColumn(int pos)
 			{
 				var p = pos;
@@ -27316,6 +27773,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PartitionColumn(int pos, int start, ref CollationName? r1)
 			{
 				var p = pos;
@@ -27326,6 +27784,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnReference(int pos)
 			{
 				var p = pos;
@@ -27383,6 +27842,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowOrderClause(int pos)
 			{
 				var p = pos;
@@ -27407,6 +27867,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameClause(int pos)
 			{
 				var p = pos;
@@ -27520,6 +27981,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowFrameClause(int pos, int start, ref Sql.SqlList<RowPatternMeasure>? r0)
 			{
 				var p = pos;
@@ -27530,6 +27992,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WindowFrameClause(int pos, int start, ref WindowFrameExclusion? r3)
 			{
 				var p = pos;
@@ -27540,6 +28003,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_WindowFrameClause(int pos, int start, ref RowPatternClause? r4)
 			{
 				var p = pos;
@@ -27550,6 +28014,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternMeasures(int pos)
 			{
 				var p = pos;
@@ -27597,6 +28062,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternMeasures(int pos, int start, int refs_75)
 			{
 				var p = pos;
@@ -27613,6 +28079,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternMeasure(int pos)
 			{
 				var p = pos;
@@ -27636,6 +28103,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameExtent(int pos)
 			{
 				var p = pos;
@@ -27683,6 +28151,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameBound(int pos)
 			{
 				var p = pos;
@@ -27764,6 +28233,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowFrameBound(int pos, int start)
 			{
 				var p = pos;
@@ -27783,6 +28253,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameStart(int pos)
 			{
 				var p = pos;
@@ -27851,6 +28322,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowFrameStart(int pos, int start)
 			{
 				var p = pos;
@@ -27870,6 +28342,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UnsignedValueSpecification(int pos)
 			{
 				var p = pos;
@@ -27932,6 +28405,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameExclusion(int pos)
 			{
 				var p = pos;
@@ -27994,6 +28468,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternCommonSyntax(int pos)
 			{
 				var p = pos;
@@ -28140,6 +28615,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternCommonSyntax(int pos, int start, int refs_82, ref RowPatternSkip? r0)
 			{
 				var p = pos;
@@ -28162,6 +28638,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternCommonSyntax(int pos, int start, int refs_82, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -28193,6 +28670,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternCommonSyntax(int pos, int start, int refs_82, ref Sql.SqlList<RowPatternSubset>? r3)
 			{
 				var p = pos;
@@ -28203,6 +28681,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_RowPatternCommonSyntax(int pos, int start, int refs_82)
 			{
 				var p = pos;
@@ -28219,6 +28698,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternSkipTo(int pos)
 			{
 				var p = pos;
@@ -28283,6 +28763,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternSkipTo(int pos, int start)
 			{
 				var p = pos;
@@ -28308,6 +28789,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternSkipTo(int pos, int start)
 			{
 				var p = pos;
@@ -28353,6 +28835,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPattern(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -28406,6 +28889,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPattern(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -28422,6 +28906,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternTerm(int pos)
 			{
 				var p = pos;
@@ -28463,6 +28948,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternTerm(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -28473,6 +28959,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternFactor(int pos)
 			{
 				var p = pos;
@@ -28509,6 +28996,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternFactor(int pos, int start, ref RowPatternQuantifier? r1)
 			{
 				var p = pos;
@@ -28519,6 +29007,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternPrimary(int pos)
 			{
 				var p = pos;
@@ -28636,6 +29125,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternPrimary(int pos, int start, int refs_78, ref RowPattern? r3)
 			{
 				var p = pos;
@@ -28646,6 +29136,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternPrimary(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -28705,6 +29196,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternPrimary(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -28721,6 +29213,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternQuantifier(int pos)
 			{
 				var p = pos;
@@ -28986,6 +29479,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternQuantifier(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -29000,6 +29494,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternQuantifier(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -29014,6 +29509,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternQuantifier(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -29028,6 +29524,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_RowPatternQuantifier(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -29049,6 +29546,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_RowPatternQuantifier(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -29070,6 +29568,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_RowPatternQuantifier(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -29084,6 +29583,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_RowPatternQuantifier(int pos, int start)
 			{
 				var p = pos;
@@ -29193,6 +29693,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_RowPatternQuantifier(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -29214,6 +29715,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_RowPatternQuantifier(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -29235,6 +29737,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_RowPatternQuantifier(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -29249,6 +29752,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternSubsetClause(int pos)
 			{
 				var p = pos;
@@ -29296,6 +29800,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternSubsetClause(int pos, int start, int refs_81)
 			{
 				var p = pos;
@@ -29312,6 +29817,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternSubsetItem(int pos)
 			{
 				var p = pos;
@@ -29376,6 +29882,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternSubsetItem(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -29392,6 +29899,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternDefinition(int pos)
 			{
 				var p = pos;
@@ -29415,6 +29923,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleOrDynamicValue(int pos)
 			{
 				var p = pos;
@@ -29443,6 +29952,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleValueSpecification(int pos)
 			{
 				var p = pos;
@@ -29515,6 +30025,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SignedNumericLiteral(int pos)
 			{
 				var p = pos;
@@ -29563,6 +30074,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SignedNumericLiteral(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -29585,6 +30097,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NullTreatment(int pos)
 			{
 				var p = pos;
@@ -29620,6 +30133,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONValueFunction(int pos)
 			{
 				var p = pos;
@@ -29700,6 +30214,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONValueFunction(int pos, int start, ref DataType? r1)
 			{
 				var p = pos;
@@ -29716,6 +30231,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONValueFunction(int pos, int start, ref JsonValueBehavior? r2, ref int a3, ref int b3, ref JsonValueBehavior? r4)
 			{
 				var p = pos;
@@ -29779,6 +30295,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONValueFunction(int pos, int start, ref JsonValueBehavior? r4)
 			{
 				var p = pos;
@@ -29801,6 +30318,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONAPICommonSyntax(int pos)
 			{
 				var p = pos;
@@ -29887,6 +30405,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONAPICommonSyntax(int pos, int start, int refs_43, ref Identifier? r2)
 			{
 				var p = pos;
@@ -29903,6 +30422,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONAPICommonSyntax(int pos, int start, int refs_43, ref JsonArgument? r3)
 			{
 				var p = pos;
@@ -29947,6 +30467,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONAPICommonSyntax(int pos, int start, int refs_43)
 			{
 				var p = pos;
@@ -29963,6 +30484,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONArgument(int pos)
 			{
 				var p = pos;
@@ -29986,6 +30508,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONValueBehavior(int pos)
 			{
 				var p = pos;
@@ -30028,6 +30551,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQuery(int pos)
 			{
 				var p = pos;
@@ -30157,6 +30681,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONQuery(int pos, int start, ref JsonOutput? r1)
 			{
 				var p = pos;
@@ -30167,6 +30692,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONQuery(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -30184,6 +30710,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONQuery(int pos, int start, ref JsonQuotes? r3)
 			{
 				var p = pos;
@@ -30194,6 +30721,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONQuery(int pos, int start, ref int a4, ref int b4, ref int a5, ref int b5, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -30258,6 +30786,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONQuery(int pos, int start, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -30281,6 +30810,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQueryWrapperBehavior(int pos)
 			{
 				var p = pos;
@@ -30364,6 +30894,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONQueryWrapperBehavior(int pos, int start)
 			{
 				var p = pos;
@@ -30393,6 +30924,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONQueryWrapperBehavior(int pos, int start)
 			{
 				var p = pos;
@@ -30405,6 +30937,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONQueryWrapperBehavior(int pos, int start)
 			{
 				var p = pos;
@@ -30417,6 +30950,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQueryQuotes(int pos)
 			{
 				var p = pos;
@@ -30481,6 +31015,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONQueryQuotes(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -30508,6 +31043,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQueryBehavior(int pos)
 			{
 				var p = pos;
@@ -30564,6 +31100,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONObjectConstructor(int pos)
 			{
 				var p = pos;
@@ -30645,6 +31182,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONObjectConstructor(int pos, int start, int refs_46, ref JsonMember? r0, ref int a2, ref int b2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -30731,6 +31269,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONObjectConstructor(int pos, int start, int refs_46)
 			{
 				var p = pos;
@@ -30747,6 +31286,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONObjectConstructor(int pos, int start, int refs_46, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -30758,6 +31298,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONObjectConstructor(int pos, int start, int refs_46, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -30769,6 +31310,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONObjectConstructor(int pos, int start, int refs_46, ref JsonOutput? r4)
 			{
 				var p = pos;
@@ -30779,6 +31321,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONArrayConstructor(int pos)
 			{
 				var p = pos;
@@ -31067,6 +31610,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonElement? r0, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -31141,6 +31685,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -31153,6 +31698,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -31181,6 +31727,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -31193,6 +31740,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONArrayConstructor(int pos, int start, int refs_44, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -31204,6 +31752,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r3)
 			{
 				var p = pos;
@@ -31214,6 +31763,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -31281,6 +31831,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonElement? r0, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -31355,6 +31906,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -31367,6 +31919,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -31395,6 +31948,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -31407,6 +31961,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_JSONArrayConstructor(int pos, int start, int refs_44, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -31418,6 +31973,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r3)
 			{
 				var p = pos;
@@ -31428,6 +31984,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart13_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonInputClause? r5)
 			{
 				var p = pos;
@@ -31438,6 +31995,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart14_JSONArrayConstructor(int pos, int start, int refs_44, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -31449,6 +32007,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart15_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r7)
 			{
 				var p = pos;
@@ -31459,6 +32018,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart16_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonInputClause? r5)
 			{
 				var p = pos;
@@ -31469,6 +32029,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart17_JSONArrayConstructor(int pos, int start, int refs_44, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -31480,6 +32041,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart18_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r7)
 			{
 				var p = pos;
@@ -31490,6 +32052,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternNavigationOperation(int pos)
 			{
 				var p = pos;
@@ -31590,6 +32153,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternNavigationOperation(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -31606,6 +32170,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NameTail(int pos)
 			{
 				var p = pos;
@@ -31666,6 +32231,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31679,6 +32245,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31697,6 +32264,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31725,6 +32293,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31737,6 +32306,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QualifierRest(int pos)
 			{
 				var p = pos;
@@ -31778,6 +32348,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QualifierRest(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31794,6 +32365,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QualifiedTail(int pos)
 			{
 				var p = pos;
@@ -31866,6 +32438,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31911,6 +32484,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_QualifiedTail(int pos, int start, int refs_2, ref Sql.SqlList<Argument>? r1)
 			{
 				var p = pos;
@@ -31921,6 +32495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31934,6 +32509,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31946,6 +32522,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31974,6 +32551,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -31986,6 +32564,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Postfix(int pos)
 			{
 				var p = pos;
@@ -32011,6 +32590,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -32065,6 +32645,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Postfix(int pos, int start, int a0, int b0)
 			{
 				var p = pos;
@@ -32102,6 +32683,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_Postfix(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -32122,6 +32704,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_Postfix(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -32142,6 +32725,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -32154,6 +32738,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -32166,6 +32751,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -32178,6 +32764,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimeZone(int pos)
 			{
 				var p = pos;
@@ -32196,6 +32783,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimeZoneSpecifier(int pos)
 			{
 				var p = pos;
@@ -32238,6 +32826,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalPrimary(int pos)
 			{
 				var p = pos;
@@ -32283,6 +32872,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalPrimary(int pos, int start, ref IntervalQualifier? r1)
 			{
 				var p = pos;
@@ -32293,6 +32883,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Operated(int pos)
 			{
 				var p = pos;
@@ -32310,6 +32901,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Operator(int pos)
 			{
 				var p = pos;
@@ -32420,6 +33012,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Operator(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -32451,6 +33044,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TargetCorrelation(int pos)
 			{
 				var p = pos;
@@ -32488,6 +33082,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TargetCorrelation(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -32502,6 +33097,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WhereClause(int pos)
 			{
 				var p = pos;
@@ -32520,6 +33116,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_InsertStatement(int pos)
 			{
 				var p = pos;
@@ -32549,6 +33146,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_InsertColumnsAndSource(int pos)
 			{
 				var p = pos;
@@ -32636,6 +33234,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_InsertColumnsAndSource(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -32658,6 +33257,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_InsertColumnsAndSource(int pos, int start, ref OverrideKind? r1)
 			{
 				var p = pos;
@@ -32669,6 +33269,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OverrideClause(int pos)
 			{
 				var p = pos;
@@ -32715,6 +33316,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_InsertValues(int pos)
 			{
 				var p = pos;
@@ -32785,6 +33387,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_InsertValues(int pos, int start)
 			{
 				var p = pos;
@@ -32807,6 +33410,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_InsertValues(int pos, int start)
 			{
 				var p = pos;
@@ -32856,6 +33460,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedTableValueConstructor(int pos)
 			{
 				var p = pos;
@@ -32903,6 +33508,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ContextuallyTypedTableValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -32919,6 +33525,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedRowValueExpression(int pos)
 			{
 				var p = pos;
@@ -33028,6 +33635,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -33168,6 +33776,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -33184,6 +33793,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -33203,6 +33813,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -33219,6 +33830,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -33278,6 +33890,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -33294,6 +33907,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedElement(int pos)
 			{
 				var p = pos;
@@ -33345,6 +33959,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeStatement(int pos)
 			{
 				var p = pos;
@@ -33453,6 +34068,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MergeStatement(int pos, int start, int refs_116, ref Alias? r1)
 			{
 				var p = pos;
@@ -33463,6 +34079,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_MergeStatement(int pos, int start, int refs_116)
 			{
 				var p = pos;
@@ -33473,6 +34090,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeWhenClause(int pos)
 			{
 				var p = pos;
@@ -33583,6 +34201,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MergeWhenClause(int pos, int start, ref Expression? r2)
 			{
 				var p = pos;
@@ -33593,6 +34212,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_MergeWhenClause(int pos, int start, ref Expression? r0)
 			{
 				var p = pos;
@@ -33603,6 +34223,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeCondition(int pos)
 			{
 				var p = pos;
@@ -33621,6 +34242,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeMatchedThen(int pos)
 			{
 				var p = pos;
@@ -33663,6 +34285,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetClauseList(int pos)
 			{
 				var p = pos;
@@ -33704,6 +34327,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetClauseList(int pos, int start, int refs_121)
 			{
 				var p = pos;
@@ -33720,6 +34344,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetClause(int pos)
 			{
 				var p = pos;
@@ -33812,6 +34437,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetClause(int pos, int start, int refs_122)
 			{
 				var p = pos;
@@ -33828,6 +34454,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetTarget(int pos)
 			{
 				var p = pos;
@@ -33845,6 +34472,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetTargetTail(int pos)
 			{
 				var p = pos;
@@ -33894,6 +34522,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetTargetTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -33936,6 +34565,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SetTargetTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -33952,6 +34582,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeInsertSpecification(int pos)
 			{
 				var p = pos;
@@ -34067,6 +34698,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MergeInsertSpecification(int pos, int start, int refs_4, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -34089,6 +34721,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_MergeInsertSpecification(int pos, int start, int refs_4, ref OverrideKind? r1)
 			{
 				var p = pos;
@@ -34099,6 +34732,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_MergeInsertSpecification(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -34115,6 +34749,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UpdateStatementSearched(int pos)
 			{
 				var p = pos;
@@ -34214,6 +34849,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UpdateStatementSearched(int pos, int start, ref PeriodPortion? r1)
 			{
 				var p = pos;
@@ -34224,6 +34860,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_UpdateStatementSearched(int pos, int start, ref Alias? r2)
 			{
 				var p = pos;
@@ -34234,6 +34871,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_UpdateStatementSearched(int pos, int start, ref Expression? r4)
 			{
 				var p = pos;
@@ -34244,6 +34882,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CorrelationOrRecognition(int pos)
 			{
 				var p = pos;
@@ -34270,6 +34909,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Correlated(int pos)
 			{
 				var p = pos;
@@ -34283,6 +34923,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Correlated(int pos, int start)
 			{
 				var p = pos;
@@ -34353,6 +34994,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Correlated(int pos, int start)
 			{
 				var p = pos;
@@ -34410,6 +35052,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_Correlated(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -34424,6 +35067,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_Correlated(int pos, int start, ref Sql.SqlList<Identifier>? r2)
 			{
 				var p = pos;
@@ -34446,6 +35090,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Recognized(int pos)
 			{
 				var p = pos;
@@ -34459,6 +35104,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Recognized(int pos, int start)
 			{
 				var p = pos;
@@ -34476,6 +35122,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternRecognitionClause(int pos)
 			{
 				var p = pos;
@@ -34599,6 +35246,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternRecognitionClause(int pos, int start, ref Sql.SqlList<Expression>? r0)
 			{
 				var p = pos;
@@ -34609,6 +35257,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternRecognitionClause(int pos, int start, ref OrderByClause? r1)
 			{
 				var p = pos;
@@ -34631,6 +35280,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternRecognitionClause(int pos, int start, ref Sql.SqlList<RowPatternMeasure>? r2)
 			{
 				var p = pos;
@@ -34641,6 +35291,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_RowPatternRecognitionClause(int pos, int start, ref RowsPerMatch? r3)
 			{
 				var p = pos;
@@ -34651,6 +35302,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternPartitionBy(int pos)
 			{
 				var p = pos;
@@ -34704,6 +35356,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternPartitionBy(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -34720,6 +35373,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternRowsPerMatch(int pos)
 			{
 				var p = pos;
@@ -34811,6 +35465,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternRowsPerMatch(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -34883,6 +35538,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QuerySystemTimePeriodSpecification(int pos)
 			{
 				var p = pos;
@@ -34996,6 +35652,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QuerySystemTimePeriodSpecification(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -35027,6 +35684,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionNode(int pos)
 			{
 				var p = pos;
@@ -35039,6 +35697,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTable(int pos)
 			{
 				var p = pos;
@@ -35122,6 +35781,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTable(int pos, int start, ref JsonTablePlan? r2)
 			{
 				var p = pos;
@@ -35132,6 +35792,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTable(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -35175,6 +35836,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableColumnsClause(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -35264,6 +35926,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableColumnsClause(int pos, int start, int refs_55)
 			{
 				var p = pos;
@@ -35280,6 +35943,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableColumnDefinition(int pos)
 			{
 				var p = pos;
@@ -35329,6 +35993,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableColumnDefinition(int pos, int start)
 			{
 				var p = pos;
@@ -35353,6 +36018,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTableColumnDefinition(int pos, int start)
 			{
 				var p = pos;
@@ -35435,6 +36101,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONTableColumnDefinition(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -35449,6 +36116,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONTableColumnDefinition(int pos, int start, ref Identifier? r2)
 			{
 				var p = pos;
@@ -35465,6 +36133,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONTableColumnDefinition(int pos, int start)
 			{
 				var p = pos;
@@ -35489,6 +36158,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableTypedColumn(int pos)
 			{
 				var p = pos;
@@ -35586,6 +36256,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableTypedColumn(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -35613,6 +36284,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTableTypedColumn(int pos, int start, ref Nodes.ColumnPart? r5, ref int a6, ref int b6, ref Nodes.ColumnPart? r7)
 			{
 				var p = pos;
@@ -35676,6 +36348,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONTableTypedColumn(int pos, int start, ref Nodes.ColumnPart? r7)
 			{
 				var p = pos;
@@ -35698,6 +36371,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnFormat(int pos)
 			{
 				var p = pos;
@@ -35711,6 +36385,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONColumnFormat(int pos, int start)
 			{
 				var p = pos;
@@ -35729,6 +36404,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnWrapper(int pos)
 			{
 				var p = pos;
@@ -35744,6 +36420,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONColumnWrapper(int pos, int start)
 			{
 				var p = pos;
@@ -35769,6 +36446,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnQuotes(int pos)
 			{
 				var p = pos;
@@ -35782,6 +36460,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONColumnQuotes(int pos, int start)
 			{
 				var p = pos;
@@ -35846,6 +36525,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONColumnQuotes(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -35872,6 +36552,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnBehavior(int pos)
 			{
 				var p = pos;
@@ -35946,6 +36627,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlanClause(int pos)
 			{
 				var p = pos;
@@ -36010,6 +36692,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlan(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -36048,6 +36731,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlanPrimary(int pos)
 			{
 				var p = pos;
@@ -36090,6 +36774,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlanTail(int pos)
 			{
 				var p = pos;
@@ -36133,6 +36818,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -36173,6 +36859,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -36217,6 +36904,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -36233,6 +36921,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -36277,6 +36966,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -36293,6 +36983,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableDefaultPlanChoices(int pos)
 			{
 				var p = pos;
@@ -36422,6 +37113,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableDefaultPlanChoices(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -36459,6 +37151,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTableDefaultPlanChoices(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -36496,6 +37189,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePrimitive(int pos)
 			{
 				var p = pos;
@@ -36616,6 +37310,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTablePrimitive(int pos, int start, int refs_55)
 			{
 				var p = pos;
@@ -36632,6 +37327,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePrimitiveColumn(int pos)
 			{
 				var p = pos;
@@ -36661,6 +37357,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTablePrimitiveColumn(int pos, int start)
 			{
 				var p = pos;
@@ -36706,6 +37403,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ParenthesizedJoinedTable(int pos)
 			{
 				var p = pos;
@@ -36744,6 +37442,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Joins(int pos)
 			{
 				var p = pos;
@@ -36776,6 +37475,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -36822,6 +37522,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -36832,6 +37533,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -36876,6 +37578,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -36886,6 +37589,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinPartitioning(int pos)
 			{
 				var p = pos;
@@ -36951,6 +37655,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinPartitioning(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -36967,6 +37672,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PartitionedJoin(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -37125,6 +37831,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PartitionedJoin(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -37136,6 +37843,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PartitionedJoin(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -37147,6 +37855,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PartitionedJoin(int pos, int start, ref Sql.SqlList<Expression>? r2)
 			{
 				var p = pos;
@@ -37157,6 +37866,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinType(int pos)
 			{
 				var p = pos;
@@ -37230,6 +37940,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinType(int pos, int start)
 			{
 				var p = pos;
@@ -37242,6 +37953,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinOperand(int pos)
 			{
 				var p = pos;
@@ -37259,6 +37971,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinOperandTail(int pos)
 			{
 				var p = pos;
@@ -37308,6 +38021,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinOperandTail(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -37347,6 +38061,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JoinOperandTail(int pos, int start, int refs_64, ref Nodes.JoinStep? r1)
 			{
 				var p = pos;
@@ -37385,6 +38100,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JoinOperandTail(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -37395,6 +38111,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JoinOperandTail(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -37405,6 +38122,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinStep(int pos)
 			{
 				var p = pos;
@@ -37450,6 +38168,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinSpecification(int pos)
 			{
 				var p = pos;
@@ -37526,6 +38245,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinSpecification(int pos, int start, ref Identifier? r2)
 			{
 				var p = pos;
@@ -37542,6 +38262,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SampleClause(int pos)
 			{
 				var p = pos;
@@ -37622,6 +38343,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SampleClause(int pos, int start, ref Expression? r2)
 			{
 				var p = pos;
@@ -37650,6 +38372,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GroupByClause(int pos)
 			{
 				var p = pos;
@@ -37729,6 +38452,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GroupByClause(int pos, int start, int refs_86, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -37750,6 +38474,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GroupByClause(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -37766,6 +38491,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GroupingElement(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -37979,6 +38705,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -37999,6 +38726,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -38015,6 +38743,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -38031,6 +38760,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -38047,6 +38777,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrdinaryGroupingSet(int pos)
 			{
 				var p = pos;
@@ -38117,6 +38848,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OrdinaryGroupingSet(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -38133,6 +38865,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GroupingColumnReference(int pos)
 			{
 				var p = pos;
@@ -38169,6 +38902,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GroupingColumnReference(int pos, int start, ref CollationName? r1)
 			{
 				var p = pos;
@@ -38179,6 +38913,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_HavingClause(int pos)
 			{
 				var p = pos;
@@ -38197,6 +38932,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowClause(int pos)
 			{
 				var p = pos;
@@ -38244,6 +38980,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowClause(int pos, int start, int refs_88)
 			{
 				var p = pos;
@@ -38260,6 +38997,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowDefinition(int pos)
 			{
 				var p = pos;
@@ -38283,6 +39021,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableValueConstructor(int pos)
 			{
 				var p = pos;
@@ -38330,6 +39069,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -38346,6 +39086,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrderByClause(int pos)
 			{
 				var p = pos;
@@ -38370,6 +39111,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ResultOffsetClause(int pos)
 			{
 				var p = pos;
@@ -38415,6 +39157,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FetchFirstClause(int pos)
 			{
 				var p = pos;
@@ -38536,6 +39279,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FetchFirstClause(int pos, int start, ref Nodes.Quantity? r1)
 			{
 				var p = pos;
@@ -38546,6 +39290,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FetchFirstQuantity(int pos)
 			{
 				var p = pos;
@@ -38583,6 +39328,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FetchFirstQuantity(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -38597,6 +39343,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Intersected(int pos)
 			{
 				var p = pos;
@@ -38667,6 +39414,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Intersected(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -38698,6 +39446,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Intersected(int pos, int start, ref CorrespondingClause? r2)
 			{
 				var p = pos;
@@ -38708,6 +39457,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CorrespondingSpec(int pos)
 			{
 				var p = pos;
@@ -38745,6 +39495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CorrespondingSpec(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -38773,6 +39524,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UnionOrExcept(int pos)
 			{
 				var p = pos;
@@ -38859,6 +39611,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UnionOrExcept(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -38890,6 +39643,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_UnionOrExcept(int pos, int start, ref CorrespondingClause? r2)
 			{
 				var p = pos;
@@ -38900,6 +39654,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONExistsPredicate(int pos)
 			{
 				var p = pos;
@@ -38955,6 +39710,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONExistsPredicate(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -39008,6 +39764,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PredicatePart2Mark(int pos)
 			{
 				var p = pos;
@@ -39021,6 +39778,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TruthTest(int pos)
 			{
 				var p = pos;
@@ -39034,6 +39792,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TruthTest(int pos, int start)
 			{
 				var p = pos;
@@ -39088,6 +39847,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TruthTest(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -39102,6 +39862,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AndOperand(int pos)
 			{
 				var p = pos;
@@ -39120,6 +39881,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrOperand(int pos)
 			{
 				var p = pos;
@@ -39138,6 +39900,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SearchConditionTree(int pos)
 			{
 				var p = pos;
@@ -41684,6 +42447,7 @@ namespace DotGram.Sql.Standard
 				return end;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Sql(int pos)
 			{
 				var p = pos;
@@ -41720,6 +42484,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Sql(int pos, int start, int refs_124)
 			{
 				var p = pos;
@@ -41730,6 +42495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SqlStatement(int pos)
 			{
 				var p = pos;
@@ -41758,6 +42524,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SqlStatement(int pos, int start)
 			{
 				var p = pos;
@@ -41770,6 +42537,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SqlStatement(int pos, int start)
 			{
 				var p = pos;
@@ -41784,6 +42552,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SqlStatementBody(int pos)
 			{
 				var p = pos;
@@ -41845,6 +42614,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SqlStatementBody(int pos, int start)
 			{
 				var p = pos;
@@ -41857,6 +42627,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CursorSpecification(int pos)
 			{
 				var p = pos;
@@ -41893,6 +42664,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CursorSpecification(int pos, int start, ref LockingClause? r1)
 			{
 				var p = pos;
@@ -41903,6 +42675,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryExpression(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -42038,6 +42811,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryExpression(int pos, int start, ref WithClause? r0)
 			{
 				var p = pos;
@@ -42048,6 +42822,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_QueryExpression(int pos, int start, ref OrderByClause? r2)
 			{
 				var p = pos;
@@ -42058,6 +42833,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_QueryExpression(int pos, int start, ref Limit? r3)
 			{
 				var p = pos;
@@ -42068,6 +42844,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_QueryExpression(int pos, int start, ref Limit? r4)
 			{
 				var p = pos;
@@ -42078,6 +42855,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WithClause(int pos)
 			{
 				var p = pos;
@@ -42151,6 +42929,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WithClause(int pos, int start, int refs_100, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -42165,6 +42944,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WithClause(int pos, int start, int refs_100)
 			{
 				var p = pos;
@@ -42181,6 +42961,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WithListElement(int pos)
 			{
 				var p = pos;
@@ -42251,6 +43032,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WithListElement(int pos, int start, ref Sql.SqlList<Identifier>? r1)
 			{
 				var p = pos;
@@ -42273,6 +43055,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WithListElement(int pos, int start, ref Nodes.SearchOrCycle? r3)
 			{
 				var p = pos;
@@ -42283,6 +43066,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Identifier(int pos)
 			{
 				var p = pos;
@@ -42305,6 +43089,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Identifier(int pos, int start)
 			{
 				var p = pos;
@@ -42325,6 +43110,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ActualIdentifier(int pos)
 			{
 				var p = pos;
@@ -42370,6 +43156,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnNameList(int pos)
 			{
 				var p = pos;
@@ -42411,6 +43198,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ColumnNameList(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -42427,6 +43215,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Subquery(int pos)
 			{
 				var p = pos;
@@ -42451,6 +43240,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SearchOrCycleClause(int pos)
 			{
 				var p = pos;
@@ -42515,6 +43305,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SearchOrCycleClause(int pos, int start, ref CycleClause? r1)
 			{
 				var p = pos;
@@ -42525,6 +43316,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SearchClause(int pos)
 			{
 				var p = pos;
@@ -42593,6 +43385,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CycleClause(int pos)
 			{
 				var p = pos;
@@ -42658,6 +43451,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CycleClause(int pos, int start, ref Expression? r2, ref Expression? r3)
 			{
 				var p = pos;
@@ -42684,6 +43478,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueNode(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -42726,6 +43521,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueExpression(int pos)
 			{
 				var p = pos;
@@ -42747,6 +43543,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Disjunction(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -42826,6 +43623,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Disjunction(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -42836,6 +43634,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Conjunction(int pos)
 			{
 				var p = pos;
@@ -42885,6 +43684,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Conjunction(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -42895,6 +43695,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanFactor(int pos)
 			{
 				var p = pos;
@@ -42935,6 +43736,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanTest(int pos)
 			{
 				var p = pos;
@@ -42961,6 +43763,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanPrimary(int pos)
 			{
 				var p = pos;
@@ -43070,6 +43873,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_BooleanPrimary(int pos, int start, ref int a2, ref int b2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -43113,6 +43917,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_BooleanPrimary(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -43127,6 +43932,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONExistsPredicate(int pos)
 			{
 				var p = pos;
@@ -43182,6 +43988,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONExistsPredicate(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -43235,6 +44042,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONAPICommonSyntax(int pos)
 			{
 				var p = pos;
@@ -43321,6 +44129,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONAPICommonSyntax(int pos, int start, int refs_43, ref Identifier? r2)
 			{
 				var p = pos;
@@ -43337,6 +44146,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONAPICommonSyntax(int pos, int start, int refs_43, ref JsonArgument? r3)
 			{
 				var p = pos;
@@ -43381,6 +44191,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONAPICommonSyntax(int pos, int start, int refs_43)
 			{
 				var p = pos;
@@ -43397,6 +44208,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONInputExpression(int pos)
 			{
 				var p = pos;
@@ -43433,6 +44245,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONInputExpression(int pos, int start, ref JsonInputClause? r1)
 			{
 				var p = pos;
@@ -43443,6 +44256,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONInputClause(int pos)
 			{
 				var p = pos;
@@ -43461,6 +44275,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONRepresentation(int pos)
 			{
 				var p = pos;
@@ -43499,6 +44314,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONRepresentation(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -43541,6 +44357,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONArgument(int pos)
 			{
 				var p = pos;
@@ -43564,6 +44381,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodConstructor(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -43635,6 +44453,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DatetimeValueExpression(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -43686,6 +44505,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CommonValueExpression(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -43735,6 +44555,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CommonValueExpressionOrRow(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -43814,6 +44635,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CommonValueExpressionOrRow(int pos, int start, int refs_21)
 			{
 				var p = pos;
@@ -43824,6 +44646,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Operand(int pos)
 			{
 				var p = pos;
@@ -43881,6 +44704,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Operand(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -43902,6 +44726,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Primary(int pos)
 			{
 				var p = pos;
@@ -43948,6 +44773,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueFunction(int pos)
 			{
 				var p = pos;
@@ -44078,6 +44904,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericValueFunction(int pos)
 			{
 				var p = pos;
@@ -44656,6 +45483,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NumericValueFunction(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -44697,6 +45525,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NumericValueFunction(int pos, int start)
 			{
 				var p = pos;
@@ -44708,6 +45537,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NumericValueFunction(int pos, int start, ref Expression? r4)
 			{
 				var p = pos;
@@ -44724,6 +45554,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NumericValueFunction(int pos, int start, ref Expression? r5)
 			{
 				var p = pos;
@@ -44740,6 +45571,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_NumericValueFunction(int pos, int start, ref int a9, ref int b9)
 			{
 				var p = pos;
@@ -44767,6 +45599,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PositionExpression(int pos)
 			{
 				var p = pos;
@@ -44824,6 +45657,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StringValueExpression(int pos)
 			{
 				var p = pos;
@@ -44846,6 +45680,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UsingUnits(int pos)
 			{
 				var p = pos;
@@ -44859,6 +45694,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UsingUnits(int pos, int start)
 			{
 				var p = pos;
@@ -44889,6 +45725,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RegexSearch(int pos)
 			{
 				var p = pos;
@@ -44983,6 +45820,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RegexSearch(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -44999,6 +45837,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RegexSearch(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -45015,6 +45854,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RegexSearch(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -45042,6 +45882,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterValueExpression(int pos)
 			{
 				var p = pos;
@@ -45063,6 +45904,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterNode(int pos)
 			{
 				var p = pos;
@@ -45075,6 +45917,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericNode(int pos)
 			{
 				var p = pos;
@@ -45087,6 +45930,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericValueExpression(int pos)
 			{
 				var p = pos;
@@ -45108,6 +45952,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExtractExpression(int pos)
 			{
 				var p = pos;
@@ -45159,6 +46004,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExtractField(int pos)
 			{
 				var p = pos;
@@ -45198,6 +46044,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionValueExpression(int pos)
 			{
 				var p = pos;
@@ -45219,6 +46066,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ArrayValueExpression(int pos)
 			{
 				var p = pos;
@@ -45238,6 +46086,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AbsoluteValue(int pos)
 			{
 				var p = pos;
@@ -45279,6 +46128,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StringValueFunction(int pos)
 			{
 				var p = pos;
@@ -45895,6 +46745,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_StringValueFunction(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -45911,6 +46762,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_StringValueFunction(int pos, int start, ref Expression? r4)
 			{
 				var p = pos;
@@ -45927,6 +46779,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_StringValueFunction(int pos, int start, ref Expression? r11)
 			{
 				var p = pos;
@@ -45943,6 +46796,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_StringValueFunction(int pos, int start, ref Expression? r13)
 			{
 				var p = pos;
@@ -45959,6 +46813,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_StringValueFunction(int pos, int start, ref Expression? r14)
 			{
 				var p = pos;
@@ -45975,6 +46830,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_StringValueFunction(int pos, int start, ref int a15, ref int b15)
 			{
 				var p = pos;
@@ -46002,6 +46858,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_StringValueFunction(int pos, int start, ref Expression? r16, ref int a17, ref int b17)
 			{
 				var p = pos;
@@ -46038,6 +46895,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_StringValueFunction(int pos, int start, ref Expression? r21)
 			{
 				var p = pos;
@@ -46054,6 +46912,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_StringValueFunction(int pos, int start, ref Expression? r25)
 			{
 				var p = pos;
@@ -46070,6 +46929,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_StringValueFunction(int pos, int start, ref int a28, ref int b28, ref Nodes.Length? r29)
 			{
 				var p = pos;
@@ -46119,6 +46979,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_StringValueFunction(int pos, int start, ref Nodes.Length? r29)
 			{
 				var p = pos;
@@ -46135,6 +46996,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_StringValueFunction(int pos, int start, ref Identifier? r31)
 			{
 				var p = pos;
@@ -46145,6 +47007,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SubstringFunction(int pos)
 			{
 				var p = pos;
@@ -46189,6 +47052,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SubstringTail(int pos)
 			{
 				var p = pos;
@@ -46267,6 +47131,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SubstringTail(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -46283,6 +47148,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONSerialize(int pos)
 			{
 				var p = pos;
@@ -46337,6 +47203,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONSerialize(int pos, int start, ref JsonOutput? r1)
 			{
 				var p = pos;
@@ -46347,6 +47214,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONValueExpression(int pos)
 			{
 				var p = pos;
@@ -46366,6 +47234,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONOutputClause(int pos)
 			{
 				var p = pos;
@@ -46408,6 +47277,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONOutputClause(int pos, int start, ref JsonRepresentation? r1)
 			{
 				var p = pos;
@@ -46424,6 +47294,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataType(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -46477,6 +47348,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DataType(int pos, int start, int refs_6)
 			{
 				var p = pos;
@@ -46487,6 +47359,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataTypeBase(int pos)
 			{
 				var p = pos;
@@ -46531,6 +47404,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PredefinedType(int pos)
 			{
 				var p = pos;
@@ -46683,6 +47557,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PredefinedType(int pos, int start, ref CharacterSetName? r1)
 			{
 				var p = pos;
@@ -46705,6 +47580,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PredefinedType(int pos, int start, ref CollationName? r2)
 			{
 				var p = pos;
@@ -46715,6 +47591,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PredefinedType(int pos, int start, ref CollationName? r4)
 			{
 				var p = pos;
@@ -46725,6 +47602,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterStringType(int pos)
 			{
 				var p = pos;
@@ -46864,6 +47742,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -46927,6 +47806,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CharacterStringType(int pos, int start, ref Nodes.Length? r1)
 			{
 				var p = pos;
@@ -46949,6 +47829,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_CharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -47018,6 +47899,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_CharacterStringType(int pos, int start, ref Nodes.Length? r3)
 			{
 				var p = pos;
@@ -47040,6 +47922,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_CharacterStringType(int pos, int start, ref Nodes.Length? r5)
 			{
 				var p = pos;
@@ -47062,6 +47945,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_CharacterStringType(int pos, int start, ref Nodes.Length? r6)
 			{
 				var p = pos;
@@ -47084,6 +47968,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_CharacterStringType(int pos, int start, ref Nodes.Length? r7)
 			{
 				var p = pos;
@@ -47106,6 +47991,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterLength(int pos)
 			{
 				var p = pos;
@@ -47175,6 +48061,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterLength(int pos, int start)
 			{
 				var p = pos;
@@ -47194,6 +48081,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CharacterLength(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -47215,6 +48103,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterLargeObjectLength(int pos)
 			{
 				var p = pos;
@@ -47252,6 +48141,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterLargeObjectLength(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -47273,6 +48163,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LargeObjectLength(int pos)
 			{
 				var p = pos;
@@ -47358,6 +48249,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_LargeObjectLength(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -47379,6 +48271,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterSetSpecification(int pos)
 			{
 				var p = pos;
@@ -47425,6 +48318,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterSetSpecification(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -47442,6 +48336,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LanguageName(int pos)
 			{
 				var p = pos;
@@ -47466,6 +48361,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollateClause(int pos)
 			{
 				var p = pos;
@@ -47484,6 +48380,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaQualifiedName(int pos)
 			{
 				var p = pos;
@@ -47530,6 +48427,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SchemaQualifiedName(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -47546,6 +48444,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NationalCharacterStringType(int pos)
 			{
 				var p = pos;
@@ -47769,6 +48668,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -47832,6 +48732,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r1)
 			{
 				var p = pos;
@@ -47854,6 +48755,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -47903,6 +48805,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r2)
 			{
 				var p = pos;
@@ -47925,6 +48828,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r4)
 			{
 				var p = pos;
@@ -47947,6 +48851,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -48010,6 +48915,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r1)
 			{
 				var p = pos;
@@ -48032,6 +48938,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r4)
 			{
 				var p = pos;
@@ -48054,6 +48961,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -48091,6 +48999,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r5)
 			{
 				var p = pos;
@@ -48113,6 +49022,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_NationalCharacterStringType(int pos, int start)
 			{
 				var p = pos;
@@ -48156,6 +49066,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r6)
 			{
 				var p = pos;
@@ -48178,6 +49089,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r7)
 			{
 				var p = pos;
@@ -48200,6 +49112,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart13_NationalCharacterStringType(int pos, int start, ref Nodes.Length? r8)
 			{
 				var p = pos;
@@ -48222,6 +49135,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BinaryStringType(int pos)
 			{
 				var p = pos;
@@ -48369,6 +49283,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_BinaryStringType(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -48416,6 +49331,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_BinaryStringType(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -48449,6 +49365,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_BinaryStringType(int pos, int start)
 			{
 				var p = pos;
@@ -48492,6 +49409,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_BinaryStringType(int pos, int start, ref LargeObjectSize? r1)
 			{
 				var p = pos;
@@ -48514,6 +49432,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_BinaryStringType(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -48547,6 +49466,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_BinaryStringType(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -48580,6 +49500,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_BinaryStringType(int pos, int start, ref LargeObjectSize? r4)
 			{
 				var p = pos;
@@ -48602,6 +49523,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NumericType(int pos)
 			{
 				var p = pos;
@@ -48848,6 +49770,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NumericType(int pos, int start, ref int a1, ref int b1, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -48903,6 +49826,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NumericType(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -48930,6 +49854,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NumericType(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -48963,6 +49888,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NumericType(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -48996,6 +49922,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DatetimeType(int pos)
 			{
 				var p = pos;
@@ -49111,6 +50038,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DatetimeType(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -49144,6 +50072,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_DatetimeType(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -49187,6 +50116,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalQualifier(int pos)
 			{
 				var p = pos;
@@ -49226,6 +50156,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalQualifier(int pos, int start)
 			{
 				var p = pos;
@@ -49249,6 +50180,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StartField(int pos)
 			{
 				var p = pos;
@@ -49308,6 +50240,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_StartField(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -49332,6 +50265,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalLeadingFieldPrecision(int pos)
 			{
 				var p = pos;
@@ -49351,6 +50285,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_EndField(int pos)
 			{
 				var p = pos;
@@ -49425,6 +50360,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_EndField(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -49449,6 +50385,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalFractionalSecondsPrecision(int pos)
 			{
 				var p = pos;
@@ -49468,6 +50405,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SingleDatetimeField(int pos)
 			{
 				var p = pos;
@@ -49585,6 +50523,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SingleDatetimeField(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -49608,6 +50547,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SingleDatetimeField(int pos, int start, ref int a3, ref int b3, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -49654,6 +50594,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SingleDatetimeField(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -49671,6 +50612,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowType(int pos)
 			{
 				var p = pos;
@@ -49730,6 +50672,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowType(int pos, int start, int refs_9)
 			{
 				var p = pos;
@@ -49746,6 +50689,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FieldDefinition(int pos)
 			{
 				var p = pos;
@@ -49763,6 +50707,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferenceType(int pos)
 			{
 				var p = pos;
@@ -49817,6 +50762,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ReferenceType(int pos, int start, ref QualifiedName? r1)
 			{
 				var p = pos;
@@ -49833,6 +50779,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PathResolvedUserDefinedTypeName(int pos)
 			{
 				var p = pos;
@@ -49879,6 +50826,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PathResolvedUserDefinedTypeName(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -49895,6 +50843,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LocalOrSchemaQualifiedName(int pos)
 			{
 				var p = pos;
@@ -49974,6 +50923,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_LocalOrSchemaQualifiedName(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -49991,6 +50941,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LocalQualifier(int pos)
 			{
 				var p = pos;
@@ -50008,6 +50959,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionTypeSuffix(int pos)
 			{
 				var p = pos;
@@ -50076,6 +51028,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CollectionTypeSuffix(int pos, int start, ref int a0, ref int b0, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -50123,6 +51076,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimFunction(int pos)
 			{
 				var p = pos;
@@ -50160,6 +51114,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimOperands(int pos)
 			{
 				var p = pos;
@@ -50215,6 +51170,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimAfterSpecification(int pos)
 			{
 				var p = pos;
@@ -50262,6 +51218,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TrimFrom(int pos)
 			{
 				var p = pos;
@@ -50275,6 +51232,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TrimFrom(int pos, int start)
 			{
 				var p = pos;
@@ -50293,6 +51251,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OverlayFunction(int pos)
 			{
 				var p = pos;
@@ -50385,6 +51344,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OverlayFunction(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -50401,6 +51361,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DatetimeValueFunction(int pos)
 			{
 				var p = pos;
@@ -50491,6 +51452,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DatetimeValueFunction(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -50524,6 +51486,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MultisetValueExpression(int pos)
 			{
 				var p = pos;
@@ -50543,6 +51506,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTypedValueFunction(int pos)
 			{
 				var p = pos;
@@ -50655,6 +51619,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTypedValueFunction(int pos, int start, ref JsonInputClause? r1)
 			{
 				var p = pos;
@@ -50665,6 +51630,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTypedValueFunction(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -50676,6 +51642,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONKeyUniquenessConstraint(int pos)
 			{
 				var p = pos;
@@ -50729,6 +51696,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONKeyUniquenessConstraint(int pos, int start)
 			{
 				var p = pos;
@@ -50741,6 +51709,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FunctionSubscript(int pos)
 			{
 				var p = pos;
@@ -50762,6 +51731,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FunctionSubscript(int pos, int start, int refs_27)
 			{
 				var p = pos;
@@ -50803,6 +51773,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_FunctionSubscript(int pos, int start, int refs_27)
 			{
 				var p = pos;
@@ -50813,6 +51784,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ArrayElementStep(int pos)
 			{
 				var p = pos;
@@ -50854,6 +51826,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimaryStep(int pos)
 			{
 				var p = pos;
@@ -51119,6 +52092,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimaryStep(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -51135,6 +52109,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PrimaryStep(int pos, int start, int refs_47, ref Sql.SqlList<Argument>? r2)
 			{
 				var p = pos;
@@ -51145,6 +52120,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PrimaryStep(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -51158,6 +52134,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PrimaryStep(int pos, int start, int refs_47, ref Sql.SqlList<Argument>? r2)
 			{
 				var p = pos;
@@ -51168,6 +52145,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_PrimaryStep(int pos, int start, int refs_47, ref Sql.SqlList<Argument>? r4)
 			{
 				var p = pos;
@@ -51178,6 +52156,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONMethod(int pos)
 			{
 				var p = pos;
@@ -51425,6 +52404,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONMethod(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -51446,6 +52426,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONMethod(int pos, int start, ref int a2, ref int b2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -51489,6 +52470,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONMethod(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -51516,6 +52498,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLArgumentList(int pos)
 			{
 				var p = pos;
@@ -51562,6 +52545,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLArgumentList(int pos, int start, int refs_31, ref Argument? r0)
 			{
 				var p = pos;
@@ -51600,6 +52584,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLArgumentList(int pos, int start, int refs_31)
 			{
 				var p = pos;
@@ -51616,6 +52601,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLArgument(int pos)
 			{
 				var p = pos;
@@ -51729,6 +52715,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLArgument(int pos, int start)
 			{
 				var p = pos;
@@ -51797,6 +52784,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLArgument(int pos, int start, ref Expression r1)
 			{
 				var p = pos;
@@ -51807,6 +52795,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLArgument(int pos, int start, ref QualifiedName? r4)
 			{
 				var p = pos;
@@ -51823,6 +52812,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLArgument(int pos, int start, ref QualifiedName? r4)
 			{
 				var p = pos;
@@ -51839,6 +52829,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_SQLArgument(int pos, int start)
 			{
 				var p = pos;
@@ -51875,6 +52866,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_SQLArgument(int pos, int start, ref QualifiedName? r4)
 			{
 				var p = pos;
@@ -51891,6 +52883,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedValueSpecification(int pos)
 			{
 				var p = pos;
@@ -51926,6 +52919,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ImplicitlyTypedValueSpecification(int pos)
 			{
 				var p = pos;
@@ -52010,6 +53004,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONSubscript(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -52058,6 +53053,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONSubscript(int pos, int start, ref JsonPathExpression? r1)
 			{
 				var p = pos;
@@ -52074,6 +53070,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathWff(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -52145,6 +53142,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathWff(int pos, int start, int refs_49)
 			{
 				var p = pos;
@@ -52155,6 +53153,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathMultiplicative(int pos)
 			{
 				var p = pos;
@@ -52196,6 +53195,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathMultiplicative(int pos, int start, int refs_49)
 			{
 				var p = pos;
@@ -52206,6 +53206,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathUnary(int pos)
 			{
 				var p = pos;
@@ -52247,6 +53248,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathUnary(int pos, int start, int refs_50)
 			{
 				var p = pos;
@@ -52258,6 +53260,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathSign(int pos)
 			{
 				var p = pos;
@@ -52289,6 +53292,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathAccessor(int pos)
 			{
 				var p = pos;
@@ -52330,6 +53334,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathAccessor(int pos, int start, int refs_51)
 			{
 				var p = pos;
@@ -52340,6 +53345,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathPrimary(int pos)
 			{
 				var p = pos;
@@ -52388,6 +53394,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathAccessorOp(int pos)
 			{
 				var p = pos;
@@ -52536,6 +53543,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathAccessorOp(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -52552,6 +53560,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONPathAccessorOp(int pos, int start, int refs_47)
 			{
 				var p = pos;
@@ -52572,6 +53581,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathPredicate(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -52625,6 +53635,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPathPredicate(int pos, int start, int refs_52)
 			{
 				var p = pos;
@@ -52641,6 +53652,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPredicatePrimary(int pos)
 			{
 				var p = pos;
@@ -52791,6 +53803,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONPredicatePrimary(int pos, int start)
 			{
 				var p = pos;
@@ -52840,6 +53853,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONPredicatePrimary(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -52860,6 +53874,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathMultiplied(int pos)
 			{
 				var p = pos;
@@ -52889,6 +53904,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONPathAdded(int pos)
 			{
 				var p = pos;
@@ -52918,6 +53934,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimaryReading(int pos)
 			{
 				var p = pos;
@@ -52990,6 +54007,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimaryReading(int pos, int start, ref Towers.Stepping r1)
 			{
 				var p = pos;
@@ -53015,6 +54033,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Bracketed(int pos)
 			{
 				var p = pos;
@@ -53047,6 +54066,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BracketTail(int pos)
 			{
 				var p = pos;
@@ -53172,6 +54192,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_BracketTail(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -53188,6 +54209,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_BracketTail(int pos, int start, int refs_4, ref Sql.SqlList<Argument>? r3)
 			{
 				var p = pos;
@@ -53198,6 +54220,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimarySteps(int pos)
 			{
 				var p = pos;
@@ -53234,6 +54257,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimarySteps(int pos, int start, int refs_27)
 			{
 				var p = pos;
@@ -53244,6 +54268,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrimaryBase(int pos)
 			{
 				var p = pos;
@@ -53607,6 +54632,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -53623,6 +54649,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -53636,6 +54663,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -53649,6 +54677,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -53662,6 +54691,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -53675,6 +54705,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_PrimaryBase(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -53688,6 +54719,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UnsignedLiteral(int pos)
 			{
 				var p = pos;
@@ -53726,6 +54758,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GeneralLiteral(int pos)
 			{
 				var p = pos;
@@ -53853,6 +54886,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Lexical_IntroducedStringLiteral(int pos)
 			{
 				var p = pos;
@@ -53867,6 +54901,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DateLiteral(int pos)
 			{
 				var p = pos;
@@ -53898,6 +54933,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimeLiteral(int pos)
 			{
 				var p = pos;
@@ -53929,6 +54965,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimestampLiteral(int pos)
 			{
 				var p = pos;
@@ -53959,6 +54996,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalLiteral(int pos)
 			{
 				var p = pos;
@@ -54018,6 +55056,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalLiteral(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -54040,6 +55079,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanLiteral(int pos)
 			{
 				var p = pos;
@@ -54079,6 +55119,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GeneralValueSpecification(int pos)
 			{
 				var p = pos;
@@ -54251,6 +55292,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GeneralValueSpecification(int pos, int start, ref int a1, ref int b1, ref Identifier? r2)
 			{
 				var p = pos;
@@ -54290,6 +55332,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GeneralValueSpecification(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -54304,6 +55347,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CaseExpression(int pos)
 			{
 				var p = pos;
@@ -54592,6 +55636,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CaseExpression(int pos, int start, int refs_4, int refs_29)
 			{
 				var p = pos;
@@ -54608,6 +55653,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CaseExpression(int pos, int start, int refs_4, int refs_29)
 			{
 				var p = pos;
@@ -54618,6 +55664,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_CaseExpression(int pos, int start, int refs_4, int refs_29, ref Expression? r10)
 			{
 				var p = pos;
@@ -54628,6 +55675,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_CaseExpression(int pos, int start, int refs_4, int refs_29)
 			{
 				var p = pos;
@@ -54638,6 +55686,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_CaseExpression(int pos, int start, int refs_4, int refs_29, ref Expression? r8)
 			{
 				var p = pos;
@@ -54648,6 +55697,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowValuePredicand(int pos)
 			{
 				var p = pos;
@@ -54667,6 +55717,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleWhenClause(int pos)
 			{
 				var p = pos;
@@ -54725,6 +55776,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SimpleWhenClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -54741,6 +55793,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WhenOperand(int pos)
 			{
 				var p = pos;
@@ -54783,6 +55836,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PredicatePart2(int pos)
 			{
 				var p = pos;
@@ -55065,6 +56119,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PredicatePart2(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -55079,6 +56134,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PredicatePart2(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -55093,6 +56149,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PredicatePart2(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -55107,6 +56164,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PredicatePart2(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -55143,6 +56201,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_PredicatePart2(int pos, int start)
 			{
 				var p = pos;
@@ -55161,6 +56220,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_PredicatePart2(int pos, int start, ref int a11, ref int b11)
 			{
 				var p = pos;
@@ -55175,6 +56235,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_PredicatePart2(int pos, int start, ref int a12, ref int b12)
 			{
 				var p = pos;
@@ -55196,6 +56257,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_PredicatePart2(int pos, int start, ref int a13, ref int b13)
 			{
 				var p = pos;
@@ -55208,6 +56270,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CompOp(int pos)
 			{
 				var p = pos;
@@ -55247,6 +56310,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ComparisonTail(int pos)
 			{
 				var p = pos;
@@ -55363,6 +56427,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ComparisonTail(int pos, int start)
 			{
 				var p = pos;
@@ -55375,6 +56440,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NegatablePredicatePart2(int pos)
 			{
 				var p = pos;
@@ -55679,6 +56745,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NegatablePredicatePart2(int pos, int start, int refs_12, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -55710,6 +56777,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NegatablePredicatePart2(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -55723,6 +56791,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NegatablePredicatePart2(int pos, int start, int refs_12)
 			{
 				var p = pos;
@@ -55739,6 +56808,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NegatablePredicatePart2(int pos, int start, int refs_12, ref Expression? r9)
 			{
 				var p = pos;
@@ -55755,6 +56825,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_NegatablePredicatePart2(int pos, int start, int refs_12, ref Expression? r11)
 			{
 				var p = pos;
@@ -55771,6 +56842,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_NegatablePredicatePart2(int pos, int start, int refs_12, ref int a13, ref int b13)
 			{
 				var p = pos;
@@ -55785,6 +56857,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowValueExpression(int pos)
 			{
 				var p = pos;
@@ -55804,6 +56877,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LikeEscape(int pos)
 			{
 				var p = pos;
@@ -55817,6 +56891,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_LikeEscape(int pos, int start)
 			{
 				var p = pos;
@@ -55835,6 +56910,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IsPredicatePart2(int pos)
 			{
 				var p = pos;
@@ -56035,6 +57111,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IsPredicatePart2(int pos, int start, int refs_15, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -56056,6 +57133,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_IsPredicatePart2(int pos, int start, int refs_15, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -56077,6 +57155,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_IsPredicatePart2(int pos, int start, int refs_15, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -56088,6 +57167,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_IsPredicatePart2(int pos, int start, int refs_15)
 			{
 				var p = pos;
@@ -56104,6 +57184,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UserDefinedTypeSpecification(int pos)
 			{
 				var p = pos;
@@ -56141,6 +57222,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UserDefinedTypeSpecification(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -56155,6 +57237,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodPredicatePart2(int pos)
 			{
 				var p = pos;
@@ -56267,6 +57350,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodPredicand(int pos)
 			{
 				var p = pos;
@@ -56299,6 +57383,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IdentifierChain(int pos)
 			{
 				var p = pos;
@@ -56340,6 +57425,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IdentifierChain(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -56356,6 +57442,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodContained(int pos)
 			{
 				var p = pos;
@@ -56410,6 +57497,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PeriodContained(int pos, int start)
 			{
 				var p = pos;
@@ -56422,6 +57510,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Result(int pos)
 			{
 				var p = pos;
@@ -56450,6 +57539,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ElseClause(int pos)
 			{
 				var p = pos;
@@ -56468,6 +57558,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SearchedWhenClause(int pos)
 			{
 				var p = pos;
@@ -56497,6 +57588,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BooleanValueExpression(int pos)
 			{
 				var p = pos;
@@ -56518,6 +57610,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CastSpecification(int pos)
 			{
 				var p = pos;
@@ -56628,6 +57721,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CastSpecification(int pos, int start, ref Expression r0)
 			{
 				var p = pos;
@@ -56638,6 +57732,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CastSpecification(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -56665,6 +57760,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NextValueExpression(int pos)
 			{
 				var p = pos;
@@ -56695,6 +57791,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SubtypeTreatment(int pos)
 			{
 				var p = pos;
@@ -56736,6 +57833,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TargetSubtype(int pos)
 			{
 				var p = pos;
@@ -56768,6 +57866,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NewSpecification(int pos)
 			{
 				var p = pos;
@@ -56791,6 +57890,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferenceResolution(int pos)
 			{
 				var p = pos;
@@ -56821,6 +57921,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueExpressionPrimary(int pos)
 			{
 				var p = pos;
@@ -56840,6 +57941,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionValueConstructor(int pos)
 			{
 				var p = pos;
@@ -56952,6 +58054,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CollectionValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -57047,6 +58150,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CollectionValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -57063,6 +58167,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MultisetElementReference(int pos)
 			{
 				var p = pos;
@@ -57097,6 +58202,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GreatestOrLeastFunction(int pos)
 			{
 				var p = pos;
@@ -57184,6 +58290,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GreatestOrLeastFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -57200,6 +58307,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowedFunction(int pos)
 			{
 				var p = pos;
@@ -57871,6 +58979,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowedFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -57887,6 +58996,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WindowedFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -57926,6 +59036,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_WindowedFunction(int pos, int start, int refs_4, ref WindowReference? r3)
 			{
 				var p = pos;
@@ -57936,6 +59047,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_WindowedFunction(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -58003,6 +59115,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_WindowedFunction(int pos, int start, int refs_4, ref int a14, ref int b14, ref Expression? r15)
 			{
 				var p = pos;
@@ -58054,6 +59167,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_WindowedFunction(int pos, int start, int refs_4, ref Expression? r15)
 			{
 				var p = pos;
@@ -58070,6 +59184,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_WindowedFunction(int pos, int start, int refs_4, ref int a16, ref int b16)
 			{
 				var p = pos;
@@ -58081,6 +59196,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_WindowedFunction(int pos, int start, int refs_4, ref int a20, ref int b20)
 			{
 				var p = pos;
@@ -58092,6 +59208,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_WindowedFunction(int pos, int start, int refs_4, ref int a25, ref int b25)
 			{
 				var p = pos;
@@ -58129,6 +59246,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_WindowedFunction(int pos, int start, int refs_4, ref int a26, ref int b26)
 			{
 				var p = pos;
@@ -58140,6 +59258,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_WindowedFunction(int pos, int start, int refs_4, ref int a32, ref int b32, ref Expression? r33)
 			{
 				var p = pos;
@@ -58165,6 +59284,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_WindowedFunction(int pos, int start, int refs_4, ref Expression? r34)
 			{
 				var p = pos;
@@ -58181,6 +59301,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_WindowedFunction(int pos, int start, int refs_4, ref WindowReference? r3)
 			{
 				var p = pos;
@@ -58191,6 +59312,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AggregateFunction(int pos)
 			{
 				var p = pos;
@@ -58227,6 +59349,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AggregateFunction(int pos, int start, ref FilterClause? r1)
 			{
 				var p = pos;
@@ -58237,6 +59360,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AggregateCall(int pos)
 			{
 				var p = pos;
@@ -58710,6 +59834,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AggregateCall(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -58746,6 +59871,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_AggregateCall(int pos, int start, int refs_4, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -58767,6 +59893,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_AggregateCall(int pos, int start, int refs_4, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -58788,6 +59915,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_AggregateCall(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -58804,6 +59932,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_AggregateCall(int pos, int start, int refs_4, ref OrderByClause? r17)
 			{
 				var p = pos;
@@ -58826,6 +59955,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_AggregateCall(int pos, int start, int refs_4, ref int a19, ref int b19)
 			{
 				var p = pos;
@@ -58847,6 +59977,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_AggregateCall(int pos, int start, int refs_4, ref ListaggOverflow? r22)
 			{
 				var p = pos;
@@ -58857,6 +59988,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONAggregateFunction(int pos)
 			{
 				var p = pos;
@@ -59062,6 +60194,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONAggregateFunction(int pos, int start, ref OrderByClause? r1)
 			{
 				var p = pos;
@@ -59084,6 +60217,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONAggregateFunction(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -59095,6 +60229,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONAggregateFunction(int pos, int start, ref JsonOutput? r3)
 			{
 				var p = pos;
@@ -59105,6 +60240,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONAggregateFunction(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -59116,6 +60252,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONAggregateFunction(int pos, int start, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -59127,6 +60264,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_JSONAggregateFunction(int pos, int start, ref JsonOutput? r7)
 			{
 				var p = pos;
@@ -59137,6 +60275,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SortSpecificationList(int pos)
 			{
 				var p = pos;
@@ -59178,6 +60317,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SortSpecificationList(int pos, int start, int refs_108)
 			{
 				var p = pos;
@@ -59194,6 +60334,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SortSpecification(int pos)
 			{
 				var p = pos;
@@ -59255,6 +60396,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SortSpecification(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -59286,6 +60428,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SortSpecification(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -59324,6 +60467,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONConstructorNullClause(int pos)
 			{
 				var p = pos;
@@ -59365,6 +60509,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONNameAndValue(int pos)
 			{
 				var p = pos;
@@ -59492,6 +60637,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONNameAndValue(int pos, int start)
 			{
 				var p = pos;
@@ -59521,6 +60667,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WithinGroupSpecification(int pos)
 			{
 				var p = pos;
@@ -59569,6 +60716,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ListaggOverflowClause(int pos)
 			{
 				var p = pos;
@@ -59593,6 +60741,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OverflowBehavior(int pos)
 			{
 				var p = pos;
@@ -59680,6 +60829,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OverflowBehavior(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -59701,6 +60851,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FilterClause(int pos)
 			{
 				var p = pos;
@@ -59737,6 +60888,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowOver(int pos)
 			{
 				var p = pos;
@@ -59755,6 +60907,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowNameOrSpecification(int pos)
 			{
 				var p = pos;
@@ -59790,6 +60943,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowSpecification(int pos)
 			{
 				var p = pos;
@@ -59814,6 +60968,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowSpecificationDetails(int pos)
 			{
 				var p = pos;
@@ -59938,6 +61093,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowSpecificationDetails(int pos, int start, ref Identifier? r0)
 			{
 				var p = pos;
@@ -59948,6 +61104,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WindowSpecificationDetails(int pos, int start, ref Sql.SqlList<Expression>? r1)
 			{
 				var p = pos;
@@ -59958,6 +61115,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_WindowSpecificationDetails(int pos, int start, ref OrderByClause? r2)
 			{
 				var p = pos;
@@ -59968,6 +61126,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_WindowSpecificationDetails(int pos, int start, ref WindowFrame? r3)
 			{
 				var p = pos;
@@ -59978,6 +61137,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExistingWindowName(int pos)
 			{
 				var p = pos;
@@ -60000,6 +61160,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ExistingWindowName(int pos, int start)
 			{
 				var p = pos;
@@ -60054,6 +61215,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowPartitionClause(int pos)
 			{
 				var p = pos;
@@ -60107,6 +61269,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowPartitionClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -60123,6 +61286,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PartitionColumn(int pos)
 			{
 				var p = pos;
@@ -60159,6 +61323,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PartitionColumn(int pos, int start, ref CollationName? r1)
 			{
 				var p = pos;
@@ -60169,6 +61334,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnReference(int pos)
 			{
 				var p = pos;
@@ -60226,6 +61392,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowOrderClause(int pos)
 			{
 				var p = pos;
@@ -60250,6 +61417,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameClause(int pos)
 			{
 				var p = pos;
@@ -60363,6 +61531,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowFrameClause(int pos, int start, ref Sql.SqlList<RowPatternMeasure>? r0)
 			{
 				var p = pos;
@@ -60373,6 +61542,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_WindowFrameClause(int pos, int start, ref WindowFrameExclusion? r3)
 			{
 				var p = pos;
@@ -60383,6 +61553,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_WindowFrameClause(int pos, int start, ref RowPatternClause? r4)
 			{
 				var p = pos;
@@ -60393,6 +61564,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternMeasures(int pos)
 			{
 				var p = pos;
@@ -60440,6 +61612,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternMeasures(int pos, int start, int refs_75)
 			{
 				var p = pos;
@@ -60456,6 +61629,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternMeasure(int pos)
 			{
 				var p = pos;
@@ -60479,6 +61653,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameExtent(int pos)
 			{
 				var p = pos;
@@ -60526,6 +61701,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameBound(int pos)
 			{
 				var p = pos;
@@ -60607,6 +61783,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowFrameBound(int pos, int start)
 			{
 				var p = pos;
@@ -60626,6 +61803,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameStart(int pos)
 			{
 				var p = pos;
@@ -60694,6 +61872,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowFrameStart(int pos, int start)
 			{
 				var p = pos;
@@ -60713,6 +61892,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UnsignedValueSpecification(int pos)
 			{
 				var p = pos;
@@ -60775,6 +61955,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowFrameExclusion(int pos)
 			{
 				var p = pos;
@@ -60837,6 +62018,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternCommonSyntax(int pos)
 			{
 				var p = pos;
@@ -60983,6 +62165,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternCommonSyntax(int pos, int start, int refs_82, ref RowPatternSkip? r0)
 			{
 				var p = pos;
@@ -61005,6 +62188,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternCommonSyntax(int pos, int start, int refs_82, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -61036,6 +62220,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternCommonSyntax(int pos, int start, int refs_82, ref Sql.SqlList<RowPatternSubset>? r3)
 			{
 				var p = pos;
@@ -61046,6 +62231,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_RowPatternCommonSyntax(int pos, int start, int refs_82)
 			{
 				var p = pos;
@@ -61062,6 +62248,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternSkipTo(int pos)
 			{
 				var p = pos;
@@ -61126,6 +62313,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternSkipTo(int pos, int start)
 			{
 				var p = pos;
@@ -61151,6 +62339,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternSkipTo(int pos, int start)
 			{
 				var p = pos;
@@ -61196,6 +62385,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPattern(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -61249,6 +62439,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPattern(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -61265,6 +62456,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternTerm(int pos)
 			{
 				var p = pos;
@@ -61306,6 +62498,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternTerm(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -61316,6 +62509,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternFactor(int pos)
 			{
 				var p = pos;
@@ -61352,6 +62546,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternFactor(int pos, int start, ref RowPatternQuantifier? r1)
 			{
 				var p = pos;
@@ -61362,6 +62557,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternPrimary(int pos)
 			{
 				var p = pos;
@@ -61479,6 +62675,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternPrimary(int pos, int start, int refs_78, ref RowPattern? r3)
 			{
 				var p = pos;
@@ -61489,6 +62686,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternPrimary(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -61548,6 +62746,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternPrimary(int pos, int start, int refs_78)
 			{
 				var p = pos;
@@ -61564,6 +62763,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternQuantifier(int pos)
 			{
 				var p = pos;
@@ -61829,6 +63029,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternQuantifier(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -61843,6 +63044,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternQuantifier(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -61857,6 +63059,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternQuantifier(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -61871,6 +63074,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_RowPatternQuantifier(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -61892,6 +63096,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_RowPatternQuantifier(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -61913,6 +63118,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_RowPatternQuantifier(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -61927,6 +63133,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_RowPatternQuantifier(int pos, int start)
 			{
 				var p = pos;
@@ -62036,6 +63243,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_RowPatternQuantifier(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -62057,6 +63265,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_RowPatternQuantifier(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -62078,6 +63287,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_RowPatternQuantifier(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -62092,6 +63302,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternSubsetClause(int pos)
 			{
 				var p = pos;
@@ -62139,6 +63350,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternSubsetClause(int pos, int start, int refs_81)
 			{
 				var p = pos;
@@ -62155,6 +63367,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternSubsetItem(int pos)
 			{
 				var p = pos;
@@ -62219,6 +63432,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternSubsetItem(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -62235,6 +63449,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternDefinition(int pos)
 			{
 				var p = pos;
@@ -62258,6 +63473,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleOrDynamicValue(int pos)
 			{
 				var p = pos;
@@ -62286,6 +63502,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleValueSpecification(int pos)
 			{
 				var p = pos;
@@ -62358,6 +63575,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SignedNumericLiteral(int pos)
 			{
 				var p = pos;
@@ -62406,6 +63624,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SignedNumericLiteral(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -62428,6 +63647,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NullTreatment(int pos)
 			{
 				var p = pos;
@@ -62463,6 +63683,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONValueFunction(int pos)
 			{
 				var p = pos;
@@ -62543,6 +63764,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONValueFunction(int pos, int start, ref DataType? r1)
 			{
 				var p = pos;
@@ -62559,6 +63781,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONValueFunction(int pos, int start, ref JsonValueBehavior? r2, ref int a3, ref int b3, ref JsonValueBehavior? r4)
 			{
 				var p = pos;
@@ -62622,6 +63845,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONValueFunction(int pos, int start, ref JsonValueBehavior? r4)
 			{
 				var p = pos;
@@ -62644,6 +63868,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONValueBehavior(int pos)
 			{
 				var p = pos;
@@ -62686,6 +63911,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQuery(int pos)
 			{
 				var p = pos;
@@ -62815,6 +64041,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONQuery(int pos, int start, ref JsonOutput? r1)
 			{
 				var p = pos;
@@ -62825,6 +64052,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONQuery(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -62842,6 +64070,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONQuery(int pos, int start, ref JsonQuotes? r3)
 			{
 				var p = pos;
@@ -62852,6 +64081,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONQuery(int pos, int start, ref int a4, ref int b4, ref int a5, ref int b5, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -62916,6 +64146,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONQuery(int pos, int start, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -62939,6 +64170,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQueryWrapperBehavior(int pos)
 			{
 				var p = pos;
@@ -63022,6 +64254,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONQueryWrapperBehavior(int pos, int start)
 			{
 				var p = pos;
@@ -63051,6 +64284,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONQueryWrapperBehavior(int pos, int start)
 			{
 				var p = pos;
@@ -63063,6 +64297,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONQueryWrapperBehavior(int pos, int start)
 			{
 				var p = pos;
@@ -63075,6 +64310,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQueryQuotes(int pos)
 			{
 				var p = pos;
@@ -63139,6 +64375,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONQueryQuotes(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -63166,6 +64403,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONQueryBehavior(int pos)
 			{
 				var p = pos;
@@ -63222,6 +64460,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONObjectConstructor(int pos)
 			{
 				var p = pos;
@@ -63303,6 +64542,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONObjectConstructor(int pos, int start, int refs_46, ref JsonMember? r0, ref int a2, ref int b2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -63389,6 +64629,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONObjectConstructor(int pos, int start, int refs_46)
 			{
 				var p = pos;
@@ -63405,6 +64646,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONObjectConstructor(int pos, int start, int refs_46, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -63416,6 +64658,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONObjectConstructor(int pos, int start, int refs_46, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -63427,6 +64670,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONObjectConstructor(int pos, int start, int refs_46, ref JsonOutput? r4)
 			{
 				var p = pos;
@@ -63437,6 +64681,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONArrayConstructor(int pos)
 			{
 				var p = pos;
@@ -63725,6 +64970,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonElement? r0, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -63799,6 +65045,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -63811,6 +65058,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -63839,6 +65087,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -63851,6 +65100,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONArrayConstructor(int pos, int start, int refs_44, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -63862,6 +65112,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r3)
 			{
 				var p = pos;
@@ -63872,6 +65123,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -63939,6 +65191,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonElement? r0, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -64013,6 +65266,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -64025,6 +65279,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -64053,6 +65308,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_JSONArrayConstructor(int pos, int start, int refs_44)
 			{
 				var p = pos;
@@ -64065,6 +65321,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_JSONArrayConstructor(int pos, int start, int refs_44, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -64076,6 +65333,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r3)
 			{
 				var p = pos;
@@ -64086,6 +65344,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart13_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonInputClause? r5)
 			{
 				var p = pos;
@@ -64096,6 +65355,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart14_JSONArrayConstructor(int pos, int start, int refs_44, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -64107,6 +65367,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart15_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r7)
 			{
 				var p = pos;
@@ -64117,6 +65378,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart16_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonInputClause? r5)
 			{
 				var p = pos;
@@ -64127,6 +65389,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart17_JSONArrayConstructor(int pos, int start, int refs_44, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -64138,6 +65401,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart18_JSONArrayConstructor(int pos, int start, int refs_44, ref JsonOutput? r7)
 			{
 				var p = pos;
@@ -64148,6 +65412,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternNavigationOperation(int pos)
 			{
 				var p = pos;
@@ -64248,6 +65513,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternNavigationOperation(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -64264,6 +65530,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NameTail(int pos)
 			{
 				var p = pos;
@@ -64324,6 +65591,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64337,6 +65605,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64355,6 +65624,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64383,6 +65653,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_NameTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64395,6 +65666,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QualifierRest(int pos)
 			{
 				var p = pos;
@@ -64436,6 +65708,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QualifierRest(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64452,6 +65725,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QualifiedTail(int pos)
 			{
 				var p = pos;
@@ -64524,6 +65798,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64569,6 +65844,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_QualifiedTail(int pos, int start, int refs_2, ref Sql.SqlList<Argument>? r1)
 			{
 				var p = pos;
@@ -64579,6 +65855,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64592,6 +65869,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64604,6 +65882,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64632,6 +65911,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_QualifiedTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -64644,6 +65924,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Postfix(int pos)
 			{
 				var p = pos;
@@ -64669,6 +65950,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -64723,6 +66005,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Postfix(int pos, int start, int a0, int b0)
 			{
 				var p = pos;
@@ -64760,6 +66043,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_Postfix(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -64780,6 +66064,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_Postfix(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -64800,6 +66085,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -64812,6 +66098,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -64824,6 +66111,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_Postfix(int pos, int start)
 			{
 				var p = pos;
@@ -64836,6 +66124,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimeZone(int pos)
 			{
 				var p = pos;
@@ -64854,6 +66143,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TimeZoneSpecifier(int pos)
 			{
 				var p = pos;
@@ -64896,6 +66186,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalPrimary(int pos)
 			{
 				var p = pos;
@@ -64941,6 +66232,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_IntervalPrimary(int pos, int start, ref IntervalQualifier? r1)
 			{
 				var p = pos;
@@ -64951,6 +66243,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Operated(int pos)
 			{
 				var p = pos;
@@ -64968,6 +66261,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Operator(int pos)
 			{
 				var p = pos;
@@ -65078,6 +66372,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Operator(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -65109,6 +66404,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PredicatePart2Mark(int pos)
 			{
 				var p = pos;
@@ -65122,6 +66418,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TruthTest(int pos)
 			{
 				var p = pos;
@@ -65135,6 +66432,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TruthTest(int pos, int start)
 			{
 				var p = pos;
@@ -65189,6 +66487,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TruthTest(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -65203,6 +66502,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AndOperand(int pos)
 			{
 				var p = pos;
@@ -65221,6 +66521,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrOperand(int pos)
 			{
 				var p = pos;
@@ -65239,6 +66540,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryExpressionBody(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -65310,6 +66612,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryExpressionBody(int pos, int start, int refs_101)
 			{
 				var p = pos;
@@ -65320,6 +66623,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryTerm(int pos)
 			{
 				var p = pos;
@@ -65361,6 +66665,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryTerm(int pos, int start, int refs_101)
 			{
 				var p = pos;
@@ -65371,6 +66676,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QueryPrimary(int pos)
 			{
 				var p = pos;
@@ -65485,6 +66791,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QueryPrimary(int pos, int start, ref OrderByClause? r2)
 			{
 				var p = pos;
@@ -65495,6 +66802,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_QueryPrimary(int pos, int start, ref Limit? r3)
 			{
 				var p = pos;
@@ -65505,6 +66813,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_QueryPrimary(int pos, int start, ref Limit? r4)
 			{
 				var p = pos;
@@ -65515,6 +66824,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleTable(int pos)
 			{
 				var p = pos;
@@ -65562,6 +66872,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QuerySpecification(int pos)
 			{
 				var p = pos;
@@ -65610,6 +66921,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QuerySpecification(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -65631,6 +66943,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SelectList(int pos)
 			{
 				var p = pos;
@@ -65691,6 +67004,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SelectList(int pos, int start, int refs_97)
 			{
 				var p = pos;
@@ -65707,6 +67021,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SelectSublist(int pos)
 			{
 				var p = pos;
@@ -65737,6 +67052,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AllFields(int pos)
 			{
 				var p = pos;
@@ -65754,6 +67070,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AllFields(int pos, int start)
 			{
 				var p = pos;
@@ -65784,6 +67101,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AsClause(int pos)
 			{
 				var p = pos;
@@ -65821,6 +67139,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AsClause(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -65835,6 +67154,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableExpression(int pos)
 			{
 				var p = pos;
@@ -65940,6 +67260,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableExpression(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -65950,6 +67271,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TableExpression(int pos, int start, ref GroupByClause? r2)
 			{
 				var p = pos;
@@ -65960,6 +67282,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TableExpression(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -65970,6 +67293,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_TableExpression(int pos, int start, ref WindowClause? r4)
 			{
 				var p = pos;
@@ -65980,6 +67304,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FromClause(int pos)
 			{
 				var p = pos;
@@ -66027,6 +67352,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FromClause(int pos, int start, int refs_62)
 			{
 				var p = pos;
@@ -66043,6 +67369,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableReference(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -66090,6 +67417,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableFactor(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -66156,6 +67484,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableFactor(int pos, int start, ref SampleClause? r1)
 			{
 				var p = pos;
@@ -66166,6 +67495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TablePrimary(int pos)
 			{
 				var p = pos;
@@ -66549,6 +67879,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TablePrimary(int pos, int start, int refs_4, ref SystemTimeSpecification? r3)
 			{
 				var p = pos;
@@ -66559,6 +67890,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r4)
 			{
 				var p = pos;
@@ -66569,6 +67901,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TablePrimary(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -66587,6 +67920,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r15)
 			{
 				var p = pos;
@@ -66597,6 +67931,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r1)
 			{
 				var p = pos;
@@ -66607,6 +67942,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_TablePrimary(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -66634,6 +67970,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r1)
 			{
 				var p = pos;
@@ -66644,6 +67981,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_TablePrimary(int pos, int start, int refs_4, ref SystemTimeSpecification? r3)
 			{
 				var p = pos;
@@ -66654,6 +67992,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_TablePrimary(int pos, int start, int refs_4, ref Nodes.Correlation? r4)
 			{
 				var p = pos;
@@ -66664,6 +68003,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_TablePrimary(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -66680,6 +68020,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_TablePrimary(int pos, int start, int refs_4, ref int a9, ref int b9)
 			{
 				var p = pos;
@@ -66700,6 +68041,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataChangeDeltaTable(int pos)
 			{
 				var p = pos;
@@ -66762,6 +68104,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DataChangeStatement(int pos)
 			{
 				var p = pos;
@@ -66823,6 +68166,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DeleteStatementSearched(int pos)
 			{
 				var p = pos;
@@ -66917,6 +68261,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DeleteStatementSearched(int pos, int start, ref PeriodPortion? r1)
 			{
 				var p = pos;
@@ -66927,6 +68272,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_DeleteStatementSearched(int pos, int start, ref Alias? r2)
 			{
 				var p = pos;
@@ -66937,6 +68283,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_DeleteStatementSearched(int pos, int start, ref Expression? r3)
 			{
 				var p = pos;
@@ -66947,6 +68294,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TargetTable(int pos)
 			{
 				var p = pos;
@@ -66995,6 +68343,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ForPortionOf(int pos)
 			{
 				var p = pos;
@@ -67047,6 +68396,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TargetCorrelation(int pos)
 			{
 				var p = pos;
@@ -67084,6 +68434,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TargetCorrelation(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -67098,6 +68449,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WhereClause(int pos)
 			{
 				var p = pos;
@@ -67116,6 +68468,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_InsertStatement(int pos)
 			{
 				var p = pos;
@@ -67145,6 +68498,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_InsertColumnsAndSource(int pos)
 			{
 				var p = pos;
@@ -67232,6 +68586,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_InsertColumnsAndSource(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -67254,6 +68609,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_InsertColumnsAndSource(int pos, int start, ref OverrideKind? r1)
 			{
 				var p = pos;
@@ -67265,6 +68621,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OverrideClause(int pos)
 			{
 				var p = pos;
@@ -67311,6 +68668,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_InsertValues(int pos)
 			{
 				var p = pos;
@@ -67381,6 +68739,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_InsertValues(int pos, int start)
 			{
 				var p = pos;
@@ -67403,6 +68762,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_InsertValues(int pos, int start)
 			{
 				var p = pos;
@@ -67452,6 +68812,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedTableValueConstructor(int pos)
 			{
 				var p = pos;
@@ -67499,6 +68860,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ContextuallyTypedTableValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -67515,6 +68877,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedRowValueExpression(int pos)
 			{
 				var p = pos;
@@ -67622,6 +68985,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -67762,6 +69126,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -67778,6 +69143,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -67797,6 +69163,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -67813,6 +69180,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -67872,6 +69240,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_ContextuallyTypedRowValueExpression(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -67888,6 +69257,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ContextuallyTypedElement(int pos)
 			{
 				var p = pos;
@@ -67939,6 +69309,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeStatement(int pos)
 			{
 				var p = pos;
@@ -68047,6 +69418,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MergeStatement(int pos, int start, int refs_116, ref Alias? r1)
 			{
 				var p = pos;
@@ -68057,6 +69429,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_MergeStatement(int pos, int start, int refs_116)
 			{
 				var p = pos;
@@ -68067,6 +69440,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeWhenClause(int pos)
 			{
 				var p = pos;
@@ -68177,6 +69551,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MergeWhenClause(int pos, int start, ref Expression? r2)
 			{
 				var p = pos;
@@ -68187,6 +69562,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_MergeWhenClause(int pos, int start, ref Expression? r0)
 			{
 				var p = pos;
@@ -68197,6 +69573,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeCondition(int pos)
 			{
 				var p = pos;
@@ -68215,6 +69592,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeMatchedThen(int pos)
 			{
 				var p = pos;
@@ -68257,6 +69635,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetClauseList(int pos)
 			{
 				var p = pos;
@@ -68298,6 +69677,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetClauseList(int pos, int start, int refs_121)
 			{
 				var p = pos;
@@ -68314,6 +69694,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetClause(int pos)
 			{
 				var p = pos;
@@ -68406,6 +69787,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetClause(int pos, int start, int refs_122)
 			{
 				var p = pos;
@@ -68422,6 +69804,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetTarget(int pos)
 			{
 				var p = pos;
@@ -68439,6 +69822,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetTargetTail(int pos)
 			{
 				var p = pos;
@@ -68488,6 +69872,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetTargetTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -68530,6 +69915,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SetTargetTail(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -68546,6 +69932,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MergeInsertSpecification(int pos)
 			{
 				var p = pos;
@@ -68661,6 +70048,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MergeInsertSpecification(int pos, int start, int refs_4, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -68683,6 +70071,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_MergeInsertSpecification(int pos, int start, int refs_4, ref OverrideKind? r1)
 			{
 				var p = pos;
@@ -68693,6 +70082,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_MergeInsertSpecification(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -68709,6 +70099,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UpdateStatementSearched(int pos)
 			{
 				var p = pos;
@@ -68808,6 +70199,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UpdateStatementSearched(int pos, int start, ref PeriodPortion? r1)
 			{
 				var p = pos;
@@ -68818,6 +70210,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_UpdateStatementSearched(int pos, int start, ref Alias? r2)
 			{
 				var p = pos;
@@ -68828,6 +70221,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_UpdateStatementSearched(int pos, int start, ref Expression? r4)
 			{
 				var p = pos;
@@ -68838,6 +70232,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CorrelationOrRecognition(int pos)
 			{
 				var p = pos;
@@ -68868,6 +70263,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Correlated(int pos)
 			{
 				var p = pos;
@@ -68881,6 +70277,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Correlated(int pos, int start)
 			{
 				var p = pos;
@@ -68951,6 +70348,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Correlated(int pos, int start)
 			{
 				var p = pos;
@@ -69008,6 +70406,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_Correlated(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -69022,6 +70421,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_Correlated(int pos, int start, ref Sql.SqlList<Identifier>? r2)
 			{
 				var p = pos;
@@ -69044,6 +70444,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Recognized(int pos)
 			{
 				var p = pos;
@@ -69057,6 +70458,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Recognized(int pos, int start)
 			{
 				var p = pos;
@@ -69074,6 +70476,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternRecognitionClause(int pos)
 			{
 				var p = pos;
@@ -69197,6 +70600,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternRecognitionClause(int pos, int start, ref Sql.SqlList<Expression>? r0)
 			{
 				var p = pos;
@@ -69207,6 +70611,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RowPatternRecognitionClause(int pos, int start, ref OrderByClause? r1)
 			{
 				var p = pos;
@@ -69229,6 +70634,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RowPatternRecognitionClause(int pos, int start, ref Sql.SqlList<RowPatternMeasure>? r2)
 			{
 				var p = pos;
@@ -69239,6 +70645,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_RowPatternRecognitionClause(int pos, int start, ref RowsPerMatch? r3)
 			{
 				var p = pos;
@@ -69249,6 +70656,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternPartitionBy(int pos)
 			{
 				var p = pos;
@@ -69302,6 +70710,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternPartitionBy(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -69318,6 +70727,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RowPatternRowsPerMatch(int pos)
 			{
 				var p = pos;
@@ -69409,6 +70819,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RowPatternRowsPerMatch(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -69481,6 +70892,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_QuerySystemTimePeriodSpecification(int pos)
 			{
 				var p = pos;
@@ -69594,6 +71006,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_QuerySystemTimePeriodSpecification(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -69625,6 +71038,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollectionNode(int pos)
 			{
 				var p = pos;
@@ -69637,6 +71051,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTable(int pos)
 			{
 				var p = pos;
@@ -69720,6 +71135,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTable(int pos, int start, ref JsonTablePlan? r2)
 			{
 				var p = pos;
@@ -69730,6 +71146,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTable(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -69773,6 +71190,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableColumnsClause(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -69862,6 +71280,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableColumnsClause(int pos, int start, int refs_55)
 			{
 				var p = pos;
@@ -69878,6 +71297,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableColumnDefinition(int pos)
 			{
 				var p = pos;
@@ -69927,6 +71347,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableColumnDefinition(int pos, int start)
 			{
 				var p = pos;
@@ -69951,6 +71372,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTableColumnDefinition(int pos, int start)
 			{
 				var p = pos;
@@ -70033,6 +71455,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONTableColumnDefinition(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -70047,6 +71470,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONTableColumnDefinition(int pos, int start, ref Identifier? r2)
 			{
 				var p = pos;
@@ -70063,6 +71487,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONTableColumnDefinition(int pos, int start)
 			{
 				var p = pos;
@@ -70087,6 +71512,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableTypedColumn(int pos)
 			{
 				var p = pos;
@@ -70188,6 +71614,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableTypedColumn(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -70215,6 +71642,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTableTypedColumn(int pos, int start, ref Nodes.ColumnPart? r5, ref int a6, ref int b6, ref Nodes.ColumnPart? r7)
 			{
 				var p = pos;
@@ -70280,6 +71708,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONTableTypedColumn(int pos, int start, ref Nodes.ColumnPart? r7)
 			{
 				var p = pos;
@@ -70304,6 +71733,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnFormat(int pos)
 			{
 				var p = pos;
@@ -70317,6 +71747,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONColumnFormat(int pos, int start)
 			{
 				var p = pos;
@@ -70335,6 +71766,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnWrapper(int pos)
 			{
 				var p = pos;
@@ -70350,6 +71782,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONColumnWrapper(int pos, int start)
 			{
 				var p = pos;
@@ -70375,6 +71808,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnQuotes(int pos)
 			{
 				var p = pos;
@@ -70388,6 +71822,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONColumnQuotes(int pos, int start)
 			{
 				var p = pos;
@@ -70452,6 +71887,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONColumnQuotes(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -70478,6 +71914,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONColumnBehavior(int pos)
 			{
 				var p = pos;
@@ -70552,6 +71989,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlanClause(int pos)
 			{
 				var p = pos;
@@ -70616,6 +72054,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlan(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -70658,6 +72097,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlanPrimary(int pos)
 			{
 				var p = pos;
@@ -70700,6 +72140,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePlanTail(int pos)
 			{
 				var p = pos;
@@ -70743,6 +72184,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -70783,6 +72225,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -70827,6 +72270,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -70843,6 +72287,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -70887,6 +72332,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_JSONTablePlanTail(int pos, int start, int refs_57)
 			{
 				var p = pos;
@@ -70903,6 +72349,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTableDefaultPlanChoices(int pos)
 			{
 				var p = pos;
@@ -71032,6 +72479,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTableDefaultPlanChoices(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -71069,6 +72517,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JSONTableDefaultPlanChoices(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -71106,6 +72555,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePrimitive(int pos)
 			{
 				var p = pos;
@@ -71226,6 +72676,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTablePrimitive(int pos, int start, int refs_55)
 			{
 				var p = pos;
@@ -71242,6 +72693,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JSONTablePrimitiveColumn(int pos)
 			{
 				var p = pos;
@@ -71271,6 +72723,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JSONTablePrimitiveColumn(int pos, int start)
 			{
 				var p = pos;
@@ -71316,6 +72769,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ParenthesizedJoinedTable(int pos)
 			{
 				var p = pos;
@@ -71358,6 +72812,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Joins(int pos)
 			{
 				var p = pos;
@@ -71390,6 +72845,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -71436,6 +72892,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -71446,6 +72903,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -71490,6 +72948,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_Joins(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -71500,6 +72959,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinPartitioning(int pos)
 			{
 				var p = pos;
@@ -71565,6 +73025,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinPartitioning(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -71581,6 +73042,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PartitionedJoin(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again; succeeded here
@@ -71739,6 +73201,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PartitionedJoin(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -71750,6 +73213,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PartitionedJoin(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -71761,6 +73225,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PartitionedJoin(int pos, int start, ref Sql.SqlList<Expression>? r2)
 			{
 				var p = pos;
@@ -71771,6 +73236,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinType(int pos)
 			{
 				var p = pos;
@@ -71844,6 +73310,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinType(int pos, int start)
 			{
 				var p = pos;
@@ -71856,6 +73323,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinOperand(int pos)
 			{
 				var p = pos;
@@ -71873,6 +73341,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinOperandTail(int pos)
 			{
 				var p = pos;
@@ -71922,6 +73391,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinOperandTail(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -71961,6 +73431,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_JoinOperandTail(int pos, int start, int refs_64, ref Nodes.JoinStep? r1)
 			{
 				var p = pos;
@@ -71999,6 +73470,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_JoinOperandTail(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -72009,6 +73481,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_JoinOperandTail(int pos, int start, int refs_64)
 			{
 				var p = pos;
@@ -72019,6 +73492,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinStep(int pos)
 			{
 				var p = pos;
@@ -72064,6 +73538,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_JoinSpecification(int pos)
 			{
 				var p = pos;
@@ -72140,6 +73615,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_JoinSpecification(int pos, int start, ref Identifier? r2)
 			{
 				var p = pos;
@@ -72156,6 +73632,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SampleClause(int pos)
 			{
 				var p = pos;
@@ -72236,6 +73713,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SampleClause(int pos, int start, ref Expression? r2)
 			{
 				var p = pos;
@@ -72264,6 +73742,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GroupByClause(int pos)
 			{
 				var p = pos;
@@ -72343,6 +73822,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GroupByClause(int pos, int start, int refs_86, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -72364,6 +73844,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GroupByClause(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -72380,6 +73861,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GroupingElement(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -72593,6 +74075,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -72613,6 +74096,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -72629,6 +74113,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -72645,6 +74130,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_GroupingElement(int pos, int start, int refs_86)
 			{
 				var p = pos;
@@ -72661,6 +74147,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrdinaryGroupingSet(int pos)
 			{
 				var p = pos;
@@ -72731,6 +74218,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OrdinaryGroupingSet(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -72747,6 +74235,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GroupingColumnReference(int pos)
 			{
 				var p = pos;
@@ -72783,6 +74272,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GroupingColumnReference(int pos, int start, ref CollationName? r1)
 			{
 				var p = pos;
@@ -72793,6 +74283,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_HavingClause(int pos)
 			{
 				var p = pos;
@@ -72811,6 +74302,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowClause(int pos)
 			{
 				var p = pos;
@@ -72858,6 +74350,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_WindowClause(int pos, int start, int refs_88)
 			{
 				var p = pos;
@@ -72874,6 +74367,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_WindowDefinition(int pos)
 			{
 				var p = pos;
@@ -72897,6 +74391,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableValueConstructor(int pos)
 			{
 				var p = pos;
@@ -72944,6 +74439,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableValueConstructor(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -72960,6 +74456,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrderByClause(int pos)
 			{
 				var p = pos;
@@ -72984,6 +74481,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ResultOffsetClause(int pos)
 			{
 				var p = pos;
@@ -73029,6 +74527,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FetchFirstClause(int pos)
 			{
 				var p = pos;
@@ -73150,6 +74649,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FetchFirstClause(int pos, int start, ref Nodes.Quantity? r1)
 			{
 				var p = pos;
@@ -73160,6 +74660,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FetchFirstQuantity(int pos)
 			{
 				var p = pos;
@@ -73197,6 +74698,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FetchFirstQuantity(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -73211,6 +74713,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Intersected(int pos)
 			{
 				var p = pos;
@@ -73281,6 +74784,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Intersected(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -73312,6 +74816,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Intersected(int pos, int start, ref CorrespondingClause? r2)
 			{
 				var p = pos;
@@ -73322,6 +74827,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CorrespondingSpec(int pos)
 			{
 				var p = pos;
@@ -73359,6 +74865,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CorrespondingSpec(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -73387,6 +74894,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UnionOrExcept(int pos)
 			{
 				var p = pos;
@@ -73473,6 +74981,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UnionOrExcept(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -73504,6 +75013,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_UnionOrExcept(int pos, int start, ref CorrespondingClause? r2)
 			{
 				var p = pos;
@@ -73514,6 +75024,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UpdatabilityClause(int pos)
 			{
 				var p = pos;
@@ -73580,6 +75091,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UpdatabilityClause(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -73596,6 +75108,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLExecutableStatement(int pos)
 			{
 				// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).
@@ -73721,6 +75234,7 @@ namespace DotGram.Sql.Standard
 				return -1;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLSchemaStatement(int pos)
 			{
 				var p = pos;
@@ -73936,6 +75450,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -73948,6 +75463,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -73960,6 +75476,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -73972,6 +75489,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -73984,6 +75502,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -73996,6 +75515,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74008,6 +75528,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74020,6 +75541,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74032,6 +75554,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74044,6 +75567,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74056,6 +75580,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74068,6 +75593,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74080,6 +75606,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74092,6 +75619,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart13_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74104,6 +75632,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart14_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74116,6 +75645,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart15_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74128,6 +75658,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart16_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74140,6 +75671,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart17_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74152,6 +75684,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart18_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74164,6 +75697,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart19_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74176,6 +75710,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart20_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74188,6 +75723,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart21_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74200,6 +75736,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart22_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74212,6 +75749,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart23_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74224,6 +75762,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart24_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74236,6 +75775,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart25_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74248,6 +75788,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart26_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74260,6 +75801,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart27_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74272,6 +75814,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart28_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74284,6 +75827,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart29_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74296,6 +75840,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart30_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74308,6 +75853,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart31_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74320,6 +75866,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart32_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74332,6 +75879,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart33_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74344,6 +75892,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart34_SQLSchemaStatement(int pos, int start)
 			{
 				var p = pos;
@@ -74356,6 +75905,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaDefinition(int pos)
 			{
 				var p = pos;
@@ -74434,6 +75984,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SchemaDefinition(int pos, int start, int refs_124, ref Nodes.SchemaDefaults? r1)
 			{
 				var p = pos;
@@ -74444,6 +75995,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SchemaDefinition(int pos, int start, int refs_124)
 			{
 				var p = pos;
@@ -74454,6 +76006,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaNameClause(int pos)
 			{
 				var p = pos;
@@ -74500,6 +76053,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SchemaNameClause(int pos, int start)
 			{
 				var p = pos;
@@ -74523,6 +76077,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaName(int pos)
 			{
 				var p = pos;
@@ -74559,6 +76114,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SchemaName(int pos, int start, ref Identifier? r1)
 			{
 				var p = pos;
@@ -74575,6 +76131,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaCharacterSetOrPath(int pos)
 			{
 				var p = pos;
@@ -74695,6 +76252,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SchemaCharacterSetOrPath(int pos, int start, int refs_3)
 			{
 				var p = pos;
@@ -74711,6 +76269,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SchemaCharacterSetOrPath(int pos, int start, int refs_3, ref CharacterSetName? r5)
 			{
 				var p = pos;
@@ -74721,6 +76280,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SchemaCharacterSetOrPath(int pos, int start, int refs_3, ref QualifiedName? r1)
 			{
 				var p = pos;
@@ -74765,6 +76325,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SchemaCharacterSetOrPath(int pos, int start, int refs_3)
 			{
 				var p = pos;
@@ -74781,6 +76342,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaCharacterSetSpecification(int pos)
 			{
 				var p = pos;
@@ -74811,6 +76373,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaElement(int pos)
 			{
 				var p = pos;
@@ -74908,6 +76471,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -74920,6 +76484,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -74932,6 +76497,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -74944,6 +76510,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -74956,6 +76523,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -74968,6 +76536,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -74980,6 +76549,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -74992,6 +76562,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -75004,6 +76575,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -75016,6 +76588,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -75028,6 +76601,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -75040,6 +76614,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -75052,6 +76627,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -75064,6 +76640,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart13_SchemaElement(int pos, int start)
 			{
 				var p = pos;
@@ -75076,6 +76653,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableDefinition(int pos)
 			{
 				var p = pos;
@@ -75178,6 +76756,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableDefinition(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -75215,6 +76794,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TableDefinition(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -75241,6 +76821,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TableDefinition(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -75290,6 +76871,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableContentsSource(int pos)
 			{
 				var p = pos;
@@ -75407,6 +76989,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableContentsSource(int pos, int start)
 			{
 				var p = pos;
@@ -75485,6 +77068,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TableContentsSource(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -75507,6 +77091,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TableContentsSource(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -75521,6 +77106,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_TableContentsSource(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -75543,6 +77129,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_TableContentsSource(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -75557,6 +77144,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableElementList(int pos)
 			{
 				var p = pos;
@@ -75610,6 +77198,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableElementList(int pos, int start, int refs_128)
 			{
 				var p = pos;
@@ -75626,6 +77215,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableElement(int pos)
 			{
 				var p = pos;
@@ -75676,6 +77266,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnDefinition(int pos)
 			{
 				var p = pos;
@@ -75792,6 +77383,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ColumnDefinition(int pos, int start, int refs_130, ref DataType? r1)
 			{
 				var p = pos;
@@ -75814,6 +77406,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ColumnDefinition(int pos, int start, int refs_130)
 			{
 				var p = pos;
@@ -75849,6 +77442,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ColumnDefinition(int pos, int start, int refs_130, ref ColumnGeneration? r2)
 			{
 				var p = pos;
@@ -75859,6 +77453,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ColumnDefinition(int pos, int start, int refs_130)
 			{
 				var p = pos;
@@ -75869,6 +77464,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ColumnDefinition(int pos, int start, int refs_130, ref CollationName? r4)
 			{
 				var p = pos;
@@ -75879,6 +77475,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnValueSource(int pos)
 			{
 				var p = pos;
@@ -76012,6 +77609,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ColumnValueSource(int pos, int start)
 			{
 				var p = pos;
@@ -76060,6 +77658,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ColumnValueSource(int pos, int start, ref Sql.SqlList<SequenceOption>? r2)
 			{
 				var p = pos;
@@ -76082,6 +77681,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ColumnValueSource(int pos, int start)
 			{
 				var p = pos;
@@ -76118,6 +77718,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ColumnValueSource(int pos, int start)
 			{
 				var p = pos;
@@ -76149,6 +77750,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ColumnValueSource(int pos, int start, ref Sql.SqlList<SequenceOption>? r2)
 			{
 				var p = pos;
@@ -76171,6 +77773,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DefaultClause(int pos)
 			{
 				var p = pos;
@@ -76189,6 +77792,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DefaultOption(int pos)
 			{
 				var p = pos;
@@ -76342,6 +77946,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IdentityGeneration(int pos)
 			{
 				var p = pos;
@@ -76379,6 +77984,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CommonSequenceGeneratorOptions(int pos)
 			{
 				var p = pos;
@@ -76420,6 +78026,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CommonSequenceGeneratorOptions(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -76430,6 +78037,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CommonSequenceGeneratorOption(int pos)
 			{
 				var p = pos;
@@ -76475,6 +78083,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_BasicSequenceGeneratorOption(int pos)
 			{
 				var p = pos;
@@ -76572,6 +78181,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnConstraintDefinition(int pos)
 			{
 				var p = pos;
@@ -76631,6 +78241,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ColumnConstraintDefinition(int pos, int start, ref QualifiedName? r0)
 			{
 				var p = pos;
@@ -76641,6 +78252,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ColumnConstraintDefinition(int pos, int start, ref ConstraintCharacteristics? r2)
 			{
 				var p = pos;
@@ -76651,6 +78263,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConstraintNameDefinition(int pos)
 			{
 				var p = pos;
@@ -76669,6 +78282,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnConstraint(int pos)
 			{
 				var p = pos;
@@ -76735,6 +78349,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferencesSpecification(int pos)
 			{
 				var p = pos;
@@ -76825,6 +78440,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ReferencesSpecification(int pos, int start, ref Sql.SqlList<Identifier>? r1, ref Identifier? r2)
 			{
 				var p = pos;
@@ -76870,6 +78486,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ReferencesSpecification(int pos, int start, ref Identifier? r2)
 			{
 				var p = pos;
@@ -76892,6 +78509,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ReferencesSpecification(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -76934,6 +78552,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ReferencesSpecification(int pos, int start, ref Nodes.ReferentialRules? r4)
 			{
 				var p = pos;
@@ -76944,6 +78563,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferentialTriggeredAction(int pos)
 			{
 				var p = pos;
@@ -76999,6 +78619,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ReferentialTriggeredAction(int pos, int start)
 			{
 				var p = pos;
@@ -77035,6 +78656,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ReferentialTriggeredAction(int pos, int start, ref ReferentialAction? r1)
 			{
 				var p = pos;
@@ -77045,6 +78667,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ReferentialTriggeredAction(int pos, int start, ref ReferentialAction? r3)
 			{
 				var p = pos;
@@ -77055,6 +78678,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UpdateRule(int pos)
 			{
 				var p = pos;
@@ -77080,6 +78704,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferentialAction(int pos)
 			{
 				var p = pos;
@@ -77152,6 +78777,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DeleteRule(int pos)
 			{
 				var p = pos;
@@ -77176,6 +78802,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CheckConstraintDefinition(int pos)
 			{
 				var p = pos;
@@ -77206,6 +78833,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConstraintCharacteristics(int pos)
 			{
 				var p = pos;
@@ -77389,6 +79017,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ConstraintCharacteristics(int pos, int start)
 			{
 				var p = pos;
@@ -77473,6 +79102,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ConstraintCharacteristics(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -77487,6 +79117,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ConstraintCharacteristics(int pos, int start, ref ConstraintTiming? r5)
 			{
 				var p = pos;
@@ -77497,6 +79128,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ConstraintCharacteristics(int pos, int start, ref bool? r6)
 			{
 				var p = pos;
@@ -77507,6 +79139,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ConstraintCharacteristics(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -77521,6 +79154,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_ConstraintCharacteristics(int pos, int start, ref ConstraintTiming? r5)
 			{
 				var p = pos;
@@ -77531,6 +79165,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_ConstraintCharacteristics(int pos, int start, ref bool? r6)
 			{
 				var p = pos;
@@ -77541,6 +79176,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_ConstraintCharacteristics(int pos, int start, ref int a1, ref int b1, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -77578,6 +79214,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_ConstraintCharacteristics(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -77592,6 +79229,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_ConstraintCharacteristics(int pos, int start, ref bool? r3)
 			{
 				var p = pos;
@@ -77603,6 +79241,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConstraintCheckTime(int pos)
 			{
 				var p = pos;
@@ -77640,6 +79279,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConstraintEnforcement(int pos)
 			{
 				var p = pos;
@@ -77678,6 +79318,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ConstraintEnforcement(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -77692,6 +79333,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TablePeriodDefinition(int pos)
 			{
 				var p = pos;
@@ -77732,6 +79374,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PeriodForSpecification(int pos)
 			{
 				var p = pos;
@@ -77775,6 +79418,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableConstraintDefinition(int pos)
 			{
 				var p = pos;
@@ -77834,6 +79478,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableConstraintDefinition(int pos, int start, ref QualifiedName? r0)
 			{
 				var p = pos;
@@ -77844,6 +79489,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TableConstraintDefinition(int pos, int start, ref ConstraintCharacteristics? r2)
 			{
 				var p = pos;
@@ -77854,6 +79500,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableConstraint(int pos)
 			{
 				var p = pos;
@@ -78212,6 +79859,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableConstraint(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -78244,6 +79892,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TableConstraint(int pos, int start, int refs_2, ref int a1, ref int b1, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -78289,6 +79938,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TableConstraint(int pos, int start, int refs_2, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -78303,6 +79953,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_TableConstraint(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -78331,6 +79982,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_TableConstraint(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -78349,6 +80001,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_TableConstraint(int pos, int start, int refs_2, ref Identifier? r5)
 			{
 				var p = pos;
@@ -78377,6 +80030,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_TableConstraint(int pos, int start, int refs_2, ref int a1, ref int b1, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -78422,6 +80076,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_TableConstraint(int pos, int start, int refs_2, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -78436,6 +80091,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_TableConstraint(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -78464,6 +80120,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_TableConstraint(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -78482,6 +80139,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_TableConstraint(int pos, int start, int refs_2, ref Identifier? r5)
 			{
 				var p = pos;
@@ -78510,6 +80168,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_TableConstraint(int pos, int start, int refs_2, ref Identifier? r7)
 			{
 				var p = pos;
@@ -78532,6 +80191,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LikeClause(int pos)
 			{
 				var p = pos;
@@ -78579,6 +80239,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_LikeClause(int pos, int start, int refs_129)
 			{
 				var p = pos;
@@ -78590,6 +80251,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LikeOption(int pos)
 			{
 				var p = pos;
@@ -78655,6 +80317,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TypedTableClause(int pos)
 			{
 				var p = pos;
@@ -78720,6 +80383,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TypedTableClause(int pos, int start, ref QualifiedName? r1)
 			{
 				var p = pos;
@@ -78736,6 +80400,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TypedTableClause(int pos, int start, ref Sql.SqlList<TableElement>? r2)
 			{
 				var p = pos;
@@ -78746,6 +80411,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TypedTableElementList(int pos)
 			{
 				var p = pos;
@@ -78799,6 +80465,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TypedTableElementList(int pos, int start, int refs_128)
 			{
 				var p = pos;
@@ -78815,6 +80482,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TypedTableElement(int pos)
 			{
 				var p = pos;
@@ -78853,6 +80521,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SelfReferencingColumnSpecification(int pos)
 			{
 				var p = pos;
@@ -78901,6 +80570,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SelfReferencingColumnSpecification(int pos, int start, ref ReferenceGeneration? r1)
 			{
 				var p = pos;
@@ -78912,6 +80582,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReferenceGeneration(int pos)
 			{
 				var p = pos;
@@ -78961,6 +80632,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ColumnOptions(int pos)
 			{
 				var p = pos;
@@ -79064,6 +80736,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ColumnOptions(int pos, int start, int refs_130, ref QualifiedName? r1)
 			{
 				var p = pos;
@@ -79080,6 +80753,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ColumnOptions(int pos, int start, int refs_130, ref Expression? r2)
 			{
 				var p = pos;
@@ -79090,6 +80764,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ColumnOptions(int pos, int start, int refs_130)
 			{
 				var p = pos;
@@ -79100,6 +80775,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ViewDefinition(int pos)
 			{
 				var p = pos;
@@ -79191,6 +80867,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ViewDefinition(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -79205,6 +80882,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ViewDefinition(int pos, int start, ref int a4, ref int b4, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -79254,6 +80932,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ViewDefinition(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -79285,6 +80964,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ViewSpecification(int pos)
 			{
 				var p = pos;
@@ -79322,6 +81002,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ViewSpecification(int pos, int start)
 			{
 				var p = pos;
@@ -79387,6 +81068,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ViewSpecification(int pos, int start, ref QualifiedName? r1)
 			{
 				var p = pos;
@@ -79403,6 +81085,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ViewSpecification(int pos, int start, ref Sql.SqlList<ViewElement>? r2)
 			{
 				var p = pos;
@@ -79413,6 +81096,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ViewSpecification(int pos, int start, ref Sql.SqlList<Identifier>? r3)
 			{
 				var p = pos;
@@ -79435,6 +81119,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ViewElementList(int pos)
 			{
 				var p = pos;
@@ -79488,6 +81173,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ViewElementList(int pos, int start, int refs_296)
 			{
 				var p = pos;
@@ -79504,6 +81190,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ViewElement(int pos)
 			{
 				var p = pos;
@@ -79592,6 +81279,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ViewElement(int pos, int start, ref ReferenceGeneration? r1)
 			{
 				var p = pos;
@@ -79602,6 +81290,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DomainDefinition(int pos)
 			{
 				var p = pos;
@@ -79736,6 +81425,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DomainDefinition(int pos, int start, int refs_130, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -79750,6 +81440,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_DomainDefinition(int pos, int start, int refs_130, ref Expression? r3)
 			{
 				var p = pos;
@@ -79760,6 +81451,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_DomainDefinition(int pos, int start, int refs_130)
 			{
 				var p = pos;
@@ -79770,6 +81462,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_DomainDefinition(int pos, int start, int refs_130, ref CollationName? r5)
 			{
 				var p = pos;
@@ -79780,6 +81473,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DomainConstraint(int pos)
 			{
 				var p = pos;
@@ -79839,6 +81533,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DomainConstraint(int pos, int start, ref QualifiedName? r0)
 			{
 				var p = pos;
@@ -79849,6 +81544,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_DomainConstraint(int pos, int start, ref ConstraintCharacteristics? r2)
 			{
 				var p = pos;
@@ -79859,6 +81555,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CharacterSetDefinition(int pos)
 			{
 				var p = pos;
@@ -79948,6 +81645,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CharacterSetDefinition(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -79962,6 +81660,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CharacterSetDefinition(int pos, int start, ref CollationName? r3)
 			{
 				var p = pos;
@@ -79972,6 +81671,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CollationDefinition(int pos)
 			{
 				var p = pos;
@@ -80043,6 +81743,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CollationDefinition(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -80086,6 +81787,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransliterationDefinition(int pos)
 			{
 				var p = pos;
@@ -80143,6 +81845,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransliterationSource(int pos)
 			{
 				var p = pos;
@@ -80197,6 +81900,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TransliterationSource(int pos, int start)
 			{
 				var p = pos;
@@ -80209,6 +81913,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SpecificRoutineDesignator(int pos)
 			{
 				var p = pos;
@@ -80314,6 +82019,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SpecificRoutineDesignator(int pos, int start, int refs_5, ref DataType? r4, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -80359,6 +82065,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SpecificRoutineDesignator(int pos, int start, int refs_5, ref DataType? r4)
 			{
 				var p = pos;
@@ -80397,6 +82104,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SpecificRoutineDesignator(int pos, int start, int refs_5)
 			{
 				var p = pos;
@@ -80413,6 +82121,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SpecificRoutineDesignator(int pos, int start, int refs_5, ref QualifiedName? r7)
 			{
 				var p = pos;
@@ -80429,6 +82138,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RoutineType(int pos)
 			{
 				var p = pos;
@@ -80501,6 +82211,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RoutineType(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -80537,6 +82248,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AssertionDefinition(int pos)
 			{
 				var p = pos;
@@ -80590,6 +82302,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AssertionDefinition(int pos, int start, ref ConstraintCharacteristics? r2)
 			{
 				var p = pos;
@@ -80600,6 +82313,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TriggerDefinition(int pos)
 			{
 				var p = pos;
@@ -80675,6 +82389,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TriggerDefinition(int pos, int start, int refs_274)
 			{
 				var p = pos;
@@ -80723,6 +82438,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TriggerDefinition(int pos, int start, int refs_274)
 			{
 				var p = pos;
@@ -80734,6 +82450,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TriggerActionTime(int pos)
 			{
 				var p = pos;
@@ -80777,6 +82494,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TriggerEvent(int pos)
 			{
 				var p = pos;
@@ -80837,6 +82555,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TriggerEvent(int pos, int start, ref Sql.SqlList<Identifier>? r0)
 			{
 				var p = pos;
@@ -80853,6 +82572,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransitionTableOrVariable(int pos)
 			{
 				var p = pos;
@@ -80959,6 +82679,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TransitionTableOrVariable(int pos, int start)
 			{
 				var p = pos;
@@ -81028,6 +82749,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TransitionTableOrVariable(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -81042,6 +82764,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TransitionTableOrVariable(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -81056,6 +82779,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_TransitionTableOrVariable(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -81070,6 +82794,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TriggeredAction(int pos)
 			{
 				var p = pos;
@@ -81130,6 +82855,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TriggeredAction(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -81173,6 +82899,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TriggeredAction(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -81183,6 +82910,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TriggeredWhenClause(int pos)
 			{
 				var p = pos;
@@ -81213,6 +82941,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TriggeredSQLStatement(int pos)
 			{
 				var p = pos;
@@ -81251,6 +82980,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CompoundTriggeredSQLStatement(int pos)
 			{
 				var p = pos;
@@ -81313,6 +83043,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CompoundTriggeredSQLStatement(int pos, int start, int refs_124)
 			{
 				var p = pos;
@@ -81329,6 +83060,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UserDefinedTypeDefinition(int pos)
 			{
 				var p = pos;
@@ -81457,6 +83189,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UserDefinedTypeDefinition(int pos, int start, int refs_267, ref QualifiedName? r1)
 			{
 				var p = pos;
@@ -81473,6 +83206,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_UserDefinedTypeDefinition(int pos, int start, int refs_267, ref TypeRepresentation? r2)
 			{
 				var p = pos;
@@ -81489,6 +83223,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_UserDefinedTypeDefinition(int pos, int start, int refs_267)
 			{
 				var p = pos;
@@ -81499,6 +83234,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_UserDefinedTypeDefinition(int pos, int start, int refs_267, ref Sql.SqlList<MethodSpecification>? r4)
 			{
 				var p = pos;
@@ -81509,6 +83245,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Representation(int pos)
 			{
 				var p = pos;
@@ -81616,6 +83353,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Representation(int pos, int start, int refs_6)
 			{
 				var p = pos;
@@ -81626,6 +83364,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_Representation(int pos, int start, int refs_6)
 			{
 				var p = pos;
@@ -81636,6 +83375,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MemberList(int pos)
 			{
 				var p = pos;
@@ -81689,6 +83429,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MemberList(int pos, int start, int refs_231)
 			{
 				var p = pos;
@@ -81705,6 +83446,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AttributeDefinition(int pos)
 			{
 				var p = pos;
@@ -81769,6 +83511,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AttributeDefinition(int pos, int start, ref Expression? r2)
 			{
 				var p = pos;
@@ -81779,6 +83522,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_AttributeDefinition(int pos, int start, ref CollationName? r3)
 			{
 				var p = pos;
@@ -81789,6 +83533,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RepresentedElementType(int pos)
 			{
 				var p = pos;
@@ -81827,6 +83572,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UserDefinedTypeOption(int pos)
 			{
 				var p = pos;
@@ -82098,6 +83844,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UserDefinedTypeOption(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -82114,6 +83861,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_UserDefinedTypeOption(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -82155,6 +83903,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_UserDefinedTypeOption(int pos, int start, int refs_2, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -82169,6 +83918,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_UserDefinedTypeOption(int pos, int start, int refs_2, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -82183,6 +83933,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_UserDefinedTypeOption(int pos, int start, int refs_2, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -82197,6 +83948,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_UserDefinedTypeOption(int pos, int start, int refs_2, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -82211,6 +83963,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CastOptionKind(int pos)
 			{
 				var p = pos;
@@ -82301,6 +84054,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MethodSpecificationList(int pos)
 			{
 				var p = pos;
@@ -82342,6 +84096,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MethodSpecificationList(int pos, int start, int refs_218)
 			{
 				var p = pos;
@@ -82358,6 +84113,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MethodSpecification(int pos)
 			{
 				var p = pos;
@@ -82397,6 +84153,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PartialMethodSpecification(int pos)
 			{
 				var p = pos;
@@ -82473,6 +84230,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PartialMethodSpecification(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -82509,6 +84267,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PartialMethodSpecification(int pos, int start, ref QualifiedName? r4)
 			{
 				var p = pos;
@@ -82525,6 +84284,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLParameterDeclarationList(int pos)
 			{
 				var p = pos;
@@ -82571,6 +84331,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLParameterDeclarationList(int pos, int start, int refs_225, ref ParameterDefinition? r0)
 			{
 				var p = pos;
@@ -82609,6 +84370,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLParameterDeclarationList(int pos, int start, int refs_225)
 			{
 				var p = pos;
@@ -82625,6 +84387,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLParameterDeclaration(int pos)
 			{
 				var p = pos;
@@ -82732,6 +84495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLParameterDeclaration(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -82768,6 +84532,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLParameterDeclaration(int pos, int start, ref Identifier? r1)
 			{
 				var p = pos;
@@ -82788,6 +84553,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLParameterDeclaration(int pos, int start)
 			{
 				var p = pos;
@@ -82799,6 +84565,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLParameterDeclaration(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -82813,6 +84580,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_SQLParameterDeclaration(int pos, int start, ref Expression? r4)
 			{
 				var p = pos;
@@ -82829,6 +84597,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ParameterType(int pos)
 			{
 				var p = pos;
@@ -82946,6 +84715,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ParameterType(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -82957,6 +84727,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ParameterType(int pos, int start, ref PassThroughMode? r2)
 			{
 				var p = pos;
@@ -82967,6 +84738,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ParameterType(int pos, int start, ref Nodes.TableSemanticsOf? r3)
 			{
 				var p = pos;
@@ -82977,6 +84749,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ParameterType(int pos, int start)
 			{
 				var p = pos;
@@ -83014,6 +84787,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ParameterType(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -83026,6 +84800,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LocatorIndication(int pos)
 			{
 				var p = pos;
@@ -83045,6 +84820,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PassThroughOption(int pos)
 			{
 				var p = pos;
@@ -83094,6 +84870,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TableSemanticsOption(int pos)
 			{
 				var p = pos;
@@ -83166,6 +84943,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TableSemanticsOption(int pos, int start, ref TablePruning? r0)
 			{
 				var p = pos;
@@ -83177,6 +84955,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PruningOption(int pos)
 			{
 				var p = pos;
@@ -83232,6 +85011,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ParameterDefault(int pos)
 			{
 				var p = pos;
@@ -83296,6 +85076,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ParameterDefault(int pos, int start)
 			{
 				var p = pos;
@@ -83308,6 +85089,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DescriptorValueConstructor(int pos)
 			{
 				var p = pos;
@@ -83367,6 +85149,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DescriptorValueConstructor(int pos, int start, int refs_226)
 			{
 				var p = pos;
@@ -83383,6 +85166,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DescriptorColumnSpecification(int pos)
 			{
 				var p = pos;
@@ -83419,6 +85203,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DescriptorColumnSpecification(int pos, int start, ref DataType? r1)
 			{
 				var p = pos;
@@ -83429,6 +85214,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReturnsClause(int pos)
 			{
 				var p = pos;
@@ -83447,6 +85233,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReturnsType(int pos)
 			{
 				var p = pos;
@@ -83574,6 +85361,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ReturnsType(int pos, int start, int refs_9, ref FieldDefinition? r0)
 			{
 				var p = pos;
@@ -83624,6 +85412,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ReturnsType(int pos, int start, int refs_9)
 			{
 				var p = pos;
@@ -83640,6 +85429,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ReturnsType(int pos, int start, int refs_9, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -83651,6 +85441,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ReturnsType(int pos, int start, int refs_9, ref DataType? r4, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -83698,6 +85489,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ReturnsType(int pos, int start, int refs_9, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -83709,6 +85501,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReturnsTableColumn(int pos)
 			{
 				var p = pos;
@@ -83726,6 +85519,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OriginalMethodSpecification(int pos)
 			{
 				var p = pos;
@@ -83819,6 +85613,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OriginalMethodSpecification(int pos, int start, int refs_219, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -83845,6 +85640,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_OriginalMethodSpecification(int pos, int start, int refs_219, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -83871,6 +85667,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_OriginalMethodSpecification(int pos, int start, int refs_219)
 			{
 				var p = pos;
@@ -83881,6 +85678,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MethodCharacteristic(int pos)
 			{
 				var p = pos;
@@ -83974,6 +85772,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MethodCharacteristic(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -83988,6 +85787,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LanguageClause(int pos)
 			{
 				var p = pos;
@@ -84064,6 +85864,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ParameterStyleClause(int pos)
 			{
 				var p = pos;
@@ -84107,6 +85908,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLDataAccessIndication(int pos)
 			{
 				var p = pos;
@@ -84186,6 +85988,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NullCallClause(int pos)
 			{
 				var p = pos;
@@ -84259,6 +86062,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UserDefinedCastDefinition(int pos)
 			{
 				var p = pos;
@@ -84342,6 +86146,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UserDefinedCastDefinition(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -84362,6 +86167,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UserDefinedOrderingDefinition(int pos)
 			{
 				var p = pos;
@@ -84409,6 +86215,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrderingForm(int pos)
 			{
 				var p = pos;
@@ -84452,6 +86259,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OrderingCategory(int pos)
 			{
 				var p = pos;
@@ -84533,6 +86341,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OrderingCategory(int pos, int start, ref QualifiedName? r2)
 			{
 				var p = pos;
@@ -84543,6 +86352,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransformDefinition(int pos)
 			{
 				var p = pos;
@@ -84620,6 +86430,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TransformDefinition(int pos, int start, int refs_260)
 			{
 				var p = pos;
@@ -84630,6 +86441,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransformGroup(int pos)
 			{
 				var p = pos;
@@ -84659,6 +86471,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransformElementList(int pos)
 			{
 				var p = pos;
@@ -84695,6 +86508,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TransformElementList(int pos, int start, ref TransformElement? r1)
 			{
 				var p = pos;
@@ -84711,6 +86525,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransformElement(int pos)
 			{
 				var p = pos;
@@ -84735,6 +86550,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransformKind(int pos)
 			{
 				var p = pos;
@@ -84778,6 +86594,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SchemaRoutine(int pos)
 			{
 				var p = pos;
@@ -84824,6 +86641,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLInvokedProcedure(int pos)
 			{
 				var p = pos;
@@ -84857,6 +86675,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RoutineCharacteristics(int pos)
 			{
 				var p = pos;
@@ -84893,6 +86712,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RoutineCharacteristics(int pos, int start, int refs_219)
 			{
 				var p = pos;
@@ -84903,6 +86723,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RoutineCharacteristic(int pos)
 			{
 				var p = pos;
@@ -85060,6 +86881,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RoutineCharacteristic(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -85074,6 +86896,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReturnedResultSetsCharacteristic(int pos)
 			{
 				var p = pos;
@@ -85127,6 +86950,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RoutineBody(int pos)
 			{
 				var p = pos;
@@ -85212,6 +87036,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RoutineBody(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -85255,6 +87080,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RoutineBody(int pos, int start)
 			{
 				var p = pos;
@@ -85292,6 +87118,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RoutineBody(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -85335,6 +87162,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExternalBodyReference(int pos)
 			{
 				var p = pos;
@@ -85442,6 +87270,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ExternalBodyReference(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -85461,6 +87290,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ExternalBodyReference(int pos, int start, ref ParameterStyleKind? r1)
 			{
 				var p = pos;
@@ -85471,6 +87301,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ExternalBodyReference(int pos, int start, ref TransformGroupSpecification? r2)
 			{
 				var p = pos;
@@ -85481,6 +87312,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ExternalBodyReference(int pos, int start, ref ExternalSecurity? r3)
 			{
 				var p = pos;
@@ -85503,6 +87335,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExternalRoutineName(int pos)
 			{
 				var p = pos;
@@ -85532,6 +87365,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransformGroupSpecification(int pos)
 			{
 				var p = pos;
@@ -85584,6 +87418,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TransformGroupSpecification(int pos, int start, int refs_291)
 			{
 				var p = pos;
@@ -85625,6 +87460,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TransformGroupSpecification(int pos, int start, int refs_291)
 			{
 				var p = pos;
@@ -85641,6 +87477,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GroupSpecification(int pos)
 			{
 				var p = pos;
@@ -85671,6 +87508,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExternalSecurityClause(int pos)
 			{
 				var p = pos;
@@ -85714,6 +87552,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PolymorphicTableFunctionBody(int pos)
 			{
 				var p = pos;
@@ -85833,6 +87672,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PolymorphicTableFunctionBody(int pos, int start, ref int a0, ref int b0, ref Sql.SqlList<ParameterDefinition>? r1)
 			{
 				var p = pos;
@@ -85872,6 +87712,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PolymorphicTableFunctionBody(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -85886,6 +87727,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PolymorphicTableFunctionBody(int pos, int start, ref RoutineDesignator? r2)
 			{
 				var p = pos;
@@ -85908,6 +87750,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PolymorphicTableFunctionBody(int pos, int start, ref RoutineDesignator? r3)
 			{
 				var p = pos;
@@ -85930,6 +87773,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_PolymorphicTableFunctionBody(int pos, int start, ref RoutineDesignator? r5)
 			{
 				var p = pos;
@@ -85952,6 +87796,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLInvokedFunction(int pos)
 			{
 				var p = pos;
@@ -86003,6 +87848,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FunctionSpecification(int pos)
 			{
 				var p = pos;
@@ -86061,6 +87907,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FunctionSpecification(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -86081,6 +87928,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_MethodSpecificationDesignator(int pos)
 			{
 				var p = pos;
@@ -86195,6 +88043,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_MethodSpecificationDesignator(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -86231,6 +88080,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_MethodSpecificationDesignator(int pos, int start, ref ReturnsDefinition? r4)
 			{
 				var p = pos;
@@ -86241,6 +88091,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SequenceGeneratorDefinition(int pos)
 			{
 				var p = pos;
@@ -86294,6 +88145,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SequenceGeneratorDefinition(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -86304,6 +88156,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SequenceGeneratorOption(int pos)
 			{
 				var p = pos;
@@ -86343,6 +88196,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GrantStatement(int pos)
 			{
 				var p = pos;
@@ -86672,6 +88526,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GrantStatement(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -86688,6 +88543,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GrantStatement(int pos, int start, int refs_2, ref int a8, ref int b8)
 			{
 				var p = pos;
@@ -86714,6 +88570,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_GrantStatement(int pos, int start, int refs_2, ref Grantor? r9)
 			{
 				var p = pos;
@@ -86724,6 +88581,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_GrantStatement(int pos, int start, int refs_2, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -86750,6 +88608,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_GrantStatement(int pos, int start, int refs_2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -86776,6 +88635,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_GrantStatement(int pos, int start, int refs_2, ref Grantor? r4)
 			{
 				var p = pos;
@@ -86786,6 +88646,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_GrantStatement(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -86888,6 +88749,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_GrantStatement(int pos, int start, int refs_2, ref int a2, ref int b2)
 			{
 				var p = pos;
@@ -86914,6 +88776,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_GrantStatement(int pos, int start, int refs_2, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -86940,6 +88803,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_GrantStatement(int pos, int start, int refs_2, ref Grantor? r4)
 			{
 				var p = pos;
@@ -86950,6 +88814,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_GrantStatement(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -86966,6 +88831,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart11_GrantStatement(int pos, int start, int refs_2, ref int a8, ref int b8)
 			{
 				var p = pos;
@@ -86992,6 +88858,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart12_GrantStatement(int pos, int start, int refs_2, ref Grantor? r9)
 			{
 				var p = pos;
@@ -87002,6 +88869,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Privileges(int pos)
 			{
 				var p = pos;
@@ -87025,6 +88893,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrivilegeActions(int pos)
 			{
 				var p = pos;
@@ -87096,6 +88965,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrivilegeActions(int pos, int start, int refs_248)
 			{
 				var p = pos;
@@ -87112,6 +88982,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrivilegeAction(int pos)
 			{
 				var p = pos;
@@ -87269,6 +89140,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrivilegeAction(int pos, int start, int refs_183)
 			{
 				var p = pos;
@@ -87294,6 +89166,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_PrivilegeAction(int pos, int start, int refs_183)
 			{
 				var p = pos;
@@ -87347,6 +89220,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_PrivilegeAction(int pos, int start, int refs_183)
 			{
 				var p = pos;
@@ -87363,6 +89237,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_PrivilegeAction(int pos, int start, int refs_183, ref Sql.SqlList<Identifier>? r4)
 			{
 				var p = pos;
@@ -87385,6 +89260,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ObjectName(int pos)
 			{
 				var p = pos;
@@ -87660,6 +89536,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ObjectName(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -87674,6 +89551,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ObjectName(int pos, int start)
 			{
 				var p = pos;
@@ -87692,6 +89570,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ObjectName(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -87706,6 +89585,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_ObjectName(int pos, int start)
 			{
 				var p = pos;
@@ -87724,6 +89604,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_ObjectName(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -87738,6 +89619,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_ObjectName(int pos, int start)
 			{
 				var p = pos;
@@ -87756,6 +89638,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_ObjectName(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -87770,6 +89653,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_ObjectName(int pos, int start)
 			{
 				var p = pos;
@@ -87782,6 +89666,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_ObjectName(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -87796,6 +89681,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_ObjectName(int pos, int start)
 			{
 				var p = pos;
@@ -87814,6 +89700,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_ObjectName(int pos, int start, ref int a7, ref int b7)
 			{
 				var p = pos;
@@ -87828,6 +89715,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Grantees(int pos)
 			{
 				var p = pos;
@@ -87869,6 +89757,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_Grantees(int pos, int start, int refs_244)
 			{
 				var p = pos;
@@ -87885,6 +89774,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GranteeItem(int pos)
 			{
 				var p = pos;
@@ -87929,6 +89819,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GranteeItem(int pos, int start)
 			{
 				var p = pos;
@@ -87942,6 +89833,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GrantedBy(int pos)
 			{
 				var p = pos;
@@ -87967,6 +89859,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_Grantor(int pos)
 			{
 				var p = pos;
@@ -87998,6 +89891,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RoleDefinition(int pos)
 			{
 				var p = pos;
@@ -88046,6 +89940,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RoleDefinition(int pos, int start, ref Grantor? r1)
 			{
 				var p = pos;
@@ -88068,6 +89963,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropSchemaStatement(int pos)
 			{
 				var p = pos;
@@ -88098,6 +89994,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropBehavior(int pos)
 			{
 				var p = pos;
@@ -88129,6 +90026,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterTableStatement(int pos)
 			{
 				var p = pos;
@@ -88158,6 +90056,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterTableAction(int pos)
 			{
 				var p = pos;
@@ -88449,6 +90348,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterTableAction(int pos, int start, ref int a13, ref int b13)
 			{
 				var p = pos;
@@ -88463,6 +90363,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_AlterTableAction(int pos, int start, ref int a8, ref int b8)
 			{
 				var p = pos;
@@ -88477,6 +90378,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_AlterTableAction(int pos, int start, ref int a4, ref int b4, ref ColumnDefinition? r5, ref int a6, ref int b6, ref ColumnDefinition? r7)
 			{
 				var p = pos;
@@ -88548,6 +90450,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_AlterTableAction(int pos, int start, ref int a4, ref int b4)
 			{
 				var p = pos;
@@ -88562,6 +90465,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_AlterTableAction(int pos, int start, ref int a6, ref int b6)
 			{
 				var p = pos;
@@ -88576,6 +90480,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_AlterTableAction(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -88590,6 +90495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterColumnAction(int pos)
 			{
 				var p = pos;
@@ -88799,6 +90705,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -88818,6 +90725,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -88844,6 +90752,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -88925,6 +90834,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -88935,6 +90845,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -88945,6 +90856,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -88955,6 +90867,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -88975,6 +90888,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -89001,6 +90915,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_AlterColumnAction(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -89026,6 +90941,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterIdentityColumnOption(int pos)
 			{
 				var p = pos;
@@ -89085,6 +91001,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterIdentityColumnOption(int pos, int start, ref LiteralValue? r0)
 			{
 				var p = pos;
@@ -89101,6 +91018,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropTableStatement(int pos)
 			{
 				var p = pos;
@@ -89130,6 +91048,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropViewStatement(int pos)
 			{
 				var p = pos;
@@ -89159,6 +91078,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterRoutineStatement(int pos)
 			{
 				var p = pos;
@@ -89220,6 +91140,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterRoutineStatement(int pos, int start, int refs_219)
 			{
 				var p = pos;
@@ -89230,6 +91151,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterRoutineCharacteristic(int pos)
 			{
 				var p = pos;
@@ -89313,6 +91235,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropRoutineStatement(int pos)
 			{
 				var p = pos;
@@ -89336,6 +91259,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropUserDefinedCastStatement(int pos)
 			{
 				var p = pos;
@@ -89388,6 +91312,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RevokeStatement(int pos)
 			{
 				var p = pos;
@@ -89704,6 +91629,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RevokeStatement(int pos, int start, int refs_2, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -89730,6 +91656,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RevokeStatement(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -89746,6 +91673,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RevokeStatement(int pos, int start, int refs_2, ref Grantor? r9)
 			{
 				var p = pos;
@@ -89756,6 +91684,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_RevokeStatement(int pos, int start, int refs_2, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -89799,6 +91728,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_RevokeStatement(int pos, int start, int refs_2, ref Grantor? r3)
 			{
 				var p = pos;
@@ -89809,6 +91739,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_RevokeStatement(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -89890,6 +91821,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_RevokeStatement(int pos, int start, int refs_2, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -89933,6 +91865,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_RevokeStatement(int pos, int start, int refs_2, ref Grantor? r3)
 			{
 				var p = pos;
@@ -89943,6 +91876,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart8_RevokeStatement(int pos, int start, int refs_2, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -89969,6 +91903,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart9_RevokeStatement(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -89985,6 +91920,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart10_RevokeStatement(int pos, int start, int refs_2, ref Grantor? r9)
 			{
 				var p = pos;
@@ -89995,6 +91931,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropRoleStatement(int pos)
 			{
 				var p = pos;
@@ -90024,6 +91961,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterDomainStatement(int pos)
 			{
 				var p = pos;
@@ -90053,6 +91991,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterDomainAction(int pos)
 			{
 				var p = pos;
@@ -90128,6 +92067,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropDomainStatement(int pos)
 			{
 				var p = pos;
@@ -90157,6 +92097,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropCharacterSetStatement(int pos)
 			{
 				var p = pos;
@@ -90187,6 +92128,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropCollationStatement(int pos)
 			{
 				var p = pos;
@@ -90216,6 +92158,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropTransliterationStatement(int pos)
 			{
 				var p = pos;
@@ -90240,6 +92183,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropAssertionStatement(int pos)
 			{
 				var p = pos;
@@ -90288,6 +92232,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DropAssertionStatement(int pos, int start, ref DropBehavior? r1)
 			{
 				var p = pos;
@@ -90298,6 +92243,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropTriggerStatement(int pos)
 			{
 				var p = pos;
@@ -90322,6 +92268,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterTypeStatement(int pos)
 			{
 				var p = pos;
@@ -90351,6 +92298,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterTypeAction(int pos)
 			{
 				var p = pos;
@@ -90462,6 +92410,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SpecificMethodSpecificationDesignator(int pos)
 			{
 				var p = pos;
@@ -90545,6 +92494,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SpecificMethodSpecificationDesignator(int pos, int start, int refs_5, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -90581,6 +92531,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SpecificMethodSpecificationDesignator(int pos, int start, int refs_5, ref DataType? r2)
 			{
 				var p = pos;
@@ -90619,6 +92570,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SpecificMethodSpecificationDesignator(int pos, int start, int refs_5)
 			{
 				var p = pos;
@@ -90635,6 +92587,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropDataTypeStatement(int pos)
 			{
 				var p = pos;
@@ -90664,6 +92617,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropUserDefinedOrderingStatement(int pos)
 			{
 				var p = pos;
@@ -90699,6 +92653,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterTransformStatement(int pos)
 			{
 				var p = pos;
@@ -90776,6 +92731,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterTransformStatement(int pos, int start, int refs_208)
 			{
 				var p = pos;
@@ -90786,6 +92742,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterGroup(int pos)
 			{
 				var p = pos;
@@ -90844,6 +92801,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterGroup(int pos, int start, int refs_209)
 			{
 				var p = pos;
@@ -90860,6 +92818,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterTransformAction(int pos)
 			{
 				var p = pos;
@@ -90953,6 +92912,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterTransformAction(int pos, int start, ref TransformDirection? r2)
 			{
 				var p = pos;
@@ -90969,6 +92929,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropTransformStatement(int pos)
 			{
 				var p = pos;
@@ -91020,6 +92981,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransformDropTarget(int pos)
 			{
 				var p = pos;
@@ -91051,6 +93013,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterSequenceGeneratorStatement(int pos)
 			{
 				var p = pos;
@@ -91109,6 +93072,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterSequenceGeneratorStatement(int pos, int start, int refs_142)
 			{
 				var p = pos;
@@ -91119,6 +93083,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AlterSequenceGeneratorOption(int pos)
 			{
 				var p = pos;
@@ -91176,6 +93141,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AlterSequenceGeneratorOption(int pos, int start, ref LiteralValue? r0)
 			{
 				var p = pos;
@@ -91192,6 +93158,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DropSequenceGeneratorStatement(int pos)
 			{
 				var p = pos;
@@ -91221,6 +93188,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLDynamicStatement(int pos)
 			{
 				var p = pos;
@@ -91341,6 +93309,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLDynamicStatement(int pos, int start)
 			{
 				var p = pos;
@@ -91353,6 +93322,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLDescriptorStatement(int pos)
 			{
 				var p = pos;
@@ -91566,6 +93536,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLDescriptorStatement(int pos, int start, ref int a8, ref int b8)
 			{
 				var p = pos;
@@ -91580,6 +93551,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLDescriptorStatement(int pos, int start, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -91594,6 +93566,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLDescriptorStatement(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -91608,6 +93581,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLDescriptorStatement(int pos, int start, ref Expression? r2)
 			{
 				var p = pos;
@@ -91630,6 +93604,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_SQLDescriptorStatement(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -91644,6 +93619,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConventionalDescriptorName(int pos)
 			{
 				var p = pos;
@@ -91681,6 +93657,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ConventionalDescriptorName(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -91702,6 +93679,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DescriptorName(int pos)
 			{
 				var p = pos;
@@ -91735,6 +93713,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_GetDescriptorInformation(int pos)
 			{
 				var p = pos;
@@ -91832,6 +93811,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_GetDescriptorInformation(int pos, int start, int refs_201)
 			{
 				var p = pos;
@@ -91848,6 +93828,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_GetDescriptorInformation(int pos, int start, int refs_201)
 			{
 				var p = pos;
@@ -91864,6 +93845,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_HeaderRead(int pos)
 			{
 				var p = pos;
@@ -91899,6 +93881,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SimpleTargetSpecification(int pos)
 			{
 				var p = pos;
@@ -91966,6 +93949,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ItemRead(int pos)
 			{
 				var p = pos;
@@ -92001,6 +93985,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetDescriptorInformation(int pos)
 			{
 				var p = pos;
@@ -92100,6 +94085,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetDescriptorInformation(int pos, int start, int refs_199)
 			{
 				var p = pos;
@@ -92116,6 +94102,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SetDescriptorInformation(int pos, int start, int refs_199)
 			{
 				var p = pos;
@@ -92132,6 +94119,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_HeaderWrite(int pos)
 			{
 				var p = pos;
@@ -92167,6 +94155,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ItemWrite(int pos)
 			{
 				var p = pos;
@@ -92202,6 +94191,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PrepareStatement(int pos)
 			{
 				var p = pos;
@@ -92255,6 +94245,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_PrepareStatement(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -92271,6 +94262,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLStatementName(int pos)
 			{
 				var p = pos;
@@ -92308,6 +94300,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLStatementName(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -92329,6 +94322,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DeallocatePreparedStatement(int pos)
 			{
 				var p = pos;
@@ -92353,6 +94347,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DescribeStatement(int pos)
 			{
 				var p = pos;
@@ -92503,6 +94498,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DescribeStatement(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -92527,6 +94523,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_DescribeStatement(int pos, int start)
 			{
 				var p = pos;
@@ -92538,6 +94535,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_DescribeStatement(int pos, int start, ref bool? r6)
 			{
 				var p = pos;
@@ -92548,6 +94546,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_DescribeStatement(int pos, int start)
 			{
 				var p = pos;
@@ -92595,6 +94594,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_DescribeStatement(int pos, int start, ref bool? r2)
 			{
 				var p = pos;
@@ -92605,6 +94605,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_DescribeStatement(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -92629,6 +94630,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_DescribeStatement(int pos, int start)
 			{
 				var p = pos;
@@ -92640,6 +94642,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_DescribeStatement(int pos, int start, ref bool? r6)
 			{
 				var p = pos;
@@ -92650,6 +94653,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UsingDescriptor(int pos)
 			{
 				var p = pos;
@@ -92699,6 +94703,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UsingDescriptor(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -92714,6 +94719,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_NestingOption(int pos)
 			{
 				var p = pos;
@@ -92757,6 +94763,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DescribedObject(int pos)
 			{
 				var p = pos;
@@ -92799,6 +94806,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CursorName(int pos)
 			{
 				var p = pos;
@@ -92845,6 +94853,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExecuteImmediateStatement(int pos)
 			{
 				var p = pos;
@@ -92869,6 +94878,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ExecuteStatement(int pos)
 			{
 				var p = pos;
@@ -92934,6 +94944,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ExecuteStatement(int pos, int start, ref DynamicArguments? r1)
 			{
 				var p = pos;
@@ -92944,6 +94955,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ExecuteStatement(int pos, int start, ref DynamicArguments? r2)
 			{
 				var p = pos;
@@ -92954,6 +94966,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OutputUsingClause(int pos)
 			{
 				var p = pos;
@@ -93108,6 +95121,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_OutputUsingClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -93124,6 +95138,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_OutputUsingClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -93170,6 +95185,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_OutputUsingClause(int pos, int start, int refs_4, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -93184,6 +95200,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_OutputUsingClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -93200,6 +95217,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_OutputUsingClause(int pos, int start, int refs_4, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -93214,6 +95232,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TargetSpecification(int pos)
 			{
 				var p = pos;
@@ -93336,6 +95355,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TargetSpecification(int pos, int start, ref int a1, ref int b1, ref Identifier? r2)
 			{
 				var p = pos;
@@ -93375,6 +95395,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_TargetSpecification(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -93389,6 +95410,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_TargetSpecification(int pos, int start, ref int a4, ref int b4, ref Expression? r5)
 			{
 				var p = pos;
@@ -93426,6 +95448,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_InputUsingClause(int pos)
 			{
 				var p = pos;
@@ -93580,6 +95603,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_InputUsingClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -93596,6 +95620,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_InputUsingClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -93642,6 +95667,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_InputUsingClause(int pos, int start, int refs_4, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -93656,6 +95682,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_InputUsingClause(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -93672,6 +95699,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_InputUsingClause(int pos, int start, int refs_4, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -93686,6 +95714,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UsingArgument(int pos)
 			{
 				var p = pos;
@@ -93737,6 +95766,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLDynamicDataStatement(int pos)
 			{
 				var p = pos;
@@ -93937,6 +95967,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLDynamicDataStatement(int pos, int start, ref FetchOrientation? r4, ref int a5, ref int b5)
 			{
 				var p = pos;
@@ -93974,6 +96005,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLDynamicDataStatement(int pos, int start, ref FetchOrientation? r4)
 			{
 				var p = pos;
@@ -93984,6 +96016,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLDynamicDataStatement(int pos, int start, ref DynamicArguments? r3)
 			{
 				var p = pos;
@@ -93994,6 +96027,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLDynamicDataStatement(int pos, int start)
 			{
 				var p = pos;
@@ -94006,6 +96040,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AllocateExtendedDynamicCursorStatement(int pos)
 			{
 				var p = pos;
@@ -94089,6 +96124,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AllocateExtendedDynamicCursorStatement(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -94110,6 +96146,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_AllocateExtendedDynamicCursorStatement(int pos, int start, ref int a3, ref int b3)
 			{
 				var p = pos;
@@ -94131,6 +96168,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CursorProperties(int pos)
 			{
 				var p = pos;
@@ -94237,6 +96275,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CursorProperties(int pos, int start, ref CursorSensitivity? r0)
 			{
 				var p = pos;
@@ -94247,6 +96286,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CursorProperties(int pos, int start, ref CursorScrollability? r1)
 			{
 				var p = pos;
@@ -94257,6 +96297,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_CursorProperties(int pos, int start, ref CursorHoldability? r2)
 			{
 				var p = pos;
@@ -94267,6 +96308,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_CursorProperties(int pos, int start, ref CursorReturnability? r3)
 			{
 				var p = pos;
@@ -94278,6 +96320,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CursorSensitivity(int pos)
 			{
 				var p = pos;
@@ -94316,6 +96359,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CursorScrollability(int pos)
 			{
 				var p = pos;
@@ -94354,6 +96398,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CursorHoldability(int pos)
 			{
 				var p = pos;
@@ -94398,6 +96443,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CursorReturnability(int pos)
 			{
 				var p = pos;
@@ -94441,6 +96487,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AllocateReceivedCursorStatement(int pos)
 			{
 				var p = pos;
@@ -94495,6 +96542,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AllocateReceivedCursorStatement(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -94509,6 +96557,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConventionalDynamicCursorName(int pos)
 			{
 				var p = pos;
@@ -94609,6 +96658,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ConventionalDynamicCursorName(int pos, int start)
 			{
 				var p = pos;
@@ -94621,6 +96671,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ConventionalDynamicCursorName(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -94642,6 +96693,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_ConventionalDynamicCursorName(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -94663,6 +96715,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FetchOrientation(int pos)
 			{
 				var p = pos;
@@ -94759,6 +96812,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DynamicCursorName(int pos)
 			{
 				var p = pos;
@@ -94792,6 +96846,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CopyDescriptorStatement(int pos)
 			{
 				var p = pos;
@@ -94815,6 +96870,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CopyDescriptorTail(int pos)
 			{
 				var p = pos;
@@ -94907,6 +96963,7 @@ namespace DotGram.Sql.Standard
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CopyOptions(int pos)
 			{
 				var p = pos;
@@ -94950,6 +97007,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CopyOptions(int pos, int start)
 			{
 				var p = pos;
@@ -94969,6 +97027,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_PipeRowStatement(int pos)
 			{
 				var p = pos;
@@ -94999,6 +97058,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLDataStatement(int pos)
 			{
 				var p = pos;
@@ -95142,6 +97202,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLDataStatement(int pos, int start)
 			{
 				var p = pos;
@@ -95154,6 +97215,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLDataStatement(int pos, int start)
 			{
 				var p = pos;
@@ -95166,6 +97228,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_OpenStatement(int pos)
 			{
 				var p = pos;
@@ -95184,6 +97247,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FetchStatement(int pos)
 			{
 				var p = pos;
@@ -95269,6 +97333,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FetchStatement(int pos, int start, int refs_4, ref FetchOrientation? r0, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -95308,6 +97373,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_FetchStatement(int pos, int start, int refs_4, ref FetchOrientation? r0)
 			{
 				var p = pos;
@@ -95318,6 +97384,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_FetchStatement(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -95334,6 +97401,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CloseStatement(int pos)
 			{
 				var p = pos;
@@ -95352,6 +97420,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SelectStatementSingleRow(int pos)
 			{
 				var p = pos;
@@ -95441,6 +97510,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SelectStatementSingleRow(int pos, int start, int refs_4, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -95462,6 +97532,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SelectStatementSingleRow(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -95478,6 +97549,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_FreeLocatorStatement(int pos)
 			{
 				var p = pos;
@@ -95531,6 +97603,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_FreeLocatorStatement(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -95547,6 +97620,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_LocatorReference(int pos)
 			{
 				var p = pos;
@@ -95583,6 +97657,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_HoldLocatorStatement(int pos)
 			{
 				var p = pos;
@@ -95636,6 +97711,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_HoldLocatorStatement(int pos, int start, int refs_4)
 			{
 				var p = pos;
@@ -95652,6 +97728,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DeleteStatementPositioned(int pos)
 			{
 				var p = pos;
@@ -95723,6 +97800,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_DeleteStatementPositioned(int pos, int start, ref Alias? r1)
 			{
 				var p = pos;
@@ -95733,6 +97811,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_UpdateStatementPositioned(int pos)
 			{
 				var p = pos;
@@ -95809,6 +97888,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_UpdateStatementPositioned(int pos, int start, ref Alias? r1)
 			{
 				var p = pos;
@@ -95819,6 +97899,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TruncateTableStatement(int pos)
 			{
 				var p = pos;
@@ -95868,6 +97949,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TruncateTableStatement(int pos, int start, ref int a1, ref int b1)
 			{
 				var p = pos;
@@ -95905,6 +97987,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLControlStatement(int pos)
 			{
 				var p = pos;
@@ -95946,6 +98029,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CallStatement(int pos)
 			{
 				var p = pos;
@@ -95964,6 +98048,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RoutineInvocation(int pos)
 			{
 				var p = pos;
@@ -95981,6 +98066,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RoutineName(int pos)
 			{
 				var p = pos;
@@ -96027,6 +98113,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RoutineName(int pos, int start, int refs_2)
 			{
 				var p = pos;
@@ -96043,6 +98130,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReturnStatement(int pos)
 			{
 				var p = pos;
@@ -96080,6 +98168,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLTransactionStatement(int pos)
 			{
 				var p = pos;
@@ -96165,6 +98254,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLTransactionStatement(int pos, int start)
 			{
 				var p = pos;
@@ -96177,6 +98267,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StartTransactionStatement(int pos)
 			{
 				var p = pos;
@@ -96223,6 +98314,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_StartTransactionStatement(int pos, int start, int refs_150, ref TransactionMode? r0)
 			{
 				var p = pos;
@@ -96261,6 +98353,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_StartTransactionStatement(int pos, int start, int refs_150)
 			{
 				var p = pos;
@@ -96277,6 +98370,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TransactionMode(int pos)
 			{
 				var p = pos;
@@ -96401,6 +98495,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TransactionMode(int pos, int start)
 			{
 				var p = pos;
@@ -96420,6 +98515,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetTransactionStatement(int pos)
 			{
 				var p = pos;
@@ -96492,6 +98588,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SetTransactionStatement(int pos, int start, int refs_150, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -96506,6 +98603,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SetTransactionStatement(int pos, int start, int refs_150, ref TransactionMode? r1)
 			{
 				var p = pos;
@@ -96544,6 +98642,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SetTransactionStatement(int pos, int start, int refs_150)
 			{
 				var p = pos;
@@ -96560,6 +98659,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetConstraintsModeStatement(int pos)
 			{
 				var p = pos;
@@ -96611,6 +98711,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConstraintNameList(int pos)
 			{
 				var p = pos;
@@ -96670,6 +98771,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ConstraintNameList(int pos, int start, int refs_3)
 			{
 				var p = pos;
@@ -96686,6 +98788,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SavepointStatement(int pos)
 			{
 				var p = pos;
@@ -96704,6 +98807,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ReleaseSavepointStatement(int pos)
 			{
 				var p = pos;
@@ -96728,6 +98832,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_CommitStatement(int pos)
 			{
 				var p = pos;
@@ -96789,6 +98894,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_CommitStatement(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -96803,6 +98909,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_CommitStatement(int pos, int start, ref ChainMode? r1)
 			{
 				var p = pos;
@@ -96813,6 +98920,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ChainClause(int pos)
 			{
 				var p = pos;
@@ -96857,6 +98965,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ChainClause(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -96871,6 +98980,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_RollbackStatement(int pos)
 			{
 				var p = pos;
@@ -96955,6 +99065,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_RollbackStatement(int pos, int start, ref int a0, ref int b0)
 			{
 				var p = pos;
@@ -96969,6 +99080,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_RollbackStatement(int pos, int start, ref ChainMode? r1)
 			{
 				var p = pos;
@@ -96979,6 +99091,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_RollbackStatement(int pos, int start, ref Identifier? r2)
 			{
 				var p = pos;
@@ -97001,6 +99114,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLConnectionStatement(int pos)
 			{
 				var p = pos;
@@ -97052,6 +99166,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConnectStatement(int pos)
 			{
 				var p = pos;
@@ -97141,6 +99256,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_ConnectStatement(int pos, int start, ref Expression? r1)
 			{
 				var p = pos;
@@ -97157,6 +99273,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_ConnectStatement(int pos, int start, ref Expression? r2)
 			{
 				var p = pos;
@@ -97173,6 +99290,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SetConnectionStatement(int pos)
 			{
 				var p = pos;
@@ -97197,6 +99315,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConnectionObject(int pos)
 			{
 				var p = pos;
@@ -97228,6 +99347,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DisconnectStatement(int pos)
 			{
 				var p = pos;
@@ -97246,6 +99366,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_DisconnectObject(int pos)
 			{
 				var p = pos;
@@ -97282,6 +99403,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLSessionStatement(int pos)
 			{
 				var p = pos;
@@ -97609,6 +99731,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLSessionStatement(int pos, int start, int refs_149, int refs_10)
 			{
 				var p = pos;
@@ -97636,6 +99759,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLSessionStatement(int pos, int start, int refs_149, int refs_10, ref CharacterSetName? r11)
 			{
 				var p = pos;
@@ -97682,6 +99806,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLSessionStatement(int pos, int start, int refs_149, int refs_10)
 			{
 				var p = pos;
@@ -97698,6 +99823,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLSessionStatement(int pos, int start, int refs_149, int refs_10, ref CharacterSetName? r13)
 			{
 				var p = pos;
@@ -97744,6 +99870,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart4_SQLSessionStatement(int pos, int start, int refs_149, int refs_10)
 			{
 				var p = pos;
@@ -97760,6 +99887,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart5_SQLSessionStatement(int pos, int start, int refs_149, int refs_10)
 			{
 				var p = pos;
@@ -97781,6 +99909,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart6_SQLSessionStatement(int pos, int start, int refs_149, int refs_10)
 			{
 				var p = pos;
@@ -97807,6 +99936,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart7_SQLSessionStatement(int pos, int start, int refs_149, int refs_10)
 			{
 				var p = pos;
@@ -97823,6 +99953,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ValueSpecification(int pos)
 			{
 				var p = pos;
@@ -97911,6 +100042,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_IntervalValueExpression(int pos)
 			{
 				var p = pos;
@@ -97932,6 +100064,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SessionTransactionCharacteristics(int pos)
 			{
 				var p = pos;
@@ -97979,6 +100112,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SessionTransactionCharacteristics(int pos, int start, int refs_150)
 			{
 				var p = pos;
@@ -97995,6 +100129,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLDiagnosticsStatement(int pos)
 			{
 				var p = pos;
@@ -98019,6 +100154,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_SQLDiagnosticsInformation(int pos)
 			{
 				var p = pos;
@@ -98139,6 +100275,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_SQLDiagnosticsInformation(int pos, int start, int refs_147, int refs_146)
 			{
 				var p = pos;
@@ -98193,6 +100330,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart1_SQLDiagnosticsInformation(int pos, int start, int refs_147, int refs_146, ref Nodes.AllOf? r1)
 			{
 				var p = pos;
@@ -98203,6 +100341,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart2_SQLDiagnosticsInformation(int pos, int start, int refs_147, int refs_146)
 			{
 				var p = pos;
@@ -98219,6 +100358,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart3_SQLDiagnosticsInformation(int pos, int start, int refs_147, int refs_146)
 			{
 				var p = pos;
@@ -98235,6 +100375,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_AllInformationQualifier(int pos)
 			{
 				var p = pos;
@@ -98289,6 +100430,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_AllInformationQualifier(int pos, int start, ref Expression? r0)
 			{
 				var p = pos;
@@ -98299,6 +100441,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_ConditionInformationItem(int pos)
 			{
 				var p = pos;
@@ -98334,6 +100477,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_StatementInformationItem(int pos)
 			{
 				var p = pos;
@@ -98369,6 +100513,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int Read_TemporaryTableDeclaration(int pos)
 			{
 				var p = pos;
@@ -98435,6 +100580,7 @@ namespace DotGram.Sql.Standard
 				return p;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
 			public int ReadPart0_TemporaryTableDeclaration(int pos, int start, ref int a2, ref int b2)
 			{
 				var p = pos;
