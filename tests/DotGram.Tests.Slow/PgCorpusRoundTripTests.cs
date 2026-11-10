@@ -27,6 +27,29 @@ public sealed class PgCorpusRoundTripTests
 			: Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "Corpus", "PostgreSql", "sql"));
 	}
 
+	/// <summary>
+	/// The second sample beside the suite, <c>tests/Corpus/PostgreSql/dump</c>: what pg_dump writes, which the suite does not
+	/// hold. Its files are keyed under <c>dump/</c> in the same baseline.
+	/// </summary>
+	static string Dump([System.Runtime.CompilerServices.CallerFilePath] string here = "")
+	{
+		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "Corpus", "PostgreSql", "dump"));
+	}
+
+	/// <summary>Every file's counts: the suite's by their own names, the dump sample's under <c>dump/</c> where it is on disk.</summary>
+	static Dictionary<string, PgCorpus.Counts> Counted(string root)
+	{
+		var counts = PgCorpus.Run(root).ByFile;
+
+		if (Environment.GetEnvironmentVariable("DOTGRAM_PG_CORPUS") is not { Length: > 0 } && Directory.Exists(Dump()))
+		{
+			foreach (var (file, now) in PgCorpus.Run(Dump()).ByFile)
+				counts["dump/" + file] = now;
+		}
+
+		return counts;
+	}
+
 	static string Baseline([System.Runtime.CompilerServices.CallerFilePath] string here = "")
 	{
 		return Path.Combine(Path.GetDirectoryName(here)!, "PgCorpusBaseline.txt");
@@ -148,7 +171,7 @@ public sealed class PgCorpusRoundTripTests
 		if (!Directory.Exists(root))
 			return;
 
-		var counts = PgCorpus.Run(root).ByFile;
+		var counts = Counted(root);
 
 		if (Environment.GetEnvironmentVariable("DOTGRAM_RECORD_PG_CORPUS_BASELINE") is { Length: > 0 })
 		{
@@ -202,7 +225,7 @@ public sealed class PgCorpusRoundTripTests
 	{
 		var lines = new List<string>
 		{
-			"# What each file of tests/Corpus/PostgreSql/sql reads and writes back: `path = read/refused/threw/same`.",
+			"# What each file of tests/Corpus/PostgreSql/sql, and of dump/ beside it under its own prefix, reads and writes back: `path = read/refused/threw/same`.",
 			"#   read    - statements the cutter cut and this grammar read (statements with psql variables are read by nobody and not counted)",
 			"#   refused - statements this grammar did not read",
 			"#   threw   - read, and then the writer threw, or printed what does not read back as the same tree",

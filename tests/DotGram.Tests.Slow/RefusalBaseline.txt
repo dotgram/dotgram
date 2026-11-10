@@ -1,4 +1,4 @@
-# The class of each refusal series as measured by the GUARD's own process (D57, D79): `parser | shape = class`, class one of Linear, Superlinear, Quadratic, or Unstable with a reason and a date after a #.
+﻿# The class of each refusal series as measured by the GUARD's own process (D57, D79): `parser | shape = class`, class one of Linear, Superlinear, Quadratic, or Unstable with a reason and a date after a #.
 # Signature, so that it can be checked in a week: estimator = the median of the pairwise slopes (Theil-Sen) over the largest sixteenth of the ladder, pairs at least 2x apart in size; each ladder walked twice
 # (the first pass warms the tiering) and the faster reading of the two taken at every size. Process = DotGram.Tests.Slow.exe -class DotGram.Tests.RefusalGuardTests, Release, cores 0-15 at high priority,
 # DOTGRAM_RECORD_BASELINE set: the class written is the WORST of three runs of the series, in the process that later reads it (a fresh audit process reads a curve flatter than a warm one).
@@ -81,6 +81,12 @@ PostgreSQL statement | derived tables nested, never closed = Linear
 PostgreSQL statement | insert parentheses nested, never closed = Linear
 PostgreSQL statement | data change bodies nested, never closed = Linear
 PostgreSQL statement | an unclosed dollar quote = Linear
+PostgreSQL statement | table columns, never closed = Linear
+PostgreSQL statement | a column's constraints, then a bad last one = Linear
+PostgreSQL statement | partition bound values, never closed = Linear
+PostgreSQL statement | a function's argument types, never closed = Linear
+PostgreSQL statement | operators dropped, the last one unclosed = Linear
+PostgreSQL statement | tables made of bracketed queries, never closed = Linear
 T-SQL statement | an unclosed string = Linear
 T-SQL statement | an unclosed comment = Linear
 T-SQL statement | an unclosed bracketed identifier = Linear
