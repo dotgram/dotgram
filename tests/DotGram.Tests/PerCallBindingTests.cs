@@ -12,16 +12,23 @@ namespace DotGram.Tests;
 /// </summary>
 /// <remarks>
 /// Seen in the PostgreSQL grammar: with <c>PerCall = true</c> the measure method of the bound terminal is emitted
-/// with a <c>parserLocating</c> parameter, and the lexer calls it at two sites without one (CS7036), so the parser
-/// does not compile. Without <c>PerCall</c>, or without the binding, it does.
+/// with a <c>parserLocating</c> parameter, and the lexer called it without one (CS7036), so the parser did not
+/// compile. Without <c>PerCall</c>, or without the binding, it did. Read both where no other token begins as the
+/// terminal does, and where one does — PostgreSQL's positional parameter, <c>$1</c>, here a bare <c>$</c> as
+/// well — so that a refusal of the terminal's rule is read again as the other token: the lexer measures the
+/// terminal on each of those paths.
 /// </remarks>
 public sealed class PerCallBindingTests
 {
-	static string Source(bool perCall)
+	static string Source(bool perCall, bool shared)
 	{
 		var options = perCall
 			? "[GramOptions(LocationType = typeof(ILoc), Suffix = \"Located\", PerCall = true)]"
 			: "[GramOptions(LocationType = typeof(ILoc), Suffix = \"Located\")]";
+		var param   = shared ? "Param  = '$' & ['0'..'9']*" : "";
+		var value   = shared
+			? "Value : @Text = t: Quoted => @(new Text(t)) | t: Param => @(new Text(t))"
+			: "Value : @Text = t: Quoted => @(new Text(t))";
 
 		return $$""""
 			using DotGram;
@@ -68,9 +75,10 @@ public sealed class PerCallBindingTests
 
 						Space  = ' '
 						Quoted = { '$' & $tag: (['a'..'z']*) & '$' & (?!('$' & $tag & '$') & any)* & '$' & $tag & '$' }
+						{{param}}
 					}
 
-					Value : @Text = t: Quoted => @(new Text(t))
+					{{value}}
 
 					parse Value
 					""", Lexical = true)]
@@ -83,17 +91,37 @@ public sealed class PerCallBindingTests
 	}
 
 	[Theory]
-	[InlineData(false)]
-	[InlineData(true)]
-	public void A_bound_terminal_is_read_through_a_located_door(bool perCall)
+	[InlineData(false, false)]
+	[InlineData(true,  false)]
+	[InlineData(false, true)]
+	[InlineData(true,  true)]
+	public void A_bound_terminal_is_read_through_a_located_door(bool perCall, bool shared)
 	{
-		var assembly = GeneratorDriverTests.Build(Source(perCall));
+		var assembly = GeneratorDriverTests.Build(Source(perCall, shared));
 		var host     = assembly.GetType("PerCallBindingProbe.P")!;
 		var door     = host.GetNestedType("Located")!;
-		var parse    = door.GetMethod("ParseValue", BindingFlags.Public | BindingFlags.Static, [typeof(string)])!;
-		var value    = parse.Invoke(null, ["  $ab$ x $a$ y $ab$"])!;
 
-		Assert.Equal("$ab$ x $a$ y $ab$", value.GetType().GetProperty("Value")!.GetValue(value));
-		Assert.Equal(2, value.GetType().GetField("At")!.GetValue(value));
+		AssertRead(door, "  $ab$ x $a$ y $ab$", "$ab$ x $a$ y $ab$", 2);
+
+		// The plain door is told nothing, with the located one beside it or compiled apart.
+		AssertRead(host, "  $ab$ x $a$ y $ab$", "$ab$ x $a$ y $ab$", -1);
+
+		if (shared)
+		{
+			// The terminal's rule refuses at the token's start, and the position is read again as the other token.
+			AssertRead(door, "  $1", "$1", 2);
+			AssertRead(host, "  $1", "$1", -1);
+			AssertRead(door, "  $", "$", 2);
+			AssertRead(host, "  $", "$", -1);
+		}
+	}
+
+	static void AssertRead(Type door, string input, string text, int at)
+	{
+		var parse = door.GetMethod("ParseValue", BindingFlags.Public | BindingFlags.Static, [typeof(string)])!;
+		var value = parse.Invoke(null, [input])!;
+
+		Assert.Equal(text, value.GetType().GetProperty("Value")!.GetValue(value));
+		Assert.Equal(at, value.GetType().GetField("At")!.GetValue(value));
 	}
 }
