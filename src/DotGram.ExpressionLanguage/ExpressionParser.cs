@@ -766,11 +766,14 @@ namespace DotGram.ExpressionLanguage;
 	// A keyword is no type's name, which C# says by making it one and this says by refusing it
 	// here: read as the head of a dotted name, `return` in `x + return` sent the parse looking
 	// for a `.` after it, and the refusal came back as the end of the input.
+	// The head is asked whether something declares it as soon as it is read, before the dotted
+	// parts and the type arguments: a bound name is an operand and never a type, and this is
+	// tried at every operand, so the parts after it are not read for a name that is going to be refused.
 	NamedType? : @Type
-		= ?!Keyword & head: Word & ('.' & part: Identifier)*
+		= ?!Keyword & head: Word & when @(!context.Binds(head, parserSpan))
+		  & ('.' & part: Identifier)*
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
-		  & when @(!context.Binds(head, parserSpan) &&
-		           (args != null || context.Resolves(ExpressionParser.Dotted(head, part))))
+		  & when @(args != null || context.Resolves(ExpressionParser.Dotted(head, part)))
 		  => @(args is null
 		       ? context.Here(parserSpan).TypeNamed(ExpressionParser.Dotted(head, part))
 		       : context.Here(parserSpan).Generic(
