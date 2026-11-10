@@ -705,22 +705,21 @@ sealed partial class Machine
 						ReadsMarks |= CSharpEmitter.Uses(graph, reading, "parserMarks");
 					}
 
-					// A `when` may name it as well as a `=>`, which `parserInput` cannot —
-					// the input is what a value keeps, and the context is what a guard
-					// writes into.
-					if (graph.Context is not null &&
-						(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
-							CSharpEmitter.Uses(graph, asked, "context") ||
-						node is Node.Guard { Text: var condition } &&
-							CSharpEmitter.Uses(graph, condition, "context") ||
-						node is Node.External { UsesContext: true }))
-					{
+					if (NamesContext(graph, node))
 						UsesContext = true;
-					}
 
 					if (node is Node.Reading)
 						UsesReading = true;
 				}
+
+		// A token's value is built from this machine by the machine that reads the token again over
+		// its text, and that one is handed the context and the reading from here where it asks for
+		// them (TokenOf): so this machine has them, whether or not anything of its own names them.
+		if (settings.Valuing.Context)
+			UsesContext = true;
+
+		if (settings.Valuing.Reading)
+			UsesReading = true;
 
 		CollectValueTypes();
 
@@ -1646,9 +1645,13 @@ sealed partial class Machine
 	string TokenOf(string at)
 	{
 		return OverKinds
-			? $"parserSource, parserStarts[{at}], parserLengths[{at}]" + (_settings.RereadLocates ? UsesLocating ? ", parserLocating" : ", -1" : "")
+			? $"parserSource, parserStarts[{at}], parserLengths[{at}]" +
+				_settings.Valuing.Arguments("context", "parserReading", UsesLocating ? "parserLocating" : "-1")
 			: throw new InvalidOperationException("A terminal is read again only over kinds.");
 	}
+
+	/// <summary>What the machine that reads a token again over its text asks of this one's calls into it (<see cref="TokenOf"/>).</summary>
+	public ValuingAsks Valuing => _settings.Valuing;
 
 	/// <summary>Where one position of the machine's own stands in the input.</summary>
 	/// <remarks>
@@ -1922,6 +1925,21 @@ sealed partial class Machine
 	/// </remarks>
 	public bool UsesContext { get; private set; }
 
+	/// <summary>Whether a node a machine reads names the grammar's context (<see cref="UsesContext"/>).</summary>
+	/// <remarks>
+	/// A `when` may name it as well as a `=>`, which `parserInput` cannot — the input is what a value
+	/// keeps, and the context is what a guard writes into.
+	/// </remarks>
+	internal static bool NamesContext(RecognitionGraph graph, Node node)
+	{
+		return graph.Context is not null &&
+			(node is Node.Construct { How: Construction.Expression { Text: var asked } } &&
+				CSharpEmitter.Uses(graph, asked, "context") ||
+			node is Node.Guard { Text: var condition } &&
+				CSharpEmitter.Uses(graph, condition, "context") ||
+			node is Node.External { UsesContext: true });
+	}
+
 	string ContextParameter => UsesContext ? $", {_graph.Context} context" : "";
 
 	string ContextArgument  => UsesContext ? ", context" : "";
@@ -1979,6 +1997,23 @@ sealed partial class Machine
 
 	string ReadingArgument  =>
 		(UsesReading ? ", parserReading" : "") + (UsesLocating ? ", parserLocating" : "");
+
+	/// <summary>
+	/// The arguments a call into a wrapper of this machine (<see cref="RenderWrapper"/>) hands it after the failure and
+	/// the value, from outside the machine: every parameter the wrapper takes, in its order, each from what the caller
+	/// has for it — the whole input, the context, the reading, and whether the reading locates.
+	/// </summary>
+	/// <remarks>
+	/// Every parameter is asked of the caller whether or not this machine takes it, so a caller cannot leave one out; what
+	/// the machine does not take is dropped here. Over characters only: the machine called this way reads a token's text.
+	/// </remarks>
+	public string Handing(string input, string context, string reading, string locating)
+	{
+		if (OverKinds)
+			throw new InvalidOperationException("Only a machine over characters is called from outside its own parser.");
+
+		return (UsesInput ? ", " + input : "") + ValuingAsks.Of(this).Arguments(context, reading, locating);
+	}
 
 	/// <summary>
 	/// Every <c>with state</c> site this machine compiled, in the order it reached them —

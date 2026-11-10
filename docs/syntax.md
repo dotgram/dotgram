@@ -3555,6 +3555,18 @@ token's start, and where the rule refuses the position is lexed again without it
 done only for a terminal in braces; one that is not atomic stays over characters with a
 `GRAM5004`.
 
+Such a terminal's guard, and the construction of any terminal, may name the grammar's
+`context` (§7.7), and a rule it reads may hold a `when … is …` that two publications answer
+differently (§5.1). The lexer measures the terminal with the context the publication was
+handed and as the reading the publication is, and a value built from a token is built with
+both, as over characters. The tokens are cut before the syntax reads anything, so a guard
+there sees the context as it was handed over, not what the syntax's own guards have written
+into it by the time the parse reaches the token; and a token's value is read again when it
+is built, so a guard that answers otherwise by then leaves the value null. What such a guard
+reads belongs in the context as configuration that holds for the whole parse. A cutting made
+with the context or a reading is the parse's, not the string's: it is not kept for the next
+reading of the same string.
+
 The beginning has to be the terminal's alone. One that can be empty, or that is also a
 token of its own, is refused (`GRAM5004`): the lexer would have a string it cannot give
 one meaning to. A terminal that is nothing but `@M` has no beginning at all, so the host
