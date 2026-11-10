@@ -22,7 +22,10 @@ namespace DotGram.Tests;
 /// <para>
 /// <b>The gate is bytes an element, at four doubling sizes</b>, as in
 /// <see cref="WebListRefusalAllocationTests"/>: a reading that built the parts and the name again for
-/// every shorter prefix doubles the bytes a part at every doubling of the parts.
+/// every shorter prefix doubles the bytes a part at every doubling of the parts. Measured on the first
+/// reading of names no cache has seen, in a scope made for it: what a hostile text costs is what a stream of
+/// texts of its own costs, and the name caches answer a text read again for nothing. An 800-part generic
+/// name allocated 58 KB read again and 297 MB read first.
 /// </para>
 /// </remarks>
 [Collection(typeof(Alone))]
@@ -30,9 +33,6 @@ public sealed class ExpressionDottedTypeRefusalAllocationTests
 {
 	/// <summary>Doubling sizes, in dotted parts after the head.</summary>
 	static readonly int[] Sizes = [100, 200, 400, 800];
-
-	/// <summary>How many runs a size is measured over; the smallest of them is kept.</summary>
-	const int Runs = 5;
 
 	[Fact]
 	public void A_parameter_typed_by_an_unresolved_dotted_name_still_refuses_at_every_size()
@@ -75,51 +75,110 @@ public sealed class ExpressionDottedTypeRefusalAllocationTests
 	[Fact]
 	public void A_parameter_typed_by_an_unresolved_dotted_name_allocates_about_as_many_bytes_a_part_at_every_size()
 	{
-		var texts = Sizes.Select(Parameter).ToArray();
+		AssertLinear("a parameter's type", static (parts, salt) => "(Root" + salt + Parts(parts, salt) + " x) => x");
+	}
 
-		// The largest size first, run and discarded: the reader's thread-static pools grow to fit
-		// it here, and not in whichever measured run asks them for more room next.
-		ExpressionParser.TryParse(texts[^1]);
+	/// <summary>
+	/// A generic name asks nothing while it is read, and was looked up whole where it was built: every prefix
+	/// of it asked of every assembly, 3.2 GB for 1,600 parts. Longer than any type, it is looked up no more.
+	/// </summary>
+	[Fact]
+	public void A_generic_name_longer_than_any_type_allocates_about_as_many_bytes_a_part_at_every_size()
+	{
+		AssertLinear("a generic parameter type", static (parts, salt) => "(Root" + salt + Parts(parts, salt) + "<int> x) => x");
+		AssertLinear("a generic type constructed", static (parts, salt) => "() => new Root" + salt + Parts(parts, salt) + "<int>()");
+		AssertLinear("a generic type's member", static (parts, salt) => "() => Root" + salt + Parts(parts, salt) + "<int>.Value");
+		AssertLinear("a generic alias", static (parts, salt) => "using X = Root" + salt + Parts(parts, salt) + "<int>; (X x) => x");
+	}
+
+	/// <summary>
+	/// What a scope pays to know how deep its types go, which a name of more than a few parts asks: each
+	/// assembly counted once whatever scopes it is in, so a scope made afresh pays a lookup an assembly
+	/// and not a walk of their types. A host that makes one a request paid a quarter of a megabyte a request.
+	/// </summary>
+	[Fact]
+	public void A_fresh_scope_learns_how_deep_its_types_go_for_little()
+	{
+		Assert.False(ExpressionParser.TryParse("(Warm" + Parts(12, 0) + " x) => x", Fresh()).IsSuccess);
+
+		// A generic name longer than any type asks the scope's depth and looks nothing up, so in a fresh
+		// scope the first such text pays for the depth and the second, of other names, does not. The least
+		// of several scopes, since a table that grows as scopes are added grows in one of them.
+		var cost = long.MaxValue;
+
+		for (var round = 0; round < 5; round++)
+		{
+			var scope = Fresh();
+
+			// Where it looks, worked out before anything is measured: a scope's own cost, not its depth's.
+			Assert.NotEmpty(scope.Assemblies);
+
+			var first = Allocated("(Root" + Parts(40, 10 * round + 1) + "<int> x) => x", scope);
+			var again = Allocated("(Root" + Parts(40, 10 * round + 2) + "<int> x) => x", scope);
+
+			cost = Math.Min(cost, first - again);
+		}
+
+		TestContext.Current.TestOutputHelper?.WriteLine($"learning a fresh scope's depth: {cost:N0} bytes");
+		Assert.True(cost < 16 * 1024, $"Learning a fresh scope's depth cost {cost:N0} bytes.");
+	}
+
+	/// <summary>
+	/// Asserts bytes a part stay within a quarter of one another at every doubling in <see cref="Sizes"/>, on
+	/// the first reading of names no cache has seen, in a scope of its own: where the cost is in caches filled
+	/// by name, a reading of names seen before measures what is left once they are full.
+	/// </summary>
+	static void AssertLinear(string shape, Func<int, int, string> textFor)
+	{
+		// What every reading pays once, in every scope and process, paid before anything is measured.
+		ExpressionParser.TryParse(textFor(Sizes[^1], -1), Fresh());
 
 		var perPart = new double[Sizes.Length];
 
 		for (var i = 0; i < Sizes.Length; i++)
 		{
-			var (bytes, elapsed) = Allocated(texts[i]);
+			var scope = Fresh();
+
+			// What a scope pays once — its namespaces, its depth — and the room the reader's pools need for a
+			// text this long, paid by another text of the same shape and other names in it first.
+			ExpressionParser.TryParse(textFor(Sizes[i], -2 - i), scope);
+
+			var clock = Stopwatch.StartNew();
+			var bytes = Allocated(textFor(Sizes[i], Sizes[i]), scope);
 
 			perPart[i] = bytes / (double)Sizes[i];
 			TestContext.Current.TestOutputHelper?.WriteLine(
-				$"{Sizes[i]} parts: {bytes:N0} bytes, {perPart[i]:F1} a part, {elapsed.TotalMilliseconds:F2} ms");
+				$"{shape}: {Sizes[i]} parts, {bytes:N0} bytes, {perPart[i]:F1} a part, {clock.Elapsed.TotalMilliseconds:F2} ms");
 		}
 
 		for (var i = 1; i < Sizes.Length; i++)
 			Assert.True(
-				perPart[i] <= perPart[i - 1] * 1.15,
-				$"At {Sizes[i - 1]} parts a refusal allocated {perPart[i - 1]:F1} bytes each, and at " +
+				perPart[i] <= perPart[i - 1] * 1.25,
+				$"{shape}: at {Sizes[i - 1]} parts a refusal allocated {perPart[i - 1]:F1} bytes each, and at " +
 				$"{Sizes[i]} it allocated {perPart[i]:F1} bytes each — {perPart[i] / perPart[i - 1]:F2} " +
 				"times as many, where a name asked about once a prefix would stay flat.");
 	}
 
-	/// <summary>The fewest bytes a refusal of <paramref name="text"/> allocates across <see cref="Runs"/> runs, and the shortest time.</summary>
-	static (long Bytes, TimeSpan Elapsed) Allocated(string text)
+	/// <summary>What one reading of <paramref name="text"/> allocates on this thread.</summary>
+	static long Allocated(string text, ResolutionScope scope)
 	{
-		var fewest   = long.MaxValue;
-		var shortest = TimeSpan.MaxValue;
+		var before = GC.GetAllocatedBytesForCurrentThread();
 
-		for (var run = 0; run < Runs; run++)
-		{
-			var before = GC.GetAllocatedBytesForCurrentThread();
-			var clock  = Stopwatch.StartNew();
+		ExpressionParser.TryParse(text, scope);
 
-			ExpressionParser.TryParse(text);
+		return GC.GetAllocatedBytesForCurrentThread() - before;
+	}
 
-			clock.Stop();
+	/// <summary>A scope of its own: this assembly, what it references, and LINQ, made afresh on every call.</summary>
+	static ResolutionScope Fresh()
+	{
+		return ResolutionScope.Of(typeof(ExpressionDottedTypeRefusalAllocationTests).Assembly, typeof(Enumerable).Assembly);
+	}
 
-			fewest   = Math.Min(fewest, GC.GetAllocatedBytesForCurrentThread() - before);
-			shortest = clock.Elapsed < shortest ? clock.Elapsed : shortest;
-		}
-
-		return (fewest, shortest);
+	/// <summary><paramref name="parts"/> dotted parts, named by <paramref name="salt"/> so that no cache has seen them.</summary>
+	static string Parts(int parts, int salt)
+	{
+		return string.Concat(Enumerable.Repeat(".A" + salt, parts));
 	}
 
 	/// <summary>A lambda whose parameter is typed by a name of <paramref name="parts"/> parts after a root nothing declares.</summary>
