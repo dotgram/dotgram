@@ -772,11 +772,15 @@ namespace DotGram.ExpressionLanguage;
 	// tables about every prefix of every prefix. A generic name asks nothing while it is read,
 	// so where the parts run on past that depth the rest of them is read whole (`Further`) for
 	// the arguments to follow, and such a name is refused where it is built, as it always was.
+	//
+	// `args` is the `<` alone, which says that there are arguments and is all the rule asks of
+	// it. Captured as the whole of `<…>`, it was the text of every nest inside it, copied again at
+	// every level: `List<List<…>>` of n levels built the square of n in characters, accepted or not.
 	NamedType? : @Type
 		= ?!Keyword & head: Word & ('.' & part: Identifier & when @(context.Nests(parserSpan)))*
 		  & ( '.' & when @(context.Deepest(parserSpan)) & more: Further
-		      & args: ('<' & first: Type & (',' & rest: Type)* & '>')
-		    | args: ('<' & first: Type & (',' & rest: Type)* & '>'))?
+		      & args: '<' & first: Type & (',' & rest: Type)* & '>'
+		    | args: '<' & first: Type & (',' & rest: Type)* & '>')?
 		  & when @(!context.Binds(head, parserSpan) &&
 		           (args != null || context.Resolves(ExpressionParser.Dotted(head, part))))
 		  => @(args is null
