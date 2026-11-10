@@ -1,11 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-
-using DotGram.Language;
+using System.Windows.Input;
+using System.Windows.Media;
 
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.PlatformUI;
@@ -42,36 +41,101 @@ sealed class EmbeddedGramNavigationMarginProvider : IWpfTextViewMarginProvider
 	}
 }
 
-abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
+/// <summary>
+/// The bar above a C# document with grammars, laid out as C#'s own: the grammars on the left, the
+/// rules of the one chosen there on the right, half the width each, both following the caret.
+/// </summary>
+sealed class EmbeddedGramNavigationMargin : Grid, IWpfTextViewMargin
 {
-	readonly IWpfTextView _view;
-	readonly ComboBox _symbols;
+	/// <summary>
+	/// The combo box Visual Studio 2026 builds C#'s bar from,
+	/// Microsoft.VisualStudio.Shell.Controls.ComboBox, themed by the shell's own style; null in Visual
+	/// Studio 2022, which has no such control. The SDK this extension compiles against is 2022's, so
+	/// the type is found by name.
+	/// </summary>
+	static readonly Type? ShellComboBoxType = FindShellComboBox();
+
+	readonly IWpfTextView                  _view;
+	readonly EmbeddedGrammarBufferAnalysis _analysis;
+	readonly ComboBox                      _grammars;
+	readonly ComboBox                      _symbols;
 	bool _updating;
 
-	protected GramNavigationMargin(IWpfTextView view)
-	{
-		_view = view;
-		Height = 26;
-		Background = Application.Current.TryFindResource(EnvironmentColors.ToolWindowBackgroundBrushKey) as System.Windows.Media.Brush;
+	// The entry the user clicked in an open list while it was already the selected one: picking it
+	// changes no selection, yet C#'s bar navigates to it again, and so does this one once the list closes.
+	object? _repicked;
 
-		_symbols = new ComboBox
+	public EmbeddedGramNavigationMargin(IWpfTextView view, EmbeddedGrammarBufferAnalysis analysis)
+	{
+		_view     = view;
+		_analysis = analysis;
+
+		ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+		// Like C#'s bar under it: in Visual Studio 2026 the shell's own combo boxes, flush with the
+		// edges and 4 apart, with no background of the bar's own; in Visual Studio 2022 the themed
+		// combo box style over the command bar colour. Both are resource references, so a theme
+		// switch repaints them.
+		var shell = ShellComboBoxType is not null;
+
+		if (!shell)
 		{
-			Margin = new Thickness(4, 2, 4, 2),
-			MinWidth = 220,
-			HorizontalAlignment = HorizontalAlignment.Left,
-			DisplayMemberPath = nameof(NavigationItem.Display),
-		};
-		_symbols.SelectionChanged += SelectionChanged;
-		Children.Add(_symbols);
+			Height = 26;
+			SetResourceReference(BackgroundProperty, EnvironmentColors.CommandBarMenuBorderBrushKey);
+		}
+
+		_grammars = Combo(0, shell ? new Thickness(0, 0, 2, 0) : new Thickness(4, 2, 2, 2));
+		_symbols  = Combo(1, shell ? new Thickness(2, 0, 0, 0) : new Thickness(2, 2, 4, 2));
+		_grammars.SelectionChanged += GrammarSelectionChanged;
+		_symbols.SelectionChanged  += SymbolSelectionChanged;
 
 		_view.Caret.PositionChanged += CaretChanged;
-		_view.Closed += ViewClosed;
+		_view.Closed                += ViewClosed;
+		_analysis.Changed           += AnalysisChanged;
+
+		Refresh(view.TextSnapshot);
 	}
 
-	protected abstract IReadOnlyList<NavigationItem> Items(ITextSnapshot snapshot);
-	protected abstract void Unsubscribe();
+	static Type? FindShellComboBox()
+	{
+		return EditorGuard.Run<Type?>("Navigation margin combo box type", null, () =>
+		{
+			var type = Type.GetType(
+				"Microsoft.VisualStudio.Shell.Controls.ComboBox, Microsoft.VisualStudio.Shell.Styles",
+				throwOnError: false);
 
-	protected void Refresh(ITextSnapshot snapshot)
+			var usable = type is not null &&
+				typeof(ComboBox).IsAssignableFrom(type) &&
+				type.GetConstructor(Type.EmptyTypes) is not null;
+
+			return usable ? type : null;
+		});
+	}
+
+	ComboBox Combo(int column, Thickness margin)
+	{
+		var combo = ShellComboBoxType is null
+			? new ComboBox()
+			: (ComboBox)Activator.CreateInstance(ShellComboBoxType);
+
+		combo.Margin              = margin;
+		combo.HorizontalAlignment = HorizontalAlignment.Stretch;
+		combo.DisplayMemberPath   = nameof(EmbeddedNavigationItem.Display);
+
+		if (ShellComboBoxType is null)
+			combo.SetResourceReference(StyleProperty, VsResourceKeys.ComboBoxStyleKey);
+
+		combo.PreviewMouseLeftButtonUp += ComboClicked;
+		combo.DropDownOpened           += DropDownOpened;
+		combo.DropDownClosed           += DropDownClosed;
+		SetColumn(combo, column);
+		Children.Add(combo);
+
+		return combo;
+	}
+
+	void Refresh(ITextSnapshot snapshot)
 	{
 		if (snapshot != _view.TextSnapshot)
 			return;
@@ -80,10 +144,19 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 		_updating = true;
 		try
 		{
-			var items = Items(snapshot);
-			_symbols.ItemsSource = items;
-			Visibility = items.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-			SelectAtCaret(items, snapshot);
+			IReadOnlyList<EmbeddedGrammarItem> grammars = _analysis.TryGetOutlines(snapshot, out var outlines)
+				? EmbeddedNavigationItems.Grammars(
+					outlines,
+					position =>
+					{
+						var line = snapshot.GetLineFromPosition(Math.Min(position, snapshot.Length));
+						return (line.LineNumber + 1, Math.Min(position, snapshot.Length) - line.Start.Position + 1);
+					})
+				: [];
+
+			_grammars.ItemsSource = grammars;
+			Visibility = grammars.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+			SelectAtCaret(snapshot);
 		}
 		finally
 		{
@@ -91,7 +164,7 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 		}
 	}
 
-	protected void RequestRefresh(ITextSnapshot snapshot)
+	void AnalysisChanged(ITextSnapshot snapshot)
 	{
 		EditorGuard.Run("Navigation margin refresh", () =>
 		{
@@ -110,14 +183,13 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 	{
 		EditorGuard.Run("Navigation margin caret", () =>
 		{
-			var items = _symbols.ItemsSource as IReadOnlyList<NavigationItem>;
-			if (items is null)
+			if (_grammars.ItemsSource is null)
 				return;
 
 			_updating = true;
 			try
 			{
-				SelectAtCaret(items, args.NewPosition.BufferPosition.Snapshot);
+				SelectAtCaret(args.NewPosition.BufferPosition.Snapshot);
 			}
 			finally
 			{
@@ -126,33 +198,98 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 		});
 	}
 
-	void SelectAtCaret(IReadOnlyList<NavigationItem> items, ITextSnapshot snapshot)
+	void SelectAtCaret(ITextSnapshot snapshot)
 	{
+		if (_grammars.ItemsSource is not IReadOnlyList<EmbeddedGrammarItem> grammars)
+			return;
+
 		var position = _view.Caret.Position.BufferPosition
 			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
-		_symbols.SelectedItem = items
-			.Where(item => item.Position <= position && position < item.Position + item.Length)
-			.OrderBy(item => item.Length)
-			.FirstOrDefault();
+		var index    = EmbeddedNavigationItems.GrammarAt(grammars, position);
+		var grammar  = index < 0 ? null : grammars[index];
+		var symbols  = grammar?.Symbols ?? [];
+
+		_grammars.SelectedItem = grammar;
+		if (!ReferenceEquals(_symbols.ItemsSource, symbols))
+			_symbols.ItemsSource = symbols;
+
+		var symbol = EmbeddedNavigationItems.SymbolAt(symbols, position);
+		_symbols.SelectedItem = symbol < 0 ? null : symbols[symbol];
 	}
 
-	void SelectionChanged(object sender, SelectionChangedEventArgs args)
+	void GrammarSelectionChanged(object sender, SelectionChangedEventArgs args)
 	{
-		EditorGuard.Run("Navigation margin selection", Select);
+		EditorGuard.Run("Navigation margin grammar selection", () =>
+		{
+			// Like C#'s type list: the caret goes to where the grammar starts, and the right-hand
+			// list follows it there.
+			if (!_updating && _grammars.SelectedItem is EmbeddedGrammarItem grammar)
+				MoveTo(grammar.Span.Start, 0);
+		});
 	}
 
-	void Select()
+	void SymbolSelectionChanged(object sender, SelectionChangedEventArgs args)
 	{
-		if (_updating || _symbols.SelectedItem is not NavigationItem item)
-			return;
+		EditorGuard.Run("Navigation margin selection", () =>
+		{
+			if (!_updating && _symbols.SelectedItem is EmbeddedNavigationItem item)
+				MoveTo(item.SelectionPosition, item.SelectionLength);
+		});
+	}
 
+	void DropDownOpened(object sender, EventArgs args)
+	{
+		_repicked = null;
+	}
+
+	void ComboClicked(object sender, MouseButtonEventArgs args)
+	{
+		EditorGuard.Run("Navigation margin click", () =>
+		{
+			if (sender is ComboBox { IsDropDownOpen: true } combo &&
+				ItemAt(args.OriginalSource as DependencyObject) is { } item &&
+				ReferenceEquals(item, combo.SelectedItem))
+				_repicked = item;
+		});
+	}
+
+	void DropDownClosed(object sender, EventArgs args)
+	{
+		EditorGuard.Run("Navigation margin repick", () =>
+		{
+			var item = _repicked;
+			_repicked = null;
+
+			if (_updating || item is null || sender is not ComboBox combo || !ReferenceEquals(item, combo.SelectedItem))
+				return;
+
+			switch (item)
+			{
+				case EmbeddedGrammarItem grammar:   MoveTo(grammar.Span.Start, 0);                                break;
+				case EmbeddedNavigationItem symbol: MoveTo(symbol.SelectionPosition, symbol.SelectionLength); break;
+			}
+		});
+	}
+
+	/// <summary>The entry of an open list a click landed in, or null where it landed on none.</summary>
+	static object? ItemAt(DependencyObject? source)
+	{
+		for (var at = source; at is not null; at = at is Visual ? VisualTreeHelper.GetParent(at) : LogicalTreeHelper.GetParent(at))
+			if (at is ComboBoxItem item)
+				return item.DataContext;
+
+		return null;
+	}
+
+	void MoveTo(int position, int length)
+	{
 		var snapshot = _view.TextSnapshot;
-		if (item.SelectionPosition < 0 || item.SelectionPosition > snapshot.Length)
+		if (position < 0 || position > snapshot.Length)
 			return;
 
-		var point = new SnapshotPoint(snapshot, item.SelectionPosition);
+		var point = new SnapshotPoint(snapshot, position);
 		_view.Caret.MoveTo(point);
-		_view.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, Math.Min(item.SelectionLength, snapshot.Length - point.Position)));
+		_view.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, Math.Min(length, snapshot.Length - point.Position)));
 		_view.VisualElement.Focus();
 	}
 
@@ -166,76 +303,22 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 	public bool Enabled => Visibility == Visibility.Visible;
 	public ITextViewMargin? GetTextViewMargin(string marginName)
 	{
-		return string.Equals(marginName, MarginName, StringComparison.OrdinalIgnoreCase) ? this : null;
+		return string.Equals(marginName, EmbeddedGramNavigationMarginProvider.MarginName, StringComparison.OrdinalIgnoreCase) ? this : null;
 	}
-
-	protected abstract string MarginName { get; }
 
 	public void Dispose()
 	{
-		_symbols.SelectionChanged -= SelectionChanged;
-		_view.Caret.PositionChanged -= CaretChanged;
-		_view.Closed -= ViewClosed;
-		Unsubscribe();
-	}
-
-	protected sealed record NavigationItem(
-		string Display,
-		int Position,
-		int Length,
-		int SelectionPosition,
-		int SelectionLength);
-}
-
-sealed class EmbeddedGramNavigationMargin : GramNavigationMargin
-{
-	readonly IWpfTextView _view;
-	readonly EmbeddedGrammarBufferAnalysis _analysis;
-
-	public EmbeddedGramNavigationMargin(IWpfTextView view, EmbeddedGrammarBufferAnalysis analysis) : base(view)
-	{
-		_view = view;
-		_analysis = analysis;
-		_analysis.Changed += AnalysisChanged;
-		Refresh(view.TextSnapshot);
-	}
-
-	protected override string MarginName => EmbeddedGramNavigationMarginProvider.MarginName;
-
-	protected override IReadOnlyList<NavigationItem> Items(ITextSnapshot snapshot)
-	{
-		var result = new List<NavigationItem>();
-		if (_analysis.TryGetDocumentSymbols(snapshot, out var symbols))
-			Append(symbols, result);
-		result.Sort(static (left, right) =>
+		foreach (var combo in new[] { _grammars, _symbols })
 		{
-			var byName = StringComparer.OrdinalIgnoreCase.Compare(left.Display, right.Display);
-			return byName != 0 ? byName : left.Position.CompareTo(right.Position);
-		});
-		return result;
-	}
-
-	static void Append(IReadOnlyList<HostDocumentSymbol> symbols, List<NavigationItem> result)
-	{
-		foreach (var symbol in symbols)
-		{
-			result.Add(new NavigationItem(
-				symbol.Name.TrimStart(' ', '\t'),
-				symbol.Span.Start,
-				symbol.Span.Length,
-				symbol.SelectionSpan.Start,
-				symbol.SelectionSpan.Length));
-			Append(symbol.Children, result);
+			combo.PreviewMouseLeftButtonUp -= ComboClicked;
+			combo.DropDownOpened           -= DropDownOpened;
+			combo.DropDownClosed           -= DropDownClosed;
 		}
-	}
 
-	void AnalysisChanged(ITextSnapshot snapshot)
-	{
-		RequestRefresh(snapshot);
-	}
-
-	protected override void Unsubscribe()
-	{
-		_analysis.Changed -= AnalysisChanged;
+		_grammars.SelectionChanged  -= GrammarSelectionChanged;
+		_symbols.SelectionChanged   -= SymbolSelectionChanged;
+		_view.Caret.PositionChanged -= CaretChanged;
+		_view.Closed                -= ViewClosed;
+		_analysis.Changed           -= AnalysisChanged;
 	}
 }

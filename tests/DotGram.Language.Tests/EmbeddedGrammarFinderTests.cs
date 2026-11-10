@@ -292,6 +292,71 @@ public sealed class EmbeddedGrammarFinderTests
 		Assert.True(grammars[1].Options?.Lexical);
 	}
 
+	/// <summary>
+	/// The names the editor's navigation bar lists the grammars under, and the declarations a caret
+	/// outside the string still counts as in.
+	/// </summary>
+	[Fact]
+	public void NamesEachGrammarByItsClassSuffixOrCall()
+	{
+		var source = """"
+			namespace DotGram
+			{
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramAttribute(string source) : System.Attribute
+				{
+					public string Suffix { get; set; } = "";
+				}
+			}
+
+			namespace System.Diagnostics.CodeAnalysis
+			{
+				[System.AttributeUsage(System.AttributeTargets.Parameter)]
+				sealed class StringSyntaxAttribute(string syntax) : System.Attribute;
+			}
+
+			class GrammarText(
+				[System.Diagnostics.CodeAnalysis.StringSyntax(".gram")] string source);
+
+			[DotGram.Gram("Word = ['a'..'z']+\nparse Word")]
+			[DotGram.Gram("Other = 'o'\nparse Other", Suffix = "Second")]
+			class Dialect
+			{
+				[DotGram.Gram("Inner = 'i'\nparse Inner")]
+				class Nested;
+			}
+
+			class Consumer
+			{
+				static void Read(
+					[System.Diagnostics.CodeAnalysis.StringSyntax("dotgram")] string grammar) { }
+
+				static void Use()
+				{
+					Read("Start = 's'");
+					_ = new GrammarText("Begin = 'b'");
+				}
+			}
+			"""";
+
+		var grammars = Find(source);
+
+		Assert.Equal(
+			new[] { "Dialect", "Dialect.Second", "Dialect.Nested", "Read(grammar)", "GrammarText(source)" },
+			grammars.Select(grammar => grammar.Name));
+
+		var dialect = source.IndexOf("[DotGram.Gram(\"Word", StringComparison.Ordinal);
+		var nested  = source.IndexOf("[DotGram.Gram(\"Inner", StringComparison.Ordinal);
+		var use     = source.IndexOf("static void Use()", StringComparison.Ordinal);
+
+		Assert.Equal(dialect, grammars[0].HostSpan.Start);
+		Assert.Equal(grammars[0].HostSpan, grammars[1].HostSpan);
+		Assert.Equal(nested, grammars[2].HostSpan.Start);
+		Assert.True(grammars[2].HostSpan.End < grammars[0].HostSpan.End);
+		Assert.Equal(use, grammars[3].HostSpan.Start);
+		Assert.Equal(grammars[3].HostSpan, grammars[4].HostSpan);
+	}
+
 	static EmbeddedGrammar[] Find(string source, Func<string, string?>? includedFile = null)
 	{
 		var tree = CSharpSyntaxTree.ParseText(source);

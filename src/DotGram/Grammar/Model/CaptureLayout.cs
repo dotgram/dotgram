@@ -37,7 +37,7 @@ sealed class NodeIdentity : IEqualityComparer<Node>
 /// what it collected — a value, not the sequence. A slot under an ordinary repetition
 /// collects for the author too.
 /// </param>
-public sealed record CaptureSlot(
+sealed record CaptureSlot(
 	int Index, string Name, RuleSymbol? Rule, bool IsSequence, bool InFold = false)
 {
 	/// <summary>What the author sees: whether the name holds a sequence in their C#.</summary>
@@ -61,7 +61,7 @@ public sealed record CaptureSlot(
 /// would eventually stop agreeing.
 /// </para>
 /// </remarks>
-public sealed class CaptureLayout
+sealed class CaptureLayout
 {
 	readonly List<CaptureSlot>     _slots  = [];
 	readonly Dictionary<Node, int> _slotOf = new(NodeIdentity.Instance);
@@ -383,7 +383,7 @@ public sealed class CaptureLayout
 /// More than one slot when the same name is captured in more than one alternative —
 /// <c>(a: X | a: Y)</c> is one member filled from whichever alternative matched.
 /// </remarks>
-public sealed record ResultMember(
+sealed record ResultMember(
 	string Name, RuleSymbol? Rule, bool IsSequence, bool IsOptional, IReadOnlyList<int> Slots)
 {
 	/// <summary>
@@ -415,13 +415,13 @@ public sealed record ResultMember(
 /// Whether it stood in the other one's element, so that what it captures is that rule's, in its
 /// slots; one lifted out of a synchronization captures nothing anything reads.
 /// </param>
-public sealed record Lift(RuleSymbol Parent, RuleSymbol Origin, bool Transparent);
+sealed record Lift(RuleSymbol Parent, RuleSymbol Origin, bool Transparent);
 
 /// <summary>
 /// What a repetition marked <c>recover</c> was told (§8.2): where to resume after a
 /// broken element, and how to turn it into one of the sequence.
 /// </summary>
-public sealed record Recovery(Node Sync, string? Factory)
+sealed record Recovery(Node Sync, string? Factory)
 {
 	public bool YieldStep { get; init; }
 
@@ -562,7 +562,7 @@ public sealed record Recovery(Node Sync, string? Factory)
 /// fold step and consumed there, so it is a value and not a sequence; and the
 /// alternatives under it take the accumulator as their first argument.
 /// </remarks>
-public sealed record Fold(Node Loop, IReadOnlyDictionary<Node, string> Accumulators)
+sealed record Fold(Node Loop, IReadOnlyDictionary<Node, string> Accumulators)
 {
 	/// <summary>
 	/// The alternatives a rule offers — the bases and the fold steps once it has been

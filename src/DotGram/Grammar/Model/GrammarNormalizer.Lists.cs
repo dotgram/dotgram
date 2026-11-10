@@ -39,7 +39,7 @@ namespace DotGram.Grammar.Model;
 /// is what keeps a lexeme a lexeme.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// Seam the turns of every repetition of a valued rule, captured or bare.

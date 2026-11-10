@@ -2,7 +2,7 @@
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	const string ParserInputTypes = """
 		internal interface IParserInputSource_DotGram<T>

@@ -489,7 +489,7 @@ sealed partial class Machine
 	/// </summary>
 	bool PlacesRecovery(Recovery recovery)
 	{
-		foreach (var one in _placedRecoveries)
+		foreach (var one in _settings.PlacedRecoveries)
 			if (ReferenceEquals(one, recovery))
 				return true;
 

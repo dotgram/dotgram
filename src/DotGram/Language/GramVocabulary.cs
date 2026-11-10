@@ -27,7 +27,7 @@ namespace DotGram.Language;
 /// generator's tables; only the descriptions are written here.
 /// </para>
 /// </remarks>
-public static class GramVocabulary
+static class GramVocabulary
 {
 	/// <summary>
 	/// Every word the parser reads as part of the notation, with what it does. Most are words only
@@ -510,10 +510,10 @@ public static class GramVocabulary
 /// <param name="ParameterCount">How many parameters it takes.</param>
 /// <param name="Line">The line it is declared on in the standard library, from 0.</param>
 /// <param name="Column">The column its name starts at there, from 0.</param>
-public readonly record struct StandardRule(string Name, string Description, string Signature, int ParameterCount, int Line, int Column);
+readonly record struct StandardRule(string Name, string Description, string Signature, int ParameterCount, int Line, int Column);
 
 /// <summary>The C# a position of a grammar stands in, which decides what the parser supplies to it.</summary>
-public enum GramAction
+enum GramAction
 {
 	/// <summary>No construction, guard or recovery: nothing is supplied.</summary>
 	None,

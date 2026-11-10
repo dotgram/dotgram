@@ -157,8 +157,8 @@ literal's first line (`CSharpEmitter.Handed`), and `Placed` writes the numbers i
 (`CSharpEmitter.Placed`). A report names the attribute it is about and is put on it at
 delivery. So an edit that moves the attribute re-runs `Placed` and not the compile, and one
 that leaves it where it was re-runs neither; a `.gram` grammar's `#line`s point into its own
-file and are never rewritten. The stage names are public because they are what a test reads to
-say which stage re-ran. An unexpected exception in any stage becomes a diagnostic
+file and are never rewritten. The stage names are visible to the tests because they are what a
+test reads to say which stage re-ran. An unexpected exception in any stage becomes a diagnostic
 against the host rather than a generator Roslyn disables.
 
 ### What is written

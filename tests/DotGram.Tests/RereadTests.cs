@@ -153,7 +153,10 @@ public sealed class RereadTests
 		Assert.Empty(split.Blocked);
 
 		var diagnostics = new List<DotGram.Grammar.GramDiagnostic>();
-		var text = CSharpEmitter.Emit(split.Syntax, "Grammar", null, null, diagnostics, null, split);
+		var text = CSharpEmitter.Emit(
+			split.Syntax,
+			new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Tape, MemoiseFailures = false },
+			new EmitContext { Diagnostics = diagnostics, Lexical = split });
 
 		var grammar = EmittedCode.Compile(text).GetType("Grammar")!;
 

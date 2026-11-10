@@ -153,6 +153,10 @@ public abstract record AuditTarget : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected AuditTarget()
+	{
+	}
+
 	/// <summary>
 	/// <c>FILE (setting, …)</c>: FILEPATH, MAXSIZE, MAX_ROLLOVER_FILES, MAX_FILES and RESERVE_DISK_SPACE, in any order and as often
 	/// as wanted, one at least; a file made names its path among them.
@@ -183,6 +187,10 @@ public abstract record AuditChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected AuditChange()
+	{
 	}
 
 	/// <summary><c>REMOVE WHERE</c>.</summary>
@@ -249,6 +257,10 @@ public abstract record EventSessionPiece : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected EventSessionPiece()
+	{
+	}
+
 	/// <summary>
 	/// <c>ADD EVENT name [(SET setting, … ACTION (name, …) WHERE predicate)]</c>: what the event collects, the actions it takes and
 	/// when it fires, in that order and each once. The event is named in one part, two or three.
@@ -293,6 +305,10 @@ public abstract record EventPredicate : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected EventPredicate()
+	{
 	}
 
 	/// <summary><c>left AND right</c>, <c>left OR right</c>: the left is any predicate and the right a term, the two joins binding alike.</summary>

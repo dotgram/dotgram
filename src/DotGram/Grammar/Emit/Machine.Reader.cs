@@ -270,7 +270,7 @@ sealed partial class Machine
 	/// parser, where the counters every parser carries are a handful a machine, so a parser built
 	/// without the symbol is written exactly as it was.
 	/// </remarks>
-	internal bool CountsRules;
+	internal bool CountsRules => _settings.CountsRules;
 
 	/// <summary>
 	/// Whether a reader of this machine writes where a way's reading stood beside the way
@@ -292,7 +292,7 @@ sealed partial class Machine
 	/// hold is paid for on every construction, and a grammar none of whose constructions throws
 	/// should not pay it.
 	/// </remarks>
-	internal bool ConstructionsMayThrow;
+	internal bool ConstructionsMayThrow => _settings.ConstructionsMayThrow;
 
 	/// <summary>
 	/// What the file's trace build numbers its events by, where it is one: then every rule's method
@@ -300,7 +300,7 @@ sealed partial class Machine
 	/// stepped over and a hand-off to another stack, and the frames of the forwarding rules the
 	/// graph collapsed (GramCompilerOptions.Trace). Null writes none of it.
 	/// </summary>
-	internal TraceTables? Tracing;
+	internal TraceTables? Tracing => _settings.Tracing;
 
 	/// <summary>The counter of entries to a rule's method (<see cref="CountsRules"/>).</summary>
 	static string EnteredOf(RuleSymbol rule)
@@ -1023,10 +1023,10 @@ sealed partial class Machine
 			file.Then("throw new global::System.InsufficientExecutionStackException();");
 			file.Line();
 
-			if (_stacks > 0)
+			if (_settings.Stacks > 0)
 			{
 				file.Line("// As many as the author said were enough, and no more.");
-				file.Line($"if (this.stacks >= {_stacks})");
+				file.Line($"if (this.stacks >= {_settings.Stacks})");
 				file.Then("throw new global::System.InsufficientExecutionStackException();");
 				file.Line();
 			}
@@ -1056,7 +1056,7 @@ sealed partial class Machine
 
 			file.Line("deep.probes = this.probes;");
 
-			if (_stacks > 0)
+			if (_settings.Stacks > 0)
 				file.Line("deep.stacks = this.stacks + 1;");
 
 			file.Line("deep.pos    = pos;");
@@ -1409,7 +1409,7 @@ sealed partial class Machine
 
 			file.Line("internal int probes;");
 
-			if (_stacks > 0)
+			if (_settings.Stacks > 0)
 				file.Line("internal int stacks;");
 
 			file.Line("internal int pos;");
@@ -1447,7 +1447,7 @@ sealed partial class Machine
 
 						file.Line("reader.probes = this.probes;");
 
-						if (_stacks > 0)
+						if (_settings.Stacks > 0)
 							file.Line("reader.stacks = this.stacks;");
 
 						file.Line();
@@ -1568,7 +1568,7 @@ sealed partial class Machine
 				header.Line("/// <summary>Entries to a rule that can reach itself, for the stack probe.</summary>");
 				header.Line("internal int probes;");
 
-				if (_stacks > 0)
+				if (_settings.Stacks > 0)
 				{
 				header.Line("/// <summary>How many stacks this reading has taken past the one it began on.</summary>");
 					header.Line("internal int stacks;");
@@ -1637,7 +1637,7 @@ sealed partial class Machine
 				if (Probes)
 					header.Line("this.probes  = 0;");
 
-				if (_stacks > 0)
+				if (_settings.Stacks > 0)
 					header.Line("this.stacks  = 0;");
 
 				foreach (var (_, name) in state)
@@ -6419,7 +6419,7 @@ sealed partial class Machine
 			if (selection is null)
 			{
 				helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
-				CSharpEmitter.Handed(helper, machine._lines, guard.At, text + ";");
+				CSharpEmitter.Handed(helper, machine._settings.Lines, guard.At, text + ";");
 			}
 			else
 			{
@@ -6428,7 +6428,7 @@ sealed partial class Machine
 				using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
 				{
 					helper.Line($"switch ({key}(");
-					CSharpEmitter.Handed(helper, machine._lines, guard.At, text + "))");
+					CSharpEmitter.Handed(helper, machine._settings.Lines, guard.At, text + "))");
 					using (helper.Block(""))
 					{
 						for (var i = 0; i < selection.Labels.Count; i++)

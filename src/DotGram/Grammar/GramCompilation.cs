@@ -6,7 +6,7 @@ using DotGram.Grammar.Emit;
 namespace DotGram.Grammar;
 
 /// <summary>What a compilation produced: sources to add, and what went wrong.</summary>
-public sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyList<GramDiagnostic> diagnostics)
+sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyList<GramDiagnostic> diagnostics)
 {
 	public IReadOnlyList<GeneratedSource> Sources     { get; } = sources;
 	public IReadOnlyList<GramDiagnostic>  Diagnostics { get; } = diagnostics;
@@ -44,7 +44,7 @@ public sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IRea
 }
 
 /// <summary>One file of generated C#.</summary>
-public readonly record struct GeneratedSource(string HintName, string Text);
+readonly record struct GeneratedSource(string HintName, string Text);
 
 /// <summary>
 /// A compiler message, positioned in the grammar text.
@@ -53,7 +53,7 @@ public readonly record struct GeneratedSource(string HintName, string Text);
 /// Deliberately not Roslyn's <c>Diagnostic</c>: the grammar half must stay callable
 /// without Roslyn, so the shell converts these on the way out.
 /// </remarks>
-public sealed record GramDiagnostic(string Id, string Message, int Position, int Length, GramSeverity Severity)
+sealed record GramDiagnostic(string Id, string Message, int Position, int Length, GramSeverity Severity)
 {
 	public override string ToString()
 	{
@@ -74,7 +74,7 @@ public enum GramSeverity
 }
 
 /// <summary>Options for one compilation.</summary>
-public sealed class GramCompilerOptions
+sealed class GramCompilerOptions
 {
 	/// <summary>Name of the grammar file, used in diagnostics and hint names.</summary>
 	public string FileName { get; set; } = "grammar.gram";

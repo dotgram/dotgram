@@ -260,7 +260,10 @@ framework's build alone. The generated FIX versions are most of the surface, so 
 
 The generator package, `DotGram`, has no such files and is left out of the review of the public surface
 before a release: it ships as an analyzer, under `analyzers/` with no `lib/`, so no consumer compiles
-against its types, which are public only for the repository's own projects.
+against its types. They are internal, open by `InternalsVisibleTo` to its test projects and to
+`DotGram.Cli`, which reads the text of the marker attributes. Public are only the generator, which Roslyn
+and `DotGram.Cli` load, and three enums (`CarrierKind`, `ValueStorageKind`, `GramSeverity`) that tests
+take as theory arguments, which a public test method cannot name otherwise.
 
 The lines are written by the analyzer, not by hand. The editor's fix for RS0016 adds one, and a
 build that lets the analyzer warn rather than fail prints every missing one, each RS0016 naming
@@ -1021,8 +1024,10 @@ fields included.
 ## Large generated source files
 
 File splitting is experimental and disabled by default, including in the Roslyn
-source generator. To opt in through `GramCompiler.Compile`, set
-`GramCompilerOptions.SourceFileSize` to a positive character threshold, for example
+source generator, and no attribute or build property sets it: it is an option of the
+generator's internal compiler, which the tests and the measurements call. To opt in through
+`GramCompiler.Compile`, set `GramCompilerOptions.SourceFileSize` to a positive character
+threshold, for example
 `2_000_000`. Complete engine methods and direct-reader groups at least that large
 move into additional partial-class files. This is a group threshold, not a maximum
 file size: an individual method or nested reader type stays whole.
@@ -1034,9 +1039,9 @@ This controls source layout independently of `PartSize`, which controls method
 subdivision for the JIT. Extra files use stable `.part-0001.g.cs` names.
 
 When opting in, compile **all** entries in `GramCompilation.Sources`.
-`SourceFileSize = 0` retains one file and is the default. Direct callers of
-`CSharpEmitter.Emit` must supply both a positive `sourceFileSize` and a
-`sourceParts` collection to receive additional files.
+`SourceFileSize = 0` retains one file and is the default. A direct call of
+`CSharpEmitter.Emit` receives the additional files only where the options carry a positive
+`SourceFileSize` and its `EmitContext` a `SourceParts` collection to add them to.
 
 The [measurements](design/file-split-2026-09-16.md) did not establish enough benefit
 to enable splitting by default: FIX improved modestly with higher memory use,

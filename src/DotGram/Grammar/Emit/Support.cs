@@ -22,7 +22,7 @@ namespace DotGram.Grammar.Emit;
 /// emitter is read as C# that writes it.
 /// </para>
 /// </remarks>
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>What a publication answers with. The name a rule may not take.</summary>
 	internal const string MatchType = "Match";
@@ -1008,6 +1008,32 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
+	/// The fields of the failure struct that a file carries only where something in it writes or
+	/// reads them (<see cref="FailureStructWith"/>).
+	/// </summary>
+	[Flags]
+	internal enum FailureFields
+	{
+		None            = 0,
+		Reach           = 1 << 0,
+		Stood           = 1 << 1,
+		Starved         = 1 << 2,
+		Expected        = 1 << 3,
+		ExpectedMore    = 1 << 4,
+		RecoveryOrdinal = 1 << 5,
+		Looking         = 1 << 6,
+		Quiet           = 1 << 7,
+		Began           = 1 << 8,
+		Trace           = 1 << 9,
+		Unasked         = 1 << 10,
+		Doors           = 1 << 11,
+		Ended           = 1 << 12,
+		Origin          = 1 << 13,
+		OriginLines     = 1 << 14,
+		Seaming         = 1 << 15,
+	}
+
+	/// <summary>
 	/// The record of the best failure a match saw, threaded through every recognizer.
 	/// </summary>
 	/// <remarks>
@@ -1016,58 +1042,56 @@ public static partial class CSharpEmitter
 	/// otherwise be another parameter on every recognizer and another edit at every call
 	/// site.
 	/// </remarks>
-	internal static string FailureStructWith(
-		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false,
-		bool ended = false, bool origin = false, bool originLines = false, bool seaming = false)
+	/// <param name="fields">Which of the fields that only some files need this one carries.</param>
+	internal static string FailureStructWith(FailureFields fields)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
 				"	{{began}}" + Lines.Ending,
-				began ? Lines.Normalize(BeganField) + Lines.Ending : "")
+				(fields & FailureFields.Began) != 0 ? Lines.Normalize(BeganField) + Lines.Ending : "")
 			.Replace(
 				"	{{ended}}" + Lines.Ending,
-				ended ? Lines.Normalize(EndedField) + Lines.Ending : "")
+				(fields & FailureFields.Ended) != 0 ? Lines.Normalize(EndedField) + Lines.Ending : "")
 			.Replace(
 				"	{{origin}}" + Lines.Ending,
-				origin ? Lines.Normalize(OriginField) + Lines.Ending : "")
+				(fields & FailureFields.Origin) != 0 ? Lines.Normalize(OriginField) + Lines.Ending : "")
 			.Replace(
 				"	{{originLines}}" + Lines.Ending,
-				originLines ? Lines.Normalize(OriginLinesField) + Lines.Ending : "")
-			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
+				(fields & FailureFields.OriginLines) != 0 ? Lines.Normalize(OriginLinesField) + Lines.Ending : "")
+			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, (fields & FailureFields.RecoveryOrdinal) != 0 ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
-				reach ? Lines.Normalize(ReachField) + Lines.Ending : "")
+				(fields & FailureFields.Reach) != 0 ? Lines.Normalize(ReachField) + Lines.Ending : "")
 			.Replace(
 				"\t{{stood}}" + Lines.Ending,
-				stood ? Lines.Normalize(StoodField) + Lines.Ending : "")
+				(fields & FailureFields.Stood) != 0 ? Lines.Normalize(StoodField) + Lines.Ending : "")
 			.Replace(
 				"\t{{starved}}" + Lines.Ending,
-				starved ? Lines.Normalize(StarvedField) + Lines.Ending : "")
+				(fields & FailureFields.Starved) != 0 ? Lines.Normalize(StarvedField) + Lines.Ending : "")
 			.Replace(
 				"\t{{expected}}" + Lines.Ending,
-				expected ? Lines.Normalize(ExpectedField) + Lines.Ending : "")
+				(fields & FailureFields.Expected) != 0 ? Lines.Normalize(ExpectedField) + Lines.Ending : "")
 			.Replace(
 				"\t{{expectedMore}}" + Lines.Ending,
-				expectedMore ? Lines.Normalize(ExpectedMoreField) + Lines.Ending : "")
+				(fields & FailureFields.ExpectedMore) != 0 ? Lines.Normalize(ExpectedMoreField) + Lines.Ending : "")
 			.Replace(
 				"\t{{looking}}" + Lines.Ending,
-				looking ? Lines.Normalize(LookingField) + Lines.Ending : "")
+				(fields & FailureFields.Looking) != 0 ? Lines.Normalize(LookingField) + Lines.Ending : "")
 			.Replace(
 				"\t{{seaming}}" + Lines.Ending,
-				seaming ? Lines.Normalize(SeamingField) + Lines.Ending : "")
+				(fields & FailureFields.Seaming) != 0 ? Lines.Normalize(SeamingField) + Lines.Ending : "")
 			.Replace(
 				"\t{{quiet}}" + Lines.Ending,
-				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "")
+				(fields & FailureFields.Quiet) != 0 ? Lines.Normalize(QuietField) + Lines.Ending : "")
 			.Replace(
 				"\t{{unasked}}" + Lines.Ending,
-				unasked ? Lines.Normalize(UnaskedField) + Lines.Ending : "")
+				(fields & FailureFields.Unasked) != 0 ? Lines.Normalize(UnaskedField) + Lines.Ending : "")
 			.Replace(
 				"\t{{doors}}" + Lines.Ending,
-				doors ? Lines.Normalize(DoorsField) + Lines.Ending : "")
+				(fields & FailureFields.Doors) != 0 ? Lines.Normalize(DoorsField) + Lines.Ending : "")
 			.Replace(
 				"\t{{trace}}" + Lines.Ending,
-				trace ? Lines.Normalize(TraceField) + Lines.Ending : "")
+				(fields & FailureFields.Trace) != 0 ? Lines.Normalize(TraceField) + Lines.Ending : "")
 			// Whether each of these fields needs its suppression is not known here: the field is
 			// emitted where the capability is present, and the suppression is needed where nothing
 			// assigns it, which only the sites that write the assignments know. So a mark goes in,
@@ -2716,7 +2740,7 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 		""";
 }
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>
 	/// What a direct rendering needs beside the methods it writes: the tape of ways back,

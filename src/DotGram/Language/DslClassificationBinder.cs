@@ -4,13 +4,13 @@ using System.Linq;
 
 namespace DotGram.Language;
 
-public enum DslClassificationTargetKind
+enum DslClassificationTargetKind
 {
 	Rule,
 	Capture,
 }
 
-public enum DslClassificationBindingDiagnosticKind
+enum DslClassificationBindingDiagnosticKind
 {
 	MalformedTarget,
 	UnknownRule,
@@ -19,7 +19,7 @@ public enum DslClassificationBindingDiagnosticKind
 	DuplicateTarget,
 }
 
-public sealed class DslBoundClassification(
+sealed class DslBoundClassification(
 	DslClassificationDefinition definition,
 	DslClassificationTargetKind targetKind,
 	int ruleDefinitionPosition,
@@ -31,7 +31,7 @@ public sealed class DslBoundClassification(
 	public int? CaptureDefinitionPosition { get; } = captureDefinitionPosition;
 }
 
-public sealed class DslClassificationBindingDiagnostic(
+sealed class DslClassificationBindingDiagnostic(
 	DslClassificationBindingDiagnosticKind kind,
 	DslClassificationDefinition definition,
 	string message)
@@ -41,7 +41,7 @@ public sealed class DslClassificationBindingDiagnostic(
 	public string Message { get; } = message;
 }
 
-public sealed class DslClassificationBinding(
+sealed class DslClassificationBinding(
 	IReadOnlyList<DslBoundClassification> classifications,
 	IReadOnlyList<DslClassificationBindingDiagnostic> diagnostics)
 {
@@ -50,7 +50,7 @@ public sealed class DslClassificationBinding(
 }
 
 /// <summary>Binds author-facing classification targets to grammar symbol identities.</summary>
-public static class DslClassificationBinder
+static class DslClassificationBinder
 {
 	public static DslClassificationBinding Bind(
 		DslLanguageDefinition language,

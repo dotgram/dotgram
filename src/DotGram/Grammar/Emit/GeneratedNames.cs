@@ -9,7 +9,7 @@ using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	/// <summary>
 	/// A name the generated code takes for two things in one place, or one an author's publication
@@ -429,4 +429,4 @@ readonly record struct MachineTag(string Variant, string? Id)
 /// identifiers of the rules and the names of the publications, which the generator's own names are
 /// made from; the methods the publications are written as; and the types of the rules.
 /// </summary>
-public sealed record GramNames(IReadOnlyList<string> Identifiers, IReadOnlyList<string> Publications, IReadOnlyList<string> Types);
+sealed record GramNames(IReadOnlyList<string> Identifiers, IReadOnlyList<string> Publications, IReadOnlyList<string> Types);

@@ -8,7 +8,7 @@ using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
 	static string? ByteRefusal(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol> rules)
 	{
@@ -127,13 +127,18 @@ public static partial class CSharpEmitter
 		return Named("Buf" + (bytes ? "Bytes" : "") + (inPlace ? "Memory" : ""), publication.MethodName);
 	}
 
+	/// <param name="basis">
+	/// What every machine of the file is built on (<see cref="MachineSettings"/>); a buffered
+	/// machine is that with the rules it reads and the buffer it reads them over.
+	/// </param>
 	static void AddBufferedMachines(
-		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
-		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
-		Dictionary<string, int>? expectedTables,
-		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules, bool constructionsMayThrow,
-		TraceTables? tracing, ExpectedSets expectedSets, bool hostUnseen)
+		RecognitionGraph graph, ResultTypes results, List<Compiled> machines, GramCompilerOptions options,
+		MachineSettings basis, bool overKinds, ICollection<GramDiagnostic>? diagnostics)
 	{
+		var requested     = options.BufferedInput;
+		var byteRequested = options.BufferedBytes;
+		var hostUnseen    = options.SymbolResolver is UnseenHostSymbolResolver;
+
 		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
 		// made without them it read on the tape whatever those said.
 		if (!requested && !byteRequested && !graph.Publications.Any(one => one.BufferedInput || one.BufferedBytes))
@@ -172,15 +177,15 @@ public static partial class CSharpEmitter
 			// an apparently usable public entry point in the generated file.
 			if (why is null)
 			{
-				machine = new Machine(graph, results, lines, only: rules, tag: tag,
-					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
-					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true,
-					tracing: tracing, expectedSets: expectedSets)
+				machine = new Machine(graph, results, basis with
 				{
-					Reporting   = reporting,
-					CountsRules = countRules,
-					ConstructionsMayThrow = constructionsMayThrow,
-				};
+					Only             = rules,
+					Tag              = tag,
+					BufferedInput    = true,
+					BufferedBytes    = bytes,
+					BufferedFind     = publication.Kind != PublishKind.Parse,
+					DeferCompilation = true,
+				});
 
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
@@ -208,7 +213,7 @@ public static partial class CSharpEmitter
 			// be, the step being one turn of the reader (EmitYieldStep).
 			var readable = (publication.Kind == PublishKind.Parse &&
 					machines.Exists(one => one.Direct && one.Publications.Contains(publication)) ||
-				publication.Kind == PublishKind.Yield && directAllowed) &&
+				publication.Kind == PublishKind.Yield && options.Direct) &&
 				machine!.CanDirect([publication]) && !machine.CanReleaseBuffered;
 			var direct = readable && !machine!.Probes;
 
@@ -234,15 +239,15 @@ public static partial class CSharpEmitter
 				machines.Exists(one => one.Direct && one.Publications.Contains(publication)))
 			{
 				var memoryTag = tag with { Variant = tag.Variant + "Memory" };
-				var memory = new Machine(graph, results, lines, only: rules, tag: memoryTag,
-					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: true, spanCaptures: spanCaptures,
-					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing, expectedSets: expectedSets)
+				var memory = new Machine(graph, results, basis with
 				{
-					InPlace   = true,
-					Reporting   = reporting,
-					CountsRules = countRules,
-					ConstructionsMayThrow = constructionsMayThrow,
-				};
+					Only             = rules,
+					Tag              = memoryTag,
+					BufferedInput    = true,
+					BufferedBytes    = true,
+					InPlace          = true,
+					DeferCompilation = true,
+				});
 
 				if (memory.CanDirect([publication]) && !memory.Probes)
 				{
@@ -284,15 +289,15 @@ public static partial class CSharpEmitter
 			if (guests.Count == 0)
 				continue;
 
-			var shared = new Machine(graph, results, lines, only: graph.Rules.Where(rules.Contains).ToArray(),
-				tag: owner.Tag, partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: owner.Machine.BufferedBytes,
-				spanCaptures: spanCaptures, bufferedFind: publications.Any(one => one.Kind != PublishKind.Parse),
-				prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing, expectedSets: expectedSets)
+			var shared = new Machine(graph, results, basis with
 			{
-				Reporting   = reporting,
-				CountsRules = countRules,
-				ConstructionsMayThrow = constructionsMayThrow,
-			};
+				Only             = graph.Rules.Where(rules.Contains).ToArray(),
+				Tag              = owner.Tag,
+				BufferedInput    = true,
+				BufferedBytes    = owner.Machine.BufferedBytes,
+				BufferedFind     = publications.Any(one => one.Kind != PublishKind.Parse),
+				DeferCompilation = true,
+			});
 
 			added[host] = owner with { Machine = shared, Publications = publications };
 

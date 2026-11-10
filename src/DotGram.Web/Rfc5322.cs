@@ -53,7 +53,7 @@ public sealed record AddrSpec(string LocalPart, string Domain)
 	}
 
 	/// <summary>Whether a local part can be written as a dot-atom: atext, and dots between runs of it.</summary>
-	public static bool IsDotAtom(string text)
+	internal static bool IsDotAtom(string text)
 	{
 		return Rfc5322.IsDotAtomText(text);
 	}

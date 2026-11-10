@@ -257,7 +257,10 @@ sealed class EmbeddedGrammarBufferAnalysis
 	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
 	IReadOnlyList<HostBracePair>       _braces        = [];
 	IReadOnlyList<HostFoldingRange>    _foldingRanges = [];
-	IReadOnlyList<HostDocumentSymbol> _documentSymbols = [];
+	IReadOnlyList<EmbeddedGrammarOutline> _outlines = [];
+	// The snapshot _outlines were analysed on; older than _snapshot after an edit, a provisional
+	// publication or a transient syntax error, and translated to it when they are next read.
+	ITextSnapshot?                     _outlinesSnapshot;
 	IReadOnlyList<HostPublishedApi>    _publishedApis = [];
 
 	EmbeddedGrammarBufferAnalysis(
@@ -434,21 +437,30 @@ sealed class EmbeddedGrammarBufferAnalysis
 		return false;
 	}
 
-	public bool TryGetDocumentSymbols(
+	/// <summary>The grammars of the document, each with its own navigable symbols.</summary>
+	public bool TryGetOutlines(
 		ITextSnapshot snapshot,
-		out IReadOnlyList<HostDocumentSymbol> symbols)
+		out IReadOnlyList<EmbeddedGrammarOutline> outlines)
 	{
 		lock (_gate)
 		{
 			if (_snapshot == snapshot)
 			{
-				symbols = _documentSymbols;
+				if (_outlinesSnapshot is { } source && source != snapshot)
+				{
+					_outlines = source.Version.VersionNumber < snapshot.Version.VersionNumber
+						? EmbeddedNavigationItems.Translate(_outlines, span => Translate(span, source, snapshot))
+						: [];
+					_outlinesSnapshot = snapshot;
+				}
+
+				outlines = _outlines;
 				return true;
 			}
 		}
 
 		Schedule(snapshot);
-		symbols = [];
+		outlines = [];
 		return false;
 	}
 
@@ -605,7 +617,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
 			var braces          = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
 			var foldingRanges   = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();
-			var documentSymbols = analyses.SelectMany(static analysis => analysis.DocumentSymbols).ToArray();
+			var outlines        = analyses.Select(static analysis => new EmbeddedGrammarOutline(
+				analysis.Grammar.Name,
+				analysis.Grammar.Token.Span,
+				analysis.Grammar.HostSpan,
+				analysis.DocumentSymbols)).ToArray();
 			var publishedApis   = analyses.SelectMany(static analysis => analysis.PublishedApis).ToArray();
 			var retry           = false;
 
@@ -621,7 +637,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 					analyses.Count,
 					_classifications.Count,
 					_dslClassifications.Count,
-					_documentSymbols.Count,
+					_outlines.Sum(static outline => outline.Symbols.Count),
 					_dslSites.Count);
 
 				if (preserveEmbeddedAnalysis && _snapshot is not null)
@@ -645,7 +661,10 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_braces          = braces;
 				_foldingRanges   = foldingRanges;
 				if (!preserveEmbeddedAnalysis)
-					_documentSymbols = documentSymbols;
+				{
+					_outlines         = outlines;
+					_outlinesSnapshot = snapshot;
+				}
 				_publishedApis   = publishedApis;
 
 				if (_retrySnapshot != snapshot)

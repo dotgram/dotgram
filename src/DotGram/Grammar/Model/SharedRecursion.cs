@@ -58,7 +58,7 @@ namespace DotGram.Grammar.Model;
 /// can be asked for again by its caller, is asked only within its own body.
 /// </para>
 /// </remarks>
-public static class SharedRecursion
+static class SharedRecursion
 {
 	/// <summary>The level from which a pair is told and its cycle remembered: two joint entries into the cycle, or one into the rule itself. One joint entry is information only.</summary>
 	public const int Remembered = 2;

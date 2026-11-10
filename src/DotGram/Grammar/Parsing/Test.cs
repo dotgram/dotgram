@@ -21,7 +21,7 @@ namespace DotGram.Grammar.Parsing;
 /// one thing.
 /// </para>
 /// </remarks>
-public abstract record Test
+abstract record Test
 {
 	/// <summary>Whether two recognizers have a string in common — or, negated, have none.</summary>
 	public sealed record Meets(Expr Left, Expr Right, bool Negated) : Test;

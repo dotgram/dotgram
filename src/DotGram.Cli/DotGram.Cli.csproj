@@ -23,7 +23,6 @@
 		<Description>The DotGram generator outside the build: writes the parsers a build would generate, so that a project compiles them without referencing the generator.</Description>
 		<PackageTags>parser;parser-generator;grammar;dotnet-tool;codegen;csharp</PackageTags>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageReleaseNotes>New in 0.3.0: dotnet dotgram generate writes the parsers a build would generate, for a project (as its own build gives the compiler its inputs) or for one .gram file, so that the project compiles them and does not reference the DotGram package. For large grammars, whose generation shows in a cold build. The files are byte for byte what DotGram writes in dotnet build of the project, for a restored project built with the same SDK, apart from relative #line paths (--line-paths absolute for the build's), no generation report files, and the line endings of the EmbeddedAttribute definition. Reads a project with .NET SDK 8.0.100 or newer, and generates only where that SDK's compiler can run DotGram (SDK 9.0.300 or newer for this version); a .gram input needs no SDK compiler; runs on .NET 8 and later, on the newest runtime installed. dotnet dotgram --skill prints the guide for coding agents; docs/cli.md in the repository is the reference.</PackageReleaseNotes>
 
 		<!-- Roslyn carries a dozen resource cultures, several megabytes, that a tool printing English
 		     never reads. -->

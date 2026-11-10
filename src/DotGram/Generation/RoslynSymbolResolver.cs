@@ -34,7 +34,7 @@ namespace DotGram.Generation;
 /// hide a method of the same name outside the class.
 /// </param>
 /// <remarks>The host matters for nested result types declared beside the grammar.</remarks>
-public sealed class RoslynSymbolResolver(
+sealed class RoslynSymbolResolver(
 	Compilation compilation, string? host = null, IReadOnlyList<string>? statics = null, string? suffix = null, bool suffixDeclared = false,
 	IReadOnlyList<string>? published = null)
 	: ISymbolResolver, ICSharpNames

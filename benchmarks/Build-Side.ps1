@@ -102,7 +102,7 @@ $bytes  = [Text.Encoding]::UTF8.GetBytes(($projects | ForEach-Object {
 	$generated = Join-Path $artifacts "obj/$([IO.Path]::GetFileNameWithoutExtension($_))/GeneratedFiles"
 
 	if (Test-Path $generated) {
-		Get-ChildItem $generated -Recurse -Filter *.g.cs | Where-Object { $_.Name -notlike '*DotGramReport*' } | Sort-Object FullName | ForEach-Object { (Get-Content $_.FullName -Raw).Replace($Tree, '') }
+		Get-ChildItem $generated -Recurse -Filter *.g.cs | Where-Object { $_.Name -notlike '*DotGramReport*' } | Sort-Object FullName | ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw).Replace($Tree, '') }
 	}
 }) -join "`n")
 $emitted = if ($bytes.Length -gt 0) { -join ($sha256.ComputeHash($bytes)[0..7] | ForEach-Object { $_.ToString('x2') }) } else { 'none: no generated files were found' }

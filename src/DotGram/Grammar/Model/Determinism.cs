@@ -29,7 +29,7 @@ namespace DotGram.Grammar.Model;
 /// and not about a repetition, and the same is true of everything built out of one.
 /// </para>
 /// </remarks>
-public static class Determinism
+static class Determinism
 {
 	/// <summary>Whether this node has at most one match, given what follows it.</summary>
 	public static bool Of(

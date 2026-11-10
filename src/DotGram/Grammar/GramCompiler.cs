@@ -19,7 +19,7 @@ namespace DotGram.Grammar;
 /// the same method and gets the same answer, which is the point: generated code can be
 /// obtained as a string and inspected as code.
 /// </remarks>
-public static class GramCompiler
+static class GramCompiler
 {
 	/// <summary>
 	/// Reads one grammar: the first two stages, with the standard library spliced on.
@@ -223,14 +223,17 @@ public static class GramCompiler
 					? $"{options.ClassName}.{suffix}.gram.g.cs"
 					: $"{options.ClassName}.gram.g.cs",
 				CSharpEmitter.Emit(
-					lexical?.Syntax ?? graph, options.ClassName, options.Namespace, options.LineMap,
-					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier, options.Stacks,
-					options.Suffix, options.SharedTypes, options.Inherits,
-					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
-					options.LanguageRecognitionContract, options.StaticImports,
-					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables, sourceParts, options.SourceFileSize, options.MaxRetained, options.BufferSize, carriers,
-					options.CountRules, options.MemoiseFailures, options.Trace, options.Utf8Literals, options.Checks, options.Steps,
-					options.ConstructionsMayThrow, options.SymbolResolver is UnseenHostSymbolResolver, options.MemoiseSuccesses, shared)));
+					lexical?.Syntax ?? graph,
+					options,
+					new EmitContext
+					{
+						Lexical       = lexical,
+						Diagnostics   = diagnostics,
+						GrammarSource = options.Portable ? grammarText : null,
+						SourceParts   = sourceParts,
+						Carriers      = carriers,
+						SharedChoices = shared,
+					})));
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));

@@ -11,7 +11,7 @@ sealed partial class Machine
 {
 	string? GuardedCharacterTest(Node body)
 	{
-		if (OverKinds || _starves || body is not Node.Sequence({ Count: 2 } parts) ||
+		if (OverKinds || _settings.Starves || body is not Node.Sequence({ Count: 2 } parts) ||
 			parts[0] is not Node.Lookahead(false, var delimiter) || RunTest(parts[1]) != "true" ||
 			RunTest(delimiter) is not { } stop || stop == "true")
 			return null;
@@ -97,7 +97,7 @@ sealed partial class Machine
 
 	(string Padding, string Stop)? PaddedDelimiter(Node.Repeat repeat)
 	{
-		if (OverKinds || _starves || repeat.Max != null ||
+		if (OverKinds || _settings.Starves || repeat.Max != null ||
 			repeat.Body is not Node.Sequence({ Count: 2 } turn) ||
 			turn[0] is not Node.Lookahead(false, var guard) || RunTest(turn[1]) != "true")
 			return null;
@@ -107,7 +107,7 @@ sealed partial class Machine
 
 	(string Padding, string Stop)? PaddedDelimiter(Node guard)
 	{
-		if (OverKinds || _starves || DelimiterBody(guard) is not Node.Sequence(var parts) || parts.Count is < 2 or > 3 ||
+		if (OverKinds || _settings.Starves || DelimiterBody(guard) is not Node.Sequence(var parts) || parts.Count is < 2 or > 3 ||
 			DelimiterBody(parts[0]) is not Node.Repeat(var padding, 0, null))
 			return null;
 
@@ -239,7 +239,7 @@ sealed partial class Machine
 	{
 		// The shape is asked before anything is tested: a test of a class writes its table, and a
 		// table written for a question that came to nothing renumbers the file's tables.
-		if (OverKinds || _starves || Tracing is not null || repeat.Max != null)
+		if (OverKinds || _settings.Starves || Tracing is not null || repeat.Max != null)
 			return null;
 
 		if (repeat.Body is not Node.Sequence({ Count: >= 2 } parts) ||
@@ -843,7 +843,7 @@ sealed partial class Machine
 
 	void EmitRecoverySearch(Writer writer, Node sync)
 	{
-		if (OverKinds || _starves)
+		if (OverKinds || _settings.Starves)
 			return;
 
 		var body      = DelimiterBody(sync);

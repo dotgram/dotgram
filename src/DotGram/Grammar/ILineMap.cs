@@ -20,7 +20,7 @@ namespace DotGram.Grammar;
 /// (.claude/rules/grammar-half.md).
 /// </para>
 /// </remarks>
-public interface ILineMap
+interface ILineMap
 {
 	/// <summary>
 	/// Where <paramref name="position"/> is, or false where it cannot be placed.

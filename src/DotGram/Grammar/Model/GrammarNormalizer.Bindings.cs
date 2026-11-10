@@ -22,7 +22,7 @@ namespace DotGram.Grammar.Model;
 /// and the routes are what the author wrote.
 /// </para>
 /// </remarks>
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	/// <summary>A reference or a length read where, on some route, nothing bound the text.</summary>
 	public const string UnboundReference = "GRAM4032";

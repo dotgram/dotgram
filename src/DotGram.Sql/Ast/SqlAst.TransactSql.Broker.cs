@@ -252,6 +252,10 @@ public abstract record MessageValidation : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected MessageValidation()
+	{
+	}
+
 	/// <summary>
 	/// <c>VALIDATION = word</c>: <c>NONE</c>, <c>EMPTY</c>, <c>WELL_FORMED_XML</c> or any other, which the engine does not
 	/// check until it runs; a word, never <c>VALID_XML</c> written plain.
@@ -288,6 +292,10 @@ public abstract record QueueOption : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected QueueOption()
+	{
+	}
+
 	/// <summary><c>STATUS = ON</c> or <c>OFF</c>.</summary>
 	public sealed record Status(bool On) : QueueOption;
 
@@ -317,6 +325,10 @@ public abstract record ActivationSetting : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ActivationSetting()
+	{
+	}
+
 	/// <summary><c>STATUS = ON</c> or <c>OFF</c>.</summary>
 	public sealed record Status(bool On) : ActivationSetting;
 
@@ -344,6 +356,10 @@ public abstract record QueueChange : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected QueueChange()
+	{
 	}
 
 	/// <summary><c>WITH option, …</c>: the options of the queue, each kind once, one at least.</summary>

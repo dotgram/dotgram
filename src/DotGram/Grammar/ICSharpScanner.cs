@@ -20,7 +20,7 @@ namespace DotGram.Grammar;
 /// appear at all.
 /// </para>
 /// </remarks>
-public interface ICSharpScanner
+interface ICSharpScanner
 {
 	/// <summary>
 	/// Given the index of the <c>(</c> that opens an inline expression, finds the index

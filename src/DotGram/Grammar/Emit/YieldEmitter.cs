@@ -4,17 +4,19 @@ using DotGram.Grammar.Binding;
 
 namespace DotGram.Grammar.Emit;
 
-public static partial class CSharpEmitter
+static partial class CSharpEmitter
 {
-	/// <param name="tracing">
-	/// In a trace build, what it numbers by: the iterator is then a method of its own, handed the
-	/// sink by one that is not an iterator, so that the sink is the one set where the call was made
-	/// rather than where the first element was asked for.
+	/// <param name="text">
+	/// The publication's names and arguments. In a trace build its <c>Tracing</c> is what it numbers
+	/// by: the iterator is then a method of its own, handed the sink by one that is not an iterator,
+	/// so that the sink is the one set where the call was made rather than where the first element
+	/// was asked for.
 	/// </param>
-	static void EmitYield(
-		Writer file, Publication publication, string hands, string takes, string gives = "",
-		TraceTables? tracing = null, string name = "", string machine = "methods", string? built = null)
+	static void EmitYield(Writer file, PublicationText text, string hands)
 	{
+		var (publication, takes, gives, tracing, name, machine, built) =
+			(text.Publication, text.Takes, text.Gives, text.Tracing, text.Name, text.Machine, text.Built);
+
 		var type = $"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>";
 
 		// Over segments the text is the segments joined, and a place in it is said as a segment and

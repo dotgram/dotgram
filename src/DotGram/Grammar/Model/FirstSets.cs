@@ -30,7 +30,7 @@ namespace DotGram.Grammar.Model;
 /// one costs the thing this exists to prevent.
 /// </para>
 /// </remarks>
-public static class FirstSets
+static class FirstSets
 {
 	/// <summary>A repetition that may be unable to tell its own end from its elements.</summary>
 	public const string Ambiguous = "GRAM5002";

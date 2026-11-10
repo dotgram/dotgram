@@ -610,7 +610,7 @@ sealed partial class Machine
 		// rule builds was written against parts of it that no longer exist separately. So it
 		// is read again — the rule's own character machine over exactly the text the token
 		// covers, which is the same code an unsplit parser would have run here.
-		if (_reread is not null && _reread.Contains(rule))
+		if (_settings.Reread is not null && _settings.Reread.Contains(rule))
 		{
 			using (file.Block($"case {_ruleIds[rule]}:"))
 			{
@@ -1019,14 +1019,10 @@ sealed partial class Machine
 
 	bool SplitConstruction(RuleSymbol rule)
 	{
-		return
-			ValueRule(rule) >= 0                      &&
-			!IsExtent(rule)                           &&
-			!(_reread?.Contains(rule) ?? false)       &&
-			!_graph.Externals.ContainsKey(rule)       &&
-			!_graph.Folds.ContainsKey(rule)           &&
-			_factories[rule].Count > FactoriesPerPart &&
-			!SameIdentityConstruction(_factories[rule]);
+		return ValueRule(rule) >= 0 && !IsExtent(rule) &&
+		!(_settings.Reread?.Contains(rule) ?? false) && !_graph.Externals.ContainsKey(rule) &&
+		!_graph.Folds.ContainsKey(rule) && _factories[rule].Count > FactoriesPerPart &&
+		!SameIdentityConstruction(_factories[rule]);
 	}
 
 	string ConstructionPart(RuleSymbol rule, int part)

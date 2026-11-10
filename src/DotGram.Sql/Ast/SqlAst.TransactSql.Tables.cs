@@ -79,6 +79,10 @@ public abstract record ColumnOption : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected ColumnOption()
+	{
+	}
+
 	/// <summary>
 	/// T-SQL: column_definition (Transact-SQL). <c>CONSTRAINT name</c> before a <see cref="Default"/> or a
 	/// <see cref="Null"/>; a constraint's own name is the constraint's.
@@ -693,6 +697,10 @@ public abstract record PathHint : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	private protected PathHint()
+	{
+	}
+
 	/// <summary>
 	/// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>AS XQUERY ['xs:string'] [MAXLENGTH (n)]</c>: the XQuery type,
 	/// <c>'node()'</c> among them, and the length.
@@ -715,6 +723,10 @@ public abstract record PathAction : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected PathAction()
+	{
 	}
 
 	/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). <c>ADD path = 'node path' …</c>.</summary>
@@ -742,6 +754,10 @@ public abstract record IndexAlteration : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected IndexAlteration()
+	{
 	}
 
 	/// <summary>
@@ -815,6 +831,10 @@ public abstract record FullTextAlteration : ISqlNode
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected FullTextAlteration()
+	{
 	}
 
 	/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>ENABLE</c>.</summary>

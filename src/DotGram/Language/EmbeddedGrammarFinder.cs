@@ -13,12 +13,14 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.Language;
 
 /// <summary>One grammar string proven by Roslyn to belong to <c>DotGram.GramAttribute</c>.</summary>
-public sealed class EmbeddedGrammar(
+sealed class EmbeddedGrammar(
 	string text,
 	SyntaxToken token,
 	CSharpStringMap sourceMap,
 	string? analysisText = null,
-	GramAnalysisOptions? options = null)
+	GramAnalysisOptions? options = null,
+	string? name = null,
+	TextSpan? hostSpan = null)
 {
 	public string          Text      { get; } = text;
 	public SyntaxToken     Token     { get; } = token;
@@ -27,10 +29,25 @@ public sealed class EmbeddedGrammar(
 
 	/// <summary>What the host's attribute says about compiling it, or null where nothing is known.</summary>
 	public GramAnalysisOptions? Options { get; } = options;
+
+	/// <summary>
+	/// The name a user knows the grammar by: its class, nested classes dotted, and the
+	/// <c>Suffix</c> after it where the attribute gives one (<c>Parser.Tape</c>); for a string
+	/// passed to a <c>StringSyntax</c> parameter, the method and the parameter (<c>Inspect(grammar)</c>).
+	/// Null where nothing names it.
+	/// </summary>
+	public string? Name { get; } = name;
+
+	/// <summary>
+	/// What the grammar belongs to in the C# document: the declaration of the class its attribute is
+	/// written on, attributes included, or the member a <c>StringSyntax</c> argument is passed in;
+	/// the string itself where there is neither.
+	/// </summary>
+	public TextSpan HostSpan { get; } = hostSpan ?? token.Span;
 }
 
 /// <summary>Finds embedded grammars by attribute identity rather than source spelling.</summary>
-public static class EmbeddedGrammarFinder
+static class EmbeddedGrammarFinder
 {
 	const string GramAttribute = "DotGram.GramAttribute";
 	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
@@ -87,7 +104,18 @@ public static class EmbeddedGrammarFinder
 				Host    = host,
 			};
 
-			grammars.Add(new EmbeddedGrammar(own, literal.Token, map!, analysisText, options));
+			var name = host is null
+				? null
+				: host.Options.Suffix is { Length: > 0 } suffix ? host.ClassName + "." + suffix : host.ClassName;
+
+			grammars.Add(new EmbeddedGrammar(
+				own,
+				literal.Token,
+				map!,
+				analysisText,
+				options,
+				name,
+				(attribute.Parent?.Parent as MemberDeclarationSyntax)?.Span));
 			seen.Add(literal.Token.Span);
 		}
 
@@ -105,7 +133,15 @@ public static class EmbeddedGrammarFinder
 				!CSharpStringMap.TryCreate(literal.Token, out var map))
 				continue;
 
-			grammars.Add(new EmbeddedGrammar(literal.Token.ValueText, literal.Token, map!));
+			var method = parameter.ContainingSymbol as IMethodSymbol;
+			var callee = method?.MethodKind == MethodKind.Constructor ? method.ContainingType.Name : method?.Name;
+
+			grammars.Add(new EmbeddedGrammar(
+				literal.Token.ValueText,
+				literal.Token,
+				map!,
+				name:     callee is null ? null : callee + "(" + parameter.Name + ")",
+				hostSpan: argument.FirstAncestorOrSelf<MemberDeclarationSyntax>()?.Span));
 			seen.Add(literal.Token.Span);
 		}
 

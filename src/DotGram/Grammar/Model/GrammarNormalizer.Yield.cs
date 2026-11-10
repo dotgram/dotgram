@@ -6,7 +6,7 @@ using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
-public sealed partial class GrammarNormalizer
+sealed partial class GrammarNormalizer
 {
 	// A first conservative proof: the complete result is one unbounded repetition
 	// of a non-nullable rule. There is no suffix or alternative that could reclaim

@@ -12,20 +12,20 @@ using Microsoft.CodeAnalysis;
 
 namespace DotGram.Language;
 
-public enum DslGrammarSourceKind
+enum DslGrammarSourceKind
 {
 	Embedded,
 	File,
 }
 
-public sealed class DslClassificationDefinition(string target, string role, AttributeData? attribute)
+sealed class DslClassificationDefinition(string target, string role, AttributeData? attribute)
 {
 	public string Target { get; } = target;
 	public string Role { get; } = role;
 	public AttributeData? Attribute { get; } = attribute;
 }
 
-public sealed class DslRecognitionContractDefinition(
+sealed class DslRecognitionContractDefinition(
 	IReadOnlyDictionary<string, bool> guards,
 	IReadOnlyDictionary<string, string> externals)
 {
@@ -37,7 +37,7 @@ public sealed class DslRecognitionContractDefinition(
 		new Dictionary<string, string>(StringComparer.Ordinal));
 }
 
-public sealed class DslIncludedGrammarDefinition(
+sealed class DslIncludedGrammarDefinition(
 	string name,
 	DslGrammarSourceKind sourceKind,
 	string grammarSource)
@@ -47,7 +47,7 @@ public sealed class DslIncludedGrammarDefinition(
 	public string GrammarSource { get; } = grammarSource;
 }
 
-public sealed class DslLanguageDefinition(
+sealed class DslLanguageDefinition(
 	string id,
 	INamedTypeSymbol parserType,
 	DslGrammarSourceKind sourceKind,
@@ -78,7 +78,7 @@ public sealed class DslLanguageDefinition(
 		recognitionContract ?? DslRecognitionContractDefinition.Empty;
 }
 
-public sealed class DslLanguageCatalog(IReadOnlyList<DslLanguageDefinition> languages)
+sealed class DslLanguageCatalog(IReadOnlyList<DslLanguageDefinition> languages)
 {
 	public IReadOnlyList<DslLanguageDefinition> Languages { get; } = languages;
 }
@@ -87,7 +87,7 @@ public sealed class DslLanguageCatalog(IReadOnlyList<DslLanguageDefinition> lang
 /// Discovers generated-language declarations from Roslyn symbols without loading the
 /// consumer assembly or relying on the spelling used at an attribute site.
 /// </summary>
-public static class DslLanguageDiscovery
+static class DslLanguageDiscovery
 {
 	static readonly ConditionalWeakTable<Compilation, DslLanguageCatalog> Cache = new();
 	static readonly object CacheGate = new();

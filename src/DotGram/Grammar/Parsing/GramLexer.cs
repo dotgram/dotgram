@@ -26,7 +26,7 @@ namespace DotGram.Grammar.Parsing;
 /// something else.
 /// </para>
 /// </remarks>
-public static class GramLexer
+static class GramLexer
 {
 	public const string UnterminatedCharacter  = "GRAM1001";
 	public const string UnterminatedString     = "GRAM1002";

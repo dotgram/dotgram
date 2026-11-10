@@ -43,7 +43,7 @@ using Text = (string Text, bool IgnoreCase);
 /// for the same reason: this decides nothing that depends on a caller.
 /// </para>
 /// </remarks>
-public sealed class TerminalInventory
+sealed class TerminalInventory
 {
 	TerminalInventory(
 		bool applies,
@@ -1106,26 +1106,49 @@ public sealed class TerminalInventory
 		/// </remarks>
 		static List<Text> Laminar(List<Text> members, IReadOnlyList<HashSet<Text>> sets)
 		{
-			HashSet<Text>? largest = null;
+			// Asked by position rather than by text: which set holds which member is looked up
+			// once, and the division below asks it of every set at every level.
+			var holds = sets.Select(set => members.Select(set.Contains).ToArray()).ToList();
+			var order = Laminar(Enumerable.Range(0, members.Count).ToList(), holds);
 
-			foreach (var set in sets)
+			return order.ConvertAll(at => members[at]);
+		}
+
+		/// <summary>
+		/// <see cref="Laminar(List{Text}, IReadOnlyList{HashSet{Text}})"/> over the members'
+		/// positions.
+		/// </summary>
+		static List<int> Laminar(List<int> members, List<bool[]> holds)
+		{
+			bool[]? largest = null;
+
+			var most = 0;
+
+			foreach (var set in holds)
 			{
-				var inside = members.Count(set.Contains);
+				var inside = 0;
+
+				foreach (var member in members)
+					if (set[member])
+						inside++;
 
 				if (inside == 0 || inside == members.Count)
 					continue;
 
-				if (largest is null || inside > members.Count(largest.Contains))
+				if (largest is null || inside > most)
+				{
 					largest = set;
+					most    = inside;
+				}
 			}
 
 			if (largest is null)
 				return members;
 
-			var within  = members.Where(largest.Contains).ToList();
-			var without = members.Where(one => !largest.Contains(one)).ToList();
+			var within  = members.FindAll(member => largest[member]);
+			var without = members.FindAll(member => !largest[member]);
 
-			return [.. Laminar(within, sets), .. Laminar(without, sets)];
+			return [.. Laminar(within, holds), .. Laminar(without, holds)];
 		}
 
 		public TerminalInventory Gathered()
@@ -1477,7 +1500,8 @@ public sealed class TerminalInventory
 				if (unworded[number] != number)
 					asked.Add(number);
 
-			var words = boundaries.Select(one => FirstSets.OfElement(one)).ToList();
+			var words   = boundaries.Select(one => FirstSets.OfElement(one)).ToList();
+			var crossed = words.Select(word => Crossing.Of(machine, word)).ToList();
 
 			for (var state = 0; state < machine.Accepts.Count; state++)
 			{
@@ -1486,7 +1510,7 @@ public sealed class TerminalInventory
 				if (number == 0 || unworded[number] == number || asked.Contains(number))
 					continue;
 
-				if (StopsBeforeWord(machine, state, words[boundaryOf[number]]))
+				if (crossed[boundaryOf[number]].StopsBeforeWord(machine, state))
 					asked.Add(number);
 			}
 
@@ -1494,6 +1518,9 @@ public sealed class TerminalInventory
 			// where the first would have gone on into such a terminal's beginning: a keyword it
 			// ends on there can stand right before a character that continues a word.
 			if (masked is not null)
+			{
+				var maskedCrossed = words.Select(word => Crossing.Of(masked, word)).ToList();
+
 				for (var state = 0; state < masked.Accepts.Count; state++)
 				{
 					if (masked.Accepts[state] < 0)
@@ -1504,44 +1531,90 @@ public sealed class TerminalInventory
 					if (unworded[number] == number || asked.Contains(number))
 						continue;
 
-					if (StopsBeforeWord(masked, state, words[boundaryOf[number]]))
+					if (maskedCrossed[boundaryOf[number]].StopsBeforeWord(masked, state))
 						asked.Add(number);
 				}
+			}
 
 			return Runs("asked", asked);
 		}
 
 		/// <summary>
-		/// Whether some character that continues a word does not lead on from this state to an
-		/// accepting one — so a token ending here can stand right before it.
+		/// What the characters that continue a word are to one machine: the atoms that hold them,
+		/// or that some of them are in no atom at all.
 		/// </summary>
-		static bool StopsBeforeWord(LexicalAutomaton machine, int state, FirstSets.First word)
+		/// <remarks>
+		/// Worked out once for a machine and a boundary rather than for every state asked about
+		/// it: a state is asked whether each of those characters leads on to an accepting state,
+		/// and walking the alphabet against the boundary's ranges to find them again was a scan of
+		/// every atom for every range, at every state — a Unicode category is hundreds of ranges,
+		/// and T-SQL's alphabet more than a thousand atoms.
+		/// </remarks>
+		sealed class Crossing
 		{
-			if (!word.IsKnown)
-				return !word.Nothing;
-
-			var row = machine.Next[state];
-
-			foreach (var range in word.Ranges)
+			Crossing(bool always, int[] atoms)
 			{
-				var at = (int)range.From;
-
-				for (var atom = 0; atom < machine.Atoms.Count && at <= range.To; atom++)
-				{
-					if (machine.Atoms[atom].To < at)
-						continue;
-
-					if (machine.Atoms[atom].From > at || row[atom] < 0 || machine.Accepts[row[atom]] < 0)
-						return true;
-
-					at = machine.Atoms[atom].To + 1;
-				}
-
-				if (at <= range.To)
-					return true;
+				_always = always;
+				_atoms  = atoms;
 			}
 
-			return false;
+			/// <summary>
+			/// Whether every state stops before a word: a character that continues one is in no
+			/// atom, so no state goes anywhere on it; or what continues a word cannot be listed,
+			/// and is not nothing.
+			/// </summary>
+			readonly bool _always;
+
+			/// <summary>The atoms holding a character that continues a word.</summary>
+			readonly int[] _atoms;
+
+			public static Crossing Of(LexicalAutomaton machine, FirstSets.First word)
+			{
+				if (!word.IsKnown)
+					return new Crossing(!word.Nothing, []);
+
+				var atoms = new List<int>();
+
+				foreach (var range in word.Ranges)
+				{
+					var at = (int)range.From;
+
+					for (var atom = 0; atom < machine.Atoms.Count && at <= range.To; atom++)
+					{
+						if (machine.Atoms[atom].To < at)
+							continue;
+
+						if (machine.Atoms[atom].From > at)
+							return new Crossing(true, []);
+
+						atoms.Add(atom);
+						at = machine.Atoms[atom].To + 1;
+					}
+
+					if (at <= range.To)
+						return new Crossing(true, []);
+				}
+
+				return new Crossing(false, [.. atoms]);
+			}
+
+			/// <summary>
+			/// Whether some character that continues a word does not lead on from this state to an
+			/// accepting one — so a token ending here can stand right before it.
+			/// </summary>
+			public bool StopsBeforeWord(LexicalAutomaton machine, int state)
+			{
+				if (_always)
+					return true;
+
+				var row = machine.Next[state];
+
+				foreach (var atom in _atoms)
+					if (row[atom] < 0 || machine.Accepts[row[atom]] < 0)
+						return true;
+
+				return false;
+			}
 		}
 
 		/// <summary>

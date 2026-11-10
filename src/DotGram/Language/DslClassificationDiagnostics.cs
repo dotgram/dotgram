@@ -12,7 +12,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace DotGram.Language;
 
-public static class DslClassificationDiagnostics
+static class DslClassificationDiagnostics
 {
 	public static async Task<IReadOnlyList<HostDiagnostic>> AnalyzeAsync(
 		Document document,

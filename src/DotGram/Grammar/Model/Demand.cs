@@ -59,7 +59,7 @@ namespace DotGram.Grammar.Model;
 /// before anything is emitted and any rendering that builds can ask it.
 /// </para>
 /// </remarks>
-public static class Demand
+static class Demand
 {
 	/// <summary>Whether the value one call reads is ever built.</summary>
 	public enum Kind

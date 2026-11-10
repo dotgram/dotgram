@@ -13,7 +13,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace DotGram.Language;
 
 /// <summary>Editor-neutral syntax categories produced for a <c>.gram</c> document.</summary>
-public enum GramSyntaxKind
+enum GramSyntaxKind
 {
 	Invalid,
 	Comment,
@@ -36,7 +36,7 @@ public enum GramSyntaxKind
 }
 
 /// <summary>One classified source span in a <c>.gram</c> document.</summary>
-public readonly struct GramClassifiedSpan(
+readonly struct GramClassifiedSpan(
 	int position,
 	int length,
 	GramSyntaxKind kind,
@@ -56,7 +56,7 @@ public readonly struct GramClassifiedSpan(
 	public GramSymbolKind? SymbolKind { get; } = symbolKind;
 }
 
-public enum GramSymbolKind
+enum GramSymbolKind
 {
 	Rule,
 	Parameter,
@@ -64,7 +64,7 @@ public enum GramSymbolKind
 }
 
 /// <summary>One declaration or reference to a grammar rule.</summary>
-public readonly struct GramSymbolOccurrence(
+readonly struct GramSymbolOccurrence(
 	string name,
 	int position,
 	int length,
@@ -84,21 +84,21 @@ public readonly struct GramSymbolOccurrence(
 	public int ScopeEnd { get; } = scopeEnd;
 }
 
-public readonly record struct GramBracePair(int OpenPosition, int OpenLength, int ClosePosition, int CloseLength);
+readonly record struct GramBracePair(int OpenPosition, int OpenLength, int ClosePosition, int CloseLength);
 
-public readonly record struct GramFoldingRange(int Position, int Length, string CollapsedText);
+readonly record struct GramFoldingRange(int Position, int Length, string CollapsedText);
 
 /// <summary>An explicitly named generated C# method declared by a publication.</summary>
-public readonly record struct GramPublishedApi(string MethodName, int Position, int Length);
+readonly record struct GramPublishedApi(string MethodName, int Position, int Length);
 
-public enum GramDocumentSymbolKind
+enum GramDocumentSymbolKind
 {
 	Namespace,
 	Rule,
 	Publication,
 }
 
-public sealed class GramDocumentSymbol(
+sealed class GramDocumentSymbol(
 	string name,
 	GramDocumentSymbolKind kind,
 	int position,
@@ -117,7 +117,7 @@ public sealed class GramDocumentSymbol(
 }
 
 /// <summary>The editor-neutral analysis of one immutable <c>.gram</c> document.</summary>
-public sealed class GramDocument(
+sealed class GramDocument(
 	IReadOnlyList<GramClassifiedSpan> classifications,
 	IReadOnlyList<GramDiagnostic> diagnostics,
 	IReadOnlyList<GramSymbolOccurrence> symbols,
@@ -136,7 +136,7 @@ public sealed class GramDocument(
 }
 
 /// <summary>What a grammar's host says about compiling it, which the editor reads the same way.</summary>
-public sealed class GramAnalysisOptions
+sealed class GramAnalysisOptions
 {
 	/// <summary>
 	/// How much of the text is the document's own, where the rest was spliced on from what
@@ -212,7 +212,7 @@ sealed record GramHostReading(GramHostOptions Options, string ClassName, string?
 /// Adapts the existing compiler front-end to editor operations without reproducing
 /// grammar recognition in an editor integration.
 /// </summary>
-public static class GramLanguageService
+static class GramLanguageService
 {
 	/// <summary>The words a grammar document colours as keywords wherever they stand, and the built-in rules with them.</summary>
 	/// <remarks>

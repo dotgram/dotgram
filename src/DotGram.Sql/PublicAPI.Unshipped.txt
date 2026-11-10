@@ -1,1 +1,150 @@
 #nullable enable
+*REMOVED*DotGram.Sql.Ast.ActivationSetting.ActivationSetting() -> void
+*REMOVED*DotGram.Sql.Ast.AlterColumnAction.AlterColumnAction() -> void
+*REMOVED*DotGram.Sql.Ast.AlterDatabaseAction.AlterDatabaseAction() -> void
+*REMOVED*DotGram.Sql.Ast.AlterDomainAction.AlterDomainAction() -> void
+*REMOVED*DotGram.Sql.Ast.AlterLoginAction.AlterLoginAction() -> void
+*REMOVED*DotGram.Sql.Ast.AlterTableAction.AlterTableAction() -> void
+*REMOVED*DotGram.Sql.Ast.AlterTypeAction.AlterTypeAction() -> void
+*REMOVED*DotGram.Sql.Ast.AsymmetricKeyChange.AsymmetricKeyChange() -> void
+*REMOVED*DotGram.Sql.Ast.AsymmetricKeySource.AsymmetricKeySource() -> void
+*REMOVED*DotGram.Sql.Ast.AtomicOption.AtomicOption() -> void
+*REMOVED*DotGram.Sql.Ast.AuditChange.AuditChange() -> void
+*REMOVED*DotGram.Sql.Ast.AuditTarget.AuditTarget() -> void
+*REMOVED*DotGram.Sql.Ast.AuthorizationTo.AuthorizationTo() -> void
+*REMOVED*DotGram.Sql.Ast.AvailabilityAction.AvailabilityAction() -> void
+*REMOVED*DotGram.Sql.Ast.AvailabilityListener.AvailabilityListener() -> void
+*REMOVED*DotGram.Sql.Ast.AvailabilitySource.AvailabilitySource() -> void
+*REMOVED*DotGram.Sql.Ast.BackupDevice.BackupDevice() -> void
+*REMOVED*DotGram.Sql.Ast.BackupFile.BackupFile() -> void
+*REMOVED*DotGram.Sql.Ast.CertificateChange.CertificateChange() -> void
+*REMOVED*DotGram.Sql.Ast.CertificateSource.CertificateSource() -> void
+*REMOVED*DotGram.Sql.Ast.ColumnGeneration.ColumnGeneration() -> void
+*REMOVED*DotGram.Sql.Ast.ColumnKeyChange.ColumnKeyChange() -> void
+*REMOVED*DotGram.Sql.Ast.ColumnOption.ColumnOption() -> void
+*REMOVED*DotGram.Sql.Ast.ConditionAction.ConditionAction() -> void
+*REMOVED*DotGram.Sql.Ast.ConnectionObject.ConnectionObject() -> void
+*REMOVED*DotGram.Sql.Ast.Constraint.Constraint() -> void
+*REMOVED*DotGram.Sql.Ast.ConstraintTarget.ConstraintTarget() -> void
+*REMOVED*DotGram.Sql.Ast.CryptographicProviderChange.CryptographicProviderChange() -> void
+*REMOVED*DotGram.Sql.Ast.CursorAllocationSource.CursorAllocationSource() -> void
+*REMOVED*DotGram.Sql.Ast.CursorSource.CursorSource() -> void
+*REMOVED*DotGram.Sql.Ast.DataType.DataType() -> void
+*REMOVED*DotGram.Sql.Ast.DatabaseEncryptionKeyChange.DatabaseEncryptionKeyChange() -> void
+*REMOVED*DotGram.Sql.Ast.DatabaseSource.DatabaseSource() -> void
+*REMOVED*DotGram.Sql.Ast.DescribeBody.DescribeBody() -> void
+*REMOVED*DotGram.Sql.Ast.DescribeObject.DescribeObject() -> void
+*REMOVED*DotGram.Sql.Ast.DescriptorCopy.DescriptorCopy() -> void
+*REMOVED*DotGram.Sql.Ast.DescriptorGet.DescriptorGet() -> void
+*REMOVED*DotGram.Sql.Ast.DescriptorSet.DescriptorSet() -> void
+*REMOVED*DotGram.Sql.Ast.DiagnosticsInformation.DiagnosticsInformation() -> void
+*REMOVED*DotGram.Sql.Ast.DisconnectObject.DisconnectObject() -> void
+*REMOVED*DotGram.Sql.Ast.DroppedIndex.DroppedIndex() -> void
+*REMOVED*DotGram.Sql.Ast.DynamicArguments.DynamicArguments() -> void
+*REMOVED*DotGram.Sql.Ast.EmbeddedSql.EmbeddedSql() -> void
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.Aes = 0 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.AesRc4 = 2 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.Rc4 = 1 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointAlgorithm.Rc4Aes = 3 -> DotGram.Sql.Ast.EndpointAlgorithm
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Disabled = 0 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Negotiated = 1 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Required = 4 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Strict = 2 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointEncryptionLevel.Supported = 3 -> DotGram.Sql.Ast.EndpointEncryptionLevel
+*REMOVED*DotGram.Sql.Ast.EndpointPayload.EndpointPayload() -> void
+*REMOVED*DotGram.Sql.Ast.EndpointTransport.EndpointTransport() -> void
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode.Kerberos = 1 -> DotGram.Sql.Ast.EndpointWindowsMode
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode.Negotiate = 2 -> DotGram.Sql.Ast.EndpointWindowsMode
+*REMOVED*DotGram.Sql.Ast.EndpointWindowsMode.Ntlm = 0 -> DotGram.Sql.Ast.EndpointWindowsMode
+*REMOVED*DotGram.Sql.Ast.EventPredicate.EventPredicate() -> void
+*REMOVED*DotGram.Sql.Ast.EventSessionPiece.EventSessionPiece() -> void
+*REMOVED*DotGram.Sql.Ast.ExecuteOption.ExecuteOption() -> void
+*REMOVED*DotGram.Sql.Ast.Expression.Expression() -> void
+*REMOVED*DotGram.Sql.Ast.ExternalLanguageChange.ExternalLanguageChange() -> void
+*REMOVED*DotGram.Sql.Ast.ExternalLibraryChange.ExternalLibraryChange() -> void
+*REMOVED*DotGram.Sql.Ast.FileGroupChange.FileGroupChange() -> void
+*REMOVED*DotGram.Sql.Ast.ForClause.ForClause() -> void
+*REMOVED*DotGram.Sql.Ast.FullTextAlteration.FullTextAlteration() -> void
+*REMOVED*DotGram.Sql.Ast.FullTextCatalogAction.FullTextCatalogAction() -> void
+*REMOVED*DotGram.Sql.Ast.GrantBody.GrantBody() -> void
+*REMOVED*DotGram.Sql.Ast.Grantee.Grantee() -> void
+*REMOVED*DotGram.Sql.Ast.GraphPattern.GraphPattern() -> void
+*REMOVED*DotGram.Sql.Ast.GroupingElement.GroupingElement() -> void
+*REMOVED*DotGram.Sql.Ast.HostDeclaration.HostDeclaration() -> void
+*REMOVED*DotGram.Sql.Ast.HostParameterDeclaration.HostParameterDeclaration() -> void
+*REMOVED*DotGram.Sql.Ast.InSource.InSource() -> void
+*REMOVED*DotGram.Sql.Ast.IndexAlteration.IndexAlteration() -> void
+*REMOVED*DotGram.Sql.Ast.InsertSource.InsertSource() -> void
+*REMOVED*DotGram.Sql.Ast.JoinSpecification.JoinSpecification() -> void
+*REMOVED*DotGram.Sql.Ast.JsonPathAccessor.JsonPathAccessor() -> void
+*REMOVED*DotGram.Sql.Ast.JsonPathExpression.JsonPathExpression() -> void
+*REMOVED*DotGram.Sql.Ast.JsonPathPredicate.JsonPathPredicate() -> void
+*REMOVED*DotGram.Sql.Ast.JsonTableColumn.JsonTableColumn() -> void
+*REMOVED*DotGram.Sql.Ast.JsonTablePlan.JsonTablePlan() -> void
+*REMOVED*DotGram.Sql.Ast.JsonValueBehavior.JsonValueBehavior() -> void
+*REMOVED*DotGram.Sql.Ast.KeyEncryptor.KeyEncryptor() -> void
+*REMOVED*DotGram.Sql.Ast.ListenerChange.ListenerChange() -> void
+*REMOVED*DotGram.Sql.Ast.LiteralValue.LiteralValue() -> void
+*REMOVED*DotGram.Sql.Ast.LoginSource.LoginSource() -> void
+*REMOVED*DotGram.Sql.Ast.MasterKeyChange.MasterKeyChange() -> void
+*REMOVED*DotGram.Sql.Ast.MergeClause.MergeClause() -> void
+*REMOVED*DotGram.Sql.Ast.MergeMatchedAction.MergeMatchedAction() -> void
+*REMOVED*DotGram.Sql.Ast.MessageValidation.MessageValidation() -> void
+*REMOVED*DotGram.Sql.Ast.ModuleContent.ModuleContent() -> void
+*REMOVED*DotGram.Sql.Ast.ModuleReference.ModuleReference() -> void
+*REMOVED*DotGram.Sql.Ast.NotificationScope.NotificationScope() -> void
+*REMOVED*DotGram.Sql.Ast.OrderingCategory.OrderingCategory() -> void
+*REMOVED*DotGram.Sql.Ast.PartitionFunctionAction.PartitionFunctionAction() -> void
+*REMOVED*DotGram.Sql.Ast.PathAction.PathAction() -> void
+*REMOVED*DotGram.Sql.Ast.PathHint.PathHint() -> void
+*REMOVED*DotGram.Sql.Ast.PeriodRight.PeriodRight() -> void
+*REMOVED*DotGram.Sql.Ast.PeriodValue.PeriodValue() -> void
+*REMOVED*DotGram.Sql.Ast.PolicyPredicate.PolicyPredicate() -> void
+*REMOVED*DotGram.Sql.Ast.PrivilegeObject.PrivilegeObject() -> void
+*REMOVED*DotGram.Sql.Ast.QueryHint.QueryHint() -> void
+*REMOVED*DotGram.Sql.Ast.QueueChange.QueueChange() -> void
+*REMOVED*DotGram.Sql.Ast.QueueOption.QueueOption() -> void
+*REMOVED*DotGram.Sql.Ast.ResourceGovernorAction.ResourceGovernorAction() -> void
+*REMOVED*DotGram.Sql.Ast.ResultSet.ResultSet() -> void
+*REMOVED*DotGram.Sql.Ast.RevokeBody.RevokeBody() -> void
+*REMOVED*DotGram.Sql.Ast.RoleAction.RoleAction() -> void
+*REMOVED*DotGram.Sql.Ast.RoutineBody.RoutineBody() -> void
+*REMOVED*DotGram.Sql.Ast.RoutineCharacteristic.RoutineCharacteristic() -> void
+*REMOVED*DotGram.Sql.Ast.RoutineOption.RoutineOption() -> void
+*REMOVED*DotGram.Sql.Ast.RowPattern.RowPattern() -> void
+*REMOVED*DotGram.Sql.Ast.ScopedConfigurationAction.ScopedConfigurationAction() -> void
+*REMOVED*DotGram.Sql.Ast.SearchPropertyListAction.SearchPropertyListAction() -> void
+*REMOVED*DotGram.Sql.Ast.SecurityPolicyChange.SecurityPolicyChange() -> void
+*REMOVED*DotGram.Sql.Ast.SelectColumn.SelectColumn() -> void
+*REMOVED*DotGram.Sql.Ast.SequenceOption.SequenceOption() -> void
+*REMOVED*DotGram.Sql.Ast.ServiceMasterKeyChange.ServiceMasterKeyChange() -> void
+*REMOVED*DotGram.Sql.Ast.SetOption.SetOption() -> void
+*REMOVED*DotGram.Sql.Ast.SignatureProof.SignatureProof() -> void
+*REMOVED*DotGram.Sql.Ast.SignedBy.SignedBy() -> void
+*REMOVED*DotGram.Sql.Ast.SoapItem.SoapItem() -> void
+*REMOVED*DotGram.Sql.Ast.SqlCondition.SqlCondition() -> void
+*REMOVED*DotGram.Sql.Ast.Statement.Statement() -> void
+*REMOVED*DotGram.Sql.Ast.StopListAction.StopListAction() -> void
+*REMOVED*DotGram.Sql.Ast.StopListSource.StopListSource() -> void
+*REMOVED*DotGram.Sql.Ast.SymmetricKeyChange.SymmetricKeyChange() -> void
+*REMOVED*DotGram.Sql.Ast.SystemTimeSpecification.SystemTimeSpecification() -> void
+*REMOVED*DotGram.Sql.Ast.TableContents.TableContents() -> void
+*REMOVED*DotGram.Sql.Ast.TableElement.TableElement() -> void
+*REMOVED*DotGram.Sql.Ast.TableHint.TableHint() -> void
+*REMOVED*DotGram.Sql.Ast.TableSource.TableSource() -> void
+*REMOVED*DotGram.Sql.Ast.Termination.Termination() -> void
+*REMOVED*DotGram.Sql.Ast.TransactionMode.TransactionMode() -> void
+*REMOVED*DotGram.Sql.Ast.TransformDropTarget.TransformDropTarget() -> void
+*REMOVED*DotGram.Sql.Ast.TypeRepresentation.TypeRepresentation() -> void
+*REMOVED*DotGram.Sql.Ast.UserSource.UserSource() -> void
+*REMOVED*DotGram.Sql.Ast.UserTypeOption.UserTypeOption() -> void
+*REMOVED*DotGram.Sql.Ast.UserTypeReference.UserTypeReference() -> void
+*REMOVED*DotGram.Sql.Ast.VariableDeclaration.VariableDeclaration() -> void
+*REMOVED*DotGram.Sql.Ast.ViewElement.ViewElement() -> void
+*REMOVED*DotGram.Sql.Ast.ViewSpecification.ViewSpecification() -> void
+*REMOVED*DotGram.Sql.Ast.WindowFrameExtent.WindowFrameExtent() -> void
+*REMOVED*DotGram.Sql.Ast.WindowReference.WindowReference() -> void
+*REMOVED*static DotGram.Sql.Ast.QualifiedName.Of(params DotGram.Sql.Ast.Identifier![]! parts) -> DotGram.Sql.Ast.QualifiedName

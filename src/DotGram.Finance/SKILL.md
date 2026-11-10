@@ -7,7 +7,7 @@ description: Read FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value data with DotGram.F
 
 Reads FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value input: wire messages whose fields end with SOH,
 and the pipe-separated log renderings people keep of them. What every version of FIX shares — the
-fields, `FixTag`, `FixConvert`, the findings, `FixDictionary` — is in `DotGram.Finance.Fix`; a version's own —
+fields, `FixTag`, the findings, `FixDictionary` — is in `DotGram.Finance.Fix`; a version's own —
 `FixParser`, the messages, its context — in a namespace of its own with the same names in it:
 `DotGram.Finance.Fix.Fix44` with `Fix44Context`, `DotGram.Finance.Fix.Fix42` with `Fix42Context`,
 `DotGram.Finance.Fix.Fix50` with `Fix50Context` for FIX 5.0 SP2 over FIXT 1.1 (BeginString `FIXT.1.1`).

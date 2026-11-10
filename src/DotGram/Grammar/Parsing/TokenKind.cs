@@ -3,7 +3,7 @@
 namespace DotGram.Grammar.Parsing;
 
 /// <summary>Every lexeme `.gram` source is made of.</summary>
-public enum TokenKind
+enum TokenKind
 {
 	/// <summary>Something the lexer could not make sense of. Carries the offending text.</summary>
 	Unknown,
@@ -64,7 +64,7 @@ public enum TokenKind
 	NegativeLookahead,  // ?!
 }
 
-public static class TokenKindExtensions
+static class TokenKindExtensions
 {
 	/// <summary>The one spelling a fixed-spelling kind has, or null when it carries a value.</summary>
 	public static string? Spelling(this TokenKind kind)

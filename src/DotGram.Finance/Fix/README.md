@@ -6,8 +6,8 @@ dictionaries, and custom fields and messages.
 
 ## Versions and namespaces
 
-What every version shares — `FixField` and its classes, `FixTag`, `FixConvert`, `FixFinding`,
-`FixFraming`, `FixDictionary` — is in `DotGram.Finance.Fix`. Each version is a namespace of its own
+What every version shares — `FixField` and its classes, `FixTag`, `FixFinding`, `FixFraming`,
+`FixDictionary` — is in `DotGram.Finance.Fix`. Each version is a namespace of its own
 with the same names in it: `FixParser`, `FixMessage` and its types, the components, and its context.
 
 | Version | Namespace | Context | Message types | BeginString |

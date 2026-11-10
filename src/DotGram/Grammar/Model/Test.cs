@@ -13,7 +13,7 @@ namespace DotGram.Grammar.Model;
 /// apart leaves the graph with one new node rather than four — and every pass that switches
 /// over node kinds exhaustively with one arm rather than four.
 /// </remarks>
-public abstract record Test
+abstract record Test
 {
 	/// <summary>Whether two recognizers have a string in common — or, negated, have none.</summary>
 	public sealed record Meets(Node Left, Node Right, bool Negated) : Test
