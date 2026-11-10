@@ -1934,7 +1934,7 @@ AlterDomainAction : @AlterDomainAction
 	| "ADD"i  & c: DomainConstraint                    => @(new AlterDomainAction.AddConstraint(c))
 	| "DROP"i & "CONSTRAINT"i & q: SchemaQualifiedName => @(new AlterDomainAction.DropConstraint(q))
 
-DropDomainStatement : @Statement.DropDomain = "DROP"i & "DOMAIN"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropDomain { Name = n, Behavior = b })
+DropDomainStatement : @Statement.DropDomain = "DROP"i & "DOMAIN"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropDomain { Names = [n], Behavior = b })
 
 // ── §11.47 Assertion definition, §11.48 Drop assertion statement ────────────
 

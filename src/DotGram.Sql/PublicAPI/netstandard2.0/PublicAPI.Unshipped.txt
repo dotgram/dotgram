@@ -367,6 +367,11 @@ DotGram.Sql.Ast.Statement.Do.Language.get -> DotGram.Sql.Ast.Expression?
 DotGram.Sql.Ast.Statement.Do.Language.init -> void
 DotGram.Sql.Ast.Statement.Do.LanguageFirst.get -> bool
 DotGram.Sql.Ast.Statement.Do.LanguageFirst.init -> void
+DotGram.Sql.Ast.Statement.DropDomain.Behavior.get -> DotGram.Sql.Ast.DropBehavior?
+DotGram.Sql.Ast.Statement.DropDomain.IfExists.get -> bool
+DotGram.Sql.Ast.Statement.DropDomain.IfExists.init -> void
+DotGram.Sql.Ast.Statement.DropDomain.Names.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.QualifiedName>
+DotGram.Sql.Ast.Statement.DropDomain.Names.init -> void
 DotGram.Sql.Ast.Statement.Explain
 DotGram.Sql.Ast.Statement.Explain.Bare.get -> bool
 DotGram.Sql.Ast.Statement.Explain.Bare.init -> void
@@ -997,6 +1002,9 @@ virtual DotGram.Sql.Ast.ReturningClause.PrintMembers(System.Text.StringBuilder! 
 *REMOVED*DotGram.Sql.Ast.RoutineDesignator.RoutineDesignator(DotGram.Sql.Ast.RoutineKind Kind, DotGram.Sql.Ast.QualifiedName Name, DotGram.Sql.SqlList<DotGram.Sql.Ast.DataType!>? ParameterTypes = null, DotGram.Sql.Ast.QualifiedName? ForType = null, bool SpecificKeyword = false, DotGram.Sql.Ast.MethodModifier? MethodModifier = null) -> void
 *REMOVED*DotGram.Sql.Ast.Statement.Delete.Output.get -> DotGram.Sql.Ast.OutputClause?
 *REMOVED*DotGram.Sql.Ast.Statement.Delete.Output.init -> void
+*REMOVED*DotGram.Sql.Ast.Statement.DropDomain.Behavior.get -> DotGram.Sql.Ast.DropBehavior
+*REMOVED*DotGram.Sql.Ast.Statement.DropDomain.Name.get -> DotGram.Sql.Ast.QualifiedName
+*REMOVED*DotGram.Sql.Ast.Statement.DropDomain.Name.init -> void
 *REMOVED*DotGram.Sql.Ast.Statement.Insert.Output.get -> DotGram.Sql.Ast.OutputClause?
 *REMOVED*DotGram.Sql.Ast.Statement.Insert.Output.init -> void
 *REMOVED*DotGram.Sql.Ast.Statement.Merge.Output.get -> DotGram.Sql.Ast.OutputClause?
