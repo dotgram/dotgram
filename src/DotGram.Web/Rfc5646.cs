@@ -246,8 +246,14 @@ public sealed record LanguageTag(
 	ExtLang : @string = '-' & subtag: ExtLangText => @(subtag)
 	ExtLangText = Alpha{3} & End
 
+	// The repetitions read to their end, and the braces say so. Nothing that may follow a variant, an
+	// extension or one of their subtags begins the way one does — a variant is five characters or a
+	// digit and three, a singleton one character and not `x`, a subtag two or more — so a reading that
+	// gave one back could only be refused further on. Given back, they were: a tag cut after n extensions,
+	// `en-a-abc-…-a`, gave them back one at a time and read the rest again each time, the square of n
+	// (750 ms at 8,192).
 	Tail : @LanguageTag
-		= ('-' & script: Script)? & ('-' & region: Region)? & variants: Variant* & extensions: Extension* & ('-' & use: PrivateUse)?
+		= ('-' & script: Script)? & ('-' & region: Region)? & { variants: Variant* } & { extensions: Extension* } & ('-' & use: PrivateUse)?
 		=> @(new LanguageTag(null, [], script, region, variants, extensions, use ?? [], null))
 
 	Script = Alpha{4} & End
@@ -260,7 +266,7 @@ public sealed record LanguageTag(
 	// ── Extensions and private use ───────────────────────────────────────────────
 
 	Extension : @LanguageTag.Extension
-		= '-' & singleton: Singleton & subtags: ExtensionSubtag+
+		= '-' & singleton: Singleton & { subtags: ExtensionSubtag+ }
 		=> @(new LanguageTag.Extension(singleton[0], subtags))
 
 	// Any letter or digit but `x`, which is private use's.
@@ -269,7 +275,7 @@ public sealed record LanguageTag(
 	ExtensionSubtag : @string = '-' & subtag: ExtensionText => @(subtag)
 	ExtensionText = Alphanum{2,8} & End
 
-	PrivateUse : @string[] = ['x' | 'X'] & End & subtags: PrivateSubtag+ => @(subtags)
+	PrivateUse : @string[] = ['x' | 'X'] & End & { subtags: PrivateSubtag+ } => @(subtags)
 
 	PrivateSubtag : @string = '-' & subtag: PrivateText => @(subtag)
 	PrivateText = Alphanum{1,8} & End
