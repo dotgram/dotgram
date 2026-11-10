@@ -1243,6 +1243,6 @@ StmtTerminated : @Statement   = s: Stmt & (';'+ | eof) => @(s)
 // The rules a program asks for by name, published under the standard's names: an expression, a
 // statement of any kind, and a text of statements — the statement being the rule the text of
 // statements repeats, so that the two entries share one reading.
-parse AExpr          as ParseExpression
-parse StmtTerminated as ParseStatement
-parse StmtMulti      as ParseSql
+positional parse AExpr          as ParseExpression
+positional parse StmtTerminated as ParseStatement
+positional parse StmtMulti      as ParseSql
