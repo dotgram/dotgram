@@ -203,9 +203,6 @@ public static partial class SqlWriter
 						if (NamedByName(named.Kind) && named.Name.Count != 1)
 							throw Misplaced(named, nameof(named.Name), "of more than one part, where the kind is named by one");
 
-						if (named.Kind == ObjectKind.Column && named.Name.Count < 2)
-							throw Misplaced(named, nameof(named.Name), "of one part, where a column is named with its table");
-
 						Word(KindWords(named.Kind));
 						PutName(named.Name);
 						break;

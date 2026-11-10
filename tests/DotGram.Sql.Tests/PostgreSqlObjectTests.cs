@@ -174,6 +174,7 @@ public sealed class PostgreSqlObjectTests
 	[InlineData("COMMENT ON CAST (int AS text) IS 'x'",                      "cast")]
 	[InlineData("COMMENT ON EVENT TRIGGER e IS 'x'",                         "event trigger")]
 	[InlineData("COMMENT ON TEXT SEARCH DICTIONARY d IS 'x'",                "text search dictionary")]
+	[InlineData("COMMENT ON COLUMN c IS 'x'",                                "column of one part")]
 	[InlineData("COMMENT ON TABLE t IS 1",                                   "refused: a number")]
 	[InlineData("COMMENT ON TABLE t",                                        "refused: no text")]
 	[InlineData("COMMENT ON SCHEMA s.t IS 'x'",                              "refused: a schema of two parts")]
@@ -191,6 +192,7 @@ public sealed class PostgreSqlObjectTests
 		{
 			"table"                  => made is { Object: ObjectReference.Named { Kind: ObjectKind.Table, Name.Count: 2 }, Text.Kind: StringLiteralKind.Character },
 			"column"                 => made is { Object: ObjectReference.Named { Kind: ObjectKind.Column, Name.Count: 2 }, Text: null },
+			"column of one part"     => made.Object is ObjectReference.Named { Kind: ObjectKind.Column, Name.Count: 1 },
 			"materialized view"      => made is { Object: ObjectReference.Named { Kind: ObjectKind.MaterializedView }, Text.Kind: StringLiteralKind.Dollar },
 			"index"                  => made is { Object: ObjectReference.Named { Kind: ObjectKind.Index }, Text.Kind: StringLiteralKind.Escaped },
 			"schema"                 => made.Object is ObjectReference.Named { Kind: ObjectKind.Schema },

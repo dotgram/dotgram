@@ -19,8 +19,8 @@ using Lexical;
 //
 // Written in slices. So far: the lexical elements — names and the four classes of key word, every
 // form of string with dollar quoting among them, numbers, parameters and the operator — the
-// expressions, the data types, and the core of a query: its target list, FROM, WHERE and the set
-// operations.
+// expressions, the data types, the queries, the data change statements, the short statements, and
+// of the schema statements CREATE TABLE, SELECT INTO, DROP and COMMENT.
 
 // A key word is a whole word: `SELECTED` is a name and not `SELECT` and what follows it.
 wordboundary = Lexical.IdentifierContinue
