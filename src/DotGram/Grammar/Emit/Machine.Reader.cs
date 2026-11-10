@@ -6902,7 +6902,14 @@ sealed partial class Machine
 			var expected = machine.DeclareExpected(machine.PredictedDisplays([body]));
 
 			machine._expectedUsed.Add(expected);
-			code.Line(Refusal(expected));
+
+			// The common case written out here, a new furthest, is three stores; a tie, and the
+			// seam, go through the call. Inside a look nothing is recorded (Looking).
+			var record =
+				$"if (failure.Looking == 0 && !failure.Quiet) {{ if (p > failure.Position) {{ failure.Position = p; failure.Expected = {expected}; failure.ExpectedMore?.Clear(); }} " +
+				$"else if (p == failure.Position) {Refusing}(ref failure, p, {expected}); }}";
+
+			code.Line(Seamed is { } seamed ? $"if ({seamed}) {record}" : record);
 		}
 
 		/// <param name="furthest">
