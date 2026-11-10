@@ -2855,6 +2855,12 @@
 			"text": "DROP FUNCTION f(t.c%TYPE)",
 			"known": "a parameter's type is a DataType; gram.y's func_type reads a column's type by reference, %TYPE",
 			"accepted": true
+		},
+		{
+			"name": "comment_column_of_one_part",
+			"text": "COMMENT ON COLUMN c IS 'x'",
+			"note": "the server refuses in analysis (column name must be qualified); gram.y reads it, and so does this",
+			"accepted": true
 		}
 	]
 }
