@@ -118,3 +118,8 @@ decimal q  = MediaRange.Quality(accept, MediaType.Parse("text/plain"));     // 0
   `timestamp.Time.LocalOffsetUnknown` tells `-00:00` from `Z`.
 - A `LanguageTag` is well-formed, not checked against the IANA registry. It compares without
   case, and `ToString` writes the case BCP 47 recommends.
+
+## Cold start
+
+- Cold start: the first parse in a process is mostly JIT (tens of milliseconds for the SQL parsers). If that matters,
+  publish the application with `<PublishReadyToRun>true</PublishReadyToRun>`; it cuts the first call 3-5 times.

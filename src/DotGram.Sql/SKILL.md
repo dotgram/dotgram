@@ -153,3 +153,8 @@ if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select
 
 Ast.Statement[] all = SqlStandardParser.ParseSql("INSERT INTO t VALUES (1); DELETE FROM t");  // two
 ```
+
+## Cold start
+
+- Cold start: the first parse in a process is mostly JIT (tens of milliseconds for the SQL parsers). If that matters,
+  publish the application with `<PublishReadyToRun>true</PublishReadyToRun>`; it cuts the first call 3-5 times.
