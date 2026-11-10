@@ -376,7 +376,7 @@ static partial class CSharpEmitter
 			Quiets           = quiets,
 			Places           = Places(graph, overKinds, options.BufferedInput),
 			PlacedRecoveries = PlacedRecoveries(graph, overKinds, options.BufferedInput),
-			RereadLocates    = RereadLocates(lexical),
+			Valuing          = ValuingAsksOf(lexical),
 
 			// Over tokens only, which the machine asks itself (Machine.Memo.cs).
 			MemoisesFailures  = options.MemoiseFailures,
@@ -534,6 +534,12 @@ static partial class CSharpEmitter
 					KeepsDoors   = tracing is null,
 				})
 			: null;
+
+		// What the syntactic machines were told that machine would ask for, and what it does: the two have to
+		// agree, or a call into it hands it the wrong arguments (ValuingAsks).
+		if (valuing is not null && ValuingAsks.Of(valuing) != woven.Valuing)
+			throw new InvalidOperationException(
+				$"The machine that reads tokens again asks for {ValuingAsks.Of(valuing)}, and the syntactic machines were told {woven.Valuing}.");
 
 		// Each terminal that builds is a root of its own, and a whole one: the text handed to
 		// it is exactly what the lexer measured, so anything left over is the two machines
@@ -2052,6 +2058,13 @@ static partial class CSharpEmitter
 		var takes = state is null ? "" : $", {state} context";
 		var gives = state is null ? "" : ", context";
 
+		// What the tokenizer is handed to hand on where it measures a terminal over its text: the context and the
+		// reading this parser is, where that machine asks for them (ValuingAsks). A cutting made with either is
+		// this parse's and not the string's, so it is not kept for the next reading of the same string.
+		var cutting = compiled.Machine.Valuing.Arguments(
+			"context", publication.Reading.ToString(System.Globalization.CultureInfo.InvariantCulture), locating: null);
+		var keeps   = cutting.Length == 0;
+
 		// Which reading of the grammar this publication is (`when … is …`), where the machine it
 		// shares with the others asks. A number and not an argument the caller writes: the
 		// parser is the reading, and nothing about it is chosen while it runs.
@@ -2386,7 +2399,7 @@ static partial class CSharpEmitter
 			// A reading that begins where it is told cuts the whole input, and the cutting is kept
 			// for the next reading of the same string (Tokenized_DotGram), so what it holds is never
 			// handed back to the pool here.
-			var kept = positional && !windowed;
+			var kept = positional && !windowed && keeps;
 
 			var parameters = positional
 				? windowed ? "string input, ref int at, int length" : "string input, ref int at"
@@ -2423,10 +2436,10 @@ static partial class CSharpEmitter
 				{
 					file.Line("var source = input;");
 					file.Line(windowed
-						? "var tokens = Tokenize_DotGram(source, at, at + length, true);"
+						? $"var tokens = Tokenize_DotGram(source, at, at + length, true{cutting});"
 						: kept
 							? "var tokens = Tokenized_DotGram(source);"
-							: "var tokens = Tokenize_DotGram(source);");
+							: $"var tokens = Tokenize_DotGram(source{cutting});");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
@@ -2591,7 +2604,7 @@ static partial class CSharpEmitter
 		void Asking(string parameters, bool positional, bool windowed = false)
 		{
 			// As in Answering: what the cutting cache holds is not recycled here.
-			var kept = positional && !windowed;
+			var kept = positional && !windowed && keeps;
 
 			// The positional form takes a parameter called `at`, so what the body would have
 			// called the place it stopped is called something else there. Only there: the
@@ -2631,10 +2644,10 @@ static partial class CSharpEmitter
 				{
 					file.Line("var source = input;");
 					file.Line(windowed
-						? "var tokens = Tokenize_DotGram(source, at, at + length, true);"
+						? $"var tokens = Tokenize_DotGram(source, at, at + length, true{cutting});"
 						: kept
 							? "var tokens = Tokenized_DotGram(source);"
-							: "var tokens = Tokenize_DotGram(source);");
+							: $"var tokens = Tokenize_DotGram(source{cutting});");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
@@ -3330,92 +3343,102 @@ file.Line("return spare;");
 		file.Line("/// the input stopped being this language.");
 		file.Line("/// </remarks>");
 
+		// What the tokenizer is handed to hand on to the machine that measures a terminal over its text (ValuingAsks),
+		// and the same handed on. A cutting made with any of it is the parse's and not the string's: it is not kept
+		// for the next reading of the same string, so there is nothing to keep it in.
+		var asks   = valuing is null ? default : ValuingAsks.Of(valuing);
+		var taken  = asks.Parameters(lexical.Source.Context, locating: false);
+		var handed = asks.Arguments("context", "parserReading", locating: null);
+
 		// The kept cutting is what a reading from a position cuts the input with, and a grammar
 		// none of whose directives asks for one has no use for it.
 		var whole = file;
 
 		file = new Writer(whole.Depth);
 
-		file.Line();
-		file.Line("/// <summary>The inputs whose kinds this thread still holds, and the kinds it holds for them.</summary>");
-		file.Line("/// <remarks>");
-		file.Line("/// A reading that begins where it is told cuts the whole input into kinds, and a host");
-		file.Line("/// reading one value after another from one text would cut it again for every value:");
-		file.Line("/// the text once per value is the square of the text. So the last cutting is kept and");
-		file.Line("/// handed back where the next reading comes with the same string.");
-		file.Line("/// </remarks>");
-		file.Line("/// <remarks>");
-		file.Line("/// Two of them, and not one. A host alternating between two documents would otherwise");
-		file.Line("/// hold neither, and a parse reached from inside a factory of another — reading its own");
-		file.Line("/// text — would push out the reading that called it and give the square back.");
-		file.Line("/// </remarks>");
-		file.Line("/// <remarks>");
-		file.Line("/// The input is held weakly and the kinds strongly: the kinds are as long as the text,");
-		file.Line("/// and a thread-static holding a document nobody else has is the leak this is not.");
-		file.Line("/// Where the input is gone, so are its kinds, at the next reading that looks.");
-		file.Line("/// A cutting that leaves a slot is let go of and never pooled: the reading it was");
-		file.Line("/// cut for may still be holding it, and a pooled set is written over by the next.");
-		file.Line("/// A string only: what a caller may write into between two readings — an array of");
-		file.Line("/// bytes, a memory — would make a kept cutting a lie, so the byte forms keep none.");
-		file.Line("/// </remarks>");
-		file.Line("[global::System.ThreadStatic]");
-		file.Line("static global::System.WeakReference<string>[]? _cutInputs;");
-		file.Line();
-		file.Line("[global::System.ThreadStatic]");
-		file.Line("static Tokens_DotGram?[]? _cutTokens;");
-		file.Line();
-		file.Line("[global::System.ThreadStatic]");
-		file.Line("static int _cutNext;");
-		file.Line();
-		file.Line("/// <summary>The whole input as kinds, cut now or kept from the reading before this one.</summary>");
-
-		using (file.Block("static Tokens_DotGram Tokenized_DotGram(string input)"))
+		if (taken.Length == 0)
 		{
-			file.Line("var inputs = _cutInputs;");
-			file.Line("var kept   = _cutTokens;");
 			file.Line();
+			file.Line("/// <summary>The inputs whose kinds this thread still holds, and the kinds it holds for them.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// A reading that begins where it is told cuts the whole input into kinds, and a host");
+			file.Line("/// reading one value after another from one text would cut it again for every value:");
+			file.Line("/// the text once per value is the square of the text. So the last cutting is kept and");
+			file.Line("/// handed back where the next reading comes with the same string.");
+			file.Line("/// </remarks>");
+			file.Line("/// <remarks>");
+			file.Line("/// Two of them, and not one. A host alternating between two documents would otherwise");
+			file.Line("/// hold neither, and a parse reached from inside a factory of another — reading its own");
+			file.Line("/// text — would push out the reading that called it and give the square back.");
+			file.Line("/// </remarks>");
+			file.Line("/// <remarks>");
+			file.Line("/// The input is held weakly and the kinds strongly: the kinds are as long as the text,");
+			file.Line("/// and a thread-static holding a document nobody else has is the leak this is not.");
+			file.Line("/// Where the input is gone, so are its kinds, at the next reading that looks.");
+			file.Line("/// A cutting that leaves a slot is let go of and never pooled: the reading it was");
+			file.Line("/// cut for may still be holding it, and a pooled set is written over by the next.");
+			file.Line("/// A string only: what a caller may write into between two readings — an array of");
+			file.Line("/// bytes, a memory — would make a kept cutting a lie, so the byte forms keep none.");
+			file.Line("/// </remarks>");
+			file.Line("[global::System.ThreadStatic]");
+			file.Line("static global::System.WeakReference<string>[]? _cutInputs;");
+			file.Line();
+			file.Line("[global::System.ThreadStatic]");
+			file.Line("static Tokens_DotGram?[]? _cutTokens;");
+			file.Line();
+			file.Line("[global::System.ThreadStatic]");
+			file.Line("static int _cutNext;");
+			file.Line();
+			file.Line("/// <summary>The whole input as kinds, cut now or kept from the reading before this one.</summary>");
 
-			using (file.Block("if (inputs != null && kept != null)"))
-			using (file.Block("for (var slot = 0; slot < inputs.Length; slot++)"))
+			using (file.Block("static Tokens_DotGram Tokenized_DotGram(string input)"))
 			{
-				file.Line("var held = inputs[slot];");
-				file.Line();
-				file.Line("if (held == null || kept[slot] == null)");
-				file.Then("continue;");
+				file.Line("var inputs = _cutInputs;");
+				file.Line("var kept   = _cutTokens;");
 				file.Line();
 
-				using (file.Block("if (!held.TryGetTarget(out var was))"))
+				using (file.Block("if (inputs != null && kept != null)"))
+				using (file.Block("for (var slot = 0; slot < inputs.Length; slot++)"))
 				{
-					file.Line("// The text is gone and its kinds go with it — dropped and not pooled: a");
-					file.Line("// reading that took these kinds may still be reading them.");
-					file.Line("inputs[slot] = null!;");
-					file.Line("kept[slot]   = null;");
+					file.Line("var held = inputs[slot];");
 					file.Line();
-					file.Line("continue;");
+					file.Line("if (held == null || kept[slot] == null)");
+					file.Then("continue;");
+					file.Line();
+
+					using (file.Block("if (!held.TryGetTarget(out var was))"))
+					{
+						file.Line("// The text is gone and its kinds go with it — dropped and not pooled: a");
+						file.Line("// reading that took these kinds may still be reading them.");
+						file.Line("inputs[slot] = null!;");
+						file.Line("kept[slot]   = null;");
+						file.Line();
+						file.Line("continue;");
+					}
+
+					file.Line();
+					file.Line("if (ReferenceEquals(was, input))");
+					file.Then("return kept[slot]!;");
 				}
 
 				file.Line();
-				file.Line("if (ReferenceEquals(was, input))");
-				file.Then("return kept[slot]!;");
+				file.Line("var tokens = Tokenize_DotGram(input, 0, input.Length, true);");
+				file.Line();
+				file.Line("inputs ??= _cutInputs = new global::System.WeakReference<string>[2];");
+				file.Line("kept   ??= _cutTokens = new Tokens_DotGram?[2];");
+	            file.Line();
+				file.Line("var next = _cutNext;");
+				file.Line();
+				file.Line("_cutNext = next + 1 == inputs.Length ? 0 : next + 1;");
+				file.Line();
+				file.Line("// What was in the slot is let go of and not pooled. A reading that took it is");
+				file.Line("// still holding it — this very cutting may be one its own factory asked for —");
+				file.Line("// and a pooled set is written over by the next cutting, under the reading.");
+				file.Line("inputs[next] = new global::System.WeakReference<string>(input);");
+				file.Line("kept[next]   = tokens;");
+				file.Line();
+				file.Line("return tokens;");
 			}
-
-			file.Line();
-			file.Line("var tokens = Tokenize_DotGram(input, 0, input.Length, true);");
-			file.Line();
-			file.Line("inputs ??= _cutInputs = new global::System.WeakReference<string>[2];");
-			file.Line("kept   ??= _cutTokens = new Tokens_DotGram?[2];");
-            file.Line();
-			file.Line("var next = _cutNext;");
-			file.Line();
-			file.Line("_cutNext = next + 1 == inputs.Length ? 0 : next + 1;");
-			file.Line();
-			file.Line("// What was in the slot is let go of and not pooled. A reading that took it is");
-			file.Line("// still holding it — this very cutting may be one its own factory asked for —");
-			file.Line("// and a pooled set is written over by the next cutting, under the reading.");
-			file.Line("inputs[next] = new global::System.WeakReference<string>(input);");
-			file.Line("kept[next]   = tokens;");
-			file.Line();
-			file.Line("return tokens;");
 		}
 
 		file.Line();
@@ -3427,7 +3450,7 @@ file.Line("return spare;");
 
 		file = whole;
 
-		file.Line("static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length, false);");
+		file.Line($"static Tokens_DotGram Tokenize_DotGram(string input{taken}) => Tokenize_DotGram(input, 0, input.Length, false{handed});");
 		file.Line();
 		file.Line("/// <summary>The kinds between two offsets of the input, with where each one was.</summary>");
 		file.Line("/// <remarks>");
@@ -3443,7 +3466,7 @@ file.Line("return spare;");
 		file.Line("/// the text.");
 		file.Line("/// </remarks>");
 
-		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input, int from, int to, bool through)"))
+		using (file.Block($"static Tokens_DotGram Tokenize_DotGram(string input, int from, int to, bool through{taken})"))
 		{
 			file.Line("var tokens = Rented_DotGram();");
 			file.Line();
@@ -3579,10 +3602,11 @@ file.Line("return spare;");
 				// standing in the beginning (TerminalInventory.Continuation.FromStart).
 				var continued = 0;
 
-				// What a measuring is handed besides the text: the whole input where that machine asks for it, and,
-				// where locations are decided per call, that this reading does not locate — it builds no value, so
-				// there is nothing to offer a location to (RecognitionGraph.PerCall).
-				var measuring = valuing is null ? "" : (valuing.UsesInput ? ", input" : "") + (valuing.UsesLocating ? ", -1" : "");
+				// What a measuring is handed besides the text: whatever that machine asks for — the whole input, the
+				// context and the reading the tokenizer was handed, and, where locations are decided per call, that this
+				// reading does not locate: it builds no value, so there is nothing to offer a location to
+				// (RecognitionGraph.PerCall).
+				var measuring = valuing is null ? "" : valuing.Handing("input", "context", "parserReading", "-1");
 
 				// Where a keyword is taken back below, the shorter token found instead may be one
 				// of these too, and is measured as the first was.
@@ -6284,9 +6308,9 @@ file.Line("return spare;");
 
 			// Where the token is the whole of what the construction can be told, there is
 			// nothing to read again and the construction is called on the text itself.
-			// Where locations are decided per call, the caller says whether this reading locates, and the
-			// reading again is told the same (Machine.TokenOf).
-			var locates = valuing.UsesLocating ? ", int parserLocating" : "";
+			// The caller hands on what the reading again asks for (ValuingAsks, Machine.TokenOf): the context and
+			// the reading, and, where locations are decided per call, whether this reading locates.
+			var locates = ValuingAsks.Of(valuing).Parameters(lexical.Source.Context, locating: true);
 
 			if (Verbatim(lexical.Source, valuing.Results, rule) is { } made)
 			{
@@ -6338,7 +6362,7 @@ file.Line("return spare;");
 			// the end of the span says it was the token that was read.
 			using (file.Block($"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length{locates})"))
 			{
-				var input = (valuing.UsesInput ? ", source" : "") + (valuing.UsesLocating ? ", parserLocating" : "");
+				var input = valuing.Handing("source", "context", "parserReading", "parserLocating");
 				var text  = "global::System.MemoryExtensions.AsSpan(source, 0, at + length)";
 
 				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
@@ -6519,12 +6543,29 @@ file.Line("return spare;");
 	}
 
 	/// <summary>
-	/// Whether the value of a terminal read again over its text asks whether the reading locates: what
-	/// the machine that reads it again over characters asks (<c>Machine.UsesLocating</c>).
+	/// What the machine that reads a terminal again over its text will ask of every call into it, worked out before it is
+	/// made: the syntactic machine, made first, has to have it in scope (<see cref="ValuingAsks"/>). The same questions
+	/// that machine asks itself, over the rules it reads (<c>Machine.UsesContext</c>, <c>Machine.UsesReading</c>,
+	/// <c>Machine.UsesLocating</c>), and checked against its answers once it is made.
 	/// </summary>
-	static bool RereadLocates(LexicalSplit? lexical)
+	static ValuingAsks ValuingAsksOf(LexicalSplit? lexical)
 	{
-		return lexical is not null && lexical.Source.PerCall is not null && lexical.Source.Located.Count > 0;
+		if (lexical is null)
+			return default;
+
+		var graph   = lexical.Source;
+		var context = false;
+		var reading = false;
+
+		foreach (var rule in Rereads(lexical))
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				foreach (var node in NodeWalk.Reading(body, graph))
+				{
+					context |= Machine.NamesContext(graph, node);
+					reading |= node is Node.Reading;
+				}
+
+		return new ValuingAsks(context, reading, graph.PerCall is not null && graph.Located.Count > 0);
 	}
 
 	/// <summary>The host's call measuring a terminal's rest, moving <c>measured</c> on.</summary>

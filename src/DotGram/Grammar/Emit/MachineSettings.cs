@@ -145,8 +145,11 @@ sealed record MachineSettings
 	/// <summary>The engine's recoveries that tell places through a window (<see cref="Machine.Places"/>).</summary>
 	public IReadOnlyList<Recovery> PlacedRecoveries { get; init; } = [];
 
-	/// <summary>Whether the value of a terminal read again over its text asks whether the reading locates.</summary>
-	public bool RereadLocates { get; init; }
+	/// <summary>
+	/// What the machine that reads a terminal again over its text asks of every call into it (<see cref="ValuingAsks"/>):
+	/// what this machine hands it where it builds such a terminal's value, and so has itself.
+	/// </summary>
+	public ValuingAsks Valuing { get; init; }
 
 	/// <summary>
 	/// Whether this machine reads bytes the caller already holds, whole, and nothing that streams
