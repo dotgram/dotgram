@@ -22,9 +22,10 @@ namespace DotGram.Tests;
 /// how a refused text becomes a way to make a server allocate the square of what it was sent.
 /// </para>
 /// <para>
-/// <b>The gate is bytes an element, at doubling sizes</b>, as in
-/// <see cref="WebListRefusalAllocationTests"/>, warmed at the top size and the fewest of several runs
-/// kept. The bound is tolerant: a quarter more an element at a doubling, where a square doubles it.
+/// <b>The gate is what each doubling adds, an element</b>, warmed at the top size and the fewest of
+/// several runs kept: what the text pays once whatever its length cancels out of an increment, where it
+/// would hide a slope in bytes an element of the totals. The bound is tolerant: a quarter more an element
+/// at a doubling, where a square doubles it.
 /// </para>
 /// </remarks>
 [Collection(typeof(Alone))]
@@ -137,20 +138,28 @@ public sealed class SqlRefusalAllocationTests
 		// growing the parser's thread-static pools to fit it costs is paid here.
 		parse(texts[^1]);
 
-		var each = new double[sizes.Length];
+		var bytes = new long[sizes.Length];
 
 		for (var i = 0; i < sizes.Length; i++)
 		{
-			each[i] = Allocated(texts[i], parse) / (double)sizes[i];
-			TestContext.Current.TestOutputHelper?.WriteLine($"{shape}: {sizes[i]} elements, {each[i]:F1} bytes each");
+			bytes[i] = Allocated(texts[i], parse);
+			TestContext.Current.TestOutputHelper?.WriteLine($"{shape}: {sizes[i]} elements, {bytes[i] / (double)sizes[i]:F1} bytes each");
 		}
 
+		// What each step to the next size adds, an element: a cost the text pays once whatever its
+		// length cancels out of it, where in bytes an element of the totals it would hide a slope.
+		// Held to a floor of a few bytes, since a nest that builds nothing adds next to nothing.
+		var added = new double[sizes.Length];
+
 		for (var i = 1; i < sizes.Length; i++)
+			added[i] = (bytes[i] - bytes[i - 1]) / (double)(sizes[i] - sizes[i - 1]);
+
+		for (var i = 2; i < sizes.Length; i++)
 			Assert.True(
-				each[i] <= each[i - 1] * Tolerance,
-				$"{shape}: at {sizes[i - 1]} elements a refusal allocated {each[i - 1]:F1} bytes each, and at " +
-				$"{sizes[i]} it allocated {each[i]:F1} bytes each — {each[i] / each[i - 1]:F2} times as many, " +
-				"where a reading that builds its prefix once would stay flat.");
+				added[i] <= Math.Max(added[i - 1], 8) * Tolerance,
+				$"{shape}: from {sizes[i - 2]} to {sizes[i - 1]} elements a refusal allocated {added[i - 1]:F1} bytes more an " +
+				$"element, and from {sizes[i - 1]} to {sizes[i]} it allocated {added[i]:F1} more — {added[i] / Math.Max(added[i - 1], 8):F2} " +
+				"times as many, where a reading that builds its prefix once would stay flat.");
 	}
 
 	/// <summary>The fewest bytes this thread allocates refusing <paramref name="text"/>, across <see cref="Runs"/> runs.</summary>
