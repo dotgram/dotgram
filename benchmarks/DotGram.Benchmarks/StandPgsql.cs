@@ -11,8 +11,9 @@ namespace DotGram.Benchmarks;
 // something. There is no third party to hold them against here, as ScriptDom holds the T-SQL
 // rows: the generated reading without positions is the base, and the located one is read
 // against it. The statements are PostgreSQL's own shapes — `::`, LIMIT, DISTINCT ON, a dollar
-// quote — in the sizes the regression suite writes: a short join, one long select, and an
-// expression alone through the expression entry.
+// quote — in the sizes the regression suite writes: a short join, one long select, a CREATE TABLE
+// with its columns' constraints, a key and a partition key, and an expression alone through the
+// expression entry.
 static partial class Stand
 {
 	/// <summary>The statements, by name; a row named as a refusal is one the stand expects refused (Unasserted).</summary>
@@ -32,6 +33,12 @@ static partial class Stand
 		("insert-conflict",
 			"INSERT INTO orders AS o (order_id, customer_id, total, placed) VALUES (1, 42, 99.50, '2026-09-18'), (2, 43, 10, now()) " +
 			"ON CONFLICT (order_id) DO UPDATE SET total = EXCLUDED.total, placed = EXCLUDED.placed WHERE o.total <> EXCLUDED.total RETURNING o.order_id, o.total"),
+		("ddl",
+			"CREATE TABLE IF NOT EXISTS public.orders (order_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, " +
+			"customer_id integer NOT NULL REFERENCES public.customers (customer_id) ON DELETE CASCADE, " +
+			"status text NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'paid', 'shipped')), total numeric(12, 2) NOT NULL DEFAULT 0, " +
+			"placed timestamptz NOT NULL DEFAULT now(), note text COLLATE \"C\", " +
+			"CONSTRAINT orders_customer_placed_key UNIQUE (customer_id, placed)) PARTITION BY RANGE (placed)"),
 		("refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c ="),
 	];
 
