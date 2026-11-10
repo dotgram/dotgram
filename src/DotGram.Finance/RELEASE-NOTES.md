@@ -24,7 +24,7 @@ CHANGED
 
 FASTER
 
-- A message with groups reads 5-10% faster, and large messages up to 11% (FIX 5.0 reports), with the same allocation: the reader stores every member in a field behind a get-only property. The assembly and the generated sources are smaller.
+- Against 0.2.0 on the release benchmark, a message reads about 26% faster (an Order 27%, a FIX 5.0 report 28%), with the same allocation; the reader stores every member in a field behind a get-only property. The fields underneath read about 3.5% faster, and a malformed message read from a log about 8% slower. The assembly and the generated sources are smaller.
 - A long data field read from a string is narrowed with a vectorized path on .NET.
 
 KNOWN ISSUES

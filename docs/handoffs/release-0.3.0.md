@@ -22,8 +22,8 @@ NuGet page.
 ## Highlights
 
 - **Generator.** The default carrier now builds as it reads wherever it can, so an accepted parse
-  no longer walks a tape at the end and is faster (the expression language's accepted text, by 20
-  to 65% on its benchmarks, about half on most); `Carrier = GramCarrier.Tape` keeps the old
+  no longer walks a tape at the end and is faster (the expression language's accepted text, by 16
+  to 51% against 0.2.0, about 40% on most); `Carrier = GramCarrier.Tape` keeps the old
   behaviour, and `GRAM5016` says where the tape is the safer choice. New in the notation:
   bindings and back-references (`$q: X`, `$q`, `X{#q}`) for constructs closed by the text that
   opened them, `eos` for input read as a sequence of segments, and `Std.Nested(open, close)`. A
@@ -32,22 +32,25 @@ NuGet page.
   literals and `\p{…}` read Unicode 16.0 on every runtime.
 - **Readers agree with strings.** A parse read from a `TextReader`, lines or segments reads what
   the same parse reads over a string, and a rule a reader cannot read that way gets no reader
-  overload, with `GRAM5001` saying why. TODO(freeze): one sentence on the reader/engine agreement
-  fix (outcome, position and value the same in every form).
+  overload, with `GRAM5001` saying why. The generator's two readers, the direct reader and the
+  engine, give every form of a parse one outcome, position and value, as the language promises.
 - **DotGram.Cli**, a new .NET tool: `dotnet dotgram generate` writes the parsers a build would
   generate, so that a project with a very large grammar compiles them without referencing the
   generator.
 - **DotGram.Sql** builds one tree, `DotGram.Sql.Ast`, from all three parsers: T-SQL, SQL:2023 and
   SQL-92. `SqlStandardParser` reads by level (six entries), lists are `SqlList<T>` and compare by
   content, and `SqlScript.Read` cuts a script into batches byte for byte as sqlcmd 18.6 does.
-  TODO(freeze): the T-SQL speed and allocation against 0.2.0, from the release benchmark.
+  Against 0.2.0, SQL:2023 parses about 80% faster and SQL-92 about 26%. T-SQL is 15% faster at the
+  median, but a long SELECT and an UPDATE with a subquery are 5 to 13% slower, and accepted T-SQL
+  allocates 1.6 to 2.2 times the bytes, the cost of the one tree. The assembly carries 63% less IL.
 - **DotGram.Finance**: validation is a question that keeps nothing, every finding says its path
   through the repeating groups, and the message limit and log framing are the context's.
 - **DotGram.Web** refuses a long adversarial Link, Forwarded, Content-Disposition or Accept header,
   an email address or a Content-Type in linear time; the Link reader holds parameter values to
   RFC 8288.
 - **DotGram.ExpressionLanguage** reads more of C# — initializers as C# reads them, `with`,
-  target-typed `new()`, `T?` — and parses accepted text 30-55% faster.
+  target-typed `new()`, `T?` — and parses accepted text about 40% faster; a text refused late is
+  50 to 87% slower.
 - **Visual Studio:** standalone grammars follow their host as the solution changes, and navigation
   reaches into included grammars.
 
@@ -84,13 +87,7 @@ Each package's notes list them with what to write instead. The ones most project
 
 - Over tokens (`Lexical = true`), a reading from a position counts trivia before trailing empty
   operands differently: `'a' & 'b'*` on `"a "` has length 2 over characters and 1 over tokens
-  ([#5](https://github.com/dotgram/dotgram/issues/5)). With trivia at the end of the input the
-  length differs too: `"ab  "` reads 4 over characters and 2 over tokens, the token form being the
-  specified one.
-- A published lexical rule that can be empty is refused the empty input over tokens, with no
-  diagnostic: with `namespace Lex { trivia = { ' '* } Name = ['a'..'y']+ Opt = 'z'* }`,
-  `Start = Lex.Name & Lex.Opt` and `parse Lex.Opt`, `TryParseOpt("")` accepts over characters and
-  refuses over tokens ([#5](https://github.com/dotgram/dotgram/issues/5)).
+  ([#5](https://github.com/dotgram/dotgram/issues/5)), the token form being the specified one.
 - `Start = (Lex.Kw | Lex.Digits)*` refuses `"if 12"` and `"1 2"` over characters and accepts them
   over tokens ([#5](https://github.com/dotgram/dotgram/issues/5)).
 - Below C# 11, each parser class adds its expected-set table to the assembly's user-string heap
@@ -100,6 +97,11 @@ Each package's notes list them with what to write instead. The ones most project
   after leading trivia on the engine, a root a flat method compiles, a rule read whole inside
   braces by the reader): one names what was expected where another says the rule's `on fail`
   sentence. Outcome and position agree.
+- Inside trivia, three refusals are placed differently where the generator reads a grammar with
+  its engine rather than its direct reader: an optional call to a repeating rule (`{ Sep? }`)
+  refused at the end of the input, a choice resumed after a rule it called returned, and a counted
+  turn refused at the end of a braced trivia. The outcome or the position differs; what is
+  accepted does not.
 - A part in front of a rule that recovers gives back no shorter reading for the rule's bad first
   element: with `Rows = Row+ recover ';' & '.'`, `';'* & Rows` refuses `;.`, which `Rows` reads.
 - Two shapes are refused a reader overload they could have: space trivia reached through the

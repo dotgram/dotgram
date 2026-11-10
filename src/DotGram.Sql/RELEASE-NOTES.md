@@ -13,7 +13,7 @@ BREAKING CHANGES, and what to write instead
 - LiteralValue is an Expression, and Expression.Literal is removed. Migration: Expression.Literal { Value: LiteralValue.Numeric n } -> LiteralValue.Numeric n; new Expression.Literal(v) -> v.
 - Scripts. ParseScript, TryParseScript and their levels cut a script as ODBC sqlcmd 18.6 cuts it, so they answer differently wherever 0.2.0 disagreed with sqlcmd: GO; is text, a GO after a statement on its line is text, GO /* c */, GO 2; and GO x are refused at that line, :setvar is read and  substituted, :r is refused. The four position and window forms of TryParseScript are removed at every level, 72 methods. Migration: cut the text with SqlScript.Read and read each batch with TryParseSql(ScriptBatch). ParseSql no longer refuses a GO line: in one command GO is a word, as the server reads it. Text from a file or an editor is a script, for ParseScript; text a program sends in one command is for ParseSql.
 - Sql92Parser reserves every word SQL-92 reserves (section 5.2), so year, month, zone, with, names and the like are refused as names - write them delimited ("year"); SELECT b DAY FROM t reads b qualified by DAY. It refuses an interval qualifier SQL-92 does not have and a length, precision or scale above 2,147,483,647.
-- Types closed to derivation: the concrete records of DotGram.Sql.Ast are sealed; the abstract records their families derive from (Statement, Expression, LiteralValue, Query, DataType and the rest) have no protected parameterless constructor, only the copy constructor C# requires of a record that is not sealed, so a type outside the package can derive from one only by calling that copy constructor explicitly, and no family is designed for it; Sql92Parser, SqlStandardParser and TransactSqlParser have no protected constructor. Migration: hold a node or call a parser rather than derive from it.
+- Derivation. The concrete records of DotGram.Sql.Ast are sealed. The abstract records their families derive from (Statement, Expression, LiteralValue, Query, DataType and the rest) are not sealed: their parameterless constructor is private protected, so a type outside the package cannot derive through it, but the copy constructor C# requires of a record that is not sealed stays protected, and a record that calls it can still derive. No family is designed for that. Sql92Parser, SqlStandardParser and TransactSqlParser have no constructor outside the package. Migration: hold a node or call a parser rather than derive from it.
 - Syntax, the helpers the T-SQL grammar's rules call, is no longer public, nor are the rule-value helper types nested in the parsers (the …_Dialect types of TransactSqlParser and TransactSqlParser.Located, CreateStatisticsWith, UpdateStatisticsWith, DottedType, Sql92Parser.Reserved, TransactSqlParser.ParserInput<T>).
 - QualifiedName.Of is no longer public, and EndpointEncryptionLevel, EndpointAlgorithm and EndpointWindowsMode, which no node held, are removed. Migration: new QualifiedName(first, rest) or new QualifiedName([.. parts]).
 - TransactSqlParser.SourceSpan is no longer public; nothing public took or returned it.
@@ -28,10 +28,17 @@ NEW
 
 CHANGED
 
-- All three parsers are carried immediately (Carrier = GramCarrier.Immediate): a node is built as its rule is read. Accepted readings are faster; a text refused part-way allocates more. Trees, refusals and messages are as before.
+- All three parsers are carried immediately (Carrier = GramCarrier.Immediate): a node is built as its rule is read. Accepted readings are mostly faster (FASTER, below); a text refused part-way allocates more. Trees, refusals and messages are as before.
 - A node of DotGram.Sql.Ast keeps its location in eight bytes (start and length); its Span.GapStart is its At.
 - A located node's span is the range of the rule that built it; a clause's keyword is no longer inside the value it introduces (a WHERE condition spans its own text).
 - Equality and GetHashCode of a node throw InsufficientExecutionStackException on a tree deeper than the stack has room for, where they would have overflowed it.
+
+FASTER
+
+- Against 0.2.0 on the release benchmark. SqlStandardParser (SQL:2023) parses about 80% faster, with less than a third of the bytes.
+- Sql92Parser parses about 26% faster and allocates about 1.6 times the bytes; a refused text costs more, up to 88% slower, with up to 108 times the 208 bytes it took.
+- TransactSqlParser is 15% faster at the median, and a script of 400 statements 30% faster, but a long SELECT and an UPDATE with a subquery are 5 to 13% slower. Accepted T-SQL allocates 1.6 to 2.2 times the bytes, the cost of the one tree's records; a first call takes about 6% longer.
+- DotGram.Sql.dll carries 63% less IL (9.2 MB to 3.4 MB).
 
 FIXED
 
@@ -45,4 +52,3 @@ FIXED
 KNOWN ISSUES
 
 - Most DotGram.Sql.Ast records have no XML summary yet. The entry points have one (Batch; Statement with Select, Insert, Update, Delete, Merge and CreateTable; Query with Select; TableSource with Named, Subquery and Join; Expression with Reference, Unary and Binary), and most of the others that have one name the Microsoft reference page or the BNF production they follow.
-- TODO(freeze): T-SQL speed and allocation against 0.2.0, one line from the release benchmark (the one tree costs bytes on some rows).
