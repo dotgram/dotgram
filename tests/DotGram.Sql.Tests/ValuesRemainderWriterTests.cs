@@ -52,7 +52,7 @@ public sealed class ValuesRemainderWriterTests
 
 	static IndexDefinition Index(params Option[] options)
 	{
-		return new IndexDefinition(Name("i")) { Columns = [new SortItem(Ref("a"))], Options = [.. options] };
+		return new IndexDefinition(Name("i")) { Columns = [new IndexElement(Ref("a"))], Options = [.. options] };
 	}
 
 	static Statement Tree(string which)

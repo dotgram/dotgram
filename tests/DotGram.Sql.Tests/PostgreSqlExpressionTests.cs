@@ -1023,6 +1023,7 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("INSERT INTO t (values, a) SELECT 1, 2",                  "insert into columns named values and a")]
 	[InlineData("INSERT INTO t (VALUES (1))",                             "insert bracketed values")]
 	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT (coalesce(a, 0), (CAST(a AS int)), CAST(b AS int), EXTRACT(year FROM d)) DO NOTHING", "on conflict key word calls")]
+	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT (a COLLATE \"C\" text_pattern_ops DESC, lower(b) nulls, c gist_ops (siglen = 8) NULLS FIRST) DO NOTHING", "on conflict index elements")]
 	[InlineData("INSERT INTO a.b.c VALUES (1)",                           "insert into a three-part name")]
 	[InlineData("WITH x AS (SELECT 1) TRUNCATE t",                        "refused: WITH before TRUNCATE")]
 	[InlineData("WITH x AS (TRUNCATE t) SELECT 1",                        "refused: TRUNCATE as a WITH body")]
@@ -1053,7 +1054,7 @@ public sealed class PostgreSqlExpressionTests
 			"insert alias default returning" => made is Statement.Insert { Alias.Name.Text: "x", SourceValue: InsertSource.DefaultValues, Returning: ReturningClause.Returned { Items: [SelectColumn.All], OldAlias: null } },
 			"insert overriding query"  => made is Statement.Insert { Override: OverrideKind.SystemValue, SourceValue: InsertSource.Subquery { Query: Query.Select } },
 			"insert bracketed query"   => made is Statement.Insert { Columns.Count: 0, SourceValue: InsertSource.Subquery { Query: Query.Parenthesized } },
-			"on conflict columns do update" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Columns { Items: [Expression.Reference, Expression.Parenthesized, Expression.Invocation], Where: not null }, Resolution: ConflictResolution.Update { Assignments.Count: 1, Where: not null } }] },
+			"on conflict columns do update" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Columns { Items: [{ Key: Expression.Reference }, { Key: Expression.Parenthesized }, { Key: Expression.Invocation }], Where: not null }, Resolution: ConflictResolution.Update { Assignments.Count: 1, Where: not null } }] },
 			"on conflict constraint do nothing" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Constraint { Name.Text: "c" }, Resolution: ConflictResolution.Nothing }] },
 			"on conflict without target" => made is Statement.Insert { Conflicts: [{ Target: null, Resolution: ConflictResolution.Nothing }] },
 			"returning old and new"    => made is Statement.Insert { Returning: ReturningClause.Returned { OldAlias.Text: "o", NewAlias.Text: "n", Items.Count: 2 } },
@@ -1067,7 +1068,11 @@ public sealed class PostgreSqlExpressionTests
 			"insert into a column named values" => made is Statement.Insert { Columns: [{ Text: "values" }], SourceValue: InsertSource.Values { Rows.Count: 1 } },
 			"insert into columns named values and a" => made is Statement.Insert { Columns.Count: 2, SourceValue: InsertSource.Subquery { Query: Query.Select } },
 			"insert bracketed values"  => made is Statement.Insert { Columns.Count: 0, SourceValue: InsertSource.Subquery { Query: Query.Parenthesized { Query: Query.Select { Values.Count: 1 } } } },
-			"on conflict key word calls" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Columns { Items: [Expression.Invocation, Expression.Parenthesized, Expression.Cast, Expression.Extract] } }] },
+			"on conflict index elements" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Columns { Items: [
+				{ Key: Expression.Reference, Collation.Name: [{ Text: "\"C\"" }], OperatorClass: [{ Text: "text_pattern_ops" }], Direction: SortDirection.Desc, Nulls: null },
+				{ Key: Expression.Invocation, OperatorClass: [{ Text: "nulls" }], Direction: null },
+				{ OperatorClass: [{ Text: "gist_ops" }], OperatorClassOptions: [{ Name.Text: "siglen", Value: LiteralValue.Numeric }], Nulls: NullOrdering.First }] } }] },
+			"on conflict key word calls" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Columns { Items: [{ Key: Expression.Invocation }, { Key: Expression.Parenthesized }, { Key: Expression.Cast }, { Key: Expression.Extract }] } }] },
 			"insert into a three-part name" => made is Statement.Insert { Target: TableSource.Named { Name.Count: 3 } },
 			"data change body in insert" => made is Statement.Insert { With.Items: [{ Query: Query.DataChange { Change: Statement.Delete { Returning: not null } } }] },
 			"data change body in select" => made is Statement.Select { Query.With.Items: [{ Query: Query.DataChange { Change: Statement.Update } }] },

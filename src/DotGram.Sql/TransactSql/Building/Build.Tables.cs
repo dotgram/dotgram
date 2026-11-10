@@ -921,6 +921,14 @@ static partial class Build
 				: throw BuildGap.Open(old, "inventory Clause.SortSpecification (a key's column)");
 		}
 
+		/// <summary>An index's key: a column and the direction written, the one shape T-SQL's index keys take.</summary>
+		static Ast.IndexElement Keyed(Clause old)
+		{
+			var sorted = Sorted(old);
+
+			return new Ast.IndexElement(sorted.Key, Direction: sorted.Direction, Nulls: sorted.NullOrdering);
+		}
+
 		/// <summary>A foreign key's own columns, which T-SQL reads with a direction and which the standard names alone.</summary>
 		static SqlList<Ast.Identifier> KeyNames(Clause.ConstraintDefinition old)
 		{
@@ -1016,7 +1024,7 @@ static partial class Build
 				Unique             = old.Kind == "UNIQUE INDEX",
 				Clustering         = Clustering(old, old.Clustering),
 				Storage            = old.Columnstore ? Ast.IndexStorage.Columnstore : old.Hash ? Ast.IndexStorage.Hash : null,
-				Columns            = Each(old.Columns, Sorted),
+				Columns            = Each(old.Columns, Keyed),
 				Order              = Values.Parts(old, old.Order),
 				Include            = Values.Parts(old, old.Include),
 				Where              = old.Filter is null ? null : Values.Of(old.Filter),

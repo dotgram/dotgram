@@ -37,10 +37,10 @@ DotGram.Sql.Ast.ConflictResolution.Update.Where.get -> DotGram.Sql.Ast.Expressio
 DotGram.Sql.Ast.ConflictResolution.Update.Where.init -> void
 DotGram.Sql.Ast.ConflictTarget
 DotGram.Sql.Ast.ConflictTarget.Columns
-DotGram.Sql.Ast.ConflictTarget.Columns.Columns(DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!> Items, DotGram.Sql.Ast.Expression? Where = null) -> void
-DotGram.Sql.Ast.ConflictTarget.Columns.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!> Items, out DotGram.Sql.Ast.Expression? Where) -> void
+DotGram.Sql.Ast.ConflictTarget.Columns.Columns(DotGram.Sql.SqlList<DotGram.Sql.Ast.IndexElement!> Items, DotGram.Sql.Ast.Expression? Where = null) -> void
+DotGram.Sql.Ast.ConflictTarget.Columns.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.IndexElement!> Items, out DotGram.Sql.Ast.Expression? Where) -> void
 DotGram.Sql.Ast.ConflictTarget.Columns.Equals(DotGram.Sql.Ast.ConflictTarget.Columns? other) -> bool
-DotGram.Sql.Ast.ConflictTarget.Columns.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!>
+DotGram.Sql.Ast.ConflictTarget.Columns.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.IndexElement!>
 DotGram.Sql.Ast.ConflictTarget.Columns.Items.init -> void
 DotGram.Sql.Ast.ConflictTarget.Columns.Where.get -> DotGram.Sql.Ast.Expression?
 DotGram.Sql.Ast.ConflictTarget.Columns.Where.init -> void
@@ -133,6 +133,29 @@ DotGram.Sql.Ast.FetchOrientation.WordOmitted.get -> bool
 DotGram.Sql.Ast.FetchOrientation.WordOmitted.init -> void
 DotGram.Sql.Ast.FetchOrientationKind.Backward = 7 -> DotGram.Sql.Ast.FetchOrientationKind
 DotGram.Sql.Ast.FetchOrientationKind.Forward = 6 -> DotGram.Sql.Ast.FetchOrientationKind
+DotGram.Sql.Ast.IndexDefinition.Columns.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.IndexElement!>
+DotGram.Sql.Ast.IndexDefinition.Deconstruct(out DotGram.Sql.Ast.Identifier? Name) -> void
+DotGram.Sql.Ast.IndexDefinition.IndexDefinition(DotGram.Sql.Ast.Identifier? Name) -> void
+DotGram.Sql.Ast.IndexDefinition.Name.get -> DotGram.Sql.Ast.Identifier?
+DotGram.Sql.Ast.IndexElement
+DotGram.Sql.Ast.IndexElement.<Clone>$() -> DotGram.Sql.Ast.IndexElement!
+DotGram.Sql.Ast.IndexElement.Collation.get -> DotGram.Sql.Ast.CollationName?
+DotGram.Sql.Ast.IndexElement.Collation.init -> void
+DotGram.Sql.Ast.IndexElement.Deconstruct(out DotGram.Sql.Ast.Expression! Key, out DotGram.Sql.Ast.CollationName? Collation, out DotGram.Sql.Ast.QualifiedName? OperatorClass, out DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> OperatorClassOptions, out DotGram.Sql.Ast.SortDirection? Direction, out DotGram.Sql.Ast.NullOrdering? Nulls) -> void
+DotGram.Sql.Ast.IndexElement.Direction.get -> DotGram.Sql.Ast.SortDirection?
+DotGram.Sql.Ast.IndexElement.Direction.init -> void
+DotGram.Sql.Ast.IndexElement.Equals(DotGram.Sql.Ast.IndexElement? other) -> bool
+DotGram.Sql.Ast.IndexElement.IndexElement(DotGram.Sql.Ast.Expression! Key, DotGram.Sql.Ast.CollationName? Collation = null, DotGram.Sql.Ast.QualifiedName? OperatorClass = null, DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> OperatorClassOptions = default(DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!>), DotGram.Sql.Ast.SortDirection? Direction = null, DotGram.Sql.Ast.NullOrdering? Nulls = null) -> void
+DotGram.Sql.Ast.IndexElement.Key.get -> DotGram.Sql.Ast.Expression!
+DotGram.Sql.Ast.IndexElement.Key.init -> void
+DotGram.Sql.Ast.IndexElement.Locate(int at, int length) -> void
+DotGram.Sql.Ast.IndexElement.Nulls.get -> DotGram.Sql.Ast.NullOrdering?
+DotGram.Sql.Ast.IndexElement.Nulls.init -> void
+DotGram.Sql.Ast.IndexElement.OperatorClass.get -> DotGram.Sql.Ast.QualifiedName?
+DotGram.Sql.Ast.IndexElement.OperatorClass.init -> void
+DotGram.Sql.Ast.IndexElement.OperatorClassOptions.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!>
+DotGram.Sql.Ast.IndexElement.OperatorClassOptions.init -> void
+DotGram.Sql.Ast.IndexElement.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.LikeKind.ILike = 3 -> DotGram.Sql.Ast.LikeKind
 DotGram.Sql.Ast.Limit.LimitAll.get -> bool
 DotGram.Sql.Ast.Limit.LimitAll.init -> void
@@ -607,6 +630,9 @@ override DotGram.Sql.Ast.Expression.QuantifiedOperation.<Clone>$() -> DotGram.Sq
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.GetHashCode() -> int
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.ToString() -> string!
+override DotGram.Sql.Ast.IndexElement.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.IndexElement.GetHashCode() -> int
+override DotGram.Sql.Ast.IndexElement.ToString() -> string!
 override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.<Clone>$() -> DotGram.Sql.Ast.MergeMatchedAction!
 override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.GetHashCode() -> int
@@ -796,6 +822,8 @@ static DotGram.Sql.Ast.Expression.OperatorCall.operator !=(DotGram.Sql.Ast.Expre
 static DotGram.Sql.Ast.Expression.OperatorCall.operator ==(DotGram.Sql.Ast.Expression.OperatorCall? left, DotGram.Sql.Ast.Expression.OperatorCall? right) -> bool
 static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator !=(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
 static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator ==(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
+static DotGram.Sql.Ast.IndexElement.operator !=(DotGram.Sql.Ast.IndexElement? left, DotGram.Sql.Ast.IndexElement? right) -> bool
+static DotGram.Sql.Ast.IndexElement.operator ==(DotGram.Sql.Ast.IndexElement? left, DotGram.Sql.Ast.IndexElement? right) -> bool
 static DotGram.Sql.Ast.MergeMatchedAction.DoNothing.operator !=(DotGram.Sql.Ast.MergeMatchedAction.DoNothing? left, DotGram.Sql.Ast.MergeMatchedAction.DoNothing? right) -> bool
 static DotGram.Sql.Ast.MergeMatchedAction.DoNothing.operator ==(DotGram.Sql.Ast.MergeMatchedAction.DoNothing? left, DotGram.Sql.Ast.MergeMatchedAction.DoNothing? right) -> bool
 static DotGram.Sql.Ast.PostgreSqlWriter.Write(DotGram.Sql.Ast.ISqlNode! node) -> string!
@@ -931,6 +959,10 @@ virtual DotGram.Sql.Ast.ReturningClause.PrintMembers(System.Text.StringBuilder! 
 *REMOVED*DotGram.Sql.Ast.Expression.Substring.Deconstruct(out DotGram.Sql.Ast.Expression! Value, out DotGram.Sql.Ast.Expression! From, out DotGram.Sql.Ast.Expression? For, out DotGram.Sql.Ast.CharacterLengthUnits? Using) -> void
 *REMOVED*DotGram.Sql.Ast.Expression.Substring.From.get -> DotGram.Sql.Ast.Expression!
 *REMOVED*DotGram.Sql.Ast.Expression.Substring.Substring(DotGram.Sql.Ast.Expression! Value, DotGram.Sql.Ast.Expression! From, DotGram.Sql.Ast.Expression? For, DotGram.Sql.Ast.CharacterLengthUnits? Using) -> void
+*REMOVED*DotGram.Sql.Ast.IndexDefinition.Columns.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.SortItem!>
+*REMOVED*DotGram.Sql.Ast.IndexDefinition.Deconstruct(out DotGram.Sql.Ast.Identifier! Name) -> void
+*REMOVED*DotGram.Sql.Ast.IndexDefinition.IndexDefinition(DotGram.Sql.Ast.Identifier! Name) -> void
+*REMOVED*DotGram.Sql.Ast.IndexDefinition.Name.get -> DotGram.Sql.Ast.Identifier!
 *REMOVED*DotGram.Sql.Ast.LiteralValue.Interval.Deconstruct(out string! Text, out DotGram.Sql.Ast.IntervalQualifier! Qualifier, out DotGram.Sql.Ast.UnaryOperator? Sign) -> void
 *REMOVED*DotGram.Sql.Ast.LiteralValue.Interval.Interval(string! Text, DotGram.Sql.Ast.IntervalQualifier! Qualifier, DotGram.Sql.Ast.UnaryOperator? Sign = null) -> void
 *REMOVED*DotGram.Sql.Ast.LiteralValue.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier!

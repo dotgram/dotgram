@@ -120,7 +120,7 @@ public sealed class SqlWriterCoverageTests
 
 	static TableElement.Index Indexed(IndexDefinition index)
 	{
-		return new TableElement.Index(index with { Columns = index.Columns.Count > 0 ? index.Columns : [new SortItem(A)] });
+		return new TableElement.Index(index with { Columns = index.Columns.Count > 0 ? index.Columns : [new IndexElement(A)] });
 	}
 
 	/// <summary><c>PRIMARY KEY (a) WITH (FILLFACTOR = 80)</c>, the brackets left out or not.</summary>
@@ -140,7 +140,7 @@ public sealed class SqlWriterCoverageTests
 	/// <summary><c>CREATE INDEX i ON t (a)</c>, the index given its key if it has none.</summary>
 	static Statement.CreateIndex Created(IndexDefinition index)
 	{
-		return new Statement.CreateIndex(T, index.Storage is null && index.Columns.Count == 0 ? index with { Columns = [new SortItem(A)] } : index);
+		return new Statement.CreateIndex(T, index.Storage is null && index.Columns.Count == 0 ? index with { Columns = [new IndexElement(A)] } : index);
 	}
 
 	static Statement.CreateStatistics StatsWith(params Option[] options)
@@ -946,8 +946,8 @@ public sealed class SqlWriterCoverageTests
 				new Statement.CreateEventSession(new Identifier("s"), EventScope.Server, [new EventSessionPiece.AddEvent(new QualifiedName([new Identifier("e")])) { Where = new EventPredicate.Compare(new QualifiedName([new Identifier("a")]), ComparisonOperator.NotEqual, new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { Exclamation = true } }])),
 			// The remainder of the DDL statements.
 			["IndexDefinition.OptionsUnbracketed"] = (
-				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
-				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new SortItem(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])], OptionsUnbracketed = true })),
+				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new IndexElement(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
+				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new IndexElement(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])], OptionsUnbracketed = true })),
 			["FullTextPredicate.ColumnsBracketed"] = (
 				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.Named(T)]), Where = new Expression.FullTextPredicate(FullTextPredicateKind.FreeText, [A], new LiteralValue.String("'x'", StringLiteralKind.Character)) } },
 				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([new TableSource.Named(T)]), Where = new Expression.FullTextPredicate(FullTextPredicateKind.FreeText, [A], new LiteralValue.String("'x'", StringLiteralKind.Character)) { ColumnsBracketed = true } } }),
@@ -2009,10 +2009,10 @@ public sealed class SqlWriterCoverageTests
 			"an XML index DATA_COMPRESSION" => XmlWith(Set("DATA_COMPRESSION", "PAGE")),
 			"MINVALUE twice" => SequenceWith(new SequenceOption.Min(Two), new SequenceOption.Min(null, true)),
 			"an identity option of one group twice" => Altered(new AlterTableAction.AlterColumn(C, new AlterColumnAction.IdentityOptions([new SequenceOption.Increment(Two), new SequenceOption.Increment(Two)]), true)),
-			"an index key that is a number" => Created(new IndexDefinition(I) { Columns = [new SortItem(Two)] }),
-			"an index key with a null ordering" => Created(new IndexDefinition(I) { Columns = [new SortItem(A, null, NullOrdering.First)] }),
-			"an index key of two parts" => Created(new IndexDefinition(I) { Columns = [new SortItem(new Expression.Reference(new QualifiedName([new Identifier("a"), new Identifier("b")])))] }),
-			"an inline index key that is a number" => Tabled(null, Indexed(new IndexDefinition(I) { Columns = [new SortItem(Two)] })),
+			"an index key that is a number" => Created(new IndexDefinition(I) { Columns = [new IndexElement(Two)] }),
+			"an index key with a null ordering" => Created(new IndexDefinition(I) { Columns = [new IndexElement(A, Nulls: NullOrdering.First)] }),
+			"an index key of two parts" => Created(new IndexDefinition(I) { Columns = [new IndexElement(new Expression.Reference(new QualifiedName([new Identifier("a"), new Identifier("b")])))] }),
+			"an inline index key that is a number" => Tabled(null, Indexed(new IndexDefinition(I) { Columns = [new IndexElement(Two)] })),
 			"a view's Verb Create" => Viewed() with { Verb = DefinitionVerb.Create },
 			"a view's Verb beside RECURSIVE" => Viewed() with { Verb = DefinitionVerb.Alter, Recursive = true },
 			"a view's attributes beside a LOCAL check option" => Viewed() with { Attributes = [ViewAttribute.SchemaBinding], CheckOption = CheckOption.Local },
