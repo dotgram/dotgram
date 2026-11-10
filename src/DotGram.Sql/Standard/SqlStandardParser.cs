@@ -60,7 +60,8 @@ namespace DotGram.Sql.Standard;
 /// part-way.
 /// </para>
 /// </remarks>
-[Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
+// Spike: the generated reader is checked in as SqlStandardParser.Emitted.cs (hand-edited); the attribute is off so the generator does not emit it again.
+// [Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 public abstract partial class SqlStandardParser
 {
 	// Every entry is static and nothing is made of the class, so nothing outside derives from it either.
