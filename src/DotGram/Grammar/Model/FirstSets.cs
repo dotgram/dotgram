@@ -1845,12 +1845,22 @@ static class FirstSets
 			if (nothing &&
 				parts[i] is Node.Lookahead(true, var expected) &&
 				!Nullable(expected, graph) &&
-				!LedByRecovery(expected, graph) &&
-				Inner(expected, graph, byRule) is { IsKnown: true } ahead)
+				!LedByRecovery(expected, graph))
 			{
-				expects = expects is { } held ? held.And(ahead) : ahead;
+				var ahead = Inner(expected, graph, byRule);
 
-				continue;
+				if (ahead.IsKnown)
+				{
+					expects = expects is { } held ? held.And(ahead) : ahead;
+
+					continue;
+				}
+
+				// A body that begins with nothing narrows nothing, and once it begins it narrows:
+				// while its rules grow, nothing may only be a rule not reached yet, and what the
+				// look lets through stops here rather than being everything for now (Stopped).
+				if (ahead.Nothing && Stopped(expected, graph))
+					break;
 			}
 
 			// A negative lookahead of one character is the mirror: the rest may not begin
@@ -1862,14 +1872,18 @@ static class FirstSets
 			// one kind whether it is reserved or not.
 			if (nothing &&
 				parts[i] is Node.Lookahead(false, var refused) &&
-				OneCharacter(refused, graph, []) &&
-				Inner(refused, graph, byRule) is { IsKnown: true } barred)
+				OneCharacter(refused, graph, []))
 			{
-				var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
+				var barred = Inner(refused, graph, byRule);
 
-				expects = expects is { } narrowed ? narrowed.And(admitted) : admitted;
+				if (barred.IsKnown)
+				{
+					var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
 
-				continue;
+					expects = expects is { } narrowed ? narrowed.And(admitted) : admitted;
+
+					continue;
+				}
 			}
 
 			var first = Inner(parts[i], graph, byRule);
@@ -1881,7 +1895,17 @@ static class FirstSets
 				return First.All;
 
 			if (first.Nothing)
+			{
+				// A part that must consume and begins with nothing is passed over as one that
+				// matches nothing — except while the rules' answers are still growing, when
+				// nothing may only be a rule not reached yet. Passed over then, the sequence
+				// begins with what comes after the part, and once the rule is reached that is
+				// taken back: the answer shrinks as what it is made of grows (ByRule).
+				if (!Nullable(parts[i], graph) && Stopped(parts[i], graph))
+					break;
+
 				continue;
+			}
 
 			nothing = false;
 			ranges.AddRange(first.Ranges);
@@ -1929,6 +1953,50 @@ static class FirstSets
 	}
 
 	/// <summary>
+	/// Whether a sequence stops at a part whose answer is nothing so far, rather than taking that
+	/// nothing as final: so where the part calls a rule of the component still growing
+	/// (<see cref="RecognitionGraph.FirstGrowing"/>), and it records that it did
+	/// (<see cref="RecognitionGraph.FirstStopped"/>), so that the rule is worked out again once
+	/// the component has stopped growing.
+	/// </summary>
+	/// <remarks>
+	/// Taken as final, nothing is the one answer that lets more through than something does: a
+	/// part that begins with nothing is passed over, a look whose body begins with nothing narrows
+	/// nothing. Stopped instead, what follows begins with nothing for now, and grows as the part
+	/// does. A part that calls nothing of the growing component has its final answer already, and
+	/// its nothing is taken at its word.
+	/// </remarks>
+	static bool Stopped(Node part, RecognitionGraph graph)
+	{
+		if (graph.FirstGrowing is not { } growing || !Calls(part, growing, graph))
+			return false;
+
+		graph.FirstStopped = true;
+
+		return true;
+	}
+
+	/// <summary>
+	/// Whether a node calls one of these rules, itself or through what a reference in it reads.
+	/// </summary>
+	static bool Calls(Node node, HashSet<RuleSymbol> rules, RecognitionGraph graph)
+	{
+		foreach (var inner in NodeWalk.Descendants(node))
+		{
+			if (inner is Node.Call(var called, _) && rules.Contains(called))
+				return true;
+
+			if (inner is Node.Same(var binding, _))
+				foreach (var body in BoundBodies(graph, binding))
+					foreach (var bound in NodeWalk.Descendants(body))
+						if (bound is Node.Call(var reached, _) && rules.Contains(reached))
+							return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
 	/// What each rule can begin with, as the least set that satisfies every rule at once.
 	/// </summary>
 	/// <remarks>
@@ -1936,7 +2004,38 @@ static class FirstSets
 	/// A grammar's rules call each other and themselves, so this is not a walk: it is the
 	/// least fixed point of the same kind of equations <c>Nullable</c> and <c>FOLLOW</c> are
 	/// already solved as. Every rule starts at nothing and grows until nothing grows, which
-	/// settles because the step only ever adds and there are finitely many characters to add.
+	/// settles because each answer is joined with the one before it and there are finitely
+	/// many characters to add.
+	/// </para>
+	/// <para>
+	/// The step itself does not only add, and an answer put in place of the one before it
+	/// went round for ever. Nothing — the answer of a rule not reached yet — lets more through
+	/// than something does: a part of a sequence that must consume but begins with nothing is
+	/// passed over, so the sequence begins with what follows the part, and a look whose body
+	/// begins with nothing narrows nothing. <c>C = A &amp; 'a'</c> began with <c>a</c> until
+	/// <c>A</c> was reached, then with what <c>A</c> begins with alone, and round a ring of rules
+	/// that lead with one another (<c>A = B</c>, <c>B = C | 'b'</c>, <c>C = A &amp; 'a'</c>) the
+	/// <c>a</c> came and went for ever. And a negative look over one character admits its
+	/// complement, which shrinks as what it refuses grows.
+	/// </para>
+	/// <para>
+	/// So the rules are worked out callee first, a strongly connected component at a time, each
+	/// settled before the next, and what a component reads from below it is final: a look over a
+	/// rule there refuses what it will refuse, and a part there that begins with nothing never
+	/// begins and is passed over. While a component grows, a part or a look's body that calls one
+	/// of its rules and begins with nothing stops the sequence rather than being taken at its
+	/// word (<see cref="Stopped"/>), so an answer grows as its parts do; and each answer is joined
+	/// with the one before.
+	/// </para>
+	/// <para>
+	/// Once the component has stopped growing, what in it still begins with nothing is what never
+	/// begins: a rule that can only be entered through itself. Everything after settling takes
+	/// such a part at its word, so the rules whose answer stopped at one are worked out once more
+	/// the way they will be read, and joined again, so that no rule begins with less than its
+	/// body says it does. Every rule then begins with what its body does — except round a ring of
+	/// rules that can only be entered through one another, left recursion no rewrite takes, which
+	/// is refused (GRAM4002): there what a rule keeps depends on which was worked out first, and
+	/// nothing is compiled from it.
 	/// </para>
 	/// <para>
 	/// What it replaces answered "anything" on re-entering a rule already being walked. That
@@ -1964,32 +2063,90 @@ static class FirstSets
 		// out reads the estimate rather than starting the walk again.
 		graph.FirstByRule = estimates;
 
-		// Every body contributes once. Later only callers of a changed estimate need
-		// another visit; unrelated rules cannot learn anything from that change.
-		var pending = new Queue<RuleSymbol>(graph.Rules);
-		var queued = new HashSet<RuleSymbol>(graph.Rules);
-		var calls = graph.Calls;
+		var calls   = graph.Calls;
+		var pending = new Queue<RuleSymbol>();
+		var queued  = new HashSet<RuleSymbol>();
+		var stopped = new HashSet<RuleSymbol>();
 
-		while (pending.Count > 0)
+		// Callee first, a component at a time, each settled before the next: what a component
+		// reads from below it is final. Every body contributes once. Later only callers of a
+		// changed estimate need another visit, and only those in the same component: the ones
+		// above have not begun.
+		try
 		{
-			var rule = pending.Dequeue();
-			queued.Remove(rule);
-			if (!graph.Bodies.TryGetValue(rule, out var body))
-				continue;
+			foreach (var component in calls.Components)
+			{
+				graph.FirstGrowing = [.. component];
 
-			var next = Of(body, graph, estimates);
-			if (Same(next, estimates[rule]))
-				continue;
+				foreach (var rule in component)
+					if (queued.Add(rule))
+						pending.Enqueue(rule);
 
-			estimates[rule] = next;
-			foreach (var caller in calls.CalledBy(rule))
-				if (queued.Add(caller))
-					pending.Enqueue(caller);
+				Grow(recording: true);
+
+				graph.FirstGrowing = null;
+
+				// A rule whose answer stopped at a part that begins with nothing, now that the
+				// component has stopped growing: such a part never begins, and is passed over from
+				// here on. Worked out that way, joined again, and its callers in the component
+				// after it.
+				if (stopped.Count == 0)
+					continue;
+
+				foreach (var rule in stopped)
+					if (queued.Add(rule))
+						pending.Enqueue(rule);
+
+				stopped.Clear();
+
+				Grow(recording: false);
+			}
+		}
+		finally
+		{
+			graph.FirstGrowing = null;
 		}
 
 		graph.FirstSettled = true;
 
 		return estimates;
+
+		// Works the pending rules off, each answer joined with the one before it; only callers in
+		// the same component are queued again.
+		void Grow(bool recording)
+		{
+			while (pending.Count > 0)
+			{
+				var rule = pending.Dequeue();
+
+				queued.Remove(rule);
+
+				if (!graph.Bodies.TryGetValue(rule, out var body))
+					continue;
+
+				graph.FirstStopped = false;
+
+				var held = estimates[rule];
+				var next = held.Or(Of(body, graph, estimates));
+
+				if (recording)
+				{
+					if (graph.FirstStopped)
+						stopped.Add(rule);
+					else
+						stopped.Remove(rule);
+				}
+
+				if (Same(next, held))
+					continue;
+
+				estimates[rule] = next;
+
+				foreach (var caller in calls.CalledBy(rule))
+					if ((ReferenceEquals(caller, rule) || calls.Together(caller, rule)) && queued.Add(caller))
+						pending.Enqueue(caller);
+			}
+		}
 	}
 
 	/// <summary>Whether two sets are the same set.</summary>
