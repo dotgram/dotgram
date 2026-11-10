@@ -220,7 +220,8 @@ public sealed class PlaygroundAdapterTests
 			QuickInfoItem? item;
 			try
 			{
-				item = ThreadHelper.JoinableTaskFactory.Run(() => quickInfo.GetQuickInfoItemAsync(session.Object, CancellationToken.None));
+				// Past the guard of GetQuickInfoItemAsync, which would make the failure below no answer.
+				item = ThreadHelper.JoinableTaskFactory.Run(() => quickInfo.QuickInfoAsync(session.Object, CancellationToken.None));
 			}
 			catch (NullReferenceException)
 			{
@@ -493,7 +494,8 @@ public sealed class PlaygroundAdapterTests
 			QuickInfoItem? item;
 			try
 			{
-				item = ThreadHelper.JoinableTaskFactory.Run(() => quickInfo.GetQuickInfoItemAsync(session.Object, CancellationToken.None));
+				// Past the guard of GetQuickInfoItemAsync, which would make the failure below no answer.
+				item = ThreadHelper.JoinableTaskFactory.Run(() => quickInfo.QuickInfoAsync(session.Object, CancellationToken.None));
 			}
 			catch (NullReferenceException)
 			{

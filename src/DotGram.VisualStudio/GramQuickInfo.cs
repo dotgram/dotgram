@@ -105,7 +105,8 @@ sealed class GramQuickInfoSource(
 		return EditorGuard.RunAsync("Quick Info", null, () => QuickInfoAsync(session, cancellationToken), cancellationToken);
 	}
 
-	async Task<QuickInfoItem?> QuickInfoAsync(
+	/// <summary>The Quick Info without its guard: a test tells a failure from no answer by it.</summary>
+	internal async Task<QuickInfoItem?> QuickInfoAsync(
 		IAsyncQuickInfoSession session,
 		CancellationToken cancellationToken)
 	{
@@ -456,7 +457,8 @@ sealed class EmbeddedGramQuickInfoSource(
 			"Embedded Quick Info", null, () => QuickInfoAsync(session, cancellationToken), cancellationToken);
 	}
 
-	async Task<QuickInfoItem?> QuickInfoAsync(
+	/// <summary>The Quick Info without its guard: a test tells a failure from no answer by it.</summary>
+	internal async Task<QuickInfoItem?> QuickInfoAsync(
 		IAsyncQuickInfoSession session,
 		CancellationToken cancellationToken)
 	{
