@@ -27,7 +27,7 @@ public static partial class ExpressionParser
 		readonly Expression _otherwise;
 
 		/// <summary>Whether both branches convert to that type.</summary>
-		public override bool Builds(Type target)
+		protected override bool Answers(Type target)
 		{
 			return target is not null && target != typeof(void) && Converts(_then, target) && Converts(_otherwise, target);
 		}
