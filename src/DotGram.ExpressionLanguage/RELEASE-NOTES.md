@@ -23,6 +23,12 @@ FASTER
 - The parser reads with the immediate carrier, building the tree as it reads: against 0.2.0 on the release benchmark, accepted text parses about 40% faster (deeply nested text the most), and DotGram.ExpressionLanguage.dll carries 68% less IL. A text refused late is 50 to 87% slower, with about 4.3 times the bytes; one refused early takes the time it did. The answers - tree, refusal, message, exception - are unchanged.
 - Member initializers nested and never closed are read once at every level, where they were read twice (three quarters of a second at seventeen levels). A string left unclosed inside an interpolated string's hole, $"{x", is refused at once, where the time doubled with every further character.
 
+FIXED
+
+- A dotted name with more parts than any type in reach, generic or not, is refused in time and bytes proportional to its length, where it was quadratic, and worse on names new to the caches: a parameter typed by 800 parts after an unknown root took 59 GB and 143 seconds, a generic one of 1,600 parts 3.2 GB. The first such name in a scope counts how deep the types in reach go, once an assembly; a member chain on a declared name never does. A long member chain on a parameter is read in linear time as well.
+- Generic arguments nested n levels deep, closed or not, allocate in proportion to n, where every level copied the text of the levels inside it (2.6 GB at 6,400 levels).
+- A chain of conditionals whose branches meet in no type, b ? 1 : b ? 1 : … : b, and nests of switches and new() of that kind are typed in linear time, where every level asked the whole nest below it (1.9 seconds for 12,800 levels).
+
 KNOWN ISSUES
 
 - A lambda is never converted to an expression-tree type (Expression<TDelegate>): over an IQueryable, LINQ operators that take a lambda bind to Enumerable and run in memory, and Queryable's methods written out are refused.

@@ -47,6 +47,7 @@ FIXED
 - SqlStandardParser no longer reads a string literal through a simple comment: 'a' --c 'b' is the literal 'a' and a comment.
 - TransactSqlParser refuses EXTRACT(f FROM x), POSITION(a IN b), SUBSTRING(x FROM a FOR b), CONVERT(x USING cs), TRANSLATE(x USING cs), CURRENT_TIME, CURRENT_TIME(n) and CURRENT_TIMESTAMP(n), which it read from SQL-92's rules and SQL Server 2025 refuses at every compatibility level. CURRENT_DATE and plain CURRENT_TIMESTAMP stay, and so do the ODBC escapes { fn EXTRACT (HOUR FROM d) } and { fn CURRENT_TIME }.
 - A nest of T-SQL UPPER, LOWER, the four lengths, TRIM, CHOOSE or a set function (AVG, COUNT, MAX, MIN, SUM) took time doubling with every level, tripling for TRIM: 20 unclosed levels of UPPER ( took most of a second, and closed, accepted nests of TRIM ( and CHOOSE ( and of calls such as SUM (x, 1) did the same; so did SQL-92's TRIM (TRIM (a)). They are read in time proportional to the depth, and every tree, span and message is what it was.
+- A chain of UNION, EXCEPT or INTERSECT, accepted or refused, allocates in proportion to its length in Sql92Parser and TransactSqlParser, where the operation list was copied at every operator (17 KB a branch at 2,048 branches, 2.1 GB at 16,384); Query.Combine appends without copying too. Trees, refusals and messages are as before.
 - TransactSqlParser refuses TRIM (LEADING), TRIM (LEADING + 1) and every trim specification with no FROM after it, from level 160, as SQL Server does (Msg 102); it read them as a call over a column named LEADING.
 
 KNOWN ISSUES
