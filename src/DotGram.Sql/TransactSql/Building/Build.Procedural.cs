@@ -91,7 +91,7 @@ static partial class Build
 		/// <summary>The same, of a statement whose conversion reads the text it was written in, where the rule says.</summary>
 		internal static Statement Built(Statement read, SqlSpan at)
 		{
-			return Carry(read, at, Converted);
+			return Carry(read, at, static read => Converted((Statement)read));
 		}
 
 		/// <summary>BEGIN TRY … END TRY BEGIN CATCH … END CATCH, on the common tree.</summary>

@@ -200,13 +200,19 @@ static partial class Build
 
 	public static string NameOf(Type type)
 	{
-		var name = type.Name;
+		return TypeNames.GetOrAdd(type, static type =>
+		{
+			var name = type.Name;
 
-		for (var outer = type.DeclaringType; outer is not null && outer != typeof(Build); outer = outer.DeclaringType)
-			name = outer.Name + "." + name;
+			for (var outer = type.DeclaringType; outer is not null && outer != typeof(Build); outer = outer.DeclaringType)
+				name = outer.Name + "." + name;
 
-		return name;
+			return name;
+		});
 	}
+
+	/// <summary>The records' names, made once a type: the families ask for one each time they are handed a record.</summary>
+	static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, string> TypeNames = new();
 
 	/// <summary>
 	/// The gap for a record a family owns and has no arm for.

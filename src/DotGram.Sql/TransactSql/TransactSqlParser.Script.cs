@@ -927,6 +927,10 @@ public abstract partial class TransactSqlParser
 		if (character is >= '\u0001' and <= '\u001F' or '\u0085' or '\u200B')
 			return true;
 
+		// The rest of ASCII has one space in it; the categories are asked only above it.
+		if (character < '\u0080')
+			return character == ' ';
+
 		var category = char.GetUnicodeCategory(character);
 
 		return category is System.Globalization.UnicodeCategory.SpaceSeparator

@@ -59,7 +59,7 @@ static partial class Build
 		/// <summary>EXECUTE, on the common tree, from what its rules read: it stands where the rule says it was written.</summary>
 		internal static Statement Execute(Statement.Execute read, SqlSpan at)
 		{
-			return Carry(read, at, static old => Execute(old));
+			return Carry(read, at, static old => Execute((Statement.Execute)old));
 		}
 
 		/// <summary>

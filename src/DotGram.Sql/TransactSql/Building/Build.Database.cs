@@ -62,7 +62,7 @@ static partial class Build
 			};
 			var old = new Defining(record, name ?? "") { Tail = tail };
 
-			return Defer(old, at, static old => Checked(old, Backup(old)));
+			return Defer(old, at, static one => Checked((Defining)one, Backup((Defining)one)));
 		}
 
 		/// <summary>What is restored, likewise.</summary>
@@ -84,7 +84,7 @@ static partial class Build
 			};
 			var old = new Defining(record, name ?? "") { Tail = tail };
 
-			return Defer(old, at, static old => Checked(old, Restore(old)));
+			return Defer(old, at, static one => Checked((Defining)one, Restore((Defining)one)));
 		}
 
 		/// <summary>
@@ -128,7 +128,7 @@ static partial class Build
 		{
 			var old = new Defining("Statement.AlterDatabaseModify", name);
 
-			return Defer(old, at, old => AlterModify(old, options, with));
+			return Defer(old, at, one => AlterModify((Defining)one, options, with));
 		}
 
 		/// <summary>ALTER DATABASE SCOPED CONFIGURATION, on the common tree, from what its rules read.</summary>

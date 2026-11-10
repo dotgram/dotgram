@@ -1644,7 +1644,7 @@ static partial class Build
 		/// <summary>ADD SENSITIVITY CLASSIFICATION, on the common tree: its columns and options, where the rule says it was written.</summary>
 		internal static Statement Classification(SqlList<string> columns, SqlList<Clause> options, SqlSpan at)
 		{
-			return Carry(new Statement.Classification(true, columns, options), at, Classification);
+			return Carry(new Statement.Classification(true, columns, options), at, static old => Classification((Statement.Classification)old));
 		}
 
 		static Ast.Statement Classification(Statement.Classification old)

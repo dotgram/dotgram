@@ -711,7 +711,7 @@ static partial class Build
 				options.Add(new Ast.ColumnOption.Computed(Values.Of(computed)));
 
 			foreach (var one in old.Options)
-				options.AddRange(ColumnOptions(one));
+				ColumnOptions(one, options);
 
 			return new Ast.ColumnDefinition(Values.Part(old, old.Name), old.Type is null ? null : Values.Type(old, old.Type), null, [], null)
 			{
@@ -720,10 +720,10 @@ static partial class Build
 		}
 
 		/// <summary>
-		/// What one thing said about a column becomes: one option, or two where <c>HIDDEN</c> was written after
-		/// <c>GENERATED ALWAYS AS ROW START</c>, which the old tree keeps inside it.
+		/// What one thing said about a column becomes, added to the column's options: one option, or two where <c>HIDDEN</c>
+		/// was written after <c>GENERATED ALWAYS AS ROW START</c>, which the old tree keeps inside it.
 		/// </summary>
-		static IEnumerable<Ast.ColumnOption> ColumnOptions(Clause old)
+		static void ColumnOptions(Clause old, List<Ast.ColumnOption> options)
 		{
 			switch (old)
 			{
@@ -735,7 +735,7 @@ static partial class Build
 
 					if (words.StartsWith("GENERATED ALWAYS AS ", StringComparison.Ordinal))
 					{
-						yield return new Ast.ColumnOption.GeneratedAlways(words["GENERATED ALWAYS AS ".Length..] switch
+						options.Add(new Ast.ColumnOption.GeneratedAlways(words["GENERATED ALWAYS AS ".Length..] switch
 						{
 							"ROW START"             => Ast.GeneratedAlwaysKind.RowStart,
 							"ROW END"               => Ast.GeneratedAlwaysKind.RowEnd,
@@ -744,32 +744,32 @@ static partial class Build
 							"SEQUENCE_NUMBER START" => Ast.GeneratedAlwaysKind.SequenceNumberStart,
 							"SEQUENCE_NUMBER END"   => Ast.GeneratedAlwaysKind.SequenceNumberEnd,
 							_                       => throw BuildGap.Open(old, $"inventory Clause.ColumnOption ({kind})"),
-						});
+						}));
 
 						if (option.Options is [Clause.Option { Name: var hidden }] && hidden.Equals("HIDDEN", StringComparison.OrdinalIgnoreCase))
-							yield return new Ast.ColumnOption.Hidden();
+							options.Add(new Ast.ColumnOption.Hidden());
 						else if (option.Options.Length > 0)
 							throw BuildGap.Open(old, $"inventory Clause.ColumnOption ({kind} with more than HIDDEN after it)");
 
-						yield break;
+						return;
 					}
 
-					yield return ColumnOption(option, words, name);
+					options.Add(ColumnOption(option, words, name));
 					break;
 
 				case Clause.ConstraintDefinition { Kind: "DEFAULT", Check: { } value, ForColumn: null } @default when WithValues(@default) is { } valued:
-					yield return new Ast.ColumnOption.Default(Values.Of(value)) { Name = @default.Name is { } named ? Values.Part(old, named) : null, WithValues = valued };
+					options.Add(new Ast.ColumnOption.Default(Values.Of(value)) { Name = @default.Name is { } named ? Values.Part(old, named) : null, WithValues = valued });
 					break;
 
 				case Clause.ConstraintDefinition { Kind: "DEFAULT" }:
 					throw BuildGap.Open(old, "inventory Clause.ConstraintDefinition (a column's DEFAULT with FOR or WITH VALUES)");
 
 				case Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" } index:
-					yield return new Ast.ColumnOption.Index(Index(index));
+					options.Add(new Ast.ColumnOption.Index(Index(index)));
 					break;
 
 				case Clause.ConstraintDefinition constraint:
-					yield return new Ast.ColumnOption.Constraint(Constraint(constraint, table: false));
+					options.Add(new Ast.ColumnOption.Constraint(Constraint(constraint, table: false)));
 					break;
 
 				default:
@@ -1168,7 +1168,7 @@ static partial class Build
 		{
 			var read = action with { Name = name };
 
-			return Defer(read, at, static read => AlterTable(read));
+			return Defer(read, at, static read => AlterTable((Statement.AlterTable)read));
 		}
 
 		static Ast.Statement AlterTable(Statement.AlterTable old)
@@ -1277,10 +1277,17 @@ static partial class Build
 				front       = column.Options.Take(column.Options.Length - 1);
 			}
 
-			var type = new Ast.AlterColumnAction.SetDataType(Values.Type(old, column.Type))
+			// The type first, then the options, as written: either may be a gap, and the first one found is the one said.
+			var typed = Values.Type(old, column.Type);
+			var made  = new List<Ast.ColumnOption>();
+
+			foreach (var one in front)
+				ColumnOptions(one, made);
+
+			var type = new Ast.AlterColumnAction.SetDataType(typed)
 			{
 				SetDataTypeOmitted = true,
-				ColumnOptions      = [.. front.SelectMany(ColumnOptions)],
+				ColumnOptions      = [.. made],
 				Nullability        = nullability,
 				Options            = options,
 			};
