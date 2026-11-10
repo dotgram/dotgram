@@ -65,6 +65,28 @@ static class SqlTokens
 		return last;
 	}
 
+	/// <summary>The kind of a text's one token, or null where it has none or more than one.</summary>
+	public static Kind? Lone(string text)
+	{
+		var at = 0;
+
+		if (!Next(text, ref at, out var kind, out _))
+			return null;
+
+		return Next(text, ref at, out _, out _) ? null : kind;
+	}
+
+	/// <summary>Whether the last token of a text is the upper-case word given, in any case (<see cref="Raises"/>).</summary>
+	public static bool LastIs(string text, string word)
+	{
+		var last = false;
+
+		for (var at = 0; Next(text, ref at, out var kind, out var start);)
+			last = kind == Kind.Word && Raises(text.AsSpan(start, at - start), word);
+
+		return last;
+	}
+
 	static bool Spelled(Kind kind, ReadOnlySpan<char> token, string spelled)
 	{
 		return kind == Kind.Word
@@ -75,16 +97,17 @@ static class SqlTokens
 	/// <summary>
 	/// Whether a word AS stands in a text outside round brackets and is not followed by the word OF (the AS of
 	/// <c>FOR SYSTEM_TIME AS OF</c> is not an alias's), a word in any case and never a name in brackets or quotes: what
-	/// <c>Words</c> would show of the text, found without making a list of its tokens.
+	/// <c>Words</c> would show of the text, found without making a list of its tokens or cutting the text out of the one it
+	/// stands in.
 	/// </summary>
-	public static bool AliasAs(string text)
+	public static bool AliasAs(ReadOnlySpan<char> text)
 	{
 		var depth   = 0;
 		var pending = false;
 
 		for (var at = 0; Next(text, ref at, out var kind, out var start);)
 		{
-			var token = text.AsSpan(start, at - start);
+			var token = text.Slice(start, at - start);
 
 			// An AS outside the brackets is an alias's unless OF is the next word.
 			if (pending)
@@ -122,10 +145,92 @@ static class SqlTokens
 	}
 
 	/// <summary>
+	/// Whether the first token of a text from a position on is the upper-case word given, in any case (<see cref="Raises"/>):
+	/// what <see cref="First"/> would say of it, without cutting the token out.
+	/// </summary>
+	public static bool FirstIs(string text, int from, string word)
+	{
+		var at = from;
+
+		return Next(text, ref at, out var kind, out var start) && kind == Kind.Word && Raises(text.AsSpan(start, at - start), word);
+	}
+
+	/// <summary>
+	/// Whether a word upper-cased is the upper-case word given, as <see cref="Words"/> would compare it: character by
+	/// character, as the invariant culture raises them — which is not quite ignoring case, since it raises the long s to S.
+	/// </summary>
+	internal static bool Raises(ReadOnlySpan<char> token, string word)
+	{
+		if (token.Length != word.Length)
+			return false;
+
+		for (var at = 0; at < token.Length; at++)
+			if (char.ToUpperInvariant(token[at]) != word[at])
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// The tokens of a text as words, at most <paramref name="most"/> of them from its start: a word upper-cased, and a
+	/// name in brackets or quotes, a string or a number as written — so that `"as"` is never the word AS. Each is made
+	/// once, from the text, with no list of tokens in between.
+	/// </summary>
+	public static List<string> Words(string text, int most = int.MaxValue)
+	{
+		var words = new List<string>();
+
+		for (var at = 0; words.Count < most && Next(text, ref at, out var kind, out var start);)
+			words.Add(kind == Kind.Word ? Raised(text, start, at - start) : text.Substring(start, at - start));
+
+		return words;
+	}
+
+	/// <summary>
+	/// A word of a text upper-cased, as <see cref="string.ToUpperInvariant"/> raises it: cut once where it is ASCII, and
+	/// the text itself where it is all of it and already upper-case.
+	/// </summary>
+	static string Raised(string text, int start, int length)
+	{
+		var lower = false;
+
+		for (var at = start; at < start + length; at++)
+		{
+			var c = text[at];
+
+			if (c >= '\u0080')
+				return text.Substring(start, length).ToUpperInvariant();
+
+			if (c is >= 'a' and <= 'z')
+				lower = true;
+		}
+
+		if (!lower)
+			return length == text.Length ? text : text.Substring(start, length);
+
+		Span<char> raised = length <= 128 ? stackalloc char[length] : new char[length];
+
+		for (var at = 0; at < length; at++)
+		{
+			var c = text[start + at];
+
+			raised[at] = c is >= 'a' and <= 'z' ? (char)(c - ('a' - 'A')) : c;
+		}
+
+		return raised.ToString();
+	}
+
+	/// <summary>
 	/// The next token from a position on: its kind and where it starts, with the position moved past its end; false where
 	/// only blanks and comments are left. Nothing is allocated: a caller that wants the token's text cuts it.
 	/// </summary>
 	internal static bool Next(string text, ref int at, out Kind kind, out int start)
+	{
+		return Next(text.AsSpan(), ref at, out kind, out start);
+	}
+
+	/// <summary>The same, over a stretch of text that need not be a string of its own.</summary>
+	internal static bool Next(ReadOnlySpan<char> text, ref int at, out Kind kind, out int start)
 	{
 		while (at < text.Length)
 		{
@@ -173,9 +278,9 @@ static class SqlTokens
 				return true;
 			}
 
-			if (char.IsDigit(c) || c == '.' && char.IsDigit(At(text, at + 1)))
+			if (Digit(c) || c == '.' && Digit(At(text, at + 1)))
 			{
-				while (at < text.Length && (char.IsLetterOrDigit(text[at]) || text[at] == '.'))
+				while (at < text.Length && (LetterOrDigit(text[at]) || text[at] == '.'))
 					at++;
 
 				kind = Kind.Number;
@@ -183,9 +288,9 @@ static class SqlTokens
 				return true;
 			}
 
-			if (char.IsLetter(c) || c is '_' or '@' or '#' or '$')
+			if (Letter(c) || c is '_' or '@' or '#' or '$')
 			{
-				while (at < text.Length && (char.IsLetterOrDigit(text[at]) || text[at] is '_' or '@' or '#' or '$'))
+				while (at < text.Length && (LetterOrDigit(text[at]) || text[at] is '_' or '@' or '#' or '$'))
 					at++;
 
 				kind = Kind.Word;
@@ -205,13 +310,31 @@ static class SqlTokens
 		return false;
 	}
 
-	static char At(string text, int at)
+	static char At(ReadOnlySpan<char> text, int at)
 	{
 		return at < text.Length ? text[at] : '\0';
 	}
 
+	// What char.IsDigit, IsLetter and IsLetterOrDigit say, answered for ASCII without asking them: nearly every character
+	// a builder reads again is ASCII.
+
+	static bool Digit(char c)
+	{
+		return c < '\u0080' ? c is >= '0' and <= '9' : char.IsDigit(c);
+	}
+
+	static bool Letter(char c)
+	{
+		return c < '\u0080' ? c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' : char.IsLetter(c);
+	}
+
+	static bool LetterOrDigit(char c)
+	{
+		return c < '\u0080' ? c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' : char.IsLetterOrDigit(c);
+	}
+
 	/// <summary>The end of a block comment opened at <paramref name="at"/>, the comments inside it counted.</summary>
-	static int Commented(string text, int at)
+	static int Commented(ReadOnlySpan<char> text, int at)
 	{
 		var depth = 0;
 
@@ -237,7 +360,7 @@ static class SqlTokens
 	}
 
 	/// <summary>The end of a token opened at <paramref name="at"/> and closed by <paramref name="close"/>, a doubled close inside it.</summary>
-	static int Closed(string text, int at, char close)
+	static int Closed(ReadOnlySpan<char> text, int at, char close)
 	{
 		for (at++; at < text.Length; at++)
 		{

@@ -18,7 +18,7 @@ static partial class Build
 		/// The SET expressions written out, as <see cref="Tables.Owns"/> writes its table references and for the same
 		/// reason; the test of this inventory holds the list to the records.
 		/// </remarks>
-		public static readonly string[] Owns =
+		public static readonly HashSet<string> Owns =
 		[
 			"Statement.Compound", "Statement.If", "Statement.While", "Statement.TryCatch", "Statement.Declare",
 			"Statement.Return", "Statement.Print", "Statement.Throw", "Statement.GoTo", "Statement.Break",
@@ -315,7 +315,7 @@ static partial class Build
 				_                  => throw BuildGap.Open(old, $"inventory SetExpression.Transactions.IsolationLevel (`{level}`)"),
 			};
 
-			var tran = Recover(Spelled(old), static text => Words(text) is [_, "TRAN", ..], false);
+			var tran = Recover(Spelled(old), static text => Leading(text, 2) is [_, "TRAN", ..], false);
 
 			return new Ast.Statement.SetTransaction { Modes = [new Ast.TransactionMode.Isolation(isolation)], Tran = tran };
 		}
@@ -515,7 +515,7 @@ static partial class Build
 		/// </summary>
 		static Ast.Statement RaiseError(Statement.RaiseError old)
 		{
-			if (Spelled(old) is not { } text || Words(text) is not ["RAISERROR", "(", ..])
+			if (Spelled(old) is not { } text || Leading(text, 2) is not ["RAISERROR", "(", ..])
 				throw BuildGap.Missing(old, "Statement.RaiseError (the arguments without brackets)");
 
 			var options = new List<Ast.RaiseErrorOption>();
@@ -584,7 +584,7 @@ static partial class Build
 			{
 				NoRevert = old.NoRevert,
 				Cookie   = cookie,
-				Exec     = Recover(Spelled(old), static text => Words(text) is ["EXEC", ..], false),
+				Exec     = Recover(Spelled(old), static text => Leading(text, 1) is ["EXEC", ..], false),
 			};
 		}
 
