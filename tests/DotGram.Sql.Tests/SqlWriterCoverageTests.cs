@@ -135,6 +135,17 @@ public sealed class SqlWriterCoverageTests
 	}
 
 	static readonly Identifier I = new("i");
+	static readonly LiteralValue One = new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger);
+
+	/// <summary><c>CREATE TABLE t (a INT GENERATED ALWAYS AS IDENTITY (option))</c>, for a sequence option's spelling.</summary>
+	static Statement.CreateTable Identified(SequenceOption option)
+	{
+		return new Statement.CreateTable
+		{
+			Name     = T,
+			Contents = new TableContents.Elements([new TableElement.Column(new ColumnDefinition(new Identifier("a"), new DataType.Numeric(NumericTypeKind.Int), new ColumnGeneration.Identity(IdentityGeneration.Always, [option]), [], null))]),
+		};
+	}
 	static readonly Identifier C = new("c");
 
 	/// <summary><c>CREATE INDEX i ON t (a)</c>, the index given its key if it has none.</summary>
@@ -949,6 +960,26 @@ public sealed class SqlWriterCoverageTests
 			["ParameterDefinition.InOutTwoWords"] = (
 				new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Function, new QualifiedName(new Identifier("f")), [new ParameterDefinition(ParameterMode.InOut, null, new DataType.Numeric(NumericTypeKind.Int), false, null)])] },
 				new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Function, new QualifiedName(new Identifier("f")), [new ParameterDefinition(ParameterMode.InOut, null, new DataType.Numeric(NumericTypeKind.Int), false, null) { InOutTwoWords = true }])] }),
+			// PostgreSQL's CREATE TABLE: TEMP for TEMPORARY, WITHOUT OIDS, WITH OPTIONS left out, and WITH and BY left out of
+			// a sequence's options.
+			["CreateTable.TempWord"] = (
+				new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([]), Scope = TableScope.Temporary },
+				new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([]), Scope = TableScope.Temporary, TempWord = true }),
+			["CreateTable.WithoutOids"] = (
+				new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([]) },
+				new Statement.CreateTable { Name = T, Contents = new TableContents.Elements([]), WithoutOids = true }),
+			["ColumnOptions.WithOptionsOmitted"] = (
+				new Statement.CreateTable { Name = T, Contents = new TableContents.Typed(T, null, [new TableElement.ColumnOptions(new Identifier("a"), new ColumnOptionList(null, null, []))]) },
+				new Statement.CreateTable { Name = T, Contents = new TableContents.Typed(T, null, [new TableElement.ColumnOptions(new Identifier("a"), new ColumnOptionList(null, null, [])) { WithOptionsOmitted = true }]) }),
+			["Start.WithOmitted"] = (
+				Identified(new SequenceOption.Start(One)),
+				Identified(new SequenceOption.Start(One) { WithOmitted = true })),
+			["Increment.ByOmitted"] = (
+				Identified(new SequenceOption.Increment(One)),
+				Identified(new SequenceOption.Increment(One) { ByOmitted = true })),
+			["Restart.WithOmitted"] = (
+				Identified(new SequenceOption.Restart(One)),
+				Identified(new SequenceOption.Restart(One) { WithOmitted = true })),
 			// The remainder of the DDL statements.
 			["IndexDefinition.OptionsUnbracketed"] = (
 				new Statement.CreateIndex(T, new IndexDefinition(I) { Columns = [new IndexElement(A)], Options = [new Option(new Identifier("PAD_INDEX"), null, [])] }),
@@ -1013,7 +1044,8 @@ public sealed class SqlWriterCoverageTests
 			"SetParameter.EqualsSign", "Explain.Bare", "Do.LanguageFirst", "DeallocateAll.PrepareKeyword", "LockTable.TableOmitted", "Discard.Temporary",
 			"StartTransaction.Begin", "Commit.End", "Rollback.Abort", "Rollback.SavepointKeywordOmitted", "ReleaseSavepoint.SavepointKeywordOmitted", "SetTransaction.Session", "DeallocatePrepare.PrepareOmitted",
 			"FetchCursor.InKeyword", "MoveCursor.InKeyword", "FetchOrientation.WordOmitted", "Vacuum.Bare", "Analyze.Bare", "Analyze.British", "Copy.WithKeyword", "Copy.Bare",
-			"Copy.BinaryBeforeTable", "Copy.DelimitersClause", "ParameterDefinition.InOutTwoWords",
+			"Copy.BinaryBeforeTable", "Copy.DelimitersClause", "ParameterDefinition.InOutTwoWords", "CreateTable.TempWord", "CreateTable.WithoutOids",
+			"ColumnOptions.WithOptionsOmitted", "Start.WithOmitted", "Increment.ByOmitted", "Restart.WithOmitted",
 		};
 
 		foreach (var (name, pair) in pairs)

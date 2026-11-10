@@ -94,7 +94,7 @@ public static partial class SqlWriter
 		/// reads as the standard's node (`+`, `=`, `||`), which would read back as that node. A quantified form reads the
 		/// arithmetic symbols by name too, `a + ANY (…)`, and refuses the comparisons alone, which are its own records.
 		/// </summary>
-		void PutOperatorName(QualifiedName name, bool keyword, bool quantified)
+		void PutOperatorName(QualifiedName name, bool keyword, bool quantified, bool any = false)
 		{
 			if (name.Count == 0)
 				throw Misplaced(name, "Count", "of no parts: an operator has a symbol");
@@ -112,7 +112,9 @@ public static partial class SqlWriter
 				throw Misplaced(name, "Count", "above one on an operator written bare: a qualified operator is written OPERATOR(schema.op)");
 
 			var symbol = name[0].Text;
-			var own    = quantified
+			// An exclusion's operator is any_operator: every symbol, the comparisons and the arithmetic among them.
+			var own    = any ? false
+				: quantified
 				? symbol is "=" or "<>" or "!=" or "<" or ">" or "<=" or ">=" or "=>"
 				: symbol == "||" || !PostgreSql.Nodes.IsOperator(symbol);
 

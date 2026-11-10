@@ -45,6 +45,15 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.CreateTable table:
+					// PostgreSQL: CREATE TABLE. Its own clauses and spellings, in a writer of its own.
+					if (postgreSql)
+					{
+						PutPostgreSqlTable(table);
+						break;
+					}
+
+					CheckNotPostgreSqlTable(table);
+
 					// T-SQL: CREATE TABLE (Transact-SQL). A kind, placements, options, or a query without WITH DATA.
 					if (PutTransactSqlTable(table))
 						break;
@@ -726,7 +735,7 @@ public static partial class SqlWriter
 		void PutCommit(TableCommitAction? commit)
 		{
 			if (commit is { } one)
-				Word(one switch { TableCommitAction.Preserve => "ON COMMIT PRESERVE ROWS", TableCommitAction.Delete => "ON COMMIT DELETE ROWS", _ => throw NoText(one) });
+				Word(one switch { TableCommitAction.Preserve => "ON COMMIT PRESERVE ROWS", TableCommitAction.Delete => "ON COMMIT DELETE ROWS", TableCommitAction.Drop => throw Misplaced(one, "OnCommit", "DROP, which only PostgreSQL reads"), _ => throw NoText(one) });
 		}
 
 		void PutDefault(Expression? value)
@@ -851,7 +860,9 @@ public static partial class SqlWriter
 							LikeOption.IncludingDefaults  => "INCLUDING DEFAULTS",
 							LikeOption.ExcludingDefaults  => "EXCLUDING DEFAULTS",
 							LikeOption.IncludingGenerated => "INCLUDING GENERATED",
-							LikeOption.ExcludingGenerated                             => "EXCLUDING GENERATED",
+							LikeOption.ExcludingGenerated => "EXCLUDING GENERATED",
+							_ when option is >= LikeOption.IncludingComments and <= LikeOption.ExcludingAll
+								=> throw Misplaced(like, "Options", "with an option only PostgreSQL reads on LIKE"),
 							_                             => throw NoText(option),
 						});
 
@@ -871,6 +882,9 @@ public static partial class SqlWriter
 
 				default:
 					var options = (TableElement.ColumnOptions)element;
+
+					if (options.WithOptionsOmitted)
+						throw Misplaced(options, "WithOptionsOmitted", "which only PostgreSQL reads, the words WITH OPTIONS left out");
 
 					PutIdentifier(options.Name);
 					Word("WITH OPTIONS");
@@ -922,6 +936,9 @@ public static partial class SqlWriter
 
 		void PutColumn(ColumnDefinition column)
 		{
+			if (!postgreSql)
+				CheckNotPostgreSqlColumn(column);
+
 			// T-SQL: column_definition (Transact-SQL). Options in the order written.
 			if (PutTransactSqlColumn(column))
 				return;
@@ -980,6 +997,9 @@ public static partial class SqlWriter
 		// A constraint with no columns is a column's; a table's names them.
 		void PutConstraint(Constraint constraint)
 		{
+			if (!postgreSql)
+				CheckNotPostgreSqlConstraint(constraint);
+
 			if (constraint.Name is { } name)
 			{
 				Word("CONSTRAINT");
@@ -1384,6 +1404,9 @@ public static partial class SqlWriter
 					PutType(type.Type);
 					break;
 
+				case SequenceOption.Start { WithOmitted: true } or SequenceOption.Increment { ByOmitted: true } or SequenceOption.Restart { WithOmitted: true }:
+					throw Misplaced(option, "WithOmitted or ByOmitted", "which only PostgreSQL reads, the word left out");
+
 				case SequenceOption.Start start:
 					Word("START WITH");
 					PutSignedNumber(start, start.Value);
@@ -1452,6 +1475,9 @@ public static partial class SqlWriter
 
 				case SequenceOption.Cache or SequenceOption.NoCache:
 					throw Misplaced(option, "Cache", "on an identity column, which has no cache");
+
+				case SequenceOption.OwnedBy or SequenceOption.Logged or SequenceOption.SequenceName:
+					throw Misplaced(option, "Kind", "that only PostgreSQL reads: " + option.GetType().Name + " has no text in another reading");
 
 				default:
 					throw Unwritten(option);

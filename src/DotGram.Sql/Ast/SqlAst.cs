@@ -1599,7 +1599,7 @@ public abstract partial record TableElement : ISqlNode
 	public sealed record TableConstraint(Constraint Value) : TableElement;
 	public sealed record Like(QualifiedName Table, SqlList<LikeOption> Options) : TableElement;
 	public sealed record SelfReference(Identifier Name, ReferenceGeneration? Generation) : TableElement;
-	public sealed record ColumnOptions(Identifier Name, ColumnOptionList Options) : TableElement;
+	public sealed partial record ColumnOptions(Identifier Name, ColumnOptionList Options) : TableElement;
 }
 public sealed partial record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, SqlList<Constraint> Constraints, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -1607,7 +1607,7 @@ public sealed partial record ColumnDefinition(Identifier Name, DataType? Type, C
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record ColumnGeneration : ISqlNode
+public abstract partial record ColumnGeneration : ISqlNode
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
@@ -1622,7 +1622,7 @@ public abstract record ColumnGeneration : ISqlNode
 
 	public sealed record Default(Expression Value) : ColumnGeneration;
 	public sealed record Identity(IdentityGeneration Generation, SqlList<SequenceOption> Options) : ColumnGeneration;
-	public sealed record Generated(Expression Expression) : ColumnGeneration;
+	public sealed partial record Generated(Expression Expression) : ColumnGeneration;
 	public sealed record RowStart : ColumnGeneration;
 	public sealed record RowEnd : ColumnGeneration;
 }
@@ -1633,7 +1633,13 @@ public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default,
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum LikeOption { IncludingIdentity, ExcludingIdentity, IncludingDefaults, ExcludingDefaults, IncludingGenerated, ExcludingGenerated }
+// PostgreSQL: CREATE TABLE. The members after ExcludingGenerated are PostgreSQL's, in gram.y's TableLikeOption order.
+public enum LikeOption
+{
+	IncludingIdentity, ExcludingIdentity, IncludingDefaults, ExcludingDefaults, IncludingGenerated, ExcludingGenerated,
+	IncludingComments, ExcludingComments, IncludingCompression, ExcludingCompression, IncludingConstraints, ExcludingConstraints,
+	IncludingIndexes, ExcludingIndexes, IncludingStatistics, ExcludingStatistics, IncludingStorage, ExcludingStorage, IncludingAll, ExcludingAll,
+}
 public enum ReferenceGeneration { SystemGenerated, UserGenerated, Derived }
 
 public abstract partial record Constraint : ISqlNode
@@ -1651,7 +1657,7 @@ public abstract partial record Constraint : ISqlNode
 
 	public QualifiedName? Name { get; init; }
 	public ConstraintCharacteristics? Characteristics { get; init; }
-	public sealed record NotNull : Constraint;
+	public sealed partial record NotNull : Constraint;
 	public sealed partial record Unique(UniqueKind Kind, NullDistinctness? Nulls, SqlList<Identifier> Columns, Identifier? WithoutOverlapsPeriod = null) : Constraint;
 	public sealed partial record ForeignKey(SqlList<Identifier> Columns, Identifier? ReferencingPeriod, ReferencesSpecification References) : Constraint;
 	public sealed partial record Check(Expression Condition) : Constraint;
@@ -1737,8 +1743,10 @@ public sealed record PeriodDefinition(PeriodKind Kind, Identifier? ApplicationNa
 }
 public enum PeriodKind { SystemTime, ApplicationTime }
 public enum DropBehavior { Cascade, Restrict }
-public enum TableScope { GlobalTemporary, LocalTemporary }
-public enum TableCommitAction { Preserve, Delete }
+// PostgreSQL: CREATE TABLE. `Temporary` is TEMPORARY or TEMP written alone, neither GLOBAL nor LOCAL.
+public enum TableScope { GlobalTemporary, LocalTemporary, Temporary }
+// PostgreSQL: CREATE TABLE. `Drop` is ON COMMIT DROP.
+public enum TableCommitAction { Preserve, Delete, Drop }
 
 /// <summary>BNF: grouping element families.</summary>
 public abstract partial record GroupingElement : ISqlNode
@@ -2647,12 +2655,12 @@ public abstract partial record SequenceOption : ISqlNode
 	}
 
 	public sealed record DataTypeOption(DataType Type) : SequenceOption;
-	public sealed record Start(Expression Value) : SequenceOption;
-	public sealed record Increment(Expression Value) : SequenceOption;
+	public sealed partial record Start(Expression Value) : SequenceOption;
+	public sealed partial record Increment(Expression Value) : SequenceOption;
 	public sealed record Max(Expression? Value, bool No = false) : SequenceOption;
 	public sealed record Min(Expression? Value, bool No = false) : SequenceOption;
 	public sealed record Cycle(bool Value) : SequenceOption;
-	public sealed record Restart(Expression? Value) : SequenceOption;
+	public sealed partial record Restart(Expression? Value) : SequenceOption;
 }
 
 // --- Privileges/roles -------------------------------------------------------

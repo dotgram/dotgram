@@ -311,7 +311,7 @@ static partial class Nodes
 	/// <summary>An operator's symbol with the schemas written before it, <c>pg_catalog.+</c>.</summary>
 	public static QualifiedName OperatorName(Identifier[]? schemas, string symbol)
 	{
-		if (schemas is null)
+		if (schemas is not { Length: > 0 })
 			return OperatorName(symbol);
 
 		var rest = new Identifier[schemas.Length];
