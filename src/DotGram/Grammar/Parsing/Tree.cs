@@ -128,6 +128,9 @@ abstract record Decl : ILocated
 		/// </summary>
 		public bool Positional { get; init; }
 
+		/// <summary>Where the word <c>positional</c> stands, for what refuses it later; -1 where it is not written.</summary>
+		public int PositionalAt { get; init; } = -1;
+
 		/// <summary>Where each word before the verb stands: the access, <c>positional</c>.</summary>
 		public IReadOnlyList<int> ModifierPositions { get; init; } = [];
 

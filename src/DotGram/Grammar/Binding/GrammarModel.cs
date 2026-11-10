@@ -383,6 +383,9 @@ sealed record Publication(
 	/// </summary>
 	public bool Positional { get; init; }
 
+	/// <summary>Where the directive wrote <c>positional</c>, or -1: what a refusal of it is placed at.</summary>
+	public int PositionalAt { get; init; } = -1;
+
 	/// <summary>
 	/// Whether the grammar names <c>eos</c>, so that this publication is read over segments: its
 	/// forms over a string, a reader or a window are the parser's own, private and under a name of

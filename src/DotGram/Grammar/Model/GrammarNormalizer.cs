@@ -357,7 +357,9 @@ sealed partial class GrammarNormalizer
 						$"'{publication.MethodName}' cannot be read from a position: the grammar names " +
 						"'eos', so it reads a sequence of segments joined, and only the parser joins " +
 						"them. Drop 'positional'.",
-						publication.At);
+						publication.PositionalAt >= 0
+							? new Location(publication.PositionalAt, "positional".Length)
+							: publication.At);
 
 			normalizer._publications =
 			[

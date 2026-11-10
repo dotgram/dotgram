@@ -120,7 +120,7 @@ static class GramLexer
 			from = to;
 		}
 
-		return new TokenList(tokens, diagnostics);
+		return new TokenList(tokens, diagnostics, text);
 	}
 
 	static TokenList Lex(string text, ICSharpScanner? scanner)
@@ -313,7 +313,7 @@ static class GramLexer
 
 		tokens.Add(new Token(TokenKind.EndOfFile, text.Length, 0, null));
 
-		return new TokenList(tokens, diagnostics);
+		return new TokenList(tokens, diagnostics, text);
 	}
 
 	/// <summary>Longest match first, so <c>..</c> never lexes as two dots.</summary>

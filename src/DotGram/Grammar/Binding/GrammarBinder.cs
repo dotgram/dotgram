@@ -569,6 +569,7 @@ sealed class GrammarBinder
 					{
 						Access = publish.Access,
 						Positional = publish.Positional,
+						PositionalAt = publish.PositionalAt,
 						BufferedInput = publish.BufferedInput,
 						BufferedBytes = publish.BufferedBytes,
 						Yield = publish.Yield,

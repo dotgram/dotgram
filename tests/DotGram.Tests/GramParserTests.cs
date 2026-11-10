@@ -592,6 +592,36 @@ public sealed class GramParserTests
 		Assert.Single(result.File.Decls.OfType<Decl.Publish>());
 	}
 
+	/// <summary>
+	/// A word written after a directive, on its line, as `stream` is written, would be read as the
+	/// next directive's: it is refused where it stands, and the next line keeps its own meaning.
+	/// </summary>
+	[Theory]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P positional\nparse B",          "positional")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P stream positional\nparse B",   "positional")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A internal\nparse B",                 "internal")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A positional parse B",                 "positional")]
+	public void A_word_after_a_directive_on_its_line_is_not_the_next_ones(string source, string word)
+	{
+		var result     = GramParser.Parse(GramLexer.Tokenize(source, null));
+		var diagnostic = Assert.Single(result.Diagnostics, static one => one.Id == GramParser.ModifierOrder);
+
+		Assert.Equal(word, source.Substring(diagnostic.Position, diagnostic.Length));
+		Assert.Contains("goes before the verb", diagnostic.Message, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P\npositional parse B")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P // a comment\npositional parse B")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P\r\ninternal positional parse B")]
+	public void A_word_on_the_next_line_is_the_next_directives(string source)
+	{
+		var result = GramParser.Parse(GramLexer.Tokenize(source, null));
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal([false, true], result.File.Decls.OfType<Decl.Publish>().Select(static one => one.Positional));
+	}
+
 	[Theory]
 	[InlineData("A = 'a'\npositional find A",                           "'find'")]
 	[InlineData("A = 'a'\ninternal positional find A as FindA",         "'find'")]
