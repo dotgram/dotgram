@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 
 using DotGram.ExpressionLanguage;
 
@@ -124,11 +125,35 @@ public sealed class ExpressionDottedTypeRefusalAllocationTests
 	}
 
 	/// <summary>
+	/// A long member chain on a parameter names no type, and so walks no closure: a scope looks for its
+	/// assemblies only when a text names a type (ResolutionScope.Around), and a name whose head the text
+	/// declared is not one, however long it is.
+	/// </summary>
+	[Fact]
+	public void A_long_member_chain_on_a_parameter_walks_no_closure()
+	{
+		var scope   = Fresh();
+		var walked  = (Lazy<Assembly[]>)typeof(ResolutionScope).GetField("_assemblies", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(scope)!;
+		var chained = ExpressionParser.Compile<Func<Deep.N1.N2.N3.Chain, Deep.N1.N2.N3.Chain>>("c => c" + string.Concat(Enumerable.Repeat(".A", 40)), scope);
+		var chain   = new Deep.N1.N2.N3.Chain();
+
+		Assert.Same(chain, chained(chain));
+		Assert.False(walked.IsValueCreated, "A member chain on a parameter walked the scope's closure.");
+	}
+
+	/// <summary>The same chain, accepted, allocates about as much a member at every length: it is read once, not given back a part at a time.</summary>
+	[Fact]
+	public void A_long_member_chain_on_a_parameter_allocates_about_as_many_bytes_a_member_at_every_size()
+	{
+		AssertLinear("a member chain", static (parts, _) => "(DotGram.Tests.Deep.N1.N2.N3.Chain c) => c" + string.Concat(Enumerable.Repeat(".A", parts)), accepted: true);
+	}
+
+	/// <summary>
 	/// Asserts bytes a part stay within a quarter of one another at every doubling in <see cref="Sizes"/>, on
 	/// the first reading of names no cache has seen, in a scope of its own: where the cost is in caches filled
 	/// by name, a reading of names seen before measures what is left once they are full.
 	/// </summary>
-	static void AssertLinear(string shape, Func<int, int, string> textFor)
+	static void AssertLinear(string shape, Func<int, int, string> textFor, bool accepted = false)
 	{
 		// What every reading pays once, in every scope and process, paid before anything is measured.
 		ExpressionParser.TryParse(textFor(Sizes[^1], -1), Fresh());
@@ -143,8 +168,11 @@ public sealed class ExpressionDottedTypeRefusalAllocationTests
 			// text this long, paid by another text of the same shape and other names in it first.
 			ExpressionParser.TryParse(textFor(Sizes[i], -2 - i), scope);
 
+			var text  = textFor(Sizes[i], Sizes[i]);
 			var clock = Stopwatch.StartNew();
-			var bytes = Allocated(textFor(Sizes[i], Sizes[i]), scope);
+			var bytes = Allocated(text, scope);
+
+			Assert.Equal(accepted, ExpressionParser.TryParse(text, scope).IsSuccess);
 
 			perPart[i] = bytes / (double)Sizes[i];
 			TestContext.Current.TestOutputHelper?.WriteLine(
