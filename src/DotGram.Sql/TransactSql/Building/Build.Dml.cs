@@ -13,7 +13,7 @@ static partial class Build
 	/// </summary>
 	internal static class Dml
 	{
-		public static readonly string[] Owns =
+		public static readonly HashSet<string> Owns =
 		[
 			"Statement.Insert", "Statement.Update", "Statement.Delete", "Statement.Merge", "Statement.Truncate",
 			"Statement.ReadText", "Statement.WriteText", "Statement.UpdateText",
@@ -120,7 +120,7 @@ static partial class Build
 		/// </summary>
 		static Ast.TableSource Changed(TableReference.Changed old)
 		{
-			var said = Recover(After(old.Statement, old), static text => Words(text) is [")", "AS", ..], false);
+			var said = Recover(After(old.Statement, old), static text => Leading(text, 2) is [")", "AS", ..], false);
 
 			return new Ast.TableSource.DataChange(null, StatementOf(old.Statement),
 				new Ast.Alias(Values.Part(old, old.Name), old.Columns is { } columns ? Values.Parts(old, columns) : null, said));
@@ -147,7 +147,7 @@ static partial class Build
 			if (old is not Clause.Option { Name: var name, Value: var value, Options.Length: 0, Partitions: null, Bare: false })
 				throw BuildGap.Open(old, "inventory Clause.Option (a bulk option)");
 
-			if (Words(name) is ["ORDER", "(", ..] && name.TrimEnd().EndsWith(')'))
+			if (Leading(name, 2) is ["ORDER", "(", ..] && name.TrimEnd().EndsWith(')'))
 			{
 				var inside = name[(SqlTokens.Find(name, "(") + 1)..SqlTokens.FindLast(name, ")")];
 
