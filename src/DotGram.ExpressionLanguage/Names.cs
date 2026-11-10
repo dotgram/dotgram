@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace DotGram.ExpressionLanguage;
 
@@ -307,7 +308,14 @@ public static partial class ExpressionParser
 			return _namespaces.GetOrAdd(scope, static one => Gather(one)).Contains(@namespace);
 		}
 
-		static readonly ConcurrentDictionary<ResolutionScope, int> _depths = new();
+		/// <summary>What <see cref="Depth"/> answered for a scope, for as long as the scope lives.</summary>
+		static readonly ConditionalWeakTable<ResolutionScope, StrongBox<int>> _depths = new();
+
+		/// <summary>The same for an assembly's public and forwarded types, which no scope changes.</summary>
+		static readonly ConditionalWeakTable<Assembly, StrongBox<int>> _published = new();
+
+		/// <summary>The same for all of an assembly's types, for a scope that sees the caller's internals.</summary>
+		static readonly ConditionalWeakTable<Assembly, StrongBox<int>> _declared = new();
 
 		/// <summary>The most parts a dotted name can have and still name a type in this scope.</summary>
 		/// <remarks>
@@ -320,61 +328,92 @@ public static partial class ExpressionParser
 		/// <para>
 		/// What makes that worth knowing is a name longer than it. <c>NamedType</c> gives a dotted name
 		/// back a part at a time until what is left names a type, and every shorter reading reads the
-		/// parts and builds the name again: a name of n parts that names nothing cost the square of n,
-		/// and asked the type tables about every prefix of every prefix. Bounded here, a name that
-		/// cannot be a type stops being read as one once it is longer than any.
+		/// parts and builds the name again; and a name looked up is walked prefix by prefix, every
+		/// prefix asked of every assembly. Bounded here, a name that cannot be a type stops being read as
+		/// one once it is longer than any (<c>NamedType</c>), and is not looked up at all (<c>Meanings</c>).
 		/// </para>
 		/// <para>
 		/// Counted over the types the lookups can answer with: each assembly's public ones and the ones
 		/// it forwards, and the calling assembly's internal ones where the scope sees them. Where any of
-		/// that cannot be listed there is no bound.
+		/// that cannot be listed there is no bound. Each assembly is counted once, whatever scopes it is
+		/// in, and none of it keeps a scope or an assembly alive: a host that makes a scope a request
+		/// pays for the depth of an assembly the first time it is in one.
 		/// </para>
 		/// </remarks>
 		public static int Depth(ResolutionScope scope)
 		{
-			return _depths.GetOrAdd(scope, static one => Deepest(one));
+			return _depths.GetValue(scope, static one => new StrongBox<int>(Deepest(one))).Value;
 		}
 
 		static int Deepest(ResolutionScope scope)
 		{
 			var deepest = 0;
 
+			foreach (var assembly in scope.Assemblies)
+			{
+				// Never asked by `Find`, which passes them over.
+				if (!assembly.IsDynamic)
+					deepest = Math.Max(deepest, _published.GetValue(assembly, static one => new StrongBox<int>(DeepestPublished(one))).Value);
+			}
+
+			// `Inside` asks the calling assembly whatever it is, and a dynamic one cannot list its types.
+			if (scope.SeesInternals)
+				deepest = scope.Caller.IsDynamic
+					? int.MaxValue
+					: Math.Max(deepest, _declared.GetValue(scope.Caller, static one => new StrongBox<int>(DeepestDeclared(one))).Value);
+
+			return deepest;
+		}
+
+		/// <summary>The deepest of an assembly's public types and of the ones it forwards; no bound where they cannot be listed.</summary>
+		static int DeepestPublished(Assembly assembly)
+		{
+			var deepest = 0;
+
 			try
 			{
-				foreach (var assembly in scope.Assemblies)
-				{
-					// Never asked by `Find`, which passes them over.
-					if (assembly.IsDynamic)
-						continue;
+				foreach (var type in assembly.GetExportedTypes())
+					deepest = Math.Max(deepest, Parts(type));
 
-					foreach (var type in assembly.GetExportedTypes())
-						deepest = Math.Max(deepest, Parts(type));
-
-					foreach (var type in Forwarded(assembly))
-						deepest = Math.Max(deepest, Nesting(type));
-				}
-
-				// `Inside` asks the calling assembly whatever it is, and a dynamic one cannot list its types.
-				if (scope.SeesInternals)
-				{
-					if (scope.Caller.IsDynamic)
-						return int.MaxValue;
-
-					foreach (var type in scope.Caller.GetTypes())
-						deepest = Math.Max(deepest, Parts(type));
-				}
+				foreach (var type in Forwarded(assembly))
+					deepest = Math.Max(deepest, Nesting(type));
 			}
-			catch (Exception exception) when (
-				exception is NotSupportedException or TypeLoadException or ReflectionTypeLoadException or
-					System.IO.FileNotFoundException or System.IO.FileLoadException or BadImageFormatException or
-					TargetInvocationException)
+			catch (Exception exception) when (Unlisted(exception))
 			{
-				// TargetInvocationException is what the reflected GetForwardedTypes of the netstandard2.0
-				// build wraps the others in.
 				return int.MaxValue;
 			}
 
 			return deepest;
+		}
+
+		/// <summary>The deepest of all of an assembly's types; no bound where they cannot be listed.</summary>
+		static int DeepestDeclared(Assembly assembly)
+		{
+			var deepest = 0;
+
+			try
+			{
+				foreach (var type in assembly.GetTypes())
+					deepest = Math.Max(deepest, Parts(type));
+			}
+			catch (Exception exception) when (Unlisted(exception))
+			{
+				return int.MaxValue;
+			}
+
+			return deepest;
+		}
+
+		/// <summary>Whether listing an assembly's types failed in one of the ways an assembly that cannot all be loaded fails.</summary>
+		/// <remarks>
+		/// TargetInvocationException is what the reflected GetForwardedTypes of the netstandard2.0 build wraps
+		/// the others in.
+		/// </remarks>
+		static bool Unlisted(Exception exception)
+		{
+			return exception is NotSupportedException or TypeLoadException or ReflectionTypeLoadException or
+				System.IO.FileNotFoundException or System.IO.FileLoadException or BadImageFormatException or
+				TargetInvocationException;
 		}
 
 		/// <summary>The types an assembly forwards to another, which <c>Find</c> answers with as well.</summary>
