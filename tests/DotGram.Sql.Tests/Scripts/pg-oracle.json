@@ -1055,8 +1055,7 @@
 		{
 			"name": "select_into",
 			"text": "SELECT a INTO x FROM t",
-			"accepted": true,
-			"known": "SELECT INTO is CREATE TABLE AS, which arrives with the DDL; not read here"
+			"accepted": true
 		},
 		{
 			"name": "tablesample_other_method",
@@ -2278,6 +2277,63 @@
 			"text": "CREATE TABLE p PARTITION OF t (a GENERATED ALWAYS AS (1) STORED) FOR VALUES IN (1)",
 			"known": "a typed or a partition's column holds a default and constraints alone (ColumnOptionList); gram.y's columnOptions reads every qualifier",
 			"accepted": true
+		},
+		{
+			"name": "select_into_temp_table",
+			"text": "SELECT DISTINCT a INTO TEMP TABLE s.x FROM t WHERE a > 0",
+			"accepted": true
+		},
+		{
+			"name": "select_into_no_targets",
+			"text": "SELECT INTO x",
+			"accepted": true
+		},
+		{
+			"name": "select_into_local_temporary",
+			"text": "SELECT a INTO LOCAL TEMPORARY x FROM t",
+			"accepted": true
+		},
+		{
+			"name": "select_into_unlogged",
+			"text": "SELECT a INTO UNLOGGED TABLE x FROM t",
+			"accepted": true
+		},
+		{
+			"name": "select_into_table",
+			"text": "SELECT a INTO TABLE x FROM t",
+			"accepted": true
+		},
+		{
+			"name": "select_into_named_temp",
+			"text": "SELECT a INTO temp FROM t",
+			"accepted": true
+		},
+		{
+			"name": "select_into_named_unlogged",
+			"text": "SELECT 1 INTO unlogged",
+			"accepted": true
+		},
+		{
+			"name": "select_into_with_clauses",
+			"text": "WITH c AS (SELECT 1) SELECT * INTO x FROM c ORDER BY 1 LIMIT 1",
+			"accepted": true
+		},
+		{
+			"name": "select_into_union",
+			"text": "SELECT 1 INTO x UNION SELECT 2",
+			"accepted": true
+		},
+		{
+			"name": "select_into_named_table",
+			"text": "SELECT 1 INTO table FROM t",
+			"accepted": false,
+			"error": "syntax error at or near \"FROM\", at index 20"
+		},
+		{
+			"name": "select_into_two_tables",
+			"text": "SELECT 1 INTO x, y",
+			"accepted": false,
+			"error": "syntax error at or near \",\", at index 15"
 		}
 	]
 }

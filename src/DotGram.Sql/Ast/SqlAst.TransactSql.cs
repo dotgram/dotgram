@@ -65,7 +65,7 @@ public enum TopWith { Ties, Approximate }
 /// T-SQL: INTO Clause (Transact-SQL). <c>SELECT … INTO t</c>, which makes a table. Not the
 /// standard's <see cref="IntoClause"/>, whose targets are variables.
 /// </summary>
-public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

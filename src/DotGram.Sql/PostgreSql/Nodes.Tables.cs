@@ -46,6 +46,18 @@ static partial class Nodes
 	/// <summary>Columns in brackets, with a period after them where one was named.</summary>
 	public sealed record KeyColumns(Identifier[] Columns, Identifier? Period);
 
+	/// <summary>SELECT INTO's table: its scope and spelling, UNLOGGED, the word TABLE, the name.</summary>
+	public static SelectIntoTable Into(string? scope, string? word, bool unlogged, bool tableKeyword, QualifiedName name)
+	{
+		return new SelectIntoTable(name, null)
+		{
+			Scope        = word is null ? null : scope is null ? TableScope.Temporary : (scope[0] | 0x20) == 'g' ? TableScope.GlobalTemporary : TableScope.LocalTemporary,
+			TempWord     = word is { Length: 4 },
+			Unlogged     = unlogged,
+			TableKeyword = tableKeyword,
+		};
+	}
+
 	/// <summary>gram.y OptTemp: GLOBAL or LOCAL, TEMPORARY or TEMP, or UNLOGGED.</summary>
 	public sealed record Temp(string? Scope, string? Word, bool Unlogged);
 

@@ -171,6 +171,58 @@ public sealed class PostgreSqlTableTests
 		Assert.True(holds, $"{text}: {made}");
 	}
 
+	// ── SELECT INTO ────────────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("SELECT a INTO x FROM t",                                 "plain")]
+	[InlineData("SELECT INTO x",                                          "no targets")]
+	[InlineData("SELECT DISTINCT a INTO TEMP TABLE s.x FROM t WHERE a > 0", "temp table")]
+	[InlineData("SELECT a INTO LOCAL TEMPORARY x FROM t",                 "local temporary")]
+	[InlineData("SELECT a INTO UNLOGGED TABLE x FROM t",                  "unlogged")]
+	[InlineData("SELECT a INTO TABLE x FROM t",                           "table")]
+	[InlineData("SELECT a INTO temp FROM t",                              "a table named temp")]
+	[InlineData("SELECT 1 INTO unlogged",                                 "a table named unlogged")]
+	[InlineData("WITH c AS (SELECT 1) SELECT * INTO x FROM c ORDER BY 1 LIMIT 1", "with and clauses")]
+	[InlineData("SELECT 1 INTO x UNION SELECT 2",                         "the first of a union")]
+	[InlineData("SELECT 1 INTO table FROM t",                             "refused: a table named table")]
+	[InlineData("SELECT 1 INTO x, y",                                     "refused: two tables")]
+	public void A_select_into_builds_its_record(string text, string expected)
+	{
+		if (expected.StartsWith("refused", StringComparison.Ordinal))
+		{
+			Assert.False(PostgreSqlParser.TryParseStatement(text).IsSuccess);
+			return;
+		}
+
+		var made   = Holds(text);
+		var select = ((Statement.Select)made).Query;
+		var into   = (select as Query.Select)?.IntoTable;
+		var holds  = expected switch
+		{
+			"plain"                  => into is { Table: [{ Text: "x" }], Scope: null, Unlogged: false, TableKeyword: false, FileGroup: null },
+			"no targets"             => select is Query.Select { Columns.Count: 0, IntoTable: not null },
+			"temp table"             => into is { Scope: TableScope.Temporary, TempWord: true, TableKeyword: true, Table.Count: 2 },
+			"local temporary"        => into is { Scope: TableScope.LocalTemporary, TempWord: false },
+			"unlogged"               => into is { Unlogged: true, TableKeyword: true },
+			"table"                  => into is { TableKeyword: true, Scope: null },
+			"a table named temp"     => into is { Table: [{ Text: "temp" }], Scope: null },
+			"a table named unlogged" => into is { Table: [{ Text: "unlogged" }], Unlogged: false },
+			"with and clauses"       => select is Query.Select { With: not null, IntoTable: not null, OrderBy: not null, Limit: not null },
+			"the first of a union"   => into is not null && select.SetOperations.Count == 1,
+			_                        => throw new ArgumentOutOfRangeException(nameof(expected), expected, null),
+		};
+
+		Assert.True(holds, $"{text}: {made}");
+	}
+
+	[Fact]
+	public void A_select_into_T_SQL_reads_is_one_tree()
+	{
+		const string text = "SELECT a INTO x FROM t";
+
+		Assert.Equal(TransactSqlParser.ParseStatement(text), PostgreSqlParser.ParseStatement(text));
+	}
+
 	/// <summary>
 	/// The server's own refusals in analysis, of what a column says twice or says against itself, which the tree has one slot
 	/// for: the grammar refuses them where the server does, and the oracle fixture records each with the server's verdict.

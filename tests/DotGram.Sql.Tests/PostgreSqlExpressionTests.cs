@@ -547,7 +547,6 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT * FROM f(1) (a int)",                     "refused: definitions without AS or a name")]
 	[InlineData("SELECT * FROM f(1) AS t (a int, b)",             "refused: names and definitions mixed")]
 	[InlineData("SELECT * FROM ROWS FROM (f(1) AS (a, b))",       "refused: ROWS FROM item with names")]
-	[InlineData("SELECT a INTO x FROM t",                         "refused: SELECT INTO (not read here)")]
 	[InlineData("SELECT a FROM t GROUP BY ROLLUP()",              "refused: ROLLUP of nothing")]
 	[InlineData("SELECT a FROM t GROUP BY ROLLUP(a ORDER BY b)",  "refused: ROLLUP with ORDER BY")]
 	[InlineData("SELECT a FROM t GROUP BY CUBE(a, x := 1)",       "refused: CUBE with a named argument")]

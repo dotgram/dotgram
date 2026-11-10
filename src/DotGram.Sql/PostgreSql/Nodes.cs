@@ -995,9 +995,9 @@ static partial class Nodes
 		return first is not null || distinct is null or Distinct.Of { Quantifier: SetQuantifier.All };
 	}
 
-	public static Query Selected(Distinct? distinct, SelectColumn? first, SelectColumn[]? rest, FromClause? from, Expression? where, GroupByClause? group, Expression? having, WindowClause? window)
+	public static Query Selected(Distinct? distinct, SelectColumn? first, SelectColumn[]? rest, SelectIntoTable? into, FromClause? from, Expression? where, GroupByClause? group, Expression? having, WindowClause? window)
 	{
-		var query = new Query.Select { Columns = List(first, rest), From = from, Where = where, GroupBy = group, Having = having, Window = window };
+		var query = new Query.Select { Columns = List(first, rest), IntoTable = into, From = from, Where = where, GroupBy = group, Having = having, Window = window };
 
 		return distinct switch
 		{
