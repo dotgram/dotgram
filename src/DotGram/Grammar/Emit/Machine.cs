@@ -7257,7 +7257,7 @@ sealed partial class Machine
 				// said at the door, as the reader's door says it (Machine.Reader.cs, SaidAtTheDoor).
 				if (OnePass)
 				{
-					var said = DeclareExpected(Displays(body));
+					var said = DeclareExpected(PredictedDisplays([body]));
 
 					_expectedUsed.Add(said);
 

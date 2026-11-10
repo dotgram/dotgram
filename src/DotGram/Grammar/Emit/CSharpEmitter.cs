@@ -2958,10 +2958,11 @@ static partial class CSharpEmitter
 				}
 
 				// The one reading that records (OnePass) may have tied on its way to accepting: the
-				// list goes back to the thread, as a refusal hands it back (Handed_DotGram).
+				// list goes back to the thread, as a refusal hands it back (Handed_DotGram), from
+				// every machine whose failure carries one.
 				void Returned()
 				{
-					if (onePass && ties)
+					if (onePass && (!flat || ties))
 					{
 						file.Line("if (failure.ExpectedMore != null) Returned_DotGram(failure.ExpectedMore);");
 						file.Line();

@@ -6894,11 +6894,12 @@ sealed partial class Machine
 		/// <summary>
 		/// What a turn behind a shut door would have begun with, recorded at the door where the
 		/// turn is tried in no reading (<see cref="Machine.OnePass"/>): the first set of the turn,
-		/// in place of what the turn tried would have said at its first item.
+		/// as the door owed below a minimum says it (SaysBehindTheDoor), in place of what the turn
+		/// tried would have said at its first item.
 		/// </summary>
 		void SaidAtTheDoor(Writer code, Node body)
 		{
-			var expected = machine.DeclareExpected(machine.Displays(body));
+			var expected = machine.DeclareExpected(machine.PredictedDisplays([body]));
 
 			machine._expectedUsed.Add(expected);
 			code.Line(Refusal(expected));
