@@ -9,7 +9,7 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Three nests of the expression language that cost the square of their depth, read or refused, and
+/// Two nests of the expression language that cost the square of their depth, read or refused, and
 /// what each costs now: about as much a level at every depth.
 /// </summary>
 /// <remarks>
@@ -24,12 +24,7 @@ namespace DotGram.Tests;
 /// so every level asked the whole chain below it — 1.8 s for 12,800 levels, bytes flat.
 /// </para>
 /// <para>
-/// <b>Comparisons a type could begin</b>, <c>a &lt; a &lt; … &gt; b</c> over a parameter <c>a</c>: every
-/// <c>a</c> was tried as a generic type and read the rest of the chain as its arguments before the head was
-/// found to be the parameter — 1.2 s for 6,400, bytes flat.
-/// </para>
-/// <para>
-/// The two whose bytes are flat are held to time, as the doubling sizes are: at most twice as many times
+/// The one whose bytes are flat is held to time, as the doubling sizes are: at most twice as many times
 /// as long as there are times the levels, where a square takes that many times that many. The sizes are
 /// far enough apart for the square to be told from a slow machine.
 /// </para>
@@ -42,6 +37,12 @@ public sealed class ExpressionNestRefusalTests
 	{
 		AssertLinear("never closed", static n => "(" + Repeated("System.Collections.Generic.List<", n) + "int" + Repeated(">", n - 1) + " x) => x", accepted: false);
 		AssertLinear("closed", static n => "(" + Repeated("System.Collections.Generic.List<", n) + "int" + Repeated(">", n) + " x) => 1", accepted: true);
+	}
+
+	[Fact]
+	public void A_conditional_chain_cut_short_takes_about_as_long_a_level_at_every_size()
+	{
+		AssertLinearTime("a conditional chain, cut", 3200, 25600, static n => "(bool b) => " + Repeated("b ? 1 : ", n));
 	}
 
 	/// <summary>Bytes a level at four doubling depths stay within a quarter of one another.</summary>
@@ -77,6 +78,42 @@ public sealed class ExpressionNestRefusalTests
 				each[i] <= each[i - 1] * 1.25,
 				$"{shape}: at {depths[i - 1]} levels {each[i - 1]:F1} bytes each, at {depths[i]} {each[i]:F1} bytes each — " +
 				$"{each[i] / each[i - 1]:F2} times as many, where a square doubles them.");
+	}
+
+	/// <summary>
+	/// <paramref name="large"/> levels take at most twice as many times as long as <paramref name="small"/> as
+	/// there are times the levels; the fewest of five readings of each, at sizes whose smaller one takes
+	/// milliseconds rather than a fraction of one, so that a pause cannot pass for a slope.
+	/// </summary>
+	static void AssertLinearTime(string shape, int small, int large, Func<int, string> textFor)
+	{
+		var (few, many) = (textFor(small), textFor(large));
+
+		Assert.False(ExpressionParser.TryParse(many).IsSuccess);
+
+		var times = new[] { Fewest(few), Fewest(many) };
+
+		TestContext.Current.TestOutputHelper?.WriteLine($"{shape}: {small} levels {times[0]:F1} ms, {large} levels {times[1]:F1} ms");
+		Assert.True(
+			times[1] <= times[0] * (large / small) * 2,
+			$"{shape}: {small} levels took {times[0]:F1} ms and {large} took {times[1]:F1} ms — " +
+			$"{times[1] / times[0]:F1} times as long for {large / small} times the levels.");
+
+		static double Fewest(string text)
+		{
+			var fewest = double.MaxValue;
+
+			for (var run = 0; run < 5; run++)
+			{
+				var clock = Stopwatch.StartNew();
+
+				ExpressionParser.TryParse(text);
+
+				fewest = Math.Min(fewest, clock.Elapsed.TotalMilliseconds);
+			}
+
+			return fewest;
+		}
 	}
 
 	static string Repeated(string unit, int times)
