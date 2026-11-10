@@ -386,8 +386,8 @@ static class SharedRecursion
 		readonly HashSet<RuleSymbol>                    _seams     = [];
 
 		// Kept for the next pair: one search simulates thousands of them.
-		List<State>                                     _frontier  = [];
-		List<State>                                     _next      = [];
+		readonly List<State>                            _frontier  = [];
+		readonly List<State>                            _next      = [];
 		readonly HashSet<Seen>                          _seen      = [];
 
 		List<Step>?                                     _steps;
