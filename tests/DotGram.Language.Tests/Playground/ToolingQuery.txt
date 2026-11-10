@@ -22,6 +22,7 @@ completion 4:24 applicable=4:24+5
   on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
   private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
   public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
   Query | insert=Query | suffix= | sort=Query | filter=Query | Query      = Keyword & field: (Identifier)\n\nReferenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
@@ -60,6 +61,7 @@ completion 4:37 applicable=4:32+10
   on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
   private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
   public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
   Query | insert=Query | suffix= | sort=Query | filter=Query | Query      = Keyword & field: (Identifier)\n\nReferenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
@@ -97,6 +99,7 @@ completion 6:7 applicable=6:7+5
   on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
   private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
   public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
   Query | insert=Query | suffix= | sort=Query | filter=Query | Query      = Keyword & field: (Identifier)\n\nReferenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
