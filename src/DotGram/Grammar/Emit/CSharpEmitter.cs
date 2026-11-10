@@ -563,6 +563,26 @@ static partial class CSharpEmitter
 			// entered where the beginning ended, and where it stops is the answer.
 			foreach (var rule in Measuring(lexical))
 				valuing.Register(rule, whole: false);
+
+			// A terminal whose value is built by reading its token again runs its guards again then, against the
+			// context as the parse has written it by that time and not as the lexer saw it. Where one of them names
+			// the context the two can answer otherwise — a risk the generator cannot settle, since a context that
+			// holds configuration never changes. A terminal built from its token's text alone is not read again.
+			if (diagnostics is not null)
+				foreach (var rule in lexical.Valued)
+					if (Verbatim(lexical.Source, valuing.Results, rule) is null && GuardsNameContext(lexical, rule))
+						diagnostics.Add(new GramDiagnostic(
+							GramCompiler.RereadContextGuard,
+							$"'{rule.Name}' is read again from its token where its value is built, and a guard it reads names " +
+							"'context': the check runs again then, against the context as the parse has written it by then. " +
+							"Where the context has changed since the token was read, the value can differ from the token the " +
+							"lexer read — another alternative's — or the reading again is refused, which throws. A risk, not " +
+							"a proven error: a guard that reads configuration holding for the whole parse is safe; one that " +
+							"reads what the syntax writes needs the grammar read over characters, without Lexical = true " +
+							"(docs/syntax.md §7.1).",
+							rule.Declaration?.At.Position ?? 0,
+							rule.Declaration?.At.Length ?? 0,
+							GramSeverity.Warning));
 		}
 
 		// Every machine numbers a value type by where it sits in one list, because the parser
@@ -6664,6 +6684,20 @@ file.Line("return spare;");
 	static HashSet<RuleSymbol> Rereads(LexicalSplit lexical)
 	{
 		return Reached(lexical, lexical.Valued.Concat(Measuring(lexical)));
+	}
+
+	/// <summary>Whether a guard of a rule, or of a rule it reaches, names the grammar's context.</summary>
+	static bool GuardsNameContext(LexicalSplit lexical, RuleSymbol rule)
+	{
+		var graph = lexical.Source;
+
+		foreach (var reached in Reached(lexical, [rule]))
+			if (graph.Bodies.TryGetValue(reached, out var body))
+				foreach (var node in NodeWalk.Reading(body, graph))
+					if (node is Node.Guard && Machine.NamesContext(graph, node))
+						return true;
+
+		return false;
 	}
 
 	/// <summary>The rules of the graph over characters that these reach, these among them.</summary>
