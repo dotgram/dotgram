@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
 using DotGram.Generation;
 
@@ -242,15 +246,15 @@ static class Cli
 	/// <param name="Notes">What to say of the pass beside its results.</param>
 	/// <param name="OtherDotGram">The version of DotGram the project has where it is not the tool's: its output is then checked in the project.</param>
 	sealed record Pass(
-		GenerationInputs                 Inputs,
-		ImmutableArray<SyntaxTree>       ExtraSources,
-		bool                             CompileOutput,
-		string?                          HostFile,
-		string?                          HostText,
-		IReadOnlyList<ISourceGenerator>  Others,
-		IReadOnlyList<string>            Warnings,
-		IReadOnlyList<string>            Notes,
-		string?                          OtherDotGram)
+		GenerationInputs                Inputs,
+		ImmutableArray<SyntaxTree>      ExtraSources,
+		bool                            CompileOutput,
+		string?                         HostFile,
+		string?                         HostText,
+		IReadOnlyList<ISourceGenerator> Others,
+		IReadOnlyList<string>           Warnings,
+		IReadOnlyList<string>           Notes,
+		string?                         OtherDotGram)
 	{
 		public Task<Generation> Generated { get; } = Task.Run(() => Generation.Of(Inputs, ExtraSources, Others, OtherDotGram is not null));
 	}
@@ -324,7 +328,9 @@ static class Cli
 		string? other = null;
 
 		if (!analyzers.HasDotGram)
+		{
 			notes.Add($"the project lists no DotGram analyzer; generating with DotGram {GeneratorVersion}");
+		}
 		else if (analyzers.DotGramVersion is { } version && version != GeneratorVersion)
 		{
 			warnings.Add($"the project references DotGram {version}; generating with {GeneratorVersion}");
@@ -367,7 +373,8 @@ static class Cli
 	{
 		var names = FileSystem.NamesIn(output);
 
-		return names.Equals(Path.GetDirectoryName(path), Path.TrimEndingDirectorySeparator(output)) &&
+		return
+			names.Equals(Path.GetDirectoryName(path), Path.TrimEndingDirectorySeparator(output)) &&
 			listed.Contains(Path.GetFileName(path), names);
 	}
 

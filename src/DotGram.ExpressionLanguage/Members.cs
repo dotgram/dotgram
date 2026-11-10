@@ -123,12 +123,9 @@ public static partial class ExpressionParser
 	{
 		return member switch
 		{
-			FieldInfo field =>
-				field.IsPublic || (field.IsAssembly || field.IsFamilyOrAssembly) && scope.Declares(field.DeclaringType!.Assembly),
-			MethodBase method =>
-				method.IsPublic || (method.IsAssembly || method.IsFamilyOrAssembly) && scope.Declares(method.DeclaringType!.Assembly),
-			PropertyInfo property =>
-				Reachable(property.GetMethod, scope) || Reachable(property.SetMethod, scope),
+			FieldInfo    field    => field.IsPublic  || (field.IsAssembly  || field.IsFamilyOrAssembly)  && scope.Declares(field.DeclaringType!.Assembly),
+			MethodBase   method   => method.IsPublic || (method.IsAssembly || method.IsFamilyOrAssembly) && scope.Declares(method.DeclaringType!.Assembly),
+			PropertyInfo property => Reachable(property.GetMethod, scope)  || Reachable(property.SetMethod, scope),
 			_ => false,
 		};
 	}
@@ -142,11 +139,8 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static Expression Indexed(Expression target, Expression[] at, ResolutionScope scope)
 	{
-		if (target is null)
-			throw new ArgumentNullException(nameof(target));
-
-		if (at is null)
-			throw new ArgumentNullException(nameof(at));
+		if (target is null) throw new ArgumentNullException(nameof(target));
+		if (at     is null) throw new ArgumentNullException(nameof(at));
 
 		if (target.Type.IsArray)
 			return Expression.ArrayIndex(target, Converted(at, typeof(int)));
@@ -155,6 +149,7 @@ public static partial class ExpressionParser
 
 		return Expression.Property(target, (PropertyInfo)chosen.Member, chosen.Arguments);
 	}
+
 	/// <summary>A static property or a static field, whichever that name is.</summary>
 	/// <remarks>
 	/// Two factories and one syntax: `T.Name` says nothing about which, and the type does.

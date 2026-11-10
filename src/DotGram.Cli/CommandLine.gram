@@ -11,8 +11,7 @@ trivia = none
 // next, and what the line holds in braces, since a comment reads to the end of the line and so do
 // its words — a line that begins with # is never also read as a word.
 
-ResponseText : @Word[] = Blank & (Comment | (Word & (Gap & Word)* & Blank)?)
-                         & ({ eol } & Blank & { Comment | (Word & (Gap & Word)* & Blank)? })* & eof
+ResponseText : @Word[] = Blank & (Comment | (Word & (Gap & Word)* & Blank)?) & ({ eol } & Blank & { Comment | (Word & (Gap & Word)* & Blank)? })* & eof
 
 Comment = '#' & [^ '\r' | '\n']*
 

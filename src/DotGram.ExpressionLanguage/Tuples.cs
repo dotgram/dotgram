@@ -105,9 +105,9 @@ public static partial class ExpressionParser
 	/// <summary>The tuple of the elements from that one on, nesting past the seventh.</summary>
 	static Expression Nested(Expression[] elements, int from)
 	{
-		var left   = elements.Length - from;
-		var held   = left > Flat ? Flat : left;
-		var made   = new Expression[held + (left > Flat ? 1 : 0)];
+		var left = elements.Length - from;
+		var held = left > Flat ? Flat : left;
+		var made = new Expression[held + (left > Flat ? 1 : 0)];
 
 		for (var at = 0; at < held; at++)
 			made[at] = elements[from + at];

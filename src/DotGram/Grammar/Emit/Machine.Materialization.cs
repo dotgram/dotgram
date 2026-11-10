@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 using DotGram.Grammar.Binding;
@@ -279,6 +280,7 @@ sealed partial class Machine
 			for (var part = 0; part * FactoriesPerPart < _factories[rule].Count; part++)
 			{
 				file.Line();
+
 				using (file.Block($"void {ConstructionPart(rule, part)}({InputType} text, int completedAt, int chosen)"))
 				{
 					file.Line("var completed = entries[completedAt];");
@@ -329,6 +331,7 @@ sealed partial class Machine
 			whole += cost;
 
 			var largest = cost;
+
 			if (SplitConstruction(rule))
 				for (var first = 0; first < _factories[rule].Count; first += FactoriesPerPart)
 				{
@@ -520,8 +523,10 @@ sealed partial class Machine
 		if (requested.Count == 1)
 		{
 			var index = requested[0];
+
 			using (file.Block($"if (guardCaptured{index}At >= 0 && !guardBuilt[guardCaptured{index}At])"))
 				Build(index, $"guardCaptured{index}At");
+
 			return;
 		}
 
@@ -545,6 +550,7 @@ sealed partial class Machine
 					// Two captures can name one completed call. Construct it once.
 					using (file.Block("if (!guardBuilt[guardAt])"))
 						Build(index, "guardAt");
+
 					file.Line($"guardPending{index} = -1;");
 				}
 		}
@@ -586,6 +592,7 @@ sealed partial class Machine
 					Placed("completed.Position"), "completed.Value - completed.Position") + ";");
 				file.Line("break;");
 			}
+
 			return;
 		}
 
@@ -654,6 +661,7 @@ sealed partial class Machine
 			if (firstFactory < 0 && SplitConstruction(rule))
 			{
 				ChooseConstruction(file);
+
 				using (file.Block($"switch (chosen / {FactoriesPerPart})"))
 					for (var part = 0; part * FactoriesPerPart < factories.Count; part++)
 					{
@@ -664,7 +672,9 @@ sealed partial class Machine
 							file.Line("break;");
 						}
 					}
+
 				file.Line("break;");
+
 				return;
 			}
 
@@ -705,9 +715,7 @@ sealed partial class Machine
 
 			if (scalars.Count > 0)
 			{
-				using (file.Block(
-					"for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; " +
-					"capturedAt = linkNexts[capturedAt])"))
+				using (file.Block("for (var capturedAt = linkHeads[completedAt]; capturedAt >= 0; capturedAt = linkNexts[capturedAt])"))
 				{
 					file.Line("var candidate = entries[capturedAt];");
 					file.Line();
@@ -742,9 +750,7 @@ sealed partial class Machine
 
 									using (file.Indent())
 									{
-										using (file.Block(
-											"if (candidate.Kind == ParserEntry.Capture && " +
-											"candidate.CallIndex == completedAt)"))
+										using (file.Block("if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)"))
 										{
 											file.Line($"if (captured{memberIndex}_{part}To < 0)");
 											file.Then($"captured{memberIndex}_{part}To = candidate.Value;");
@@ -767,15 +773,12 @@ sealed partial class Machine
 								{
 									// First in list order, which is what breaking out of a
 									// walk of its own used to mean.
-									file.Line(
-										"if (candidate.Kind == ParserEntry.RuleCapture && " +
-										$"candidate.CallIndex == completedAt && captured{memberIndex}At < 0)");
+									file.Line($"if (candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && captured{memberIndex}At < 0)");
 									file.Then($"captured{memberIndex}At = candidate.Position;");
 								}
 								else
 									using (file.Block(
-										"if (candidate.Kind == ParserEntry.Capture && " +
-										"candidate.CallIndex == completedAt)"))
+										"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == completedAt)"))
 										Measure(file, $"captured{memberIndex}", Joined(offset, member), Overlaps(offset, member));
 
 								file.Line("break;");
@@ -860,9 +863,7 @@ sealed partial class Machine
 										plans.Add(plan);
 									}
 
-						var accepted =
-							$"candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && " +
-							$"({string.Join(" || ", slots)})";
+						var accepted  = $"candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == completedAt && ({string.Join(" || ", slots)})";
 						var collected = recovered.Count == 0
 							? accepted
 							: $"({accepted}) || ({string.Join(" || ", recovered)})";
@@ -961,54 +962,54 @@ sealed partial class Machine
 				file.Line();
 			}
 
-		if (factories.Count == 0)
-		{
-			file.Line($"{ValueInto(type, "completedAt")} = new {type}(");
+			if (factories.Count == 0)
+			{
+				file.Line($"{ValueInto(type, "completedAt")} = new {type}(");
 
-			using (file.Indent())
-				for (var i = 0; i < members.Count; i++)
-					file.Line(
-						$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
-						(i + 1 < members.Count ? "," : ");"));
-		}
-		else if (factories.Count == 1 || SameIdentityConstruction(factories))
-		{
-			// A single construction needs no choice. Neither do alternatives that
-			// all return the same typed capture: their factories differ only in source
-			// location, and running one still applies Locate exactly once.
-			file.Line(
-				$"{ValueInto(type, "completedAt")} = " + Offered(factories[0],
-				$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))})",
-				Placed("completed.Position"), "completed.Value - completed.Position") + ";");
-		}
-		else
-		{
-			if (firstFactory < 0) ChooseConstruction(file);
-
-			var endFactory = firstFactory < 0
-				? factories.Count
-				: Math.Min(factories.Count, firstFactory + FactoriesPerPart);
-
-			using (file.Block("switch (chosen)"))
-				for (var factoryIndex = Math.Max(0, firstFactory); factoryIndex < endFactory; factoryIndex++)
-				{
-					var factory = factories[factoryIndex];
-
-					file.Line($"case {factoryIndex}:");
-
-					using (file.Indent())
-					{
+				using (file.Indent())
+					for (var i = 0; i < members.Count; i++)
 						file.Line(
-							$"{ValueInto(type, "completedAt")} = " + Offered(factory,
-							$"{factory.Method}({string.Join(", ", FactoryArguments(file, factory, members, "completedAt"))})",
-							Placed("completed.Position"), "completed.Value - completed.Position") + ";");
-						file.Line("break;");
-					}
-				}
-		}
+							$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
+							(i + 1 < members.Count ? "," : ");"));
+			}
+			else if (factories.Count == 1 || SameIdentityConstruction(factories))
+			{
+				// A single construction needs no choice. Neither do alternatives that
+				// all return the same typed capture: their factories differ only in source
+				// location, and running one still applies Locate exactly once.
+				file.Line(
+					$"{ValueInto(type, "completedAt")} = " + Offered(factories[0],
+					$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))})",
+					Placed("completed.Position"), "completed.Value - completed.Position") + ";");
+			}
+			else
+			{
+				if (firstFactory < 0) ChooseConstruction(file);
 
-		file.Line("break;");
-	}
+				var endFactory = firstFactory < 0
+					? factories.Count
+					: Math.Min(factories.Count, firstFactory + FactoriesPerPart);
+
+				using (file.Block("switch (chosen)"))
+					for (var factoryIndex = Math.Max(0, firstFactory); factoryIndex < endFactory; factoryIndex++)
+					{
+						var factory = factories[factoryIndex];
+
+						file.Line($"case {factoryIndex}:");
+
+						using (file.Indent())
+						{
+							file.Line(
+								$"{ValueInto(type, "completedAt")} = " + Offered(factory,
+								$"{factory.Method}({string.Join(", ", FactoryArguments(file, factory, members, "completedAt"))})",
+								Placed("completed.Position"), "completed.Value - completed.Position") + ";");
+							file.Line("break;");
+						}
+					}
+			}
+
+			file.Line("break;");
+		}
 	}
 
 	// A limit on construction alternatives as well as control-flow size: the JIT
@@ -1018,10 +1019,14 @@ sealed partial class Machine
 
 	bool SplitConstruction(RuleSymbol rule)
 	{
-		return ValueRule(rule) >= 0 && !IsExtent(rule) &&
-		!(_reread?.Contains(rule) ?? false) && !_graph.Externals.ContainsKey(rule) &&
-		!_graph.Folds.ContainsKey(rule) && _factories[rule].Count > FactoriesPerPart &&
-		!SameIdentityConstruction(_factories[rule]);
+		return
+			ValueRule(rule) >= 0                      &&
+			!IsExtent(rule)                           &&
+			!(_reread?.Contains(rule) ?? false)       &&
+			!_graph.Externals.ContainsKey(rule)       &&
+			!_graph.Folds.ContainsKey(rule)           &&
+			_factories[rule].Count > FactoriesPerPart &&
+			!SameIdentityConstruction(_factories[rule]);
 	}
 
 	string ConstructionPart(RuleSymbol rule, int part)
@@ -1033,14 +1038,11 @@ sealed partial class Machine
 	{
 		file.Line("var chosen = -1;");
 
-		using (file.Block(
-			"for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; " +
-			"chosenAt = linkNexts[chosenAt])"))
+		using (file.Block("for (var chosenAt = linkHeads[completedAt]; chosenAt >= 0; chosenAt = linkNexts[chosenAt])"))
 		{
 			file.Line("var candidate = entries[chosenAt];");
 
-			using (file.Block(
-				"if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)"))
+			using (file.Block("if (candidate.Kind == ParserEntry.Construct && candidate.CallIndex == completedAt)"))
 			{
 				file.Line("chosen = candidate.State;");
 				file.Line("break;");
@@ -1062,11 +1064,15 @@ sealed partial class Machine
 		{
 			if (factory.Located != first.Located || factory.Accumulator is not null ||
 				factory.Members.Count != 1 ||
-				factory.Of is not Node.Construct { How: Construction.Expression expression }) return false;
+				factory.Of is not Node.Construct { How: Construction.Expression expression })
+				return false;
+
 			var other = factory.Members[0];
+
 			if (other.Rule is null || other.IsSequence || other.IsOptional || other.Name != member.Name ||
 				_results.ValueOf(other.Rule) != type ||
-				(expression.Text.Trim() != other.Name && expression.Text.Trim() != "(" + other.Name + ")")) return false;
+				(expression.Text.Trim() != other.Name && expression.Text.Trim() != "(" + other.Name + ")"))
+				return false;
 		}
 		return true;
 	}

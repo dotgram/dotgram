@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace DotGram.ExpressionLanguage;
@@ -34,7 +36,7 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static string Last(string head, string[]? tail)
 	{
-		return tail is { Length: > 0 } ? tail[tail.Length - 1] : head;
+		return tail is { Length: > 0 } ? tail[^1] : head;
 	}
 
 	internal static string Dotted(string head, string[]? tail)

@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -454,12 +455,12 @@ namespace DotGram.ExpressionLanguage;
 		RawBody(close)       : @Segment[] = parts: RawPiece(close)* & close       => @(parts)
 		RawDoubleBody(close) : @Segment[] = parts: RawDoublePiece(close)* & close => @(parts)
 
-		RawInterpolated3 : @InterpolatedText = "$\"\"\"" & body: RawBody("\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
-		RawInterpolated4 : @InterpolatedText = "$\"\"\"\"" & body: RawBody("\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
-		RawInterpolated5 : @InterpolatedText = "$\"\"\"\"\"" & body: RawBody("\"\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
-		RawDoubled3 : @InterpolatedText = "$$\"\"\"" & body: RawDoubleBody("\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
-		RawDoubled4 : @InterpolatedText = "$$\"\"\"\"" & body: RawDoubleBody("\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
-		RawDoubled5 : @InterpolatedText = "$$\"\"\"\"\"" & body: RawDoubleBody("\"\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
+		RawInterpolated3 : @InterpolatedText = "$\"\"\"" &      body: RawBody      ("\"\"\"")     => @(ExpressionParser.Raw(body, parserInput))
+		RawInterpolated4 : @InterpolatedText = "$\"\"\"\"" &    body: RawBody      ("\"\"\"\"")   => @(ExpressionParser.Raw(body, parserInput))
+		RawInterpolated5 : @InterpolatedText = "$\"\"\"\"\"" &  body: RawBody      ("\"\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
+		RawDoubled3      : @InterpolatedText = "$$\"\"\"" &     body: RawDoubleBody("\"\"\"")     => @(ExpressionParser.Raw(body, parserInput))
+		RawDoubled4      : @InterpolatedText = "$$\"\"\"\"" &   body: RawDoubleBody("\"\"\"\"")   => @(ExpressionParser.Raw(body, parserInput))
+		RawDoubled5      : @InterpolatedText = "$$\"\"\"\"\"" & body: RawDoubleBody("\"\"\"\"\"") => @(ExpressionParser.Raw(body, parserInput))
 
 		// Six quotes and more after a dollar, or three dollars and more: the beginning is every dollar
 		// and every quote, and the host measures the rest and cuts it into its pieces.
@@ -493,8 +494,7 @@ namespace DotGram.ExpressionLanguage;
 
 	Function : @LambdaExpression
 		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Body
-		=> @(Expression.Lambda(
-			context.Returning(body, parserState, parserMarks), ExpressionParser.Taking(first, rest)))
+		=> @(Expression.Lambda(context.Returning(body, parserState, parserMarks), ExpressionParser.Taking(first, rest)))
 
 		// The same lambda with the types left out — `(tag, value) => …`, and `tag => …` with
 		// no brackets at all — as C# writes one for the delegate it is being converted to. Only
@@ -514,9 +514,7 @@ namespace DotGram.ExpressionLanguage;
 		| when @(context.Compiling())
 		& (only: Awaiting | '(' & head: Awaiting & (',' & tail: Awaiting)* & ')') & "=>"
 		& when @(context.Given(Awaited.Of(only, head, tail), parserSpan))
-		& given: Body
-		=> @(Expression.Lambda(
-			context.Returning(given, parserState, parserMarks), context.Given()))
+		& given: Body => @(Expression.Lambda(context.Returning(given, parserState, parserMarks), context.Given()))
 
 	// The same thing written inside an expression, where it is an operand like any other.
 	//
@@ -700,21 +698,21 @@ namespace DotGram.ExpressionLanguage;
 		     | RawDoubled3 | RawDoubled4 | RawDoubled5 | '(' | '+' | '-' | '!' | '~')
 		  => @(true)
 
-	Core : @Type = "sbyte"   => @(typeof(sbyte))
-	             | "byte"    => @(typeof(byte))
-	             | "short"   => @(typeof(short))
-	             | "ushort"  => @(typeof(ushort))
-	             | "int"     => @(typeof(int))
-	             | "uint"    => @(typeof(uint))
-	             | "long"    => @(typeof(long))
-	             | "ulong"   => @(typeof(ulong))
-	             | "float"   => @(typeof(float))
-	             | "double"  => @(typeof(double))
-	             | "decimal" => @(typeof(decimal))
-	             | "bool"    => @(typeof(bool))
-	             | "char"    => @(typeof(char))
-	             | "string"  => @(typeof(string))
-	             | "object"  => @(typeof(object))
+	Core : @Type = "sbyte"      => @(typeof(sbyte))
+	             | "byte"       => @(typeof(byte))
+	             | "short"      => @(typeof(short))
+	             | "ushort"     => @(typeof(ushort))
+	             | "int"        => @(typeof(int))
+	             | "uint"       => @(typeof(uint))
+	             | "long"       => @(typeof(long))
+	             | "ulong"      => @(typeof(ulong))
+	             | "float"      => @(typeof(float))
+	             | "double"     => @(typeof(double))
+	             | "decimal"    => @(typeof(decimal))
+	             | "bool"       => @(typeof(bool))
+	             | "char"       => @(typeof(char))
+	             | "string"     => @(typeof(string))
+	             | "object"     => @(typeof(object))
 	             | t: NamedType => @(t)
 
 	// The keywords above are written where the C# compiler reads them. A name is not a
@@ -831,9 +829,9 @@ namespace DotGram.ExpressionLanguage;
 	// A rule of its own for the `on fail`: a value missing here says so, where the list of
 	// every token that could have stood there would name the lexer's kinds one by one.
 	Initial : @Setting on fail "Expected an expression."
-		= nested: Bindings              => @(new Setting("", null, nested, null))
-		| '{' & items: Elements & '}'   => @(new Setting("", null, null, items))
-		| value: Expression             => @(new Setting("", value, null, null))
+		= nested: Bindings            => @(new Setting("", null,  nested, null))
+		| '{' & items: Elements & '}' => @(new Setting("", null,  null,   items))
+		| value: Expression           => @(new Setting("", value, null,   null))
 
 	// A collection initializer's elements, and a comma after the last, as C# allows; written
 	// as `Bindings` writes it.
@@ -856,8 +854,7 @@ namespace DotGram.ExpressionLanguage;
 
 	Written = AssignOperator & any & when @(context.Assigns(parserSpan))
 
-	AssignOperator
-		= '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
+	AssignOperator = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
 
 	// An element is what one call to `Add` takes, which is usually one expression and for
 	// a dictionary is two. C# writes the second in braces of its own, and the API has a
@@ -946,11 +943,11 @@ namespace DotGram.ExpressionLanguage;
 		= s: Local             => @(s)
 		| s: InferredUnsettled => @(s)
 		| s: Inferred          => @(s)
-		| s: Return           => @(s)
-		| s: Block            => @(s)
-		| s: Control          => @(s)
-		| s: Jump & ';'       => @(s)
-		| s: Expression & ';' => @(s)
+		| s: Return            => @(s)
+		| s: Block             => @(s)
+		| s: Control           => @(s)
+		| s: Jump & ';'        => @(s)
+		| s: Expression & ';'  => @(s)
 
 	Local : @Expression
 		= type: Type & name: Identifier & when @(context.Declare(type, name, parserSpan))
@@ -1028,11 +1025,11 @@ namespace DotGram.ExpressionLanguage;
 	// inside them: that is how a `break` finds what it leaves, and the construct finds the same
 	// label, since it is built under the same mark. `for` places its own, after its initializer.
 	Control : @Expression
-		= c: Try                                          => @(c)
-		| c: If                                           => @(c)
+		= c: Try                                           => @(c)
+		| c: If                                            => @(c)
 		| c: While            with state @(Reading.Loop)   => @(c)
 		| c: DoWhile          with state @(Reading.Loop)   => @(c)
-		| c: For                                          => @(c)
+		| c: For                                           => @(c)
 		| c: Foreach          with state @(Reading.Loop)   => @(c)
 		| c: ForeachUnsettled with state @(Reading.Loop)   => @(c)
 		| c: ForeachInferred  with state @(Reading.Loop)   => @(c)
@@ -1197,9 +1194,7 @@ namespace DotGram.ExpressionLanguage;
 	// a lambda's parameter: `limit => 1` in an arm is a constant and an arrow, not a lambda.
 	// A name followed by a name can only be `limit or …`, since nothing else puts two names
 	// side by side; asked as a name so that the lookahead holds no guard.
-	Constant : @Expression
-		= n: Name & ?=("=>" | ':' | Identifier) => @(n)
-		| e: Binary => @(e)
+	Constant : @Expression = n: Name & ?=("=>" | ':' | Identifier) => @(n) | e: Binary => @(e)
 
 	Jump : @Expression
 		= "break"                     => @(Expression.Break(context.Exit(parserState, parserMarks)))
@@ -1246,27 +1241,17 @@ namespace DotGram.ExpressionLanguage;
 		// Each compound form names the assignment the API has for it and the operator it
 		// stands for: C#'s `x op= y` is `x = (T)(x op y)`, which is the node the API has only
 		// where the operator's own type is the target's.
-		= target: Target & "+="  & value: Assignment
-		  => @(ExpressionParser.AddAssign(target, value, parserState))
-		| target: Target & "-="  & value: Assignment
-		  => @(ExpressionParser.SubtractAssign(target, value, parserState))
-		| target: Target & "*="  & value: Assignment
-		  => @(ExpressionParser.MultiplyAssign(target, value, parserState))
-		| target: Target & "/="  & value: Assignment
-		  => @(ExpressionParser.ArithmeticAssign(Expression.DivideAssign, Expression.Divide, target, value, parserState))
-		| target: Target & "%="  & value: Assignment
-		  => @(ExpressionParser.ArithmeticAssign(Expression.ModuloAssign, Expression.Modulo, target, value, parserState))
-		| target: Target & "&="  & value: Assignment
-		  => @(ExpressionParser.IntegralAssign(Expression.AndAssign, Expression.And, target, value, parserState))
-		| target: Target & "|="  & value: Assignment
-		  => @(ExpressionParser.IntegralAssign(Expression.OrAssign, Expression.Or, target, value, parserState))
-		| target: Target & "^="  & value: Assignment
-		  => @(ExpressionParser.IntegralAssign(Expression.ExclusiveOrAssign, Expression.ExclusiveOr, target, value, parserState))
-		| target: Target & "<<=" & value: Assignment
-		  => @(ExpressionParser.ShiftAssign(Expression.LeftShiftAssign, Expression.LeftShift, target, value, parserState))
-		| target: Target & ">>=" & value: Assignment
-		  => @(ExpressionParser.ShiftAssign(Expression.RightShiftAssign, Expression.RightShift, target, value, parserState))
-		| target: Target & '=' & ?!'=' & value: Assignment => @(ExpressionParser.Assigned(target, value))
+		= target: Target & "+="  & value: Assignment       => @(ExpressionParser.AddAssign       (target, value, parserState))
+		| target: Target & "-="  & value: Assignment       => @(ExpressionParser.SubtractAssign  (target, value, parserState))
+		| target: Target & "*="  & value: Assignment       => @(ExpressionParser.MultiplyAssign  (target, value, parserState))
+		| target: Target & "/="  & value: Assignment       => @(ExpressionParser.ArithmeticAssign(Expression.DivideAssign, Expression.Divide, target, value, parserState))
+		| target: Target & "%="  & value: Assignment       => @(ExpressionParser.ArithmeticAssign(Expression.ModuloAssign, Expression.Modulo, target, value, parserState))
+		| target: Target & "&="  & value: Assignment       => @(ExpressionParser.IntegralAssign  (Expression.AndAssign, Expression.And, target, value, parserState))
+		| target: Target & "|="  & value: Assignment       => @(ExpressionParser.IntegralAssign  (Expression.OrAssign, Expression.Or, target, value, parserState))
+		| target: Target & "^="  & value: Assignment       => @(ExpressionParser.IntegralAssign  (Expression.ExclusiveOrAssign, Expression.ExclusiveOr, target, value, parserState))
+		| target: Target & "<<=" & value: Assignment       => @(ExpressionParser.ShiftAssign     (Expression.LeftShiftAssign, Expression.LeftShift, target, value, parserState))
+		| target: Target & ">>=" & value: Assignment       => @(ExpressionParser.ShiftAssign     (Expression.RightShiftAssign, Expression.RightShift, target, value, parserState))
+		| target: Target & '=' & ?!'=' & value: Assignment => @(ExpressionParser.Assigned        (target, value))
 
 		// An element is written to by the plain `=` alone, and it is read once: as the operand
 		// it is, after which a `=` says it was a target. Read as a target first, as it was, an
@@ -1341,29 +1326,26 @@ namespace DotGram.ExpressionLanguage;
 	// is no `>>` for the lexer to make, `~` says the two stand with nothing between them,
 	// and `a > > b` is refused exactly as C# refuses it.
 	Binary : @Expression on fail "Expected an expression."
-		= left: Binary & "||" & right: Binary        << 1  => @(ExpressionParser.Logical(Expression.OrElse, left, right))
-		| left: Binary & "&&" & right: Binary        << 2  => @(ExpressionParser.Logical(Expression.AndAlso, left, right))
-		| left: Binary & '|' & ?!'|' & right: Binary << 3  => @(ExpressionParser.Integral(Expression.Or, left, right))
-		| left: Binary & '^' & right: Binary         << 4  => @(ExpressionParser.Integral(Expression.ExclusiveOr, left, right))
-		| left: Binary & '&' & ?!'&' & right: Binary << 5  => @(ExpressionParser.Integral(Expression.And, left, right))
-		| left: Binary & "==" & right: Binary        << 6  => @(ExpressionParser.Equality(Expression.Equal, left, right))
-		| left: Binary & "!=" & right: Binary        << 6  => @(ExpressionParser.Equality(Expression.NotEqual, left, right))
-		| left: Binary & "is" & type: Tested          << 7  => @(Expression.TypeIs(left, type))
-		| left: Binary & "as" & type: Tested          << 7  => @(Expression.TypeAs(left, type))
-		| left: Binary & "<=" & right: Binary        << 7  => @(ExpressionParser.Relational(Expression.LessThanOrEqual, left, right))
-		| left: Binary & ">=" & right: Binary        << 7  => @(ExpressionParser.Relational(Expression.GreaterThanOrEqual, left, right))
-		| left: Binary & '<' & ?!'<' & right: Binary << 7  => @(ExpressionParser.Relational(Expression.LessThan, left, right))
-		| left: Binary & '>' & ?!'>' & right: Binary << 7  => @(ExpressionParser.Relational(Expression.GreaterThan, left, right))
-		| left: Binary & '<' ~ '<' & right: Binary   << 8  => @(ExpressionParser.Shift(Expression.LeftShift, left, right))
-		| left: Binary & '>' ~ '>' & right: Binary   << 8  => @(ExpressionParser.Shift(Expression.RightShift, left, right))
-		| left: Binary & '+' & right: Binary         << 9
-		  => @(ExpressionParser.Add(left, right, parserState))
-		| left: Binary & '-' & right: Binary         << 9
-		  => @(ExpressionParser.Subtract(left, right, parserState))
-		| left: Binary & '*' & right: Binary         << 10
-		  => @(ExpressionParser.Multiply(left, right, parserState))
-		| left: Binary & '/' & right: Binary         << 10 => @(ExpressionParser.Arithmetic(Expression.Divide, left, right))
-		| left: Binary & '%' & right: Binary         << 10 => @(ExpressionParser.Arithmetic(Expression.Modulo, left, right))
+		= left: Binary & "||" &         right: Binary <<  1 => @(ExpressionParser.Logical(Expression.OrElse, left, right))
+		| left: Binary & "&&" &         right: Binary <<  2 => @(ExpressionParser.Logical(Expression.AndAlso, left, right))
+		| left: Binary & '|'  & ?!'|' & right: Binary <<  3 => @(ExpressionParser.Integral(Expression.Or, left, right))
+		| left: Binary & '^'  &         right: Binary <<  4 => @(ExpressionParser.Integral(Expression.ExclusiveOr, left, right))
+		| left: Binary & '&'  & ?!'&' & right: Binary <<  5 => @(ExpressionParser.Integral(Expression.And, left, right))
+		| left: Binary & "==" &         right: Binary <<  6 => @(ExpressionParser.Equality(Expression.Equal, left, right))
+		| left: Binary & "!=" &         right: Binary <<  6 => @(ExpressionParser.Equality(Expression.NotEqual, left, right))
+		| left: Binary & "is" &         type:  Tested <<  7 => @(Expression.TypeIs(left, type))
+		| left: Binary & "as" &         type:  Tested <<  7 => @(Expression.TypeAs(left, type))
+		| left: Binary & "<=" &         right: Binary <<  7 => @(ExpressionParser.Relational(Expression.LessThanOrEqual, left, right))
+		| left: Binary & ">=" &         right: Binary <<  7 => @(ExpressionParser.Relational(Expression.GreaterThanOrEqual, left, right))
+		| left: Binary & '<'  & ?!'<' & right: Binary <<  7 => @(ExpressionParser.Relational(Expression.LessThan, left, right))
+		| left: Binary & '>'  & ?!'>' & right: Binary <<  7 => @(ExpressionParser.Relational(Expression.GreaterThan, left, right))
+		| left: Binary & '<' ~ '<' &    right: Binary <<  8 => @(ExpressionParser.Shift(Expression.LeftShift, left, right))
+		| left: Binary & '>'  ~ '>' &   right: Binary <<  8 => @(ExpressionParser.Shift(Expression.RightShift, left, right))
+		| left: Binary & '+'  &         right: Binary <<  9 => @(ExpressionParser.Add(left, right, parserState))
+		| left: Binary & '-'  &         right: Binary <<  9 => @(ExpressionParser.Subtract(left, right, parserState))
+		| left: Binary & '*'  &         right: Binary << 10 => @(ExpressionParser.Multiply(left, right, parserState))
+		| left: Binary & '/'  &         right: Binary << 10 => @(ExpressionParser.Arithmetic(Expression.Divide, left, right))
+		| left: Binary & '%'  &         right: Binary << 10 => @(ExpressionParser.Arithmetic(Expression.Modulo, left, right))
 
 		// C#'s `x switch { … }`, standing where C# puts it: over a unary and under the ladder,
 		// so `a * b switch { … }` switches on `b` and `-x switch { … }` on `-x`. The tail is
@@ -1373,26 +1355,23 @@ namespace DotGram.ExpressionLanguage;
 		// `x with { … }` stands at the same level in C#, after the switch, and may follow
 		// itself: `r with { A = 1 } with { B = 2 }`. Another optional tail for the same reason.
 		| u: Unary & ("switch" & '{' & first: Arm & (',' & rest: Arm)* & ','? & '}')? & changes: Change*
-		  => @(ExpressionParser.Copied(
-		       first is { } head ? ExpressionParser.Matched(u, head, rest, context) : u, changes, context.Here(parserSpan).Reach))
+		  => @(ExpressionParser.Copied(first is { } head ? ExpressionParser.Matched(u, head, rest, context) : u, changes, context.Here(parserSpan).Reach))
 
 	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
 	// a name for the same reason assignment is: they write to what they read.
 	Unary : @Expression
-		= "++" & target: Name => @(Expression.PreIncrementAssign(target))
-		| "--" & target: Name => @(Expression.PreDecrementAssign(target))
-		| '-' & operand: Unary => @(ExpressionParser.Negate(operand, parserState))
-		| '+' & operand: Unary => @(ExpressionParser.Arithmetic(Expression.UnaryPlus, operand))
-		| '!' & operand: Unary => @(ExpressionParser.Not(operand))
-		| '~' & operand: Unary => @(ExpressionParser.Integral(Expression.OnesComplement, operand))
+		= "++" & target:  Name  => @(Expression.PreIncrementAssign(target))
+		| "--" & target:  Name  => @(Expression.PreDecrementAssign(target))
+		| '-'  & operand: Unary => @(ExpressionParser.Negate(operand, parserState))
+		| '+'  & operand: Unary => @(ExpressionParser.Arithmetic(Expression.UnaryPlus, operand))
+		| '!'  & operand: Unary => @(ExpressionParser.Not(operand))
+		| '~'  & operand: Unary => @(ExpressionParser.Integral(Expression.OnesComplement, operand))
 
 		// A cast is told from a parenthesized expression by what stands inside it. A keyword
 		// type is no name, and a name is a type only where `NamedType`'s guard finds one —
 		// which is the question C# needs a rule of its own for, asked of the host while the
 		// text is read: `(Exception)e` is a cast, and `(e)` is a parenthesis.
-		| '(' & type: Type & ')' & operand: Unary
-		  => @(ExpressionParser.Cast(operand, type, parserState))
-
+		| '(' & type: Type & ')' & operand: Unary => @(ExpressionParser.Cast(operand, type, parserState))
 		| p: Postfix => @(p)
 
 	// Everything written after an operand rather than before it. Left recursive, which is
@@ -1404,10 +1383,8 @@ namespace DotGram.ExpressionLanguage;
 	// assignable to it by reference: `Math.Sqrt(x)` over an `int` finds nothing there, and
 	// `Console.WriteLine(s)` finds two and refuses both.
 	Postfix : @Expression
-		= target: Postfix & '.' & member: Identifier & args: Arguments
-		  => @(context.Here(parserSpan).Calling(target, member, args))
-
-		| target: Postfix & '.' & member: Identifier => @(ExpressionParser.Member(target, member, context.Here(parserSpan).Reach))
+		= target: Postfix & '.' & member: Identifier & args: Arguments => @(context.Here(parserSpan).Calling(target, member, args))
+		| target: Postfix & '.' & member: Identifier                   => @(ExpressionParser.Member(target, member, context.Here(parserSpan).Reach))
 
 		// An index is a list, so a two-dimensional array and an indexer of two arguments are
 		// both written without another rule.
@@ -1418,8 +1395,7 @@ namespace DotGram.ExpressionLanguage;
 		// not `(a == null ? null : a.b).c`, which would read `.c` off a null — and a fold
 		// builds as it goes, so by the time `.c` is reached `a?.b` is already a tree. So the
 		// tail is read as data and handed over whole, and `Chained` builds it inside the test.
-		| target: Postfix & chain: Guarded
-		  => @(ExpressionParser.Chained(target, chain, context.Here(parserSpan)))
+		| target: Postfix & chain: Guarded => @(ExpressionParser.Chained(target, chain, context.Here(parserSpan)))
 
 		// An element of a name, which is the one element `Assignment` writes to: read here with
 		// its name, as a head of its own, so that what it was is known where a `=` follows. The
@@ -1520,7 +1496,7 @@ namespace DotGram.ExpressionLanguage;
 		// neither tail is no constructor call here, as it is none in C#. Not of an array type
 		// either, whose braces are the array initializer's above — both the reading `Strict`
 		// rather than `Type`, which `Instanced` says why, and both of it below.
-		| made: Instanced => @(made)
+		| made: Instanced     => @(made)
 		| made: ImplicitArray => @(made)
 		| made: TargetNew     => @(made)
 
@@ -1585,9 +1561,9 @@ namespace DotGram.ExpressionLanguage;
 		// reason, so that `1.5`, `1e5` and `0x1F` are each read whole rather than as a
 		// number and something the parse then has nowhere to put.
 		| token: Decimals => @(Expression.Constant(decimal.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
-		| token: Doubles  => @(Expression.Constant(double.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
-		| token: Floats   => @(Expression.Constant(float.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
-		| token: Real     => @(Expression.Constant(double.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
+		| token: Doubles  => @(Expression.Constant(double. Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
+		| token: Floats   => @(Expression.Constant(float.  Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
+		| token: Real     => @(Expression.Constant(double. Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
 
 		// An integer is the first of `int`, `uint`, `long` and `ulong` that holds it, and a
 		// suffix strikes some of them off the list. Which one that is depends on the value,
@@ -1614,17 +1590,17 @@ namespace DotGram.ExpressionLanguage;
 
 		// Its holes are read here, each over its own window of the text, by the publication
 		// below — this reading's own, whichever carrier it is.
-		| literal: Interpolated => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
+		| literal: Interpolated         => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
 		| literal: VerbatimInterpolated => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
 		| literal: RawLiteral           => @(ExpressionParser.Interpolation(literal, context.Here(parserSpan), TryParseHole))
 
-		| "true"     => @(Expression.Constant(true))
-		| "false"    => @(Expression.Constant(false))
+		| "true"  => @(Expression.Constant(true))
+		| "false" => @(Expression.Constant(false))
 
 		// One node, and not a fresh constant each time: C# types `null` by where it stands,
 		// and the conversions tell the literal from an `object` that happens to be null by
 		// which node it is.
-		| "null"     => @(ExpressionParser.Null)
+		| "null"  => @(ExpressionParser.Null)
 
 		// Not before a `[`: an element of a name is `Postfix`'s own head.
 		| n: Name & ?!'[' => @(n)
@@ -2176,10 +2152,10 @@ public static partial class ExpressionParser
 	/// <summary>Where a lambda's body stands in the text, which is all that is kept of it until it can be built.</summary>
 	internal readonly record struct Held(int At, int Length);
 
-	static readonly MethodInfo FormatOne   = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object) })!;
-	static readonly MethodInfo FormatTwo   = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object), typeof(object) })!;
-	static readonly MethodInfo FormatThree = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object), typeof(object), typeof(object) })!;
-	static readonly MethodInfo FormatMany  = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object[]) })!;
+	static readonly MethodInfo FormatOne   = typeof(string).GetMethod(nameof(string.Format), [typeof(string), typeof(object)])!;
+	static readonly MethodInfo FormatTwo   = typeof(string).GetMethod(nameof(string.Format), [typeof(string), typeof(object), typeof(object)])!;
+	static readonly MethodInfo FormatThree = typeof(string).GetMethod(nameof(string.Format), [typeof(string), typeof(object), typeof(object), typeof(object)])!;
+	static readonly MethodInfo FormatMany  = typeof(string).GetMethod(nameof(string.Format), [typeof(string), typeof(object[])])!;
 
 	/// <summary>An interpolated string, lowered the way C# lowers one inside an expression tree.</summary>
 	/// <remarks>
@@ -2215,7 +2191,6 @@ public static partial class ExpressionParser
 			if (part.Text is { } text)
 			{
 				format.Append(text.Replace("{", "{{").Replace("}", "}}"));
-
 				continue;
 			}
 
@@ -2362,14 +2337,9 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static Expression Chained(Expression target, Step[] chain, State context)
 	{
-		if (target is null)
-			throw new ArgumentNullException(nameof(target));
-
-		if (chain is null)
-			throw new ArgumentNullException(nameof(chain));
-
-		if (context is null)
-			throw new ArgumentNullException(nameof(context));
+		if (target  is null) throw new ArgumentNullException(nameof(target));
+		if (chain   is null) throw new ArgumentNullException(nameof(chain));
+		if (context is null) throw new ArgumentNullException(nameof(context));
 
 		return Tested(target, chain, 0, context);
 	}
@@ -2411,7 +2381,7 @@ public static partial class ExpressionParser
 				: Lifted(inner.Type);
 
 		return Expression.Block(
-			new[] { held },
+			[held],
 			Expression.Assign(held, value),
 			type == typeof(void)
 				? Expression.IfThen(Expression.Not(IsNull(held)), inner)
@@ -2421,9 +2391,11 @@ public static partial class ExpressionParser
 	/// <summary>One step built onto what it is written after.</summary>
 	static Expression Applied(Expression value, Step step, State context)
 	{
-		return step.Indices is { } at ? Indexed(value, at, context.Reach)
-		: step.Arguments is { } args ? context.Calling(value, step.Member!, args)
-		: Member(value, step.Member!, context.Reach);
+		return step.Indices is { } at
+			? Indexed(value, at, context.Reach)
+			: step.Arguments is { } args
+				? context.Calling(value, step.Member!, args)
+				: Member(value, step.Member!, context.Reach);
 	}
 
 	/// <summary>Whether that value is null, asked as its type allows.</summary>
@@ -2527,11 +2499,8 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static MemberBinding[] Bound(Type type, Setting[] settings, ResolutionScope scope)
 	{
-		if (type is null)
-			throw new ArgumentNullException(nameof(type));
-
-		if (settings is null)
-			throw new ArgumentNullException(nameof(settings));
+		if (type     is null) throw new ArgumentNullException(nameof(type));
+		if (settings is null) throw new ArgumentNullException(nameof(settings));
 
 		var bound = new List<MemberBinding>(settings.Length);
 
@@ -3080,7 +3049,7 @@ public static partial class ExpressionParser
 	/// ends in one, is <c>void</c>, which no variable can be. Answering rather than throwing
 	/// leaves the reading to the alternatives after it (§8.1).
 	/// </remarks>
-	internal static bool Inferable(Expression value)
+	internal static bool Inferable(Expression? value)
 	{
 		return value is not null && value.Type != typeof(void) && !ReferenceEquals(value, Null);
 	}
@@ -3157,11 +3126,8 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static Expression Copied(Expression value, Setting[][] changes, ResolutionScope scope)
 	{
-		if (value is null)
-			throw new ArgumentNullException(nameof(value));
-
-		if (changes is null)
-			throw new ArgumentNullException(nameof(changes));
+		if (value   is null) throw new ArgumentNullException(nameof(value));
+		if (changes is null) throw new ArgumentNullException(nameof(changes));
 
 		foreach (var settings in changes)
 			value = Copied(value, settings, scope);
@@ -3459,7 +3425,7 @@ public static partial class ExpressionParser
 	/// not for the element it names, because <see cref="Element"/> is already what one call to
 	/// a collection's <c>Add</c> takes.
 	/// </remarks>
-	internal static Type? Yielded(Expression source)
+	internal static Type? Yielded(Expression? source)
 	{
 		return source is not null && Iterating(source.Type) is { } plan ? plan.Item : null;
 	}
@@ -4378,12 +4344,12 @@ public static partial class ExpressionParser
 					_byPlace.RemoveAt(_byPlace.Count - 1);
 			}
 
-			Truncate(_scopes,     at.Scopes);
-			Truncate(_declared,   at.Declared);
-			Truncate(_unsettled,  at.Unsettled);
-			Truncate(_imports,    at.Imports);
-			Truncate(_aliases,    at.Aliases);
-			Truncate(_statics,    at.Statics);
+			Truncate(_scopes,    at.Scopes);
+			Truncate(_declared,  at.Declared);
+			Truncate(_unsettled, at.Unsettled);
+			Truncate(_imports,   at.Imports);
+			Truncate(_aliases,   at.Aliases);
+			Truncate(_statics,   at.Statics);
 
 			_refusedAt = at.RefusedAt;
 			_refusal   = at.Refusal;

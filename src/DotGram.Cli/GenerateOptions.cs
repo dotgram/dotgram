@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace DotGram.Cli;
@@ -33,15 +36,15 @@ sealed class GenerateOptions
 	public bool               Verbose          { get; init; }
 
 	// `.gram` input only. A project's build decides the first four, and its hosts say the rest.
-	public List<string>       References       { get; } = [];
-	public List<string>       Packages         { get; } = [];
-	public List<string>       Defines          { get; } = [];
-	public string?            LanguageVersion  { get; init; }
-	public string?            Namespace        { get; init; }
-	public string?            ClassName        { get; init; }
-	public bool               Public           { get; init; }
-	public List<(string Name, string Value)> GramOptions { get; } = [];
-	public List<string>       Sources          { get; } = [];
+	public List<string>                      References      { get; } = [];
+	public List<string>                      Packages        { get; } = [];
+	public List<string>                      Defines         { get; } = [];
+	public string?                           LanguageVersion { get; init; }
+	public string?                           Namespace       { get; init; }
+	public string?                           ClassName       { get; init; }
+	public bool                              Public          { get; init; }
+	public List<(string Name, string Value)> GramOptions     { get; } = [];
+	public List<string>                      Sources         { get; } = [];
 
 	/// <summary>
 	/// The arguments as the tool understood them, response files expanded and paths made full: the

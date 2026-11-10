@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -130,7 +132,7 @@ public static partial class ExpressionParser
 		public Type At(int position)
 		{
 			return Expanded && position >= Parameters.Length - 1
-				? Parameters[Parameters.Length - 1].ParameterType.GetElementType()!
+				? Parameters[^1].ParameterType.GetElementType()!
 				: Parameters[position].ParameterType;
 		}
 	}
@@ -167,7 +169,7 @@ public static partial class ExpressionParser
 			return new Overload(
 				member, parameters,
 				parameters.Length > 0 &&
-					parameters[parameters.Length - 1].IsDefined(typeof(ParamArrayAttribute), false),
+					parameters[^1].IsDefined(typeof(ParamArrayAttribute), false),
 				usable);
 		}
 	}
@@ -207,7 +209,7 @@ public static partial class ExpressionParser
 
 		foreach (var space in imports ?? [])
 		{
-			Consider(Loaded.Holders(scope, space));
+			Consider(Loaded.Holders      (scope, space));
 			Consider(Loaded.HoldersInside(scope, space));
 		}
 
@@ -574,12 +576,12 @@ public static partial class ExpressionParser
 	/// </remarks>
 	static int BetterReturn(Unbuilt lambda, Type first, Type second)
 	{
-		if (Unbuilt.Taken(first) is not { } taken ||
-			Unbuilt.Taken(second) is not { } other ||
-			taken.Length != lambda.Arity ||
-			!System.Linq.Enumerable.SequenceEqual(taken, other) ||
+		if (Unbuilt.Taken(first) is not { } taken   ||
+			Unbuilt.Taken(second) is not { } other  ||
+			taken.Length != lambda.Arity            ||
+			!Enumerable.SequenceEqual(taken, other) ||
 			Array.Exists(taken, static one => one.ContainsGenericParameters) ||
-			Unbuilt.Returned(first) is not { } one ||
+			Unbuilt.Returned(first) is not { } one  ||
 			Unbuilt.Returned(second) is not { } two ||
 			one == two)
 		{
