@@ -230,6 +230,8 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Statement.Vacuum` | PostgreSQL | VACUUM | Admin |
 | `Statement.Analyze` | PostgreSQL | ANALYZE | Admin |
 | `Statement.Copy` | PostgreSQL | COPY | Dml |
+| `Statement.DropObject` | PostgreSQL | DROP INDEX, DROP EXTENSION, DROP CAST and the other DROP pages | Ddl |
+| `Statement.Comment` | PostgreSQL | COMMENT | Ddl |
 | `Statement.Commit` | T-SQL | COMMIT TRANSACTION, COMMIT WORK (Transact-SQL) | Transaction |
 | `Statement.Rollback` | T-SQL | ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL) | Transaction |
 | `Statement.Connect` | SQL:2023 | connection/session statements | Session |
@@ -974,6 +976,14 @@ it. The families stand in alphabetical order, each family's records in the order
 | `ModuleContent.Procedure` | SQL:2023 | under &lt;module contents&gt;: a cursor declared, statically or dynamically, or an &lt;externally-invoked procedure&gt; |
 | `ModuleReference.Named` | T-SQL | EXECUTE (Transact-SQL) |
 | `ModuleReference.Variable` | T-SQL | EXECUTE (Transact-SQL) |
+| `ObjectReference.Named` | PostgreSQL | DROP, COMMENT |
+| `ObjectReference.Routine` | PostgreSQL | DROP FUNCTION, COMMENT |
+| `ObjectReference.OnTable` | PostgreSQL | DROP TRIGGER, COMMENT |
+| `ObjectReference.Cast` | PostgreSQL | DROP CAST, COMMENT |
+| `ObjectReference.Operator` | PostgreSQL | DROP OPERATOR, COMMENT |
+| `ObjectReference.LargeObject` | PostgreSQL | COMMENT |
+| `ObjectReference.OperatorClass` | PostgreSQL | DROP OPERATOR CLASS, DROP OPERATOR FAMILY, COMMENT |
+| `ObjectReference.Transform` | PostgreSQL | DROP TRANSFORM, COMMENT |
 | `NotificationScope.Server` | T-SQL | ON SERVER — under DROP EVENT NOTIFICATION (Transact-SQL) |
 | `NotificationScope.Database` | T-SQL | ON DATABASE — under DROP EVENT NOTIFICATION (Transact-SQL) |
 | `NotificationScope.Queue` | T-SQL | ON QUEUE queue_name — under DROP EVENT NOTIFICATION (Transact-SQL) |

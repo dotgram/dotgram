@@ -197,7 +197,11 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.DropView drop:
-					Word("DROP VIEW");
+					// PostgreSQL: DROP MATERIALIZED VIEW.
+					if (drop.Materialized && !postgreSql)
+						throw Misplaced(drop, "Materialized", "which only PostgreSQL reads, DROP MATERIALIZED VIEW");
+
+					Word(drop.Materialized ? "DROP MATERIALIZED VIEW" : "DROP VIEW");
 					PutIfExists(drop.IfExists);
 					Each(drop.Names, PutName);
 					PutBehavior(drop.Behavior);
@@ -458,7 +462,14 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.DropRole drop:
-					Word("DROP ROLE");
+					// PostgreSQL: DROP ROLE. USER and GROUP for ROLE, and no behavior.
+					if (drop.Word is not null && !postgreSql)
+						throw Misplaced(drop, "Word", "which only PostgreSQL reads, DROP USER or DROP GROUP for DROP ROLE");
+
+					if (postgreSql && drop.Behavior is not null)
+						throw Misplaced(drop, "Behavior", "which PostgreSQL's DROP ROLE does not read");
+
+					Word(drop.Word switch { null => "DROP ROLE", RoleWord.User => "DROP USER", RoleWord.Group => "DROP GROUP", _ => throw NoText(drop.Word.Value) });
 					PutIfExists(drop.IfExists);
 					Each(drop.Names, PutIdentifier);
 					PutBehavior(drop.Behavior);
@@ -469,9 +480,23 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.DropTrigger drop:
+					// PostgreSQL: DROP TRIGGER. One trigger, ON its table, and a behavior.
+					if ((drop.Table is not null || drop.Behavior is not null) && !postgreSql)
+						throw Misplaced(drop, "Table or Behavior", "which only PostgreSQL reads on DROP TRIGGER");
+
+					if (postgreSql && (drop.Table is null || drop.On is not null || drop.Names.Count != 1 || drop.Names[0].Count != 1))
+						throw Misplaced(drop, "Table, On or Names", "other than one name of one part ON a table, which PostgreSQL's DROP TRIGGER reads");
+
 					Word("DROP TRIGGER");
 					PutIfExists(drop.IfExists);
 					Each(drop.Names, PutName);
+
+					if (drop.Table is { } triggered)
+					{
+						Word("ON");
+						PutName(triggered);
+						PutBehavior(drop.Behavior);
+					}
 
 					if (drop.On is { } on)
 					{
@@ -1995,6 +2020,7 @@ public static partial class SqlWriter
 				RoutineKind.Function  => "FUNCTION",
 				RoutineKind.Procedure => proc ? "PROC" : "PROCEDURE",
 				RoutineKind.Method    => "METHOD",
+				RoutineKind.Aggregate => postgreSql ? "AGGREGATE" : throw Misplaced(designator, "Kind", "an aggregate, which only PostgreSQL names so"),
 				_                     => throw NoText(designator.Kind),
 			});
 		}
@@ -2003,6 +2029,21 @@ public static partial class SqlWriter
 		void PutDesignatorName(RoutineDesignator designator)
 		{
 			PutName(designator.Name);
+
+			// PostgreSQL: an aggregate's arguments are always written, `(*)` where there are none.
+			if (designator.Kind == RoutineKind.Aggregate)
+			{
+				if (designator.Parameters is not { } arguments)
+					throw Empty(designator, "Parameters");
+
+				if (arguments.Count == 0)
+				{
+					Open();
+					Word("*");
+					Close();
+					return;
+				}
+			}
 
 			if (designator.Parameters is { } parameters)
 			{
