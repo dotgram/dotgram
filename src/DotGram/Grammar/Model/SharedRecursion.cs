@@ -392,6 +392,10 @@ static class SharedRecursion
 
 		List<Step>?                                     _steps;
 
+		readonly List<CharRange>                        _ranges    = [];
+		readonly Dictionary<int, FirstSets.First>       _literals  = [];
+		readonly Dictionary<Node, FirstSets.First>      _elements  = new(NodeIdentity.Instance);
+
 		static readonly Step[] Ending = [new Step(null, null, [], false, Forbid.None)];
 
 		int _callsCut;
@@ -1009,9 +1013,12 @@ static class SharedRecursion
 
 				case Node.Literal literal:
 				{
-					var first = literal.IgnoreCase
-						? FirstSets.First.Chars(CaseFold.Ranges(literal.Text[0]))
-						: FirstSets.First.Chars([new CharRange(literal.Text[0], literal.Text[0])]);
+					var key = literal.Text[0] * 2 + (literal.IgnoreCase ? 1 : 0);
+
+					if (!_literals.TryGetValue(key, out var first))
+						_literals[key] = first = literal.IgnoreCase
+							? FirstSets.First.Chars(CaseFold.Ranges(literal.Text[0]))
+							: FirstSets.First.Chars([new CharRange(literal.Text[0], literal.Text[0])]);
 
 					Letter(first, literal.Text.Length == 1 ? tail : Push(Suffix(literal), tail));
 
@@ -1019,9 +1026,14 @@ static class SharedRecursion
 				}
 
 				case Node.Element element:
-					Letter(FirstSets.OfElement(element), tail);
+				{
+					if (!_elements.TryGetValue(element, out var first))
+						_elements[element] = first = FirstSets.OfElement(element);
+
+					Letter(first, tail);
 
 					break;
+				}
 
 				case Node.Sequence(var parts):
 				{
@@ -1300,20 +1312,96 @@ static class SharedRecursion
 		}
 
 		/// <summary>What two letters both read; the end of the input meets only itself.</summary>
-		static FirstSets.First Meet(FirstSets.First one, FirstSets.First other)
+		/// <remarks>
+		/// Asked for every pair of letters of every pair of configurations: most are apart, and many
+		/// meet in one of the two, so a new set is made only where what both read is neither.
+		/// </remarks>
+		FirstSets.First Meet(FirstSets.First one, FirstSets.First other)
 		{
 			if (one.Ends || other.Ends)
 				return one.Ends && other.Ends ? FirstSets.First.End : FirstSets.First.None;
 
-			// Most letters of two configurations are apart, and telling so needs no new set.
-			if (!one.Stops && !other.Stops && !one.Overlaps(other))
+			if (one.Stops || other.Stops || one.Anything || other.Anything)
+				return one.And(other);
+
+			if (one.Nothing || other.Nothing)
 				return FirstSets.First.None;
 
-			return one.And(other);
+			var mine   = one.Ranges;
+			var others = other.Ranges;
+
+			if (!Maximal(mine) || !Maximal(others))
+				return one.Overlaps(other) ? one.And(other) : FirstSets.First.None;
+
+			var shared = _ranges;
+			var left   = 0;
+			var right  = 0;
+
+			shared.Clear();
+
+			while (left < mine.Count && right < others.Count)
+			{
+				var from = (char)Math.Max(mine[left].From, others[right].From);
+				var to   = (char)Math.Min(mine[left].To,   others[right].To);
+
+				if (from <= to)
+					shared.Add(new CharRange(from, to));
+
+				if (mine[left].To < others[right].To)
+					left++;
+				else
+					right++;
+			}
+
+			return Made(shared, one, other);
+		}
+
+		/// <summary>
+		/// A set of the ranges worked out, which are sorted and maximal: one of the two given where it
+		/// is the same, nothing where there are none.
+		/// </summary>
+		static FirstSets.First Made(List<CharRange> ranges, FirstSets.First one, FirstSets.First? other)
+		{
+			if (ranges.Count == 0)
+				return FirstSets.First.None;
+
+			if (Same(ranges, one.Ranges))
+				return one;
+
+			if (other is not null && Same(ranges, other.Ranges))
+				return other;
+
+			return new FirstSets.First(false, false, ranges.ToArray());
+		}
+
+		static bool Same(List<CharRange> ranges, IReadOnlyList<CharRange> other)
+		{
+			if (ranges.Count != other.Count)
+				return false;
+
+			for (var at = 0; at < ranges.Count; at++)
+				if (ranges[at] != other[at])
+					return false;
+
+			return true;
+		}
+
+		/// <summary>Whether ranges are in the form <see cref="FirstSets.First.Chars"/> gives them: sorted, apart and none empty.</summary>
+		static bool Maximal(IReadOnlyList<CharRange> ranges)
+		{
+			for (var at = 0; at < ranges.Count; at++)
+			{
+				var range = ranges[at];
+
+				if (range.To < range.From || at > 0 && range.From <= ranges[at - 1].To + 1)
+					return false;
+			}
+
+			return true;
 		}
 
 		/// <summary>What one letter reads that another does not.</summary>
-		static FirstSets.First Minus(FirstSets.First one, FirstSets.First other)
+		FirstSets.First Minus(FirstSets.First one, FirstSets.First other)
 		{
 			if (other.Anything || one.Nothing)
 				return FirstSets.First.None;
@@ -1323,6 +1411,36 @@ static class SharedRecursion
 
 			if (other.Nothing)
 				return one;
+
+			if (!one.Anything && !one.Stops && !other.Stops && Maximal(one.Ranges) && Maximal(other.Ranges))
+			{
+				var kept   = _ranges;
+				var others = other.Ranges;
+				var right  = 0;
+
+				kept.Clear();
+
+				foreach (var range in one.Ranges)
+				{
+					int start = range.From;
+
+					while (right < others.Count && others[right].To < start)
+						right++;
+
+					for (var at = right; at < others.Count && others[at].From <= range.To; at++)
+					{
+						if (others[at].From > start)
+							kept.Add(new CharRange((char)start, (char)(others[at].From - 1)));
+
+						start = others[at].To + 1;
+					}
+
+					if (start <= range.To)
+						kept.Add(new CharRange((char)start, range.To));
+				}
+
+				return Made(kept, one, null);
+			}
 
 			var complement = new List<CharRange>();
 			var from       = 0;
