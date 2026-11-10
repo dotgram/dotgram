@@ -775,16 +775,21 @@ namespace DotGram.ExpressionLanguage;
 	// so where the parts run on past that depth the rest of them is read whole (`Further`) for
 	// the arguments to follow, and such a name is refused where it is built, as it always was.
 	//
+	// A head the text declared is never a type (`Binds`, C#'s order), and that is asked of the
+	// head alone, before anything after it is read. Asked at the end, it let `a < a < … > b` over a
+	// parameter `a` read the rest of the chain as type arguments at every `a`, only to be refused
+	// on the head: the square of the chain in time.
+	//
 	// `args` is the `<` alone, which says that there are arguments and is all the rule asks of
 	// it. Captured as the whole of `<…>`, it was the text of every nest inside it, copied again at
 	// every level: `List<List<…>>` of n levels built the square of n in characters, accepted or not.
 	NamedType? : @Type
-		= ?!Keyword & head: Word & ('.' & part: Identifier & when @(context.Nests(parserSpan)))*
+		= ?!Keyword & head: Word & when @(!context.Binds(head, parserSpan))
+		  & ('.' & part: Identifier & when @(context.Nests(parserSpan)))*
 		  & ( '.' & when @(context.Deepest(parserSpan)) & more: Further
 		      & args: '<' & first: Type & (',' & rest: Type)* & '>'
 		    | args: '<' & first: Type & (',' & rest: Type)* & '>')?
-		  & when @(!context.Binds(head, parserSpan) &&
-		           (args != null || context.Resolves(ExpressionParser.Dotted(head, part))))
+		  & when @(args != null || context.Resolves(ExpressionParser.Dotted(head, part)))
 		  => @(args is null
 		       ? context.Here(parserSpan).TypeNamed(ExpressionParser.Dotted(head, part))
 		       : context.Here(parserSpan).Generic(

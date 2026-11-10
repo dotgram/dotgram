@@ -50,6 +50,12 @@ public sealed class ExpressionNestRefusalTests
 		AssertLinearTime("a conditional chain, cut", 1600, 12800, static n => "(bool b) => " + Repeated("b ? 1 : ", n));
 	}
 
+	[Fact]
+	public void Comparisons_a_type_could_begin_take_about_as_long_a_level_at_every_size()
+	{
+		AssertLinearTime("a < … > b", 1600, 12800, static n => "(int a, int b) => " + string.Join(" < ", Enumerable.Repeat("a", n)) + " > b");
+	}
+
 	/// <summary>Bytes a level at four doubling depths stay within a quarter of one another.</summary>
 	static void AssertLinear(string shape, Func<int, string> textFor, bool accepted)
 	{
