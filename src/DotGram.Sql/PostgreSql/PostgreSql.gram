@@ -838,14 +838,33 @@ ConflictTarget : @ConflictTarget
 	= '(' & first: IndexElem & (',' & rest: IndexElem)* & ')' & ("WHERE"i & where: AExpr)? => @(new ConflictTarget.Columns(Nodes.List(first, rest), where))
 	| "ON"i & "CONSTRAINT"i & name: ColId => @(new ConflictTarget.Constraint(name))
 
-// gram.y index_elem: a call — by a key word (COALESCE, CAST) or by name — an expression in
-// parentheses, or a column; a collation, an operator class and an order after it have no slot here
-// and are refused.
-IndexElem : @Expression
+// gram.y index_elem, index_elem_options: a call — by a key word (COALESCE, CAST) or by name — an
+// expression in parentheses, or a column; then its collation, its operator class with that class's
+// options, its direction and the place of its nulls. A word after the key is an operator class unless
+// NULLS FIRST or NULLS LAST begins there, as gram.y's NULLS_LA lookahead has it.
+IndexElem : @IndexElement
+	= key: IndexKey & ("COLLATE"i & collation: AnyName)? & (?!("NULLS"i & ("FIRST"i | "LAST"i)) & opclass: AnyName & ('(' & o1: RelOption & (',' & on: RelOption)* & ')')?)?
+	  & direction: ("ASC"i | "DESC"i)? & ("NULLS"i & nulls: ("FIRST"i | "LAST"i))?
+		=> @(Nodes.Indexed(key, collation, opclass, o1, on, direction, nulls))
+
+IndexKey : @Expression
 	= f: FuncExprCommonSubexpr => @(f)
 	| f: FuncExpr & when @(Nodes.IsWindowless(f)) => @(f)
 	| '(' & e: AExpr & ')' => @(new Expression.Parenthesized(e))
 	| c: ColId => @(new Expression.Reference(new QualifiedName(c)))
+
+// gram.y reloption_elem, def_elem: a name, and `= value` after it. A value is a boolean, a number, a
+// string, or a word of any class with the names after its dots — gram.y's func_type, reserved_keyword
+// and NONE; a type with modifiers, an operator and a name of two parts before the `=`
+// (`toast.fillfactor`) have no slot in an option and are refused.
+RelOption : @Option = name: ColLabel & ('=' & value: DefArg)? => @(new Option(name, value, []))
+
+DefArg : @Expression
+	= "TRUE"i & ?!'.' => @(new LiteralValue.Boolean(BooleanLiteral.True))
+	| "FALSE"i & ?!'.' => @(new LiteralValue.Boolean(BooleanLiteral.False))
+	| n: NumericOnly => @(n)
+	| s: Sconst => @(s)
+	| first: ColLabel & ('.' & rest: AttrName)* => @(new Expression.Reference(Nodes.Chain(first, rest)))
 
 ConflictAction : @ConflictResolution
 	= "DO"i & "NOTHING"i => @(new ConflictResolution.Nothing())

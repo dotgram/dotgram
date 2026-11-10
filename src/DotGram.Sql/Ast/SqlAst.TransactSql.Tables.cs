@@ -256,8 +256,10 @@ public enum IndexStorage { Columnstore, Hash }
 /// T-SQL: CREATE TABLE (Transact-SQL), CREATE INDEX (Transact-SQL), CREATE COLUMNSTORE INDEX (Transact-SQL). An index
 /// written inside a table or on a column, <c>INDEX i [UNIQUE] [CLUSTERED | NONCLUSTERED] [COLUMNSTORE | HASH] (a ASC, …)
 /// [ORDER (…)] [INCLUDE (…)] [WHERE …] [WITH (…)] [ON …] [FILESTREAM_ON …]</c>, or made by a statement of its own.
+/// PostgreSQL: CREATE INDEX. The index PostgreSQL's CREATE INDEX makes, whose name may be left out: the server then
+/// makes one up.
 /// </summary>
-public sealed record IndexDefinition(Identifier Name) : ISqlNode
+public sealed record IndexDefinition(Identifier? Name) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
@@ -272,8 +274,12 @@ public sealed record IndexDefinition(Identifier Name) : ISqlNode
 	public IndexClustering? Clustering { get; init; }
 	public IndexStorage? Storage { get; init; }
 
-	/// <summary>The key's columns, each with the direction written; none for a column's own index.</summary>
-	public SqlList<SortItem> Columns { get; init; } = [];
+	/// <summary>
+	/// The keys, each with the direction written; none for a column's own index. A T-SQL key is a column with a
+	/// direction at most; a PostgreSQL one may be an expression, with a collation, an operator class and an order of
+	/// its nulls.
+	/// </summary>
+	public SqlList<IndexElement> Columns { get; init; } = [];
 
 	/// <summary>
 	/// T-SQL: CREATE COLUMNSTORE INDEX (Transact-SQL). A columnstore index's <c>ORDER (a, b)</c>: the columns its

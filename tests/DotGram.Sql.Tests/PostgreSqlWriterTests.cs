@@ -468,12 +468,20 @@ public sealed class PostgreSqlWriterTests
 		var tree = new Statement.Insert
 		{
 			Target    = T,
-			Conflicts = [new ConflictClause(new ConflictTarget.Columns([A, new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A)]), new Expression.Parenthesized(Binary(A, BinaryOperator.Add, B)), new Expression.Cast(A, Int), Binary(A, BinaryOperator.Add, B), new Expression.Reference(QualifiedName.Of(new Identifier("a"), new Identifier("b")))], null), new ConflictResolution.Nothing())],
+			Conflicts = [new ConflictClause(new ConflictTarget.Columns([
+				new IndexElement(A),
+				new IndexElement(new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A)])),
+				new IndexElement(new Expression.Parenthesized(Binary(A, BinaryOperator.Add, B))),
+				new IndexElement(new Expression.Cast(A, Int)),
+				new IndexElement(Binary(A, BinaryOperator.Add, B)),
+				new IndexElement(new Expression.Reference(QualifiedName.Of(new Identifier("a"), new Identifier("b")))),
+				new IndexElement(A, new CollationName(new QualifiedName(new Identifier("\"C\"", IdentifierStyle.Delimited))), new QualifiedName(new Identifier("text_ops")), [new Option(new Identifier("siglen"), new LiteralValue.Numeric("8", NumericLiteralKind.DecimalInteger), [])], SortDirection.Desc, NullOrdering.Last),
+			], null), new ConflictResolution.Nothing())],
 		};
 
 		var written = PostgreSqlWriter.Write(tree);
 
-		Assert.Equal("INSERT INTO t DEFAULT VALUES ON CONFLICT (a, f(a), (a + b), CAST(a AS INT), (a + b), (a.b)) DO NOTHING", written);
+		Assert.Equal("INSERT INTO t DEFAULT VALUES ON CONFLICT (a, f(a), (a + b), CAST(a AS INT), (a + b), (a.b), a COLLATE \"C\" text_ops (siglen = 8) DESC NULLS LAST) DO NOTHING", written);
 		Assert.True(PostgreSqlParser.TryParseStatement(written).IsSuccess, written);
 	}
 }

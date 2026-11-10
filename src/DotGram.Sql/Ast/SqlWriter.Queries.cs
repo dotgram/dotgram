@@ -2120,30 +2120,6 @@ public static partial class SqlWriter
 			}
 		}
 
-		/// <summary>
-		/// One item of ON CONFLICT's target, as PostgreSQL's index_elem reads it: a column's name, a call by name or by a key
-		/// word, or an expression in brackets — any other expression gets the brackets, and reads back inside them.
-		/// </summary>
-		void PutIndexElement(Expression item)
-		{
-			switch (item)
-			{
-				case Expression.Reference { Name.Count: 1 }:
-				case Expression.Invocation { Filter: null, WithinGroup: null, Over: null }:
-				case Expression.Parenthesized:
-				case Expression.Cast or Expression.Extract or Expression.Treat or Expression.Trim or Expression.Position
-					or Expression.Substring or Expression.Overlay or Expression.Normalize or Expression.CollationFor:
-					PutExpression(item);
-					break;
-
-				default:
-					Open();
-					PutExpression(item);
-					Close();
-					break;
-			}
-		}
-
 		/// <summary>PostgreSQL's ON CONFLICT clauses, after the rows: the target, and nothing or an update.</summary>
 		void PutConflicts(Statement.Insert insert)
 		{

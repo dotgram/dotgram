@@ -873,7 +873,7 @@ public static partial class SqlWriter
 				throw Misplaced(index, "OptionsUnbracketed", "on an index written at the table, whose WITH takes brackets (TableIndexWith)");
 
 			Word("INDEX");
-			PutIdentifier(index.Name);
+			PutIdentifier(index.Name ?? throw Empty(index, "Name"));
 
 			if (index.Unique)
 				Word("UNIQUE");
@@ -1392,7 +1392,7 @@ public static partial class SqlWriter
 					throw Misplaced(index, "Storage", "HASH, which CREATE INDEX has no word for");
 			}
 
-			PutIdentifier(index.Name);
+			PutIdentifier(index.Name ?? throw Empty(index, "Name"));
 			Word("ON");
 			PutName(create.Table);
 			PutIndexBody(index);
@@ -1405,13 +1405,19 @@ public static partial class SqlWriter
 		void PutIndexBody(IndexDefinition index)
 		{
 			// A key is a column of one part, with a direction at most: IndexColumn reads no more.
-			if (index.Columns.Any(static key => key.NullOrdering is not null || !IsName(key.Key)))
-				throw Misplaced(index, "Columns", "that are not columns of one part, or have a null ordering, which an index key does not read");
+			if (index.Columns.Any(static key => key is not { Nulls: null, Collation: null, OperatorClass: null, OperatorClassOptions.Count: 0 } || !IsName(key.Key)))
+				throw Misplaced(index, "Columns", "that are not columns of one part, or have a null ordering, a collation or an operator class, which an index key does not read");
 
 			if (index.Columns.Count > 0)
 			{
 				Open();
-				PutSorts(new OrderByClause(index.Columns));
+				Each(index.Columns, key =>
+				{
+					PutExpression(key.Key);
+
+					if (key.Direction is { } direction)
+						Word(SortWord(direction));
+				});
 				Close();
 			}
 

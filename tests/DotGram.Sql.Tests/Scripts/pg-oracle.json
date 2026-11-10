@@ -1272,8 +1272,7 @@
 		{
 			"name": "conflict_target_with_collation",
 			"text": "INSERT INTO t VALUES (1) ON CONFLICT (a COLLATE \"C\" text_pattern_ops DESC) DO NOTHING",
-			"accepted": true,
-			"known": "ConflictTarget.Columns holds expressions; gram.y's index_elem takes a collation, an operator class and an order"
+			"accepted": true
 		},
 		{
 			"name": "truncates",
@@ -1798,6 +1797,11 @@
 			"name": "operator_before_comment",
 			"text": "SELECT 1 -/**/3; SELECT -/**/3; SELECT 1 +/**/3; SELECT 1 </**/ 3",
 			"known": "scan.l ends an operator where a comment begins inside it; the Operator token is a lexical rule, which cannot look ahead, so the run is read whole and refused (a generator-level limitation)",
+			"accepted": true
+		},
+		{
+			"name": "conflict_target_index_elements",
+			"text": "INSERT INTO t VALUES (1) ON CONFLICT (a COLLATE \"C\" text_pattern_ops DESC, lower(b) nulls, c gist_ops (siglen = 8) NULLS FIRST) DO NOTHING",
 			"accepted": true
 		}
 	]

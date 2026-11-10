@@ -15,7 +15,7 @@ using Query = DotGram.Sql.Ast.Query;
 /// captured, turned into nodes. Pure factories: they read no host state, so a construction run for a
 /// derivation the reading then gives up leaves nothing behind.
 /// </summary>
-static class Nodes
+static partial class Nodes
 {
 	// ── Names ──────────────────────────────────────────────────────────────────
 

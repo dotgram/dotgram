@@ -226,8 +226,11 @@ public abstract record ConflictTarget : ISqlNode
 	{
 	}
 
-	/// <summary>PostgreSQL: INSERT. <c>(a, (b + 1), f(c)) WHERE …</c>: a column by its name, an expression in brackets or a call, each an item.</summary>
-	public sealed record Columns(SqlList<Expression> Items, Expression? Where = null) : ConflictTarget;
+	/// <summary>
+	/// PostgreSQL: INSERT. <c>(a, (b + 1), f(c) COLLATE "C" text_pattern_ops) WHERE …</c>: the keys of a unique index,
+	/// each a column by its name, an expression in brackets or a call, with what an index's key may say beside it.
+	/// </summary>
+	public sealed record Columns(SqlList<IndexElement> Items, Expression? Where = null) : ConflictTarget;
 
 	/// <summary>PostgreSQL: INSERT. <c>ON CONSTRAINT name</c>.</summary>
 	public sealed record Constraint(Identifier Name) : ConflictTarget;
