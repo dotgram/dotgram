@@ -44,6 +44,12 @@ public sealed class ExpressionNestRefusalTests
 		AssertLinear("closed", static n => "(" + Repeated("System.Collections.Generic.List<", n) + "int" + Repeated(">", n) + " x) => 1", accepted: true);
 	}
 
+	[Fact]
+	public void A_conditional_chain_cut_short_takes_about_as_long_a_level_at_every_size()
+	{
+		AssertLinearTime("a conditional chain, cut", 1600, 12800, static n => "(bool b) => " + Repeated("b ? 1 : ", n));
+	}
+
 	/// <summary>Bytes a level at four doubling depths stay within a quarter of one another.</summary>
 	static void AssertLinear(string shape, Func<int, string> textFor, bool accepted)
 	{
@@ -77,6 +83,41 @@ public sealed class ExpressionNestRefusalTests
 				each[i] <= each[i - 1] * 1.25,
 				$"{shape}: at {depths[i - 1]} levels {each[i - 1]:F1} bytes each, at {depths[i]} {each[i]:F1} bytes each — " +
 				$"{each[i] / each[i - 1]:F2} times as many, where a square doubles them.");
+	}
+
+	/// <summary>
+	/// <paramref name="large"/> levels take at most twice as many times as long as <paramref name="small"/> as
+	/// there are times the levels; the fewest of three readings of each.
+	/// </summary>
+	static void AssertLinearTime(string shape, int small, int large, Func<int, string> textFor)
+	{
+		var (few, many) = (textFor(small), textFor(large));
+
+		Assert.False(ExpressionParser.TryParse(many).IsSuccess);
+
+		var times = new[] { Fewest(few), Fewest(many) };
+
+		TestContext.Current.TestOutputHelper?.WriteLine($"{shape}: {small} levels {times[0]:F1} ms, {large} levels {times[1]:F1} ms");
+		Assert.True(
+			times[1] <= times[0] * (large / small) * 2,
+			$"{shape}: {small} levels took {times[0]:F1} ms and {large} took {times[1]:F1} ms — " +
+			$"{times[1] / times[0]:F1} times as long for {large / small} times the levels.");
+
+		static double Fewest(string text)
+		{
+			var fewest = double.MaxValue;
+
+			for (var run = 0; run < 3; run++)
+			{
+				var clock = Stopwatch.StartNew();
+
+				ExpressionParser.TryParse(text);
+
+				fewest = Math.Min(fewest, clock.Elapsed.TotalMilliseconds);
+			}
+
+			return fewest;
+		}
 	}
 
 	static string Repeated(string unit, int times)

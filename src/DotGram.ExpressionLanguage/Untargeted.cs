@@ -35,7 +35,33 @@ public static partial class ExpressionParser
 		public sealed override bool CanReduce => false;
 
 		/// <summary>Whether it converts to that type, which is what makes it buildable there.</summary>
-		public abstract bool Builds(Type target);
+		/// <remarks>
+		/// Kept for the last type asked. A node of this kind asks the nodes inside it the same
+		/// question, and where those are of this kind too the question goes all the way down: a
+		/// conditional whose branches meet in no type is one of these, and `b ? 1 : b ? 1 : … : b`
+		/// asked its whole nest again at every level as each one was built — the square of the nest
+		/// in time. The answer is a function of the node and the type alone, and a node lives for one
+		/// reading on one thread.
+		/// </remarks>
+		public bool Builds(Type target)
+		{
+			if (target is not null && ReferenceEquals(target, _asked))
+				return _answer;
+
+			var answer = Answers(target!);
+
+			_answer = answer;
+			_asked  = target;
+
+			return answer;
+		}
+
+		/// <summary>What <see cref="Builds"/> answers, worked out.</summary>
+		protected abstract bool Answers(Type target);
+
+		/// <summary>The type <see cref="Builds"/> was last asked about, and its answer.</summary>
+		Type? _asked;
+		bool  _answer;
 
 		/// <summary>What it is, built as that type.</summary>
 		public abstract Expression Built(Type target);
@@ -111,7 +137,7 @@ public static partial class ExpressionParser
 		readonly Expression _right;
 
 		/// <summary>Whether every arm converts to that type, which is what makes it buildable there.</summary>
-		public override bool Builds(Type target)
+		protected override bool Answers(Type target)
 		{
 			if (target is null || target == typeof(void))
 				return false;

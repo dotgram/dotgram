@@ -40,7 +40,7 @@ public static partial class ExpressionParser
 		/// Asked of Roslyn: `M(Box)` beside `M(params Box[])` is ambiguous for `M(new())` (CS0121),
 		/// so even an array, which no `new()` can make, is a type it converts to there.
 		/// </remarks>
-		public override bool Builds(Type target)
+		protected override bool Answers(Type target)
 		{
 			return target is not null && target != typeof(void);
 		}
