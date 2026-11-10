@@ -190,7 +190,7 @@ public sealed class LexicalContextTests
 
 					Start : @string = t: Tokens.Name+ => @(t)
 
-					parse Start
+					positional parse Start
 					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
 				public static partial class P
 				{
@@ -299,8 +299,8 @@ public sealed class LexicalContextTests
 
 					Start : @string = t: Tokens.Quoted => @(t) | "(" & s: Start & ")" => @(s)
 
-					parse Start with (Version = "a") as A
-					parse Start with (Version = "b") as B
+					positional parse Start with (Version = "a") as A
+					positional parse Start with (Version = "b") as B
 					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
 				public static partial class P
 				{
@@ -398,7 +398,7 @@ public sealed class LexicalContextTests
 
 					Start : @string = n: Tokens.Name+ => @(string.Concat(n))
 
-					parse Start
+					positional parse Start
 					""", Lexical = true)]
 				public static partial class P
 				{
@@ -463,7 +463,7 @@ public sealed class LexicalContextTests
 
 					Start : @string = t: Tokens.Name => @(t) | n: Tokens.Num => @(n)
 
-					parse Start
+					positional parse Start
 					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
 				public static partial class P
 				{
