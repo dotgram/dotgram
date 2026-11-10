@@ -303,13 +303,28 @@ static class SharedRecursion
 	}
 
 	/// <summary>One letter a configuration can read next, and what it is then.</summary>
-	/// <param name="Letter">What it reads; null where the reading ends here (the end of the rule, or of the braces).</param>
-	/// <param name="After">The configuration after the letter.</param>
-	/// <param name="Entered">The rules of a cycle entered on the way to the letter.</param>
-	/// <param name="Guarded">Whether a <c>when</c> was passed on the way.</param>
-	/// <param name="Forbidden">The <c>?!</c> sequences that begin at this letter.</param>
-	sealed record Step(FirstSets.First? Letter, Rest? After, RuleSymbol[] Entered, bool Guarded, Forbid Forbidden)
+	/// <remarks>
+	/// A class, not a record: it carries a cache of its own, and is never compared or hashed. Each
+	/// search makes its own steps, the ending among them, so nothing it writes is seen by another.
+	/// </remarks>
+	/// <param name="letter">What it reads; null where the reading ends here (the end of the rule, or of the braces).</param>
+	/// <param name="after">The configuration after the letter.</param>
+	/// <param name="entered">The rules of a cycle entered on the way to the letter.</param>
+	/// <param name="guarded">Whether a <c>when</c> was passed on the way.</param>
+	/// <param name="forbidden">The <c>?!</c> sequences that begin at this letter.</param>
+	sealed class Step(FirstSets.First? letter, Rest? after, IReadOnlyList<RuleSymbol> entered, bool guarded, Forbid forbidden)
 	{
+		public FirstSets.First? Letter { get; } = letter;
+
+		public Rest? After { get; } = after;
+
+		/// <summary>Shared by every step read past the same calls: read, never written.</summary>
+		public IReadOnlyList<RuleSymbol> Entered { get; } = entered;
+
+		public bool Guarded { get; } = guarded;
+
+		public Forbid Forbidden { get; } = forbidden;
+
 		/// <summary>The rule <see cref="InCycle"/> and <see cref="Self"/> were last worked out for; a pair's rule is asked about every step many times over.</summary>
 		public RuleSymbol? AskedFor { get; set; }
 
@@ -324,7 +339,7 @@ static class SharedRecursion
 	/// One joint letter of a witness, with what each side entered on the way to it where both
 	/// entered the cycle. Spelled out only for the pair that is told: most states never are.
 	/// </summary>
-	sealed record Trail(FirstSets.First Letter, RuleSymbol[]? EnteredA, RuleSymbol[]? EnteredB, Trail? Before);
+	sealed record Trail(FirstSets.First Letter, IReadOnlyList<RuleSymbol>? EnteredA, IReadOnlyList<RuleSymbol>? EnteredB, Trail? Before);
 
 	/// <summary>A pair of configurations being simulated.</summary>
 	readonly record struct State(Rest? A, Forbid ForbidA, Rest? B, Forbid ForbidB, int Joint, bool Guarded, Trail? Trail);
@@ -364,8 +379,13 @@ static class SharedRecursion
 	sealed record Candidate(Node Choice, string Shape, Rest?[] Alternatives);
 
 	/// <summary>The rules on the way to a letter, as a list that shares its tail.</summary>
-	sealed record Entry(RuleSymbol Rule, Entry? Before)
+	/// <remarks>A class, not a record, for the cache it carries; it is never compared or hashed.</remarks>
+	sealed class Entry(RuleSymbol rule, Entry? before)
 	{
+		public RuleSymbol Rule { get; } = rule;
+
+		public Entry? Before { get; } = before;
+
 		/// <summary>What <see cref="Search.Entered"/> made of it, kept: every step read past the call shares it.</summary>
 		public RuleSymbol[]? Rules { get; set; }
 	}
@@ -396,7 +416,7 @@ static class SharedRecursion
 		readonly Dictionary<int, FirstSets.First>       _literals  = [];
 		readonly Dictionary<Node, FirstSets.First>      _elements  = new(NodeIdentity.Instance);
 
-		static readonly Step[] Ending = [new Step(null, null, [], false, Forbid.None)];
+		readonly Step[] _ending = [new Step(null, null, [], false, Forbid.None)];
 
 		int _callsCut;
 
@@ -759,12 +779,17 @@ static class SharedRecursion
 			var inside = false;
 			var self   = false;
 
-			foreach (var one in step.Entered)
+			// Indexed: the rules are a list behind an interface, whose enumerator is an object.
+			for (var index = 0; index < step.Entered.Count; index++)
+			{
+				var one = step.Entered[index];
+
 				if (_component.TryGetValue(one, out var at) && at == component)
 				{
 					inside = true;
 					self  |= ReferenceEquals(one, rule) || one.Equals(rule);
 				}
+			}
 
 			step.AskedFor = rule;
 			step.InCycle  = inside;
@@ -774,13 +799,13 @@ static class SharedRecursion
 		}
 
 		/// <summary>The rules of the cycle among those entered, in the order entered.</summary>
-		List<RuleSymbol> Inside(RuleSymbol[] entered, int component)
+		List<RuleSymbol> Inside(IReadOnlyList<RuleSymbol> entered, int component)
 		{
 			var inside = new List<RuleSymbol>();
 
-			foreach (var one in entered)
-				if (_component.TryGetValue(one, out var at) && at == component)
-					inside.Add(one);
+			for (var index = 0; index < entered.Count; index++)
+				if (_component.TryGetValue(entered[index], out var at) && at == component)
+					inside.Add(entered[index]);
 
 			return inside;
 		}
@@ -943,7 +968,7 @@ static class SharedRecursion
 		Step[] Expand(Rest? rest)
 		{
 			if (rest is null)
-				return Ending;
+				return _ending;
 
 			if (_expanded.TryGetValue(rest, out var known))
 				return known;
