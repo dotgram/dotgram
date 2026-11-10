@@ -1878,7 +1878,8 @@ static partial class Nodes
 	/// <summary>Whether a statement is one EXPLAIN explains: a query, a data change, an EXECUTE, a cursor's declaration.</summary>
 	public static bool Explainable(Statement statement)
 	{
-		return statement is Statement.Select or Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge or Statement.Execute or Statement.DeclareCursor;
+		return statement is Statement.Select or Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge or Statement.Execute or Statement.DeclareCursor
+			or Statement.CreateTable { Contents: TableContents.AsQuery };
 	}
 
 	/// <summary>Whether a statement is one PREPARE prepares: a query or a data change.</summary>

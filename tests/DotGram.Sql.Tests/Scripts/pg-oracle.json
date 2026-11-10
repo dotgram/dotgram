@@ -2861,6 +2861,17 @@
 			"text": "COMMENT ON COLUMN c IS 'x'",
 			"note": "the server refuses in analysis (column name must be qualified); gram.y reads it, and so does this",
 			"accepted": true
+		},
+		{
+			"name": "explain_create_table_as",
+			"text": "EXPLAIN ANALYZE CREATE TABLE t AS SELECT 1",
+			"accepted": true
+		},
+		{
+			"name": "explain_create_table",
+			"text": "EXPLAIN CREATE TABLE t (a int)",
+			"accepted": false,
+			"error": "syntax error at or near \"int\", at index 26"
 		}
 	]
 }

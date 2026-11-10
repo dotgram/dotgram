@@ -215,6 +215,14 @@ public sealed class PostgreSqlTableTests
 		Assert.True(holds, $"{text}: {made}");
 	}
 
+	/// <summary>EXPLAIN explains a table made of a query, as gram.y's ExplainableStmt reads CreateAsStmt; any other CREATE TABLE it refuses.</summary>
+	[Fact]
+	public void Explain_explains_a_table_made_of_a_query()
+	{
+		Assert.True(Holds("EXPLAIN ANALYZE CREATE TABLE t AS SELECT 1") is Statement.Explain { Statement: Statement.CreateTable { Contents: TableContents.AsQuery } });
+		Assert.False(PostgreSqlParser.TryParseStatement("EXPLAIN CREATE TABLE t (a int)").IsSuccess);
+	}
+
 	[Fact]
 	public void A_select_into_T_SQL_reads_is_one_tree()
 	{
