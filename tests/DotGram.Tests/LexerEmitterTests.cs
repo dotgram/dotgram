@@ -335,7 +335,7 @@ public sealed class LexerEmitterTests
 			parse Start
 			""");
 
-		Assert.Contains("Lex_DotGram_Cells[(int)row + at]", source, StringComparison.Ordinal);
+		Assert.Contains("next = cells[(int)row + at];", source, StringComparison.Ordinal);
 
 		// The alphabet is U+0430 to U+044F, so the rows over it hold that and sit nowhere near
 		// ASCII. Anchored at zero this grammar would have no usable row at all and every
