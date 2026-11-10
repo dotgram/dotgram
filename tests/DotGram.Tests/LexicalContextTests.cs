@@ -154,13 +154,16 @@ public sealed class LexicalContextTests
 	}
 
 	/// <summary>
-	/// A cutting made with the context is not kept: the same string read from a position again, under a context that
-	/// answers otherwise, is cut again and answered otherwise.
+	/// A cutting whose measuring reads the context is not kept: the same string read from a position again, under a
+	/// context that answers otherwise, is cut again and answered otherwise — a new object, or the same one changed
+	/// between the two readings, which a cache keyed by the object would have answered from the first.
 	/// </summary>
 	[Theory]
-	[InlineData("Tape")]
-	[InlineData("Immediate")]
-	public void A_cutting_made_with_the_context_is_not_kept_for_the_next_reading(string carrier)
+	[InlineData("Tape",      false)]
+	[InlineData("Immediate", false)]
+	[InlineData("Tape",      true)]
+	[InlineData("Immediate", true)]
+	public void A_cutting_made_with_the_context_is_not_kept_for_the_next_reading(string carrier, bool same)
 	{
 		var assembly = GeneratorDriverTests.Build($$""""
 			using DotGram;
@@ -199,12 +202,13 @@ public sealed class LexicalContextTests
 		var read     = host.GetMethods().Single(static one =>
 			one.Name == "TryParseStart" && one.GetParameters() is [_, { ParameterType.IsByRef: true, IsOut: false }, _, { IsOut: true }]);
 		var text     = "ab cd";
+		var kept     = Activator.CreateInstance(context)!;
 
 		// One string, one reading after another: the first cuts it with the context that accepts, and the second,
 		// under one that refuses every name, must not be handed that cutting.
 		foreach (var ok in new[] { true, false, true })
 		{
-			var given = Activator.CreateInstance(context)!;
+			var given = same ? kept : Activator.CreateInstance(context)!;
 
 			context.GetField("Ok")!.SetValue(given, ok);
 
@@ -262,6 +266,208 @@ public sealed class LexicalContextTests
 		Assert.Null(Reading(host, "TryB", " $q$x1$q$"));
 		Assert.Equal("$q$y1$q$!", Reading(host, "TryA", " $q$y1$q$"));
 		Assert.Equal("$q$y1$q$!", Reading(host, "TryB", " $q$y1$q$"));
+	}
+
+	/// <summary>
+	/// Two readings of one string, from a position, one after another: a cutting whose measuring tests the reading is
+	/// kept beside the reading it was cut as, so the other publication cuts its own rather than reading the first one's.
+	/// </summary>
+	[Theory]
+	[InlineData("Tape")]
+	[InlineData("Immediate")]
+	public void A_cutting_kept_for_one_reading_is_not_handed_to_another(string carrier)
+	{
+		var assembly = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			namespace LexicalReadingKept
+			{
+				[Gram("""
+					Version = "a" | "b"
+
+					wordboundary = ['a'..'z']
+					trivia = { ' '* }
+
+					namespace Tokens
+					{
+						trivia = none
+
+						Quoted = { '$' & $tag: (['a'..'z']*) & '$' & Mark & (?!('$' & $tag & '$') & any)* & '$' & $tag & '$' }
+						Mark   = 'x' & when Version is "a" | 'y'
+					}
+
+					Start : @string = t: Tokens.Quoted => @(t) | "(" & s: Start & ")" => @(s)
+
+					parse Start with (Version = "a") as A
+					parse Start with (Version = "b") as B
+					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
+				public static partial class P
+				{
+				}
+			}
+			"""", "GRAM5012");
+		var text     = "$q$x1$q$";
+
+		// The reading that accepts first, so that what it cut is there to be handed on, and then the other. Start reaches
+		// itself so that it is read by the engine, which is where a reading from a position is offered (§6.3).
+		foreach (var (method, read) in new[] { ("TryA", true), ("TryB", false), ("TryA", true), ("TryB", false) })
+		{
+			var answer = EmittedCode.Answered(assembly, "LexicalReadingKept.P", method, text, 0);
+
+			Assert.Equal(read, answer.Read);
+			Assert.Equal(read ? text : null, answer.Value);
+		}
+	}
+
+	/// <summary>
+	/// A context named only where a terminal's value is built is handed to the tokenizer and read by nothing it measures,
+	/// so the cutting is still kept: a host reading one value after another from one text measures each token once,
+	/// however many values it reads, rather than the whole text again for every one.
+	/// </summary>
+	/// <remarks>
+	/// Counted rather than timed: a guard of the measured terminal counts its measurings, and the text read a word at a
+	/// time is measured once a word — linear in the text, where a cutting made again for every value is the square.
+	/// </remarks>
+	[Theory]
+	[InlineData("Tape")]
+	[InlineData("Immediate")]
+	public void A_context_named_only_by_a_construction_keeps_the_cutting(string carrier)
+	{
+		var assembly = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			namespace LexicalBuiltKept
+			{
+				public sealed class Ctx
+				{
+					public string Suffix = "!";
+				}
+
+				[Gram("""
+					context : @Ctx
+
+					wordboundary = ['a'..'z' | '0'..'9']
+					trivia = { ' '* }
+
+					namespace Tokens
+					{
+						trivia = none
+
+						Name = { ['a'..'z'] & ['a'..'z']* & when @(Measured()) }
+						Num : @string = d: (['0'..'9'] & ['0'..'9']*) => @(d + context.Suffix)
+					}
+
+					Start : @string = t: Tokens.Name => @(t) | n: Tokens.Num => @(n)
+
+					parse Start
+					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
+				public static partial class P
+				{
+					public static int Measurings;
+
+					static bool Measured()
+					{
+						Measurings++;
+
+						return true;
+					}
+				}
+			}
+			"""", "GRAM5012");
+		var host     = assembly.GetType("LexicalBuiltKept.P")!;
+		var context  = assembly.GetType("LexicalBuiltKept.Ctx")!;
+		var read     = host.GetMethods().Single(static one =>
+			one.Name == "TryParseStart" && one.GetParameters() is [_, { ParameterType.IsByRef: true, IsOut: false }, _, { IsOut: true }]);
+		var count    = host.GetField("Measurings")!;
+		var given    = Activator.CreateInstance(context)!;
+
+		foreach (var words in new[] { 100, 400 })
+		{
+			var text   = string.Join(" ", Enumerable.Repeat("abcd 12", words / 2));
+			var values = new System.Collections.Generic.List<string>();
+			var at     = 0;
+
+			count.SetValue(null, 0);
+
+			while (at < text.Length)
+			{
+				object?[] arguments = [text, at, given, null];
+
+				Assert.True((bool)read.Invoke(null, arguments)!);
+
+				at = (int)arguments[1]!;
+				values.Add((string)arguments[3]!);
+			}
+
+			Assert.Equal(words, values.Count);
+			Assert.Equal("12!", values[1]);
+			Assert.Equal(words / 2, (int)count.GetValue(null)!);
+		}
+	}
+
+	/// <summary>
+	/// A guard of a terminal built from its token that names the context is asked again where the value is built, against
+	/// the context as the syntax has written it by then: what §7.1 says comes of it — the value is null, or another
+	/// alternative's — held here so that a change to it is a decision rather than an accident.
+	/// </summary>
+	[Theory]
+	[InlineData("Tape",      false)]
+	[InlineData("Immediate", false)]
+	[InlineData("Tape",      true)]
+	[InlineData("Immediate", true)]
+	public void A_guard_asked_again_where_the_value_is_built_sees_the_context_as_written(string carrier, bool other)
+	{
+		var terminal = other
+			? "Num : @string = { d: (['0'..'9'] & ['0'..'9']*) & when @(context.Ok) | e: (['0'..'9'] & ['0'..'9']*) } => @(d != null ? \"guarded:\" + d : \"other:\" + e)"
+			: "Num : @string = { d: ['0'..'9'] & ['0'..'9']* & when @(context.Ok) } => @(d)";
+		var assembly = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			namespace LexicalWritten
+			{
+				public sealed class Ctx
+				{
+					public bool Ok = true;
+
+					public bool Flip()
+					{
+						Ok = false;
+
+						return true;
+					}
+				}
+
+				[Gram("""
+					context : @Ctx
+
+					wordboundary = ['a'..'z']
+					trivia = { ' '* }
+
+					namespace Tokens
+					{
+						trivia = none
+
+						{{terminal}}
+					}
+
+					Start : @string = "go" & when @(context.Flip()) & n: Tokens.Num => @(n ?? "null")
+
+					parse Start
+					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
+				public static partial class P
+				{
+				}
+			}
+			"""", "GRAM5012");
+		var host     = assembly.GetType("LexicalWritten.P")!;
+		var context  = assembly.GetType("LexicalWritten.Ctx")!;
+		var parse    = host.GetMethods(BindingFlags.Public | BindingFlags.Static).Single(static one =>
+			one.Name == "TryParseStart" && one.GetParameters() is [{ ParameterType.Name: "String" }, _, { IsOut: true }]);
+
+		object?[] arguments = ["go 12", Activator.CreateInstance(context)!, null];
+
+		Assert.True((bool)parse.Invoke(null, arguments)!);
+		Assert.Equal(other ? "other:12" : "null", arguments[2]);
 	}
 
 	/// <summary>What a door reads of the whole input under a context, and where it was told it was; null on a refusal.</summary>

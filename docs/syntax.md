@@ -3562,10 +3562,14 @@ handed and as the reading the publication is, and a value built from a token is 
 both, as over characters. The tokens are cut before the syntax reads anything, so a guard
 there sees the context as it was handed over, not what the syntax's own guards have written
 into it by the time the parse reaches the token; and a token's value is read again when it
-is built, so a guard that answers otherwise by then leaves the value null. What such a guard
-reads belongs in the context as configuration that holds for the whole parse. A cutting made
-with the context or a reading is the parse's, not the string's: it is not kept for the next
-reading of the same string.
+is built, so a guard that answers otherwise by then leaves the value null, or another
+alternative's value, with nothing to say so. A check of the context in a terminal has to give
+the same answer for the whole parse: what it reads belongs in the context as configuration
+the syntax never writes. A grammar whose terminals depend on what the syntax has read so far
+is a grammar for `Lexical = false`, where a terminal is read where the parse reaches it. A
+cutting whose measuring reads the context is the parse's, not the string's: it is not kept
+for the next reading of the same string. One that only tests the reading is kept beside the
+reading it was cut as.
 
 The beginning has to be the terminal's alone. One that can be empty, or that is also a
 token of its own, is refused (`GRAM5004`): the lexer would have a string it cannot give

@@ -2033,11 +2033,12 @@ static partial class CSharpEmitter
 		var gives = state is null ? "" : ", context";
 
 		// What the tokenizer is handed to hand on where it measures a terminal over its text: the context and the
-		// reading this parser is, where that machine asks for them (ValuingAsks). A cutting made with either is
-		// this parse's and not the string's, so it is not kept for the next reading of the same string.
+		// reading this parser is, where that machine asks for them (ValuingAsks). A cutting whose measuring reads
+		// the context is this parse's and not the string's, so it is not kept for the next reading of the same
+		// string (CuttingAsks); one that reads only the reading is kept beside it.
 		var cutting = compiled.Machine.Valuing.Arguments(
 			"context", publication.Reading.ToString(System.Globalization.CultureInfo.InvariantCulture), locating: null);
-		var keeps   = cutting.Length == 0;
+		var keeps   = !CuttingAsks(lexical).Context;
 
 		// Which reading of the grammar this publication is (`when … is …`), where the machine it
 		// shares with the others asks. A number and not an argument the caller writes: the
@@ -2406,7 +2407,7 @@ static partial class CSharpEmitter
 					file.Line(windowed
 						? $"var tokens = Tokenize_DotGram(source, at, at + length, true{cutting});"
 						: kept
-							? "var tokens = Tokenized_DotGram(source);"
+							? $"var tokens = Tokenized_DotGram(source{cutting});"
 							: $"var tokens = Tokenize_DotGram(source{cutting});");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
@@ -2614,7 +2615,7 @@ static partial class CSharpEmitter
 					file.Line(windowed
 						? $"var tokens = Tokenize_DotGram(source, at, at + length, true{cutting});"
 						: kept
-							? "var tokens = Tokenized_DotGram(source);"
+							? $"var tokens = Tokenized_DotGram(source{cutting});"
 							: $"var tokens = Tokenize_DotGram(source{cutting});");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
@@ -3312,13 +3313,16 @@ file.Line("return spare;");
 		file.Line("/// </remarks>");
 
 		// What the tokenizer is handed to hand on to the machine that measures a terminal over its text (ValuingAsks),
-		// and the same handed on. A cutting made with any of it is the parse's and not the string's: it is not kept
-		// for the next reading of the same string, so there is nothing to keep it in.
-		var asks   = valuing is null ? default : ValuingAsks.Of(valuing);
-		var taken  = asks.Parameters(lexical.Source.Context, locating: false);
-		var handed = asks.Arguments("context", "parserReading", locating: null);
+		// and the same handed on. A cutting whose measuring reads the context is the parse's and not the string's:
+		// it is not kept for the next reading of the same string, so there is nothing to keep it in. One whose
+		// measuring tests the reading is kept beside the reading it was cut as (CuttingAsks).
+		var asks      = valuing is null ? default : ValuingAsks.Of(valuing);
+		var taken     = asks.Parameters(lexical.Source.Context, locating: false);
+		var handed    = asks.Arguments("context", "parserReading", locating: null);
+		var cuts      = CuttingAsks(lexical);
+		var byReading = cuts.Reading;
 
-		if (taken.Length == 0)
+		if (!cuts.Context)
 		{
 			file.Line();
 			file.Line("/// <summary>The inputs whose kinds this thread still holds, and the kinds it holds for them.</summary>");
@@ -3351,15 +3355,28 @@ file.Line("return spare;");
 			file.Line("[global::System.ThreadStatic]");
 			file.Line("static int _cutNext;");
 			file.Line();
+
+			if (byReading)
+			{
+				file.Line("/// <summary>The reading each kept cutting was cut as: what it measured asks which one it is.</summary>");
+				file.Line("[global::System.ThreadStatic]");
+				file.Line("static int[]? _cutReadings;");
+				file.Line();
+			}
+
 			file.Line("/// <summary>The whole input as kinds, cut now or kept from the reading before this one.</summary>");
 
-			using (file.Block("static Tokens_DotGram Tokenized_DotGram(string input)"))
+			using (file.Block($"static Tokens_DotGram Tokenized_DotGram(string input{taken})"))
 			{
 				file.Line("var inputs = _cutInputs;");
 				file.Line("var kept   = _cutTokens;");
+
+				if (byReading)
+					file.Line("var cutAs  = _cutReadings;");
+
 				file.Line();
 
-				using (file.Block("if (inputs != null && kept != null)"))
+				using (file.Block(byReading ? "if (inputs != null && kept != null && cutAs != null)" : "if (inputs != null && kept != null)"))
 				using (file.Block("for (var slot = 0; slot < inputs.Length; slot++)"))
 				{
 					file.Line("var held = inputs[slot];");
@@ -3379,16 +3396,20 @@ file.Line("return spare;");
 					}
 
 					file.Line();
-					file.Line("if (ReferenceEquals(was, input))");
+					file.Line(byReading ? "if (ReferenceEquals(was, input) && cutAs[slot] == parserReading)" : "if (ReferenceEquals(was, input))");
 					file.Then("return kept[slot]!;");
 				}
 
 				file.Line();
-				file.Line("var tokens = Tokenize_DotGram(input, 0, input.Length, true);");
+				file.Line($"var tokens = Tokenize_DotGram(input, 0, input.Length, true{handed});");
 				file.Line();
 				file.Line("inputs ??= _cutInputs = new global::System.WeakReference<string>[2];");
 				file.Line("kept   ??= _cutTokens = new Tokens_DotGram?[2];");
-	            file.Line();
+
+				if (byReading)
+					file.Line("cutAs  ??= _cutReadings = new int[2];");
+
+				file.Line();
 				file.Line("var next = _cutNext;");
 				file.Line();
 				file.Line("_cutNext = next + 1 == inputs.Length ? 0 : next + 1;");
@@ -3398,6 +3419,10 @@ file.Line("return spare;");
 				file.Line("// and a pooled set is written over by the next cutting, under the reading.");
 				file.Line("inputs[next] = new global::System.WeakReference<string>(input);");
 				file.Line("kept[next]   = tokens;");
+
+				if (byReading)
+					file.Line("cutAs[next]  = parserReading;");
+
 				file.Line();
 				file.Line("return tokens;");
 			}
@@ -6325,6 +6350,53 @@ file.Line("return spare;");
 	}
 
 	/// <summary>
+	/// What the tokens a publication cuts depend on besides the string: the context, where what the tokenizer measures
+	/// reads it, and the reading, where what it measures tests it. Not what the machine that measures takes — that is
+	/// every parameter any of its methods takes (<see cref="ValuingAsks"/>), and a context named only where a value is
+	/// built is handed to the tokenizer and read by nothing it runs.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A cutting that depends on neither is the string's, and is kept for the next reading of it; one that depends on the
+	/// reading only is kept beside the reading it was cut as, which is a number of the publication's; one that depends on
+	/// the context is not kept at all. Its identity would not do: the same object may say otherwise by the next reading.
+	/// </para>
+	/// <para>
+	/// A measuring builds no value, so a construction that names the context runs only where a guard asks for the value
+	/// so far; where anything measured holds both, the cutting is taken to read the context.
+	/// </para>
+	/// </remarks>
+	static (bool Context, bool Reading) CuttingAsks(LexicalSplit? lexical)
+	{
+		if (lexical is null)
+			return default;
+
+		var graph   = lexical.Source;
+		var context = false;
+		var reading = false;
+		var guarded = false;
+		var built   = false;
+
+		foreach (var rule in Reached(lexical, Measuring(lexical)))
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				foreach (var node in NodeWalk.Reading(body, graph))
+				{
+					guarded |= node is Node.Guard;
+					reading |= node is Node.Reading;
+
+					if (Machine.NamesContext(graph, node))
+					{
+						if (node is Node.Construct)
+							built = true;
+						else
+							context = true;
+					}
+				}
+
+		return (context || built && guarded, reading);
+	}
+
+	/// <summary>
 	/// What the machine that reads a terminal again over its text will ask of every call into it, worked out before it is
 	/// made: the syntactic machine, made first, has to have it in scope (<see cref="ValuingAsks"/>). The same questions
 	/// that machine asks itself, over the rules it reads (<c>Machine.UsesContext</c>, <c>Machine.UsesReading</c>,
@@ -6373,8 +6445,14 @@ file.Line("return spare;");
 
 	static HashSet<RuleSymbol> Rereads(LexicalSplit lexical)
 	{
+		return Reached(lexical, lexical.Valued.Concat(Measuring(lexical)));
+	}
+
+	/// <summary>The rules of the graph over characters that these reach, these among them.</summary>
+	static HashSet<RuleSymbol> Reached(LexicalSplit lexical, IEnumerable<RuleSymbol> from)
+	{
 		var reached = new HashSet<RuleSymbol>();
-		var pending = new Stack<RuleSymbol>(lexical.Valued.Concat(Measuring(lexical)));
+		var pending = new Stack<RuleSymbol>(from);
 
 		while (pending.Count > 0)
 		{
