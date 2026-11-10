@@ -270,7 +270,8 @@ public sealed class LexicalContextTests
 
 	/// <summary>
 	/// Two readings of one string, from a position, one after another: a cutting whose measuring tests the reading is
-	/// kept beside the reading it was cut as, so the other publication cuts its own rather than reading the first one's.
+	/// kept beside the reading it was cut as, so the other publication cuts its own rather than reading the first one's,
+	/// and each is kept: read again, neither is measured again, which a guard of the measured terminal counts.
 	/// </summary>
 	[Theory]
 	[InlineData("Tape")]
@@ -292,7 +293,7 @@ public sealed class LexicalContextTests
 					{
 						trivia = none
 
-						Quoted = { '$' & $tag: (['a'..'z']*) & '$' & Mark & (?!('$' & $tag & '$') & any)* & '$' & $tag & '$' }
+						Quoted = { '$' & $tag: (['a'..'z']*) & '$' & when @(Measured()) & Mark & (?!('$' & $tag & '$') & any)* & '$' & $tag & '$' }
 						Mark   = 'x' & when Version is "a" | 'y'
 					}
 
@@ -303,19 +304,122 @@ public sealed class LexicalContextTests
 					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
 				public static partial class P
 				{
+					public static int Measurings;
+
+					static bool Measured()
+					{
+						Measurings++;
+
+						return true;
+					}
 				}
 			}
 			"""", "GRAM5012");
+		var count    = assembly.GetType("LexicalReadingKept.P")!.GetField("Measurings")!;
 		var text     = "$q$x1$q$";
+		var cut      = 0;
 
-		// The reading that accepts first, so that what it cut is there to be handed on, and then the other. Start reaches
-		// itself so that it is read by the engine, which is where a reading from a position is offered (§6.3).
-		foreach (var (method, read) in new[] { ("TryA", true), ("TryB", false), ("TryA", true), ("TryB", false) })
+		// The reading that accepts first, so that what it cut is there to be handed on, and then the other; and then both
+		// again, which is answered from what each cut. Start reaches itself so that it is read by the engine, which is
+		// where a reading from a position is offered (§6.3).
+		foreach (var round in new[] { 0, 1 })
 		{
-			var answer = EmittedCode.Answered(assembly, "LexicalReadingKept.P", method, text, 0);
+			foreach (var (method, read) in new[] { ("TryA", true), ("TryB", false) })
+			{
+				var answer = EmittedCode.Answered(assembly, "LexicalReadingKept.P", method, text, 0);
 
-			Assert.Equal(read, answer.Read);
-			Assert.Equal(read ? text : null, answer.Value);
+				Assert.Equal(read, answer.Read);
+				Assert.Equal(read ? text : null, answer.Value);
+			}
+
+			if (round == 0)
+				cut = (int)count.GetValue(null)!;
+		}
+
+		Assert.True(cut > 0);
+		Assert.Equal(cut, (int)count.GetValue(null)!);
+	}
+
+	/// <summary>
+	/// A construction that names the context builds a value a guard of the measured terminal then reads: the measuring
+	/// reads the context through that value, so the cutting is not kept, and the same context object changed between
+	/// two readings from a position is answered by a cutting made under it — reached through a nested rule, a
+	/// specialization of a rule with a parameter, and a rule of another namespace the terminal's imports.
+	/// </summary>
+	/// <remarks>
+	/// Not run yet: a guard that reads a capture's value inside a terminal the lexer measures does not compile, context
+	/// or none — the measuring machine calls the parser's walk over values so far (<c>Materialized</c>,
+	/// <c>Truncate</c>, <c>Reopen</c>), which the parser it writes into does not have (CS1061). The test stands for the
+	/// day it does, when the cutting this guard reads through must not be kept.
+	/// </remarks>
+	[Theory(Skip = "Known defect: a guard reading a capture's value inside a measured lexical terminal does not compile (CS1061 on Parser_DotGram.Materialized), with or without a context.")]
+	[InlineData("nested")]
+	[InlineData("parameter")]
+	[InlineData("imported")]
+	public void A_guard_reading_a_value_built_from_the_context_keeps_no_cutting(string through)
+	{
+		// Lines of the grammar, each indented as the grammar's own are inside the host below.
+		const string Line = "\n\t\t\t\t\t";
+
+		var flag = "Flag : @bool = '-' => @(context.Ok)";
+		var (flags, uses, called, local) = through switch
+		{
+			"nested"    => ("", "", "Flag", flag),
+			"parameter" => ("", "", "Marked('-')", "Marked(mark) : @bool = mark => @(context.Ok)"),
+			_           => ("namespace Flags" + Line + "{" + Line + "\ttrivia = none" + Line + Line + "\t" + flag + Line + "}", "using Flags;", "Flag", ""),
+		};
+		var assembly = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			namespace LexicalBuiltGuard
+			{
+				public sealed class Ctx
+				{
+					public bool Ok = true;
+				}
+
+				[Gram("""
+					{{uses}}
+
+					context : @Ctx
+
+					wordboundary = ['a'..'z']
+					trivia = { ' '* }
+
+					{{flags}}
+
+					namespace Tokens
+					{
+						trivia = none
+
+						Name : @string = { t: (['a'..'z'] & ['a'..'z']*) & f: {{called}} & when @(f) } => @(t)
+						{{local}}
+					}
+
+					Start : @string = n: Tokens.Name+ => @(string.Concat(n))
+
+					parse Start
+					""", Lexical = true)]
+				public static partial class P
+				{
+				}
+			}
+			"""", "GRAM5012");
+		var host     = assembly.GetType("LexicalBuiltGuard.P")!;
+		var context  = assembly.GetType("LexicalBuiltGuard.Ctx")!;
+		var read     = host.GetMethods().Single(static one =>
+			one.Name == "TryParseStart" && one.GetParameters() is [_, { ParameterType.IsByRef: true, IsOut: false }, _, { IsOut: true }]);
+		var given    = Activator.CreateInstance(context)!;
+		var text     = "ab- cd-";
+
+		foreach (var ok in new[] { true, false, true })
+		{
+			context.GetField("Ok")!.SetValue(given, ok);
+
+			object?[] arguments = [text, 0, given, null];
+
+			Assert.Equal(ok, (bool)read.Invoke(null, arguments)!);
+			Assert.Equal(ok ? "abcd" : null, arguments[3]);
 		}
 	}
 
