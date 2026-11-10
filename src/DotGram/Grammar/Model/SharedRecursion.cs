@@ -1066,9 +1066,10 @@ static class SharedRecursion
 					break;
 				}
 
+				// Indexed: the alternatives are a list behind an interface, whose enumerator is an object.
 				case Node.Choice(var alternatives):
-					foreach (var alternative in alternatives)
-						Read(alternative, tail);
+					for (var at = 0; at < alternatives.Count; at++)
+						Read(alternatives[at], tail);
 
 					break;
 
@@ -1441,8 +1442,9 @@ static class SharedRecursion
 
 				kept.Clear();
 
-				foreach (var range in one.Ranges)
+				for (var mine = 0; mine < one.Ranges.Count; mine++)
 				{
+					var range = one.Ranges[mine];
 					int start = range.From;
 
 					while (right < others.Count && others[right].To < start)
