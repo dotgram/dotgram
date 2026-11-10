@@ -764,15 +764,30 @@ namespace DotGram.ExpressionLanguage;
 	// A keyword is no type's name, which C# says by making it one and this says by refusing it
 	// here: read as the head of a dotted name, `return` in `x + return` sent the parse looking
 	// for a `.` after it, and the refusal came back as the end of the input.
+	//
+	// The parts are taken one at a time only as far as the name of a type in reach goes
+	// (`Nests`). Past that no reading the repetition gives back can be a type either, and every
+	// one of them read the parts and built the name again: a parameter typed `Missing.A.A.…`,
+	// n parts after a root nothing declares, cost the square of n to refuse, and asked the type
+	// tables about every prefix of every prefix. A generic name asks nothing while it is read,
+	// so where the parts run on past that depth the rest of them is read whole (`Further`) for
+	// the arguments to follow, and such a name is refused where it is built, as it always was.
 	NamedType? : @Type
-		= ?!Keyword & head: Word & ('.' & part: Identifier)*
-		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
+		= ?!Keyword & head: Word & ('.' & part: Identifier & when @(context.Nests(parserSpan)))*
+		  & ( '.' & when @(context.Deepest(parserSpan)) & more: Further
+		      & args: ('<' & first: Type & (',' & rest: Type)* & '>')
+		    | args: ('<' & first: Type & (',' & rest: Type)* & '>'))?
 		  & when @(!context.Binds(head, parserSpan) &&
 		           (args != null || context.Resolves(ExpressionParser.Dotted(head, part))))
 		  => @(args is null
 		       ? context.Here(parserSpan).TypeNamed(ExpressionParser.Dotted(head, part))
 		       : context.Here(parserSpan).Generic(
-		           ExpressionParser.Dotted(head, part), ExpressionParser.Types(first!, rest)))
+		           ExpressionParser.Dotted(head, part, more), ExpressionParser.Types(first!, rest)))
+
+	// What is left of a dotted name where it has more parts than any type in reach, read whole: a
+	// rule over kinds gives nothing back, so a name that turns out to be no generic type is not
+	// taken apart here again either.
+	Further : @string = head: Identifier & ('.' & part: Identifier)* => @(ExpressionParser.Dotted(head, part))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
 	// indexer all say it the same way and each hands the API one array.
@@ -4661,6 +4676,85 @@ public static partial class ExpressionParser
 		{
 			return Meanings(name, out _, out _) > 0;
 		}
+
+		/// <summary>Whether the dotted name read so far, to the end of this part, could still be a type here.</summary>
+		/// <remarks>
+		/// <para>
+		/// Asked of every part <c>NamedType</c> reads, so that a name longer than any type's is not
+		/// taken apart again one part at a time (<see cref="Loaded.Depth"/>). A name of a few parts
+		/// never asks the scope: listing its types costs once, and only a long name repays it.
+		/// </para>
+		/// <para>
+		/// Counted from where the parts end rather than from the parts, because the parts are a value
+		/// the reader would gather into an array for every one of them asked about: a few dozen bytes a
+		/// part on every dotted name every text writes, for a question only a long one needs answered.
+		/// The count is right because of the order the parts are asked in. The repetition reads them
+		/// from the first, one after another, and nothing between two of its turns reads another
+		/// dotted name; every reading of the name, a shorter one after a part was given back or the
+		/// one that records a refusal, starts again from the first part, whose end is never past the
+		/// end of a part asked about before it. So a part ending further on than the last one asked
+		/// about is the next, and one that does not is the first of a reading begun again.
+		/// </para>
+		/// </remarks>
+		internal bool Nests(SourceSpan read)
+		{
+			if (read.Start != _dottedFrom)
+			{
+				_dottedFrom  = read.Start;
+				_dottedParts = 0;
+				_dottedEnd   = -1;
+				_cutAfter    = -1;
+				_cutAt       = -1;
+			}
+
+			_dottedParts = read.End > _dottedEnd ? _dottedParts + 1 : 1;
+
+			var before = _dottedEnd;
+
+			_dottedEnd = read.End;
+
+			if (Admits(_dottedParts))
+				return true;
+
+			// Where the name stopped being read part by part: after the part before this one, and
+			// before this one ends. Every reading of the name stops there.
+			_cutAfter = before;
+			_cutAt    = read.End;
+
+			return false;
+		}
+
+		/// <summary>Whether the parts read before this span's last `.` are as many as <see cref="Nests"/> lets a name take.</summary>
+		/// <remarks>
+		/// Where they are, the rest of the name is read whole for a generic type's arguments to
+		/// follow: a generic name asks nothing while it is read, and one longer than any type in reach
+		/// is still read to its arguments and refused where it is built, as it always was. They are
+		/// where the `.` stands between the last part <see cref="Nests"/> let a reading take and the
+		/// one it did not.
+		/// </remarks>
+		internal bool Deepest(SourceSpan read)
+		{
+			return read.Start == _dottedFrom && _cutAfter < read.End && read.End < _cutAt;
+		}
+
+		/// <summary>Whether a head and this many parts after it is no longer than a name in reach.</summary>
+		bool Admits(int parts)
+		{
+			return parts <= Shallow || parts < Loaded.Depth(Reach);
+		}
+
+		/// <summary>As many parts as any name may have without the scope being asked how deep its types go.</summary>
+		const int Shallow = 8;
+
+		/// <summary>
+		/// Where the dotted name <see cref="Nests"/> counts began, how many parts the last one asked
+		/// about closes and where it ends, and the two ends the repetition stopped between.
+		/// </summary>
+		int _dottedFrom = -1;
+		int _dottedParts;
+		int _dottedEnd  = -1;
+		int _cutAfter   = -1;
+		int _cutAt      = -1;
 
 		/// <summary>Whether that name is a local, a parameter or something else the text declared.</summary>
 		/// <remarks>

@@ -44,6 +44,16 @@ public static partial class ExpressionParser
 		return tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
 	}
 
+	/// <summary>The same, and the rest of a name read whole after those parts.</summary>
+	/// <remarks>
+	/// <c>NamedType</c> stops taking parts one at a time where no type in reach has a name that long,
+	/// and reads what is left of a generic name in one piece: that is <paramref name="more"/>.
+	/// </remarks>
+	internal static string Dotted(string head, string[]? tail, string? more)
+	{
+		return more is null ? Dotted(head, tail) : Dotted(head, tail) + "." + more;
+	}
+
 	/// <summary>A dotted name within a namespace as a type: none, one, or the two it is ambiguous between.</summary>
 	/// <remarks>
 	/// <para>
@@ -295,6 +305,122 @@ public static partial class ExpressionParser
 		public static bool Has(ResolutionScope scope, string @namespace)
 		{
 			return _namespaces.GetOrAdd(scope, static one => Gather(one)).Contains(@namespace);
+		}
+
+		static readonly ConcurrentDictionary<ResolutionScope, int> _depths = new();
+
+		/// <summary>The most parts a dotted name can have and still name a type in this scope.</summary>
+		/// <remarks>
+		/// <para>
+		/// Every way a name means a type here ends at a type of the scope's assemblies: its full name,
+		/// or the part of it after a `using`, an alias or a `using static`, each of which stands for at
+		/// least one part of that full name. So no name has more parts than the deepest of them, counted
+		/// as its namespace's parts, one for each type it is nested in, and one for itself.
+		/// </para>
+		/// <para>
+		/// What makes that worth knowing is a name longer than it. <c>NamedType</c> gives a dotted name
+		/// back a part at a time until what is left names a type, and every shorter reading reads the
+		/// parts and builds the name again: a name of n parts that names nothing cost the square of n,
+		/// and asked the type tables about every prefix of every prefix. Bounded here, a name that
+		/// cannot be a type stops being read as one once it is longer than any.
+		/// </para>
+		/// <para>
+		/// Counted over the types the lookups can answer with: each assembly's public ones and the ones
+		/// it forwards, and the calling assembly's internal ones where the scope sees them. Where any of
+		/// that cannot be listed there is no bound.
+		/// </para>
+		/// </remarks>
+		public static int Depth(ResolutionScope scope)
+		{
+			return _depths.GetOrAdd(scope, static one => Deepest(one));
+		}
+
+		static int Deepest(ResolutionScope scope)
+		{
+			var deepest = 0;
+
+			try
+			{
+				foreach (var assembly in scope.Assemblies)
+				{
+					// Never asked by `Find`, which passes them over.
+					if (assembly.IsDynamic)
+						continue;
+
+					foreach (var type in assembly.GetExportedTypes())
+						deepest = Math.Max(deepest, Parts(type));
+
+					foreach (var type in Forwarded(assembly))
+						deepest = Math.Max(deepest, Nesting(type));
+				}
+
+				// `Inside` asks the calling assembly whatever it is, and a dynamic one cannot list its types.
+				if (scope.SeesInternals)
+				{
+					if (scope.Caller.IsDynamic)
+						return int.MaxValue;
+
+					foreach (var type in scope.Caller.GetTypes())
+						deepest = Math.Max(deepest, Parts(type));
+				}
+			}
+			catch (Exception exception) when (
+				exception is NotSupportedException or TypeLoadException or ReflectionTypeLoadException or
+					System.IO.FileNotFoundException or System.IO.FileLoadException or BadImageFormatException or
+					TargetInvocationException)
+			{
+				// TargetInvocationException is what the reflected GetForwardedTypes of the netstandard2.0
+				// build wraps the others in.
+				return int.MaxValue;
+			}
+
+			return deepest;
+		}
+
+		/// <summary>The types an assembly forwards to another, which <c>Find</c> answers with as well.</summary>
+		/// <remarks>
+		/// The assembly they are forwarded to is one it references, and so in the scope's closure too;
+		/// asked all the same, since that is an argument about how assemblies are built and this is
+		/// what the runtime says. Not asked where the runtime has no way to say it (.NET Framework),
+		/// and there the closure is the answer.
+		/// </remarks>
+		static Type[] Forwarded(Assembly assembly)
+		{
+#if NETSTANDARD2_0
+			return GetForwardedTypes?.Invoke(assembly, null) as Type[] ?? [];
+#else
+			return assembly.GetForwardedTypes();
+#endif
+		}
+
+#if NETSTANDARD2_0
+		static readonly MethodInfo? GetForwardedTypes = typeof(Assembly).GetMethod("GetForwardedTypes", Type.EmptyTypes);
+#endif
+
+		/// <summary>The parts of a type's name: its namespace's, one for each type around it, and one.</summary>
+		static int Parts(Type type)
+		{
+			var parts = 1;
+			var outer = type;
+
+			for (; outer.DeclaringType is { } declaring; outer = declaring)
+				parts++;
+
+			if (outer.Namespace is { } space)
+				parts += space.Count(static c => c == '.') + 1;
+
+			return parts;
+		}
+
+		/// <summary>The same for a type and, deepest, what is nested in it: a forwarded type's own assembly may be nowhere in the scope.</summary>
+		static int Nesting(Type type)
+		{
+			var deepest = Parts(type);
+
+			foreach (var nested in type.GetNestedTypes(BindingFlags.Public))
+				deepest = Math.Max(deepest, Nesting(nested));
+
+			return deepest;
 		}
 
 		static readonly ConcurrentDictionary<(ResolutionScope, string), Type?> _inside = new();
