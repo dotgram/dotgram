@@ -56,6 +56,9 @@ static partial class CSharpEmitter
 		// A rule's value read again from the text of a token (CSharpEmitter.Value), and the rule a
 		// continuation of another is read for.
 		"Value", "Measure", "Reread", "RereadFor",
+		// A construction or a value read again, called by an immediate reader through a wrapper that holds
+		// what it throws (Machine.Immediate, HeldCall): the reader's kind and number in front of the name.
+		"HeldNew", "HeldNew#", "HeldValue",
 
 		// A publication's: its buffered reader, its iterator, the form a segmented grammar reads its
 		// lines by and the Try beside it; a call into the host's code.

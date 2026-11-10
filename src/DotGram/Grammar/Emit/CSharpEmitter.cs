@@ -4427,9 +4427,13 @@ file.Line("return spare;");
 		return placed.Append(text, from, text.Length - from).ToString();
 	}
 
-	static void EmitFactory(
-		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory,
-		ResultTypes results, ILineMap? lines, bool spanCaptures = false, bool bytes = false)
+	/// <summary>
+	/// The parameters a construction's method is declared with, each its type and its name, in the
+	/// order every caller passes them: what <see cref="EmitFactory"/> declares, and what a method
+	/// that calls it on another's behalf has to declare in turn (Machine.Immediate, Held).
+	/// </summary>
+	internal static List<string> FactoryParameters(
+		RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory, ResultTypes results, bool spanCaptures, bool bytes)
 	{
 		var captureType = spanCaptures ? $"global::System.ReadOnlySpan<{(bytes ? "byte" : "char")}>" : "string";
 		var parameters = new List<string>();
@@ -4491,6 +4495,15 @@ file.Line("return spare;");
 						member.IsOptional && !(spanCaptures && member.Rule is null) ? "?" : "") +
 
 					" " + ResultTypes.ParameterOf(member));
+
+		return parameters;
+	}
+
+	static void EmitFactory(
+		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory,
+		ResultTypes results, ILineMap? lines, bool spanCaptures = false, bool bytes = false)
+	{
+		var parameters = FactoryParameters(graph, rule, factory, results, spanCaptures, bytes);
 
 		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
 		var summary = $"/// <summary>What <c>{rule.Name}</c> builds its value with";
