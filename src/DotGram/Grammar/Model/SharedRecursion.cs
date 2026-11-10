@@ -953,7 +953,7 @@ static class SharedRecursion
 			// Taken while in use: an expansion can ask for another one, through a look's sequences.
 			_steps = null;
 
-			Expand(rest, null, false, null, Forbid.None, steps, 0, null);
+			Expand(rest.Head, rest.Tail, null, false, null, Forbid.None, steps, 0, null);
 
 			known = [.. steps];
 
@@ -964,8 +964,17 @@ static class SharedRecursion
 			return _expanded[rest] = known;
 		}
 
-		/// <param name="looping">The repetitions being expanded on the way here; made at the first, since most expansions pass none.</param>
-		void Expand(Rest? rest, Entry? entered, bool guarded, FirstSets.First? excluded, Forbid forbidden, List<Step> into, int nested, HashSet<Rest>? looping)
+		/// <summary>
+		/// The letters a configuration can read next: a node or a return to read, <paramref name="head"/>,
+		/// and the rest after it, or nothing where both are null.
+		/// </summary>
+		/// <remarks>
+		/// The head is not pushed onto the rest: what is read at once is never a configuration of its
+		/// own, and interning every such step on the way was most of the rests the search made and
+		/// kept. Only what a letter leaves to read, and the returns, are interned.
+		/// </remarks>
+		/// <param name="looping">The repetitions being expanded on the way here, by head and rest; made at the first, since most expansions pass none.</param>
+		void Expand(object? head, Rest? tail, Entry? entered, bool guarded, FirstSets.First? excluded, Forbid forbidden, List<Step> into, int nested, HashSet<Link>? looping)
 		{
 			if (nested > Nested)
 			{
@@ -974,18 +983,16 @@ static class SharedRecursion
 				return;
 			}
 
-			if (rest is null)
+			if (head is null)
 			{
 				into.Add(new Step(null, null, Entered(entered), guarded, forbidden));
 
 				return;
 			}
 
-			var tail = rest.Tail;
-
-			if (rest.Head is RuleSymbol)
+			if (head is RuleSymbol)
 			{
-				Expand(tail, entered, guarded, excluded, forbidden, into, nested + 1, looping);
+				Expand(tail?.Head, tail?.Tail, entered, guarded, excluded, forbidden, into, nested + 1, looping);
 
 				return;
 			}
@@ -1001,10 +1008,15 @@ static class SharedRecursion
 
 			void Then(Rest? next)
 			{
-				Expand(next, entered, guarded, excluded, forbidden, into, nested + 1, looping);
+				Expand(next?.Head, next?.Tail, entered, guarded, excluded, forbidden, into, nested + 1, looping);
 			}
 
-			switch ((Node)rest.Head)
+			void Read(Node first, Rest? next)
+			{
+				Expand(first, next, entered, guarded, excluded, forbidden, into, nested + 1, looping);
+			}
+
+			switch ((Node)head)
 			{
 				case Node.Literal { Text.Length: 0 }:
 					Then(tail);
@@ -1037,19 +1049,26 @@ static class SharedRecursion
 
 				case Node.Sequence(var parts):
 				{
+					if (parts.Count == 0)
+					{
+						Then(tail);
+
+						break;
+					}
+
 					var next = tail;
 
-					for (var at = parts.Count - 1; at >= 0; at--)
+					for (var at = parts.Count - 1; at > 0; at--)
 						next = Push(parts[at], next);
 
-					Then(next);
+					Read(parts[0], next);
 
 					break;
 				}
 
 				case Node.Choice(var alternatives):
 					foreach (var alternative in alternatives)
-						Then(Push(alternative, tail));
+						Read(alternative, tail);
 
 					break;
 
@@ -1059,7 +1078,7 @@ static class SharedRecursion
 					break;
 
 				case Node.Repeat { Max: 1 } option:
-					Then(Push(option.Body, tail));
+					Read(option.Body, tail);
 
 					if (option.Min == 0)
 						Then(tail);
@@ -1071,18 +1090,20 @@ static class SharedRecursion
 					// A repetition whose body can read nothing comes back to itself without a letter.
 					looping ??= [];
 
-					if (!looping.Add(rest))
+					var self = new Link(head, tail);
+
+					if (!looping.Add(self))
 						break;
 
-					var body = rest.Head is Node.Repeat repeat ? repeat.Body : ((Node.Counted)rest.Head).Body;
-					var some = rest.Head is Node.Repeat { Min: > 0 } || rest.Head is Node.Counted { Min: CountBound.Items(> 0) };
+					var body = head is Node.Repeat repeat ? repeat.Body : ((Node.Counted)head).Body;
+					var some = head is Node.Repeat { Min: > 0 } || head is Node.Counted { Min: CountBound.Items(> 0) };
 
-					Then(Push(body, Push(Starred((Node)rest.Head), tail)));
+					Read(body, Push(Starred((Node)head), tail));
 
 					if (!some)
 						Then(tail);
 
-					looping.Remove(rest);
+					looping.Remove(self);
 
 					break;
 				}
@@ -1098,38 +1119,38 @@ static class SharedRecursion
 
 					var more = refusal.Single is null ? excluded : excluded is null ? refusal.Single : excluded.Or(refusal.Single);
 
-					Expand(tail, entered, guarded, more, forbidden.Or(Forbid.Starting(refusal.Sequences)), into, nested + 1, looping);
+					Expand(tail?.Head, tail?.Tail, entered, guarded, more, forbidden.Or(Forbid.Starting(refusal.Sequences)), into, nested + 1, looping);
 
 					break;
 				}
 
 				case Node.Guard:
-					Expand(tail, entered, true, excluded, forbidden, into, nested + 1, looping);
+					Expand(tail?.Head, tail?.Tail, entered, true, excluded, forbidden, into, nested + 1, looping);
 
 					break;
 
 				case Node.Atomic(var body):
-					Then(Push(body, tail));
+					Read(body, tail);
 
 					break;
 
 				case Node.Capture(_, var body):
-					Then(Push(body, tail));
+					Read(body, tail);
 
 					break;
 
 				case Node.Marked(var body, _):
-					Then(Push(body, tail));
+					Read(body, tail);
 
 					break;
 
 				case Node.Construct(var body, _):
-					Then(Push(body, tail));
+					Read(body, tail);
 
 					break;
 
 				case Node.Bind(_, var body, _):
-					Then(Push(body, tail));
+					Read(body, tail);
 
 					break;
 
@@ -1167,7 +1188,7 @@ static class SharedRecursion
 
 					var now = _component.ContainsKey(called) ? new Entry(called, entered) : entered;
 
-					Expand(Push(callee, Push(called, tail)), now, guarded, excluded, forbidden, into, nested + 1, looping);
+					Expand(callee, Push(called, tail), now, guarded, excluded, forbidden, into, nested + 1, looping);
 
 					break;
 				}
