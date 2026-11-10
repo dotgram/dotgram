@@ -153,6 +153,9 @@ public sealed class SharedRecursionTests(ITestOutputHelper output)
 			"L3 If | 1/2 guarded",
 			"L3 IfValue | 2/3 guarded",
 			"L3 IfValue | 2/3 guarded",
+			// The parts past the deepest type in reach, read whole only where the repetition was cut
+			// there: the guards that cut it and that ask for the rest answer the same question.
+			"L3 NamedType * 1/2 guarded",
 			"L3 Postfix | 1/2 guarded",
 			"L3 Postfix | 1/3 guarded",
 			"L3 Postfix ? 1/2 guarded",
