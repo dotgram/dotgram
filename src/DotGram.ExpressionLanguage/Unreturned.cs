@@ -25,7 +25,7 @@ public static partial class ExpressionParser
 		readonly ParameterExpression[] _parameters;
 
 		/// <summary>Whether that is a delegate taking these parameters whose return the body converts to.</summary>
-		public override bool Builds(Type target)
+		protected override bool Answers(Type target)
 		{
 			return Returned(target) is { } returned && _body.Builds(returned);
 		}
