@@ -26,7 +26,7 @@ for this version); a `.gram` input needs no SDK compiler. The version of the too
 
 ```text
 dotnet dotgram generate <project.csproj | grammar.gram> -o <dir> [options] [@file.rsp]
-dotnet dotgram --help | generate --help | --skill | --version
+dotnet dotgram --help | help | generate --help | --skill | --version
 ```
 
 | Command | What it does |
@@ -35,6 +35,7 @@ dotnet dotgram --help | generate --help | --skill | --version
 | `--skill` | prints the guide for coding agents (`SKILL.md`, which also ships in the package) |
 | `--version` | prints the tool's and the generator's versions |
 | `--help` | prints the usage, the commands and every option of `generate`; `generate --help` prints only `generate`'s |
+| `help` | the same as `--help` |
 
 The input's kind is its extension: `.csproj` is a whole project, `.gram` is one grammar.
 
@@ -113,7 +114,7 @@ would.
 | `--verbose` | both | print the stack trace of a failure inside the generator |
 | `--reference <file.dll\|dir>` | `.gram` | an assembly the grammar's types come from (every `*.dll` of a directory) |
 | `--package <Name>@<Version>` | `.gram` | a package's assemblies, from the global packages folder |
-| `--define <SYMBOL>` | `.gram` | a preprocessor symbol, beside the framework's |
+| `--define <SYMBOL>` | `.gram` | a preprocessor symbol, beside the framework's; several in one value, separated by `;` or `,` |
 | `--langversion <version>` | `.gram` | the C# version (default: the SDK's for the framework) |
 | `--namespace <Ns>` | `.gram` | the host's namespace (default: none) |
 | `--class <Name>` | `.gram` | the host's name (default: the file's name) |
