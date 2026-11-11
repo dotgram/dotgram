@@ -171,6 +171,153 @@ public sealed class PostgreSqlTableTests
 		Assert.True(holds, $"{text}: {made}");
 	}
 
+	// ── Defaults, collations and names, as pg_dump writes them ─────────────────
+
+	/// <summary>
+	/// A column's COLLATE after its DEFAULT is the column's, as gram.y's b_expr reads no COLLATE, and pg_dump writes a collated
+	/// column with a default so: read either way round, it is one tree, and the written text reads back.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a text COLLATE \"C\" DEFAULT 'x')")]
+	[InlineData("CREATE TABLE t (a text COLLATE pg_catalog.\"C\" DEFAULT ''::text)")]
+	[InlineData("CREATE TABLE t (a int COLLATE \"C\" DEFAULT 1)")]
+	[InlineData("CREATE TABLE t (a text DEFAULT 'x'::text COLLATE pg_catalog.\"C\")")]
+	[InlineData("CREATE TABLE t (a text DEFAULT 'a' || 'b' COLLATE \"C\" NOT NULL)")]
+	public void A_collation_after_a_default_is_the_columns(string text)
+	{
+		var column = Column(Holds(text));
+
+		Assert.True(column is { Generation: ColumnGeneration.Default { Value: not Expression.Collate }, Collation: not null }, $"{text}: {column}");
+	}
+
+	/// <summary>A default gram.y's b_expr reads: one comparison, IS [NOT] DISTINCT FROM, IS [NOT] DOCUMENT; no zone.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a bool DEFAULT b IS DISTINCT FROM c)",        true)]
+	[InlineData("CREATE TABLE t (a bool DEFAULT b IS NOT DISTINCT FROM c + 1)", true)]
+	[InlineData("CREATE TABLE t (a bool DEFAULT b IS NOT DOCUMENT)",           true)]
+	[InlineData("CREATE TABLE t (a bool DEFAULT 1 < 2)",                       true)]
+	[InlineData("CREATE TABLE t (a timestamp DEFAULT now() AT TIME ZONE 'utc')", false)]
+	[InlineData("CREATE TABLE t (a bool DEFAULT b AND c)",                     false)]
+	[InlineData("CREATE TABLE t (a bool DEFAULT b IS NULL)",                   false)]
+	public void A_default_is_gram_ys_b_expr(string text, bool read)
+	{
+		if (read)
+			Holds(text);
+		else
+			Assert.False(PostgreSqlParser.TryParseStatement(text).IsSuccess, text);
+	}
+
+	/// <summary>
+	/// A default that is no b_expr — built by hand — is written in brackets, and reads back as the same default inside
+	/// them, where written bare it would be the column's collation, or refused.
+	/// </summary>
+	[Theory]
+	[InlineData("'x' COLLATE \"C\"")]
+	[InlineData("b AT TIME ZONE 'utc'")]
+	[InlineData("b AND c")]
+	[InlineData("b IS NULL")]
+	[InlineData("b IN (1, 2)")]
+	public void A_default_that_is_no_b_expr_is_written_in_brackets(string expression)
+	{
+		var value   = PostgreSqlParser.ParseExpression(expression);
+		var tree    = Table(Int(null, new ColumnGeneration.Default(value)));
+		var written = PostgreSqlWriter.Write(tree);
+		var back    = PostgreSqlParser.TryParseStatement(written);
+
+		Assert.True(back.IsSuccess, $"written as {written}: {back.Error}");
+		Assert.Equal(Table(Int(null, new ColumnGeneration.Default(new Expression.Parenthesized(value)))), back.Value);
+	}
+
+	/// <summary>The server reads these, and so does this: a typed or a partition's column's COLLATE, a named generation.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t OF typ (a WITH OPTIONS COLLATE \"C\")",          "typed collation")]
+	[InlineData("CREATE TABLE p PARTITION OF t (a COLLATE \"C\") DEFAULT",       "partition collation")]
+	[InlineData("CREATE TABLE t (a int CONSTRAINT c GENERATED ALWAYS AS IDENTITY)", "named identity")]
+	[InlineData("CREATE TABLE t (a int CONSTRAINT c GENERATED ALWAYS AS (1) STORED)", "named generation")]
+	[InlineData("CREATE TABLE t (a int CONSTRAINT d DEFAULT 1 NOT NULL)",           "named default")]
+	[InlineData("CREATE TABLE t (a int) PARTITION BY U&\"list\" (a)",              "unicode strategy")]
+	[InlineData("CREATE TABLE t (a int) PARTITION BY U&\"\\006Cist\" (a)",        "escaped strategy")]
+	public void What_the_server_reads_is_read(string text, string expected)
+	{
+		var made  = (Statement.CreateTable)Holds(text);
+		var holds = expected switch
+		{
+			"typed collation" or "partition collation" => made.Contents is TableContents.Typed { Items: [TableElement.ColumnOptions { Options.Collation: not null }] }
+				or TableContents.Elements { Items: [TableElement.ColumnOptions { Options.Collation: not null }] },
+			"named identity"   => Column(made).Generation is ColumnGeneration.Identity { Name: not null },
+			"named generation" => Column(made).Generation is ColumnGeneration.Generated { Name: not null },
+			"named default"    => Column(made) is { Generation: ColumnGeneration.Default { Name: not null }, Constraints: [Constraint.NotNull] },
+			_                  => made.PartitionBy is { Strategy.Style: IdentifierStyle.UnicodeDelimited },
+		};
+
+		Assert.True(holds, $"{text}: {made}");
+	}
+
+	/// <summary>gram.y's key_match refuses MATCH PARTIAL in its action (not yet implemented), and so does this.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a int REFERENCES u MATCH PARTIAL)")]
+	[InlineData("CREATE TABLE t (a int, FOREIGN KEY (a) REFERENCES u MATCH PARTIAL)")]
+	public void Match_partial_is_refused(string text)
+	{
+		Assert.False(PostgreSqlParser.TryParseStatement(text).IsSuccess, text);
+	}
+
+	/// <summary>SETOF before a type is written back, and keeps the array bounds after the type.</summary>
+	[Theory]
+	[InlineData("DROP FUNCTION f(SETOF int)")]
+	[InlineData("COMMENT ON FUNCTION f(SETOF int[]) IS 'x'")]
+	[InlineData("DROP CAST (SETOF int AS text)")]
+	[InlineData("CREATE TABLE t (a SETOF int)")]
+	[InlineData("SELECT a::SETOF int[]")]
+	public void Setof_writes_back(string text)
+	{
+		Holds(text);
+		Assert.NotEqual(PostgreSqlParser.ParseStatement("DROP FUNCTION f(SETOF int)"), PostgreSqlParser.ParseStatement("DROP FUNCTION f(SETOF int[])"));
+	}
+
+	/// <summary>The other writers refuse a named generation and a typed column's collation, which only PostgreSQL reads.</summary>
+	[Fact]
+	public void The_other_writers_refuse_a_named_generation_and_a_typed_collation()
+	{
+		var named = Table(Int(null, new ColumnGeneration.Default(new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger)) { Name = T }));
+		var typed = new Statement.CreateTable
+		{
+			Name     = T,
+			Contents = new TableContents.Typed(T, null, [new TableElement.ColumnOptions(A, new ColumnOptionList(null, null, []) { Collation = new CollationName(T) })]),
+		};
+
+		foreach (var tree in new Statement[] { named, typed })
+		{
+			Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(tree));
+			Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
+			Assert.True(PostgreSqlParser.TryParseStatement(PostgreSqlWriter.Write(tree)).IsSuccess);
+		}
+	}
+
+	/// <summary>T-SQL's typed column, INSERT BULK's, refuses what only PostgreSQL reads on a column rather than dropping it.</summary>
+	[Theory]
+	[InlineData("storage")]
+	[InlineData("compression")]
+	[InlineData("no inherit")]
+	[InlineData("not valid")]
+	[InlineData("not null column")]
+	public void T_SQLs_typed_column_refuses_what_only_PostgreSQL_reads(string what)
+	{
+		var notNull = new Constraint.NotNull();
+		var column  = new ColumnDefinition(A, ((Statement.InsertBulk)TransactSqlParser.ParseStatement("INSERT BULK t (a INT)")).Columns[0].Type, null, [], null);
+
+		column = what switch
+		{
+			"storage"         => column with { Storage = new Identifier("plain") },
+			"compression"     => column with { Compression = new Identifier("lz4") },
+			"no inherit"      => column with { Constraints = [notNull with { NoInherit = true }] },
+			"not valid"       => column with { Constraints = [notNull with { NotValid = true }] },
+			_                 => column with { Constraints = [notNull with { Column = A }] },
+		};
+
+		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(new Statement.InsertBulk(T, [column], [])));
+	}
+
 	// ── SELECT INTO ────────────────────────────────────────────────────────────
 
 	[Theory]

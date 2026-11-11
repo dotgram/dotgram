@@ -2232,7 +2232,6 @@
 		{
 			"name": "create_table_named_default",
 			"text": "CREATE TABLE t (a int CONSTRAINT d DEFAULT 1)",
-			"known": "a column's default is ColumnDefinition.Generation, which holds no name; the server reads CONSTRAINT before DEFAULT and drops the name",
 			"accepted": true
 		},
 		{
@@ -2244,7 +2243,6 @@
 		{
 			"name": "create_table_default_collate",
 			"text": "CREATE TABLE t (a text DEFAULT 'x' COLLATE \"C\")",
-			"known": "a default is read as the BExpr ladder, whose COLLATE gram.y's b_expr does not read; the server reads the COLLATE as the column's, and the default here is refused rather than read as another tree",
 			"accepted": true
 		},
 		{
@@ -2872,6 +2870,146 @@
 			"text": "EXPLAIN CREATE TABLE t (a int)",
 			"accepted": false,
 			"error": "syntax error at or near \"int\", at index 26"
+		},
+		{
+			"name": "create_table_default_collate_dump",
+			"text": "CREATE TABLE t (a text DEFAULT 'x'::text COLLATE pg_catalog.\"C\")",
+			"accepted": true
+		},
+		{
+			"name": "create_table_collate_before_default",
+			"text": "CREATE TABLE t (a text COLLATE \"C\" DEFAULT 'x')",
+			"accepted": true
+		},
+		{
+			"name": "create_table_default_concatenation_collate",
+			"text": "CREATE TABLE t (a text DEFAULT 'a' || 'b' COLLATE \"C\" NOT NULL)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_default_distinct",
+			"text": "CREATE TABLE t (a bool DEFAULT b IS NOT DISTINCT FROM c + 1)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_default_document",
+			"text": "CREATE TABLE t (a bool DEFAULT b IS NOT DOCUMENT)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_default_and",
+			"text": "CREATE TABLE t (a bool DEFAULT b AND c)",
+			"accepted": false,
+			"error": "syntax error at or near \"AND\", at index 33"
+		},
+		{
+			"name": "create_table_default_is_null",
+			"text": "CREATE TABLE t (a bool DEFAULT b IS NULL)",
+			"accepted": false,
+			"error": "syntax error at or near \"NULL\", at index 36"
+		},
+		{
+			"name": "create_table_typed_collation",
+			"text": "CREATE TABLE t OF typ (a WITH OPTIONS COLLATE \"C\")",
+			"accepted": true
+		},
+		{
+			"name": "create_table_partition_collation",
+			"text": "CREATE TABLE p PARTITION OF t (a COLLATE \"C\") DEFAULT",
+			"accepted": true
+		},
+		{
+			"name": "create_table_named_identity",
+			"text": "CREATE TABLE t (a int CONSTRAINT c GENERATED ALWAYS AS IDENTITY)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_named_generation",
+			"text": "CREATE TABLE t (a int CONSTRAINT c GENERATED ALWAYS AS (1) STORED)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_named_default_not_null",
+			"text": "CREATE TABLE t (a int CONSTRAINT d DEFAULT 1 NOT NULL)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_unicode_strategy",
+			"text": "CREATE TABLE t (a int) PARTITION BY U&\"list\" (a)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_escaped_strategy",
+			"text": "CREATE TABLE t (a int) PARTITION BY U&\"\\006Cist\" (a)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_match_partial",
+			"text": "CREATE TABLE t (a int REFERENCES u MATCH PARTIAL)",
+			"accepted": false,
+			"error": "MATCH PARTIAL not yet implemented, at index 35"
+		},
+		{
+			"name": "create_table_table_match_partial",
+			"text": "CREATE TABLE t (a int, FOREIGN KEY (a) REFERENCES u MATCH PARTIAL)",
+			"accepted": false,
+			"error": "MATCH PARTIAL not yet implemented, at index 52"
+		},
+		{
+			"name": "create_table_setof_column",
+			"text": "CREATE TABLE t (a SETOF int)",
+			"accepted": true
+		},
+		{
+			"name": "drop_function_setof",
+			"text": "DROP FUNCTION f(SETOF int)",
+			"accepted": true
+		},
+		{
+			"name": "comment_function_setof_array",
+			"text": "COMMENT ON FUNCTION f(SETOF int[]) IS 'x'",
+			"accepted": true
+		},
+		{
+			"name": "drop_cast_setof",
+			"text": "DROP CAST (SETOF int AS text)",
+			"accepted": true
+		},
+		{
+			"name": "comment_type_array",
+			"text": "COMMENT ON TYPE int[] IS 'x'",
+			"known": "COMMENT ON TYPE names the type by its name (ObjectReference.Named); gram.y reads any Typename, and the server comments on the array type",
+			"accepted": true
+		},
+		{
+			"name": "comment_type_modifiers",
+			"text": "COMMENT ON TYPE character varying(3) IS 'x'",
+			"known": "COMMENT ON TYPE names the type by its name (ObjectReference.Named); gram.y reads any Typename, the standard's spellings and modifiers among them",
+			"accepted": true
+		},
+		{
+			"name": "create_table_option_type_value",
+			"text": "CREATE TABLE t (a int) WITH (x = double precision)",
+			"known": "an option's value is an expression; gram.y's def_arg reads a type of several words or with modifiers, which none is",
+			"accepted": true
+		},
+		{
+			"name": "create_table_option_array_type_value",
+			"text": "CREATE TABLE t (a int) WITH (x = int[])",
+			"known": "an option's value is an expression; gram.y's def_arg reads a type with array bounds, which none is",
+			"accepted": true
+		},
+		{
+			"name": "create_table_option_operator_value",
+			"text": "CREATE TABLE t (a int) WITH (x = OPERATOR(+))",
+			"known": "an option's value is an expression; gram.y's def_arg reads an operator, which has no node alone",
+			"accepted": true
+		},
+		{
+			"name": "create_table_option_symbol_value",
+			"text": "CREATE TABLE t (a int) WITH (x = +)",
+			"known": "an option's value is an expression; gram.y's def_arg reads an operator's symbol, which has no node alone",
+			"accepted": true
 		}
 	]
 }

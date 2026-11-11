@@ -1337,7 +1337,7 @@ ColConstraintElem : @Nodes.Qual
 	| "UNIQUE"i & nulls: NullsTreatment? & with: Definition? & space: ConsTableSpace? => @(new Nodes.Qual.Constraint(Nodes.Key(UniqueKind.Unique, nulls, [], with, space)))
 	| "PRIMARY"i & "KEY"i & with: Definition? & space: ConsTableSpace? => @(new Nodes.Qual.Constraint(Nodes.Key(UniqueKind.PrimaryKey, null, [], with, space)))
 	| "CHECK"i & '(' & condition: AExpr & ')' & no: ("NO"i & "INHERIT"i)? => @(new Nodes.Qual.Constraint(new Constraint.Check(condition) { NoInherit = no is not null }))
-	| "DEFAULT"i & v: BExpr & when @(Nodes.IsBExpr(v)) => @(new Nodes.Qual.Generation(new ColumnGeneration.Default(v), null))
+	| "DEFAULT"i & v: DefaultExpr => @(new Nodes.Qual.Generation(new ColumnGeneration.Default(v), null))
 	| "GENERATED"i & generation: ("ALWAYS"i | "BY"i & "DEFAULT"i) & "AS"i & "IDENTITY"i & ('(' & o1: SeqOptElem & on: SeqOptElem* & ')')? => @(Nodes.Identity(generation, o1, on))
 	| "GENERATED"i & "ALWAYS"i & "AS"i & '(' & e: AExpr & ')' & storage: ("STORED"i | "VIRTUAL"i)? => @(Nodes.Generated(e, storage))
 	| r: ColumnReferences => @(new Nodes.Qual.Constraint(new Constraint.ForeignKey([], null, r)))
@@ -1349,6 +1349,28 @@ NullsTreatment : @NullDistinctness = "NULLS"i & not: "NOT"i? & "DISTINCT"i => @(
 Definition     : @Option[] = "WITH"i & '(' & o1: RelOption & (',' & on: RelOption)* & ')' => @(Nodes.Items(o1, on))
 ConsTableSpace : @Identifier = "USING"i & "INDEX"i & "TABLESPACE"i & n: ColId => @(n)
 IncludeColumns : @Identifier[] = "INCLUDE"i & '(' & c1: ColId & (',' & cn: ColId)* & ')' => @(Nodes.Items(c1, cn))
+
+// gram.y b_expr, as a column's DEFAULT reads it: the arithmetic without COLLATE and AT TIME ZONE, which
+// b_expr does not read — after DEFAULT 'x' a COLLATE is the column's, as the server reads it — one
+// comparison, and IS [NOT] DISTINCT FROM or IS [NOT] DOCUMENT after it, b_expr's tests.
+DefaultExpr : @Expression = value: DefaultCompared & test: DefaultTest? => @(test is null ? value : Nodes.Tested(value, [test]))
+DefaultCompared : @Expression
+	= left: DefaultArithmetic & (op: ("<=" | ">=" | "<>" | "!=" | '<' | '>' | '=') & right: DefaultArithmetic)? => @(op is null ? left : Nodes.Compared(left, op, right!))
+DefaultTest : @Nodes.Test
+	= "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i & right: DefaultCompared => @(new Nodes.Test.Distinct(negated is not null, right))
+	| "IS"i & negated: "NOT"i? & "DOCUMENT"i => @(new Nodes.Test.Document(negated is not null))
+
+DefaultArithmetic : @Expression
+	= left: DefaultArithmetic & op: Operator & when @(Nodes.IsOperator(op)) & right: DefaultArithmetic << 1 => @(Nodes.Called(op, left, right))
+	| left: DefaultArithmetic & "OPERATOR"i & '(' & name: AnyOperator & ')' & right: DefaultArithmetic << 1 => @(Nodes.Called(name, left, right))
+	| op: Operator & when @(Nodes.IsOperator(op)) & operand: DefaultArithmetic >> 2 => @(Nodes.Called(op, null, operand))
+	| "OPERATOR"i & '(' & name: AnyOperator & ')' & operand: DefaultArithmetic >> 2 => @(Nodes.Called(name, null, operand))
+	| left: DefaultArithmetic & op: ('+' | '-') & right: DefaultArithmetic << 2 => @(Nodes.Binary(left, Nodes.BinaryOf(op), right))
+	| left: DefaultArithmetic & op: ('*' | '/' | '%') & right: DefaultArithmetic << 3 => @(Nodes.Binary(left, Nodes.BinaryOf(op), right))
+	| left: DefaultArithmetic & '^' & right: DefaultArithmetic << 4 => @(Nodes.Binary(left, BinaryOperator.Power, right))
+	| sign: ('+' | '-') & operand: DefaultArithmetic >> 7 => @(Nodes.Signed(sign, operand))
+	| left: DefaultArithmetic & "::" & type: Typename << 8 => @(Nodes.Cast(left, type, CastSpelling.DoubleColon))
+	| e: Primary => @(e)
 
 // gram.y SeqOptElem: a sequence's options, which an identity column's brackets hold too; WITH after
 // START and RESTART and BY after INCREMENT may be left out.
@@ -1374,7 +1396,8 @@ SeqOptElem : @SequenceOption
 ColumnReferences : @ReferencesSpecification
 	= "REFERENCES"i & table: Qualified & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & match: KeyMatch? & actions: KeyActions? => @(Nodes.References(table, Nodes.List(c1, cn), null, match, actions))
 
-KeyMatch : @MatchType = "MATCH"i & w: ("FULL"i | "PARTIAL"i | "SIMPLE"i) => @(Nodes.MatchOf(w))
+// gram.y key_match. MATCH PARTIAL is refused in gram.y's action (not yet implemented), and so here.
+KeyMatch : @MatchType = "MATCH"i & w: ("FULL"i | "SIMPLE"i) => @(Nodes.MatchOf(w))
 
 // gram.y key_actions: ON UPDATE and ON DELETE in either order, each once. A column list after SET NULL or
 // SET DEFAULT is ON DELETE's alone: gram.y's key_update refuses one in its action.
