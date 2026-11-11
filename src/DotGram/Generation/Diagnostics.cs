@@ -73,7 +73,7 @@ static class Diagnostics
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
 		helpLinkUri:        HelpLink("GRAM0006"),
-		description:        "The [Gram] and every [GramVariant] on a class is a compilation of its own and needs a scope of its own: the [Gram] goes in the class itself, and every [GramVariant] names a nested class with Name.");
+		description:        "The [Gram] and every [GramParserVariant] on a class is a compilation of its own and needs a scope of its own: the [Gram] goes in the class itself, and every [GramParserVariant] names a nested class, its one argument.");
 
 	public static readonly DiagnosticDescriptor RepeatedIncludedName = new(
 		id:                 "GRAM0008",
@@ -93,7 +93,7 @@ static class Diagnostics
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
 		helpLinkUri:        HelpLink("GRAM0007"),
-		description:        "Name names a nested class, and a class is named by an identifier.");
+		description:        "A [GramParserVariant] names a nested class, as [Gram(Name = …)] does, and a class is named by an identifier, never an empty one.");
 
 	public static readonly DiagnosticDescriptor BufferOptionNotPositive = new(
 		id:                 "GRAM0009",

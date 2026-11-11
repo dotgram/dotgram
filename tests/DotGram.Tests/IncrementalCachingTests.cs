@@ -203,7 +203,7 @@ public sealed class IncrementalCachingTests
 	/// </summary>
 	[Theory]
 	[InlineData("'0'..'9'", "'1'..'9'")]
-	[InlineData("public partial class Grammar", "[GramVariant(Name = \"Twice\")]\npublic partial class Grammar")]
+	[InlineData("public partial class Grammar", "[GramParserVariant(\"Twice\")]\npublic partial class Grammar")]
 	[InlineData("parse Start\")]", "parse Start\", TargetMethodPartSize = 7)]")]
 	public void A_changed_grammar_is_compiled_again(string was, string now)
 	{

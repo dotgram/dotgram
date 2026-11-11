@@ -102,7 +102,7 @@ public sealed class LexicalContextTests
 			"""";
 	}
 
-	const string PerCall = "[GramVariant(LocationType = typeof(ILoc), Name = \"Located\", UsePerCallLocations = true)]";
+	const string PerCall = "[GramParserVariant(\"Located\", LocationType = typeof(ILoc), UsePerCallLocations = true)]";
 
 	/// <summary>A guard of the terminal the tokenizer measures names the context: the tokenizer is handed it.</summary>
 	[Theory]

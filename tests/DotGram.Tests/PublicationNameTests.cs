@@ -177,7 +177,7 @@ public sealed class PublicationNameTests
 						Word : @int = ['a'..'z']+ => @(1)
 						find Word as input
 						""", BufferedText = true, BufferedBytes = true)]
-					[GramVariant(Name = "Other")]
+					[GramParserVariant("Other")]
 					public static partial class P
 					{
 					}
@@ -232,7 +232,7 @@ public sealed class PublicationNameTests
 					Word : @Name = ['a'..'z']+ => @(new Name())
 					find Word as Scan
 					")]
-				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
+				[GramParserVariant("Located", LocationType = typeof(ILoc), UsePerCallLocations = true)]
 				public static partial class P
 				{
 				}

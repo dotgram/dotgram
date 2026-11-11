@@ -167,7 +167,7 @@ public sealed class ExternalInputTests
 				parse Items as ReadItems stream bytes yield : @int
 				parse Items with (Separator = CopySeparator) as ReadCopy stream bytes yield : @int
 				""", BufferedText = true)]
-			[DotGram.GramVariant(Name = "Other")]
+			[DotGram.GramParserVariant("Other")]
 			public partial class Probe
 			{
 				static bool Read(ParserInput<char> input, ref int p)
