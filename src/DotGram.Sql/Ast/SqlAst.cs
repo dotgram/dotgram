@@ -353,7 +353,9 @@ public abstract partial record Statement : ISqlNode
 	public sealed record CreateCharacterSet : Statement { public required CharacterSetName Name { get; init; } public bool AsKeyword { get; init; } public required CharacterSetName Source { get; init; } public CollationName? Collation { get; init; } }
 	public sealed record DropCharacterSet : Statement { public required CharacterSetName Name { get; init; } }
 	public sealed record CreateCollation : Statement { public required CollationName Name { get; init; } public required CharacterSetName CharacterSet { get; init; } public required CollationName Source { get; init; } public PadCharacteristic? Padding { get; init; } }
-	public sealed record DropCollation : Statement { public required CollationName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	// PostgreSQL: DROP COLLATION. Several names, IF EXISTS, and the behavior left out, as DropDomain reads them; the standard's
+	// is one name with its behavior.
+	public sealed record DropCollation : Statement { public SqlList<CollationName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 	public sealed record CreateTranslation : Statement { public required QualifiedName Name { get; init; } public required CharacterSetName SourceCharacterSet { get; init; } public required CharacterSetName TargetCharacterSet { get; init; } public required TranslationSource Source { get; init; } }
 	public sealed record DropTranslation : Statement { public required QualifiedName Name { get; init; } }
 	public sealed record CreateAssertion : Statement { public required QualifiedName Name { get; init; } public required Expression Condition { get; init; } public ConstraintCharacteristics? Characteristics { get; init; } }
@@ -378,7 +380,8 @@ public abstract partial record Statement : ISqlNode
 	public sealed record AlterType : Statement { public required QualifiedName Name { get; init; } public required AlterTypeAction Action { get; init; } }
 	public sealed record DropType : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 	public sealed record CreateCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required RoutineDesignator Function { get; init; } public bool AsAssignment { get; init; } }
-	public sealed record DropCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required DropBehavior Behavior { get; init; } }
+	// PostgreSQL: DROP CAST. IF EXISTS, and the behavior left out; the standard's says its behavior.
+	public sealed record DropCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 	public sealed record CreateOrdering : Statement { public required QualifiedName TypeName { get; init; } public required OrderingDefinition Ordering { get; init; } }
 	public sealed record DropOrdering : Statement { public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
 	public sealed record CreateTransform : Statement { public bool PluralKeyword { get; init; } public required QualifiedName TypeName { get; init; } public SqlList<TransformGroup> Groups { get; init; } = []; }

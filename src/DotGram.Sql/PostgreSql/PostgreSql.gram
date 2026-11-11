@@ -1495,7 +1495,8 @@ DropOperators : @Statement
 		=> @(Nodes.DroppedOperators(ifExists is not null, o1, on, behavior))
 
 DropCastOrTransform : @Statement
-	= "CAST"i & ifExists: IfExists? & cast: CastReference & behavior: DropBehaviorWord? => @(new Statement.DropObject(ObjectKind.Cast, [cast], ifExists is not null, behavior))
+	= "CAST"i & ifExists: IfExists? & '(' & from: Typename & "AS"i & to: Typename & ')' & behavior: DropBehaviorWord?
+		=> @(new Statement.DropCast { SourceType = from, TargetType = to, IfExists = ifExists is not null, Behavior = behavior })
 	| "TRANSFORM"i & ifExists: IfExists? & transform: TransformReference & behavior: DropBehaviorWord? => @(new Statement.DropObject(ObjectKind.Transform, [transform], ifExists is not null, behavior))
 
 DropRoles : @Statement

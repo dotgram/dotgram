@@ -83,7 +83,8 @@ public static partial class SqlWriter
 			switch (drop.Kind)
 			{
 				case ObjectKind.Table or ObjectKind.Sequence or ObjectKind.View or ObjectKind.MaterializedView or ObjectKind.Schema or ObjectKind.Type or ObjectKind.Domain
-					or ObjectKind.Function or ObjectKind.Procedure or ObjectKind.Routine or ObjectKind.Aggregate or ObjectKind.Trigger or ObjectKind.Role or ObjectKind.Database:
+					or ObjectKind.Function or ObjectKind.Procedure or ObjectKind.Routine or ObjectKind.Aggregate or ObjectKind.Trigger or ObjectKind.Role or ObjectKind.Database
+					or ObjectKind.Cast or ObjectKind.Collation:
 					throw Misplaced(drop, nameof(drop.Kind), "a kind whose DROP is a record of its own, which the text reads back as");
 
 				case ObjectKind.Column or ObjectKind.Constraint or ObjectKind.LargeObject:

@@ -70,6 +70,9 @@ public sealed class PostgreSqlObjectTests
 	[InlineData("DROP OPERATOR CLASS c USING btree",                         "operator class")]
 	[InlineData("DROP OPERATOR FAMILY IF EXISTS s.f USING hash CASCADE",     "operator family")]
 	[InlineData("DROP CAST IF EXISTS (int AS text) CASCADE",                 "cast")]
+	[InlineData("DROP CAST (int AS text)",                                   "cast bare")]
+	[InlineData("DROP COLLATION IF EXISTS c1, s.c2 CASCADE",                 "collations")]
+	[InlineData("DROP COLLATION c",                                          "collation bare")]
 	[InlineData("DROP TRANSFORM FOR int LANGUAGE sql",                       "transform")]
 	[InlineData("DROP ROLE r",                                               "role")]
 	[InlineData("DROP USER IF EXISTS a, b",                                  "user")]
@@ -132,7 +135,10 @@ public sealed class PostgreSqlObjectTests
 			"operators"                 => made is Statement.DropObject { Kind: ObjectKind.Operator, Objects: [ObjectReference.Operator { Left: not null, Right: not null }, ObjectReference.Operator { Name.Count: 2, Left: null }, ObjectReference.Operator { Right: null }] },
 			"operator class"            => made is Statement.DropObject { Kind: ObjectKind.OperatorClass, Objects: [ObjectReference.OperatorClass { Method.Text: "btree" }] },
 			"operator family"           => made is Statement.DropObject { Kind: ObjectKind.OperatorFamily, Objects: [ObjectReference.OperatorClass { Kind: ObjectKind.OperatorFamily, Name.Count: 2 }] },
-			"cast"                      => made is Statement.DropObject { Kind: ObjectKind.Cast, Objects: [ObjectReference.Cast], IfExists: true },
+			"cast"                      => made is Statement.DropCast { SourceType: DataType.Numeric, IfExists: true, Behavior: DropBehavior.Cascade },
+			"cast bare"                 => made is Statement.DropCast { IfExists: false, Behavior: null },
+			"collations"                => made is Statement.DropCollation { Names: [{ Name.Count: 1 }, { Name.Count: 2 }], IfExists: true, Behavior: DropBehavior.Cascade },
+			"collation bare"            => made is Statement.DropCollation { Names.Count: 1, IfExists: false, Behavior: null },
 			"transform"                 => made is Statement.DropObject { Kind: ObjectKind.Transform, Objects: [ObjectReference.Transform { Language.Text: "sql" }] },
 			"role"                      => made is Statement.DropRole { Word: null, Names.Count: 1 },
 			"user"                      => made is Statement.DropRole { Word: RoleWord.User, IfExists: true, Names.Count: 2 },
@@ -235,6 +241,9 @@ public sealed class PostgreSqlObjectTests
 	[InlineData("DROP PROCEDURE s.p RESTRICT")]
 	[InlineData("DROP FUNCTION f (INTEGER, VARCHAR(3)) CASCADE")]
 	[InlineData("DROP ROUTINE s.f () RESTRICT")]
+	[InlineData("DROP CAST (INT AS BIGINT) CASCADE")]
+	[InlineData("DROP COLLATION c RESTRICT")]
+	[InlineData("DROP COLLATION s.c CASCADE")]
 	public void A_drop_the_standard_reads_is_one_tree(string text)
 	{
 		var standard   = SqlStandardParser.ParseStatement(text);
@@ -284,6 +293,10 @@ public sealed class PostgreSqlObjectTests
 	[InlineData("aggregate")]
 	[InlineData("a designator's mode")]
 	[InlineData("a domain list")]
+	[InlineData("a cast if it exists")]
+	[InlineData("a cast with no behavior")]
+	[InlineData("a collation list")]
+	[InlineData("a collation with no behavior")]
 	public void The_other_writers_refuse_what_only_PostgreSQL_reads(string kind)
 	{
 		Statement tree = kind switch
@@ -295,6 +308,10 @@ public sealed class PostgreSqlObjectTests
 			"trigger on a table"  => new Statement.DropTrigger { Names = [T], Table = T },
 			"aggregate"           => new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Aggregate, T, [])] },
 			"a designator's mode" => new Statement.DropRoutine { Routines = [new RoutineDesignator(RoutineKind.Function, T, [new ParameterDefinition(ParameterMode.In, null, new DataType.Numeric(NumericTypeKind.Int), false, null)])] },
+			"a cast if it exists" => new Statement.DropCast { SourceType = new DataType.Numeric(NumericTypeKind.Int), TargetType = new DataType.Numeric(NumericTypeKind.BigInt), IfExists = true, Behavior = DropBehavior.Cascade },
+			"a cast with no behavior" => new Statement.DropCast { SourceType = new DataType.Numeric(NumericTypeKind.Int), TargetType = new DataType.Numeric(NumericTypeKind.BigInt) },
+			"a collation list"    => new Statement.DropCollation { Names = [new CollationName(T), new CollationName(T)], Behavior = DropBehavior.Cascade },
+			"a collation with no behavior" => new Statement.DropCollation { Names = [new CollationName(T)] },
 			_                     => new Statement.DropDomain { Names = [T, T], Behavior = DropBehavior.Cascade },
 		};
 
@@ -308,6 +325,7 @@ public sealed class PostgreSqlObjectTests
 
 	[Theory]
 	[InlineData("a table through the generic drop")]
+	[InlineData("a collation through the generic drop")]
 	[InlineData("an object of another kind")]
 	[InlineData("concurrently on an extension")]
 	[InlineData("two casts")]
@@ -322,6 +340,7 @@ public sealed class PostgreSqlObjectTests
 		Statement tree = kind switch
 		{
 			"a table through the generic drop" => new Statement.DropObject(ObjectKind.Table, [new ObjectReference.Named(ObjectKind.Table, T)]),
+			"a collation through the generic drop" => new Statement.DropObject(ObjectKind.Collation, [new ObjectReference.Named(ObjectKind.Collation, T)]),
 			"an object of another kind"        => new Statement.DropObject(ObjectKind.Extension, [new ObjectReference.Named(ObjectKind.Server, T)]),
 			"concurrently on an extension"     => new Statement.DropObject(ObjectKind.Extension, [new ObjectReference.Named(ObjectKind.Extension, T)], Concurrently: true),
 			"two casts"                        => new Statement.DropObject(ObjectKind.Cast, [cast, cast]),

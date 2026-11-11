@@ -296,8 +296,16 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.DropCollation drop:
+					if (drop.Names.Count == 0)
+						throw Empty(drop, "Names");
+
+					// PostgreSQL: DROP COLLATION. The standard drops one collation, and says how.
+					if (!postgreSql && (drop.Names.Count > 1 || drop.IfExists || drop.Behavior is null))
+						throw Misplaced(drop, "Names, IfExists or Behavior", "several names, IF EXISTS or no behavior, which only PostgreSQL reads on DROP COLLATION");
+
 					Word("DROP COLLATION");
-					PutCollation(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutCollation);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -580,7 +588,12 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.DropCast drop:
+					// PostgreSQL: DROP CAST. The standard says its behavior and reads no IF EXISTS.
+					if (!postgreSql && (drop.IfExists || drop.Behavior is null))
+						throw Misplaced(drop, "IfExists or Behavior", "IF EXISTS or no behavior, which only PostgreSQL reads on DROP CAST");
+
 					Word("DROP CAST");
+					PutIfExists(drop.IfExists);
 					Open();
 					PutType(drop.SourceType);
 					Word("AS");
