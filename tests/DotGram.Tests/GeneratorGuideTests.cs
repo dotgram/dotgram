@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,7 @@ using DotGram.Generation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
 
 using Xunit;
@@ -32,7 +34,8 @@ namespace DotGram.Tests;
 /// project that references the package is. A diagnostic identifier among the words of its first C# fence
 /// (<c>GRAM0002</c>) says the generator reports it, and nothing else at the level of a warning or above; no
 /// identifier says it reports nothing at that level. <c>LangVersion=7.3</c> compiles the example at that
-/// version. An example the generator reports no error for is then emitted, and has to compile with no error
+/// version, and a word <c>DotGramName=value</c> sets that build property, as a project that sets it
+/// does (<c>DotGramTrace=true</c>). An example the generator reports no error for is then emitted, and has to compile with no error
 /// anywhere and no warning in what the generator wrote.
 /// </para>
 /// <para>
@@ -80,7 +83,13 @@ public sealed class GeneratorGuideTests
 			.Create(
 				[new GramGenerator().AsSourceGenerator()],
 				additionalTexts: example.Files.Select(static file => (AdditionalText)new GuideFile(file.Path, file.Text)),
-				parseOptions: parse)
+				parseOptions: parse,
+				optionsProvider: new BuildProperties(example.Words
+					.Where(static word => word.StartsWith("DotGram", StringComparison.Ordinal) && word.Contains('=', StringComparison.Ordinal))
+					.ToDictionary(
+						static word => "build_property." + word[..word.IndexOf('=', StringComparison.Ordinal)],
+						static word => word[(word.IndexOf('=', StringComparison.Ordinal) + 1)..],
+						StringComparer.Ordinal)))
 			.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, TestContext.Current.CancellationToken);
 
 		var expected = example.Words.Where(static word => word.StartsWith("GRAM", StringComparison.Ordinal)).ToHashSet();
@@ -311,6 +320,32 @@ public sealed class GeneratorGuideTests
 			.Replace("\n", "\\n", StringComparison.Ordinal)
 			.Replace("\r", "\\r", StringComparison.Ordinal)
 			.Replace("\t", "\\t", StringComparison.Ordinal) + "\"";
+	}
+
+	/// <summary>The build properties an example sets, as the compiler hands them to a generator.</summary>
+	sealed class BuildProperties(Dictionary<string, string> properties) : AnalyzerConfigOptionsProvider
+	{
+		public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(properties);
+
+		public override AnalyzerConfigOptions GetOptions(SyntaxTree tree)
+		{
+			return Options.Empty;
+		}
+
+		public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
+		{
+			return Options.Empty;
+		}
+
+		sealed class Options(Dictionary<string, string> values) : AnalyzerConfigOptions
+		{
+			public static Options Empty { get; } = new([]);
+
+			public override bool TryGetValue(string key, [NotNullWhen(true)] out string? value)
+			{
+				return values.TryGetValue(key, out value);
+			}
+		}
 	}
 
 	/// <summary>A <c>.gram</c> file of an example, which never touched a disk.</summary>
