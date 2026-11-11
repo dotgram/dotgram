@@ -1,0 +1,9 @@
+﻿<Project>
+
+	<!-- Deliberately empty: the library is built as somebody else's build would build it, with none of
+	     the repository's own settings, and with the generator of the package it names. -->
+	<PropertyGroup>
+		<ArtifactsPath>$(MSBuildThisFileDirectory)../../.build</ArtifactsPath>
+	</PropertyGroup>
+
+</Project>
