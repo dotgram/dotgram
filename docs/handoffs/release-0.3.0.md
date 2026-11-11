@@ -22,9 +22,9 @@ NuGet page.
 ## Highlights
 
 - **Generator.** The default carrier now builds as it reads wherever it can, so an accepted parse
-  no longer walks a tape at the end and is faster (the expression language's accepted text, by 16
-  to 51% against 0.2.0, about 40% on most); `Carrier = GramCarrier.Tape` keeps the old
-  behaviour, and `GRAM5016` says where the tape is the safer choice. New in the notation:
+  no longer walks a record at the end and is faster (the expression language's accepted text, by 16
+  to 51% against 0.2.0, about 40% on most); `Carrier = GramCarrier.Deferred` (`Tape` before) keeps the
+  old behaviour, and `GRAM5016` says where the deferred carrier is the safer choice. New in the notation:
   bindings and back-references (`$q: X`, `$q`, `X{#q}`) for constructs closed by the text that
   opened them, `eos` for input read as a sequence of segments, and `Std.Nested(open, close)`. A
   trace build (`Trace = true`) reports what a parser reads to a sink, and `GramWhy` says why the
@@ -108,8 +108,8 @@ Each package's notes list them with what to write instead. The ones most project
   seam after an optional prefix, and alternatives that call fixed-width rules.
 - Over characters, a repetition that gives a turn back reads the turns before it again from the
   start, so a refused text can cost the square of its length. Bound the size of untrusted input.
-- A `PerCall` located class has no forms over a buffered input (`TextReader`, `Stream`, bytes); a
-  grammar that needs them located names a second reading without `PerCall`.
+- A `UsePerCallLocations` located class has no forms over a buffered input (`TextReader`, `Stream`,
+  bytes); a grammar that needs them located names a second reading without `UsePerCallLocations`.
 - Over tokens, a window that holds no token (empty, or trivia alone), or a reading from a position
   where only trivia is left (`TryParseRoot("ab  ", 2)`), answers Starved, where over characters an
   empty repetition reads it; the token form's Starved is the specified one (docs/syntax.md §6.3). The
@@ -118,8 +118,8 @@ Each package's notes list them with what to write instead. The ones most project
   reading in a few shapes (an optional or a repetition before a negative lookahead, a quoted string
   with doubled quotes; docs/syntax.md §6.8). The whole forms are right. The experimental build
   property `DotGramPositionalFollow` fixes them at a cost.
-- On the tape (`Carrier = GramCarrier.Tape`), a `switch` selector or a guard that reads what a
-  construction writes into the context sees it before that construction runs, since the tape runs
+- Deferred (`Carrier = GramCarrier.Deferred`), a `switch` selector or a guard that reads what a
+  construction writes into the context sees it before that construction runs, since the deferred carrier runs
   constructions once the parse is accepted. DotGram.Finance's FIX grammar is pinned to the
   immediate carrier for this.
 - DotGram.ExpressionLanguage never converts a lambda to an expression-tree type

@@ -20,6 +20,10 @@ HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$1" && pwd)
 SCRATCH=$(mkdir -p "$2" && cd "$2" && pwd)
 
+# From the repository, so that its global.json chooses the SDK, as it does on CI, wherever this is
+# called from.
+cd "$ROOT"
+
 "$HERE/emit.sh" "$ROOT" "$SCRATCH/emit"
 
 declare -A PREFIX=(

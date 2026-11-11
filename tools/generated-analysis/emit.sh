@@ -15,6 +15,10 @@ if [ $# -ne 2 ]; then echo "usage: emit.sh <repository-root> <scratch-emit-dir>"
 ROOT=$(cd "$1" && pwd)
 SCRATCH=$(mkdir -p "$2" && cd "$2" && pwd)
 
+# From the repository, so that its global.json chooses the SDK, as it does on CI, wherever this is
+# called from.
+cd "$ROOT"
+
 declare -A PROJECTS=(
 	[Sql]="src/DotGram.Sql/DotGram.Sql.csproj"
 	[Web]="src/DotGram.Web/DotGram.Web.csproj"
