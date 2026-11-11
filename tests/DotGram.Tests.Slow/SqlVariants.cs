@@ -108,7 +108,7 @@ static class SqlVariants
 		var host = Host
 			.Replace("NAMESPACE", ns)
 			.Replace("GRAMMAR", file)
-			.Replace("CARRIER", immediate ? "Immediate" : "Tape")
+			.Replace("CARRIER", immediate ? "Immediate" : "Deferred")
 			.Replace("CLASS", className)
 			.Replace("LOCATED", located ? "\t[GramVariant(LocationType = typeof(global::DotGram.Sql.ISqlLocatable), Name = \"Located\")]\n" : "")
 			.Replace("HELPERS", helpers);
