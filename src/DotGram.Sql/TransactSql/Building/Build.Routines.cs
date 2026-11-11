@@ -59,8 +59,10 @@ static partial class Build
 		/// <summary>EXECUTE, on the common tree, from what its rules read: it stands where the rule says it was written.</summary>
 		internal static Statement Execute(Statement.Execute read, SqlSpan at)
 		{
-			return Carry(read, at, static old => Execute((Statement.Execute)old));
+			return Carry(read, at, ExecuteBuilt);
 		}
+
+		static readonly Deferred<Statement.Execute> ExecuteBuilt = new(static old => Execute(old));
 
 		/// <summary>
 		/// A procedure called without the word, on the common tree: it stands where its own rule says, which no rule after it
@@ -133,15 +135,18 @@ static partial class Build
 		{
 			var read = Rules.Verbed(body, verb);
 
-			return Defer(read, at, static read => read switch
-			{
-				Statement.CreateProcedure procedure => Procedure(procedure),
-				Statement.CreateFunction function   => Function(function),
-				Statement.CreateTrigger trigger     => Trigger(trigger),
-				Statement.ViewDefinition view       => Tables.View(view),
-				_                                   => throw new ArgumentException($"A routine's rule read {NameOf(read)}.", nameof(body)),
-			});
+			return Defer(read, at, RoutineBuilt);
 		}
+
+		// The parameter named is Routine's `body`, which the record was read from.
+		static readonly Deferred<Statement> RoutineBuilt = new(static read => read switch
+		{
+			Statement.CreateProcedure procedure => Procedure(procedure),
+			Statement.CreateFunction function   => Function(function),
+			Statement.CreateTrigger trigger     => Trigger(trigger),
+			Statement.ViewDefinition view       => Tables.View(view),
+			_                                   => throw new ArgumentException($"A routine's rule read {NameOf(read)}.", "body"),
+		});
 
 		/// <summary>
 		/// <c>CREATE [OR ALTER] | ALTER PROC[EDURE] p[;n] @a … WITH … FOR REPLICATION AS …</c>. PROC against PROCEDURE is read

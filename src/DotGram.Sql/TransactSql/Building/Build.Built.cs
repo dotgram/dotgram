@@ -219,7 +219,7 @@ static partial class Build
 	/// The same, of a statement whose conversion reads the text it was written in: the record is told where, the rule's
 	/// own extent.
 	/// </summary>
-	static Statement Carry<T>(T read, SqlSpan at, Func<object, Ast.Statement> build) where T : Statement
+	static Statement Carry<T>(T read, SqlSpan at, Deferred<T> build) where T : Statement
 	{
 		return Defer(read, at, build);
 	}
@@ -228,17 +228,34 @@ static partial class Build
 	/// A statement whose conversion reads the text it was written in, held until the extent it ends with is known: the
 	/// rule that reads the WITH in front of a statement and the `;` after it finishes it there (<see cref="Finish"/>), with
 	/// that rule's extent, as the T-SQL tree's record was told it. <paramref name="at"/>, the rule's own extent, is what it
-	/// is built with where no such rule follows. The builder is handed back what was given, as an object, and is held as
-	/// it is, so that holding the statement makes no closure.
+	/// is built with where no such rule follows. The builder is held as <see cref="Deferred{T}"/> made it; one made once,
+	/// in a static field, makes holding a statement allocate nothing for it.
 	/// </summary>
-	static Statement Defer<T>(T given, SqlSpan at, Func<object, Ast.Statement> build) where T : class
+	static Statement Defer<T>(T given, SqlSpan at, Deferred<T> build) where T : class
 	{
 		Situate(given, at);
 
 		if (skimming)
 			return new Statement.Built(null, null, given);
 
-		return new Statement.Built(null, null, given) { Pending = build };
+		return new Statement.Built(null, null, given) { Pending = build.Pending };
+	}
+
+	/// <summary>
+	/// A builder of a statement held for its extent (<see cref="Defer"/>), typed by what its rule hands it and taken as the
+	/// object a held statement keeps: the cast is made here, once, so that each rule's builder is checked against its record
+	/// when it is compiled. A builder that needs nothing but the record is made once, in a static field, and holding a
+	/// statement then makes no closure; one that needs more of the rule is made per statement, as a closure would be.
+	/// </summary>
+	sealed class Deferred<T>
+		where T : class
+	{
+		public readonly Func<object, Ast.Statement> Pending;
+
+		public Deferred(Func<T, Ast.Statement> build)
+		{
+			Pending = one => build((T)one);
+		}
 	}
 
 	/// <summary>A held statement built, told the extent it ends with.</summary>

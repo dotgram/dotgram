@@ -211,7 +211,9 @@ static partial class Build
 		});
 	}
 
-	/// <summary>The records' names, made once a type: the families ask for one each time they are handed a record.</summary>
+	/// <summary>
+	/// The records' names, made once a type: the families ask for one each time they are handed a record.
+	/// </summary>
 	static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, string> TypeNames = new();
 
 	/// <summary>
@@ -261,7 +263,9 @@ static partial class Build
 		return source.Substring(span.At, span.Length);
 	}
 
-	/// <summary>The text a node was read from (<see cref="Spelled"/>), where it can be told, as a stretch of the source and not a string of its own.</summary>
+	/// <summary>
+	/// The text a node was read from (<see cref="Spelled"/>), where it can be told, as a stretch of the source and not a string of its own.
+	/// </summary>
 	static bool Spelling(ISqlSpan node, out ReadOnlySpan<char> text)
 	{
 		var span = SpanOf(node);

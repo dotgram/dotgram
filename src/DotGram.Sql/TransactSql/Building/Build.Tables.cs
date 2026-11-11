@@ -1176,8 +1176,10 @@ static partial class Build
 		{
 			var read = action with { Name = name };
 
-			return Defer(read, at, static read => AlterTable((Statement.AlterTable)read));
+			return Defer(read, at, AlterTableBuilt);
 		}
+
+		static readonly Deferred<Statement.AlterTable> AlterTableBuilt = new(static read => AlterTable(read));
 
 		static Ast.Statement AlterTable(Statement.AlterTable old)
 		{

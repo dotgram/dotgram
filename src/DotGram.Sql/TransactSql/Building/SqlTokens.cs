@@ -65,7 +65,9 @@ static class SqlTokens
 		return last;
 	}
 
-	/// <summary>The kind of a text's one token, or null where it has none or more than one.</summary>
+	/// <summary>
+	/// The kind of a text's one token, or null where it has none or more than one.
+	/// </summary>
 	public static Kind? Lone(string text)
 	{
 		var at = 0;
@@ -76,7 +78,9 @@ static class SqlTokens
 		return Next(text, ref at, out _, out _) ? null : kind;
 	}
 
-	/// <summary>Whether the last token of a text is the upper-case word given, in any case (<see cref="Raises"/>).</summary>
+	/// <summary>
+	/// Whether the last token of a text is the upper-case word given, in any case (<see cref="Raises"/>).
+	/// </summary>
 	public static bool LastIs(string text, string word)
 	{
 		var last = false;
@@ -165,8 +169,10 @@ static class SqlTokens
 			return false;
 
 		for (var at = 0; at < token.Length; at++)
+		{
 			if (char.ToUpperInvariant(token[at]) != word[at])
 				return false;
+		}
 
 		return true;
 	}
@@ -229,7 +235,9 @@ static class SqlTokens
 		return Next(text.AsSpan(), ref at, out kind, out start);
 	}
 
-	/// <summary>The same, over a stretch of text that need not be a string of its own.</summary>
+	/// <summary>
+	/// The same, over a stretch of text that need not be a string of its own.
+	/// </summary>
 	internal static bool Next(ReadOnlySpan<char> text, ref int at, out Kind kind, out int start)
 	{
 		while (at < text.Length)

@@ -863,8 +863,10 @@ static partial class Build
 			string name, string verb, string? owner, string? state, SqlList<Clause>? stateOptions, string? protocol, SqlList<Clause>? protocolOptions,
 			string? payload, SqlList<Clause>? payloadOptions, SqlSpan at)
 		{
-			return Carry(new Statement.EndpointDefinition(name, verb, owner, state, stateOptions, protocol, protocolOptions, payload, payloadOptions), at, static old => Endpoint((Statement.EndpointDefinition)old));
+			return Carry(new Statement.EndpointDefinition(name, verb, owner, state, stateOptions, protocol, protocolOptions, payload, payloadOptions), at, EndpointBuilt);
 		}
+
+		static readonly Deferred<Statement.EndpointDefinition> EndpointBuilt = new(Endpoint);
 
 		static Ast.Statement Kill(Statement.Kill old)
 		{
