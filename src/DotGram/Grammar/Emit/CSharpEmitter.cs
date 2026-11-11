@@ -3521,7 +3521,30 @@ file.Line("return spare;");
 			file.Line();
 			// A quarter of the characters is a fair first guess at how many tokens there
 			// are, and being wrong costs a doubling rather than a document's worth of array.
-			file.Line("tokens.Room((to - from) / 4 + 16);");
+			// That holds for the whole input and not for a window inside it: a window is read
+			// while the reading around it still holds its own tokens, and a window nested in a
+			// window — the hole of an interpolated string inside a hole — is text every level
+			// around it holds as a single token. A quarter of each window was then a quarter of
+			// everything nested in it, held at every level at once: bytes that grew as the square
+			// of the depth, seventy-six megabytes at 3,200 levels. A window starts at sixty-four
+			// tokens, more than a hole usually holds, and doubles as its tokens come. What it
+			// asks is the guess, and at the end at least the room it took (below), so that the
+			// rule which lets a spare go never takes a window's growth for room left unused.
+			file.Line("var window  = from != 0 || to != input.Length;");
+			file.Line();
+
+			using (file.Block("if (!window)"))
+			{
+				file.Line("tokens.Room((to - from) / 4 + 16);");
+			}
+
+			using (file.Block("else"))
+			{
+				file.Line("tokens.Room(64);");
+				file.Line();
+				file.Line("tokens.Asked = (to - from) / 4 + 16;");
+			}
+
 			file.Line();
 			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input, 0, to);");
 			file.Line("var kinds   = tokens.Kinds;");
@@ -3984,6 +4007,15 @@ file.Line("return spare;");
 			file.Line(Past);
 			file.Line("tokens.Count   = count;");
 			file.Line("tokens.Stopped = stopped;");
+			file.Line();
+			// A window that grew asked for its guess and took more: a hundred and twenty-eight
+			// tokens of one character each are a guess of forty-eight and arrays of two hundred
+			// and fifty-six, which the rule that lets a spare go would read as room unused and
+			// let go of after eight such readings, to be grown again after a collection. What it
+			// asks is then what it took, the tokens and the end written after them. A window can
+			// only end here: the returns above are for a cutting that stops, and a window goes on.
+			file.Line("if (window && count >= tokens.Asked)");
+			file.Then("tokens.Asked = count + 1;");
 			file.Line();
 			file.Line("return tokens;");
 		}
