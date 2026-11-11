@@ -39,6 +39,11 @@ namespace DotGram.Tests;
 /// anywhere and no warning in what the generator wrote.
 /// </para>
 /// <para>
+/// A <c>```text report example=name</c> fence holds the lines a build prints for the example with
+/// <c>DotGramReportGeneration=summary</c>, and is held to what the generator writes with every number taken
+/// for any number: the format, the hosts and the readings, not the sizes and times of one version.
+/// </para>
+/// <para>
 /// A <c>```text run example=name</c> fence holds runs of the example, one a line:
 /// <c>expression → value</c>. The expression is C#, evaluated in a class beside the example's own, which
 /// sees every namespace the example declares. A value is shown as C# writes a literal of it, a sequence as
@@ -84,12 +89,7 @@ public sealed class GeneratorGuideTests
 				[new GramGenerator().AsSourceGenerator()],
 				additionalTexts: example.Files.Select(static file => (AdditionalText)new GuideFile(file.Path, file.Text)),
 				parseOptions: parse,
-				optionsProvider: new BuildProperties(example.Words
-					.Where(static word => word.StartsWith("DotGram", StringComparison.Ordinal) && word.Contains('=', StringComparison.Ordinal))
-					.ToDictionary(
-						static word => "build_property." + word[..word.IndexOf('=', StringComparison.Ordinal)],
-						static word => word[(word.IndexOf('=', StringComparison.Ordinal) + 1)..],
-						StringComparer.Ordinal)))
+				optionsProvider: new BuildProperties(Properties(example)))
 			.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, TestContext.Current.CancellationToken);
 
 		var expected = example.Words.Where(static word => word.StartsWith("GRAM", StringComparison.Ordinal)).ToHashSet();
@@ -121,6 +121,9 @@ public sealed class GeneratorGuideTests
 
 		Assert.True(complaints.Count == 0, said + "\n" + string.Join("\n", complaints.Select(static one => one.ToString())));
 
+		if (example.Report.Count > 0)
+			Assert.Equal(Shapes(example.Report), Shapes(Reported(driver.GetRunResult())));
+
 		if (example.Runs.Count == 0)
 			return;
 
@@ -132,6 +135,56 @@ public sealed class GeneratorGuideTests
 
 			Assert.Equal($"{expression} → {answer}", $"{expression} → {Show(type.GetMethod("R" + at.ToString(CultureInfo.InvariantCulture))!.Invoke(null, null))}");
 		}
+	}
+
+	/// <summary>
+	/// The build properties an example sets: its words <c>DotGramName=value</c>, and the generation report
+	/// with no cache where the example shows report lines, so that every line says a time and none says
+	/// <c>cached</c> because another test compiled the same grammar in this process first.
+	/// </summary>
+	static Dictionary<string, string> Properties(Example example)
+	{
+		var properties = example.Words
+			.Where(static word => word.StartsWith("DotGram", StringComparison.Ordinal) && word.Contains('=', StringComparison.Ordinal))
+			.ToDictionary(
+				static word => "build_property." + word[..word.IndexOf('=', StringComparison.Ordinal)],
+				static word => word[(word.IndexOf('=', StringComparison.Ordinal) + 1)..],
+				StringComparer.Ordinal);
+
+		if (example.Report.Count > 0)
+		{
+			properties["build_property.DotGramReportGeneration"] = "summary";
+			properties["build_property.DotGramNoCache"]          = "true";
+		}
+
+		return properties;
+	}
+
+	/// <summary>The lines of the report files the generator wrote, as the build prints them: the comment marker taken off.</summary>
+	static List<string> Reported(GeneratorDriverRunResult run)
+	{
+		return [
+			.. run.Results
+				.SelectMany(static result => result.GeneratedSources)
+				.Where(static source => source.HintName.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal))
+				.SelectMany(static source => source.SourceText.ToString().Split('\n'))
+				.Select(static line => line.TrimEnd('\r'))
+				.Where(static line => line.StartsWith("// ", StringComparison.Ordinal))
+				.Select(static line => line[3..]),
+		];
+	}
+
+	/// <summary>
+	/// Report lines with every number made one placeholder, in order: the shape a page shows, which the
+	/// sizes and times of a later generator do not change and a change of the format does.
+	/// </summary>
+	static List<string> Shapes(IEnumerable<string> lines)
+	{
+		return [
+			.. lines
+				.Select(static line => Regex.Replace(line.Trim(), "[0-9]+(?:\\.[0-9]+)?", "#"))
+				.OrderBy(static line => line, StringComparer.Ordinal),
+		];
 	}
 
 	/// <summary>Every example of every page, by its page and its name.</summary>
@@ -189,7 +242,8 @@ public sealed class GeneratorGuideTests
 		string[] Words,
 		List<string> Sources,
 		List<(string Path, string Text)> Files,
-		List<(string Expression, string Answer)> Runs);
+		List<(string Expression, string Answer)> Runs,
+		List<string> Report);
 
 	static List<Fence> Fences(string page)
 	{
@@ -217,7 +271,7 @@ public sealed class GeneratorGuideTests
 				continue;
 
 			if (!examples.TryGetValue(name, out var example))
-				examples[name] = example = new Example(fence.Line, [], [], [], []);
+				examples[name] = example = new Example(fence.Line, [], [], [], [], []);
 
 			switch (fence.Words)
 			{
@@ -234,6 +288,10 @@ public sealed class GeneratorGuideTests
 					Assert.True(path is not null, $"{page}, line {fence.Line}: a grammar of an example says file=path.");
 
 					example.Files.Add(("/project/" + path, fence.Text));
+					break;
+
+				case ["text", "report", ..]:
+					example.Report.AddRange(fence.Text.Split('\n').Where(static line => line.Trim().Length > 0));
 					break;
 
 				case ["text", "run", ..]:
