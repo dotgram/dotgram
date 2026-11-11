@@ -1935,8 +1935,10 @@ static class FirstSets
 	/// <para>
 	/// A grammar's rules call each other and themselves, so this is not a walk: it is the
 	/// least fixed point of the same kind of equations <c>Nullable</c> and <c>FOLLOW</c> are
-	/// already solved as. Every rule starts at nothing and grows until nothing grows, which
-	/// settles because the step only ever adds and there are finitely many characters to add.
+	/// already solved as. Every rule starts at nothing and is recomputed until nothing changes.
+	/// The step is not monotone for every grammar (a part that begins with nothing can let more
+	/// through than a real answer), so the loop watches for a state it has already been in and
+	/// stops there instead of going round for ever (see <c>ByRule</c>).
 	/// </para>
 	/// <para>
 	/// What it replaces answered "anything" on re-entering a rule already being walked. That
