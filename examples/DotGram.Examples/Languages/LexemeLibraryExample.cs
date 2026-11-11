@@ -10,7 +10,7 @@ namespace DotGram.Examples.Languages;
 // of anything: it is the vocabulary two other grammars share, and the point of the
 // example is that they share it without either of them copying it.
 //
-//     [GramInclude(typeof(Lexemes), As = "Lex")]
+//     [GramInclude(typeof(Lexemes), Alias = "Lex")]
 //
 // `As` is the *includer's* name for it, not the library's — the same library arrives as
 // `Lex` in one grammar and `Token` in the other, and neither had to be told. Each include
@@ -54,7 +54,7 @@ public static partial class Lexemes;
 
 // ── One grammar written on it ────────────────────────────────────────────────
 
-[GramInclude(typeof(Lexemes), As = "Lex")]
+[GramInclude(typeof(Lexemes), Alias = "Lex")]
 [Gram("""
 	@using DotGram.Examples.Languages;
 
@@ -72,7 +72,7 @@ public static partial class SettingsFile;
 
 // ── And another, under a different name ──────────────────────────────────────
 
-[GramInclude(typeof(Lexemes), As = "Token")]
+[GramInclude(typeof(Lexemes), Alias = "Token")]
 [Gram("""
 	@using DotGram.Examples.Languages;
 

@@ -176,8 +176,8 @@ public sealed class PublicationNameTests
 						using Std;
 						Word : @int = ['a'..'z']+ => @(1)
 						find Word as input
-						""", BufferedInput = true, BufferedBytes = true)]
-					[GramOptions(Suffix = "Other")]
+						""", BufferedText = true, BufferedBytes = true)]
+					[GramVariant(Name = "Other")]
 					public static partial class P
 					{
 					}
@@ -232,7 +232,7 @@ public sealed class PublicationNameTests
 					Word : @Name = ['a'..'z']+ => @(new Name())
 					find Word as Scan
 					")]
-				[GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
 				public static partial class P
 				{
 				}

@@ -14,7 +14,7 @@ public sealed class SnapshotGrammarTests
 {
 	/// <summary>The one snapshot grammar whose host has to say something: its location type and carrier, and the types it builds.</summary>
 	const string LocatedHost = """
-		[Gram("Located.gram", LocationType = typeof(Located.ILocated), Carrier = GramCarrier.Tape)]
+		[Gram("Located.gram", LocationType = typeof(Located.ILocated), Carrier = GramCarrier.Deferred)]
 		public partial class Located
 		{
 			public interface ILocated

@@ -418,6 +418,7 @@ sealed partial class GrammarNormalizer
 			FreeNames  = FreeNames(normalizer._bodies.Values, normalizer._recoveries.Values, scanner),
 			WhenSound  = normalizer._whenSound,
 			Located    = located,
+			LocationType = located.Count > 0 ? locationType : null,
 			Segmented  = normalizer._segmented,
 
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.

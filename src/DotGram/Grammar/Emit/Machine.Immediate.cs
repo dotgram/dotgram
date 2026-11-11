@@ -534,7 +534,7 @@ sealed partial class Machine
 			}
 
 			file.Line();
-			file.Line("/// <summary>A held exception, thrown where the tape would have built the value it came from.</summary>");
+			file.Line("/// <summary>A held exception, thrown where the deferred carrier would have built the value it came from.</summary>");
 			file.Line(NoInlining);
 
 			using (file.Block("internal void Thrown_DotGram(int at)"))

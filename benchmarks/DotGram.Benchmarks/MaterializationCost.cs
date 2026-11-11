@@ -51,7 +51,7 @@ public partial class MaterializationCost
 		SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 		parse Url
-		""", Carrier = GramCarrier.Tape)]
+		""", Carrier = GramCarrier.Deferred)]
 	public static partial class WithCaptures
 	{
 		public sealed record UrlParts(
@@ -84,7 +84,7 @@ public partial class MaterializationCost
 		SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 		parse Url
-		""", Carrier = GramCarrier.Tape)]
+		""", Carrier = GramCarrier.Deferred)]
 	public static partial class NoCaptures
 	{
 	}
@@ -134,7 +134,7 @@ public partial class MaterializationCost
 		SubDelim   = ['!' | '$' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | ';' | '=']
 
 		parse Url
-		""", Carrier = GramCarrier.Tape)]
+		""", Carrier = GramCarrier.Deferred)]
 	public static partial class SpanCaptures
 	{
 		// The record below hands spans out in public, which the generated parser does not: raised here.

@@ -39,7 +39,7 @@ namespace DotGram.Examples.Languages;
 // grammar that names no carrier is, a construction runs as soon as its alternative is read: in
 // `cpu=99999999999999999999999999999 mem=1` that number is built, and throws, before the parse
 // refuses the text. With the option the exception is held and dropped with the refused reading
-// (docs/syntax.md §7.5), so the answer is the refusal, as on the tape, where every construction
+// (docs/syntax.md §7.5), so the answer is the refusal, as with Deferred, where every construction
 // waits until the parse has accepted.
 
 [Gram("""

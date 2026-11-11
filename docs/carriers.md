@@ -2,7 +2,7 @@
 
 Every grammar the last build with `-p:DotGramReportGeneration=full` compiled: the carrier each
 is read with, and for a grammar left to the generator (`Auto`), which carries it as `Immediate`
-wherever that carrier does not refuse a machine, what the tape would have held back and what the
+wherever that carrier does not refuse a machine, what `Deferred` would have held back and what the
 build is told of it. Written by `--carriers` (`benchmarks/DotGram.Benchmarks/Carriers.cs`) from the
 reports that build left; run again rather than edited.
 
@@ -24,8 +24,8 @@ time is older than the rest was not in the last build, and its rows are that bui
 | DotGram.Tests | 2026-11-03 19:56 |
 | DotGram.Web | 2026-11-03 19:53 |
 
-**Carrier** is what a grammar left to the generator is read with — `immediate`, or `tape` where the
-immediate carrier refused a machine — or the author's own choice. **Gate** is what the tape would
+**Carrier** is what a grammar left to the generator is read with — `immediate`, or `deferred` where the
+immediate carrier refused a machine — or the author's own choice. **Gate** is what `Deferred` would
 hold back that the immediate carrier runs where it is read: `replay` — a building rule read where
 the reading may not stand (`Replay`) — or `read again` — a rule the reader can be asked again after
 it answered, which is asked only where the first gate holds nothing. **Reasons** are what the build
@@ -35,18 +35,18 @@ given back) are a warning, **Told** `GRAM5016`; `writes context`, `replay` and `
 information, `GRAM5012`. **Direct** is how many of the replayed
 rules have a cause of their own; the rest are under one of them. **Points** is how many of the
 sites that build — a call whose value is built, a construction — have a point past which what they
-read is settled (`Commit`), of how many there are: what building at that point could take off the
-tape. **Refused** is how many of a grammar's machines the immediate carrier refuses, which are read on
-the tape in silence (gate `refused` where nothing else would be held back), each named under the
+read is settled (`Commit`), of how many there are: what building at that point could take out of
+deferral. **Refused** is how many of a grammar's machines the immediate carrier refuses, which are carried
+deferred in silence (gate `refused` where nothing else would be held back), each named under the
 grammar with its reason; their building rules count in **Building**. **Alone** is how many of those
 neither gate holds anything back of: what lifting the refusal would move without a word said.
 
 A carrier is settled per machine, and a grammar has one machine per publication group and input
 form, so the grammar's row is a **summary** and shows the worst of its machines. What a machine
 answers is in the table below it, and that is the row to read before expecting anything of a
-change: a grammar on the tape may have a machine that is not.
+change: a deferred grammar may have a machine that is not.
 
-| Grammar (summary) | Machines | On the tape | Carrier | Gate | Reasons | Told | Building | Replayed | Direct | Read again | Refused | Alone | Points |
+| Grammar (summary) | Machines | Deferred | Carrier | Gate | Reasons | Told | Building | Replayed | Direct | Read again | Refused | Alone | Points |
 | --- | ---: | ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | DotGram.Benchmarks.CallCost.Called | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 1/1 |
 | DotGram.Benchmarks.CallCost.Inlined | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 1/1 |
@@ -58,16 +58,16 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Benchmarks.Flat.Lowered | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Flat.NotLowered | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Levels | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 19/19 |
-| DotGram.Benchmarks.MaterializationCost.NoCaptures |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1/1 |
-| DotGram.Benchmarks.MaterializationCost.SpanCaptures |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 17/17 |
-| DotGram.Benchmarks.MaterializationCost.WithCaptures |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.MaterializationCost.NoCaptures |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1/1 |
+| DotGram.Benchmarks.MaterializationCost.SpanCaptures |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 17/17 |
+| DotGram.Benchmarks.MaterializationCost.WithCaptures |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1/1 |
 | DotGram.Benchmarks.Nesting | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Numbers | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Possession.Open | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.TapeSql |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 12/310 |
-| DotGram.Benchmarks.TapeSqlStandard |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
+| DotGram.Benchmarks.TapeSql |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 12/310 |
+| DotGram.Benchmarks.TapeSqlStandard |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
 | DotGram.Examples.Expressions.ArithmeticTree | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 22/22 |
@@ -91,7 +91,7 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Formats.FileNames | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
 | DotGram.Examples.Formats.FixParser | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 9/9 |
 | DotGram.Examples.Formats.FixedWidth | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 22/22 |
-| DotGram.Examples.Formats.FixedWidth.Tape |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 22/22 |
+| DotGram.Examples.Formats.FixedWidth.Tape |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 22/22 |
 | DotGram.Examples.Formats.HttpParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 5 | 0 | 0 | 2 | 0 | 0 | 10/10 |
 | DotGram.Examples.Formats.IniParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 7 | 0 | 0 | 5 | 0 | 0 | 14/14 |
 | DotGram.Examples.Formats.JsonParser | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 30/30 |
@@ -107,19 +107,19 @@ change: a grammar on the tape may have a machine that is not.
 | DotGram.Examples.Languages.Filters | 1 | 0 | immediate | replay | replay | GRAM5012 | 2 | 1 | 1 | 0 | 0 | 0 | 8/8 |
 | DotGram.Examples.Languages.GramGrammar | 1 | 0 | immediate | replay | replay | GRAM5012 | 35 | 28 | 2 | 0 | 0 | 0 | 111/111 |
 | DotGram.Examples.Languages.Lexemes | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
-| DotGram.Examples.Languages.Scoped |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 13/13 |
+| DotGram.Examples.Languages.Scoped |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 13/13 |
 | DotGram.Examples.Languages.Selectors | 1 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Examples.Languages.SettingsFile | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlDialect | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 12/12 |
 | DotGram.ExpressionLanguage.ExpressionParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 23/501 |
-| DotGram.ExpressionLanguage.ExpressionParser.Tape |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 23/501 |
+| DotGram.ExpressionLanguage.ExpressionParser.Tape |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 23/501 |
 | DotGram.Finance.Fix.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 1830/1830 |
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 14/14 |
 | DotGram.Sql.Productions.SqlStandardLocated |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
-| DotGram.Sql.Productions.SqlStandardProductions |  |  | tape (author) |  |  |  |  |  |  |  |  |  | 1307/2672 |
+| DotGram.Sql.Productions.SqlStandardProductions |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1307/2672 |
 | DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/310 |
 | DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
 | DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2351/3124 |

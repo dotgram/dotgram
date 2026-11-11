@@ -13,7 +13,7 @@ namespace DotGram.Sql.Productions;
 /// none of its own, spans its parts.
 /// </remarks>
 [GramInclude(typeof(SqlStandardParser))]
-[Gram("SqlStandardLocated.gram", Lexical = true, Carrier = GramCarrier.Immediate, Portable = false, LocationType = typeof(ISqlSpan))]
+[Gram("SqlStandardLocated.gram", Lexical = true, Carrier = GramCarrier.Immediate, ExportGrammar = false, LocationType = typeof(ISqlSpan))]
 public abstract partial class SqlStandardLocated
 {
 }

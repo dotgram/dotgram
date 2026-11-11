@@ -34,7 +34,7 @@ public sealed class FixGrammarCarrierTests
 	{
 		var readings = typeof(FixGrammar)
 			.GetCustomAttributesData()
-			.Where(one => one.AttributeType.FullName is "DotGram.GramAttribute" or "DotGram.GramOptionsAttribute")
+			.Where(one => one.AttributeType.FullName is "DotGram.GramAttribute" or "DotGram.GramVariantAttribute")
 			.ToList();
 
 		Assert.NotEmpty(readings);
