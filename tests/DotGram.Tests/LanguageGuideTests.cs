@@ -29,7 +29,7 @@ namespace DotGram.Tests;
 /// language in its info string say what the page claims about it: a diagnostic identifier
 /// (<c>```dotgram GRAM4006</c>) says the grammar reports it, and nothing else at the level of a
 /// warning or above; no identifier says it reports nothing at that level. <c>Lexical</c> compiles it
-/// with <c>Lexical = true</c>, as the host attribute would. A grammar that reports no error is then
+/// with <c>Lexical = true</c>, as the host attribute would, and <c>Tape</c> with <c>Carrier = GramCarrier.Tape</c>. A grammar that reports no error is then
 /// compiled as C#, and what the generator wrote has to compile without a warning. <c>pending</c>
 /// marks a grammar that shows the behaviour of a fix not yet made, and is skipped until the word is
 /// taken away; <c>recheck</c> marks one whose diagnostics a fix in flight may change, and is held to
@@ -42,7 +42,8 @@ namespace DotGram.Tests;
 /// line: <c>Method("input") → value</c>, <c>→ refused</c>, or <c>→ refused: message</c>, which holds the
 /// text of the refusal too. The input may be handed over as a reader, <c>reader("…")</c>, a stream of its
 /// UTF-8 bytes, <c>stream("…")</c>, or those bytes, <c>bytes("…")</c>; whole numbers after it are a
-/// position and a length, and a last <c>out</c> calls the form that answers only whether, showing the
+/// position and a length, a <c>new</c> after them hands a fresh context of the type the grammar declares,
+/// and a last <c>out</c> calls the form that answers only whether, showing the
 /// value where it answers yes. Optional parameters (a reader's buffer sizes) keep their defaults. A line
 /// <c>@Name → value</c> reads a static field or property of the host after the calls above it — what an
 /// <c>OnRecovered</c> the host implements has written, say;
@@ -73,6 +74,7 @@ public sealed class LanguageGuideTests
 		{
 			ClassName      = host,
 			Lexical        = example.Words.Contains("Lexical"),
+			Carrier        = example.Words.Contains("Tape") ? CarrierKind.Tape : CarrierKind.Auto,
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 			SymbolResolver = new RoslynSymbolResolver(
 				CSharpCompilation.Create(
@@ -187,7 +189,7 @@ public sealed class LanguageGuideTests
 	/// <c>bytes("…")</c> those bytes as an array), the whole numbers after it (a position, a length), whether
 	/// the last argument is an <c>out</c> one, and what the page says comes back.
 	/// </summary>
-	sealed record Call(string Written, string Method, string Kind, string Input, long[] Numbers, bool Out, string Answer);
+	sealed record Call(string Written, string Method, string Kind, string Input, long[] Numbers, bool New, bool Out, string Answer);
 
 	static List<Example> All(string page)
 	{
@@ -243,13 +245,13 @@ public sealed class LanguageGuideTests
 		var kept = Regex.Match(line.Trim(), "^@(?<field>[A-Za-z_][A-Za-z0-9_]*)\\s*→\\s*(?<answer>.*)$");
 
 		if (kept.Success)
-			return new Call("@" + kept.Groups["field"].Value, kept.Groups["field"].Value, "field", "", [], false, kept.Groups["answer"].Value.Trim());
+			return new Call("@" + kept.Groups["field"].Value, kept.Groups["field"].Value, "field", "", [], false, false, kept.Groups["answer"].Value.Trim());
 
 		var shape = Regex.Match(
 			line.Trim(),
 			"^(?<call>(?<method>[A-Za-z_][A-Za-z0-9_]*)\\(" +
 				"(?:(?<kind>reader|stream|bytes)\\()?\"(?<input>(?:[^\"\\\\]|\\\\.)*)\"(?(kind)\\))" +
-				"(?<numbers>(?:\\s*,\\s*-?[0-9]+)*)(?<out>\\s*,\\s*out)?\\))\\s*→\\s*(?<answer>.*)$");
+				"(?<numbers>(?:\\s*,\\s*-?[0-9]+)*)(?<new>\\s*,\\s*new)?(?<out>\\s*,\\s*out)?\\))\\s*→\\s*(?<answer>.*)$");
 
 		Assert.True(
 			shape.Success,
@@ -267,6 +269,7 @@ public sealed class LanguageGuideTests
 			shape.Groups["kind"].Success ? shape.Groups["kind"].Value : "string",
 			Unescaped(shape.Groups["input"].Value),
 			numbers,
+			shape.Groups["new"].Success,
 			shape.Groups["out"].Success,
 			shape.Groups["answer"].Value.Trim());
 	}
@@ -354,7 +357,13 @@ public sealed class LanguageGuideTests
 		for (var at = 0; at < call.Numbers.Length; at++)
 			arguments[at + 1] = Convert.ChangeType(call.Numbers[at], Unref(parameters[at + 1].ParameterType), CultureInfo.InvariantCulture);
 
-		for (var at = call.Numbers.Length + 1; at < parameters.Length; at++)
+		var first = call.Numbers.Length + 1;
+
+		// `new` is the context a grammar that declares one is handed: a fresh one of the type it names.
+		if (call.New)
+			arguments[first++] = Activator.CreateInstance(parameters[call.Numbers.Length + 1].ParameterType);
+
+		for (var at = first; at < parameters.Length; at++)
 			if (!parameters[at].IsOut)
 				arguments[at] = parameters[at].DefaultValue;
 
@@ -370,7 +379,7 @@ public sealed class LanguageGuideTests
 		}
 
 		if (call.Out)
-			return (bool)answer! ? Show(arguments[call.Numbers.Length + 1]) : "refused";
+			return (bool)answer! ? Show(arguments[call.Numbers.Length + (call.New ? 2 : 1)]) : "refused";
 
 		if (answer is not null && IsMatch(answer.GetType()))
 			return Matched(answer);
@@ -390,7 +399,7 @@ public sealed class LanguageGuideTests
 
 	static bool Fits(ParameterInfo[] parameters, Type input, Call call)
 	{
-		var given = 1 + call.Numbers.Length + (call.Out ? 1 : 0);
+		var given = 1 + call.Numbers.Length + (call.New ? 1 : 0) + (call.Out ? 1 : 0);
 
 		if (parameters.Length < given || parameters[0].ParameterType != input)
 			return false;
@@ -401,6 +410,9 @@ public sealed class LanguageGuideTests
 				return false;
 
 		if (call.Out && !parameters[given - 1].IsOut)
+			return false;
+
+		if (call.New && parameters[call.Numbers.Length + 1].ParameterType is { IsClass: false } or { IsByRef: true })
 			return false;
 
 		return parameters.Skip(given).All(static one => one.IsOptional) && parameters.Take(given).All(one => one.IsOut == (call.Out && one.Position == given - 1));
