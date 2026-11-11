@@ -309,6 +309,8 @@ sealed class GramBufferAnalysis
 	bool                         _closed;
 	bool                         _pendingFull;
 	readonly HashSet<DocumentId> _pendingDocuments = [];
+	// What comes while the host is looked for, judged again against what is found.
+	readonly StandaloneGrammarChanges _changes = new();
 
 	GramBufferAnalysis(ITextBuffer buffer)
 	{
@@ -518,84 +520,15 @@ sealed class GramBufferAnalysis
 	}
 
 	/// <summary>
-	/// Whether a change to the solution can change what this grammar is compiled with: its
-	/// host, what the host includes, or how it is read.
+	/// Whether a change to the solution can change what this grammar is compiled with
+	/// (<see cref="StandaloneGrammarChange.Concerns"/>).
 	/// </summary>
-	/// <remarks>
-	/// The grammar's own text is not among them — it is the buffer's, and read from there —
-	/// and nothing in a project that neither holds the grammar nor declares what it includes
-	/// is either. Until the host is found, an edit to a document of the grammar's own project
-	/// may be the one that makes it findable; that is answered by looking at the one document
-	/// (<see cref="StandaloneGrammarConcern.Document"/>), not by looking for the host again.
-	/// </remarks>
 	internal static StandaloneGrammarConcern Concerns(
 		WorkspaceChangeEventArgs change,
 		StandaloneGrammarResolution resolution,
 		string filePath)
 	{
-		switch (change.Kind)
-		{
-			case WorkspaceChangeKind.SolutionAdded:
-			case WorkspaceChangeKind.SolutionChanged:
-			case WorkspaceChangeKind.SolutionRemoved:
-			case WorkspaceChangeKind.SolutionCleared:
-			case WorkspaceChangeKind.SolutionReloaded:
-				return StandaloneGrammarConcern.Full;
-		}
-
-		if (change.ProjectId is not { } project)
-			return StandaloneGrammarConcern.Full;
-
-		if (change.Kind == WorkspaceChangeKind.AdditionalDocumentChanged &&
-			change.DocumentId is { } edited &&
-			string.Equals(
-				change.NewSolution.GetAdditionalDocument(edited)?.FilePath,
-				filePath,
-				StringComparison.OrdinalIgnoreCase))
-			return StandaloneGrammarConcern.None;
-
-		if (change.DocumentId is { } document && resolution.Documents.Contains(document))
-			return StandaloneGrammarConcern.Full;
-
-		var watched = resolution.Projects.Contains(project);
-
-		switch (change.Kind)
-		{
-			case WorkspaceChangeKind.DocumentChanged:
-				return watched && resolution.State != StandaloneGrammarState.Resolved
-					? StandaloneGrammarConcern.Document
-					: StandaloneGrammarConcern.None;
-
-			case WorkspaceChangeKind.AdditionalDocumentChanged:
-			case WorkspaceChangeKind.AnalyzerConfigDocumentChanged:
-				return StandaloneGrammarConcern.None;
-
-			// What can put the grammar into a project, or take it out: asked of both
-			// solutions, since a removal is only in the old one.
-			case WorkspaceChangeKind.ProjectAdded:
-			case WorkspaceChangeKind.ProjectRemoved:
-			case WorkspaceChangeKind.ProjectReloaded:
-			case WorkspaceChangeKind.DocumentAdded:
-			case WorkspaceChangeKind.DocumentRemoved:
-			case WorkspaceChangeKind.DocumentReloaded:
-			case WorkspaceChangeKind.AdditionalDocumentAdded:
-			case WorkspaceChangeKind.AdditionalDocumentRemoved:
-			case WorkspaceChangeKind.AdditionalDocumentReloaded:
-				return watched ||
-					resolution.State != StandaloneGrammarState.Resolved &&
-					(Holds(change.NewSolution, project, filePath) || Holds(change.OldSolution, project, filePath))
-						? StandaloneGrammarConcern.Full
-						: StandaloneGrammarConcern.None;
-
-			default:
-				return watched ? StandaloneGrammarConcern.Full : StandaloneGrammarConcern.None;
-		}
-	}
-
-	static bool Holds(Solution solution, ProjectId project, string filePath)
-	{
-		return solution.GetProject(project)?.AdditionalDocuments.Any(document =>
-			string.Equals(document.FilePath, filePath, StringComparison.OrdinalIgnoreCase)) == true;
+		return StandaloneGrammarChange.Of(change, filePath).Concerns(resolution);
 	}
 
 	static bool IsIdentifier(char character)
@@ -630,28 +563,36 @@ sealed class GramBufferAnalysis
 
 	void WorkspaceChanged(WorkspaceChangeEventArgs change)
 	{
-		StandaloneGrammarResolution resolution;
-		string?                     filePath;
+		string? filePath;
 
 		lock (_gate)
 		{
 			if (_closed)
 				return;
 
-			resolution = _resolution;
-			filePath   = _textDocument?.FilePath;
+			filePath = _textDocument?.FilePath;
 		}
 
 		if (filePath is null)
 			return;
 
-		var concern = Concerns(change, resolution, filePath);
-
-		if (concern == StandaloneGrammarConcern.None)
-			return;
+		var judged = StandaloneGrammarChange.Of(change, filePath);
 
 		lock (_gate)
 		{
+			if (_closed)
+				return;
+
+			// Judged under the lock, so that no resolution ends between the judging and the keeping.
+			var concern = judged.Concerns(_resolution);
+
+			if (concern == StandaloneGrammarConcern.None)
+			{
+				// A resolution reading the solution now may have read it before this change.
+				_changes.Keep(judged);
+				return;
+			}
+
 			_retries = 0;
 
 			if (concern == StandaloneGrammarConcern.Full)
@@ -680,6 +621,7 @@ sealed class GramBufferAnalysis
 
 			_closed = true;
 			_resolveCancellation?.Cancel();
+			_changes.Clear();
 			workspace = _workspace;
 			documents = _documents;
 		}
@@ -723,6 +665,11 @@ sealed class GramBufferAnalysis
 
 			lock (_gate)
 			{
+				// Cancelled after its delay, a newer resolution has started or is about to: what
+				// is pending, and what it keeps meanwhile, are that one's.
+				if (!_changes.Start(cancellationToken))
+					return;
+
 				workspace = _workspace;
 				filePath  = _textDocument?.FilePath;
 				full      = _pendingFull;
@@ -732,13 +679,16 @@ sealed class GramBufferAnalysis
 				_pendingDocuments.Clear();
 			}
 
-			if (workspace is null || filePath is null)
-				return;
+			if (workspace is null || filePath is null ||
+				// Only documents of the grammar's project were edited while it has no host: look for
+				// the host again only if one of them now declares a class spelled as one.
+				!full && !await AnyMayHostAsync(workspace.CurrentSolution, edited, filePath, cancellationToken).ConfigureAwait(false))
+			{
+				lock (_gate)
+					_changes.Abandon(cancellationToken);
 
-			// Only documents of the grammar's project were edited while it has no host: look for
-			// the host again only if one of them now declares a class spelled as one.
-			if (!full && !await AnyMayHostAsync(workspace.CurrentSolution, edited, filePath, cancellationToken).ConfigureAwait(false))
 				return;
+			}
 
 			StandaloneGrammarResolution resolution;
 
@@ -756,8 +706,10 @@ sealed class GramBufferAnalysis
 				resolution = StandaloneGrammarResolution.NotReady;
 			}
 
-			bool reanalyse;
-			var  retry = -1;
+			bool                     reanalyse;
+			StandaloneGrammarConcern again;
+			var                      retry     = -1;
+			var                      documents = new List<DocumentId>();
 
 			lock (_gate)
 			{
@@ -767,6 +719,10 @@ sealed class GramBufferAnalysis
 
 				_resolution = resolution;
 				reanalyse   = before.State != resolution.State || !Same(before.Context, resolution.Context);
+
+				// An edit to an included grammar made while the solution was read is not in what
+				// was read, and nothing else would look at it again.
+				again = _changes.End(cancellationToken, resolution, documents);
 
 				if (reanalyse)
 					_scheduledSnapshot = null;
@@ -778,12 +734,17 @@ sealed class GramBufferAnalysis
 			if (reanalyse)
 				ScheduleAnalysis(_buffer.CurrentSnapshot, immediate: true);
 
-			if (retry >= 0)
+			if (retry >= 0 || again != StandaloneGrammarConcern.None)
 			{
 				lock (_gate)
-					_pendingFull = true;
+				{
+					if (retry >= 0 || again == StandaloneGrammarConcern.Full)
+						_pendingFull = true;
+					else
+						_pendingDocuments.UnionWith(documents);
+				}
 
-				ScheduleResolve(retry);
+				ScheduleResolve(retry >= 0 ? retry : ResolveDelayMilliseconds);
 			}
 		}
 		catch (OperationCanceledException exception) when (EditorGuard.Canceled(exception, cancellationToken))
@@ -792,6 +753,9 @@ sealed class GramBufferAnalysis
 		catch (Exception exception) when (EditorGuard.Recoverable(exception))
 		{
 			EditorGuard.Log("Grammar host resolution", exception);
+
+			lock (_gate)
+				_changes.Abandon(cancellationToken);
 		}
 	}
 
@@ -965,19 +929,6 @@ sealed class GramBufferAnalysis
 			.TranslateTo(target, SpanTrackingMode.EdgeExclusive);
 		return new Span(translated.Start.Position, translated.Length);
 	}
-}
-
-/// <summary>What a change to the solution asks of a standalone grammar.</summary>
-enum StandaloneGrammarConcern
-{
-	/// <summary>Nothing: it cannot change what the grammar is compiled with.</summary>
-	None,
-
-	/// <summary>A document was edited that may now declare the host: look at it, and only then for the host.</summary>
-	Document,
-
-	/// <summary>Look for the host again.</summary>
-	Full,
 }
 
 /// <summary>A standalone grammar's analysis, and the symbols of what it includes kept for Find All References.</summary>
