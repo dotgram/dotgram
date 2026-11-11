@@ -24,7 +24,8 @@ public sealed class LocationTypeTests
 
 	/// <summary>A type that is not an interface declaring the right <c>Locate</c> is refused, and nothing is generated for it.</summary>
 	[Theory]
-	[InlineData("public class ILoc { public void Locate(int at, int length) { } }", "", "void Locate(int at, int length)")]
+	[InlineData("public class ILoc { public void Locate(int at) { } }", "", "void Locate(int at, int length)")]
+	[InlineData("public struct ILoc { public void Locate(int at, int length) { } }", "", "void Locate(int at, int length)")]
 	[InlineData("public interface ILoc { }", "", "void Locate(int at, int length)")]
 	[InlineData("public interface ILoc { void Locate(int at); }", "public void Locate(int at) { }", "void Locate(int at, int length)")]
 	[InlineData("public interface ILoc { void Locate(int at, int length); }", "public void Locate(int at, int length) { }", "void Locate(int at, int length, int gapStart)")]
@@ -69,6 +70,34 @@ public sealed class LocationTypeTests
 		var item     = parse.Invoke(null, ["abc"])!;
 
 		Assert.Equal(0, (int)item.GetType().GetField("At")!.GetValue(item)!);
+	}
+
+	/// <summary>A class serves as well, a base's own <c>Locate</c> or one it inherits, and a sealed one too.</summary>
+	[Theory]
+	[InlineData("public abstract class ILoc { public int At = -1; public void Locate(int at, int length) { At = at; } }", "public sealed class Item : ILoc { public Item(string text) { } }")]
+	[InlineData("public class Place { public int At = -1; public void Locate(int at, int length) { At = at; } } public abstract class ILoc : Place { }", "public sealed class Item : ILoc { public Item(string text) { } }")]
+	[InlineData("public sealed class Item { public Item(string text) { } public int At = -1; public void Locate(int at, int length) { At = at; } }", "")]
+	public void A_class_is_told_where_it_was_written(string location, string item)
+	{
+		var type     = location.Contains("class ILoc", StringComparison.Ordinal) ? "ILoc" : "Item";
+		var assembly = GeneratorDriverTests.Build(Host(location + "\n" + item, "LocationType = typeof(" + type + ")"));
+		var parsed   = assembly.GetType("Parser")!.GetMethod("ParseItem", [typeof(string)])!.Invoke(null, ["abc"])!;
+
+		Assert.Equal(0, (int)parsed.GetType().GetField("At")!.GetValue(parsed)!);
+	}
+
+	/// <summary>A per-call reading's location type is refused on the attribute that names it, not on <c>[Gram]</c>.</summary>
+	[Fact]
+	public void A_per_call_reading_is_told_on_its_own_attribute()
+	{
+		var source = Host(
+			"public interface ILoc { void Locate(int at, int length); }\npublic sealed class Item : ILoc { public Item(string text) { } public void Locate(int at, int length) { } }",
+			"Lexical = false",
+			"[DotGram.GramParserVariant(\"Located\", LocationType = typeof(ILoc), UsePerCallLocations = true)]");
+		var run     = GeneratorDriverTests.RunGenerator(source);
+		var refused = Assert.Single(run.Diagnostics, static one => one.Id == "GRAM0011");
+
+		Assert.Equal(source.IndexOf("DotGram.GramParserVariant(", StringComparison.Ordinal), refused.Location.SourceSpan.Start);
 	}
 
 	/// <summary>Inherited from another interface, the method is still the one called.</summary>
