@@ -37,7 +37,7 @@ static class GrammarHost
 
 		var options = new List<Option>();
 
-		foreach (var name in new[] { "GramOptionsAttribute", "GramAttribute" })
+		foreach (var name in new[] { "GramReadingAttribute", "GramAttribute" })
 		{
 			if (!classes.TryGetValue(name, out var declaration))
 				continue;

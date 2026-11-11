@@ -141,7 +141,7 @@ public sealed class StreamedPositionTests
 	/// </summary>
 	[Theory]
 	[InlineData("Auto")]
-	[InlineData("Tape")]
+	[InlineData("Deferred")]
 	[InlineData("Immediate")]
 	public void A_located_value_read_through_a_window_is_told_its_place_in_the_input(string carrier)
 	{

@@ -3,7 +3,7 @@
 0.3.0
 
 - The navigation bar over a C# file with grammars spans the width in two lists, as C#'s does:
-  the file's grammars, by class (and Suffix), and the rules of the one chosen, both following
+  the file's grammars, by class (and Name), and the rules of the one chosen, both following
   the caret. The rules of different grammars no longer share one list.
 - A standalone .gram file follows its host as the solution changes: a project that finishes
   loading, an edited host class or an edited included grammar is picked up without reopening
@@ -69,7 +69,7 @@ Initial preview for Visual Studio 2022 17.14 and Visual Studio 18.
 - Attribute discovery and grammar syntax are synchronized with the current DotGram language version.
 - Parameters annotated with `StringSyntax("DotGram")` or `StringSyntax(".gram")`
   enable DotGram grammar tooling.
-- A host has one `[Gram]`; additional `[GramOptions]` readings no longer look like
+- A host has one `[Gram]`; additional `[GramVariant]` readings no longer look like
   separate grammar sources to editor tooling.
 - File names in `[Gram("Language.gram")]` are no longer analyzed as embedded grammar text.
 - Standalone and embedded grammars are analyzed with direct and transitive

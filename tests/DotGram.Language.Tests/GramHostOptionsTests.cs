@@ -12,7 +12,7 @@ using Xunit;
 namespace DotGram.Language.Tests;
 
 /// <summary>
-/// The one reader of a <c>[Gram]</c>'s and a <c>[GramOptions]</c>'s named arguments, which the
+/// The one reader of a <c>[Gram]</c>'s and a <c>[GramVariant]</c>'s named arguments, which the
 /// generator compiles with and the editor analyses with.
 /// </summary>
 public sealed class GramHostOptionsTests
@@ -28,22 +28,22 @@ public sealed class GramHostOptionsTests
 		Assert.Equal(
 			new GramHostOptions
 			{
-				IncludedAs            = null,
-				PartSize              = 0,
-				Lexical               = false,
-				Portable              = true,
-				LocationType          = null,
-				Carrier               = 0,
-				Stacks                = 0,
-				Suffix                = null,
-				ConstructionsMayThrow = false,
-				SpanCaptures          = false,
-				BufferedBytes         = false,
-				BufferedInput         = false,
-				MaxRetained           = int.MaxValue,
-				BufferSize            = 4096,
-				PerCall               = false,
-				Trace                 = false,
+				DefaultAlias           = null,
+				TargetMethodPartSize   = 0,
+				Lexical                = false,
+				ExportGrammar          = true,
+				LocationType           = null,
+				Carrier                = 0,
+				MaxExtraStacks         = 0,
+				Name                   = null,
+				ConstructionsMayThrow  = false,
+				UseSpanCaptures        = false,
+				BufferedBytes          = false,
+				BufferedText           = false,
+				MaxBufferedInputLength = int.MaxValue,
+				InitialBufferSize      = 4096,
+				UsePerCallLocations    = false,
+				Trace                  = false,
 			},
 			options[0]);
 	}
@@ -53,11 +53,11 @@ public sealed class GramHostOptionsTests
 	[InlineData("[DotGram.Gram(\"A = 'a'\")] partial class Parser;", false)]
 	[InlineData("public static partial class Outer { [DotGram.Gram(\"A = 'a'\")] public partial class Parser; }", true)]
 	[InlineData("static partial class Outer { [DotGram.Gram(\"A = 'a'\")] public partial class Parser; }", false)]
-	public void A_host_carries_its_grammar_where_anything_outside_can_name_it(string declaration, bool portable)
+	public void A_host_carries_its_grammar_where_anything_outside_can_name_it(string declaration, bool exported)
 	{
 		var options = Read(declaration);
 
-		Assert.Equal(portable, options.Single().Portable);
+		Assert.Equal(exported, options.Single().ExportGrammar);
 	}
 
 	[Fact]
@@ -68,54 +68,117 @@ public sealed class GramHostOptionsTests
 
 			sealed class Where;
 
-			[DotGram.Gram("A = 'a'", IncludedAs = "Inc", PartSize = 7, Lexical = true, Portable = false,
-				LocationType = typeof(Where), Carrier = DotGram.GramCarrier.Tape, Stacks = 3, Suffix = "S",
-				ConstructionsMayThrow = true, SpanCaptures = true, BufferedBytes = true, BufferedInput = true,
-				MaxRetained = 9, BufferSize = 64, PerCall = true, Trace = true)]
+			[DotGram.Gram("A = 'a'", DefaultAlias = "Inc", TargetMethodPartSize = 7, Lexical = true, ExportGrammar = false,
+				LocationType = typeof(Where), Carrier = DotGram.GramCarrier.Deferred, MaxExtraStacks = 3, Name = "S",
+				ConstructionsMayThrow = true, UseSpanCaptures = true, BufferedBytes = true, BufferedText = true,
+				MaxBufferedInputLength = 9, InitialBufferSize = 64, Trace = true)]
+			[DotGram.GramVariant(Name = "Located", UsePerCallLocations = true)]
 			public partial class Parser;
-			""").Single();
+			""");
 
 		Assert.Equal(
 			new GramHostOptions
 			{
-				IncludedAs            = "Inc",
-				PartSize              = 7,
-				Lexical               = true,
-				Portable              = false,
-				LocationType          = "N.Where",
-				Carrier               = Carrier("Tape"),
-				Stacks                = 3,
-				Suffix                = "S",
-				ConstructionsMayThrow = true,
-				SpanCaptures          = true,
-				BufferedBytes         = true,
-				BufferedInput         = true,
-				MaxRetained           = 9,
-				BufferSize            = 64,
-				PerCall               = true,
-				Trace                 = true,
+				DefaultAlias           = "Inc",
+				TargetMethodPartSize   = 7,
+				Lexical                = true,
+				ExportGrammar          = false,
+				LocationType           = "N.Where",
+				Carrier                = Carrier("Deferred"),
+				MaxExtraStacks         = 3,
+				Name                   = "S",
+				ConstructionsMayThrow  = true,
+				UseSpanCaptures        = true,
+				BufferedBytes          = true,
+				BufferedText           = true,
+				MaxBufferedInputLength = 9,
+				InitialBufferSize      = 64,
+				UsePerCallLocations    = false,
+				Trace                  = true,
 			},
-			options);
+			options[0]);
+		Assert.Equal("Located", options[1].Name);
+		Assert.True(options[1].UsePerCallLocations);
 	}
+
+	/// <summary>
+	/// An assembly built by DotGram 0.2 carries its attributes under their old names, and a grammar
+	/// included from it is still read with the options it was compiled with.
+	/// </summary>
+	[Fact]
+	public void The_names_DotGram_0_2_wrote_are_still_read()
+	{
+		var compilation = Compile(Legacy + """
+			[DotGram.Gram("A = 'a'", IncludedAs = "Inc", PartSize = 7, Portable = false, Stacks = 3, Suffix = "S",
+				SpanCaptures = true, BufferedInput = true, MaxRetained = 9, BufferSize = 64)]
+			[DotGram.GramOptions(Suffix = "Located", PerCall = true)]
+			public partial class Parser;
+			""", support: false);
+		var type     = compilation.GetTypeByMetadataName("Parser")!;
+		var readings = type.GetAttributes().OrderBy(static attribute => attribute.ApplicationSyntaxReference!.Span.Start).ToArray();
+		var first    = GramHostOptions.Read(readings[0], type, first: null);
+		var second   = GramHostOptions.Read(readings[1], type, first);
+
+		Assert.Equal("Inc", first.DefaultAlias);
+		Assert.Equal(7, first.TargetMethodPartSize);
+		Assert.False(first.ExportGrammar);
+		Assert.Equal(3, first.MaxExtraStacks);
+		Assert.Equal("S", first.Name);
+		Assert.True(first.UseSpanCaptures);
+		Assert.True(first.BufferedText);
+		Assert.Equal(9, first.MaxBufferedInputLength);
+		Assert.Equal(64, first.InitialBufferSize);
+		Assert.Equal("Located", second.Name);
+		Assert.True(second.UsePerCallLocations);
+		Assert.Equal("Inc", GramIncludes.Named(readings[0], GramIncludes.DefaultAliasArgument, "IncludedAs"));
+		Assert.Null(GramIncludes.Primary(type));
+	}
+
+	/// <summary>The attributes as DotGram 0.2 emitted them, by the names that matter here.</summary>
+	const string Legacy = """
+		namespace DotGram
+		{
+			internal class GramOptionsAttribute : System.Attribute
+			{
+				public string Suffix { get; set; }
+				public int PartSize { get; set; }
+				public bool BufferedInput { get; set; }
+				public bool SpanCaptures { get; set; }
+				public int MaxRetained { get; set; } = int.MaxValue;
+				public int BufferSize { get; set; } = 4096;
+				public int Stacks { get; set; }
+				public bool PerCall { get; set; }
+				public bool Portable { get; set; } = true;
+			}
+
+			internal sealed class GramAttribute : GramOptionsAttribute
+			{
+				public GramAttribute(string source) { Source = source; }
+				public string Source { get; }
+				public string IncludedAs { get; set; }
+			}
+		}
+
+		""";
 
 	[Fact]
 	public void A_later_reading_takes_what_it_does_not_say_from_the_first_but_not_which_reading_it_is()
 	{
 		var options = Read("""
-			[DotGram.Gram("A = 'a'", IncludedAs = "Inc", Lexical = true, PartSize = 7, Stacks = 3, Trace = true, PerCall = true)]
-			[DotGram.GramOptions(Suffix = "B", PartSize = 2)]
+			[DotGram.Gram("A = 'a'", DefaultAlias = "Inc", Lexical = true, TargetMethodPartSize = 7, MaxExtraStacks = 3, Trace = true)]
+			[DotGram.GramVariant(Name = "B", TargetMethodPartSize = 2)]
 			public partial class Parser;
 			""");
 
 		var second = options[1];
 
 		Assert.True(second.Lexical);
-		Assert.Equal(2, second.PartSize);
-		Assert.Equal(3, second.Stacks);
+		Assert.Equal(2, second.TargetMethodPartSize);
+		Assert.Equal(3, second.MaxExtraStacks);
 		Assert.True(second.Trace);
-		Assert.Equal("B", second.Suffix);
-		Assert.Null(second.IncludedAs);
-		Assert.False(second.PerCall);
+		Assert.Equal("B", second.Name);
+		Assert.Null(second.DefaultAlias);
+		Assert.False(second.UsePerCallLocations);
 	}
 
 	/// <summary>
@@ -127,7 +190,8 @@ public sealed class GramHostOptionsTests
 	{
 		var compilation = Compile("");
 		var attribute   = compilation.GetTypeByMetadataName("DotGram.GramAttribute")!;
-		var declared    = new[] { attribute, attribute.BaseType! }
+		var variant     = compilation.GetTypeByMetadataName("DotGram.GramVariantAttribute")!;
+		var declared    = new[] { attribute, attribute.BaseType!, variant }
 			.SelectMany(static type => type.GetMembers().OfType<IPropertySymbol>())
 			.Select(static property => property.Name)
 			.ToHashSet(StringComparer.Ordinal);
@@ -143,7 +207,7 @@ public sealed class GramHostOptionsTests
 			.OfType<INamedTypeSymbol>()
 			.Single();
 		var readings    = type.GetAttributes()
-			.Where(static attribute => attribute.AttributeClass?.Name is "GramAttribute" or "GramOptionsAttribute")
+			.Where(static attribute => attribute.AttributeClass?.Name is "GramAttribute" or "GramVariantAttribute")
 			.OrderBy(static attribute => attribute.ApplicationSyntaxReference!.Span.Start)
 			.ToArray();
 
@@ -165,14 +229,14 @@ public sealed class GramHostOptionsTests
 		return (int)carrier.GetMembers(name).OfType<IFieldSymbol>().Single().ConstantValue!;
 	}
 
-	static CSharpCompilation Compile(string source)
+	static CSharpCompilation Compile(string source, bool support = true)
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
 		var parse             = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var compilation       = CSharpCompilation.Create(
 			"Host",
 			[
-				CSharpSyntaxTree.ParseText(SupportEmitter.Attributes, parse, cancellationToken: cancellationToken),
+				CSharpSyntaxTree.ParseText(support ? SupportEmitter.Attributes : "", parse, cancellationToken: cancellationToken),
 				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, parse, cancellationToken: cancellationToken),
 				CSharpSyntaxTree.ParseText(source, parse, cancellationToken: cancellationToken),
 			],

@@ -330,7 +330,7 @@ public sealed class ProjectTests
 
 			namespace Demo
 			{
-				[GramInclude(typeof(Lexicon.Lexemes), As = "Lex")]
+				[GramInclude(typeof(Lexicon.Lexemes), Alias = "Lex")]
 				[Gram("""
 					trivia = ' '*
 

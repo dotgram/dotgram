@@ -46,9 +46,9 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.1 The result](#61-the-result)
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
-  - [6.4 `PartSize`, the one thing a host may tune](#64-partsize-the-one-thing-a-host-may-tune)
-  - [6.5 `Stacks`, how deep a reading may go](#65-stacks-how-deep-a-reading-may-go)
-  - [6.6 `[GramOptions]`, a second reading of the same grammar](#66-gramoptions-a-second-reading-of-the-same-grammar)
+  - [6.4 `TargetMethodPartSize`, the one thing a host may tune](#64-targetmethodpartsize-the-one-thing-a-host-may-tune)
+  - [6.5 `MaxExtraStacks`, how deep a reading may go](#65-maxextrastacks-how-deep-a-reading-may-go)
+  - [6.6 `[GramVariant]`, a second reading of the same grammar](#66-gramvariant-a-second-reading-of-the-same-grammar)
   - [6.7 `[GramInclude]`, a grammar built on another](#67-graminclude-a-grammar-built-on-another)
   - [6.8 Generation options](#68-generation-options)
   - [6.9 Tracing a grammar](#69-tracing-a-grammar)
@@ -814,19 +814,19 @@ memory quadratic in its length, which `GRAM5016` warns of. A construction that o
 does not mind. One that
 counts, logs or throws does: an exception it throws there escapes the publication (§7.5) —
 unless the grammar says `ConstructionsMayThrow = true`, which holds what a construction throws
-and throws it only where the tape would have. In a
+and throws it only where the deferred carrier would have. In a
 grammar with a `context`, constructions run interleaved with the hooks that share it (§7.7).
 The generator says where this can matter: `GRAM5016`, a warning, where constructions share
 `context` with a guard, a selector or a recognizer, or where a refused input can rebuild a list
 on every turn given back; `GRAM5012`, information, where a construction can run for text the
 parser then reads another way or a second time.
 
-**On the tape, a construction runs once the parse has accepted.** Where a construction must
+**Deferred, a construction runs once the parse has accepted.** Where a construction must
 not run for input that is refused or for a reading given up — it counts, logs, or throws —
 say so:
 
 ```csharp
-[Gram("…", Carrier = GramCarrier.Tape)]
+[Gram("…", Carrier = GramCarrier.Deferred)]
 ```
 
 and every construction is deferred until recognition has selected the accepted derivation,
@@ -842,8 +842,8 @@ other effect, can keep the immediate carrier and its speed:
 [Gram("…", Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
 ```
 
-Then what a construction throws is held, and thrown where the tape would have thrown it, so the
-answer is the tape's, exceptions included (§7.5). The hold costs every construction of the
+Then what a construction throws is held, and thrown where the deferred carrier would have thrown it,
+so the answer is the deferred carrier's, exceptions included (§7.5). The hold costs every construction of the
 grammar a little whether anything throws or not, which is why it is asked for rather than given.
 
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
@@ -1249,7 +1249,7 @@ above are used: the base builds the first value, the recursive alternative appli
 per operator.
 
 A fold follows §7.2 like any other rule. Carried immediately, the default, each step's `=>`
-is applied as the step is read, on the value so far. On the tape it is deferred until the
+is applied as the step is read, on the value so far. Deferred, it waits until the
 accepted derivation is known: what the match records is which alternative it came through
 and, for a chain, which step followed which, and a step's `=>` not needed earlier is applied
 once the whole match has succeeded, in that order.
@@ -1769,7 +1769,7 @@ an earlier alternative is being read, whether or not it wins, and not otherwise 
 a token for it; where some flagged alternative
 is read in place rather than called, or stands in a clone of its rule the reader could not
 match to the choice the analysis named, every success is stored, and the carriers report says
-so. Over characters, on the tape, in a trace build, where a
+so. Over characters, carried deferred, in a trace build, where a
 construction may throw, inside a lookahead and for a rule that reaches its context nothing is
 remembered, and the message says so: there the shape costs its depth's power until the grammar
 is rewritten.
@@ -2325,7 +2325,7 @@ parse`, and a wrong order or a word written twice is `GRAM2013`. A `find` alread
 position of the input, and a `yield` has no `Try` form to begin anywhere, so neither takes the word
 (`GRAM2012`). Each word is one only in front of `parse` or `find`, so a rule may still be called
 `internal` or `positional`. A `private` publication in a nested reading
-(`[GramOptions]`, §6.6) is private to that nested class, which is where that reading's own
+(`[GramVariant]`, §6.6) is private to that nested class, which is where that reading's own
 constructions call it from.
 
 **What a directive names is an expression, not only a rule.** Wherever the notation
@@ -2561,8 +2561,8 @@ Document ParseDocument(TextReader input,
 ```
 
 A null buffer parameter takes the grammar's own default, and a number takes precedence for
-that call. The defaults are `[Gram(..., BufferSize = 4096, MaxRetained = int.MaxValue)]`,
-the values shown being what applies where the attribute does not say; a `[GramOptions]`
+that call. The defaults are `[Gram(..., InitialBufferSize = 4096, MaxBufferedInputLength = int.MaxValue)]`,
+the values shown being what applies where the attribute does not say; a `[GramVariant]`
 inherits them and may set its own. The generated class holds them as the read-only
 `DefaultBufferSize` and `DefaultMaxRetained`, internal to the assembly, for a package that
 wants to tell its own callers what the limit is. Either set to zero or less is `GRAM0009`.
@@ -2582,8 +2582,8 @@ A sequence of lines is the exception in one respect: the enumerator the parse ta
 `IEnumerable<string>` is its own, so it is disposed when the parse ends, or when the caller
 stops walking a lazy result; the sequence itself stays the caller's.
 
-`[Gram(..., BufferedInput = true)]` adds the character form to parse and find publications;
-`BufferedBytes = true` adds the byte form. Both default to false. `GramOptions`
+`[Gram(..., BufferedText = true)]` adds the character form to parse and find publications;
+`BufferedBytes = true` adds the byte form. Both default to false. `GramVariant`
 inherits these settings and can override either with false. An explicit publication
 modifier still requests its form. Buffered `find` returns a lazy
 `IEnumerable<Match<T>>` for `TextReader` or `Stream`. It finds the same non-overlapping
@@ -2633,13 +2633,13 @@ these captures. Encoding syntax remains future work.
 
 #### Native capture spans
 
-`[Gram(..., SpanCaptures = true)]` (or the same property on a `[GramOptions]`) changes
+`[Gram(..., UseSpanCaptures = true)]` (or the same property on a `[GramVariant]`) changes
 raw character captures and `parserText` in actions/guards from `string` to
 `ReadOnlySpan<char>`. It applies to both the contiguous string parser and its
 buffered character form. It defaults to false to preserve existing string-based
-actions, and follows `GramOptions` inheritance and explicit overrides.
+actions, and follows `GramVariant` inheritance and explicit overrides.
 The byte form always uses `ReadOnlySpan<byte>` for raw captures, independently
-of `SpanCaptures`.
+of `UseSpanCaptures`.
 
 ```dotgram
 Number : @int = text: ['0'..'9']+ => @(ToInt(text))
@@ -2650,7 +2650,7 @@ Provide `ToInt(ReadOnlySpan<char>)` and `ToInt(ReadOnlySpan<byte>)` overloads in
 host. C# selects the overload directly; the generator does not insert conversions
 or a runtime interface. The author controls validation, overflow, encoding and
 ownership. Missing or incompatible overloads are normal C# compilation errors.
-The character parser requires `SpanCaptures = true` to avoid its usual string
+The character parser requires `UseSpanCaptures = true` to avoid its usual string
 capture allocation. A small helper is eligible for JIT inlining; inlining is not
 guaranteed by the generator.
 
@@ -2788,7 +2788,7 @@ an `int` cannot index; it is only ever widened once, at the one place a position
 crosses a publication's own boundary out to the caller, so an error at offset
 8,432,109,553 can be reported as such.
 
-### 6.4 `PartSize`, the one thing a host may tune
+### 6.4 `TargetMethodPartSize`, the one thing a host may tune
 
 A recognizer too large for one method is written in several. Past about sixty thousand
 bytes of IL the JIT stops optimizing a method altogether, and well before that its code
@@ -2798,7 +2798,7 @@ How large a part is aimed to be is counted in the generator's estimated basic bl
 the default is chosen on grammars that are not yours:
 
 ```csharp
-[Gram("…", PartSize = 80)]
+[Gram("…", TargetMethodPartSize = 80)]
 public partial class MyParser { }
 ```
 
@@ -2812,7 +2812,7 @@ Whether to divide *at all* is not tunable and is not the same question — a gra
 small enough to hold in one method is faster that way, and one too large for it is far
 slower undivided. The generator decides that from the size it estimates.
 
-### 6.5 `Stacks`, how deep a reading may go
+### 6.5 `MaxExtraStacks`, how deep a reading may go
 
 A grammar that recurses can be handed input the author did not write: a thousand brackets,
 or a hundred thousand. Recursive descent reads that on the machine stack, and a machine
@@ -2828,7 +2828,7 @@ take one with.
 Say how many is enough where that is not what you want:
 
 ```csharp
-[Gram("…", Stacks = 4)]
+[Gram("…", MaxExtraStacks = 4)]
 public partial class MyParser { }
 ```
 
@@ -2882,26 +2882,27 @@ construction whose value one of them reads answer from their arguments, captures
 or from `context` named as such. One that reads state some other way breaks it, and the memo
 then answers with the failure it remembered.
 
-### 6.6 `[GramOptions]`, a second reading of the same grammar
+### 6.6 `[GramVariant]`, a second reading of the same grammar
 
 `[Gram]` is written once: it says *which* grammar, which is a thing a class has one of.
-`[GramOptions]` may be written as many times as there are further readings wanted, and
+`[GramVariant]` may be written as many times as there are further readings wanted, and
 each is a compilation of its own that names the nested class it goes into:
 
 ```csharp
 [Gram("Sql.gram", Lexical = true)]
-[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
 public static partial class Sql { }
 ```
 
 `Sql.ParseQuery` is the first; `Sql.Immediate.ParseQuery` is the second. Two files come
 out, one per attribute.
 
-Everything a `[GramOptions]` does not say it takes from the `[Gram]` — the grammar, whether
+Everything a `[GramVariant]` does not say it takes from the `[Gram]` — the grammar, whether
 it is read as tokens, how it is divided — and what it does say is the difference. That is
 the shape this is for: the class's own parser, compiled the other way and no other way.
-The options themselves are the same on both, since `[Gram]` is a `[GramOptions]` with a
-grammar in it; only `Source` and `IncludedAs` are the grammar's own.
+The options themselves are the same on both — they are declared once, on the abstract
+`GramReadingAttribute` both derive from — except `Source` and `DefaultAlias`, which are the
+grammar's own and only on `[Gram]`, and `UsePerCallLocations`, only on `[GramVariant]`.
 
 **Why a class rather than a suffix on the method names.** Everything a parser needs is
 emitted beside it (§6.2), and a file's share of that — the match, the failure, the lexer,
@@ -2922,8 +2923,8 @@ and only there: a traced reading beside a plain one adds no `SourceSpan` and no
 own, `Host.gram-shared.g.cs`, beside the readings' files.
 
 A host with one reading keeps them in the reading's own class, so a second reading moves
-them. `[Gram("…", Suffix = "Fast")]` alone answers with `Host.Fast.Match<T>`; add a
-`[GramOptions(Suffix = "Slow")]` and both answer with `Host.Match<T>`:
+them. `[Gram("…", Name = "Fast")]` alone answers with `Host.Fast.Match<T>`; add a
+`[GramVariant(Name = "Slow")]` and both answer with `Host.Match<T>`:
 
 ```csharp
 Host.Fast.Match<Row> m = Host.Fast.TryParseRow(text);   // one reading
@@ -2939,14 +2940,14 @@ author's to decide, and the generated part adds no accessibility of its own:
 
 ```csharp
 [Gram("Sql.gram", Lexical = true)]
-[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
 public static partial class Sql
 {
     internal static partial class Immediate { }   // a reading for tests and measurements
 }
 ```
 
-Two readings wanting the same scope — the same `Suffix`, or a `[GramOptions]` with none,
+Two readings wanting the same scope — the same `Name`, or a `[GramVariant]` with none,
 which is the scope the `[Gram]` already has — is refused (`GRAM0006`), because one of them
 would silently win.
 
@@ -2963,7 +2964,7 @@ carriers over one grammar comparable at all.
 
 #### Value-table storage
 
-A direct tape reader keeps what it builds in a table per value type, and how those tables
+A direct deferred reader keeps what it builds in a table per value type, and how those tables
 are held is the generator's to choose: flat arrays indexed by record, dense indexing where a
 machine's materializer runs once at the end, and arrays that grow into lazy pages where a
 grammar has many types. The choice is made from the grammar's structure at generation time
@@ -2978,15 +2979,15 @@ Immediate readers and the non-direct engine do not use them.
 ### 6.7 `[GramInclude]`, a grammar built on another
 
 ```csharp
-[GramInclude(typeof(Sql92Parser), As = "Sql92")]
+[GramInclude(typeof(Sql92Parser), Alias = "Sql92")]
 [Gram("TransactSql.gram", Lexical = true)]
 public abstract partial class TransactSqlParser { }
 ```
 
 `[GramInclude]` is the reference. It names a class that carries a grammar — one with a
 `[Gram]` of its own, in this project or in one this project references — and that
-grammar is compiled into this one, wrapped in a namespace called what `As` says, or
-what the class's `IncludedAs` says, or the class's own name. Its rules are reached in
+grammar is compiled into this one, wrapped in a namespace called what `Alias` says, or
+what the class's `DefaultAlias` says, or the class's own name. Its rules are reached in
 full, `Sql92.Identifier`, and `using Sql92;` opens the namespace as `using` opens any
 other (§5). Written as many times as there are grammars to build on; what an included
 grammar includes comes along too, each grammar once however many paths lead to it, so
@@ -3027,20 +3028,20 @@ not part of what ships, so the generator writes the grammar's text onto the clas
 compiled — `[GramSource("…")]` — and an include across a project reference reads it off
 the type it already names. The file wins where both are in reach, so that a diagnostic
 points at something somebody can edit. It costs the size of the grammar, and it follows
-what the class already says: a publicly visible host carries its grammar and one nobody
-outside can name does not, and `[Gram(Portable = …)]` says otherwise where that guess
+what the class already says: a host that is public, with every class around it, carries its
+grammar and one nobody outside can name does not, and `[Gram(ExportGrammar = …)]` says otherwise where that guess
 is wrong. An include that finds neither a file nor a carried text is `GRAM0003`.
 
 ### 6.8 Generation options
 
-The options written on `[Gram]` and `[GramOptions]` change how a grammar is compiled into a
+The options written on `[Gram]` and `[GramVariant]` change how a grammar is compiled into a
 parser — which machine reads it, how it carries what it read until it builds, how its
 methods are divided, what a value is told about where it was written — and not what the
 grammar means. Under every setting a grammar accepts the same texts and builds the same
 values, except where an entry below says otherwise: `Lexical` reads over tokens, where a
 rule's answer stands (§4); `Carrier` decides whether a construction may run for a reading that is abandoned or
 refused, and `ConstructionsMayThrow` whether what one throws there escapes; `LocationType` hands
-values their positions; `Stacks` fails a reading deeper than
+values their positions; `MaxExtraStacks` fails a reading deeper than
 it allows. The build property `DotGramPositionalFollow`, below, is one more: it changes what a
 reading from a position answers, and what the generator tells a grammar left to choose about
 its carrier.
@@ -3048,47 +3049,46 @@ its carrier.
 `Lexical` and `Carrier` are requests rather than settings. Where a grammar cannot
 be compiled the way one asks, the parser is compiled the way it would have been without the
 request, and a diagnostic says why: `GRAM5004`, `GRAM5007`, and `GRAM5005` for a rule of a
-grammar cut into tokens that the methods refuse. `PartSize` is a wish (§6.4), and no value
+grammar cut into tokens that the methods refuse. `TargetMethodPartSize` is a wish (§6.4), and no value
 of it fails a build.
 
 | Option | Default | What it says |
 | --- | --- | --- |
 | `Source` | the `.gram` file named after the class | `[Gram]` only, as its constructor argument: a path to a `.gram` file, or the grammar text itself. A single-line value ending in `.gram` is a path (§1). |
-| `IncludedAs` | the class's own name | `[Gram]` only: the name another grammar includes this one under where its `[GramInclude]` gives no `As` (§6.7). |
-| `Suffix` | none — the host class itself | the nested class a reading goes into (§6.6). |
-| `PartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
-| `Stacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
-| `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
+| `DefaultAlias` | the class's own name | `[Gram]` only: the name another grammar includes this one under where its `[GramInclude]` gives no `Alias` (§6.7). |
+| `Name` | none — the host class itself | the nested class a reading goes into (§6.6). |
+| `TargetMethodPartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
+| `MaxExtraStacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
+| `ExportGrammar` | not set: exported when the class and every class around it are public | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. The lexer's `Scan(text, pos, out kind)` is internal: the kind it answers with is the grammar's own numbering, which changes with the grammar. A host that wants token boundaries writes a method of its own under another name that calls it. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
-| `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the tape would have (§7.5). Ignored on the tape. |
+| `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the deferred carrier would have (§7.5). Ignored by the deferred carrier. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
-| `PerCall` | `false` | on a `[GramOptions]` with a `LocationType` and a `Suffix`: the locations are asked for per call, not compiled in; below. |
+| `UsePerCallLocations` | `false` | on a `[GramVariant]` with a `LocationType` and a `Name`: the locations are asked for per call, not compiled in; below. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink (§6.9). Changes no answer. |
-| `BufferedInput` | `false` | adds the buffered character form to parse and find publications (§6.3). |
+| `BufferedText` | `false` | adds the buffered character form to parse and find publications (§6.3). |
 | `BufferedBytes` | `false` | adds the buffered byte form, with no text decoding (§6.3). |
-| `SpanCaptures` | `false` | hands character captures over as `ReadOnlySpan<char>` rather than `string` (§6.3). |
-| `MaxRetained` | `int.MaxValue`, no limit | the most a buffered parse may hold at once, where a call does not say; zero or less is `GRAM0009` (§6.3). |
-| `BufferSize` | `4096` | the capacity a buffered parse's buffer starts with, where a call does not say; zero or less is `GRAM0009` (§6.3). |
+| `UseSpanCaptures` | `false` | hands character captures over as `ReadOnlySpan<char>` rather than `string` (§6.3). |
+| `MaxBufferedInputLength` | `int.MaxValue`, no limit | the most a buffered parse may hold at once, where a call does not say; zero or less is `GRAM0009` (§6.3). |
+| `InitialBufferSize` | `4096` | the capacity a buffered parse's buffer starts with, where a call does not say; zero or less is `GRAM0009` (§6.3). |
 
-`[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
-`IncludedAs` may be written on either, and a `[GramOptions]` takes what it does not say from
-the `[Gram]` (§6.6).
+Every option but `Source`, `DefaultAlias` and `UsePerCallLocations` may be written on either
+attribute, and a `[GramVariant]` takes what it does not say from the `[Gram]` (§6.6).
 
 #### `Carrier`
 
 A reader holds what it has read until the constructions (§3.7) run, and the carrier is how:
 
-- **`Auto`** — the default: `Immediate` wherever that carrier can carry a machine, the tape
-  for a machine it refuses (in silence; the carriers report says which). Where the tape would
+- **`Auto`** — the default: `Immediate` wherever that carrier can carry a machine, `Deferred`
+  for a machine it refuses (in silence; the carriers report says which). Where `Deferred` would
   hold back constructions the immediate carrier runs, the generator says so: `GRAM5016`, a
   warning, where it would be safer — constructions share `context` with a guard, a `switch`
   selector or a recognizer, so what is accepted and what is built can differ, or a refused
   input can rebuild a list on every turn given back, in memory quadratic in its length; and
   `GRAM5012`, information, where a construction can run for text the parser then reads another
   way or a second time. Naming either carrier silences both, and every reason found later.
-- **`Tape`** — records on a tape, built into values once the parse is accepted. No
-  construction runs for input that is refused (§3.7).
+- **`Deferred`** — what was read is recorded, and built into values once the parse is
+  accepted. No construction runs for input that is refused (§3.7). Called `Tape` before 0.3.0.
 - **`Immediate`** — no deferral: a construction runs the moment its alternative has been
   read, and one abandoned afterwards has already run. That is once per derivation tried
   rather than once per derivation accepted: invisible to a pure allocation, visible to a
@@ -3106,10 +3106,10 @@ A reader holds what it has read until the constructions (§3.7) run, and the car
   neither bound holds: the second reading builds again, and every way back taken rebuilds what
   stood before it, as often as the input gives ways back (`GRAM5016`).
   What a construction throws on an abandoned reading escapes the publication, unless the
-  grammar says `ConstructionsMayThrow = true`: then it is held and thrown only where the tape
-  would have thrown it (§7.5).
+  grammar says `ConstructionsMayThrow = true`: then it is held and thrown only where the deferred
+  carrier would have thrown it (§7.5).
 
-A machine the immediate carrier cannot carry is compiled on the tape, the rest of the grammar
+A machine the immediate carrier cannot carry is compiled deferred, the rest of the grammar
 keeping the carrier. Where `Carrier = Immediate` was named, `GRAM5007` says which publications
 moved and why — among the reasons, that no part of the grammar is read by methods, since a
 carrier is what a reader holds; left to the generator, the fallback is silent.
@@ -3120,11 +3120,13 @@ carrier is what a reader holds; left to the generator, the fallback is silent.
 [Gram("Sql.gram", Lexical = true, LocationType = typeof(ISqlSpan))]
 ```
 
-Name an interface with a settable property called `Span`, and every rule whose value
-implements it is handed the range of input it was built from — the rule's own text, without
-the trivia around it, so that a comment falls between two values rather than inside one. The
-property is written once, by the reader, on a value it has just made and nothing has yet
-seen.
+Name an interface declaring `void Locate(int at, int length)` — with `UsePerCallLocations`,
+`void Locate(int at, int length, int gapStart)` (below) — and every rule whose value
+implements it is handed the range of input it was built from: the rule's own text, without
+the trivia around it, so that a comment falls between two values rather than inside one.
+`Locate` is called once, by the reader, on a value it has just made and nothing has yet seen,
+and it is called through the interface, so an explicit implementation serves as well as a
+public one. A type that is not such an interface is `GRAM0011`.
 
 An implementor may be a class or a struct; a struct is told on the value the rule returns. A rule
 whose value is a `Nullable` of a struct has nothing to write it on, and is refused (`GRAM4046`).
@@ -3137,18 +3139,18 @@ there. A reading that tells no place that far in reads on.
 It changes nothing about what is read, and a grammar that names no interface pays nothing.
 Being an option, it may be given to one reading of a grammar and not to another (§6.6).
 
-#### `PerCall`
+#### `UsePerCallLocations`
 
 ```csharp
 [Gram("TransactSql.gram", Lexical = true)]
-[GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]
+[GramVariant(LocationType = typeof(ISqlLocatable), Name = "Located", UsePerCallLocations = true)]
 public abstract partial class TransactSqlParser { }
 ```
 
 A second reading that differs from the first only in being told where its values were
-written need not be a second parser. With `PerCall`, the `[GramOptions]` compiles nothing of
+written need not be a second parser. With `UsePerCallLocations`, the `[GramVariant]` compiles nothing of
 its own: the grammar is compiled once, its constructions are told where they were written only
-when a call asks, and the nested class the suffix names — `TransactSqlParser.Located` — holds
+when a call asks, and the nested class it names — `TransactSqlParser.Located` — holds
 the same published methods, each of them asking. A call through the class itself does not ask,
 and pays a test per construction for the choice. The interface must then declare a three-argument
 `Locate(int at, int length, int gapStart)`, where the gap start is where the text between the
@@ -3156,7 +3158,7 @@ value and the token before it begins: the end of that token, or where the readin
 
 The nested class holds the forms over a string and over segments. The forms over a buffered
 input — a `TextReader`, a `Stream`, bytes — are written on the class itself only; a grammar that
-wants them located names a second reading without `PerCall`, compiled with locations in.
+wants them located names a second reading without `UsePerCallLocations`, compiled with locations in.
 
 #### `DotGramPositionalFollow` (experimental)
 
@@ -3252,7 +3254,7 @@ on a generated parser, for tooling to read.
 
 ### 6.9 Tracing a grammar
 
-`Trace = true` on `[Gram]` or `[GramOptions]` makes a reading a **trace build**: its parser
+`Trace = true` on `[Gram]` or `[GramVariant]` makes a reading a **trace build**: its parser
 reports what it does — each rule it enters and leaves, each refusal and what it wanted, each
 guard it asks — to a sink the caller sets. The build property `DotGramTrace` asks the same of
 every grammar in a project, typically for a Debug build only:
@@ -3269,7 +3271,7 @@ reading does (§6.6):
 
 ```csharp
 [Gram("Expressions.gram")]
-[GramOptions(Suffix = "Traced", Trace = true)]
+[GramVariant(Name = "Traced", Trace = true)]
 public static partial class Expressions { }
 ```
 
@@ -3692,8 +3694,8 @@ ordinary C# rules.
   external recognizer handed the context share `context`, the hook sees what constructions
   read before it wrote, and a construction that reads `context` sees it as it stands where
   the construction is read — in both directions, what the grammar accepts and the values it
-  builds can differ from the tape's, and `GRAM5016` says so. On the tape
-  (`Carrier = GramCarrier.Tape`), a construction is deferred until the accepted derivation is
+  builds can differ from the deferred carrier's, and `GRAM5016` says so. Deferred
+  (`Carrier = GramCarrier.Deferred`), a construction is deferred until the accepted derivation is
   known unless a `when` guard explicitly inspects its value: captures record what matched
   and the chosen factory builds only the accepted path. A value requested by a guard is
   built during recognition, cached, and reused after acceptance; it may therefore have been
@@ -3873,13 +3875,13 @@ shared between assemblies.
 after `when`, an external recognizer: what they throw propagates from every publication, with
 or without the `Try` prefix, as any exception of C# does (§7.4). A `Try` method that turned it
 into a refusal would report a defect of the host as input that did not fit. The parser never
-lets escape an exception from a reading it has abandoned — on the tape
-(`Carrier = GramCarrier.Tape`): host code is asked about what the parse reads, and a reading
+lets escape an exception from a reading it has abandoned — deferred
+(`Carrier = GramCarrier.Deferred`): host code is asked about what the parse reads, and a reading
 the parse gives up cannot fail it. Carried immediately, the default, a construction runs as
 its alternative is read, and one that throws on a reading the parse would have given up
 escapes the publication, `Try` or not, and a throwing `Parse` can surface it instead of the
 parse error. A grammar left to choose whose constructions can run there is told so
-(`GRAM5012`); one whose constructions may throw there names the tape, puts every such
+(`GRAM5012`); one whose constructions may throw there names `Deferred`, puts every such
 construction behind a guard that answers first, or says so:
 
 ```csharp
@@ -3888,21 +3890,21 @@ construction behind a guard that answers first, or says so:
 
 **A grammar whose constructions may throw can say so.** With `ConstructionsMayThrow = true`
 the immediate carrier holds what a construction throws: the reading goes on with the value
-left default, and the held exception is thrown where the tape would have thrown it — when the
+left default, and the held exception is thrown where the deferred carrier would have thrown it — when the
 publication builds its answer, or where a `when` or `switch` asks for a value it was thrown
 under — from `Try` and `Parse` alike. An exception held in a reading the parse gives up goes
 with it, and a refused parse throws nothing it held: the refusal is the answer. A
-construction of a rule whose reading already holds an exception does not run, as on the tape,
-which would have thrown before it. Of several
+construction of a rule whose reading already holds an exception does not run, as with the deferred
+carrier, which would have thrown before it. Of several
 held, the one thrown is the first raised under what is asked for — at acceptance the first of
 all; a later one, handed the default an earlier left, is not. One thing is wider than the
-tape: a guard naming a fold's value so far, or a sequence gathered across turns, throws the
+deferred carrier: a guard naming a fold's value so far, or a sequence gathered across turns, throws the
 first exception held since its rule began, under whichever value of that rule it was raised.
 What a guard or a recognizer throws is not held: it runs during recognition on both carriers
 and propagates at once. The hold is a handler around every construction and a copy at every
 way back, paid whether anything throws or not, so it is not the default: a grammar none of
-whose constructions throws is compiled without it. The tape ignores the option; it has nothing
-to hold.
+whose constructions throws is compiled without it. The deferred carrier ignores the option; it has
+nothing to hold.
 
 ### 7.6 Mapping positions back
 
@@ -3916,7 +3918,7 @@ breakpoints and for "go to definition" in both directions.
 
 Some grammars need somewhere to put what the reading works out: a table of names, the
 label a jump goes to, whatever the language being read means by scope. A `=>` cannot hold
-it — on the tape it runs after the whole match, and carried immediately it runs as its
+it — deferred it runs after the whole match, and carried immediately it runs as its
 alternative is read, interleaved with the guards that would read it, which is what `GRAM5016`
 warns of — and a `when` that writes into a static field has made that field global, which is
 a bug waiting for the second thread and the second parse.
@@ -4097,7 +4099,7 @@ grammar that does not ask for it.
 
 ### 8.1 Recognition failure and C# exceptions
 
-The seam already exists — §7.2: `when` runs **during** the match; `=>` runs, on the tape,
+The seam already exists — §7.2: `when` runs **during** the match; `=>` runs, deferred,
 **after** it, once the match is final and from the alternative that actually matched, and
 carried immediately where its alternative is read.
 
@@ -4106,7 +4108,7 @@ match, and ordered choice may undo it and try something else. A recovering repet
 (§8.2) treats a failed element as an error when its complete continuation cannot match
 and input remains. Atomic groups govern backtracking, not this error classification.
 
-Construction runs after recognition on the tape, and during it carried immediately. Its C#
+Construction runs after recognition when deferred, and during it carried immediately. Its C#
 must produce the rule's declared value;
 compile-time mistakes are C# diagnostics, and an exception thrown while constructing a
 value leaves the parse. The generator does not infer another parser outcome from a C#

@@ -2,7 +2,7 @@
 
 	<!-- The tape's reading of the two examples whose constructions throw, Calculator and Filter:
 	     their sources compiled again here, beside a declaration of each (CalculatorTape.cs,
-	     FilterTape.cs) that asks for `[GramOptions(Carrier = Tape, Suffix = "Tape")]` as well.
+	     FilterTape.cs) that asks for `[GramVariant(Carrier = Tape, Name = "Tape")]` as well.
 	     The examples name the immediate carrier with ConstructionsMayThrow, and
 	     ExampleCarrierTests holds them to this reading, refusals and throws included. Not
 	     shipped: it is a fixture, read by DotGram.Tests under an extern alias, since every

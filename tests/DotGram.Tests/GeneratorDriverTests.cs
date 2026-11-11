@@ -490,7 +490,7 @@ public sealed class GeneratorDriverTests
 	{
 		var result = RunGenerator(
 			"""
-			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			[DotGram.Gram("Word = ['a'..'z']+", DefaultAlias = "Lexical")]
 			public partial class VeryLongBaseName { }
 
 			[DotGram.Gram("using Lexical;\nStart = w: Word\nparse Start")]
@@ -580,7 +580,7 @@ public sealed class GeneratorDriverTests
 		var error = Assert.Single(
 			RunGenerator(
 				"""
-				[DotGram.Gram("Start = missing", IncludedAs = "Lexical")]
+				[DotGram.Gram("Start = missing", DefaultAlias = "Lexical")]
 				public partial class Grammar { }
 				""")
 				.Diagnostics
@@ -610,7 +610,7 @@ public sealed class GeneratorDriverTests
 			"GRAM0005",
 			RunGenerator(
 				$$"""
-				[DotGram.Gram("Start = 'a'\nparse Start", IncludedAs = "{{name}}")]
+				[DotGram.Gram("Start = 'a'\nparse Start", DefaultAlias = "{{name}}")]
 				public partial class Grammar { }
 				"""));
 	}
@@ -621,7 +621,7 @@ public sealed class GeneratorDriverTests
 		Assert.DoesNotContain(
 			RunGenerator(
 				"""
-				[DotGram.Gram("Start = 'a'\nparse Start", IncludedAs = "Lexical")]
+				[DotGram.Gram("Start = 'a'\nparse Start", DefaultAlias = "Lexical")]
 				public partial class Grammar { }
 				""")
 				.Diagnostics,
@@ -1629,7 +1629,7 @@ public sealed class GeneratorDriverTests
 		FrameIsTheGeneratedFrame(
 			"""
 			[DotGram.Gram("Start = 'a' & @M\nparse Start")]
-			[DotGram.GramOptions(Suffix = "Immediate")]
+			[DotGram.GramVariant(Name = "Immediate")]
 			public partial class Host
 			{
 				static bool M(System.ReadOnlySpan<char> input, ref int pos)
@@ -1711,7 +1711,7 @@ public sealed class GeneratorDriverTests
 		var assembly = BuildStrict(
 			"""
 			[DotGram.Gram("Start = 'a' & @M\nparse Start")]
-			[DotGram.GramOptions(Suffix = "Immediate")]
+			[DotGram.GramVariant(Name = "Immediate")]
 			public partial class SuffixHost
 			{
 				static bool M(System.ReadOnlySpan<char> input, ref int pos)
@@ -1874,7 +1874,7 @@ public sealed class GeneratorDriverTests
 			}
 
 			[DotGram.Gram("Start = @ParseStart<int>\nparse Start")]
-			[DotGram.GramOptions(Suffix = "Other")]
+			[DotGram.GramVariant(Name = "Other")]
 			public partial class GenericOwn
 			{
 				static bool ParseStart<TItem>(System.ReadOnlySpan<char> input, ref int pos)
@@ -2380,7 +2380,7 @@ public sealed class GeneratorDriverTests
 	public void Construction_runs_only_for_the_accepted_derivation()
 	{
 		var type = Build("""
-			[DotGram.Gram("Start : @int = \"ab\" => @First() | ['a'..'z']+ => @Second()\nparse Start", Carrier = DotGram.GramCarrier.Tape)]
+			[DotGram.Gram("Start : @int = \"ab\" => @First() | ['a'..'z']+ => @Second()\nparse Start", Carrier = DotGram.GramCarrier.Deferred)]
 			public partial class DeferredConstruction
 			{
 				public static string Calls = "";
@@ -3518,7 +3518,7 @@ public sealed class GeneratorDriverTests
 					| "900=" & 'X'+ => @(900)
 				parse Start
 				""")]
-			[GramOptions(Suffix = "Inherited")]
+			[GramVariant(Name = "Inherited")]
 			public static partial class PrefixDefaults { }
 			"""");
 
@@ -3530,7 +3530,7 @@ public sealed class GeneratorDriverTests
 			Assert.Equal(198, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["198=XX"]));
 		}
 
-		Assert.Null(built.GetType("DotGram.GramOptionsAttribute")!.GetProperty("PrefixTables"));
+		Assert.Null(built.GetType("DotGram.GramVariantAttribute")!.GetProperty("PrefixTables"));
 	}
 
 	// ── Two readings of one grammar ─────────────────────────────────────────
@@ -3538,7 +3538,7 @@ public sealed class GeneratorDriverTests
 	/// <summary>
 	/// A class carries one grammar and may read it several ways; each further reading is a
 	/// compilation of its own in a class of its own, and takes from <c>[Gram]</c> whatever
-	/// its <c>[GramOptions]</c> does not say — which is how one host offers the same grammar
+	/// its <c>[GramVariant]</c> does not say — which is how one host offers the same grammar
 	/// compiled two ways.
 	/// </summary>
 	[Fact]
@@ -3554,7 +3554,7 @@ public sealed class GeneratorDriverTests
 				Start : @string = t: ['a'..'z']+ => @(Seen(t, parserSpan))
 				parse Start
 				""")]
-			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
 			public static partial class Both
 			{
 				internal static string Seen(string t, SourceSpan at) => t + "@" + at.Length;
@@ -3586,7 +3586,7 @@ public sealed class GeneratorDriverTests
 				Start = ['a'..'z']+
 				parse Start
 				""")]
-			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
 			// Not `Hidden`: this assembly is loaded into the test process, the expression
 			// language looks names up in every loaded assembly, and its tests name a `Hidden`
 			// of their own — which of the two a run found depended on which test ran first.
@@ -3601,7 +3601,7 @@ public sealed class GeneratorDriverTests
 				Start = ['a'..'z']+
 				parse Start
 				""")]
-			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
 			public static partial class Shown
 			{
 			}
@@ -3622,7 +3622,7 @@ public sealed class GeneratorDriverTests
 	/// <summary>
 	/// Two readings cannot share one scope, and are told so rather than colliding. A second
 	/// <c>[Gram]</c> is no longer how a second reading is asked for — the attribute is one
-	/// per class, which C# refuses on its own — so the case left is a <c>[GramOptions]</c>
+	/// per class, which C# refuses on its own — so the case left is a <c>[GramVariant]</c>
 	/// that says no <c>Suffix</c> and so wants the class itself, which the <c>[Gram]</c>
 	/// already has.
 	/// </summary>
@@ -3637,7 +3637,7 @@ public sealed class GeneratorDriverTests
 				Start = 'a'+
 				parse Start
 				""")]
-			[GramOptions(Carrier = GramCarrier.Tape)]
+			[GramVariant(Carrier = GramCarrier.Deferred)]
 			public static partial class Crowded;
 			"""");
 
@@ -3667,8 +3667,8 @@ public sealed class GeneratorDriverTests
 				""")]
 			public static partial class Letters;
 
-			[GramInclude(typeof(Numbers), As = "N")]
-			[GramInclude(typeof(Letters), As = "L")]
+			[GramInclude(typeof(Numbers), Alias = "N")]
+			[GramInclude(typeof(Letters), Alias = "L")]
 			[Gram("""
 				using N;
 				using L;
@@ -3712,8 +3712,8 @@ public sealed class GeneratorDriverTests
 				""")]
 			public static partial class Letters;
 
-			[GramInclude(typeof(Numbers), As = "Same")]
-			[GramInclude(typeof(Letters), As = "Same")]
+			[GramInclude(typeof(Numbers), Alias = "Same")]
+			[GramInclude(typeof(Letters), Alias = "Same")]
 			[Gram("""
 				Word = 'x'
 				parse Word
@@ -4289,6 +4289,30 @@ public sealed class GeneratorDriverTests
 					"Host.cs"));
 
 		return driver.RunGenerators(edited, TestContext.Current.CancellationToken).GetRunResult();
+	}
+
+	/// <summary>
+	/// <c>ExportGrammar</c> not set exports the grammar of a host that is public with every class
+	/// around it, and of no other; set, it says so either way.
+	/// </summary>
+	[Theory]
+	[InlineData("public partial class Host;", true)]
+	[InlineData("partial class Host;", false)]
+	[InlineData("static partial class Outer { public partial class Host; }", false)]
+	[InlineData("public partial class Outer { public partial class Host; }", true)]
+	[InlineData("public partial class Host;", false, "ExportGrammar = false")]
+	[InlineData("partial class Host;", true, "ExportGrammar = true")]
+	public void A_grammar_is_exported_where_the_host_can_be_named_from_outside(string declaration, bool exported, string? option = null)
+	{
+		var attribute = "[DotGram.Gram(\"A = 'a'\\nparse A\"" + (option is null ? "" : ", " + option) + ")]";
+		var source    = declaration.Contains("Outer", StringComparison.Ordinal)
+			? declaration.Replace("public partial class Host;", attribute + " public partial class Host { }", StringComparison.Ordinal)
+			: attribute + "\n" + declaration;
+		var run       = RunGenerator(source);
+		var generated = string.Concat(run.Results.SelectMany(static one => one.GeneratedSources).Select(static one => one.SourceText.ToString()));
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
+		Assert.Equal(exported, generated.Contains("[global::DotGram.GramSourceAttribute(", StringComparison.Ordinal));
 	}
 
 	internal static GeneratorDriverRunResult RunGenerator(string source, params (string Path, string Text)[] additionalFiles)

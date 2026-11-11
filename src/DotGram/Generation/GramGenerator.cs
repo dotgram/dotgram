@@ -39,7 +39,7 @@ sealed class GramGenerator : IIncrementalGenerator
 
 	const string GramFileExtension = ".gram";
 	const string GramAttribute        = "DotGram.GramAttribute";
-	const string GramOptionsAttribute = "DotGram.GramOptionsAttribute";
+	const string GramVariantAttribute = "DotGram.GramVariantAttribute";
 
 	/// <summary>
 	/// The stages, named so that what re-ran can be read back.
@@ -343,7 +343,7 @@ sealed class GramGenerator : IIncrementalGenerator
 						compilation,
 						grammar.Host.MetadataName,
 						[.. grammar.Host.Includes.Items.Select(static one => one.Imported)],
-						grammar.Host.Options.Suffix,
+						grammar.Host.Options.Name,
 						grammar.Host.SuffixDeclared,
 						grammar.Published.Items))),
 			};
@@ -1013,7 +1013,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		// Said before the grammar is read, because it is about the host rather than about
 		// the grammar, and because a name that cannot be a namespace would otherwise reach
 		// the splice and come back as a parse error in a text nobody wrote.
-		if (host.Options.IncludedAs is { } included && !IsIdentifier(included))
+		if (host.Options.DefaultAlias is { } included && !IsIdentifier(included))
 			reports.Add(Report.Of(
 				Diagnostics.InvalidIncludedName, Site.Attribute, host.ClassName, included));
 
@@ -1026,7 +1026,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
-		if (host.Options.Suffix is { Length: > 0 } scope && !IsIdentifier(scope))
+		if (host.Options.Name is { Length: > 0 } scope && !IsIdentifier(scope))
 		{
 			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, Site.Attribute, host.ClassName, scope));
 
@@ -1035,7 +1035,7 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		// A limit or a capacity of nothing is no reading of any input: say so where it is
 		// written, rather than let every call throw ArgumentOutOfRangeException.
-		foreach (var (option, value) in new[] { (nameof(GramHostOptions.MaxRetained), host.Options.MaxRetained), (nameof(GramHostOptions.BufferSize), host.Options.BufferSize) })
+		foreach (var (option, value) in new[] { (nameof(GramHostOptions.MaxBufferedInputLength), host.Options.MaxBufferedInputLength), (nameof(GramHostOptions.InitialBufferSize), host.Options.InitialBufferSize) })
 		{
 			if (value > 0)
 				continue;
@@ -1269,12 +1269,10 @@ sealed class GramGenerator : IIncrementalGenerator
 				: null,
 			reporting == Reporting.Full && result.Sources.Count > 0
 				? string.Format(CultureInfo.InvariantCulture,
-					"DotGram: {0}, mode={1}, options: Lexical={2}, " +
-					"Carrier={3}, ConstructionsMayThrow={7}, BufferedInput={4}, BufferedBytes={5}, SpanCaptures={6}",
+					"DotGram: {0}, mode={1}, options: {2}",
 					host.HintName,
-					result.UsesLexical ? "lexical" : "characters", host.Options.Lexical,
-					(CarrierKind)host.Options.Carrier,
-					host.Options.BufferedInput, host.Options.BufferedBytes, host.Options.SpanCaptures, host.Options.ConstructionsMayThrow) +
+					result.UsesLexical ? "lexical" : "characters",
+					ReportedOptions(host.Options)) +
 					string.Concat((result.Carriers ?? []).Select(static line => "\n// " + line))
 				: null,
 			marked,
@@ -1524,6 +1522,30 @@ sealed class GramGenerator : IIncrementalGenerator
 		string  Imported = "");
 
 	/// <summary>
+	/// Every option of a reading as the full report prints it: under the names it is written with,
+	/// what the reading said or took from the first, and the default where neither said anything.
+	/// </summary>
+	static string ReportedOptions(GramHostOptions options)
+	{
+		var carrier = (CarrierKind)options.Carrier == CarrierKind.Tape ? "Deferred" : ((CarrierKind)options.Carrier).ToString();
+
+		return string.Join(", ",
+			"Lexical="                + options.Lexical,
+			"Carrier="                + carrier,
+			"ConstructionsMayThrow="  + options.ConstructionsMayThrow,
+			"BufferedText="           + options.BufferedText,
+			"BufferedBytes="          + options.BufferedBytes,
+			"UseSpanCaptures="        + options.UseSpanCaptures,
+			"InitialBufferSize="      + options.InitialBufferSize.ToString(CultureInfo.InvariantCulture),
+			"MaxBufferedInputLength=" + options.MaxBufferedInputLength.ToString(CultureInfo.InvariantCulture),
+			"MaxExtraStacks="         + options.MaxExtraStacks.ToString(CultureInfo.InvariantCulture),
+			"TargetMethodPartSize="   + options.TargetMethodPartSize.ToString(CultureInfo.InvariantCulture),
+			"LocationType="           + (options.LocationType ?? "none"),
+			"ExportGrammar="          + options.ExportGrammar,
+			"Trace="                  + options.Trace);
+	}
+
+	/// <summary>
 	/// A class marked <c>[Gram]</c>, reduced to what generation needs.
 	/// </summary>
 	/// <remarks>
@@ -1580,7 +1602,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		/// senses of the word were separated on purpose (docs/next.md, the `context` to
 		/// `namespace` rename) and are kept apart here by not using it.
 		/// </remarks>
-		public string IncludedName => Options.IncludedAs ?? SimpleName;
+		public string IncludedName => Options.DefaultAlias ?? SimpleName;
 
 		/// <summary>
 		/// The host as metadata names it, for looking its own members up.
@@ -1639,7 +1661,7 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		/// <summary>
 		/// One host per reading the class asks for: the <c>[Gram]</c>, and then every
-		/// <c>[GramOptions]</c> in the order written.
+		/// <c>[GramVariant]</c> in the order written.
 		/// </summary>
 		/// <remarks>
 		/// Several are several compilations of the class, each in a nested class of its own
@@ -1652,10 +1674,10 @@ sealed class GramGenerator : IIncrementalGenerator
 			var type     = (INamedTypeSymbol)candidate.TargetSymbol;
 			var readings = new List<AttributeData>(candidate.Attributes);
 
-			// Only the class's own: `[GramOptions]` is what a class writes about its own
+			// Only the class's own: `[GramVariant]` is what a class writes about its own
 			// grammar, and a base class's readings are that class's compilations.
 			foreach (var attribute in type.GetAttributes())
-				if (attribute.AttributeClass?.ToDisplayString() == GramOptionsAttribute)
+				if (attribute.AttributeClass?.ToDisplayString() == GramVariantAttribute)
 					readings.Add(attribute);
 
 			var hosts = ImmutableArray.CreateBuilder<(Host Host, Site Site)>(readings.Count);
@@ -1673,10 +1695,10 @@ sealed class GramGenerator : IIncrementalGenerator
 			{
 				var (perCall, _, _) = From(candidate, readings[index], index);
 
-				if (!perCall.Options.PerCall || perCall.LocationType is null || perCall.Options.Suffix is not { Length: > 0 } || facade is not null)
+				if (!perCall.Options.UsePerCallLocations || perCall.LocationType is null || perCall.Options.Name is not { Length: > 0 } || facade is not null)
 					continue;
 
-				facade         = perCall.Options.Suffix;
+				facade         = perCall.Options.Name;
 				facadeLocation = perCall.LocationType;
 				facadeDeclared = perCall.SuffixDeclared;
 				readings.RemoveAt(index);
@@ -1689,7 +1711,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			{
 				// Everything a reading does not say, it takes from the grammar's own: which
 				// grammar, whether it is read as tokens, how it is divided. That is what a
-				// `[GramOptions]` means — the same parser, compiled differently — and what it
+				// `[GramVariant]` means — the same parser, compiled differently — and what it
 				// does say is the difference. The first has nothing to take from.
 				var (host, site, options) = From(
 					candidate, attribute, hosts.Count, firstOptions is null ? null : (hosts[0].Host, hosts[0].Site, firstOptions));
@@ -1699,7 +1721,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				hosts.Add((
 					host with
 					{
-						Repeated = !taken.Add(host.Options.Suffix ?? ""),
+						Repeated = !taken.Add(host.Options.Name ?? ""),
 
 						// What the host's own C# names is written once for every reading, in a file of
 						// the host's own, from what each says it needs (SharedTypes).
@@ -1727,7 +1749,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			if (hosts.Count > 1 || facade is not null)
 			{
 				var classes = new EquatableArray<string>([.. hosts
-					.Select(static one => one.Host.Options.Suffix)
+					.Select(static one => one.Host.Options.Name)
 					.Append(facade)
 					.OfType<string>()
 					.Where(static one => one.Length > 0)
@@ -1776,7 +1798,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				.Select(RecognitionContract)
 				.Where(static value => value is not null));
 
-			var suffix = options.Suffix;
+			var suffix = options.Name;
 
 			// Whether the host declares that nested class itself, and so says how visible it
 			// is. What a generator sees is the author's code alone — its own output is not in
@@ -1797,7 +1819,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			// means finding that place in the spelling, and the spelling is the only thing
 			// that knows where the escapes and the indentation went.
 			// The first positional argument and not the only one: a named argument beside it
-			// is legal — `[Gram("…", IncludedAs = "Json")]` — and requiring exactly one
+			// is legal — `[Gram("…", DefaultAlias = "Json")]` — and requiring exactly one
 			// would quietly stop finding the spelling the moment somebody wrote one, taking
 			// every diagnostic's placement with it.
 			var written = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&

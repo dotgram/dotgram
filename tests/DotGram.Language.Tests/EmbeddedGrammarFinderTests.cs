@@ -115,17 +115,17 @@ public sealed class EmbeddedGrammarFinderTests
 			{
 				sealed class GramAttribute(string text) : System.Attribute
 				{
-					public string IncludedAs { get; set; } = "";
+					public string DefaultAlias { get; set; } = "";
 				}
 
 				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
 				{
-					public string As { get; set; } = "";
+					public string Alias { get; set; } = "";
 				}
 			}
 
-			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			[DotGram.Gram("Word = ['a'..'z']+", DefaultAlias = "Lexical")]
 			class Base;
 
 			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
@@ -150,13 +150,13 @@ public sealed class EmbeddedGrammarFinderTests
 			{
 				sealed class GramAttribute(string text) : System.Attribute
 				{
-					public string IncludedAs { get; set; } = "";
+					public string DefaultAlias { get; set; } = "";
 				}
 
 				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
 				{
-					public string As { get; set; } = "";
+					public string Alias { get; set; } = "";
 				}
 			}
 
@@ -164,11 +164,11 @@ public sealed class EmbeddedGrammarFinderTests
 			class Lexemes;
 
 			[DotGram.Gram("Word = Lex.Letter+")]
-			[DotGram.GramInclude(typeof(Lexemes), As = "Lex")]
+			[DotGram.GramInclude(typeof(Lexemes), Alias = "Lex")]
 			class Words;
 
 			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
-			[DotGram.GramInclude(typeof(Words), As = "Lexical")]
+			[DotGram.GramInclude(typeof(Words), Alias = "Lexical")]
 			class Parser;
 			""";
 
@@ -232,7 +232,7 @@ public sealed class EmbeddedGrammarFinderTests
 			{
 				sealed class GramAttribute(string source) : System.Attribute
 				{
-					public string IncludedAs { get; set; } = "";
+					public string DefaultAlias { get; set; } = "";
 					public bool Lexical { get; set; }
 				}
 
@@ -241,11 +241,11 @@ public sealed class EmbeddedGrammarFinderTests
 				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
 				{
-					public string As { get; set; } = "";
+					public string Alias { get; set; } = "";
 				}
 			}
 
-			[DotGram.Gram("Standard.gram", IncludedAs = "Sql92")]
+			[DotGram.Gram("Standard.gram", DefaultAlias = "Sql92")]
 			abstract class Standard;
 
 			[DotGram.Gram("Remote.gram")]
@@ -276,12 +276,12 @@ public sealed class EmbeddedGrammarFinderTests
 				sealed class GramAttribute(string source) : System.Attribute
 				{
 					public bool Lexical { get; set; }
-					public string Suffix { get; set; } = "";
+					public string Name { get; set; } = "";
 				}
 			}
 
 			[DotGram.Gram("Word = ['a'..'z']+\nparse Word", Lexical = true)]
-			[DotGram.Gram("Other = 'o'\nparse Other", Suffix = "Second")]
+			[DotGram.Gram("Other = 'o'\nparse Other", Name = "Second")]
 			class Dialect;
 			""";
 
@@ -305,7 +305,7 @@ public sealed class EmbeddedGrammarFinderTests
 				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 				sealed class GramAttribute(string source) : System.Attribute
 				{
-					public string Suffix { get; set; } = "";
+					public string Name { get; set; } = "";
 				}
 			}
 
@@ -319,7 +319,7 @@ public sealed class EmbeddedGrammarFinderTests
 				[System.Diagnostics.CodeAnalysis.StringSyntax(".gram")] string source);
 
 			[DotGram.Gram("Word = ['a'..'z']+\nparse Word")]
-			[DotGram.Gram("Other = 'o'\nparse Other", Suffix = "Second")]
+			[DotGram.Gram("Other = 'o'\nparse Other", Name = "Second")]
 			class Dialect
 			{
 				[DotGram.Gram("Inner = 'i'\nparse Inner")]

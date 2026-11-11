@@ -86,8 +86,8 @@ public sealed class LocatedSiteTests
 	}
 
 	[Theory]
-	[InlineData("Tape", true)]
-	[InlineData("Tape", false)]
+	[InlineData("Deferred", true)]
+	[InlineData("Deferred", false)]
 	[InlineData("Immediate", true)]
 	[InlineData("Immediate", false)]
 	public void A_located_value_of_a_flat_rule_is_told_where_it_was_read(string carrier, bool lexical)

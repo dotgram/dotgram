@@ -366,7 +366,7 @@ the grammar, not a parser: the including assembly generates its own.
 	""")]
 public static partial class Lexemes;
 
-[GramInclude(typeof(Lexemes), As = "Lex")]
+[GramInclude(typeof(Lexemes), Alias = "Lex")]
 [Gram("""
 	trivia = { ' '* }
 
@@ -413,7 +413,7 @@ plain static field has made it global — make any such state thread-safe yourse
 same as you would in any other C# called from more than one thread.
 
 One exception to running on the thread that called: a parse from memory that goes deep
-enough hands the rest of that depth to a fresh thread (`Stacks` bounds how many) while the
+enough hands the rest of that depth to a fresh thread (`MaxExtraStacks` bounds how many) while the
 calling thread waits. An action or guard reached past that point is not on the thread the
 call came from — write nothing in them that assumes it is.
 
@@ -421,42 +421,42 @@ call came from — write nothing in them that assumes it is.
 
 ```csharp
 [Gram("…",
-	Lexical      = true,                 // compile over tokens, not characters
-	LocationType = typeof(ISqlSpan),     // offer every rule the range it matched
-	Carrier      = GramCarrier.Tape,     // run no construction for a parse that fails (§3.7)
-	ConstructionsMayThrow = true,        // on Immediate, throw only what the tape would; ignored here (§7.5)
-	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
-	PartSize     = 120,                  // target size of a divided recognizer's parts, in estimated basic blocks; 0 is the measured default
-	IncludedAs   = "Lex",                // the name an including grammar gets without `As`
-	Portable     = false,                // do not carry the grammar text in the assembly
-	Trace        = true)]                // a trace build: report what is read to a sink (below)
+	Lexical               = true,                 // compile over tokens, not characters
+	LocationType          = typeof(ISqlSpan),     // offer every rule the range it matched
+	Carrier               = GramCarrier.Deferred, // run no construction for a parse that fails (§3.7)
+	ConstructionsMayThrow = true,                 // on Immediate, throw only what Deferred would; ignored by Deferred (§7.5)
+	MaxExtraStacks        = 4,                    // how many stacks a deep reading may take; 0 is no limit
+	TargetMethodPartSize  = 120,                  // target size of a divided recognizer's parts, in estimated basic blocks; 0 is the measured default
+	DefaultAlias          = "Lex",                // the name an including grammar gets without `Alias`
+	ExportGrammar         = false,                // do not carry the grammar text in the assembly
+	Trace                 = true)]                // a trace build: report what is read to a sink (below)
 ```
 
 `Carrier` left unset (`GramCarrier.Auto`) is `Immediate`: every construction runs where its
 alternative is read, also for readings the parse then gives up and for the prefix of a refused
-input. A part of the grammar that carrier cannot carry is compiled on the tape. Where the tape
+input. A part of the grammar that carrier cannot carry is compiled deferred. Where `Deferred`
 would be safer the build warns, `GRAM5016`: constructions share `context` with a `when`, a
 `switch` selector or a recognizer (what is accepted and what is built can differ), or a refused
 input can rebuild a list on every turn given back. `GRAM5012`, information, names the other
 constructions that can run for text read another way or a second time. Answer either by naming
-the carrier: `Tape` holds every construction until the parse is accepted (constructions that
+the carrier: `Deferred` holds every construction until the parse is accepted (constructions that
 count, log, throw or share `context` with guards want it); `Immediate` says you have checked, and
 silences both, now and for every reason found later. Name the carrier rather than suppress
 `GRAM5016`: the name is where the decision lives. Constructions that only throw (`int.Parse`, a
 division, a lookup) can stay immediate with `ConstructionsMayThrow = true`: what one throws is
-held and thrown only where the tape would have thrown it, so a reading given up or a refused
+held and thrown only where the deferred carrier would have thrown it, so a reading given up or a refused
 parse throws nothing. It costs every construction a little; leave it off where none throws.
 
-`[GramOptions]` may be written as many times as there are further readings wanted, each
+`[GramVariant]` may be written as many times as there are further readings wanted, each
 naming the nested class it goes into:
 
 ```csharp
 [Gram("Sql.gram", Lexical = true)]
-[GramOptions(Carrier = GramCarrier.Tape, Suffix = "Tape")]
+[GramVariant(Carrier = GramCarrier.Deferred, Name = "Deferred")]
 public static partial class Sql;
 ```
 
-`Sql.ParseQuery` is the first and `Sql.Tape.ParseQuery` the second — the same
+`Sql.ParseQuery` is the first and `Sql.Deferred.ParseQuery` the second — the same
 grammar, compiled the other way, side by side.
 
 ## Input that does not fit in memory

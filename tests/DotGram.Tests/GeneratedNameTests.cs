@@ -262,7 +262,7 @@ public sealed class GeneratedNameTests
 				Traced = z: 'b'
 				parse Probe as Read
 				""")]
-			[DotGram.GramOptions(Suffix = "Traced", Trace = true)]
+			[DotGram.GramVariant(Name = "Traced", Trace = true)]
 			public static partial class Probe { }
 			"""");
 
@@ -285,7 +285,7 @@ public sealed class GeneratedNameTests
 				W = 'w'
 				parse W as Other
 				""")]
-			[DotGram.GramOptions(Suffix = "Other")]
+			[DotGram.GramVariant(Name = "Other")]
 			public static partial class Probe { }
 			"""");
 

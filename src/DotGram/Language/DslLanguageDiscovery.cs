@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -391,9 +391,7 @@ static class DslLanguageDiscovery
 			if (attribute is null || Grammar(current, attribute) is not { } grammar)
 				continue;
 
-			var name = called ?? attribute.NamedArguments
-				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
-				.Value.Value as string ?? current.Name;
+			var name = called ?? GramIncludes.Named(attribute, GramIncludes.DefaultAliasArgument, "IncludedAs") ?? current.Name;
 			if (!IsIdentifier(name))
 				continue;
 
@@ -411,9 +409,7 @@ static class DslLanguageDiscovery
 			{
 				yield return (
 					grammar,
-					attribute.NamedArguments
-						.FirstOrDefault(static argument => argument.Key == "As")
-						.Value.Value as string);
+					GramIncludes.Named(attribute, GramIncludes.AliasArgument, "As"));
 			}
 	}
 
@@ -458,7 +454,8 @@ static class DslLanguageDiscovery
 		(attribute.AttributeConstructor.Parameters.Length == 0 ||
 			IsString(attribute.AttributeConstructor.Parameters[0].Type)) &&
 		HasProperty(attribute.AttributeClass!, "Source", SpecialType.System_String, writable: false) &&
-		HasProperty(attribute.AttributeClass!, "IncludedAs", SpecialType.System_String, writable: true);
+		(HasProperty(attribute.AttributeClass!, GramIncludes.DefaultAliasArgument, SpecialType.System_String, writable: true) ||
+			HasProperty(attribute.AttributeClass!, "IncludedAs", SpecialType.System_String, writable: true));
 	}
 
 	static AttributeData? PrimaryGramAttribute(IEnumerable<AttributeData> attributes)

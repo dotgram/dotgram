@@ -64,7 +64,7 @@ public sealed class GeneratedSurfaceTests
 	{
 		var plain = GeneratorDriverTests.Build("""
 			[DotGram.Gram("W = 'w'\nparse W")]
-			[DotGram.GramOptions(Suffix = "Traced", Trace = true)]
+			[DotGram.GramVariant(Name = "Traced", Trace = true)]
 			public static partial class Probe { }
 			""");
 
@@ -75,7 +75,7 @@ public sealed class GeneratedSurfaceTests
 
 		var buffered = GeneratorDriverTests.Build("""
 			[DotGram.Gram("W = 'w'\nparse W")]
-			[DotGram.GramOptions(Suffix = "Buffered", BufferedInput = true)]
+			[DotGram.GramVariant(Name = "Buffered", BufferedText = true)]
 			public static partial class Probe { }
 			""");
 
@@ -91,7 +91,7 @@ public sealed class GeneratedSurfaceTests
 	public void The_match_of_one_reading_is_its_class_and_of_two_the_hosts()
 	{
 		var one = GeneratorDriverTests.Build("""
-			[DotGram.Gram("W = 'w'\nparse W", Suffix = "Fast")]
+			[DotGram.Gram("W = 'w'\nparse W", Name = "Fast")]
 			public static partial class Probe { }
 			""");
 
@@ -99,8 +99,8 @@ public sealed class GeneratedSurfaceTests
 		Assert.Null(one.GetType("Probe+Match`1"));
 
 		var two = GeneratorDriverTests.Build("""
-			[DotGram.Gram("W = 'w'\nparse W", Suffix = "Fast")]
-			[DotGram.GramOptions(Suffix = "Slow", Carrier = DotGram.GramCarrier.Tape)]
+			[DotGram.Gram("W = 'w'\nparse W", Name = "Fast")]
+			[DotGram.GramVariant(Name = "Slow", Carrier = DotGram.GramCarrier.Deferred)]
 			public static partial class Probe { }
 			""");
 
@@ -119,7 +119,7 @@ public sealed class GeneratedSurfaceTests
 	public void A_span_declared_beside_a_reading_in_a_class_of_its_own_is_one_span(string members, string declared, string absent)
 	{
 		var assembly = GeneratorDriverTests.Build(
-			"[DotGram.Gram(\"\"\"\nWord = ['a'..'z']+ & when @(parserSpan.Length > 0)\nparse Word\n\"\"\", Suffix = \"Fast\")]\n" +
+			"[DotGram.Gram(\"\"\"\nWord = ['a'..'z']+ & when @(parserSpan.Length > 0)\nparse Word\n\"\"\", Name = \"Fast\")]\n" +
 			"public static partial class Probe\n{\n" + members + "\n}\n");
 
 		Assert.True(assembly.GetType(declared)!.IsNestedPublic);
@@ -135,7 +135,7 @@ public sealed class GeneratedSurfaceTests
 	{
 		const string attributes =
 			"[DotGram.Gram(\"\"\"\nWord = ['a'..'z']+ & when @(parserSpan.Length > 0)\nparse Word\n\"\"\")]\n" +
-			"[DotGram.GramOptions(Suffix = \"Slow\", Carrier = DotGram.GramCarrier.Tape)]\n";
+			"[DotGram.GramVariant(Name = \"Slow\", Carrier = DotGram.GramCarrier.Deferred)]\n";
 
 		var assembly = GeneratorDriverTests.Build(
 			attributes + "public static partial class Probe\n{\npublic partial struct SourceSpan { }\npublic static SourceSpan Measure() { return new SourceSpan(1, 2); }\n}\n");

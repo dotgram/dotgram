@@ -21,7 +21,7 @@ namespace DotGram.Sql.Productions;
 /// </para>
 /// </remarks>
 [GramInclude(typeof(SqlStandardParser))]
-[Gram("SqlStandardProductions.gram", Lexical = true, Carrier = GramCarrier.Tape, Portable = false)]
+[Gram("SqlStandardProductions.gram", Lexical = true, Carrier = GramCarrier.Deferred, ExportGrammar = false)]
 public abstract partial class SqlStandardProductions
 {
 }
