@@ -282,13 +282,14 @@ Never = 'a'{3,2}
 NoLower = 'a'{,3}
 ```
 
-```dotgram GRAM2002 recheck
+```dotgram GRAM2017
 Twice = 'a'+*
 ```
 
 `('a'?)*` could repeat forever without reading (`GRAM4001`). `{3,2}` can never match and `{,3}` has
-no lower bound (`GRAM2005`: write `{0,3}`). Two quantifiers in a row are reported as the start of a
-declaration that is not one (`GRAM2002`).
+no lower bound (`GRAM2005`: write `{0,3}`). A second quantifier on one operand is `GRAM2017`, which
+says what to write instead: a group for a repetition of a repetition, braces for one that keeps what it
+took.
 
 <!-- ru:begin -->
 > **RU.** Все кванторы постфиксные, как в регулярных выражениях (таблица выше): `?`, `*`, `+`,
@@ -298,8 +299,8 @@ declaration that is not one (`GRAM2002`).
 > операнда один квантор: сверхжадный пишется `{ X* }`, квантор над квантором — через группу
 > `(X+)*`. Тело `*`, `+`, `{n,m}` обязано потреблять вход на каждом шаге — это проверяется при
 > сборке. Отвергаются: `('a'?)*` — `GRAM4001` (бесконечный цикл без чтения); `{3,2}` и `{,3}` —
-> `GRAM2005` (пишите `{0,3}`); два квантора подряд — `GRAM2002` (сообщение как о не-объявлении,
-> помечено `recheck`).
+> `GRAM2005` (пишите `{0,3}`); второй квантор на одном операнде — `GRAM2017` (сообщение
+> подсказывает группу или атомарные скобки).
 <!-- ru:end -->
 
 ## Lookahead: `?=X` and `?!X`

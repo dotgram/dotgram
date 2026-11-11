@@ -162,9 +162,10 @@ Notes:
 - A back-reference `$q` never folds, whatever the literal that bound it did
   ([bindings](06-bindings.md)).
 - There is no case-insensitive element set: `['a'..'z']i` is not a form, and `'a'i` is refused
-  inside brackets:
+  inside brackets, as an element or a range's bound (`GRAM2015`). Write both cases,
+  `['a'..'z' | 'A'..'Z']`, or a choice of literals, `'a'i | 'b'i`:
 
-```dotgram GRAM2003
+```dotgram GRAM2015
 Letter = ['a'i | 'b']
 ```
 
@@ -176,7 +177,8 @@ Letter = ['a'i | 'b']
 > `Σ`, а `'σ'i` не читает `ς`). Полная таблица — в syntax.md §3.1. `i` должна примыкать к кавычке
 > и не начинать имя (`"text"id` — строка и имя `id`). Суффикс относится только к литералу.
 > Обратная ссылка `$q` регистр никогда не сворачивает. Регистронезависимого множества нет:
-> `'a'i` внутри скобок отвергается (`GRAM2003`).
+> `'a'i` внутри скобок (элемент или граница диапазона) отвергается (`GRAM2015`); пишите оба регистра или
+> выбор литералов `'a'i | 'b'i`.
 <!-- ru:end -->
 
 ## Element sets: `[ … ]`
@@ -257,7 +259,7 @@ Refused:
 Nothing = []
 ```
 
-```dotgram GRAM1009 GRAM2003 recheck
+```dotgram GRAM1009 GRAM2003
 Unknown = [\p{Xx}]
 ```
 
@@ -266,13 +268,18 @@ Pair   = "ab"
 Either = [Pair | 'c']
 ```
 
-```dotgram pending
+```dotgram GRAM2014
 Open = ['a'..]
+```
+
+```dotgram GRAM2014
+Bare = 'a'..'z'
 ```
 
 An empty set is `GRAM2003`, an unknown category `GRAM1009` (a malformed one, `\p` without braces,
 `GRAM1008`), and a rule that reads more than one item cannot stand in a set (`GRAM4005`). A range
-with no upper bound, `['a'..]`, is refused once the fix in flight lands; today it is read as `'a'`.
+has a character at both ends and stands inside brackets: `['a'..]`, a string as a bound and a range
+written outside brackets are `GRAM2014`.
 
 <!-- ru:begin -->
 > **RU.** Квадратные скобки проверяют **один** элемент входа на принадлежность множеству; внутри
@@ -284,8 +291,8 @@ with no upper bound, `['a'..]`, is refused once the fix in flight lands; today i
 > совпадает; `\P{…}` нет, пишите `[^ \p{L}]`. `[^ …]` в конце входа не совпадает. Диапазоны — по
 > кодовым единицам (`'A'..'z'` содержит и `[`, `_`, …). Отвергаются: пустое `[]` — `GRAM2003`;
 > неизвестная категория — `GRAM1009` (кривая запись `\p` — `GRAM1008`); правило, читающее больше
-> одного элемента, — `GRAM4005`. Диапазон без верхней границы `['a'..]` будет отвергаться после
-> исправления (сейчас молча читается как `'a'`; пример помечен `pending`).
+> одного элемента, — `GRAM4005`. Диапазон — символ на обоих концах и только в скобках: `['a'..]`,
+> строка как граница и диапазон вне скобок — `GRAM2014`.
 <!-- ru:end -->
 
 ## `any`, `none`, `eol`, `eof`
