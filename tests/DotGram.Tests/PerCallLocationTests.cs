@@ -7,13 +7,13 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// <c>[GramOptions(PerCall = true)]</c>: one parser whose located door is a nested class of the same
+/// <c>[GramVariant(UsePerCallLocations = true)]</c>: one parser whose located door is a nested class of the same
 /// published methods, on every carrier, beside a reading of its own that locates nothing.
 /// </summary>
 /// <remarks>
 /// The offers stand beside the reader, which the immediate carrier builds values in and which is
 /// not generic; the walk that builds a tape's values is. Both have to compile and say the same, and
-/// a further <c>[GramOptions]</c> reading must not inherit the per-call location type.
+/// a further <c>[GramVariant]</c> reading must not inherit the per-call location type.
 /// </remarks>
 public sealed class PerCallLocationTests
 {
@@ -76,8 +76,8 @@ public sealed class PerCallLocationTests
 
 					parse List
 					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
-				[GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
-				[GramOptions(Suffix = "Other")]
+				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
+				[GramVariant(Name = "Other")]
 				public static partial class P
 				{
 				}
@@ -86,7 +86,7 @@ public sealed class PerCallLocationTests
 	}
 
 	[Theory]
-	[InlineData("Tape")]
+	[InlineData("Deferred")]
 	[InlineData("Immediate")]
 	public void A_per_call_reading_compiles_and_locates_on_every_carrier(string carrier)
 	{
@@ -99,7 +99,7 @@ public sealed class PerCallLocationTests
 		var generated = GeneratorDriverTests.GetGeneratedSource(GeneratorDriverTests.RunGenerator(Source(carrier)), "PerCallProbe.P.g.cs");
 
 		Assert.Contains("Offer_DotGram", generated, StringComparison.Ordinal);
-		Assert.Equal(carrier == "Tape", generated.Contains("Reading_DotGram<LocatingOn_DotGram>.Materialize", StringComparison.Ordinal));
+		Assert.Equal(carrier == "Deferred", generated.Contains("Reading_DotGram<LocatingOn_DotGram>.Materialize", StringComparison.Ordinal));
 
 		var plain   = Read(host, text);
 		var located = Read(host.GetNestedType("Located")!, text);
@@ -180,7 +180,7 @@ public sealed class PerCallLocationTests
 
 					parse Entry
 					""", Lexical = {{(lexical ? "true" : "false")}}, Carrier = GramCarrier.{{carrier}})]
-				[GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
 				public static partial class P
 				{
 				}
@@ -195,8 +195,8 @@ public sealed class PerCallLocationTests
 	/// rule is located.
 	/// </summary>
 	[Theory]
-	[InlineData("Tape", true)]
-	[InlineData("Tape", false)]
+	[InlineData("Deferred", true)]
+	[InlineData("Deferred", false)]
 	[InlineData("Immediate", true)]
 	[InlineData("Immediate", false)]
 	public void A_per_call_reading_of_a_flat_grammar_locates(string carrier, bool lexical)
@@ -264,7 +264,7 @@ public sealed class PerCallLocationTests
 
 					parse Config
 					""", Carrier = GramCarrier.{{carrier}})]
-				[GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
 				public static partial class P
 				{
 				}
@@ -280,7 +280,7 @@ public sealed class PerCallLocationTests
 	/// </summary>
 	[Theory]
 	[InlineData("Auto", false)]
-	[InlineData("Tape", false)]
+	[InlineData("Deferred", false)]
 	[InlineData("Immediate", false)]
 	[InlineData("Auto", true)]
 	[InlineData("Immediate", true)]

@@ -70,7 +70,7 @@ public sealed class LocatedStructTests
 	static string Source(string type, bool perCall)
 	{
 		var options = perCall
-			? "[GramOptions(LocationType = typeof(ILoc), Suffix = \"Located\", PerCall = true)]"
+			? "[GramVariant(LocationType = typeof(ILoc), Name = \"Located\", UsePerCallLocations = true)]"
 			: "";
 		var located = perCall ? "" : ", LocationType = typeof(ILoc)";
 

@@ -305,7 +305,7 @@ static class StandaloneGrammarInheritance
 				if (model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type)
 					continue;
 
-				// Every reading, the suffixed ones too: `[Gram("B.gram", Suffix = "B")]` hosts
+				// Every reading, the suffixed ones too: `[Gram("B.gram", Name = "B")]` hosts
 				// B.gram. One without an argument reads the class's own grammar.
 				var primary = GramIncludes.Primary(type);
 

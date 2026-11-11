@@ -901,6 +901,16 @@ sealed class RecognitionGraph(
 	public IReadOnlyCollection<RuleSymbol> Located { get; init; } = [];
 
 	/// <summary>
+	/// The interface <see cref="Located"/> are told through, as the host named it; null where no rule is.
+	/// </summary>
+	/// <remarks>
+	/// A value is told through the interface and not through its own type, so that an explicit
+	/// implementation of <c>Locate</c> is called as well as a public one, and a struct is told in place
+	/// rather than as a boxed copy.
+	/// </remarks>
+	public string? LocationType { get; init; }
+
+	/// <summary>
 	/// Where <see cref="Located"/> is decided per call: the nested class whose published
 	/// methods ask for locations, and the interface that is told them. Null where locations
 	/// are compiled in, or not asked for at all.

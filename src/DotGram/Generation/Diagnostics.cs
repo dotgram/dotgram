@@ -39,7 +39,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
-		description:        "A .gram file is only visible to the generator when the project lists it as an additional file. A grammar included from another project is found on the class instead, which requires that project to have been built with [Gram(Portable = true)] — the default for a publicly visible host.");
+		description:        "A .gram file is only visible to the generator when the project lists it as an additional file. A grammar included from another project is found on the class instead, which requires that project to have exported it ([Gram(ExportGrammar = true)]) — the default for a host that is public, with every class around it.");
 
 	public static readonly DiagnosticDescriptor AmbiguousGrammarFile = new(
 		id:                 "GRAM0004",
@@ -62,16 +62,16 @@ static class Diagnostics
 	public static readonly DiagnosticDescriptor RepeatedGrammarScope = new(
 		id:                 "GRAM0006",
 		title:              "Two readings of one grammar want the same scope",
-		messageFormat:      "'{0}' asks for two readings of its grammar under the same Suffix; give one of them a Suffix of its own",
+		messageFormat:      "'{0}' asks for two readings of its grammar under the same Name; give one of them a Name of its own",
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
-		description:        "The [Gram] and every [GramOptions] on a class is a compilation of its own and needs a scope of its own: the [Gram] goes in the class itself, and every [GramOptions] names a nested class with Suffix.");
+		description:        "The [Gram] and every [GramVariant] on a class is a compilation of its own and needs a scope of its own: the [Gram] goes in the class itself, and every [GramVariant] names a nested class with Name.");
 
 	public static readonly DiagnosticDescriptor RepeatedIncludedName = new(
 		id:                 "GRAM0008",
 		title:              "Two grammars are included under one name",
-		messageFormat:      "'{0}' includes {1} under the same name '{2}'; give all but one an 'As' of its own",
+		messageFormat:      "'{0}' includes {1} under the same name '{2}'; give all but one an 'Alias' of its own",
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
@@ -84,7 +84,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
-		description:        "Suffix names a nested class, and a class is named by an identifier.");
+		description:        "Name names a nested class, and a class is named by an identifier.");
 
 	public static readonly DiagnosticDescriptor BufferOptionNotPositive = new(
 		id:                 "GRAM0009",
@@ -93,7 +93,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
-		description:        "MaxRetained is the most a buffered parse may hold and BufferSize the capacity it starts with; neither can be zero or negative.");
+		description:        "MaxBufferedInputLength is the most input a buffered parse may hold and InitialBufferSize the capacity it starts with; neither can be zero or negative.");
 
 	/// <summary>
 	/// What a generated parser is written in is C# 8 at the least, and a project compiling an

@@ -513,7 +513,7 @@ public abstract record JsonValue
 	Hexdig = ['0'..'9' | 'a'..'f' | 'A'..'F']
 
 	parse JsonText as ParseJson
-	""", SpanCaptures = true)]
+	""", UseSpanCaptures = true)]
 static partial class Rfc8259
 {
 	// ParseJson and TryParseJson are generated here; JsonValue.Parse is the way in.
