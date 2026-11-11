@@ -564,6 +564,13 @@ sealed class RecognitionGraph(
 	/// </summary>
 	public IReadOnlyCollection<string> ReferenceTypes { get; init; } = [];
 
+	/// <summary>
+	/// The rules whose generated type the grammar names by the rule's identifier — a rule typed by
+	/// one, <c>Swapped : Pair</c>, and a construction of one, <c>=&gt; Pair(a, b)</c> — which that type
+	/// therefore has to be called (GeneratedNames.NameClashes).
+	/// </summary>
+	public IReadOnlyCollection<RuleSymbol> NamedTypes { get; init; } = [];
+
 	/// <summary>The grammar's <c>@using</c> directives, which the generated file needs.</summary>
 	public IReadOnlyList<string> CSharpImports { get; } = cSharpImports;
 

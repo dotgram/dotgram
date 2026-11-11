@@ -381,6 +381,7 @@ sealed partial class GrammarNormalizer
 			normalizer._diagnostics)
 		{
 			Folds      = normalizer._folds,
+			NamedTypes = [.. normalizer._namedTypes.Values.Where(normalizer.HasGeneratedType).Distinct()],
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
 			Lifted     = normalizer._lifted

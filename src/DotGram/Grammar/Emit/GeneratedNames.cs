@@ -352,6 +352,16 @@ static partial class CSharpEmitter
 			written[identifier] = rule;
 		}
 
+		// A type the grammar names by its rule — `Swapped : Pair`, `=> Pair(a, b)` — is written by that name,
+		// and one that would be given another, its own being taken, would be named wrongly.
+		foreach (var rule in graph.NamedTypes)
+			if (results.NameOf(rule) is { } given && given != IdentifierOf(rule))
+				said.Add(Clash(
+					$"The grammar names the type it generates for '{rule.Name}', which would be called '{given}' because " +
+					$"'{IdentifierOf(rule)}' is taken by the generated class or a member of it. Rename the rule " +
+					"(docs/syntax.md §7.3).",
+					rule.Declaration?.At.Position ?? 0, rule.Declaration?.At.Length ?? 0));
+
 		foreach (var rule in results.Built)
 		{
 			var owner      = results.NameOf(rule)!;
