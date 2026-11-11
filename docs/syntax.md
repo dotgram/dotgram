@@ -880,7 +880,9 @@ The last line carries an important distinction: `Add` without `@` constructs a t
 owned by the grammar, whereas `@Add` would call a host method. Same rule as §2,
 nothing new. The type is the one the grammar generates for the rule `Add` — a rule that
 captures and says nothing else of its value (§4.1 case 3) — and it is built from the values
-handed, in the order the rule writes its captures.
+handed, in the order the rule writes its captures. A rule that declares its own type or
+captures nothing has none to build, and a call with the wrong number of values, or a capture
+that cannot be the member it fills, is refused on the grammar (`GRAM4056`).
 
 A nested group may also construct a value:
 
@@ -1083,6 +1085,12 @@ result in order; `eof` declares none and contributes nothing. A sequence of a ty
 grammar generates, `Pairs : Pair[]`, is joined by the calls of that rule and of rules typed
 by it. A separator written as
 `Space = [' ']+` is silent for the same reason, and needs no keyword to say so.
+
+**What a construction hands back has to be the declared type.** Where the grammar can tell
+that it cannot be — a capture handed back whole, `=> x` or `=> @(x)`, that holds text where
+an array is declared or a generated type where another is — it says so on the construction
+(`GRAM4056`) rather than leaving the C# compiler to say it in the generated file. What a C#
+expression makes of a capture is the C# compiler's to judge, on the grammar's line (§7.6).
 
 A name, a call and a parenthesized C# expression are allowed in `=>` and `when`
 (§2), with captures visible as ordinary local variables:
