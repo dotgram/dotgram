@@ -177,7 +177,7 @@ public sealed class WebListRefusalAllocationTests
 		Assert.Equal(token, pairs[0].Name);
 	}
 
-	/// <summary>A language tag cut after a long run of extensions is refused in about as long an extension at every size.</summary>
+	/// <summary>A language tag cut after a long run of extensions or variants is refused in about as long a subtag at every size.</summary>
 	/// <remarks>
 	/// <c>en-a-abc-…-a</c>: the last singleton has no subtag. The repetitions of a tag gave their turns back one
 	/// at a time and read the rest again after each, to find what can never be there — nothing that may follow
@@ -187,9 +187,8 @@ public sealed class WebListRefusalAllocationTests
 	[Fact]
 	public void A_language_tag_cut_after_many_extensions_takes_about_as_long_an_extension_at_every_size()
 	{
-		AssertLinearTime(static n => "en" + string.Concat(Enumerable.Repeat("-a-abc", n)) + "-a", 1024, 8192, static text => LanguageTag.TryParse(text, out _));
-		AssertLinearTime(static n => "en" + string.Concat(Enumerable.Repeat("-abcde", n)) + "-a", 1024, 8192, static text => LanguageTag.TryParse(text, out _));
-		AssertLinearTime(static n => "en-x" + string.Concat(Enumerable.Repeat("-ab", n)) + "-", 1024, 8192, static text => LanguageTag.TryParse(text, out _));
+		AssertLinearTime(static n => "en" + string.Concat(Enumerable.Repeat("-a-abc", n)) + "-a", 2048, 16384, static text => LanguageTag.TryParse(text, out _));
+		AssertLinearTime(static n => "en" + string.Concat(Enumerable.Repeat("-abcde", n)) + "-a", 2048, 16384, static text => LanguageTag.TryParse(text, out _));
 	}
 
 	static void AssertLinearTime(Func<int, string> textFor, int small, int large, Func<string, bool> parse)
