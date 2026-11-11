@@ -1257,6 +1257,9 @@ sealed class GramParser
 		{
 			ParseValue();
 
+			// A quantified left side is a condition said wrongly, and is told so where it is read.
+			ReadPastQuantifierOfSide();
+
 			found = AtSuffixKeyword("is") || AtSuffixKeyword("and") || AtSuffixKeyword("or");
 		}
 		catch (Exception)
@@ -1340,6 +1343,8 @@ sealed class GramParser
 		}
 
 		var left = ParseValue();
+
+		ReadPastQuantifierOfSide();
 
 		// A C# guard among the conditions. It is a leaf and never a side of `is`: what `is`
 		// asks is which strings two recognizers share, and a C# expression is neither.
@@ -1456,7 +1461,7 @@ sealed class GramParser
 	}
 
 	/// <summary>
-	/// A quantifier on the right of <c>is</c>, said where it stands and read past.
+	/// A quantifier on either side of <c>is</c>, said where it stands and read past.
 	/// </summary>
 	/// <remarks>
 	/// A side of <c>is</c> is a value — a name, a literal, a set, a bracketed choice — which takes no
