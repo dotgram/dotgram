@@ -1211,12 +1211,20 @@ sealed partial class Machine
 		/// Every other node is handed back as it was, so a grammar that rules nothing out is written as
 		/// it always was.
 		/// </remarks>
-		static Node? Possible(Node node)
+		Node? Possible(Node node)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Possible(node));
+
 			switch (node)
 			{
 				case Node.Lookahead(false, Node.Empty):
 					return null;
+
+				// A call is written as the body it calls, so it is as possible as that body is.
+				case Node.Call(var called, _) when !NestedPair.Is(called) && graph.Bodies.TryGetValue(called, out var body):
+					return Matches(called, body) ? node : null;
 
 				case Node.Sequence(var parts):
 				{
@@ -1266,6 +1274,22 @@ sealed partial class Machine
 					return node;
 			}
 		}
+
+		/// <summary>
+		/// Whether a called rule's body can match at all (<see cref="Possible"/>), asked once for each rule;
+		/// one that calls itself is taken to be able to while it is asked.
+		/// </summary>
+		bool Matches(RuleSymbol rule, Node body)
+		{
+			if (_matches.TryGetValue(rule, out var known))
+				return known;
+
+			_matches[rule] = true;
+
+			return _matches[rule] = Possible(body) is not null;
+		}
+
+		readonly Dictionary<RuleSymbol, bool> _matches = [];
 
 		/// <param name="reports">
 		/// Whether the scan hands back how far it read, matched or not, in <c>reachedAt</c>: where it
@@ -1847,8 +1871,9 @@ sealed partial class Machine
 
 					break;
 
+				// What the body cannot match is left out of it here too, as of the scan's own (Possible).
 				case Node.Call(var called, _):
-					Emit(code, graph.Bodies[called], fail, loaded);
+					Emit(code, Possible(graph.Bodies[called]) ?? graph.Bodies[called], fail, loaded);
 
 					break;
 
