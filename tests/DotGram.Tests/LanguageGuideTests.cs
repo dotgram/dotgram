@@ -40,7 +40,10 @@ namespace DotGram.Tests;
 /// attached to — the methods its <c>@</c> calls — and is compiled beside it; without one the host is
 /// an empty <c>partial class Grammar</c>. A <c>```text examples</c> fence after that holds runs, one a
 /// line: <c>Method("input") → value</c>, <c>→ refused</c>, or <c>→ refused: message</c>, which holds the
-/// text of the refusal too. The method is called with the one string;
+/// text of the refusal too. The input may be handed over as a reader, <c>reader("…")</c>, a stream of its
+/// UTF-8 bytes, <c>stream("…")</c>, or those bytes, <c>bytes("…")</c>; whole numbers after it are a
+/// position and a length, and a last <c>out</c> calls the form that answers only whether, showing the
+/// value where it answers yes. Optional parameters (a reader's buffer sizes) keep their defaults;
 /// a <c>Match</c> it answers is read, a <c>FormatException</c> it throws is a refusal, and a sequence of
 /// matches is their values. A value is shown as C# writes a literal of it (<c>"text"</c>, <c>'c'</c>,
 /// <c>3</c>, <c>true</c>, <c>null</c>), a sequence as <c>[a, b]</c>, anything else by its <c>ToString</c>.
@@ -125,16 +128,16 @@ public sealed class LanguageGuideTests
 
 		var type = Assembly.Load(stream.ToArray()).GetType(host)!;
 
-		foreach (var (call, input, answer) in example.Runs)
+		foreach (var run in example.Runs)
 		{
-			var got = Run(type, call, input);
+			var got = Run(type, run);
 
 			// A bare `refused` says only that the input is refused; `refused: …` says what the
 			// refusal says, too.
-			if (answer == "refused" && got.StartsWith("refused", StringComparison.Ordinal))
+			if (run.Answer == "refused" && got.StartsWith("refused", StringComparison.Ordinal))
 				got = "refused";
 
-			Assert.Equal($"{call}({Literal(input)}) → {answer}", $"{call}({Literal(input)}) → {got}");
+			Assert.Equal($"{run.Written} → {run.Answer}", $"{run.Written} → {got}");
 		}
 	}
 
@@ -174,7 +177,15 @@ public sealed class LanguageGuideTests
 	}
 
 	/// <summary>One grammar of a page, the host it is attached to, and the runs the page shows of it.</summary>
-	sealed record Example(int Line, string[] Words, string Grammar, string? Host, List<(string Call, string Input, string Answer)>? Runs);
+	sealed record Example(int Line, string[] Words, string Grammar, string? Host, List<Call>? Runs);
+
+	/// <summary>
+	/// One run: the method, the input and how it is handed over (<c>"…"</c> a string, <c>reader("…")</c> a
+	/// <see cref="StringReader"/>, <c>stream("…")</c> a <see cref="MemoryStream"/> of its UTF-8 bytes,
+	/// <c>bytes("…")</c> those bytes as an array), the whole numbers after it (a position, a length), whether
+	/// the last argument is an <c>out</c> one, and what the page says comes back.
+	/// </summary>
+	sealed record Call(string Written, string Method, string Kind, string Input, long[] Numbers, bool Out, string Answer);
 
 	static List<Example> All(string page)
 	{
@@ -202,7 +213,7 @@ public sealed class LanguageGuideTests
 			if (next < blocks.Count && blocks[next].Words is ["csharp", ..] && ShippedPages.HostIn(blocks[next].Text) is not null)
 				host = blocks[next++].Text;
 
-			List<(string, string, string)>? runs = null;
+			List<Call>? runs = null;
 
 			if (next < blocks.Count && blocks[next].Words is ["text", "examples", ..])
 				runs = [.. blocks[next].Text.Split('\n').Where(static line => line.Trim().Length > 0).Select(Runs)];
@@ -223,13 +234,32 @@ public sealed class LanguageGuideTests
 	}
 
 	/// <summary><c>Method("input") → answer</c>, the input a C# string literal.</summary>
-	static (string, string, string) Runs(string line)
+	static Call Runs(string line)
 	{
-		var shape = Regex.Match(line.Trim(), "^([A-Za-z_][A-Za-z0-9_]*)\\(\"((?:[^\"\\\\]|\\\\.)*)\"\\)\\s*→\\s*(.*)$");
+		var shape = Regex.Match(
+			line.Trim(),
+			"^(?<call>(?<method>[A-Za-z_][A-Za-z0-9_]*)\\(" +
+				"(?:(?<kind>reader|stream|bytes)\\()?\"(?<input>(?:[^\"\\\\]|\\\\.)*)\"(?(kind)\\))" +
+				"(?<numbers>(?:\\s*,\\s*-?[0-9]+)*)(?<out>\\s*,\\s*out)?\\))\\s*→\\s*(?<answer>.*)$");
 
-		Assert.True(shape.Success, $"Not a run: '{line}'. Write Method(\"input\") → value.");
+		Assert.True(
+			shape.Success,
+			$"Not a run: '{line}'. Write Method(\"input\") → value; the input may be reader(\"…\"), stream(\"…\") " +
+				"or bytes(\"…\"), and whole numbers and a last 'out' may follow it.");
 
-		return (shape.Groups[1].Value, Unescaped(shape.Groups[2].Value), shape.Groups[3].Value.Trim());
+		var numbers = shape.Groups["numbers"].Value
+			.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+			.Select(static one => long.Parse(one, CultureInfo.InvariantCulture))
+			.ToArray();
+
+		return new Call(
+			shape.Groups["call"].Value,
+			shape.Groups["method"].Value,
+			shape.Groups["kind"].Success ? shape.Groups["kind"].Value : "string",
+			Unescaped(shape.Groups["input"].Value),
+			numbers,
+			shape.Groups["out"].Success,
+			shape.Groups["answer"].Value.Trim());
 	}
 
 	static string Unescaped(string text)
@@ -269,22 +299,57 @@ public sealed class LanguageGuideTests
 		return built.ToString();
 	}
 
-	static string Run(Type type, string call, string input)
+	static string Run(Type type, Call call)
 	{
-		var method = type.GetMethod(call, [typeof(string)]);
+		var input = call.Kind switch
+		{
+			"reader" => typeof(TextReader),
+			"stream" => typeof(Stream),
+			"bytes"  => typeof(byte[]),
+			_        => typeof(string),
+		};
 
-		Assert.True(method is not null, $"{type.Name} has no {call}(string).");
+		// The overload whose parameters are the input, the numbers, the `out` if the run has one, and
+		// nothing else a caller has to give: the buffer sizes of a reader are optional.
+		var method = type
+			.GetMethods(BindingFlags.Public | BindingFlags.Static)
+			.Where(one => one.Name == call.Method && Fits(one.GetParameters(), input, call))
+			.OrderBy(static one => one.GetParameters().Length)
+			.FirstOrDefault();
+
+		Assert.True(method is not null, $"{type.Name} has no {call.Method} taking {call.Written}.");
+
+		var parameters = method!.GetParameters();
+		var arguments  = new object?[parameters.Length];
+
+		arguments[0] = call.Kind switch
+		{
+			"reader" => new StringReader(call.Input),
+			"stream" => new MemoryStream(Encoding.UTF8.GetBytes(call.Input)),
+			"bytes"  => Encoding.UTF8.GetBytes(call.Input),
+			_        => call.Input,
+		};
+
+		for (var at = 0; at < call.Numbers.Length; at++)
+			arguments[at + 1] = Convert.ChangeType(call.Numbers[at], Unref(parameters[at + 1].ParameterType), CultureInfo.InvariantCulture);
+
+		for (var at = call.Numbers.Length + 1; at < parameters.Length; at++)
+			if (!parameters[at].IsOut)
+				arguments[at] = parameters[at].DefaultValue;
 
 		object? answer;
 
 		try
 		{
-			answer = method!.Invoke(null, [input]);
+			answer = method.Invoke(null, arguments);
 		}
 		catch (TargetInvocationException thrown) when (thrown.InnerException is FormatException refused)
 		{
 			return "refused: " + refused.Message;
 		}
+
+		if (call.Out)
+			return (bool)answer! ? Show(arguments[call.Numbers.Length + 1]) : "refused";
 
 		if (answer is not null && IsMatch(answer.GetType()))
 			return Matched(answer);
@@ -300,6 +365,29 @@ public sealed class LanguageGuideTests
 		}
 
 		return Show(answer);
+	}
+
+	static bool Fits(ParameterInfo[] parameters, Type input, Call call)
+	{
+		var given = 1 + call.Numbers.Length + (call.Out ? 1 : 0);
+
+		if (parameters.Length < given || parameters[0].ParameterType != input)
+			return false;
+
+		// A number may be a `ref` one: the form that answers only whether moves the position it is handed.
+		for (var at = 1; at <= call.Numbers.Length; at++)
+			if (Unref(parameters[at].ParameterType) is not { IsPrimitive: true } number || number == typeof(bool) || number == typeof(char))
+				return false;
+
+		if (call.Out && !parameters[given - 1].IsOut)
+			return false;
+
+		return parameters.Skip(given).All(static one => one.IsOptional) && parameters.Take(given).All(one => one.IsOut == (call.Out && one.Position == given - 1));
+	}
+
+	static Type Unref(Type type)
+	{
+		return type.IsByRef ? type.GetElementType()! : type;
 	}
 
 	static bool IsMatch(Type type)
