@@ -83,6 +83,31 @@ public sealed class ConditionAndParameterTests
 		}
 	}
 
+	/// <summary>
+	/// The same where the scan writes a called rule's body in place of the call — inside braces, on the
+	/// tape, in the trivia of a grammar read over tokens.
+	/// </summary>
+	[Theory]
+	[InlineData("Old = 'a' & when Version is \"2000\"\nA = { 'q' & Old }\nTest = A | 'b'\n", "default", "b", "qa")]
+	[InlineData("Old = 'a' & when Version is \"2000\"\nA = { 'q' & Old }\nTest = A | 'b'\n", "tape", "b", "qa")]
+	[InlineData("Old = '#' & when Version is \"2000\"\ntrivia = { (Old | ' ')* }\nTest = 'a' & 'b'\n", "lexical", "a b", "a#b")]
+	public void A_called_rule_a_condition_rules_out_is_left_out_where_it_is_written_in_place(
+		string rules, string rendering, string accepted, string refused)
+	{
+		var result = Compile(Versions + rules + "parse Test with (Version = \"2022\") as ParseNew", () => Rendering(rendering));
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var source = string.Join("\n", result.Sources.Select(static one => one.Text));
+
+		Assert.Empty(EmittedCode.Complaints(source, "Grammar", null, null, TestContext.Current.CancellationToken));
+
+		var assembly = EmittedCode.Compile(source);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseNew", accepted).IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseNew", refused).IsSuccess);
+	}
+
 	[Theory]
 	[InlineData("Test = 'a' & when Version\nparse Test")]
 	[InlineData("Test = 'a' & when Version & 'b'\nparse Test")]
@@ -108,6 +133,8 @@ public sealed class ConditionAndParameterTests
 	[InlineData("Test = 'a' & when Version is ['0'..'9']+", "+")]
 	[InlineData("Test = 'a' & when Version is ['0'..'9']{4}", "{4}")]
 	[InlineData("Test = 'a' & when Version is \"20\"* & 'b'", "*")]
+	[InlineData("Test = 'a' & when Version+ is \"2000\"", "+")]
+	[InlineData("Test = 'a' & when Version{2} is \"2000\" and Version is \"2000\"", "{2}")]
 	public void A_quantified_side_of_is_is_told_as_one(string rule, string at)
 	{
 		var grammar = Versions + rule + "\nparse Test with (Version = \"2000\") as P";
@@ -133,7 +160,7 @@ public sealed class ConditionAndParameterTests
 	[Theory]
 	[InlineData("Value(tag) = switch @(Kind(tag)) { case 0: Digits default: none }\nField = tag: Digits & '=' & Value(tag)")]
 	[InlineData("Value(x) = x & when @(x != null)\nField = '=' & Value(Digits)")]
-	[InlineData("Value(x) : @int = x & 'z' => @(x.Length)\nField : @int = '=' & v: Value(Digits) => @(v)")]
+	[InlineData("Value(x) : @int = x & 'z' => @(Count(x))\nField : @int = '=' & v: Value(Digits) => @(v)")]
 	public void C_sharp_that_names_a_recognizer_parameter_is_said_on_the_grammar(string rules)
 	{
 		var grammar = "Digits = ['0'..'9']+\n" + rules + "\nparse Field";
@@ -141,6 +168,27 @@ public sealed class ConditionAndParameterTests
 
 		Assert.Equal(GrammarNormalizer.RecognizerInCSharp, told.Id);
 		Assert.Contains("'Value'", told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// What an argument brings in is the caller's C#, which may name a host member called like the
+	/// parameter; and a name written before a dot may be a namespace or a type. Neither is the parameter.
+	/// </summary>
+	[Theory]
+	[InlineData("Use(x) = x & 'z'\nTest = Use('a' & when @(x()))\nparse Test", "TryParseTest")]
+	[InlineData("Use(x) = x & 'z'\nW = 'a'\nV = 'b'\nTest = Use(W & when @(x()))\nparse Test with (W = V) as P", "TryP")]
+	[InlineData("Use(System) = System & 'z' & when @(System.Math.Abs(-1) > 0)\nTest = Use('a')\nparse Test", "TryParseTest")]
+	public void The_csharp_a_rule_s_own_declaration_writes_is_what_is_asked(string grammar, string method)
+	{
+		var result = Compile(grammar);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(
+			string.Join("\n", result.Sources.Select(static one => one.Text)),
+			declarationMembers: "static bool x() { return true; }");
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", method, method == "TryP" ? "bz" : "az").IsSuccess);
 	}
 
 	[Theory]
