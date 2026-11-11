@@ -413,7 +413,9 @@ static class SupportEmitter
 			/// A <c>.gram</c> file is read at compile time and does not travel: what ships is
 			/// the assembly. So the text is put here, on the class an including grammar names
 			/// — <c>[GramInclude(typeof(X))]</c> — and a grammar in a referenced assembly is
-			/// then found the same way one beside you is.
+			/// then found the same way one beside you is. A class from a referenced assembly
+			/// is always read from here, since this is the grammar it was compiled from; one
+			/// compiled beside you is read from its file, which is the one being edited.
 			///
 			/// Written by the generator, not by hand.
 			/// </remarks>

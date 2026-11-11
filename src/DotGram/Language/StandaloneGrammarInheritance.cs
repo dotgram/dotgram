@@ -167,6 +167,12 @@ static class StandaloneGrammarInheritance
 
 			if (include.Source is { } written && !GramIncludes.IsPath(written))
 				text = written;
+			else if (include.Shipped)
+			{
+				// A referenced assembly's grammar is the one it carries, as the generator reads it.
+				text = include.Portable;
+				path = await CarriedFileAsync(solution, include.Type, GramIncludes.Wanted(include), include.Portable!, cancellationToken).ConfigureAwait(false);
+			}
 			else
 			{
 				var wanted = GramIncludes.Wanted(include);

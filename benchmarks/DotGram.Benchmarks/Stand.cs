@@ -2932,7 +2932,7 @@ static partial class Stand
 	// `--stand --rebuild` has been reporting "None found" ever since. Mode is the detail file's,
 	// not this one's — a plain `-t:Rebuild` (what Rebuild() below runs) never asks for it.
 	static readonly Regex Summary = new(
-		@"DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation",
+		@"DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules?, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation",
 		RegexOptions.CultureInvariant);
 
 	/// <summary>
