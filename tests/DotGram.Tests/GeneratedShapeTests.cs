@@ -28,8 +28,8 @@ public sealed class GeneratedShapeTests
 	[
 		(CarrierKind.Auto,      false),
 		(CarrierKind.Auto,      true),
-		(CarrierKind.Tape,      false),
-		(CarrierKind.Tape,      true),
+		(CarrierKind.Deferred,      false),
+		(CarrierKind.Deferred,      true),
 		(CarrierKind.Immediate, false),
 		(CarrierKind.Immediate, true),
 	];
@@ -395,7 +395,7 @@ public sealed class GeneratedShapeTests
 	/// </summary>
 	[Theory]
 	[InlineData(CarrierKind.Auto)]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_capture_kept_in_the_arena_closes_in_constant_time(CarrierKind carrier)
 	{

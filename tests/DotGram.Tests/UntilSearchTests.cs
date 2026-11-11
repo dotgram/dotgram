@@ -199,7 +199,7 @@ public sealed class UntilSearchTests
 		var start  = graph.Rules.First(rule => rule.Name == "Start");
 
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var fast = Build(row.Grammar + "\nparse Start\n", carrier, direct, row.Searches);
 			var slow = Build(Slow(row.Grammar) + "\nparse Start\n", carrier, direct, row.Searches is null ? null : false);

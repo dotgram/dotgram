@@ -164,7 +164,7 @@ public sealed class AdaptiveValuesTests
 	{
 		var compiled = GramCompiler.Compile(grammar ?? Grammar, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = CarrierKind.Tape, Lexical = lexical, ValueStorage = storage,
+			ClassName = "Grammar", Carrier = CarrierKind.Deferred, Lexical = lexical, ValueStorage = storage,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		// `Retry` reads `a!` by either alternative where the guard does not refuse the first, and

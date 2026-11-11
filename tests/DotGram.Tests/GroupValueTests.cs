@@ -68,7 +68,7 @@ public sealed class GroupValueTests
 				((?=('a' => @(Record(9))) & ('a' => @(Record(1))) & 'x')
 				| (('a' => @(Record(2))) & 'y'))*
 			parse Rows as All stream bytes
-			""", direct, carrier: CarrierKind.Tape);
+			""", direct, carrier: CarrierKind.Deferred);
 
 		foreach (var mode in new[] { "text", "chars", "bytes" })
 		{
@@ -172,7 +172,7 @@ public sealed class GroupValueTests
 		var host = Compile("""
 			Rows : @int[] = (("ab" => @(Record(1)) | "a" => @(Record(2))) & 'b')*
 			parse Rows as All stream bytes
-			""", direct, carrier: CarrierKind.Tape);
+			""", direct, carrier: CarrierKind.Deferred);
 
 		foreach (var mode in new[] { "text", "chars", "bytes" })
 		{

@@ -313,7 +313,7 @@ public sealed class NestedRecoveryTests
 		return data;
 	}
 
-	static readonly CarrierKind[] Carriers = [CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate];
+	static readonly CarrierKind[] Carriers = [CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate];
 
 	[Theory]
 	[MemberData(nameof(Cases))]
@@ -381,7 +381,7 @@ public sealed class NestedRecoveryTests
 			.Concat(one.Rows.Select(static row => row.Input))
 			.ToArray();
 
-		foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Tape, false) })
+		foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Deferred, false) })
 		{
 			var inline = Host(one.Inline, carrier, direct, one.Lexical, traced: true);
 			var twin   = Host(twinGrammar, carrier, direct, one.Lexical, traced: true);
@@ -496,7 +496,7 @@ public sealed class NestedRecoveryTests
 	{
 		foreach (var one in All)
 		{
-			var options = Options(CarrierKind.Tape, false, one.Lexical, false, false);
+			var options = Options(CarrierKind.Deferred, false, one.Lexical, false, false);
 
 			options.Steps = true;
 

@@ -133,7 +133,7 @@ public sealed class SegmentedInputTests
 	public void A_refusal_says_what_the_grammar_wrote(string grammar, string segment, long position, string said)
 	{
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var (success, _, error, at) = TryParse(Build(grammar + "\nparse Start", carrier: carrier, direct: direct), "TryParseStart", [segment]);
 
@@ -407,7 +407,7 @@ public sealed class SegmentedInputTests
 			""";
 
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var segmented = Build(grammar, carrier: carrier, direct: direct);
 			var placed    = Build(grammar.Replace("eos", "'\\u0001'").Replace("any*", "[^ '\\u0001']*"), segmented: false, carrier: carrier, direct: direct);
@@ -445,7 +445,7 @@ public sealed class SegmentedInputTests
 			""";
 
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var segmented = Build(grammar, carrier: carrier, direct: direct);
 			var placed    = Build(grammar.Replace("eos", "'\\u0001'"), segmented: false, carrier: carrier, direct: direct);
@@ -565,13 +565,13 @@ public sealed class SegmentedInputTests
 	/// past that end before it broke.
 	/// </summary>
 	[Theory]
-	[InlineData("{1}", CarrierKind.Tape, true)]
+	[InlineData("{1}", CarrierKind.Deferred, true)]
 	[InlineData("{1}", CarrierKind.Immediate, true)]
-	[InlineData("{1}", CarrierKind.Tape, false)]
+	[InlineData("{1}", CarrierKind.Deferred, false)]
 	[InlineData("{1}", CarrierKind.Immediate, false)]
-	[InlineData("*", CarrierKind.Tape, true)]
+	[InlineData("*", CarrierKind.Deferred, true)]
 	[InlineData("*", CarrierKind.Immediate, false)]
-	[InlineData("?", CarrierKind.Tape, true)]
+	[InlineData("?", CarrierKind.Deferred, true)]
 	[InlineData("?", CarrierKind.Immediate, false)]
 	public void A_recovery_on_eos_hands_over_one_segment_after_a_crossing_element(string repeat, CarrierKind carrier, bool direct)
 	{
@@ -624,9 +624,9 @@ public sealed class SegmentedInputTests
 	/// it says so rather than the end of the input.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Deferred, true)]
 	[InlineData(CarrierKind.Immediate, true)]
-	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Deferred, false)]
 	[InlineData(CarrierKind.Immediate, false)]
 	public void A_look_that_refuses_any_says_the_end_of_a_segment(CarrierKind carrier, bool direct)
 	{
@@ -731,9 +731,9 @@ public sealed class SegmentedInputTests
 	/// synchronizes on <c>eos</c> that is the rest of the element's own segment and nothing after it.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Deferred, true)]
 	[InlineData(CarrierKind.Immediate, true)]
-	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Deferred, false)]
 	[InlineData(CarrierKind.Immediate, false)]
 	public void A_recovery_tells_its_hook_the_text_of_one_segment(CarrierKind carrier, bool direct)
 	{
@@ -1064,9 +1064,9 @@ public sealed class SegmentedInputTests
 	/// than the segment holds refuses there, and what it covers holds no end of a segment.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Deferred, true)]
 	[InlineData(CarrierKind.Immediate, true)]
-	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Deferred, false)]
 	[InlineData(CarrierKind.Immediate, false)]
 	public void A_recognizer_of_the_host_reads_one_segment(CarrierKind carrier, bool direct)
 	{
@@ -1161,7 +1161,7 @@ public sealed class SegmentedInputTests
 	public void The_end_of_a_segment_never_reaches_a_predicate(string grammar)
 	{
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var parser = Build(
 				grammar + "\nparse Start",
@@ -1184,9 +1184,9 @@ public sealed class SegmentedInputTests
 	/// the end of its segment, and what a rejected record is told counts lines as segments.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Deferred, true)]
 	[InlineData(CarrierKind.Immediate, true)]
-	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Deferred, false)]
 	[InlineData(CarrierKind.Immediate, false)]
 	public void A_bad_record_is_stepped_over_to_the_end_of_its_segment(CarrierKind carrier, bool direct)
 	{

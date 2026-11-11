@@ -25,7 +25,7 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class BindingReaderTests
 {
-	static readonly CarrierKind[] Carriers = [CarrierKind.Tape, CarrierKind.Immediate, CarrierKind.Auto];
+	static readonly CarrierKind[] Carriers = [CarrierKind.Deferred, CarrierKind.Immediate, CarrierKind.Auto];
 
 	const string DollarQuoted = """
 		R   = '$' & $tag: (Tag?) & '$' & { (?!('$' & $tag & '$') & any)* } & '$' & $tag & '$'
@@ -176,7 +176,7 @@ public sealed class BindingReaderTests
 		Reads(Grammar, "ab:xab", false);
 		Reads(Grammar, "ab:", false);
 
-		var source = Source(Grammar + "\nparse R\n", CarrierKind.Tape);
+		var source = Source(Grammar + "\nparse R\n", CarrierKind.Deferred);
 
 		Assert.Contains("a0 = p;", source, StringComparison.Ordinal);
 		Assert.Contains("b0 = p;", source, StringComparison.Ordinal);
@@ -188,7 +188,7 @@ public sealed class BindingReaderTests
 	[Fact]
 	public void A_binding_nobody_reads_writes_nothing()
 	{
-		var source = Source("R = $q: ['a'..'z']+ & '!'\nparse R\n", CarrierKind.Tape);
+		var source = Source("R = $q: ['a'..'z']+ & '!'\nparse R\n", CarrierKind.Deferred);
 
 		Assert.DoesNotContain("a0", source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Same_DotGram", source, StringComparison.Ordinal);

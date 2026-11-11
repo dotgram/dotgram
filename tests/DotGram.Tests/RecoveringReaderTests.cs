@@ -134,7 +134,7 @@ public sealed class RecoveringReaderTests
 			parse Fields
 			""";
 
-		var tape      = Built(Compile(grammar, direct: true, CarrierKind.Tape, Logged), input);
+		var tape      = Built(Compile(grammar, direct: true, CarrierKind.Deferred, Logged), input);
 		var immediate = Built(Compile(grammar, direct: true, CarrierKind.Immediate, Logged), input);
 
 		Assert.Equal(built, tape);

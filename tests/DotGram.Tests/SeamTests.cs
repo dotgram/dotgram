@@ -117,7 +117,7 @@ public sealed class SeamTests
 	{
 		const string Grammar = Spaced + "File : @string[] = '[' & (Item & ';')* & eof\nparse File\n";
 
-		var answers = new[] { (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false) }
+		var answers = new[] { (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false) }
 			.Select(one =>
 			{
 				var compilation = GramCompiler.Compile(Grammar, new GramCompilerOptions

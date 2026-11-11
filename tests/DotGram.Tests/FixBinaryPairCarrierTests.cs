@@ -130,7 +130,7 @@ public sealed class FixBinaryPairCarrierTests
 	{
 		const string wire = "9=5;10=ab;cd;";
 
-		var tape      = Read(CarrierKind.Tape, wire);
+		var tape      = Read(CarrierKind.Deferred, wire);
 		var immediate = Read(CarrierKind.Immediate, wire);
 
 		// Immediate reads the pair correctly: the length field (9=5) is followed by exactly

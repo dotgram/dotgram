@@ -135,7 +135,7 @@ public sealed class StackDepthTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void Either_carrier_hands_a_deep_reading_on_rather_than_running_out(CarrierKind carrier)
 	{
@@ -220,7 +220,7 @@ public sealed class StackDepthTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_level_the_probe_keeps_missing_is_still_handed_on(CarrierKind carrier)
 	{
@@ -271,7 +271,7 @@ public sealed class StackDepthTests
 	/// them where it reads them can see the difference; both are held to it.
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_reading_handed_off_runs_in_the_context_of_the_parse_that_handed_it(CarrierKind carrier)
 	{

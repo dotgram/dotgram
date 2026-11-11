@@ -60,7 +60,7 @@ public sealed class NestedPairTests
 		{
 			var rows = new TheoryData<CarrierKind, bool>();
 
-			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 				foreach (var direct in new[] { false, true })
 					rows.Add(carrier, direct);
 

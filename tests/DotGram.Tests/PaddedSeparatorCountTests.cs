@@ -67,9 +67,9 @@ public sealed class PaddedSeparatorCountTests
 	const int Blocks = 16;
 
 	[Theory]
-	[InlineData(true,  CarrierKind.Tape)]
+	[InlineData(true,  CarrierKind.Deferred)]
 	[InlineData(true,  CarrierKind.Immediate)]
-	[InlineData(false, CarrierKind.Tape)]
+	[InlineData(false, CarrierKind.Deferred)]
 	[InlineData(false, CarrierKind.Immediate)]
 	public void A_run_of_padding_is_read_a_bounded_number_of_times(bool direct, CarrierKind carrier)
 	{

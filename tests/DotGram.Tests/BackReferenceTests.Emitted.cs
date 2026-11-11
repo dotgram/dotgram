@@ -23,7 +23,7 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed partial class BackReferenceTests
 {
-	static readonly CarrierKind[] Carriers = [CarrierKind.Tape, CarrierKind.Immediate, CarrierKind.Auto];
+	static readonly CarrierKind[] Carriers = [CarrierKind.Deferred, CarrierKind.Immediate, CarrierKind.Auto];
 
 	[Theory]
 	[MemberData(nameof(RowNames))]
@@ -53,7 +53,7 @@ public sealed partial class BackReferenceTests
 		BackReferenceEmission.RequireBoth();
 
 		var row     = Named(name);
-		var reader  = Readings(row, CarrierKind.Tape, direct: true);
+		var reader  = Readings(row, CarrierKind.Deferred, direct: true);
 		var engines = new List<(string, Reading[])>();
 
 		foreach (var carrier in Carriers)
@@ -188,10 +188,10 @@ public sealed partial class BackReferenceTests
 	/// and the capture of a reference holds the text the reference matched.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Deferred, true)]
 	[InlineData(CarrierKind.Immediate, true)]
 	[InlineData(CarrierKind.Auto, true)]
-	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Deferred, false)]
 	[InlineData(CarrierKind.Immediate, false)]
 	[InlineData(CarrierKind.Auto, false)]
 	public void A_binding_beside_members_leaves_them_as_they_are(CarrierKind carrier, bool direct)

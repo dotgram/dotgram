@@ -158,7 +158,7 @@ public sealed class MarkGiveBackTests
 			Namespace     = "Marked",
 			CSharpScanner = RoslynCSharpScanner.Instance,
 			Direct        = reading != "engine",
-			Carrier       = reading == "immediate" ? CarrierKind.Immediate : CarrierKind.Tape,
+			Carrier       = reading == "immediate" ? CarrierKind.Immediate : CarrierKind.Deferred,
 		});
 
 		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);

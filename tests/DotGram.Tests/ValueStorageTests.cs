@@ -28,7 +28,7 @@ public sealed class ValueStorageTests
 	{
 		var compiled = GramCompiler.Compile(Grammar, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = CarrierKind.Tape, ValueStorage = storage,
+			ClassName = "Grammar", Carrier = CarrierKind.Deferred, ValueStorage = storage,
 			Lexical = lexical, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(compiled.Diagnostics);
@@ -47,7 +47,7 @@ public sealed class ValueStorageTests
 
 	[Theory]
 	[InlineData(CarrierKind.Immediate, true)]
-	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Deferred, false)]
 	public void Readers_without_direct_value_tables_ignore_storage(CarrierKind carrier, bool direct)
 	{
 		string? expected = null;

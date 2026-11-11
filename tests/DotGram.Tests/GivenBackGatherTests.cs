@@ -52,7 +52,7 @@ public sealed class GivenBackGatherTests
 
 	[Theory]
 	[InlineData(CarrierKind.Auto)]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_rule_that_fails_leaves_the_stacks_as_it_found_them(CarrierKind carrier)
 	{
