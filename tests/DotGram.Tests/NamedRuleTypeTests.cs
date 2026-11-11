@@ -32,13 +32,13 @@ public sealed class NamedRuleTypeTests
 		});
 	}
 
-	static Assembly Built(string grammar, CarrierKind carrier = CarrierKind.Auto, bool direct = true, string? members = null)
+	static Assembly Built(string grammar, CarrierKind carrier = CarrierKind.Auto, bool direct = true)
 	{
 		var result = Compile(grammar, carrier, direct);
 
 		EmittedCode.Quiet(result.Diagnostics);
 
-		return EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: members);
+		return EmittedCode.Compile(Assert.Single(result.Sources).Text);
 	}
 
 	static string Shown(object? value)
@@ -162,12 +162,20 @@ public sealed class NamedRuleTypeTests
 		"Item : @string = 'a' => @(\"A\")\nItems : @String = items: Item+ => items\nparse Items",
 		"public sealed class String { public string Held = \"\"; public static implicit operator String(string[] items) { return new String { Held = string.Join(\",\", items) }; } }",
 		"TryParseItems", "aa", "Held", "A,A")]
+	[InlineData(
+		"Unused = x: 'a'\nA : @Unused = x: 'a' => x\nparse A",
+		"public sealed class Unused { public string Held = \"\"; public static implicit operator Unused(string s) { return new Unused { Held = s }; } }",
+		"TryParseA", "a", "Held", "a")]
 	public void A_conversion_the_host_declares_is_left_to_the_csharp_compiler(
 		string grammar, string members, string method, string input, string field, string expected)
 	{
-		Assert.Empty(Errors(grammar));
+		// A rule nothing reaches, Unused, is pruned and its type never written: the name is the host's.
+		var result = Compile(grammar);
 
-		var value = EmittedCode.Match(Built(grammar, members: members), "Grammar", method, input).Value!;
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: members);
+		var value    = EmittedCode.Match(assembly, "Grammar", method, input).Value!;
 
 		Assert.Equal(expected, value.GetType().GetField(field)!.GetValue(value));
 	}
