@@ -353,7 +353,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
 			_host.Report(exception);
 		}
@@ -480,7 +480,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
 			_host.Report(exception);
 			// An editor extension must degrade to no tags rather than destabilize its editor.
@@ -632,9 +632,15 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
 			_host.Report(exception);
+		}
+		catch (Exception exception)
+		{
+			// Reported on its way out, since nobody awaits this task.
+			_host.Report(exception);
+			throw;
 		}
 	}
 }
