@@ -95,7 +95,7 @@ sealed partial class GrammarNormalizer
 			Expr.Bind(var name, var operand) => LowerBind(expression, name, operand, ns),
 			Expr.Same(var name) => LowerSame(expression, name),
 			Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, ns)),
-			Expr.Guard(var value) => Guarded(value),
+			Expr.Guard(var value) => Guarded(NotARule(value)),
 			Expr.Switch(var value, var cases) => new Node.Choice(cases.Select(one => Lower(one.Body, ns)).ToArray())
 			{
 				Selection = new Node.SwitchSelection((Node.Guard)Guarded(value), cases.Select(one => one.Label).ToArray()),
@@ -154,6 +154,26 @@ sealed partial class GrammarNormalizer
 	Node Guarded(Expr value)
 	{
 		return new Node.Guard(Substituted(Valued(value, "in a 'when', which is C#")), StartOf(value));
+	}
+
+	/// <summary>
+	/// A guard's value, said to be no guard where it is a rule's name: <c>when Version</c> asks nothing
+	/// of C#, which a guard is written in with <c>@</c>, and the question about a rule is asked with
+	/// <c>is</c> (§3.6). It used to reach C# as written, which knows no <c>Version</c> (CS0103 on the
+	/// grammar's line). A capture or a parameter named bare is the C# value it holds, as it always was.
+	/// </summary>
+	Expr NotARule(Expr value)
+	{
+		if (value is Expr.Reference(false, var name, _) &&
+			_model.Bindings.TryGetValue(value, out var bound) && bound is RuleSymbol &&
+			_said.Add((Parsing.GramParser.ExpectedIs, value.At.Position)))
+			Report(
+				Parsing.GramParser.ExpectedIs,
+				$"'{name}' after `when` is a rule, and a rule is asked about with `is`: `when {name} is \"…\"`. " +
+				"A guard is C#, written with '@': `when @(…)`.",
+				value.At);
+
+		return value;
 	}
 
 	/// <summary>
