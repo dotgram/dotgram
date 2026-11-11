@@ -44,7 +44,7 @@
 		<Delete Files="@(_DotGramOldReports)" />
 	</Target>
 
-	<!-- One line a parser at high importance, which is what a quiet or minimal build shows,
+	<!-- One line a parser at high importance, which is what a minimal build shows,
 	     and everything else at normal, which `-v:n` and above show. The line says the
 	     generator ran and what it produced; what it decided on the way is detail, and detail
 	     in a build nobody asked a question of is noise. -->
