@@ -85,8 +85,8 @@ interface IGramAnalysisHost<TVersion> where TVersion : class
 	/// </summary>
 	Task RaiseAsync(Action raise, CancellationToken cancellationToken);
 
-	/// <summary>An exception the session caught and went on after.</summary>
-	void Report(Exception exception);
+	/// <summary>An exception the session caught and went on after, with the step it broke.</summary>
+	void Report(string operation, Exception exception);
 }
 
 /// <summary>What one analysis cost, and whether it was shown.</summary>
@@ -140,7 +140,7 @@ static class GramAnalysisSession
 	/// Raises an event to each of its handlers in turn, so that one failing handler neither keeps
 	/// the event from the others nor stops what the session does next; a failure is reported.
 	/// </summary>
-	internal static void Raise<T>(Action<T>? handlers, T argument, Action<Exception> report)
+	internal static void Raise<T>(Action<T>? handlers, T argument, Action<string, Exception> report, string operation)
 	{
 		if (handlers is null)
 			return;
@@ -153,7 +153,7 @@ static class GramAnalysisSession
 			}
 			catch (Exception exception) when (GramFailures.Recoverable(exception))
 			{
-				report(exception);
+				report(operation, exception);
 			}
 		}
 	}
@@ -779,7 +779,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 		}
 		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
-			_host.Report(exception);
+			_host.Report("Grammar host resolution", exception);
 
 			// No resolution came out to judge what was kept meanwhile against: the one before stands.
 			EndResolving(cancellationToken);
@@ -819,12 +819,12 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 		}
 		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
-			_host.Report(exception);
+			_host.Report("Grammar settling", exception);
 		}
 		catch (Exception exception)
 		{
 			// Reported on its way out, since nobody awaits this task.
-			_host.Report(exception);
+			_host.Report("Grammar settling", exception);
 			throw;
 		}
 	}
@@ -854,7 +854,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 		// Analysis is asked for first: a handler that fails must not leave the document without
 		// it, with the emptied translated document standing in for an analysis until the next edit.
 		ScheduleAnalysis(after, immediate: false);
-		GramAnalysisSession.Raise(Changed, after, _host.Report);
+		GramAnalysisSession.Raise(Changed, after, _host.Report, "Grammar buffer change notification");
 	}
 
 	void ScheduleAnalysis(TVersion snapshot, bool immediate)
@@ -932,7 +932,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 						timing = clock.Timing(text.Length + (context?.AnalysisTail.Length ?? 0), published: false);
 				}
 
-				Analyzed?.Invoke(timing);
+				GramAnalysisSession.Raise(Analyzed, timing, _host.Report, "Grammar analysis timing notification");
 
 				if (!published)
 					return;
@@ -942,14 +942,14 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				_analysisGate.Release();
 			}
 
-			await _host.RaiseAsync(() => GramAnalysisSession.Raise(Changed, snapshot, _host.Report), cancellationToken).ConfigureAwait(false);
+			await _host.RaiseAsync(() => GramAnalysisSession.Raise(Changed, snapshot, _host.Report, "Grammar analysis notification"), cancellationToken).ConfigureAwait(false);
 		}
 		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
-			_host.Report(exception);
+			_host.Report("Grammar analysis", exception);
 		}
 	}
 }

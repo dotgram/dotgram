@@ -446,6 +446,26 @@ public sealed class GramAnalysisSessionTests
 		Assert.Empty(host.Reported);
 	}
 
+	/// <summary>
+	/// A failing handler of the analysis's timing keeps neither the analysis from being told about
+	/// nor its failure from being reported under the step it broke.
+	/// </summary>
+	[Fact]
+	public void A_failing_timing_handler_keeps_nothing_from_being_told()
+	{
+		var host    = new FakeHost("A = 'a'");
+		var session = host.Session();
+		var changed = new List<FakeVersion>();
+
+		session.Analyzed += static _ => throw new InvalidOperationException("timing");
+		session.Changed  += changed.Add;
+
+		session.Document(host.Current);
+
+		Assert.Equal([host.Current], changed);
+		Assert.Equal(["Grammar analysis timing notification"], host.Operations);
+	}
+
 	static ProjectId Watched { get; } = ProjectId.CreateNewId();
 
 	static DocumentId HostDeclaration { get; } = DocumentId.CreateNewId(Watched);
@@ -566,8 +586,11 @@ public sealed class GramAnalysisSessionTests
 			raise();
 		}
 
-		public void Report(Exception exception)
+		public List<string> Operations { get; } = [];
+
+		public void Report(string operation, Exception exception)
 		{
+			Operations.Add(operation);
 			Reported.Add(exception);
 		}
 	}

@@ -421,7 +421,7 @@ public sealed class PlaygroundAdapterTests
 			return Task.CompletedTask;
 		}
 
-		public void Report(Exception exception)
+		public void Report(string operation, Exception exception)
 		{
 			throw new InvalidOperationException("The session reported an exception.", exception);
 		}

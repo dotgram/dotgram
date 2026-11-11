@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -338,7 +338,7 @@ public sealed class EmbeddedGrammarSessionTests
 			raise();
 		}
 
-		public void Report(Exception exception)
+		public void Report(string operation, Exception exception)
 		{
 			throw new InvalidOperationException("The session reported an exception.", exception);
 		}

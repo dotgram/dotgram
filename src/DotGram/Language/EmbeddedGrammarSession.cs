@@ -39,8 +39,8 @@ interface IEmbeddedGrammarHost<TVersion> where TVersion : class
 	/// <summary>Raises the session's <c>Changed</c> event where the editor's own events are raised; see <see cref="IGramAnalysisHost{TVersion}.RaiseAsync"/>.</summary>
 	Task RaiseAsync(Action raise, CancellationToken cancellationToken);
 
-	/// <summary>An exception the session caught and went on after.</summary>
-	void Report(Exception exception);
+	/// <summary>An exception the session caught and went on after, with the step it broke.</summary>
+	void Report(string operation, Exception exception);
 }
 
 /// <summary>Everything known about one version of a C# document's embedded grammars, or nothing while it is not known yet.</summary>
@@ -309,7 +309,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 		// that the translated DotGram spans are already available; otherwise the C# string
 		// classification is visible until the deferred analysis publishes again.
 		if (translated)
-			GramAnalysisSession.Raise(Changed, after, _host.Report);
+			GramAnalysisSession.Raise(Changed, after, _host.Report, "Embedded grammar buffer change notification");
 	}
 
 	/// <summary>The solution changed: the document is analysed again where the change is about it or its project.</summary>
@@ -355,7 +355,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 		}
 		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
-			_host.Report(exception);
+			_host.Report("Embedded grammar analysis", exception);
 		}
 	}
 
@@ -482,7 +482,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 		}
 		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
-			_host.Report(exception);
+			_host.Report("Embedded grammar analysis", exception);
 			// An editor extension must degrade to no tags rather than destabilize its editor.
 		}
 	}
@@ -513,7 +513,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 
 	async Task NotifyChangedAsync(TVersion snapshot)
 	{
-		await _host.RaiseAsync(() => GramAnalysisSession.Raise(Changed, snapshot, _host.Report), CancellationToken.None).ConfigureAwait(false);
+		await _host.RaiseAsync(() => GramAnalysisSession.Raise(Changed, snapshot, _host.Report, "Embedded grammar analysis notification"), CancellationToken.None).ConfigureAwait(false);
 	}
 
 	IReadOnlyList<HostClassification> TranslateClassifications(
@@ -634,12 +634,12 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 		}
 		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
-			_host.Report(exception);
+			_host.Report("Embedded grammar retry", exception);
 		}
 		catch (Exception exception)
 		{
 			// Reported on its way out, since nobody awaits this task.
-			_host.Report(exception);
+			_host.Report("Embedded grammar retry", exception);
 			throw;
 		}
 	}
