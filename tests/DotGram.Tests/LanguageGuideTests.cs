@@ -43,7 +43,9 @@ namespace DotGram.Tests;
 /// text of the refusal too. The input may be handed over as a reader, <c>reader("…")</c>, a stream of its
 /// UTF-8 bytes, <c>stream("…")</c>, or those bytes, <c>bytes("…")</c>; whole numbers after it are a
 /// position and a length, and a last <c>out</c> calls the form that answers only whether, showing the
-/// value where it answers yes. Optional parameters (a reader's buffer sizes) keep their defaults;
+/// value where it answers yes. Optional parameters (a reader's buffer sizes) keep their defaults. A line
+/// <c>@Name → value</c> reads a static field or property of the host after the calls above it — what an
+/// <c>OnRecovered</c> the host implements has written, say;
 /// a <c>Match</c> it answers is read, a <c>FormatException</c> it throws is a refusal, and a sequence of
 /// matches is their values. A value is shown as C# writes a literal of it (<c>"text"</c>, <c>'c'</c>,
 /// <c>3</c>, <c>true</c>, <c>null</c>), a sequence as <c>[a, b]</c>, anything else by its <c>ToString</c>.
@@ -236,6 +238,13 @@ public sealed class LanguageGuideTests
 	/// <summary><c>Method("input") → answer</c>, the input a C# string literal.</summary>
 	static Call Runs(string line)
 	{
+		// `@Log → …` reads what the host keeps after the calls above it: a static field or property, such
+		// as the list an `OnRecovered` it implements writes to.
+		var kept = Regex.Match(line.Trim(), "^@(?<field>[A-Za-z_][A-Za-z0-9_]*)\\s*→\\s*(?<answer>.*)$");
+
+		if (kept.Success)
+			return new Call("@" + kept.Groups["field"].Value, kept.Groups["field"].Value, "field", "", [], false, kept.Groups["answer"].Value.Trim());
+
 		var shape = Regex.Match(
 			line.Trim(),
 			"^(?<call>(?<method>[A-Za-z_][A-Za-z0-9_]*)\\(" +
@@ -301,6 +310,18 @@ public sealed class LanguageGuideTests
 
 	static string Run(Type type, Call call)
 	{
+		if (call.Kind == "field")
+		{
+			const BindingFlags Kept = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+
+			var field    = type.GetField(call.Method, Kept);
+			var property = type.GetProperty(call.Method, Kept);
+
+			Assert.True(field is not null || property is not null, $"{type.Name} keeps nothing called {call.Method}.");
+
+			return Show(field is not null ? field.GetValue(null) : property!.GetValue(null));
+		}
+
 		var input = call.Kind switch
 		{
 			"reader" => typeof(TextReader),
