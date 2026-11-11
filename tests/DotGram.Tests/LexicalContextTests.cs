@@ -102,7 +102,7 @@ public sealed class LexicalContextTests
 			"""";
 	}
 
-	const string PerCall = "[GramOptions(LocationType = typeof(ILoc), Suffix = \"Located\", PerCall = true)]";
+	const string PerCall = "[GramVariant(LocationType = typeof(ILoc), Name = \"Located\", UsePerCallLocations = true)]";
 
 	/// <summary>A guard of the terminal the tokenizer measures names the context: the tokenizer is handed it.</summary>
 	[Theory]
@@ -131,9 +131,9 @@ public sealed class LexicalContextTests
 	/// machine reads both, and every method of it takes the context.
 	/// </summary>
 	[Theory]
-	[InlineData("Tape",      false)]
+	[InlineData("Deferred",  false)]
 	[InlineData("Immediate", false)]
-	[InlineData("Tape",      true)]
+	[InlineData("Deferred",  true)]
 	[InlineData("Immediate", true)]
 	public void A_construction_of_a_terminal_built_from_its_token_reads_the_context(string carrier, bool perCall)
 	{
@@ -159,9 +159,9 @@ public sealed class LexicalContextTests
 	/// between the two readings, which a cache keyed by the object would have answered from the first.
 	/// </summary>
 	[Theory]
-	[InlineData("Tape",      false)]
+	[InlineData("Deferred",  false)]
 	[InlineData("Immediate", false)]
-	[InlineData("Tape",      true)]
+	[InlineData("Deferred",  true)]
 	[InlineData("Immediate", true)]
 	public void A_cutting_made_with_the_context_is_not_kept_for_the_next_reading(string carrier, bool same)
 	{
@@ -225,7 +225,7 @@ public sealed class LexicalContextTests
 	/// half, which builds the terminal's value from the token.
 	/// </summary>
 	[Theory]
-	[InlineData("Tape")]
+	[InlineData("Deferred")]
 	[InlineData("Immediate")]
 	public void A_test_of_the_reading_inside_a_measured_terminal_is_told_the_reading(string carrier)
 	{
@@ -274,7 +274,7 @@ public sealed class LexicalContextTests
 	/// and each is kept: read again, neither is measured again, which a guard of the measured terminal counts.
 	/// </summary>
 	[Theory]
-	[InlineData("Tape")]
+	[InlineData("Deferred")]
 	[InlineData("Immediate")]
 	public void A_cutting_kept_for_one_reading_is_not_handed_to_another(string carrier)
 	{
@@ -490,7 +490,7 @@ public sealed class LexicalContextTests
 	/// time is measured once a word — linear in the text, where a cutting made again for every value is the square.
 	/// </remarks>
 	[Theory]
-	[InlineData("Tape")]
+	[InlineData("Deferred")]
 	[InlineData("Immediate")]
 	public void A_context_named_only_by_a_construction_keeps_the_cutting(string carrier)
 	{
@@ -578,11 +578,11 @@ public sealed class LexicalContextTests
 	/// grammar refusing any warning, a context named only by a construction among them.
 	/// </remarks>
 	[Theory]
-	[InlineData("Tape",      "refused")]
+	[InlineData("Deferred",  "refused")]
 	[InlineData("Immediate", "refused")]
-	[InlineData("Tape",      "other")]
+	[InlineData("Deferred",  "other")]
 	[InlineData("Immediate", "other")]
-	[InlineData("Tape",      "verbatim")]
+	[InlineData("Deferred",  "verbatim")]
 	[InlineData("Immediate", "verbatim")]
 	public void A_guard_asked_again_where_the_value_is_built_sees_the_context_as_written(string carrier, string shape)
 	{

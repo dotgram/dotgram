@@ -71,7 +71,7 @@ public sealed class ExternalNameTests
 						{{context}}
 						{{(kind == "used" ? "Start : @int = @" + name : "Start : @int = " + operand + " & eof => @(1)")}}
 						parse Start
-						""", {{(kind == "view" ? "BufferedInput = true" : "Portable = true")}})]
+						""", {{(kind == "view" ? "BufferedText = true" : "ExportGrammar = true")}})]
 					public static partial class P
 					{
 						{{method}}

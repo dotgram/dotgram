@@ -8,9 +8,9 @@
 --- GRAM4054 the shared-recursion analysis is a second on a grammar of a thousand rules; the editor leaves it to the build (GramCompilerOptions.AnalyseSharedRecursion)
 --- GRAM0003 Roslyn shell: needs the [Gram] class and the project's AdditionalFiles to find a grammar file; the editor is handed the file
 --- GRAM0004 Roslyn shell: needs several AdditionalFiles matching one [Gram] name
---- GRAM0005 Roslyn shell: needs the [Gram(IncludedAs = ...)] attribute option
---- GRAM0006 Roslyn shell: needs a [Gram] and [GramOptions] attributes on one class
---- GRAM0007 Roslyn shell: needs the [GramOptions(Suffix = ...)] attribute option
+--- GRAM0005 Roslyn shell: needs the [Gram(DefaultAlias = ...)] attribute option
+--- GRAM0006 Roslyn shell: needs a [Gram] and [GramVariant] attributes on one class
+--- GRAM0007 Roslyn shell: needs the [GramVariant(Name = ...)] attribute option
 --- GRAM0008 Roslyn shell: needs two included grammars (As / IncludedAs) from a host compilation
 --- GRAM0009 Roslyn shell: needs the [Gram(MaxRetained/BufferSize)] attribute options
 --- GRAM0010 Roslyn shell: needs the project's C# LangVersion

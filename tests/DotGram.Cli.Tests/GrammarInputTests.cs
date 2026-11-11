@@ -21,21 +21,21 @@ public sealed class GrammarInputTests
 
 		foreach (var expected in new[]
 		{
-			"Suffix", "PartSize", "Lexical", "Carrier", "ConstructionsMayThrow", "BufferedInput", "BufferedBytes", "SpanCaptures",
-			"MaxRetained", "BufferSize", "Stacks", "LocationType", "PerCall", "Portable", "Trace",
+			"Name", "TargetMethodPartSize", "Lexical", "Carrier", "ConstructionsMayThrow", "BufferedText", "BufferedBytes", "UseSpanCaptures",
+			"MaxBufferedInputLength", "InitialBufferSize", "MaxExtraStacks", "LocationType", "ExportGrammar", "Trace", "DefaultAlias",
 		})
 			Assert.Contains(expected, names);
 
-		Assert.Equal(["Auto", "Immediate", "Tape"], GrammarHost.Options().Single(static option => option.Name == "Carrier").Members.Order(StringComparer.Ordinal));
+		Assert.Equal(["Auto", "Deferred", "Immediate"], GrammarHost.Options().Single(static option => option.Name == "Carrier").Members.Order(StringComparer.Ordinal));
 	}
 
 	[Theory]
 	[InlineData("Lexical", "true", "Lexical = true")]
 	[InlineData("lexical", "False", "Lexical = false")]
-	[InlineData("PartSize", "200", "PartSize = 200")]
-	[InlineData("Stacks", "-1", "Stacks = -1")]
-	[InlineData("Suffix", "Fast", "Suffix = \"Fast\"")]
-	[InlineData("Suffix", "a \"b\" \\ c", "Suffix = \"a \\\"b\\\" \\\\ c\"")]
+	[InlineData("TargetMethodPartSize", "200", "TargetMethodPartSize = 200")]
+	[InlineData("MaxExtraStacks", "-1", "MaxExtraStacks = -1")]
+	[InlineData("Name", "Fast", "Name = \"Fast\"")]
+	[InlineData("Name", "a \"b\" \\ c", "Name = \"a \\\"b\\\" \\\\ c\"")]
 	[InlineData("Carrier", "immediate", "Carrier = global::DotGram.GramCarrier.Immediate")]
 	[InlineData("LocationType", "Demo.ISpan", "LocationType = typeof(Demo.ISpan)")]
 	[InlineData("LocationType", "global::Demo.ISpan<int>", "LocationType = typeof(global::Demo.ISpan<int>)")]
@@ -47,8 +47,8 @@ public sealed class GrammarInputTests
 	[Theory]
 	[InlineData("Frobnicate", "1", "has no option 'Frobnicate'")]
 	[InlineData("Lexical", "yes", "not true or false")]
-	[InlineData("PartSize", "2.5", "not a whole number")]
-	[InlineData("Carrier", "Fast", "not one of Auto, Tape, Immediate")]
+	[InlineData("TargetMethodPartSize", "2.5", "not a whole number")]
+	[InlineData("Carrier", "Fast", "not one of Auto, Deferred, Immediate")]
 	[InlineData("LocationType", "X), Lexical = (true", "not a C# type name")]
 	public void A_bad_option_lists_what_there_is(string name, string value, string why)
 	{
@@ -59,7 +59,7 @@ public sealed class GrammarInputTests
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
 		Assert.Contains(why, run.Error, StringComparison.Ordinal);
-		Assert.Contains("Carrier (Auto|Tape|Immediate)", run.Error, StringComparison.Ordinal);
+		Assert.Contains("Carrier (Auto|Deferred|Immediate)", run.Error, StringComparison.Ordinal);
 		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
 
@@ -109,7 +109,7 @@ public sealed class GrammarInputTests
 
 		var run = Tool.Run(
 			scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--line-paths", "absolute",
-			"--namespace", "Demo", "--public", "--option", "LocationType=ILocated", "--option", "Carrier=Tape", "--sources", scratch.Path("src", "*.cs"));
+			"--namespace", "Demo", "--public", "--option", "LocationType=ILocated", "--option", "Carrier=Deferred", "--sources", scratch.Path("src", "*.cs"));
 
 		Assert.True(run.Exit == 0, run.ToString());
 
@@ -121,7 +121,7 @@ public sealed class GrammarInputTests
 
 			namespace Demo
 			{
-				[Gram("Located.gram", LocationType = typeof(ILocated), Carrier = GramCarrier.Tape)]
+				[Gram("Located.gram", LocationType = typeof(ILocated), Carrier = GramCarrier.Deferred)]
 				public partial class Located { }
 			}
 			""");
@@ -155,7 +155,7 @@ public sealed class GrammarInputTests
 		using var scratch = new Scratch();
 
 		var grammar = Copy(scratch, Located);
-		var run     = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--namespace", "Demo", "--option", "Carrier=Tape");
+		var run     = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--namespace", "Demo", "--option", "Carrier=Deferred");
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
 		Assert.Contains("'Entry'", run.Output, StringComparison.Ordinal);
@@ -228,13 +228,13 @@ public sealed class GrammarInputTests
 		Assert.True(bad.Exit == ExitCode.Failure, bad.ToString());
 		Assert.Contains("pass --class", bad.Error, StringComparison.Ordinal);
 
-		var run = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--class", "Calc", "--option", "Suffix=Fast");
+		var run = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--class", "Calc", "--option", "Name=Fast");
 
 		Assert.True(run.Exit == 0, run.ToString());
 
 		var host = File.ReadAllText(scratch.Path("out", "Calc.Host.g.cs"));
 
-		Assert.Contains("[global::DotGram.Gram(\"calc-v2.gram\", Suffix = \"Fast\")]", host, StringComparison.Ordinal);
+		Assert.Contains("[global::DotGram.Gram(\"calc-v2.gram\", Name = \"Fast\")]", host, StringComparison.Ordinal);
 		Assert.Contains("internal partial class Calc", host, StringComparison.Ordinal);
 		Assert.Contains("Calc.Host.g.cs", File.ReadAllText(scratch.Path("out", OutputFolder.ManifestName)), StringComparison.Ordinal);
 	}

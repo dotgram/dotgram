@@ -84,7 +84,7 @@ namespace DotGram.Snapshots
 #line default
 
 			if (!(made is null))
-				made.Locate(parserSpan.Start, parserSpan.Length);
+				Locate_DotGram(ref made, parserSpan.Start, parserSpan.Length);
 
 			return made!;
 		}
@@ -97,7 +97,7 @@ namespace DotGram.Snapshots
 #line default
 
 			if (!(made is null))
-				made.Locate(parserSpan.Start, parserSpan.Length);
+				Locate_DotGram(ref made, parserSpan.Start, parserSpan.Length);
 
 			return made!;
 		}
@@ -111,6 +111,11 @@ namespace DotGram.Snapshots
 #line 31 "Located.gram"
                                          (t);
 #line default
+
+		static void Locate_DotGram<T>(ref T made, int at, int length) where T : ILocated
+		{
+			made.Locate(at, length);
+		}
 
 		static int Recognize_DotGram(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
 		{

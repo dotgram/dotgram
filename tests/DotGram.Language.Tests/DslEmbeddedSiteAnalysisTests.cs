@@ -286,7 +286,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		var cancellationToken = TestContext.Current.CancellationToken;
 		var source = Support + """
 
-			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			[DotGram.Gram("Word = ['a'..'z']+", DefaultAlias = "Lexical")]
 			class LexicalParser;
 
 			[DotGram.Gram("using Lexical;\nStart = name: Word\nparse Start")]

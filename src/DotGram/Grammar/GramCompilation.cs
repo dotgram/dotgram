@@ -215,7 +215,7 @@ sealed class GramCompilerOptions
 	/// <summary>
 	/// The nested class whose published methods call this parser with locations on, where
 	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
-	/// (<c>[GramOptions(PerCall = true)]</c>). Null compiles locations in, as before.
+	/// (<c>[GramVariant(UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
 	/// </summary>
 	public string? LocatedFacade { get; set; }
 
@@ -237,7 +237,7 @@ sealed class GramCompilerOptions
 
 	/// <summary>
 	/// Whether the generated class carries the grammar it was compiled from, for another
-	/// project to include (<c>[Gram(Portable = …)]</c>).
+	/// project to include (<c>[Gram(ExportGrammar = …)]</c>).
 	/// </summary>
 	public bool Portable { get; set; }
 
@@ -306,7 +306,7 @@ sealed class GramCompilerOptions
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// <c>[GramOptions(Trace = true)]</c> asks for it on one reading of a class, and the build
+	/// <c>[GramVariant(Trace = true)]</c> asks for it on one reading of a class, and the build
 	/// property <c>DotGramTrace</c> on every reading of a project. Off, nothing of it is written:
 	/// the parser is the same text byte for byte.
 	/// </para>
@@ -452,7 +452,7 @@ sealed class GramCompilerOptions
 
 	/// <summary>
 	/// What a buffered overload retains at most where the call does not say; see
-	/// <c>[Gram(MaxRetained = …)]</c>.
+	/// <c>[Gram(MaxBufferedInputLength = …)]</c>.
 	/// </summary>
 	public int MaxRetained { get; set; } = int.MaxValue;
 
@@ -472,7 +472,7 @@ sealed class GramCompilerOptions
 
 	/// <summary>
 	/// The nested class this compilation goes into, where the host holds more than one
-	/// (<c>[Gram(Suffix = "...")]</c>). Null puts it in the host class itself.
+	/// (<c>[Gram(Name = "...")]</c>). Null puts it in the host class itself.
 	/// </summary>
 	/// <remarks>
 	/// A host with two grammars — the same one compiled two ways, usually — cannot put

@@ -27,18 +27,18 @@ namespace DotGram.Language.Tests;
 public sealed class GeneratedAttributeSurfaceTests
 {
 	const string Expected = """
-		internal sealed class GramAttribute : DotGram.GramOptionsAttribute
+		internal sealed class GramAttribute : DotGram.GramReadingAttribute
 		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
 		    ctor()
 		    ctor(string source)
 		    string Source { get; }
-		    string IncludedAs { get; set; }
+		    string DefaultAlias { get; set; }
 		internal enum GramCarrier
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
 		    Auto = 0
-		    Tape = 1
+		    Deferred = 1
 		    Immediate = 2
 		internal enum GramClassification
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
@@ -70,7 +70,7 @@ public sealed class GeneratedAttributeSurfaceTests
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
 		    ctor(System.Type grammar)
 		    System.Type Grammar { get; }
-		    string As { get; set; }
+		    string Alias { get; set; }
 		internal sealed class GramLanguageAttribute : System.Attribute
 		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
@@ -79,6 +79,7 @@ public sealed class GeneratedAttributeSurfaceTests
 		    string Id { get; }
 		    string[] Extensions { get; set; }
 		internal sealed class GramLanguageDescriptorAttribute : System.Attribute
+		    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Never)]
 		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
@@ -92,32 +93,32 @@ public sealed class GeneratedAttributeSurfaceTests
 		    string EntriesPayload { get; }
 		    string ClassificationsPayload { get; }
 		    string RecognitionContractPayload { get; }
-		internal class GramOptionsAttribute : System.Attribute
-		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+		internal abstract class GramReadingAttribute : System.Attribute
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
-		    string Suffix { get; set; }
-		    int PartSize { get; set; }
+		    string Name { get; set; }
+		    int TargetMethodPartSize { get; set; }
 		    bool Lexical { get; set; }
 		    DotGram.GramCarrier Carrier { get; set; }
 		    bool ConstructionsMayThrow { get; set; }
-		    bool BufferedInput { get; set; }
+		    bool BufferedText { get; set; }
 		    bool BufferedBytes { get; set; }
-		    bool SpanCaptures { get; set; }
-		    int MaxRetained { get; set; } = int.MaxValue
-		    int BufferSize { get; set; } = 4096
-		    int Stacks { get; set; }
+		    bool UseSpanCaptures { get; set; }
+		    int MaxBufferedInputLength { get; set; } = int.MaxValue
+		    int InitialBufferSize { get; set; } = 4096
+		    int MaxExtraStacks { get; set; }
 		    System.Type LocationType { get; set; }
-		    bool PerCall { get; set; }
-		    bool Portable { get; set; } = true
+		    bool ExportGrammar { get; set; }
 		    bool Trace { get; set; }
 		internal sealed class GramSourceAttribute : System.Attribute
+		    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Never)]
 		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
 		    ctor(string text)
 		    string Text { get; }
 		internal sealed class GramToolingExternalAttribute : System.Attribute
+		    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Never)]
 		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
@@ -125,12 +126,18 @@ public sealed class GeneratedAttributeSurfaceTests
 		    string Method { get; }
 		    string Rule { get; }
 		internal sealed class GramToolingGuardAttribute : System.Attribute
+		    [System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Never)]
 		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
 		    ctor(string expression, bool accepted)
 		    string Expression { get; }
 		    bool Accepted { get; }
+		internal sealed class GramVariantAttribute : DotGram.GramReadingAttribute
+		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
+		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
+		    bool UsePerCallLocations { get; set; }
 		""";
 
 	[Fact]

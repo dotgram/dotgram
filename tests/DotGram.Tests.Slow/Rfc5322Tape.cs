@@ -23,7 +23,7 @@ namespace DotGram.Tests;
 /// <remarks>
 /// <para>
 /// The grammar is read out of <c>src/DotGram.Web/Rfc5322.cs</c> as it stands, with its host class,
-/// and given <c>Carrier = GramCarrier.Tape</c>: a copy that is the shipped text and cannot drift
+/// and given <c>Carrier = GramCarrier.Deferred</c>: a copy that is the shipped text and cannot drift
 /// from it. It is compiled into an assembly named as the one the package shows its internals to,
 /// since the host calls into it.
 /// </para>
@@ -105,7 +105,7 @@ static class Rfc5322Tape
 			"using DotGram;\n" +
 			"using DotGram.Web;\n" +
 			"namespace DotGram.Web.TapeBed;\n" +
-			shipped.Substring(start, end - start) + "\"\"\", Carrier = GramCarrier.Tape)]\n" +
+			shipped.Substring(start, end - start) + "\"\"\", Carrier = GramCarrier.Deferred)]\n" +
 			"public " + shipped.Substring(host);
 
 		var parse       = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
