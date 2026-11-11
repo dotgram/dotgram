@@ -34,7 +34,7 @@ public sealed class GuardMaterializationTests
 						"'" + (char)(0xE000 + i) + "' => @(" + i + ")"))));
 		var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = CarrierKind.Tape, ValueStorage = storage,
+			ClassName = "Grammar", Carrier = CarrierKind.Deferred, ValueStorage = storage,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(compilation.Diagnostics);
@@ -112,9 +112,9 @@ public sealed class GuardMaterializationTests
 	/// has none, and once handed a mark it never declared, the build failed with CS0103.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "engine")]
-	[InlineData(CarrierKind.Tape, "flat")]
-	[InlineData(CarrierKind.Tape, "reader")]
+	[InlineData(CarrierKind.Deferred, "engine")]
+	[InlineData(CarrierKind.Deferred, "flat")]
+	[InlineData(CarrierKind.Deferred, "reader")]
 	[InlineData(CarrierKind.Immediate, "engine")]
 	[InlineData(CarrierKind.Immediate, "flat")]
 	[InlineData(CarrierKind.Immediate, "reader")]

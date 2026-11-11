@@ -714,7 +714,7 @@ sealed partial class Machine
 		// the tape it will become; one it would carry has no store of this kind and stays out
 		// of the plan.
 		var all      = machines.ToArray();
-		var readers  = all.Where(static machine => machine._settings.Carrier == CarrierKind.Tape ||
+		var readers  = all.Where(static machine => machine._settings.Carrier == CarrierKind.Deferred ||
 			machine._settings.Carrier == CarrierKind.Immediate && machine.WouldRefuse(CarrierKind.Immediate) is not null).ToArray();
 		var dense    = readers.Any(machine => !machine._directBuilds && machine._valueTypes.Count >= 8);
 		var adaptive = !dense && readers.Any(machine => machine._directBuilds && machine._valueTypes.Count >= 32);

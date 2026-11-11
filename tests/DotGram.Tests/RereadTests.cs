@@ -155,7 +155,7 @@ public sealed class RereadTests
 		var diagnostics = new List<DotGram.Grammar.GramDiagnostic>();
 		var text = CSharpEmitter.Emit(
 			split.Syntax,
-			new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Tape, MemoiseFailures = false },
+			new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Deferred, MemoiseFailures = false },
 			new EmitContext { Diagnostics = diagnostics, Lexical = split });
 
 		var grammar = EmittedCode.Compile(text).GetType("Grammar")!;

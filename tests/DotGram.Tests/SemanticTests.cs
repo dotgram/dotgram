@@ -243,7 +243,7 @@ public sealed class SemanticTests
 	/// the generator stopped at a value table the file did not keep.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_fold_that_builds_nothing_reads_on_either_carrier(CarrierKind carrier)
 	{
@@ -281,7 +281,7 @@ public sealed class SemanticTests
 	/// </summary>
 	[Theory]
 	[InlineData(CarrierKind.Auto)]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_fold_with_no_construction_builds_its_record_on_the_engine(CarrierKind carrier)
 	{
@@ -1130,7 +1130,7 @@ public sealed class SemanticTests
 		];
 
 		foreach (var (rule, accepted, refused) in shapes)
-			foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, true) })
+			foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, true) })
 				data.Add(rule, accepted, refused, carrier, direct);
 
 		return data;
@@ -5614,7 +5614,7 @@ public sealed class SemanticTests
 		];
 
 		foreach (var (inside, outside, accepted, refused) in shapes)
-			foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, true) })
+			foreach (var (carrier, direct) in new[] { (CarrierKind.Auto, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, true) })
 				data.Add(inside, outside, accepted, refused, carrier, direct);
 
 		return data;

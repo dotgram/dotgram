@@ -58,7 +58,7 @@ static class NestedLookahead
 				Direct           = rendering is not ("engine" or "tokens"),
 				Carrier          = rendering switch
 				{
-					"tape"      => CarrierKind.Tape,
+					"tape"      => CarrierKind.Deferred,
 					"immediate" => CarrierKind.Immediate,
 					_           => CarrierKind.Auto,
 				},

@@ -496,7 +496,7 @@ public sealed class BindingPowerCeilingTests
 		foreach (var (direct, carrier) in new (bool, CarrierKind?)[]
 		{
 			(false, null),
-			(true,  CarrierKind.Tape),
+			(true,  CarrierKind.Deferred),
 			(true,  CarrierKind.Immediate),
 		})
 		{

@@ -160,7 +160,7 @@ public sealed class HeldExceptionTests
 	{
 		var grammar = Rules + "Start : @int = b: Bad & 'x' => @(b) | g: Good & 'y' => @(g)\nparse Start\n";
 
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
 			{
@@ -252,7 +252,7 @@ public sealed class HeldExceptionTests
 			"Start : @int = o: Outer & 'y' => @(o) | d: Std.Digits & 'x' & 'z' => @(Count(d))\n" +
 			"parse Start\n";
 
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var assembly = Compiled(Grammar, carrier);
 			var answer   = Answer(assembly, input);
@@ -303,7 +303,7 @@ public sealed class HeldExceptionTests
 	{
 		var grammar = Rules + "Start : @int = b: Bad & 'x' => @(b) | g: Good & 'y' => @(g)\nparse Start\n";
 
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var assembly = Compiled(grammar, carrier);
 
@@ -329,7 +329,7 @@ public sealed class HeldExceptionTests
 		Assert.Contains("Faulted_DotGram", built, StringComparison.Ordinal);
 		Assert.Contains("Thrown_DotGram",  built, StringComparison.Ordinal);
 
-		var tape = Source(Built, CarrierKind.Tape);
+		var tape = Source(Built, CarrierKind.Deferred);
 
 		Assert.DoesNotContain("Faulted_DotGram", tape, StringComparison.Ordinal);
 
@@ -362,8 +362,8 @@ public sealed class HeldExceptionTests
 
 		// The tape is what it was whichever is said.
 		Assert.Equal(
-			Source(Built, CarrierKind.Tape, constructionsMayThrow: false),
-			Source(Built, CarrierKind.Tape, constructionsMayThrow: true));
+			Source(Built, CarrierKind.Deferred, constructionsMayThrow: false),
+			Source(Built, CarrierKind.Deferred, constructionsMayThrow: true));
 	}
 
 	/// <summary>The handler a held construction call stands in.</summary>
@@ -372,7 +372,7 @@ public sealed class HeldExceptionTests
 	/// <summary>Both carriers read the input and answer the same: the verdict and the value, or the exception.</summary>
 	static void Alike(string grammar, string input, string expected, int? partSize = null, string? mustContain = null)
 	{
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var source = Source(grammar, carrier, partSize);
 

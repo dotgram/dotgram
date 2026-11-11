@@ -102,7 +102,7 @@ public sealed class GiveBackDemandTests
 		foreach (var n in new[] { 50, 100 })
 		{
 			var input     = Members_(n) + ", <";
-			var tape      = Run(CarrierKind.Tape, Grammar, "TryParseList", input);
+			var tape      = Run(CarrierKind.Deferred, Grammar, "TryParseList", input);
 			var immediate = Run(CarrierKind.Immediate, Grammar, "TryParseList", input);
 
 			Assert.StartsWith("<refused", tape.Answer, StringComparison.Ordinal);
@@ -126,7 +126,7 @@ public sealed class GiveBackDemandTests
 	/// first attempt and the attempt that stood, read once more.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Auto)]
 	[InlineData(CarrierKind.Immediate)]
 	public void An_accepted_pair_builds_the_attempt_that_stood_once(CarrierKind carrier)
@@ -140,7 +140,7 @@ public sealed class GiveBackDemandTests
 		if (carrier == CarrierKind.Auto)
 			Assert.Equal("Immediate", outcome.Chosen);
 
-		if (carrier == CarrierKind.Tape)
+		if (carrier == CarrierKind.Deferred)
 		{
 			Assert.Equal(n, outcome.Built.Count(static one => one == "Item"));
 			Assert.Equal(1, outcome.Built.Count(static one => one == "List"));
@@ -165,7 +165,7 @@ public sealed class GiveBackDemandTests
 	public void A_buffered_input_given_back_builds_a_bounded_number_of_times_and_refuses_as_the_tape_does(string entry, int n, string tail, string? accepted)
 	{
 		var input     = Members_(n) + tail;
-		var tape      = Run(CarrierKind.Tape, Grammar, entry, input, buffered: true);
+		var tape      = Run(CarrierKind.Deferred, Grammar, entry, input, buffered: true);
 		var immediate = Run(CarrierKind.Immediate, Grammar, entry, input, buffered: true);
 
 		Assert.Equal(tape.Answer, immediate.Answer);
@@ -207,13 +207,13 @@ public sealed class GiveBackDemandTests
 		""";
 
 	[Theory]
-	[InlineData(CarrierKind.Tape, ShutDoor, "TryParseStart", "aaa!!x")]
+	[InlineData(CarrierKind.Deferred, ShutDoor, "TryParseStart", "aaa!!x")]
 	[InlineData(CarrierKind.Auto, ShutDoor, "TryParseStart", "aaa!!x")]
 	[InlineData(CarrierKind.Immediate, ShutDoor, "TryParseStart", "aaa!!x")]
 	[InlineData(CarrierKind.Immediate, ShutDoor, "ParseStart", "aaa!!x")]
 	[InlineData(CarrierKind.Immediate, ShutDoor, "TryParseStart", "aaa!?")]
 	[InlineData(CarrierKind.Immediate, ShutDoor, "TryParseStart", "aaabc!?")]
-	[InlineData(CarrierKind.Tape, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z?")]
+	[InlineData(CarrierKind.Deferred, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z?")]
 	[InlineData(CarrierKind.Auto, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z?")]
 	[InlineData(CarrierKind.Immediate, TwoLists, "TryParseOuter", "ab, ab;ab, ab, z, z?")]
 	[InlineData(CarrierKind.Immediate, TwoLists, "ParseOuter", "ab, ab;ab, ab, z, z?")]
@@ -221,7 +221,7 @@ public sealed class GiveBackDemandTests
 	[InlineData(CarrierKind.Immediate, TwoLists, "TryParseOuter", "ab;ab, z, z!")]
 	public void A_replay_takes_the_recorded_ways_where_a_recording_attempt_took_them(CarrierKind carrier, string grammar, string entry, string input)
 	{
-		var tape    = Run(CarrierKind.Tape, grammar, entry, input);
+		var tape    = Run(CarrierKind.Deferred, grammar, entry, input);
 		var outcome = Run(carrier, grammar, entry, input);
 
 		Assert.Equal(tape.Answer, outcome.Answer);
@@ -258,7 +258,7 @@ public sealed class GiveBackDemandTests
 	[InlineData("ParseFold", "ab, q, q, q", "ab|q")]
 	public void A_loop_replayed_while_the_message_is_collected_leaves_the_message_the_tapes(string entry, string input, string? expected)
 	{
-		var tape      = Run(CarrierKind.Tape, SelfAskingOverTwo, entry, input);
+		var tape      = Run(CarrierKind.Deferred, SelfAskingOverTwo, entry, input);
 		var immediate = Run(CarrierKind.Immediate, SelfAskingOverTwo, entry, input);
 
 		if (expected is not null)
@@ -296,7 +296,7 @@ public sealed class GiveBackDemandTests
 	[InlineData("ParsePair", "ab, ab, z?")]
 	public void A_guard_in_a_turn_given_back_sees_its_value(string entry, string input)
 	{
-		var tape      = Run(CarrierKind.Tape, Guarded, entry, input);
+		var tape      = Run(CarrierKind.Deferred, Guarded, entry, input);
 		var immediate = Run(CarrierKind.Immediate, Guarded, entry, input);
 
 		Assert.Equal(tape.Answer, immediate.Answer);
@@ -326,7 +326,7 @@ public sealed class GiveBackDemandTests
 	[InlineData("ab, ab, q, q;!", null)]
 	public void A_give_back_inside_a_nested_rule_builds_once(string input, string? expected)
 	{
-		var tape      = Run(CarrierKind.Tape, Nested, "TryParseOuter", input);
+		var tape      = Run(CarrierKind.Deferred, Nested, "TryParseOuter", input);
 		var immediate = Run(CarrierKind.Immediate, Nested, "TryParseOuter", input);
 
 		Assert.Equal(expected ?? tape.Answer, tape.Answer);
@@ -367,7 +367,7 @@ public sealed class GiveBackDemandTests
 	[InlineData("ab, q, q?", null)]
 	public void An_outer_loop_retries_into_a_region_an_inner_loop_replayed(string input, string? expected)
 	{
-		var tape      = Run(CarrierKind.Tape, TwoLoops, "TryParseOuter", input);
+		var tape      = Run(CarrierKind.Deferred, TwoLoops, "TryParseOuter", input);
 		var immediate = Run(CarrierKind.Immediate, TwoLoops, "TryParseOuter", input);
 
 		Assert.Equal(expected ?? tape.Answer, tape.Answer);
@@ -394,7 +394,7 @@ public sealed class GiveBackDemandTests
 		""";
 
 	[Theory]
-	[InlineData(CarrierKind.Tape, "TryParseStart", "1 , 2 , 3 ;", "123")]
+	[InlineData(CarrierKind.Deferred, "TryParseStart", "1 , 2 , 3 ;", "123")]
 	[InlineData(CarrierKind.Auto, "TryParseStart", "1 , 2 , 3 ;", "123")]
 	[InlineData(CarrierKind.Immediate, "TryParseStart", "1 , 2 , 3 ;", "123")]
 	[InlineData(CarrierKind.Immediate, "TryParseStart", "1 , 2 , 3 x", null)]
@@ -403,7 +403,7 @@ public sealed class GiveBackDemandTests
 	[InlineData(CarrierKind.Immediate, "ParseStart", "1 , 2 , 3 x", null)]
 	public void A_self_asking_fold_given_back_builds_as_the_tape_does(CarrierKind carrier, string entry, string input, string? expected)
 	{
-		var tape    = Run(CarrierKind.Tape, SelfAsking, entry, input);
+		var tape    = Run(CarrierKind.Deferred, SelfAsking, entry, input);
 		var outcome = Run(carrier, SelfAsking, entry, input);
 
 		if (expected is not null)
@@ -443,7 +443,7 @@ public sealed class GiveBackDemandTests
 	[InlineData("ParsePair", "ab, abc, z?")]
 	public void A_mark_inside_a_turn_given_back_is_laid_again(string entry, string input)
 	{
-		var tape      = Run(CarrierKind.Tape, Marked, entry, input);
+		var tape      = Run(CarrierKind.Deferred, Marked, entry, input);
 		var immediate = Run(CarrierKind.Immediate, Marked, entry, input);
 
 		Assert.Equal(tape.Answer, immediate.Answer);
@@ -471,7 +471,7 @@ public sealed class GiveBackDemandTests
 	[InlineData("ab, ab, z;", null)]
 	public void A_choice_whose_alternatives_give_back_builds_the_one_that_stood(string input, string? expected)
 	{
-		var tape      = Run(CarrierKind.Tape, Alternatives, "TryParseAlt", input);
+		var tape      = Run(CarrierKind.Deferred, Alternatives, "TryParseAlt", input);
 		var immediate = Run(CarrierKind.Immediate, Alternatives, "TryParseAlt", input);
 
 		Assert.Equal(expected ?? tape.Answer, tape.Answer);
@@ -503,7 +503,7 @@ public sealed class GiveBackDemandTests
 	[InlineData("ab, ab, z, z!", null)]
 	public void An_atomic_group_that_gives_back_is_replayed_before_it_is_sealed(string input, string? expected)
 	{
-		var tape      = Run(CarrierKind.Tape, Atomic, "TryParseSealed", input);
+		var tape      = Run(CarrierKind.Deferred, Atomic, "TryParseSealed", input);
 		var immediate = Run(CarrierKind.Immediate, Atomic, "TryParseSealed", input);
 
 		Assert.Equal(expected ?? tape.Answer, tape.Answer);
@@ -546,7 +546,7 @@ public sealed class GiveBackDemandTests
 		// would have died of the overflow rather than failed the test.
 		Assert.Contains("Deepen_DotGram(", Compile(CarrierKind.Immediate, Deep).Source, StringComparison.Ordinal);
 
-		var tape      = OnSmallStack(() => Run(CarrierKind.Tape, Deep, "TryParseNest", input));
+		var tape      = OnSmallStack(() => Run(CarrierKind.Deferred, Deep, "TryParseNest", input));
 		var immediate = OnSmallStack(() => Run(CarrierKind.Immediate, Deep, "TryParseNest", input));
 
 		Assert.Equal(tape.Answer, immediate.Answer);
@@ -601,7 +601,7 @@ public sealed class GiveBackDemandTests
 	[InlineData(SelfAskingOverTwo, "TryParseFold|ParseFold", "ab ,;qx")]
 	public void The_carriers_agree_over_random_texts(string grammar, string entries, string alphabet)
 	{
-		var tape      = Compile(CarrierKind.Tape, grammar);
+		var tape      = Compile(CarrierKind.Deferred, grammar);
 		var immediate = Compile(CarrierKind.Immediate, grammar);
 		var random    = new Random(20261007);
 

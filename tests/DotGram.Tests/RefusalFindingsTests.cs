@@ -146,7 +146,7 @@ public sealed class RefusalFindingsTests
 	[
 		new("direct", true,  CarrierKind.Auto),
 		new("engine", false, CarrierKind.Auto),
-		new("tape",   true,  CarrierKind.Tape),
+		new("tape",   true,  CarrierKind.Deferred),
 	];
 
 	static readonly Dictionary<(string Grammar, string Config), Assembly> Built = [];

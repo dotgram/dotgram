@@ -158,7 +158,7 @@ public sealed class JaggedCaptureTests
 	/// </summary>
 	[Theory]
 	[InlineData(false, CarrierKind.Auto)]
-	[InlineData(true, CarrierKind.Tape)]
+	[InlineData(true, CarrierKind.Deferred)]
 	[InlineData(true, CarrierKind.Immediate)]
 	public void An_array_inside_a_type_argument_stays_there(bool direct, CarrierKind carrier)
 	{

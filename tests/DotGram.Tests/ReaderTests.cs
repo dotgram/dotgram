@@ -202,7 +202,7 @@ public sealed class ReaderTests
 	[Fact]
 	public void The_reader_hands_a_shared_head_to_the_alternative()
 	{
-		var written = Written(Lexical + SharedAlike + Line + "parse Start", reader: true, carrier: CarrierKind.Tape);
+		var written = Written(Lexical + SharedAlike + Line + "parse Start", reader: true, carrier: CarrierKind.Deferred);
 		var part    = Reading(written, "ReadPart0_Value");
 		var head    = part.Substring(0, part.IndexOf(')'));
 
@@ -637,7 +637,7 @@ public sealed class ReaderTests
 	[Fact]
 	public void The_reader_writes_the_value_so_far_into_a_step()
 	{
-		var written = Written(Lexical + Folded + Line + "parse Start", reader: true, carrier: CarrierKind.Tape);
+		var written = Written(Lexical + Folded + Line + "parse Start", reader: true, carrier: CarrierKind.Deferred);
 
 		// The base is the rule's own method and the steps are the loop's parts, so the
 		// value so far is written into a step and handed to it.
@@ -675,7 +675,7 @@ public sealed class ReaderTests
 	[Fact]
 	public void The_reader_writes_no_jumps_where_it_keeps_a_value()
 	{
-		var written = Written(Lexical + Valued + "\nparse Start", reader: true, carrier: CarrierKind.Tape);
+		var written = Written(Lexical + Valued + "\nparse Start", reader: true, carrier: CarrierKind.Deferred);
 
 		Assert.Contains("ways.Begin", Reading(written, "Read_Value"), StringComparison.Ordinal);
 

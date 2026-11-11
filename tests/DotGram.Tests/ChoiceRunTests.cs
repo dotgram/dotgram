@@ -187,7 +187,7 @@ public sealed class ChoiceRunTests
 		var start  = graph.Rules.First(rule => rule.Name == "Start");
 
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var slow = Build(slowly + "\nparse Start\n", carrier, direct, null);
 

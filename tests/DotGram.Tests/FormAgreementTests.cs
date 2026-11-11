@@ -33,8 +33,8 @@ public sealed class FormAgreementTests
 	[
 		new("direct", true,  CarrierKind.Auto),
 		new("engine", false, CarrierKind.Auto),
-		new("tape",   true,  CarrierKind.Tape),
-		new("engine-tape", false, CarrierKind.Tape),
+		new("tape",   true,  CarrierKind.Deferred),
+		new("engine-tape", false, CarrierKind.Deferred),
 	];
 
 	// --- Standing turns -------------------------------------------------------------------

@@ -64,7 +64,7 @@ internal static class TieShapes
 	internal static readonly (string Name, bool Direct, CarrierKind Carrier)[] Renderings =
 	[
 		("engine", false, CarrierKind.Auto),
-		("tape", true, CarrierKind.Tape),
+		("tape", true, CarrierKind.Deferred),
 		("immediate", true, CarrierKind.Immediate),
 	];
 

@@ -138,7 +138,7 @@ public sealed class BackReferenceBreakTests(ITestOutputHelper output)
 		var told = new List<string>();
 
 		foreach (var direct in new[] { true, false })
-			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 			{
 				(Assembly Assembly, string Source, bool Bytes) compiled;
 

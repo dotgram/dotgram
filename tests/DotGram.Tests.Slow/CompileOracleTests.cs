@@ -237,7 +237,7 @@ public sealed class CompileOracleTests
 			Lexical        = one.Lexical,
 			Trace          = one.Trace,
 			SourceFileSize = one.Split ? 4000 : 0,
-			Carrier        = one.Tape ? CarrierKind.Tape : CarrierKind.Auto,
+			Carrier        = one.Tape ? CarrierKind.Deferred : CarrierKind.Auto,
 			BufferedInput  = one.Buffered,
 			BufferedBytes  = one.Bytes,
 			SpanCaptures   = one.Spans,

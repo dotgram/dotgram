@@ -24,7 +24,7 @@ public sealed class MaterializationTablesTests
 			Text : @string = '[' & s: Text & ']' => @(s + "x") | 's' => @("s")
 			parse Number
 			parse Text
-			""", new GramCompilerOptions { Direct = direct, Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance });
+			""", new GramCompilerOptions { Direct = direct, Carrier = CarrierKind.Deferred, CSharpScanner = RoslynCSharpScanner.Instance });
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
 		var methods = CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken).DescendantNodes()

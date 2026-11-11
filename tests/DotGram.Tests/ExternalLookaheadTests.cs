@@ -52,7 +52,7 @@ public sealed class ExternalLookaheadTests
 	public void A_lookahead_over_a_host_recognizer_answers_for_the_lookahead(string grammar, string taken, string refused)
 	{
 		foreach (var direct in new[] { true, false })
-			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 				foreach (var buffered in new[] { false, true })
 				{
 					var result = GramCompiler.Compile(grammar + "\nparse T", new GramCompilerOptions

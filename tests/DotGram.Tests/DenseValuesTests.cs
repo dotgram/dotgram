@@ -196,7 +196,7 @@ public sealed class DenseValuesTests
 			"Start : @string = rows: Row+ & when @(rows.Length > 0) => @(\"\")\n" +
 			"parse Start\n";
 
-		var tape = Source(grammar, CarrierKind.Tape);
+		var tape = Source(grammar, CarrierKind.Deferred);
 		var asked = Source(grammar, CarrierKind.Immediate, out var refusals);
 
 		Assert.Contains("struct ValueTable<T>", tape);
@@ -244,7 +244,7 @@ public sealed class DenseValuesTests
 	{
 		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = CarrierKind.Tape, ValueStorage = storage, Lexical = lexical,
+			ClassName = "Grammar", Carrier = CarrierKind.Deferred, ValueStorage = storage, Lexical = lexical,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		// `Retry` reads `a!` by either alternative where the guard does not refuse the first, and

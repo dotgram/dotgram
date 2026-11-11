@@ -500,7 +500,7 @@ public sealed class ConcurrentParsingTests
 	{
 		var compiled = GramCompiler.Compile(ReentrantGrammar, new GramCompilerOptions
 		{
-			ClassName = "ReentrantGrammar", Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+			ClassName = "ReentrantGrammar", Carrier = CarrierKind.Deferred, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 
 		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);

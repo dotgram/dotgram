@@ -62,7 +62,7 @@ public sealed class CommittedPrefixTests
 			ItemREPLAY : @string = "a" & "x" => @("long") | "a" => @("short")
 			parse Start
 			""".Replace("REPLAY", replay, StringComparison.Ordinal);
-		foreach (var carrier in new[] { CarrierKind.Immediate, CarrierKind.Tape })
+		foreach (var carrier in new[] { CarrierKind.Immediate, CarrierKind.Deferred })
 		{
 			var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
 			{

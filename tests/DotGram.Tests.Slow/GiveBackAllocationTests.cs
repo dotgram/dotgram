@@ -79,7 +79,7 @@ public sealed class GiveBackAllocationTests
 	[InlineData(CarrierKind.Immediate, Form.Text)]
 	[InlineData(CarrierKind.Immediate, Form.Reader)]
 	[InlineData(CarrierKind.Immediate, Form.Stream)]
-	[InlineData(CarrierKind.Tape, Form.Text)]
+	[InlineData(CarrierKind.Deferred, Form.Text)]
 	public void A_refused_list_allocates_about_as_many_bytes_a_member_at_every_size(CarrierKind carrier, Form form)
 	{
 		var host = Compile(carrier, form);
@@ -91,7 +91,7 @@ public sealed class GiveBackAllocationTests
 	[InlineData(CarrierKind.Immediate, Form.Text)]
 	[InlineData(CarrierKind.Immediate, Form.Reader)]
 	[InlineData(CarrierKind.Immediate, Form.Stream)]
-	[InlineData(CarrierKind.Tape, Form.Text)]
+	[InlineData(CarrierKind.Deferred, Form.Text)]
 	public void A_refused_pair_allocates_about_as_many_bytes_a_member_at_every_size(CarrierKind carrier, Form form)
 	{
 		var host = Compile(carrier, form);
