@@ -1315,7 +1315,9 @@ static partial class CSharpEmitter
 		if (machines.Exists(static compiled => !compiled.Flat && !compiled.Direct) || valuing is not null)
 			file.Write(ParserRuntime(
 				graph.Climbing.Count > 0,
-				machines.Exists(static compiled => compiled.Machine.Caches),
+				// The valuing machine's own guards too: one that reads a capture's value inside a terminal the lexer
+				// measures or reads again builds that value as it reads, through the parser both machines write into.
+				machines.Exists(static compiled => compiled.Machine.Caches) || valuing is { Caches: true },
 				// The valuing machine's own marks too: a terminal `with state` whose value reads
 				// `parserState` places them in the reading again, where the syntax may place none.
 				machines.Exists(static compiled => compiled.Machine.UsesMarks) || valuing is { UsesMarks: true },
