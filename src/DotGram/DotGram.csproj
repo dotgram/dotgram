@@ -116,6 +116,21 @@
 		<InternalsVisibleTo Include="DotGram.Tests" />
 		<InternalsVisibleTo Include="DotGram.Tests.Slow" />
 		<InternalsVisibleTo Include="DotGram.Determinism.Tests" />
+		<!-- The generator class itself is internal too: Roslyn finds a generator by its [Generator] attribute
+		     and creates it through its public constructor, whatever the class's own accessibility. The tool's
+		     tests and the stand's compile row create one directly. -->
+		<InternalsVisibleTo Include="DotGram.Cli.Tests" />
+		<InternalsVisibleTo Include="DotGram.CompileRow" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- What is public here is in the baseline, so that a type or a member made public is a line in a
+		     diff and not an accident. Three enums are public only because the tests' theories take them as
+		     parameters, and an xUnit theory is a public method. What a consumer does see, the attributes
+		     the generator emits, is text and is held to its own list by a test (GeneratedAttributeSurfaceTests). -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+		<!-- The package adds the two files as AdditionalFiles itself; out of None, they appear once. -->
+		<None Remove="PublicAPI.*.txt" />
 	</ItemGroup>
 
 	<!-- Puts the assembly in the analyzer folder of the package. Done as a pack-time
