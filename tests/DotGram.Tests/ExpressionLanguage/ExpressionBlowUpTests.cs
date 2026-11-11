@@ -171,6 +171,127 @@ public sealed class ExpressionBlowUpTests
 			"is to cost what the one before it did, not what everything inside it did.");
 	}
 
+	/// <summary>
+	/// An interpolated string nested in the hole of another allocates about as much at every
+	/// level: twice the depth, twice the bytes, and never the square.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A hole's expression is read again over its own window of the text, while the reading
+	/// around it still holds its tokens, and the string nested in a hole is one token to every
+	/// level around it. The tokens of a window were given room for a quarter of the window's
+	/// characters, so every level held room for a quarter of everything nested in it: the
+	/// bytes grew as the square of the depth, seventy-six megabytes at 3,200 levels. A window's
+	/// room now starts small and doubles as its tokens come.
+	/// </para>
+	/// <para>
+	/// Each string carries forty characters of its own, so that a level weighs enough in the
+	/// windows around it for the square to show at a few hundred levels: before the fix the
+	/// bytes grew 3.1 to 3.7 times a doubling here, after it 2.0. The bound, 2.5, sits between.
+	/// The time still grows as the square — every window is lexed again — and that is not what
+	/// this holds.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Nested_interpolated_strings_allocate_as_much_a_level()
+	{
+		var depths = new[] { 100, 200, 400, 800 };
+		var texts  = Array.ConvertAll(depths, NestedInterpolation);
+
+		// Read, and read right: a refusal early in the text would keep within any bound on bytes.
+		Accepted(texts, "7", depth => Repeated(new string('a', 40), depth) + "7", depths);
+
+		var counts = Warmly(texts);
+
+		for (var at = 1; at < depths.Length; at++)
+		{
+			Assert.True(
+				counts[at] <= counts[at - 1] * 5 / 2,
+				$"{string.Join(", ", counts)} bytes at {string.Join(", ", depths)} levels: a doubling of the " +
+				"depth is to double the bytes, not to multiply them by what the levels inside hold.");
+		}
+	}
+
+	static string NestedInterpolation(int depth)
+	{
+		var own = new string('a', 40);
+
+		return "(int x) => " + Repeated("$\"" + own + "{", depth) + "x" + Repeated("}\"", depth);
+	}
+
+	/// <summary>
+	/// A hole whose own tokens outgrow the room a window starts with is read whole, and as it was:
+	/// the window's buffer doubles under it, and the bytes grow as the hole does.
+	/// </summary>
+	/// <remarks>
+	/// A window starts with room for sixty-four tokens. A hole of a thousand sums is two thousand
+	/// tokens and five doublings past that, and its value says that every one of them was read.
+	/// </remarks>
+	[Fact]
+	public void A_long_hole_is_read_whole_and_allocates_as_much_a_term()
+	{
+		var terms = new[] { 500, 1000, 2000 };
+		var texts = Array.ConvertAll(terms, LongHole);
+
+		Accepted(texts, "1", count => "<" + count + ">", terms);
+
+		var counts = Warmly(texts);
+
+		for (var at = 1; at < terms.Length; at++)
+		{
+			Assert.True(
+				counts[at] <= counts[at - 1] * 5 / 2,
+				$"{string.Join(", ", counts)} bytes at {string.Join(", ", terms)} terms in one hole: twice the " +
+				"terms is to cost about twice the bytes.");
+		}
+	}
+
+	static string LongHole(int terms)
+	{
+		return "(int x) => $\"<{x" + Repeated(" + x", terms - 1) + "}>\"";
+	}
+
+	/// <summary>
+	/// Every text accepted, and the smallest one's value what it should be for its argument, on a
+	/// thread with stack enough for the deepest of them.
+	/// </summary>
+	static void Accepted(string[] texts, string argument, Func<int, string> expected, int[] sizes)
+	{
+		Exception? failed = null;
+
+		var thread = new Thread(
+			() =>
+			{
+				try
+				{
+					for (var at = 0; at < texts.Length; at++)
+					{
+						var match = ExpressionParser.TryParse(texts[at]);
+
+						Assert.True(match.IsSuccess, $"{sizes[at]}: refused: {(match.IsSuccess ? "" : match.Error)}");
+
+						if (at == 0)
+						{
+							var value = match.Value!.Compile().DynamicInvoke(int.Parse(argument, System.Globalization.CultureInfo.InvariantCulture));
+
+							Assert.Equal(expected(sizes[at]), value);
+						}
+					}
+				}
+				catch (Exception thrown)
+				{
+					failed = thrown;
+				}
+			},
+			16 * 1024 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		if (failed is not null)
+			throw failed;
+	}
+
 	static readonly int[] Depths = [2, 4, 8, 16];
 
 	/// <summary>The most an increment exponent may read.</summary>
