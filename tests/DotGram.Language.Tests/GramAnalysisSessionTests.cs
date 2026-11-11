@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 using Xunit;
 
@@ -313,6 +314,63 @@ public sealed class GramAnalysisSessionTests
 		Assert.Equal(result.Timing.Compile + result.Timing.PostProcessing, result.Timing.Total);
 	}
 
+	/// <summary>
+	/// A change that comes while the first resolution reads the solution is judged against the
+	/// resolution before it, which knows none of the grammars the host includes. The editor opening
+	/// an included grammar with unsaved edits as a solution loads is such a change: judged again
+	/// against the resolution that comes out, it sends the host to be looked for again, and the
+	/// grammar is analysed with the edited text.
+	/// </summary>
+	[Fact]
+	public async Task An_included_grammars_edit_during_the_first_resolution_is_looked_at_again()
+	{
+		const string edited = "Word = 'a'\nExtra = 'x'\n";
+
+		using var workspace = new AdhocWorkspace();
+		var project  = workspace.AddProject("P", LanguageNames.CSharp);
+		var baseId   = DocumentId.CreateNewId(project.Id);
+		var solution = workspace.CurrentSolution
+			.AddAdditionalDocument(baseId, "Base.gram", SourceText.From("Word = 'a'\n"), filePath: @"P:\Parsers\Base.gram")
+			.AddAdditionalDocument(DocumentId.CreateNewId(project.Id), "Dialect.gram", SourceText.From("A = B.Word\n"), filePath: FilePath);
+
+		Assert.True(workspace.TryApplyChanges(solution));
+
+		var host  = new FakeHost("A = B.Word\n");
+		var first = new TaskCompletionSource<StandaloneGrammarResolution>();
+
+		host.Resolve = () => host.Resolves == 1 ? first.Task : Task.FromResult(Included(project.Id, baseId, edited));
+
+		var session = host.Session();
+
+		session.Follow(FilePath);
+		Assert.Equal(1, host.Resolves);
+
+		// The included grammar is edited while the first resolution runs.
+		var old = workspace.CurrentSolution;
+
+		Assert.True(workspace.TryApplyChanges(old.WithAdditionalDocumentText(baseId, SourceText.From(edited))));
+		session.WorkspaceChanged(new WorkspaceChangeEventArgs(
+			WorkspaceChangeKind.AdditionalDocumentChanged, old, workspace.CurrentSolution, project.Id, baseId));
+
+		// The resolution ends with what it read before the edit.
+		first.SetResult(Included(project.Id, baseId, "Word = 'a'\n"));
+		await Task.Yield();
+		host.Scheduler.Advance(GramAnalysisSession.ResolveDelayMilliseconds);
+
+		Assert.Equal(2, host.Resolves);
+		Assert.Equal(edited, session.Resolution.Context?.AnalysisTail);
+		Assert.Equal(edited, host.Analysed[^1].Context?.AnalysisTail);
+	}
+
+	static StandaloneGrammarResolution Included(ProjectId project, DocumentId included, string tail)
+	{
+		return new StandaloneGrammarResolution(
+			StandaloneGrammarState.Resolved,
+			new StandaloneGrammarContext(tail, [new StandaloneIncludedGrammar("B", tail, @"P:\Parsers\Base.gram")]),
+			[project],
+			[included]);
+	}
+
 	static ProjectId Watched { get; } = ProjectId.CreateNewId();
 
 	static DocumentId HostDeclaration { get; } = DocumentId.CreateNewId(Watched);
@@ -407,10 +465,13 @@ public sealed class GramAnalysisSessionTests
 			return document;
 		}
 
+		/// <summary>What a resolution answers in place of <see cref="Resolution"/>, read after it is counted.</summary>
+		public Func<Task<StandaloneGrammarResolution>>? Resolve { get; set; }
+
 		public Task<StandaloneGrammarResolution> ResolveAsync(string filePath, CancellationToken cancellationToken)
 		{
 			Resolves++;
-			return Task.FromResult(Resolution);
+			return Resolve?.Invoke() ?? Task.FromResult(Resolution);
 		}
 
 		public Task<bool> MayHostAsync(IReadOnlyList<DocumentId> documents, string filePath, CancellationToken cancellationToken)
