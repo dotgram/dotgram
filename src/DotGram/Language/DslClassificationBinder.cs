@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using DotGram.Grammar;
+
 namespace DotGram.Language;
 
 enum DslClassificationTargetKind
@@ -50,6 +52,10 @@ sealed class DslClassificationBinding(
 }
 
 /// <summary>Binds author-facing classification targets to grammar symbol identities.</summary>
+/// <remarks>
+/// The binding itself is <see cref="ClassificationTargets"/>, which the build reports GRAM6001–GRAM6005 from
+/// too; this hands it the language's targets and puts what it answers in the editor's terms.
+/// </remarks>
 static class DslClassificationBinder
 {
 	public static DslClassificationBinding Bind(
@@ -61,100 +67,39 @@ static class DslClassificationBinder
 		if (grammarSource is null)
 			throw new ArgumentNullException(nameof(grammarSource));
 
-		var document = GramLanguageService.Analyze(grammarSource);
-		var rules = Rules(document.DocumentSymbols).ToArray();
-		var captures = document.Symbols
-			.Where(static symbol => symbol.Kind == GramSymbolKind.Capture && symbol.IsDefinition)
-			.ToArray();
-		var bound = new List<DslBoundClassification>();
+		var definitions = language.Classifications;
+		var targets     = ClassificationTargets.Bind(
+			grammarSource, [.. definitions.Select(static definition => definition.Target)], RoslynCSharpScanner.Instance);
+		var bound       = new List<DslBoundClassification>();
 		var diagnostics = new List<DslClassificationBindingDiagnostic>();
-		var targets = new HashSet<(DslClassificationTargetKind Kind, int Position)>();
 
-		foreach (var definition in language.Classifications)
+		for (var index = 0; index < definitions.Count; index++)
 		{
-			var parts = definition.Target.Split('.');
-			if (parts.Length is < 1 or > 2 || parts.Any(string.IsNullOrWhiteSpace) ||
-				parts.Any(static part => !string.Equals(part, part.Trim(), StringComparison.Ordinal)))
-			{
-				Diagnostic(DslClassificationBindingDiagnosticKind.MalformedTarget, definition,
-					$"Classification target '{definition.Target}' must be 'Rule' or 'Rule.capture'.");
-				continue;
-			}
+			var definition = definitions[index];
+			var target     = targets[index];
 
-			var matchingRules = rules.Where(rule => rule.Name == parts[0]).ToArray();
-			if (matchingRules.Length == 0)
-			{
-				Diagnostic(DslClassificationBindingDiagnosticKind.UnknownRule, definition,
-					$"Grammar rule '{parts[0]}' was not found.");
-				continue;
-			}
-			if (matchingRules.Length > 1)
-			{
-				Diagnostic(DslClassificationBindingDiagnosticKind.AmbiguousRule, definition,
-					$"Grammar rule '{parts[0]}' is ambiguous.");
-				continue;
-			}
-
-			var rule = matchingRules[0];
-			if (parts.Length == 1)
-			{
-				Add(definition, DslClassificationTargetKind.Rule, rule.SelectionPosition, null);
-				continue;
-			}
-
-			var matchingCaptures = captures
-				.Where(capture => capture.Name == parts[1] &&
-					capture.ScopeStart == rule.Position &&
-					capture.Position >= rule.Position && capture.Position < rule.Position + rule.Length)
-				.Select(static capture => capture.DefinitionPosition)
-				.Distinct()
-				.ToArray();
-			if (matchingCaptures.Length == 0)
-			{
-				Diagnostic(DslClassificationBindingDiagnosticKind.UnknownCapture, definition,
-					$"Capture '{parts[1]}' was not found in rule '{parts[0]}'.");
-				continue;
-			}
-
-			Add(definition, DslClassificationTargetKind.Capture, rule.SelectionPosition, matchingCaptures[0]);
+			if (target.Problem == ClassificationTargetProblem.None)
+				bound.Add(new DslBoundClassification(
+					definition,
+					target.CapturePosition is null ? DslClassificationTargetKind.Rule : DslClassificationTargetKind.Capture,
+					target.RulePosition,
+					target.CapturePosition));
+			else
+				diagnostics.Add(new DslClassificationBindingDiagnostic(Kind(target.Problem), definition, target.Message!));
 		}
 
 		return new DslClassificationBinding(bound, diagnostics);
-
-		void Add(
-			DslClassificationDefinition definition,
-			DslClassificationTargetKind kind,
-			int rulePosition,
-			int? capturePosition)
-		{
-			var identity = (kind, capturePosition ?? rulePosition);
-			if (!targets.Add(identity))
-			{
-				Diagnostic(DslClassificationBindingDiagnosticKind.DuplicateTarget, definition,
-					$"Classification target '{definition.Target}' is specified more than once.");
-				return;
-			}
-
-			bound.Add(new DslBoundClassification(definition, kind, rulePosition, capturePosition));
-		}
-
-		void Diagnostic(
-			DslClassificationBindingDiagnosticKind kind,
-			DslClassificationDefinition definition,
-			string message)
-		{
-			diagnostics.Add(new DslClassificationBindingDiagnostic(kind, definition, message));
-		}
 	}
 
-	static IEnumerable<GramDocumentSymbol> Rules(IReadOnlyList<GramDocumentSymbol> symbols)
+	static DslClassificationBindingDiagnosticKind Kind(ClassificationTargetProblem problem)
 	{
-		foreach (var symbol in symbols)
+		return problem switch
 		{
-			if (symbol.Kind == GramDocumentSymbolKind.Rule)
-				yield return symbol;
-			foreach (var child in Rules(symbol.Children))
-				yield return child;
-		}
+			ClassificationTargetProblem.Malformed      => DslClassificationBindingDiagnosticKind.MalformedTarget,
+			ClassificationTargetProblem.UnknownRule    => DslClassificationBindingDiagnosticKind.UnknownRule,
+			ClassificationTargetProblem.AmbiguousRule  => DslClassificationBindingDiagnosticKind.AmbiguousRule,
+			ClassificationTargetProblem.UnknownCapture => DslClassificationBindingDiagnosticKind.UnknownCapture,
+			_                                          => DslClassificationBindingDiagnosticKind.DuplicateTarget,
+		};
 	}
 }

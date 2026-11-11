@@ -17,7 +17,16 @@ readonly record struct GramInclude(
 	AttributeData    Attribute,
 	string           Name,
 	string?          Source,
-	string?          Portable);
+	string?          Portable)
+{
+	/// <summary>
+	/// Whether the grammar is the one a referenced assembly carries: the class is not in this
+	/// compilation and has <c>[GramSource]</c>. That text is the grammar the assembly was compiled
+	/// from, so it is read and no local file takes its place — a file of the same name here is
+	/// somebody else's. The generator and the editor read it alike.
+	/// </summary>
+	public bool Shipped => Portable is not null && Attribute.ApplicationSyntaxReference is null;
+}
 
 /// <summary>
 /// Which grammars a host is built on, and which of a class's attributes is its grammar: the one

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
@@ -17,11 +18,12 @@ static class Diagnostics
 	/// </summary>
 	public static readonly DiagnosticDescriptor InternalFailure = new(
 		id:                 "GRAM0001",
-		title:              "The .Gram generator encountered an internal error",
+		title:              "The generator itself failed",
 		messageFormat:      "The generator failed during {0}: {1}: {2}",
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
-		isEnabledByDefault: true);
+		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0001"));
 
 	public static readonly DiagnosticDescriptor HostNotPartial = new(
 		id:                 "GRAM0002",
@@ -30,6 +32,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0002"),
 		description:        "A nested host needs every enclosing class to be partial as well.");
 
 	public static readonly DiagnosticDescriptor GrammarFileNotFound = new(
@@ -39,6 +42,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0003"),
 		description:        "A .gram file is only visible to the generator when the project lists it as an additional file. A grammar included from another project is found on the class instead, which requires that project to have exported it ([Gram(ExportGrammar = true)]) — the default for a host that is public, with every class around it.");
 
 	public static readonly DiagnosticDescriptor AmbiguousGrammarFile = new(
@@ -48,6 +52,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0004"),
 		description:        "Which file a grammar comes from must be unambiguous, not decided silently by order.");
 
 	public static readonly DiagnosticDescriptor InvalidIncludedName = new(
@@ -57,6 +62,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0005"),
 		description:        "A grammar is included by being wrapped in a namespace, and a namespace is named by an identifier. A dotted name would mean nesting, which is written in the grammar itself.");
 
 	public static readonly DiagnosticDescriptor RepeatedGrammarScope = new(
@@ -66,6 +72,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0006"),
 		description:        "The [Gram] and every [GramVariant] on a class is a compilation of its own and needs a scope of its own: the [Gram] goes in the class itself, and every [GramVariant] names a nested class with Name.");
 
 	public static readonly DiagnosticDescriptor RepeatedIncludedName = new(
@@ -75,6 +82,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0008"),
 		description:        "An included grammar is wrapped in a namespace named after it, which is what keeps two grammars' rules from colliding: 'Sql92.Identifier' and 'Lex.Identifier' are different names. Two under one name are one namespace, and their rules do collide.");
 
 	public static readonly DiagnosticDescriptor InvalidGrammarScope = new(
@@ -84,6 +92,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0007"),
 		description:        "Name names a nested class, and a class is named by an identifier.");
 
 	public static readonly DiagnosticDescriptor BufferOptionNotPositive = new(
@@ -93,7 +102,36 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0009"),
 		description:        "MaxBufferedInputLength is the most input a buffered parse may hold and InitialBufferSize the capacity it starts with; neither can be zero or negative.");
+
+	/// <summary>
+	/// A location type the generated code cannot tell a place through: said once, on the attribute,
+	/// rather than as a compiler error in a file the author never wrote.
+	/// </summary>
+	public static readonly DiagnosticDescriptor LocationTypeNotLocatable = new(
+		id:                 "GRAM0011",
+		title:              "The location type is not an interface declaring Locate",
+		messageFormat:      "'{0}' names '{1}' as its LocationType, which is not an interface declaring {2}",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0011"),
+		description:        "A rule whose value implements the LocationType is told where it was written through that interface: void Locate(int at, int length), or with UsePerCallLocations void Locate(int at, int length, int gapStart). It is called through the interface, so an explicit implementation serves.");
+
+	/// <summary>
+	/// A grammar a referenced assembly carries is the grammar it was compiled from; a local file of
+	/// the same name is not read in its place, and is told of where it says something else.
+	/// </summary>
+	public static readonly DiagnosticDescriptor LocalFileNotReferencedGrammar = new(
+		id:                 "GRAM0017",
+		title:              "A local grammar file is not the grammar a referenced assembly carries",
+		messageFormat:      "'{0}' in this project is not the grammar of the referenced '{1}'; the grammar the assembly carries is used",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Info,
+		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0017"),
+		description:        "A class from a referenced assembly that carries its grammar ([GramSource]) is always included with that grammar: it is the one the assembly was compiled from. A .gram file of the same name in this project is somebody else's — a fixture, a copy — and is not read in its place.");
 
 	/// <summary>
 	/// What a generated parser is written in is C# 8 at the least, and a project compiling an
@@ -107,6 +145,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0010"),
 		description:        "C# 7.3 is the default for netstandard2.0 and .NET Framework projects. No parser is generated below C# 8; the attributes [Gram] is written with still are, so a project without a [Gram] builds as it did.");
 
 	/// <summary>
@@ -129,7 +168,26 @@ static class Diagnostics
 				messageFormat: messageFormat,
 				category: Category,
 				defaultSeverity: severity,
-				isEnabledByDefault: true));
+				isEnabledByDefault: true,
+				helpLinkUri: HelpLink(id)));
+	}
+
+	/// <summary>
+	/// Where an identifier is described: its row of <c>docs/diagnostics.md</c> at the tag of the
+	/// version that reports it, so that a link never shows a later meaning of the number.
+	/// </summary>
+	public static string HelpLink(string id)
+	{
+		var version = typeof(Diagnostics).Assembly
+			.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+			.OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+			.FirstOrDefault()?.InformationalVersion ?? "";
+		var plus    = version.IndexOf('+');
+
+		if (plus >= 0)
+			version = version.Substring(0, plus);
+
+		return "https://github.com/dotgram/dotgram/blob/v" + version + "/docs/diagnostics.md#" + id.ToLowerInvariant();
 	}
 
 	/// <summary>
