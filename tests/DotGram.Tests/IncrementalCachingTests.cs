@@ -301,6 +301,63 @@ public sealed class IncrementalCachingTests
 		Assert.Contains(IncrementalStepRunReason.Modified, asked);
 	}
 
+	/// <summary>
+	/// And the other way round: editing an included grammar's file reads its includer again, and
+	/// changes what the includer generates, while a host that reads neither file is left alone.
+	/// </summary>
+	[Fact]
+	public void An_edit_of_an_included_file_reads_the_includer_again()
+	{
+		const string hosts = """
+			using DotGram;
+
+			[Gram]
+			public partial class Lexemes
+			{
+			}
+
+			[GramInclude(typeof(Lexemes))]
+			[Gram]
+			public partial class Sums
+			{
+			}
+
+			[Gram]
+			public partial class Other
+			{
+			}
+			""";
+
+		var parse       = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.Incremental",
+			[CSharpSyntaxTree.ParseText(hosts, parse, "Host.cs", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		var lexemes     = new Additional("Lexemes.gram", "Number = ['0'..'9']+\nparse Number");
+		var sums        = new Additional("Sums.gram", "using Lexemes;\nSum = Number & '+' & Number\nparse Sum");
+		var other       = new Additional("Other.gram", "Start = 'b'+\nparse Start");
+
+		var driver = (GeneratorDriver)CSharpGeneratorDriver.Create(
+			[new GramGenerator().AsSourceGenerator()],
+			additionalTexts: [lexemes, sums, other],
+			parseOptions: parse,
+			driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+
+		driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+
+		var before = Generated(driver.GetRunResult())["Sums.g.cs"];
+
+		driver = driver.ReplaceAdditionalText(lexemes, new Additional("Lexemes.gram", "Number = ['0'..'7']+\nparse Number"));
+
+		var run   = driver.RunGenerators(compilation, TestContext.Current.CancellationToken).GetRunResult();
+		var asked = Runs(run, GramGenerator.AskedStage);
+
+		Assert.Equal(2, asked.Count(static reason => reason == IncrementalStepRunReason.Modified));
+		Assert.Equal(1, asked.Count(static reason => reason == IncrementalStepRunReason.Cached));
+		Assert.NotEqual(before, Generated(run)["Sums.g.cs"]);
+	}
+
 	// ── The driver ────────────────────────────────────────────────────────────────
 
 	/// <summary>How a stage of the second run was reached, the same for every host or it fails.</summary>

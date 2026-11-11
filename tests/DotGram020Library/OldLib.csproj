@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- A library built by DotGram 0.2.0, from nuget.org, as somebody built one before the attributes were
+	     renamed: its OldLib.dll is checked in beside this, and the tests include its grammars through the
+	     names 0.2 wrote (ReferencedGrammarTests). Not in the solution; rebuild only to replace the DLL,
+	     then copy .build/bin/OldLib/release/OldLib.dll here. -->
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="DotGram" Version="0.2.0" PrivateAssets="all" />
+		<AdditionalFiles Include="*.gram" />
+	</ItemGroup>
+
+</Project>
