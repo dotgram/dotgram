@@ -6205,10 +6205,11 @@ file.Line("return spare;");
 	/// runs with the captures it was written against.
 	/// </para>
 	/// <para>
-	/// It cannot fail and is not asked to: the extent is known, and the lexer accepted it by
-	/// this very rule. A refusal would mean the two machines disagree about a language they
-	/// were built from one grammar, so the value comes back as the type's default and the
-	/// parse carries on rather than a parser throwing at its own inconsistency.
+	/// It is not expected to fail: the extent is known, and the lexer accepted it by this very
+	/// rule. It can fail only when a check on the way reads something that changed after the
+	/// token was cut (a guard over the context, say); the value then cannot be built, and the
+	/// parser throws an <see cref="System.InvalidOperationException"/> naming the terminal and
+	/// where it was read, rather than hand back a default the grammar never produced.
 	/// </para>
 	/// </remarks>
 	/// <summary>
@@ -6697,7 +6698,9 @@ file.Line("return spare;");
 		return Reached(lexical, lexical.Valued.Concat(Measuring(lexical)));
 	}
 
-	/// <summary>Whether a guard of a rule, or of a rule it reaches, names the grammar's context.</summary>
+	/// <summary>
+	/// Whether a guard of a rule, or of a rule it reaches, names the grammar's context.
+	/// </summary>
 	static bool GuardsNameContext(LexicalSplit lexical, RuleSymbol rule)
 	{
 		var graph = lexical.Source;
