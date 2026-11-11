@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
@@ -59,10 +60,11 @@ internal static class DeepCallGraphs
 	{
 		var grammar = new StringBuilder();
 
+		// `@` stands for the rule before, and `@(` is C#, a guard's and not a call of that rule.
 		void Rules(int from, int to, string body)
 		{
 			for (var i = from; i <= to; i++)
-				grammar.Append($"A{i} = {body.Replace("@", $"A{i - 1}", StringComparison.Ordinal)}\n");
+				grammar.Append($"A{i} = {Regex.Replace(body, @"@(?!\()", $"A{i - 1}")}\n");
 		}
 
 		switch (shape)

@@ -130,6 +130,13 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string PositionalOverSegments = "GRAM4055";
 
+	/// <summary>
+	/// A construction whose value cannot be the type it builds: a capture handed back as a rule's value
+	/// of another type, a grammar's type built with the wrong number or kinds of values, or a rule's
+	/// type named for a construction that has none of its own.
+	/// </summary>
+	public const string ConstructionTypeMismatch = "GRAM4056";
+
 	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>; or one used as a method, a type or a variable, where it is reserved.</summary>
 	public const string SuppliedNameNotHere = "GRAM4053";
 
@@ -304,6 +311,11 @@ sealed partial class GrammarNormalizer
 		// After the results, because what a constructor is matched against is the members
 		// they worked out (§7.3).
 		normalizer.BuildByConstructor();
+
+		// After the results and the constructors, which are what a value is held to: whether what a
+		// construction hands back can be the type it is declared to give.
+		normalizer.CheckNamedTypes();
+		normalizer.CheckConstructionTypes();
 
 		normalizer.Check();
 		normalizer.CheckSegmentedText();
