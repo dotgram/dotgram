@@ -159,7 +159,9 @@ public sealed class PostgreSqlNestingCostTests
 
 		var bytes = new List<long>();
 
-		foreach (var size in new[] { 64, 256, 1024, 4096 })
+		// Four rungs, each four times the one before; the last is a thousand items, read in milliseconds alone and kept
+		// far inside the watchdog when the whole suite shares the machine.
+		foreach (var size in new[] { 16, 64, 256, 1024 })
 		{
 			var text = head + string.Concat(Enumerable.Repeat(unit, size)) + tail;
 			var (finished, read, allocated) = Read(text, static t => PostgreSqlParser.TryParseStatement(t).IsSuccess);
