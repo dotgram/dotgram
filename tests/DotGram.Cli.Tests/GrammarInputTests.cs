@@ -64,6 +64,42 @@ public sealed class GrammarInputTests
 	}
 
 	/// <summary>
+	/// A warning in the generated parser is said, and the run still writes: the check keeps the compiler's
+	/// default severities, and a build that treats warnings as errors is told before it refuses the parser.
+	/// Only the parser's own files are looked at.
+	/// </summary>
+	[Fact]
+	public void A_warning_in_the_generated_parser_is_said_and_does_not_stop_the_run()
+	{
+		using var scratch = new Scratch();
+
+		var grammar = scratch.Write("Old.gram", "Row : @object = 'a' => @(Demo.Legacy.Make())\n\nparse Row\n");
+
+		scratch.Write("src/Legacy.cs", """
+			namespace Demo
+			{
+				public static class Legacy
+				{
+					[System.Obsolete("Use something else.")]
+					public static object Make() { return 1; }
+
+					[System.Obsolete("Not the parser's.")]
+					public static object Unused() { return Make(); }
+				}
+			}
+			""");
+
+		var run = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--sources", scratch.Path("src", "*.cs"));
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.Contains("warning CS0618", run.Output, StringComparison.Ordinal);
+		Assert.Contains("Old.gram(1,", run.Output, StringComparison.Ordinal);
+		Assert.DoesNotContain("Legacy.cs", run.Output, StringComparison.Ordinal);
+		Assert.Contains("1 warnings in the generated parser", run.Output, StringComparison.Ordinal);
+		Assert.True(File.Exists(scratch.Path("out", "Old.g.cs")));
+	}
+
+	/// <summary>
 	/// The host and the types its grammar builds, with <c>LocationType</c> as a type in the sources: the
 	/// same grammar and the same options a project's build compiles.
 	/// </summary>

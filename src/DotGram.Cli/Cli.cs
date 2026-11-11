@@ -512,6 +512,26 @@ static class Cli
 				output.WriteLine("The generated parser does not compile with its host and sources: nothing written.");
 				return ExitCode.GrammarErrors;
 			}
+
+			// What the parser warns of where it compiles, said and not failed on: the check is not a build
+			// and keeps the compiler's default severities, but a build that treats warnings as errors — the
+			// way the generated parser is meant to be compiled — refuses it, and nothing else would say so
+			// before that build. Only in the parser's own files: the host's and the sources' are the
+			// project's to judge.
+			var parser   = new HashSet<SyntaxTree>(generation.Output.Trees.Values);
+			var warnings = diagnostics
+				.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning &&
+					diagnostic.Location.SourceTree is { } tree && parser.Contains(tree))
+				.OrderBy(static diagnostic => Report.Format(diagnostic), StringComparer.Ordinal)
+				.ToList();
+
+			if (warnings.Count > 0)
+			{
+				Report.Write(output, warnings, static _ => true);
+				output.WriteLine(string.Create(
+					CultureInfo.InvariantCulture,
+					$"{warnings.Count} warnings in the generated parser: a build that treats warnings as errors refuses it."));
+			}
 		}
 
 		return ExitCode.Done;

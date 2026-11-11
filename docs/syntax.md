@@ -728,7 +728,10 @@ Test = l: Name & "*=" & r: Name & when Version is "2000"
 
 `is` asks whether two recognizers have a string in common. Both sides are recognizers —
 a name, a literal, a bracketed choice — and neither is C#, because the question is about
-their languages and a C# expression has none. Unlike every other guard it has an answer
+their languages and a C# expression has none. A side takes no quantifier: a repetition is
+named as a rule first, `Digits = ['0'..'9']+`, and asked about by that name (`GRAM2024`). A
+rule's name after `when` with no `is` asks nothing, and is refused (`GRAM2009`); a bare
+capture there is the C# value it holds, as in any guard. Unlike every other guard it has an answer
 before anything is read, and it is given that answer when the parser is generated: where
 it holds, nothing of it is emitted; where it does not, the alternative it stands in is not
 in that parser at all. Nothing tests it while a parser runs. What gives it more than one
