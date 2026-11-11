@@ -341,18 +341,11 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 	CancellationTokenSource?            _analysisCancellation;
 	GramAnalysisResult<TVersion>?       _result;
 
-	bool                         _following;
-	CancellationTokenSource?     _resolveCancellation;
-	StandaloneGrammarResolution  _resolution = StandaloneGrammarResolution.NotReady;
-	long?                        _followedSince;
-	int                          _retries;
-	bool                         _configured;
-	bool                         _copy;
-	bool                         _closed;
-	bool                         _pendingFull;
-	readonly HashSet<DocumentId> _pendingDocuments = [];
-	// What comes while the host is looked for, judged again against what is found.
-	readonly StandaloneGrammarChanges _changes = new();
+	StandaloneGrammarHostTracker? _tracker;
+	long?                         _followedSince;
+	bool                          _configured;
+	bool                          _copy;
+	bool                          _closed;
 
 	public GramAnalysisSession(IGramAnalysisHost<TVersion> host)
 		: this(host, null)
@@ -392,8 +385,12 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 	{
 		get
 		{
+			StandaloneGrammarHostTracker? tracker;
+
 			lock (_gate)
-				return _resolution;
+				tracker = _tracker;
+
+			return tracker?.Resolution ?? StandaloneGrammarResolution.NotReady;
 		}
 	}
 
@@ -407,6 +404,8 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 	/// </returns>
 	public bool Follow(string filePath)
 	{
+		StandaloneGrammarHostTracker tracker;
+
 		lock (_gate)
 		{
 			if (_configured)
@@ -423,12 +422,11 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				return false;
 			}
 
-			_following     = true;
-			_pendingFull   = true;
+			_tracker       = tracker = Track();
 			_followedSince = _host.Scheduler.Now;
 		}
 
-		ScheduleResolve(0);
+		tracker.Follow();
 		_host.Scheduler.Run(SettleAsync);
 
 		return true;
@@ -443,8 +441,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				return;
 
 			_closed = true;
-			_resolveCancellation?.Cancel();
-			_changes.Clear();
+			_tracker?.Close();
 		}
 	}
 
@@ -475,7 +472,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 			var current = _snapshot == snapshot && _document is not null;
 
 			document = current ? _document : null;
-			context  = current ? _analysedContext : _resolution.Context;
+			context  = current ? _analysedContext : Resolution.Context;
 		}
 
 		return context is null
@@ -512,166 +509,42 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 	/// <summary>The solution changed: the host is looked for again where the change concerns it.</summary>
 	public void WorkspaceChanged(WorkspaceChangeEventArgs change)
 	{
-		string? filePath;
+		StandaloneGrammarHostTracker? tracker;
 
 		lock (_gate)
-		{
-			if (_closed)
-				return;
+			tracker = _closed ? null : _tracker;
 
-			filePath = _following ? _host.FilePath : null;
-		}
+		tracker?.WorkspaceChanged(change);
+	}
 
-		if (filePath is null)
+	/// <summary>The grammar's host, looked for again as the solution changes.</summary>
+	StandaloneGrammarHostTracker Track()
+	{
+		return new StandaloneGrammarHostTracker(
+			new StandaloneGrammarHostServices(
+				FilePath: () => _host.FilePath,
+				ResolveAsync: _host.ResolveAsync,
+				MayHostAsync: _host.MayHostAsync,
+				DelayAsync: _host.Scheduler.DelayAsync,
+				Run: _host.Scheduler.Run,
+				Resolved: Resolved,
+				Recoverable: GramFailures.Recoverable,
+				Report: exception => _host.Report("Grammar host resolution", exception)),
+			GramAnalysisSession.ResolveDelayMilliseconds,
+			GramAnalysisSession.RetryDelayMilliseconds,
+			GramAnalysisSession.RetryCount);
+	}
+
+	/// <summary>The host was looked for: what depends on it is analysed again where it changed.</summary>
+	void Resolved(StandaloneGrammarResolution before, StandaloneGrammarResolution after)
+	{
+		if (before.State == after.State && GramAnalysisSession.Same(before.Context, after.Context))
 			return;
 
-		var judged = StandaloneGrammarChange.Of(change, filePath);
-
 		lock (_gate)
-		{
-			if (_closed)
-				return;
+			_scheduledSnapshot = null;
 
-			// Judged under the lock, so that no resolution ends between the judging and the keeping.
-			var concern = judged.Concerns(_resolution);
-
-			if (concern == StandaloneGrammarConcern.None)
-			{
-				// A resolution reading the solution now may have read it before this change.
-				_changes.Keep(judged);
-				return;
-			}
-
-			_retries = 0;
-
-			if (concern == StandaloneGrammarConcern.Full)
-				_pendingFull = true;
-			else
-				_pendingDocuments.Add(change.DocumentId!);
-		}
-
-		ScheduleResolve(GramAnalysisSession.ResolveDelayMilliseconds);
-	}
-
-	void ScheduleResolve(int delay)
-	{
-		CancellationToken cancellationToken;
-
-		lock (_gate)
-		{
-			if (_closed)
-				return;
-
-			_resolveCancellation?.Cancel();
-			_resolveCancellation?.Dispose();
-			_resolveCancellation = new CancellationTokenSource();
-			cancellationToken    = _resolveCancellation.Token;
-		}
-
-		_host.Scheduler.Run(() => ResolveAsync(delay, cancellationToken));
-	}
-
-	async Task ResolveAsync(int delay, CancellationToken cancellationToken)
-	{
-		try
-		{
-			if (delay > 0)
-				await _host.Scheduler.DelayAsync(delay, cancellationToken).ConfigureAwait(false);
-
-			string?      filePath;
-			bool         full;
-			DocumentId[] edited;
-
-			lock (_gate)
-			{
-				// Cancelled after its delay, a newer resolution has started or is about to: what
-				// is pending, and what it keeps meanwhile, are that one's.
-				if (!_changes.Start(cancellationToken))
-					return;
-
-				filePath  = _following ? _host.FilePath : null;
-				full      = _pendingFull;
-				edited    = [.. _pendingDocuments];
-
-				_pendingFull = false;
-				_pendingDocuments.Clear();
-			}
-
-			if (filePath is null ||
-				// Only documents of the grammar's project were edited while it has no host: look for
-				// the host again only if one of them now declares a class spelled as one.
-				!full && !await _host.MayHostAsync(edited, filePath, cancellationToken).ConfigureAwait(false))
-			{
-				lock (_gate)
-					_changes.Abandon(cancellationToken);
-
-				return;
-			}
-
-			StandaloneGrammarResolution resolution;
-
-			try
-			{
-				resolution = await _host.ResolveAsync(filePath, cancellationToken).ConfigureAwait(false);
-			}
-			catch (Exception exception) when (exception is not OperationCanceledException && GramFailures.Recoverable(exception))
-			{
-				// The project system mutates the solution while it is loading. A transient
-				// snapshot failure is equivalent to the context not being ready yet.
-				resolution = StandaloneGrammarResolution.NotReady;
-			}
-
-			bool                     reanalyse;
-			StandaloneGrammarConcern again;
-			var                      retry     = -1;
-			var                      documents = new List<DocumentId>();
-
-			lock (_gate)
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-
-				var before = _resolution;
-
-				_resolution = resolution;
-				reanalyse   = before.State != resolution.State || !GramAnalysisSession.Same(before.Context, resolution.Context);
-
-				// An edit to an included grammar made while the solution was read is not in what
-				// was read, and nothing else would look at it again.
-				again = _changes.End(cancellationToken, resolution, documents);
-
-				if (reanalyse)
-					_scheduledSnapshot = null;
-
-				if (resolution.State == StandaloneGrammarState.NotReady && _retries < GramAnalysisSession.RetryCount)
-					retry = GramAnalysisSession.RetryDelayMilliseconds << _retries++;
-			}
-
-			if (reanalyse)
-				ScheduleAnalysis(_host.Current, immediate: true);
-
-			if (retry >= 0 || again != StandaloneGrammarConcern.None)
-			{
-				lock (_gate)
-				{
-					if (retry >= 0 || again == StandaloneGrammarConcern.Full)
-						_pendingFull = true;
-					else
-						_pendingDocuments.UnionWith(documents);
-				}
-
-				ScheduleResolve(retry >= 0 ? retry : GramAnalysisSession.ResolveDelayMilliseconds);
-			}
-		}
-		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
-		{
-		}
-		catch (Exception exception) when (GramFailures.Recoverable(exception))
-		{
-			_host.Report("Grammar host resolution", exception);
-
-			lock (_gate)
-				_changes.Abandon(cancellationToken);
-		}
+		ScheduleAnalysis(_host.Current, immediate: true);
 	}
 
 	/// <summary>Once the settling time is over, a grammar still waiting for its host is told about as it stands.</summary>
@@ -683,7 +556,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 
 			lock (_gate)
 			{
-				if (_closed || _resolution.State != StandaloneGrammarState.NotReady)
+				if (_closed || Resolution.State != StandaloneGrammarState.NotReady)
 					return;
 
 				_scheduledSnapshot = null;
@@ -770,12 +643,12 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				bool suppressContextDiagnostics;
 				lock (_gate)
 				{
-					resolution = _resolution;
-					context    = _resolution.Context;
+					resolution = Resolution;
+					context    = resolution.Context;
 					suppressContextDiagnostics =
 						_copy ||
 						_configured &&
-						_resolution.State == StandaloneGrammarState.NotReady &&
+						resolution.State == StandaloneGrammarState.NotReady &&
 						_host.Scheduler.Now - _followedSince < GramAnalysisSession.SettleMilliseconds;
 				}
 

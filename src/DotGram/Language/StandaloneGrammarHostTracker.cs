@@ -138,18 +138,15 @@ readonly record struct StandaloneGrammarChange(
 /// <param name="FilePath">The grammar's file, or null while it has none.</param>
 /// <param name="ResolveAsync">Looks for the host in the solution as it is now.</param>
 /// <param name="MayHostAsync">Whether one of these edited documents now declares a class that could be the host.</param>
-/// <param name="Now">The editor's clock, in milliseconds.</param>
 /// <param name="DelayAsync">Waits, on the editor's clock.</param>
 /// <param name="Run">Starts work nobody awaits.</param>
-/// <param name="Resolved">A resolution was published: the one before it, and it.</param>
+/// <param name="Resolved">A resolution was published: the one before it, and it. Called on no lock of the tracker's.</param>
 /// <param name="Recoverable">Whether a failure is one to report and go on after.</param>
 /// <param name="Report">A failure gone on after.</param>
-/// <remarks>The tracker calls none of these under its lock.</remarks>
 sealed record StandaloneGrammarHostServices(
 	Func<string?>                                                                        FilePath,
 	Func<string, CancellationToken, Task<StandaloneGrammarResolution>>                   ResolveAsync,
 	Func<IReadOnlyList<DocumentId>, string, CancellationToken, Task<bool>>               MayHostAsync,
-	Func<long>                                                                           Now,
 	Func<int, CancellationToken, Task>                                                   DelayAsync,
 	Action<Func<Task>>                                                                   Run,
 	Action<StandaloneGrammarResolution, StandaloneGrammarResolution>                     Resolved,
@@ -166,14 +163,7 @@ sealed record StandaloneGrammarHostServices(
 /// A request records what is to be looked at and replaces the running resolution in one step,
 /// under the tracker's lock: the work the replaced one had taken goes back with the request's
 /// own, so the newer generation takes all of it. A generation that is not the newest touches
-/// nothing: it neither starts, nor publishes, nor requests again. The replaced generation is
-/// cancelled only after the lock is let go, so that whatever its cancellation runs at once finds
-/// it replaced already, and nothing it calls out to is called under the lock.
-/// </para>
-/// <para>
-/// A request waits for the solution to settle, and each newer one waits again; a stream of
-/// changes that never pauses would wait for ever. The wait is cut short so that a generation
-/// starts at most <c>maxDeferralMilliseconds</c> after the first request it answers.
+/// nothing: it neither starts, nor publishes, nor requests again.
 /// </para>
 /// <para>
 /// A resolution reads the solution as it is when it starts, and a change that comes while it
@@ -187,8 +177,7 @@ sealed class StandaloneGrammarHostTracker(
 	StandaloneGrammarHostServices services,
 	int resolveDelayMilliseconds,
 	int retryDelayMilliseconds,
-	int retryCount,
-	int maxDeferralMilliseconds)
+	int retryCount)
 {
 	readonly object                           _gate = new();
 	readonly HashSet<DocumentId>              _pendingDocuments = [];
@@ -197,7 +186,6 @@ sealed class StandaloneGrammarHostTracker(
 
 	StandaloneGrammarResolution _resolution = StandaloneGrammarResolution.NotReady;
 	CancellationTokenSource?    _cancellation;
-	long?                       _waitingSince;
 	int                         _generation;
 	int                         _retries;
 	bool                        _pendingFull;
@@ -228,7 +216,7 @@ sealed class StandaloneGrammarHostTracker(
 	/// <summary>Starts looking for the host.</summary>
 	public void Follow()
 	{
-		Start(Request(StandaloneGrammarConcern.Full, null, 0, resetRetries: false, services.Now()));
+		Start(Request(StandaloneGrammarConcern.Full, null, 0, resetRetries: false));
 	}
 
 	/// <summary>The solution changed: the host is looked for again where the change concerns it.</summary>
@@ -238,8 +226,7 @@ sealed class StandaloneGrammarHostTracker(
 			return;
 
 		var judged = StandaloneGrammarChange.Of(change, filePath);
-		var now    = services.Now();
-		Next? next;
+		(int Generation, CancellationToken Token, int Delay)? next;
 
 		lock (_gate)
 		{
@@ -258,7 +245,7 @@ sealed class StandaloneGrammarHostTracker(
 				return;
 			}
 
-			next = Request(concern, change.DocumentId, resolveDelayMilliseconds, resetRetries: true, now);
+			next = Request(concern, change.DocumentId, resolveDelayMilliseconds, resetRetries: true);
 		}
 
 		Start(next);
@@ -267,8 +254,6 @@ sealed class StandaloneGrammarHostTracker(
 	/// <summary>The grammar is closed: nothing more is looked for.</summary>
 	public void Close()
 	{
-		CancellationTokenSource? cancellation;
-
 		lock (_gate)
 		{
 			if (_closed)
@@ -276,27 +261,21 @@ sealed class StandaloneGrammarHostTracker(
 
 			_closed = true;
 			_generation++;
+			_cancellation?.Cancel();
 			_kept.Clear();
-
-			cancellation  = _cancellation;
-			_cancellation = null;
 		}
-
-		Cancel(cancellation);
 	}
 
 	/// <summary>
 	/// Records what is to be looked at and replaces the running resolution with a newer generation,
 	/// handing it back the work the replaced one had taken. Called under the lock; the caller starts
-	/// what it returns, and cancels the generation it replaced, once the lock is let go.
+	/// what it returns once the lock is let go.
 	/// </summary>
-	/// <param name="now">The clock, read by the caller before it took the lock.</param>
-	Next? Request(
+	(int Generation, CancellationToken Token, int Delay)? Request(
 		StandaloneGrammarConcern concern,
 		DocumentId? document,
 		int delay,
-		bool resetRetries,
-		long now)
+		bool resetRetries)
 	{
 		lock (_gate)
 		{
@@ -320,38 +299,18 @@ sealed class StandaloneGrammarHostTracker(
 			_running = false;
 			_kept.Clear();
 
-			// The solution may never settle: no generation waits longer than the limit from the
-			// first request it answers.
-			if (_waitingSince is { } since)
-				delay = (int)Math.Min(delay, Math.Max(0, since + maxDeferralMilliseconds - now));
-			else
-				_waitingSince = now;
-
-			var replaced = _cancellation;
-
+			_cancellation?.Cancel();
+			_cancellation?.Dispose();
 			_cancellation = new CancellationTokenSource();
 
-			return new Next(++_generation, _cancellation.Token, delay, replaced);
+			return (++_generation, _cancellation.Token, delay);
 		}
 	}
 
-	/// <summary>Cancels the generation a request replaced, and starts the request's. Called on no lock.</summary>
-	void Start(Next? next)
+	void Start((int Generation, CancellationToken Token, int Delay)? next)
 	{
-		if (next is not { } run)
-			return;
-
-		Cancel(run.Replaced);
-		services.Run(() => ResolveAsync(run.Generation, run.Delay, run.Token));
-	}
-
-	static void Cancel(CancellationTokenSource? cancellation)
-	{
-		if (cancellation is null)
-			return;
-
-		cancellation.Cancel();
-		cancellation.Dispose();
+		if (next is { } run)
+			services.Run(() => ResolveAsync(run.Generation, run.Delay, run.Token));
 	}
 
 	async Task ResolveAsync(int generation, int delay, CancellationToken cancellationToken)
@@ -373,8 +332,7 @@ sealed class StandaloneGrammarHostTracker(
 				_takenDocuments.UnionWith(_pendingDocuments);
 				_pendingFull = false;
 				_pendingDocuments.Clear();
-				_running      = true;
-				_waitingSince = null;
+				_running = true;
 
 				full   = _takenFull;
 				edited = [.. _takenDocuments];
@@ -404,9 +362,8 @@ sealed class StandaloneGrammarHostTracker(
 				resolution = StandaloneGrammarResolution.NotReady;
 			}
 
-			StandaloneGrammarResolution before;
-			Next?                       next = null;
-			var                         now  = services.Now();
+			StandaloneGrammarResolution                            before;
+			(int Generation, CancellationToken Token, int Delay)? next = null;
 
 			lock (_gate)
 			{
@@ -427,13 +384,13 @@ sealed class StandaloneGrammarHostTracker(
 				var again     = Again(resolution, documents);
 
 				if (resolution.State == StandaloneGrammarState.NotReady && _retries < retryCount)
-					next = Request(StandaloneGrammarConcern.Full, null, retryDelayMilliseconds << _retries++, resetRetries: false, now);
+					next = Request(StandaloneGrammarConcern.Full, null, retryDelayMilliseconds << _retries++, resetRetries: false);
 				else if (again == StandaloneGrammarConcern.Full)
-					next = Request(StandaloneGrammarConcern.Full, null, resolveDelayMilliseconds, resetRetries: false, now);
+					next = Request(StandaloneGrammarConcern.Full, null, resolveDelayMilliseconds, resetRetries: false);
 				else if (again == StandaloneGrammarConcern.Document)
 				{
 					_pendingDocuments.UnionWith(documents);
-					next = Request(StandaloneGrammarConcern.Document, null, resolveDelayMilliseconds, resetRetries: false, now);
+					next = Request(StandaloneGrammarConcern.Document, null, resolveDelayMilliseconds, resetRetries: false);
 				}
 			}
 
@@ -491,7 +448,4 @@ sealed class StandaloneGrammarHostTracker(
 
 		return result;
 	}
-
-	/// <summary>A generation a request starts, after the wait it starts with, and the one it replaced.</summary>
-	readonly record struct Next(int Generation, CancellationToken Token, int Delay, CancellationTokenSource? Replaced);
 }
