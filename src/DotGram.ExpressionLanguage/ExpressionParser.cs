@@ -4769,7 +4769,7 @@ public static partial class ExpressionParser
 
 		/// <summary>Whether the head of the dotted name this span begins with is a name the text declared.</summary>
 		/// <remarks>
-		/// Read off the text, as a word is lexed, because the head is a capture the reader would build
+		/// Read off the text, up to where a word must end, because the head is a capture the reader would build
 		/// a string for at every part asked about; asked once a name, and only of a long one. Where
 		/// the reading did not say what its text is, the answer is no, and the scope is asked.
 		/// </remarks>
@@ -4783,16 +4783,26 @@ public static partial class ExpressionParser
 
 			if (Text is { } text && read.Start < text.Length)
 			{
-				var end = read.Start;
+				// Where the head ends, found without asking what a letter is. The runtime's answer is
+				// its own Unicode version's, and the grammar's `Word` is the generator's, compiled into
+				// the parser: on .NET 8 or .NET Framework a letter new in Unicode 16 ended the head
+				// early here, `DꟋ` read as `D`, and a declared `D` cut a type the text names. Nothing
+				// needs asking: the head is a word, and what follows a word here is trivia (a space, a
+				// tab or a line break; the grammar has no comments) or the `.` of the next part, none of
+				// which a word can hold.
+				var end = text.IndexOfAny(HeadEnds, read.Start);
 
-				while (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_'))
-					end++;
+				if (end < 0)
+					end = text.Length;
 
 				_headBinds = end > read.Start && Binds(text.Substring(read.Start, end - read.Start), read);
 			}
 
 			return _headBinds;
 		}
+
+		/// <summary>What may follow the head of a dotted name: the grammar's trivia and the dot of a part.</summary>
+		static readonly char[] HeadEnds = ['.', ' ', '\t', '\r', '\n'];
 
 		/// <summary>Whether the parts read before this span's last `.` are as many as <see cref="Nests"/> lets a name take.</summary>
 		/// <remarks>
