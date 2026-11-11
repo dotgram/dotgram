@@ -307,8 +307,8 @@ parse Rows as RowBytes stream bytes
 Notes:
 
 - The caller owns the reader or the stream; the parse does not dispose it, and may read ahead.
-- `bufferSize` and `maxRetained` are optional per call; the defaults are the host's `[Gram(BufferSize = …,
-  MaxRetained = …)]`.
+- `bufferSize` and `maxRetained` are optional per call; the defaults are the host's `[Gram(InitialBufferSize = …,
+  MaxBufferedInputLength = …)]`.
 - Over bytes, literals compare byte values; Unicode categories, case folding and predicates over
   characters are not available, and captured text reaches C# as `ReadOnlySpan<byte>`.
 - A form the grammar cannot be read in is refused, naming why (`GRAM4026`); where the reader overload is
@@ -323,7 +323,7 @@ Notes:
 > (`GRAM4026`). Пример `Size`: одна конструкция `text.Length` работает и над строкой, и над байтами
 > (`ParseSize(bytes("ab\ncd\n")) → 6`, `stream(…)`). Читатель или поток
 > принадлежит вызывающему: разбор его не закрывает и может читать вперёд. `bufferSize` и `maxRetained` —
-> необязательные параметры вызова, по умолчанию — из `[Gram(BufferSize, MaxRetained)]`. Над байтами
+> необязательные параметры вызова, по умолчанию — из `[Gram(InitialBufferSize, MaxBufferedInputLength)]`. Над байтами
 > литералы сравнивают значения байтов; категорий Unicode, свёртки регистра и предикатов над символами нет,
 > захваченный текст приходит в C# как `ReadOnlySpan<byte>`. Неподдерживаемая форма отвергается с причиной
 > (`GRAM4026`); если для обычного `parse` перегрузки над читателем нет, причина сообщается (`GRAM5001`).

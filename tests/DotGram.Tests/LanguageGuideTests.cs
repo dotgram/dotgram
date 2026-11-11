@@ -29,7 +29,7 @@ namespace DotGram.Tests;
 /// language in its info string say what the page claims about it: a diagnostic identifier
 /// (<c>```dotgram GRAM4006</c>) says the grammar reports it, and nothing else at the level of a
 /// warning or above; no identifier says it reports nothing at that level. <c>Lexical</c> compiles it
-/// with <c>Lexical = true</c>, as the host attribute would, and <c>Tape</c> with <c>Carrier = GramCarrier.Tape</c>. A grammar that reports no error is then
+/// with <c>Lexical = true</c>, as the host attribute would, and <c>Deferred</c> with <c>Carrier = GramCarrier.Deferred</c>. A grammar that reports no error is then
 /// compiled as C#, and what the generator wrote has to compile without a warning. <c>pending</c>
 /// marks a grammar that shows the behaviour of a fix not yet made, and is skipped until the word is
 /// taken away; <c>recheck</c> marks one whose diagnostics a fix in flight may change, and is held to
@@ -74,7 +74,7 @@ public sealed class LanguageGuideTests
 		{
 			ClassName      = host,
 			Lexical        = example.Words.Contains("Lexical"),
-			Carrier        = example.Words.Contains("Tape") ? CarrierKind.Tape : CarrierKind.Auto,
+			Carrier        = example.Words.Contains("Deferred") ? CarrierKind.Deferred : CarrierKind.Auto,
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 			SymbolResolver = new RoslynSymbolResolver(
 				CSharpCompilation.Create(
