@@ -1000,9 +1000,6 @@ sealed class RecognitionGraph(
 	/// </summary>
 	internal RuleSymbol? FirstUnsettled { get; set; }
 
-	/// <summary>The most times any one rule's answer changed while <see cref="FirstByRule"/> was worked out.</summary>
-	internal int FirstMostChanges { get; set; }
-
 	/// <summary>What each node can begin with, once the rules have settled. A memo, not model state.</summary>
 	/// <remarks>
 	/// The emitter asks it of the same nodes over and over — of a repetition's body for every

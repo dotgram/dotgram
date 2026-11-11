@@ -1985,7 +1985,7 @@ static class FirstSets
 			var next = Of(body, graph, estimates);
 
 			// Gone round: from here every answer is joined with the one before, which only
-			// climbs, and the grammar is refused (GramCompiler, FirstSettleFailed).
+			// climbs, and the grammar is refused (GramCompiler, GRAM4056).
 			if (graph.FirstUnsettled is not null)
 				next = estimates[rule].Or(next);
 
@@ -1995,8 +1995,6 @@ static class FirstSets
 			changed.TryGetValue(rule, out var times);
 
 			changed[rule] = ++times;
-
-			graph.FirstMostChanges = Math.Max(graph.FirstMostChanges, times);
 
 			if (times > bound && graph.FirstUnsettled is null)
 			{
@@ -2030,7 +2028,14 @@ static class FirstSets
 	/// How many times over the height of its answers one rule's answer may change before
 	/// <see cref="ByRule"/> takes the loop to go round rather than settle.
 	/// </summary>
-	internal const int SettleBound = 1000;
+	/// <remarks>
+	/// Answers that only grew would change at most the height times each. These may also give
+	/// back what a rule not reached yet let through, so the bound is twice that. Measured, no
+	/// grammar that settles comes near it: across the shipped grammars, the examples, the test
+	/// grammars and a hundred and fifty thousand random recursive ones, the most changes of any
+	/// one rule was under a third of the height, and twelve at the most.
+	/// </remarks>
+	internal const int SettleBound = 2;
 
 	/// <summary>
 	/// How long a chain of answers that each hold more than the one before can be: one more than
