@@ -1,0 +1,819 @@
+# A tour of .Gram
+
+The repository [README](../README.md) shows .Gram in three steps: a grammar the size of a regular
+expression, a calculator, and the SQL grammars. This page is the longer walk: worked examples of what a
+grammar can do, each one short enough to read in a sitting. The notation itself is specified in
+[`syntax.md`](syntax.md); complete programs are in [`examples/`](../examples/README.md).
+
+## What a grammar reads, and what comes out
+
+assembly — there is no parser engine, grammar graph, or runtime library to interpret.
+
+A grammar is read in one of two modes. **Character-level** parsing has no separate tokenizer: rules match characters directly, and bytes are the same mode over bytes. **Lexical** parsing (`Lexical = true`) cuts the grammar in two: a lexer makes tokens and the syntax above it reads them. The input is chosen at the call site, and the generator offers an overload only where it provably works.
+
+| Input | Types | Character-level | Lexical |
+| ----- | ----- | --------------- | ------- |
+| **Text in memory** | `string` (whole or a slice by start and length) | regex-like matching and search, configs, expressions, formats, queries | SQL and languages with keywords and trivia |
+| **Text stream** | `TextReader` | feed and log files, sockets — read through a bounded buffer, so a file of tens of gigabytes takes no more memory than one record | — memory only |
+| **Bytes** | `byte[]`, `ReadOnlyMemory<byte>`, `Stream` | binary protocols, FIX wire, byte feeds of any size | — memory only |
+| **Segments** | `IEnumerable<string>`, `IReadOnlyList<string>`, `TextReader` (as lines) | feed files line by line, CSV, argv; a reader over a file or socket is read a line at a time, each line end a segment boundary | — |
+
+From a grammar, .Gram can generate:
+
+* `Parse`, `TryParse`, and `Find` APIs;
+* strongly typed results from named captures;
+* parsers for [different versions of the same grammar](#versions-of-one-language);
+* streaming parsers for `TextReader`;
+* error recovery for record-oriented input, so that a [feed written by hand](#feeds-written-by-people)
+  reports a mistyped record where it is and reads on;
+* compile-time diagnostics that point back into the grammar.
+
+Anything with a grammar: data formats and feeds, configuration files, wire protocols,
+query and filter languages, markup, and languages of your own — including ones that build
+`System.Linq.Expressions` trees or types you already have.
+
+## Feeds written by people
+
+A file somebody keeps by hand — a price list, an order sheet, a logbook, an export tidied up
+in a text editor — is right nearly everywhere and wrong somewhere. .Gram reads such a file as
+a sequence of typed records, from a `TextReader`, one record at a time while the file is still
+being read. A mistyped record does not cost the file: `recover` marks the repetition of
+records, a bad one is reported with where it is and why, and reading goes on at the next line.
+
+A price list the café's owner keeps by hand behind the counter and retypes into a text file
+now and then, `prices.txt`:
+
+```text
+Espresso       2.40
+Cappuccino     3.10
+Flat white     3,20
+Croissant      2.1O
+Muffin         2.80
+```
+
+```csharp
+using System;
+using System.Globalization;
+using System.IO;
+
+using DotGram;
+
+public abstract record PriceLine;
+public sealed record Price(string Item, decimal Amount) : PriceLine;
+public sealed record Typo(int Line, string Text, string Message) : PriceLine;
+
+[Gram("""
+	PriceList : @PriceLine[] = Entry* recover eos => @(new Typo(parserLine, parserText, parserMessage))
+
+	Entry : @PriceLine = item: Item & amount: Amount & ' '* & eos
+	                  => @(new Price(item.Trim(), ToDecimal(amount)))
+
+	Item   = [^ '0'..'9']+
+	Amount = ['0'..'9']{1,12} & '.' & ['0'..'9']{2}
+
+	parse PriceList as Read
+	""")]
+public static partial class PriceList
+{
+	static decimal ToDecimal(string text)
+	{
+		return decimal.Parse(text, CultureInfo.InvariantCulture);
+	}
+}
+```
+
+```csharp
+using var prices = File.OpenText("prices.txt");
+
+foreach (var line in PriceList.Read(prices))
+{
+	switch (line)
+	{
+		case Price price:
+			Console.WriteLine($"{price.Item}: {price.Amount}");
+			break;
+
+		case Typo typo:
+			Console.WriteLine($"line {typo.Line}: {typo.Message} ({typo.Text})");
+			break;
+	}
+}
+```
+
+```text
+Espresso: 2.40
+Cappuccino: 3.10
+line 3: Expected Amount at 3:17. (Flat white     3,20)
+line 4: Expected Amount at 4:19. (Croissant      2.1O)
+Muffin: 2.80
+```
+
+A `TextReader` overload reads the file a line at a time: `Read` returns an
+`IEnumerable<PriceLine>` that reads a line when the loop asks for the next one, and the bad
+lines arrive in their place among the good ones. The `=>` after `recover` says what a bad line
+becomes, and the names it uses are filled in by the parser: `parserLine` is the line a person
+opens the file at, and `parserMessage` says where reading the line stopped, as a line and a
+column, and what would have fit there — the comma, and the letter O typed for a zero.
+
+A trading feed is the same thing at another scale: a broker's back-office system sends a fund
+the day's trades every evening, `trades.txt`, one record to a line, fields between pipes, a
+header first and a trailer last with the number of trades and their quantities added up. Four
+of these eight trades are wrong — a thousands separator, a price left out, a letter O in a
+date, a side the file does not know:
+
+```text
+H|EOD-TRADES|2026-10-02|NORTHBRIDGE SECURITIES
+D|T-0101|2026-10-02|2026-10-05|US0378331005|BUY|1200|227.52|USD
+D|T-0102|2026-10-02|2026-10-06|DE0007164600|SELL|350|212.40|EUR
+D|T-0103|2026-10-02|2026-10-06|GB0002634946|BUY|1,500|7.384|GBP
+D|T-0104|2026-10-02|2026-10-05|US5949181045|SELL|800|USD
+D|T-0105|2026-1O-02|2026-10-06|NL0010273215|BUY|40|612.10|EUR
+D|T-0106|2026-10-02|2026-10-05|US88160R1014|BUY|600|243.85|USD
+D|T-0107|2026-10-02|2026-10-05|US0378331005|HOLD|100|227.60|USD
+D|T-0108|2026-10-02|2026-10-05|US0231351067|SELL|250|186.20|USD
+T|8|4840
+```
+
+```csharp
+public abstract record EodLine;
+
+public sealed record EodHeader(string Feed, string BusinessDate, string Sender) : EodLine;
+
+public sealed record EodTrade(
+	string Id, string TradeDate, string SettlementDate, string Isin,
+	Side Side, long Quantity, decimal Price, string Currency) : EodLine;
+
+public sealed record EodTrailer(long Count, long Quantity) : EodLine;
+
+public sealed record EodReject(int Line, int Column, string Field, string Text, string Message) : EodLine;
+
+public enum Side
+{
+	Buy,
+	Sell,
+}
+
+[Gram("""
+	EodFile : @EodLine[] = Header
+	                     & Trade* recover eos
+	                         => @(new EodReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
+	                     & Trailer & eof
+
+	Header  : @EodLine = "H|" & feed: Text & '|' & day: Date & '|' & sender: Text & eos
+	                  => @(new EodHeader(feed, day, sender))
+
+	Trade   : @EodLine = "D|" & id: Text & '|' & traded: Date & '|' & settles: Date & '|' & isin: Isin
+	                   & '|' & side: BuySell & '|' & quantity: Quantity & '|' & price: Price & '|' & currency: Currency & eos
+	                  => @(new EodTrade(id, traded, settles, isin, side, quantity, price, currency))
+
+	Trailer : @EodLine = "T|" & count: Quantity & '|' & total: Quantity & eos
+	                  => @(new EodTrailer(count, total))
+
+	BuySell  : @Side     = "BUY" => @(Side.Buy) | "SELL" => @(Side.Sell)
+	Quantity : @long     = Digit{1,15} => @(Number(parserText))
+	Price    : @decimal  = Digit{1,12} & ('.' & Digit{1,6})? => @(Amount(parserText))
+
+	Date     = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
+	Isin     = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
+	Currency = ['A'..'Z']{3}
+	Text     = [^ '|']+
+	Digit    = ['0'..'9']
+
+	parse EodFile as Read
+	""")]
+public static partial class EodTrades
+{
+	static readonly string[] Fields =
+		["Record", "Id", "TradeDate", "SettlementDate", "Isin", "Side", "Quantity", "Price", "Currency"];
+
+	static long Number(string digits)
+	{
+		return long.Parse(digits, CultureInfo.InvariantCulture);
+	}
+
+	static decimal Amount(string text)
+	{
+		return decimal.Parse(text, CultureInfo.InvariantCulture);
+	}
+
+	public static string FieldAt(string line, int column)
+	{
+		var pipes = 0;
+
+		for (var at = 0; at < column - 1 && at < line.Length; at++)
+			if (line[at] == '|')
+				pipes++;
+
+		// A pipe where the line should have ended: one field more than a trade has.
+		if (pipes == Fields.Length - 1 && column - 1 < line.Length && line[column - 1] == '|')
+			return "(extra)";
+
+		return pipes < Fields.Length ? Fields[pipes] : "(extra)";
+	}
+}
+```
+
+```csharp
+using var feed = File.OpenText("trades.txt");
+
+var trades   = 0;
+var rejected = 0;
+
+foreach (var line in EodTrades.Read(feed))
+{
+	switch (line)
+	{
+		case EodHeader header:
+			Console.WriteLine($"{header.Feed} {header.BusinessDate} from {header.Sender}");
+			break;
+
+		case EodTrade trade:
+			trades++;
+			Console.WriteLine($"{trade.Id} {trade.Side} {trade.Quantity} {trade.Isin} at {trade.Price} {trade.Currency}");
+			break;
+
+		case EodReject reject:
+			rejected++;
+			Console.WriteLine($"line {reject.Line}, {reject.Field}: {reject.Message}");
+			break;
+
+		case EodTrailer trailer:
+			var check = trades + rejected == trailer.Count ? "OK" : "MISMATCH";
+			Console.WriteLine($"read {trades}, rejected {rejected}; trailer: expected {trailer.Count} — {check}");
+			break;
+	}
+}
+```
+
+```text
+EOD-TRADES 2026-10-02 from NORTHBRIDGE SECURITIES
+T-0101 Buy 1200 US0378331005 at 227.52 USD
+T-0102 Sell 350 DE0007164600 at 212.40 EUR
+line 4, Quantity: Expected '|' at 4:50.
+line 5, Price: Expected Digit at 5:54.
+line 6, TradeDate: Expected Date at 6:16.
+T-0106 Buy 600 US88160R1014 at 243.85 USD
+line 8, Side: Expected ['B' | 'S'] at 8:45.
+T-0108 Sell 250 US0231351067 at 186.20 USD
+read 4, rejected 4; trailer: expected 8 — OK
+```
+
+The header and the trailer are typed records of the same sequence, so they arrive in their
+places, and the trailer is checked by a loop that holds nothing: by the time it arrives, the
+count is known. `parserFailureColumn` is where reading the line stopped, and `FieldAt`, plain
+C# of the class, turns it into the name of the field. The parser tells you where the text does
+not fit; what the values mean is yours — a date is four digits, a dash, two and two, and
+whether that month has a 31st is business logic, so dates stay text here.
+
+[`docs/feeds.md`](feeds.md) has the rest: corporate actions in CSV with quoted fields,
+settlement confirmations in fixed width, an order sheet and a logbook kept by hand, and a
+console program that writes ten million trades, reads them with this grammar and bulk-loads
+them into SQLite, the rejected lines into a table of their own.
+[`docs/syntax.md`](syntax.md) §8.2 has what `recover` promises and every name it fills
+in, and §8.3 the ways a rejection can be handed back. Every example is also in
+[`examples/DotGram.Examples/Feeds`](../examples/DotGram.Examples/Feeds/).
+
+## One grammar, three parsers
+
+A grammar does not have to describe only one parser. The arithmetic below is written once
+and published three times: over `int`, over `decimal`, and as a tree.
+
+```csharp
+using System;
+
+using DotGram;
+
+[Gram("""
+	@using System.Globalization;
+
+	trivia = { Std.Spacing? }
+
+	Value : @int = d: Std.Digits => @(int.Parse(d))
+	Point        = { Std.Digits ~ ('.' ~ Std.Digits)? }
+
+	Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
+	             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
+	             | left: Expr & '*' & right: Expr  << 2 => @(left * right)
+	             | left: Expr & '/' & right: Expr  << 2 => @(left / right)
+	             | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
+	             | '-' & operand: Expr             >> 3 => @(-operand)
+	             | '(' & inner: Expr & ')'              => @(inner)
+	             | value: Value                         => @(value)
+
+	IntNumber     : @int     = d: Std.Digits => @(int.Parse(d))
+	DecimalNumber : @decimal = d: Point      => @(decimal.Parse(d, CultureInfo.InvariantCulture))
+	NodeNumber    : @Node    = d: Point      => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
+
+	parse Expr with (Value = IntNumber)     as EvaluateInt
+	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
+	parse Expr with (Value = NodeNumber)    as BuildTree
+	""", Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
+public static partial class Calculator
+{
+	/// <summary>The tree the third parser builds, and the operators that build it.</summary>
+	public abstract record Node
+	{
+		public sealed record Number(decimal Of)                     : Node;
+		public sealed record Binary(char Op, Node Left, Node Right) : Node;
+		public sealed record Negate(Node Of)                        : Node;
+
+		public static Node operator +(Node left, Node right) => new Binary('+', left, right);
+		public static Node operator -(Node left, Node right) => new Binary('-', left, right);
+		public static Node operator *(Node left, Node right) => new Binary('*', left, right);
+		public static Node operator /(Node left, Node right) => new Binary('/', left, right);
+		public static Node operator -(Node of)               => new Negate(of);
+	}
+
+	static int     Raise(int     left, int     right) => (int)Math.Pow(left, right);
+	static decimal Raise(decimal left, decimal right) => (decimal)Math.Pow((double)left, (double)right);
+	static Node    Raise(Node    left, Node    right) => new Node.Binary('^', left, right);
+}
+```
+
+Three parsers come out of it:
+
+```csharp
+Calculator.EvaluateInt("7 / 2");          // 3
+Calculator.EvaluateDecimal("7 / 2");      // 3.5
+Calculator.EvaluateInt("2 ^ 3 ^ 2");      // 512, since `^` groups to the right
+Calculator.EvaluateInt("-2 ^ 2");         // -4, since a prefix is where an expression starts
+
+Calculator.TryEvaluateInt("1.5");         // no match: `Value` is `IntNumber` there
+
+Calculator.BuildTree("1 - 2 - 3");
+// case Binary(-, Binary(-, Number(1), Number(2)), Number(3)) :
+```
+
+The whole language is one rule. `<< n` reads the operand on its right one strength
+tighter, so the operator groups to the left; `>> n` reads it at `n`, so it groups to the
+right. Higher binds tighter, and the numbers are the author's: the gaps are where a level
+goes in later, as a number, with nothing else touched.
+
+What separates the three parsers is the publication:
+
+```text
+parse Expr with (Value = IntNumber)     as EvaluateInt
+parse Expr with (Value = DecimalNumber) as EvaluateDecimal
+parse Expr with (Value = NodeNumber)    as BuildTree
+```
+
+`with` substitutes a rule through the grammar reachable from that publication, and the
+result type follows the substitution: `Expr : Value` means "the type produced by `Value`",
+so the three parsers return `int`, `decimal` and `Node`.
+
+The actions do not change either. `left + right` is C#, and what it adds up to is the C#
+compiler's: over `int` it is addition, and over `Node` it is the operator declared beside
+the grammar, which builds a node. The grammar says where an operator goes and which
+operands it takes; what it then means is not the grammar's business.
+
+`^` is the exception that shows what the rest rests on. C# has no `^` for `decimal`, and
+its `^` on `int` is exclusive-or rather than power, so that one alternative calls a method
+— overloaded the three ways the operators are overloaded once.
+
+There is no runtime generic dispatch and no parser configuration object. All three parsers
+are specialized when the C# is generated.
+
+`ConstructionsMayThrow = true` is there for `/`, which throws on a zero divisor. A grammar that
+names no carrier runs each construction as soon as its alternative is read, which is faster,
+and would divide, and throw, in `1/0=` before the parse refused the `=`. With the option, what
+a construction throws is held and thrown only where the tape — which runs every construction
+once the parse has accepted — would have thrown it: `1/0=` is refused, and `1/0` throws.
+
+`Point` joins its parts with `~` and not `&`. The grammar skips spaces between the operands of
+every sequence, so with `&` a number could hold a space (`1 .5`), and a string written
+`'"' & body & '"'` would lose the space just inside its quotes. `~` says that nothing may stand
+between two parts, which is what a number or a string needs; the compiler warns (GRAM4043) when
+a rule is spelled from single characters where spaces are skipped.
+
+## Something much smaller
+
+The example above is deliberately a language. .Gram does not ask for that scale: a grammar
+the size of a regular expression stays that size, and is written much like one.
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Hex   = ['0'..'9' | 'a'..'f' | 'A'..'F']
+	Color = '#' & value: Hex{6}
+
+	parse Color
+	""")]
+public static partial class CssColor;
+```
+
+Use it as ordinary C#:
+
+```csharp
+var color = CssColor.ParseColor("#12aBcF");
+
+Console.WriteLine(color.Value);       // 12aBcF
+
+var result = CssColor.TryParseColor("#xyz");
+
+Console.WriteLine(result.IsSuccess);  // False
+```
+
+The equivalent regular expression would be roughly:
+
+```text
+^#(?<value>[0-9a-fA-F]{6})$
+```
+
+Ranges, alternatives, `?`, `*`, `+` and `{n}` mean what they mean in a regular expression.
+
+`value:` does more than a regex capture does: it becomes a property of the generated
+result type.
+
+Keeping a grammar this size in the attribute puts the parser and its C# API on one screen.
+A grammar long enough to want its own place goes in a `.gram` file instead.
+
+## Something much bigger
+
+At the other end of the scale the same notation reads T-SQL. The grammars are far too long
+to quote here, so this is where to read them:
+
+* [`TransactSql.gram`](../src/DotGram.Sql/TransactSql/TransactSql.gram) — T-SQL in
+  over 1,000 rules, written from Microsoft's published syntax, which is kept beside it in
+  [`Specification/syntax.md`](../src/DotGram.Sql/TransactSql/Specification/syntax.md).
+  It reads over tokens rather than characters, builds a tree of records, and has a parser
+  for each SQL Server compatibility level from one grammar
+  ([Versions of one language](#versions-of-one-language)). Held against Microsoft's own
+  parser, ScriptDom, every statement of ScriptDom's test corpus that both of them read
+  comes back through ScriptDom as the same statement.
+* [`ExpressionParser.cs`](../src/DotGram.ExpressionLanguage/ExpressionParser.cs) — a
+  C#-style expression language in over 80 rules, inside the `[Gram]` attribute beside the
+  C# they call. It builds `System.Linq.Expressions` trees directly: C#'s operators and
+  literals, locals, blocks, loops, `switch` and `try`, members, calls and `new`.
+
+How to call them is under [DotGram.Sql](#dotgramsql) and
+[DotGram.ExpressionLanguage](#dotgramexpressionlanguage).
+
+## Versions of one language
+
+A language changes between releases. SQL Server took the `*=` outer join out after 2000 and
+put `IS DISTINCT FROM` in with 2022. A grammar says that once, and each version is a parser
+generated from it:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	trivia       = { ' '* }
+	wordboundary = ['a'..'z']
+
+	Version = "2000" | "2008" | "2022"
+
+	Name = { ['a'..'z']+ }
+
+	Test : @string
+		= l: Name & "*=" & r: Name & when Version is "2000"
+			=> @($"{l} left-joined to {r}")
+		| l: Name & "is" & "distinct" & "from" & r: Name & when Version is "2022"
+			=> @($"{l} differs from {r}")
+		| l: Name & "=" & r: Name
+			=> @($"{l} equals {r}")
+
+	parse Test with (Version = "2000") as ParseOld
+	parse Test with (Version = "2022") as ParseNew
+	parse Test as ParseAny
+	""")]
+public static partial class SqlDialect;
+```
+
+```csharp
+var old        = SqlDialect.ParseOld("a *= b");                              // a left-joined to b
+var oldRefuses = SqlDialect.TryParseOld("a is distinct from b").IsSuccess;   // False
+
+var current    = SqlDialect.ParseNew("a is distinct from b");                // a differs from b
+var newRefuses = SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
+
+var any        = SqlDialect.ParseAny("a *= b");                              // a left-joined to b
+```
+
+`Version` is an ordinary rule, and `when Version is "2000"` asks whether it and `"2000"`
+have a string in common. The question is answered when the parser is generated, not while
+it runs: `with (Version = "2000")` substitutes the rule for that one publication, and an
+alternative whose condition is false is not in that parser at all. `ParseAny` names no
+version, so it keeps the grammar's own choice of every version and reads them all — the
+permissive parser is the widest argument rather than a mode of its own. The three share one
+machine.
+
+A range is a rule too, `Since2008 = "2008" | "2022"`, and so is a set with no order to it,
+such as products: `when Version is Since2008 and Product is not "Azure"`.
+
+Removal is the part a chain of dialects cannot say: each grammar in a chain adds to the one
+below it, so `*=` would have nowhere to be taken out. Here it is one alternative with a
+condition on it.
+
+[`TransactSql`](../src/DotGram.Sql/TransactSql/TransactSql.gram) reads SQL Server's
+compatibility levels this way — `ParseStatement100` to `ParseStatement170` from one grammar,
+and `ParseStatement` for all of them — with a condition only on what the engine answers
+differently from one level to the next.
+
+## Typed parsing
+
+Named captures define the shape of the result.
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Feed    = header: Header & rows: Row* & trailer: Trailer & eof
+
+	Header  = "H" & '|' & date: Date & eol
+	Row     = "R" & '|' & symbol: Text & '|' & quantity: Digit+ & eol
+	Trailer = "T" & '|' & count: Digit+ & eol
+	Date    = year: Digit{4} & '-' & month: Digit{2} & '-' & day: Digit{2}
+
+	Text  = [^ '|' | '\r' | '\n']+
+	Digit = ['0'..'9']
+
+	parse Feed
+	find Row as AllRows
+	""")]
+public static partial class FeedParser;
+```
+
+The parser returns that structure directly:
+
+```csharp
+var text = """
+	H|2026-09-20
+	R|ABC|100
+	T|1
+
+	""";
+
+var feed = FeedParser.ParseFeed(text);
+
+var year     = feed.Header.Date.Year;    // 2026
+var symbol   = feed.Rows[0].Symbol;      // ABC
+var quantity = feed.Rows[0].Quantity;    // 100
+var count    = feed.Trailer.Count;       // 1
+```
+
+There is no generic parse tree and no visitor required to turn it into application data.
+Captures can also be matched straight to a constructor or to the `required` properties of
+a type you already have, in which case the grammar contains no construction code at all.
+
+`find` publishes a rule as a lazy search through the input:
+
+```csharp
+foreach (var row in FeedParser.AllRows(text))
+	Console.WriteLine(row.Value.Symbol);
+```
+
+## Streaming, tokens and recovery
+
+A character parser reads either input that is all there or a reader, and which of the two
+runs is a property of the data rather than of the grammar: the overload that was called
+settles it at the call site. `Lexical = true` on the `[Gram]` attribute generates a token
+parser instead — a lexical half makes the tokens, and the half above decides each choice
+by the token in front of it, which is what a parser written by hand does. A token parse
+reads from memory only.
+
+Over characters, a reader overload appears wherever the generator can prove that input may
+be released as the parse goes.
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Text  = [^ '|' | '\r' | '\n']+
+	Digit = ['0'..'9']
+
+	Header        = "H" & '|' & Text & eol
+	Row : @string = "R" & '|' & t: Text & eol => @(t)
+	Trailer       = "T" & '|' & Digit+ & eol
+
+	Feed : @string[] = Header & Row* & Trailer & eof
+
+	parse Feed
+	""")]
+public static partial class StreamingFeed;
+```
+
+`Feed` collects what its operands produce: `Row` builds a `string`, while the header and
+trailer build nothing and so join nothing. Four methods come out of it — `ParseFeed` and
+`TryParseFeed` over a `string`, and `ParseFeed` over a `TextReader` and over an
+`IEnumerable<string>`, which reuse a buffer rather than hold the input:
+
+```csharp
+using var reader = File.OpenText("large.feed");
+
+foreach (var row in StreamingFeed.ParseFeed(reader))
+	Handle(row);
+```
+
+This is what makes the size of the input stop mattering. The window is bounded and reused
+as the parse moves along it, so what is held is the record being read rather than the file,
+and each record reaches the caller as it is read rather than in an array of all of them at
+the end. A grammar of the same shape
+([`StreamingBenchmarks.cs`](../benchmarks/DotGram.Benchmarks/StreamingBenchmarks.cs), records that
+end in `eos`), over a feed made a line at a time:
+
+| rows | read | seconds | managed peak | working set |
+| --: | --: | --: | --: | --: |
+| 40,000,002 | 1.41 GiB | 12.9 s | 37.8 MiB | 83.0 MiB |
+| 600,000,002 | 21.17 GiB | 198.1 s | 48.3 MiB | 78.2 MiB |
+
+Fifteen times the input leaves the working set no larger. A streamed parse holds its window
+and the record in hand; the file is not in the figure.
+[`benchmarks/README.md`](../benchmarks/README.md) has the method and what the sampled column
+means.
+
+Record-oriented formats can also recover after malformed input:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Text = [^ '|' | '\r' | '\n']+
+
+	Row : @string = "R" & '|' & t: Text & eol => @(t)
+
+	Feed : @string[] = Row* recover eol => @(parserText)
+
+	parse Feed
+	""")]
+public static partial class RecoveringFeed;
+```
+
+`recover eol` says where the repetition may pick itself up, and the `=>` says what to make
+of what it rejected — here the text of the bad line, which arrives in the sequence beside
+the good ones. A rejection can as well become a record of its own, or go to a `partial
+void` hook and stay out of the result entirely: a bad record becomes data describing the
+rejection instead of ending the feed.
+
+[`docs/syntax.md`](syntax.md) §6.3 says which grammars get a reader overload and why,
+and §8.2 what `recover` may promise.
+
+## Grammar and C#
+
+`@` is the boundary between grammar and C#. A rule declares its result as a C# type and
+builds it with an action, as the arithmetic above does; and a guard can ask a C# question
+in the middle of a parse, which a grammar cannot express on its own:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Name = ['a'..'z' | 'A'..'Z']+
+
+	Tag
+		= '<' & open: Name & '>'
+		& "</" & close: Name & '>'
+		& when @(open == close)
+
+	parse Tag
+	""")]
+public static partial class Tags;
+```
+
+The same boundary calls predicates, external recognizers and constructors. The grammar
+describes the syntax; the C# beside it does what is easier to write in C#.
+
+## Why an input was refused
+
+`Match.Error` names what would have fit where the input was followed furthest. A trace build
+says by which path the parser got there: with `Trace = true` added to the attribute above, or
+`<DotGramTrace>true</DotGramTrace>` set for a whole project,
+
+```csharp
+var why = new Tags.GramWhy();
+
+using (Tags.Tracing(why))
+	Tags.TryParseTag("<a></b>");
+
+Console.WriteLine(why);
+```
+
+It prints the match's message and, under it, the rules that were reading where the input was
+refused, each with what it wanted — or the guard that said no. Beside it come an indented log of
+every rule entered (`GramTraceLog`) and a profile of how often and how long each rule was read
+(`GramProfile`). The answers are the parser's own, and a build without the option generates
+none of it. [`docs/syntax.md`](syntax.md) §6.9 has the rest.
+
+## Grammar libraries
+
+A grammar can be written on top of another one. `[GramInclude]` names the class that hosts
+it, and the name this grammar will know it by:
+
+```csharp
+[Gram("""
+	Word   = ['a'..'z']+
+	Digits = ['0'..'9']+
+	""")]
+public static partial class Lexemes;
+
+[GramInclude(typeof(Lexemes), As = "Lex")]
+[Gram("""
+	trivia = { ' '* }
+
+	Setting : @string = key: Lex.Word & '=' & value: Lex.Digits => @(key + " is " + value)
+
+	parse Setting
+	""")]
+public static partial class Settings;
+```
+
+Each include is spliced into a namespace of its own, so `Lex.Word` and a `Word` of your
+own are different rules and cannot collide by accident.
+
+The include crosses a project reference, which is what makes a grammar a library. What
+travels is the grammar rather than a parser: the including assembly generates its own from
+it, under its own substitutions.
+[`LexemeLibraryExample.cs`](../examples/DotGram.Examples/Languages/LexemeLibraryExample.cs) is a
+whole example of one.
+
+## DotGram.Finance
+
+[`DotGram.Finance`](../src/DotGram.Finance/README.md) reads FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value
+messages wherever they are kept rather than traded: logs, archives, files, buses. Each version has
+its own `FixParser` (`DotGram.Finance.Fix.Fix44.FixParser` and so on): `ParseFields` and
+`ParseMessage`/`TryParseMessage` over a string or bytes, `ReadFields` and `ReadMessages` over a
+stream in bounded memory, and `Fix44Context.Log` for pipe-delimited journals. A bad field arrives
+as `FixField.Invalid` in its place; `Validate` checks a message against a dictionary and reports
+every finding at once. The large
+[`Fix44` grammar](../tests/DotGram.Finance.Fix44/Fix44Grammar.gram), one literal alternative
+per tag, remains as the oracle the parser is tested against and for benchmarks.
+
+## DotGram.Web
+
+[`DotGram.Web`](../src/DotGram.Web) is parsers for the formats of the web, written in .Gram
+against the specifications that define them and held to their test suites — a package of its
+own.
+
+```csharp
+var accept = MediaRange.ParseAccept("text/*;q=0.3, text/plain;q=0.7, */*;q=0.5");
+
+MediaRange.Quality(accept, MediaType.Parse("text/plain"));   // 0.7
+JsonPointer.Parse("/a/1").Resolve(JsonValue.Parse("""{ "a": [0, 42] }"""));   // 42
+EmailAddress.ParseList("Mary Smith <mary@x.test>, jdoe@example.org").Length;  // 2
+```
+
+| Format | Read with | Specification, and its grammar |
+| --- | --- | --- |
+| JSON | `JsonValue.Parse` | [RFC 8259](../src/DotGram.Web/Rfc8259.cs) |
+| JSON Pointer | `JsonPointer.Parse` | [RFC 6901](../src/DotGram.Web/Rfc6901.cs) |
+| JSON Patch | `JsonPatch.Parse` | [RFC 6902](../src/DotGram.Web/Rfc6902.cs) |
+| `Content-Type`, `Accept` | `MediaType.Parse`, `MediaRange.ParseAccept` | [RFC 9110](../src/DotGram.Web/Rfc9110.cs) |
+| Structured Fields | `StructuredField.ParseItem`, `ParseList`, `ParseDictionary` | [RFC 9651](../src/DotGram.Web/Rfc9651.cs) |
+| `Link` | `WebLink.ParseField` | [RFC 8288](../src/DotGram.Web/Rfc8288.cs) |
+| `Content-Disposition` | `ContentDisposition.Parse` | [RFC 6266](../src/DotGram.Web/Rfc6266.cs) |
+| `Set-Cookie`, `Cookie` | `SetCookie.Parse`, `CookiePair.ParseField`, `CookieDate.Parse` | [RFC 6265](../src/DotGram.Web/Rfc6265.cs) |
+| `Forwarded` | `ForwardedElement.ParseField` | [RFC 7239](../src/DotGram.Web/Rfc7239.cs) |
+| URI | `UriReference.Parse` | [RFC 3986](../src/DotGram.Web/Rfc3986.cs) |
+| URI Template | `UriTemplate.Parse` | [RFC 6570](../src/DotGram.Web/Rfc6570.cs) |
+| Email address | `AddrSpec.Parse`, `EmailAddress.ParseList` | [RFC 5322](../src/DotGram.Web/Rfc5322.cs) |
+| Timestamp | `Timestamp.Parse` | [RFC 3339](../src/DotGram.Web/Rfc3339.cs) |
+| Language tag | `LanguageTag.Parse` | [RFC 5646](../src/DotGram.Web/Rfc5646.cs) |
+
+[`src/DotGram.Web/README.md`](../src/DotGram.Web/README.md), the package's own page, has what each
+reads, what it hands back, and the suite it is held to.
+
+## DotGram.Sql
+
+[`DotGram.Sql`](../src/DotGram.Sql) is SQL, a package of its own, with a parser per dialect, each in a
+namespace of its own. All three build one tree, the standard's own, in `DotGram.Sql.Ast`, with
+T-SQL's constructs beside the standard's; a writer turns it back into SQL.
+
+```csharp
+var match  = TransactSqlParser.TryParseSelect("select name from Users where id > @id");
+var select = (Statement.Select)match.Value;
+var query  = (Query.Select)select.Query;
+
+query.From!.Sources[0];  // TableSource.Named { Name = Users }
+```
+
+| Parser | What it reads |
+| --- | --- |
+| [`SqlStandardParser`](../src/DotGram.Sql/Standard/SqlStandard.gram) | ISO SQL:2023, written from its BNF, with typed expressions, queries and statements |
+| [`Sql92Parser`](../src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
+| [`TransactSqlParser`](../src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, a grammar that stands alone, restating the SQL-92 rules it reads as the standard has them |
+
+`TransactSqlParser` reads at four of the standard's levels — `ParseExpression`, `ParseSearchCondition`,
+`ParseStatement` and `ParseSql`, with the per-version entries, `ParseScript` and `ParseSelect` — and `SqlStandardParser`
+at six, `ParseValue` and `ParseDataType` besides, which can be added to T-SQL later. The writers print
+key words and date parts in capitals.
+[`src/DotGram.Sql/README.md`](../src/DotGram.Sql/README.md) has what each one parses and what it
+hands back.
+
+## DotGram.ExpressionLanguage
+
+[`DotGram.ExpressionLanguage`](../src/DotGram.ExpressionLanguage) is a package of its own: a
+C#-style expression language — C#'s operators and literals, and most of its statements. It
+calls the `System.Linq.Expressions` factories directly, so there is no tree of its own to
+translate afterwards:
+
+```csharp
+using DotGram.ExpressionLanguage;
+
+var square = ExpressionParser.Compile<Func<int, int>>("(int x) => x * x - 1");
+
+square(3);  // 8
+```
+
+[`src/DotGram.ExpressionLanguage/README.md`](../src/DotGram.ExpressionLanguage/README.md) has
+the rest.

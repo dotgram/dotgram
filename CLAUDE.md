@@ -28,10 +28,13 @@ docs/
 	README.md             the index: what authority each document carries, and when it
 	                      is expected to be out of date. Read it before believing one
 	syntax.md             the language: notation and its bond with C#
+	tour.md               what a grammar can do, by example: the README's former long
+	                      sections; its feeds run by FeedsPageTests
 	feeds.md              a guide: feeds in pipes, CSV and fixed width, and one loaded into a
 	                      database; every example run by FeedsPageTests
 	cli.md                dotnet dotgram, the DotGram.Cli tool: every command, option and
 	                      exit code
+	compatibility.md      older target frameworks and C# versions, in full
 	status.md             what this version does, held against that specification
 	diagnostics.md        every message the generator reports, by identifier
 	implementation.md     engine plan

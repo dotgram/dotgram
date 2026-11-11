@@ -18,7 +18,7 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// The pages about feeds — the repository README's section on feeds written by people, and
+/// The pages about feeds — the tour's section on feeds written by people (<c>docs/tour.md</c>), and
 /// <c>docs/feeds.md</c> — run as they are written.
 /// </summary>
 /// <remarks>
@@ -40,7 +40,7 @@ namespace DotGram.Tests;
 /// <para>
 /// The same grammars are in <c>examples/DotGram.Examples/Feeds</c>, for whoever copies an example
 /// as a file; the last test holds the copies to one text. An example may be on both pages — the
-/// README shows the first trading feed of <c>docs/feeds.md</c> — so an example is named by its
+/// tour shows the first trading feed of <c>docs/feeds.md</c> — so an example is named by its
 /// page and its class, and each page's copy is run and held to the file on its own.
 /// </para>
 /// </remarks>
@@ -160,7 +160,7 @@ public sealed class FeedsPageTests
 	}
 
 	/// <summary>The pages, by their path from the repository's root.</summary>
-	static readonly string[] Pages = ["README.md", "docs/feeds.md"];
+	static readonly string[] Pages = [Tour, "docs/feeds.md"];
 
 	/// <summary>One example: what was read, what reads it, and what that prints.</summary>
 	sealed record Example(string Host, int At, string Input, string Declaration, string Use, string Output);
@@ -201,7 +201,7 @@ public sealed class FeedsPageTests
 	}
 
 	/// <summary>
-	/// The fenced blocks of a page, with the language each is marked as: of the README, the section
+	/// The fenced blocks of a page, with the language each is marked as: of the tour, the section
 	/// on feeds alone; of a page of its own, all of it.
 	/// </summary>
 	static List<(string Language, string Text)> Blocks(string path)
@@ -209,11 +209,11 @@ public sealed class FeedsPageTests
 		var page    = File.ReadAllText(Path.Combine(Root, path)).Replace("\r\n", "\n", StringComparison.Ordinal);
 		var section = page;
 
-		if (path == "README.md")
+		if (path == Tour)
 		{
 			var opens = page.IndexOf("\n" + Heading + "\n", StringComparison.Ordinal);
 
-			Assert.True(opens >= 0, $"README.md has no '{Heading}'.");
+			Assert.True(opens >= 0, $"{Tour} has no '{Heading}'.");
 
 			var closes = page.IndexOf("\n## ", opens + Heading.Length, StringComparison.Ordinal);
 
@@ -227,6 +227,9 @@ public sealed class FeedsPageTests
 	}
 
 	const string Heading = "## Feeds written by people";
+
+	/// <summary>The page of worked examples, which has a section on feeds among others.</summary>
+	const string Tour = "docs/tour.md";
 
 	/// <summary>The block with the two names the run stands in for replaced.</summary>
 	static string Substituted(string code)

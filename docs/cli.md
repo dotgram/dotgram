@@ -1,7 +1,7 @@
 # dotnet dotgram
 
 The reference for `DotGram.Cli`, the .NET tool that runs the DotGram generator outside the build. What it is
-for and when to reach for it is in the README's "Large grammars and build time"; this page is every command,
+for and when to reach for it is in the README's "Big grammars, fast builds, fast starts"; this page is every command,
 option and exit code, and the contract. `dotnet dotgram --help` prints the same list and
 `dotnet dotgram --skill` the guide for coding agents; a test holds `--help` and this page to the options
 the parser reads.

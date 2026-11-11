@@ -13,7 +13,7 @@ namespace DotGram.Examples.Feeds;
 //     Croissant      2.1O      <- the letter O for a zero
 //     Muffin         2.80
 //
-// It is the repository README's first example of a feed written by people, and the same
+// It is the first example of a feed written by people in docs/tour.md, and the same
 // grammar; the tests hold the two to one text.
 //
 // Three things make it read the way a person's file has to be read. `recover eos` lets a
