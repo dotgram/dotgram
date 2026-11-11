@@ -438,9 +438,9 @@ sealed class GramBufferAnalysis : IGramAnalysisHost<ITextSnapshot>
 		raise();
 	}
 
-	void IGramAnalysisHost<ITextSnapshot>.Report(Exception exception)
+	void IGramAnalysisHost<ITextSnapshot>.Report(string operation, Exception exception)
 	{
-		EditorGuard.Log("Grammar analysis", exception);
+		EditorGuard.Log(operation, exception);
 	}
 
 	Workspace Workspace()

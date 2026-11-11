@@ -384,8 +384,8 @@ sealed class EmbeddedGrammarBufferAnalysis : IEmbeddedGrammarHost<ITextSnapshot>
 		raise();
 	}
 
-	void IEmbeddedGrammarHost<ITextSnapshot>.Report(Exception exception)
+	void IEmbeddedGrammarHost<ITextSnapshot>.Report(string operation, Exception exception)
 	{
-		EditorGuard.Log("Embedded grammar analysis", exception);
+		EditorGuard.Log(operation, exception);
 	}
 }
