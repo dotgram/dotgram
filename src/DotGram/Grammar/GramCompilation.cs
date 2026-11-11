@@ -225,7 +225,7 @@ sealed class GramCompilerOptions
 	/// <summary>
 	/// The nested class whose published methods call this parser with locations on, where
 	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
-	/// (<c>[GramVariant(UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
+	/// (<c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
 	/// </summary>
 	public string? LocatedFacade { get; set; }
 
@@ -316,7 +316,7 @@ sealed class GramCompilerOptions
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// <c>[GramVariant(Trace = true)]</c> asks for it on one reading of a class, and the build
+	/// <c>[GramParserVariant("Traced", Trace = true)]</c> asks for it on one reading of a class, and the build
 	/// property <c>DotGramTrace</c> on every reading of a project. Off, nothing of it is written:
 	/// the parser is the same text byte for byte.
 	/// </para>

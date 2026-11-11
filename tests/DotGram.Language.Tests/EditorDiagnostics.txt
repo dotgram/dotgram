@@ -9,8 +9,8 @@
 --- GRAM0003 Roslyn shell: needs the [Gram] class and the project's AdditionalFiles to find a grammar file; the editor is handed the file
 --- GRAM0004 Roslyn shell: needs several AdditionalFiles matching one [Gram] name
 --- GRAM0005 Roslyn shell: needs the [Gram(DefaultAlias = ...)] attribute option
---- GRAM0006 Roslyn shell: needs a [Gram] and [GramVariant] attributes on one class
---- GRAM0007 Roslyn shell: needs the [GramVariant(Name = ...)] attribute option
+--- GRAM0006 Roslyn shell: needs a [Gram] and [GramParserVariant] attributes on one class
+--- GRAM0007 Roslyn shell: needs the [GramParserVariant("...")] attribute argument
 --- GRAM0008 Roslyn shell: needs two included grammars (Alias / DefaultAlias) from a host compilation
 --- GRAM0009 Roslyn shell: needs the [Gram(MaxBufferedInputLength/InitialBufferSize)] attribute options
 --- GRAM0010 Roslyn shell: needs the project's C# LangVersion

@@ -15,10 +15,10 @@ namespace DotGram.Examples.Formats;
 // key 'prot' at line 3" wants the second, and the difference is not a second grammar:
 //
 //     [Gram("…")]                                                    Config.ParseFile
-//     [GramVariant(LocationType = typeof(ILocated), Name = "Located")]
+//     [GramParserVariant("Located", LocationType = typeof(ILocated))]
 //                                                                    Config.Located.ParseFile
 //
-// `[Gram]` says which grammar, which a class has one of. `[GramVariant]` may be written
+// `[Gram]` says which grammar, which a class has one of. `[GramParserVariant]` may be written
 // as often as there are further readings wanted, and each is a compilation of its own
 // into the nested class it names (docs/syntax.md §6.6). Everything it does not say it
 // takes from the `[Gram]` above it; what it does say is the difference.
@@ -129,7 +129,7 @@ public sealed record Entry(string Key, string Value) : ILocated
 	parse File
 	parse KeySpan
 	""")]
-[GramVariant(LocationType = typeof(ILocated), Name = "Located")]
+[GramParserVariant("Located", LocationType = typeof(ILocated))]
 public static partial class Config
 {
 	/// <summary>An offset, as a person would give it: a line and a column, both from 1.</summary>

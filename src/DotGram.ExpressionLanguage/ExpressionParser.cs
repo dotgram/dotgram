@@ -1671,7 +1671,7 @@ namespace DotGram.ExpressionLanguage;
 // answer alike on every input, which is what CarrierAgreementTests and ExpressionCarrierTests
 // ask. Compiled in the fixture only, as the comment above the grammar says.
 #if DOTGRAM_EL_TAPE
-[GramVariant(Carrier = GramCarrier.Deferred, Name = "Tape")]
+[GramParserVariant("Tape", Carrier = GramCarrier.Deferred)]
 #endif
 public static partial class ExpressionParser
 {

@@ -39,7 +39,7 @@ sealed class GramGenerator : IIncrementalGenerator
 
 	const string GramFileExtension = ".gram";
 	const string GramAttribute        = "DotGram.GramAttribute";
-	const string GramVariantAttribute = "DotGram.GramVariantAttribute";
+	const string GramParserVariantAttribute = "DotGram.GramParserVariantAttribute";
 
 	/// <summary>
 	/// The stages, named so that what re-ran can be read back.
@@ -1079,6 +1079,14 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		// Said about the host for the same reason: a scope named twice, or named with
 		// something that is not a class's name, is settled before a grammar is read.
+		// A further reading names its class, always: without one it has no scope to be compiled into.
+		if (host.Variant && host.Options.Name is not { Length: > 0 })
+		{
+			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, Site.Attribute, host.ClassName, host.Options.Name ?? ""));
+
+			return new Grammar(host, null, null, default, default, Values(reports));
+		}
+
 		if (host.Repeated)
 		{
 			reports.Add(Report.Of(Diagnostics.RepeatedGrammarScope, Site.Attribute, host.ClassName));
@@ -1722,7 +1730,8 @@ sealed class GramGenerator : IIncrementalGenerator
 		string? LocatedFacade  = null,
 		bool    LocatedFacadeDeclared = false,
 		EquatableArray<string> Readings = default,
-		EquatableArray<string> Classified = default)
+		EquatableArray<string> Classified = default,
+		bool    Variant        = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1793,7 +1802,7 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		/// <summary>
 		/// One host per reading the class asks for: the <c>[Gram]</c>, and then every
-		/// <c>[GramVariant]</c> in the order written.
+		/// <c>[GramParserVariant]</c> in the order written.
 		/// </summary>
 		/// <remarks>
 		/// Several are several compilations of the class, each in a nested class of its own
@@ -1806,10 +1815,10 @@ sealed class GramGenerator : IIncrementalGenerator
 			var type     = (INamedTypeSymbol)candidate.TargetSymbol;
 			var readings = new List<AttributeData>(candidate.Attributes);
 
-			// Only the class's own: `[GramVariant]` is what a class writes about its own
+			// Only the class's own: `[GramParserVariant]` is what a class writes about its own
 			// grammar, and a base class's readings are that class's compilations.
 			foreach (var attribute in type.GetAttributes())
-				if (attribute.AttributeClass?.ToDisplayString() == GramVariantAttribute)
+				if (attribute.AttributeClass?.ToDisplayString() == GramParserVariantAttribute)
 					readings.Add(attribute);
 
 			var hosts = ImmutableArray.CreateBuilder<(Host Host, Site Site)>(readings.Count);
@@ -1843,7 +1852,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			{
 				// Everything a reading does not say, it takes from the grammar's own: which
 				// grammar, whether it is read as tokens, how it is divided. That is what a
-				// `[GramVariant]` means — the same parser, compiled differently — and what it
+				// `[GramParserVariant]` means — the same parser, compiled differently — and what it
 				// does say is the difference. The first has nothing to take from.
 				var (host, site, options) = From(
 					candidate, attribute, hosts.Count, firstOptions is null ? null : (hosts[0].Host, hosts[0].Site, firstOptions));
@@ -1906,7 +1915,11 @@ sealed class GramGenerator : IIncrementalGenerator
 			var type        = (INamedTypeSymbol)candidate.TargetSymbol;
 			var declaration = (ClassDeclarationSyntax)candidate.TargetNode;
 
-			var source = attribute.ConstructorArguments.Length == 1
+			// A [GramParserVariant]'s one argument is the name of its class, and not a grammar: it takes
+			// the first reading's.
+			var variant = attribute.AttributeClass?.ToDisplayString() == GramParserVariantAttribute;
+
+			var source = !variant && attribute.ConstructorArguments.Length == 1
 				? attribute.ConstructorArguments[0].Value as string
 				: null;
 
@@ -1954,7 +1967,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			// is legal — `[Gram("…", DefaultAlias = "Json")]` — and requiring exactly one
 			// would quietly stop finding the spelling the moment somebody wrote one, taking
 			// every diagnostic's placement with it.
-			var written = attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
+			var written = !variant && attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
 				syntax.ArgumentList?.Arguments.FirstOrDefault(
 					static argument => argument.NameEquals is null) is
 						{ Expression: LiteralExpressionSyntax spelled }
@@ -2044,6 +2057,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				SpanDeclaredInReading: spanDeclaredInReading,
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType,
+				Variant:        variant,
 				Classified:     new EquatableArray<string>([.. classifies.Select(static one => (string)one.ConstructorArguments[0].Value!)]));
 
 			return (host, site, options);

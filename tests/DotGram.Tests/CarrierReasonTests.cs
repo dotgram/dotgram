@@ -303,7 +303,7 @@ public sealed class CarrierReasonTests
 			"using System;\n" +
 			"using DotGram;\n" +
 			"[Gram(@\"" + grammar.Replace("\"", "\"\"", StringComparison.Ordinal) + "\")]\n" +
-			"[GramVariant(Carrier = GramCarrier.Deferred, Name = \"Tape\")]\n" +
+			"[GramParserVariant(\"Tape\", Carrier = GramCarrier.Deferred)]\n" +
 			"public static partial class Probe\n" +
 			"{\n" +
 			"\tpublic sealed class Ctx { public int N; }\n" +

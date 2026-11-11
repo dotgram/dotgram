@@ -370,7 +370,7 @@ drift apart.
 ## Why an input was refused
 
 A trace build of a grammar — `<DotGramTrace>true</DotGramTrace>` for every grammar of a project,
-or `Trace = true` on one `[Gram]` or `[GramVariant]` — reports what its parser reads to a sink, and
+or `Trace = true` on one `[Gram]` or `[GramParserVariant]` — reports what its parser reads to a sink, and
 carries three ready-made ones in the generated class:
 
 ```xml

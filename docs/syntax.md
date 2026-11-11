@@ -48,7 +48,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
   - [6.4 `TargetMethodPartSize`, the one thing a host may tune](#64-targetmethodpartsize-the-one-thing-a-host-may-tune)
   - [6.5 `MaxExtraStacks`, how deep a reading may go](#65-maxextrastacks-how-deep-a-reading-may-go)
-  - [6.6 `[GramVariant]`, a second reading of the same grammar](#66-gramvariant-a-second-reading-of-the-same-grammar)
+  - [6.6 `[GramParserVariant]`, a second reading of the same grammar](#66-gramparservariant-a-second-reading-of-the-same-grammar)
   - [6.7 `[GramInclude]`, a grammar built on another](#67-graminclude-a-grammar-built-on-another)
   - [6.8 Generation options](#68-generation-options)
   - [6.9 Tracing a grammar](#69-tracing-a-grammar)
@@ -2334,7 +2334,7 @@ parse`, and a wrong order or a word written twice is `GRAM2013`. A `find` alread
 position of the input, and a `yield` has no `Try` form to begin anywhere, so neither takes the word
 (`GRAM2012`). Each word is one only in front of `parse` or `find`, so a rule may still be called
 `internal` or `positional`. A `private` publication in a nested reading
-(`[GramVariant]`, §6.6) is private to that nested class, which is where that reading's own
+(`[GramParserVariant]`, §6.6) is private to that nested class, which is where that reading's own
 constructions call it from.
 
 **What a directive names is an expression, not only a rule.** Wherever the notation
@@ -2571,7 +2571,7 @@ Document ParseDocument(TextReader input,
 
 A null buffer parameter takes the grammar's own default, and a number takes precedence for
 that call. The defaults are `[Gram(..., InitialBufferSize = 4096, MaxBufferedInputLength = int.MaxValue)]`,
-the values shown being what applies where the attribute does not say; a `[GramVariant]`
+the values shown being what applies where the attribute does not say; a `[GramParserVariant]`
 inherits them and may set its own. The generated class holds them as the read-only
 `DefaultBufferSize` and `DefaultMaxRetained`, internal to the assembly, for a package that
 wants to tell its own callers what the limit is. Either set to zero or less is `GRAM0009`.
@@ -2592,7 +2592,7 @@ A sequence of lines is the exception in one respect: the enumerator the parse ta
 stops walking a lazy result; the sequence itself stays the caller's.
 
 `[Gram(..., BufferedText = true)]` adds the character form to parse and find publications;
-`BufferedBytes = true` adds the byte form. Both default to false. `GramVariant`
+`BufferedBytes = true` adds the byte form. Both default to false. `GramParserVariant`
 inherits these settings and can override either with false. An explicit publication
 modifier still requests its form. Buffered `find` returns a lazy
 `IEnumerable<Match<T>>` for `TextReader` or `Stream`. It finds the same non-overlapping
@@ -2642,11 +2642,11 @@ these captures. Encoding syntax remains future work.
 
 #### Native capture spans
 
-`[Gram(..., UseSpanCaptures = true)]` (or the same property on a `[GramVariant]`) changes
+`[Gram(..., UseSpanCaptures = true)]` (or the same property on a `[GramParserVariant]`) changes
 raw character captures and `parserText` in actions/guards from `string` to
 `ReadOnlySpan<char>`. It applies to both the contiguous string parser and its
 buffered character form. It defaults to false to preserve existing string-based
-actions, and follows `GramVariant` inheritance and explicit overrides.
+actions, and follows `GramParserVariant` inheritance and explicit overrides.
 The byte form always uses `ReadOnlySpan<byte>` for raw captures, independently
 of `UseSpanCaptures`.
 
@@ -2891,27 +2891,30 @@ construction whose value one of them reads answer from their arguments, captures
 or from `context` named as such. One that reads state some other way breaks it, and the memo
 then answers with the failure it remembered.
 
-### 6.6 `[GramVariant]`, a second reading of the same grammar
+### 6.6 `[GramParserVariant]`, a second reading of the same grammar
 
 `[Gram]` is written once: it says *which* grammar, which is a thing a class has one of.
-`[GramVariant]` may be written as many times as there are further readings wanted, and
+`[GramParserVariant]` may be written as many times as there are further readings wanted, and
 each is a compilation of its own that names the nested class it goes into:
 
 ```csharp
 [Gram("Sql.gram", Lexical = true)]
-[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
+[GramParserVariant("Immediate", Carrier = GramCarrier.Immediate)]
 public static partial class Sql { }
 ```
 
 `Sql.ParseQuery` is the first; `Sql.Immediate.ParseQuery` is the second. Two files come
 out, one per attribute.
 
-Everything a `[GramVariant]` does not say it takes from the `[Gram]` — the grammar, whether
+Everything a `[GramParserVariant]` does not say it takes from the `[Gram]` — the grammar, whether
 it is read as tokens, how it is divided — and what it does say is the difference. That is
 the shape this is for: the class's own parser, compiled the other way and no other way.
 The options themselves are the same on both — they are declared once, on the abstract
 `GramReadingAttribute` both derive from — except `Source` and `DefaultAlias`, which are the
-grammar's own and only on `[Gram]`, and `UsePerCallLocations`, only on `[GramVariant]`.
+grammar's own and only on `[Gram]`, and `UsePerCallLocations`, only on `[GramParserVariant]`.
+The class a reading goes into is said differently on each: a `[GramParserVariant]` names it as its
+one argument, which cannot be left out, and `[Gram]` may name one with `Name` where the first
+reading is not to be the host class itself.
 
 **Why a class rather than a suffix on the method names.** Everything a parser needs is
 emitted beside it (§6.2), and a file's share of that — the match, the failure, the lexer,
@@ -2933,7 +2936,7 @@ own, `Host.gram-shared.g.cs`, beside the readings' files.
 
 A host with one reading keeps them in the reading's own class, so a second reading moves
 them. `[Gram("…", Name = "Fast")]` alone answers with `Host.Fast.Match<T>`; add a
-`[GramVariant(Name = "Slow")]` and both answer with `Host.Match<T>`:
+`[GramParserVariant("Slow")]` and both answer with `Host.Match<T>`:
 
 ```csharp
 Host.Fast.Match<Row> m = Host.Fast.TryParseRow(text);   // one reading
@@ -2949,16 +2952,17 @@ author's to decide, and the generated part adds no accessibility of its own:
 
 ```csharp
 [Gram("Sql.gram", Lexical = true)]
-[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
+[GramParserVariant("Immediate", Carrier = GramCarrier.Immediate)]
 public static partial class Sql
 {
     internal static partial class Immediate { }   // a reading for tests and measurements
 }
 ```
 
-Two readings wanting the same scope — the same `Name`, or a `[GramVariant]` with none,
-which is the scope the `[Gram]` already has — is refused (`GRAM0006`), because one of them
-would silently win.
+Two readings wanting the same scope — a `[GramParserVariant]` naming the class another reading
+is compiled into, or the one `[Gram(…, Name = …)]` already names — is refused (`GRAM0006`),
+because one of them would silently win. The name is the attribute's one argument and cannot be
+left out; an empty one, or one that is not an identifier, is `GRAM0007`.
 
 The value types a grammar generates are the compilation's own, so two compilations of a
 grammar that builds its own types build two families of them. They are named alike in
@@ -3046,7 +3050,7 @@ is wrong. An include that finds neither a file nor a carried text is `GRAM0003`.
 
 ### 6.8 Generation options
 
-The options written on `[Gram]` and `[GramVariant]` change how a grammar is compiled into a
+The options written on `[Gram]` and `[GramParserVariant]` change how a grammar is compiled into a
 parser — which machine reads it, how it carries what it read until it builds, how its
 methods are divided, what a value is told about where it was written — and not what the
 grammar means. Under every setting a grammar accepts the same texts and builds the same
@@ -3068,7 +3072,7 @@ of it fails a build.
 | --- | --- | --- |
 | `Source` | the `.gram` file named after the class | `[Gram]` only, as its constructor argument: a path to a `.gram` file, or the grammar text itself. A single-line value ending in `.gram` is a path (§1). |
 | `DefaultAlias` | the class's own name | `[Gram]` only: the name another grammar includes this one under where its `[GramInclude]` gives no `Alias` (§6.7). |
-| `Name` | none — the host class itself | the nested class a reading goes into (§6.6). |
+| `Name` | none — the host class itself | `[Gram]` only: the nested class the first reading goes into (§6.6). A `[GramParserVariant]` names its class as its one, required argument: `[GramParserVariant("Immediate", …)]`. |
 | `TargetMethodPartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
 | `MaxExtraStacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
 | `ExportGrammar` | not set: exported when the class and every class around it are public | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
@@ -3076,7 +3080,7 @@ of it fails a build.
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the deferred carrier would have (§7.5). Ignored by the deferred carrier. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
-| `UsePerCallLocations` | `false` | on a `[GramVariant]` with a `LocationType` and a `Name`: the locations are asked for per call, not compiled in; below. |
+| `UsePerCallLocations` | `false` | on a `[GramParserVariant]` with a `LocationType`: the locations are asked for per call, not compiled in; below. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink (§6.9). Changes no answer. |
 | `BufferedText` | `false` | adds the buffered character form to parse and find publications (§6.3). |
 | `BufferedBytes` | `false` | adds the buffered byte form, with no text decoding (§6.3). |
@@ -3084,8 +3088,8 @@ of it fails a build.
 | `MaxBufferedInputLength` | `int.MaxValue`, no limit | the most a buffered parse may hold at once, where a call does not say; zero or less is `GRAM0009` (§6.3). |
 | `InitialBufferSize` | `4096` | the capacity a buffered parse's buffer starts with, where a call does not say; zero or less is `GRAM0009` (§6.3). |
 
-Every option but `Source`, `DefaultAlias` and `UsePerCallLocations` may be written on either
-attribute, and a `[GramVariant]` takes what it does not say from the `[Gram]` (§6.6).
+Every option but `Source`, `DefaultAlias`, `Name` and `UsePerCallLocations` may be written on either
+attribute, and a `[GramParserVariant]` takes what it does not say from the `[Gram]` (§6.6).
 
 #### `Carrier`
 
@@ -3155,12 +3159,12 @@ Being an option, it may be given to one reading of a grammar and not to another 
 
 ```csharp
 [Gram("TransactSql.gram", Lexical = true)]
-[GramVariant(LocationType = typeof(ISqlLocatable), Name = "Located", UsePerCallLocations = true)]
+[GramParserVariant("Located", LocationType = typeof(ISqlLocatable), UsePerCallLocations = true)]
 public abstract partial class TransactSqlParser { }
 ```
 
 A second reading that differs from the first only in being told where its values were
-written need not be a second parser. With `UsePerCallLocations`, the `[GramVariant]` compiles nothing of
+written need not be a second parser. With `UsePerCallLocations`, the `[GramParserVariant]` compiles nothing of
 its own: the grammar is compiled once, its constructions are told where they were written only
 when a call asks, and the nested class it names — `TransactSqlParser.Located` — holds
 the same published methods, each of them asking. A call through the class itself does not ask,
@@ -3266,7 +3270,7 @@ on a generated parser, for tooling to read.
 
 ### 6.9 Tracing a grammar
 
-`Trace = true` on `[Gram]` or `[GramVariant]` makes a reading a **trace build**: its parser
+`Trace = true` on `[Gram]` or `[GramParserVariant]` makes a reading a **trace build**: its parser
 reports what it does — each rule it enters and leaves, each refusal and what it wanted, each
 guard it asks — to a sink the caller sets. The build property `DotGramTrace` asks the same of
 every grammar in a project, typically for a Debug build only:
@@ -3283,7 +3287,7 @@ reading does (§6.6):
 
 ```csharp
 [Gram("Expressions.gram")]
-[GramVariant(Name = "Traced", Trace = true)]
+[GramParserVariant("Traced", Trace = true)]
 public static partial class Expressions { }
 ```
 

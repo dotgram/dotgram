@@ -449,7 +449,7 @@ public sealed class BindingPowerCeilingTests
 				     | Lexical.Name
 				parse Expr
 				""", Lexical = true)]
-			[GramVariant(Name = "Characters", Lexical = false)]
+			[GramParserVariant("Characters", Lexical = false)]
 			public static partial class Sums;
 
 			[GramInclude(typeof(Sums), Alias = "S")]

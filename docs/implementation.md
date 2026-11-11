@@ -691,7 +691,7 @@ declaring `Locate(int at, int length)`; normalization collects the rules whose v
 as it is made — the rule's own text, without the trivia around it. A grammar that names
 nothing is compiled exactly as it would have been.
 
-**A host can carry more than one compilation of its grammar.** Each `[GramVariant(…)]` on
+**A host can carry more than one compilation of its grammar.** Each `[GramParserVariant(…)]` on
 the class is a further reading under different options — another carrier, another
 division, locations where the first has none — and each goes into a nested class named by
 its `Name`, since a file's support types are written once and would otherwise collide

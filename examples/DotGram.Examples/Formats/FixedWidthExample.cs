@@ -83,7 +83,7 @@ namespace DotGram.Examples.Formats;
 	parse Feed
 	""")]
 // The same grammar carried deferred, for the test that holds the two to the same answers.
-[GramVariant(Carrier = GramCarrier.Deferred, Name = "Tape")]
+[GramParserVariant("Tape", Carrier = GramCarrier.Deferred)]
 public sealed partial class FixedWidth
 {
 	/// <summary>Reads a whole file of settlement records.</summary>
