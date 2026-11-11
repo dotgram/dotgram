@@ -1023,7 +1023,7 @@ sealed partial class GrammarNormalizer
 				{
 					Report(
 						UnbuiltBinding,
-						$"An alternative of '{rule.Name}' states a strength and has no operand of its own " +
+						$"An alternative of '{Shown(rule)}' states a strength and has no operand of its own " +
 						"to parse at it. A strength says how tightly the operand to the right is read " +
 						"(docs/syntax.md §4.3.1).",
 						rule.Declaration!.At);

@@ -32,13 +32,13 @@ public sealed class NamedRuleTypeTests
 		});
 	}
 
-	static Assembly Built(string grammar, CarrierKind carrier = CarrierKind.Auto, bool direct = true)
+	static Assembly Built(string grammar, CarrierKind carrier = CarrierKind.Auto, bool direct = true, string? members = null)
 	{
 		var result = Compile(grammar, carrier, direct);
 
 		EmittedCode.Quiet(result.Diagnostics);
 
-		return EmittedCode.Compile(Assert.Single(result.Sources).Text);
+		return EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: members);
 	}
 
 	static string Shown(object? value)
@@ -147,6 +147,38 @@ public sealed class NamedRuleTypeTests
 	public void While_one_that_can_is_left_to_compile(string grammar)
 	{
 		Assert.Empty(Errors(Published(grammar)));
+	}
+
+	/// <summary>
+	/// A type of the host's may declare a conversion from what is handed back, on its own side: the
+	/// grammar cannot see one, and leaves the question to the C# compiler, which answers yes.
+	/// </summary>
+	[Theory]
+	[InlineData(
+		"Pair = x: 'a'\nWrapped : @Box = p: Pair => p\nparse Wrapped",
+		"public sealed class Box { public string Held = \"\"; public static implicit operator Box(Pair p) { return new Box { Held = p.X }; } }",
+		"TryParseWrapped", "a", "Held", "a")]
+	[InlineData(
+		"Item : @string = 'a' => @(\"A\")\nItems : @String = items: Item+ => items\nparse Items",
+		"public sealed class String { public string Held = \"\"; public static implicit operator String(string[] items) { return new String { Held = string.Join(\",\", items) }; } }",
+		"TryParseItems", "aa", "Held", "A,A")]
+	public void A_conversion_the_host_declares_is_left_to_the_csharp_compiler(
+		string grammar, string members, string method, string input, string field, string expected)
+	{
+		Assert.Empty(Errors(grammar));
+
+		var value = EmittedCode.Match(Built(grammar, members: members), "Grammar", method, input).Value!;
+
+		Assert.Equal(expected, value.GetType().GetField(field)!.GetValue(value));
+	}
+
+	/// <summary>A construction in a call's argument, built where the argument is read, as it always was.</summary>
+	[Fact]
+	public void A_construction_in_an_argument_still_builds_the_arguments_value()
+	{
+		var assembly = Built("A : int = v: L('a' => @(1)) => v\nL(x) : int = x\nparse A");
+
+		Assert.Equal(1, EmittedCode.Match(assembly, "Grammar", "TryParseA", "a").Value);
 	}
 
 	[Fact]

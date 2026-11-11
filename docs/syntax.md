@@ -1088,7 +1088,8 @@ by it. A separator written as
 
 **What a construction hands back has to be the declared type.** Where the grammar can tell
 that it cannot be — a capture handed back whole, `=> x` or `=> @(x)`, that holds text where
-an array is declared or a generated type where another is — it says so on the construction
+an array is declared or a generated type where another is, between types that declare no
+conversion of their own — it says so on the construction
 (`GRAM4056`) rather than leaving the C# compiler to say it in the generated file. What a C#
 expression makes of a capture is the C# compiler's to judge, on the grammar's line (§7.6).
 
@@ -1149,10 +1150,8 @@ Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 | `item: Row` | a recognizer constrained to produce `Row` | the same, but obliged to produce `Row` |
 | `n: int`, `t: @Tag` | a value | a literal, or a value this rule was handed itself |
 
-An argument is one sequence of operands, or a value: a choice is written in brackets,
-`List((A | B), ',')`, and what belongs to an alternative of a rule's own body — a
-construction `=>`, a binding power `<< n` — is refused in one (`GRAM2018`); name the
-argument as a rule that has it, and pass that rule.
+An argument is one alternative, or a value: a choice is written in brackets,
+`List((A | B), ',')`.
 
 Which kind a parameter is follows from §2, with nothing new needed: **rules** live in
 the grammar namespace, **types** in C#'s. That settles an ambiguity otherwise
