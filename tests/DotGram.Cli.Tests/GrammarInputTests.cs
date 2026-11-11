@@ -50,6 +50,9 @@ public sealed class GrammarInputTests
 	[InlineData("TargetMethodPartSize", "2.5", "not a whole number")]
 	[InlineData("Carrier", "Fast", "not one of Auto, Deferred, Immediate")]
 	[InlineData("LocationType", "X), Lexical = (true", "not a C# type name")]
+	[InlineData("Suffix", "Fast", "'Suffix' was renamed to 'Name' in 0.3.0")]
+	[InlineData("partsize", "200", "'PartSize' was renamed to 'TargetMethodPartSize' in 0.3.0")]
+	[InlineData("Carrier", "Tape", "'GramCarrier.Tape' was renamed to 'GramCarrier.Deferred' in 0.3.0")]
 	public void A_bad_option_lists_what_there_is(string name, string value, string why)
 	{
 		using var scratch = new Scratch();

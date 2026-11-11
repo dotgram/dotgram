@@ -113,6 +113,28 @@ sealed class GramGenerator : IIncrementalGenerator
 					version));
 			});
 
+		// A name the attributes had before 0.3.0, wherever it is written, with what it is called now:
+		// C# only says it cannot find one (GramRenames).
+		context.RegisterSourceOutput(
+			context.SyntaxProvider
+				.CreateSyntaxProvider(
+					static (node, _) => Renamed.IsCandidate(node),
+					static (candidate, cancellationToken) => new EquatableArray<RenamedUse>(
+						Renamed.Find((AttributeSyntax)candidate.Node, candidate.SemanticModel, cancellationToken)))
+				.Where(static found => found.Items.Length > 0)
+				.Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
+			static (production, input) =>
+			{
+				var (found, trees) = input;
+
+				foreach (var use in found.Items)
+					production.ReportDiagnostic(Diagnostic.Create(
+						Diagnostics.RenamedName,
+						use.At?.ToLocation(path => trees.FirstOrDefault(tree => tree.FilePath == path)) ?? Location.None,
+						use.Old,
+						use.Now));
+			});
+
 		var sites = found
 			.Select(static (one, _) => one.Site)
 			.Collect()
@@ -525,7 +547,11 @@ sealed class GramGenerator : IIncrementalGenerator
 	{
 		try
 		{
-			return Compile(grammar, reporting, counting, positional);
+			var parser = Compile(grammar, reporting, counting, positional);
+
+			// A host written with an old name is told so (GRAM0012), and not what the grammar seems
+			// to say wrong once the old name was dropped: a missing alias, a scope taken twice.
+			return grammar.Host.Outdated ? parser with { Reports = default } : parser;
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -1687,7 +1713,8 @@ sealed class GramGenerator : IIncrementalGenerator
 		string? Literal,
 		bool    Placed,
 		string? Portable = null,
-		string  Imported = "");
+		string  Imported = "",
+		bool    Outdated = false);
 
 	/// <summary>
 	/// Every option of a reading as the full report prints it: under the names it is written with,
@@ -1760,7 +1787,8 @@ sealed class GramGenerator : IIncrementalGenerator
 		bool    LocatedFacadeDeclared = false,
 		EquatableArray<string> Readings = default,
 		EquatableArray<string> Classified = default,
-		bool    Variant        = false)
+		bool    Variant        = false,
+		bool    Outdated       = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -2089,6 +2117,9 @@ sealed class GramGenerator : IIncrementalGenerator
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType,
 				Variant:        variant,
+				// Written with a name the attributes had before 0.3.0, here or in a grammar it includes:
+				// GRAM0012 says so, and what the grammar then seems to say wrong is not said (Renamed).
+				Outdated:       Renamed.Any(declaration) || included.Any(static one => one.Included.Outdated),
 				Classified:     new EquatableArray<string>([.. classifies.Select(static one => (string)one.ConstructorArguments[0].Value!)]));
 
 			return (host, site, options);
@@ -2185,7 +2216,9 @@ sealed class GramGenerator : IIncrementalGenerator
 						Literal:   spelled == default ? null : spelled.Text,
 						Placed:    at is not null,
 						Portable:  include.Portable,
-						Imported:  Imported(include.Type, compilation)),
+						Imported:  Imported(include.Type, compilation),
+						Outdated:  attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax written &&
+							Renamed.Find(written, null, default).Length > 0),
 					new Site.Base(at, spelled == default ? 0 : spelled.SpanStart)));
 			}
 
