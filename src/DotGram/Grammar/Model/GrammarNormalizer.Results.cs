@@ -111,7 +111,7 @@ sealed partial class GrammarNormalizer
 	/// <remarks>
 	/// <para>
 	/// Asked where another rule takes this one's type, <c>Swapped : Pair</c>, before the results are
-	/// worked out. The
+	/// worked out; <see cref="CheckNamedTypes"/> holds the answer to what they turned out to be. The
 	/// type is spelled as the class it is nested in reads it, the rule's identifier, which is what
 	/// <see cref="Emit.ResultTypes"/> calls it unless that name is taken, and a name the grammar
 	/// writes may not be (GRAM5018).
@@ -152,6 +152,196 @@ sealed partial class GrammarNormalizer
 	bool HasGeneratedType(RuleSymbol rule)
 	{
 		return !_types.ContainsKey(rule) && _results.TryGetValue(rule, out var members) && members.Count > 0;
+	}
+
+	/// <summary>
+	/// What a capture holds, as the generated code declares it: a rule's declared type, the type the
+	/// grammar generates for it, or text; and a sequence of that where it collects.
+	/// </summary>
+	string TypeOf(ResultMember member)
+	{
+		var type = member.Rule is not { } rule ? "string"
+			: _types.TryGetValue(rule, out var declared) ? declared
+			: HasGeneratedType(rule) ? Emit.CSharpEmitter.IdentifierOf(rule)
+			: "string";
+
+		return member.IsSequence ? type + "[]" : type;
+	}
+
+	/// <summary>
+	/// Whether a value of one type can certainly not be put where the other is declared, as far as
+	/// the grammar can tell without the host: a type the grammar generates is a sealed class that
+	/// converts to nothing but itself and <c>object</c>, and text is never an array nor an array text.
+	/// Anything else is the C# compiler's to say, on the grammar's line (§7.6).
+	/// </summary>
+	bool CannotHold(string to, string from)
+	{
+		to   = Plain(to);
+		from = Plain(from);
+
+		if (to == from || to == "object")
+			return false;
+
+		if (Generated(to) || Generated(from))
+			return true;
+
+		// Text is no array and no value of C#'s own types, nor is either of them text.
+		return from == "string" && (to.EndsWith("[]", StringComparison.Ordinal) || ValueKeyword(to)) ||
+			to == "string" && (from.EndsWith("[]", StringComparison.Ordinal) || ValueKeyword(from));
+
+		static bool ValueKeyword(string type)
+		{
+			return type is not ("string" or "object") && IsCSharpKeyword(type);
+		}
+
+		// Asked once the results are known, which is when the set is made; once, since a grammar of
+		// several hundred rules asks for every construction that hands a capture back.
+		bool Generated(string type)
+		{
+			_generatedNames ??= [.. _rules.Where(HasGeneratedType).Select(Emit.CSharpEmitter.IdentifierOf)];
+
+			return _generatedNames.Contains(type);
+		}
+
+		static string Plain(string type)
+		{
+			var name = type.StartsWith("global::", StringComparison.Ordinal) ? type.Substring("global::".Length) : type;
+
+			return name switch
+			{
+				"System.String" or "String" => "string",
+				"System.Object" or "Object" => "object",
+				_                           => name,
+			};
+		}
+	}
+
+	/// <summary>The identifiers of the types the grammar generates (<see cref="CannotHold"/>).</summary>
+	HashSet<string>? _generatedNames;
+
+	/// <summary>
+	/// The generated types the grammar names — a rule typed by another's, <c>Swapped : Pair</c>, and a
+	/// construction <c>=&gt; Pair(a, b)</c> — held to what the rule they are made for turned out to be,
+	/// and the values a construction builds one from held to its captures.
+	/// </summary>
+	void CheckNamedTypes()
+	{
+		foreach (var rule in _rules)
+		{
+			if (rule.Declaration?.Type is not { IsCSharp: false } written ||
+				!_types.TryGetValue(rule, out var type) ||
+				!_namedTypes.TryGetValue(type.EndsWith("[]", StringComparison.Ordinal) ? type.Substring(0, type.Length - 2) : type, out var named) ||
+				HasGeneratedType(named))
+				continue;
+
+			Report(
+				ConstructionTypeMismatch,
+				$"'{rule.Name}' takes the type of '{named.Name}', and the grammar generates none for it: '{named.Name}' " +
+				"builds its value with a '=>' of its own or captures nothing (§4.1).",
+				written.At);
+		}
+
+		foreach (var (within, rule, call) in _built)
+		{
+			if (!HasGeneratedType(rule))
+			{
+				Report(
+					ConstructionTypeMismatch,
+					$"'{rule.Name}(…)' names a rule, and builds the type the grammar generates for it, which it " +
+					$"generates for a rule that captures and says nothing of its value; '{rule.Name}' " +
+					(_types.TryGetValue(rule, out var declared) ? $"declares its type, '{declared}'." : "captures nothing.") +
+					" A C# type or method is written with '@' (§2).",
+					call.At);
+
+				continue;
+			}
+
+			var members   = _results[rule];
+			var arguments = call.Arguments;
+
+			if (arguments.Count != members.Count)
+			{
+				Report(
+					ConstructionTypeMismatch,
+					$"'{rule.Name}(…)' is handed {arguments.Count} value{(arguments.Count == 1 ? "" : "s")}, and the " +
+					$"type the grammar generates for '{rule.Name}' is built from its {members.Count} " +
+					$"capture{(members.Count == 1 ? "" : "s")}, in the order the rule writes them: " +
+					string.Join(", ", members.Select(static member => member.Name)) + ".",
+					call.At);
+
+				continue;
+			}
+
+			if (!_results.TryGetValue(within, out var own))
+				continue;
+
+			for (var i = 0; i < arguments.Count; i++)
+			{
+				if (arguments[i] is not Expr.Reference(false, var name, { Count: 0 }) ||
+					own.FirstOrDefault(member => member.Name == name) is not { Element: null } held ||
+					members[i].Element is not null)
+					continue;
+
+				var from = TypeOf(held);
+				var to   = TypeOf(members[i]);
+
+				if (CannotHold(to, from))
+					Report(
+						ConstructionTypeMismatch,
+						$"'{name}' holds {from}, and '{members[i].Name}' of the type '{rule.Name}' is made of holds {to}.",
+						arguments[i].At);
+			}
+		}
+	}
+
+	/// <summary>
+	/// A construction that hands a capture back as the rule's value, held to the type the rule declares:
+	/// <c>Items : @string[] = items: { Item }* =&gt; @(items)</c> hands back text where an array is
+	/// declared. Said on the construction rather than by the C# compiler in the generated file.
+	/// </summary>
+	/// <remarks>
+	/// Only what the grammar can tell without the host (<see cref="CannotHold"/>), and only a capture
+	/// handed back whole, <c>=&gt; x</c> or <c>=&gt; @(x)</c>: what a C# expression makes of it is the
+	/// C# compiler's question. A fold is left out, whose steps are handed the value so far.
+	/// </remarks>
+	void CheckConstructionTypes()
+	{
+		foreach (var rule in _rules)
+		{
+			if (rule.Declaration is null || _folds.ContainsKey(rule) || !_types.TryGetValue(rule, out var type) ||
+				!_results.TryGetValue(rule, out var members) || !_bodies.TryGetValue(rule, out var body))
+				continue;
+
+			foreach (var alternative in ValueAlternatives(body))
+			{
+				if (alternative is not Node.Construct(_, Construction.Expression(var text, var at)) ||
+					HandedBack(text) is not { } name ||
+					members.FirstOrDefault(member => member.Name == name) is not { Element: null } held)
+					continue;
+
+				var from = TypeOf(held);
+
+				if (CannotHold(type, from))
+					Report(
+						ConstructionTypeMismatch,
+						$"'{rule.Name}' is declared {type} and hands back '{name}', which holds {from}. Capture what " +
+						"holds the declared type, or build it from the capture in C#.",
+						at >= 0 ? new Location(at, name.Length) : rule.Declaration.At);
+			}
+		}
+
+		// `x` or `(x)` with nothing else around it.
+		static string? HandedBack(string text)
+		{
+			var name = text.Trim();
+
+			while (name.Length > 1 && name[0] == '(' && name[name.Length - 1] == ')')
+				name = name.Substring(1, name.Length - 2).Trim();
+
+			return name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_') && name.All(static c => char.IsLetterOrDigit(c) || c == '_')
+				? name
+				: null;
+		}
 	}
 
 	/// <summary>
