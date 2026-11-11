@@ -100,10 +100,6 @@ parse A
 === GRAM2017
 A = 'a'*?
 parse A
-=== GRAM2018
-A = L('a' << 2)
-L(x) = x
-parse A
 === GRAM2019
 A = 'a'
 using Std;

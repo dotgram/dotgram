@@ -68,12 +68,6 @@ sealed class GramParser
 	/// <summary>A second quantifier on one operand: <c>'a'*?</c>, <c>'a'+*</c>.</summary>
 	public const string SecondQuantifier     = "GRAM2017";
 
-	/// <summary>
-	/// A call's argument with what only an alternative of a rule's body has: a construction
-	/// <c>=&gt;</c> or a binding power <c>&lt;&lt;</c>, <c>&gt;&gt;</c>.
-	/// </summary>
-	public const string ArgumentNotOperand   = "GRAM2018";
-
 	/// <summary>A <c>using</c> after the first declaration of its file or block.</summary>
 	public const string UsingAfterDeclaration = "GRAM2019";
 
@@ -315,9 +309,13 @@ sealed class GramParser
 		return new GrammarFile(usings, declarations, new Location(0, _tokens[_tokens.Count - 1].Position));
 	}
 
+	/// <remarks>
+	/// Not where a rule called <c>using</c> is declared: <c>using on fail "…" = …</c> has a word after
+	/// <c>using</c> too, and its head says it is a rule (<see cref="StartsRule"/>).
+	/// </remarks>
 	bool AtUsing()
 	{
-		return AtKeyword("using") && Next.Kind == TokenKind.Identifier ||
+		return AtKeyword("using") && Next.Kind == TokenKind.Identifier && !StartsRule() ||
 		At(TokenKind.At) && Next.Kind == TokenKind.Identifier && Next.Value == "using";
 	}
 
@@ -2073,7 +2071,7 @@ sealed class GramParser
 				// §4.2: an argument is a piece of grammar or a value. A number is only ever the
 				// second — there is no position in a recognition expression where a bare one
 				// means anything — so it is read here and nowhere else.
-				arguments.Add(At(TokenKind.Integer) ? ParseNumber() : ParseArgument());
+				arguments.Add(At(TokenKind.Integer) ? ParseNumber() : ParseAlternative());
 
 				if (!TakeIf(TokenKind.Comma))
 					break;
@@ -2087,44 +2085,6 @@ sealed class GramParser
 		{
 			_nesting--;
 		}
-	}
-
-	/// <summary>
-	/// A call's argument that is a piece of grammar: a sequence, as a group's alternative is, and no
-	/// more.
-	/// </summary>
-	/// <remarks>
-	/// A construction <c>=&gt;</c> and a binding power <c>&lt;&lt; n</c> belong to an alternative of a
-	/// rule's body, which an argument is not. They used to be read here as if it were one, and refused
-	/// later in the words of the rule the argument was lifted into, a name the author never wrote. Read
-	/// past here, so that the call goes on to its close.
-	/// </remarks>
-	Expr ParseArgument()
-	{
-		var start    = Current.Position;
-		var argument = ParseSequence();
-		var at       = Current.Position;
-		var bound    = At(TokenKind.Less) && Next.Kind == TokenKind.Less ||
-			At(TokenKind.Greater) && Next.Kind == TokenKind.Greater;
-
-		if (!bound && !At(TokenKind.Arrow))
-			return argument;
-
-		ParseBound(argument, start);
-
-		if (TakeIf(TokenKind.Arrow))
-			ParseValue();
-
-		Report(
-			ArgumentNotOperand,
-			bound
-				? "A binding power belongs to an alternative of a rule's own body (§4.3.1), and an argument is " +
-					"not one. Give the strength in the body of the rule the argument stands for, and pass that rule."
-				: "An argument is a piece of grammar or a value, and '=>' builds the value of an alternative of a " +
-					"rule's body. Name the argument as a rule with its construction, and pass that rule.",
-			From(at));
-
-		return argument;
 	}
 
 	Expr.Reference ParseReference()
