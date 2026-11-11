@@ -39,7 +39,8 @@ namespace DotGram.Tests;
 /// A <c>```csharp</c> fence right after a grammar that declares a <c>partial class</c> is the host it is
 /// attached to — the methods its <c>@</c> calls — and is compiled beside it; without one the host is
 /// an empty <c>partial class Grammar</c>. A <c>```text examples</c> fence after that holds runs, one a
-/// line: <c>Method("input") → value</c>, or <c>→ refused</c>. The method is called with the one string;
+/// line: <c>Method("input") → value</c>, <c>→ refused</c>, or <c>→ refused: message</c>, which holds the
+/// text of the refusal too. The method is called with the one string;
 /// a <c>Match</c> it answers is read, a <c>FormatException</c> it throws is a refusal, and a sequence of
 /// matches is their values. A value is shown as C# writes a literal of it (<c>"text"</c>, <c>'c'</c>,
 /// <c>3</c>, <c>true</c>, <c>null</c>), a sequence as <c>[a, b]</c>, anything else by its <c>ToString</c>.
@@ -126,7 +127,14 @@ public sealed class LanguageGuideTests
 
 		foreach (var (call, input, answer) in example.Runs)
 		{
-			Assert.Equal($"{call}({Literal(input)}) → {answer}", $"{call}({Literal(input)}) → {Run(type, call, input)}");
+			var got = Run(type, call, input);
+
+			// A bare `refused` says only that the input is refused; `refused: …` says what the
+			// refusal says, too.
+			if (answer == "refused" && got.StartsWith("refused", StringComparison.Ordinal))
+				got = "refused";
+
+			Assert.Equal($"{call}({Literal(input)}) → {answer}", $"{call}({Literal(input)}) → {got}");
 		}
 	}
 
@@ -273,20 +281,20 @@ public sealed class LanguageGuideTests
 		{
 			answer = method!.Invoke(null, [input]);
 		}
-		catch (TargetInvocationException thrown) when (thrown.InnerException is FormatException)
+		catch (TargetInvocationException thrown) when (thrown.InnerException is FormatException refused)
 		{
-			return "refused";
+			return "refused: " + refused.Message;
 		}
 
 		if (answer is not null && IsMatch(answer.GetType()))
-			return Matched(answer) ?? "refused";
+			return Matched(answer);
 
 		if (answer is IEnumerable sequence and not string)
 		{
 			var shown = new List<string>();
 
 			foreach (var one in sequence)
-				shown.Add(one is not null && IsMatch(one.GetType()) ? Matched(one) ?? "refused" : Show(one));
+				shown.Add(one is not null && IsMatch(one.GetType()) ? Matched(one) : Show(one));
 
 			return "[" + string.Join(", ", shown) + "]";
 		}
@@ -299,13 +307,13 @@ public sealed class LanguageGuideTests
 		return type.IsGenericType && type.Name.StartsWith("Match", StringComparison.Ordinal) && type.GetProperty("IsSuccess") is not null;
 	}
 
-	static string? Matched(object match)
+	static string Matched(object match)
 	{
 		var type = match.GetType();
 
 		return (bool)type.GetProperty("IsSuccess")!.GetValue(match)!
 			? Show(type.GetProperty("Value")!.GetValue(match))
-			: null;
+			: "refused: " + type.GetProperty("Error")!.GetValue(match);
 	}
 
 	static string Show(object? value)
@@ -320,8 +328,32 @@ public sealed class LanguageGuideTests
 			             => "[" + string.Join(", ", sequence.Cast<object?>().Select(Show)) + "]",
 			IFormattable formattable
 			             => formattable.ToString(null, CultureInfo.InvariantCulture),
+			_ when Generated(value.GetType())
+			             => Members(value),
 			_            => value.ToString() ?? "",
 		};
+	}
+
+	/// <summary>
+	/// Whether a value is of a type the grammar made, which says nothing of itself: one of the run's
+	/// own assembly whose <c>ToString</c> is <see cref="object"/>'s.
+	/// </summary>
+	static bool Generated(Type type)
+	{
+		return type.Assembly.GetName().Name == "DotGram.Tests.Guide" &&
+			type.GetMethod(nameof(ToString), Type.EmptyTypes)!.DeclaringType == typeof(object);
+	}
+
+	/// <summary><c>Name { Member = value, … }</c>, the members in the order they are declared.</summary>
+	static string Members(object value)
+	{
+		var members = value
+			.GetType()
+			.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+			.OrderBy(static one => one.MetadataToken)
+			.Select(one => one.Name + " = " + Show(one.GetValue(value)));
+
+		return value.GetType().Name + " { " + string.Join(", ", members) + " }";
 	}
 
 	static string Literal(string text)
