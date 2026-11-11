@@ -160,6 +160,104 @@ public sealed class LanguageGuideTests
 		}
 	}
 
+	/// <summary>
+	/// The quick reference names every sign the lexer of the notation makes and every word its parser reads,
+	/// so that a word added to the language is a failing test until the guide says it.
+	/// </summary>
+	/// <remarks>
+	/// The words are taken from the parser's source, where each is asked for by name; the signs from the
+	/// one spelling each fixed token has. A sign or a word is named where some code span of the page holds it.
+	/// </remarks>
+	[Fact]
+	public void The_reference_names_every_sign_and_word_of_the_notation()
+	{
+		var page   = File.ReadAllText(Path.Combine(SourceRoot.Directory, "docs", "guide", "language", "16-reference.md"));
+		var spans  = Regex.Matches(page, "`([^`\n]+)`").Select(static one => one.Groups[1].Value.Replace("\\|", "|", StringComparison.Ordinal)).ToList();
+		var parser = File.ReadAllText(Path.Combine(SourceRoot.Directory, "src", "DotGram", "Grammar", "Parsing", "GramParser.cs"));
+
+		var words = Regex
+			.Matches(parser, "(?:AtKeyword|TakeIfKeyword|AtSuffixKeyword|TakeIfSuffixKeyword)\\(\"([a-z]+)\"\\)|Value (?:==|is) \"([a-z]+)\"(?: or \"([a-z]+)\")*")
+			.SelectMany(static one => one.Groups.Cast<Group>().Skip(1).SelectMany(static group => group.Captures.Select(static capture => capture.Value)))
+			.Where(static word => word.Length > 0)
+			.Distinct()
+			.ToList();
+
+		var signs = Enum
+			.GetValues<DotGram.Grammar.Parsing.TokenKind>()
+			.Select(static kind => DotGram.Grammar.Parsing.TokenKindExtensions.Spelling(kind))
+			.OfType<string>()
+			.ToList();
+
+		Assert.NotEmpty(words);
+		Assert.NotEmpty(signs);
+
+		var missing = words
+			.Where(word => !spans.Any(span => Regex.IsMatch(span, "\\b" + word + "\\b")))
+			.Concat(signs.Where(sign => !spans.Any(span => span.Contains(sign, StringComparison.Ordinal))))
+			.ToList();
+
+		Assert.True(missing.Count == 0, "16-reference.md does not name: " + string.Join(" ", missing));
+	}
+
+	/// <summary>
+	/// Every link of the guide leads to a page that is there, and to a heading of it where it names one,
+	/// by the anchor GitHub makes of the heading.
+	/// </summary>
+	[Fact]
+	public void Every_link_of_the_guide_leads_somewhere()
+	{
+		var folder = Path.Combine(SourceRoot.Directory, "docs", "guide", "language");
+		var broken = new List<string>();
+
+		foreach (var page in Directory.EnumerateFiles(folder, "*.md"))
+		{
+			var text = File.ReadAllText(page);
+
+			foreach (Match link in Regex.Matches(text, "\\]\\(([^)\\s]+)\\)"))
+			{
+				var target = link.Groups[1].Value;
+
+				if (target.StartsWith("http", StringComparison.Ordinal))
+					continue;
+
+				var hash = target.IndexOf('#', StringComparison.Ordinal);
+				var file = hash < 0 ? target : target[..hash];
+				var path = file.Length == 0 ? page : Path.GetFullPath(Path.Combine(folder, file));
+
+				if (!File.Exists(path))
+				{
+					broken.Add($"{Path.GetFileName(page)}: {target}");
+
+					continue;
+				}
+
+				if (hash >= 0 && !Anchors(File.ReadAllText(path)).Contains(target[(hash + 1)..]))
+					broken.Add($"{Path.GetFileName(page)}: {target}");
+			}
+		}
+
+		Assert.True(broken.Count == 0, "Links that lead nowhere:\n" + string.Join("\n", broken));
+	}
+
+	/// <summary>The anchors GitHub makes of a page's headings: lower case, punctuation dropped, spaces as hyphens.</summary>
+	static HashSet<string> Anchors(string page)
+	{
+		var outside = Regex.Replace(page, "^```.*?^```", "", RegexOptions.Singleline | RegexOptions.Multiline);
+		var anchors = new HashSet<string>(StringComparer.Ordinal);
+		var seen    = new Dictionary<string, int>(StringComparer.Ordinal);
+
+		foreach (Match heading in Regex.Matches(outside, "^#+ (.*?)\\s*$", RegexOptions.Multiline))
+		{
+			var slug = Regex.Replace(heading.Groups[1].Value.Trim().ToLowerInvariant(), "[^\\w\\- ]", "").Replace(' ', '-');
+			var n    = seen.GetValueOrDefault(slug);
+
+			seen[slug] = n + 1;
+			anchors.Add(n == 0 ? slug : $"{slug}-{n}");
+		}
+
+		return anchors;
+	}
+
 	/// <summary>The guide has pages, and each of them has grammars: a page that lost its fences is a page that checks nothing.</summary>
 	[Fact]
 	public void The_guide_is_there()
