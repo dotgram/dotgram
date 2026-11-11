@@ -2,7 +2,7 @@
 
 	<!-- The expression language's second reading, on the tape: the sources of
 	     src/DotGram.ExpressionLanguage compiled again with DOTGRAM_EL_TAPE, under which the
-	     grammar asks for `[GramOptions(Carrier = Tape, Suffix = "Tape")]` as well. The package
+	     grammar asks for `[GramVariant(Carrier = Tape, Name = "Tape")]` as well. The package
 	     leaves the symbol off and so carries one reading, the immediate one; this assembly carries
 	     both, and ExpressionParser.Tape is read from here — by the agreement tests, which hold the
 	     package's reading to it, and by the stand, which measures it. Not shipped: it is a fixture.

@@ -62,11 +62,11 @@ namespace DotGram.Sql.Standard;
 /// constructors and the helpers of <c>Nodes</c> it calls build from what they are given, throw on
 /// nothing the grammar hands them and read no host state, so a derivation given up leaves nothing a
 /// later one could read. Held to
-/// the tape by an agreement run over the ScriptDom corpus, each statement whole and cut, every string
+/// the deferred carrier by an agreement run over the ScriptDom corpus, each statement whole and cut, every string
 /// of the tests, every accepted text cut at each word boundary and given a stray token, through all
 /// four entries: the same trees, the same messages, nothing thrown; the benchmarks compile the same
-/// grammar on the tape (<c>TapeSql</c>) and hold the two carriers to each other. What it buys is the
-/// time the tape spent recording and replaying, for more bytes allocated where a reading is abandoned
+/// grammar carried deferred (<c>TapeSql</c>) and hold the two carriers to each other. What it buys is
+/// the time the deferred carrier spent recording and replaying, for more bytes allocated where a reading is abandoned
 /// part-way — and, on a text refused late, after a long accepted prefix, the time those constructions
 /// took.
 /// </para>

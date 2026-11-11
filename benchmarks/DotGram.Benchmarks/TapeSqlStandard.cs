@@ -20,14 +20,14 @@ namespace DotGram.Benchmarks;
 /// The carriers have changed places and the comparison is kept: the stand's <c>sql/</c> rows read
 /// each text by hand, by the shipped parser and by this copy, and <c>--sql2023-stack</c> holds the two
 /// carriers' frames against each other. It is not the shipped parser: a caller who wants SQL:2023 on
-/// the tape compiles the grammar with <c>Carrier = GramCarrier.Tape</c> as this class does.
+/// the tape compiles the grammar with <c>Carrier = GramCarrier.Deferred</c> as this class does.
 /// </para>
 /// <para>
 /// It is carried whole, one class and no suppression: the tape is the carrier the generator falls
 /// back to, so there is no GRAM5007 to hear and nothing to measure the tape against itself by mistake.
 /// </para>
 /// </remarks>
-[Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Tape)]
+[Gram("SqlStandard.gram", Lexical = true, Carrier = GramCarrier.Deferred)]
 public static partial class TapeSqlStandard
 {
 }

@@ -31,11 +31,11 @@ namespace DotGram.Finance.Fix;
 		Field*
 		recover Separator => @(new FixField.Invalid(parserText, parserSpan.Start, parserMessage))
 	""",
-	LocationType  = typeof(IFixLocation),
-	SpanCaptures  = true,
-	BufferedInput = true,
-	MaxRetained   = 16 * 1024 * 1024,
-	Portable      = false,
+	LocationType           = typeof(IFixLocation),
+	UseSpanCaptures        = true,
+	BufferedText           = true,
+	MaxBufferedInputLength = 16 * 1024 * 1024,
+	ExportGrammar          = false,
 	// Field's switch selector (context.Kind(tag)) reads the state the previous field's own
 	// => wrote (FixReading._expected/Size, a length-and-data pair's binding). A selector
 	// always runs immediately, while => runs immediately only under this carrier; on the

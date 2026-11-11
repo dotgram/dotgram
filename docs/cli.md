@@ -118,7 +118,7 @@ would.
 | `--namespace <Ns>` | `.gram` | the host's namespace (default: none) |
 | `--class <Name>` | `.gram` | the host's name (default: the file's name) |
 | `--public` | `.gram` | a public host (default: internal) |
-| `--option <Name>=<value>` | `.gram` | a `[Gram]` property: `Lexical=true`, `Carrier=Immediate`, `LocationType=My.ISpan`, `Suffix=Fast`, `PartSize=200`, … |
+| `--option <Name>=<value>` | `.gram` | a `[Gram]` property: `Lexical=true`, `Carrier=Immediate`, `LocationType=My.ISpan`, `Name=Fast`, `TargetMethodPartSize=200`, … |
 | `--sources <file.cs\|glob>` | `.gram` | C# the grammar builds, and a partial host with the members its hooks call (no `[Gram]` on it) |
 | `--help`, `-h`, `-?` | | print the help |
 | `--version` | | print the versions |

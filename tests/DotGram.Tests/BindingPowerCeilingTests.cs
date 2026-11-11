@@ -449,10 +449,10 @@ public sealed class BindingPowerCeilingTests
 				     | Lexical.Name
 				parse Expr
 				""", Lexical = true)]
-			[GramOptions(Suffix = "Characters", Lexical = false)]
+			[GramVariant(Name = "Characters", Lexical = false)]
 			public static partial class Sums;
 
-			[GramInclude(typeof(Sums), As = "S")]
+			[GramInclude(typeof(Sums), Alias = "S")]
 			[Gram("""
 				Start = S.Expr & ';'
 				parse Start

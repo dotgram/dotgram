@@ -32,7 +32,7 @@ sealed class EmbeddedGrammar(
 
 	/// <summary>
 	/// The name a user knows the grammar by: its class, nested classes dotted, and the
-	/// <c>Suffix</c> after it where the attribute gives one (<c>Parser.Tape</c>); for a string
+	/// <c>Name</c> after it where the attribute gives one (<c>Parser.Immediate</c>); for a string
 	/// passed to a <c>StringSyntax</c> parameter, the method and the parameter (<c>Inspect(grammar)</c>).
 	/// Null where nothing names it.
 	/// </summary>
@@ -106,7 +106,7 @@ static class EmbeddedGrammarFinder
 
 			var name = host is null
 				? null
-				: host.Options.Suffix is { Length: > 0 } suffix ? host.ClassName + "." + suffix : host.ClassName;
+				: host.Options.Name is { Length: > 0 } suffix ? host.ClassName + "." + suffix : host.ClassName;
 
 			grammars.Add(new EmbeddedGrammar(
 				own,

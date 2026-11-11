@@ -188,7 +188,7 @@ public sealed partial class BufferedInputTests
 	public void The_attribute_sets_the_defaults_the_generated_class_holds()
 	{
 		var run = GeneratorDriverTests.RunGenerator(
-			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedInput = true, MaxRetained = 16, BufferSize = 8)]\npublic partial class Limits;");
+			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedText = true, MaxBufferedInputLength = 16, InitialBufferSize = 8)]\npublic partial class Limits;");
 		var source = string.Join("\n", run.Results.SelectMany(one => one.GeneratedSources).Select(one => one.SourceText.ToString()));
 		Assert.Contains("internal const int DefaultMaxRetained = 16;", source, StringComparison.Ordinal);
 		Assert.Contains("internal const int DefaultBufferSize = 8;", source, StringComparison.Ordinal);
@@ -196,12 +196,12 @@ public sealed partial class BufferedInputTests
 
 	/// <summary>A limit or a capacity of nothing is refused where it is written.</summary>
 	[Theory]
-	[InlineData("MaxRetained = 0")]
-	[InlineData("BufferSize = -1")]
+	[InlineData("MaxBufferedInputLength = 0")]
+	[InlineData("InitialBufferSize = -1")]
 	public void A_buffer_option_of_nothing_is_refused_where_it_is_written(string option)
 	{
 		var run = GeneratorDriverTests.RunGenerator(
-			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedInput = true, " + option + ")]\npublic partial class Limits;");
+			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedText = true, " + option + ")]\npublic partial class Limits;");
 		var diagnostic = Assert.Single(run.Diagnostics, one => one.Id == "GRAM0009");
 		Assert.Contains(option, diagnostic.GetMessage(), StringComparison.Ordinal);
 	}
@@ -543,9 +543,9 @@ public sealed partial class BufferedInputTests
 	{
 		var host = """"
 			using DotGram;
-			[Gram("Start = any*\nparse Start", BufferedInput = true, BufferedBytes = true)]
-			[GramOptions(Suffix = "Inherited")]
-			[GramOptions(Suffix = "Plain", BufferedInput = false, BufferedBytes = false)]
+			[Gram("Start = any*\nparse Start", BufferedText = true, BufferedBytes = true)]
+			[GramVariant(Name = "Inherited")]
+			[GramVariant(Name = "Plain", BufferedText = false, BufferedBytes = false)]
 			public partial class Grammar { }
 			"""";
 		var assembly = GeneratorDriverTests.Build(host);
@@ -762,8 +762,8 @@ public sealed partial class BufferedInputTests
 	{
 		var assembly = GeneratorDriverTests.Build(""""
 			using DotGram;
-			[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start", SpanCaptures = true, BufferedBytes = true)]
-			[GramOptions(Suffix = "Plain", SpanCaptures = false, BufferedBytes = false)]
+			[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start", UseSpanCaptures = true, BufferedBytes = true)]
+			[GramVariant(Name = "Plain", UseSpanCaptures = false, BufferedBytes = false)]
 			public partial class Grammar
 			{
 				static int ToInt(System.ReadOnlySpan<char> text) => text.Length;

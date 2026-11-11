@@ -54,7 +54,7 @@ public sealed class ExternalInputTests
 	{
 		const string code = """
 			using System;
-			[DotGram.Gram("context : @Context\nItem : @string = t: ['a'..'z']+ & ':' & v: { @Read } & ';' => @(Text(t) + \"=\" + Text(v))\nItems : @string = items: Item* recover ';' => @(\"!\" + Text(parserText)) & eof => @(string.Join(\",\", items))\nparse Items stream bytes", BufferedInput = true, SpanCaptures = true)]
+			[DotGram.Gram("context : @Context\nItem : @string = t: ['a'..'z']+ & ':' & v: { @Read } & ';' => @(Text(t) + \"=\" + Text(v))\nItems : @string = items: Item* recover ';' => @(\"!\" + Text(parserText)) & eof => @(string.Join(\",\", items))\nparse Items stream bytes", BufferedText = true, UseSpanCaptures = true)]
 			public partial class Probe
 			{
 				public sealed class Context { public int Size; }
@@ -100,7 +100,7 @@ public sealed class ExternalInputTests
 	{
 		var assembly = GeneratorDriverTests.Build("""
 			using System;
-			[DotGram.Gram("Start = (@Read & 'x') | (@Read & '!')\nparse Start stream bytes", BufferedInput = true, SpanCaptures = true)]
+			[DotGram.Gram("Start = (@Read & 'x') | (@Read & '!')\nparse Start stream bytes", BufferedText = true, UseSpanCaptures = true)]
 			public partial class Probe
 			{
 				static bool Read(ParserInput<char> input, ref int p) { return input.TryAdvance(ref p, 5); }
@@ -166,8 +166,8 @@ public sealed class ExternalInputTests
 				Items : @int[] = Item*
 				parse Items as ReadItems stream bytes yield : @int
 				parse Items with (Separator = CopySeparator) as ReadCopy stream bytes yield : @int
-				""", BufferedInput = true)]
-			[DotGram.GramOptions(Suffix = "Other")]
+				""", BufferedText = true)]
+			[DotGram.GramVariant(Name = "Other")]
 			public partial class Probe
 			{
 				static bool Read(ParserInput<char> input, ref int p)
@@ -228,7 +228,7 @@ public sealed class ExternalInputTests
 
 		return GeneratorDriverTests.Build($$"""
 			using System;
-			[DotGram.Gram("context : @Context\nStart : @string = {{body}}\nparse Start stream bytes", BufferedInput = true, SpanCaptures = true)]
+			[DotGram.Gram("context : @Context\nStart : @string = {{body}}\nparse Start stream bytes", BufferedText = true, UseSpanCaptures = true)]
 			public partial class Probe
 			{
 				public sealed class Context { public int Size; public int Calls; }

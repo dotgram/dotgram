@@ -55,7 +55,7 @@ namespace DotGram.Web;
 	parse Timestamp as ParseTimestamp
 	parse FullDate  as ParseFullDate
 	parse FullTime  as ParseFullTime
-	""", SpanCaptures = true)]
+	""", UseSpanCaptures = true)]
 static partial class Rfc3339
 {
 	// ParseTimestamp, ParseFullDate, ParseFullTime and their Try forms are generated here; Timestamp.Parse,

@@ -36,8 +36,8 @@ namespace DotGram.Examples.Expressions;
 // immediately, as a grammar that names no carrier is, a construction runs as soon as its
 // alternative is read — `1/0=` divides, and throws, before the parse refuses the `=`. With the
 // option the carrier holds what a construction threw, drops it with a reading the parse gives
-// up, and throws it only where the tape would have (docs/syntax.md §7.5): a text that is no
-// expression is refused, and only an expression that divides by zero throws, as on the tape,
+// up, and throws it only where Deferred would have (docs/syntax.md §7.5): a text that is no
+// expression is refused, and only an expression that divides by zero throws, as with Deferred,
 // where every construction waits until the parse has accepted — and at the immediate
 // carrier's speed.
 //

@@ -692,7 +692,7 @@ static partial class CSharpEmitter
 
 		// Unless the author declared that class, in which case what the author wrote says who
 		// may see it and this part says nothing: `internal static partial class Immediate { }`
-		// beside `[GramOptions(Suffix = "Immediate")]` is a reading nobody outside can reach.
+		// beside `[GramVariant(Name = "Immediate")]` is a reading nobody outside can reach.
 		if (options.Suffix is { Length: > 0 })
 			scope.Push(file.Block(SuffixClass(options.Suffix, options.SuffixDeclared)));
 
@@ -775,6 +775,8 @@ static partial class CSharpEmitter
 
 		var byteRules = new HashSet<RuleSymbol>(machines.Where(compiled => compiled.Machine.BufferedBytes)
 			.SelectMany(compiled => compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule))));
+		var locates = false;
+
 		foreach (var rule in graph.Rules)
 		{
 			if (!graph.Types.ContainsKey(rule))
@@ -782,6 +784,8 @@ static partial class CSharpEmitter
 
 			foreach (var factory in FactoriesOf(graph, results, rule))
 			{
+				locates |= factory.Located && graph.PerCall is null && ((Node.Construct)factory.Of).How is Construction.Expression;
+
 				EmitFactory(file, graph, rule, factory, results, options.LineMap, options.SpanCaptures);
 				if (byteRules.Contains(rule))
 					EmitFactory(file, graph, rule, factory with { Method = factory.BytesMethod }, results, options.LineMap, true, true);
@@ -800,10 +804,29 @@ static partial class CSharpEmitter
 
 				foreach (var factory in FactoriesOf(lexical.Source, valuing.Results, rule))
 				{
+					locates |= factory.Located && lexical.Source.PerCall is null && ((Node.Construct)factory.Of).How is Construction.Expression;
 					EmitFactory(file, lexical.Source, rule, factory, valuing.Results, options.LineMap);
 					file.Line();
 				}
 			}
+
+		// What a located value is told through, written once for the class where a construction
+		// tells one (EmitFactory): generic and by reference, constrained to the interface, so that the
+		// call goes through the interface — an explicit implementation of it is called as well as a
+		// public one — and a struct is told in place rather than as a boxed copy.
+		if (locates && (graph.LocationType ?? lexical?.Source.LocationType) is { } locationType)
+		{
+			file.Line("/// <summary>A located value told where it was written, through the interface it is located by.</summary>");
+
+			// Rooted where the name is qualified, as the generator gives it; a bare name is looked up
+			// from here, as a grammar compiled on its own names one.
+			var rooted = locationType.IndexOf('.') >= 0 ? "global::" + locationType : locationType;
+
+			using (file.Block($"static void {Named("Locate")}<T>(ref T made, int at, int length) where T : {rooted}"))
+				file.Line("made.Locate(at, length);");
+
+			file.Line();
+		}
 
 		if (machines.Count > 0)
 			foreach (var rule in graph.Rules)
@@ -1348,7 +1371,7 @@ static partial class CSharpEmitter
 					(machines.Exists(static one => one.Direct) &&
 						machines.TrueForAll(static one => !one.Direct || one.Machine.CarriesImmediately));
 
-				carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}{(given ? "" : " refused")}, the author's" +
+				carriers.Add($"carrier: {(carrier == CarrierKind.Tape ? "deferred" : carrier.ToString().ToLowerInvariant())}{(given ? "" : " refused")}, the author's" +
 					Points(graph, null));
 				Memoised(carriers, [.. machines.Where(static one => one.Direct)]);
 			}
@@ -4630,17 +4653,20 @@ file.Line("return spare;");
 					// value made: nothing is told. A struct is never null and is not asked. The
 					// test teaches the compiler that the value may be null, which the rule's type
 					// says it is not; it is handed back as the author's C# made it (CS8603).
+					//
+					// Told through the interface (LocatedHelper): an explicit implementation of it is
+					// called too, and a struct is told in place.
 					if (IsReferenceType(graph, graph.Types[rule]))
 					{
 						// Not `is not null`, which a consumer on C# 8 cannot compile.
 						file.Line("if (!(made is null))");
-						file.Then("made.Locate(parserSpan.Start, parserSpan.Length);");
+						file.Then($"{Named("Locate")}(ref made, parserSpan.Start, parserSpan.Length);");
 						file.Line();
 						file.Line("return made!;");
 					}
 					else
 					{
-						file.Line("made.Locate(parserSpan.Start, parserSpan.Length);");
+						file.Line($"{Named("Locate")}(ref made, parserSpan.Start, parserSpan.Length);");
 						file.Line();
 						file.Line("return made;");
 					}
@@ -5459,9 +5485,9 @@ file.Line("return spare;");
 				diagnostics.Add(new GramDiagnostic(
 					GramCompiler.CarrierRefused,
 					reader
-						? $"{string.Join("; ", read)} {(read.Count == 1 ? "is" : "are")} carried on the tape rather than as " +
+						? $"{string.Join("; ", read)} {(read.Count == 1 ? "is" : "are")} carried deferred rather than as " +
 							$"Immediate: {why}." + (carried ? " The rest of the grammar is Immediate." : "")
-						: $"This grammar is carried on the tape rather than as {carrier}: {why}. " +
+						: $"This grammar is carried deferred rather than as {carrier}: {why}. " +
 							"The parser is the one it would have been without the request.",
 					0,
 					0,
@@ -5487,10 +5513,10 @@ file.Line("return spare;");
 			serious.Add(
 				$"a refused input can allocate memory quadratic in its length: what {Three(reasons.Rebuilt)} read is built " +
 				$"again each time a way back is taken, a list once a turn given back ({string.Join(", ", reasons.Because)}); " +
-				"for untrusted input keep the tape");
+				"for untrusted input keep it deferred");
 
 		const string choose =
-			"Set Carrier = GramCarrier.Tape to hold constructions until a parse is accepted, or " +
+			"Set Carrier = GramCarrier.Deferred to hold constructions until a parse is accepted, or " +
 			"Carrier = GramCarrier.Immediate once you have checked; a carrier named explicitly silences this, " +
 			"and every reason found later.";
 
@@ -5498,7 +5524,7 @@ file.Line("return spare;");
 		{
 			diagnostics.Add(new GramDiagnostic(
 				GramCompiler.CarrierCaution,
-				$"This grammar is carried as Immediate, and the tape would be safer: {string.Join("; ", serious)}. {choose}",
+				$"This grammar is carried as Immediate, and Deferred would be safer: {string.Join("; ", serious)}. {choose}",
 				0,
 				0,
 				GramSeverity.Warning));
@@ -5521,11 +5547,11 @@ file.Line("return spare;");
 				GramCompiler.CarrierChosen,
 				$"This grammar is carried as Immediate: {string.Join("; ", mild)}. " +
 					(constructionsMayThrow
-						? "A construction with side effects behaves differently there than on the tape; what one throws " +
-							"there is held, and thrown only where the tape would have built its value (ConstructionsMayThrow). "
-						: "A construction that can throw or has side effects there behaves differently than on the tape: an " +
+						? "A construction with side effects behaves differently there than deferred; what one throws " +
+							"there is held, and thrown only where the deferred carrier would have built its value (ConstructionsMayThrow). "
+						: "A construction that can throw or has side effects there behaves differently than deferred: an " +
 							"exception it throws escapes the parse. Where constructions only throw, set ConstructionsMayThrow = true " +
-							"to have the immediate carrier hold what they throw as the tape would. ") +
+							"to have the immediate carrier hold what they throw as the deferred carrier would. ") +
 					choose,
 				0,
 				0,
@@ -5698,7 +5724,7 @@ file.Line("return spare;");
 		var alone = refused.Count(static one => one.Machine.GateReasons is null);
 
 		var gate = replayed.Count > 0 ? "replay" : again.Count > 0 ? "read again" : refused.Count > 0 ? "refused" : "none";
-		var by   = refused.Count > 0 ? "tape" : immediate ? "immediate" : "nothing to choose";
+		var by   = refused.Count > 0 ? "deferred" : immediate ? "immediate" : "nothing to choose";
 		var told = reasons.Serious ? "GRAM5016" : reasons.Named() != "none" ? "GRAM5012" : "none";
 
 		// The grammar's own line is a summary of machines that were each carried on their own,
@@ -5711,7 +5737,7 @@ file.Line("return spare;");
 				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}; " +
 				$"refused: {refused.Count}; alone: {alone}") +
 			$"; reasons: {reasons.Named()}; told: {told}" +
-			$"; machines: {direct.Count}; on the tape: {direct.Count(static one => !one.Machine.CarriesImmediately)}" +
+			$"; machines: {direct.Count}; deferred: {direct.Count(static one => !one.Machine.CarriesImmediately)}" +
 			Points(graph, replay));
 
 		var points = Commit.Of(graph, replay ?? Replay.Of(graph));
@@ -5727,7 +5753,7 @@ file.Line("return spare;");
 
 			lines.Add(
 				$"machine {Read(one)}: carrier: " +
-				(machine.CarriesImmediately ? "immediate" : "tape") +
+				(machine.CarriesImmediately ? "immediate" : "deferred") +
 				"; gate: " +
 				(replaying > 0 ? "replay" : reading > 0 ? "read again" : refusal is not null ? "refused" : "none") +
 				$"; building: {held?.Building.Count ?? 0}; replayed: {replaying}; " +
