@@ -223,9 +223,12 @@ static class EmbeddedGrammarFinder
 		// the class carries is what there is across an assembly reference.
 		foreach (var include in GramIncludes.Walk(type))
 		{
+			// A referenced assembly's grammar is the one it carries, as the generator reads it.
 			var text = include.Source is { } written && !IsFile(written)
 				? written
-				: includedFile?.Invoke(GramIncludes.Wanted(include));
+				: include.Shipped
+					? include.Portable
+					: includedFile?.Invoke(GramIncludes.Wanted(include));
 
 			text ??= include.Portable;
 

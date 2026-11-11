@@ -84,11 +84,21 @@ enum SharedNeeds
 /// A compiler message, positioned in the grammar text.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Deliberately not Roslyn's <c>Diagnostic</c>: the grammar half must stay callable
 /// without Roslyn, so the shell converts these on the way out.
+/// </para>
+/// <para>
+/// The severity is <see cref="DiagnosticCatalog"/>'s wherever the identifier is listed there, which
+/// a test holds every call site to; the one passed in stands only for an identifier the catalog
+/// does not know.
+/// </para>
 /// </remarks>
 sealed record GramDiagnostic(string Id, string Message, int Position, int Length, GramSeverity Severity)
 {
+	/// <summary>The severity the identifier is reported with (<see cref="DiagnosticCatalog"/>).</summary>
+	public GramSeverity Severity { get; init; } = DiagnosticCatalog.SeverityOf(Id, Severity);
+
 	public override string ToString()
 	{
 		return $"{Id} at {Position}..{Position + Length}: {Message}";
