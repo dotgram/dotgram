@@ -141,6 +141,30 @@ public sealed class ExpressionDottedTypeRefusalAllocationTests
 		Assert.False(walked.IsValueCreated, "A member chain on a parameter walked the scope's closure.");
 	}
 
+	/// <summary>
+	/// A head that a declared name begins is not that name: <c>DꟋ</c> over a parameter <c>D</c> is the root of
+	/// a type, and is read as one however long its name.
+	/// </summary>
+	/// <remarks>
+	/// U+A7CB has been a letter since Unicode 16.0, which the parser's own tables say and the runtime's say only
+	/// from .NET 10. Where the end of the head was found by asking the runtime what a letter is, the netstandard2.0
+	/// build on .NET 8 read the head as <c>D</c>, found it declared, and refused this text. The head's end is now
+	/// where the grammar says a word must end, which asks no table; on this runtime the test holds either way,
+	/// and it pins that a declared prefix of a head cuts nothing.
+	/// </remarks>
+	[Fact]
+	public void A_head_a_declared_name_begins_is_not_that_name()
+	{
+		var match = ExpressionParser.TryParse("(int D) => D\uA7CB.A1.A2.A3.A4.A5.A6.A7.A8.A9.A10.X.Value");
+
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal(42, match.Value.Compile().DynamicInvoke(0));
+
+		match = ExpressionParser.TryParse("(int D) => D\uA7CB . A1 .A2. A3\n.A4\t.A5\r\n.A6.A7.A8.A9.A10.X.Value");
+
+		Assert.True(match.IsSuccess, match.Error);
+	}
+
 	/// <summary>The same chain, accepted, allocates about as much a member at every length: it is read once, not given back a part at a time.</summary>
 	[Fact]
 	public void A_long_member_chain_on_a_parameter_allocates_about_as_many_bytes_a_member_at_every_size()
