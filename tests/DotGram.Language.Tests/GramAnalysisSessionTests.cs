@@ -362,6 +362,72 @@ public sealed class GramAnalysisSessionTests
 		Assert.Equal(edited, host.Analysed[^1].Context?.AnalysisTail);
 	}
 
+	/// <summary>
+	/// The same edit while the second resolution runs, the first one cancelled by a change to the
+	/// solution while it was still reading: the first one's late end neither publishes nor lets go of
+	/// what the second one keeps, and the second one's end with the text from before the edit sends
+	/// the host to be looked for a third time, which reads the edited text.
+	/// </summary>
+	[Fact]
+	public async Task An_included_grammars_edit_survives_the_cancelled_resolution_before()
+	{
+		const string original = "Word = 'a'\n";
+		const string edited   = "Word = 'a'\nExtra = 'x'\n";
+
+		using var workspace = new AdhocWorkspace();
+		var project  = workspace.AddProject("P", LanguageNames.CSharp);
+		var baseId   = DocumentId.CreateNewId(project.Id);
+		var solution = workspace.CurrentSolution
+			.AddAdditionalDocument(baseId, "Base.gram", SourceText.From(original), filePath: @"P:\Parsers\Base.gram")
+			.AddAdditionalDocument(DocumentId.CreateNewId(project.Id), "Dialect.gram", SourceText.From("A = B.Word\n"), filePath: FilePath);
+
+		Assert.True(workspace.TryApplyChanges(solution));
+
+		var host    = new FakeHost("A = B.Word\n");
+		var first   = new TaskCompletionSource<StandaloneGrammarResolution>();
+		var second  = new TaskCompletionSource<StandaloneGrammarResolution>();
+
+		host.Resolve = () => host.Resolves switch
+		{
+			1 => first.Task,
+			2 => second.Task,
+			_ => Task.FromResult(Included(project.Id, baseId, edited)),
+		};
+
+		var session = host.Session();
+
+		session.Follow(FilePath);
+		Assert.Equal(1, host.Resolves);
+
+		// The solution changes as a whole: the first resolution is cancelled, the second one starts.
+		var current = workspace.CurrentSolution;
+
+		session.WorkspaceChanged(new WorkspaceChangeEventArgs(WorkspaceChangeKind.SolutionChanged, current, current));
+		host.Scheduler.Advance(GramAnalysisSession.ResolveDelayMilliseconds);
+		Assert.Equal(2, host.Resolves);
+
+		// The included grammar is edited while the second one reads the solution.
+		Assert.True(workspace.TryApplyChanges(current.WithAdditionalDocumentText(baseId, SourceText.From(edited))));
+		session.WorkspaceChanged(new WorkspaceChangeEventArgs(
+			WorkspaceChangeKind.AdditionalDocumentChanged, current, workspace.CurrentSolution, project.Id, baseId));
+
+		// The cancelled one ends late, with what it read: nothing of it is published.
+		first.SetResult(Included(project.Id, baseId, original));
+		await Task.Yield();
+		Assert.Equal(StandaloneGrammarState.NotReady, session.Resolution.State);
+
+		// The second one ends with what it read before the edit, and the host is looked for again.
+		second.SetResult(Included(project.Id, baseId, original));
+		await Task.Yield();
+		Assert.Equal(original, session.Resolution.Context?.AnalysisTail);
+
+		host.Scheduler.Advance(GramAnalysisSession.ResolveDelayMilliseconds);
+
+		Assert.Equal(3, host.Resolves);
+		Assert.Equal(edited, session.Resolution.Context?.AnalysisTail);
+		Assert.Equal(edited, host.Analysed[^1].Context?.AnalysisTail);
+	}
+
 	static StandaloneGrammarResolution Included(ProjectId project, DocumentId included, string tail)
 	{
 		return new StandaloneGrammarResolution(
