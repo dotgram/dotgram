@@ -4,6 +4,8 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
+using DotGram.Language;
+
 using Microsoft.VisualStudio.Shell;
 
 namespace DotGram.VisualStudio;
@@ -184,7 +186,7 @@ static class EditorGuard
 	/// </summary>
 	internal static bool Canceled(OperationCanceledException exception, CancellationToken cancellationToken)
 	{
-		return cancellationToken.IsCancellationRequested && exception.CancellationToken == cancellationToken;
+		return GramFailures.Canceled(exception, cancellationToken);
 	}
 
 	/// <summary>

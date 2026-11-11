@@ -396,6 +396,40 @@ public sealed class GramAnalysisSessionTests
 		Assert.Equal(["A = 'a'", "A = 'b'"], host.Analysed.Select(static item => item.Text));
 	}
 
+	/// <summary>
+	/// Only the session's own cancellation is passed over: another token's, surfacing after the
+	/// session's own was cancelled by the next edit, is reported like any failure.
+	/// </summary>
+	[Fact]
+	public void A_cancellation_that_is_not_the_sessions_own_is_reported()
+	{
+		var host    = new FakeHost("A = 'a'");
+		var session = host.Session();
+		var before  = host.Current;
+
+		session.Document(before);
+
+		host.During = text =>
+		{
+			if (text != "A = 'b'")
+				return;
+
+			host.During = null;
+			host.Edit(session, "A = 'c'");
+
+			using var foreign = new CancellationTokenSource();
+
+			foreign.Cancel();
+
+			throw new OperationCanceledException(foreign.Token);
+		};
+
+		host.Edit(session, "A = 'b'");
+		host.Scheduler.Advance(GramAnalysisSession.AnalysisDelayMilliseconds);
+
+		Assert.Contains(host.Reported, static exception => exception is OperationCanceledException);
+	}
+
 	static ProjectId Watched { get; } = ProjectId.CreateNewId();
 
 	static DocumentId HostDeclaration { get; } = DocumentId.CreateNewId(Watched);

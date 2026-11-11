@@ -774,7 +774,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				ScheduleResolve(retry >= 0 ? retry : GramAnalysisSession.ResolveDelayMilliseconds);
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -938,7 +938,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 
 			await _host.RaiseAsync(() => GramAnalysisSession.Raise(Changed, snapshot, _host.Report), cancellationToken).ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)

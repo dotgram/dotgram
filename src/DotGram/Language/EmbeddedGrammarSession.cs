@@ -350,7 +350,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 			await _host.Scheduler.DelayAsync(EmbeddedGrammarSession.AnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
 			await AnalyzeAsync(snapshot, cancellationToken).ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -477,7 +477,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 			if (retry)
 				_host.Scheduler.Run(() => RetryAsync(snapshot, cancellationToken));
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
@@ -629,7 +629,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 			if (_host.Current == snapshot)
 				Schedule(snapshot);
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
