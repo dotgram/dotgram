@@ -5129,6 +5129,21 @@ file.Line("return spare;");
 
 		return found;
 
+		// The capture a turn is: the turn itself, or under a trivia that reads something the one capture
+		// in it, which trivia wove its seam before (§4.5).
+		static Node.Capture? Turn(Node repeated)
+		{
+			if (repeated is Node.Capture capture)
+				return capture;
+
+			if (repeated is not Node.Sequence(var parts))
+				return null;
+
+			var held = parts.Where(static part => NodeWalk.Descendants(part).Any(static node => node is Node.Capture)).ToList();
+
+			return held is [Node.Capture only] ? only : null;
+		}
+
 		// The capture is where a recovered element goes: the same sequence its successful
 		// siblings collect into. It may be either side of the quantifier — `rows: Row*` is
 		// `(rows: Row)*`, because a capture binds tighter (§10) — so both are looked at.
@@ -5138,7 +5153,7 @@ file.Line("return spare;");
 			{
 				found.Add((
 					node, recovery,
-					slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1));
+					slot >= 0 ? slot : Turn(repeated) is { } capture ? layout.SlotOf(capture) : -1));
 
 				return;
 			}
