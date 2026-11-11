@@ -371,6 +371,31 @@ public sealed class GramAnalysisSessionTests
 			[included]);
 	}
 
+	/// <summary>
+	/// An editor that moves to a new version before it tells of the edit may have that version
+	/// analysed in between, a request asking about it; the edit told of late keeps that analysis.
+	/// </summary>
+	[Fact]
+	public void An_edit_told_of_after_its_version_was_analysed_keeps_the_analysis()
+	{
+		var host    = new FakeHost("A = 'a'");
+		var session = host.Session();
+		var before  = host.Current;
+
+		session.Document(before);
+
+		var after = host.Advance("A = 'b'");
+
+		session.Document(after);
+		Assert.Same(after, session.Result?.Version);
+
+		session.Edited(before, after);
+		host.Scheduler.Advance(GramAnalysisSession.AnalysisDelayMilliseconds);
+
+		Assert.NotEmpty(session.Document(after).Classifications);
+		Assert.Equal(["A = 'a'", "A = 'b'"], host.Analysed.Select(static item => item.Text));
+	}
+
 	static ProjectId Watched { get; } = ProjectId.CreateNewId();
 
 	static DocumentId HostDeclaration { get; } = DocumentId.CreateNewId(Watched);

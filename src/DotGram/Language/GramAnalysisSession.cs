@@ -832,6 +832,12 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 	{
 		lock (_gate)
 		{
+			// The new version may be analysed before its edit is told about: an editor that moves
+			// to it first may be asked about it, or have its host found, in between. Its own
+			// analysis stands, and nothing more is to be done for it.
+			if (_snapshot == after && _document is not null)
+				return;
+
 			_document = _snapshot == before && _document is not null
 				? _host.Translate(_document, before, after)
 				: EmptyDocument;
