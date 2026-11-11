@@ -819,7 +819,10 @@ a choice has given a turn back a second time, until an attempt stands and is bui
 a rule whose own guard asks for its value so far. With a context or a recovery, and in such a
 rule, nothing is left unbuilt: the second reading builds again, and every way back taken builds
 what stood before it again, as often as the input gives ways back — for a long refused list,
-memory quadratic in its length, which `GRAM5016` warns of. A construction that only builds
+memory quadratic in its length, which `GRAM5016` warns of. How many times a construction runs
+for a reading given up is not promised either way: the generator may share an operand two
+alternatives begin with, or read a rule once where it can prove the reading is the same, and
+then builds it once where the grammar as written would have built it twice. A construction that only builds
 does not mind. One that
 counts, logs or throws does: an exception it throws there escapes the publication (§7.5) —
 unless the grammar says `ConstructionsMayThrow = true`, which holds what a construction throws
@@ -4560,6 +4563,12 @@ That grammar is not printed here, because a printed one is not checked.
 `ExampleTests.The_notation_reads_its_own_corpus` runs it over every grammar in this
 repository — the snapshots on disk and the text of every `[Gram]` in the examples
 assembly, which a new grammar joins without anyone remembering to add it.
+
+That grammar is a check, not the definition. What the generator reads is decided by its own
+parser, written by hand: `src/DotGram/Grammar/Parsing/GramLexer.cs` and `GramParser.cs`. Where
+the two disagree, the hand-written parser is the authority and the example grammar is the one to
+correct. The language guide's quick reference (`docs/guide/language/16-reference.md`) is held by a
+test to every word and sign that parser reads.
 
 Two things in the running grammar are worth knowing about, since neither is visible in
 a production list:
