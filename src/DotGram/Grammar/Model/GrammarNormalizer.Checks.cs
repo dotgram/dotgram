@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -207,8 +208,11 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	void Prune()
 	{
+		// A rule whose generated type the grammar names is kept for its type, whether or not a parse
+		// reaches it, and so is what it calls, which its members are typed by.
+		var named   = _namedTypes.Values.Where(HasGeneratedType).Distinct().ToList();
 		var reached = _publications.Count > 0
-			? Reached(_publications, rebindings: false)
+			? Reached(_publications, rebindings: false, named)
 			: Reached(_publications, rebindings: false, [.. _rules.Where(static one => !IsSpliced(one) && !one.IsBuiltIn)]);
 
 		if (reached.Count == _rules.Count)
