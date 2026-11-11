@@ -878,7 +878,9 @@ Add             = l: Expr & '+' & r: Expr     => Add(l, r)
 
 The last line carries an important distinction: `Add` without `@` constructs a type
 owned by the grammar, whereas `@Add` would call a host method. Same rule as §2,
-nothing new.
+nothing new. The type is the one the grammar generates for the rule `Add` — a rule that
+captures and says nothing else of its value (§4.1 case 3) — and it is built from the values
+handed, in the order the rule writes its captures.
 
 A nested group may also construct a value:
 
@@ -1065,8 +1067,8 @@ is about. Over characters a rule earns its own commit only by being written insi
 3. There are captures — they are matched to the result type by name (§7.3). A rule that
    declares no type gets one generated, named after it, with a member for each capture; a
    rule may name it as its own, `Swapped : Pair`, and gives back a value of that type: one
-   its `=>` builds, the value of the one operand that produces it, or one its captures fill
-   by name.
+   its `=>` builds (`=> Pair(right, left)`), the value of the one operand that produces it,
+   or one its captures fill by name.
 4. None of the above — the result is the matched extent: `string` gives the text,
    `@SourceSpan` gives the bounds. Any other type requires an explicit `=>`. The extent is
    the rule's own: the trivia a `parse` reads before and after a published rule is not in

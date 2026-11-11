@@ -76,6 +76,19 @@ public sealed class NamedRuleTypeTests
 
 	[Theory]
 	[MemberData(nameof(Renderings))]
+	public void A_construction_builds_a_rules_generated_type_by_its_name(CarrierKind carrier, bool direct)
+	{
+		var assembly = Built(
+			Numbers +
+			"Swapped : Pair = left: Number & ';' & right: Number => Pair(right, left)\n" +
+			"parse Pair\nparse Swapped", carrier, direct);
+
+		Assert.Equal("Pair { Left = 1, Right = 2 }", Shown(EmittedCode.Match(assembly, "Grammar", "TryParsePair", "1,2").Value));
+		Assert.Equal("Pair { Left = 2, Right = 1 }", Shown(EmittedCode.Match(assembly, "Grammar", "TryParseSwapped", "1;2").Value));
+	}
+
+	[Theory]
+	[MemberData(nameof(Renderings))]
 	public void A_rule_typed_by_another_takes_its_generated_type(CarrierKind carrier, bool direct)
 	{
 		// In C#, as the guide first wrote it; passed through, §4.1 case 3; and filled from the
