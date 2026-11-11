@@ -114,6 +114,18 @@ static class GramCompiler
 			if (!Inside(broken, diagnostic))
 				diagnostics.Add(diagnostic);
 
+		// What a rule begins with goes round for ever on some grammars rather than settling — rings
+		// of rules that lead with one another, which are refused for that already. Where nothing
+		// else refused the grammar, this does: its answers were cut off, not worked out.
+		if (!HasErrors(diagnostics) && FirstSets.Unsettled(graph) is { } unsettled)
+			diagnostics.Add(new GramDiagnostic(
+				GrammarNormalizer.FirstSetUnsettled,
+				$"What '{unsettled.Name}' can begin with does not settle: working it out goes round without end. " +
+				"This is a defect of the compiler's; the grammar is refused rather than compiled from an unfinished answer.",
+				unsettled.Declaration?.At.Position ?? 0,
+				unsettled.Declaration?.At.Length ?? 0,
+				GramSeverity.Error));
+
 		// What the grammar asked for and cannot have, said where the asking is (§6.3).
 		// After normalization because it is a question about the graph, and only when the
 		// grammar is otherwise sound: telling an author what a broken rule will not get is
