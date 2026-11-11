@@ -89,7 +89,7 @@ Word = parserText: ['a'..'z']+
 parse Word
 ```
 
-```dotgram GRAM2003 GRAM2002 recheck
+```dotgram GRAM2003 GRAM2002
 Guarded : @string = when: ['a'..'z']+ => @(@when)
 ```
 
@@ -111,7 +111,7 @@ declaration, `GRAM2002`).
 > без шагов дают `""` (`digits: ['0'..'9']*`, и `{0,3}` тоже). Скобки в `Number` не дают `Number*` прочитать `12` и как одно, и как два числа. Захват может называться как угодно, включая ключевые слова C# (внутри `@(…)` — как в C#:
 > `@(@using)`); одно имя может захватываться в нескольких альтернативах, если тип везде один.
 > Привязка `$q:` — не захват. Отвергаются: одно имя с разными типами — `GRAM4007`; имя на `parser` —
-> `GRAM4012`; захват `when:` — `GRAM2003` (сейчас; помечено `recheck`, см. вопрос Q04.1).
+> `GRAM4012`; захват `when:` — `GRAM2003` (см. вопрос Q04.1).
 <!-- ru:end -->
 
 ## What a rule gives back
@@ -193,13 +193,13 @@ Count : int = ['0'..'9']+
 parse Count
 ```
 
-```dotgram GRAM3002 recheck
+```dotgram GRAM3002
 Row : Missing = 'a'
 
 parse Row
 ```
 
-```dotgram pending
+```dotgram GRAM4056
 Item  : @string   = 'a' => @("A")
 Items : @string[] = items: { Item }* => @(items)
 
@@ -209,8 +209,7 @@ parse Items
 `GRAM4008`: nothing says how to make an `int` of the text. `GRAM3002`: `Missing` is neither a rule in
 view nor a C# type (which would be written `@Missing`). A capture whose type does not fit what the
 `=>` makes of it — here a repetition of a braced group, which is its text and not an array — is said
-against the grammar's line, with a GRAM diagnostic, rather than by the C# compiler in the generated
-file (this example awaits that fix; its identifier is filled in when it lands).
+against the grammar's line (`GRAM4056`), rather than by the C# compiler in the generated file.
 
 <!-- ru:begin -->
 > **RU.** Значение правила определяется первым подходящим из четырёх случаев. **1.** Есть `=>` — он
@@ -227,7 +226,7 @@ file (this example awaits that fix; its identifier is filled in when it lands).
 > правило и не тип C#, — `GRAM3002` (diagnostics.md описывает этот случай как `GRAM4011`, см. вопрос).
 > Захват, тип которого не подходит к тому, что из него делает `=>` (повторение группы в скобках — это
 > текст, а не массив), сообщается диагностикой GRAM на строке грамматики, а не ошибкой C# в
-> сгенерированном файле (пример `pending`: ждёт исправления, id будет вписан). Текст целого `parse` не включает trivia вокруг правила.
+> сгенерированном файле (`GRAM4056`). Текст целого `parse` не включает trivia вокруг правила.
 <!-- ru:end -->
 
 ## Construction: `=>`
@@ -277,7 +276,7 @@ A name without `@` builds the type the grammar generates for a rule, its argumen
 rule writes its captures. A rule declared with another rule's name as its type gives back a value of
 that rule's type:
 
-```dotgram pending
+```dotgram
 Number  : int  = ['0'..'9']+ => @int.Parse(parserText)
 Pair           = left: Number & ',' & right: Number
 Swapped : Pair = left: Number & ';' & right: Number => Pair(right, left)
@@ -305,7 +304,7 @@ Notes:
 > вызов C# `@M(a, b)`; любое выражение C# `@(…)`; имя без `@` — построение типа, который грамматика
 > генерирует для правила (`Pair(right, left)`, аргументы — в порядке захватов правила). Правило,
 > объявленное с именем другого правила вместо типа (`Swapped : Pair`), возвращает значение типа этого
-> правила (пример помечен `pending`: исправление в работе). Захваты там — обычные локальные переменные, как и даваемые имена;
+> правила (пример `Swapped`). Захваты там — обычные локальные переменные, как и даваемые имена;
 > `@M(a, b)` и `@(M(a, b))` — одно и то же. То, что после `@`, — C# потребителя: опечатка в методе —
 > ошибка C# на строке грамматики. Исключение из конструирования — не отказ: оно уходит из
 > `TryParse…` так же, как из `Parse…`; то, что может не выполниться, проверяйте охранником. `=>`
