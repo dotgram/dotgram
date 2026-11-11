@@ -87,6 +87,39 @@ positional find A
 === GRAM2013
 A = 'a'
 positional internal parse A
+=== GRAM2014
+A = ['a'..]
+parse A
+=== GRAM2015
+A = ['a'..'z'i]
+parse A
+=== GRAM2016
+A = B<int>
+B = 'b'
+parse A
+=== GRAM2017
+A = 'a'*?
+parse A
+=== GRAM2018
+A = L('a' << 2)
+L(x) = x
+parse A
+=== GRAM2019
+A = 'a'
+using Std;
+parse A
+=== GRAM2020
+A = switch @(1) { case 'a': 'b' }
+parse A
+=== GRAM2021
+A = switch @(1) { case 1: 'a' case 1: 'b' }
+parse A
+=== GRAM2022
+A = switch @(1) { case 1: 'a' case "1": 'b' }
+parse A
+=== GRAM2023
+A = switch @(1) { }
+parse A
 === GRAM3001
 A = 'a'
 A = 'b'

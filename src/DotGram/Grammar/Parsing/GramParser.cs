@@ -54,6 +54,45 @@ sealed class GramParser
 	public const string ModifierOrder        = "GRAM2013";
 
 	/// <summary>
+	/// A character range with no character after its <c>..</c> (<c>['a'..]</c>), or one written
+	/// outside the brackets of an element set (<c>'a'..'z'</c>).
+	/// </summary>
+	public const string MalformedRange       = "GRAM2014";
+
+	/// <summary>A case-insensitive character as an element of a set or a bound of a range: <c>['a'i]</c>.</summary>
+	public const string CaseInsensitiveElement = "GRAM2015";
+
+	/// <summary>Type arguments after a name of the grammar rather than a C# one: <c>B&lt;int&gt;</c>.</summary>
+	public const string TypeArgumentsOnGrammarName = "GRAM2016";
+
+	/// <summary>A second quantifier on one operand: <c>'a'*?</c>, <c>'a'+*</c>.</summary>
+	public const string SecondQuantifier     = "GRAM2017";
+
+	/// <summary>
+	/// A call's argument with what only an alternative of a rule's body has: a construction
+	/// <c>=&gt;</c> or a binding power <c>&lt;&lt;</c>, <c>&gt;&gt;</c>.
+	/// </summary>
+	public const string ArgumentNotOperand   = "GRAM2018";
+
+	/// <summary>A <c>using</c> after the first declaration of its file or block.</summary>
+	public const string UsingAfterDeclaration = "GRAM2019";
+
+	/// <summary>
+	/// Something in a <c>switch</c>'s braces that is not a <c>case</c> label, a <c>default</c> or a body,
+	/// or a label that is not a whole number or a string, or a number too large for one.
+	/// </summary>
+	public const string SwitchLabelExpected  = "GRAM2020";
+
+	/// <summary>A <c>switch</c> label written twice.</summary>
+	public const string SwitchLabelTwice     = "GRAM2021";
+
+	/// <summary>A <c>switch</c> whose labels are numbers and strings both.</summary>
+	public const string SwitchLabelsMixed    = "GRAM2022";
+
+	/// <summary>A <c>switch</c> with no case, or with labels and no body after them.</summary>
+	public const string SwitchEmpty          = "GRAM2023";
+
+	/// <summary>
 	/// The deepest the parser goes into what nests: an operand inside another (a group, braces, a
 	/// lookahead, a capture, a binding, a call's arguments, a rebinding, a switch), a condition's
 	/// parentheses, a C# type's arguments, a namespace inside another — one level each, so a group
@@ -145,6 +184,32 @@ sealed class GramParser
 	bool TakeIfKeyword(string keyword)
 	{
 		if (!AtKeyword(keyword))
+			return false;
+
+		_index++;
+
+		return true;
+	}
+
+	/// <summary>
+	/// Whether a contextual word stands here that goes on with what was just read — <c>with</c>,
+	/// <c>recover</c>, <c>as</c>, <c>and</c> … — rather than naming a rule declared after it.
+	/// </summary>
+	/// <remarks>
+	/// The words are names everywhere else, and a rule may be called <c>with</c>. Declared on the line
+	/// after an operand, it used to be read as the operand's <c>with</c>, and the declaration was lost
+	/// in a message about the rebinding it was not. A word that begins a rule's head is the rule's,
+	/// here as it is at the top of a file (<see cref="StartsRule"/>), which needs no rule about lines:
+	/// no rebinding, recovery or condition goes on with an <c>=</c>.
+	/// </remarks>
+	bool AtSuffixKeyword(string keyword)
+	{
+		return AtKeyword(keyword) && !StartsRule();
+	}
+
+	bool TakeIfSuffixKeyword(string keyword)
+	{
+		if (!AtSuffixKeyword(keyword))
 			return false;
 
 		_index++;
@@ -275,6 +340,23 @@ sealed class GramParser
 		if (AtKeyword("namespace") && Next.Kind == TokenKind.Identifier && !StartsRule())
 			return ParseNamespace();
 
+		// An import is read before the first declaration, at the head of the file or of a namespace's
+		// block. One written later used to be read as a rule called `using` and told that it lacked
+		// its `=`: said as what it is, and read past.
+		if (AtUsing())
+		{
+			var at     = Current.Position;
+			var import = ParseUsing();
+
+			Report(
+				UsingAfterDeclaration,
+				$"'{(import.IsCSharp ? "@using" : "using")} {import.Name};' stands before the first declaration of its file " +
+				"or namespace block, with the other imports: move it up.",
+				From(at));
+
+			return null;
+		}
+
 		if (AtPublication())
 			return Published(ParsePublication());
 
@@ -363,7 +445,10 @@ sealed class GramParser
 			at++;
 		}
 
-		return at < _tokens.Count && (EqualsAt(at) || _tokens[at].Kind is TokenKind.Colon);
+		// The whole `: Type =` where there is a type, as for a rule without parameters: a `:` alone
+		// follows a publication's rebindings too, `parse X with (A = B) : @T`, where `with` is a word
+		// and not a rule (AtSuffixKeyword).
+		return at < _tokens.Count && (EqualsAt(at) || StartsTypedRule(at));
 	}
 
 	/// <summary>
@@ -726,16 +811,16 @@ sealed class GramParser
 		var targetAt   = Current.Position;
 		var target     = At(TokenKind.Identifier) && Next.Kind == TokenKind.Colon
 			? ParseReference() : ParseQuantifiedCore(targetAt);
-		var rebindings = TakeIfKeyword("with") ? ParseRebindings() : [];
-		var alias      = TakeIfKeyword("as") ? ExpectName() : null;
+		var rebindings = TakeIfSuffixKeyword("with") ? ParseRebindings() : [];
+		var alias      = TakeIfSuffixKeyword("as") ? ExpectName() : null;
 
 		// The third part a rule has, in the place it reads as the method's own: `parse
 		// … as Name : @T`. For a named rule it declares the public result contract;
 		// for an inline expression it also tells the lifted rule what to construct.
 		var type = TakeIf(TokenKind.Colon) ? ParseType() : null;
-		var bufferedInput = TakeIfKeyword("stream");
-		var bufferedBytes = bufferedInput && TakeIfKeyword("bytes");
-		var yield = !StartsRule() && TakeIfKeyword("yield");
+		var bufferedInput = TakeIfSuffixKeyword("stream");
+		var bufferedBytes = bufferedInput && TakeIfSuffixKeyword("bytes");
+		var yield = TakeIfSuffixKeyword("yield");
 		var yieldType = yield && TakeIf(TokenKind.Colon) ? ParseType() : null;
 		if (yield && type is not null && target is Expr.Reference(false, _, { Count: 0 }))
 			Report(PublicationTypeOnRule, "Place the element type after 'yield', not before it.", type.At);
@@ -1171,7 +1256,7 @@ sealed class GramParser
 		{
 			ParseValue();
 
-			found = AtKeyword("is") || AtKeyword("and") || AtKeyword("or");
+			found = AtSuffixKeyword("is") || AtSuffixKeyword("and") || AtSuffixKeyword("or");
 		}
 		catch (Exception)
 		{
@@ -1197,7 +1282,7 @@ sealed class GramParser
 	{
 		var tests = new List<Test> { ParseAllTest() };
 
-		while (!_panic && AtKeyword("or"))
+		while (!_panic && AtSuffixKeyword("or"))
 		{
 			Take();
 
@@ -1213,7 +1298,7 @@ sealed class GramParser
 	{
 		var tests = new List<Test> { ParseOneTest() };
 
-		while (!_panic && AtKeyword("and"))
+		while (!_panic && AtSuffixKeyword("and"))
 		{
 			Take();
 
@@ -1259,7 +1344,7 @@ sealed class GramParser
 		// asks is which strings two recognizers share, and a C# expression is neither.
 		if (left is Expr.CSharp)
 		{
-			if (!AtKeyword("is"))
+			if (!AtSuffixKeyword("is"))
 				return new Test.Runs(left);
 
 			Report(
@@ -1274,7 +1359,7 @@ sealed class GramParser
 			return new Test.Runs(left);
 		}
 
-		if (!AtKeyword("is"))
+		if (!AtSuffixKeyword("is"))
 		{
 			Report(
 				ExpectedIs,
@@ -1329,6 +1414,8 @@ sealed class GramParser
 				MaxLength = maxLength,
 			};
 
+			ReadPastSecondQuantifier();
+
 			return Recovering(quantified, start);
 		}
 
@@ -1366,6 +1453,48 @@ sealed class GramParser
 	}
 
 	/// <summary>
+	/// A quantifier after the one an operand already has — <c>'a'*?</c>, <c>'a'+*</c>, <c>'a'{2}?</c> —
+	/// said where it stands and read past.
+	/// </summary>
+	/// <remarks>
+	/// Nothing else can stand there: what follows an operand is a connector, a close or the end of the
+	/// rule. Left alone, it ended the rule and was told as a declaration the file does not have.
+	/// </remarks>
+	void ReadPastSecondQuantifier()
+	{
+		while (At(TokenKind.Question) || At(TokenKind.Star) || At(TokenKind.Plus) || AtCount())
+		{
+			var at = Current.Position;
+
+			if (Take().Kind == TokenKind.OpenBrace)
+			{
+				while (Current.Kind is TokenKind.Integer or TokenKind.Comma or TokenKind.Identifier or TokenKind.LengthName)
+					Take();
+
+				TakeIf(TokenKind.CloseBrace);
+			}
+
+			Report(
+				SecondQuantifier,
+				"An operand takes one quantifier, and a repetition is always greedy — there are no lazy " +
+				"or possessive forms. To repeat a repetition, group it: ('a'*)?. To keep what a " +
+				"repetition took from being given back, make it atomic: { 'a'* }.",
+				From(at));
+		}
+
+		// A `{` that opens a count. One that opens an atomic group cannot follow an operand either,
+		// and is left to be told as the missing connector it is.
+		bool AtCount()
+		{
+			if (!At(TokenKind.OpenBrace))
+				return false;
+
+			return Next.Kind is TokenKind.Integer or TokenKind.LengthName or TokenKind.Comma ||
+				Next.Kind == TokenKind.Identifier && AfterNext.Kind is TokenKind.CloseBrace or TokenKind.Comma;
+		}
+	}
+
+	/// <summary>
 	/// <c>Number with (Point = Comma)</c> — §5.1's substitution, applied to one
 	/// expression instead of a whole <c>namespace</c> block. Checked last, outermost of
 	/// quantifier/<c>recover</c>/<c>with</c> at this one precedence level: <c>Number+
@@ -1388,7 +1517,7 @@ sealed class GramParser
 
 		try
 		{
-			while (TakeIfKeyword("with"))
+			while (TakeIfSuffixKeyword("with"))
 			{
 				if (PastNesting())
 				{
@@ -1423,7 +1552,7 @@ sealed class GramParser
 	/// </remarks>
 	Expr Recovering(Expr repetition, int start)
 	{
-		if (!TakeIfKeyword("recover"))
+		if (!TakeIfSuffixKeyword("recover"))
 			return repetition;
 
 		var sync    = ParsePrefixed();
@@ -1623,8 +1752,27 @@ sealed class GramParser
 
 	Expr ParsePrimary()
 	{
-		if (AtKeyword("switch") && Next.Kind is TokenKind.At or TokenKind.CSharpExpression) return ParseSwitch();
+		if (AtKeyword("switch") && Next.Kind is TokenKind.At or TokenKind.CSharpExpression)
+			return ParseSwitch();
+
 		var start = Current.Position;
+
+		// `'a'..'z'` is a range only between brackets, where a set of them may stand. Out here it
+		// would end the rule at the `..`, and be told as a declaration the file does not have: said
+		// where it is, and read as the set that was meant.
+		if (At(TokenKind.Character) && Next.Kind == TokenKind.DotDot)
+		{
+			var from = Take().Value!;
+			var dots = Take();
+			var to   = ParseUpperBound(dots);
+
+			Report(
+				MalformedRange,
+				"A range stands between brackets, as an element of a set: ['a'..'z'].",
+				From(start));
+
+			return new Expr.ElementSet(false, [new Elem.Chars(from, to) { At = From(start) }]) { At = From(start) };
+		}
 
 		switch (Current.Kind)
 		{
@@ -1699,66 +1847,197 @@ sealed class GramParser
 		}
 	}
 
+	/// <summary>
+	/// <c>switch @(…) { case 0: … case "s": … default: … }</c> — one case taken by a value C# computes
+	/// (§3.6).
+	/// </summary>
+	/// <remarks>
+	/// Read to the closing brace whatever goes wrong inside, so that a broken switch costs its own
+	/// messages and not the rule after it. Each label is kept in the spelling the generated
+	/// <c>switch</c> writes it in: a number as C# reads it, a string escaped.
+	/// </remarks>
 	Expr ParseSwitch()
 	{
-		var start = Take().Position;
+		var start = Take().Position;            // `switch`
 		var value = ParseValue();
+
 		Expect(TokenKind.OpenBrace);
-		var cases = new List<Expr.SwitchCase>();
-		var labels = new HashSet<string>();
+
+		var cases   = new List<Expr.SwitchCase>();
+		var labels  = new HashSet<string>(StringComparer.Ordinal);
 		var pending = new List<string?>();
-		while (!_panic && !At(TokenKind.CloseBrace) && !At(TokenKind.EndOfFile))
+
+		var numbers = false;
+		var strings = false;
+		var broken  = false;
+
+		while (!_panic && !At(TokenKind.CloseBrace) && !AtEnd)
 		{
-			string? label = null;
-			if (AtKeyword("case"))
+			var labelAt = Current.Position;
+
+			if (!AtKeyword("case") && !AtKeyword("default"))
 			{
-				Take();
-				var negative = TakeIf(TokenKind.Minus);
-				if (At(TokenKind.Integer))
-				{
-					var text = (negative ? "-" : "") + Take().Value;
-					if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var signed))
-						label = signed.ToString(CultureInfo.InvariantCulture);
-					else if (!negative && ulong.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var unsigned))
-						label = unsigned.ToString(CultureInfo.InvariantCulture) + "UL";
-					else
-					{
-						Report(ExpectedExpression, "A numeric switch case must fit Int64 or UInt64.");
-						label = "0";
-					}
-				}
-				else if (!negative && At(TokenKind.String))
-					label = "\"" + Take().Value!.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t").Replace("\0", "\\0") + "\"";
-				else
-				{
-					Report(ExpectedExpression, "Expected an integer or string case label.");
-					_panic = true;
-					break;
-				}
-			}
-			else if (AtKeyword("default")) Take();
-			else
-			{
-				Report(ExpectedExpression, "Expected case or default in switch.");
-				_panic = true;
+				Report(
+					SwitchLabelExpected,
+					"A switch's braces hold 'case' labels and a 'default', each followed by ':' and a body: " +
+					"'case 0: Text'.");
+
+				broken = true;
+
 				break;
 			}
-			if (!labels.Add(label ?? "default")) Report(ExpectedExpression, "Duplicate switch label.");
+
+			var isDefault = Take().Value == "default";
+			var label     = isDefault ? null : ParseSwitchLabel();
+
+			if (label is null && !isDefault)
+			{
+				broken = true;
+
+				break;
+			}
+
+			if (label is not null)
+			{
+				var isString = label.StartsWith("\"", StringComparison.Ordinal);
+
+				numbers |= !isString;
+				strings |= isString;
+			}
+
+			if (!labels.Add(label ?? "default"))
+				Report(
+					SwitchLabelTwice,
+					isDefault
+						? "A switch has one 'default'."
+						: $"The label {label} is written twice in this switch: each value selects one body.",
+					From(labelAt));
+
 			Expect(TokenKind.Colon);
+
 			pending.Add(label);
-			if (AtKeyword("case") || AtKeyword("default")) continue;
+
 			// Several labels may share one body; each label still selects one path.
+			if (AtKeyword("case") || AtKeyword("default"))
+				continue;
+
+			if (At(TokenKind.CloseBrace) || AtEnd)
+			{
+				Report(
+					SwitchEmpty,
+					"A label needs a body after its ':' — the grammar its value selects: 'case 0: Text'. " +
+					"Write 'none' for a case that matches nothing.",
+					From(labelAt));
+
+				break;
+			}
+
 			var body = ParseBody();
-			foreach (var item in pending) cases.Add(new Expr.SwitchCase(item, body));
+
+			foreach (var item in pending)
+				cases.Add(new Expr.SwitchCase(item, body));
+
 			pending.Clear();
+
 			TakeIf(TokenKind.Semicolon);
 		}
+
+		// What stands after a label the switch cannot read is read past, to the brace that closes the
+		// switch, so that it costs one message and the rule goes on after it.
+		if (broken)
+			SkipToClose();
+
 		Expect(TokenKind.CloseBrace);
-		if (cases.Count == 0) Report(ExpectedExpression, "A switch requires at least one case or default.");
-		if (labels.Any(one => one.StartsWith("\"", StringComparison.Ordinal)) &&
-			labels.Any(one => one != "default" && !one.StartsWith("\"", StringComparison.Ordinal)))
-			Report(ExpectedExpression, "Switch labels must all have the same type.");
+
+		if (labels.Count == 0 && !broken && !_panic)
+			Report(
+				SwitchEmpty,
+				"A switch needs at least one 'case' or a 'default': 'switch @(kind) { case 0: Text default: none }'.",
+				new Location(start, Math.Max(1, From(start).Length)));
+
+		if (numbers && strings)
+			Report(
+				SwitchLabelsMixed,
+				"A switch's labels are all whole numbers or all strings, since the value they are compared " +
+				"with has one type.",
+				new Location(start, Math.Max(1, From(start).Length)));
+
 		return new Expr.Switch(value, cases) { At = From(start) };
+	}
+
+	/// <summary>
+	/// A label after <c>case</c>, in the spelling C# writes it in, or null where there is none, which is
+	/// said here.
+	/// </summary>
+	string? ParseSwitchLabel()
+	{
+		var at       = Current.Position;
+		var negative = TakeIf(TokenKind.Minus);
+
+		if (At(TokenKind.Integer))
+		{
+			var text = (negative ? "-" : "") + Take().Value;
+
+			if (long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var signed))
+				return signed.ToString(CultureInfo.InvariantCulture);
+
+			if (!negative && ulong.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var unsigned))
+				return unsigned.ToString(CultureInfo.InvariantCulture) + "UL";
+
+			Report(
+				SwitchLabelExpected,
+				$"The label {text} is too large: a numeric label fits a long or, if not negative, a ulong.",
+				From(at));
+
+			return "0";
+		}
+
+		if (!negative && At(TokenKind.String))
+		{
+			var text = Take().Value!
+				.Replace("\\", "\\\\")
+				.Replace("\"", "\\\"")
+				.Replace("\r", "\\r")
+				.Replace("\n", "\\n")
+				.Replace("\t", "\\t")
+				.Replace("\0", "\\0");
+
+			return "\"" + text + "\"";
+		}
+
+		Report(
+			SwitchLabelExpected,
+			"A 'case' label is a whole number or a string: 'case 0:', 'case -1:', 'case \"text\":'.");
+
+		return null;
+	}
+
+	/// <summary>
+	/// Reads up to the close of what is open here — a brace, a bracket or a parenthesis that balances
+	/// no open of its own — or to a declaration, where a close was never written.
+	/// </summary>
+	void SkipToClose()
+	{
+		var open = 0;
+
+		while (!AtEnd)
+		{
+			var kind = Current.Kind;
+
+			if (kind is TokenKind.OpenBrace or TokenKind.OpenParen or TokenKind.OpenBracket)
+				open++;
+			else if (kind is TokenKind.CloseBrace or TokenKind.CloseParen or TokenKind.CloseBracket)
+			{
+				if (open == 0)
+					return;
+
+				open--;
+			}
+			else if (open == 0 && StartsDeclaration())
+				return;
+
+			Take();
+		}
 	}
 
 	/// <summary>A value position — <c>=&gt;</c> and <c>when</c> take these.</summary>
@@ -1794,7 +2073,7 @@ sealed class GramParser
 				// §4.2: an argument is a piece of grammar or a value. A number is only ever the
 				// second — there is no position in a recognition expression where a bare one
 				// means anything — so it is read here and nowhere else.
-				arguments.Add(At(TokenKind.Integer) ? ParseNumber() : ParseAlternative());
+				arguments.Add(At(TokenKind.Integer) ? ParseNumber() : ParseArgument());
 
 				if (!TakeIf(TokenKind.Comma))
 					break;
@@ -1810,6 +2089,44 @@ sealed class GramParser
 		}
 	}
 
+	/// <summary>
+	/// A call's argument that is a piece of grammar: a sequence, as a group's alternative is, and no
+	/// more.
+	/// </summary>
+	/// <remarks>
+	/// A construction <c>=&gt;</c> and a binding power <c>&lt;&lt; n</c> belong to an alternative of a
+	/// rule's body, which an argument is not. They used to be read here as if it were one, and refused
+	/// later in the words of the rule the argument was lifted into, a name the author never wrote. Read
+	/// past here, so that the call goes on to its close.
+	/// </remarks>
+	Expr ParseArgument()
+	{
+		var start    = Current.Position;
+		var argument = ParseSequence();
+		var at       = Current.Position;
+		var bound    = At(TokenKind.Less) && Next.Kind == TokenKind.Less ||
+			At(TokenKind.Greater) && Next.Kind == TokenKind.Greater;
+
+		if (!bound && !At(TokenKind.Arrow))
+			return argument;
+
+		ParseBound(argument, start);
+
+		if (TakeIf(TokenKind.Arrow))
+			ParseValue();
+
+		Report(
+			ArgumentNotOperand,
+			bound
+				? "A binding power belongs to an alternative of a rule's own body (§4.3.1), and an argument is " +
+					"not one. Give the strength in the body of the rule the argument stands for, and pass that rule."
+				: "An argument is a piece of grammar or a value, and '=>' builds the value of an alternative of a " +
+					"rule's body. Name the argument as a rule with its construction, and pass that rule.",
+			From(at));
+
+		return argument;
+	}
+
 	Expr.Reference ParseReference()
 	{
 		var start         = Current.Position;
@@ -1819,13 +2136,28 @@ sealed class GramParser
 
 		// `<<` is a binding power (§4.3.1) and never the start of a type argument list:
 		// nothing may follow the first `<` but a type, and a type never begins with `<`.
-		if (Next.Kind != TokenKind.Less && TakeIf(TokenKind.Less))
+		if (Next.Kind != TokenKind.Less && At(TokenKind.Less))
 		{
+			var open = Take().Position;
+
 			do
 				typeArguments.Add(ParseType());
 			while (TakeIf(TokenKind.Comma));
 
 			Expect(TokenKind.Greater);
+
+			// A rule, a parameter or a capture takes no type arguments, and they used to be read
+			// and dropped without a word: only a C# name is generic.
+			if (!isCSharp)
+			{
+				Report(
+					TypeArgumentsOnGrammarName,
+					$"'{name}' is a name of the grammar — a rule, a parameter or a capture — and takes no type " +
+					$"arguments. Only a C# name is generic, and it is written with '@': '@{name}<…>'.",
+					From(open));
+
+				typeArguments.Clear();
+			}
 		}
 
 		return new Expr.Reference(isCSharp, name, typeArguments) { At = From(start) };
@@ -1847,40 +2179,21 @@ sealed class GramParser
 			switch (Current.Kind)
 			{
 				case TokenKind.Character:
-					{
-						var from = Take().Value!;
-						string? to = null;
-
-						if (TakeIf(TokenKind.DotDot))
-							to = At(TokenKind.Character) ? Take().Value : null;
-
-						items.Add(new Elem.Chars(from, to) { At = From(itemStart) });
-						break;
-					}
-
 				case TokenKind.CaseInsensitiveCharacter:
-					{
-						var fromToken = Take();
-						ReportCaseInsensitiveElement(fromToken);
-						string? to = null;
+				{
+					var from = Take();
 
-						if (TakeIf(TokenKind.DotDot))
-						{
-							if (At(TokenKind.CaseInsensitiveCharacter))
-							{
-								var toToken = Take();
-								ReportCaseInsensitiveElement(toToken);
-								to = toToken.Value;
-							}
-							else if (At(TokenKind.Character))
-								to = Take().Value;
-						}
+					if (from.Kind == TokenKind.CaseInsensitiveCharacter)
+						ReportCaseInsensitiveElement(from);
 
-						// Keep the intended character/range in the recovery tree. Diagnostics still
-						// make the grammar invalid, while the following set items remain parseable.
-						items.Add(new Elem.Chars(fromToken.Value!, to) { At = From(itemStart) });
-						break;
-					}
+					var to = At(TokenKind.DotDot) ? ParseUpperBound(Take()) : null;
+
+					// Kept as written in the tree a refused grammar leaves, so that the items after it
+					// are read as they stand.
+					items.Add(new Elem.Chars(from.Value!, to) { At = From(itemStart) });
+
+					break;
+				}
 
 				case TokenKind.UnicodeCategory:
 					items.Add(new Elem.Category(Take().Value!) { At = From(itemStart) });
@@ -1904,11 +2217,50 @@ sealed class GramParser
 		return new Expr.ElementSet(negated, items) { At = From(start) };
 	}
 
+	/// <summary>
+	/// The character after a range's <c>..</c>, or null where none stands there, which is said here: it
+	/// used to read as the range's first character alone, so that <c>['a'..]</c> was <c>['a']</c>.
+	/// </summary>
+	string? ParseUpperBound(Token dots)
+	{
+		if (At(TokenKind.Character))
+			return Take().Value;
+
+		if (At(TokenKind.CaseInsensitiveCharacter))
+		{
+			var bound = Take();
+
+			ReportCaseInsensitiveElement(bound);
+
+			return bound.Value;
+		}
+
+		if (At(TokenKind.String) || At(TokenKind.CaseInsensitiveString))
+		{
+			var bound = Take();
+
+			Report(
+				MalformedRange,
+				"A range's bounds are characters, in single quotes: ['a'..'z'].",
+				new Location(bound.Position, bound.Length));
+
+			return null;
+		}
+
+		Report(
+			MalformedRange,
+			"A range needs a character after '..': ['a'..'z']. A set of one character is written ['a'].",
+			new Location(dots.Position, dots.Length));
+
+		return null;
+	}
+
 	void ReportCaseInsensitiveElement(Token token)
 	{
 		Report(
-			ExpectedExpression,
-			"A case-insensitive character is a literal token and cannot be a character-set element or range bound.",
+			CaseInsensitiveElement,
+			"A set holds characters as they are written, so a case-insensitive one cannot be its element or " +
+			"a range's bound: write both cases, ['a'..'z' | 'A'..'Z'], or a choice of literals, 'a'i | 'b'i.",
 			new Location(token.Position + token.Length - 1, 1));
 	}
 
