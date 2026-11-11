@@ -253,6 +253,54 @@ public sealed class IncrementalCachingTests
 		Assert.Equal(Placed(Errors(freshOutput)), errors);
 	}
 
+	/// <summary>
+	/// A host is handed only the grammar files it can read, so that editing another host's file
+	/// leaves its own grammar unread; the host whose file changed reads it again.
+	/// </summary>
+	[Fact]
+	public void An_edit_of_another_hosts_file_leaves_a_grammar_unread()
+	{
+		const string hosts = """
+			using DotGram;
+
+			[Gram]
+			public partial class First
+			{
+			}
+
+			[Gram]
+			public partial class Second
+			{
+			}
+			""";
+
+		var parse       = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.Incremental",
+			[CSharpSyntaxTree.ParseText(hosts, parse, "Host.cs")],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		var first       = new Additional("First.gram", "Start = 'a'+\nparse Start");
+		var second      = new Additional("Second.gram", "Start = 'b'+\nparse Start");
+
+		var driver = (GeneratorDriver)CSharpGeneratorDriver.Create(
+			[new GramGenerator().AsSourceGenerator()],
+			additionalTexts: [first, second],
+			parseOptions: parse,
+			driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+
+		driver = driver
+			.RunGenerators(compilation, TestContext.Current.CancellationToken)
+			.ReplaceAdditionalText(second, new Additional("Second.gram", "Start = 'c'+\nparse Start"));
+
+		var run   = driver.RunGenerators(compilation, TestContext.Current.CancellationToken).GetRunResult();
+		var asked = Runs(run, GramGenerator.AskedStage);
+
+		Assert.Equal(2, asked.Length);
+		Assert.Contains(IncrementalStepRunReason.Cached, asked);
+		Assert.Contains(IncrementalStepRunReason.Modified, asked);
+	}
+
 	// ── The driver ────────────────────────────────────────────────────────────────
 
 	/// <summary>How a stage of the second run was reached, the same for every host or it fails.</summary>

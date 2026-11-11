@@ -39,7 +39,7 @@ public sealed class GenerationReportTests
 	{
 		var report = Report(Run(Source, "summary"));
 
-		Assert.Contains("DotGram: Parser, 1 normalized rules, ", report, StringComparison.Ordinal);
+		Assert.Contains("DotGram: Parser, 1 normalized rule, ", report, StringComparison.Ordinal);
 		Assert.Matches(@"[0-9]+\.[0-9]{2} ms generation", report);
 		Assert.DoesNotContain("mode=", report, StringComparison.Ordinal);
 		Assert.DoesNotContain("options:", report, StringComparison.Ordinal);
@@ -54,7 +54,7 @@ public sealed class GenerationReportTests
 	{
 		var run = Run(Source, "full");
 
-		Assert.Contains("DotGram: Parser, 1 normalized rules, ", Report(run), StringComparison.Ordinal);
+		Assert.Contains("DotGram: Parser, 1 normalized rule, ", Report(run), StringComparison.Ordinal);
 		Assert.Contains("mode=characters", Detail(run), StringComparison.Ordinal);
 		Assert.Contains("options: Lexical=", Detail(run), StringComparison.Ordinal);
 		Assert.Contains("ConstructionsMayThrow=False", Detail(run), StringComparison.Ordinal);
@@ -87,7 +87,7 @@ public sealed class GenerationReportTests
 		var report = Report(full);
 
 		Assert.Equal(baseline, parser);
-		Assert.Contains("DotGram: Parser, 1 normalized rules, " + Encoding.UTF8.GetByteCount(parser) + " bytes UTF-8 C#", report, StringComparison.Ordinal);
+		Assert.Contains("DotGram: Parser, 1 normalized rule, " + Encoding.UTF8.GetByteCount(parser) + " bytes UTF-8 C#", report, StringComparison.Ordinal);
 		Assert.Matches(@"[0-9]+\.[0-9]{2} ms generation", report);
 		Assert.Contains("mode=characters", Detail(full), StringComparison.Ordinal);
 		Assert.DoesNotContain(full.Diagnostics, diagnostic => diagnostic.Id.StartsWith("CS878", StringComparison.Ordinal));

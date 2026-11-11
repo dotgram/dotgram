@@ -28,6 +28,22 @@ sealed class CSharpStringMap
 	public int Length => _starts.Length;
 
 	/// <summary>Creates a map for a non-interpolated regular, verbatim or raw string.</summary>
+	/// <summary>
+	/// Where a string literal's value is written, its quotes and prefix left out; the expression's own
+	/// span where it is no literal or its spelling cannot be mapped.
+	/// </summary>
+	public static TextSpan ValueSpanOf(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax expression)
+	{
+		if (expression is Microsoft.CodeAnalysis.CSharp.Syntax.LiteralExpressionSyntax literal &&
+			TryCreate(literal.Token, out var map) &&
+			map!.TryMap(0, literal.Token.ValueText.Length, out var mapped))
+		{
+			return mapped;
+		}
+
+		return expression.Span;
+	}
+
 	public static bool TryCreate(SyntaxToken token, out CSharpStringMap? map)
 	{
 		map = null;

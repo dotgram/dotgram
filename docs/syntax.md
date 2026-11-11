@@ -86,6 +86,15 @@ public partial class FeedGrammar;
 public partial class Numbers;
 ```
 
+The host may be `static` or not. Everything the generator writes into it is static, so a
+`static partial class` is the usual shape; without `static` the class can also be
+instantiated and hold instance members of its own beside the generated ones.
+
+A path is matched against the project's additional files ignoring case, on every operating
+system, so that one project finds the same file on Windows and on Linux. Two files that differ
+only in case, or in the folder they are in, both match a bare name: that is `GRAM0004`, and
+the cure is the path in `[Gram("…")]`, which is never chosen silently.
+
 The grammar file:
 
 ```dotgram
@@ -3026,8 +3035,11 @@ responsibility, and the generator does not stand between a grammar and its C#.
 **A grammar travels with its assembly.** A `.gram` file is read at compile time and is
 not part of what ships, so the generator writes the grammar's text onto the class it
 compiled — `[GramSource("…")]` — and an include across a project reference reads it off
-the type it already names. The file wins where both are in reach, so that a diagnostic
-points at something somebody can edit. It costs the size of the grammar, and it follows
+the type it already names. A class of a referenced assembly is always read from there: it is
+the grammar the assembly was compiled from, and a `.gram` file of the same name in this project
+is somebody else's — a fixture, a copy — and is not read in its place (`GRAM0017`, information,
+says so where the two differ). A class compiled in this project is read from its file, so that a
+diagnostic points at something somebody can edit. It costs the size of the grammar, and it follows
 what the class already says: a host that is public, with every class around it, carries its
 grammar and one nobody outside can name does not, and `[Gram(ExportGrammar = …)]` says otherwise where that guess
 is wrong. An include that finds neither a file nor a carried text is `GRAM0003`.

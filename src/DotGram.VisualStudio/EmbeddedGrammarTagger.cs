@@ -605,13 +605,10 @@ sealed class EmbeddedGrammarBufferAnalysis
 				model,
 				cancellationToken,
 				_dslCache).ConfigureAwait(false);
-			var dslDiagnostics  = await DslClassificationDiagnostics.AnalyzeAsync(
-				document,
-				root,
-				model.Compilation,
-				cancellationToken).ConfigureAwait(false);
+			// GRAM6001–GRAM6005, about what a [GramClassify] names, are not computed here: the build
+			// reports them from the same binder (ClassificationTargets), and Visual Studio shows the
+			// build's, so the editor's own would be each one twice.
 			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics)
-				.Concat(dslDiagnostics)
 				.Concat(dslSites.Diagnostics)
 				.ToArray();
 			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
