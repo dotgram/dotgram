@@ -26,7 +26,7 @@ what the next document is for.
 | [`diagnostics.md`](diagnostics.md) | Every message the generator reports, by identifier. |
 | [`ast.md`](ast.md) | The tree the SQL parsers build, and the specification each node is named from. |
 | [`coverage.md`](coverage.md) | How much of Microsoft's T-SQL reference the T-SQL grammar reads, page by page, as SQL Server answers every example of it at every level. |
-| [`carriers.md`](carriers.md) | Which carrier `Auto` took for every grammar of the solution, and for one on the tape, the gate that kept it and each rule held there with its cause. |
+| [`carriers.md`](carriers.md) | Which carrier `Auto` took for every grammar of the solution, and for one carried deferred, the gate that kept it and each rule held there with its cause. |
 
 These describe what is true today. A disagreement between one of these and `syntax.md`
 is not a contradiction — it is the gap the pair exists to measure. A disagreement between
