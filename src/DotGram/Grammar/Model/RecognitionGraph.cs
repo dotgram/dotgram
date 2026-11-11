@@ -1001,6 +1001,12 @@ sealed class RecognitionGraph(
 	/// </remarks>
 	internal bool FirstSettled { get; set; }
 
+	/// <summary>
+	/// The rule whose answer went on changing past the bound while <see cref="FirstByRule"/> was
+	/// worked out, or null where it settled (<c>FirstSets.ByRule</c>).
+	/// </summary>
+	internal RuleSymbol? FirstUnsettled { get; set; }
+
 	/// <summary>What each node can begin with, once the rules have settled. A memo, not model state.</summary>
 	/// <remarks>
 	/// The emitter asks it of the same nodes over and over — of a repetition's body for every

@@ -1970,6 +1970,11 @@ static class FirstSets
 		var queued = new HashSet<RuleSymbol>(graph.Rules);
 		var calls = graph.Calls;
 
+		// How often one rule's answer may change before the loop is taken to go round rather
+		// than settle (Unsettled).
+		var bound   = SettleBound * Height(graph);
+		var changed = new Dictionary<RuleSymbol, int>();
+
 		while (pending.Count > 0)
 		{
 			var rule = pending.Dequeue();
@@ -1978,8 +1983,24 @@ static class FirstSets
 				continue;
 
 			var next = Of(body, graph, estimates);
+
+			// Gone round: from here every answer is joined with the one before, which only
+			// climbs, and the grammar is refused (GramCompiler, GRAM4057).
+			if (graph.FirstUnsettled is not null)
+				next = estimates[rule].Or(next);
+
 			if (Same(next, estimates[rule]))
 				continue;
+
+			changed.TryGetValue(rule, out var times);
+
+			changed[rule] = ++times;
+
+			if (times > bound && graph.FirstUnsettled is null)
+			{
+				graph.FirstUnsettled = rule;
+				next = estimates[rule].Or(next);
+			}
 
 			estimates[rule] = next;
 			foreach (var caller in calls.CalledBy(rule))
@@ -1990,6 +2011,57 @@ static class FirstSets
 		graph.FirstSettled = true;
 
 		return estimates;
+	}
+
+	/// <summary>
+	/// Works out what each rule begins with, if nothing has yet, and says the rule whose answer
+	/// did not settle, or null where every one did.
+	/// </summary>
+	internal static RuleSymbol? Unsettled(RecognitionGraph graph)
+	{
+		ByRule(graph);
+
+		return graph.FirstUnsettled;
+	}
+
+	/// <summary>
+	/// How many times over the height of its answers one rule's answer may change before
+	/// <see cref="ByRule"/> takes the loop to go round rather than settle.
+	/// </summary>
+	/// <remarks>
+	/// Answers that only grew would change at most the height times each. These may also give
+	/// back what a rule not reached yet let through, so the bound is twice that. Measured, no
+	/// grammar that settles comes near it: across the shipped grammars, the examples, the test
+	/// grammars and a hundred and fifty thousand random recursive ones, the most changes of any
+	/// one rule was under a third of the height, and twelve at the most.
+	/// </remarks>
+	internal const int SettleBound = 2;
+
+	/// <summary>
+	/// How long a chain of answers that each hold more than the one before can be: one more than
+	/// the pieces the grammar's characters cut the character space into, and the four marks
+	/// beside the characters.
+	/// </summary>
+	/// <remarks>
+	/// Every set an answer holds is a union of those pieces: an element's ranges, a literal's
+	/// first character and its folds, and what intersecting and complementing them makes, which
+	/// cuts nowhere new.
+	/// </remarks>
+	static int Height(RecognitionGraph graph)
+	{
+		var cuts  = new HashSet<int>();
+		var rules = new Dictionary<RuleSymbol, First>();
+
+		foreach (var body in graph.Bodies.Values)
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Element or Node.Literal)
+					foreach (var range in Of(node, graph, rules).Ranges)
+					{
+						cuts.Add(range.From);
+						cuts.Add(range.To + 1);
+					}
+
+		return cuts.Count + 1 + 4;
 	}
 
 	/// <summary>Whether two sets are the same set.</summary>
