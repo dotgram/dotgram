@@ -125,7 +125,9 @@ public sealed class EditorDiagnosticsTests
 		{
 			var relative = Path.GetRelativePath(Root, file).Replace('\\', '/');
 
-			if (relative.Split('/').Any(static part => part is "bin" or "obj"))
+			// The catalog lists every identifier in use, the editor's own among them; what counts here
+			// is what the generator's code itself reports.
+			if (relative.Split('/').Any(static part => part is "bin" or "obj") || relative.EndsWith("/DiagnosticCatalog.cs", StringComparison.Ordinal))
 				continue;
 
 			foreach (Match match in Identifier.Matches(File.ReadAllText(file)))
