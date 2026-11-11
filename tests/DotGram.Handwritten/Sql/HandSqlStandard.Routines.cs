@@ -331,7 +331,7 @@ partial class HandSqlStandard
 
 					if (Names(ref cursor, 3, out var name) && DropBehavior(ref cursor) is { } behaviour)
 					{
-						statement = new Statement.DropCollation { Name = new CollationName(name), Behavior = behaviour };
+						statement = new Statement.DropCollation { Names = [new CollationName(name)], Behavior = behaviour };
 
 						return true;
 					}

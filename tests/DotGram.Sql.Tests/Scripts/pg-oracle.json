@@ -3010,6 +3010,31 @@
 			"text": "CREATE TABLE t (a int) WITH (x = +)",
 			"known": "an option's value is an expression; gram.y's def_arg reads an operator's symbol, which has no node alone",
 			"accepted": true
+		},
+		{
+			"name": "drop_cast_bare",
+			"text": "DROP CAST (int AS text)",
+			"accepted": true
+		},
+		{
+			"name": "drop_collations",
+			"text": "DROP COLLATION IF EXISTS c1, s.c2 CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_collation_bare",
+			"text": "DROP COLLATION c",
+			"accepted": true
+		},
+		{
+			"name": "drop_cast_one_tree",
+			"text": "DROP CAST (INT AS BIGINT) CASCADE",
+			"accepted": true
+		},
+		{
+			"name": "drop_collation_one_tree",
+			"text": "DROP COLLATION s.c CASCADE",
+			"accepted": true
 		}
 	]
 }

@@ -2253,7 +2253,7 @@ DropCharacterSetStatement : @Statement.DropCharacterSet = "DROP"i & "CHARACTER"i
 
 CollationDefinition    : @Statement.CreateCollation = "CREATE"i & "COLLATION"i & n: SchemaQualifiedName & "FOR"i & c: CharacterSetSpecification & "FROM"i & s: SchemaQualifiedName & p: ("NO"i & "PAD"i | "PAD"i & "SPACE"i)?
 	=> @(new Statement.CreateCollation { Name = new CollationName(n), CharacterSet = c, Source = new CollationName(s), Padding = Nodes.PaddingOf(p) })
-DropCollationStatement : @Statement.DropCollation = "DROP"i & "COLLATION"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropCollation { Name = new CollationName(n), Behavior = b })
+DropCollationStatement : @Statement.DropCollation = "DROP"i & "COLLATION"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropCollation { Names = [new CollationName(n)], Behavior = b })
 
 // <transliteration definition>: from a routine, asked first since `ROUTINE` is not reserved, or from an
 // existing transliteration.

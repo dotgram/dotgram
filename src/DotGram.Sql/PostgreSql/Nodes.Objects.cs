@@ -9,7 +9,7 @@ static partial class Nodes
 {
 	/// <summary>
 	/// A DROP of a kind named by any_name or by a name of one part: the standard's or T-SQL's record where one names the kind
-	/// — TABLE, SEQUENCE, VIEW, MATERIALIZED VIEW, SCHEMA — and a DropObject of the kind for every other.
+	/// — TABLE, SEQUENCE, VIEW, MATERIALIZED VIEW, SCHEMA, COLLATION — and a DropObject of the kind for every other.
 	/// </summary>
 	public static Statement Dropped(ObjectKind kind, bool ifExists, QualifiedName first, QualifiedName[]? rest, DropBehavior? behavior)
 	{
@@ -22,8 +22,20 @@ static partial class Nodes
 			ObjectKind.View             => new Statement.DropView { Names = names, IfExists = ifExists, Behavior = behavior },
 			ObjectKind.MaterializedView => new Statement.DropView { Names = names, IfExists = ifExists, Behavior = behavior, Materialized = true },
 			ObjectKind.Schema           => new Statement.DropSchema { Names = names, IfExists = ifExists, Behavior = behavior },
+			ObjectKind.Collation        => new Statement.DropCollation { Names = Collations(names), IfExists = ifExists, Behavior = behavior },
 			_                           => new Statement.DropObject(kind, Referenced(kind, names), ifExists, behavior),
 		};
+	}
+
+	/// <summary>Each name as a collation's.</summary>
+	static SqlList<CollationName> Collations(SqlList<QualifiedName> names)
+	{
+		var collations = new CollationName[names.Count];
+
+		for (var at = 0; at < collations.Length; at++)
+			collations[at] = new CollationName(names[at]);
+
+		return SqlList.Own(collations);
 	}
 
 	/// <summary>A DROP of a kind named by names of one part.</summary>
