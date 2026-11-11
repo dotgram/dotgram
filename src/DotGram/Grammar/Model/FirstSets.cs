@@ -1992,7 +1992,9 @@ static class FirstSets
 			if (Same(next, estimates[rule]))
 				continue;
 
-			var times = changed[rule] = changed.GetValueOrDefault(rule) + 1;
+			changed.TryGetValue(rule, out var times);
+
+			changed[rule] = ++times;
 
 			graph.FirstMostChanges = Math.Max(graph.FirstMostChanges, times);
 
