@@ -586,6 +586,11 @@ sealed partial class GrammarNormalizer
 		if (repetition is not Node.Repeat(var repeated, _, _))
 			return;
 
+		// Under a trivia that reads something, each turn is the element with the trivia woven before it
+		// (§4.5): the element is still the one part of the turn that holds a value, and was taken for a
+		// group of text and refused.
+		repeated = Woven(rule, repeated);
+
 		var element = repeated is Node.Capture(_, var captured) ? captured : repeated;
 
 		// Captured whole, `rows: (Row* recover ';' => …)`, the repetition is its text (§7.3), and
@@ -621,6 +626,21 @@ sealed partial class GrammarNormalizer
 			"than values, so there is no sequence to put it in. Give the repeated rule a " +
 			"capture of its own, or drop the '=>' and report out of band (docs/syntax.md §8.3).",
 			rule.Declaration!.At);
+	}
+
+	/// <summary>
+	/// The element of a turn under a trivia that reads something: the one part of the turn that is not
+	/// the seam trivia wove before it (§4.5). The turn itself where it is anything else — a sequence the
+	/// author wrote, <c>(Word &amp; ';')*</c>, is a group whatever it holds.
+	/// </summary>
+	Node Woven(RuleSymbol rule, Node turn)
+	{
+		if (turn is not Node.Sequence(var parts) || !_trivia.TryGetValue(rule, out var seam))
+			return turn;
+
+		var element = parts.Where(part => !IsSeam(part, seam)).ToList();
+
+		return element.Count == 1 && parts.Count > 1 ? element[0] : turn;
 	}
 
 	/// <summary>
