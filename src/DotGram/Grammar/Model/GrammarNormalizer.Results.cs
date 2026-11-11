@@ -170,28 +170,46 @@ sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// Whether a value of one type can certainly not be put where the other is declared, as far as
-	/// the grammar can tell without the host: a type the grammar generates is a sealed class that
-	/// converts to nothing but itself and <c>object</c>, and text is never an array nor an array text.
-	/// Anything else is the C# compiler's to say, on the grammar's line (§7.6).
+	/// the grammar can tell without the host.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only between types whose every conversion is known here: the types the grammar generates,
+	/// which declare none; C#'s own types written by their keywords, which no grammar can shadow;
+	/// and arrays of those. A conversion may be declared on either side, so a type of the host's on
+	/// either side — a <c>Box</c> with an <c>implicit operator Box(Pair)</c>, a <c>String</c> of its own
+	/// with one from <c>string[]</c> — is the C# compiler's to judge, on the grammar's line (§7.6).
+	/// </para>
+	/// <para>
+	/// Between two of them the answer is no where one is text or a generated type and the other a
+	/// different one, or one is an array and the other is not; never where both are C#'s numbers,
+	/// which convert into one another, or the target is <c>object</c>.
+	/// </para>
+	/// </remarks>
 	bool CannotHold(string to, string from)
 	{
 		to   = Plain(to);
 		from = Plain(from);
 
-		if (to == from || to == "object")
+		if (!Known(to) || !Known(from) || to == from || to == "object")
 			return false;
 
-		if (Generated(to) || Generated(from))
+		var toArray   = to.EndsWith("[]", StringComparison.Ordinal);
+		var fromArray = from.EndsWith("[]", StringComparison.Ordinal);
+
+		if (toArray && fromArray)
+			return CannotHold(to.Substring(0, to.Length - 2), from.Substring(0, from.Length - 2));
+
+		if (toArray != fromArray)
 			return true;
 
-		// Text is no array and no value of C#'s own types, nor is either of them text.
-		return from == "string" && (to.EndsWith("[]", StringComparison.Ordinal) || ValueKeyword(to)) ||
-			to == "string" && (from.EndsWith("[]", StringComparison.Ordinal) || ValueKeyword(from));
+		return to == "string" || from == "string" || Generated(to) || Generated(from);
 
-		static bool ValueKeyword(string type)
+		bool Known(string type)
 		{
-			return type is not ("string" or "object") && IsCSharpKeyword(type);
+			return type.EndsWith("[]", StringComparison.Ordinal)
+				? Known(type.Substring(0, type.Length - 2))
+				: IsCSharpKeyword(type) || Generated(type);
 		}
 
 		// Asked once the results are known, which is when the set is made; once, since a grammar of
@@ -203,15 +221,15 @@ sealed partial class GrammarNormalizer
 			return _generatedNames.Contains(type);
 		}
 
+		// `global::System.String` is `string` whatever the grammar imports; `String` or `System.String`
+		// alone may be a type of the host's, and is left alone.
 		static string Plain(string type)
 		{
-			var name = type.StartsWith("global::", StringComparison.Ordinal) ? type.Substring("global::".Length) : type;
-
-			return name switch
+			return type switch
 			{
-				"System.String" or "String" => "string",
-				"System.Object" or "Object" => "object",
-				_                           => name,
+				"global::System.String" => "string",
+				"global::System.Object" => "object",
+				_                       => type,
 			};
 		}
 	}
