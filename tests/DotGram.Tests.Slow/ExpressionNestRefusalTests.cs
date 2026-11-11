@@ -24,9 +24,8 @@ namespace DotGram.Tests;
 /// so every level asked the whole chain below it — 1.8 s for 12,800 levels, bytes flat.
 /// </para>
 /// <para>
-/// The one whose bytes are flat is held to time, as the doubling sizes are: at most twice as many times
-/// as long as there are times the levels, where a square takes that many times that many. The sizes are
-/// far enough apart for the square to be told from a slow machine.
+/// The one whose bytes are flat is held to time, against the same chain closed, which was always
+/// linear: the two read as deep a nest on the same machine, so what is left between them is the asking.
 /// </para>
 /// </remarks>
 [Collection(typeof(Alone))]
@@ -39,10 +38,46 @@ public sealed class ExpressionNestRefusalTests
 		AssertLinear("closed", static n => "(" + Repeated("System.Collections.Generic.List<", n) + "int" + Repeated(">", n) + " x) => 1", accepted: true);
 	}
 
+	/// <summary>A conditional chain cut short takes about as long as the same chain closed, which was always linear.</summary>
+	/// <remarks>
+	/// Held against the closed chain of the same length rather than against itself at another length: the two
+	/// read the same nest, as deep, on the same machine, so what a deep stack or a loaded machine costs is in
+	/// both, and what is left is the asking. Cut, 12,800 levels took 1.9 s where closed they take tens of
+	/// milliseconds; a run of the full suite on a loaded Windows host read a doubling of a cut chain alone at
+	/// three times its size once, with the square gone.
+	/// </remarks>
 	[Fact]
-	public void A_conditional_chain_cut_short_takes_about_as_long_a_level_at_every_size()
+	public void A_conditional_chain_cut_short_takes_about_as_long_as_one_closed()
 	{
-		AssertLinearTime("a conditional chain, cut", 3200, 25600, static n => "(bool b) => " + Repeated("b ? 1 : ", n));
+		const int levels = 12800;
+
+		var cut    = "(bool b) => " + Repeated("b ? 1 : ", levels);
+		var closed = cut + "1";
+
+		Assert.False(ExpressionParser.TryParse(cut).IsSuccess);
+		Assert.True(ExpressionParser.TryParse(closed).IsSuccess);
+
+		var (fewestCut, fewestClosed) = (double.MaxValue, double.MaxValue);
+
+		for (var run = 0; run < 5; run++)
+		{
+			var clock = Stopwatch.StartNew();
+
+			ExpressionParser.TryParse(cut);
+
+			fewestCut = Math.Min(fewestCut, clock.Elapsed.TotalMilliseconds);
+			clock     = Stopwatch.StartNew();
+
+			ExpressionParser.TryParse(closed);
+
+			fewestClosed = Math.Min(fewestClosed, clock.Elapsed.TotalMilliseconds);
+		}
+
+		TestContext.Current.TestOutputHelper?.WriteLine($"{levels} levels: cut {fewestCut:F1} ms, closed {fewestClosed:F1} ms");
+		Assert.True(
+			fewestCut <= fewestClosed * 6,
+			$"A conditional chain of {levels} levels cut short took {fewestCut:F1} ms and closed {fewestClosed:F1} ms — " +
+			$"{fewestCut / fewestClosed:F1} times as long.");
 	}
 
 	/// <summary>Bytes a level at four doubling depths stay within a quarter of one another.</summary>
@@ -78,42 +113,6 @@ public sealed class ExpressionNestRefusalTests
 				each[i] <= each[i - 1] * 1.25,
 				$"{shape}: at {depths[i - 1]} levels {each[i - 1]:F1} bytes each, at {depths[i]} {each[i]:F1} bytes each — " +
 				$"{each[i] / each[i - 1]:F2} times as many, where a square doubles them.");
-	}
-
-	/// <summary>
-	/// <paramref name="large"/> levels take at most twice as many times as long as <paramref name="small"/> as
-	/// there are times the levels; the fewest of five readings of each, at sizes whose smaller one takes
-	/// milliseconds rather than a fraction of one, so that a pause cannot pass for a slope.
-	/// </summary>
-	static void AssertLinearTime(string shape, int small, int large, Func<int, string> textFor)
-	{
-		var (few, many) = (textFor(small), textFor(large));
-
-		Assert.False(ExpressionParser.TryParse(many).IsSuccess);
-
-		var times = new[] { Fewest(few), Fewest(many) };
-
-		TestContext.Current.TestOutputHelper?.WriteLine($"{shape}: {small} levels {times[0]:F1} ms, {large} levels {times[1]:F1} ms");
-		Assert.True(
-			times[1] <= times[0] * (large / small) * 2,
-			$"{shape}: {small} levels took {times[0]:F1} ms and {large} took {times[1]:F1} ms — " +
-			$"{times[1] / times[0]:F1} times as long for {large / small} times the levels.");
-
-		static double Fewest(string text)
-		{
-			var fewest = double.MaxValue;
-
-			for (var run = 0; run < 5; run++)
-			{
-				var clock = Stopwatch.StartNew();
-
-				ExpressionParser.TryParse(text);
-
-				fewest = Math.Min(fewest, clock.Elapsed.TotalMilliseconds);
-			}
-
-			return fewest;
-		}
 	}
 
 	static string Repeated(string unit, int times)
