@@ -224,7 +224,7 @@ static class SupportEmitter
 				/// built from: the rule's own text, without the trivia around it, so that a
 				/// comment falls between two of them rather than inside one. It is called through
 				/// the interface, so an explicit implementation serves, and a struct is told in
-				/// place.
+				/// place. A class declaring <c>Locate</c> may be named instead.
 				///
 				/// What that buys is everything a parse cannot answer on its own: which
 				/// characters a diagnostic is about, which node a comment belongs to, and

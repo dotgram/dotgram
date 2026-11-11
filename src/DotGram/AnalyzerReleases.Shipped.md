@@ -8,7 +8,7 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|------
 GRAM0010 | DotGram | Error | The generated parser needs C# 8 or later
-GRAM0011 | DotGram | Error | The location type is not an interface declaring Locate
+GRAM0011 | DotGram | Error | The location type declares no Locate
 GRAM0017 | DotGram | Info | A local grammar file is not the grammar a referenced assembly carries
 
 ## Release 0.2.0

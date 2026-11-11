@@ -341,17 +341,25 @@ sealed class GramGenerator : IIncrementalGenerator
 		{
 			// A location type that cannot be told a place is said once, on the attribute, rather
 			// than as a compiler error in every generated construction that would tell one.
-			if (LocationRefused(grammar.Host, compilation) is { } refused)
+			// It is said where the type is named: on the per-call reading's attribute, where the
+			// locations are that reading's.
+			if (LocationRefused(grammar.Host, compilation, out var locatesClass) is { } refused)
 				return grammar with
 				{
 					Text    = null,
 					Reports = new EquatableArray<Report>([
 						.. grammar.Reports.Items,
-						Report.Of(Diagnostics.LocationTypeNotLocatable, Site.Attribute, grammar.Host.ClassName, refused.Type, refused.Locate)]),
+						Report.Of(
+							Diagnostics.LocationTypeNotLocatable,
+							grammar.Host.LocatedFacade is null ? Site.Attribute : Site.Facade,
+							grammar.Host.ClassName,
+							refused.Type,
+							refused.Locate)]),
 				};
 
 			return grammar with
 			{
+				LocatesClass = locatesClass,
 				Answers = new EquatableArray<Answer>(Questions.Ask(
 					grammar.Questions.Items,
 					new RoslynSymbolResolver(
@@ -370,17 +378,21 @@ sealed class GramGenerator : IIncrementalGenerator
 	}
 
 	/// <summary>
-	/// The location type a reading is compiled with, where it is not an interface that declares the
-	/// <c>Locate</c> the reading calls: two integers, or three where the locations are asked for per
-	/// call. Null where there is none, where it is such an interface, or where it cannot be found.
+	/// The location type a reading is compiled with, where it cannot be told a place: neither an
+	/// interface nor a class that declares the <c>Locate</c> the reading calls — two integers, or three
+	/// where the locations are asked for per call. Null where there is none, where it can, or where it
+	/// cannot be found.
 	/// </summary>
 	/// <remarks>
-	/// The interface's own <c>Locate</c> or one it inherits: generated code calls it through the
-	/// interface, so an explicit implementation serves and nothing about the implementing types
-	/// needs checking.
+	/// An interface's own <c>Locate</c> or one it inherits, which generated code calls through the
+	/// interface, so an explicit implementation serves; or a class's, its own or a base's, which it
+	/// calls on the class.
 	/// </remarks>
-	static (string Type, string Locate)? LocationRefused(Host host, Compilation compilation)
+	/// <param name="isClass">Whether the type is a class, which the constructions call it through.</param>
+	static (string Type, string Locate)? LocationRefused(Host host, Compilation compilation, out bool isClass)
 	{
+		isClass = false;
+
 		if (host.LocationType is not { } named)
 			return null;
 
@@ -398,11 +410,20 @@ sealed class GramGenerator : IIncrementalGenerator
 		var arity  = host.LocatedFacade is null ? 2 : 3;
 		var locate = arity == 2 ? "void Locate(int at, int length)" : "void Locate(int at, int length, int gapStart)";
 
-		if (type.TypeKind != TypeKind.Interface)
+		IEnumerable<ISymbol> candidates;
+
+		if (type.TypeKind == TypeKind.Interface)
+			candidates = type.GetMembers("Locate").Concat(type.AllInterfaces.SelectMany(static inherited => inherited.GetMembers("Locate")));
+		else if (type.TypeKind == TypeKind.Class && !type.IsStatic)
+		{
+			isClass    = true;
+			candidates = Bases(type).SelectMany(static one => one.GetMembers("Locate"))
+				.Where(method => compilation.IsSymbolAccessibleWithin(method, compilation.Assembly));
+		}
+		else
 			return (named, locate);
 
-		var declared = type.GetMembers("Locate")
-			.Concat(type.AllInterfaces.SelectMany(static inherited => inherited.GetMembers("Locate")))
+		var declared = candidates
 			.OfType<IMethodSymbol>()
 			.Any(method =>
 				!method.IsStatic &&
@@ -412,6 +433,12 @@ sealed class GramGenerator : IIncrementalGenerator
 				method.Parameters.All(static parameter => parameter.RefKind == RefKind.None && parameter.Type.SpecialType == SpecialType.System_Int32));
 
 		return declared ? null : (named, locate);
+
+		static IEnumerable<INamedTypeSymbol> Bases(INamedTypeSymbol type)
+		{
+			for (var at = type; at is not null; at = at.BaseType)
+				yield return at;
+		}
 	}
 
 	/// <summary>
@@ -1030,7 +1057,8 @@ sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Answer>   Answers,
 		EquatableArray<Report>   Reports,
 		EquatableArray<Piece>    Pieces = default,
-		EquatableArray<string>   Published = default);
+		EquatableArray<string>   Published = default,
+		bool                     LocatesClass = false);
 
 	/// <summary>
 	/// One grammar inside the joined text, and everything needed to put a position in it
@@ -1312,6 +1340,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			// two cases inside it.
 			LineMap               = MapOf(grammar, text, marked),
 			LocationType          = host.LocationType,
+			LocationTypeIsClass   = grammar.LocatesClass,
 			LocatedFacade         = host.LocatedFacade,
 			LocatedFacadeDeclared = host.LocatedFacadeDeclared,
 
@@ -1831,10 +1860,11 @@ sealed class GramGenerator : IIncrementalGenerator
 			string? facade         = null;
 			string? facadeLocation = null;
 			var     facadeDeclared = false;
+			Place?  facadeAt       = null;
 
 			for (var index = 1; index < readings.Count; index++)
 			{
-				var (perCall, _, _) = From(candidate, readings[index], index);
+				var (perCall, perCallSite, _) = From(candidate, readings[index], index);
 
 				if (!perCall.Options.UsePerCallLocations || perCall.LocationType is null || perCall.Options.Name is not { Length: > 0 } || facade is not null)
 					continue;
@@ -1842,6 +1872,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				facade         = perCall.Options.Name;
 				facadeLocation = perCall.LocationType;
 				facadeDeclared = perCall.SuffixDeclared;
+				facadeAt       = perCallSite.At;
 				readings.RemoveAt(index);
 				index--;
 			}
@@ -1882,7 +1913,7 @@ sealed class GramGenerator : IIncrementalGenerator
 						LocatedFacade         = facade,
 						LocatedFacadeDeclared = facadeDeclared,
 					},
-					hosts[0].Site);
+					hosts[0].Site with { Located = facadeAt });
 
 			// The class of every reading, and the per-call facade's, told to each of them: what a
 			// member may not be called and what a rule's type is named against, alike in all of them

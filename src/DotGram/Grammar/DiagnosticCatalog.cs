@@ -37,7 +37,7 @@ static class DiagnosticCatalog
 		["GRAM0008"] = new("Two grammars are included under one name", GramSeverity.Error),
 		["GRAM0009"] = new("A buffer option is not positive", GramSeverity.Error),
 		["GRAM0010"] = new("The generated parser needs C# 8 or later", GramSeverity.Error),
-		["GRAM0011"] = new("The location type is not an interface declaring Locate", GramSeverity.Error),
+		["GRAM0011"] = new("The location type declares no Locate", GramSeverity.Error),
 		["GRAM0017"] = new("A local grammar file is not the grammar a referenced assembly carries", GramSeverity.Info),
 		["GRAM1001"] = new("Unterminated character literal", GramSeverity.Error),
 		["GRAM1002"] = new("Unterminated string literal", GramSeverity.Error),
