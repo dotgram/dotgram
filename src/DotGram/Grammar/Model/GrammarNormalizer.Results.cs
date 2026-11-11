@@ -368,6 +368,91 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// C# in a rule that names one of the rule's recognizer parameters, which stands for a piece of
+	/// grammar and is no value C# could read: <c>Value(tag) = switch @(Kind(tag)) { … }</c>.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A specialization calls the argument where the parameter is written as an operand, and puts
+	/// nothing in C# for it, so the name went across as written and the C# compiler said it does not
+	/// exist (CS0103), in a file the author did not write. What the author meant is a value: one is
+	/// handed by a value parameter, written with its type, and is a literal or a value the caller was
+	/// handed itself (§4.2) — a capture, which the parse produces, is none, and is passed by capturing
+	/// the call and handing both to a <c>=&gt;</c>.
+	/// </para>
+	/// <para>
+	/// A capture of the rule of the same name is the value C# reads, and is not this. Said once for each
+	/// parameter as it was written, whatever number of specializations the rule has.
+	/// </para>
+	/// </remarks>
+	void CheckRecognizersInCSharp()
+	{
+		if (_scanner is null)
+			return;
+
+		foreach (var rule in _rules)
+		{
+			if (rule.Declaration is not { Params.Count: > 0 } declaration || !_bodies.TryGetValue(rule, out var body))
+				continue;
+
+			var recognizers = declaration.Params
+				.Where(static parameter => parameter.Type is not { } type || !type.IsCSharp && !IsCSharpKeyword(type.Name))
+				.ToList();
+
+			if (recognizers.Count == 0)
+				continue;
+
+			var captured = _results.TryGetValue(rule, out var members)
+				? new HashSet<string>(members.Select(static member => member.Name), StringComparer.Ordinal)
+				: [];
+
+			foreach (var (text, at) in CSharpOf(body))
+			{
+				if (_scanner.FreeNames(text) is not { } free)
+					continue;
+
+				foreach (var parameter in recognizers)
+					if (free.Contains(parameter.Name) && !captured.Contains(parameter.Name) && _parametersInCSharp.Add(parameter))
+						Report(
+							RecognizerInCSharp,
+							$"C# in '{declaration.Name}' names '{parameter.Name}', a parameter that stands for a piece of " +
+							"grammar and holds no value. A value is handed by a parameter written with its type, " +
+							$"'{parameter.Name}: @string', and is a literal or a value the caller was handed itself; " +
+							"what the parse produces is captured where the rule is called and handed to a '=>' there " +
+							"(docs/syntax.md §4.2).",
+							at >= 0 ? new Location(at, text.Length) : parameter.At);
+			}
+		}
+
+		// Every piece of C# in a body, and where it was written.
+		static IEnumerable<(string Text, int At)> CSharpOf(Node body)
+		{
+			foreach (var node in NodeWalk.Descendants(body))
+				switch (node)
+				{
+					case Node.Guard(var text, var at):
+						yield return (text, at);
+						break;
+
+					case Node.Construct(_, Construction.Expression(var text, var at)):
+						yield return (text, at);
+						break;
+
+					case Node.Marked(_, var text):
+						yield return (text, -1);
+						break;
+
+					case Node.Choice { Selection.Selector: var selector }:
+						yield return (selector.Text, selector.At);
+						break;
+				}
+		}
+	}
+
+	/// <summary>The parameters <see cref="CheckRecognizersInCSharp"/> has told of.</summary>
+	readonly HashSet<Param> _parametersInCSharp = [];
+
+	/// <summary>
 	/// §4.2's <c>: item</c>: a specialization's result type is its argument's.
 	/// </summary>
 	/// <remarks>

@@ -144,6 +144,12 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string FirstSetUnsettled = "GRAM4057";
 
+	/// <summary>
+	/// C# in a rule — a guard, a switch's selector, a construction, a mark — naming a parameter that
+	/// stands for a piece of grammar rather than a value.
+	/// </summary>
+	public const string RecognizerInCSharp = "GRAM4058";
+
 	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>; or one used as a method, a type or a variable, where it is reserved.</summary>
 	public const string SuppliedNameNotHere = "GRAM4053";
 
@@ -323,6 +329,7 @@ sealed partial class GrammarNormalizer
 		// construction hands back can be the type it is declared to give.
 		normalizer.CheckNamedTypes();
 		normalizer.CheckConstructionTypes();
+		normalizer.CheckRecognizersInCSharp();
 
 		normalizer.Check();
 		normalizer.CheckSegmentedText();

@@ -126,6 +126,10 @@ parse A
 === GRAM2023
 A = switch @(1) { }
 parse A
+=== GRAM2024
+Version = "2000" | "2022"
+Test = 'a' & when Version is ['0'..'9']+
+parse Test with (Version = "2000") as P
 === GRAM3001
 A = 'a'
 A = 'b'
@@ -496,6 +500,11 @@ positional parse Start
 Item : @string = 'a' => @("A")
 Items : @string[] = items: { Item }* => @(items)
 parse Items
+=== GRAM4058
+Digits = ['0'..'9']+
+Value(x) = x & when @(x != null)
+Field = '=' & Value(Digits)
+parse Field
 === GRAM5001
 A = 'a' & any* & 'b'
 find A

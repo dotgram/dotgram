@@ -100,7 +100,9 @@ dotnet dotgram generate calc.gram -o out --namespace Demo --option Lexical=true
 
 The tool writes the host class from the options (`<Name>.Host.g.cs`) and generates the grammar into it, for
 net10.0 unless `--framework` says another. There is no build to ask, so the options below say what a build
-would.
+would. The parser is compiled with its host and the `--sources` before anything is written: an error stops the
+run (exit 2), and a warning in the generated parser is printed and does not, though a build that treats
+warnings as errors refuses it.
 
 ## Options
 

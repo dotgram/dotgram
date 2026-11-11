@@ -86,6 +86,9 @@ sealed class GramParser
 	/// <summary>A <c>switch</c> with no case, or with labels and no body after them.</summary>
 	public const string SwitchEmpty          = "GRAM2023";
 
+	/// <summary>A side of <c>is</c> with a quantifier: <c>when Version is ['0'..'9']+</c>.</summary>
+	public const string QuantifiedSideOfIs   = "GRAM2024";
+
 	/// <summary>
 	/// The deepest the parser goes into what nests: an operand inside another (a group, braces, a
 	/// lookahead, a capture, a binding, a call's arguments, a rebinding, a switch), a condition's
@@ -1376,6 +1379,8 @@ sealed class GramParser
 
 		var right = ParseValue();
 
+		ReadPastQuantifierOfSide();
+
 		if (right is Expr.CSharp)
 			Report(
 				ExpectedIs,
@@ -1451,6 +1456,38 @@ sealed class GramParser
 	}
 
 	/// <summary>
+	/// A quantifier on the right of <c>is</c>, said where it stands and read past.
+	/// </summary>
+	/// <remarks>
+	/// A side of <c>is</c> is a value — a name, a literal, a set, a bracketed choice — which takes no
+	/// quantifier. Left alone, the quantifier ended the rule and was told as a declaration the file
+	/// does not have (GRAM2002).
+	/// </remarks>
+	void ReadPastQuantifierOfSide()
+	{
+		if (!At(TokenKind.Question) && !At(TokenKind.Star) && !At(TokenKind.Plus) && !AtCount())
+			return;
+
+		var at = Current.Position;
+
+		while (At(TokenKind.Question) || At(TokenKind.Star) || At(TokenKind.Plus) || AtCount())
+			if (Take().Kind == TokenKind.OpenBrace)
+			{
+				while (Current.Kind is TokenKind.Integer or TokenKind.Comma or TokenKind.Identifier or TokenKind.LengthName)
+					Take();
+
+				TakeIf(TokenKind.CloseBrace);
+			}
+
+		Report(
+			QuantifiedSideOfIs,
+			"A side of `is` is a name, a literal, a set or a bracketed choice, and takes no quantifier. " +
+			"Name the repetition as a rule and ask about that: `Digits = ['0'..'9']+`, then " +
+			"`when Version is Digits`.",
+			From(at));
+	}
+
+	/// <summary>
 	/// A quantifier after the one an operand already has — <c>'a'*?</c>, <c>'a'+*</c>, <c>'a'{2}?</c> —
 	/// said where it stands and read past.
 	/// </summary>
@@ -1479,17 +1516,19 @@ sealed class GramParser
 				"repetition took from being given back, make it atomic: { 'a'* }.",
 				From(at));
 		}
+	}
 
-		// A `{` that opens a count. One that opens an atomic group cannot follow an operand either,
-		// and is left to be told as the missing connector it is.
-		bool AtCount()
-		{
-			if (!At(TokenKind.OpenBrace))
-				return false;
+	/// <summary>
+	/// Whether a <c>{</c> that opens a count stands here. One that opens an atomic group cannot follow an
+	/// operand either, and is left to be told as the missing connector it is.
+	/// </summary>
+	bool AtCount()
+	{
+		if (!At(TokenKind.OpenBrace))
+			return false;
 
-			return Next.Kind is TokenKind.Integer or TokenKind.LengthName or TokenKind.Comma ||
-				Next.Kind == TokenKind.Identifier && AfterNext.Kind is TokenKind.CloseBrace or TokenKind.Comma;
-		}
+		return Next.Kind is TokenKind.Integer or TokenKind.LengthName or TokenKind.Comma ||
+			Next.Kind == TokenKind.Identifier && AfterNext.Kind is TokenKind.CloseBrace or TokenKind.Comma;
 	}
 
 	/// <summary>
