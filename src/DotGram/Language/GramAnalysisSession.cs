@@ -120,6 +120,12 @@ static class GramAnalysisSession
 	internal const int ResolveDelayMilliseconds = 500;
 
 	/// <summary>
+	/// The longest a stream of such changes that never pauses for <see cref="ResolveDelayMilliseconds"/>
+	/// keeps the host from being looked for.
+	/// </summary>
+	internal const int ResolveDeferralMilliseconds = 2000;
+
+	/// <summary>
 	/// While the host cannot be asked yet, it is asked again this long after, doubling, a few
 	/// times; every change to the project starts the count again. Nothing gives up for good.
 	/// </summary>
@@ -525,6 +531,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				FilePath: () => _host.FilePath,
 				ResolveAsync: _host.ResolveAsync,
 				MayHostAsync: _host.MayHostAsync,
+				Now: () => _host.Scheduler.Now,
 				DelayAsync: _host.Scheduler.DelayAsync,
 				Run: _host.Scheduler.Run,
 				Resolved: Resolved,
@@ -532,7 +539,8 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				Report: exception => _host.Report("Grammar host resolution", exception)),
 			GramAnalysisSession.ResolveDelayMilliseconds,
 			GramAnalysisSession.RetryDelayMilliseconds,
-			GramAnalysisSession.RetryCount);
+			GramAnalysisSession.RetryCount,
+			GramAnalysisSession.ResolveDeferralMilliseconds);
 	}
 
 	/// <summary>The host was looked for: what depends on it is analysed again where it changed.</summary>

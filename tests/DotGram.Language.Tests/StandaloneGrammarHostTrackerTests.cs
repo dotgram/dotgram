@@ -25,6 +25,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 
 	const int ResolveDelay = 500;
 	const int RetryDelay   = 1000;
+	const int MaxDeferral  = 2000;
 
 	readonly AdhocWorkspace _workspace = new();
 	readonly ProjectId      _project;
@@ -47,9 +48,15 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 		Assert.True(_workspace.TryApplyChanges(solution));
 	}
 
+	readonly List<Editor> _editors = [];
+
+	/// <summary>Every test: the tracker called nothing it was handed under its lock.</summary>
 	public void Dispose()
 	{
 		_workspace.Dispose();
+
+		foreach (var editor in _editors)
+			Assert.Empty(editor.CalledUnderLock);
 	}
 
 	/// <summary>
@@ -60,7 +67,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 	[Fact]
 	public void An_included_grammars_edit_during_the_first_resolution_is_read_by_the_next()
 	{
-		var editor  = new Editor();
+		var editor  = NewEditor();
 		var tracker = editor.Tracker();
 
 		tracker.Follow();
@@ -88,7 +95,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 	[Fact]
 	public void A_replaced_resolution_neither_publishes_nor_loses_the_newer_ones_edit()
 	{
-		var editor  = new Editor();
+		var editor  = NewEditor();
 		var tracker = editor.Tracker();
 
 		tracker.Follow();
@@ -123,7 +130,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 	[Fact]
 	public void What_a_replaced_resolution_had_taken_goes_to_the_one_that_replaces_it()
 	{
-		var editor  = new Editor();
+		var editor  = NewEditor();
 		var tracker = editor.Tracker();
 
 		tracker.Follow();
@@ -157,7 +164,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 	[Fact]
 	public void A_document_that_declares_no_host_is_looked_at_and_nothing_more()
 	{
-		var editor  = new Editor();
+		var editor  = NewEditor();
 		var tracker = editor.Tracker();
 
 		tracker.Follow();
@@ -177,7 +184,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 	[Fact]
 	public void Requests_at_once_start_one_resolution()
 	{
-		var editor  = new Editor();
+		var editor  = NewEditor();
 		var tracker = editor.Tracker();
 
 		tracker.Follow();
@@ -199,7 +206,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 	[Fact]
 	public void What_is_kept_is_bounded_and_let_go_on_close()
 	{
-		var editor  = new Editor();
+		var editor  = NewEditor();
 		var tracker = editor.Tracker();
 
 		tracker.Follow();
@@ -219,6 +226,83 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 
 		Assert.Equal(StandaloneGrammarState.NotReady, tracker.Resolution.State);
 		Assert.Single(editor.Resolutions);
+	}
+
+	/// <summary>
+	/// A resolver that answers the moment it is cancelled, on the cancelling thread: the generation it
+	/// belongs to is replaced before it is cancelled, so its answer is not published, and nothing is
+	/// called out under the tracker's lock.
+	/// </summary>
+	[Fact]
+	public void A_resolution_that_answers_as_it_is_cancelled_publishes_nothing()
+	{
+		var editor  = NewEditor();
+		var tracker = editor.Tracker();
+
+		editor.Answer = cancellationToken =>
+		{
+			var answer = new TaskCompletionSource<StandaloneGrammarResolution>();
+
+			cancellationToken.Register(() => answer.TrySetResult(Found(Original)));
+
+			return answer.Task;
+		};
+
+		tracker.Follow();
+		editor.Answer = null;
+
+		var solution = _workspace.CurrentSolution;
+
+		tracker.WorkspaceChanged(new WorkspaceChangeEventArgs(WorkspaceChangeKind.SolutionChanged, solution, solution));
+
+		Assert.Empty(editor.Published);
+		Assert.Equal(StandaloneGrammarState.NotReady, tracker.Resolution.State);
+
+		editor.Advance(ResolveDelay);
+		editor.Resolutions[0].SetResult(Found(Edited));
+
+		Assert.Equal(Edited, Assert.Single(editor.Published).Context?.AnalysisTail);
+		Assert.Empty(editor.Reported);
+	}
+
+	/// <summary>
+	/// Changes that concern the host coming faster than the solution settles, for 40 seconds: a
+	/// generation still starts no later than the limit after the first request it answers.
+	/// </summary>
+	[Fact]
+	public void A_stream_of_changes_that_never_pauses_still_has_the_host_looked_for()
+	{
+		var editor  = NewEditor();
+		var tracker = editor.Tracker();
+
+		tracker.Follow();
+		editor.Resolutions[0].SetResult(Found(Original));
+
+		var solution = _workspace.CurrentSolution;
+
+		for (var index = 0; index < 100; index++)
+		{
+			tracker.WorkspaceChanged(new WorkspaceChangeEventArgs(WorkspaceChangeKind.SolutionChanged, solution, solution));
+			editor.Advance(400);
+
+			// The first request of the stream came at 0; the limit runs out at 2 seconds.
+			if (index == 3)
+				Assert.Single(editor.Resolutions);
+
+			if (index == 4)
+				Assert.Equal(2, editor.Resolutions.Count);
+		}
+
+		Assert.True(editor.Resolutions.Count >= 1 + 100 * 400 / MaxDeferral, $"{editor.Resolutions.Count} resolutions in 40 seconds.");
+	}
+
+	Editor NewEditor()
+	{
+		var editor = new Editor();
+
+		_editors.Add(editor);
+
+		return editor;
 	}
 
 	WorkspaceChangeEventArgs EditBase()
@@ -249,6 +333,7 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 		readonly List<(long Due, long Order, TaskCompletionSource<bool> Done)> _timers = [];
 		long _now;
 		long _order;
+		StandaloneGrammarHostTracker? _tracker;
 
 		public List<TaskCompletionSource<StandaloneGrammarResolution>> Resolutions { get; } = [];
 
@@ -258,11 +343,21 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 
 		public StandaloneGrammarHostTracker Tracker()
 		{
-			return new StandaloneGrammarHostTracker(
+			_tracker = new StandaloneGrammarHostTracker(
 				new StandaloneGrammarHostServices(
-					FilePath: static () => DialectPath,
-					ResolveAsync: (_, _) =>
+					FilePath: () =>
 					{
+						Unlocked("FilePath");
+
+						return DialectPath;
+					},
+					ResolveAsync: (_, cancellationToken) =>
+					{
+						Unlocked("ResolveAsync");
+
+						if (Answer is { } answer)
+							return answer(cancellationToken);
+
 						var resolution = new TaskCompletionSource<StandaloneGrammarResolution>();
 
 						Resolutions.Add(resolution);
@@ -271,18 +366,69 @@ public sealed class StandaloneGrammarHostTrackerTests : IDisposable
 					},
 					MayHostAsync: (documents, _, _) =>
 					{
+						Unlocked("MayHostAsync");
 						Asked.Add([.. documents]);
 
 						return Task.FromResult(false);
 					},
-					DelayAsync: DelayAsync,
-					Run: static work => _ = work(),
-					Resolved: static (_, _) => { },
-					Recoverable: static exception => exception is not OutOfMemoryException,
-					Report: Reported.Add),
+					Now: () =>
+					{
+						Unlocked("Now");
+
+						return _now;
+					},
+					DelayAsync: (milliseconds, cancellationToken) =>
+					{
+						Unlocked("DelayAsync");
+
+						return DelayAsync(milliseconds, cancellationToken);
+					},
+					Run: work =>
+					{
+						Unlocked("Run");
+						_ = work();
+					},
+					Resolved: (_, after) =>
+					{
+						Unlocked("Resolved");
+						Published.Add(after);
+					},
+					Recoverable: exception =>
+					{
+						Unlocked("Recoverable");
+
+						return exception is not OutOfMemoryException;
+					},
+					Report: exception =>
+					{
+						Unlocked("Report");
+						Reported.Add(exception);
+					}),
 				ResolveDelay,
 				RetryDelay,
-				retryCount: 5);
+				retryCount: 5,
+				MaxDeferral);
+
+			return _tracker;
+		}
+
+		/// <summary>What the tracker's resolver answers in place of a held resolution; null holds it.</summary>
+		public Func<CancellationToken, Task<StandaloneGrammarResolution>>? Answer { get; set; }
+
+		public List<StandaloneGrammarResolution> Published { get; } = [];
+
+		/// <summary>What the tracker called while it held its lock; empty when every call was made with it free.</summary>
+		public List<string> CalledUnderLock { get; } = [];
+
+		/// <summary>
+		/// Notes a call made under the tracker's lock: another thread cannot read through the lock at
+		/// once. Noted rather than thrown, since the tracker would take an exception for a failure of
+		/// the service and go on.
+		/// </summary>
+		void Unlocked(string service)
+		{
+			if (_tracker is { } tracker && !Task.Run(() => tracker.Kept).Wait(TimeSpan.FromSeconds(10)))
+				CalledUnderLock.Add(service);
 		}
 
 		/// <summary>Moves the clock on, firing every timer that falls due on the way in the order it falls due.</summary>
