@@ -326,7 +326,7 @@ ParseOpt("ab") → "ab"
 ```
 
 The until idiom reads anything up to a closing delimiter: a negative lookahead in front of `any`
-([lookahead](03-composition.md#lookahead)).
+([lookahead](03-composition.md#lookahead-x-and-x)).
 
 ```dotgram
 Comment = "/*" & (?!"*/" & any)* & "*/"
@@ -341,7 +341,7 @@ ParseComment("/* open") → refused
 
 Notes:
 
-- `{ eol }` is an atomic group ([composition](03-composition.md#atomic-groups)). Without it, `Line*`
+- `{ eol }` is an atomic group ([composition](03-composition.md#atomic-groups---)). Without it, `Line*`
   could read `"\r\n"` as one line or as two — an empty line ended by `\r`, then one ended by `\n` —
   and a refused input would be read again for every way of cutting it. The compiler says so
   (`GRAM4052`, a warning).
