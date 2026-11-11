@@ -1303,7 +1303,7 @@ sealed partial class GrammarNormalizer
 			// It used to go across as written, a call of a type, which C# does not compile (CS1955).
 			Expr.Call(Expr.Reference(false, _, _), var arguments) when _model.Bindings.TryGetValue(value, out var bound) &&
 				bound is RuleSymbol rule =>
-				"new " + Built(rule) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
+				"new " + Built(rule, value) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
 
 			Expr.Call(var target, var arguments) =>
 				Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
@@ -1321,16 +1321,23 @@ sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// The type a construction <c>Pair(a, b)</c> builds, by the name the class it is written into reads
-	/// it by.
+	/// it by; what it builds it from is held to the rule's captures once they are known
+	/// (<see cref="CheckNamedTypes"/>).
 	/// </summary>
-	string Built(RuleSymbol rule)
+	string Built(RuleSymbol rule, Expr call)
 	{
 		var name = Emit.CSharpEmitter.IdentifierOf(rule);
 
 		_namedTypes[name] = rule;
 
+		if (_currentRule is { } within)
+			_built.Add((within, rule, (Expr.Call)call));
+
 		return name;
 	}
+
+	/// <summary>Every construction of a grammar's type: the rule it is written in, the rule it builds, the call.</summary>
+	readonly List<(RuleSymbol Within, RuleSymbol Rule, Expr.Call Call)> _built = [];
 
 	static string TypeArguments(IReadOnlyList<TypeRef> types)
 	{

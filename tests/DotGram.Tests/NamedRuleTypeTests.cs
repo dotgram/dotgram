@@ -64,6 +64,14 @@ public sealed class NamedRuleTypeTests
 		return [.. Compile(grammar).Diagnostics.Where(static one => one.Severity == GramSeverity.Error)];
 	}
 
+	/// <summary>The grammar with its last rule published, which is the rule under test.</summary>
+	static string Published(string grammar)
+	{
+		var last = grammar.Substring(grammar.LastIndexOf('\n') + 1);
+
+		return grammar + "\nparse " + last.Substring(0, last.IndexOfAny([' ', ':'])).Trim();
+	}
+
 	public static TheoryData<CarrierKind, bool> Renderings()
 	{
 		return new()
@@ -107,6 +115,38 @@ public sealed class NamedRuleTypeTests
 		Assert.Equal(
 			"[Pair { Left = 1, Right = 2 }, Pair { Left = 3, Right = 4 }]",
 			Shown(EmittedCode.Match(assembly, "Grammar", "TryParseMany", "1,2;3,4").Value));
+	}
+
+	[Theory]
+	[InlineData(Numbers + "Swapped : Pair = left: Number & ';' & right: Number => Pair(right)",           "Pair(right)")]
+	[InlineData(Numbers + "Swapped : Pair = left: Number & ';' & right: Number => Pair(right, left, left)", "Pair(right, left, left)")]
+	[InlineData(Numbers + "Mixed : Pair = t: ['a'..'z']+ & ';' & n: Number => Pair(t, n)",                 "t")]
+	[InlineData(Numbers + "Other = a: Number & '-' & b: Number\nSwapped : Pair = o: Other => Pair(o, 1)",   "o")]
+	[InlineData(Numbers + "Plain = 'p'\nX : @string = a: Number => Plain(a)",                              "Plain(a)")]
+	[InlineData(Numbers + "Made : @string = 'm' => @(\"m\")\nX : @string = a: Number => Made(a)",            "Made(a)")]
+	[InlineData("Item : @string = 'a' => @(\"A\")\nItems : @string[] = items: { Item }* => @(items)",           "(items)")]
+	[InlineData("Item : @string = 'a' => @(\"A\")\nOne : @string = items: Item+ => items",                   "items")]
+	[InlineData(Numbers + "One : @string = p: Pair => @(p)",                                                "(p)")]
+	[InlineData(Numbers + "One : int = p: Pair => p",                                                       "p")]
+	public void A_value_that_cannot_be_its_type_is_said_on_the_grammar(string grammar, string at)
+	{
+		var full = Published(grammar);
+		var said = Assert.Single(Errors(full), static one => one.Id == GrammarNormalizer.ConstructionTypeMismatch);
+
+		Assert.StartsWith(at, full.Substring(said.Position), StringComparison.Ordinal);
+		Assert.DoesNotContain(Errors(full), static one => one.Id != GrammarNormalizer.ConstructionTypeMismatch);
+	}
+
+	[Theory]
+	[InlineData("Item : @string = 'a' => @(\"A\")\nItems : @string[] = items: Item* => @(items)")]
+	[InlineData("Item : @string = 'a' => @(\"A\")\nItems : @object = items: { Item }* => @(items)")]
+	[InlineData("Item : @string = 'a' => @(\"A\")\nItems : @System.Collections.Generic.IEnumerable<string> = items: Item* => @(items)")]
+	[InlineData(Numbers + "One : @object = p: Pair => @(p)")]
+	[InlineData(Numbers + "One : Pair = p: Pair => @(p)")]
+	[InlineData(Numbers + "One : int = p: Pair => @(p.Left)")]
+	public void While_one_that_can_is_left_to_compile(string grammar)
+	{
+		Assert.Empty(Errors(Published(grammar)));
 	}
 
 	[Fact]

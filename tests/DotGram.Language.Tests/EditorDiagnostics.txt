@@ -486,6 +486,10 @@ parse A
 === GRAM4055
 Start : @int = (any* & eos)* => @(0)
 positional parse Start
+=== GRAM4056
+Item : @string = 'a' => @("A")
+Items : @string[] = items: { Item }* => @(items)
+parse Items
 === GRAM5001
 A = 'a' & any* & 'b'
 find A
