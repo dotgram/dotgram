@@ -1288,7 +1288,7 @@ sealed partial class GrammarNormalizer
 	/// that resolves to nothing is C#'s error to report, on the grammar's line (§7.6).
 	/// The `@` is not part of it: it marks the crossing into C# and does not survive it.
 	/// </remarks>
-	static string Text(Expr value)
+	string Text(Expr value)
 	{
 		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
 		if (DeepStack.Low)
@@ -1298,6 +1298,13 @@ sealed partial class GrammarNormalizer
 		{
 			Expr.CSharp(var text) => $"({text})",
 			Expr.Reference(_, var name, var types) => name + TypeArguments(types),
+
+			// §3.7: a rule's name without `@` builds the type the grammar generates for that rule.
+			// It used to go across as written, a call of a type, which C# does not compile (CS1955).
+			Expr.Call(Expr.Reference(false, _, _), var arguments) when _model.Bindings.TryGetValue(value, out var bound) &&
+				bound is RuleSymbol rule =>
+				"new " + Built(rule) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
+
 			Expr.Call(var target, var arguments) =>
 				Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
 			// A character literal with no character in it is not something an author can
@@ -1310,6 +1317,19 @@ sealed partial class GrammarNormalizer
 			Expr.Literal(false, var text) => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
 			_ => value.ToString(),
 		};
+	}
+
+	/// <summary>
+	/// The type a construction <c>Pair(a, b)</c> builds, by the name the class it is written into reads
+	/// it by.
+	/// </summary>
+	string Built(RuleSymbol rule)
+	{
+		var name = Emit.CSharpEmitter.IdentifierOf(rule);
+
+		_namedTypes[name] = rule;
+
+		return name;
 	}
 
 	static string TypeArguments(IReadOnlyList<TypeRef> types)
