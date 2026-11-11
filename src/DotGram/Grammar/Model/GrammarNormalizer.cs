@@ -130,6 +130,13 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string PositionalOverSegments = "GRAM4055";
 
+	/// <summary>
+	/// What a rule begins with did not settle: its answer went on changing past the bound
+	/// <c>FirstSets.ByRule</c> sets from the grammar, so the grammar is refused rather than
+	/// compiled from an answer that is not one.
+	/// </summary>
+	public const string FirstSetUnsettled = "GRAM4056";
+
 	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>; or one used as a method, a type or a variable, where it is reserved.</summary>
 	public const string SuppliedNameNotHere = "GRAM4053";
 
