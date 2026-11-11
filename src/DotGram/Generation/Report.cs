@@ -73,6 +73,7 @@ readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines
 /// neither can be placed inside the grammar (<c>GramGenerator.Said</c>).
 /// </param>
 /// <param name="Classified">Where the target of each of the class's <c>[GramClassify]</c> is written, in the class's order.</param>
+/// <param name="Located">The attribute of the per-call reading folded into the first, which names its location type.</param>
 readonly record struct Site(
 	string                    Key,
 	Place?                    At,
@@ -82,10 +83,14 @@ readonly record struct Site(
 	int                       Column,
 	EquatableArray<Site.Base> Bases,
 	Place?                    Named = null,
-	EquatableArray<Site.Base> Classified = default)
+	EquatableArray<Site.Base> Classified = default,
+	Place?                    Located = null)
 {
 	public const int None      = -1;
 	public const int Attribute = 0;
+
+	/// <summary>The attribute of the per-call reading folded into this one (<see cref="Located"/>), or this one's where there is none.</summary>
+	public const int Facade    = int.MinValue;
 
 	/// <summary>An included grammar's attribute, and where its literal begins.</summary>
 	/// <param name="At">Null where the base is in a referenced assembly.</param>
@@ -111,6 +116,9 @@ readonly record struct Site(
 
 	public Place? PlaceOf(int anchor)
 	{
+		if (anchor == Facade)
+			return Located ?? At;
+
 		if (anchor <= Classify(0))
 			return -2 - anchor < Classified.Items.Length ? Classified.Items[-2 - anchor].At : null;
 

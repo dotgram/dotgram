@@ -3172,7 +3172,8 @@ implements it is handed the range of input it was built from: the rule's own tex
 the trivia around it, so that a comment falls between two values rather than inside one.
 `Locate` is called once, by the reader, on a value it has just made and nothing has yet seen,
 and it is called through the interface, so an explicit implementation serves as well as a
-public one. A type that is not such an interface is `GRAM0011`.
+public one. A class declaring `Locate`, or inheriting it, may be named instead, and is called on
+the class. A type that is neither is `GRAM0011`.
 
 An implementor may be a class or a struct; a struct is told on the value the rule returns. A rule
 whose value is a `Nullable` of a struct has nothing to write it on, and is refused (`GRAM4046`).

@@ -111,8 +111,8 @@ static class Diagnostics
 	/// </summary>
 	public static readonly DiagnosticDescriptor LocationTypeNotLocatable = new(
 		id:                 "GRAM0011",
-		title:              "The location type is not an interface declaring Locate",
-		messageFormat:      "'{0}' names '{1}' as its LocationType, which is not an interface declaring {2}",
+		title:              "The location type declares no Locate",
+		messageFormat:      "'{0}' names '{1}' as its LocationType, which is neither an interface nor a class declaring {2}",
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,

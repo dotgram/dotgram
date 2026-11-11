@@ -223,6 +223,13 @@ sealed class GramCompilerOptions
 	public string? LocationType { get; set; }
 
 	/// <summary>
+	/// Whether <see cref="LocationType"/> is a class rather than an interface: a located value is then
+	/// told through the class, which a value may only derive from, and not through an interface it
+	/// may implement explicitly.
+	/// </summary>
+	public bool LocationTypeIsClass { get; set; }
+
+	/// <summary>
 	/// The nested class whose published methods call this parser with locations on, where
 	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
 	/// (<c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
