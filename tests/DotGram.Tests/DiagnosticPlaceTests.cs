@@ -44,7 +44,7 @@ public sealed class DiagnosticPlaceTests
 			"""
 			namespace N;
 
-			[DotGram.GramVariant(Carrier = DotGram.GramCarrier.Deferred, Name = "Tape")]
+			[DotGram.GramParserVariant("Tape", Carrier = DotGram.GramCarrier.Deferred)]
 			public sealed partial class Reader;
 			""",
 			parse, "Options.cs", cancellationToken: token);
@@ -84,7 +84,7 @@ public sealed class DiagnosticPlaceTests
 			namespace N;
 
 			[DotGram.Gram("Start = E\nE = E & '?' & E & (':' & E)? >> 1\n  | ['0'..'9']\nparse Start")]
-			[DotGram.GramVariant(Carrier = DotGram.GramCarrier.Deferred, Name = "Tape")]
+			[DotGram.GramParserVariant("Tape", Carrier = DotGram.GramCarrier.Deferred)]
 			public sealed partial class Reader;
 			""",
 			parse, "Grammar.cs", cancellationToken: token);
@@ -111,7 +111,7 @@ public sealed class DiagnosticPlaceTests
 	/// </summary>
 	[Theory]
 	[InlineData("")]
-	[InlineData("[DotGram.GramVariant(Carrier = DotGram.GramCarrier.Deferred, Name = \"Tape\")]")]
+	[InlineData("[DotGram.GramParserVariant(\"Tape\", Carrier = DotGram.GramCarrier.Deferred)]")]
 	public void Two_mistakes_in_a_grammar_named_by_a_constant_are_two_diagnostics(string reading)
 	{
 		var parse = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);

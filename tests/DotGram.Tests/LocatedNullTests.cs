@@ -20,7 +20,7 @@ public sealed class LocatedNullTests
 	static string Source(string carrier, bool lexical, bool perCall)
 	{
 		var options = perCall
-			? "[GramVariant(LocationType = typeof(ILoc), Name = \"Located\", UsePerCallLocations = true)]"
+			? "[GramParserVariant(\"Located\", LocationType = typeof(ILoc), UsePerCallLocations = true)]"
 			: "";
 		var located = perCall ? "" : ", LocationType = typeof(ILoc)";
 

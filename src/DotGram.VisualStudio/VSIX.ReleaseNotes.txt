@@ -69,7 +69,7 @@ Initial preview for Visual Studio 2022 17.14 and Visual Studio 18.
 - Attribute discovery and grammar syntax are synchronized with the current DotGram language version.
 - Parameters annotated with `StringSyntax("DotGram")` or `StringSyntax(".gram")`
   enable DotGram grammar tooling.
-- A host has one `[Gram]`; additional `[GramVariant]` readings no longer look like
+- A host has one `[Gram]`; additional `[GramParserVariant]` readings no longer look like
   separate grammar sources to editor tooling.
 - File names in `[Gram("Language.gram")]` are no longer analyzed as embedded grammar text.
 - Standalone and embedded grammars are analyzed with direct and transitive

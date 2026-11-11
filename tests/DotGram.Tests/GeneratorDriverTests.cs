@@ -1648,7 +1648,7 @@ public sealed class GeneratorDriverTests
 		FrameIsTheGeneratedFrame(
 			"""
 			[DotGram.Gram("Start = 'a' & @M\nparse Start")]
-			[DotGram.GramVariant(Name = "Immediate")]
+			[DotGram.GramParserVariant("Immediate")]
 			public partial class Host
 			{
 				static bool M(System.ReadOnlySpan<char> input, ref int pos)
@@ -1730,7 +1730,7 @@ public sealed class GeneratorDriverTests
 		var assembly = BuildStrict(
 			"""
 			[DotGram.Gram("Start = 'a' & @M\nparse Start")]
-			[DotGram.GramVariant(Name = "Immediate")]
+			[DotGram.GramParserVariant("Immediate")]
 			public partial class SuffixHost
 			{
 				static bool M(System.ReadOnlySpan<char> input, ref int pos)
@@ -1893,7 +1893,7 @@ public sealed class GeneratorDriverTests
 			}
 
 			[DotGram.Gram("Start = @ParseStart<int>\nparse Start")]
-			[DotGram.GramVariant(Name = "Other")]
+			[DotGram.GramParserVariant("Other")]
 			public partial class GenericOwn
 			{
 				static bool ParseStart<TItem>(System.ReadOnlySpan<char> input, ref int pos)
@@ -3537,7 +3537,7 @@ public sealed class GeneratorDriverTests
 					| "900=" & 'X'+ => @(900)
 				parse Start
 				""")]
-			[GramVariant(Name = "Inherited")]
+			[GramParserVariant("Inherited")]
 			public static partial class PrefixDefaults { }
 			"""");
 
@@ -3549,7 +3549,7 @@ public sealed class GeneratorDriverTests
 			Assert.Equal(198, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["198=XX"]));
 		}
 
-		Assert.Null(built.GetType("DotGram.GramVariantAttribute")!.GetProperty("PrefixTables"));
+		Assert.Null(built.GetType("DotGram.GramParserVariantAttribute")!.GetProperty("PrefixTables"));
 	}
 
 	// ── Two readings of one grammar ─────────────────────────────────────────
@@ -3557,7 +3557,7 @@ public sealed class GeneratorDriverTests
 	/// <summary>
 	/// A class carries one grammar and may read it several ways; each further reading is a
 	/// compilation of its own in a class of its own, and takes from <c>[Gram]</c> whatever
-	/// its <c>[GramVariant]</c> does not say — which is how one host offers the same grammar
+	/// its <c>[GramParserVariant]</c> does not say — which is how one host offers the same grammar
 	/// compiled two ways.
 	/// </summary>
 	[Fact]
@@ -3573,7 +3573,7 @@ public sealed class GeneratorDriverTests
 				Start : @string = t: ['a'..'z']+ => @(Seen(t, parserSpan))
 				parse Start
 				""")]
-			[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
+			[GramParserVariant("Immediate", Carrier = GramCarrier.Immediate)]
 			public static partial class Both
 			{
 				internal static string Seen(string t, SourceSpan at) => t + "@" + at.Length;
@@ -3605,7 +3605,7 @@ public sealed class GeneratorDriverTests
 				Start = ['a'..'z']+
 				parse Start
 				""")]
-			[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
+			[GramParserVariant("Immediate", Carrier = GramCarrier.Immediate)]
 			// Not `Hidden`: this assembly is loaded into the test process, the expression
 			// language looks names up in every loaded assembly, and its tests name a `Hidden`
 			// of their own — which of the two a run found depended on which test ran first.
@@ -3620,7 +3620,7 @@ public sealed class GeneratorDriverTests
 				Start = ['a'..'z']+
 				parse Start
 				""")]
-			[GramVariant(Carrier = GramCarrier.Immediate, Name = "Immediate")]
+			[GramParserVariant("Immediate", Carrier = GramCarrier.Immediate)]
 			public static partial class Shown
 			{
 			}
@@ -3641,7 +3641,7 @@ public sealed class GeneratorDriverTests
 	/// <summary>
 	/// Two readings cannot share one scope, and are told so rather than colliding. A second
 	/// <c>[Gram]</c> is no longer how a second reading is asked for — the attribute is one
-	/// per class, which C# refuses on its own — so the case left is a <c>[GramVariant]</c>
+	/// per class, which C# refuses on its own — so the case left is a <c>[GramParserVariant]</c>
 	/// that says no <c>Suffix</c> and so wants the class itself, which the <c>[Gram]</c>
 	/// already has.
 	/// </summary>
@@ -3655,8 +3655,8 @@ public sealed class GeneratorDriverTests
 			[Gram("""
 				Start = 'a'+
 				parse Start
-				""")]
-			[GramVariant(Carrier = GramCarrier.Deferred)]
+				""", Name = "Same")]
+			[GramParserVariant("Same", Carrier = GramCarrier.Deferred)]
 			public static partial class Crowded;
 			"""");
 
@@ -3664,6 +3664,25 @@ public sealed class GeneratorDriverTests
 
 		Assert.Equal(DiagnosticSeverity.Error, refusal.Severity);
 		Assert.Contains("Crowded", refusal.GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>A further reading always names its class: an empty name, or one no class can have, is refused.</summary>
+	[Theory]
+	[InlineData("\"\"")]
+	[InlineData("null")]
+	[InlineData("\"Not one\"")]
+	public void A_variant_must_name_its_class(string name)
+	{
+		var run = RunGenerator(
+			"[DotGram.Gram(\"Start = 'a'+\\nparse Start\")]\n" +
+			"[DotGram.GramParserVariant(" + name + ", Carrier = DotGram.GramCarrier.Deferred)]\n" +
+			"public static partial class Unnamed;");
+
+		var refusal = Assert.Single(run.Diagnostics.Where(static one => one.Id == "GRAM0007"));
+
+		Assert.Equal(DiagnosticSeverity.Error, refusal.Severity);
+		Assert.Contains("Unnamed", refusal.GetMessage(), StringComparison.Ordinal);
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM0006");
 	}
 
 	/// <summary>A grammar is included by being named, and it may be named more than once.</summary>

@@ -323,8 +323,8 @@ public sealed class SegmentedInputTests
 					Name  : @Name   = ['a'..'z']+ => @(new Name())
 					parse Names
 					""")]
-				[DotGram.GramVariant(Carrier = DotGram.GramCarrier.Immediate, Name = "Immediate")]
-				[DotGram.GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
+				[DotGram.GramParserVariant("Immediate", Carrier = DotGram.GramCarrier.Immediate)]
+				[DotGram.GramParserVariant("Located", LocationType = typeof(ILoc), UsePerCallLocations = true)]
 				public static partial class Args
 				{
 					[DotGram.Gram("""

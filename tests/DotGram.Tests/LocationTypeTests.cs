@@ -32,7 +32,7 @@ public sealed class LocationTypeTests
 	{
 		var types   = location + "\npublic sealed class Item : ILoc { public Item(string text) { } " + implementation + " }";
 		var perCall = wanted.Contains("gapStart", StringComparison.Ordinal);
-		var variant = perCall ? "[DotGram.GramVariant(LocationType = typeof(ILoc), Name = \"Located\", UsePerCallLocations = true)]" : "";
+		var variant = perCall ? "[DotGram.GramParserVariant(\"Located\", LocationType = typeof(ILoc), UsePerCallLocations = true)]" : "";
 		var run     = GeneratorDriverTests.RunGenerator(Host(types, perCall ? "Lexical = false" : "LocationType = typeof(ILoc)", variant));
 		var refused = Assert.Single(run.Diagnostics, static one => one.Id == "GRAM0011");
 
