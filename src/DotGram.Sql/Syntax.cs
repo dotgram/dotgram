@@ -119,7 +119,7 @@ internal static class Syntax
 	};
 
 	/// <summary>The functions whose first argument is a date part.</summary>
-	static readonly HashSet<string> DatePartFunctions = new(StringComparer.OrdinalIgnoreCase)
+	internal static readonly HashSet<string> DatePartFunctions = new(StringComparer.OrdinalIgnoreCase)
 	{
 		"DATEPART", "DATENAME", "DATEADD", "DATEDIFF", "DATEDIFF_BIG", "DATETRUNC", "DATE_BUCKET",
 	};

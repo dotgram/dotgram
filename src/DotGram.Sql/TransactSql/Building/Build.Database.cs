@@ -62,8 +62,10 @@ static partial class Build
 			};
 			var old = new Defining(record, name ?? "") { Tail = tail };
 
-			return Defer(old, at, static one => Checked((Defining)one, Backup((Defining)one)));
+			return Defer(old, at, BackupBuilt);
 		}
+
+		static readonly Deferred<Defining> BackupBuilt = new(static old => Checked(old, Backup(old)));
 
 		/// <summary>What is restored, likewise.</summary>
 		internal static Statement Restored(string what, string? name, string? tail, SqlSpan at)
@@ -84,8 +86,10 @@ static partial class Build
 			};
 			var old = new Defining(record, name ?? "") { Tail = tail };
 
-			return Defer(old, at, static one => Checked((Defining)one, Restore((Defining)one)));
+			return Defer(old, at, RestoreBuilt);
 		}
+
+		static readonly Deferred<Defining> RestoreBuilt = new(static old => Checked(old, Restore(old)));
 
 		/// <summary>
 		/// An ALTER DATABASE action other than SET and MODIFY's edition options, on the common tree: the database, the
@@ -128,7 +132,8 @@ static partial class Build
 		{
 			var old = new Defining("Statement.AlterDatabaseModify", name);
 
-			return Defer(old, at, one => AlterModify((Defining)one, options, with));
+			// What else the rule read is the builder's too: it is made for this statement.
+			return Defer(old, at, new Deferred<Defining>(old => AlterModify(old, options, with)));
 		}
 
 		/// <summary>ALTER DATABASE SCOPED CONFIGURATION, on the common tree, from what its rules read.</summary>

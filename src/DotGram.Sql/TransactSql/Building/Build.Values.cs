@@ -959,20 +959,14 @@ static partial class Build
 			["CURRENT_TIME"]      = Ast.CurrentValue.Time,
 		};
 
-		/// <summary>Whether a name upper-cased is the upper-case name given, as the invariant culture raises it (<see cref="SqlTokens.Raises"/>).</summary>
-		static bool Names(string name, string upper)
-		{
-			return SqlTokens.Raises(name, upper);
-		}
-
 		public static Ast.Expression Function(Call old)
 		{
-			// The name is held to the built-ins' upper-case names as it would be upper-cased (Names), rather than upper-cased:
-			// a call written in lower case would make a string of it each time.
+			// The name is held to the built-ins' upper-case names as it would be upper-cased (SqlTokens.Raises), rather than
+			// upper-cased: a call written in lower case would make a string of it each time.
 			var name = old.Name;
 
 			// IdentityFunction: the type the old tree keeps as the call's word, and the seed and the step.
-			if (Names(name, "IDENTITY") && old.Word is { } typed && old.Arguments.Length is 0 or 2)
+			if (SqlTokens.Raises(name, "IDENTITY") && old.Word is { } typed && old.Arguments.Length is 0 or 2)
 				return new Ast.Expression.Identity(Type(old, typed))
 				{
 					Seed      = old.Arguments.Length == 2 ? (Ast.LiteralValue.Numeric)Of(old.Arguments[0]) : null,
@@ -980,26 +974,26 @@ static partial class Build
 				};
 
 			// AI_GENERATE_EMBEDDINGS: what is embedded, and the model after USE MODEL, which the old tree keeps as words.
-			if (Names(name, "AI_GENERATE_EMBEDDINGS") && old is { Word: null, Arguments: [Hinted(var source, var words)] })
+			if (SqlTokens.Raises(name, "AI_GENERATE_EMBEDDINGS") && old is { Word: null, Arguments: [Hinted(var source, var words)] })
 				return Embeddings(old, source, words);
 
 			// FullTextPredicate: the columns, what is searched for, and LANGUAGE and its value.
-			if ((Names(name, "CONTAINS") || Names(name, "FREETEXT")) && old.Word is null)
-				return FullText(old, Names(name, "CONTAINS") ? Ast.FullTextPredicateKind.Contains : Ast.FullTextPredicateKind.FreeText);
+			if ((SqlTokens.Raises(name, "CONTAINS") || SqlTokens.Raises(name, "FREETEXT")) && old.Word is null)
+				return FullText(old, SqlTokens.Raises(name, "CONTAINS") ? Ast.FullTextPredicateKind.Contains : Ast.FullTextPredicateKind.FreeText);
 
 			// `CAST (DISTINCT 1)` reads, as any call does, with a quantifier where the type would stand.
 			var type = old.Word is { } word && word.ToUpperInvariant() is not ("DISTINCT" or "ALL" or "*") ? word : null;
 
-			if ((Names(name, "CAST") || Names(name, "TRY_CAST")) && type is not null)
+			if ((SqlTokens.Raises(name, "CAST") || SqlTokens.Raises(name, "TRY_CAST")) && type is not null)
 			{
 				if (old.Arguments.Length != 1)
 					throw BuildGap.Open(old, "inventory Expression.RoutineInvocation (a CAST that is not one value and a type)");
 
-				return new Ast.Expression.Cast(Of(old.Arguments[0]), Type(old, type)) { Try = Names(name, "TRY_CAST") };
+				return new Ast.Expression.Cast(Of(old.Arguments[0]), Type(old, type)) { Try = SqlTokens.Raises(name, "TRY_CAST") };
 			}
 
 			// `[TRY_]CONVERT (type, value [, style])`: the type is the old call's word, and the arguments are the rest.
-			if ((Names(name, "CONVERT") || Names(name, "TRY_CONVERT")) && type is not null)
+			if ((SqlTokens.Raises(name, "CONVERT") || SqlTokens.Raises(name, "TRY_CONVERT")) && type is not null)
 			{
 				if (old.Arguments.Length is < 1 or > 2)
 					throw BuildGap.Open(old, "inventory Expression.RoutineInvocation (a CONVERT that is not a type, a value and a style)");
@@ -1008,11 +1002,11 @@ static partial class Build
 					Type(old, type),
 					Of(old.Arguments[0]),
 					old.Arguments.Length > 1 ? Of(old.Arguments[1]) : null,
-					Names(name, "TRY_CONVERT"));
+					SqlTokens.Raises(name, "TRY_CONVERT"));
 			}
 
 			// `[TRY_]PARSE (value AS type [USING culture])`: the culture is the second argument.
-			if ((Names(name, "PARSE") || Names(name, "TRY_PARSE")) && type is not null)
+			if ((SqlTokens.Raises(name, "PARSE") || SqlTokens.Raises(name, "TRY_PARSE")) && type is not null)
 			{
 				if (old.Arguments.Length is < 1 or > 2)
 					throw BuildGap.Open(old, "inventory Expression.RoutineInvocation (a PARSE that is not a value, a type and a culture)");
@@ -1021,7 +1015,7 @@ static partial class Build
 					Of(old.Arguments[0]),
 					Type(old, type),
 					old.Arguments.Length > 1 ? Of(old.Arguments[1]) : null,
-					Names(name, "TRY_PARSE"));
+					SqlTokens.Raises(name, "TRY_PARSE"));
 			}
 
 			// `NEXT VALUE FOR s`: the sequence is the old call's word. The three words are fourteen characters at least, and
