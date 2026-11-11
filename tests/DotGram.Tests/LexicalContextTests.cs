@@ -347,11 +347,11 @@ public sealed class LexicalContextTests
 	/// specialization of a rule with a parameter, and a rule of another namespace the terminal's imports.
 	/// </summary>
 	[Theory]
-	[InlineData("nested",    "Tape")]
+	[InlineData("nested",    "Deferred")]
 	[InlineData("nested",    "Immediate")]
-	[InlineData("parameter", "Tape")]
+	[InlineData("parameter", "Deferred")]
 	[InlineData("parameter", "Immediate")]
-	[InlineData("imported",  "Tape")]
+	[InlineData("imported",  "Deferred")]
 	[InlineData("imported",  "Immediate")]
 	public void A_guard_reading_a_value_built_from_the_context_keeps_no_cutting(string through, string carrier)
 	{
@@ -426,7 +426,7 @@ public sealed class LexicalContextTests
 	/// keeps for it — which that parser used to keep only for a guard of the syntax's own (CS1061).
 	/// </summary>
 	[Theory]
-	[InlineData("Tape")]
+	[InlineData("Deferred")]
 	[InlineData("Immediate")]
 	public void A_guard_reading_a_captured_value_inside_a_measured_terminal_is_read(string carrier)
 	{

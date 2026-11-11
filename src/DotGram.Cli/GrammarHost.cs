@@ -64,8 +64,13 @@ static class GrammarHost
 	/// <exception cref="ToolException">An option <c>[Gram]</c> does not have, or a value its type does not take.</exception>
 	public static string Argument(string name, string value, IReadOnlyList<Option> options)
 	{
-		var option = options.FirstOrDefault(one => string.Equals(one.Name, name, StringComparison.OrdinalIgnoreCase))
-			?? throw ToolException.Usage($"[Gram] has no option '{name}'. It has: {Listed(options)}.");
+		// A name the option had before 0.3.0 is told what it is now, as a build is (GRAM0012).
+		var renamed = GramRenames.Options.FirstOrDefault(one => string.Equals(one.Key, name, StringComparison.OrdinalIgnoreCase));
+		var option  = options.FirstOrDefault(one => string.Equals(one.Name, name, StringComparison.OrdinalIgnoreCase))
+			?? throw ToolException.Usage(
+				$"[Gram] has no option '{name}'." +
+				(renamed.Key is null ? "" : " " + GramRenames.Message(renamed.Key, renamed.Value) + ".") +
+				$" It has: {Listed(options)}.");
 
 		string Bad(string why)
 		{
@@ -79,7 +84,10 @@ static class GrammarHost
 		if (option.Members.Count > 0)
 		{
 			var member = option.Members.FirstOrDefault(one => string.Equals(one, value.Trim(), StringComparison.OrdinalIgnoreCase))
-				?? Bad($"not one of {string.Join(", ", option.Members)}");
+				?? Bad($"not one of {string.Join(", ", option.Members)}" +
+					(type == "GramCarrier" && string.Equals(value.Trim(), "Tape", StringComparison.OrdinalIgnoreCase)
+						? " (" + GramRenames.Message(GramRenames.OldCarrier, GramRenames.NewCarrier) + ")"
+						: ""));
 
 			text = "global::DotGram." + type + "." + member;
 		}

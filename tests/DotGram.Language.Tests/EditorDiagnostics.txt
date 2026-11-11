@@ -16,6 +16,7 @@
 --- GRAM0009 Roslyn shell: needs the [Gram(MaxBufferedInputLength/InitialBufferSize)] attribute options
 --- GRAM0010 Roslyn shell: needs the project's C# LangVersion
 --- GRAM0011 Roslyn shell: needs the LocationType's symbol from a host compilation
+--- GRAM0012 Roslyn shell: about the C# of an attribute, not the grammar's text
 --- GRAM0017 Roslyn shell: needs a referenced assembly that carries the grammar beside a local file
 --- GRAM6001 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
 --- GRAM6002 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
