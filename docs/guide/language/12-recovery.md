@@ -44,12 +44,38 @@ ParseRows("a\n12\nb\n") → ["a", "b"]
 ```
 
 The host learns of it through a partial method the generator declares in a grammar with a `recover` that
-has no `=>`; implementing it is optional, and where nobody does, the calls and their arguments are removed:
+has no `=>`, `OnRecovered`, told the rule the element should have been, the text it covered, where it began,
+which element it was and why it was rejected:
+
+```dotgram
+Row  : @string   = v: { ['a'..'z']+ } & eol => v
+Rows : @string[] = Row* recover eol
+
+parse Rows
+```
 
 ```csharp
-static partial void OnRecovered(
-	string rule, string text, long position, int line, int column, int ordinal, string message);
+partial class Grammar
+{
+	public static readonly System.Collections.Generic.List<string> Log = new();
+
+	static partial void OnRecovered(
+		string rule, string text, long position, int line, int column, int ordinal, string message)
+	{
+		Log.Add($"{rule} #{ordinal} at {line}:{column}: {message}");
+	}
+}
 ```
+
+```text examples
+ParseRows("a\n12\nb\n") → ["a", "b"]
+@Log → ["Row #1 at 2:1: Expected end of input or ['a'..'z'] at 2:1."]
+```
+
+The message names the end of input beside the row, because the rest of the rule — here nothing — was
+tried first at that boundary (below). Implementing it is optional: it is a `partial void` with no access modifier, so where nobody implements it,
+the compiler removes every call together with its arguments, and the parse counts no lines for a channel
+nobody listens on.
 
 Notes:
 
@@ -70,7 +96,9 @@ Notes:
 > совпадения `S` и начинает там следующий элемент; отвергнутый элемент занимает своё место в нумерации.
 > С `=>` отвергнутый элемент становится элементом последовательности (пример `bad: 12`); без `=>` он
 > выбрасывается и сообщается в сторону — через частичный метод `OnRecovered`, который генератор
-> объявляет в хосте (реализация необязательна; без неё вызовы удаляются вместе с аргументами).
+> объявляет в хосте: ему сообщаются правило, которым должен был быть элемент, его текст, начало, номер и
+> причина (пример с журналом `Log`, проверенным прогоном `@Log`). Реализация необязательна: это
+> `partial void` без модификатора доступа, и без реализации вызовы удаляются вместе с аргументами.
 > `recover` ставится только на повторение (иначе `GRAM4010`). **Ничего не перехватывается**: исключение из
 > `=>` выходит из разбора. Отсутствие обязательного элемента или окончания по-прежнему проваливает весь
 > разбор. Восстановление включается явно, потому что «прочитал, потом упал — значит, кривой» неверно для
