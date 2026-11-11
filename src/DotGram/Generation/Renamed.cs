@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 
 using DotGram.Grammar;
+using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -54,8 +55,11 @@ static class Renamed
 	{
 		return node switch
 		{
-			AttributeSyntax attribute => Variants.Contains(SimpleName(attribute.Name)) || OldArguments(attribute).Any(),
+			AttributeSyntax attribute => Variants.Contains(SimpleName(attribute.Name)) || OldArguments(attribute).Any() || AliasOfVariant(attribute.Name),
 			MemberAccessExpressionSyntax access => access.Name.Identifier.ValueText == "Tape",
+
+			// `Tape` on its own, reached through `using static DotGram.GramCarrier` (Find).
+			IdentifierNameSyntax { Identifier.ValueText: "Tape" } identifier => identifier.Parent is not MemberAccessExpressionSyntax { Name: var name } || name != identifier,
 			_ => false,
 		};
 	}
@@ -65,7 +69,25 @@ static class Renamed
 	{
 		var found = ImmutableArray.CreateBuilder<RenamedUse>();
 
-		if (node is MemberAccessExpressionSyntax access)
+		if (node is IdentifierNameSyntax tape)
+		{
+			// Nothing of that name in view, and DotGram's enum imported by a `using static`.
+			if (model.GetSymbolInfo(tape, cancellationToken) is { Symbol: null, CandidateSymbols.Length: 0 } &&
+				tape.Ancestors()
+					.SelectMany(static scope => scope switch
+					{
+						CompilationUnitSyntax unit                      => unit.Usings,
+						BaseNamespaceDeclarationSyntax space            => space.Usings,
+						_                                               => default,
+					})
+					.Any(directive => directive.StaticKeyword.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StaticKeyword) &&
+						model.GetSymbolInfo(directive.NamespaceOrType, cancellationToken).Symbol is INamedTypeSymbol carrier &&
+						IsDotGram(carrier, "GramCarrier")))
+			{
+				found.Add(new RenamedUse(GramRenames.OldCarrier, GramRenames.NewCarrier, Place.Of(tape.GetLocation())));
+			}
+		}
+		else if (node is MemberAccessExpressionSyntax access)
 		{
 			// DotGram's enum, through whatever name or alias reaches it, and no member of that name on it.
 			if (model.GetSymbolInfo(access, cancellationToken) is { Symbol: null, CandidateSymbols.Length: 0 } &&
@@ -79,7 +101,7 @@ static class Renamed
 		{
 			var bound = model.GetSymbolInfo(attribute, cancellationToken);
 
-			if (Variants.Contains(SimpleName(attribute.Name)) && bound is { Symbol: null, CandidateSymbols.Length: 0 })
+			if (bound is { Symbol: null, CandidateSymbols.Length: 0 } && IsOldVariant(attribute.Name, model, cancellationToken))
 				found.Add(new RenamedUse(GramRenames.OldVariant, GramRenames.NewVariant, Place.Of(attribute.Name.GetLocation())));
 			else if ((bound.Symbol ?? bound.CandidateSymbols.FirstOrDefault()) is IMethodSymbol { ContainingType: var type } &&
 				RenamesOf(type) is { } renames)
@@ -94,16 +116,117 @@ static class Renamed
 	}
 
 	/// <summary>
-	/// Whether an attribute of the generator's, as C# bound it, is written with an old name that drops an
-	/// alias — <c>As</c> on <c>[GramInclude]</c>, <c>IncludedAs</c> on <c>[Gram]</c> — so that the names of a
-	/// grammar built on it no longer resolve: what GRAM0012 explains, and the host is not told again.
+	/// The aliases a host's grammar lost to an old name, as the old name wrote them: <c>As</c> on a
+	/// <c>[GramInclude]</c> of the host or of any class it is built on, <c>IncludedAs</c> on the <c>[Gram]</c>
+	/// of any class it includes. The grammar's names that went through one no longer resolve, which
+	/// GRAM0012 explains; those reports, and only those, are not made again (<see cref="Explained"/>).
 	/// </summary>
-	public static bool DropsAlias(AttributeData attribute)
+	public static ImmutableArray<string> DroppedAliases(INamedTypeSymbol host)
 	{
-		return attribute.AttributeClass is { } type &&
-			(IsDotGram(type, "GramIncludeAttribute") || IsDotGram(type, "GramAttribute")) &&
-			attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax &&
-			OldArguments(syntax).Any(static named => named.Identifier.ValueText is "As" or "IncludedAs");
+		var classes = new List<INamedTypeSymbol>();
+		var dropped = new List<string>();
+
+		GramIncludes.Walk(host, classes.Add);
+
+		foreach (var type in classes.Prepend(host))
+			foreach (var attribute in type.GetAttributes())
+			{
+				// Each old name on the attribute it was the option of: `As` on [GramInclude], `IncludedAs`
+				// on an included class's [Gram]. Either on the other is no old name, and C# says so.
+				var old = attribute.AttributeClass switch
+				{
+					{ } include when IsDotGram(include, "GramIncludeAttribute")                                         => "As",
+					{ } gram when IsDotGram(gram, "GramAttribute") && !SymbolEqualityComparer.Default.Equals(type, host) => "IncludedAs",
+					_                                                                                                   => null,
+				};
+
+				if (old is null || attribute.ApplicationSyntaxReference?.GetSyntax() is not AttributeSyntax syntax)
+					continue;
+
+				foreach (var argument in syntax.ArgumentList?.Arguments ?? default)
+					if (argument.NameEquals?.Name.Identifier.ValueText == old &&
+						argument.Expression is LiteralExpressionSyntax { Token.Value: string alias })
+					{
+						dropped.Add(alias);
+					}
+			}
+
+		return [.. dropped.Distinct(StringComparer.Ordinal)];
+	}
+
+	/// <summary>
+	/// Whether a report is one a dropped alias explains: a namespace of that name not in view
+	/// (GRAM3003), or a name reached through it (GRAM3002) — one qualified by it, or any where the
+	/// grammar opens it with <c>using</c>, since that name was to be found there.
+	/// </summary>
+	public static bool Explained(string id, string message, IReadOnlyCollection<string> dropped, string? grammar)
+	{
+		if (id is not ("GRAM3002" or "GRAM3003") || Quoted(message) is not { } name)
+			return false;
+
+		foreach (var alias in dropped)
+		{
+			if (name == alias || name.StartsWith(alias + ".", StringComparison.Ordinal))
+				return true;
+
+			if (id == "GRAM3002" && grammar is not null &&
+				System.Text.RegularExpressions.Regex.IsMatch(grammar, @"\busing\s+" + System.Text.RegularExpressions.Regex.Escape(alias) + @"\s*;"))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>The first name a message quotes, which is the one GRAM3002 and GRAM3003 are about.</summary>
+	static string? Quoted(string message)
+	{
+		var open  = message.IndexOf('\'');
+		var close = open < 0 ? -1 : message.IndexOf('\'', open + 1);
+
+		return close < 0 ? null : message.Substring(open + 1, close - open - 1);
+	}
+
+	/// <summary>
+	/// Whether an attribute's name, which C# did not bind, is the old <c>[GramOptions]</c>: unqualified, or
+	/// qualified by DotGram's namespace, or an alias written for it.
+	/// </summary>
+	static bool IsOldVariant(NameSyntax name, SemanticModel model, CancellationToken cancellationToken)
+	{
+		switch (name)
+		{
+			case IdentifierNameSyntax simple when Variants.Contains(simple.Identifier.ValueText):
+				return true;
+
+			case QualifiedNameSyntax qualified when Variants.Contains(qualified.Right.Identifier.ValueText):
+				return model.GetSymbolInfo(qualified.Left, cancellationToken).Symbol is INamespaceSymbol { ContainingNamespace.IsGlobalNamespace: true } space &&
+					space.Name == GramMetadataNames.Namespace;
+
+			case IdentifierNameSyntax alias:
+				return AliasOfVariant(alias);
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>Whether a simple name is an alias a <c>using</c> in view writes for the old <c>[GramOptions]</c>, by syntax.</summary>
+	static bool AliasOfVariant(NameSyntax name)
+	{
+		if (name is not IdentifierNameSyntax { Identifier.ValueText: var alias })
+			return false;
+
+		return name.Ancestors()
+			.SelectMany(static scope => scope switch
+			{
+				CompilationUnitSyntax unit           => unit.Usings,
+				BaseNamespaceDeclarationSyntax space => space.Usings,
+				_                                    => default,
+			})
+			.Any(directive => directive.Alias?.Name.Identifier.ValueText == alias &&
+				directive.NamespaceOrType is QualifiedNameSyntax { Left: IdentifierNameSyntax { Identifier.ValueText: GramMetadataNames.Namespace } } target &&
+				Variants.Contains(target.Right.Identifier.ValueText));
 	}
 
 	/// <summary>The renamed options of one of the generator's attributes, or null for any other class.</summary>

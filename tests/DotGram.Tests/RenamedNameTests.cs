@@ -130,6 +130,84 @@ public sealed class RenamedNameTests
 			renamed);
 	}
 
+	const string Lib = """
+		using DotGram;
+
+		[Gram("A = 'a'\nparse A")]
+		public static partial class Lib { }
+
+		""";
+
+	/// <summary>
+	/// An old <c>As</c> holds back only what the alias explains: the namespace it named, and the names
+	/// a grammar opening it reaches; an error of its own beside it is said, as it is with no old name.
+	/// </summary>
+	[Theory]
+	[InlineData("As = \"Old\"", "using Old;\\nS = A\\nparse S", new string[0])]
+	[InlineData("As = \"Old\"", "S = Typo\\nparse S", new[] { "GRAM3002" })]
+	[InlineData("As = \"Old\"", "S = Old.A & Typo\\nparse S", new[] { "GRAM3002" })]
+	[InlineData("Alias = \"Old\"", "S = Typo\\nparse S", new[] { "GRAM3002" })]
+	public void Only_what_a_dropped_alias_explains_is_held_back(string alias, string grammar, string[] said)
+	{
+		var run = GeneratorDriverTests.RunGenerator(Lib +
+			"[GramInclude(typeof(Lib), " + alias + ")]\n[Gram(\"" + grammar + "\")]\npublic static partial class P { }");
+
+		Assert.Equal(
+			said,
+			run.Diagnostics.Where(static one => one.Id.StartsWith("GRAM", StringComparison.Ordinal) && one.Id != "GRAM0012" && one.Severity == DiagnosticSeverity.Error)
+				.Select(static one => one.Id)
+				.Distinct()
+				.ToArray());
+	}
+
+	/// <summary>An old name written on the other attribute, <c>As</c> on <c>[Gram]</c>, is no old name of it: nothing is held back, nor said by GRAM0012.</summary>
+	[Fact]
+	public void An_alias_on_the_wrong_attribute_holds_nothing_back()
+	{
+		var run = GeneratorDriverTests.RunGenerator(Lib +
+			"[GramInclude(typeof(Lib), IncludedAs = \"Old\")]\n[Gram(\"using Old;\\nS = A\\nparse S\", As = \"Old\")]\npublic static partial class P { }");
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM3003");
+	}
+
+	/// <summary>An old <c>As</c> between two included grammars explains what the outer host meets through it too.</summary>
+	[Fact]
+	public void An_old_alias_on_an_include_of_an_include_is_held_back_for_the_outer_host()
+	{
+		var run = GeneratorDriverTests.RunGenerator(Lib + """
+			[GramInclude(typeof(Lib), As = "Old")]
+			[Gram("M = 'm'\nparse M")]
+			public static partial class Middle { }
+
+			[GramInclude(typeof(Middle))]
+			[Gram("using Old;\nS = A\nparse S")]
+			public static partial class P { }
+			""");
+
+		Assert.Single(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id is "GRAM3002" or "GRAM3003");
+	}
+
+	/// <summary>
+	/// <c>GramCarrier.Tape</c> imported by <c>using static</c>, and <c>[GramOptions]</c> reached through an
+	/// alias, are old names too; a name qualified by a namespace of the author's own is not.
+	/// </summary>
+	[Theory]
+	[InlineData("using static DotGram.GramCarrier;\n\nstatic class X { static object Carried = Tape; }", "GramCarrier.Tape")]
+	[InlineData("using O = DotGram.GramOptionsAttribute;\n\n[O(Suffix = \"Fast\")]\n[DotGram.Gram(\"A = 'a'\\nparse A\")]\npublic static partial class X { }", "GramOptions")]
+	[InlineData("namespace Own { }\n\n[Own.GramOptions]\n[DotGram.Gram(\"A = 'a'\\nparse A\")]\npublic static partial class X { }", null)]
+	[InlineData("static class X { static object Tape = 1; static object Carried = Tape; }", null)]
+	public void An_old_name_is_found_as_C_sharp_reaches_it(string source, string? old)
+	{
+		var renamed = GeneratorDriverTests.RunGenerator(source).Diagnostics.Where(static one => one.Id == "GRAM0012").ToArray();
+
+		if (old is null)
+			Assert.Empty(renamed);
+		else
+			Assert.StartsWith("'" + old + "'", Assert.Single(renamed).GetMessage(), StringComparison.Ordinal);
+	}
+
 	/// <summary>A type of the author's own that happens to be called <c>GramOptions</c> is not taken for the old attribute.</summary>
 	[Fact]
 	public void An_authors_own_GramOptions_is_left_alone()

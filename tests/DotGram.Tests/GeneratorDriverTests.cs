@@ -3673,6 +3673,8 @@ public sealed class GeneratorDriverTests
 	[InlineData("\"Not one\"")]
 	[InlineData("\"bad-name\", UsePerCallLocations = true, LocationType = typeof(ILoc)")]
 	[InlineData("\"\", UsePerCallLocations = true, LocationType = typeof(ILoc)")]
+	[InlineData("\"class\", UsePerCallLocations = true, LocationType = typeof(ILoc)")]
+	[InlineData("\"null\"")]
 	public void A_variant_must_name_its_class(string name)
 	{
 		var run = RunGenerator(
