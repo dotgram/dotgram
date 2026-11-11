@@ -25,7 +25,7 @@ namespace DotGram.Generation;
 /// and testable — without any of this.
 /// </remarks>
 [Generator(LanguageNames.CSharp)]
-public sealed class GramGenerator : IIncrementalGenerator
+sealed class GramGenerator : IIncrementalGenerator
 {
 	/// <summary>
 	/// The name a grammar's generated file is added under, without its <c>.g.cs</c>: the host type as written
