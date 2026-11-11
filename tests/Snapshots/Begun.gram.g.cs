@@ -3520,7 +3520,16 @@ namespace DotGram.Snapshots
 
 			tokens.Cut = false;
 
-			tokens.Room((to - from) / 4 + 16);
+			if (from == 0 && to == input.Length)
+			{
+				tokens.Room((to - from) / 4 + 16);
+			}
+			else
+			{
+				tokens.Room(64);
+
+				tokens.Asked = (to - from) / 4 + 16;
+			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, to);
 			var kinds   = tokens.Kinds;
