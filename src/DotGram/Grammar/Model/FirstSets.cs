@@ -1859,7 +1859,7 @@ static class FirstSets
 				// A body that must consume and begins with nothing never matches, so the look
 				// never lets the rest through: nothing follows it. Read as narrowing nothing, the
 				// answer would shrink once the body began, while the rules grow (ByRule).
-				if (ahead.Nothing && !MayRecover(expected, graph))
+				if (ahead.Nothing && !Passed(expected, graph))
 					break;
 			}
 
@@ -1900,10 +1900,9 @@ static class FirstSets
 				// after it is ever reached (MayRecover says why). Passed over instead, the
 				// sequence began with what comes after the part — and while the rules grow,
 				// nothing is also what a rule not reached yet answers, so the answer shrank once
-				// it was reached (ByRule). A part that may recover is still passed over, as it
-				// always was: it matches by stepping over a bad element, which no first set here
-				// speaks for.
-				if (!Nullable(parts[i], graph) && !MayRecover(parts[i], graph))
+				// it was reached (ByRule). A part that may recover and has settled on nothing is
+				// passed over, as it always was (Passed).
+				if (!Nullable(parts[i], graph) && !Passed(parts[i], graph))
 					break;
 
 				continue;
@@ -1955,6 +1954,36 @@ static class FirstSets
 	}
 
 	/// <summary>
+	/// Whether a part that must consume and begins with nothing is passed over as though it
+	/// matched nothing, rather than ending what the sequence can begin with.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only a part that may recover (<see cref="MayRecover"/>) and whose answer has settled on
+	/// nothing: it has no reading <see cref="Of"/> speaks for, and still matches by stepping over a
+	/// bad element. <c>Rows = D+ recover '.' &amp; '.'</c> over a <c>D</c> that never matches
+	/// begins with the dot, and an optional dot before it gives its dot back for it.
+	/// </para>
+	/// <para>
+	/// Decided once per part, when the component the part is read in has stopped growing
+	/// (<see cref="RecognitionGraph.FirstPassed"/>): passed over while its answer was still
+	/// nothing for want of a rule not reached yet, what came after it would be taken back once the
+	/// rule was reached. Until then such a part stops the sequence and is put forward
+	/// (<see cref="RecognitionGraph.FirstAsked"/>).
+	/// </para>
+	/// </remarks>
+	static bool Passed(Node part, RecognitionGraph graph)
+	{
+		if (graph.FirstPassed is { } passed && passed.Contains(part))
+			return true;
+
+		if (!graph.FirstSettled && MayRecover(part, graph))
+			(graph.FirstAsked ??= new HashSet<Node>(NodeIdentity.Instance)).Add(part);
+
+		return false;
+	}
+
+	/// <summary>
 	/// What each rule can begin with, as the least set that satisfies every rule at once.
 	/// </summary>
 	/// <remarks>
@@ -1978,17 +2007,18 @@ static class FirstSets
 	/// A part that must consume and begins with nothing never matches, so nothing after it in
 	/// the sequence is ever reached: the sequence stops there, while the rules grow and after,
 	/// and a positive look whose body is such a part lets nothing through — unless the part may
-	/// recover (<see cref="MayRecover"/>), which matches by stepping over what no first set
-	/// speaks for and is passed over as before. Then the step only adds as what it reads grows —
-	/// except there, and for a negative look over one character, which admits the complement of
-	/// what it refuses. What it refuses cannot call back into the rule (every
+	/// recover, which matches by stepping over what no first set speaks for and, once it has
+	/// settled on nothing, is passed over as before (<see cref="Passed"/>). Then the step only
+	/// adds as what it reads grows, except for a negative look over one character, which admits
+	/// the complement of what it refuses. What it refuses cannot call back into the rule (every
 	/// reading of it is one character), so the rules are worked out callee first, a strongly
 	/// connected component at a time, each settled before the next: a look reads only what has
 	/// stopped growing. Each answer is joined with the one before all the same, which is what
-	/// bounds the loop whatever the step does. Where nothing recovers the answer is the least
-	/// fixed point, the same whatever order the rules are written in, and every rule begins with
-	/// what its body does. Round a ring through a part that may recover, what was let through
-	/// before the part began is kept: never wrong, since such a part may begin with anything.
+	/// bounds the loop whatever the step does. The answer is the least fixed point of the
+	/// reading the rest of the compiler reads it with, so every rule begins with what its body
+	/// does, and the same whatever order the rules are written in: which parts are passed over is
+	/// decided from the settled answers of each round, and each round's answer is a least fixed
+	/// point.
 	/// </para>
 	/// <para>
 	/// What it replaces answered "anything" on re-entering a rule already being walked. That
@@ -2029,6 +2059,46 @@ static class FirstSets
 				if (queued.Add(rule))
 					pending.Enqueue(rule);
 
+			Grow();
+
+			// The parts that may recover and stopped a sequence: asked again of the settled
+			// answers, in one more reading of every rule of the component, and those that still
+			// begin with nothing are passed over from here on (Passed). Then the component grows
+			// again from where it stood, which may reach more of them; each round only adds.
+			while (graph.FirstAsked is { Count: > 0 } asked)
+			{
+				asked.Clear();
+
+				foreach (var rule in component)
+					if (graph.Bodies.TryGetValue(rule, out var body))
+						Of(body, graph, estimates);
+
+				if (asked.Count == 0)
+					break;
+
+				var passed = graph.FirstPassed ??= new HashSet<Node>(NodeIdentity.Instance);
+
+				foreach (var part in asked)
+					passed.Add(part);
+
+				asked.Clear();
+
+				foreach (var rule in component)
+					if (queued.Add(rule))
+						pending.Enqueue(rule);
+
+				Grow();
+			}
+		}
+
+		graph.FirstSettled = true;
+
+		return estimates;
+
+		// Works the pending rules off, each answer joined with the one before it; only callers in
+		// the same component are queued again.
+		void Grow()
+		{
 			while (pending.Count > 0)
 			{
 				var rule = pending.Dequeue();
@@ -2051,10 +2121,6 @@ static class FirstSets
 						pending.Enqueue(caller);
 			}
 		}
-
-		graph.FirstSettled = true;
-
-		return estimates;
 	}
 
 	/// <summary>Whether two sets are the same set.</summary>
