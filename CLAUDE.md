@@ -51,7 +51,7 @@ src/
 		Generation/       the Roslyn shell
 		Language/         the editor-neutral analysis of a .gram document and of the C#
 		                  around one — classification, symbols, diagnostics — that the
-		                  editors compile; the generator compiles only its three Roslyn
+		                  editors compile; the generator compiles only its four Roslyn
 		                  seams. What may go where: Language/README.md
 		Language.projitems the shared core's list of sources, Grammar/ and Language/,
 		                  which every editor host imports

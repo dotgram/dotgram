@@ -70,7 +70,7 @@ var texts = Directory.EnumerateFiles(projectDir, "*.gram", SearchOption.AllDirec
 	.ToImmutableArray();
 
 var generatorType = AssemblyLoadContext.Default.LoadFromAssemblyPath(generatorPath).GetType("DotGram.Generation.GramGenerator") ?? throw new InvalidOperationException("No GramGenerator in " + generatorPath);
-var summary       = new Regex(@"DotGram: (?<host>[^,]+), \d+ normalized rules, \d+ bytes UTF-8 C#, (?<ms>[\d.]+) ms generation");
+var summary       = new Regex(@"DotGram: (?<host>[^,]+), \d+ normalized rules?, \d+ bytes UTF-8 C#, (?<ms>[\d.]+) ms generation");
 var options       = new Options();
 
 for (var run = 0; run < runs; run++)
