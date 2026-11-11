@@ -549,12 +549,18 @@ sealed class GramGenerator : IIncrementalGenerator
 		{
 			var parser = Compile(grammar, reporting, counting, positional);
 
-			// A host whose alias was written with an old name, here or by a grammar it includes, is told
-			// so (GRAM0012), and not that the names that alias reached do not resolve; every other
-			// report stands.
-			return grammar.Host.Outdated
-				? parser with { Reports = new EquatableArray<Report>([.. parser.Reports.Items.Where(static one => one.Id is not ("GRAM3002" or "GRAM3003"))]) }
-				: parser;
+			// A host whose alias was written with an old name, here or by a grammar it is built on, is told
+			// so (GRAM0012), and not that a name that alias reached does not resolve; every other report
+			// stands, a name the alias has nothing to do with among them.
+			var dropped = grammar.Host.DroppedAliases.Items;
+
+			return dropped.IsEmpty
+				? parser
+				: parser with
+				{
+					Reports = new EquatableArray<Report>([.. parser.Reports.Items.Where(one =>
+						!Renamed.Explained(one.Id, one.Arguments.Items.FirstOrDefault() ?? "", dropped, grammar.Text))]),
+				};
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -1151,7 +1157,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			return new Grammar(host, null, null, default, default, Values(reports));
 		}
 
-		if (host.Options.Name is { Length: > 0 } scope && !IsIdentifier(scope))
+		if (host.Options.Name is { Length: > 0 } scope && !IsClassName(scope))
 		{
 			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, Site.Attribute, host.ClassName, scope));
 
@@ -1534,6 +1540,15 @@ sealed class GramGenerator : IIncrementalGenerator
 		return dot < 0 ? className : className.Substring(dot + 1);
 	}
 
+	/// <summary>
+	/// What a nested class the generated code declares can be named by: one identifier that is not a
+	/// C# keyword, which would need an <c>@</c> the class's own code is not written with.
+	/// </summary>
+	static bool IsClassName(string name)
+	{
+		return IsIdentifier(name) && SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None;
+	}
+
 	/// <summary>One identifier, which is all a namespace can be named by.</summary>
 	static bool IsIdentifier(string name)
 	{
@@ -1716,8 +1731,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		string? Literal,
 		bool    Placed,
 		string? Portable = null,
-		string  Imported = "",
-		bool    Outdated = false);
+		string  Imported = "");
 
 	/// <summary>
 	/// Every option of a reading as the full report prints it: under the names it is written with,
@@ -1791,7 +1805,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<string> Readings = default,
 		EquatableArray<string> Classified = default,
 		bool    Variant        = false,
-		bool    Outdated       = false)
+		EquatableArray<string> DroppedAliases = default)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1899,7 +1913,7 @@ sealed class GramGenerator : IIncrementalGenerator
 
 				// A name no class can have stays a reading of its own, to be told so (GRAM0007), rather
 				// than becoming the name of a class the generated code declares.
-				if (!perCall.Options.UsePerCallLocations || perCall.LocationType is null || perCall.Options.Name is not { } name || !IsIdentifier(name) || facade is not null)
+				if (!perCall.Options.UsePerCallLocations || perCall.LocationType is null || perCall.Options.Name is not { } name || !IsClassName(name) || facade is not null)
 					continue;
 
 				facade         = perCall.Options.Name;
@@ -2122,10 +2136,9 @@ sealed class GramGenerator : IIncrementalGenerator
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType,
 				Variant:        variant,
-				// An alias written with a name it had before 0.3.0, here or by a grammar it includes:
-				// GRAM0012 says so, and the names it no longer reaches are not said (Renamed.DropsAlias).
-				Outdated:       type.GetAttributes().Any(static one => one.AttributeClass?.Name == "GramIncludeAttribute" && Renamed.DropsAlias(one)) ||
-					included.Any(static one => one.Included.Outdated),
+				// Aliases written with a name they had before 0.3.0, here or on any class the grammar is
+				// built on: GRAM0012 says so, and the names they no longer reach are not said again.
+				DroppedAliases: new EquatableArray<string>(Renamed.DroppedAliases(type)),
 				Classified:     new EquatableArray<string>([.. classifies.Select(static one => (string)one.ConstructorArguments[0].Value!)]));
 
 			return (host, site, options);
@@ -2222,8 +2235,7 @@ sealed class GramGenerator : IIncrementalGenerator
 						Literal:   spelled == default ? null : spelled.Text,
 						Placed:    at is not null,
 						Portable:  include.Portable,
-						Imported:  Imported(include.Type, compilation),
-						Outdated:  Renamed.DropsAlias(attribute)),
+						Imported:  Imported(include.Type, compilation)),
 					new Site.Base(at, spelled == default ? 0 : spelled.SpanStart)));
 			}
 
