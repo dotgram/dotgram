@@ -532,7 +532,7 @@ the reader to the engine on the scenario's shapes.
 reach itself probes the stack once in sixty-four entries; where the runtime says the margin
 is gone, the reading carries on over a new thread's stack — the reader is made again there,
 the input handed over as `ReadOnlyMemory` — and takes another if it goes deeper still.
-`[Gram(Stacks = n)]` bounds how many, after which the parse fails with
+`[Gram(MaxExtraStacks = n)]` bounds how many, after which the parse fails with
 `InsufficientExecutionStackException`. A reading over a stream is not carried over.
 
 ## 7. Execution modes, and what bounds retention
