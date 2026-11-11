@@ -73,7 +73,7 @@ coding agents. The reference is [`docs/cli.md`](https://github.com/dotgram/dotgr
 | `--verbose` | both | print the stack trace of a failure inside the generator |
 | `--reference <file.dll\|dir>` | `.gram` | an assembly the grammar's types come from (every `*.dll` of a directory) |
 | `--package <Name>@<Version>` | `.gram` | a package's assemblies, from the global packages folder |
-| `--define <SYMBOL>` | `.gram` | a preprocessor symbol, beside the framework's |
+| `--define <SYMBOL>` | `.gram` | a preprocessor symbol, beside the framework's; several in one value, separated by `;` or `,` |
 | `--langversion <version>` | `.gram` | the C# version (default: the SDK's for the framework) |
 | `--namespace <Ns>` | `.gram` | the host's namespace (default: none) |
 | `--class <Name>` | `.gram` | the host's name (default: the file's name) |
