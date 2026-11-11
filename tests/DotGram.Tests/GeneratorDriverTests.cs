@@ -189,6 +189,25 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("partial class Inner<U>", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// Two generic hosts of one name and different arity in one namespace are two classes, and each
+	/// gets a file of its own: the hint name spells the type parameters, comma and all.
+	/// </summary>
+	[Fact]
+	public void Generic_hosts_of_one_name_and_different_arity_each_get_their_parser()
+	{
+		var run = RunGenerator(
+			"namespace Ns\n" +
+			"{\n" +
+			"	[DotGram.Gram(" + DigitsLiteral + ")] public partial class Parser<T>;\n" +
+			"	[DotGram.Gram(" + DigitsLiteral + ")] public partial class Parser<T, U>;\n" +
+			"}");
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
+		Assert.Contains("partial class Parser<T>", GetGeneratedSource(run, "Ns.Parser_T_.g.cs"), StringComparison.Ordinal);
+		Assert.Contains("partial class Parser<T, U>", GetGeneratedSource(run, "Ns.Parser_T, U_.g.cs"), StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void A_generic_host_looks_for_the_file_named_after_the_class_alone()
 	{

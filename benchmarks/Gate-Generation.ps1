@@ -118,7 +118,7 @@ $window = Enter-Window $what (Get-Date).AddMinutes($SlotMinutes) $WaitMinutes
 
 if ($window -is [string]) { Stop-Run 3 $window }
 
-$summary = [regex]'DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation'
+$summary = [regex]'DotGram: (?<host>[^,]+), (?<rules>\d+) normalized rules?, (?<bytes>\d+) bytes UTF-8 C#, (?<ms>[\d.]+) ms generation'
 $taken = @{ base = @{}; head = @{} }
 $warmed = @{ base = @{}; head = @{} }
 $warmRunsOf = @{ base = @{}; head = @{} }

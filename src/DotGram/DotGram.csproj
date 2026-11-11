@@ -90,10 +90,10 @@
 
 		<!-- Language/ is the editor's half of the shared core (Language/README.md), compiled by
 		     the editors from Language.projitems. The analyzer takes only the Roslyn seams it shares
-		     with them — the scanner of @(...), the walk of included grammars and the reading of
-		     [Gram] — and none of the rest, which is editor code and needs Roslyn's Workspaces. -->
+		     with them — the scanner of @(...), the walk of included grammars, the reading of
+		     [Gram] and the map of a string literal's value onto its spelling — and none of the rest, which is editor code and needs Roslyn's Workspaces. -->
 		<Compile Remove="Language/**" />
-		<Compile Include="Language/RoslynCSharpScanner.cs;Language/GramIncludes.cs;Language/GramHostOptions.cs" />
+		<Compile Include="Language/RoslynCSharpScanner.cs;Language/GramIncludes.cs;Language/GramHostOptions.cs;Language/CSharpStringMap.cs" />
 
 		<!-- The package's own README, not the repository's. The two answer different
 		     questions: the front page argues for the project and the package tells
