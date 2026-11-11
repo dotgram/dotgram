@@ -303,7 +303,7 @@ public sealed class TokenReadingFindingsTests
 		const string members = "public static int Guards; public static int Made_;";
 
 		foreach (var lexical in new[] { true, false })
-			foreach (var (direct, carrier) in new (bool, CarrierKind?)[] { (false, null), (true, CarrierKind.Tape), (true, CarrierKind.Immediate) })
+			foreach (var (direct, carrier) in new (bool, CarrierKind?)[] { (false, null), (true, CarrierKind.Deferred), (true, CarrierKind.Immediate) })
 			{
 				var options = Options(lexical, direct);
 
@@ -376,7 +376,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		const string members = "public static bool Keep() { return true; } public static bool Reject() { return false; }";
 
-		foreach (var (direct, carrier) in new (bool, CarrierKind?)[] { (false, null), (true, CarrierKind.Tape), (true, CarrierKind.Immediate) })
+		foreach (var (direct, carrier) in new (bool, CarrierKind?)[] { (false, null), (true, CarrierKind.Deferred), (true, CarrierKind.Immediate) })
 		{
 			var options = Options(lexical: false, direct);
 
@@ -801,7 +801,7 @@ public sealed class TokenReadingFindingsTests
 		// engine where the methods refuse the grammar (GRAM5005) — which every recovery over tokens is, a
 		// recovery the reader reads needing a factory and a factory being refused in a spaced
 		// grammar (GRAM4010). Those rows ask the engine three times, and say so.
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var options = Options(lexical: true, direct: true);
 
@@ -1354,7 +1354,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		yield return Built(grammar, lexical: true, direct: false);
 
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var options = Options(lexical: true, direct: true);
 
@@ -1373,7 +1373,7 @@ public sealed class TokenReadingFindingsTests
 	{
 		yield return Built(grammar, lexical: false, direct: false);
 
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var options = Options(lexical: false, direct: true);
 

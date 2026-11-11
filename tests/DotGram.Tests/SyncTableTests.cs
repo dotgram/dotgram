@@ -46,7 +46,7 @@ public sealed class SyncTableTests
 		var byName  = Elements + $"Sync = {named}\nS : @int = xs: I* recover Sync & eof => @(xs.Length)\nparse S";
 
 		foreach (var direct in new[] { true, false })
-			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape })
+			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred })
 				foreach (var buffered in new[] { false, true })
 				{
 					var here  = Built(inPlace, direct, carrier, buffered);
@@ -78,7 +78,7 @@ public sealed class SyncTableTests
 		var grammar = Elements + $"S : @int = {repetition} & eof => @(xs.Length)\nparse S";
 
 		foreach (var direct in new[] { true, false })
-			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape })
+			foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred })
 			{
 				var built = Built(grammar, direct, carrier, buffered: false);
 

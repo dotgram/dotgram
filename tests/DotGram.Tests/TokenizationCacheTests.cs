@@ -39,7 +39,7 @@ public sealed class TokenizationCacheTests
 	const string Last = "z z z z z z z z z z z z z z z z z z z";
 
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_reading_inside_another_does_not_take_the_cutting_it_is_reading(CarrierKind carrier)
 	{

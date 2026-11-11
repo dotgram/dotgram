@@ -45,7 +45,7 @@ public sealed class CarrierTests
 	{
 		var (_, grammar, inputs) = Shapes.Single(one => one.Name == name);
 
-		var tape  = Compiled(grammar, CarrierKind.Tape);
+		var tape  = Compiled(grammar, CarrierKind.Deferred);
 		var immediate = Compiled(grammar, CarrierKind.Immediate);
 
 		Assert.Contains("ImmediateValues_DotGram", immediate.Source, StringComparison.Ordinal);
@@ -157,7 +157,7 @@ public sealed class CarrierTests
 	{
 		var (_, grammar, inputs) = Shapes.Single(one => one.Name == name);
 
-		var tape = Compiled(grammar, CarrierKind.Tape);
+		var tape = Compiled(grammar, CarrierKind.Deferred);
 		var auto = Compiled(grammar, CarrierKind.Auto);
 
 		foreach (var input in inputs)
@@ -197,7 +197,7 @@ public sealed class CarrierTests
 		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", source);
 
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Auto));
-		Assert.Empty(Diagnostics(Plain, CarrierKind.Tape));
+		Assert.Empty(Diagnostics(Plain, CarrierKind.Deferred));
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Immediate));
 	}
 
@@ -247,7 +247,7 @@ public sealed class CarrierTests
 		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", source);
 
 		foreach (var input in new[] { "abc", "", "1" })
-			Assert.Equal(Built(CarrierKind.Tape, input), Built(CarrierKind.Auto, input));
+			Assert.Equal(Built(CarrierKind.Deferred, input), Built(CarrierKind.Auto, input));
 
 		// A look reads Name and gives it back; the rule is built once, for the reading that stands.
 		Assert.Equal(["Name", "Start"], Built(CarrierKind.Auto, "abc"));
@@ -294,7 +294,7 @@ public sealed class CarrierTests
 			""";
 
 		var (source, assembly) = Compiled(GivesBack, CarrierKind.Auto);
-		var tape = Compiled(GivesBack, CarrierKind.Tape);
+		var tape = Compiled(GivesBack, CarrierKind.Deferred);
 
 		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", source);
 
@@ -366,7 +366,7 @@ public sealed class CarrierTests
 			Assert.Contains("Word", told!, StringComparison.Ordinal);
 
 		// And what it chose reads what the tape reads, the ways inside the group included.
-		var tape = Compiled(grammar, CarrierKind.Tape);
+		var tape = Compiled(grammar, CarrierKind.Deferred);
 		var auto = Compiled(grammar, CarrierKind.Auto);
 
 		foreach (var input in new[] { "ab12;cd3;", "a1;", "ab123;", "x;", "" })
@@ -409,7 +409,7 @@ public sealed class CarrierTests
 		if (!immediate)
 			Assert.Contains("Pair", told!, StringComparison.Ordinal);
 
-		var tape = Compiled(grammar, CarrierKind.Tape);
+		var tape = Compiled(grammar, CarrierKind.Deferred);
 		var auto = Compiled(grammar, CarrierKind.Auto);
 
 		foreach (var input in new[] { "ab;c\\n;", "\\t;", "a\\x;", "\\;", ";;", "é\\n;", "" })
@@ -453,7 +453,7 @@ public sealed class CarrierTests
 		if (!immediate)
 			Assert.Contains("Line", told!, StringComparison.Ordinal);
 
-		var tape = Compiled(grammar, CarrierKind.Tape);
+		var tape = Compiled(grammar, CarrierKind.Deferred);
 		var auto = Compiled(grammar, CarrierKind.Auto);
 
 		foreach (var input in new[] { "ab\n;cd;", "ab;", "ab\n\n;", "ab\n", "a;b", "" })
@@ -498,7 +498,7 @@ public sealed class CarrierTests
 		if (!immediate)
 			Assert.Contains("Word", told!, StringComparison.Ordinal);
 
-		var tape = Compiled(grammar, CarrierKind.Tape);
+		var tape = Compiled(grammar, CarrierKind.Deferred);
 		var auto = Compiled(grammar, CarrierKind.Auto);
 
 		foreach (var input in new[] { "?1;?0;", "?1?11", "abc;AB;", "abcc", "ABCC", "aBC", "ab;", "" })
@@ -540,7 +540,7 @@ public sealed class CarrierTests
 
 		Assert.True(immediate == told is null, told);
 
-		var tape = Compiled(grammar, CarrierKind.Tape);
+		var tape = Compiled(grammar, CarrierKind.Deferred);
 		var auto = Compiled(grammar, CarrierKind.Auto);
 
 		foreach (var input in new[] { "1 + 2 - 3", "1+2", "1 ++ 2 + 3", "12 - 3 +", "1 +", " 1", "" })
@@ -591,7 +591,7 @@ public sealed class CarrierTests
 	[Fact]
 	public void A_carrier_named_is_told_nothing_of_the_gates()
 	{
-		foreach (var carrier in new[] { CarrierKind.Immediate, CarrierKind.Tape })
+		foreach (var carrier in new[] { CarrierKind.Immediate, CarrierKind.Deferred })
 			Assert.DoesNotContain(
 				Diagnostics(TakenBack, carrier),
 				static one => one.Id is GramCompiler.CarrierChosen or GramCompiler.CarrierCaution);
@@ -685,7 +685,7 @@ public sealed class CarrierTests
 	[InlineData("Start : @string = t: Letter+ => @(t)\nLetter = ['a'..'z'] & when @(true)", "abc", "abc")]
 	public void Text_call_capture_preserves_returns_gaps_and_value_shapes(string grammar, string input, string expected)
 	{
-		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape })
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred })
 		{
 			var (_, assembly) = Compiled(grammar + "\nparse Start", carrier);
 			var match = EmittedCode.Match(assembly, "Carried.Probe", "TryParseStart", input);
@@ -836,7 +836,7 @@ public sealed class CarrierTests
 	public void Optional_ways_preserve_results_and_failures(string grammar)
 	{
 		var (_, immediate) = Compiled(grammar + "\nparse Start", CarrierKind.Immediate);
-		var (_, tape) = Compiled(grammar + "\nparse Start", CarrierKind.Tape);
+		var (_, tape) = Compiled(grammar + "\nparse Start", CarrierKind.Deferred);
 
 		foreach (var input in new[] { "", "a", "aa", "aaa", "b", "ab", "(a)", "((a))", "((a)", "(b)", " a ", " a b " })
 		{
@@ -881,7 +881,7 @@ public sealed class CarrierTests
 			positional parse Depth
 			""";
 		var (source, immediate) = Compiled(grammar, CarrierKind.Immediate);
-		var (_, tape) = Compiled(grammar, CarrierKind.Tape);
+		var (_, tape) = Compiled(grammar, CarrierKind.Deferred);
 
 		Assert.Equal(needsWays, source.Contains("Ways_DotGram.Rent()", StringComparison.Ordinal));
 
@@ -909,7 +909,7 @@ public sealed class CarrierTests
 	/// from another by what it holds, so <c>Array.Empty</c> is the same value at no cost.
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Immediate)]
 	public void An_empty_repetition_is_handed_over_as_the_empty_array(CarrierKind carrier)
 	{

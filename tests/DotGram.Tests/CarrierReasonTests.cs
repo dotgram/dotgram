@@ -193,7 +193,7 @@ public sealed class CarrierReasonTests
 	[Fact]
 	public void A_carrier_named_is_told_no_reason()
 	{
-		foreach (var carrier in new[] { CarrierKind.Immediate, CarrierKind.Tape })
+		foreach (var carrier in new[] { CarrierKind.Immediate, CarrierKind.Deferred })
 		{
 			Assert.DoesNotContain(
 				Told("context : @object\n" + Listed, carrier),
@@ -230,7 +230,7 @@ public sealed class CarrierReasonTests
 		Assert.Equal(GramSeverity.Warning, refused.Severity);
 		Assert.Contains("ParseS [whole] is carried deferred rather than as Immediate", refused.Message, StringComparison.Ordinal);
 		Assert.Contains("'S' gathers two members onto one stack", refused.Message, StringComparison.Ordinal);
-		Assert.Equal(Source(grammar, CarrierKind.Tape), Source(grammar, CarrierKind.Auto));
+		Assert.Equal(Source(grammar, CarrierKind.Deferred), Source(grammar, CarrierKind.Auto));
 	}
 
 	/// <summary>
@@ -244,7 +244,7 @@ public sealed class CarrierReasonTests
 	public void Every_refusal_falls_back_in_silence_and_warns_where_named(string kind, string grammar, string why)
 	{
 		Assert.DoesNotContain(Told(grammar), static one => one.Severity != GramSeverity.Info);
-		Assert.Equal(Source(grammar, CarrierKind.Tape), Source(grammar, CarrierKind.Auto));
+		Assert.Equal(Source(grammar, CarrierKind.Deferred), Source(grammar, CarrierKind.Auto));
 
 		var refused = Assert.Single(Told(grammar, CarrierKind.Immediate), static one => one.Id == GramCompiler.CarrierRefused);
 

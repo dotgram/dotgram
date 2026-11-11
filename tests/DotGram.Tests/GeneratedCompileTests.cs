@@ -452,7 +452,7 @@ public sealed class GeneratedCompileTests
 	/// </summary>
 	[Theory]
 	[InlineData(true, CarrierKind.Auto)]
-	[InlineData(true, CarrierKind.Tape)]
+	[InlineData(true, CarrierKind.Deferred)]
 	[InlineData(false, CarrierKind.Auto)]
 	public void A_rule_that_builds_and_is_called_only_from_a_synchronization_reads_as_written(bool direct, CarrierKind carrier)
 	{
@@ -695,7 +695,7 @@ public sealed class GeneratedCompileTests
 	/// </summary>
 	[Theory]
 	[InlineData(true, CarrierKind.Immediate, Rows)]
-	[InlineData(true, CarrierKind.Tape, Rows)]
+	[InlineData(true, CarrierKind.Deferred, Rows)]
 	[InlineData(false, CarrierKind.Auto, Rows)]
 	[InlineData(true, CarrierKind.Auto, Run)]
 	[InlineData(false, CarrierKind.Auto, Run)]
@@ -756,7 +756,7 @@ public sealed class GeneratedCompileTests
 	/// </summary>
 	[Theory]
 	[InlineData(true, CarrierKind.Auto, "Root = Row* recover @Odd")]
-	[InlineData(true, CarrierKind.Tape, "Root = Row* recover @Odd")]
+	[InlineData(true, CarrierKind.Deferred, "Root = Row* recover @Odd")]
 	[InlineData(true, CarrierKind.Immediate, "Root = Row* recover @Odd")]
 	[InlineData(false, CarrierKind.Auto, "Root = Row* recover @Odd")]
 	[InlineData(true, CarrierKind.Auto, "Root = Rows & eof\nRows = Row* recover @Odd")]
@@ -820,10 +820,10 @@ public sealed class GeneratedCompileTests
 	/// </summary>
 	[Theory]
 	[InlineData(true, CarrierKind.Immediate, BuiltToken)]
-	[InlineData(true, CarrierKind.Tape, BuiltToken)]
+	[InlineData(true, CarrierKind.Deferred, BuiltToken)]
 	[InlineData(false, CarrierKind.Auto, BuiltToken)]
 	[InlineData(true, CarrierKind.Immediate, CapturedToken)]
-	[InlineData(true, CarrierKind.Tape, CapturedToken)]
+	[InlineData(true, CarrierKind.Deferred, CapturedToken)]
 	[InlineData(false, CarrierKind.Auto, CapturedToken)]
 	public void A_located_token_is_located_through_the_per_call_door(bool direct, CarrierKind carrier, string token)
 	{
@@ -898,7 +898,7 @@ public sealed class GeneratedCompileTests
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
 			Direct         = true,
-			Carrier        = CarrierKind.Tape,
+			Carrier        = CarrierKind.Deferred,
 			SourceFileSize = 4000,
 			LocationType   = "Grammar.ILoc",
 			LocatedFacade  = "Located",
@@ -948,7 +948,7 @@ public sealed class GeneratedCompileTests
 			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
 			Direct         = true,
 			Lexical        = lexical,
-			Carrier        = lexical ? CarrierKind.Auto : CarrierKind.Tape,
+			Carrier        = lexical ? CarrierKind.Auto : CarrierKind.Deferred,
 			SourceFileSize = split,
 			LocationType   = "Grammar.ILoc",
 			LocatedFacade  = "Located",

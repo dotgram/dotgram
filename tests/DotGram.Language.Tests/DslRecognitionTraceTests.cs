@@ -225,7 +225,7 @@ public sealed class DslRecognitionTraceTests
 		var generated = EmittedCode.Compile(
 			DotGram.Grammar.Emit.CSharpEmitter.Emit(
 				graph,
-				new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Tape, MemoiseFailures = false }),
+				new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Deferred, MemoiseFailures = false }),
 			declarationMembers: """
 				static bool Read(global::System.ReadOnlySpan<char> input, ref int pos)
 				{

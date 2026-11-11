@@ -16,8 +16,8 @@ namespace DotGram.Grammar;
 public enum CarrierKind
 {
 	/// <summary>
-	/// The default: compiled exactly as <see cref="Immediate"/>, and on the <see cref="Tape"/>
-	/// for a machine the immediate carrier refuses.
+	/// The default: compiled exactly as <see cref="Immediate"/>, and <see cref="Deferred"/> for a
+	/// machine the immediate carrier refuses.
 	/// </summary>
 	/// <remarks>
 	/// Where the tape would hold back constructions the immediate carrier runs — a rule the
@@ -31,9 +31,10 @@ public enum CarrierKind
 
 	/// <summary>
 	/// Records on a tape, built into values by a walk once the parse has been accepted. The
-	/// carrier that streams, finds and recovers, and the one that keeps §3.7 whole.
+	/// carrier that streams, finds and recovers, and the one that keeps §3.7 whole; the emitted
+	/// <c>GramCarrier.Deferred</c>.
 	/// </summary>
-	Tape,
+	Deferred,
 
 	/// <summary>
 	/// No deferral: a <c>=&gt;</c> runs the moment its alternative has been read, and an

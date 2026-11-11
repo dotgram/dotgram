@@ -95,7 +95,7 @@ public sealed class FixShapedCarrierTests
 	[InlineData("1=abc;9=3;7=abc;1=d")]
 	public void The_two_carriers_build_the_same(string wire)
 	{
-		var tape      = Read(CarrierKind.Tape, wire);
+		var tape      = Read(CarrierKind.Deferred, wire);
 		var immediate = Read(CarrierKind.Immediate, wire);
 
 		Assert.Equal(tape.Fields, immediate.Fields);
@@ -119,7 +119,7 @@ public sealed class FixShapedCarrierTests
 		// The carrier asked for has to be the one that was given, or this compares the tape
 		// with itself and holds nothing.
 		Assert.Equal(
-			carrier == CarrierKind.Tape,
+			carrier == CarrierKind.Deferred,
 			System.Text.RegularExpressions.Regex.IsMatch(source, @"\bMaterialize\w*_DotGram"));
 
 		var host  = EmittedCode.Compile(source, declarationMembers: Members).GetType("Grammar")!;

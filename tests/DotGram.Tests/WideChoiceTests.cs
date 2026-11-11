@@ -173,7 +173,7 @@ public sealed class WideChoiceTests
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
 			Direct        = carrier != "engine",
-			Carrier       = carrier switch { "tape" => CarrierKind.Tape, "immediate" => CarrierKind.Immediate, _ => CarrierKind.Auto },
+			Carrier       = carrier switch { "tape" => CarrierKind.Deferred, "immediate" => CarrierKind.Immediate, _ => CarrierKind.Auto },
 			BufferedInput = true,
 			BufferedBytes = true,
 			CSharpScanner = RoslynCSharpScanner.Instance,

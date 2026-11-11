@@ -56,7 +56,7 @@ public sealed class SharedStackTests
 	{
 		var grammar = Grammar(rule);
 
-		var tape = Parse(grammar, CarrierKind.Tape, input);
+		var tape = Parse(grammar, CarrierKind.Deferred, input);
 
 		Assert.Equal(tape, Parse(grammar, CarrierKind.Auto, input));
 		Assert.Equal(tape, Parse(grammar, CarrierKind.Immediate, input));
