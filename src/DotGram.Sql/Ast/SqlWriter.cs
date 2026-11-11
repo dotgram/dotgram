@@ -966,6 +966,17 @@ public static partial class SqlWriter
 
 					break;
 
+				// PostgreSQL: SETOF before a type, which the tree holds as an extension until a record of its own says it.
+				case DataType.Extension { Dialect: "PostgreSQL", Name: "SETOF", Arguments: [DataType element] } setOf:
+					OnlyPostgreSql(setOf);
+
+					if (element is DataType.Extension)
+						throw Misplaced(setOf, "Arguments", "of another extension, which SETOF does not take");
+
+					Word("SETOF");
+					PutType(element);
+					break;
+
 				default:
 					if (TryPutTransactSql(type))
 						break;
