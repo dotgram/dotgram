@@ -55,6 +55,81 @@ public sealed class RenamedNameTests
 		Assert.DoesNotContain(run.Diagnostics, static one => one.Id.StartsWith("GRAM", StringComparison.Ordinal) && one.Id != "GRAM0012");
 	}
 
+	/// <summary>
+	/// An old name that drops no alias holds nothing back: a grammar's own error beside it is said,
+	/// and so is one beside an author's own <c>[GramOptions]</c>, which is no old name at all.
+	/// </summary>
+	[Theory]
+	[InlineData("[Gram(\"S = Missing\\nparse S\", Portable = false)]")]
+	[InlineData("[GramOptions]\n[Gram(\"S = Missing\\nparse S\")]")]
+	public void An_error_the_rename_does_not_explain_is_said(string attributes)
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"using DotGram;\n\n" +
+			(attributes.StartsWith("[GramOptions]", StringComparison.Ordinal) ? "sealed class GramOptionsAttribute : System.Attribute { }\n\n" : "") +
+			attributes + "\npublic static partial class Broken { }");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM3002");
+	}
+
+	/// <summary>An author's own attribute with an option of an old name, or an enum with a member <c>Tape</c>, is left alone.</summary>
+	[Fact]
+	public void An_authors_own_names_are_left_alone()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			namespace Own
+			{
+				sealed class GramAttribute : System.Attribute
+				{
+					public string Suffix { get; set; } = "";
+				}
+
+				enum GramCarrier { Tape }
+
+				[Gram(Suffix = "x")]
+				static class Mine
+				{
+					static GramCarrier Carried = GramCarrier.Tape;
+				}
+			}
+			""");
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM0012");
+	}
+
+	/// <summary>
+	/// An old name is found however DotGram's attribute or enum is spelled — through an alias — and
+	/// <c>GramCarrier.Tape</c> wherever it is written.
+	/// </summary>
+	[Fact]
+	public void An_old_name_is_found_through_an_alias_and_outside_attributes()
+	{
+		const string source = """
+			using G = DotGram.GramAttribute;
+			using C = DotGram.GramCarrier;
+
+			[G("Start = 'a'+\nparse Start", Portable = false, Carrier = C.Tape)]
+			public static partial class Aliased
+			{
+				static object Carried = DotGram.GramCarrier.Tape;
+			}
+			""";
+
+		var renamed = GeneratorDriverTests.RunGenerator(source).Diagnostics
+			.Where(static one => one.Id == "GRAM0012")
+			.OrderBy(static one => one.Location.SourceSpan.Start)
+			.Select(static one => one.GetMessage())
+			.ToArray();
+
+		Assert.Equal(
+			[
+				"'Portable' was renamed to 'ExportGrammar' in 0.3.0",
+				"'GramCarrier.Tape' was renamed to 'GramCarrier.Deferred' in 0.3.0",
+				"'GramCarrier.Tape' was renamed to 'GramCarrier.Deferred' in 0.3.0",
+			],
+			renamed);
+	}
+
 	/// <summary>A type of the author's own that happens to be called <c>GramOptions</c> is not taken for the old attribute.</summary>
 	[Fact]
 	public void An_authors_own_GramOptions_is_left_alone()

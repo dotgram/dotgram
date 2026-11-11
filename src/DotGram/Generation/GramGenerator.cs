@@ -120,7 +120,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				.CreateSyntaxProvider(
 					static (node, _) => Renamed.IsCandidate(node),
 					static (candidate, cancellationToken) => new EquatableArray<RenamedUse>(
-						Renamed.Find((AttributeSyntax)candidate.Node, candidate.SemanticModel, cancellationToken)))
+						Renamed.Find(candidate.Node, candidate.SemanticModel, cancellationToken)))
 				.Where(static found => found.Items.Length > 0)
 				.Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
 			static (production, input) =>
@@ -549,9 +549,12 @@ sealed class GramGenerator : IIncrementalGenerator
 		{
 			var parser = Compile(grammar, reporting, counting, positional);
 
-			// A host written with an old name is told so (GRAM0012), and not what the grammar seems
-			// to say wrong once the old name was dropped: a missing alias, a scope taken twice.
-			return grammar.Host.Outdated ? parser with { Reports = default } : parser;
+			// A host whose alias was written with an old name, here or by a grammar it includes, is told
+			// so (GRAM0012), and not that the names that alias reached do not resolve; every other
+			// report stands.
+			return grammar.Host.Outdated
+				? parser with { Reports = new EquatableArray<Report>([.. parser.Reports.Items.Where(static one => one.Id is not ("GRAM3002" or "GRAM3003"))]) }
+				: parser;
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -1894,7 +1897,9 @@ sealed class GramGenerator : IIncrementalGenerator
 			{
 				var (perCall, perCallSite, _) = From(candidate, readings[index], index);
 
-				if (!perCall.Options.UsePerCallLocations || perCall.LocationType is null || perCall.Options.Name is not { Length: > 0 } || facade is not null)
+				// A name no class can have stays a reading of its own, to be told so (GRAM0007), rather
+				// than becoming the name of a class the generated code declares.
+				if (!perCall.Options.UsePerCallLocations || perCall.LocationType is null || perCall.Options.Name is not { } name || !IsIdentifier(name) || facade is not null)
 					continue;
 
 				facade         = perCall.Options.Name;
@@ -2117,9 +2122,10 @@ sealed class GramGenerator : IIncrementalGenerator
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType,
 				Variant:        variant,
-				// Written with a name the attributes had before 0.3.0, here or in a grammar it includes:
-				// GRAM0012 says so, and what the grammar then seems to say wrong is not said (Renamed).
-				Outdated:       Renamed.Any(declaration) || included.Any(static one => one.Included.Outdated),
+				// An alias written with a name it had before 0.3.0, here or by a grammar it includes:
+				// GRAM0012 says so, and the names it no longer reaches are not said (Renamed.DropsAlias).
+				Outdated:       type.GetAttributes().Any(static one => one.AttributeClass?.Name == "GramIncludeAttribute" && Renamed.DropsAlias(one)) ||
+					included.Any(static one => one.Included.Outdated),
 				Classified:     new EquatableArray<string>([.. classifies.Select(static one => (string)one.ConstructorArguments[0].Value!)]));
 
 			return (host, site, options);
@@ -2217,8 +2223,7 @@ sealed class GramGenerator : IIncrementalGenerator
 						Placed:    at is not null,
 						Portable:  include.Portable,
 						Imported:  Imported(include.Type, compilation),
-						Outdated:  attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax written &&
-							Renamed.Find(written, null, default).Length > 0),
+						Outdated:  Renamed.DropsAlias(attribute)),
 					new Site.Base(at, spelled == default ? 0 : spelled.SpanStart)));
 			}
 
