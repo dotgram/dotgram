@@ -62,8 +62,10 @@ static class Help
 
 		Options:
 		  -o, --output <dir>          where the files go (required); nothing else in it is touched
-		  --framework <tfm>           one framework only: net8.0, net9.0, net10.0, netstandard2.0
-		                              (default: the project's; net10.0 for a .gram)
+		  --framework <tfm>           one framework only: for a project, one of its target frameworks
+		                              (default: each of them); for a .gram, netstandard2.0, or net8.0 or
+		                              later, a framework later than net10.0 against net10.0's
+		                              references (default: net10.0)
 		  --configuration <name>      the project's configuration (default Release)
 		  --line-paths relative|absolute
 		                              #line paths relative to <dir> (default), or as a build writes them
