@@ -104,7 +104,8 @@ already complete begins a new declaration.
 Notes:
 
 - Spaces in the grammar are not spaces in the input: `"ab, cd"` is refused above. What may stand
-  between operands in the input is the rule `trivia` ([trivia](08-trivia-and-words.md)).
+  between operands in the input is the rule `trivia` ([briefly below](#whitespace-in-the-input-trivia-briefly),
+  in full in [trivia](08-trivia-and-words.md)).
 - An unterminated `/*` is `GRAM1003`; a character nothing begins is `GRAM1005`.
 
 <!-- ru:begin -->
@@ -266,4 +267,99 @@ Notes:
 > пример, `GRAM2019`). Пространства имён C# по умолчанию не импортируются, даже `System`
 > (`GRAM3004`). Неизвестное пространство грамматики — `GRAM3003`; два импорта с одинаковым именем —
 > ошибка в месте использования, снимается квалификацией. Стандартная библиотека — пространство `Std`.
+<!-- ru:end -->
+
+## Whitespace in the input: `trivia`, briefly
+
+Many examples in this guide read text with spaces or comments between its parts. What may stand
+there is the rule `trivia`, which every grammar has: it is woven in at every `&`, and it is empty
+(`none`) unless the grammar says otherwise.
+
+```dotgram
+trivia = { Std.Spacing* }
+
+Word = { ['a'..'z']+ }
+Pair = Word & '=' & Word
+
+parse Pair
+```
+
+```text examples
+ParsePair("a=b") → "a=b"
+ParsePair(" a =  b ") → "a =  b"
+```
+
+Three things to know before [the full treatment](08-trivia-and-words.md):
+
+- **Braces** around `trivia` and around lexemes such as `Word` say "what this read stays read". They
+  are worth writing almost always; why is in [composition](03-composition.md#atomic-groups---) and
+  [trivia](08-trivia-and-words.md#comments-and-why-trivia-is-braced).
+- **A lexeme must not let trivia in.** `Word = ['a'..'z']+` is one repetition, so nothing is woven
+  inside it. A rule built of several parts that is one token — a number with a fraction — is written
+  in a namespace that says `trivia = none`, or with `~` between its parts, which allows no trivia.
+- **Keywords** are guarded against running into the next word once the grammar declares
+  `wordboundary`, the characters a word is made of ([words](08-trivia-and-words.md#wordboundary)).
+
+<!-- ru:begin -->
+> **RU.** Многие примеры руководства читают текст с пробелами или комментариями между частями. Что
+> может там стоять, задаёт правило `trivia`, которое есть в каждой грамматике: оно вплетается в каждый
+> `&` и пусто (`none`), пока грамматика не скажет иначе (пример выше: `" a =  b "` читается, значение
+> без внешних пробелов). До полного описания в главе 08 стоит знать три вещи: **фигурные скобки**
+> вокруг `trivia` и лексем (`Word`) означают «прочитанное остаётся прочитанным» — их стоит писать почти
+> всегда; **лексема не должна впускать trivia**: `Word = ['a'..'z']+` — одно повторение, внутрь ничего
+> не вплетается, а правило из нескольких частей, которое есть один токен (число с дробью), пишется в
+> пространстве с `trivia = none` или с `~` между частями (без trivia); **ключевые слова** защищены от
+> слияния со следующим словом, когда грамматика объявляет `wordboundary` — символы, из которых состоит
+> слово.
+<!-- ru:end -->
+
+## The standard library at a glance
+
+The lexemes every grammar writes are a grammar of their own, `Std`, which every grammar has: named in
+full, `Std.Integer`, or opened with `using Std;`. Each rule is spelled with no trivia inside it; the
+calling grammar spaces around the call as it does around anything else.
+
+| Rule | Reads | Gives | Example |
+| --- | --- | --- | --- |
+| `Std.Digit`, `Std.HexDigit`, `Std.Letter` | one digit, hex digit, letter (`\p{L}`) | text | `7`, `f`, `ж` |
+| `Std.Space`, `Std.Whitespace` | one space or tab; one of those or a line ending | text | `\t` |
+| `Std.Digits`, `Std.HexDigits` | one or more of them | text | `0042`, `1F` |
+| `Std.Blank`, `Std.Spacing` | spaces and tabs; any whitespace, line endings included | text | `" \t"` |
+| `Std.Identifier` | a letter or `_`, then letters, digits and `_` | text | `_tmp1` |
+| `Std.Integer`, `Std.Long` | digits | `int`, `long` | `42` |
+| `Std.Decimal` | digits, optionally `.` and digits | `decimal` | `3.25` |
+| `Std.Double` | digits, an optional fraction and exponent | `double` | `1.5e3` |
+| `Std.LineComment(start)` | `start` to the end of the line | text | `-- note` |
+| `Std.BlockComment(open, close)` | `open` to the first `close` | text | `/* a */` |
+| `Std.Nested(open, close)` | `open` to the `close` that balances it | text | `/* a /* b */ c */` |
+| `Std.Quoted(quote)` | a quoted text, the quote doubled inside | text as written | `'it''s'` |
+| `Std.Escaped(quote, escape)` | a quoted text, `escape` before a quote or anything | text as written | `"a\"b"` |
+
+```dotgram
+using Std;
+
+trivia = { (Spacing | LineComment("--"))* }
+
+Assign : @string = name: Identifier & '=' & value: Integer & ';' => @(name + "=" + (value * 2))
+
+parse Assign
+```
+
+```text examples
+ParseAssign("x = 21; -- doubled") → "x=42"
+ParseAssign("_n1=0;") → "_n1=0"
+```
+
+The numbers are unsigned and read in the invariant culture; a number too large for its type throws, as
+`int.Parse` does. Every rule, with its edge cases, is in [the standard library](10-std.md).
+
+<!-- ru:begin -->
+> **RU.** Лексемы, которые пишет каждая грамматика, — отдельная грамматика `Std`, доступная всегда:
+> полным именем `Std.Integer` или через `using Std;`. Каждое правило записано без trivia внутри;
+> вызывающая грамматика расставляет пробелы вокруг вызова как обычно. Таблица выше: одиночные символы
+> (`Digit`, `HexDigit`, `Letter`, `Space`, `Whitespace`), их серии (`Digits`, `HexDigits`, `Blank`,
+> `Spacing`), `Identifier`, числа со значением (`Integer`, `Long`, `Decimal`, `Double`), комментарии
+> (`LineComment`, `BlockComment`, вложенный `Nested`) и строки (`Quoted` с удвоенной кавычкой,
+> `Escaped` с экранированием). Числа беззнаковые, читаются в инвариантной культуре; слишком большое
+> число бросает исключение, как `int.Parse`. Все правила с граничными случаями — в главе 10.
 <!-- ru:end -->
