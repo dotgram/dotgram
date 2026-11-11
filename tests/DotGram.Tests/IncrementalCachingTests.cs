@@ -277,7 +277,7 @@ public sealed class IncrementalCachingTests
 		var parse       = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var compilation = CSharpCompilation.Create(
 			"DotGram.Tests.Incremental",
-			[CSharpSyntaxTree.ParseText(hosts, parse, "Host.cs")],
+			[CSharpSyntaxTree.ParseText(hosts, parse, "Host.cs", cancellationToken: TestContext.Current.CancellationToken)],
 			EmittedCode.References,
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 		var first       = new Additional("First.gram", "Start = 'a'+\nparse Start");
