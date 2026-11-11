@@ -560,7 +560,7 @@ public static partial class SqlWriter
 
 					PutExternalWith(table, table.Options, ExternalTableSettings, "CREATE EXTERNAL TABLE AS SELECT", always: true);
 					Word("AS");
-					PutQuery(query.Query);
+					PutTableQuery(query);
 					PutQueryHints(query.Hints);
 					break;
 

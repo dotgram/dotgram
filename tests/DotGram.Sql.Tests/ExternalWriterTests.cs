@@ -146,10 +146,10 @@ public sealed class ExternalWriterTests
 			new Statement.CreateExternalTable(Dotted("t"), new TableContents.Elements([Column("a", new DataType.Numeric(NumericTypeKind.Int))])) { Options = [Opt("DATA_SOURCE", Current()), Opt("DISTRIBUTION", Call("SHARDED", Current()))] },
 			"CREATE EXTERNAL TABLE t (a INT) WITH (DATA_SOURCE = VALUE, DISTRIBUTION = SHARDED(VALUE))"),
 		["Create external table as select"] = (
-			new Statement.CreateExternalTable(Dotted("dbo", "t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), null)) { Options = [Opt("LOCATION", Str("/f")), Opt("DATA_SOURCE", Word("ds"))] },
+			new Statement.CreateExternalTable(Dotted("dbo", "t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), null) { BracketsOmitted = true }) { Options = [Opt("LOCATION", Str("/f")), Opt("DATA_SOURCE", Word("ds"))] },
 			"CREATE EXTERNAL TABLE dbo.t WITH (LOCATION = '/f', DATA_SOURCE = ds) AS SELECT 1 AS a"),
 		["Create external table as select with no setting"] = (
-			new Statement.CreateExternalTable(Dotted("t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), null)),
+			new Statement.CreateExternalTable(Dotted("t"), new TableContents.AsQuery([], Select("SELECT 1 AS a"), null) { BracketsOmitted = true }),
 			"CREATE EXTERNAL TABLE t WITH () AS SELECT 1 AS a"),
 		["Create external library"] = (
 			new Statement.CreateExternalLibrary(X, [File(Opt("PLATFORM", Word("WINDOWS")), Opt("CONTENT", Str("c:\\a.zip"))), File(Opt("CONTENT", Hex("01")), Opt("PLATFORM", Word("LINUX")))], Quoted("R")) { Authorization = Y },

@@ -162,11 +162,11 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Statement.DropView` | SQL:2023 | &lt;drop view statement&gt; | Ddl |
 | `Statement.CreateDomain` | SQL:2023 | &lt;domain definition&gt;, &lt;alter domain statement&gt;, &lt;drop domain statement&gt; | Ddl |
 | `Statement.AlterDomain` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
-| `Statement.DropDomain` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
+| `Statement.DropDomain` | SQL:2023 | &lt;drop domain statement&gt;; PostgreSQL: DROP DOMAIN | Ddl |
 | `Statement.CreateCharacterSet` | SQL:2023 | character set/collation/translation/assertion statements | Ddl |
 | `Statement.DropCharacterSet` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
 | `Statement.CreateCollation` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
-| `Statement.DropCollation` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
+| `Statement.DropCollation` | SQL:2023 | &lt;drop collation statement&gt;; PostgreSQL: DROP COLLATION | Ddl |
 | `Statement.CreateTranslation` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
 | `Statement.DropTranslation` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
 | `Statement.CreateAssertion` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
@@ -177,7 +177,7 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Statement.AlterType` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
 | `Statement.DropType` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
 | `Statement.CreateCast` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
-| `Statement.DropCast` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
+| `Statement.DropCast` | SQL:2023 | &lt;drop user-defined cast statement&gt;; PostgreSQL: DROP CAST | Ddl |
 | `Statement.CreateOrdering` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
 | `Statement.DropOrdering` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |
 | `Statement.CreateTransform` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Ddl |

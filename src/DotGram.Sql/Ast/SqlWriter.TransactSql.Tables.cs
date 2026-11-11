@@ -521,7 +521,7 @@ public static partial class SqlWriter
 					CheckTableOptions(table, table.Options, set: false);
 					PutOptions(table.Options, multiWord: true);
 					Word("AS");
-					PutQuery(query.Query);
+					PutTableQuery(query);
 					PutQueryHints(query.Hints);
 					return true;
 

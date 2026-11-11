@@ -75,7 +75,7 @@ public sealed class DdlRemainderWriterTests
 			"CTAS a name of three words" => new Statement.CreateTable
 			{
 				Name     = Qualified("t"),
-				Contents = new TableContents.AsQuery([], Select(), null),
+				Contents = new TableContents.AsQuery([], Select(), null) { BracketsOmitted = true },
 				Options  = [new Option(Name("CLUSTERED"), null, []) { Words = [Name("COLUMNSTORE"), Name("INDEX")] }],
 			},
 			"CREATE SPATIAL INDEX brackets" => Spatial(

@@ -665,7 +665,7 @@ static partial class Build
 				return new Ast.Statement.CreateTable
 				{
 					Name     = Values.Name(old, old.Name),
-					Contents = new Ast.TableContents.AsQuery(Values.Parts(old, state.columns), select.Query, null) { Hints = select.Hints },
+					Contents = Ast.TableContents.AsQuery.Written(Values.Parts(old, state.columns), select.Query, null) with { Hints = select.Hints },
 					Options  = Each(state.options, GenericOption),
 				};
 			});

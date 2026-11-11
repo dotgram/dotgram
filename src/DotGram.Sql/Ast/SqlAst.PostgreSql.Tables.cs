@@ -98,6 +98,37 @@ public abstract partial record ColumnGeneration
 /// <summary>PostgreSQL: CREATE TABLE. Whether a generated column's value is kept with the row or computed when it is read.</summary>
 public enum GenerationStorage { Stored, Virtual }
 
+public abstract partial record TableContents
+{
+	public sealed partial record AsQuery
+	{
+		/// <summary>
+		/// PostgreSQL: CREATE TABLE AS. T-SQL: CREATE TABLE AS SELECT. <c>AS SELECT …</c>, the query written without the
+		/// brackets the standard writes around it. Where brackets enclose the whole query they are this record's, and
+		/// <see cref="Query"/> is the query inside them, as the standard's reading holds it; brackets with a set operation, an
+		/// ORDER BY or a limit after them are the query's own, a <see cref="Query.Parenthesized"/>.
+		/// </summary>
+		[Spelling] public bool BracketsOmitted { get; init; }
+
+		/// <summary>
+		/// A table made of a query as written after AS: brackets around the whole of it are the record's own, taken off the
+		/// query; a query not in brackets says so.
+		/// </summary>
+		internal static AsQuery Written(SqlList<Identifier> columns, Query query, WithDataMode? data)
+		{
+			return Enclosed(query) is { } inner
+				? new AsQuery(columns, inner, data)
+				: new AsQuery(columns, query, data) { BracketsOmitted = true };
+		}
+
+		/// <summary>The query inside brackets that enclose the whole of it, with nothing after them; null where it is not so.</summary>
+		internal static Query? Enclosed(Query query)
+		{
+			return query is Query.Parenthesized parenthesized && parenthesized.Equals(new Query.Parenthesized(parenthesized.Query)) ? parenthesized.Query : null;
+		}
+	}
+}
+
 public sealed partial record ColumnOptionList
 {
 	/// <summary>PostgreSQL: CREATE TABLE. A typed table's or a partition's column's <c>COLLATE c</c>.</summary>
