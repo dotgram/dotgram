@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -326,5 +327,46 @@ public sealed class StandaloneGrammarInheritanceTests
 		var root = await host.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
 		Assert.True(StandaloneGrammarInheritance.MayHost(root!, DialectPath));
 		Assert.False(StandaloneGrammarInheritance.MayHost(root!, @"P:\Parsers\Unknown.gram"));
+	}
+
+	/// <summary>
+	/// A change that comes while the first resolution reads the solution is judged against the
+	/// resolution before it, which knows nothing of the grammars the host includes: an edit to one
+	/// of them is no concern of a resolution that is not ready. Judged again against the resolution
+	/// that came out, it sends the host to be looked for again.
+	/// </summary>
+	[Fact]
+	public async Task AChangeMadeDuringTheFirstResolutionIsJudgedAgainAgainstItsOutcome()
+	{
+		using var workspace = new AdhocWorkspace();
+		var project = Parsers(workspace, Attributes + Hosts);
+		var before  = workspace.CurrentSolution;
+
+		var resolution = await StandaloneGrammarInheritance.ResolveAsync(
+			before, DialectPath, TestContext.Current.CancellationToken);
+
+		var host     = project.Documents.Single();
+		var standard = project.AdditionalDocuments.Single(document => document.FilePath == StandardPath);
+		var own      = project.AdditionalDocuments.Single(document => document.FilePath == DialectPath);
+		var edit     = new WorkspaceChangeEventArgs(WorkspaceChangeKind.AdditionalDocumentChanged, before, before, project.Id, standard.Id);
+		var ownEdit  = new WorkspaceChangeEventArgs(WorkspaceChangeKind.AdditionalDocumentChanged, before, before, project.Id, own.Id);
+		var hostEdit = new WorkspaceChangeEventArgs(WorkspaceChangeKind.DocumentChanged, before, before, project.Id, host.Id);
+
+		Assert.Equal(StandaloneGrammarConcern.None, GramBufferAnalysis.Concerns(edit, StandaloneGrammarResolution.NotReady, DialectPath));
+
+		var documents = new List<DocumentId>();
+
+		Assert.Equal(
+			StandaloneGrammarConcern.Full,
+			GramBufferAnalysis.Concerns([ownEdit, edit], resolution, DialectPath, documents));
+		Assert.Equal(
+			StandaloneGrammarConcern.None,
+			GramBufferAnalysis.Concerns([ownEdit], resolution, DialectPath, documents));
+
+		// Against a resolution that found no host, an edit in its project is one document to look at.
+		Assert.Equal(
+			StandaloneGrammarConcern.Document,
+			GramBufferAnalysis.Concerns([ownEdit, hostEdit], StandaloneGrammarResolution.NoHost(project.Id), DialectPath, documents));
+		Assert.Equal(new[] { host.Id }, documents);
 	}
 }
