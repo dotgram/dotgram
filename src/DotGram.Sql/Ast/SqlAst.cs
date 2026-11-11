@@ -1627,7 +1627,7 @@ public abstract partial record ColumnGeneration : ISqlNode
 	public sealed record RowEnd : ColumnGeneration;
 }
 public enum IdentityGeneration { Always, ByDefault }
-public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default, SqlList<Constraint> Constraints) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record ColumnOptionList(QualifiedName? Scope, Expression? Default, SqlList<Constraint> Constraints) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

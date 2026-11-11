@@ -13,6 +13,10 @@ DotGram.Sql.Ast.ColumnDefinition.Storage.get -> DotGram.Sql.Ast.Identifier?
 DotGram.Sql.Ast.ColumnDefinition.Storage.init -> void
 DotGram.Sql.Ast.ColumnGeneration.Generated.Storage.get -> DotGram.Sql.Ast.GenerationStorage?
 DotGram.Sql.Ast.ColumnGeneration.Generated.Storage.init -> void
+DotGram.Sql.Ast.ColumnGeneration.Name.get -> DotGram.Sql.Ast.QualifiedName?
+DotGram.Sql.Ast.ColumnGeneration.Name.init -> void
+DotGram.Sql.Ast.ColumnOptionList.Collation.get -> DotGram.Sql.Ast.CollationName?
+DotGram.Sql.Ast.ColumnOptionList.Collation.init -> void
 DotGram.Sql.Ast.CommonTableExpression.Materialized.get -> bool?
 DotGram.Sql.Ast.CommonTableExpression.Materialized.init -> void
 DotGram.Sql.Ast.ConflictClause

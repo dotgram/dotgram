@@ -82,6 +82,12 @@ public sealed partial record ColumnDefinition
 
 public abstract partial record ColumnGeneration
 {
+	/// <summary>
+	/// PostgreSQL: CREATE TABLE. <c>CONSTRAINT n DEFAULT 1</c>, <c>CONSTRAINT n GENERATED …</c>: the name gram.y reads before a
+	/// default or a generation, as before a constraint; null where none was written.
+	/// </summary>
+	public QualifiedName? Name { get; init; }
+
 	public sealed partial record Generated
 	{
 		/// <summary>PostgreSQL: CREATE TABLE. <c>STORED</c> or <c>VIRTUAL</c> after the expression; null where neither was written.</summary>
@@ -91,6 +97,12 @@ public abstract partial record ColumnGeneration
 
 /// <summary>PostgreSQL: CREATE TABLE. Whether a generated column's value is kept with the row or computed when it is read.</summary>
 public enum GenerationStorage { Stored, Virtual }
+
+public sealed partial record ColumnOptionList
+{
+	/// <summary>PostgreSQL: CREATE TABLE. A typed table's or a partition's column's <c>COLLATE c</c>.</summary>
+	public CollationName? Collation { get; init; }
+}
 
 public abstract partial record TableElement
 {

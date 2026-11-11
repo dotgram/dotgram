@@ -233,6 +233,8 @@ public sealed class PostgreSqlObjectTests
 	[InlineData("DROP DOMAIN d CASCADE")]
 	[InlineData("DROP FUNCTION f (INT, DATE) CASCADE")]
 	[InlineData("DROP PROCEDURE s.p RESTRICT")]
+	[InlineData("DROP FUNCTION f (INTEGER, VARCHAR(3)) CASCADE")]
+	[InlineData("DROP ROUTINE s.f () RESTRICT")]
 	public void A_drop_the_standard_reads_is_one_tree(string text)
 	{
 		var standard   = SqlStandardParser.ParseStatement(text);
@@ -254,6 +256,19 @@ public sealed class PostgreSqlObjectTests
 	public void A_drop_T_SQL_reads_is_one_tree(string text)
 	{
 		Assert.Equal(TransactSqlParser.ParseStatement(text), PostgreSqlParser.ParseStatement(text));
+	}
+
+	/// <summary>
+	/// Where T-SQL's reading means another thing, the trees differ on purpose: a T-SQL user is not a PostgreSQL role, and
+	/// T-SQL's index and statistics are named by their table, PostgreSQL's by their schema.
+	/// </summary>
+	[Theory]
+	[InlineData("DROP USER u")]
+	[InlineData("DROP INDEX i")]
+	[InlineData("DROP STATISTICS s.st")]
+	public void A_drop_T_SQL_reads_as_another_thing_is_another_tree(string text)
+	{
+		Assert.NotEqual(TransactSqlParser.ParseStatement(text), PostgreSqlParser.ParseStatement(text));
 	}
 
 	// ── The writers ────────────────────────────────────────────────────────────

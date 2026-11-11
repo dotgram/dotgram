@@ -173,9 +173,51 @@ static partial class Nodes
 	/// <summary>gram.y parsePartitionStrategy: list, range or hash, in any case.</summary>
 	public static bool IsStrategy(Identifier strategy)
 	{
-		var text = strategy.Style == IdentifierStyle.Delimited ? strategy.Text[1..^1] : strategy.Text;
+		var text = strategy.Style switch
+		{
+			IdentifierStyle.Delimited        => strategy.Text[1..^1].Replace("\"\"", "\""),
+			IdentifierStyle.UnicodeDelimited => Unescaped(strategy.Text[3..^1].Replace("\"\"", "\""), strategy.UnicodeEscape ?? '\\'),
+			_                                => strategy.Text,
+		};
 
 		return text.Equals("list", StringComparison.OrdinalIgnoreCase) || text.Equals("range", StringComparison.OrdinalIgnoreCase) || text.Equals("hash", StringComparison.OrdinalIgnoreCase);
+	}
+
+	/// <summary>A Unicode name's text with its escapes decoded: the escape and four hexits, or the escape, a plus and six.</summary>
+	static string Unescaped(string text, char escape)
+	{
+		var decoded = new System.Text.StringBuilder(text.Length);
+
+		for (var at = 0; at < text.Length; at++)
+		{
+			if (text[at] != escape || at + 1 >= text.Length)
+			{
+				decoded.Append(text[at]);
+				continue;
+			}
+
+			if (text[at + 1] == escape)
+			{
+				decoded.Append(escape);
+				at++;
+			}
+			else if (text[at + 1] == '+' && at + 8 <= text.Length && int.TryParse(text.Substring(at + 2, 6), System.Globalization.NumberStyles.HexNumber, null, out var wide))
+			{
+				decoded.Append(char.ConvertFromUtf32(wide));
+				at += 7;
+			}
+			else if (at + 5 <= text.Length && int.TryParse(text.Substring(at + 1, 4), System.Globalization.NumberStyles.HexNumber, null, out var code))
+			{
+				decoded.Append((char)code);
+				at += 4;
+			}
+			else
+			{
+				decoded.Append(text[at]);
+			}
+		}
+
+		return decoded.ToString();
 	}
 
 	/// <summary>gram.y's hash bound: <c>modulus</c> and <c>remainder</c>, each once, and nothing else.</summary>
@@ -235,21 +277,39 @@ static partial class Nodes
 	}
 
 	/// <summary>
-	/// Whether a default is gram.y's b_expr: the arithmetic of the BExpr ladder without AT TIME ZONE and COLLATE, which
-	/// b_expr does not read outside brackets and calls — after DEFAULT the server reads no zone, and a COLLATE is the
-	/// column's.
+	/// Whether a default reads back as itself after DEFAULT, where gram.y reads a b_expr (DefaultExpr): one comparison, or IS
+	/// [NOT] DISTINCT FROM or IS [NOT] DOCUMENT after one, over arithmetic with no COLLATE, no AT TIME ZONE, no AND, OR or
+	/// NOT and no predicate outside brackets and calls. The writer brackets any other.
 	/// </summary>
 	public static bool IsBExpr(Expression value)
 	{
 		return value switch
 		{
-			Expression.AtTimeZone or Expression.Collate => false,
-			Expression.Binary binary                    => IsBExpr(binary.Left) && IsBExpr(binary.Right),
-			Expression.Comparison comparison            => IsBExpr(comparison.Left) && IsBExpr(comparison.Right),
-			Expression.Unary unary                      => IsBExpr(unary.Operand),
-			Expression.OperatorCall call                => (call.Left is null || IsBExpr(call.Left)) && IsBExpr(call.Right),
-			Expression.Cast { Spelling: CastSpelling.DoubleColon } cast => IsBExpr(cast.Value),
-			_                                           => true,
+			Expression.IsDistinct distinct => IsCompared(distinct.Left) && IsCompared(distinct.Right),
+			Expression.IsDocument document => IsCompared(document.Value),
+			_                              => IsCompared(value),
+		};
+	}
+
+	static bool IsCompared(Expression value)
+	{
+		return value is Expression.Comparison comparison ? IsArithmetic(comparison.Left) && IsArithmetic(comparison.Right) : IsArithmetic(value);
+	}
+
+	static bool IsArithmetic(Expression value)
+	{
+		return value switch
+		{
+			Expression.AtTimeZone or Expression.Collate or Expression.Comparison or Expression.IsDistinct or Expression.IsDocument or Expression.IsNull
+				or Expression.IsTruth or Expression.IsNormalized or Expression.Between or Expression.In or Expression.Like or Expression.Overlaps
+				or Expression.QuantifiedComparison or Expression.QuantifiedOperation => false,
+			Expression.Binary { Operator: BinaryOperator.And or BinaryOperator.Or } => false,
+			Expression.Binary binary                                                  => IsArithmetic(binary.Left) && IsArithmetic(binary.Right),
+			Expression.Unary { Operator: UnaryOperator.Not }                          => false,
+			Expression.Unary unary                                                    => IsArithmetic(unary.Operand),
+			Expression.OperatorCall call                                              => (call.Left is null || IsArithmetic(call.Left)) && IsArithmetic(call.Right),
+			Expression.Cast { Spelling: CastSpelling.DoubleColon } cast               => IsArithmetic(cast.Value),
+			_                                                                         => true,
 		};
 	}
 
@@ -476,7 +536,7 @@ static partial class Nodes
 			switch (qual)
 			{
 				case Qual.Generation generation:
-					if (generation.Name is not null || ++generations > 1)
+					if (++generations > 1)
 						return false;
 
 					last = null;
@@ -548,15 +608,15 @@ static partial class Nodes
 	/// </summary>
 	public static bool OptionsFit(Qual[]? quals)
 	{
-		return QualsFit(quals) && (quals is null || System.Array.TrueForAll(quals, static one => one is not Qual.Collate and not Qual.Generation { Value: not ColumnGeneration.Default }));
+		return QualsFit(quals) && (quals is null || System.Array.TrueForAll(quals, static one => one is not Qual.Generation { Value: not ColumnGeneration.Default } and not Qual.Generation { Name: not null }));
 	}
 
 	/// <summary>A typed table's column options: the default and the constraints.</summary>
 	public static TableElement ColumnOptions(Identifier name, bool withOmitted, Qual[]? quals)
 	{
-		var (generation, constraints, _) = Split(quals);
+		var (generation, constraints, collation) = Split(quals);
 
-		return new TableElement.ColumnOptions(name, new ColumnOptionList(null, (generation as ColumnGeneration.Default)?.Value, constraints)) { WithOptionsOmitted = withOmitted };
+		return new TableElement.ColumnOptions(name, new ColumnOptionList(null, (generation as ColumnGeneration.Default)?.Value, constraints) { Collation = collation }) { WithOptionsOmitted = withOmitted };
 	}
 
 	/// <summary>The qualifiers in the standard's slots: the generation, the constraints with their attributes, the collation.</summary>
@@ -585,7 +645,7 @@ static partial class Nodes
 			switch (qual)
 			{
 				case Qual.Generation one:
-					generation = one.Value;
+					generation = one.Name is null ? one.Value : one.Value with { Name = new QualifiedName(one.Name) };
 					break;
 
 				case Qual.Constraint one:

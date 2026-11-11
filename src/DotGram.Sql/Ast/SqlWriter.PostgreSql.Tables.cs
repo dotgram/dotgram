@@ -295,12 +295,10 @@ public static partial class SqlWriter
 							Word("WITH OPTIONS");
 
 						if (options.Options.Default is { } value)
-						{
-							Word("DEFAULT");
-							PutExpression(value);
-						}
+							PutPostgreSqlDefault(value);
 
 						PutColumnConstraints(options.Options.Constraints);
+						PutCollate(options.Options.Collation);
 						break;
 
 					case TableElement.TableConstraint constraint:
@@ -417,14 +415,19 @@ public static partial class SqlWriter
 				PutIdentifier(compression);
 			}
 
+			if (column.Generation?.Name is { } named)
+			{
+				Word("CONSTRAINT");
+				PutOnePartName(named, "a default's or a generation's name");
+			}
+
 			switch (column.Generation)
 			{
 				case null:
 					break;
 
 				case ColumnGeneration.Default @default:
-					Word("DEFAULT");
-					PutExpression(@default.Value);
+					PutPostgreSqlDefault(@default.Value);
 					break;
 
 				case ColumnGeneration.Identity identity:
@@ -459,6 +462,25 @@ public static partial class SqlWriter
 
 			PutColumnConstraints(column.Constraints);
 			PutCollate(column.Collation);
+		}
+
+		/// <summary>
+		/// DEFAULT and its value, which gram.y reads as a b_expr: a value that is not one — a COLLATE, which would read as the
+		/// column's, an AND, a predicate — is written in brackets, and reads back inside them.
+		/// </summary>
+		void PutPostgreSqlDefault(Expression value)
+		{
+			Word("DEFAULT");
+
+			if (PostgreSql.Nodes.IsBExpr(value))
+			{
+				PutExpression(value);
+				return;
+			}
+
+			Open();
+			PutExpression(value);
+			Close();
 		}
 
 		/// <summary>A column's constraints, each with the attributes the server attaches to it.</summary>
@@ -962,8 +984,11 @@ public static partial class SqlWriter
 		/// <summary>The members PostgreSQL alone writes on a column, refused for any other reading.</summary>
 		void CheckNotPostgreSqlColumn(ColumnDefinition column)
 		{
-			if (column.Storage is not null || column.Compression is not null || column.Generation is ColumnGeneration.Generated { Storage: not null })
-				throw Misplaced(column, "Storage, Compression or Generation.Storage", "which only PostgreSQL reads on a column");
+			if (column.Storage is not null || column.Compression is not null || column.Generation is ColumnGeneration.Generated { Storage: not null } or { Name: not null })
+				throw Misplaced(column, "Storage, Compression, Generation.Storage or Generation.Name", "which only PostgreSQL reads on a column");
+
+			foreach (var constraint in column.Constraints)
+				CheckNotPostgreSqlConstraint(constraint);
 		}
 
 		/// <summary>The members PostgreSQL alone writes on a constraint, refused for any other reading.</summary>

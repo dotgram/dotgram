@@ -96,7 +96,7 @@ TypedTableElementList,2,TypedElements,
 TableElement,3,TableItem,
 TypedTableElement,2,TypedElement,
 columnDef,1,TableColumnDef,
-columnOptions,2,TypedElement,an identity, a generation or a collation has no slot in a typed column and is refused
+columnOptions,2,TypedElement,an identity or a generation has no slot in a typed column and is refused
 column_compression,2,ColumnCompression,
 opt_column_compression,2,TableColumnDef,
 column_storage,2,ColumnStorage,
@@ -616,7 +616,7 @@ opt_interval,14,IntervalQualifier,
 interval_second,2,IntervalQualifier,
 JsonType,1,SimpleTypename,
 a_expr,70,AExpr,the boolean tower is AExpr, AndExpr, NotExpr, IsExpr, Compared, Predicate; the rest Arithmetic; `1 + NOT 2` is not read
-b_expr,22,BExpr,POSITION's operands; BETWEEN's bounds are read as the arithmetic below the predicate level, so a comparison inside a bound needs brackets here
+b_expr,22,BExpr,POSITION's operands, and DefaultExpr, a column's DEFAULT, without COLLATE and AT TIME ZONE as gram.y's b_expr; BETWEEN's bounds are read as the arithmetic below the predicate level, so a comparison inside a bound needs brackets here
 c_expr,14,Primary,UNIQUE (…) is refused, as the server refuses it (not implemented)
 func_application,7,FuncTail,
 func_expr,3,FuncExpr,
