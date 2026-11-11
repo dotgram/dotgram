@@ -171,6 +171,49 @@ public sealed class ExpressionBlowUpTests
 			"is to cost what the one before it did, not what everything inside it did.");
 	}
 
+	/// <summary>
+	/// An interpolated string nested in the hole of another allocates about as much at every
+	/// level: twice the depth, twice the bytes, and never the square.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A hole's expression is read again over its own window of the text, while the reading
+	/// around it still holds its tokens, and the string nested in a hole is one token to every
+	/// level around it. The tokens of a window were given room for a quarter of the window's
+	/// characters, so every level held room for a quarter of everything nested in it: the
+	/// bytes grew as the square of the depth, seventy-six megabytes at 3,200 levels. A window's
+	/// room now starts small and doubles as its tokens come.
+	/// </para>
+	/// <para>
+	/// Each string carries forty characters of its own, so that a level weighs enough in the
+	/// windows around it for the square to show at a few hundred levels: before the fix the
+	/// bytes grew 3.1 to 3.7 times a doubling here, after it 2.0. The bound, 2.5, sits between.
+	/// The time still grows as the square — every window is lexed again — and that is not what
+	/// this holds.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Nested_interpolated_strings_allocate_as_much_a_level()
+	{
+		var depths = new[] { 100, 200, 400, 800 };
+		var counts = Warmly(Array.ConvertAll(depths, NestedInterpolation));
+
+		for (var at = 1; at < depths.Length; at++)
+		{
+			Assert.True(
+				counts[at] <= counts[at - 1] * 5 / 2,
+				$"{string.Join(", ", counts)} bytes at {string.Join(", ", depths)} levels: a doubling of the " +
+				"depth is to double the bytes, not to multiply them by what the levels inside hold.");
+		}
+	}
+
+	static string NestedInterpolation(int depth)
+	{
+		var own = new string('a', 40);
+
+		return "(int x) => " + Repeated("$\"" + own + "{", depth) + "x" + Repeated("}\"", depth);
+	}
+
 	static readonly int[] Depths = [2, 4, 8, 16];
 
 	/// <summary>The most an increment exponent may read.</summary>

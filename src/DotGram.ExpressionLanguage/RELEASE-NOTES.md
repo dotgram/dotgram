@@ -22,6 +22,7 @@ FASTER
 
 - The parser reads with the immediate carrier, building the tree as it reads: against 0.2.0 on the release benchmark, accepted text parses about 40% faster (deeply nested text the most), and DotGram.ExpressionLanguage.dll carries 68% less IL. A text refused late is 50 to 87% slower, with about 4.3 times the bytes; one refused early takes the time it did. The answers - tree, refusal, message, exception - are unchanged.
 - Member initializers nested and never closed are read once at every level, where they were read twice (three quarters of a second at seventeen levels). A string left unclosed inside an interpolated string's hole, $"{x", is refused at once, where the time doubled with every further character.
+- Interpolated strings nested in one another's holes allocate the same at every level, where every level held room for a quarter of all the text nested in it: 3,200 levels allocated 95 MB and now allocate 14 MB. The time still grows with the square of the depth.
 
 KNOWN ISSUES
 
