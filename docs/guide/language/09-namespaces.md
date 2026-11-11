@@ -82,7 +82,19 @@ ParseList("a,b,c") → "a,b,c"
 file. Inside a namespace block, declaring a rule whose name already resolves — from an enclosing scope or
 through the block's own `using` — is refused (`GRAM3012`): a declaration always means a new rule, and
 replacing one is what a rebinding is for (below). Two imports that supply one name are an error where the
-name is used, settled by qualifying it, as in C#.
+name is used, settled by qualifying it, as in C#:
+
+```dotgram pending
+using A;
+using B;
+
+namespace A { W = 'a' }
+namespace B { W = 'b' }
+
+P = W
+
+parse P
+```
 
 ```dotgram
 using Lexical;
@@ -146,7 +158,7 @@ Notes:
 > Внутри блока `namespace` объявление правила, имя которого уже разрешается (из объемлющей области или
 > через `using` блока), отвергается (`GRAM3012`): объявление всегда значит новое правило, а замена — это
 > перепривязка. Два импорта с одним именем — ошибка в месте использования, снимается квалификацией, как
-> в C#. Неизвестное пространство в `using` — `GRAM3003`; два правила с одним именем в одном пространстве
+> в C# (пример `pending`: сейчас генератор молча берёт одно из двух — дефект D4). Неизвестное пространство в `using` — `GRAM3003`; два правила с одним именем в одном пространстве
 > — `GRAM3001`. Затенение встроенных правил (`trivia`, `wordboundary`, `word`, `any`, `none`, `eol`,
 > `eof`) — обычный механизм языка и никогда не сообщается. Стандартная библиотека — пространство `Std`.
 > `@using` импортирует пространство C#, а не грамматики.
@@ -221,8 +233,9 @@ Notes:
   `GRAM3008`; a loop, `with (A = B, B = A)`, is `GRAM3011`.
 - A parameterized rule may replace, and be replaced by, one of the same signature — the same number and
   kinds of parameters (`GRAM3009` otherwise); the call's arguments are kept.
-- Inside a namespace that binds a name, declaring a rule of that name is refused (`GRAM3012`, as any
-  declaration of a name that already resolves outside): replace it with a nested header instead.
+- Inside a namespace that binds a name, declaring a rule of that name is refused — `GRAM3012`, as any
+  declaration of a name that already resolves outside, and `GRAM3010` where the bound name came in by an
+  import: replace it with a nested header instead.
 - A replacement whose result does not fit what the replaced rule's readers expect — a declared type, a
   sequence — is `GRAM4014`.
 - `with` is required in a header: `namespace N (A = B)` is `GRAM2006`.
@@ -276,6 +289,20 @@ namespace Ns with (L = M)
 parse Ns.E
 ```
 
+```dotgram GRAM3010
+using Std;
+
+D = 'd'
+
+namespace Ns with (Digit = D)
+{
+	Digit = 'x'
+	E     = Digit
+}
+
+parse Ns.E
+```
+
 ```dotgram GRAM3012
 B = 'b'
 D = 'd'
@@ -303,7 +330,7 @@ parse Ns.E
 > `GRAM3007`); одно правило дважды в заголовке — `GRAM3008`; цикл — `GRAM3011`; параметризованное правило
 > заменяется только правилом той же сигнатуры (`GRAM3009`), аргументы вызова сохраняются; объявление
 > правила с привязанным именем внутри пространства — `GRAM3012`, как любое объявление уже разрешимого
-> снаружи имени (используйте вложенный заголовок);
+> снаружи имени, и `GRAM3010`, если привязанное имя пришло импортом (используйте вложенный заголовок);
 > замена с несовместимым результатом — `GRAM4014`; `with` в заголовке обязателен (`GRAM2006`).
 <!-- ru:end -->
 
