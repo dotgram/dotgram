@@ -1200,6 +1200,73 @@ sealed partial class Machine
 		/// <summary>Whether anything written asked how far a literal run matched.</summary>
 		public bool Reaches => _reaches;
 
+		/// <summary>
+		/// <paramref name="node"/> without what can never match, or null where nothing of it can.
+		/// </summary>
+		/// <remarks>
+		/// What can never match is the look that refuses everywhere, <c>?!</c> of nothing, which is what
+		/// an alternative a <c>when … is …</c> ruled out begins with (GrammarNormalizer.Unreachable); and so
+		/// is a sequence that holds one, a choice of nothing else, a repetition that has to take a turn of
+		/// one. A choice drops such alternatives and a repetition that need not take a turn reads nothing.
+		/// Every other node is handed back as it was, so a grammar that rules nothing out is written as
+		/// it always was.
+		/// </remarks>
+		static Node? Possible(Node node)
+		{
+			switch (node)
+			{
+				case Node.Lookahead(false, Node.Empty):
+					return null;
+
+				case Node.Sequence(var parts):
+				{
+					var kept = new List<Node>(parts.Count);
+
+					foreach (var part in parts)
+					{
+						if (Possible(part) is not { } one)
+							return null;
+
+						kept.Add(one);
+					}
+
+					return kept.SequenceEqual(parts) ? node : (Node.Sequence)node with { Nodes = kept };
+				}
+
+				case Node.Choice({ } alternatives) choice when choice.Selection is null:
+				{
+					var kept = new List<Node>(alternatives.Count);
+
+					foreach (var alternative in alternatives)
+						if (Possible(alternative) is { } one)
+							kept.Add(one);
+
+					return kept.Count == 0 ? null
+						: kept.SequenceEqual(alternatives) ? node
+						: kept.Count == 1 ? kept[0]
+						: choice.Rebuild(kept);
+				}
+
+				case Node.Repeat(var body, var min, _) repeat:
+					return Possible(body) is { } turn
+						? ReferenceEquals(turn, body) ? node : repeat with { Body = turn }
+						: min == 0 ? Node.Empty.Instance : null;
+
+				case Node.Atomic(var body) atomic:
+					return Possible(body) is { } inside
+						? ReferenceEquals(inside, body) ? node : atomic with { Body = inside }
+						: null;
+
+				case Node.Lookahead(var positive, var body) look:
+					return Possible(body) is { } seen
+						? ReferenceEquals(seen, body) ? node : look with { Body = seen }
+						: positive ? null : Node.Empty.Instance;
+
+				default:
+					return node;
+			}
+		}
+
 		/// <param name="reports">
 		/// Whether the scan hands back how far it read, matched or not, in <c>reachedAt</c>: where it
 		/// gave input back to itself, it may match short of a place it read to and refused at.
@@ -1209,6 +1276,29 @@ sealed partial class Machine
 			var code = new Writer(0);
 
 			_reports = reports;
+
+			// What a `when … is …` ruled out in this parser is never read, and is left out here: written,
+			// it would stand after a refusal nothing can pass, which C# reports as unreachable code
+			// (CS0162) in the consumer's build, an error under warnings as errors.
+			if (Possible(body) is not { } possible)
+			{
+				var refusing = new Writer(0);
+
+				refusing.Line("var p = pos;");
+				refusing.Line();
+
+				if (starves)
+					refusing.Line("if (p >= text.Length) failure.Starved = true;");
+
+				if (reports)
+					refusing.Line("reachedAt = p;");
+
+				refusing.Line("return -1 - p;");
+
+				return refusing.ToString();
+			}
+
+			body = possible;
 
 			Emit(code, body, "Refuse");
 
