@@ -1970,26 +1970,140 @@ static class FirstSets
 		var queued = new HashSet<RuleSymbol>(graph.Rules);
 		var calls = graph.Calls;
 
+		// Whether the loop has gone round: it is a machine whose whole state is the answers and the
+		// queue, and every step is decided by that state alone, so it runs for ever exactly when it
+		// comes back to a state it was in. Brent's way finds that: the state is kept at steps 1, 2,
+		// 4, 8 and so on, and every step is held to the one kept. Two sums say cheaply where the
+		// states cannot be the same; where they may be, the answers and the queue are compared
+		// whole, so a loop that would have settled is never taken for one that goes round.
+		var index = new Dictionary<RuleSymbol, int>();
+
+		foreach (var rule in graph.Rules)
+			index[rule] = index.Count;
+
+		var answers = 0UL;
+		var waiting = 0UL;
+
+		foreach (var rule in graph.Rules)
+		{
+			answers += Mix(index[rule], estimates[rule]);
+			waiting += Mix(index[rule]);
+		}
+
+		var kept      = Keep();
+		var steps     = 0L;
+		var nextKeep  = 1L;
+
 		while (pending.Count > 0)
 		{
 			var rule = pending.Dequeue();
 			queued.Remove(rule);
-			if (!graph.Bodies.TryGetValue(rule, out var body))
+			waiting -= Mix(index[rule]);
+
+			if (graph.Bodies.TryGetValue(rule, out var body))
+			{
+				var next = Of(body, graph, estimates);
+
+				// Gone round: from here every answer is joined with the one before, which only
+				// climbs, and the grammar is refused (GramCompiler, GRAM4057).
+				if (graph.FirstUnsettled is not null)
+					next = estimates[rule].Or(next);
+
+				if (!Same(next, estimates[rule]))
+				{
+					answers += Mix(index[rule], next) - Mix(index[rule], estimates[rule]);
+					estimates[rule] = next;
+
+					foreach (var caller in calls.CalledBy(rule))
+						if (queued.Add(caller))
+						{
+							pending.Enqueue(caller);
+							waiting += Mix(index[caller]);
+						}
+				}
+			}
+
+			if (graph.FirstUnsettled is not null)
 				continue;
 
-			var next = Of(body, graph, estimates);
-			if (Same(next, estimates[rule]))
-				continue;
+			steps++;
 
-			estimates[rule] = next;
-			foreach (var caller in calls.CalledBy(rule))
-				if (queued.Add(caller))
-					pending.Enqueue(caller);
+			if (answers == kept.Answers && waiting == kept.Waiting && pending.Count == kept.Queue.Length && Returned(kept))
+			{
+				graph.FirstUnsettled = rule;
+
+				continue;
+			}
+
+			if (steps == nextKeep)
+			{
+				kept     = Keep();
+				nextKeep = steps * 2;
+			}
 		}
 
 		graph.FirstSettled = true;
 
 		return estimates;
+
+		(ulong Answers, ulong Waiting, First[] Estimates, RuleSymbol[] Queue) Keep()
+		{
+			var held = new First[index.Count];
+
+			foreach (var pair in index)
+				held[pair.Value] = estimates[pair.Key];
+
+			return (answers, waiting, held, [.. pending]);
+		}
+
+		bool Returned((ulong Answers, ulong Waiting, First[] Estimates, RuleSymbol[] Queue) state)
+		{
+			var at = 0;
+
+			foreach (var rule in pending)
+				if (!ReferenceEquals(rule, state.Queue[at++]))
+					return false;
+
+			foreach (var pair in index)
+				if (!Same(estimates[pair.Key], state.Estimates[pair.Value]))
+					return false;
+
+			return true;
+		}
+	}
+
+	/// <summary>
+	/// Works out what each rule begins with, if nothing has yet, and says a rule of the loop that
+	/// went round rather than settling, or null where it settled.
+	/// </summary>
+	internal static RuleSymbol? Unsettled(RecognitionGraph graph)
+	{
+		ByRule(graph);
+
+		return graph.FirstUnsettled;
+	}
+
+	/// <summary>A rule's place, scrambled: what a set of rules sums to.</summary>
+	static ulong Mix(int rule)
+	{
+		var mixed = (ulong)rule * 0x9E3779B97F4A7C15UL + 0x632BE59BD9B4E019UL;
+
+		mixed ^= mixed >> 31;
+		mixed *= 0xBF58476D1CE4E5B9UL;
+
+		return mixed ^ (mixed >> 29);
+	}
+
+	/// <summary>A rule's place and its answer, scrambled: what the answers sum to.</summary>
+	static ulong Mix(int rule, First first)
+	{
+		var mixed = Mix(rule) ^ (first.Anything ? 1UL : 0) ^ (first.Nothing ? 2UL : 0) ^
+			(first.Ends ? 4UL : 0) ^ (first.Stops ? 8UL : 0);
+
+		foreach (var range in first.Ranges)
+			mixed = Mix((int)(mixed ^ (mixed >> 32)) ^ (range.From << 16 | range.To));
+
+		return mixed;
 	}
 
 	/// <summary>Whether two sets are the same set.</summary>

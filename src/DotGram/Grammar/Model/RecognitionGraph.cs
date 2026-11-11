@@ -1001,6 +1001,12 @@ sealed class RecognitionGraph(
 	/// </remarks>
 	internal bool FirstSettled { get; set; }
 
+	/// <summary>
+	/// A rule of the loop that went round, coming back to a state it had been in, while
+	/// <see cref="FirstByRule"/> was worked out; null where it settled (<c>FirstSets.ByRule</c>).
+	/// </summary>
+	internal RuleSymbol? FirstUnsettled { get; set; }
+
 	/// <summary>What each node can begin with, once the rules have settled. A memo, not model state.</summary>
 	/// <remarks>
 	/// The emitter asks it of the same nodes over and over — of a repetition's body for every

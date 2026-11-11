@@ -137,6 +137,13 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string ConstructionTypeMismatch = "GRAM4056";
 
+	/// <summary>
+	/// What a rule begins with did not settle: working it out came back to a state it had been in
+	/// (<c>FirstSets.ByRule</c>), so the grammar is refused rather than compiled from an answer
+	/// that is not one.
+	/// </summary>
+	public const string FirstSetUnsettled = "GRAM4057";
+
 	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>; or one used as a method, a type or a variable, where it is reserved.</summary>
 	public const string SuppliedNameNotHere = "GRAM4053";
 
