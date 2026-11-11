@@ -151,7 +151,7 @@ static class GramAnalysisSession
 			{
 				handler(argument);
 			}
-			catch (Exception exception) when (exception is not OutOfMemoryException)
+			catch (Exception exception) when (GramFailures.Recoverable(exception))
 			{
 				report(exception);
 			}
@@ -719,7 +719,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 			{
 				resolution = await _host.ResolveAsync(filePath, cancellationToken).ConfigureAwait(false);
 			}
-			catch (Exception exception) when (exception is not OperationCanceledException and not OutOfMemoryException)
+			catch (Exception exception) when (exception is not OperationCanceledException && GramFailures.Recoverable(exception))
 			{
 				// The project system mutates the solution while it is loading. A transient
 				// snapshot failure is equivalent to the context not being ready yet.
@@ -777,7 +777,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
 			_host.Report(exception);
 
@@ -817,9 +817,15 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 
 			ScheduleAnalysis(_host.Current, immediate: true);
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
 			_host.Report(exception);
+		}
+		catch (Exception exception)
+		{
+			// Reported on its way out, since nobody awaits this task.
+			_host.Report(exception);
+			throw;
 		}
 	}
 
@@ -941,7 +947,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, cancellationToken))
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{
 			_host.Report(exception);
 		}

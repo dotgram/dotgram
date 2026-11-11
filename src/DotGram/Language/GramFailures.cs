@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Threading;
 
 namespace DotGram.Language;
@@ -18,5 +19,43 @@ static class GramFailures
 	internal static bool Canceled(OperationCanceledException exception, CancellationToken cancellationToken)
 	{
 		return cancellationToken.IsCancellationRequested && exception.CancellationToken == cancellationToken;
+	}
+
+	/// <summary>
+	/// Everything but what leaves the process in no state to go on: running out of memory, a
+	/// stack overflow, a corrupted-state access violation, an aborted thread or appdomain, code
+	/// the runtime cannot load or run; also where one arrives wrapped in another (a task's, a
+	/// reflection call's, a type initializer's).
+	/// </summary>
+	internal static bool Recoverable(Exception exception)
+	{
+		return !Critical(exception);
+	}
+
+	static bool Critical(Exception? exception)
+	{
+		switch (exception)
+		{
+			case null:
+				return false;
+
+			case OutOfMemoryException or StackOverflowException or AccessViolationException or
+				ThreadAbortException or AppDomainUnloadedException or
+				InvalidProgramException or BadImageFormatException:
+				return true;
+
+			case AggregateException aggregate:
+				foreach (var inner in aggregate.InnerExceptions)
+					if (Critical(inner))
+						return true;
+
+				return false;
+
+			case TargetInvocationException or TypeInitializationException:
+				return Critical(exception.InnerException);
+
+			default:
+				return false;
+		}
 	}
 }

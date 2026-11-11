@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -202,34 +201,7 @@ static class EditorGuard
 	/// </remarks>
 	internal static bool Recoverable(Exception exception)
 	{
-		return !Critical(exception);
-	}
-
-	static bool Critical(Exception? exception)
-	{
-		switch (exception)
-		{
-			case null:
-				return false;
-
-			case OutOfMemoryException or StackOverflowException or AccessViolationException or
-				ThreadAbortException or AppDomainUnloadedException or
-				InvalidProgramException or BadImageFormatException:
-				return true;
-
-			case AggregateException aggregate:
-				foreach (var inner in aggregate.InnerExceptions)
-					if (Critical(inner))
-						return true;
-
-				return false;
-
-			case TargetInvocationException or TypeInitializationException:
-				return Critical(exception.InnerException);
-
-			default:
-				return false;
-		}
+		return GramFailures.Recoverable(exception);
 	}
 
 	static void WriteToActivityLog(string message)

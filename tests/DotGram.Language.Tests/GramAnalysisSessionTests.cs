@@ -430,6 +430,22 @@ public sealed class GramAnalysisSessionTests
 		Assert.Contains(host.Reported, static exception => exception is OperationCanceledException);
 	}
 
+	/// <summary>
+	/// A handler's failure that leaves the process in no state to go on is not caught: here an
+	/// out-of-memory wrapped in an aggregate, as a task would wrap it.
+	/// </summary>
+	[Fact]
+	public void A_critical_failure_of_a_handler_is_not_caught()
+	{
+		var host    = new FakeHost("A = 'a'");
+		var session = host.Session();
+
+		session.Changed += static _ => throw new AggregateException(new OutOfMemoryException());
+
+		Assert.Throws<AggregateException>(() => host.Edit(session, "A = 'b'"));
+		Assert.Empty(host.Reported);
+	}
+
 	static ProjectId Watched { get; } = ProjectId.CreateNewId();
 
 	static DocumentId HostDeclaration { get; } = DocumentId.CreateNewId(Watched);
