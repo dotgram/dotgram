@@ -25,23 +25,12 @@ ParseNumber("42") → 42
 ParseNumber("4 2") → refused
 TryParseNumber("42x") → refused: Expected end of input.
 FindNumber("a1 b22, 333") → [1, 22, 333]
+TryParseNumber("7", out) → 7
+TryParseNumber("x", out) → refused
 ```
 
-From C#:
-
-```csharp
-var value = Grammar.ParseNumber("42");             // 42, or FormatException
-
-var match = Grammar.TryParseNumber("42x");         // Match<int>
-if (!match.IsSuccess)
-	Console.WriteLine($"{match.Error} ({match.Position})");
-
-if (Grammar.TryParseNumber("7", out var seven))    // only whether
-	Console.WriteLine(seven);
-
-foreach (var found in Grammar.FindNumber("a1 b22"))
-	Console.WriteLine($"{found.Value} at {found.Position}");
-```
+`ParseNumber` asserts and throws; `TryParseNumber` asks and answers a `Match<int>`; the form with an `out`
+answers only whether, `if (Grammar.TryParseNumber(text, out var n))`.
 
 Notes:
 
@@ -57,7 +46,7 @@ Notes:
 <!-- ru:begin -->
 > **RU.** Правило само по себе публичного API не создаёт — его создаёт директива. `parse R` говорит «весь
 > вход — это `R`» и генерирует `ParseR` (бросает `FormatException`), `TryParseR` → `Match<R>` и
-> `bool TryParseR(input, out R)`; `find R` говорит «внутри есть `R`» и генерирует ленивый
+> `bool TryParseR(input, out R)` (прогоны с `out`); `find R` говорит «внутри есть `R`» и генерирует ленивый
 > `FindR` → `IEnumerable<Match<R>>`. `Match<T>`: `Outcome`, `Value`, `Error`, `Position`, `Length`,
 > `IsSuccess`; при совпадении `Position` — начало, при неудаче — дальше всего, куда удалось дочитать.
 > Форма с `out` читает один раз и ничего не объясняет; форма с `Match` может прочитать отвергнутый вход
@@ -214,8 +203,24 @@ Word = { ['a'..'z']+ }
 
 parse Word                       as ParseWord
 internal parse Word              as ParseInternal
-private positional parse Word    as ParseHere
+private parse Word               as ParsePrivate
+positional parse Word            as ParseHere
 ```
+
+```text examples
+ParseWord("ab") → "ab"
+TryParseHere("ab cd", 3) → "cd"
+TryParseHere("ab cd", 0) → "ab"
+TryParseHere("ab cd", 2) → refused
+TryParseHere("ab cd", 0, 1) → "a"
+TryParseHere("ab cd", 3, out) → "cd"
+TryParseWord("ab cd") → refused
+```
+
+`TryParseHere("ab cd", 0)` stops after `ab`, where the whole-input `TryParseWord` refuses what follows;
+`(input, 0, 1)` reads the window of one character from 0. The forms that answer only whether take the
+position by `ref` and move it past what they read — `TryParseHere(text, ref at, out var word)` — so a caller
+can read on from there.
 
 | Written | Methods |
 | --- | --- |
@@ -244,7 +249,8 @@ positional find Word
 > **RU.** Директива публикует `public`-методы, если не сказано иное (как в C#), а `parse` читает весь вход,
 > если не сказано `positional` (таблица): `internal`/`private` — доступ всех методов директивы;
 > `positional` добавляет `TryParseWord(input, at)`, `TryParseWord(input, at, length)` и их `bool`-формы —
-> чтение с указанной позиции с остановкой до конца. Сначала доступ, затем `positional`, каждое один раз
+> чтение с указанной позиции с остановкой до конца (прогоны: с позиции 3 — `cd`, с 0 — `ab`, окно
+> `(0, 1)` — `a`). Сначала доступ, затем `positional`, каждое один раз
 > (иначе `GRAM2013`); эти слова — ключевые только перед `parse`/`find`. `find` и так читает с каждой
 > позиции, у `yield` нет формы `Try` — `positional` им не положен (`GRAM2012`).
 <!-- ru:end -->
@@ -263,13 +269,30 @@ parse Rows stream
 
 ```text examples
 ParseRows("a\nb\n") → ["a", "b"]
+ParseRows(reader("a\nb\n")) → ["a", "b"]
+TryParseRows(reader("a\n1\n")) → refused
 ```
 
-```csharp
-using var reader = new StringReader("a\nb\n");
-var rows = Grammar.ParseRows(reader);                    // ["a", "b"], read through a buffer
-var some = Grammar.TryParseRows(reader, bufferSize: 65536);
+`ParseRows(reader)` reads through a buffer; `bufferSize` and `maxRetained` may be passed per call.
+
+A grammar read over bytes compares byte values, and what it captures is a span of bytes:
+
+```dotgram
+Line = ['a'..'z']+ & '\n'
+Size : @int = text: Line* => @(text.Length)
+
+parse Size stream bytes
 ```
+
+```text examples
+ParseSize("ab\ncd\n") → 6
+ParseSize(bytes("ab\ncd\n")) → 6
+ParseSize(stream("ab\n")) → 3
+TryParseSize(stream("ab\n1")) → refused
+```
+
+`text` is a `string` in the string form and a `ReadOnlySpan<byte>` in the byte forms; `Length` is a member of
+both, so one construction serves all of them.
 
 Over bytes, captured text is a `ReadOnlySpan<byte>` that nothing decodes, so a rule that builds a `string`
 from it is refused for the byte form, saying what to write — a host method for each input:
@@ -297,7 +320,8 @@ Notes:
 > байтовым `Stream`, `byte[]` и `ReadOnlyMemory<byte>`; строковая перегрузка остаётся. Над байтами
 > захваченный текст — `ReadOnlySpan<byte>`, который никто не декодирует, поэтому правило, строящее из
 > него `string`, для байтовой формы отвергается с подсказкой — метод хоста для каждого вида входа
-> (`GRAM4026`, второй пример). Читатель или поток
+> (`GRAM4026`). Пример `Size`: одна конструкция `text.Length` работает и над строкой, и над байтами
+> (`ParseSize(bytes("ab\ncd\n")) → 6`, `stream(…)`). Читатель или поток
 > принадлежит вызывающему: разбор его не закрывает и может читать вперёд. `bufferSize` и `maxRetained` —
 > необязательные параметры вызова, по умолчанию — из `[Gram(BufferSize, MaxRetained)]`. Над байтами
 > литералы сравнивают значения байтов; категорий Unicode, свёртки регистра и предикатов над символами нет,
