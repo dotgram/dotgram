@@ -81,7 +81,7 @@ support types are all generated into the project.
 Where the class can live, what `[Gram]` and its options say, and grammars kept in files of their
 own are the next two pages: [the host and its attributes](02-hosts-and-attributes.md) and
 [grammar files](03-grammar-files.md). The notation itself is the
-[language guide](../language/README.md).
+[language guide](../language/01-grammar-and-host.md).
 
 <!-- ru:begin -->
 > **RU.** Грамматика прикрепляется к `partial`-классу атрибутом `[Gram]`, и каждое опубликованное ею
@@ -212,7 +212,7 @@ The files then land under `obj/`, in `generated/DotGram/DotGram.Generation.GramG
 A large grammar takes seconds to generate, and every cold build pays for it. The same generator is
 also a .NET tool, `dotnet dotgram`, which writes the files a build would generate into a folder
 that the project then compiles without referencing the package. A project does one or the other,
-never both: the build would generate every parser a second time. [The command-line tool](06-cli.md)
+never both: the build would generate every parser a second time. [The command-line tool](05-cli.md)
 has the details.
 
 <!-- ru:begin -->
