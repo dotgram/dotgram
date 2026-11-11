@@ -3,6 +3,18 @@
 How recognizers combine: one after another, one or the other, repeated, or tested without being
 read. The specification is [`syntax.md` §3.2–§3.4 and §3.8](../../syntax.md#32-composition).
 
+This page is about the operators of `.Gram` itself — `&`, `|`, quantifiers — and the order in which
+they bind inside one expression. The precedence of the operators of the language a grammar *reads*
+(`*` before `+` in arithmetic) is a property of rules, said with binding powers
+(`<< n`, `>> n`, [below](#not-to-be-confused-with-binding-powers) and in
+[rules](07-rules.md#binding-powers)).
+
+<!-- ru:begin -->
+> **RU.** Эта страница — об операторах самого `.Gram` (`&`, `|`, кванторы) и о порядке их связывания
+> внутри одного выражения. Приоритеты операторов того языка, который грамматика *читает* (`*` раньше
+> `+` в арифметике), — свойство правил и задаются силами связывания `<< n`, `>> n` (ниже и в главе 07).
+<!-- ru:end -->
+
 ## Sequence: `&`
 
 `a & b` matches `a`, then `b` where `a` ended. Every pair of operands needs a connector: `.Gram` has
@@ -368,9 +380,9 @@ Peek : @string = ?=(c: 'a') & any => @(c)
 > это `when @(g)`.
 <!-- ru:end -->
 
-## Precedence
+## Operator order in an expression
 
-Highest to lowest:
+How the operators of `.Gram` bind inside one grammar expression, highest to lowest:
 
 | Level | Forms |
 | --- | --- |
@@ -409,13 +421,50 @@ ParseJoined("abc") → "abc"
   ([guards](05-guards-and-switch.md)).
 
 <!-- ru:begin -->
-> **RU.** Приоритеты от высшего к низшему — в таблице: префиксы (захват, привязка, просмотр) →
+> **RU.** Порядок операторов `.Gram` внутри одного выражения грамматики, от высшего к низшему, — в таблице: префиксы (захват, привязка, просмотр) →
 > кванторы и суффиксы (`recover`, `with (…)`, `with state`) → `~` → `&` → `=>` → `|`. На практике:
 > квантор относится ко всему, что перед ним в операнде: `name: X*` — это `(name: X)*`, захват на
 > каждом шаге; шаги правила со значением собираются в массив, шаги текста склеиваются в один текст
 > (пример выше); так же `?!X*` — это `(?!X)*`; `=>` привязан к одной альтернативе, поэтому каждая ветка `|` строит своё значение;
 > `recover` сильнее `|`, выбор синхронизаций пишется в скобках; внутри `when` `is` сильнее `and`,
 > `and` сильнее `or`.
+<!-- ru:end -->
+
+### Not to be confused with binding powers
+
+The table above orders the operators of the grammar. The precedence of the operators of the
+language being read — `*` before `+`, `^` to the right — is said on the alternatives of a rule, with
+`<< n` (left-associative at level `n`) and `>> n` (right-associative). Higher binds tighter. The
+whole story is in [rules](07-rules.md#binding-powers); one calculator shows the shape:
+
+```dotgram
+Expr : int = left: Expr & '+' & right: Expr   << 1  => @(left + right)
+           | left: Expr & '-' & right: Expr   << 1  => @(left - right)
+           | left: Expr & '*' & right: Expr   << 2  => @(left * right)
+           | left: Expr & '^' & right: Expr   >> 3  => @((int)System.Math.Pow(left, right))
+           | digits: ['0'..'9']+                    => @int.Parse(digits)
+
+parse Expr
+```
+
+```text examples
+ParseExpr("1+2*3") → 7
+ParseExpr("8-2-1") → 5
+ParseExpr("2^3^2") → 512
+ParseExpr("2*3^2") → 18
+```
+
+`8-2-1` is `(8-2)-1` because `-` is left-associative, and `2^3^2` is `2^(3^2)` because `^` is
+right-associative. A grammar can also say all of this with one rule per level and no markers; which
+to choose is in [rules](07-rules.md#levels-as-rules).
+
+<!-- ru:begin -->
+> **RU.** Таблица выше упорядочивает операторы самой грамматики. Приоритеты операторов читаемого
+> языка (`*` раньше `+`, `^` справа налево) задаются на альтернативах правила силами связывания:
+> `<< n` — левоассоциативно на уровне `n`, `>> n` — правоассоциативно; больше — сильнее. Подробно — в
+> главе 07; пример калькулятора выше: `8-2-1` — это `(8-2)-1` (левая ассоциативность `-`), `2^3^2` —
+> `2^(3^2)` (правая у `^`). То же можно выразить и правилом на каждый уровень без маркеров — выбор
+> между способами описан в главе 07.
 <!-- ru:end -->
 
 ## A run that can be cut two ways
