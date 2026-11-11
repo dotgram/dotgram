@@ -67,6 +67,17 @@ interface ICSharpScanner
 	IReadOnlyCollection<string>? NamesNotAsValues(string expression);
 
 	/// <summary>
+	/// The free names (<see cref="FreeNames"/>) the expression certainly reads as values: written
+	/// somewhere neither before a dot, where a name may be a namespace or a type (<c>System.Math</c>),
+	/// nor as anything <see cref="NamesNotAsValues"/> lists.
+	/// </summary>
+	/// <remarks>
+	/// Syntax only, from the expression's tokens, so a name in a comment or a literal is none, and
+	/// <c>@x</c> is <c>x</c>. Null where the scanner cannot parse the expression.
+	/// </remarks>
+	IReadOnlyCollection<string>? NamesAsValues(string expression);
+
+	/// <summary>
 	/// The expression with some of its free names spelled otherwise.
 	/// </summary>
 	/// <remarks>
