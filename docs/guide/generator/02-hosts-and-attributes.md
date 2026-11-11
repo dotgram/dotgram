@@ -1,7 +1,7 @@
 # The host class and its attributes
 
 Every parser is generated into a class of yours, the **host**. This page covers what the host has
-to be, the attributes that attach a grammar to it — `[Gram]`, `[GramVariant]`, `[GramInclude]` — the
+to be, the attributes that attach a grammar to it — `[Gram]`, `[GramParserVariant]`, `[GramInclude]` — the
 options they take, the attributes for editors, and the names of what comes out. What the generated
 methods take and answer is the [parser API](../../syntax.md#6-publication); the notation is the
 [language guide](../language/01-grammar-and-host.md).
@@ -12,7 +12,7 @@ is all a file needs.
 
 <!-- ru:begin -->
 > **RU.** Каждый парсер генерируется в ваш класс — **хост**. Здесь: каким должен быть хост, атрибуты,
-> которые прикрепляют к нему грамматику (`[Gram]`, `[GramVariant]`, `[GramInclude]`), их опции,
+> которые прикрепляют к нему грамматику (`[Gram]`, `[GramParserVariant]`, `[GramInclude]`), их опции,
 > атрибуты для редакторов и имена того, что получается. Что принимают и возвращают сгенерированные
 > методы — в описании API парсера; нотация — в руководстве по языку. Все атрибуты лежат в пространстве
 > имён `DotGram` и записываются в проект самим генератором: файлу достаточно `using DotGram;`.
@@ -193,13 +193,29 @@ except where the table says so.
 | `MaxBufferedInputLength` | `int.MaxValue`, no limit | the most input, in characters or bytes, a buffered parse holds at once, where a call does not say; past it the parse throws `IOException`. At least 1 (`GRAM0009`). |
 | `MaxExtraStacks` | `0`, no limit | how many extra stacks one parse may take when input nests deeper than the thread's stack allows; past it the parse throws `InsufficientExecutionStackException`. |
 | `TargetMethodPartSize` | `0`, the measured default | how large the parts of a recognizer too big for one method are aimed to be. A wish: no value fails a build. |
-| `LocationType` | none | an interface the grammar's values implement to be told where in the input they were read. |
+| `LocationType` | none | an interface (or a class) the grammar's values implement to be told where in the input they were read. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink, for finding out why an input is refused. Changes no answer. |
 | `ExportGrammar` | not set: exported when the class and every class around it are public | carry the grammar's text on the class, so that a grammar in another assembly can include it. |
-| `Name` | none | compile this reading into a nested class of that name ([`[GramVariant]`](#gramvariant-another-reading-of-the-same-grammar)). |
+| `Name` | none | `[Gram]` only: compile the first reading into a nested class of that name too ([`[GramParserVariant]`](#gramparservariant-another-reading-of-the-same-grammar)). |
 | `DefaultAlias` | the class's name | `[Gram]` only: the name a grammar that includes this one reaches it under ([including](#graminclude-one-grammar-built-on-another)). |
 
 The full semantics of each are in [`syntax.md` §6.3–§6.9](../../syntax.md#68-generation-options).
+
+**Names from before 0.3.0.** Several options were renamed in 0.3.0, with no old spelling kept:
+`IncludedAs` is `DefaultAlias`, `Suffix` is `Name`, `[GramOptions(Suffix = "X")]` is
+`[GramParserVariant("X")]`, `GramCarrier.Tape` is `GramCarrier.Deferred`, and the rest as the release
+notes list them. A host still written with an old name is told what it is called now:
+
+```csharp example=old-name GRAM0012
+using DotGram;
+
+[Gram("""
+	Letter = ['a'..'z']
+	""", IncludedAs = "Lex")]
+public static partial class Lexemes;
+```
+
+*'IncludedAs' was renamed to 'DefaultAlias' in 0.3.0.*
 
 <!-- ru:begin -->
 > **RU.** Ещё `[Gram]` именованными аргументами говорит, как читать грамматику, то есть как
@@ -217,9 +233,15 @@ The full semantics of each are in [`syntax.md` §6.3–§6.9](../../syntax.md#68
 > большого метода; никакое значение не ломает сборку), `LocationType` (интерфейс, через который
 > значения узнают своё место во входе), `Trace` (trace-сборка: парсер сообщает приёмнику, что читает),
 > `ExportGrammar` (нести текст грамматики на классе, чтобы её можно было включить из другой сборки;
-> по умолчанию — если класс и все внешние классы `public`), `Name` (скомпилировать это чтение во
-> вложенный класс) и `DefaultAlias` (только `[Gram]`: имя, под которым её видит включающая
+> по умолчанию — если класс и все внешние классы `public`), `Name` (только `[Gram]`: увести и первое
+> чтение во вложенный класс) и `DefaultAlias` (только `[Gram]`: имя, под которым её видит включающая
 > грамматика). Полная семантика каждой — в `syntax.md` §6.3–§6.9.
+>
+> **Имена до 0.3.0.** В 0.3.0 несколько опций переименованы без сохранения старого написания:
+> `IncludedAs` — теперь `DefaultAlias`, `Suffix` — `Name`, `[GramOptions(Suffix = "X")]` —
+> `[GramParserVariant("X")]`, `GramCarrier.Tape` — `GramCarrier.Deferred`, остальное — по списку в
+> release notes. Хосту, написанному со старым именем, говорят, как оно называется теперь (GRAM0012,
+> пример выше).
 <!-- ru:end -->
 
 ### Reading from a `TextReader`
@@ -272,7 +294,8 @@ public static partial class Numbers;
 ### Where a value was read: `LocationType`
 
 Name an interface with a method `void Locate(int at, int length)`, and every rule whose value
-implements it is told the range of input it was built from, without the trivia around it:
+implements it is told the range of input it was built from, without the trivia around it. A base
+class that declares `Locate` may be named instead of an interface:
 
 ```csharp example=located
 using DotGram;
@@ -314,14 +337,40 @@ public static partial class Located;
 string.Join(", ", Located.ParseWords("alpha  beta").Select(w => $"{w.Text}@{w.Start}+{w.Length}")) → "alpha@0+5, beta@7+4"
 ```
 
-A grammar that names no interface pays nothing for this. Read from a buffered input, a place past
-`int.MaxValue` characters cannot be told, and the parse throws `InvalidOperationException` where it
-would tell one.
+A type that declares no such `Locate` is refused where it is named (`GRAM0011`), rather than as an
+error in the generated code:
+
+```csharp example=no-locate GRAM0011
+using DotGram;
+
+namespace Demo;
+
+public interface ISpanned
+{
+	int Start { get; set; }
+}
+
+[Gram("""
+	Word = ['a'..'z']+
+
+	parse Word
+	""", LocationType = typeof(ISpanned))]
+public static partial class Words;
+```
+
+*'Words' names 'Demo.ISpanned' as its LocationType, which is neither an interface nor a class declaring
+void Locate(int at, int length).*
+
+A grammar that names no type pays nothing for this. Read from a buffered
+input, a place past `int.MaxValue` characters cannot be told, and the parse throws
+`InvalidOperationException` where it would tell one.
 
 <!-- ru:begin -->
 > **RU.** Назовите интерфейс с методом `void Locate(int at, int length)`, и каждое правило, чьё
 > значение его реализует, узнает диапазон входа, из которого построено, без trivia вокруг (пример
-> выше). Грамматика, которая не называет интерфейс, за это ничего не платит. При чтении из
+> выше). Вместо интерфейса можно назвать базовый класс, объявляющий `Locate`. Тип без такого
+> `Locate` отвергается там, где назван (GRAM0011), а не ошибкой в сгенерированном коде. Грамматика,
+> которая не называет тип, за это ничего не платит. При чтении из
 > буферизованного входа место дальше `int.MaxValue` символов сообщить нельзя, и разбор бросает
 > `InvalidOperationException` там, где должен был бы его сообщить.
 <!-- ru:end -->
@@ -378,11 +427,12 @@ The rules below were reading there, each wanting what it names.
 > грамматик проекта. Пример выше и полный текст `GramWhy` для этого входа.
 <!-- ru:end -->
 
-## `[GramVariant]`: another reading of the same grammar
+## `[GramParserVariant]`: another reading of the same grammar
 
 A class has one grammar, and may have it read in more than one way: as tokens and as characters, on
-both carriers, traced and untraced. Each further reading is a `[GramVariant]`, compiled into a nested
-class its `Name` names. What a variant does not say it takes from the `[Gram]`:
+both carriers, traced and untraced. Each further reading is a `[GramParserVariant("Name")]`,
+compiled into a nested class of that name — the one argument it requires. What a variant does not
+say it takes from the `[Gram]`:
 
 ```csharp example=variant
 using DotGram;
@@ -398,7 +448,7 @@ namespace Demo;
 
 	parse Sum
 	""")]
-[GramVariant(Name = "Traced", Trace = true)]
+[GramParserVariant("Traced", Trace = true)]
 public static partial class Adder;
 ```
 
@@ -412,43 +462,44 @@ Adder.Traced.ParseSum("1 + 2 + 3") → 6
 - Each reading is a compilation of its own, and gets a file of its own: `Demo.Adder.g.cs`,
   `Demo.Adder.Traced.g.cs`. The types the readings share in their signatures — `Match<T>`,
   `SourceSpan`, `ParserInput<T>` — are written once, in the host, in `Demo.Adder.gram-shared.g.cs`.
-- `Name` is one C# identifier (`GRAM0007`), and two readings cannot share one; a variant without a
-  `Name` would share the host's own scope with the `[Gram]` (`GRAM0006`).
-- `Name` may also be written on `[Gram]`: the first reading then goes into a nested class too.
+- The name is one C# identifier (`GRAM0007`), and two readings cannot share one (`GRAM0006`).
+- `[Gram(Name = "…")]` puts the first reading into a nested class too; it then needs a name no
+  variant takes.
 
-```csharp example=variant-unnamed GRAM0006
+```csharp example=variant-same-name GRAM0006
 using DotGram;
 
 [Gram("""
 	Digits = ['0'..'9']+
 
 	parse Digits
-	""")]
-[GramVariant(Lexical = true)]
+	""", Name = "Fast")]
+[GramParserVariant("Fast", Lexical = true)]
 public static partial class Numbers;
 ```
 
 *'Numbers' asks for two readings of its grammar under the same Name; give one of them a Name of its
 own.*
 
-**`UsePerCallLocations`**, an option of `[GramVariant]` alone, makes a variant that is not a second
-parser: with a `LocationType` and a `Name`, the grammar is compiled once, and the nested class holds
+**`UsePerCallLocations`**, an option of `[GramParserVariant]` alone, makes a variant that is not a
+second parser: with a `LocationType`, the grammar is compiled once, and the nested class holds
 the same methods with locations asked for per call. The interface's method then takes a third
 argument, `Locate(int at, int length, int gapStart)`
 ([`syntax.md`](../../syntax.md#usepercalllocations)).
 
 <!-- ru:begin -->
 > **RU.** У класса одна грамматика, но читать её можно по-разному: по токенам и по символам, с разными
-> носителями, с трассировкой и без. Каждое следующее чтение — `[GramVariant]`, оно компилируется во
-> вложенный класс с именем из `Name`. Чего вариант не сказал, он берёт у `[Gram]` (пример выше):
+> носителями, с трассировкой и без. Каждое следующее чтение — `[GramParserVariant("Имя")]`, оно
+> компилируется во вложенный класс с этим именем (единственный обязательный аргумент). Чего вариант не
+> сказал, он берёт у `[Gram]` (пример выше):
 > `Adder.ParseSum` — чтение `[Gram]`, `Adder.Traced.ParseSum` — чтение варианта, та же грамматика со
 > всем, что сказал `[Gram]`, плюс trace-сборка. Каждое чтение — отдельная компиляция в отдельном файле
 > (`Demo.Adder.g.cs`, `Demo.Adder.Traced.g.cs`); общие для чтений типы (`Match<T>`, `SourceSpan`,
-> `ParserInput<T>`) пишутся один раз, в хосте, в `Demo.Adder.gram-shared.g.cs`. `Name` — один
-> идентификатор C# (GRAM0007), и два чтения не могут делить одно имя; вариант без `Name` делил бы
-> область хоста с `[Gram]` (GRAM0006, второй пример). `Name` можно написать и на `[Gram]` — тогда и
-> первое чтение уходит во вложенный класс. **`UsePerCallLocations`** — опция только `[GramVariant]`:
-> вместе с `LocationType` и `Name` даёт вариант, который не является вторым парсером — грамматика
+> `ParserInput<T>`) пишутся один раз, в хосте, в `Demo.Adder.gram-shared.g.cs`. Имя — один
+> идентификатор C# (GRAM0007), и два чтения не могут делить одно имя (GRAM0006, второй пример).
+> `[Gram(Name = "…")]` уводит во вложенный класс и первое чтение; тогда ему нужно имя, которого нет ни
+> у одного варианта. **`UsePerCallLocations`** — опция только `[GramParserVariant]`: вместе с
+> `LocationType` даёт вариант, который не является вторым парсером — грамматика
 > компилируется один раз, а во вложенном классе те же методы, просящие позиции при каждом вызове;
 > метод интерфейса тогда принимает третий аргумент, `Locate(int at, int length, int gapStart)`.
 <!-- ru:end -->
@@ -579,7 +630,7 @@ release.
 
 ## What comes out
 
-For a host `Demo.Adder` with one `[GramVariant(Name = "Traced")]`, the project gains:
+For a host `Demo.Adder` with one `[GramParserVariant("Traced")]`, the project gains:
 
 | File | What it holds |
 | --- | --- |
@@ -594,7 +645,7 @@ declares for its own use has `_DotGram` in its name, which no name a grammar wri
 (`GRAM1012`), so nothing generated collides with what the host declares.
 
 <!-- ru:begin -->
-> **RU.** Для хоста `Demo.Adder` с одним `[GramVariant(Name = "Traced")]` в проекте появляются файлы
+> **RU.** Для хоста `Demo.Adder` с одним `[GramParserVariant("Traced")]` в проекте появляются файлы
 > из таблицы выше: атрибуты (один раз на проект), чтение `[Gram]`, чтение варианта во вложенном
 > классе `Adder.Traced` и общие для чтений типы, записанные один раз в `Adder`. Вложенный хост
 > называется вместе с внешними классами (`Demo.Formats.HexDigits.g.cs`), обобщённый — с параметрами
