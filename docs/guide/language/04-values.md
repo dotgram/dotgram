@@ -62,7 +62,7 @@ Notes:
 - One name may be captured in several alternatives, or several times in one, as long as it has one
   type everywhere.
 - A binding `$q: X` is not a capture: it adds no member and no name ([bindings](06-bindings.md)).
-- Captures inside a lookahead are refused (`GRAM4006`, [composition](03-composition.md#lookahead)).
+- Captures inside a lookahead are refused (`GRAM4006`, [composition](03-composition.md#lookahead-x-and-x)).
 
 ```dotgram
 Import : @string = using: ['a'..'z']+ => @(@using)

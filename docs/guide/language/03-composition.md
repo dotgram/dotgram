@@ -42,7 +42,7 @@ Notes:
   `trivia` is what is woven between them, and it is empty by default
   ([trivia](08-trivia-and-words.md)).
 - `a ~ b` is a sequence that never lets trivia between its operands; it matters only once
-  `trivia` is not empty ([`~`](08-trivia-and-words.md#adjacency)).
+  `trivia` is not empty ([`~`](08-trivia-and-words.md#adjacency-)).
 - The missing connector above is reported where the next operand begins, as the start of a
   declaration that is not one (`GRAM2002`).
 
