@@ -3671,9 +3671,12 @@ public sealed class GeneratorDriverTests
 	[InlineData("\"\"")]
 	[InlineData("null")]
 	[InlineData("\"Not one\"")]
+	[InlineData("\"bad-name\", UsePerCallLocations = true, LocationType = typeof(ILoc)")]
+	[InlineData("\"\", UsePerCallLocations = true, LocationType = typeof(ILoc)")]
 	public void A_variant_must_name_its_class(string name)
 	{
 		var run = RunGenerator(
+			"public interface ILoc { void Locate(int at, int length, int gapStart); }\n" +
 			"[DotGram.Gram(\"Start = 'a'+\\nparse Start\")]\n" +
 			"[DotGram.GramParserVariant(" + name + ", Carrier = DotGram.GramCarrier.Deferred)]\n" +
 			"public static partial class Unnamed;");

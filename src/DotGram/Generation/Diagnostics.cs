@@ -131,7 +131,7 @@ static class Diagnostics
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
 		helpLinkUri:        HelpLink("GRAM0012"),
-		description:        "The attributes' options were renamed in 0.3.0, with no aliases kept: IncludedAs is DefaultAlias, Suffix is Name, [GramOptions(Suffix = \"X\")] is [GramParserVariant(\"X\")], GramCarrier.Tape is GramCarrier.Deferred, and the rest as the release notes list them. A host written with one is not told what its grammar then seems to say wrong.");
+		description:        "The attributes' options were renamed in 0.3.0, with no aliases kept: IncludedAs is DefaultAlias, Suffix is Name, [GramOptions(Suffix = \"X\")] is [GramParserVariant(\"X\")], GramCarrier.Tape is GramCarrier.Deferred, and the rest as the release notes list them. Where an old name dropped an alias, the names it reached are not also reported as missing (GRAM3002, GRAM3003).");
 
 	/// <summary>
 	/// A grammar a referenced assembly carries is the grammar it was compiled from; a local file of
