@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -348,6 +349,7 @@ public sealed class StreamingRetentionTests
 	/// reads as it always did.
 	/// </para>
 	/// </remarks>
+	// The case proves bounded retention in a fresh process, not after the history of the other tests.
 	static (Outcome Small, Outcome Large)? Isolated(string form, bool buffered)
 	{
 		var child = Environment.GetEnvironmentVariable(ChildCase);
@@ -388,11 +390,41 @@ public sealed class StreamingRetentionTests
 
 			using var process = Process.Start(start)!;
 
-			var errors = process.StandardError.ReadToEndAsync();
-			var said   = process.StandardOutput.ReadToEnd() + errors.GetAwaiter().GetResult();
+			// What the child says is collected as it comes, so that a child that hangs shows what it said. One limit
+			// covers the wait, together with the test's own cancellation: a hung child is killed with whatever it
+			// started, instead of stopping the whole run.
+			var said = new System.Text.StringBuilder();
 
+			process.OutputDataReceived += (_, line) => { lock (said) { said.AppendLine(line.Data); } };
+			process.ErrorDataReceived  += (_, line) => { lock (said) { said.AppendLine(line.Data); } };
+			process.BeginOutputReadLine();
+			process.BeginErrorReadLine();
+
+			using var limit = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+
+			limit.CancelAfter(ChildTimeout);
+
+			var timedOut = false;
+
+			try
+			{
+				process.WaitForExitAsync(limit.Token).GetAwaiter().GetResult();
+			}
+			catch (OperationCanceledException)
+			{
+				timedOut = !TestContext.Current.CancellationToken.IsCancellationRequested;
+
+				process.Kill(entireProcessTree: true);
+				process.WaitForExit();
+
+				if (!timedOut)
+					throw;
+			}
+
+			// The parameterless wait returns once the redirected output has been read to its end.
 			process.WaitForExit();
 
+			Assert.False(timedOut, $"{form}: the process that measured it did not finish in {ChildTimeout.TotalMinutes:F0} minutes and was killed.\n{said}");
 			Assert.True(process.ExitCode == 0 && File.Exists(result), $"{form}: the process that measured it did not finish: exit {process.ExitCode}.\n{said}");
 
 			var peaks = File.ReadAllText(result).Split(' ').Select(long.Parse).ToArray();
@@ -404,6 +436,9 @@ public sealed class StreamingRetentionTests
 			File.Delete(result);
 		}
 	}
+
+	/// <summary>How long a child may take: the slowest case runs for under a minute, so this is a hang and not a slow run.</summary>
+	static readonly TimeSpan ChildTimeout = TimeSpan.FromMinutes(10);
 
 	static (Outcome Small, Outcome Large) Measure(string form, bool buffered)
 	{
