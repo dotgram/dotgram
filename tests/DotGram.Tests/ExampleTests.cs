@@ -32,6 +32,27 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class ExampleTests
 {
+	// ── The colour of the repository README ──────────────────────────────────────────
+
+	/// <summary>The README's two calls, with what the README says they print.</summary>
+	[Fact]
+	public void The_readme_colour_reads_its_six_digits_and_refuses_three_letters()
+	{
+		Assert.Equal("12aBcF", CssColor.DigitsOf("#12aBcF"));
+		Assert.False(CssColor.IsColor("#xyz"));
+	}
+
+	[Theory]
+	[InlineData("#000000", true)]
+	[InlineData("#12aBcF", true)]
+	[InlineData("#12aBc", false)]     // five digits
+	[InlineData("#12aBcF0", false)]     // seven: the whole input must be a colour
+	[InlineData("12aBcF", false)]
+	public void Is_color(string text, bool expected)
+	{
+		Assert.Equal(expected, CssColor.IsColor(text));
+	}
+
 	// ── The URL parser ───────────────────────────────────────────────────────────
 
 	[Theory]

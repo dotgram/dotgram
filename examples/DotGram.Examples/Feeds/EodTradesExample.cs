@@ -14,7 +14,7 @@ namespace DotGram.Examples.Feeds;
 //     D|T-0104|2026-10-02|2026-10-05|US5949181045|SELL|800|USD            <- the price left out
 //     T|7|4490
 //
-// It is an example of docs/feeds.md and of the repository README, and the same grammar;
+// It is an example of docs/feeds.md and of docs/tour.md, and the same grammar;
 // the tests hold the copies to one text.
 //
 // The header and the trailer are typed records of the same sequence as the trades, so they

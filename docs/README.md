@@ -40,14 +40,19 @@ construction.
 
 | Document | |
 | --- | --- |
+| [`tour.md`](tour.md) | What a grammar can do, by example: feeds written by people, one grammar published three times, versions of one language, typed parsing, streaming and recovery, guards, why an input was refused, grammar libraries, and the four parser packages. |
 | [`feeds.md`](feeds.md) | Feeds: trading files in pipes, CSV and fixed width with a header and a trailer, files kept by hand, and a feed of ten million records bulk-loaded into a database. |
 | [`guide/language/`](guide/language/README.md) | The `.Gram` language, a page a topic: every feature with a grammar that uses it, the cases worth knowing and the forms refused with their diagnostics. |
 | [`cli.md`](cli.md) | `dotnet dotgram`: the generator run outside the build, every command, option and exit code, and what the files it writes promise. |
 | [`visual-studio.md`](visual-studio.md) | The Visual Studio extension, and the `StringSyntax` annotations. |
+| [`compatibility.md`](compatibility.md) | What a project on an older target framework or C# version needs, and what costs more below C# 11. |
 
 Every example of a guide is compiled and run by a test, its output held to the page's, so a
 guide that disagrees with the code is a failing test rather than a stale page. The figures it
 quotes from a measurement are the exception: they are what one run on one machine answered.
+
+`tour.md` and `compatibility.md` are the exception for now: they hold what the repository README
+used to explain at length, moved here, and only the tour's feeds are run by a test (`FeedsPageTests`).
 
 ## For an agent
 
