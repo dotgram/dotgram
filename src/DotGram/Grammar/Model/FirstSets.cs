@@ -1859,7 +1859,7 @@ static class FirstSets
 				// A body that must consume and begins with nothing never matches, so the look
 				// never lets the rest through: nothing follows it. Read as narrowing nothing, the
 				// answer would shrink once the body began, while the rules grow (ByRule).
-				if (ahead.Nothing)
+				if (ahead.Nothing && !MayRecover(expected, graph))
 					break;
 			}
 
@@ -1897,10 +1897,13 @@ static class FirstSets
 			if (first.Nothing)
 			{
 				// A part that must consume and begins with nothing never matches, and nothing
-				// after it is ever reached. Passed over instead, the sequence began with what
-				// comes after the part — and while the rules grow, nothing is also what a rule
-				// not reached yet answers, so the answer shrank once it was reached (ByRule).
-				if (!Nullable(parts[i], graph))
+				// after it is ever reached (MayRecover says why). Passed over instead, the
+				// sequence began with what comes after the part — and while the rules grow,
+				// nothing is also what a rule not reached yet answers, so the answer shrank once
+				// it was reached (ByRule). A part that may recover is still passed over, as it
+				// always was: it matches by stepping over a bad element, which no first set here
+				// speaks for.
+				if (!Nullable(parts[i], graph) && !MayRecover(parts[i], graph))
 					break;
 
 				continue;
@@ -1974,14 +1977,18 @@ static class FirstSets
 	/// <para>
 	/// A part that must consume and begins with nothing never matches, so nothing after it in
 	/// the sequence is ever reached: the sequence stops there, while the rules grow and after,
-	/// and a positive look whose body is such a part lets nothing through. Then the step only
-	/// adds as what it reads grows — except for a negative look over one character, which admits
-	/// the complement of what it refuses. What it refuses cannot call back into the rule (every
+	/// and a positive look whose body is such a part lets nothing through — unless the part may
+	/// recover (<see cref="MayRecover"/>), which matches by stepping over what no first set
+	/// speaks for and is passed over as before. Then the step only adds as what it reads grows —
+	/// except there, and for a negative look over one character, which admits the complement of
+	/// what it refuses. What it refuses cannot call back into the rule (every
 	/// reading of it is one character), so the rules are worked out callee first, a strongly
 	/// connected component at a time, each settled before the next: a look reads only what has
 	/// stopped growing. Each answer is joined with the one before all the same, which is what
-	/// bounds the loop whatever the step does. The answer is the least fixed point, the same
-	/// whatever order the rules are written in, and every rule begins with what its body does.
+	/// bounds the loop whatever the step does. Where nothing recovers the answer is the least
+	/// fixed point, the same whatever order the rules are written in, and every rule begins with
+	/// what its body does. Round a ring through a part that may recover, what was let through
+	/// before the part began is kept: never wrong, since such a part may begin with anything.
 	/// </para>
 	/// <para>
 	/// What it replaces answered "anything" on re-entering a rule already being walked. That
@@ -2809,6 +2816,78 @@ static class FirstSets
 	}
 
 	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _ledByRecovery = new();
+
+	/// <summary>
+	/// Whether a node may match by way of a repetition that recovers: one inside it, in a rule it
+	/// calls however deep, or in what a reference in it reads.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What <see cref="Of"/> answers is what a reading begins with where no recovery steps over a
+	/// bad element (<see cref="LedByRecovery"/>). So where a node may recover, beginning with
+	/// nothing does not say that it never matches: <c>D+ recover '.'</c> over a <c>D</c> that
+	/// never matches steps over what is there up to the dot and succeeds. Where it may not, every
+	/// reading of the node is one <see cref="Of"/> answers for: a node that must consume begins
+	/// each reading with a character, which is then in what <see cref="Of"/> says, so one that
+	/// begins with nothing has no reading at all. That is the proof the stop in a sequence rests
+	/// on (<c>Following</c>).
+	/// </para>
+	/// <para>
+	/// Asked of the whole node rather than of how it begins, so that it is a fact about the grammar
+	/// and not about the answers still growing, and so it errs towards recovering: a repetition
+	/// that recovers anywhere in the node keeps it from being taken as never matching.
+	/// </para>
+	/// </remarks>
+	static bool MayRecover(Node node, RecognitionGraph graph)
+	{
+		if (graph.Recoveries.Count == 0)
+			return false;
+
+		var rules = _recovering.GetValue(graph, static graph => RulesThatRecover(graph));
+
+		return Recovers(node, graph, rules.Contains);
+	}
+
+	static bool Recovers(Node node, RecognitionGraph graph, Func<RuleSymbol, bool> rule)
+	{
+		foreach (var inner in NodeWalk.Descendants(node))
+		{
+			if (graph.Recoveries.ContainsKey(inner))
+				return true;
+
+			if (inner is Node.Call(var called, _) && rule(called))
+				return true;
+
+			if (inner is Node.Same(var binding, _))
+				foreach (var body in BoundBodies(graph, binding))
+					foreach (var bound in NodeWalk.Descendants(body))
+						if (graph.Recoveries.ContainsKey(bound) || bound is Node.Call(var reached, _) && rule(reached))
+							return true;
+		}
+
+		return false;
+	}
+
+	static HashSet<RuleSymbol> RulesThatRecover(RecognitionGraph graph)
+	{
+		var recovering = new HashSet<RuleSymbol>();
+
+		for (var grew = true; grew; )
+		{
+			grew = false;
+
+			foreach (var pair in graph.Bodies)
+				if (!recovering.Contains(pair.Key) && Recovers(pair.Value, graph, recovering.Contains))
+				{
+					recovering.Add(pair.Key);
+					grew = true;
+				}
+		}
+
+		return recovering;
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _recovering = new();
 
 	/// <summary>
 	/// Whether the text a binding holds may be empty: whether any of the bodies it is bound to

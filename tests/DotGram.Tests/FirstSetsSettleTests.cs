@@ -490,6 +490,81 @@ public sealed class FirstSetsSettleTests
 		}
 	}
 
+	/// <summary>
+	/// A repetition that recovers over a rule that never matches steps over what is there and
+	/// succeeds, so it is not a part that never matches: <c>Rows</c> begins with the dot it
+	/// synchronizes on, and the optional dot before it gives its dot back. Before, the sequence
+	/// stopped at it, and <c>..</c> was refused.
+	/// </summary>
+	[Theory]
+	[InlineData("'.'?", false)]
+	[InlineData("'.'?", true)]
+	[InlineData("'.'*", false)]
+	[InlineData("'.'*", true)]
+	public void A_repetition_that_recovers_is_not_a_part_that_never_matches(string lead, bool direct)
+	{
+		var grammar  = $"D = ?! 'a' & 'a'\nRows = D+ recover '.' & '.'\nStart = {lead} & Rows & eof\nparse Start\n";
+		var compiled = Within(() => GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName     = "Grammar",
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Direct        = direct,
+		}));
+
+		Assert.True(compiled is not null, $"the compiler did not finish in {Limit.TotalSeconds} s");
+
+		EmittedCode.Quiet(compiled.Diagnostics);
+
+		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "..").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "...").IsSuccess);
+	}
+
+	/// <summary>
+	/// Over random grammars with repetitions that recover, with a fixed seed: every rule begins
+	/// with at least what its body begins with, and the same in three orders of its rules.
+	/// </summary>
+	[Fact]
+	public void Random_grammars_that_recover_settle()
+	{
+		var random = new Random(20261113);
+		var checks = 0;
+
+		for (var i = 0; i < 300; i++)
+		{
+			var lines = Dense(random, recovering: true).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+			var text  = string.Join("\n", lines);
+			var graph = Within(() => Normalize(text));
+
+			Assert.True(graph is not null, $"the normalizer did not finish in {Limit.TotalSeconds} s on\n{text}");
+
+			foreach (var rule in graph.Rules)
+			{
+				if (!graph.Bodies.TryGetValue(rule, out var body))
+					continue;
+
+				Assert.True(
+					FirstSets.Of(new Node.Call(rule, []), graph).Covers(FirstSets.Of(body, graph)),
+					$"{rule.Name} begins with less than its body on\n{text}");
+
+				checks++;
+			}
+
+			var first = Within(() => Describe(text, compile: false));
+
+			for (var turn = 0; turn < 2; turn++)
+			{
+				var shuffled = string.Join("\n", lines.OrderBy(_ => random.Next()));
+				var answer   = Within(() => Describe(shuffled, compile: false));
+
+				Assert.True(first == answer, $"written as\n{text}\nand as\n{shuffled}\nit reads\n{first}\nand\n{answer}");
+			}
+		}
+
+		Assert.True(checks > 1000, $"only {checks} rules were checked");
+	}
+
 	/// <summary>Every order of so many rules.</summary>
 	static IEnumerable<int[]> Orders(int count)
 	{
@@ -618,7 +693,7 @@ public sealed class FirstSetsSettleTests
 	/// A few rules over a rule that never matches (<c>D</c>), one that reads one character
 	/// (<c>K</c>) and one that may match nothing (<c>N</c>), led into through looks over them.
 	/// </summary>
-	static string Dense(Random random)
+	static string Dense(Random random, bool recovering = false)
 	{
 		var rules = random.Next(2, 5);
 		var text  = new StringBuilder();
@@ -632,7 +707,7 @@ public sealed class FirstSetsSettleTests
 				var parts = new string[random.Next(1, 4)];
 
 				for (var j = 0; j < parts.Length; j++)
-					parts[j] = Leading(random, rules);
+					parts[j] = Leading(random, rules, recovering);
 
 				alternatives[i] = string.Join(" & ", parts);
 			}
@@ -649,7 +724,7 @@ public sealed class FirstSetsSettleTests
 		return text.ToString();
 	}
 
-	static string Leading(Random random, int rules)
+	static string Leading(Random random, int rules, bool recovering)
 	{
 		var call = random.Next(6) switch
 		{
@@ -659,8 +734,10 @@ public sealed class FirstSetsSettleTests
 			_ => $"R{random.Next(rules)}",
 		};
 
-		return random.Next(11) switch
+		return random.Next(recovering ? 13 : 11) switch
 		{
+			11    => $"({call})+ recover '.'",
+			12    => $"({call})* recover ')'",
 			0     => "'a'",
 			1     => "'('",
 			2     => "\"\"",
