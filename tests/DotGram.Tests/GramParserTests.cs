@@ -61,7 +61,7 @@ public sealed class GramParserTests
 		var parsed = GramParser.Parse(GramLexer.Tokenize(source));
 
 		Assert.Equal(2, parsed.Diagnostics.Count);
-		Assert.All(parsed.Diagnostics, diagnostic => Assert.Equal(GramParser.ExpectedExpression, diagnostic.Id));
+		Assert.All(parsed.Diagnostics, diagnostic => Assert.Equal(GramParser.CaseInsensitiveElement, diagnostic.Id));
 		Assert.Equal(
 			new[] { source.IndexOf("i", StringComparison.Ordinal), source.LastIndexOf("i", StringComparison.Ordinal) },
 			parsed.Diagnostics.Select(diagnostic => diagnostic.Position).ToArray());
@@ -810,5 +810,122 @@ public sealed class GramParserTests
 	public void A_rule_called_context_may_have_a_generic_type()
 	{
 		Assert.Empty(Diagnostics("context : @System.Collections.Generic.List<string> = 'x'"));
+	}
+
+	/// <summary>What the parser says of a grammar, each with the text it points at.</summary>
+	static string[] Told(string source)
+	{
+		var parsed = GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance));
+
+		return [.. parsed.Diagnostics.Select(one => $"{one.Id} {source.Substring(one.Position, Math.Min(one.Length, source.Length - one.Position))}")];
+	}
+
+	static string[] RuleNames(string source)
+	{
+		var parsed = GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance));
+
+		return [.. parsed.File.Decls.OfType<Decl.Rule>().Select(static rule => rule.Name)];
+	}
+
+	[Theory]
+	[InlineData("A = ['a'..]",          "GRAM2014 ..")]
+	[InlineData("A = ['a'.. | 'b']",    "GRAM2014 ..")]
+	[InlineData("A = ['a'] & 'b'..'c'i", "GRAM2015 i", "GRAM2014 'b'..'c'i")]
+	[InlineData("A = ['a'..\"z\"]",   "GRAM2014 \"z\"")]
+	[InlineData("A = 'a'..'z'",         "GRAM2014 'a'..'z'")]
+	[InlineData("A = 'a'..",            "GRAM2014 ..", "GRAM2014 'a'..")]
+	[InlineData("A = ['a'..'z'i]",      "GRAM2015 i")]
+	[InlineData("A = ['a'i]",           "GRAM2015 i")]
+	[InlineData("A = B<int>\nB = 'b'", "GRAM2016 <int>")]
+	[InlineData("A = [B<int>]\nB = 'b'", "GRAM2016 <int>")]
+	[InlineData("A = 'a'*?",            "GRAM2017 ?")]
+	[InlineData("A = 'a'+*",            "GRAM2017 *")]
+	[InlineData("A = 'a'??",            "GRAM2017 ?")]
+	[InlineData("A = 'a'{2}?",          "GRAM2017 ?")]
+	[InlineData("A = 'a'*{2,3}",        "GRAM2017 {2,3}")]
+	[InlineData("A = 'a'*+? & 'b'",     "GRAM2017 +", "GRAM2017 ?")]
+	[InlineData("A = L('a' => @(1))\nL(x) = x",  "GRAM2018 => @(1)")]
+	[InlineData("A = L('a' << 2)\nL(x) = x",     "GRAM2018 << 2")]
+	[InlineData("A = L('a' >> 2, 'b')\nL(x, y) = x & y", "GRAM2018 >> 2")]
+	[InlineData("A = 'a'\nusing Std;",           "GRAM2019 using Std;")]
+	[InlineData("A = 'a'\n@using System.Text;",  "GRAM2019 @using System.Text;")]
+	[InlineData("namespace N { A = 'a'\nusing Std; }", "GRAM2019 using Std;")]
+	[InlineData("A = switch @(1) { 'a' }",                        "GRAM2020 'a'")]
+	[InlineData("A = switch @(1) { case 'a': 'b' }",              "GRAM2020 'a'")]
+	[InlineData("A = switch @(1) { case 99999999999999999999: 'a' }", "GRAM2020 99999999999999999999")]
+	[InlineData("A = switch @(1) { case -99999999999999999999: 'a' }", "GRAM2020 -99999999999999999999")]
+	[InlineData("A = switch @(1) { case 1: 'a' case 1: 'b' }",    "GRAM2021 case 1")]
+	[InlineData("A = switch @(1) { case 1: case 01: 'b' }",       "GRAM2021 case 01")]
+	[InlineData("A = switch @(1) { default: 'a' default: 'b' }",  "GRAM2021 default")]
+	[InlineData("A = switch @(1) { case 1: 'a' case \"1\": 'b' }", "GRAM2022 switch @(1) { case 1: 'a' case \"1\": 'b' }")]
+	[InlineData("A = switch @(1) { }",                            "GRAM2023 switch @(1) { }")]
+	[InlineData("A = switch @(1) { case 1: }",                    "GRAM2023 case 1:")]
+	[InlineData("A = switch @(1) { case 1: 'a' default: }",       "GRAM2023 default:")]
+	public void A_misplaced_form_is_told_where_it_stands_in_its_own_words(string source, params string[] told)
+	{
+		// Each of these used to be told as something else — an operand missing, a declaration
+		// expected, a ']' or an '=' missing — or read without a word: `['a'..]` as `['a']`, and
+		// `B<int>` as `B`.
+		Assert.Equal(told, Told(source));
+	}
+
+	[Theory]
+	[InlineData("A = ['a'..'z' | 'A'..'Z' | '_']")]
+	[InlineData("A = 'a'i & \"ab\"i")]
+	[InlineData("A = @B<int>")]
+	[InlineData("A = @B<int>(x)")]
+	[InlineData("A = B << 2\nB = 'b'")]
+	[InlineData("A = ('a'*)? & {'b'+} & 'c'{2,3} & ?='d' & 'e'* & ?!'f'")]
+	[InlineData("A = 'a'*\nB? = 'b'")]
+	[InlineData("A = 'a'{2} & {'b'} & 'c'{n}")]
+	[InlineData("A = L('a' & 'b', 3) & L(('c' => @(1)), 2)\nL(x, n: @int) = x{n}")]
+	[InlineData("using Std;\n@using System;\nA = 'a'")]
+	[InlineData("namespace N { using Std;\nA = 'a' }")]
+	[InlineData("using = 'u'\nA = using")]
+	[InlineData("A = switch @(1) { case 0: case -1: 'a'; case 9223372036854775807: 'b' case 18446744073709551615: 'c' default: none }")]
+	[InlineData("A = switch @(\"s\") { case \"s\": 'a' case \"t\": 'b' }")]
+	public void And_its_well_formed_neighbours_are_read_as_they_were(string source, params string[] told)
+	{
+		Assert.Equal(told, Told(source));
+	}
+
+	[Fact]
+	public void A_range_outside_brackets_is_read_as_the_set_it_meant()
+	{
+		Assert.Contains("Range \"a\"..\"z\"", Parse("A = 'a'..'z' & 'b'"), StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("A = 'a' & with\nwith = 'w'",                 new[] { "A", "with" })]
+	[InlineData("A = 'a' with (X = Y)\nwith = 'w'",           new[] { "A", "with" })]
+	[InlineData("A = 'a'*\nrecover = 'r'",                    new[] { "A", "recover" })]
+	[InlineData("A = 'a' & recover\nrecover(x) = x",          new[] { "A", "recover" })]
+	[InlineData("A = 'a' & B\nwith(item) : @int = item",      new[] { "A", "with" })]
+	[InlineData("A = 'a'\nparse A\nas = 'x'",                new[] { "A", "as" })]
+	[InlineData("A = 'a'\nparse A\nwith = 'x'",              new[] { "A", "with" })]
+	[InlineData("A = 'a'\nparse A\nstream = 'x'",            new[] { "A", "stream" })]
+	[InlineData("A = 'a'\nparse A stream\nbytes = 'x'",      new[] { "A", "bytes" })]
+	[InlineData("A = when B is C\nor = 'o'\nB = 'b'\nC = 'c'",  new[] { "A", "or", "B", "C" })]
+	[InlineData("A = when B is C\nand = 'a'\nB = 'b'\nC = 'c'", new[] { "A", "and", "B", "C" })]
+	[InlineData("A = when @(true)\nis = 'i'",                 new[] { "A", "is" })]
+	public void A_rule_named_like_a_suffix_is_a_rule_on_the_line_after_an_operand(string source, string[] rules)
+	{
+		// The words are names everywhere but where they go on with what was just read, and a word
+		// that begins a rule's head (`=`, parameters, a type) begins a rule there too.
+		Assert.Empty(Told(source));
+		Assert.Equal(rules, RuleNames(source));
+	}
+
+	[Theory]
+	[InlineData("A = X with (X = Y)\nX = 'x'\nY = 'y'")]
+	[InlineData("A = X* recover ';'\nX = 'x'")]
+	[InlineData("A = (X* recover (';' | eol) => @(1))\nX = 'x'")]
+	[InlineData("A = 'a'\nparse A with (A = B) as C : @int stream bytes\nB = 'b'")]
+	[InlineData("A = 'a'\nparse A with (A = B) : @int\nB = 'b'")]
+	[InlineData("A = when B is C or B is not C and C is B\nB = 'b'\nC = 'c'")]
+	public void While_a_suffix_that_does_not_begin_a_rule_goes_on_with_its_operand(string source)
+	{
+		Assert.Empty(Told(source));
+		Assert.DoesNotContain(RuleNames(source), static name => name is "with" or "recover" or "as" or "or" or "and" or "stream" or "bytes");
 	}
 }

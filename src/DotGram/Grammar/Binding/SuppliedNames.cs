@@ -31,6 +31,27 @@ static class SuppliedNames
 			"parserInput", "parserState", "parserMarks",
 		];
 
+	/// <summary>
+	/// The names the generated code gives parameters of its own beside the supplied ones, in the
+	/// methods a <c>=&gt;</c> or a <c>when</c> is written into: the tokens a split grammar reads values
+	/// from (<c>parserSource</c>, <c>parserStarts</c>, <c>parserLengths</c>), which of a rule's readings
+	/// is being read and where a located value began (<c>parserReading</c>, <c>parserLocating</c>), and
+	/// the whole input a buffered reader probes (<c>parserWhole</c>).
+	/// </summary>
+	/// <remarks>
+	/// Never handed to the author, and reserved all the same: a capture or a parameter of one of these
+	/// names would be declared beside the generated one, and a <c>=&gt;</c> that named one would read
+	/// the parser's own workings.
+	/// </remarks>
+	public static readonly IReadOnlyList<string> Internal =
+		[
+			"parserSource", "parserStarts", "parserLengths", "parserReading", "parserLocating", "parserWhole",
+		];
+
+	/// <summary>Every name a capture, a parameter or the C# of a grammar may not take: <see cref="All"/> and <see cref="Internal"/>.</summary>
+	public static readonly IReadOnlyCollection<string> Reserved =
+		new HashSet<string>([.. All, .. Internal], StringComparer.Ordinal);
+
 	/// <summary>What a construction's <c>=&gt;</c> is handed, besides the two a <c>state</c> brings.</summary>
 	public static readonly IReadOnlyCollection<string> ToConstructions =
 		new HashSet<string>(["parserText", "parserSpan", "parserInput"], StringComparer.Ordinal);

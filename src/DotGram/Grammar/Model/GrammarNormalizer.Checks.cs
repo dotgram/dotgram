@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
@@ -287,6 +288,7 @@ sealed partial class GrammarNormalizer
 
 			CheckRepetitions  (_bodies[rule], rule);
 			CheckCaptures     (_bodies[rule], rule);
+			CheckParameterNames(rule);
 			CheckMarks        (_bodies[rule], rule);
 			CheckConstruction (rule);
 			CheckLeftRecursion(rule);
@@ -830,6 +832,40 @@ sealed partial class GrammarNormalizer
 		return false;
 	}
 
+	/// <summary>Why a capture or a parameter may not be called <paramref name="name"/> (GRAM4012).</summary>
+	static string ReservedNameMessage(string name, string what)
+	{
+		return SuppliedNames.All.Contains(name)
+			? $"'{name}' is one of the names the parser supplies to a '=>' and a 'when' (docs/syntax.md §8.2), " +
+				$"so {what} may not take it. Every one of them begins with 'parser', which is what that prefix is for."
+			: $"'{name}' is a name the generated parser gives a parameter of its own beside the ones it supplies " +
+				$"(docs/syntax.md §8.2), so {what} may not take it. Every one of them begins with 'parser', which is " +
+				"what that prefix is for.";
+	}
+
+	/// <summary>
+	/// A parameter of a rule called by a reserved name, said once for the rule as it was written: its
+	/// specializations are clones of one declaration.
+	/// </summary>
+	/// <remarks>
+	/// A value parameter is a parameter of every method the rule's <c>=&gt;</c> and <c>when</c> are written
+	/// into, beside the parser's own; a recognizer parameter is not, and is refused the same, so that
+	/// a name means one thing whatever the parameter holds.
+	/// </remarks>
+	void CheckParameterNames(RuleSymbol rule)
+	{
+		if (rule.Declaration is null)
+			return;
+
+		// A parameter is a record of its name, its type and where it was written, which the clones
+		// share and two parameters written apart do not.
+		foreach (var parameter in rule.Declaration.Params)
+			if (SuppliedNames.Reserved.Contains(parameter.Name) && _parametersTold.Add(parameter))
+				Report(ReservedCaptureName, ReservedNameMessage(parameter.Name, "a parameter"), parameter.At);
+	}
+
+	readonly HashSet<Param> _parametersTold = [];
+
 	/// <summary>What a capture is not allowed to be, which is now one thing.</summary>
 	/// <remarks>
 	/// <para>
@@ -855,13 +891,8 @@ sealed partial class GrammarNormalizer
 			// `parserText` would otherwise mean the matched extent in one rule and
 			// something else in the next, and the alternative — generated code that does
 			// not compile — points at a file the author did not write.
-			if (Recovery.Supplied.Contains(name))
-				Report(
-					ReservedCaptureName,
-					$"'{name}' is one of the names the parser supplies to every '=>' and 'when' " +
-					"(docs/syntax.md §7.3), so a capture may not take it. Every one of them begins " +
-					"with 'parser', which is what that prefix is for.",
-					rule.Declaration!.At);
+			if (SuppliedNames.Reserved.Contains(name))
+				Report(ReservedCaptureName, ReservedNameMessage(name, "a capture"), rule.Declaration!.At);
 
 			// A capture inside a repetition that is not the whole of what repeats used to be
 			// refused here, on the grounds that the text of the turns could not be told from
