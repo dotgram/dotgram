@@ -105,6 +105,26 @@ Notes:
 > обычных грамматик.
 <!-- ru:end -->
 
+A grammar with trivia recovers the same way, its factory included:
+
+```dotgram pending
+trivia = { ' '* }
+
+Let    : @string   = "let" & name: { ['a'..'z']+ } & ';' => name
+Script : @string[] = Let* recover ';' => @("?")
+
+parse Script
+```
+
+```text examples
+ParseScript("let a; let 1; let c;") → ["a", "?", "c"]
+```
+
+<!-- ru:begin -->
+> **RU.** Грамматика с `trivia` восстанавливается так же, с фабрикой (пример помечен `pending`: сейчас
+> такая фабрика отвергается GRAM4010 — дефект D5).
+<!-- ru:end -->
+
 ## The rest of the rule goes first
 
 At a boundary the parser tries the complete continuation after the repetition before another element. That
