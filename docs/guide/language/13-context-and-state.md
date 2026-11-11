@@ -11,7 +11,7 @@ grammar places on what it reads. The specification is
 A grammar may declare one context type. Every publication then takes an object of it after the input, and
 `context` is a name a `when`, a `=>`, a `switch` selector and a recognizer may use.
 
-```dotgram Tape
+```dotgram Deferred
 context : @Names
 
 Name    = { ['a'..'z']+ }
@@ -53,7 +53,7 @@ ParseProgram("a;let a", new) → refused
 ```
 
 From C# the caller makes the object and hands it over: `Grammar.ParseProgram(text, new Grammar.Names())`.
-The host attribute here says `Carrier = GramCarrier.Tape`: with a context, the default carrier may rebuild
+The host attribute here says `Carrier = GramCarrier.Deferred`: with a context, the default carrier may rebuild
 what was read each time a refused input is given back, and the compiler says so (`GRAM5016`) — the same
 grammar on the default carrier:
 
@@ -97,7 +97,7 @@ Notes:
 - A hook that does not name `context` is not passed it: a grammar that declares a context and never uses it
   compiles as one that declares none, and its publications take no extra argument.
 - A `when` runs while the text is read, in the order written; a `=>` runs as its alternative is read (or after
-  the parse, on the tape). The two may interleave, and the compiler warns where constructions share `context`
+  the parse, on the deferred carrier). The two may interleave, and the compiler warns where constructions share `context`
   with a guard (`GRAM5016`).
 - **Nothing here is undone.** A `when` runs on readings the parse goes on to abandon, and what it wrote stays
   written: what belongs in a context is what can be written more than once without harm — a declaration keyed
@@ -120,11 +120,11 @@ parse Word
 > после входа, а `context` — имя, которое могут использовать `when`, `=>`, селектор `switch` и
 > распознаватель (пример `Names`: объявление `let a` и использование `a`; `a;let a` отвергается). Из C#
 > вызывающий создаёт объект и передаёт его: `Grammar.ParseProgram(text, new Grammar.Names())`. Атрибут хоста
-> в примере задаёт `Carrier = GramCarrier.Tape`: с контекстом носитель по умолчанию может перестраивать
+> в примере задаёт `Carrier = GramCarrier.Deferred`: с контекстом носитель по умолчанию может перестраивать
 > прочитанное при каждом откате отвергнутого входа, и компилятор говорит об этом (`GRAM5016`, второй
 > пример — та же грамматика на носителе по умолчанию). Хук, не
 > называющий `context`, его не получает: грамматика с неиспользуемым контекстом компилируется как без него.
-> `when` выполняется во время чтения, `=>` — по мере чтения альтернативы (или после разбора на ленте); они
+> `when` выполняется во время чтения, `=>` — по мере чтения альтернативы (или после разбора на отложенном носителе); они
 > могут чередоваться, и компилятор предупреждает, где конструирование делит `context` с охранником
 > (`GRAM5016`). **Ничего не откатывается**: `when` выполняется и на отброшенных прочтениях, и записанное
 > остаётся — в контексте место тому, что можно записать несколько раз без вреда. Если у типа есть
