@@ -874,6 +874,8 @@ DotGram.Sql.Ast.Statement.Vacuum.Vacuum(DotGram.Sql.SqlList<DotGram.Sql.Ast.Opti
 DotGram.Sql.Ast.StringLiteralKind.Dollar = 4 -> DotGram.Sql.Ast.StringLiteralKind
 DotGram.Sql.Ast.StringLiteralKind.Escaped = 3 -> DotGram.Sql.Ast.StringLiteralKind
 DotGram.Sql.Ast.TableCommitAction.Drop = 2 -> DotGram.Sql.Ast.TableCommitAction
+DotGram.Sql.Ast.TableContents.AsQuery.BracketsOmitted.get -> bool
+DotGram.Sql.Ast.TableContents.AsQuery.BracketsOmitted.init -> void
 DotGram.Sql.Ast.TableElement.ColumnOptions.WithOptionsOmitted.get -> bool
 DotGram.Sql.Ast.TableElement.ColumnOptions.WithOptionsOmitted.init -> void
 DotGram.Sql.Ast.TableScope.Temporary = 2 -> DotGram.Sql.Ast.TableScope

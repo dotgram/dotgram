@@ -3035,6 +3035,31 @@
 			"name": "drop_collation_one_tree",
 			"text": "DROP COLLATION s.c CASCADE",
 			"accepted": true
+		},
+		{
+			"name": "create_table_as_brackets_doubled",
+			"text": "CREATE TABLE t AS ((SELECT c FROM u)) WITH DATA",
+			"accepted": true
+		},
+		{
+			"name": "create_table_as_brackets_union",
+			"text": "CREATE TABLE t AS (SELECT c FROM u) UNION (SELECT d FROM v)",
+			"accepted": true
+		},
+		{
+			"name": "create_table_as_brackets_order",
+			"text": "CREATE TABLE t AS (SELECT c FROM u) ORDER BY 1",
+			"accepted": true
+		},
+		{
+			"name": "create_table_as_brackets_limit",
+			"text": "CREATE TABLE t AS (SELECT c FROM u) LIMIT 1",
+			"accepted": true
+		},
+		{
+			"name": "create_table_as_columns_bracketed",
+			"text": "CREATE TABLE t (a, b) AS (SELECT c, d FROM u)",
+			"accepted": true
 		}
 	]
 }

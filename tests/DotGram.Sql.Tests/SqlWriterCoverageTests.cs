@@ -978,6 +978,9 @@ public sealed class SqlWriterCoverageTests
 			["SelectIntoTable.TableKeyword"] = (
 				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], IntoTable = new SelectIntoTable(T, null) } },
 				new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], IntoTable = new SelectIntoTable(T, null) { TableKeyword = true } } }),
+			["AsQuery.BracketsOmitted"] = (
+				new Statement.CreateTable { Name = T, Contents = new TableContents.AsQuery([], new Query.Select { Columns = [new SelectColumn.All()] }, WithDataMode.WithData) },
+				new Statement.CreateTable { Name = T, Contents = new TableContents.AsQuery([], new Query.Select { Columns = [new SelectColumn.All()] }, WithDataMode.WithData) { BracketsOmitted = true } }),
 			["Start.WithOmitted"] = (
 				Identified(new SequenceOption.Start(One)),
 				Identified(new SequenceOption.Start(One) { WithOmitted = true })),
@@ -1052,7 +1055,7 @@ public sealed class SqlWriterCoverageTests
 			"StartTransaction.Begin", "Commit.End", "Rollback.Abort", "Rollback.SavepointKeywordOmitted", "ReleaseSavepoint.SavepointKeywordOmitted", "SetTransaction.Session", "DeallocatePrepare.PrepareOmitted",
 			"FetchCursor.InKeyword", "MoveCursor.InKeyword", "FetchOrientation.WordOmitted", "Vacuum.Bare", "Analyze.Bare", "Analyze.British", "Copy.WithKeyword", "Copy.Bare",
 			"Copy.BinaryBeforeTable", "Copy.DelimitersClause", "ParameterDefinition.InOutTwoWords", "CreateTable.TempWord", "CreateTable.WithoutOids",
-			"ColumnOptions.WithOptionsOmitted", "Start.WithOmitted", "Increment.ByOmitted", "Restart.WithOmitted", "SelectIntoTable.TempWord", "SelectIntoTable.TableKeyword",
+			"ColumnOptions.WithOptionsOmitted", "Start.WithOmitted", "Increment.ByOmitted", "Restart.WithOmitted", "SelectIntoTable.TempWord", "SelectIntoTable.TableKeyword", "AsQuery.BracketsOmitted",
 		};
 
 		foreach (var (name, pair) in pairs)

@@ -140,8 +140,8 @@ public sealed class PostgreSqlTableTests
 			"of type bare"                => table is { Contents: TableContents.Typed { Items.Count: 0 } },
 			"clauses"                     => table is { AccessMethod.Text: "heap", Options: [{ Name.Text: "fillfactor", Value: LiteralValue.Numeric }, { Value: LiteralValue.Boolean }, { Value: null }], Tablespace.Text: "ts" },
 			"without oids"                => table is { WithoutOids: true, Options.Count: 0 },
-			"as"                          => table is { Contents: TableContents.AsQuery { Columns.Count: 0, Data: null, Query: Query.Select } },
-			"as with all"                 => table is { Scope: TableScope.Temporary, AccessMethod: not null, Options.Count: 1, OnCommit: TableCommitAction.Delete, Tablespace: not null, Contents: TableContents.AsQuery { Columns.Count: 2, Data: WithDataMode.WithNoData, Query: Query.Parenthesized } },
+			"as"                          => table is { Contents: TableContents.AsQuery { Columns.Count: 0, Data: null, Query: Query.Select, BracketsOmitted: true } },
+			"as with all"                 => table is { Scope: TableScope.Temporary, AccessMethod: not null, Options.Count: 1, OnCommit: TableCommitAction.Delete, Tablespace: not null, Contents: TableContents.AsQuery { Columns.Count: 2, Data: WithDataMode.WithNoData, Query: Query.Select, BracketsOmitted: false } },
 			"as with a common table expression" => table is { IfNotExists: true, Contents: TableContents.AsQuery { Data: WithDataMode.WithData, Query.With: not null } },
 			"like"                        => table.Contents is TableContents.Elements { Items: [TableElement.Like { Options: [LikeOption.IncludingAll, LikeOption.ExcludingIndexes] }, TableElement.Column] },
 			"storage and compression"     => Column(made) is { Storage.Text: "PLAIN", Compression.Text: "lz4" } && Column(made, 1) is { Storage.Text: "DEFAULT", Compression.Text: "DEFAULT" },
@@ -422,25 +422,33 @@ public sealed class PostgreSqlTableTests
 	}
 
 	/// <summary>
-	/// The standard's table made of a query holds the query inside its brackets, which its grammar requires; PostgreSQL's
-	/// keeps the brackets as the node they are, since it reads the query without them as well.
+	/// Brackets around the whole of a table's query are the record's, as the standard's grammar requires them: a text the
+	/// standard reads is one tree, and brackets the query has clauses after stay its own.
 	/// </summary>
-	[Fact]
-	public void A_table_made_of_a_bracketed_query_keeps_its_brackets()
+	[Theory]
+	[InlineData("CREATE TABLE t (a, b) AS (SELECT c, d FROM u) WITH NO DATA",    false, false)]
+	[InlineData("CREATE TABLE t AS ((SELECT c FROM u)) WITH DATA",               false, true)]
+	[InlineData("CREATE TABLE t AS (SELECT c FROM u) UNION (SELECT d FROM v)",   true,  true)]
+	[InlineData("CREATE TABLE t AS (SELECT c FROM u) ORDER BY 1",                true,  true)]
+	[InlineData("CREATE TABLE t AS (SELECT c FROM u) LIMIT 1",                   true,  true)]
+	[InlineData("CREATE TABLE t AS SELECT c FROM u",                             true,  false)]
+	public void Brackets_around_a_tables_whole_query_are_the_records(string text, bool omitted, bool parenthesized)
 	{
-		const string text = "CREATE TABLE t (a, b) AS (SELECT c, d FROM u) WITH NO DATA";
+		var made  = (Statement.CreateTable)Holds(text);
+		var query = (TableContents.AsQuery)made.Contents;
 
-		var standard   = (Statement.CreateTable)SqlStandardParser.ParseStatement(text);
-		var postgreSql = (Statement.CreateTable)PostgreSqlParser.ParseStatement(text);
-		var held       = (TableContents.AsQuery)postgreSql.Contents;
+		Assert.Equal(omitted, query.BracketsOmitted);
+		Assert.Equal(parenthesized, query.Query is Query.Parenthesized);
 
-		Assert.Equal(standard with { Contents = held with { Query = ((Query.Parenthesized)held.Query).Query } }, postgreSql with { Contents = held with { Query = ((Query.Parenthesized)held.Query).Query } });
-		Assert.IsType<Query.Parenthesized>(held.Query);
+		if (!omitted && text.Contains("DATA", StringComparison.Ordinal))
+			Assert.Equal(SqlStandardParser.ParseStatement(text), made);
 	}
 
 	[Theory]
 	[InlineData("CREATE TABLE s.t (a INT, CHECK (a > 0), FOREIGN KEY (a) REFERENCES u (b))")]
 	[InlineData("CREATE TABLE t (a INT, b INT, CONSTRAINT c CHECK (a > b))")]
+	[InlineData("CREATE TABLE t (a, b) AS SELECT c, d FROM u")]
+	[InlineData("CREATE TABLE t (a, b) AS (SELECT c, d FROM u)")]
 	public void A_table_T_SQL_reads_is_one_tree(string text)
 	{
 		Assert.Equal(TransactSqlParser.ParseStatement(text), PostgreSqlParser.ParseStatement(text));

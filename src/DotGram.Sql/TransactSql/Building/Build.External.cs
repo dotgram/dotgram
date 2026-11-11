@@ -268,7 +268,7 @@ static partial class Build
 			if (StatementOf(old.Body) is not Ast.Statement.Select { Hints.Count: 0 } select)
 				throw BuildGap.Open(old, "inventory Statement.CreateTableAsSelect (a query with OPTION, which TableContents.AsQuery cannot hold)");
 
-			return new Ast.Statement.CreateExternalTable(Values.Name(old, old.Name), new Ast.TableContents.AsQuery([], select.Query, null))
+			return new Ast.Statement.CreateExternalTable(Values.Name(old, old.Name), Ast.TableContents.AsQuery.Written([], select.Query, null))
 			{
 				Options = Each(old.Options, Tables.Option),
 			};

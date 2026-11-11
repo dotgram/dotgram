@@ -168,7 +168,7 @@ public static partial class SqlWriter
 
 					PutTableClauses(table);
 					Word("AS");
-					PutQuery(query.Query);
+					PutTableQuery(query);
 
 					if (query.Data is { } data)
 						Word(data switch { WithDataMode.WithData => "WITH DATA", WithDataMode.WithNoData => "WITH NO DATA", _ => throw NoText(data) });
@@ -239,6 +239,24 @@ public static partial class SqlWriter
 			}
 
 			PutTableClauses(table);
+		}
+
+		/// <summary>
+		/// A table's query after AS, bare where the brackets were left out and in its own brackets where not. A bare query in
+		/// brackets that enclose the whole of it would read back as the record's brackets, and is refused.
+		/// </summary>
+		void PutTableQuery(TableContents.AsQuery query)
+		{
+			if (!query.BracketsOmitted)
+			{
+				PutSubquery(query.Query);
+				return;
+			}
+
+			if (TableContents.AsQuery.Enclosed(query.Query) is not null)
+				throw Misplaced(query, nameof(query.BracketsOmitted), "with a query in brackets that enclose the whole of it, which are the record's own and read back as BracketsOmitted false");
+
+			PutQuery(query.Query);
 		}
 
 		/// <summary>USING, WITH or WITHOUT OIDS, ON COMMIT and TABLESPACE, as CREATE TABLE and CREATE TABLE AS end.</summary>

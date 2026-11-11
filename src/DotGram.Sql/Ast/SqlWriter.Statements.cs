@@ -835,6 +835,9 @@ public static partial class SqlWriter
 					if (query.Hints.Count > 0)
 						throw Misplaced(query, "Hints", "on the standard's table made of a query, which reads no OPTION");
 
+					if (query.BracketsOmitted)
+						throw Misplaced(query, "BracketsOmitted", "on the standard's table made of a query, whose query stands in brackets");
+
 					if (query.Columns.Count > 0)
 					{
 						Open();

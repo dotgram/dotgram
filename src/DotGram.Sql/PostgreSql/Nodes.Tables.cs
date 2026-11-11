@@ -128,11 +128,11 @@ static partial class Nodes
 		switch (body)
 		{
 			case TableBody.Elements elements when tail.Query is not null:
-				contents = new TableContents.AsQuery(SqlList.Own(System.Array.ConvertAll(elements.Items, static one => ((TableItem.Name)one).Value)), ((Statement.Select)tail.Query).Query, tail.Data);
+				contents = TableContents.AsQuery.Written(SqlList.Own(System.Array.ConvertAll(elements.Items, static one => ((TableItem.Name)one).Value)), ((Statement.Select)tail.Query).Query, tail.Data);
 				break;
 
 			case TableBody.None:
-				contents = new TableContents.AsQuery([], ((Statement.Select)tail.Query!).Query, tail.Data);
+				contents = TableContents.AsQuery.Written([], ((Statement.Select)tail.Query!).Query, tail.Data);
 				break;
 
 			case TableBody.Elements elements:
