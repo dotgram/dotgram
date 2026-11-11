@@ -68,4 +68,12 @@
 		<InternalsVisibleTo Include="DotGram.Cli.Tests" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- A tool and not a library: nothing here is public, and the baseline says so, so that a type made
+		     public is a line in a diff and not an accident. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+		<!-- The package adds the two files as AdditionalFiles itself; out of None, they appear once. -->
+		<None Remove="PublicAPI.*.txt" />
+	</ItemGroup>
+
 </Project>
