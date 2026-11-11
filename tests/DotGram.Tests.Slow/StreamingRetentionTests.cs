@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -40,7 +41,9 @@ namespace DotGram.Tests;
 /// </para>
 /// <para>
 /// That holds of the two tests here which read bytes, and is why they read them at a PEAK and
-/// compare two sizes rather than two moments. It no longer holds of
+/// compare two sizes rather than two moments. The lazy forms, whose bound is a quarter of a
+/// megabyte, are measured in a process of their own, because a collection that runs alone still
+/// shares its process with what the other classes left in it (<see cref="Isolated"/>). It no longer holds of
 /// <see cref="A_finished_parse_keeps_what_it_grew_until_the_work_stops_wanting_it"/>, which asks
 /// the parser's own slots and a weak reference instead, and so cannot be moved by a neighbour at
 /// all: it read the heap twice and failed twice on a shared runner before it was changed.
@@ -87,7 +90,12 @@ public sealed class StreamingRetentionTests
 	[InlineData("stream yield", true)]
 	public void A_lazy_form_holds_the_same_however_much_it_has_read(string form, bool buffered)
 	{
-		var (small, large) = Measure(form, buffered);
+		var measured = Isolated(form, buffered);
+
+		if (measured is null)
+			return;
+
+		var (small, large) = measured.Value;
 
 		Assert.True(large.Peak <= small.Peak + Slack,
 			$"{form}: {small.Peak} bytes live at the peak of {small.Records} records, {large.Peak} at {large.Records}; " +
@@ -310,6 +318,92 @@ public sealed class StreamingRetentionTests
 	/// lazy forms are allowed.
 	/// </remarks>
 	const long Kept = 2L * 1048576 * sizeof(char) + Slack;
+
+	/// <summary>Names the case a child process of this test run is to measure; set only in that child.</summary>
+	const string ChildCase = "DOTGRAM_STREAMING_RETENTION_CASE";
+
+	/// <summary>Names the file the child writes its two peaks to.</summary>
+	const string ChildResult = "DOTGRAM_STREAMING_RETENTION_RESULT";
+
+	/// <summary>
+	/// The two peaks of one lazy form, measured in a process that holds nothing else, or null in the
+	/// child run for a different case, which has nothing to measure.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The peak is the whole process's live heap, and a process that has run the rest of this
+	/// assembly's tests is not a quiet one: its heap is 200 to 240 MB of what the other classes left
+	/// (compiled grammars, caches, pools), and what it still has running, and a reading of it moves
+	/// by one or two megabytes from one run to the next with nothing to do with the parse. The
+	/// bound here is a quarter of a megabyte. In three full runs of this assembly in four the large
+	/// run peaked 0.8 to 1.3 MB above the small one, with the same two runs identical to within ten
+	/// kilobytes in a process of their own (and the class passed alone every time), which is the
+	/// evidence that the instability is the process's and not the parse's. So each case is measured
+	/// in its own process: this assembly's own program, run for this one test and this one case.
+	/// Collection attributes cannot do that: they stop other classes running beside this one, not
+	/// what they left behind.
+	/// </para>
+	/// <para>
+	/// The assertion stays in the test that asked, on the numbers the child hands back, so a failure
+	/// reads as it always did.
+	/// </para>
+	/// </remarks>
+	static (Outcome Small, Outcome Large)? Isolated(string form, bool buffered)
+	{
+		var child = Environment.GetEnvironmentVariable(ChildCase);
+
+		if (child is not null)
+		{
+			if (child != form)
+				return null;
+
+			var (small, large) = Measure(form, buffered);
+
+			File.WriteAllText(
+				Environment.GetEnvironmentVariable(ChildResult)!,
+				string.Join(" ", small.Records, small.Peak, large.Records, large.Peak));
+
+			return null;
+		}
+
+		var result = Path.Combine(Path.GetTempPath(), "dotgram-streaming-" + Guid.NewGuid().ToString("N") + ".txt");
+
+		try
+		{
+			var program = Environment.ProcessPath!;
+			var start   = new ProcessStartInfo(program)
+			{
+				RedirectStandardOutput = true,
+				RedirectStandardError  = true,
+			};
+
+			// Run by the dotnet host (a dll given to it), the program is the host and the assembly its first argument.
+			if (Path.GetFileNameWithoutExtension(program) == "dotnet")
+				start.ArgumentList.Add(typeof(StreamingRetentionTests).Assembly.Location);
+
+			start.ArgumentList.Add("-method");
+			start.ArgumentList.Add(typeof(StreamingRetentionTests).FullName + "." + nameof(A_lazy_form_holds_the_same_however_much_it_has_read));
+			start.Environment[ChildCase]   = form;
+			start.Environment[ChildResult] = result;
+
+			using var process = Process.Start(start)!;
+
+			var errors = process.StandardError.ReadToEndAsync();
+			var said   = process.StandardOutput.ReadToEnd() + errors.GetAwaiter().GetResult();
+
+			process.WaitForExit();
+
+			Assert.True(process.ExitCode == 0 && File.Exists(result), $"{form}: the process that measured it did not finish: exit {process.ExitCode}.\n{said}");
+
+			var peaks = File.ReadAllText(result).Split(' ').Select(long.Parse).ToArray();
+
+			return (new Outcome((int)peaks[0], peaks[1]), new Outcome((int)peaks[2], peaks[3]));
+		}
+		finally
+		{
+			File.Delete(result);
+		}
+	}
 
 	static (Outcome Small, Outcome Large) Measure(string form, bool buffered)
 	{
