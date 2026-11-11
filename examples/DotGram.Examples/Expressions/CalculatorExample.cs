@@ -79,11 +79,30 @@ public static partial class Calculator
 		public sealed record Binary(char Op, Node Left, Node Right) : Node;
 		public sealed record Negate(Node Of)                        : Node;
 
-		public static Node operator +(Node left, Node right) => new Binary('+', left, right);
-		public static Node operator -(Node left, Node right) => new Binary('-', left, right);
-		public static Node operator *(Node left, Node right) => new Binary('*', left, right);
-		public static Node operator /(Node left, Node right) => new Binary('/', left, right);
-		public static Node operator -(Node of)               => new Negate(of);
+		public static Node operator +(Node left, Node right)
+		{
+			return new Binary('+', left, right);
+		}
+
+		public static Node operator -(Node left, Node right)
+		{
+			return new Binary('-', left, right);
+		}
+
+		public static Node operator *(Node left, Node right)
+		{
+			return new Binary('*', left, right);
+		}
+
+		public static Node operator /(Node left, Node right)
+		{
+			return new Binary('/', left, right);
+		}
+
+		public static Node operator -(Node of)
+		{
+			return new Negate(of);
+		}
 	}
 
 	/// <summary>What an expression works out to, or the reason it does not.</summary>
