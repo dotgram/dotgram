@@ -164,7 +164,7 @@ against the host rather than a generator Roslyn disables.
 ### What is written
 
 One file per compilation of a host, named after the host type — `Namespace.Host.g.cs`,
-or `Namespace.Host.Suffix.g.cs` for a second reading (§11). `GramCompiler.Compile` called
+or `Namespace.Host.Name.g.cs` for a second reading (§11). `GramCompiler.Compile` called
 directly names its result `Host.gram.g.cs`. Before any grammar is looked at, every
 compilation gets `DotGram.Attributes.g.cs`, which declares `[Gram]` and its options,
 internal and one copy per compilation.
@@ -438,7 +438,7 @@ written either — a rule compiled into all of its callers is called from nowher
 method past about two thousand basic blocks, and every real parser here is past it. The
 limit is per method, so the states are divided among local functions, each its own method
 with its own budget, sharing the enclosing method's variables. Parts are sized evenly
-towards `PartSize` — 150 of the generator's own block estimate unless the build sets
+towards `TargetMethodPartSize` — 150 of the generator's own block estimate unless the build sets
 `DotGramPartSize`, a wish rather than a constraint — and each cut is moved to a gap between
 chains, where no `goto` crosses: control reaches the dispatcher only a few times a parse,
 while a crossing jump would run per character. A method that still ends up past the limit
@@ -686,15 +686,15 @@ keyword rather than whether one follows the whitespace after it.
 ## 11. Locations, and a second reading of one grammar
 
 **Locations are opt-in.** `[Gram(…, LocationType = typeof(ISqlSpan))]` names an interface
-with a settable `Span`; normalization collects the rules whose value is assignable to it
-(`RecognitionGraph.Located`), and the reader writes the property once on each such value
+declaring `Locate(int at, int length)`; normalization collects the rules whose value is assignable to it
+(`RecognitionGraph.Located`), and the reader calls it once, through the interface, on each such value
 as it is made — the rule's own text, without the trivia around it. A grammar that names
 nothing is compiled exactly as it would have been.
 
-**A host can carry more than one compilation of its grammar.** Each `[GramOptions(…)]` on
+**A host can carry more than one compilation of its grammar.** Each `[GramVariant(…)]` on
 the class is a further reading under different options — another carrier, another
 division, locations where the first has none — and each goes into a nested class named by
-its `Suffix`, since a file's support types are written once and would otherwise collide
+its `Name`, since a file's support types are written once and would otherwise collide
 name for name. `TransactSqlParser` is compiled plainly and again with `LocationType` as
 `TransactSqlParser.Located`, each in its own file (§1).
 
