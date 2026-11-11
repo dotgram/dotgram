@@ -223,6 +223,75 @@ public sealed class GeneratorGuideTests
 		}
 	}
 
+	/// <summary>
+	/// The appendix of the diagnostics page is the reference's list: every number <c>docs/diagnostics.md</c>
+	/// has a row for, with its severity and what it says, and the retired ones.
+	/// </summary>
+	/// <remarks>
+	/// Written from the reference rather than by hand, so that a number added, retired or reworded there is a
+	/// page that fails here until it is written again. <c>DOTGRAM_RECORD_GUIDE=1</c> writes it.
+	/// </remarks>
+	[Fact]
+	public void The_diagnostics_appendix_is_the_reference_s_list()
+	{
+		var page  = Path.Combine(SourceRoot.Directory, "docs", "guide", "generator", "07-diagnostics.md");
+		var text  = File.ReadAllText(page);
+		var begin = text.IndexOf(AppendixBegin, StringComparison.Ordinal);
+		var end   = text.IndexOf(AppendixEnd, StringComparison.Ordinal);
+
+		Assert.True(begin >= 0 && end > begin, $"{page} has no '{AppendixBegin}' … '{AppendixEnd}'.");
+
+		var newline  = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+		var expected = Appendix(newline);
+		var written  = text[(begin + AppendixBegin.Length)..end];
+
+		if (written != expected && Environment.GetEnvironmentVariable("DOTGRAM_RECORD_GUIDE") == "1")
+		{
+			File.WriteAllText(page, text[..(begin + AppendixBegin.Length)] + expected + text[end..], new UTF8Encoding(false));
+
+			return;
+		}
+
+		Assert.True(written == expected, $"The appendix of {page} is not docs/diagnostics.md's list. Run this test with DOTGRAM_RECORD_GUIDE=1 to write it, or replace it with:\n{expected}");
+	}
+
+	const string AppendixBegin = "<!-- generated from docs/diagnostics.md: begin -->";
+	const string AppendixEnd   = "<!-- generated from docs/diagnostics.md: end -->";
+
+	static readonly Regex Row = new(@"^\| <a id=""gram[0-9]{4}""></a>`(?<id>GRAM[0-9]{4})` \| (?<severity>\w+) \| (?<title>.*?) \| ", RegexOptions.Multiline);
+
+	static readonly Regex RetiredRow = new(@"^\| `(?<id>GRAM[0-9]{4})` \| ", RegexOptions.Multiline);
+
+	/// <summary>The appendix as the reference makes it: a row a number, and a line of the retired ones.</summary>
+	static string Appendix(string newline)
+	{
+		var reference = File.ReadAllText(Path.Combine(SourceRoot.Directory, "docs", "diagnostics.md")).Replace("\r\n", "\n", StringComparison.Ordinal);
+		var retiredAt = reference.IndexOf("## Retired numbers", StringComparison.Ordinal);
+
+		Assert.True(retiredAt > 0, "docs/diagnostics.md has no '## Retired numbers'.");
+
+		var text = new StringBuilder();
+
+		text.Append(newline).Append(newline);
+		text.Append("| Number | Severity | What it says |").Append(newline);
+		text.Append("| --- | --- | --- |").Append(newline);
+
+		foreach (Match row in Row.Matches(reference[..retiredAt]))
+		{
+			var id = row.Groups["id"].Value;
+
+			text.Append("| [`").Append(id).Append("`](../../diagnostics.md#").Append(id.ToLowerInvariant()).Append(") | ")
+				.Append(row.Groups["severity"].Value).Append(" | ")
+				.Append(row.Groups["title"].Value).Append(" |").Append(newline);
+		}
+
+		var retired = RetiredRow.Matches(reference[retiredAt..]).Select(static row => "`" + row.Groups["id"].Value + "`").ToList();
+
+		text.Append(newline).Append("Retired, and never given another meaning: ").Append(string.Join(", ", retired)).Append('.').Append(newline).Append(newline);
+
+		return text.ToString();
+	}
+
 	static IEnumerable<string> Pages()
 	{
 		var directory = Path.Combine(SourceRoot.Directory, "docs", "guide", "generator");
