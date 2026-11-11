@@ -107,7 +107,7 @@ would.
 | Option | Input | What it does |
 | --- | --- | --- |
 | `-o`, `--output <dir>` | both | where the files go (required); nothing else in the folder is touched |
-| `--framework <tfm>` | both | one framework only: `net8.0`, `net9.0`, `net10.0`, `netstandard2.0` (default: the project's; net10.0 for a `.gram`) |
+| `--framework <tfm>` | both | one framework only: for a project, one of its target frameworks (default: each of them); for a `.gram`, `netstandard2.0`, or `net8.0` or later, a framework later than net10.0 compiled against net10.0's references (default: net10.0) |
 | `--configuration <name>` | project | the project's configuration (default Release) |
 | `--line-paths relative\|absolute` | both | `#line` paths relative to the output folder (default), or as a build writes them |
 | `--allow-unresolved` | both | generate even where the project's code has errors (reported as warnings) |
