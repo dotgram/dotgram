@@ -1193,10 +1193,10 @@ public sealed class CSharpEmitterTests
 			Name = ['a'..'z']+
 		}
 
-		// Recursive only so that it is not lowered: a lowered publication gets no position.
+		// Recursive, so that it is read by methods rather than lowered to one flat method.
 		Start = Name & Rest
 		Rest  = Name | '(' & Start & ')'
-		parse Start
+		positional parse Start
 		""";
 
 	/// <summary>
@@ -1320,11 +1320,11 @@ public sealed class CSharpEmitterTests
 			"""
 			trivia = ' '*
 
-			// Recursive only so that it is not lowered: a lowered publication gets no position.
+			// Recursive, so that it is read by methods rather than lowered to one flat method.
 			Start = Name & Rest
 			Rest  = Name | '(' & Start & ')'
 			Name  = ['a'..'z']+
-			parse Start
+			positional parse Start
 			"""));
 
 		var whole = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd   ", 0);
@@ -1351,7 +1351,7 @@ public sealed class CSharpEmitterTests
 
 			Start = Name & Name
 			Name  = ['a'..'z']+
-			parse Start
+			positional parse Start
 			""",
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance }).Sources).Text);
 
@@ -1372,11 +1372,11 @@ public sealed class CSharpEmitterTests
 			"""
 			trivia = ' '*
 
-			// Recursive only so that it is not lowered: a lowered publication gets no position.
+			// Recursive, so that it is read by methods rather than lowered to one flat method.
 			Start = Name & Rest
 			Rest  = Name | '(' & Start & ')'
 			Name  = ['a'..'z']+
-			parse Start
+			positional parse Start
 			"""));
 
 		// A loop over a text of several values reads each of them, and the trivia between two
@@ -1424,7 +1424,7 @@ public sealed class CSharpEmitterTests
 			Start = Name & Rest
 			Rest  = Name | '(' & Start & ')'
 			Name  = ['a'..'z']+
-			parse Start
+			positional parse Start
 			"""));
 
 		var thrown = Assert.Throws<TargetInvocationException>(
@@ -1507,15 +1507,14 @@ public sealed class CSharpEmitterTests
 
 	/// <summary>Over characters the window's edge is the end of the text.</summary>
 	/// <remarks>
-	/// On the shared automaton: a rule that reaches itself is not lowered, and a lowered one
-	/// gets no positional form at all (§6.3).
+	/// On the shared automaton: a rule that reaches itself is not lowered.
 	/// </remarks>
 	[Fact]
 	public void Over_characters_a_window_ends_where_it_says()
 	{
 		var parser = EmittedCode.Compile(Emit("""
 			Start = ['a'..'z'] & Start | ['a'..'z']
-			parse Start
+			positional parse Start
 			"""));
 
 		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "12abc34", 2, 2);

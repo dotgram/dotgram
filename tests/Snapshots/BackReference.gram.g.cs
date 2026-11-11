@@ -73,144 +73,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>RawString</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseRawString(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_RawString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_RawString(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'RawString'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>RawString</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseRawString</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseRawString(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_RawString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>RawString</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseRawString(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_RawString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_RawString(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'RawString'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>RawString</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseRawString</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseRawString(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_RawString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
 		/// <summary>Every occurrence of <c>RawString</c>, in order, found as it is asked for.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> AnyRawString(string input)
 		{
@@ -301,144 +163,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>LongString</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseLongString(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_LongString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_LongString(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'LongString'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>LongString</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseLongString</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseLongString(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_LongString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>LongString</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseLongString(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_LongString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_LongString(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'LongString'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>LongString</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseLongString</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseLongString(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_LongString(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
 		/// <summary>Parses the whole input as <c>DollarQuoted</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>DollarQuoted</c>. <c>TryParseDollarQuoted</c> answers instead.
@@ -503,144 +227,6 @@ namespace DotGram.Snapshots
 			}
 
 			value = input.Substring(0, end);
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>DollarQuoted</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseDollarQuoted(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_DollarQuoted(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'DollarQuoted'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>DollarQuoted</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseDollarQuoted</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseDollarQuoted(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>DollarQuoted</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseDollarQuoted(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_DollarQuoted(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'DollarQuoted'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>DollarQuoted</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseDollarQuoted</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseDollarQuoted(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
 
 			return true;
 		}
@@ -713,144 +299,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>Quoted</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseQuoted(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Quoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Quoted(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Quoted'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Quoted</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseQuoted</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseQuoted(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Quoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Quoted</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseQuoted(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Quoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Quoted(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Quoted'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Quoted</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseQuoted</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseQuoted(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Quoted(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
 		/// <summary>Parses the whole input as <c>Heading</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Heading</c>. <c>TryParseHeading</c> answers instead.
@@ -919,144 +367,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>Heading</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseHeading(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Heading(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Heading(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Heading'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Heading</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseHeading</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseHeading(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Heading(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Heading</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseHeading(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Heading(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Heading(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Heading'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Heading</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseHeading</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseHeading(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Heading(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
 		/// <summary>Parses the whole input as <c>Between</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Between</c>. <c>TryParseBetween</c> answers instead.
@@ -1121,144 +431,6 @@ namespace DotGram.Snapshots
 			}
 
 			value = input.Substring(0, end);
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Between</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseBetween(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Between(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Between(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Between'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Between</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseBetween</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseBetween(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Between(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Between</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseBetween(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Between(text, at, ref failure);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Between(text, at, ref failure);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Between'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Between</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseBetween</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseBetween(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Between(text, at, ref failure);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
 
 			return true;
 		}
@@ -1333,148 +505,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>Element</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParseElement(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Element(text, at, ref failure, parserWhole);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Element'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Element</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseElement</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseElement(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Element</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParseElement(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Element(text, at, ref failure, parserWhole);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Element'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
-		}
-
-		/// <summary>Reads a <c>Element</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseElement</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseElement(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = input.Substring(at, end - at);
-			at = end;
-
-			return true;
-		}
-
 		/// <summary>Parses the whole input as <c>Pair</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Pair</c>. <c>TryParsePair</c> answers instead.
@@ -1539,144 +569,6 @@ namespace DotGram.Snapshots
 			}
 
 			value = recognized;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Pair</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<string> TryParsePair(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Pair(text, at, ref failure, out recognized);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Pair'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(recognized, at, end - at);
-		}
-
-		/// <summary>Reads a <c>Pair</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParsePair</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParsePair(string input, ref int at, out string value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = recognized;
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Pair</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<string> TryParsePair(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Pair(text, at, ref failure, out recognized);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Pair'.";
-
-				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<string>.Success(recognized, at, end - at);
-		}
-
-		/// <summary>Reads a <c>Pair</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParsePair</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParsePair(string input, ref int at, int length, out string value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = recognized;
-			at = end;
 
 			return true;
 		}
@@ -2343,15 +1235,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_LongString(int pos)
-			{
-				var p = pos;
-				var q0 = Read_LongString(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWhole_DotGram_LongString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -2362,20 +1245,6 @@ namespace DotGram.Snapshots
 			reader.failure = failure;
 
 			var end = reader.RecWholeRead_LongString(pos);
-
-			failure = reader.failure;
-
-			return end;
-		}
-
-		static int Rec_DotGram_LongString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-
-			var reader = new Reader_DotGram_LongString(text);
-
-			reader.failure = failure;
-
-			var end = reader.RecRead_LongString(pos);
 
 			failure = reader.failure;
 
@@ -2626,15 +1495,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_DollarQuoted(int pos)
-			{
-				var p = pos;
-				var q0 = Read_DollarQuoted(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWhole_DotGram_DollarQuoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -2645,20 +1505,6 @@ namespace DotGram.Snapshots
 			reader.failure = failure;
 
 			var end = reader.RecWholeRead_DollarQuoted(pos);
-
-			failure = reader.failure;
-
-			return end;
-		}
-
-		static int Rec_DotGram_DollarQuoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-
-			var reader = new Reader_DotGram_DollarQuoted(text);
-
-			reader.failure = failure;
-
-			var end = reader.RecRead_DollarQuoted(pos);
 
 			failure = reader.failure;
 
@@ -2777,15 +1623,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Quoted(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Quoted(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWhole_DotGram_Quoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -2796,20 +1633,6 @@ namespace DotGram.Snapshots
 			reader.failure = failure;
 
 			var end = reader.RecWholeRead_Quoted(pos);
-
-			failure = reader.failure;
-
-			return end;
-		}
-
-		static int Rec_DotGram_Quoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-
-			var reader = new Reader_DotGram_Quoted(text);
-
-			reader.failure = failure;
-
-			var end = reader.RecRead_Quoted(pos);
 
 			failure = reader.failure;
 
@@ -3029,34 +1852,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Heading(int pos)
-			{
-				var s  = ways.Cursor;
-
-				while (true)
-				{
-					var q = RecReadBody_Heading(pos);
-
-					if (q >= 0)
-						return q;
-
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			public int RecReadBody_Heading(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Heading(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWhole_DotGram_Heading(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -3070,28 +1865,6 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.RecWholeRead_Heading(pos);
-
-				failure = reader.failure;
-
-				return end;
-			}
-			finally
-			{
-				Ways_DotGram.Return(ways);
-			}
-		}
-
-		static int Rec_DotGram_Heading(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var ways = Ways_DotGram.Rent();
-
-			try
-			{
-				var reader = new Reader_DotGram_Heading(text, ways);
-
-				reader.failure = failure;
-
-				var end = reader.RecRead_Heading(pos);
 
 				failure = reader.failure;
 
@@ -3259,34 +2032,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Between(int pos)
-			{
-				var s  = ways.Cursor;
-
-				while (true)
-				{
-					var q = RecReadBody_Between(pos);
-
-					if (q >= 0)
-						return q;
-
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			public int RecReadBody_Between(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Between(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWhole_DotGram_Between(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -3300,28 +2045,6 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.RecWholeRead_Between(pos);
-
-				failure = reader.failure;
-
-				return end;
-			}
-			finally
-			{
-				Ways_DotGram.Return(ways);
-			}
-		}
-
-		static int Rec_DotGram_Between(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var ways = Ways_DotGram.Rent();
-
-			try
-			{
-				var reader = new Reader_DotGram_Between(text, ways);
-
-				reader.failure = failure;
-
-				var end = reader.RecRead_Between(pos);
 
 				failure = reader.failure;
 
@@ -3671,34 +2394,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Element(int pos)
-			{
-				var s  = ways.Cursor;
-
-				while (true)
-				{
-					var q = RecReadBody_Element(pos);
-
-					if (q >= 0)
-						return q;
-
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			public int RecReadBody_Element(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Element(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		private sealed class Deep_DotGram_Element
@@ -3979,28 +2674,6 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Rec_DotGram_Element(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, global::System.ReadOnlyMemory<char> parserWhole)
-		{
-			var ways = Ways_DotGram.Rent();
-
-			try
-			{
-				var reader = new Reader_DotGram_Element(text, ways, parserWhole);
-
-				reader.failure = failure;
-
-				var end = reader.RecRead_Element(pos);
-
-				failure = reader.failure;
-
-				return end;
-			}
-			finally
-			{
-				Ways_DotGram.Return(ways);
-			}
-		}
-
 		private ref struct Reader_DotGram_Pair
 		{
 			readonly global::System.ReadOnlySpan<char> text;
@@ -4091,15 +2764,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int RecRead_Pair(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Pair(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int RecWhole_DotGram_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
@@ -4111,30 +2775,6 @@ namespace DotGram.Snapshots
 			if (failure.Unasked) reader.unbuilt = 1;
 
 			var end = reader.RecWholeRead_Pair(pos);
-
-			failure = reader.failure;
-
-			if (end < 0)
-			{
-				value = default!;
-
-				return end;
-			}
-
-			value = reader.last0;
-
-			return end;
-		}
-
-		static int Rec_DotGram_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
-		{
-
-			var reader = new Reader_DotGram_Pair(text);
-
-			reader.failure = failure;
-			if (failure.Unasked) reader.unbuilt = 1;
-
-			var end = reader.RecRead_Pair(pos);
 
 			failure = reader.failure;
 

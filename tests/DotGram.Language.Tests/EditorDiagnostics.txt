@@ -81,6 +81,12 @@ parse A
 === GRAM2011
 A = ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((('a')))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
 parse A
+=== GRAM2012
+A = 'a'
+positional find A
+=== GRAM2013
+A = 'a'
+positional internal parse A
 === GRAM3001
 A = 'a'
 A = 'b'
@@ -444,6 +450,9 @@ parse Run
 === GRAM4053
 A = 'a' & when @(parserInput.Length > 0)
 parse A
+=== GRAM4055
+Start : @int = (any* & eos)* => @(0)
+positional parse Start
 === GRAM5001
 A = 'a' & any* & 'b'
 find A
@@ -524,3 +533,13 @@ parse Rows as ReadRows
 === GRAM5018
 A = 'a'
 parse A as Match
+=== GRAM5019 lexical
+context : @Ctx
+trivia = { ' '* }
+namespace Tokens
+{
+	trivia = none
+	Num : @string = { d: ['0'..'9'] & ['0'..'9']* & when @(context.Ok) } => @(d)
+}
+Start : @string = n: Tokens.Num => @(n)
+parse Start

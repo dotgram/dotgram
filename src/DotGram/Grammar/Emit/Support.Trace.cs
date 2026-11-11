@@ -98,13 +98,13 @@ static partial class CSharpEmitter
 			/// worded from. The arrays are the parser's own and are not to be written into.
 			/// </summary>
 			public virtual void End(
-				GramRead read, int end, int position, string[]? expected,
+				GramRead read, long end, long position, string[]? expected,
 				global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 			{
 			}
 
 			/// <summary>A rule is entered at a position.</summary>
-			public virtual void Enter(int rule, int position)
+			public virtual void Enter(int rule, long position)
 			{
 			}
 
@@ -112,7 +112,7 @@ static partial class CSharpEmitter
 			/// The rule entered at <paramref name="position"/> ends at <paramref name="end"/>, or
 			/// fails where that is -1, or was left by an exception where it is <see cref="Thrown"/>.
 			/// </summary>
-			public virtual void Exit(int rule, int position, int end)
+			public virtual void Exit(int rule, long position, long end)
 			{
 			}
 
@@ -122,7 +122,7 @@ static partial class CSharpEmitter
 			/// inside it. Told after its <see cref="Exit"/>; where the engine goes on inside the
 			/// rule, an <see cref="Enter"/> at the same position follows.
 			/// </summary>
-			public virtual void Retracted(int rule, int position)
+			public virtual void Retracted(int rule, long position)
 			{
 			}
 
@@ -130,12 +130,12 @@ static partial class CSharpEmitter
 			/// A rule entered where it has already failed in this reading fails at once, without
 			/// being read again: the reading remembers. It is neither entered nor exited.
 			/// </summary>
-			public virtual void Remembered(int rule, int position)
+			public virtual void Remembered(int rule, long position)
 			{
 			}
 
 			/// <summary>A guard (<c>when</c>) was asked at a position, and let the reading on or not.</summary>
-			public virtual void Guard(int guard, int position, bool passed)
+			public virtual void Guard(int guard, long position, bool passed)
 			{
 			}
 
@@ -145,7 +145,7 @@ static partial class CSharpEmitter
 			/// readings and lookaheads refuse without a word, as their refusals are never the
 			/// answer.
 			/// </summary>
-			public virtual void Refused(int position, string[]? expected)
+			public virtual void Refused(long position, string[]? expected)
 			{
 			}
 
@@ -154,12 +154,12 @@ static partial class CSharpEmitter
 			/// where the element began to where reading goes on, the element having got as far as
 			/// <paramref name="reach"/>.
 			/// </summary>
-			public virtual void Recovered(int rule, int from, int to, int reach)
+			public virtual void Recovered(int rule, long from, long to, long reach)
 			{
 			}
 
 			/// <summary>The reading ran its stack low at a position and goes on on a stack of its own.</summary>
-			public virtual void Deepened(int position)
+			public virtual void Deepened(long position)
 			{
 			}
 
@@ -167,7 +167,7 @@ static partial class CSharpEmitter
 			/// No token of the grammar begins at a character of <paramref name="text"/>, so the
 			/// input was refused before any rule was read.
 			/// </summary>
-			public virtual void Unlexed(string text, int position)
+			public virtual void Unlexed(string text, long position)
 			{
 			}
 
@@ -201,7 +201,7 @@ static partial class CSharpEmitter
 			readonly int[]? _starts;
 			readonly int _count;
 			readonly int _end;
-			readonly int _offset;
+			readonly long _offset;
 			int[]? _lines;
 			int[]? _openRules;
 			int[]? _openAt;
@@ -221,7 +221,7 @@ static partial class CSharpEmitter
 
 			internal GramRead(
 				GramTrace sink, string publication, bool quiet, bool finding, int start, string machine, string? text,
-				int[]? starts, int count, int end, int offset)
+				int[]? starts, int count, int end, long offset)
 			{
 				Sink        = sink;
 				Publication = publication;
@@ -253,7 +253,7 @@ static partial class CSharpEmitter
 			/// Where the reading begins, in its own unit. Over a reader, as every position, counted
 			/// from the beginning of the input rather than of what is held of it.
 			/// </summary>
-			public int Start { get; }
+			public long Start { get; }
 
 			/// <summary>
 			/// What reads it: <c>methods</c>, a method a rule; <c>engine</c>, one automaton over an
@@ -300,20 +300,11 @@ static partial class CSharpEmitter
 			}
 
 			/// <summary>
-			/// Whether a rule only hands on another rule's value, and so is compiled into the
-			/// rules that call it: its events are written where it was called.
-			/// </summary>
-			public bool Forwards(int rule)
-			{
-				return (uint)rule < (uint)TraceForwarders_DotGram.Length && TraceForwarders_DotGram[rule];
-			}
-
-			/// <summary>
 			/// Where a position is, in characters of the input: itself over characters, and over
 			/// tokens where its token begins — past the last, where the tokens end. Good until
 			/// the reading ends.
 			/// </summary>
-			public int CharacterOf(int position)
+			public long CharacterOf(long position)
 			{
 				if (_starts == null)
 					return position;
@@ -321,14 +312,18 @@ static partial class CSharpEmitter
 				if (position < 0)
 					return 0;
 
-				return position < _count ? _starts[position] : _end;
+				return position < _count ? _starts[(int)position] : _end;
 			}
 
-			/// <summary>The line and column of a character, both counted from one.</summary>
-			public void Locate(int character, out int line, out int column)
+			/// <summary>
+			/// The line and column of a character, both counted from one. Where the text is not
+			/// known — a reading over a reader, a stream or bytes — every character is on line one,
+			/// and its column, past what a column holds, is <see cref="int.MaxValue"/>.
+			/// </summary>
+			public void Locate(long character, out int line, out int column)
 			{
 				line   = 1;
-				column = character + 1;
+				column = character < int.MaxValue ? (int)character + 1 : int.MaxValue;
 
 				var text = Text;
 
@@ -362,7 +357,7 @@ static partial class CSharpEmitter
 				}
 
 				line   = low + 1;
-				column = character - _lines[low] + 1;
+				column = (int)(character - _lines[low]) + 1;
 			}
 
 			/// <summary>A rule is entered: kept as open, and the sink told.</summary>
@@ -620,7 +615,7 @@ static partial class CSharpEmitter
 			}
 
 			/// <summary>Where a position the reading holds is, counted from the beginning of the input.</summary>
-			internal int Absolute(int position)
+			internal long Absolute(int position)
 			{
 				return position < 0 ? position : position + _offset;
 			}
@@ -680,7 +675,7 @@ static partial class CSharpEmitter
 		/// </remarks>
 		static GramRead? Began_DotGram(
 			ref Failure failure, GramTrace? sink, string publication, bool finding, int start, string machine, string? text,
-			int[]? starts, int count, int end, int offset)
+			int[]? starts, int count, int end, long offset)
 		{
 			if (sink == null)
 				return null;

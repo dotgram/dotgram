@@ -40,7 +40,7 @@ public sealed class LexicalBoundaryTests
 			}
 			Item : @string = t: Lexical.T => @("t:" + t){{(other ? " | u: Lexical.U => @(\"u:\" + u)" : "")}}
 			Root : @string = items: Item* => @(string.Join("|", items))
-			parse Root
+			positional parse Root
 			""";
 	}
 
@@ -193,7 +193,7 @@ public sealed class LexicalBoundaryTests
 				T = { {{string.Join(" & ", runs)}} & 'b' }
 			}
 			Root = Lexical.T
-			parse Root
+			positional parse Root
 			""";
 
 		var clock     = Stopwatch.StartNew();
@@ -275,7 +275,7 @@ public sealed class LexicalBoundaryTests
 				T = { ((?!"{{new string('a', length)}}" & ['a'|'b'])* & 'a'){{{runs}}} & 'b' }
 			}
 			Root = Lexical.T
-			parse Root
+			positional parse Root
 			""";
 
 		var machine = TerminalInventory.Of(

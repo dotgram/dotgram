@@ -2,6 +2,8 @@ Examples	DotGram.Examples.Expressions.ArithmeticTree.g.cs	0649
 Examples	DotGram.Examples.Expressions.Calculator.g.cs	0649
 Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	0649
 Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	0649
+Examples	DotGram.Examples.Formats.Config.Located.g.cs	0649
+Examples	DotGram.Examples.Formats.Config.g.cs	0649
 Examples	DotGram.Examples.Formats.FileNames.g.cs	0649
 Examples	DotGram.Examples.Formats.FixParser.g.cs	0649
 Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	0649
@@ -9,13 +11,22 @@ Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	CS0649 // a table nothing
 Examples	DotGram.Examples.Formats.FixedWidth.g.cs	0649
 Examples	DotGram.Examples.Formats.HttpParser.g.cs	0649
 Examples	DotGram.Examples.Formats.IniParser.g.cs	0649
+Examples	DotGram.Examples.Formats.JsonParser.g.cs	0649
+Examples	DotGram.Examples.Formats.MetricsLine.g.cs	0649
 Examples	DotGram.Examples.Formats.Netstrings.g.cs	0649
 Examples	DotGram.Examples.Formats.YamlLite.g.cs	0649
+Examples	DotGram.Examples.Languages.Filter.g.cs	0649
+Examples	DotGram.Examples.Languages.FilterFile.g.cs	0649
 Examples	DotGram.Examples.Languages.FilterFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
+Examples	DotGram.Examples.Languages.Filters.g.cs	0649
+Examples	DotGram.Examples.Languages.GramGrammar.g.cs	0649
 Examples	DotGram.Examples.Languages.Lexemes.g.cs	0649
+Examples	DotGram.Examples.Languages.Scoped.g.cs	0649
 Examples	DotGram.Examples.Languages.Scoped.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Languages.Selectors.g.cs	0649
+Examples	DotGram.Examples.Languages.SettingsFile.g.cs	0649
 Examples	DotGram.Examples.Languages.SettingsFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
+Examples	DotGram.Examples.Languages.SqlDialect.g.cs	0649
 Examples	DotGram.Examples.Languages.TokenizedQuery.g.cs	0649
 Finance	DotGram.Finance.Fix.FixGrammar.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649

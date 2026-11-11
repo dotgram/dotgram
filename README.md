@@ -927,6 +927,18 @@ So: from a tenth ahead of `RegexOptions.Compiled` to three times ahead of it, an
 than only whether the input matched. [`benchmarks/README.md`](benchmarks/README.md) has
 the method and the full results.
 
+### The first call
+
+The first parse in a process pays for compiling the parser: the JIT is 85-97% of that call. Measured on Linux,
+.NET 10, a fresh process per run: 36 ms for a 20-column SQL `SELECT`, 71 ms for a long T-SQL `SELECT`, 30 ms for an
+expression-language lambda, 46 ms for a FIX order, 6 ms for a URL. The calls after it take microseconds.
+
+When the first call matters (a command-line tool, a function that starts cold), publish the application with
+`<PublishReadyToRun>true</PublishReadyToRun>`. That precompiles every assembly the application references, the
+parsers included, and the first call drops to a fifth to a third: 7 ms, 17 ms, 7.5 ms, 15.5 ms and 0.5 ms for the
+same five. The price is size on disk (DotGram.Sql grows from 11.3 to 22.6 MB). The packages do not ship precompiled
+code because such images are specific to a platform and a runtime version.
+
 ## Visual Studio
 
 `DotGram.VisualStudio` is an extension for Visual Studio: classification, diagnostics,

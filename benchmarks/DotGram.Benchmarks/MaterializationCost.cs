@@ -137,6 +137,11 @@ public partial class MaterializationCost
 		""", Carrier = GramCarrier.Tape)]
 	public static partial class SpanCaptures
 	{
+		// The record below hands spans out in public, which the generated parser does not: raised here.
+		public partial struct SourceSpan
+		{
+		}
+
 		public sealed record UrlSpans(
 			SourceSpan Scheme, SourceSpan? User, SourceSpan Host, SourceSpan? Port,
 			SourceSpan Path, SourceSpan? Query, SourceSpan? Fragment);

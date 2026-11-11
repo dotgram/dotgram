@@ -6,6 +6,8 @@ BREAKING CHANGES, and what to do
 - A switch expression with no natural type as the operand of a plain operator (1 + (x switch { … }), !(x switch { … })) is refused, naming the two arms that meet in nothing (CS8506), where it reached the operator's factory with no type. String concatenation still takes it, boxed to object.
 - A member's own initializer, Items = { 1, 2 }, reads the member once for each entry inside it, as C# does, where it read it once for all; the tree is then a block of assignments, not a MemberInit.
 - The public type ExpressionParser.ParserInput<T> is removed; nothing public took or returned it.
+- ExpressionParser.SourceSpan is no longer public; nothing public took or returned it.
+- ExpressionParser.Scan, the scanner of its lexer, is no longer public: the kind it gave was the grammar's own numbering of its tokens, which changed with the grammar. Migration: none in the package; a caller that cut text into tokens with it has no replacement.
 
 NEW
 
@@ -18,7 +20,7 @@ NEW
 
 FASTER
 
-- The parser reads with the immediate carrier, building the tree as it reads: accepted text parses about 30 to 55% faster (deeply nested text the most) and the generated parser is about 9% smaller. A text refused late is about 30% slower and allocates more; one refused early costs what it did. The answers - tree, refusal, message, exception - are unchanged.
+- The parser reads with the immediate carrier, building the tree as it reads: against 0.2.0 on the release benchmark, accepted text parses about 40% faster (deeply nested text the most), and DotGram.ExpressionLanguage.dll carries 68% less IL. A text refused late is 50 to 87% slower, with about 4.3 times the bytes; one refused early takes the time it did. The answers - tree, refusal, message, exception - are unchanged.
 - Member initializers nested and never closed are read once at every level, where they were read twice (three quarters of a second at seventeen levels). A string left unclosed inside an interpolated string's hole, $"{x", is refused at once, where the time doubled with every further character.
 
 KNOWN ISSUES

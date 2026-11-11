@@ -88,7 +88,7 @@ public sealed class TokenizationCacheTests
 			}
 			Start : @string = w: Word+ => @(string.Concat(w))
 			Word  : @string = t: Tokens.Name => @(Read(t))
-			parse Start
+			positional parse Start
 			""", new GramCompilerOptions
 		{
 			ClassName = "Grammar", Lexical = true, Carrier = carrier,

@@ -503,7 +503,7 @@ public sealed partial class BackReferenceTests
 			}
 			Item : @string = t: Lexical.T => @("t:" + t) | i: Lexical.Id => @("id:" + i) | ':' => @(":")
 			Root : @string = items: Item* => @(string.Join("|", items))
-			parse Root
+			positional parse Root
 			""";
 
 		var (assembly, _) = Lexical(grammar, direct);
@@ -901,7 +901,7 @@ public sealed partial class BackReferenceTests
 			}
 			Item : @string = w: Lexical.Word => @(w)
 			Root : @string = items: Item* => @(string.Join("|", items))
-			parse Root
+			positional parse Root
 			""";
 
 		var over = EmittedCode.Answered(Compiled(grammar, CarrierKind.Auto, direct: true), "Grammar", "TryParseRoot", "abab", 2);

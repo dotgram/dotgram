@@ -808,7 +808,7 @@ public sealed class CarrierTests
 			Words : @int = items: Word+ => @(items.Length)
 			Word : @string = c: ['a'..'z'] => @(c)
 			parse Depth
-			parse Words
+			positional parse Words
 			""";
 
 		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
@@ -855,7 +855,7 @@ public sealed class CarrierTests
 			Replay : @int = items: Item* & 'a' => @(items.Length)
 			Item : @int = 'a' => @(1)
 			parse Depth
-			parse Replay
+			positional parse Replay
 			""";
 
 		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
@@ -878,7 +878,7 @@ public sealed class CarrierTests
 	{
 		var grammar = "trivia = " + trivia + "\n" + """
 			Depth : @int = 'a' => @(1) | '(' & n: Depth & ')' => @(n + 1)
-			parse Depth
+			positional parse Depth
 			""";
 		var (source, immediate) = Compiled(grammar, CarrierKind.Immediate);
 		var (_, tape) = Compiled(grammar, CarrierKind.Tape);

@@ -35,7 +35,7 @@ Term : @int
 
 Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))
 
-parse Sum
+positional parse Sum
 
 // And a third beside them, Twice.Traced.gram.g.cs: the same grammar as a trace build
 // (docs/syntax.md §6.9), in a class of its own. The parser in it is the one above; what

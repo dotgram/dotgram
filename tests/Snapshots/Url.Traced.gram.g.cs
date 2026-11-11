@@ -11,7 +11,7 @@ namespace DotGram.Snapshots
 			/// <exception cref="global::System.FormatException">
 			/// The input is not <c>Url</c>. <c>TryParseUrl</c> answers instead.
 			/// </exception>
-			public static global::DotGram.Snapshots.Url.Traced.Url ParseUrl(string input)
+			public static global::DotGram.Snapshots.Url.Traced.UrlValue ParseUrl(string input)
 			{
 				var match = TryParseUrl(input);
 
@@ -26,13 +26,13 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Parses the whole input as <c>Url</c>, answering rather than throwing.</summary>
-			public static Match<global::DotGram.Snapshots.Url.Traced.Url> TryParseUrl(string input)
+			public static Match<global::DotGram.Snapshots.Url.Traced.UrlValue> TryParseUrl(string input)
 			{
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, 0, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -70,23 +70,23 @@ namespace DotGram.Snapshots
 						? "Expected more input."
 						: "Input does not match 'Url'.";
 
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
+					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
 				}
 
-				return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, 0, end);
+				return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, 0, end);
 			}
 
 			/// <summary>Parses the whole input as <c>Url</c>, answering only whether it is one.</summary>
 			/// <remarks>
 			/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
 			/// </remarks>
-			public static bool TryParseUrl(string input, out global::DotGram.Snapshots.Url.Traced.Url value)
+			public static bool TryParseUrl(string input, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
 				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, 0, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
+				global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 				int end;
 
 				try
@@ -111,230 +111,20 @@ namespace DotGram.Snapshots
 				return true;
 			}
 
-			/// <summary>Reads a <c>Url</c> beginning at <paramref name="at"/>.</summary>
-			/// <remarks>
-			/// The input is not required to end there: what comes back says where the
-			/// reading began and how far it got, so a caller may go on from it. A position
-			/// is an offset into the text.
-			/// </remarks>
-			public static Match<global::DotGram.Snapshots.Url.Traced.Url> TryParseUrl(string input, int at)
-			{
-				if (at < 0 || at > input.Length)
-				{
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null));
-				}
-
-				var text    = global::System.MemoryExtensions.AsSpan(input);
-				var failure = new Failure { Quiet = true };
-
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
-				int end;
-
-				try
-				{
-					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
-				}
-				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
-				{
-					throw;
-				}
-
-				Ended_DotGram(ref failure, read, end);
-
-				if (end < 0)
-				{
-					failure = new Failure { Unasked = true };
-					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-					try
-					{
-						end = Rec_DotGram_Url(text, at, ref failure, out recognized);
-					}
-					catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
-					{
-						throw;
-					}
-
-					Ended_DotGram(ref failure, read, end);
-				}
-
-				if (end < 0)
-				{
-					if (failure.Position < at)
-						failure.Position = at;
-
-					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-					var otherwise = starved
-						? "Expected more input."
-						: "Input does not match 'Url'.";
-
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
-				}
-
-				return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, at, end - at);
-			}
-
-			/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-			/// <remarks>
-			/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
-			/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-			/// refusal it stays where it was.
-			/// </remarks>
-			public static bool TryParseUrl(string input, ref int at, out global::DotGram.Snapshots.Url.Traced.Url value)
-			{
-				if (at < 0 || at > input.Length)
-					throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-				var text    = global::System.MemoryExtensions.AsSpan(input);
-				var failure = new Failure { Quiet = true };
-
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
-				int end;
-
-				try
-				{
-					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
-				}
-				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
-				{
-					throw;
-				}
-
-				Ended_DotGram(ref failure, read, end);
-
-				if (end < 0)
-				{
-					value = default!;
-					return false;
-				}
-
-				value = recognized;
-				at = end;
-
-				return true;
-			}
-
-			/// <summary>Reads a <c>Url</c> inside a window of the input.</summary>
-			/// <remarks>
-			/// The reading begins at <paramref name="at"/> and sees no character from
-			/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-			/// says how far it got. Positions are offsets into the whole input.
-			/// </remarks>
-			public static Match<global::DotGram.Snapshots.Url.Traced.Url> TryParseUrl(string input, int at, int length)
-			{
-				if (at < 0 || length < 0 || at > input.Length - length)
-				{
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null));
-				}
-
-				var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-				var failure = new Failure { Quiet = true };
-
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
-				int end;
-
-				try
-				{
-					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
-				}
-				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
-				{
-					throw;
-				}
-
-				Ended_DotGram(ref failure, read, end);
-
-				if (end < 0)
-				{
-					failure = new Failure { Unasked = true };
-					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-					try
-					{
-						end = Rec_DotGram_Url(text, at, ref failure, out recognized);
-					}
-					catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
-					{
-						throw;
-					}
-
-					Ended_DotGram(ref failure, read, end);
-				}
-
-				if (end < 0)
-				{
-					if (failure.Position < at)
-						failure.Position = at;
-
-					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-					var otherwise = starved
-						? "Expected more input."
-						: "Input does not match 'Url'.";
-
-					return Rejected_DotGram(Match<global::DotGram.Snapshots.Url.Traced.Url>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Tied_DotGram(failure.ExpectedMore)));
-				}
-
-				return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, at, end - at);
-			}
-
-			/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-			/// <remarks>
-			/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
-			/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-			/// refusal it stays where it was.
-			/// </remarks>
-			public static bool TryParseUrl(string input, ref int at, int length, out global::DotGram.Snapshots.Url.Traced.Url value)
-			{
-				if (at < 0 || length < 0 || at > input.Length - length)
-					throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-				var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-				var failure = new Failure { Quiet = true };
-
-				var read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
-				global::DotGram.Snapshots.Url.Traced.Url recognized;
-				int end;
-
-				try
-				{
-					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
-				}
-				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
-				{
-					throw;
-				}
-
-				Ended_DotGram(ref failure, read, end);
-
-				if (end < 0)
-				{
-					value = default!;
-					return false;
-				}
-
-				value = recognized;
-				at = end;
-
-				return true;
-			}
-
 			/// <summary>Every occurrence of <c>Url</c>, in order, found as it is asked for.</summary>
-			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(string input)
+			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> AllUrls(string input)
 			{
 				return Traced_DotGram_AllUrls(input, Tracing_DotGram.Value);
 			}
 
-			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> Traced_DotGram_AllUrls(string input, GramTrace? trace)
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> Traced_DotGram_AllUrls(string input, GramTrace? trace)
 			{
 				for (var start = 0; start <= input.Length; )
 				{
 					var failure = new Failure { Quiet = true };
 
 					var read = Began_DotGram(ref failure, trace, "Url", true, start, "engine", input, null, 0, 0, 0);
-					global::DotGram.Snapshots.Url.Traced.Url recognized;
+					global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 					int end;
 
 					var asked = Tracing_DotGram.Value;
@@ -364,7 +154,7 @@ namespace DotGram.Snapshots
 						continue;
 					}
 
-					yield return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, start, end - start);
+					yield return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, start, end - start);
 
 					// A rule that matches nothing would otherwise find it for ever.
 					start = end > start ? end : start + 1;
@@ -376,12 +166,12 @@ namespace DotGram.Snapshots
 			/// The input is read through a buffer that is reused, so what is held is what the
 			/// occurrence being read needs and not the input (docs/syntax.md §6.3).
 			/// </remarks>
-			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(global::System.IO.TextReader input)
+			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> AllUrls(global::System.IO.TextReader input)
 			{
 				return Traced_DotGram_AllUrls(input, Tracing_DotGram.Value);
 			}
 
-			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> Traced_DotGram_AllUrls(global::System.IO.TextReader input, GramTrace? trace)
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> Traced_DotGram_AllUrls(global::System.IO.TextReader input, GramTrace? trace)
 			{
 				var window = new Window_DotGram(input, 4096);
 				var start  = 0;
@@ -390,8 +180,8 @@ namespace DotGram.Snapshots
 				{
 					var failure = new Failure();
 
-					var read = Began_DotGram(ref failure, trace, "Url", true, start, "engine", null, null, 0, 0, (int)window.Offset);
-					global::DotGram.Snapshots.Url.Traced.Url recognized;
+					var read = Began_DotGram(ref failure, trace, "Url", true, start, "engine", null, null, 0, 0, window.Offset);
+					global::DotGram.Snapshots.Url.Traced.UrlValue recognized;
 					int end;
 
 					var asked = Tracing_DotGram.Value;
@@ -430,7 +220,7 @@ namespace DotGram.Snapshots
 						continue;
 					}
 
-					yield return Match<global::DotGram.Snapshots.Url.Traced.Url>.Success(recognized, window.Offset + start, end - start);
+					yield return Match<global::DotGram.Snapshots.Url.Traced.UrlValue>.Success(recognized, window.Offset + start, end - start);
 
 					// A rule that matches nothing would otherwise find it for ever.
 					start = end > start ? end : start + 1;
@@ -446,14 +236,14 @@ namespace DotGram.Snapshots
 			/// end of each: a sequence of lines has had its terminators taken off, and <c>Url</c>
 			/// may well be looking for one.
 			/// </remarks>
-			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(global::System.Collections.Generic.IEnumerable<string> input)
+			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> AllUrls(global::System.Collections.Generic.IEnumerable<string> input)
 			{
 				if (input is null)
 					throw new global::System.ArgumentNullException(nameof(input));
 
 				return OverLines_DotGram(input);
 
-				static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> OverLines_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
+				static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.UrlValue>> OverLines_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
 				{
 					using var lines_DotGram = new Lines_DotGram(input);
 
@@ -463,10 +253,9 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What the rule <c>Url</c> recognized.</summary>
-			public sealed class Url
+			public sealed class UrlValue
 			{
-				/// <summary>Builds what the rule <c>Url</c> recognized from its captures.</summary>
-				public Url(string scheme, global::DotGram.Snapshots.Url.Traced.Authority authority, string path, string? query, string? fragment)
+				internal UrlValue(string scheme, global::DotGram.Snapshots.Url.Traced.Authority authority, string path, string? query, string? fragment)
 				{
 					Scheme = scheme;
 					Authority = authority;
@@ -494,8 +283,7 @@ namespace DotGram.Snapshots
 			/// <summary>What the rule <c>Authority</c> recognized.</summary>
 			public sealed class Authority
 			{
-				/// <summary>Builds what the rule <c>Authority</c> recognized from its captures.</summary>
-				public Authority(string? user, string host, string? port)
+				internal Authority(string? user, string host, string? port)
 				{
 					User = user;
 					Host = host;
@@ -3949,19 +3737,19 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int RecWhole_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
+			static int RecWhole_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				object? recognized;
 				var end = Recognize_DotGram(text, pos, 3, 0, true, true, ref failure, out recognized);
-				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.Url)recognized!;
+				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.UrlValue)recognized!;
 				return end;
 			}
 
-			static int Rec_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
+			static int Rec_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.UrlValue value)
 			{
 				object? recognized;
 				var end = Recognize_DotGram(text, pos, 3, 0, false, true, ref failure, out recognized);
-				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.Url)recognized!;
+				value = end < 0 ? default! : (global::DotGram.Snapshots.Url.Traced.UrlValue)recognized!;
 				return end;
 			}
 
@@ -4159,7 +3947,7 @@ namespace DotGram.Snapshots
 							#endif
 							var captured4 = captured4From < 0 ? null : text.Slice(captured4From, captured4To - captured4From).ToString();
 
-							values0[completedAt] = new global::DotGram.Snapshots.Url.Traced.Url(
+							values0[completedAt] = new global::DotGram.Snapshots.Url.Traced.UrlValue(
 								captured0!,
 								captured1!,
 								captured2!,
@@ -4584,13 +4372,13 @@ namespace DotGram.Snapshots
 				/// worded from. The arrays are the parser's own and are not to be written into.
 				/// </summary>
 				public virtual void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 				}
 
 				/// <summary>A rule is entered at a position.</summary>
-				public virtual void Enter(int rule, int position)
+				public virtual void Enter(int rule, long position)
 				{
 				}
 
@@ -4598,7 +4386,7 @@ namespace DotGram.Snapshots
 				/// The rule entered at <paramref name="position"/> ends at <paramref name="end"/>, or
 				/// fails where that is -1, or was left by an exception where it is <see cref="Thrown"/>.
 				/// </summary>
-				public virtual void Exit(int rule, int position, int end)
+				public virtual void Exit(int rule, long position, long end)
 				{
 				}
 
@@ -4608,7 +4396,7 @@ namespace DotGram.Snapshots
 				/// inside it. Told after its <see cref="Exit"/>; where the engine goes on inside the
 				/// rule, an <see cref="Enter"/> at the same position follows.
 				/// </summary>
-				public virtual void Retracted(int rule, int position)
+				public virtual void Retracted(int rule, long position)
 				{
 				}
 
@@ -4616,12 +4404,12 @@ namespace DotGram.Snapshots
 				/// A rule entered where it has already failed in this reading fails at once, without
 				/// being read again: the reading remembers. It is neither entered nor exited.
 				/// </summary>
-				public virtual void Remembered(int rule, int position)
+				public virtual void Remembered(int rule, long position)
 				{
 				}
 
 				/// <summary>A guard (<c>when</c>) was asked at a position, and let the reading on or not.</summary>
-				public virtual void Guard(int guard, int position, bool passed)
+				public virtual void Guard(int guard, long position, bool passed)
 				{
 				}
 
@@ -4631,7 +4419,7 @@ namespace DotGram.Snapshots
 				/// readings and lookaheads refuse without a word, as their refusals are never the
 				/// answer.
 				/// </summary>
-				public virtual void Refused(int position, string[]? expected)
+				public virtual void Refused(long position, string[]? expected)
 				{
 				}
 
@@ -4640,12 +4428,12 @@ namespace DotGram.Snapshots
 				/// where the element began to where reading goes on, the element having got as far as
 				/// <paramref name="reach"/>.
 				/// </summary>
-				public virtual void Recovered(int rule, int from, int to, int reach)
+				public virtual void Recovered(int rule, long from, long to, long reach)
 				{
 				}
 
 				/// <summary>The reading ran its stack low at a position and goes on on a stack of its own.</summary>
-				public virtual void Deepened(int position)
+				public virtual void Deepened(long position)
 				{
 				}
 
@@ -4653,7 +4441,7 @@ namespace DotGram.Snapshots
 				/// No token of the grammar begins at a character of <paramref name="text"/>, so the
 				/// input was refused before any rule was read.
 				/// </summary>
-				public virtual void Unlexed(string text, int position)
+				public virtual void Unlexed(string text, long position)
 				{
 				}
 
@@ -4687,7 +4475,7 @@ namespace DotGram.Snapshots
 				readonly int[]? _starts;
 				readonly int _count;
 				readonly int _end;
-				readonly int _offset;
+				readonly long _offset;
 				int[]? _lines;
 				int[]? _openRules;
 				int[]? _openAt;
@@ -4706,7 +4494,7 @@ namespace DotGram.Snapshots
 
 				internal GramRead(
 					GramTrace sink, string publication, bool quiet, bool finding, int start, string machine, string? text,
-					int[]? starts, int count, int end, int offset)
+					int[]? starts, int count, int end, long offset)
 				{
 					Sink        = sink;
 					Publication = publication;
@@ -4738,7 +4526,7 @@ namespace DotGram.Snapshots
 				/// Where the reading begins, in its own unit. Over a reader, as every position, counted
 				/// from the beginning of the input rather than of what is held of it.
 				/// </summary>
-				public int Start { get; }
+				public long Start { get; }
 
 				/// <summary>
 				/// What reads it: <c>methods</c>, a method a rule; <c>engine</c>, one automaton over an
@@ -4785,20 +4573,11 @@ namespace DotGram.Snapshots
 				}
 
 				/// <summary>
-				/// Whether a rule only hands on another rule's value, and so is compiled into the
-				/// rules that call it: its events are written where it was called.
-				/// </summary>
-				public bool Forwards(int rule)
-				{
-					return (uint)rule < (uint)TraceForwarders_DotGram.Length && TraceForwarders_DotGram[rule];
-				}
-
-				/// <summary>
 				/// Where a position is, in characters of the input: itself over characters, and over
 				/// tokens where its token begins — past the last, where the tokens end. Good until
 				/// the reading ends.
 				/// </summary>
-				public int CharacterOf(int position)
+				public long CharacterOf(long position)
 				{
 					if (_starts == null)
 						return position;
@@ -4806,14 +4585,18 @@ namespace DotGram.Snapshots
 					if (position < 0)
 						return 0;
 
-					return position < _count ? _starts[position] : _end;
+					return position < _count ? _starts[(int)position] : _end;
 				}
 
-				/// <summary>The line and column of a character, both counted from one.</summary>
-				public void Locate(int character, out int line, out int column)
+				/// <summary>
+				/// The line and column of a character, both counted from one. Where the text is not
+				/// known — a reading over a reader, a stream or bytes — every character is on line one,
+				/// and its column, past what a column holds, is <see cref="int.MaxValue"/>.
+				/// </summary>
+				public void Locate(long character, out int line, out int column)
 				{
 					line   = 1;
-					column = character + 1;
+					column = character < int.MaxValue ? (int)character + 1 : int.MaxValue;
 
 					var text = Text;
 
@@ -4847,7 +4630,7 @@ namespace DotGram.Snapshots
 					}
 
 					line   = low + 1;
-					column = character - _lines[low] + 1;
+					column = (int)(character - _lines[low]) + 1;
 				}
 
 				internal void Enter(int rule, int position)
@@ -5066,7 +4849,7 @@ namespace DotGram.Snapshots
 					Sink.Deepened(position + _offset);
 				}
 
-				internal int Absolute(int position)
+				internal long Absolute(int position)
 				{
 					return position < 0 ? position : position + _offset;
 				}
@@ -5115,7 +4898,7 @@ namespace DotGram.Snapshots
 
 			static GramRead? Began_DotGram(
 				ref Failure failure, GramTrace? sink, string publication, bool finding, int start, string machine, string? text,
-				int[]? starts, int count, int end, int offset)
+				int[]? starts, int count, int end, long offset)
 			{
 				if (sink == null)
 					return null;
@@ -5210,31 +4993,6 @@ namespace DotGram.Snapshots
 			{
 			};
 
-			static readonly bool[] TraceForwarders_DotGram = new bool[]
-			{
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-				false,
-			};
-
 			/// <summary>
 			/// Why the last call watched was refused: the match's own message, and the rules that were
 			/// open where the input was followed furthest, each with what it wanted there.
@@ -5258,21 +5016,21 @@ namespace DotGram.Snapshots
 				int _depth;
 				GramRead? _read;
 				Frame_DotGram? _top;
-				int _furthest = -1;
+				long _furthest = -1;
 				readonly global::System.Collections.Generic.List<Candidate_DotGram> _candidates =
 					new global::System.Collections.Generic.List<Candidate_DotGram>();
-				int _since = -1;
+				long _since = -1;
 				readonly global::System.Collections.Generic.List<Candidate_DotGram> _sinceCandidates =
 					new global::System.Collections.Generic.List<Candidate_DotGram>();
 				Frame_DotGram? _frontier;
-				int _frontierAt = -1;
+				long _frontierAt = -1;
 				readonly global::System.Collections.Generic.List<Element> _elements =
 					new global::System.Collections.Generic.List<Element>();
 
 				GramRead? _pendingRead;
 				Path[]? _pendingPaths;
 				string _pendingCause = "";
-				int _unlexed = -1;
+				long _unlexed = -1;
 
 				/// <summary>Whether the last call watched answered with a refusal.</summary>
 				public bool IsRefused { get; private set; }
@@ -5301,7 +5059,7 @@ namespace DotGram.Snapshots
 				/// <summary>One stack of rules, outermost first, and what the innermost wanted.</summary>
 				public sealed class Path
 				{
-					internal Path(string[] rules, int[] at, int[] lines, int[] columns, string[]? expected, string? guard)
+					internal Path(string[] rules, long[] at, int[] lines, int[] columns, string[]? expected, string? guard)
 					{
 						Rules     = rules;
 						Positions = at;
@@ -5315,7 +5073,7 @@ namespace DotGram.Snapshots
 					public global::System.Collections.Generic.IReadOnlyList<string> Rules { get; }
 
 					/// <summary>Where each was entered, in characters of the input.</summary>
-					public global::System.Collections.Generic.IReadOnlyList<int> Positions { get; }
+					public global::System.Collections.Generic.IReadOnlyList<long> Positions { get; }
 
 					/// <summary>The line each was entered on, from one.</summary>
 					public global::System.Collections.Generic.IReadOnlyList<int> Lines { get; }
@@ -5372,7 +5130,7 @@ namespace DotGram.Snapshots
 				/// <summary>An element a repetition marked <c>recover</c> stepped over, and why it was refused.</summary>
 				public sealed class Element
 				{
-					internal Element(string rule, int from, int to, int reach, Path[] paths)
+					internal Element(string rule, long from, long to, long reach, Path[] paths)
 					{
 						Rule  = rule;
 						From  = from;
@@ -5385,13 +5143,13 @@ namespace DotGram.Snapshots
 					public string Rule { get; }
 
 					/// <summary>Where it began, in characters of the input.</summary>
-					public int From { get; }
+					public long From { get; }
 
 					/// <summary>Where reading went on after it.</summary>
-					public int To { get; }
+					public long To { get; }
 
 					/// <summary>How far it got.</summary>
-					public int Reach { get; }
+					public long Reach { get; }
 
 					/// <summary>The rules open where it got furthest, each with what it wanted.</summary>
 					public global::System.Collections.Generic.IReadOnlyList<Path> Paths { get; }
@@ -5400,11 +5158,11 @@ namespace DotGram.Snapshots
 				sealed class Frame_DotGram
 				{
 					internal readonly int Rule;
-					internal readonly int At;
+					internal readonly long At;
 					internal readonly Frame_DotGram? Parent;
 					internal readonly int Depth;
 
-					internal Frame_DotGram(int rule, int at, Frame_DotGram? parent)
+					internal Frame_DotGram(int rule, long at, Frame_DotGram? parent)
 					{
 						Rule   = rule;
 						At     = at;
@@ -5471,7 +5229,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					if (!Watching)
 						return;
@@ -5486,7 +5244,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					if (!Watching)
 						return;
@@ -5503,26 +5261,26 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Guard(int guard, int position, bool passed)
+				public override void Guard(int guard, long position, bool passed)
 				{
 					if (Watching && !passed)
 						Consider(position, null, guard);
 				}
 
 				/// <inheritdoc/>
-				public override void Refused(int position, string[]? expected)
+				public override void Refused(long position, string[]? expected)
 				{
 					if (Watching)
 						Consider(position, expected, -1);
 				}
 
-				void Consider(int position, string[]? set, int guard)
+				void Consider(long position, string[]? set, int guard)
 				{
 					Keep(_candidates, ref _furthest, position, set, guard);
 					Keep(_sinceCandidates, ref _since, position, set, guard);
 				}
 
-				void Keep(global::System.Collections.Generic.List<Candidate_DotGram> kept, ref int furthest, int position, string[]? set, int guard)
+				void Keep(global::System.Collections.Generic.List<Candidate_DotGram> kept, ref long furthest, long position, string[]? set, int guard)
 				{
 					if (position < furthest)
 						return;
@@ -5551,7 +5309,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Recovered(int rule, int from, int to, int reach)
+				public override void Recovered(int rule, long from, long to, long reach)
 				{
 					if (!Watching)
 						return;
@@ -5574,7 +5332,7 @@ namespace DotGram.Snapshots
 
 				/// <inheritdoc/>
 				public override void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					// An end it was not told the beginning of leaves its count where it was.
@@ -5667,7 +5425,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Unlexed(string text, int position)
+				public override void Unlexed(string text, long position)
 				{
 					if (_depth != 0)
 						return;
@@ -5704,7 +5462,7 @@ namespace DotGram.Snapshots
 						int line;
 						int column;
 
-						read.Locate((int)position, out line, out column);
+						read.Locate(position, out line, out column);
 
 						Line   = line;
 						Column = column;
@@ -5769,7 +5527,7 @@ namespace DotGram.Snapshots
 				{
 					var count   = frame == null ? 0 : frame.Depth;
 					var rules   = new string[count];
-					var at      = new int[count];
+					var at      = new long[count];
 					var lines   = new int[count];
 					var columns = new int[count];
 
@@ -5854,8 +5612,8 @@ namespace DotGram.Snapshots
 				long _dropped;
 				long _noted;
 				int _refusedStarts;
-				int _firstRefused;
-				int _lastRefused;
+				long _firstRefused;
+				long _lastRefused;
 
 				/// <summary>A log written to <paramref name="writer"/>, of at most <paramref name="budget"/> lines.</summary>
 				public GramTraceLog(global::System.IO.TextWriter writer, int budget = 10000)
@@ -5892,7 +5650,7 @@ namespace DotGram.Snapshots
 
 				/// <inheritdoc/>
 				public override void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					var last = _reads.Count - 1;
@@ -5938,7 +5696,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					var read = Current;
 
@@ -5949,7 +5707,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					if (_depth > (_bases.Count > 0 ? _bases[_bases.Count - 1] : 0))
 						_depth--;
@@ -5963,7 +5721,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Retracted(int rule, int position)
+				public override void Retracted(int rule, long position)
 				{
 					var read = Current;
 
@@ -5972,7 +5730,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Remembered(int rule, int position)
+				public override void Remembered(int rule, long position)
 				{
 					var read = Current;
 
@@ -5981,7 +5739,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Guard(int guard, int position, bool passed)
+				public override void Guard(int guard, long position, bool passed)
 				{
 					var read = Current;
 
@@ -5990,7 +5748,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Refused(int position, string[]? expected)
+				public override void Refused(long position, string[]? expected)
 				{
 					var read = Current;
 
@@ -5999,7 +5757,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Recovered(int rule, int from, int to, int reach)
+				public override void Recovered(int rule, long from, long to, long reach)
 				{
 					var read = Current;
 
@@ -6009,7 +5767,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Deepened(int position)
+				public override void Deepened(long position)
 				{
 					var read = Current;
 
@@ -6018,7 +5776,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Unlexed(string text, int position)
+				public override void Unlexed(string text, long position)
 				{
 					Summed();
 					Write("no token begins at character " + position.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
@@ -6091,7 +5849,7 @@ namespace DotGram.Snapshots
 					_noted = _dropped;
 				}
 
-				static string Where(GramRead read, int position)
+				static string Where(GramRead read, long position)
 				{
 					if (position < 0)
 						return "-";
@@ -6106,17 +5864,19 @@ namespace DotGram.Snapshots
 						column.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
 				}
 
-				static string Window(GramRead read, int position)
+				static string Window(GramRead read, long position)
 				{
 					var text = read.Text;
 
 					if (text == null)
 						return "";
 
-					var from = read.CharacterOf(position);
+					var at = read.CharacterOf(position);
 
-					if (from < 0 || from > text.Length)
+					if (at < 0 || at > text.Length)
 						return "";
+
+					var from = (int)at;
 
 					var length = text.Length - from < 24 ? text.Length - from : 24;
 					var shown  = new global::System.Text.StringBuilder(length + 8);
@@ -6200,8 +5960,8 @@ namespace DotGram.Snapshots
 					new global::System.Collections.Generic.List<GramRead>();
 				readonly global::System.Collections.Generic.List<int> _bases =
 					new global::System.Collections.Generic.List<int>();
-				readonly global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>> _seen =
-					new global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<long>>();
+				readonly global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<Seen_DotGram>> _seen =
+					new global::System.Collections.Generic.List<global::System.Collections.Generic.HashSet<Seen_DotGram>>();
 
 				/// <summary>Every rule entered, with its counts, in the order they were first entered.</summary>
 				public global::System.Collections.Generic.IReadOnlyCollection<Row> Rows
@@ -6275,10 +6035,37 @@ namespace DotGram.Snapshots
 				struct Open_DotGram
 				{
 					internal int Rule;
-					internal int At;
+					internal long At;
 					internal long Started;
 					internal long Children;
 					internal bool Quiet;
+				}
+
+				readonly struct Seen_DotGram : global::System.IEquatable<Seen_DotGram>
+				{
+					readonly int _rule;
+					readonly long _position;
+
+					internal Seen_DotGram(int rule, long position)
+					{
+						_rule     = rule;
+						_position = position;
+					}
+
+					public bool Equals(Seen_DotGram other)
+					{
+						return _rule == other._rule && _position == other._position;
+					}
+
+					public override bool Equals(object? obj)
+					{
+						return obj is Seen_DotGram other && Equals(other);
+					}
+
+					public override int GetHashCode()
+					{
+						return unchecked(_rule * 397 ^ _position.GetHashCode());
+					}
 				}
 
 				/// <inheritdoc/>
@@ -6287,12 +6074,12 @@ namespace DotGram.Snapshots
 					Readings++;
 					_reads.Add(read);
 					_bases.Add(_open.Count);
-					_seen.Add(new global::System.Collections.Generic.HashSet<long>());
+					_seen.Add(new global::System.Collections.Generic.HashSet<Seen_DotGram>());
 				}
 
 				/// <inheritdoc/>
 				public override void End(
-					GramRead read, int end, int position, string[]? expected,
+					GramRead read, long end, long position, string[]? expected,
 					global::System.Collections.Generic.IReadOnlyList<string[]>? expectedMore)
 				{
 					var last = _reads.Count - 1;
@@ -6310,7 +6097,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Enter(int rule, int position)
+				public override void Enter(int rule, long position)
 				{
 					if (rule < 0)
 						return;
@@ -6320,7 +6107,7 @@ namespace DotGram.Snapshots
 
 					counts.Entries++;
 
-					if (_seen.Count > 0 && !_seen[_seen.Count - 1].Add(((long)rule << 32) | (uint)position))
+					if (_seen.Count > 0 && !_seen[_seen.Count - 1].Add(new Seen_DotGram(rule, position)))
 						counts.Rereads++;
 
 					var depth = _open.Count - (_bases.Count > 0 ? _bases[_bases.Count - 1] : 0) + 1;
@@ -6342,7 +6129,7 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Exit(int rule, int position, int end)
+				public override void Exit(int rule, long position, long end)
 				{
 					var floor = _bases.Count > 0 ? _bases[_bases.Count - 1] : 0;
 
@@ -6360,14 +6147,14 @@ namespace DotGram.Snapshots
 				}
 
 				/// <inheritdoc/>
-				public override void Remembered(int rule, int position)
+				public override void Remembered(int rule, long position)
 				{
 					if (rule >= 0)
 						CountsOf(rule, Quiet).Remembered++;
 				}
 
 				/// <inheritdoc/>
-				public override void Retracted(int rule, int position)
+				public override void Retracted(int rule, long position)
 				{
 					if (rule >= 0)
 						CountsOf(rule, Quiet).Retracted++;
@@ -6378,7 +6165,7 @@ namespace DotGram.Snapshots
 					get { return _reads.Count > 0 && _reads[_reads.Count - 1].Quiet; }
 				}
 
-				void Close(int end, bool counted)
+				void Close(long end, bool counted)
 				{
 					var last = _open.Count - 1;
 					var open = _open[last];
@@ -6720,7 +6507,7 @@ namespace DotGram.Snapshots
 			{
 				internal readonly ParserArena_DotGram Entries = new ParserArena_DotGram();
 				object?[] _values = global::System.Array.Empty<object?>();
-				global::DotGram.Snapshots.Url.Traced.Url[] _values0 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Traced.Url>();
+				global::DotGram.Snapshots.Url.Traced.UrlValue[] _values0 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Traced.UrlValue>();
 				global::DotGram.Snapshots.Url.Traced.Authority[] _values1 = global::System.Array.Empty<global::DotGram.Snapshots.Url.Traced.Authority>();
 				int[] _linkHeads = global::System.Array.Empty<int>();
 				int[] _linkNexts = global::System.Array.Empty<int>();
@@ -6761,7 +6548,7 @@ namespace DotGram.Snapshots
 					return _values;
 				}
 
-				internal global::DotGram.Snapshots.Url.Traced.Url[] Materialization0() { return _values0; }
+				internal global::DotGram.Snapshots.Url.Traced.UrlValue[] Materialization0() { return _values0; }
 				internal global::DotGram.Snapshots.Url.Traced.Authority[] Materialization1() { return _values1; }
 
 				internal int[] MaterializationHeads() => _linkHeads;

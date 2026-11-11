@@ -19,3 +19,7 @@ FIXED
 CHANGED
 
 - The URI, cookie-date, Content-Disposition, Forwarded and Link readers are carried immediately, as the JSON, JSON Pointer, URI Template, timestamp and Set-Cookie readers already were. Values, refusals and messages are as before; a text refused part-way allocates more.
+
+FASTER
+
+- Against 0.2.0 on the release benchmark the readers are about 26% faster at the median (a full URL 36%, a JSON object 30%). A full Link field is 16% slower, with 1.9 times the bytes, and a refused one 11 to 12% slower; a refused language tag is 17 to 20% slower, and a few refusals allocate more.

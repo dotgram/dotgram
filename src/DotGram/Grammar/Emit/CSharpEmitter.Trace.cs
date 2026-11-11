@@ -7,8 +7,8 @@ using DotGram.Grammar.Model;
 namespace DotGram.Grammar.Emit;
 
 /// <summary>
-/// What a trace build numbers: the rules and the guards its events name, and which rules only
-/// forward another's value and so are framed where they were called (GramCompilerOptions.Trace).
+/// What a trace build numbers: the rules and the guards its events name, and the forwarding rules
+/// each node stands for, which are framed where they were called (GramCompilerOptions.Trace).
 /// </summary>
 /// <remarks>
 /// One a compilation, shared by its machines, so that a rule is one number in every reading of
@@ -23,7 +23,6 @@ sealed class TraceTables
 	readonly Dictionary<Node, int> _guards = new(NodeIdentity.Instance);
 	readonly List<string> _guardTexts = [];
 	readonly IReadOnlyDictionary<Node, IReadOnlyList<RuleSymbol>> _frames;
-	readonly HashSet<RuleSymbol> _forwarding = [];
 
 	public TraceTables(RecognitionGraph graph)
 	{
@@ -31,10 +30,6 @@ sealed class TraceTables
 			RuleOf(rule);
 
 		_frames = graph.Forwarded;
-
-		foreach (var chain in _frames.Values)
-			foreach (var rule in chain)
-				_forwarding.Add(rule);
 	}
 
 	/// <summary>Whether a machine calls a scanner, whose rule a trace build enters and leaves around the call.</summary>
@@ -99,15 +94,6 @@ sealed class TraceTables
 
 		foreach (var guard in _guardTexts)
 			text.Append('\t').Append(Quoted(guard)).Append(',').Append(Lines.Ending);
-
-		text.Append("};").Append(Lines.Ending).Append(Lines.Ending);
-
-		text.Append("/// <summary>Which rules only hand on another's value, and are reported where they were called.</summary>").Append(Lines.Ending);
-		text.Append("static readonly bool[] TraceForwarders_DotGram = new bool[]").Append(Lines.Ending);
-		text.Append('{').Append(Lines.Ending);
-
-		foreach (var rule in _named)
-			text.Append('\t').Append(_forwarding.Contains(rule) ? "true" : "false").Append(',').Append(Lines.Ending);
 
 		text.Append("};").Append(Lines.Ending);
 

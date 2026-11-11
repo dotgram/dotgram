@@ -251,7 +251,7 @@ public sealed class YieldFollowTests
 		{
 			var digits     = Selectors[index].Contains(" D", StringComparison.Ordinal) ? "D = ['0'..'9']\n" : "";
 			var element    = $"{digits}I : @string = v: ({Selectors[index]}) => @(Text(v))\n";
-			var positional = Compiled(element + "parse I as P\n", direct, positionalFollow: true).Assembly;
+			var positional = Compiled(element + "positional parse I as P\n", direct, positionalFollow: true).Assembly;
 			var yielded    = Compiled(element.Replace("I :", "I0 :") + "F0 : @string[] = I0*\n" + Published(0, bytes: false), direct);
 
 			// Read by the reader wherever it was asked for, the captured bounded repetition included:

@@ -453,6 +453,31 @@ public sealed class GramLanguageServiceTests
 		Assert.Contains(("private", GramSyntaxKind.Identifier), classified);
 	}
 
+	/// <summary>
+	/// <c>positional</c> is a word before the verb as the access is, coloured where it stands
+	/// there — after the access too, which is not where the directive begins — and a name
+	/// everywhere else.
+	/// </summary>
+	[Fact]
+	public void ClassifiesPositionalOnlyBeforeAPublicationsVerb()
+	{
+		const string source =
+			"Start = positional\n" +
+			"positional = 'p'\n" +
+			"positional parse Start\n" +
+			"internal positional parse Start as ReadStart";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Equal(2, classified.Count(item => item is ("positional", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("internal", GramSyntaxKind.Keyword)));
+		Assert.Equal(2, classified.Count(item => item is ("positional", GramSyntaxKind.Identifier)));
+		Assert.Empty(document.Diagnostics);
+	}
+
 	[Fact]
 	public void IndexesExplicitGeneratedApiNames()
 	{

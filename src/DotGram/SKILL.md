@@ -86,6 +86,10 @@ A rule on its own generates no API. A directive does:
 | `parse R` | the whole input is an `R` | `ParseR` — throws `FormatException`; `TryParseR` — a `Match<R>`, or `bool` with `out R value` for only whether |
 | `find R` | there are `R`s inside other text | `FindR` — a lazy sequence of `Match<R>` |
 | `parse Feed yield : @T` | a complete sequence of consecutive elements | `ParseFeed` — a lazy `IEnumerable<T>` |
+| `positional parse R` | as `parse R`, and an `R` may be read where the caller says it begins | also `TryParseR(input, at)`, `TryParseR(input, at, length)` and their `bool` forms with `ref int at` |
+
+Words before the verb are modifiers of the methods, in this order: the access (`internal`,
+`private`), then `positional`. Words after the rule say what is read and returned.
 
 Named publications accept a public result contract: `parse R : @Base` returns
 `Base` / `Match<Base>` and `find R : @Base` returns `IEnumerable<Match<Base>>`.

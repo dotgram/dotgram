@@ -41,6 +41,7 @@ public sealed class EditorVocabularyTests
 		["public"]    = Publications,
 		["internal"]  = Publications,
 		["private"]   = Publications,
+		["positional"] = Publications,
 		["stream"]    = Publications,
 		["bytes"]     = Publications,
 		["yield"]     = Publications,
@@ -64,7 +65,7 @@ public sealed class EditorVocabularyTests
 
 	const string Publications =
 		"Item : @string = 'a'\nFeed : @string[] = Item*\nPoint = '.'\n" +
-		"public parse Feed with (Point = ',') as Array\n" +
+		"public positional parse Feed with (Point = ',') as Array\n" +
 		"internal parse Feed as Nodes stream bytes yield : @string\n" +
 		"private find Item as Items";
 

@@ -297,7 +297,7 @@ static partial class CSharpEmitter
 		var file    = new Writer(0);
 		var scope   = new Stack<IDisposable>();
 		var scoped  = options.Suffix is { Length: > 0 } ? options.ClassName + "." + options.Suffix : options.ClassName;
-		var results = new ResultTypes(graph, scoped, options.Namespace, traced: options.Trace, lexical: lexical is not null);
+		var results = new ResultTypes(graph, scoped, options.Namespace, lexical: lexical is not null, classes: ClassesOf(options));
 
 		// What a trace build numbers its events by, one table for every machine of the file; null
 		// where the build is not one, which writes nothing of it anywhere.
@@ -376,7 +376,7 @@ static partial class CSharpEmitter
 			Quiets           = quiets,
 			Places           = Places(graph, overKinds, options.BufferedInput),
 			PlacedRecoveries = PlacedRecoveries(graph, overKinds, options.BufferedInput),
-			RereadLocates    = RereadLocates(lexical),
+			Valuing          = ValuingAsksOf(lexical),
 
 			// Over tokens only, which the machine asks itself (Machine.Memo.cs).
 			MemoisesFailures  = options.MemoiseFailures,
@@ -509,6 +509,7 @@ static partial class CSharpEmitter
 			compiled.Machine.CompileRules();
 
 		AddBufferedMachines(graph, results, machines, options, basis, overKinds, diagnostics);
+		AddPositionalMachines(graph, results, machines, woven, directAllowed);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -521,7 +522,7 @@ static partial class CSharpEmitter
 		var valuing = lexical is not null && (lexical.Valued.Count > 0 || Measuring(lexical).Count > 0)
 			? new Machine(
 				lexical.Source,
-				new ResultTypes(lexical.Source, scoped, options.Namespace, lexical: true),
+				new ResultTypes(lexical.Source, scoped, options.Namespace, lexical: true, classes: ClassesOf(options)),
 				new MachineSettings
 				{
 					Lines        = options.LineMap,
@@ -533,6 +534,12 @@ static partial class CSharpEmitter
 					KeepsDoors   = tracing is null,
 				})
 			: null;
+
+		// What the syntactic machines were told that machine would ask for, and what it does: the two have to
+		// agree, or a call into it hands it the wrong arguments (ValuingAsks).
+		if (valuing is not null && ValuingAsks.Of(valuing) != woven.Valuing)
+			throw new InvalidOperationException(
+				$"The machine that reads tokens again asks for {ValuingAsks.Of(valuing)}, and the syntactic machines were told {woven.Valuing}.");
 
 		// Each terminal that builds is a root of its own, and a whole one: the text handed to
 		// it is exactly what the lexer measured, so anything left over is the two machines
@@ -556,6 +563,26 @@ static partial class CSharpEmitter
 			// entered where the beginning ended, and where it stops is the answer.
 			foreach (var rule in Measuring(lexical))
 				valuing.Register(rule, whole: false);
+
+			// A terminal whose value is built by reading its token again runs its guards again then, against the
+			// context as the parse has written it by that time and not as the lexer saw it. Where one of them names
+			// the context the two can answer otherwise — a risk the generator cannot settle, since a context that
+			// holds configuration never changes. A terminal built from its token's text alone is not read again.
+			if (diagnostics is not null)
+				foreach (var rule in lexical.Valued)
+					if (Verbatim(lexical.Source, valuing.Results, rule) is null && GuardsNameContext(lexical, rule))
+						diagnostics.Add(new GramDiagnostic(
+							GramCompiler.RereadContextGuard,
+							$"'{rule.Name}' is read again from its token where its value is built, and a guard it reads names " +
+							"'context': the check runs again then, against the context as the parse has written it by then. " +
+							"Where the context has changed since the token was read, the value can differ from the token the " +
+							"lexer read — another alternative's — or the reading again is refused, which throws. A risk, not " +
+							"a proven error: a guard that reads configuration holding for the whole parse is safe; one that " +
+							"reads what the syntax writes needs the grammar read over characters, without Lexical = true " +
+							"(docs/syntax.md §7.1).",
+							rule.Declaration?.At.Position ?? 0,
+							rule.Declaration?.At.Length ?? 0,
+							GramSeverity.Warning));
 		}
 
 		// Every machine numbers a value type by where it sits in one list, because the parser
@@ -644,20 +671,22 @@ static partial class CSharpEmitter
 		// `partial` so that the pooling hooks it declares have somewhere to be written.
 		// The types the host's own C# names — the span a factory is handed, and the match a
 		// caller reads — belong to the host and not to a compilation of it. Where there are
-		// several they are written here, outside every scope, by the first: a nested class
-		// reads them by their simple names, and a grammar whose `=>` hands a span to a
-		// method of the host would otherwise be handing it a type of the same name that is
-		// not the same type. Unconditionally, because what the others need is not known
-		// here — a struct nothing names costs a compilation nothing.
-		if (options.SharedTypes == true)
+		// several readings no reading writes them: each says what it needs, and the host has
+		// them written once, in a file of its own, where at least one needs them (SharedTypes).
+		// A nested class reads them by their simple names, and a grammar whose `=>` hands a
+		// span to a method of the host hands it the host's span.
+
+		// The span is the one type a host with one reading may hold either way: the reading's class
+		// writes it, unless the author declared a part of it in the host, which the reading's class
+		// then reads it from. Written there rather than beside the reading, so that there is one
+		// span and it is the author's (GramCompilerOptions.SpanDeclaredInReading).
+		var spanNeeded = UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source);
+		var spanShown  = spanNeeded && ShowsSourceSpan(graph, results);
+		var spanInHost = options.Suffix is { Length: > 0 } && options.SpanDeclared;
+
+		if (!options.SharedTypes && spanNeeded && spanInHost)
 		{
-			file.Write(SourceSpanStruct);
-			file.Line();
-			file.Write(OutcomeEnum);
-			file.Line();
-			file.Write(MatchStructOf(graph));
-			file.Line();
-			file.Write(ParserInputTypes);
+			file.Write(SourceSpanOf(declared: true, spanShown));
 			file.Line();
 		}
 
@@ -855,12 +884,16 @@ static partial class CSharpEmitter
 				string Recognizer(RuleSymbol rule)
 				{
 					if (staging is not null)
-						return staging.Publications.Any(one => one.Rule == rule && (one.Kind != PublishKind.Parse || !graph.Segmented))
+						return staging.Publications.Any(one =>
+								one.Rule == rule &&
+								(one.Kind != PublishKind.Parse || one.Positional && !graph.Segmented))
 							? MethodOf(rule)
 							: MethodOf(graph, rule, staging.Machine.Anchor, staging.Tag);
 
-					// Joined publications already share the plain wrapper in this machine.
-					if (compiled is not null && compiled.Publications.Any(one => one.Rule == rule))
+					// Joined publications already share the plain wrapper in this machine, where one
+					// of them reads the rule without demanding the end.
+					if (compiled is not null && compiled.Publications.Any(one =>
+							one.Rule == rule && (one.Kind != PublishKind.Parse || one.Positional)))
 						return MethodOf(rule);
 
 					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? MachineTag.None);
@@ -995,17 +1028,17 @@ static partial class CSharpEmitter
 		}
 		// The source graph too, where there is one: a rule that names a span may have moved
 		// into the second read, and the type it names is the file's either way.
-		if (options.SharedTypes is null && (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source)))
+		if (!options.SharedTypes && spanNeeded && !spanInHost)
 		{
-			file.Write(SourceSpanStruct);
+			file.Write(SourceSpanOf(options.Suffix is { Length: > 0 } ? options.SpanDeclaredInReading : options.SpanDeclared, spanShown));
 			file.Line();
 		}
 
-		if (options.SharedTypes is null && graph.Publications.Count > 0)
+		if (!options.SharedTypes && graph.Publications.Count > 0)
 		{
 			file.Write(OutcomeEnum);
 			file.Line();
-			file.Write(MatchStructOf(graph));
+			file.Write(MatchStructOf(graph.PerCall is not null));
 			file.Line();
 		}
 
@@ -1078,9 +1111,21 @@ static partial class CSharpEmitter
 			}
 		}
 
-		if (options.SharedTypes is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
-			NodeWalk.CallsTheHost(graph, static external => external.UsesInputView)))
+		var inputNeeded = machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
+			NodeWalk.CallsTheHost(graph, static external => external.UsesInputView);
+
+		if (!options.SharedTypes && inputNeeded)
 			file.Write(ParserInputTypes);
+
+		// What this reading reads from the host, where the host writes it for all of its readings.
+		if (options.SharedTypes && context is not null)
+			context.SharedNeeds =
+				(spanNeeded ? SharedNeeds.Span : 0) |
+				(spanShown ? SharedNeeds.SpanShown : 0) |
+				(graph.Publications.Count > 0 ? SharedNeeds.Match : 0) |
+				(graph.Publications.Count > 0 && graph.PerCall is not null ? SharedNeeds.ReadingEnd : 0) |
+				(inputNeeded ? SharedNeeds.Input : 0) |
+				(options.Inherits ? SharedNeeds.Hides : 0);
 
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput))
 		{
@@ -1687,7 +1732,10 @@ static partial class CSharpEmitter
 
 			{
 
-				machine.Register(publication.Rule, publication.Kind == PublishKind.Parse);
+				// A machine that reads only from a position has no whole entry to compile: the whole
+				// reading is the flat machine's, and its root here would be states nothing enters.
+				machine.Register(
+					publication.Rule, publication.Kind == PublishKind.Parse && !compiled.PositionalOnly);
 
 
 
@@ -1847,29 +1895,33 @@ static partial class CSharpEmitter
 
 					continue;
 
-
-
-				file.Write(machine.RenderWrapper(
-
-					publication.Rule,
-
-					whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
-
-					engine,
-
-					whole));
-
-				file.Line();
-
-				// And the same rule entered where the caller says it begins, which is what a
-				// positional overload calls. A grammar that names `eos` publishes no positional overload
-				// (SegmentEmitter), so none calls it. The state is already a root — `Register` adds the
-				// one that demands no end whatever the publication asked for — so this is a
-				// wrapper over it and nothing more.
-				if (whole && !graph.Segmented && wrappers.Add((publication.Rule, false)))
+				// A machine that reads only from a position has no whole form to call this.
+				if (!compiled.PositionalOnly)
 				{
 					file.Write(machine.RenderWrapper(
-						publication.Rule, MethodOf(publication.Rule), engine, whole: false));
+						publication.Rule,
+						whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule),
+						engine,
+						whole));
+
+					file.Line();
+				}
+
+				// And the same rule entered where the caller says it begins, which is what a
+				// positional overload calls: only where the directive asked for one (§6.3). A
+				// grammar that names `eos` publishes no positional overload (SegmentEmitter), so none
+				// calls it. The state is already a root — `Register` adds the one that demands no
+				// end whatever the publication asked for — so this is a wrapper over it and nothing
+				// more.
+				// Asked of the rule, not of this directive: two may publish it, one of them positional.
+				var positional = compiled.Publications.Any(one =>
+					one.Rule == publication.Rule && one.Kind == PublishKind.Parse && one.Positional);
+
+				if (whole && positional && !graph.Segmented && wrappers.Add((publication.Rule, false)))
+				{
+					file.Write(machine.RenderWrapper(
+						publication.Rule, EntryOf(publication.Rule, false, compiled.Tag), engine,
+						whole: false));
 
 					file.Line();
 				}
@@ -2025,6 +2077,14 @@ static partial class CSharpEmitter
 		var state = compiled.Machine.UsesContext ? graph.Context : null;
 		var takes = state is null ? "" : $", {state} context";
 		var gives = state is null ? "" : ", context";
+
+		// What the tokenizer is handed to hand on where it measures a terminal over its text: the context and the
+		// reading this parser is, where that machine asks for them (ValuingAsks). A cutting whose measuring reads
+		// the context is this parse's and not the string's, so it is not kept for the next reading of the same
+		// string (CuttingAsks); one that reads only the reading is kept beside it.
+		var cutting = compiled.Machine.Valuing.Arguments(
+			"context", publication.Reading.ToString(System.Globalization.CultureInfo.InvariantCulture), locating: null);
+		var keeps   = !CuttingAsks(lexical).Context;
 
 		// Which reading of the grammar this publication is (`when … is …`), where the machine it
 		// shares with the others asks. A number and not an argument the caller writes: the
@@ -2250,44 +2310,50 @@ static partial class CSharpEmitter
 			return;
 		}
 
-		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
-		file.Line("/// <exception cref=\"global::System.FormatException\">");
-		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
-		file.Line("/// </exception>");
-
-		using (file.Block($"{AccessOf(publication)} static {value} {method}(string input{takes})"))
+		// A machine that reads only from a position leaves the whole forms to the flat one.
+		if (!compiled.PositionalOnly)
 		{
-			file.Line($"var match = Try{method}(input{gives});");
+			file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
+			file.Line("/// <exception cref=\"global::System.FormatException\">");
+			file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
+			file.Line("/// </exception>");
+
+			using (file.Block($"{AccessOf(publication)} static {value} {method}(string input{takes})"))
+			{
+				file.Line($"var match = Try{method}(input{gives});");
+				file.Line();
+				file.Line("if (match.IsSuccess)");
+				file.Then("return match.Value;");
+				file.Line();
+				ThrowRefusal(file, publication.Joined ? "input" : null);
+			}
+
 			file.Line();
-			file.Line("if (match.IsSuccess)");
-			file.Then("return match.Value;");
+			file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
+
+			Asking("string input", positional: false);
+
 			file.Line();
-			ThrowRefusal(file, publication.Joined ? "input" : null);
+			Answering(positional: false);
 		}
-
-		file.Line();
-		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
-
-		Asking("string input", positional: false);
-
-		file.Line();
-		Answering(positional: false);
 
 		// And the same rule read where the caller says it begins. No end of input is
 		// demanded — what comes back says how far the reading got — which is what lets a
 		// host read one piece of a text it is already holding, with every position in it
 		// still meaning what it meant.
 		//
-		// Offered where the rules are read by the engine or by methods. A lowered publication
-		// was compiled with the single entry a whole parse asks for — its rules were proved to
-		// need nothing more only against the end of the input — so it has no entry for these
-		// to call. §6.3 says so, and the grammar is not told on every compilation: the
-		// overload's absence is plain where it is called, and nothing in the grammar is wrong.
-		// Over segments a position is the caller's to make only by joining the segments, which is the
-		// parser's to do: no form begins where it is told.
-		if (!flat && !publication.Joined)
+		// Written where the directive says `positional`, and only there: whether the rules are
+		// read by methods, by the engine or by one flat method does not decide it (§6.3). A
+		// lowered publication was compiled with the single entry a whole parse asks for — its
+		// rules were proved to need nothing more only against the end of the input — so its
+		// forms from a position are written by the machine beside it (AddPositionalMachines),
+		// and not here. Over segments a position is the caller's to make only by joining the
+		// segments, which is the parser's to do: no form begins where it is told (GRAM4055).
+		if (publication.Positional && !flat && !publication.Joined)
 		{
-			file.Line();
+			if (!compiled.PositionalOnly)
+				file.Line();
+
 			file.Line($"/// <summary>Reads a <c>{name}</c> beginning at <paramref name=\"at\"/>.</summary>");
 			file.Line("/// <remarks>");
 			file.Line("/// The input is not required to end there: what comes back says where the");
@@ -2299,7 +2365,7 @@ static partial class CSharpEmitter
 			file.Line("/// </remarks>");
 
 			begins   = overKinds ? "from" : "at";
-			reader   = MethodOf(publication.Rule);
+			reader   = EntryOf(publication.Rule, false, compiled.Tag);
 			// The reading may have begun past the position it was handed: over kinds the trivia
 			// between two tokens is the lexer's to skip, and over characters the entry reads the
 			// trivia at the position and says where it ended (§6.3).
@@ -2354,7 +2420,7 @@ static partial class CSharpEmitter
 			// A reading that begins where it is told cuts the whole input, and the cutting is kept
 			// for the next reading of the same string (Tokenized_DotGram), so what it holds is never
 			// handed back to the pool here.
-			var kept = positional && !windowed;
+			var kept = positional && !windowed && keeps;
 
 			var parameters = positional
 				? windowed ? "string input, ref int at, int length" : "string input, ref int at"
@@ -2391,10 +2457,10 @@ static partial class CSharpEmitter
 				{
 					file.Line("var source = input;");
 					file.Line(windowed
-						? "var tokens = Tokenize_DotGram(source, at, at + length, true);"
+						? $"var tokens = Tokenize_DotGram(source, at, at + length, true{cutting});"
 						: kept
-							? "var tokens = Tokenized_DotGram(source);"
-							: "var tokens = Tokenize_DotGram(source);");
+							? $"var tokens = Tokenized_DotGram(source{cutting});"
+							: $"var tokens = Tokenize_DotGram(source{cutting});");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
@@ -2559,7 +2625,7 @@ static partial class CSharpEmitter
 		void Asking(string parameters, bool positional, bool windowed = false)
 		{
 			// As in Answering: what the cutting cache holds is not recycled here.
-			var kept = positional && !windowed;
+			var kept = positional && !windowed && keeps;
 
 			// The positional form takes a parameter called `at`, so what the body would have
 			// called the place it stopped is called something else there. Only there: the
@@ -2599,10 +2665,10 @@ static partial class CSharpEmitter
 				{
 					file.Line("var source = input;");
 					file.Line(windowed
-						? "var tokens = Tokenize_DotGram(source, at, at + length, true);"
+						? $"var tokens = Tokenize_DotGram(source, at, at + length, true{cutting});"
 						: kept
-							? "var tokens = Tokenized_DotGram(source);"
-							: "var tokens = Tokenize_DotGram(source);");
+							? $"var tokens = Tokenized_DotGram(source{cutting});"
+							: $"var tokens = Tokenize_DotGram(source{cutting});");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
@@ -3298,90 +3364,138 @@ file.Line("return spare;");
 		file.Line("/// the input stopped being this language.");
 		file.Line("/// </remarks>");
 
-		file.Line();
-		file.Line("/// <summary>The inputs whose kinds this thread still holds, and the kinds it holds for them.</summary>");
-		file.Line("/// <remarks>");
-		file.Line("/// A reading that begins where it is told cuts the whole input into kinds, and a host");
-		file.Line("/// reading one value after another from one text would cut it again for every value:");
-		file.Line("/// the text once per value is the square of the text. So the last cutting is kept and");
-		file.Line("/// handed back where the next reading comes with the same string.");
-		file.Line("/// </remarks>");
-		file.Line("/// <remarks>");
-		file.Line("/// Two of them, and not one. A host alternating between two documents would otherwise");
-		file.Line("/// hold neither, and a parse reached from inside a factory of another — reading its own");
-		file.Line("/// text — would push out the reading that called it and give the square back.");
-		file.Line("/// </remarks>");
-		file.Line("/// <remarks>");
-		file.Line("/// The input is held weakly and the kinds strongly: the kinds are as long as the text,");
-		file.Line("/// and a thread-static holding a document nobody else has is the leak this is not.");
-		file.Line("/// Where the input is gone, so are its kinds, at the next reading that looks.");
-		file.Line("/// A cutting that leaves a slot is let go of and never pooled: the reading it was");
-		file.Line("/// cut for may still be holding it, and a pooled set is written over by the next.");
-		file.Line("/// A string only: what a caller may write into between two readings — an array of");
-		file.Line("/// bytes, a memory — would make a kept cutting a lie, so the byte forms keep none.");
-		file.Line("/// </remarks>");
-		file.Line("[global::System.ThreadStatic]");
-		file.Line("static global::System.WeakReference<string>[]? _cutInputs;");
-		file.Line();
-		file.Line("[global::System.ThreadStatic]");
-		file.Line("static Tokens_DotGram?[]? _cutTokens;");
-		file.Line();
-		file.Line("[global::System.ThreadStatic]");
-		file.Line("static int _cutNext;");
-		file.Line();
-		file.Line("/// <summary>The whole input as kinds, cut now or kept from the reading before this one.</summary>");
+		// What the tokenizer is handed to hand on to the machine that measures a terminal over its text (ValuingAsks),
+		// and the same handed on. A cutting whose measuring reads the context is the parse's and not the string's:
+		// it is not kept for the next reading of the same string, so there is nothing to keep it in. One whose
+		// measuring tests the reading is kept beside the reading it was cut as (CuttingAsks).
+		var asks      = valuing is null ? default : ValuingAsks.Of(valuing);
+		var taken     = asks.Parameters(lexical.Source.Context, locating: false);
+		var handed    = asks.Arguments("context", "parserReading", locating: null);
+		var cuts      = CuttingAsks(lexical);
+		var byReading = cuts.Reading;
 
-		using (file.Block("static Tokens_DotGram Tokenized_DotGram(string input)"))
+		// The kept cutting is what a reading from a position cuts the input with, and a grammar
+		// none of whose directives asks for one has no use for it.
+		var whole = file;
+
+		file = new Writer(whole.Depth);
+
+		if (!cuts.Context)
 		{
-			file.Line("var inputs = _cutInputs;");
-			file.Line("var kept   = _cutTokens;");
+			file.Line();
+			file.Line("/// <summary>The inputs whose kinds this thread still holds, and the kinds it holds for them.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// A reading that begins where it is told cuts the whole input into kinds, and a host");
+			file.Line("/// reading one value after another from one text would cut it again for every value:");
+			file.Line("/// the text once per value is the square of the text. So the last cutting is kept and");
+			file.Line("/// handed back where the next reading comes with the same string.");
+			file.Line("/// </remarks>");
+			file.Line("/// <remarks>");
+			file.Line("/// Two of them, and not one. A host alternating between two documents would otherwise");
+			file.Line("/// hold neither, and a parse reached from inside a factory of another — reading its own");
+			file.Line("/// text — would push out the reading that called it and give the square back.");
+			file.Line("/// </remarks>");
+			file.Line("/// <remarks>");
+			file.Line("/// The input is held weakly and the kinds strongly: the kinds are as long as the text,");
+			file.Line("/// and a thread-static holding a document nobody else has is the leak this is not.");
+			file.Line("/// Where the input is gone, so are its kinds, at the next reading that looks.");
+			file.Line("/// A cutting that leaves a slot is let go of and never pooled: the reading it was");
+			file.Line("/// cut for may still be holding it, and a pooled set is written over by the next.");
+			file.Line("/// A string only: what a caller may write into between two readings — an array of");
+			file.Line("/// bytes, a memory — would make a kept cutting a lie, so the byte forms keep none.");
+			file.Line("/// </remarks>");
+			file.Line("[global::System.ThreadStatic]");
+			file.Line("static global::System.WeakReference<string>[]? _cutInputs;");
+			file.Line();
+			file.Line("[global::System.ThreadStatic]");
+			file.Line("static Tokens_DotGram?[]? _cutTokens;");
+			file.Line();
+			file.Line("[global::System.ThreadStatic]");
+			file.Line("static int _cutNext;");
 			file.Line();
 
-			using (file.Block("if (inputs != null && kept != null)"))
-			using (file.Block("for (var slot = 0; slot < inputs.Length; slot++)"))
+			if (byReading)
 			{
-				file.Line("var held = inputs[slot];");
+				file.Line("/// <summary>The reading each kept cutting was cut as: what it measured asks which one it is.</summary>");
+				file.Line("[global::System.ThreadStatic]");
+				file.Line("static int[]? _cutReadings;");
 				file.Line();
-				file.Line("if (held == null || kept[slot] == null)");
-				file.Then("continue;");
+			}
+
+			file.Line("/// <summary>The whole input as kinds, cut now or kept from the reading before this one.</summary>");
+
+			using (file.Block($"static Tokens_DotGram Tokenized_DotGram(string input{taken})"))
+			{
+				file.Line("var inputs = _cutInputs;");
+				file.Line("var kept   = _cutTokens;");
+
+				if (byReading)
+					file.Line("var cutAs  = _cutReadings;");
+
 				file.Line();
 
-				using (file.Block("if (!held.TryGetTarget(out var was))"))
+				using (file.Block(byReading ? "if (inputs != null && kept != null && cutAs != null)" : "if (inputs != null && kept != null)"))
+				using (file.Block("for (var slot = 0; slot < inputs.Length; slot++)"))
 				{
-					file.Line("// The text is gone and its kinds go with it — dropped and not pooled: a");
-					file.Line("// reading that took these kinds may still be reading them.");
-					file.Line("inputs[slot] = null!;");
-					file.Line("kept[slot]   = null;");
+					file.Line("var held = inputs[slot];");
 					file.Line();
-					file.Line("continue;");
+					file.Line("if (held == null || kept[slot] == null)");
+					file.Then("continue;");
+					file.Line();
+
+					using (file.Block("if (!held.TryGetTarget(out var was))"))
+					{
+						file.Line("// The text is gone and its kinds go with it — dropped and not pooled: a");
+						file.Line("// reading that took these kinds may still be reading them.");
+						file.Line("inputs[slot] = null!;");
+						file.Line("kept[slot]   = null;");
+						file.Line();
+						file.Line("continue;");
+					}
+
+					file.Line();
+					file.Line(byReading ? "if (ReferenceEquals(was, input) && cutAs[slot] == parserReading)" : "if (ReferenceEquals(was, input))");
+					file.Then("return kept[slot]!;");
 				}
 
 				file.Line();
-				file.Line("if (ReferenceEquals(was, input))");
-				file.Then("return kept[slot]!;");
-			}
+				file.Line($"var tokens = Tokenize_DotGram(input, 0, input.Length, true{handed});");
+				file.Line();
+				file.Line("inputs ??= _cutInputs = new global::System.WeakReference<string>[2];");
+				file.Line("kept   ??= _cutTokens = new Tokens_DotGram?[2];");
 
-			file.Line();
-			file.Line("var tokens = Tokenize_DotGram(input, 0, input.Length, true);");
-			file.Line();
-			file.Line("inputs ??= _cutInputs = new global::System.WeakReference<string>[2];");
-			file.Line("kept   ??= _cutTokens = new Tokens_DotGram?[2];");
-            file.Line();
-			file.Line("var next = _cutNext;");
-			file.Line();
-			file.Line("_cutNext = next + 1 == inputs.Length ? 0 : next + 1;");
-			file.Line();
-			file.Line("// What was in the slot is let go of and not pooled. A reading that took it is");
-			file.Line("// still holding it — this very cutting may be one its own factory asked for —");
-			file.Line("// and a pooled set is written over by the next cutting, under the reading.");
-			file.Line("inputs[next] = new global::System.WeakReference<string>(input);");
-			file.Line("kept[next]   = tokens;");
-			file.Line();
-			file.Line("return tokens;");
+				if (byReading)
+					file.Line("cutAs  ??= _cutReadings = new int[2];");
+
+				file.Line();
+				file.Line("var next = _cutNext;");
+				file.Line();
+				file.Line("_cutNext = next + 1 == inputs.Length ? 0 : next + 1;");
+				file.Line();
+				file.Line("// What was in the slot is let go of and not pooled. A reading that took it is");
+				file.Line("// still holding it — this very cutting may be one its own factory asked for —");
+				file.Line("// and a pooled set is written over by the next cutting, under the reading.");
+				file.Line("inputs[next] = new global::System.WeakReference<string>(input);");
+				file.Line("kept[next]   = tokens;");
+
+				if (byReading)
+					file.Line("cutAs[next]  = parserReading;");
+
+				file.Line();
+				file.Line("return tokens;");
+			}
 		}
 
 		file.Line();
-		file.Line("static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length, false);");
+
+		if (lexical.Source.Publications.Any(static one => one.Positional))
+			whole.Write(file.ToString());
+		else
+			whole.Line();
+
+		file = whole;
+
+		file.Line($"static Tokens_DotGram Tokenize_DotGram(string input{taken}) => Tokenize_DotGram(input, 0, input.Length, false{handed});");
 		file.Line();
 		file.Line("/// <summary>The kinds between two offsets of the input, with where each one was.</summary>");
 		file.Line("/// <remarks>");
@@ -3397,7 +3511,7 @@ file.Line("return spare;");
 		file.Line("/// the text.");
 		file.Line("/// </remarks>");
 
-		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input, int from, int to, bool through)"))
+		using (file.Block($"static Tokens_DotGram Tokenize_DotGram(string input, int from, int to, bool through{taken})"))
 		{
 			file.Line("var tokens = Rented_DotGram();");
 			file.Line();
@@ -3533,6 +3647,12 @@ file.Line("return spare;");
 				// standing in the beginning (TerminalInventory.Continuation.FromStart).
 				var continued = 0;
 
+				// What a measuring is handed besides the text: whatever that machine asks for — the whole input, the
+				// context and the reading the tokenizer was handed, and, where locations are decided per call, that this
+				// reading does not locate: it builds no value, so there is nothing to offer a location to
+				// (RecognitionGraph.PerCall).
+				var measuring = valuing is null ? "" : valuing.Handing("input", "context", "parserReading", "-1");
+
 				// Where a keyword is taken back below, the shorter token found instead may be one
 				// of these too, and is measured as the first was.
 				var remeasured = lexical.Inventory.Asked.Count > 0 && lexical.Inventory.Continued.Count > 0;
@@ -3597,7 +3717,7 @@ file.Line("return spare;");
 								// terminal's value may be a piece of the text it has to read again later.
 								file.Line(
 									$"var measured = {Named("Measure", IdentifierOf(rule))}(text, {from}, ref failure{output}" +
-									$"{(valuing!.UsesInput ? ", input" : "")});");
+									$"{measuring});");
 								file.Line();
 
 								// A terminal that binds text: its rule decides the token, from the
@@ -3633,7 +3753,7 @@ file.Line("return spare;");
 											file.Line();
 											file.Line(
 												$"{Named("Measure", IdentifierOf(rule))}(text, {from}, ref again{output}" +
-												$"{(valuing!.UsesInput ? ", input" : "")});");
+												$"{measuring});");
 											file.Line();
 											file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
 										}
@@ -3651,7 +3771,7 @@ file.Line("return spare;");
 										file.Line();
 										file.Line(
 											$"{Named("Measure", IdentifierOf(rule))}(text, {from}, ref again{output}" +
-											$"{(valuing!.UsesInput ? ", input" : "")});");
+											$"{measuring});");
 										file.Line();
 										file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
 									}
@@ -3704,7 +3824,7 @@ file.Line("return spare;");
 								file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
 								file.Line(
 									$"var measured = {Named("Measure", IdentifierOf(rule))}(text, {from}, ref failure{output}" +
-									$"{(valuing!.UsesInput ? ", input" : "")});");
+									$"{measuring});");
 							}
 							else
 							{
@@ -3951,7 +4071,10 @@ file.Line("return spare;");
 	/// <c>public</c>, unlike the support types of §6.1 — those are shared between
 	/// assemblies and so have a version to skew, while this one is generated from the
 	/// grammar it belongs to, in the assembly that uses it. That is what lets a published
-	/// method hand it back.
+	/// method hand it back. Its constructor is <c>internal</c>: its parameters are the captures in the
+	/// order the grammar writes them, so two captures of one type swapped in the grammar would swap
+	/// what a caller outside passes without a word from the compiler. The parser builds it, and code
+	/// beside the grammar may; a caller reads it.
 	/// </remarks>
 	static void EmitResultType(Writer file, RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
@@ -3971,7 +4094,7 @@ file.Line("return spare;");
 
 			file.Line($"/// <summary>Builds what the rule <c>{rule.Name}</c> recognized from its captures.</summary>");
 
-			using (file.Block($"public {name}({string.Join(", ", parameters)})"))
+			using (file.Block($"internal {name}({string.Join(", ", parameters)})"))
 				foreach (var member in members)
 					file.Line($"{ResultTypes.PropertyOf(member, name)} = {ResultTypes.ParameterOf(member)};");
 
@@ -4735,6 +4858,106 @@ file.Line("return spare;");
 					}
 
 		return graph.Recoveries.Count > 0;
+	}
+
+	/// <summary>
+	/// The span as the generated part declares it: <c>public</c> where a public signature the
+	/// generator writes names it, <c>internal</c> where none does — a span the grammar's own C#
+	/// is handed, or a rule's value the host reads, is the host's business and not its callers'
+	/// — and with nothing said of its own where the host declares a part of it, whose
+	/// accessibility is then the author's (GramCompilerOptions.SpanDeclared).
+	/// </summary>
+	/// <remarks>
+	/// <c>partial</c> always, so that a host can raise it with <c>public partial struct
+	/// SourceSpan { }</c>. The <c>readonly</c> of the generated part makes the struct readonly
+	/// whatever the author's part says.
+	/// </remarks>
+	static string SourceSpanOf(bool declared, bool shown)
+	{
+		var access = declared ? "" : shown ? "public " : "internal ";
+
+		return SourceSpanStruct.Replace("{{access}}", access);
+	}
+
+	/// <summary>
+	/// The file a host with several readings has of its own: the types its readings read from the
+	/// host — the span, the match and the input a recognizer reads — each written where at least
+	/// one reading needs it (<see cref="GramCompilation.SharedNeeds"/>), in the host's namespace
+	/// and chain of classes.
+	/// </summary>
+	/// <remarks>
+	/// Written apart from every reading's file because what one reading needs is known only once
+	/// it is compiled, and the readings are compiled apart; the generator, which sees all of them,
+	/// joins what they say. So what the host declares does not depend on how many readings it has:
+	/// a second reading adds a type to the host only where it needs one the first did not.
+	/// </remarks>
+	/// <param name="spanDeclared">Whether the host declares a part of the span itself (GramCompilerOptions.SpanDeclared).</param>
+	internal static string SharedTypes(string? @namespace, string className, SharedNeeds needs, bool spanDeclared)
+	{
+		var file  = new Writer(0);
+		var scope = new Stack<IDisposable>();
+
+		file.Line("// <auto-generated/>");
+		file.Line("#nullable enable");
+
+		// A dialect's types hide the base's of the same names, on purpose, as in its readings' files.
+		if ((needs & SharedNeeds.Hides) != 0)
+			file.Line("#pragma warning disable CS0108 // a dialect hides what it inherits, on purpose");
+
+		file.Line();
+
+		if (@namespace is not null)
+			scope.Push(file.Block($"namespace {@namespace}"));
+
+		foreach (var part in className.Split('.'))
+			scope.Push(file.Block($"partial class {part}"));
+
+		if ((needs & SharedNeeds.Span) != 0)
+		{
+			file.Write(SourceSpanOf(spanDeclared, (needs & SharedNeeds.SpanShown) != 0));
+			file.Line();
+		}
+
+		if ((needs & SharedNeeds.Match) != 0)
+		{
+			file.Write(OutcomeEnum);
+			file.Line();
+			file.Write(MatchStructOf((needs & SharedNeeds.ReadingEnd) != 0));
+			file.Line();
+		}
+
+		if ((needs & SharedNeeds.Input) != 0)
+			file.Write(ParserInputTypes);
+
+		while (scope.Count > 0)
+			scope.Pop().Dispose();
+
+		return file.ToString();
+	}
+
+	/// <summary>
+	/// Whether a public signature the generator writes names the span: the value of a
+	/// publication declared public, and a property of a rule's generated type.
+	/// </summary>
+	static bool ShowsSourceSpan(RecognitionGraph graph, ResultTypes results)
+	{
+		foreach (var publication in graph.Publications)
+			if (AccessOf(publication) == "public" &&
+				(NamesSpan(results.ValueOf(publication.Rule)) || publication.ResultType is { } contract && NamesSpan(contract.Name)))
+				return true;
+
+		foreach (var rule in results.Built)
+			foreach (var member in graph.Results[rule])
+				if (NamesSpan(results.ValueOf(member)))
+					return true;
+
+		return false;
+	}
+
+	/// <summary>Whether a type as the grammar writes it is the span, or holds it (<c>SourceSpan[]</c>, <c>List&lt;SourceSpan&gt;</c>).</summary>
+	static bool NamesSpan(string type)
+	{
+		return System.Text.RegularExpressions.Regex.IsMatch(type, @"(?<![\w.])@?SourceSpan\b");
 	}
 
 	internal static bool Asks(Machine.Factory factory, string name)
@@ -5725,13 +5948,82 @@ file.Line("return spare;");
 	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>
+	/// <param name="PositionalOnly">
+	/// Whether the machine reads only the forms of its publications that begin where they are told
+	/// (<see cref="AddPositionalMachines"/>): their whole forms are the flat machine's.
+	/// </param>
 	sealed record Compiled(
 		Machine Machine,
 		IReadOnlyList<Publication> Publications,
 		string Engine,
 		MachineTag Tag,
 		bool Flat,
-		bool Direct = false);
+		bool Direct = false,
+		bool PositionalOnly = false);
+
+	/// <summary>
+	/// A second machine for the <c>positional</c> publications of each flat one, which reads them
+	/// from a position and inside a window.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A lowered publication is compiled with the one entry a whole parse asks for: its rules were
+	/// proved to need nothing more only against the end of the input. The forms the directive asked
+	/// for begin anywhere and end anywhere, so they are read by a machine of their own, by methods
+	/// where the rules can be and by the engine where they cannot, as they would be with no flat
+	/// path at all. The flat path stays the whole parse's: asking for a position must not slow the
+	/// call that reads the whole input, and what it costs is the size of the second machine, which
+	/// the author asked for.
+	/// </para>
+	/// <para>
+	/// Its entries are named for its tag (<see cref="EntryOf"/>), so they meet neither the flat
+	/// methods nor a <c>find</c> of the same rule, which the flat machine enters by the plain name.
+	/// </para>
+	/// </remarks>
+	static void AddPositionalMachines(
+		RecognitionGraph graph, ResultTypes results, List<Compiled> machines, MachineSettings woven,
+		bool directAllowed)
+	{
+		var count = machines.Count;
+
+		for (var index = 0; index < count; index++)
+		{
+			var flat = machines[index];
+
+			if (!flat.Flat)
+				continue;
+
+			var asked = flat.Publications
+				.Where(static one => one.Positional && one.Kind == PublishKind.Parse)
+				.ToList();
+
+			if (asked.Count == 0)
+				continue;
+
+			var reached = new HashSet<RuleSymbol>(
+				asked.SelectMany(one => Reaches(graph, one.Rule)));
+			var tag     = new MachineTag(PositionalVariant, flat.Tag.Id);
+			var machine = new Machine(graph, results, woven with
+			{
+				Only             = graph.Rules.Where(reached.Contains).ToArray(),
+				Tag              = tag,
+				PositionalOnly   = true,
+				DeferCompilation = true,
+			});
+
+			machine.Anchor = asked[0].Rule;
+
+			var direct = directAllowed && machine.CanDirect(asked);
+
+			machine.CompileRules();
+
+			machines.Add(new Compiled(
+				machine, asked, tag.Named("Recognize"), tag, false, direct, PositionalOnly: true));
+		}
+	}
+
+	/// <summary>The tag variant of a machine of <see cref="AddPositionalMachines"/>.</summary>
+	const string PositionalVariant = "At";
 
 	/// <summary>
 	/// The published rules, each with its own publications, in the order they were written.
@@ -5913,10 +6205,11 @@ file.Line("return spare;");
 	/// runs with the captures it was written against.
 	/// </para>
 	/// <para>
-	/// It cannot fail and is not asked to: the extent is known, and the lexer accepted it by
-	/// this very rule. A refusal would mean the two machines disagree about a language they
-	/// were built from one grammar, so the value comes back as the type's default and the
-	/// parse carries on rather than a parser throwing at its own inconsistency.
+	/// It is not expected to fail: the extent is known, and the lexer accepted it by this very
+	/// rule. It can fail only when a check on the way reads something that changed after the
+	/// token was cut (a guard over the context, say); the value then cannot be built, and the
+	/// parser throws an <see cref="System.InvalidOperationException"/> naming the terminal and
+	/// where it was read, rather than hand back a default the grammar never produced.
 	/// </para>
 	/// </remarks>
 	/// <summary>
@@ -6061,9 +6354,9 @@ file.Line("return spare;");
 
 			// Where the token is the whole of what the construction can be told, there is
 			// nothing to read again and the construction is called on the text itself.
-			// Where locations are decided per call, the caller says whether this reading locates, and the
-			// reading again is told the same (Machine.TokenOf).
-			var locates = valuing.UsesLocating ? ", int parserLocating" : "";
+			// The caller hands on what the reading again asks for (ValuingAsks, Machine.TokenOf): the context and
+			// the reading, and, where locations are decided per call, whether this reading locates.
+			var locates = ValuingAsks.Of(valuing).Parameters(lexical.Source.Context, locating: true);
 
 			if (Verbatim(lexical.Source, valuing.Results, rule) is { } made)
 			{
@@ -6115,7 +6408,7 @@ file.Line("return spare;");
 			// the end of the span says it was the token that was read.
 			using (file.Block($"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length{locates})"))
 			{
-				var input = (valuing.UsesInput ? ", source" : "") + (valuing.UsesLocating ? ", parserLocating" : "");
+				var input = valuing.Handing("source", "context", "parserReading", "parserLocating");
 				var text  = "global::System.MemoryExtensions.AsSpan(source, 0, at + length)";
 
 				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
@@ -6133,7 +6426,18 @@ file.Line("return spare;");
 				}
 
 				file.Line();
-				file.Line($"return {read}({text}, at, ref failure, out {type} value{input}) < 0 ? default! : value;");
+
+				// The lexer read the token as this rule: a reading again that refuses it is the two readings
+				// disagreeing — a guard that answers otherwise by now (GRAM5019) — and not a value to make up.
+				using (file.Block($"if ({read}({text}, at, ref failure, out {type} value{input}) < 0)"))
+					file.Line(
+						"throw new global::System.InvalidOperationException(" +
+						$"\"The {rule.Name} token read at \" + " +
+						"at.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + " +
+						"\" was refused when read again for its value: a check in it answered otherwise by then.\");");
+
+				file.Line();
+				file.Line("return value;");
 			}
 
 			file.Line();
@@ -6296,12 +6600,76 @@ file.Line("return spare;");
 	}
 
 	/// <summary>
-	/// Whether the value of a terminal read again over its text asks whether the reading locates: what
-	/// the machine that reads it again over characters asks (<c>Machine.UsesLocating</c>).
+	/// What the tokens a publication cuts depend on besides the string: the context, where what the tokenizer measures
+	/// reads it, and the reading, where what it measures tests it. Not what the machine that measures takes — that is
+	/// every parameter any of its methods takes (<see cref="ValuingAsks"/>), and a context named only where a value is
+	/// built is handed to the tokenizer and read by nothing it runs.
 	/// </summary>
-	static bool RereadLocates(LexicalSplit? lexical)
+	/// <remarks>
+	/// <para>
+	/// A cutting that depends on neither is the string's, and is kept for the next reading of it; one that depends on the
+	/// reading only is kept beside the reading it was cut as, which is a number of the publication's; one that depends on
+	/// the context is not kept at all. Its identity would not do: the same object may say otherwise by the next reading.
+	/// </para>
+	/// <para>
+	/// A measuring builds no value, so a construction that names the context runs only where a guard asks for the value
+	/// so far; where anything measured holds both, the cutting is taken to read the context.
+	/// </para>
+	/// </remarks>
+	static (bool Context, bool Reading) CuttingAsks(LexicalSplit? lexical)
 	{
-		return lexical is not null && lexical.Source.PerCall is not null && lexical.Source.Located.Count > 0;
+		if (lexical is null)
+			return default;
+
+		var graph   = lexical.Source;
+		var context = false;
+		var reading = false;
+		var guarded = false;
+		var built   = false;
+
+		foreach (var rule in Reached(lexical, Measuring(lexical)))
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				foreach (var node in NodeWalk.Reading(body, graph))
+				{
+					guarded |= node is Node.Guard;
+					reading |= node is Node.Reading;
+
+					if (Machine.NamesContext(graph, node))
+					{
+						if (node is Node.Construct)
+							built = true;
+						else
+							context = true;
+					}
+				}
+
+		return (context || built && guarded, reading);
+	}
+
+	/// <summary>
+	/// What the machine that reads a terminal again over its text will ask of every call into it, worked out before it is
+	/// made: the syntactic machine, made first, has to have it in scope (<see cref="ValuingAsks"/>). The same questions
+	/// that machine asks itself, over the rules it reads (<c>Machine.UsesContext</c>, <c>Machine.UsesReading</c>,
+	/// <c>Machine.UsesLocating</c>), and checked against its answers once it is made.
+	/// </summary>
+	static ValuingAsks ValuingAsksOf(LexicalSplit? lexical)
+	{
+		if (lexical is null)
+			return default;
+
+		var graph   = lexical.Source;
+		var context = false;
+		var reading = false;
+
+		foreach (var rule in Rereads(lexical))
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				foreach (var node in NodeWalk.Reading(body, graph))
+				{
+					context |= Machine.NamesContext(graph, node);
+					reading |= node is Node.Reading;
+				}
+
+		return new ValuingAsks(context, reading, graph.PerCall is not null && graph.Located.Count > 0);
 	}
 
 	/// <summary>The host's call measuring a terminal's rest, moving <c>measured</c> on.</summary>
@@ -6327,8 +6695,30 @@ file.Line("return spare;");
 
 	static HashSet<RuleSymbol> Rereads(LexicalSplit lexical)
 	{
+		return Reached(lexical, lexical.Valued.Concat(Measuring(lexical)));
+	}
+
+	/// <summary>
+	/// Whether a guard of a rule, or of a rule it reaches, names the grammar's context.
+	/// </summary>
+	static bool GuardsNameContext(LexicalSplit lexical, RuleSymbol rule)
+	{
+		var graph = lexical.Source;
+
+		foreach (var reached in Reached(lexical, [rule]))
+			if (graph.Bodies.TryGetValue(reached, out var body))
+				foreach (var node in NodeWalk.Reading(body, graph))
+					if (node is Node.Guard && Machine.NamesContext(graph, node))
+						return true;
+
+		return false;
+	}
+
+	/// <summary>The rules of the graph over characters that these reach, these among them.</summary>
+	static HashSet<RuleSymbol> Reached(LexicalSplit lexical, IEnumerable<RuleSymbol> from)
+	{
 		var reached = new HashSet<RuleSymbol>();
-		var pending = new Stack<RuleSymbol>(lexical.Valued.Concat(Measuring(lexical)));
+		var pending = new Stack<RuleSymbol>(from);
 
 		while (pending.Count > 0)
 		{
@@ -6527,7 +6917,8 @@ file.Line("return spare;");
 	/// </summary>
 	internal static string EntryOf(RuleSymbol rule, bool whole, MachineTag tag)
 	{
-		if (tag.Variant.StartsWith("Buf", StringComparison.Ordinal))
+		if (tag.Variant.StartsWith("Buf", StringComparison.Ordinal) ||
+			tag.Variant == PositionalVariant)
 			return tag.Of(whole ? "RecWhole" : "Rec", IdentifierOf(rule));
 
 		return whole ? WholeOf(rule) : MethodOf(rule);

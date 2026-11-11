@@ -73,144 +73,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>Url</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<global::DotGram.Snapshots.Url.UrlValue> TryParseUrl(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<global::DotGram.Snapshots.Url.UrlValue>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Url(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Url(text, at, ref failure, out recognized);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Url'.";
-
-				return Match<global::DotGram.Snapshots.Url.UrlValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, at, end - at);
-		}
-
-		/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseUrl(string input, ref int at, out global::DotGram.Snapshots.Url.UrlValue value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Url(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = recognized;
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Url</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<global::DotGram.Snapshots.Url.UrlValue> TryParseUrl(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<global::DotGram.Snapshots.Url.UrlValue>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Url(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Url(text, at, ref failure, out recognized);
-			}
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Url'.";
-
-				return Match<global::DotGram.Snapshots.Url.UrlValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, at, end - at);
-		}
-
-		/// <summary>Reads a <c>Url</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseUrl</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseUrl(string input, ref int at, int length, out global::DotGram.Snapshots.Url.UrlValue value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Url(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			value = recognized;
-			at = end;
-
-			return true;
-		}
-
 		/// <summary>Every occurrence of <c>Url</c>, in order, found as it is asked for.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.UrlValue>> AllUrls(string input)
 		{
@@ -299,8 +161,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Url</c> recognized.</summary>
 		public sealed class UrlValue
 		{
-			/// <summary>Builds what the rule <c>Url</c> recognized from its captures.</summary>
-			public UrlValue(string scheme, global::DotGram.Snapshots.Url.Authority authority, string path, string? query, string? fragment)
+			internal UrlValue(string scheme, global::DotGram.Snapshots.Url.Authority authority, string path, string? query, string? fragment)
 			{
 				Scheme = scheme;
 				Authority = authority;
@@ -328,8 +189,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Authority</c> recognized.</summary>
 		public sealed class Authority
 		{
-			/// <summary>Builds what the rule <c>Authority</c> recognized from its captures.</summary>
-			public Authority(string? user, string host, string? port)
+			internal Authority(string? user, string host, string? port)
 			{
 				User = user;
 				Host = host;

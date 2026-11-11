@@ -28,7 +28,7 @@ public sealed class PublicationContractTests
 			Item : @Leaf = 'a' => @(new Leaf())
 			Feed : @Leaf[] = Item+
 			parse Item as Native
-			parse Item as One : @BaseNode stream
+			positional parse Item as One : @BaseNode stream
 			parse Item as Bytes : @INode stream bytes
 			parse Feed as Enumerable : @System.Collections.Generic.IEnumerable<BaseNode>
 			parse Feed as All : @BaseNode[] stream

@@ -147,4 +147,15 @@
 *REMOVED*DotGram.Sql.Ast.ViewSpecification.ViewSpecification() -> void
 *REMOVED*DotGram.Sql.Ast.WindowFrameExtent.WindowFrameExtent() -> void
 *REMOVED*DotGram.Sql.Ast.WindowReference.WindowReference() -> void
+*REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan
+*REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.End.get -> int
+*REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.Length.get -> int
+*REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.On(System.ReadOnlySpan<char> text) -> System.ReadOnlySpan<char>
+*REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan() -> void
+*REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan(int start, int length) -> void
+*REMOVED*DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.Start.get -> int
+*REMOVED*override DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.ToString() -> string!
 *REMOVED*static DotGram.Sql.Ast.QualifiedName.Of(params DotGram.Sql.Ast.Identifier![]! parts) -> DotGram.Sql.Ast.QualifiedName
+*REMOVED*static DotGram.Sql.Standard.Sql92Parser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
+*REMOVED*static DotGram.Sql.Standard.SqlStandardParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
+*REMOVED*static DotGram.Sql.TransactSql.TransactSqlParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int

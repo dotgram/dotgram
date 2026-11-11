@@ -526,6 +526,11 @@ sealed partial class Machine
 				}
 			}
 
+			// A rule two directives publish is entered once, and from a position where either asks.
+			var positional = new HashSet<RuleSymbol>(publications
+				.Where(static one => one.Kind == PublishKind.Parse && one.Positional)
+				.Select(static one => one.Rule));
+
 			foreach (var publication in publications)
 			{
 				if (!seen.Add(publication.Rule))
@@ -535,14 +540,20 @@ sealed partial class Machine
 				// does: the positional entry, and not one that asks for the end.
 				var ends = publication.Kind != PublishKind.Yield;
 
-				entryPoints.Add((publication.Rule, ends));
-				RenderReaderEntryBody(file, publication.Rule, ends);
+				// A machine that reads only from a position leaves the whole reading to the flat one.
+				if (!_settings.PositionalOnly)
+				{
+					entryPoints.Add((publication.Rule, ends));
+					RenderReaderEntryBody(file, publication.Rule, ends);
+				}
 
 				// And the entry that begins where it is told and demands no end, which is what a
-				// positional overload calls. Only for a whole parse: `find` already reads from a
-				// position, and asking for both would write one method twice. A grammar that names
-				// `eos` publishes no positional overload (SegmentEmitter), so none calls it.
-				if (publication.Kind == PublishKind.Parse && !_graph.Segmented)
+				// positional overload calls, written where the directive asked for one (§6.3).
+				// Only for a whole parse: `find` already reads from a position, and asking for both
+				// would write one method twice. A grammar that names `eos` publishes no positional
+				// overload (SegmentEmitter), so none calls it.
+				if (publication.Kind == PublishKind.Parse && positional.Contains(publication.Rule) &&
+					!_graph.Segmented)
 				{
 					entryPoints.Add((publication.Rule, false));
 					RenderReaderEntryBody(file, publication.Rule, ends: false);

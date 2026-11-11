@@ -166,7 +166,7 @@ public sealed partial class BackReferenceTests
 			BackReferenceEmission.RequireBoth();
 
 		var row      = Named(name);
-		var assembly = Compiled(row.Grammar + $"\nparse {row.Rule}\n", CarrierKind.Auto, direct);
+		var assembly = Compiled(row.Grammar + $"\npositional parse {row.Rule}\n", CarrierKind.Auto, direct);
 		var method   = "TryParse" + row.Rule;
 
 		foreach (var input in row.Accepted.Concat(row.Refused))

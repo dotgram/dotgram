@@ -55,6 +55,7 @@ static class GramVocabulary
 		["public"]    = "a publication's method is public (the default)",
 		["internal"]  = "a publication's method is internal: the assembly and its friends",
 		["private"]   = "a publication's method is private to the class the grammar is attached to",
+		["positional"] = "a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'",
 		["context"]   = "'context : @T' declares the object every publication is handed and the C# code reads as 'context'",
 		["state"]     = "'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it",
 		["stream"]    = "a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream",
@@ -126,11 +127,11 @@ static class GramVocabulary
 
 	/// <summary>
 	/// The keywords that are keywords only where the parser reads them as one, and are coloured
-	/// only there: a condition's words, <c>on fail</c>, and a publication's access.
+	/// only there: a condition's words, <c>on fail</c>, and the words before a publication's verb.
 	/// </summary>
 	public static IReadOnlyCollection<string> ContextualKeywords { get; } = new HashSet<string>(StringComparer.Ordinal)
 	{
-		"is", "not", "and", "or", "on", "fail", "public", "internal", "private",
+		"is", "not", "and", "or", "on", "fail", "public", "internal", "private", "positional",
 	};
 
 	/// <summary>The words completion offers where a name goes: the built-in rules, and the keywords.</summary>

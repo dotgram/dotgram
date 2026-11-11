@@ -30,6 +30,12 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 	/// </summary>
 	public GramNames? Names { get; init; }
 
+	/// <summary>
+	/// Where the host has several readings (<see cref="GramCompilerOptions.SharedTypes"/>), the types
+	/// this reading reads from the host and so needs written there; nothing otherwise.
+	/// </summary>
+	public SharedNeeds SharedNeeds { get; init; }
+
 	public bool HasErrors
 	{
 		get
@@ -45,6 +51,34 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 
 /// <summary>One file of generated C#.</summary>
 readonly record struct GeneratedSource(string HintName, string Text);
+
+/// <summary>
+/// The types a host with several readings has written once, in the host, for all of them: what one
+/// reading needs of them. The host gets the union of its readings' (CSharpEmitter.SharedTypes).
+/// </summary>
+[Flags]
+enum SharedNeeds
+{
+	None = 0,
+
+	/// <summary><c>SourceSpan</c>, which the grammar's C# or a rule's value names.</summary>
+	Span = 1,
+
+	/// <summary><c>SourceSpan</c> as a public signature names it, and so public.</summary>
+	SpanShown = 2,
+
+	/// <summary><c>Outcome</c> and <c>Match&lt;T&gt;</c>, which a publication answers with.</summary>
+	Match = 4,
+
+	/// <summary>The match of a reading that locates per call, which says where its reading ended.</summary>
+	ReadingEnd = 8,
+
+	/// <summary><c>ParserInput&lt;T&gt;</c>, which a buffered reader or a recognizer of the host reads.</summary>
+	Input = 16,
+
+	/// <summary>A reading of a host that inherits a grammar, whose types hide the base's (CS0108).</summary>
+	Hides = 32,
+}
 
 /// <summary>
 /// A compiler message, positioned in the grammar text.
@@ -464,11 +498,53 @@ sealed class GramCompilerOptions
 	public bool SuffixDeclared { get; set; }
 
 	/// <summary>
-	/// Which compilation of a host writes the types the host's own C# names — the span
-	/// (§7.5) and the match (§6.1). Null where the host has one grammar and they are its
-	/// own; true for the one that writes them for every other; false for the others.
+	/// The classes nested in the host that its readings are compiled into — every reading's
+	/// <see cref="Suffix"/>, this one's among them — and the class the methods of a per-call
+	/// reading stand in. Empty where the host has one reading.
 	/// </summary>
-	public bool? SharedTypes { get; set; }
+	/// <remarks>
+	/// What a member of the host or of a reading may not be called, as the host itself may not:
+	/// a publication named after a reading's class is a method beside a class of one name. And
+	/// what a rule's type is named against, by every reading alike, so that the type of a rule
+	/// is one name in every reading of the host — <c>Url.UrlValue</c> and
+	/// <c>Url.Traced.UrlValue</c>, not <c>Url.Traced.Url</c>, which a reading named against its
+	/// own class alone would leave it.
+	/// </remarks>
+	public IReadOnlyList<string> Readings { get; set; } = [];
+
+	/// <summary>
+	/// Whether the host declares a part of <c>SourceSpan</c> itself, and so says how visible it is.
+	/// </summary>
+	/// <remarks>
+	/// The span is <c>internal</c> unless a public signature the generator writes names it — a
+	/// publication's value, a property of a rule's type. An author whose own public API hands
+	/// one out raises it with <c>public partial struct SourceSpan { }</c> in the host, and the
+	/// part generated beside it then says nothing of its own about accessibility, as a reading's
+	/// class declared by the author does (<see cref="SuffixDeclared"/>).
+	/// </remarks>
+	public bool SpanDeclared { get; set; }
+
+	/// <summary>
+	/// Whether the class of this reading (<see cref="Suffix"/>), declared by the author, declares a
+	/// part of <c>SourceSpan</c>.
+	/// </summary>
+	/// <remarks>
+	/// A host with one reading in a class of its own has the span written where the author declared a
+	/// part of it — in the host, which the reading's class reads it from, or in the reading's class —
+	/// so that there is one span, of the author's accessibility. A host with several readings has one
+	/// span, in the host, and a part declared in a reading's class would be a second: refused
+	/// (GRAM5018).
+	/// </remarks>
+	public bool SpanDeclaredInReading { get; set; }
+
+	/// <summary>
+	/// Whether the host has several readings, so that the types the host's own C# names — the
+	/// span (§7.5), the match (§6.1) and the input a recognizer reads (§7.1) — are not written
+	/// by this compilation but once for every reading, in a file of the host's own, from what
+	/// each reading says it needs (<see cref="GramCompilation.SharedNeeds"/>). False where the
+	/// host has one grammar and they are its own.
+	/// </summary>
+	public bool SharedTypes { get; set; }
 
 	/// <summary>
 	/// Whether the host inherits a grammar from a base class, so that what this

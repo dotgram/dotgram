@@ -73,152 +73,6 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		/// <summary>Reads a <c>Config</c> beginning at <paramref name="at"/>.</summary>
-		/// <remarks>
-		/// The input is not required to end there: what comes back says where the
-		/// reading began and how far it got, so a caller may go on from it. A position
-		/// is an offset into the text.
-		/// </remarks>
-		public static Match<Entry[]> TryParseConfig(string input, int at)
-		{
-			if (at < 0 || at > input.Length)
-			{
-				return Match<Entry[]>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Config(text, at, ref failure, out recognized);
-			}
-
-			var began = failure.Began;
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Config'.";
-
-				return Match<Entry[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<Entry[]>.Success(recognized, began, end - began);
-		}
-
-		/// <summary>Reads a <c>Config</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseConfig</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseConfig(string input, ref int at, out Entry[] value)
-		{
-			if (at < 0 || at > input.Length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			var began = failure.Began;
-
-			value = recognized;
-			at = end;
-
-			return true;
-		}
-
-		/// <summary>Reads a <c>Config</c> inside a window of the input.</summary>
-		/// <remarks>
-		/// The reading begins at <paramref name="at"/> and sees no character from
-		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
-		/// says how far it got. Positions are offsets into the whole input.
-		/// </remarks>
-		public static Match<Entry[]> TryParseConfig(string input, int at, int length)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-			{
-				return Match<Entry[]>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
-			}
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Rec_DotGram_Config(text, at, ref failure, out recognized);
-			}
-
-			var began = failure.Began;
-
-			if (end < 0)
-			{
-				if (failure.Position < at)
-					failure.Position = at;
-
-				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
-
-				var otherwise = starved
-					? "Expected more input."
-					: "Input does not match 'Config'.";
-
-				return Match<Entry[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, Handed_DotGram(failure.ExpectedMore));
-			}
-
-			return Match<Entry[]>.Success(recognized, began, end - began);
-		}
-
-		/// <summary>Reads a <c>Config</c> at <paramref name="at"/>, answering only whether one is there.</summary>
-		/// <remarks>
-		/// Nothing is said about a refusal: <c>TryParseConfig</c> returning a match says where and why.
-		/// On a reading, <paramref name="at"/> moves to the end of what was read; on a
-		/// refusal it stays where it was.
-		/// </remarks>
-		public static bool TryParseConfig(string input, ref int at, int length, out Entry[] value)
-		{
-			if (at < 0 || length < 0 || at > input.Length - length)
-				throw new global::System.ArgumentOutOfRangeException(nameof(at));
-
-			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
-			var failure = new Failure { Quiet = true };
-
-			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
-
-			if (end < 0)
-			{
-				value = default!;
-				return false;
-			}
-
-			var began = failure.Began;
-
-			value = recognized;
-			at = end;
-
-			return true;
-		}
-
 		static Entry[] New_DotGram_Config(Entry[] item0) =>
 			item0 ?? global::System.Array.Empty<Entry>();
 
@@ -853,20 +707,6 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Rec_DotGram_Config(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out Entry[] value)
-		{
-			object? recognized;
-			var began = Recognize_DotGram(text, pos, 25, -1, false, true, ref failure, out recognized);
-
-			if (began < 0) began = pos;
-
-			failure.Began = began;
-
-			var end = Recognize_DotGram(text, began, 4, 1, false, true, ref failure, out recognized);
-			value = end < 0 ? default! : (Entry[])recognized!;
-			return end;
-		}
-
 		static int Rec_DotGram_trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
@@ -1264,55 +1104,25 @@ namespace DotGram.Snapshots
 
 		static readonly string[] RecognizeUnrecorded_DotGram = new string[0];
 
-		/// <summary>
-		/// Half-open range of the input: [Start, End).
-		/// </summary>
-		/// <remarks>
-		/// <para>
-		/// What a capture of type <c>SourceSpan</c> comes back as, and what a
-		/// <c>recover</c> factory asking for <c>parserSpan</c> is handed (docs/syntax.md
-		/// §8.2). Two integers rather than the text between them: the text is already in the
-		/// caller's hands, and cutting a string out of it is the one allocation a parse
-		/// cannot avoid on the caller's behalf.
-		/// </para>
-		/// <para>
-		/// Ours rather than <c>System.Range</c>, because a consumer building for an older
-		/// framework very likely polyfills that one and two definitions of it in a
-		/// compilation is an error. Nested in the host class rather than put in a namespace,
-		/// because a type in a namespace has to be internal for two assemblies not to
-		/// collide over it — and internal is what a public method may not return. Here the
-		/// name belongs to the host, so neither is a problem.
-		/// </para>
-		/// <para>
-		/// It says where, not when. A span outlives nothing: read it against the same text
-		/// that was parsed, and against nothing else.
-		/// </para>
-		/// </remarks>
-		public readonly struct SourceSpan
+		internal readonly partial struct SourceSpan
 		{
-			/// <summary>A span of <paramref name="length"/> items beginning at <paramref name="start"/>.</summary>
 			public SourceSpan(int start, int length)
 			{
 				Start  = start;
 				Length = length;
 			}
 
-			/// <summary>Where it begins.</summary>
 			public int Start { get; }
 
-			/// <summary>How much of the input it covers.</summary>
 			public int Length { get; }
 
-			/// <summary>One past the last item, so an empty span has End equal to Start.</summary>
 			public int End { get { return Start + Length; } }
 
-			/// <summary>The text it covers, taken from the text it was measured against.</summary>
 			public global::System.ReadOnlySpan<char> On(global::System.ReadOnlySpan<char> text)
 			{
 				return text.Slice(Start, Length);
 			}
 
-			/// <summary>Where it begins and one past where it ends, as <c>[start..end)</c>.</summary>
 			public override string ToString() { return "[" + Start + ".." + End + ")"; }
 		}
 

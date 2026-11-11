@@ -528,6 +528,126 @@ public sealed class GramParserTests
 		Assert.Equal(("public", PublishAccess.Private), (publish.RuleName, publish.Access));
 	}
 
+	[Theory]
+	[InlineData("A = 'a'\nparse A",                                false, nameof(PublishAccess.Public))]
+	[InlineData("A = 'a'\npositional parse A",                     true,  nameof(PublishAccess.Public))]
+	[InlineData("A = 'a'\ninternal positional parse A",            true,  nameof(PublishAccess.Internal))]
+	[InlineData("A = 'a'\nprivate positional parse A as ReadA",    true,  nameof(PublishAccess.Private))]
+	[InlineData("A = 'a'\npositional parse ('a' | 'b') as Ab",     true,  nameof(PublishAccess.Public))]
+	[InlineData("A = 'a'\npositional parse A as R : @T stream",    true,  nameof(PublishAccess.Public))]
+	[InlineData("A = 'a'\npublic positional parse A with (B = A)", true,  nameof(PublishAccess.Public))]
+	public void A_directive_asks_for_the_forms_read_from_a_position(string source, bool positional, string access)
+	{
+		var result  = GramParser.Parse(GramLexer.Tokenize(source, null));
+		var publish = Assert.Single(result.File.Decls.OfType<Decl.Publish>());
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal((positional, Enum.Parse<PublishAccess>(access)), (publish.Positional, publish.Access));
+	}
+
+	[Fact]
+	public void And_a_rule_called_positional_is_still_a_rule()
+	{
+		// `positional` is a word only before a directive's verb, as the access is: written with
+		// an `=` after it, or anywhere in a body, it is a name. A directive followed on the next
+		// line by a rule of that name ends where the rule begins.
+		var result = GramParser.Parse(GramLexer.Tokenize(
+			"positional = 'p'\nA = positional & 'a'\npositional parse A\npositional(x) = x\n" +
+			"internal positional parse positional as ReadP\npositional : @string = 'q'", null));
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal(["positional", "A", "positional", "positional"], result.File.Decls.OfType<Decl.Rule>().Select(rule => rule.Name));
+		Assert.Equal(
+			[("A", PublishAccess.Public), ("positional", PublishAccess.Internal)],
+			result.File.Decls.OfType<Decl.Publish>().Select(publish => (publish.RuleName, publish.Access)));
+		Assert.All(result.File.Decls.OfType<Decl.Publish>(), publish => Assert.True(publish.Positional));
+	}
+
+	[Fact]
+	public void Where_each_word_before_the_verb_stands_is_kept()
+	{
+		const string source = "A = 'a'\ninternal positional parse A";
+
+		var result  = GramParser.Parse(GramLexer.Tokenize(source, null));
+		var publish = Assert.Single(result.File.Decls.OfType<Decl.Publish>());
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal([source.IndexOf("internal", StringComparison.Ordinal), source.IndexOf("positional", StringComparison.Ordinal)], publish.ModifierPositions);
+		Assert.Equal(source.IndexOf("internal", StringComparison.Ordinal), publish.At.Position);
+	}
+
+	[Theory]
+	[InlineData("A = 'a'\npositional internal parse A",           "internal",   "Write the access first")]
+	[InlineData("A = 'a'\npositional positional parse A",         "positional", "written once")]
+	[InlineData("A = 'a'\ninternal positional positional parse A", "positional", "written once")]
+	[InlineData("A = 'a'\ninternal private parse A",              "private",    "one access")]
+	[InlineData("A = 'a'\npublic internal positional parse A",    "internal",   "one access")]
+	public void Words_before_the_verb_have_one_order_and_are_written_once(string source, string word, string message)
+	{
+		var result     = GramParser.Parse(GramLexer.Tokenize(source, null));
+		var diagnostic = Assert.Single(result.Diagnostics);
+
+		Assert.Equal((GramParser.ModifierOrder, word), (diagnostic.Id, source.Substring(diagnostic.Position, diagnostic.Length)));
+		Assert.Contains(message, diagnostic.Message, StringComparison.Ordinal);
+		Assert.Single(result.File.Decls.OfType<Decl.Publish>());
+	}
+
+	/// <summary>
+	/// A word written after a directive, on its line, as `stream` is written, would be read as the
+	/// next directive's: it is refused where it stands, and the next line keeps its own meaning.
+	/// </summary>
+	[Theory]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P positional\nparse B",          "positional")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P stream positional\nparse B",   "positional")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A internal\nparse B",                 "internal")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A positional parse B",                 "positional")]
+	public void A_word_after_a_directive_on_its_line_is_not_the_next_ones(string source, string word)
+	{
+		var result     = GramParser.Parse(GramLexer.Tokenize(source, null));
+		var diagnostic = Assert.Single(result.Diagnostics, static one => one.Id == GramParser.ModifierOrder);
+
+		Assert.Equal(word, source.Substring(diagnostic.Position, diagnostic.Length));
+		Assert.Contains("goes before the verb", diagnostic.Message, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P\npositional parse B")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P // a comment\npositional parse B")]
+	[InlineData("A = 'a'\nB = 'b'\nparse A as P\r\ninternal positional parse B")]
+	public void A_word_on_the_next_line_is_the_next_directives(string source)
+	{
+		var result = GramParser.Parse(GramLexer.Tokenize(source, null));
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal([false, true], result.File.Decls.OfType<Decl.Publish>().Select(static one => one.Positional));
+	}
+
+	[Theory]
+	[InlineData("A = 'a'\npositional find A",                           "'find'")]
+	[InlineData("A = 'a'\ninternal positional find A as FindA",         "'find'")]
+	[InlineData("A : @string[] = 'a'*\npositional parse A yield : @string", "'yield'")]
+	public void A_find_and_a_yield_have_no_forms_read_from_a_position(string source, string what)
+	{
+		var result     = GramParser.Parse(GramLexer.Tokenize(source, null));
+		var diagnostic = Assert.Single(result.Diagnostics);
+		var publish    = Assert.Single(result.File.Decls.OfType<Decl.Publish>());
+
+		Assert.Equal((GramParser.PositionalWithout, "positional"), (diagnostic.Id, source.Substring(diagnostic.Position, diagnostic.Length)));
+		Assert.Contains(what, diagnostic.Message, StringComparison.Ordinal);
+		Assert.False(publish.Positional);
+	}
+
+	[Fact]
+	public void Positional_before_anything_but_a_directive_is_not_a_modifier()
+	{
+		// Not a word of the directive there: what it is followed by decides, and `using` and
+		// `namespace` are no verb. The message is the one any stray name before a declaration gets.
+		var result = GramParser.Parse(GramLexer.Tokenize("A = 'a'\npositional namespace N { B = 'b' }", null));
+
+		Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id is GramParser.ExpectedDeclaration or GramParser.ExpectedToken);
+		Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Id == GramParser.ModifierOrder);
+	}
+
 	/// <summary>
 	/// <c>$q: X</c> binds at a capture's level, and <c>$q</c> is an operand like any other.
 	/// </summary>

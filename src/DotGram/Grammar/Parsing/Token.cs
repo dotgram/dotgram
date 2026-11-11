@@ -30,10 +30,17 @@ readonly record struct Token(TokenKind Kind, int Position, int Length, string? V
 /// <summary>The result of lexing: the tokens, and what went wrong producing them.</summary>
 sealed class TokenList(
 	IReadOnlyList<Token>          tokens,
-	IReadOnlyList<GramDiagnostic> diagnostics)
+	IReadOnlyList<GramDiagnostic> diagnostics,
+	string?                       text = null)
 {
 	public IReadOnlyList<Token>          Tokens      { get; } = tokens;
 	public IReadOnlyList<GramDiagnostic> Diagnostics { get; } = diagnostics;
+
+	/// <summary>
+	/// The text the tokens were read from, where the lexer had it: what tells two tokens on one
+	/// line from two on two lines, which the parser asks in the one place a line matters.
+	/// </summary>
+	public string? Text { get; } = text;
 
 	public int     Count           => Tokens.Count;
 	public Token   this[int index] => Tokens[index];

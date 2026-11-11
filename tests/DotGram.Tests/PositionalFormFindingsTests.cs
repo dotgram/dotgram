@@ -20,7 +20,7 @@ public sealed class PositionalFormFindingsTests
 	public void A_grammar_cut_into_tokens_whose_start_is_one_choice_of_keywords_generates()
 	{
 		var result = GramCompiler.Compile(
-			"trivia = { ' '* }\nStart = (\"baa\"i | \"A1\"i)\nparse Start\n",
+			"trivia = { ' '* }\nStart = (\"baa\"i | \"A1\"i)\npositional parse Start\n",
 			new GramCompilerOptions { ClassName = "Grammar", Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance });
 
 		Assert.NotEmpty(result.Sources);
@@ -31,7 +31,7 @@ public sealed class PositionalFormFindingsTests
 	/// is still entered by name, and reads one token over kinds.
 	/// </summary>
 	[Theory]
-	[InlineData("trivia = { ' '* }\nStart = X & Y\nX = (\"ac\" | \"b\")\nY = (\"c\" | \"dd\")\nparse Start\nparse X\n", "ParseX", "ac")]
+	[InlineData("trivia = { ' '* }\nStart = X & Y\nX = (\"ac\" | \"b\")\nY = (\"c\" | \"dd\")\npositional parse Start\npositional parse X\n", "ParseX", "ac")]
 	public void A_published_rule_the_lexer_holds_reads_one_token(string grammar, string method, string input)
 	{
 		foreach (var direct in new[] { false, true })
@@ -55,9 +55,9 @@ public sealed class PositionalFormFindingsTests
 	/// so, rather than throwing.
 	/// </summary>
 	[Theory]
-	[InlineData("trivia = { Sp }\nSp = ' '*\nStart = \"a\" & \"bb\"\nparse Start\nparse Sp\n", "TryParseSp", "  ", true)]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigit = ['0'..'9']\n\tNumber = Digit & Digit*\n}\nStart = Lex.Number & ',' & Lex.Number\nparse Start\nparse Lex.Digit\n", "TryParseDigit", "1", true)]
-	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigit = ['0'..'9']\n\tNumber = Digit & Digit*\n}\nStart = Lex.Number & ',' & Lex.Number\nparse Start\nparse Lex.Digit\n", "TryParseDigit", " 1", false)]
+	[InlineData("trivia = { Sp }\nSp = ' '*\nStart = \"a\" & \"bb\"\npositional parse Start\npositional parse Sp\n", "TryParseSp", "  ", true)]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigit = ['0'..'9']\n\tNumber = Digit & Digit*\n}\nStart = Lex.Number & ',' & Lex.Number\npositional parse Start\npositional parse Lex.Digit\n", "TryParseDigit", "1", true)]
+	[InlineData("trivia = { ' '* }\nnamespace Lex\n{\n\ttrivia = none\n\tDigit = ['0'..'9']\n\tNumber = Digit & Digit*\n}\nStart = Lex.Number & ',' & Lex.Number\npositional parse Start\npositional parse Lex.Digit\n", "TryParseDigit", " 1", false)]
 	public void A_published_rule_that_is_no_token_of_its_own_is_read_over_characters(string grammar, string method, string input, bool read)
 	{
 		var result = GramCompiler.Compile(
@@ -82,7 +82,7 @@ public sealed class PositionalFormFindingsTests
 	public void A_window_over_tokens_with_no_token_in_it_reads_nothing_where_the_rule_may()
 	{
 		var result = GramCompiler.Compile(
-			"trivia = { ' '* }\nStart = ?! 'a'i?\nparse Start\n",
+			"trivia = { ' '* }\nStart = ?! 'a'i?\npositional parse Start\n",
 			new GramCompilerOptions { ClassName = "Grammar", Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance });
 
 		EmittedCode.Quiet(result.Diagnostics);
@@ -104,7 +104,7 @@ public sealed class PositionalFormFindingsTests
 	public void A_reading_of_nothing_over_tokens_ends_where_it_began(bool direct)
 	{
 		var result = GramCompiler.Compile(
-			"trivia = { ' '* }\nStart = ('b' | 'b' & 'c')?\nOther = 'a' & 'c'\nparse Start\nparse Other\n",
+			"trivia = { ' '* }\nStart = ('b' | 'b' & 'c')?\nOther = 'a' & 'c'\npositional parse Start\npositional parse Other\n",
 			new GramCompilerOptions { ClassName = "Grammar", Lexical = true, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance });
 
 		EmittedCode.Quiet(result.Diagnostics);
@@ -154,8 +154,8 @@ public sealed class PositionalFormFindingsTests
 				Number = Digits & ('.' & Digits)?
 			}
 			Start = Lex.Number & (',' & Lex.Number)*
-			parse Start
-			parse Lex.Number
+			positional parse Start
+			positional parse Lex.Number
 			""";
 
 		var characters = Whole(grammar, lexical: false, direct: true, input);
@@ -203,7 +203,7 @@ public sealed class PositionalFormFindingsTests
 	{
 		var choice = $"({optional} | 'a'i)";
 		var result = GramCompiler.Compile(
-			$"trivia = {{ ' '* }}\nStart = R1\nR1 = {(braced ? "{ " + choice + " }" : choice)}\nparse Start\n",
+			$"trivia = {{ ' '* }}\nStart = R1\nR1 = {(braced ? "{ " + choice + " }" : choice)}\npositional parse Start\n",
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
 		EmittedCode.Quiet(result.Diagnostics);
@@ -215,11 +215,11 @@ public sealed class PositionalFormFindingsTests
 	/// choice a scanner reads, the choices of the seam included.
 	/// </summary>
 	[Theory]
-	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { ('b'* | 'a') }\nparse Start\n", false)]
-	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { ('d' | 'b'? | 'a' | 'c') }\nparse Start\n", false)]
-	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { (('b' | 'c')? | 'a') }\nparse Start\n", false)]
-	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\nparse Start\n", false)]
-	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\nparse Start\n", true)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { ('b'* | 'a') }\npositional parse Start\n", false)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { ('d' | 'b'? | 'a' | 'c') }\npositional parse Start\n", false)]
+	[InlineData("trivia = { ' '* }\nStart = R1\nR1 = { (('b' | 'c')? | 'a') }\npositional parse Start\n", false)]
+	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\npositional parse Start\n", false)]
+	[InlineData("trivia = { (' '* | '\\t') }\nStart = 'a' & 'c'\npositional parse Start\n", true)]
 	public void An_alternative_that_cannot_fail_ends_a_scanned_choice(string grammar, bool lexical)
 	{
 		var result = GramCompiler.Compile(

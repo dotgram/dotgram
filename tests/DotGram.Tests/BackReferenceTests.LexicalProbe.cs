@@ -369,7 +369,7 @@ public sealed class LexicalBindingProbe
 			}
 			Item : @string = w: Lexical.W => @(w)
 			Root : @string = items: Item* => @(string.Join("|", items))
-			parse Root
+			positional parse Root
 			""";
 
 		static string Window(Assembly assembly, string input, int at, int length)
@@ -404,7 +404,7 @@ public sealed class LexicalBindingProbe
 			}
 			Item : @string = w: Lexical.W => @(w)
 			Root : @string = items: Item* => @(string.Join("|", items))
-			parse Root
+			positional parse Root
 			""";
 
 		// A position of -1 stands for the form that takes the whole input.
@@ -466,7 +466,7 @@ public sealed class LexicalBindingProbe
 			}
 			Item : @string = t: Lexical.T => @("t:" + t) | w: Lexical.W => @("w:" + w)
 			Root : @string = items: Item* => @(string.Join("|", items))
-			parse Root
+			positional parse Root
 			""";
 
 		string From(Assembly assembly)

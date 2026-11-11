@@ -42,8 +42,14 @@ static class NestedLookahead
 		string? reference = null)
 	{
 		var tokens = rendering.StartsWith("tokens", StringComparison.Ordinal);
+		// The rendering that reads from a position asks every `parse` for those forms.
+		var asked  = rendering == "positional"
+			? System.Text.RegularExpressions.Regex.Replace(
+				grammar, @"^(\s*(?:public |internal |private )?)parse (?![^\n]*\byield\b)", "$1positional parse ",
+				System.Text.RegularExpressions.RegexOptions.Multiline)
+			: grammar;
 		var result = GramCompiler.Compile(
-			grammar,
+			asked,
 			new GramCompilerOptions
 			{
 				ClassName        = "Grammar",
@@ -97,8 +103,16 @@ static class NestedLookahead
 						.Invoke(null, [new MemoryStream(Encoding.ASCII.GetBytes(input)), 1, null])!));
 				}
 
-				// Offered where the rule is not lowered to the one entry a whole parse asks for (§6.3).
-				if (rendering == "positional" && host.GetMethod(method, [typeof(string), typeof(int)]) is not null)
+				// Written wherever the directive asks, flat or not (§6.3): never absent here.
+				if (rendering == "positional")
+				{
+					if (host.GetMethod(method, [typeof(string), typeof(int)]) is null)
+					{
+						wrong.Add($"{rule} = {shown}: no form from a position");
+
+						continue;
+					}
+
 					for (var at = 0; at <= input.Length; at++)
 					{
 						var end    = ReferenceInterpreter.Reads(graph, start, input, at);
@@ -107,6 +121,7 @@ static class NestedLookahead
 						if (answer.Read != end >= 0 || answer.Read && answer.At != end)
 							wrong.Add($"{rule} = {shown}, \"{input}\" from {at}: expected {end}, answered {(answer.Read ? answer.At : -1)}");
 					}
+				}
 			}
 		}
 

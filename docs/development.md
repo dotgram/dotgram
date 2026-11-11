@@ -102,7 +102,8 @@ every other diagnostic about what an author cannot see. `-v:detailed` prints the
 `dotnet build src/DotGram.Sql -t:Rebuild -v:detailed | grep GRAM` is the list for one project.
 
 `-p:DotGramPositionalFollow=true` builds every grammar with the experimental switch of syntax.md
-§6.8, under which a `parse` is compiled knowing it is also read from a position. A grammar that
+§6.8, under which every `parse`, `positional` or not, is compiled knowing it is also read from a
+position. A grammar that
 names its carrier keeps it and is told nothing; one left to choose may be told more (`GRAM5012`).
 `-p:DotGramPositionalFollow=split` is the same switch, experimental and off by default like it, with
 the positional end told apart where that changes no answer (syntax.md §6.8). `PositionalSplitWebTests` (DotGram.Tests.Slow) holds `split` to `true`

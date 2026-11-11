@@ -534,13 +534,10 @@ static class GramLanguageService
 			foreach (var declaration in items)
 				switch (declaration)
 				{
+					// Every word the parser took before the verb: the access and `positional`, each
+					// where it stands, so that `positional` after `internal` is coloured too.
 					case Decl.Publish publication:
-						var token = tokens.FirstOrDefault(candidate =>
-							candidate.Position == publication.At.Position &&
-							candidate.Kind == TokenKind.Identifier &&
-							candidate.Value is "public" or "internal" or "private");
-						if (token.Length > 0)
-							result.Add(token.Position);
+						result.UnionWith(publication.ModifierPositions);
 						break;
 					case Decl.Namespace @namespace:
 						Collect(@namespace.Decls);

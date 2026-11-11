@@ -25,7 +25,10 @@ namespace DotGram.Tests;
 /// </summary>
 public sealed class GeneratedNameTests
 {
-	/// <summary>A publication cannot be called what the class declares beside it.</summary>
+	/// <summary>
+	/// A publication cannot be called what the class declares beside it, nor what a trace build of the
+	/// same grammar would declare: the names a grammar may use do not change with the build.
+	/// </summary>
 	[Theory]
 	[InlineData("Match")]
 	[InlineData("Outcome")]
@@ -37,6 +40,12 @@ public sealed class GeneratedNameTests
 	[InlineData("Failure")]
 	[InlineData("ParserEntry")]
 	[InlineData("Probe")]
+	[InlineData("Tracing")]
+	[InlineData("GramTrace")]
+	[InlineData("GramRead")]
+	[InlineData("GramWhy")]
+	[InlineData("GramTraceLog")]
+	[InlineData("GramProfile")]
 	public void A_publication_named_like_a_member_of_the_class_is_refused(string name)
 	{
 		var result = Compile($"W = 'w'\nparse W as {name}");
@@ -143,7 +152,8 @@ public sealed class GeneratedNameTests
 	/// <summary>
 	/// Every type the class nests for its own use has a name no name of the author's can be (it holds
 	/// <c>_DotGram</c>), but two, which are reserved instead, and the public ones: a rule called after
-	/// one of those gets a type of another name, and a rule called after any other keeps its own.
+	/// one of those gets a type of another name, and a rule called after any other keeps its own. The
+	/// names of a trace build are among those in every build, so that the type is one name either way.
 	/// </summary>
 	[Theory]
 	[InlineData("Failure", true)]
@@ -153,6 +163,8 @@ public sealed class GeneratedNameTests
 	[InlineData("SourceSpan", true)]
 	[InlineData("ParserInput", true)]
 	[InlineData("OnRecovered", true)]
+	[InlineData("Tracing", true)]
+	[InlineData("GramRead", true)]
 	[InlineData("Window", false)]
 	[InlineData("Lines", false)]
 	[InlineData("Held", false)]
@@ -234,6 +246,50 @@ public sealed class GeneratedNameTests
 		var result = Compile(grammar);
 
 		Assert.Contains(result.Diagnostics, static one => one.Id == CSharpEmitter.GeneratedNameClash);
+	}
+
+	/// <summary>
+	/// A rule's type is named against the host and the class of every reading of it, in each reading
+	/// alike: <c>Probe</c> is <c>ProbeValue</c> in the reading nested in <c>Probe.Traced</c> as it is in
+	/// <c>Probe</c>, and a rule called after a reading's class is renamed in both.
+	/// </summary>
+	[Fact]
+	public void A_rules_type_is_one_name_in_every_reading_of_the_host()
+	{
+		var assembly = GeneratorDriverTests.Build(""""
+			[DotGram.Gram("""
+				Probe  = x: 'a' & y: Traced
+				Traced = z: 'b'
+				parse Probe as Read
+				""")]
+			[DotGram.GramOptions(Suffix = "Traced", Trace = true)]
+			public static partial class Probe { }
+			"""");
+
+		foreach (var reading in new[] { "Probe", "Probe+Traced" })
+		{
+			Assert.NotNull(assembly.GetType(reading + "+ProbeValue"));
+			Assert.NotNull(assembly.GetType(reading + "+TracedValue"));
+		}
+	}
+
+	/// <summary>
+	/// A publication named after the class of a reading is a method beside a class of one name, in the
+	/// host, and is refused in every reading.
+	/// </summary>
+	[Fact]
+	public void A_publication_named_like_a_reading_is_refused()
+	{
+		var run = GeneratorDriverTests.RunGenerator(""""
+			[DotGram.Gram("""
+				W = 'w'
+				parse W as Other
+				""")]
+			[DotGram.GramOptions(Suffix = "Other")]
+			public static partial class Probe { }
+			"""");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == CSharpEmitter.GeneratedNameClash);
 	}
 
 	/// <summary>
@@ -403,8 +459,9 @@ public sealed class GeneratedNameTests
 			foreach (var type in tree.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<TypeDeclarationSyntax>())
 			{
 				// The class the generator writes into is partial, and so is a suffix of it; a rule's type is the
-				// author's, and what it declares is its captures (GRAM5018's last check).
-				var host = type.Modifiers.Any(static modifier => modifier.Text == "partial");
+				// author's, and what it declares is its captures (GRAM5018's last check). The span is a partial
+				// struct, so that a host can raise it, and is a type of the generator's like the others.
+				var host = type is ClassDeclarationSyntax && type.Modifiers.Any(static modifier => modifier.Text == "partial");
 
 				if (!host && type.Parent is TypeDeclarationSyntax && !IsGenerators(type))
 					continue;

@@ -129,7 +129,7 @@ then quietly mean nothing.
 | `[GramOptions(Suffix = "…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
 | a rule's own refusal message, `on fail "…"`, in every reading §4/§7.5 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `internal parse`, `private find` §6 | ✓ | — | — | ✓ | ✓ |
-| `TryParseR(input, at)` and `TryParseR(input, at, length)` §6.3 | — | — | — | ✓ | ✓ |
+| `positional parse`: `TryParseR(input, at)` and `TryParseR(input, at, length)` §6.3 | ✓ | — | ✓ | ✓ | ✓ |
 | `bool TryParseR(input, out R value)`, the quiet form §6/§6.1 | — | — | — | ✓ | ✓ |
 | the publications of one rule sharing a machine, told apart by the reading §5.1 | — | — | ✓ | ✓ | ✓ |
 | a publication another reaches, joined into that one's machine | — | — | — | ✓ | ✓ |
@@ -1485,14 +1485,17 @@ overloads. Saying nothing is `public`. The words are modifiers only in front of 
 `find`, so a rule may still be called `internal`. A `private` publication in a
 `[GramOptions]` reading is private to that nested class.
 
-**A position and a window.** Beside `TryParseR(string input)` a `parse` gets
+**A position and a window.** Beside `TryParseR(string input)` a `positional parse` gets
 `TryParseR(string input, int at)` — read from `at`, not required to reach the end — and
 `TryParseR(string input, int at, int length)`, which sees nothing from `at + length` on
-(both 2026-09-13). Positions stay offsets into the whole input. Over tokens the first form
-has to begin where a token of the whole text begins; the second cuts only the window into
-tokens. A publication compiled as a plain method gets neither, having been proved sound
-only against the end of the input, and is not told so (`GRAM5010`, which used to, is
-retired).
+(both 2026-09-13), with their `bool` forms. A `parse` that does not say `positional` gets
+none of them, whatever reads it. Positions stay offsets into the whole input. Over tokens
+the first form begins at the first token at or after `at`; the second cuts only the window
+into tokens. A publication compiled as a plain method keeps that method for the whole input
+and is read from a position by a second machine beside it, since it was proved sound only
+against the end of the input. `positional` on a `find` or with `yield` is `GRAM2012`, a word
+before the verb out of order or written after a directive on its line `GRAM2013`, and in a
+grammar that names `eos` `GRAM4055`.
 
 ## Readings, and machines that join
 

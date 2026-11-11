@@ -252,3 +252,8 @@ holds the buffer and bounds untrusted input itself. Neither closes its input.
 7. Reading another version's data through the wrong namespace. A 4.2 or FIXT.1.1 message read by
    `Fix44.FixParser` is built as a 4.4 message and told its BeginString is wrong.
 8. Editing a `FixDictionary` after `With` and expecting the context to follow. Apply it again.
+
+## Cold start
+
+- Cold start: the first parse in a process is mostly JIT (tens of milliseconds for the SQL parsers). If that matters,
+  publish the application with `<PublishReadyToRun>true</PublishReadyToRun>`; it cuts the first call 3-5 times.

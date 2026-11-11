@@ -144,8 +144,17 @@ static class GramCompiler
 				graph,
 				options.Suffix is { Length: > 0 } nested ? options.ClassName + "." + nested : options.ClassName,
 				options.Namespace,
-				options.Trace,
+				CSharpEmitter.ClassesOf(options),
 				options.Lexical));
+
+			// A host with several readings has one span, in the host; a part the author declared in the
+			// class of a reading would be a second span of the same name, which the reading reads instead.
+			if (options.SharedTypes && options.SpanDeclaredInReading)
+				diagnostics.Add(new GramDiagnostic(
+					CSharpEmitter.GeneratedNameClash,
+					$"'SourceSpan' is declared in '{options.Suffix}', the class of a reading of a host that has several: " +
+					"they share one span, written in the host. Declare its part in the host instead (docs/syntax.md §6.2).",
+					0, 0, GramSeverity.Error));
 		}
 
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule
@@ -217,23 +226,22 @@ static class GramCompiler
 
 		var sourceParts = new List<string>();
 		var carriers    = options.ReportCarriers ? new List<string>() : null;
+		var context     = new EmitContext
+		{
+			Lexical       = lexical,
+			Diagnostics   = diagnostics,
+			GrammarSource = options.Portable ? grammarText : null,
+			SourceParts   = sourceParts,
+			Carriers      = carriers,
+			SharedChoices = shared,
+		};
+
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				options.Suffix is { Length: > 0 } suffix
 					? $"{options.ClassName}.{suffix}.gram.g.cs"
 					: $"{options.ClassName}.gram.g.cs",
-				CSharpEmitter.Emit(
-					lexical?.Syntax ?? graph,
-					options,
-					new EmitContext
-					{
-						Lexical       = lexical,
-						Diagnostics   = diagnostics,
-						GrammarSource = options.Portable ? grammarText : null,
-						SourceParts   = sourceParts,
-						Carriers      = carriers,
-						SharedChoices = shared,
-					})));
+				CSharpEmitter.Emit(lexical?.Syntax ?? graph, options, context)));
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));
@@ -242,11 +250,12 @@ static class GramCompiler
 		{
 			NormalizedRuleCount = graph.Rules.Count,
 			UsesLexical = lexical is not null,
+			SharedNeeds = context.SharedNeeds,
 			Carriers = carriers,
 			Names = sources.Count == 0 ? null : CSharpEmitter.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source],
 				options.Suffix is { Length: > 0 } suffixed ? options.ClassName + "." + suffixed : options.ClassName,
-				options.Namespace, options.Trace, options.Lexical),
+				options.Namespace, CSharpEmitter.ClassesOf(options), options.Lexical),
 		};
 	}
 
@@ -454,6 +463,12 @@ static class GramCompiler
 
 	/// <summary>A terminal the host measures has nothing in front of it to be found by.</summary>
 	public const string Unanchored = "GRAM5011";
+
+	/// <summary>
+	/// A terminal of a grammar read over tokens whose value is built by reading its token again holds a guard that
+	/// names the context, which then runs again against the context as the parse has written it by then.
+	/// </summary>
+	public const string RereadContextGuard = "GRAM5019";
 
 	/// <summary>
 	/// One error per position, in the order they were raised.

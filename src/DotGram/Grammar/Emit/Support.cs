@@ -476,9 +476,10 @@ static partial class CSharpEmitter
 	/// </remarks>
 	/// <summary>
 	/// Emitted into a host whose grammar names it — a rule of that type, or a construction
-	/// asking for <c>parserSpan</c>.
+	/// asking for <c>parserSpan</c>. <c>{{access}}</c> is what the generated part says of who may
+	/// see it (<see cref="SourceSpanOf"/>).
 	/// </summary>
-	internal const string SourceSpanStruct = """
+	const string SourceSpanStruct = """
 		/// <summary>
 		/// Half-open range of the input: [Start, End).
 		/// </summary>
@@ -503,7 +504,7 @@ static partial class CSharpEmitter
 		/// that was parsed, and against nothing else.
 		/// </para>
 		/// </remarks>
-		public readonly struct SourceSpan
+		{{access}}readonly partial struct SourceSpan
 		{
 			/// <summary>A span of <paramref name="length"/> items beginning at <paramref name="start"/>.</summary>
 			public SourceSpan(int start, int length)
@@ -572,12 +573,13 @@ static partial class CSharpEmitter
 		""";
 
 	/// <summary>
-	/// <see cref="MatchStruct"/>, and where the grammar decides locations per call, where each
-	/// reading stopped looking: what a located reading needs to say what follows its last token.
+	/// <see cref="MatchStruct"/>, and where the grammar decides locations per call
+	/// (<paramref name="readingEnd"/>), where each reading stopped looking: what a located reading
+	/// needs to say what follows its last token.
 	/// </summary>
-	internal static string MatchStructOf(Model.RecognitionGraph graph)
+	internal static string MatchStructOf(bool readingEnd)
 	{
-		if (graph.PerCall is null)
+		if (!readingEnd)
 			return MatchStruct;
 
 		var text = MatchStruct.Replace("\r\n", "\n");

@@ -1636,10 +1636,10 @@ namespace DotGram.ExpressionLanguage;
 	// it on and is collapsed into it wherever it is called — so `Lambda`'s machine holds
 	// `Assignment` and never `Expression`, and publishing the latter compiled the whole
 	// expression grammar a second time. Private: nothing but this grammar reads a hole.
-	private parse Assignment as ParseHole
+	private positional parse Assignment as ParseHole
 
 	// And the body of a lambda whose parameters say no types, read again once they have one.
-	private parse HeldBody as ParseBody
+	private positional parse HeldBody as ParseBody
 	""", Lexical = true, Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
 
 // The same grammar with every construction run after the parse is accepted, on the tape

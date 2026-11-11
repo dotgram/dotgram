@@ -105,4 +105,4 @@ L18 : @int
 
 Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))
 
-parse Tower
+positional parse Tower

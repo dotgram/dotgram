@@ -2183,12 +2183,28 @@ is allowed to sit between the matches.**
 | --- | --- | --- |
 | `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)`<br>`bool TryParseR(input, out R value)` — whether it is one, and nothing about why not |
 | `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
+| `positional parse R` | as `parse R`, and an `R` may also be read where the caller says it begins | the three above, and `TryParseR(input, at)`, `TryParseR(input, at, length)` and their `bool` forms (§6.3) |
+
+The whole directive, every bracketed part optional:
+
+```
+[access] [positional] parse|find <operand> [with (…)] [as Name] [: @T] [stream [bytes]] [yield [: @T]]
+```
+
+Left of the verb are modifiers of the methods the directive makes: who may call them, and
+whether they may begin where the caller says. Right of it is what is read and what is returned:
+the operand, the rebindings it is read with, the method's name, the result, the input forms and
+whether the result is lazy. The words on the left are written in that order, each once
+(`GRAM2013`).
 
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
 `ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `DefaultBufferSize` or
-`DefaultMaxRetained`, or in a grammar read over tokens `Scan`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
-declares for its own use, nor the name of the class itself, and neither of its two names may be the other
+`DefaultMaxRetained`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
+declares for its own use, nor in a grammar read over tokens `Scan`, which it declares internal for the
+host's own code, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
+which a trace build of the grammar declares (§6.9) — in every build, traced or not, so that a grammar a
+project traces in Debug alone means the same names in Release — nor the name of the class itself, and neither of its two names may be the other
 publication's. That is refused where the directive is written (`GRAM5018`); give it another name with `as`.
 A rule whose type would be called one of them is given another name for the type (§7.3). Every other type
 and member the class writes for its own use has `_DotGram` in its name (§7.1), which no publication can
@@ -2291,19 +2307,24 @@ Anything else is a consequence rather than a directive. Where a match may sit is
 grammar's business, how much is held is the input's (§6.3), and picking things out of
 a sequence is the caller's.
 
-**Who may call it.** A directive publishes `public` methods unless it says otherwise, and it
-may say so the way C# does:
+**What a directive says about its methods.** A directive publishes `public` methods unless it
+says otherwise, and it may say so the way C# does; and a `parse` publishes the forms that read the
+whole input unless it also says `positional`:
 
 ```dotgram
 parse Lambda as ParseLambda                                     // public
 internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda // the assembly and its friends
-private parse Assignment as ParseHole                           // the class the grammar is attached to
+private positional parse Assignment as ParseHole                // the class, and from a position
 ```
 
-The modifier is every method the directive makes: the whole form, the one taking a
+The access is every method the directive makes: the whole form, the one taking a
 position, the one taking a window, the ones over a reader. An entry point left public beside
-a private pair is exactly what it is for. It is a word only in front of `parse` or `find`, so
-a rule may still be called `internal`. A `private` publication in a nested reading
+a private pair is exactly what it is for. `positional` adds the four forms that begin where the
+caller says and may stop short of the end (§6.3); the access comes first, `internal positional
+parse`, and a wrong order or a word written twice is `GRAM2013`. A `find` already looks at every
+position of the input, and a `yield` has no `Try` form to begin anywhere, so neither takes the word
+(`GRAM2012`). Each word is one only in front of `parse` or `find`, so a rule may still be called
+`internal` or `positional`. A `private` publication in a nested reading
 (`[GramOptions]`, §6.6) is private to that nested class, which is where that reading's own
 constructions call it from.
 
@@ -2392,8 +2413,28 @@ position worth naming.
 
 `.Gram` ships no runtime assembly: everything a generated parser needs is emitted
 beside it. What is emitted into a namespace is `internal`; a parser's own types —
-`Match<T>`, `SourceSpan` and the types its grammar generates — are `public` and nested in
-the host class, so their names are the host's. A consumer therefore takes one analyzer
+`Match<T>`, `SourceSpan` and the types its grammar generates — are nested in the host
+class, so their names are the host's, and are `public` where a caller reads them.
+
+`SourceSpan` is the one a caller often never sees: the grammar's own C# is handed it
+(`parserSpan`, a `recover` factory), and what the host builds from it is the host's
+business. So it is `internal` unless a public signature the generator writes names it — a
+public publication whose value is a span, a property of a rule's generated type — and then
+`public`. A host whose own public API hands one out raises it by declaring its part:
+
+```csharp
+[Gram("Expressions.gram")]
+public static partial class Expressions
+{
+    public partial struct SourceSpan { }   // the generated part then says nothing of who may see it
+}
+```
+
+The generated part is `readonly partial struct SourceSpan`, and the struct is readonly
+whatever the host's part says. A host whose one reading goes into a class of its own (§6.6)
+may declare the part there or in the host, and the span is written where it is declared;
+a host with several readings has one span, in the host, and a part declared in the class
+of a reading is refused (`GRAM5018`). A consumer therefore takes one analyzer
 package, acquires no dependency, and has nowhere for a "generator of one version, runtime
 of another" skew to come from.
 
@@ -2632,8 +2673,8 @@ External recognizers using `ParserInput<T>` support buffered input (§7.1).
 Async refill, caller-fed chunks, and a contiguous byte publication are not supplied
 by these options.
 
-**A position and a window.** Beside `TryParseX(string input)` a `parse` gets two more
-forms wherever it is read by the shared automaton or by methods:
+**A position and a window.** Beside `TryParseX(string input)` a `positional parse` gets two
+more forms, and two that answer only whether:
 
 ```csharp
 Match<T> TryParseX(string input, int at);              // begins at `at`, need not reach the end
@@ -2696,9 +2737,17 @@ read: one character the language does not know in the last line of a script leav
 statements before it readable. The window form cuts only the window into tokens, so it may
 also begin anywhere: a hole in an interpolated string, read up to the `:` its format begins
 with, is the shape it is for. Only the whole-input forms refuse there, because reaching the
-end is what they are for. A publication compiled as a plain
-method, with the one entry a whole parse needs, gets neither: its rules were proved to
-need nothing else only against the end of the input.
+end is what they are for.
+
+They are written because the directive asks for them, and only then: whether the generator reads
+the rule by methods, by the shared automaton or by one flat method does not decide it. A
+publication compiled as a flat method keeps it for the whole input, whose speed the request does
+not touch, and is read from a position by a second entry of its own, by methods or by the shared
+automaton, since its rules were proved to need nothing else only against the end of the input:
+that entry is the size the request costs. A position is the string forms': `positional parse X
+stream` adds the reader as `stream` always does, and the reader begins at its start. A grammar that
+names `eos` reads its segments joined, which no position of the caller's can stand in, and
+refuses the word (`GRAM4055`).
 
 **What a reading from a position still costs, said here rather than discovered.** Over a
 grammar cut into tokens it cuts the whole input, and the cutting is kept for the next
@@ -2862,12 +2911,27 @@ neither compilation can see the other. What the host itself declares stays in re
 a nested class reads the static members of the class around it by their simple names,
 which is what a grammar's `=>` calls are.
 
-**What the host's own C# names is the host's.** `SourceSpan` (§4.1) and `Match<T>` (§6.1)
-appear in the signatures a grammar calls and a caller reads, so where a class carries
-several grammars they are written once, in the class itself, and every scope reads them
-from around it. Otherwise a factory handing a span to a method of the host would be
-handing it a type of the same name that is not the same type, and neither compilation
-would build.
+**What the host's own C# names is the host's.** `SourceSpan` (§4.1, §6.2), `Match<T>`
+(§6.1) and `ParserInput<T>` (§7.1) appear in the signatures a grammar calls and a caller
+reads, so where a class carries several grammars they are written once, in the class
+itself, and every scope reads them from around it. Otherwise a factory handing a span to a
+method of the host would be handing it a type of the same name that is not the same type,
+and neither compilation would build. Each is written where at least one reading needs it,
+and only there: a traced reading beside a plain one adds no `SourceSpan` and no
+`ParserInput<T>` to a host whose grammar asks for neither. They go in a file of the host's
+own, `Host.gram-shared.g.cs`, beside the readings' files.
+
+A host with one reading keeps them in the reading's own class, so a second reading moves
+them. `[Gram("…", Suffix = "Fast")]` alone answers with `Host.Fast.Match<T>`; add a
+`[GramOptions(Suffix = "Slow")]` and both answer with `Host.Match<T>`:
+
+```csharp
+Host.Fast.Match<Row> m = Host.Fast.TryParseRow(text);   // one reading
+Host.Match<Row>      m = Host.Fast.TryParseRow(text);   // two: the same call, the host's match
+```
+
+Code that names the type through the class it calls — `var`, or `Host.Fast.Match<Row>` only
+where the host has one reading — is the code a second reading leaves alone.
 
 **The nested class is public unless the host declares it.** A nested class would be
 private by default, so the generator writes it `public`. Declared by the author, it is the
@@ -2887,7 +2951,13 @@ which is the scope the `[Gram]` already has — is refused (`GRAM0006`), because
 would silently win.
 
 The value types a grammar generates are the compilation's own, so two compilations of a
-grammar that builds its own types build two families of them. Where the types are
+grammar that builds its own types build two families of them. They are named alike in
+every reading: a rule's type is named against the host and the classes of all its readings,
+whichever reading writes it, so a rule `Url` in a host `Url` builds `Url.UrlValue` and
+`Url.Traced.UrlValue`, and code written against one reading moves to another by its
+prefix. For the same reason no publication, and no rule's type, may take the name of a
+reading's class: `parse Body as Traced` beside a reading `Traced` is refused (`GRAM5018`)
+in every reading, and a rule `Traced` builds a `TracedValue`. Where the types are
 written by hand and named with `@`, both build the same ones, which is what makes two
 carriers over one grammar comparable at all.
 
@@ -2989,7 +3059,7 @@ of it fails a build.
 | `PartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
 | `Stacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
 | `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
-| `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
+| `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. The lexer's `Scan(text, pos, out kind)` is internal: the kind it answers with is the grammar's own numbering, which changes with the grammar. A host that wants token boundaries writes a method of its own under another name that calls it. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the tape would have (§7.5). Ignored on the tape. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
@@ -3099,8 +3169,8 @@ compiles, and is off unless set to `true`.
 </PropertyGroup>
 ```
 
-A `parse` has whole forms, which demand the end of the input, and the forms that begin at a
-position or read a window (§6.3), which demand nothing after the rule. The rule is compiled
+A `positional parse` has whole forms, which demand the end of the input, and the forms that begin
+at a position or read a window (§6.3), which demand nothing after the rule. The rule is compiled
 once for both, and by default against the end of the input. Some decisions taken on the
 strength of that end hold for the whole forms only: a way back to an optional's skip is not
 kept, a repetition's turn is taken as final because the end could not begin where it stopped.
@@ -3112,8 +3182,8 @@ rule reads nothing, in the shared automaton only; `'"' & ("\"\"" | [^'"'])* & '"
 `('a' & 'b' | 'a' & 'c')* & ?!'x'` from 0 in `abacx` refuses where it reads `ab` in both. The
 whole forms are right either way.
 
-Set, every `parse` is compiled knowing that it is also read from a position, and those forms
-give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
+Set, every `parse` is compiled knowing that it is also read from a position, whether or not its
+directive says `positional`, and the forms of those that do give the rule's first reading. The whole forms accept the same texts, but lose the proofs they
 rested on, and that is the cost: in this repository's own packages the JSON, JSON Pointer and
 URI Template readers stay on the immediate carrier and are told (`GRAM5012`) that their
 constructions can now run again for text read a second time. A token grammar (`Lexical`) changes only the
@@ -3262,10 +3332,13 @@ the one that goes out.
 `GramRead` says what the reading is: the rule published, whether it is `Quiet`, whether it is one
 start of a `find`, which `Machine` reads it — `methods`, a method a rule; `engine`, one automaton
 over an arena; `flat`, one method for the whole reading — the `Text`, the names of the rules and the
-C# of the guards by the numbers the events carry (`RuleName`, `GuardText`), and `CharacterOf`, which
-turns a position into a character of the input — a position over tokens is a token — and `Locate`,
-its line and column. A reading over a `TextReader`, a `Stream` or bytes (§6.3) has no `Text`, and
-counts its positions from the beginning of the input, not of the part of it held in its buffer.
+C# of the guards by the numbers the events carry (`RuleName`, `GuardText`), `OverTokens`, whether
+the positions the events carry are tokens rather than characters (a grammar read over tokens, §4), and
+`CharacterOf`, which turns a position into a character of the input — a position over tokens is a
+token, and is turned into the character its token begins at — and `Locate`, its line and column. A reading over a `TextReader`, a `Stream` or bytes (§6.3) has no `Text`, and
+counts its positions from the beginning of the input, not of the part of it held in its buffer. Every
+position the trace tells or hands back — an event's, `Start`, `CharacterOf`, the positions of `GramWhy`'s
+paths and elements — is a `long`, as `Match.Position` is (§6.3).
 
 #### Three sinks, ready-made
 
@@ -3555,6 +3628,25 @@ token's start, and where the rule refuses the position is lexed again without it
 done only for a terminal in braces; one that is not atomic stays over characters with a
 `GRAM5004`.
 
+Such a terminal's guard, and the construction of any terminal, may name the grammar's
+`context` (§7.7), and a rule it reads may hold a `when … is …` that two publications answer
+differently (§5.1). The lexer measures the terminal with the context the publication was
+handed and as the reading the publication is, and a value built from a token is built with
+both, as over characters. The tokens are cut before the syntax reads anything, so a guard
+there sees the context as it was handed over, not what the syntax's own guards have written
+into it by the time the parse reaches the token; and a token's value is read again when it
+is built, so a guard that answers otherwise by then gives another alternative's value, with
+nothing to say so, or refuses the token, which throws an `InvalidOperationException` naming
+the terminal and where its token stood. `GRAM5019` warns of such a guard; a terminal whose
+value is its token's own text is not read again, and is not warned of. A check of the context
+in a terminal has to give the same answer throughout the parse: what it reads belongs in the
+context as configuration the syntax never writes. A grammar whose terminals depend on what
+the syntax has read so far is a grammar for `Lexical = false`, where a terminal is read where
+the parse reaches it. A
+cutting whose measuring reads the context is the parse's, not the string's: it is not kept
+for the next reading of the same string. One that only tests the reading is kept beside the
+reading it was cut as.
+
 The beginning has to be the terminal's alone. One that can be empty, or that is also a
 token of its own, is refused (`GRAM5004`): the lexer would have a string it cannot give
 one meaning to. A terminal that is nothing but `@M` has no beginning at all, so the host
@@ -3671,7 +3763,7 @@ Url = scheme: ("https" | "http" | "ftp") & "://" & host: Host
 // generated when no C# type exists
 public sealed class Url
 {
-    public Url(string scheme, Host host) { Scheme = scheme; Host = host; }
+    internal Url(string scheme, Host host) { Scheme = scheme; Host = host; }
 
     public string Scheme { get; }
     public Host   Host   { get; }
@@ -3684,7 +3776,12 @@ time. And it can be typed all the way — `scheme: Scheme` with `Scheme : @UriSc
 hands back the enum instead of the text.
 
 When no accessible C# type exists for a rule, an ordinary class with the same members
-is generated — a constructor and a get-only property per capture, and nothing else. Not
+is generated — a constructor and a get-only property per capture, and nothing else. The
+constructor is `internal`: its parameters are the captures in the order the grammar writes
+them, so a grammar that swapped two captures of one type would swap what a caller in another
+assembly passes, and nothing would say so. The parser builds the value and code in the same
+assembly may; outside it, the value is read. A value to be built elsewhere — by hand, by a
+test, by another assembly — is a type of the host's own, named with `: @T` (§7.1). Not
 a bespoke node framework, and not a `record`: a positional record needs `IsExternalInit`,
 which lives in `System.Runtime.CompilerServices`, and §6.2 is why nothing is ever emitted
 into a namespace that is not ours. A consumer targeting an older framework has their own
@@ -4045,7 +4142,7 @@ Feed : FeedItem[] = Header
 A reading that ends where the rule does — one that begins at a position or reads a
 window (§6.3) — has nothing after the rule, so a marked repetition at the end of it finds
 its continuation at once: past its minimum it reads no further. To read a recovering list
-from a position, publish a rule that ends with what ends the list — `eof`, or a terminator:
+from a position, publish with `positional parse` a rule that ends with what ends the list — `eof`, or a terminator:
 `RowsToEnd = Rows & eof` where `Rows` builds no value, and where `Rows : @int[]` builds the
 list, `RowsToEnd : @int[] = r: Rows & eof => @(r)`.
 

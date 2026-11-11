@@ -45,6 +45,15 @@ sealed class GramParser
 	public const string NestedTooDeep        = "GRAM2011";
 
 	/// <summary>
+	/// <c>positional</c> on a directive that has no forms read from a position: a <c>find</c> or a
+	/// <c>yield</c>.
+	/// </summary>
+	public const string PositionalWithout    = "GRAM2012";
+
+	/// <summary>The words before a directive's verb out of order or repeated.</summary>
+	public const string ModifierOrder        = "GRAM2013";
+
+	/// <summary>
 	/// The deepest the parser goes into what nests: an operand inside another (a group, braces, a
 	/// lookahead, a capture, a binding, a call's arguments, a rebinding, a switch), a condition's
 	/// parentheses, a C# type's arguments, a namespace inside another — one level each, so a group
@@ -267,20 +276,10 @@ sealed class GramParser
 			return ParseNamespace();
 
 		if (AtPublication())
-			return ParsePublication();
+			return Published(ParsePublication());
 
-		if (AtAccess())
-		{
-			var from   = Current.Position;
-			var access = Take().Value switch
-			{
-				"internal" => PublishAccess.Internal,
-				"private"  => PublishAccess.Private,
-				_          => PublishAccess.Public,
-			};
-
-			return ParsePublication(access, from);
-		}
+		if (AtModifiers())
+			return Published(ParseModified());
 
 		// `context : @T` and nothing after it. A body would have made it a rule called
 		// `context`, which stays perfectly writable — that is what `StartsRule` decides,
@@ -447,18 +446,126 @@ sealed class GramParser
 			TokenKind.CaseInsensitiveCharacter or TokenKind.CaseInsensitiveString;
 	}
 
-	/// <summary><c>public</c>, <c>internal</c> or <c>private</c>, where a directive follows it (§6).</summary>
+	/// <summary>
+	/// The words a directive's methods are declared with, where a directive follows them (§6):
+	/// <c>public</c>, <c>internal</c> or <c>private</c>, and <c>positional</c>.
+	/// </summary>
 	/// <remarks>
-	/// Only there. Everywhere else the three are ordinary words, so a rule called
-	/// <c>internal</c> stays one — which is the same bargain <c>parse</c> and <c>find</c>
-	/// themselves make with <see cref="StartsRule"/>.
+	/// Only there. Everywhere else the four are ordinary words, so a rule called
+	/// <c>internal</c> or <c>positional</c> stays one — which is the same bargain <c>parse</c>
+	/// and <c>find</c> themselves make with <see cref="StartsRule"/>. Every word up to the verb
+	/// is taken here, in whatever order it was written, so that a wrong order is said as one
+	/// rather than read as a rule that does not parse.
 	/// </remarks>
-	bool AtAccess()
+	bool AtModifiers()
 	{
-		return (AtKeyword("public") || AtKeyword("internal") || AtKeyword("private")) &&
-		!StartsRule() &&
-		Next.Kind == TokenKind.Identifier &&
-		Next.Value is "parse" or "find";
+		if (!IsModifier(_index) || StartsRule())
+			return false;
+
+		var at = _index + 1;
+
+		while (IsModifier(at))
+			at++;
+
+		return KindAt(at) == TokenKind.Identifier && _tokens[at].Value is "parse" or "find";
+	}
+
+	bool IsModifier(int at)
+	{
+		return KindAt(at) == TokenKind.Identifier &&
+			_tokens[at].Value is "public" or "internal" or "private" or "positional";
+	}
+
+	/// <summary>Where the last directive read ended, as a token index; -1 before the first.</summary>
+	int _publishedEnd = -1;
+
+	Decl Published(Decl directive)
+	{
+		_publishedEnd = _index;
+
+		return directive;
+	}
+
+	/// <summary>Whether nothing but spaces stands between two tokens; false where the text is not known.</summary>
+	bool OnOneLine(Token before, Token after)
+	{
+		if (_tokens.Text is not { } text)
+			return false;
+
+		for (var at = before.Position + before.Length; at < after.Position && at < text.Length; at++)
+			if (text[at] is '\n' or '\r')
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// The modifiers <see cref="AtModifiers"/> found, and the directive after them. One order: the
+	/// access first, then <c>positional</c>; each at most once (GRAM2013).
+	/// </summary>
+	Decl ParseModified()
+	{
+		// Written after a directive on its own line, as `stream` is, the word would be read as the
+		// next directive's, which is a method nobody asked for: said where it stands instead.
+		if (_index == _publishedEnd && _index > 0 && OnOneLine(_tokens[_index - 1], Current))
+			Report(
+				ModifierOrder,
+				$"'{Current.Value}' goes before the verb of its own directive, at the start of the line: " +
+					$"'{Current.Value} parse …'.",
+				new Location(Current.Position, Current.Length));
+
+		var from       = Current.Position;
+		var positions  = new List<int>();
+		var positional = (int?)null;
+
+		PublishAccess? access = null;
+		string?        said   = null;
+
+		while (!AtKeyword("parse") && !AtKeyword("find"))
+		{
+			var word  = Take();
+			var where = new Location(word.Position, word.Length);
+
+			positions.Add(word.Position);
+
+			if (word.Value == "positional")
+			{
+				if (positional is not null)
+					Report(ModifierOrder, "'positional' is written once.", where);
+
+				positional ??= word.Position;
+
+				continue;
+			}
+
+			if (said is not null)
+			{
+				Report(
+					ModifierOrder,
+					$"A directive has one access, and '{said}' is already written: " +
+						$"drop '{word.Value}'.",
+					where);
+
+				continue;
+			}
+
+			if (positional is not null)
+				Report(
+					ModifierOrder,
+					$"Write the access first: '{word.Value} positional', " +
+						$"not 'positional {word.Value}'.",
+					where);
+
+			said   = word.Value;
+			access = word.Value switch
+			{
+				"internal" => PublishAccess.Internal,
+				"private"  => PublishAccess.Private,
+				_          => PublishAccess.Public,
+			};
+		}
+
+		return ParsePublication(access ?? PublishAccess.Public, from, positional, positions);
 	}
 
 	/// <remarks>
@@ -607,7 +714,11 @@ sealed class GramParser
 	/// something, and the author naming the method has already chosen the word.
 	/// </para>
 	/// </remarks>
-	Decl ParsePublication(PublishAccess access = PublishAccess.Public, int? from = null)
+	/// <param name="positional">Where <c>positional</c> stands before the verb, or null.</param>
+	/// <param name="modifiers">Where each word before the verb stands, for the editor.</param>
+	Decl ParsePublication(
+		PublishAccess access = PublishAccess.Public, int? from = null, int? positional = null,
+		IReadOnlyList<int>? modifiers = null)
 	{
 		var start      = from ?? Current.Position;
 		var word       = Take().Value!;
@@ -629,12 +740,27 @@ sealed class GramParser
 		if (yield && type is not null && target is Expr.Reference(false, _, { Count: 0 }))
 			Report(PublicationTypeOnRule, "Place the element type after 'yield', not before it.", type.At);
 
+		// A `find` reads every position of the input already, and a `yield` has no `Try` form for
+		// a position to be handed to: neither has the forms the word asks for.
+		if (positional is { } positionalAt && (kind == PublishKind.Find || yield))
+			Report(
+				PositionalWithout,
+				kind == PublishKind.Find
+					? "A 'find' has no forms read from a position: it looks at every " +
+						"position of the input itself. Drop 'positional'."
+					: "A 'yield' has no forms read from a position: it has no 'Try' form " +
+						"to begin where it is told. Drop 'positional'.",
+				new Location(positionalAt, "positional".Length));
+
+		var positions = modifiers ?? [];
+		var asked     = positional is not null && kind == PublishKind.Parse && !yield;
+
 		// A bare name is what this directive has always taken, and it still names the
 		// rule it publishes — including the method name derived from it where no `as`
 		// says otherwise.
 		if (target is Expr.Reference(false, var named, { Count: 0 }))
 		{
-			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType ?? type };
+			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access, Positional = asked, PositionalAt = asked ? positional ?? -1 : -1, ModifierPositions = positions, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType ?? type };
 		}
 
 		if (alias is null)
@@ -645,12 +771,12 @@ sealed class GramParser
 				"called: there is no name here to make one from.",
 				new Location(targetAt, Current.Position - targetAt));
 
-			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType };
+			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access, Positional = asked, PositionalAt = asked ? positional ?? -1 : -1, ModifierPositions = positions, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType };
 		}
 
 		_lifted.Add(new Decl.Rule(alias, [], type, target) { At = From(targetAt) });
 
-		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType };
+		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access, Positional = asked, PositionalAt = asked ? positional ?? -1 : -1, ModifierPositions = positions, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes, Yield = yield, ResultType = yieldType };
 	}
 
 	/// <summary>
@@ -1813,7 +1939,8 @@ sealed class GramParser
 	{
 		// `context : @T` and `state : @T` name a host type; `state: B` without the `@` is a binding
 		// inside a broken rule, which recovery has to step over rather than stop at.
-		return StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication() || AtAccess() ||
+		return StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication() ||
+			AtModifiers() ||
 			(AtKeyword("context") || AtKeyword("state")) && Next.Kind == TokenKind.Colon && AfterNext.Kind == TokenKind.At;
 	}
 }

@@ -239,3 +239,8 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
    not control.
 5. Treating the text as sandboxed. It can call any public member of any type its scope
    reaches — file system, process, reflection. Parse only text you would run as code.
+
+## Cold start
+
+- Cold start: the first parse in a process is mostly JIT (tens of milliseconds for the SQL parsers). If that matters,
+  publish the application with `<PublishReadyToRun>true</PublishReadyToRun>`; it cuts the first call 3-5 times.
