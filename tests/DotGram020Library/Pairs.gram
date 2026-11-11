@@ -1,0 +1,3 @@
+using L;
+Pair : @int = a: L.Number & ',' & b: L.Number => @(a * b)
+parse Pair
