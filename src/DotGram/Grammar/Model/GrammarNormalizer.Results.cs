@@ -213,10 +213,12 @@ sealed partial class GrammarNormalizer
 		}
 
 		// Asked once the results are known, which is when the set is made; once, since a grammar of
-		// several hundred rules asks for every construction that hands a capture back.
+		// several hundred rules asks for every construction that hands a capture back. Only of the
+		// rules that stay: one nothing reaches is pruned and its type never written, and the name may
+		// be a type of the host's, with conversions of its own.
 		bool Generated(string type)
 		{
-			_generatedNames ??= [.. _rules.Where(HasGeneratedType).Select(Emit.CSharpEmitter.IdentifierOf)];
+			_generatedNames ??= [.. Kept().Where(HasGeneratedType).Select(Emit.CSharpEmitter.IdentifierOf)];
 
 			return _generatedNames.Contains(type);
 		}

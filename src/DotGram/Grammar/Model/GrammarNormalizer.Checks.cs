@@ -180,6 +180,23 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// The rules <see cref="Prune"/> keeps: what the publications reach, or, where there are none,
+	/// what the author's rules reach.
+	/// </summary>
+	/// <remarks>
+	/// A rule whose generated type the grammar names is kept for its type, whether or not a parse
+	/// reaches it, and so is what it calls, which its members are typed by.
+	/// </remarks>
+	HashSet<RuleSymbol> Kept()
+	{
+		var named = _namedTypes.Values.Where(HasGeneratedType).Distinct().ToList();
+
+		return _publications.Count > 0
+			? Reached(_publications, rebindings: false, named)
+			: Reached(_publications, rebindings: false, [.. _rules.Where(static one => !IsSpliced(one) && !one.IsBuiltIn)]);
+	}
+
+	/// <summary>
 	/// Drop what the finished grammar cannot reach.
 	/// </summary>
 	/// <remarks>
@@ -207,12 +224,7 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	void Prune()
 	{
-		// A rule whose generated type the grammar names is kept for its type, whether or not a parse
-		// reaches it, and so is what it calls, which its members are typed by.
-		var named   = _namedTypes.Values.Where(HasGeneratedType).Distinct().ToList();
-		var reached = _publications.Count > 0
-			? Reached(_publications, rebindings: false, named)
-			: Reached(_publications, rebindings: false, [.. _rules.Where(static one => !IsSpliced(one) && !one.IsBuiltIn)]);
+		var reached = Kept();
 
 		if (reached.Count == _rules.Count)
 			return;
