@@ -391,7 +391,8 @@ sealed class GramGenerator : IIncrementalGenerator
 			.Select(static argument => argument.Value.Value as INamedTypeSymbol)
 			.FirstOrDefault(found => found?.ToDisplayString() == named);
 
-		if (type is null)
+		// A type C# cannot find is the compiler's to report, and is.
+		if (type is null || type.TypeKind == TypeKind.Error)
 			return null;
 
 		var arity  = host.LocatedFacade is null ? 2 : 3;
