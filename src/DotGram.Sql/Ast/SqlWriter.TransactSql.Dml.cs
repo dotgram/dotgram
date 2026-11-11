@@ -111,6 +111,8 @@ public static partial class SqlWriter
 		/// </summary>
 		void PutTypedColumn(ColumnDefinition column, bool typed, string where)
 		{
+			CheckNotPostgreSqlColumn(column);
+
 			if (column.Options.Count > 0)
 			{
 				if (column.Generation is not null || column.Constraints.Count > 0 || column.Collation is not null)
