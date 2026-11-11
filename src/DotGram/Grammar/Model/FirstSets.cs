@@ -1845,12 +1845,22 @@ static class FirstSets
 			if (nothing &&
 				parts[i] is Node.Lookahead(true, var expected) &&
 				!Nullable(expected, graph) &&
-				!LedByRecovery(expected, graph) &&
-				Inner(expected, graph, byRule) is { IsKnown: true } ahead)
+				!LedByRecovery(expected, graph))
 			{
-				expects = expects is { } held ? held.And(ahead) : ahead;
+				var ahead = Inner(expected, graph, byRule);
 
-				continue;
+				if (ahead.IsKnown)
+				{
+					expects = expects is { } held ? held.And(ahead) : ahead;
+
+					continue;
+				}
+
+				// A body that must consume and begins with nothing never matches, so the look
+				// never lets the rest through: nothing follows it. Read as narrowing nothing, the
+				// answer would shrink once the body began, while the rules grow (ByRule).
+				if (ahead.Nothing && !Passed(expected, graph))
+					break;
 			}
 
 			// A negative lookahead of one character is the mirror: the rest may not begin
@@ -1862,14 +1872,18 @@ static class FirstSets
 			// one kind whether it is reserved or not.
 			if (nothing &&
 				parts[i] is Node.Lookahead(false, var refused) &&
-				OneCharacter(refused, graph, []) &&
-				Inner(refused, graph, byRule) is { IsKnown: true } barred)
+				OneCharacter(refused, graph, []))
 			{
-				var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
+				var barred = Inner(refused, graph, byRule);
 
-				expects = expects is { } narrowed ? narrowed.And(admitted) : admitted;
+				if (barred.IsKnown)
+				{
+					var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
 
-				continue;
+					expects = expects is { } narrowed ? narrowed.And(admitted) : admitted;
+
+					continue;
+				}
 			}
 
 			var first = Inner(parts[i], graph, byRule);
@@ -1881,7 +1895,18 @@ static class FirstSets
 				return First.All;
 
 			if (first.Nothing)
+			{
+				// A part that must consume and begins with nothing never matches, and nothing
+				// after it is ever reached (MayRecover says why). Passed over instead, the
+				// sequence began with what comes after the part — and while the rules grow,
+				// nothing is also what a rule not reached yet answers, so the answer shrank once
+				// it was reached (ByRule). A part that may recover and has settled on nothing is
+				// passed over, as it always was (Passed).
+				if (!Nullable(parts[i], graph) && !Passed(parts[i], graph))
+					break;
+
 				continue;
+			}
 
 			nothing = false;
 			ranges.AddRange(first.Ranges);
@@ -1929,6 +1954,36 @@ static class FirstSets
 	}
 
 	/// <summary>
+	/// Whether a part that must consume and begins with nothing is passed over as though it
+	/// matched nothing, rather than ending what the sequence can begin with.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Only a part that may recover (<see cref="MayRecover"/>) and whose answer has settled on
+	/// nothing: it has no reading <see cref="Of"/> speaks for, and still matches by stepping over a
+	/// bad element. <c>Rows = D+ recover '.' &amp; '.'</c> over a <c>D</c> that never matches
+	/// begins with the dot, and an optional dot before it gives its dot back for it.
+	/// </para>
+	/// <para>
+	/// Decided once per part, when the component the part is read in has stopped growing
+	/// (<see cref="RecognitionGraph.FirstPassed"/>): passed over while its answer was still
+	/// nothing for want of a rule not reached yet, what came after it would be taken back once the
+	/// rule was reached. Until then such a part stops the sequence and is put forward
+	/// (<see cref="RecognitionGraph.FirstAsked"/>).
+	/// </para>
+	/// </remarks>
+	static bool Passed(Node part, RecognitionGraph graph)
+	{
+		if (graph.FirstPassed is { } passed && passed.Contains(part))
+			return true;
+
+		if (!graph.FirstSettled && MayRecover(part, graph))
+			(graph.FirstAsked ??= new HashSet<Node>(NodeIdentity.Instance)).Add(part);
+
+		return false;
+	}
+
+	/// <summary>
 	/// What each rule can begin with, as the least set that satisfies every rule at once.
 	/// </summary>
 	/// <remarks>
@@ -1936,7 +1991,34 @@ static class FirstSets
 	/// A grammar's rules call each other and themselves, so this is not a walk: it is the
 	/// least fixed point of the same kind of equations <c>Nullable</c> and <c>FOLLOW</c> are
 	/// already solved as. Every rule starts at nothing and grows until nothing grows, which
-	/// settles because the step only ever adds and there are finitely many characters to add.
+	/// settles because each answer is joined with the one before it and there are finitely
+	/// many characters to add.
+	/// </para>
+	/// <para>
+	/// The step used to take back what it had said. Before a rule is reached its answer is
+	/// nothing, and a part of a sequence that must consume but began with nothing was passed
+	/// over, so the sequence began with what came after it; once the rule was reached that was
+	/// taken back. Round a ring of rules that lead with one another (<c>A = B</c>,
+	/// <c>B = C | 'b'</c>, <c>C = A &amp; 'a'</c>), with each answer put in place of the one
+	/// before, the <c>a</c> came and went for ever; and where a ring of rules never matches at
+	/// all, which answer it settled on depended on the order the rules were written in.
+	/// </para>
+	/// <para>
+	/// A part that must consume and begins with nothing never matches, so nothing after it in
+	/// the sequence is ever reached: the sequence stops there, while the rules grow and after,
+	/// and a positive look whose body is such a part lets nothing through — unless the part may
+	/// recover, which matches by stepping over what no first set speaks for and, once it has
+	/// settled on nothing, is passed over as before (<see cref="Passed"/>). Then the step only
+	/// adds as what it reads grows, except for a negative look over one character, which admits
+	/// the complement of what it refuses. What it refuses cannot call back into the rule (every
+	/// reading of it is one character), so the rules are worked out callee first, a strongly
+	/// connected component at a time, each settled before the next: a look reads only what has
+	/// stopped growing. Each answer is joined with the one before all the same, which is what
+	/// bounds the loop whatever the step does. The answer is the least fixed point of the
+	/// reading the rest of the compiler reads it with, so every rule begins with what its body
+	/// does, and the same whatever order the rules are written in: which parts are passed over is
+	/// decided from the settled answers of each round, and each round's answer is a least fixed
+	/// point.
 	/// </para>
 	/// <para>
 	/// What it replaces answered "anything" on re-entering a rule already being walked. That
@@ -1964,32 +2046,81 @@ static class FirstSets
 		// out reads the estimate rather than starting the walk again.
 		graph.FirstByRule = estimates;
 
-		// Every body contributes once. Later only callers of a changed estimate need
-		// another visit; unrelated rules cannot learn anything from that change.
-		var pending = new Queue<RuleSymbol>(graph.Rules);
-		var queued = new HashSet<RuleSymbol>(graph.Rules);
-		var calls = graph.Calls;
+		var calls   = graph.Calls;
+		var pending = new Queue<RuleSymbol>();
+		var queued  = new HashSet<RuleSymbol>();
 
-		while (pending.Count > 0)
+		// Callee first, a component at a time, each settled before the next. Every body
+		// contributes once. Later only callers of a changed estimate need another visit, and only
+		// those in the same component: the ones above have not begun.
+		foreach (var component in calls.Components)
 		{
-			var rule = pending.Dequeue();
-			queued.Remove(rule);
-			if (!graph.Bodies.TryGetValue(rule, out var body))
-				continue;
+			foreach (var rule in component)
+				if (queued.Add(rule))
+					pending.Enqueue(rule);
 
-			var next = Of(body, graph, estimates);
-			if (Same(next, estimates[rule]))
-				continue;
+			Grow();
 
-			estimates[rule] = next;
-			foreach (var caller in calls.CalledBy(rule))
-				if (queued.Add(caller))
-					pending.Enqueue(caller);
+			// The parts that may recover and stopped a sequence: asked again of the settled
+			// answers, in one more reading of every rule of the component, and those that still
+			// begin with nothing are passed over from here on (Passed). Then the component grows
+			// again from where it stood, which may reach more of them; each round only adds.
+			while (graph.FirstAsked is { Count: > 0 } asked)
+			{
+				asked.Clear();
+
+				foreach (var rule in component)
+					if (graph.Bodies.TryGetValue(rule, out var body))
+						Of(body, graph, estimates);
+
+				if (asked.Count == 0)
+					break;
+
+				var passed = graph.FirstPassed ??= new HashSet<Node>(NodeIdentity.Instance);
+
+				foreach (var part in asked)
+					passed.Add(part);
+
+				asked.Clear();
+
+				foreach (var rule in component)
+					if (queued.Add(rule))
+						pending.Enqueue(rule);
+
+				Grow();
+			}
 		}
 
 		graph.FirstSettled = true;
 
 		return estimates;
+
+		// Works the pending rules off, each answer joined with the one before it; only callers in
+		// the same component are queued again.
+		void Grow()
+		{
+			while (pending.Count > 0)
+			{
+				var rule = pending.Dequeue();
+
+				queued.Remove(rule);
+
+				if (!graph.Bodies.TryGetValue(rule, out var body))
+					continue;
+
+				var held = estimates[rule];
+				var next = held.Or(Of(body, graph, estimates));
+
+				if (Same(next, held))
+					continue;
+
+				estimates[rule] = next;
+
+				foreach (var caller in calls.CalledBy(rule))
+					if ((ReferenceEquals(caller, rule) || calls.Together(caller, rule)) && queued.Add(caller))
+						pending.Enqueue(caller);
+			}
+		}
 	}
 
 	/// <summary>Whether two sets are the same set.</summary>
@@ -2751,6 +2882,78 @@ static class FirstSets
 	}
 
 	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _ledByRecovery = new();
+
+	/// <summary>
+	/// Whether a node may match by way of a repetition that recovers: one inside it, in a rule it
+	/// calls however deep, or in what a reference in it reads.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What <see cref="Of"/> answers is what a reading begins with where no recovery steps over a
+	/// bad element (<see cref="LedByRecovery"/>). So where a node may recover, beginning with
+	/// nothing does not say that it never matches: <c>D+ recover '.'</c> over a <c>D</c> that
+	/// never matches steps over what is there up to the dot and succeeds. Where it may not, every
+	/// reading of the node is one <see cref="Of"/> answers for: a node that must consume begins
+	/// each reading with a character, which is then in what <see cref="Of"/> says, so one that
+	/// begins with nothing has no reading at all. That is the proof the stop in a sequence rests
+	/// on (<c>Following</c>).
+	/// </para>
+	/// <para>
+	/// Asked of the whole node rather than of how it begins, so that it is a fact about the grammar
+	/// and not about the answers still growing, and so it errs towards recovering: a repetition
+	/// that recovers anywhere in the node keeps it from being taken as never matching.
+	/// </para>
+	/// </remarks>
+	static bool MayRecover(Node node, RecognitionGraph graph)
+	{
+		if (graph.Recoveries.Count == 0)
+			return false;
+
+		var rules = _recovering.GetValue(graph, static graph => RulesThatRecover(graph));
+
+		return Recovers(node, graph, rules.Contains);
+	}
+
+	static bool Recovers(Node node, RecognitionGraph graph, Func<RuleSymbol, bool> rule)
+	{
+		foreach (var inner in NodeWalk.Descendants(node))
+		{
+			if (graph.Recoveries.ContainsKey(inner))
+				return true;
+
+			if (inner is Node.Call(var called, _) && rule(called))
+				return true;
+
+			if (inner is Node.Same(var binding, _))
+				foreach (var body in BoundBodies(graph, binding))
+					foreach (var bound in NodeWalk.Descendants(body))
+						if (graph.Recoveries.ContainsKey(bound) || bound is Node.Call(var reached, _) && rule(reached))
+							return true;
+		}
+
+		return false;
+	}
+
+	static HashSet<RuleSymbol> RulesThatRecover(RecognitionGraph graph)
+	{
+		var recovering = new HashSet<RuleSymbol>();
+
+		for (var grew = true; grew; )
+		{
+			grew = false;
+
+			foreach (var pair in graph.Bodies)
+				if (!recovering.Contains(pair.Key) && Recovers(pair.Value, graph, recovering.Contains))
+				{
+					recovering.Add(pair.Key);
+					grew = true;
+				}
+		}
+
+		return recovering;
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _recovering = new();
 
 	/// <summary>
 	/// Whether the text a binding holds may be empty: whether any of the bodies it is bound to

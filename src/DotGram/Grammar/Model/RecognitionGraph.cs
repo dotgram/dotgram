@@ -994,6 +994,19 @@ sealed class RecognitionGraph(
 	/// </remarks>
 	internal bool FirstSettled { get; set; }
 
+	/// <summary>
+	/// The parts that may recover and have settled on beginning with nothing, which a sequence
+	/// passes over rather than stopping at (<c>FirstSets.Passed</c>). By identity: a place in a
+	/// body, decided once.
+	/// </summary>
+	internal HashSet<Node>? FirstPassed { get; set; }
+
+	/// <summary>
+	/// The parts that may recover and stopped a sequence while <see cref="FirstByRule"/> grows,
+	/// to be asked again once their component has stopped growing (<c>FirstSets.ByRule</c>).
+	/// </summary>
+	internal HashSet<Node>? FirstAsked { get; set; }
+
 	/// <summary>What each node can begin with, once the rules have settled. A memo, not model state.</summary>
 	/// <remarks>
 	/// The emitter asks it of the same nodes over and over — of a repetition's body for every
