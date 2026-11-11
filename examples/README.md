@@ -18,6 +18,7 @@ then a feed, then an expression language, then one of the larger ones.
 
 | | |
 | --- | --- |
+| [`CssColorExample.cs`](DotGram.Examples/Formats/CssColorExample.cs) | a colour code — the repository README's first example: a grammar the size of a regular expression, and a capture that becomes a property |
 | [`JsonExample.cs`](DotGram.Examples/Formats/JsonExample.cs) | JSON — recursive structure, and a rule that reads what it built into a type of its own (the package for RFC 8259 is `DotGram.Web`: `JsonValue`) |
 | [`IniExample.cs`](DotGram.Examples/Formats/IniExample.cs) | an INI file, read into the shape a caller wants rather than into sections and keys |
 | [`TypedCsvExample.cs`](DotGram.Examples/Formats/TypedCsvExample.cs) | a CSV into records, with no `=>` anywhere: captures matched to a constructor by name |

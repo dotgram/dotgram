@@ -15,7 +15,7 @@ empty segment after it — so a segment holds no line ending and a class such as
 one. The line a reject carries is the number of its segment. Such a grammar has no string form: text already in
 memory goes in as a `StringReader`, or as a list of lines.
 
-The repository README has the shortest of these, a price list, and the first of the trading
+The [tour](tour.md#feeds-written-by-people) has the shortest of these, a price list, and the first of the trading
 feeds below. This page has all of them, and then a feed of ten million records
 bulk-loaded into a database.
 
