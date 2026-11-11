@@ -363,3 +363,73 @@ The numbers are unsigned and read in the invariant culture; a number too large f
 > `Escaped` с экранированием). Числа беззнаковые, читаются в инвариантной культуре; слишком большое
 > число бросает исключение, как `int.Parse`. Все правила с граничными случаями — в главе 10.
 <!-- ru:end -->
+
+## Built-in rules and supplied names at a glance
+
+Eight rules every grammar has without declaring them. They are ordinary rules, not keywords: a grammar
+may declare its own of the same name, and `trivia` and `wordboundary` exist to be redeclared.
+
+| Rule | Matches | Example | In full |
+| --- | --- | --- | --- |
+| `any` | one input item, whatever it is; fails only at the end | `'\'' & any & '\''` | [elements](02-elements.md#any-none-eol-eof) |
+| `none` | nothing; always succeeds | `'a' & ('b' \| none)` | [elements](02-elements.md#any-none-eol-eof) |
+| `eol` | one line ending: `\r\n`, `\n` or `\r` | `[^ '\r' \| '\n']* & eol` | [elements](02-elements.md#any-none-eol-eof) |
+| `eof` | the end of the input, reading nothing | `Header & Row* & eof` | [elements](02-elements.md#any-none-eol-eof) |
+| `eos` | the end of one segment, where the input is a list of strings | `Value & eos` | [elements](02-elements.md#eos-and-input-in-segments) |
+| `trivia` | what may stand between operands; `none` unless redeclared | `trivia = { ' '* }` | [trivia](08-trivia-and-words.md) |
+| `wordboundary` | the characters a word is made of; `none` unless redeclared | `wordboundary = ['a'..'z']` | [words](08-trivia-and-words.md#wordboundary) |
+| `word` | one whole word of those characters | `"set" & word` | [words](08-trivia-and-words.md#word) |
+
+```dotgram
+wordboundary = ['a'..'z' | '0'..'9']
+
+Quote = '\'' & any & '\''
+Set   = "set" & ' '* & word & '=' & (word | none)
+Lines = ([^ '\r' | '\n']* & { eol })* & eof
+
+parse Quote
+parse Set
+parse Lines
+```
+
+```text examples
+ParseQuote("'x'") → "'x'"
+ParseSet("set x=y") → "set x=y"
+ParseSet("set x=") → "set x="
+ParseSet("setx=y") → refused
+ParseLines("a\nb\n") → "a\nb\n"
+```
+
+`"set"` is a word literal once `wordboundary` is declared, so it does not match the start of `setx`,
+although `' '*` may read nothing.
+
+**Names the parser supplies to C#.** Inside `=>`, `when` and a `recover` factory, beside the captures:
+
+| Name | Is | In full |
+| --- | --- | --- |
+| `parserText`, `parserSpan` | the text matched so far, and where it is | [values](04-values.md#names-the-parser-supplies) |
+| `parserInput` | the whole input (not in a `when`) | [values](04-values.md#names-the-parser-supplies) |
+| `parserOrdinal`, `parserLine`, `parserColumn`, `parserPosition` | which element of a recovering repetition, and where it begins | [recovery](12-recovery.md) |
+| `parserMessage`, `parserExpected`, `parserFailureLine`, `parserFailureColumn`, `parserFailurePosition` | why a rejected element was rejected, and where reading it stopped | [recovery](12-recovery.md) |
+| `parserState`, `parserMarks` | the `with state` marks standing over a construction | [state](13-context-and-state.md) |
+| `context` | the object a caller hands the parse, where the grammar declares `context : @T` | [context](13-context-and-state.md) |
+
+Every supplied name but `context` begins with `parser`, and no capture or parameter may take a name that
+does (`GRAM4012`).
+
+<!-- ru:begin -->
+> **RU.** Восемь правил есть в каждой грамматике без объявления; это обычные правила, а не ключевые
+> слова: грамматика может объявить своё с тем же именем, а `trivia` и `wordboundary` и существуют, чтобы
+> их переопределяли. Таблица: `any` — один любой элемент; `none` — ничего, всегда успешно; `eol` —
+> перевод строки; `eof` — конец входа; `eos` — конец сегмента, когда вход — список строк; `trivia` —
+> что может стоять между операндами (по умолчанию `none`); `wordboundary` — символы слова (по умолчанию
+> `none`); `word` — одно целое слово из этих символов; для каждого — пример и глава с полным описанием.
+> В проверенном примере `"set"` при объявленной `wordboundary` — слово и не совпадает с началом `setx`.
+> **Имена, которые парсер даёт C#** (в `=>`, `when`, фабрике `recover`, рядом с захватами):
+> `parserText`, `parserSpan` — прочитанный текст и место; `parserInput` — весь вход (не в `when`);
+> `parserOrdinal`, `parserLine`, `parserColumn`, `parserPosition` — номер и место элемента
+> восстанавливающегося повторения; `parserMessage`, `parserExpected`, `parserFailure…` — почему
+> отвергнут и где остановилось чтение; `parserState`, `parserMarks` — метки `with state`; `context` —
+> объект, переданный вызывающим. Все, кроме `context`, начинаются с `parser`, и захват или параметр так
+> называться не может (`GRAM4012`).
+<!-- ru:end -->
