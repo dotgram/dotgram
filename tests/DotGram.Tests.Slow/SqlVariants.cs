@@ -110,7 +110,7 @@ static class SqlVariants
 			.Replace("GRAMMAR", file)
 			.Replace("CARRIER", immediate ? "Immediate" : "Tape")
 			.Replace("CLASS", className)
-			.Replace("LOCATED", located ? "\t[GramOptions(LocationType = typeof(global::DotGram.Sql.ISqlLocatable), Suffix = \"Located\")]\n" : "")
+			.Replace("LOCATED", located ? "\t[GramVariant(LocationType = typeof(global::DotGram.Sql.ISqlLocatable), Name = \"Located\")]\n" : "")
 			.Replace("HELPERS", helpers);
 
 		return Compile(host, directory, file, name, follow, memo, counts, keeps);

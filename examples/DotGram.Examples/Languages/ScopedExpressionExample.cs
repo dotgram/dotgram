@@ -104,7 +104,7 @@ public sealed class Names
 	            | name: Identifier & when @(context.Known(name!)) => @(context.Of(name))
 
 	parse Program
-	""", Carrier = GramCarrier.Tape)]
+	""", Carrier = GramCarrier.Deferred)]
 public static partial class Scoped
 {
 	/// <summary>What a program works out to, or the reason it does not.</summary>

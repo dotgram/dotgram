@@ -171,7 +171,7 @@ sealed partial class Machine
 			return "a trace build enters and leaves every rule it reads";
 
 		if (Carrier is not ImmediateCarrier)
-			return "the rules are read on the tape, whose records a reading given up has unwound";
+			return "the rules are carried deferred, whose records a reading given up has unwound";
 
 		if (Carrier is ImmediateCarrier { Holds: true })
 			return "a construction may throw (ConstructionsMayThrow), and what a reading held of that is let go with the reading";

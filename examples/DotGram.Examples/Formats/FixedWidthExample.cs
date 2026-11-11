@@ -83,7 +83,7 @@ namespace DotGram.Examples.Formats;
 	parse Feed
 	""")]
 // The same grammar read on the tape, for the test that holds the two to the same answers.
-[GramOptions(Carrier = GramCarrier.Tape, Suffix = "Tape")]
+[GramVariant(Carrier = GramCarrier.Deferred, Name = "Tape")]
 public sealed partial class FixedWidth
 {
 	/// <summary>Reads a whole file of settlement records.</summary>

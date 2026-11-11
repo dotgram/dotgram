@@ -465,7 +465,7 @@ are specialized when the C# is generated.
 `ConstructionsMayThrow = true` is there for `/`, which throws on a zero divisor. A grammar that
 names no carrier runs each construction as soon as its alternative is read, which is faster,
 and would divide, and throw, in `1/0=` before the parse refused the `=`. With the option, what
-a construction throws is held and thrown only where the tape — which runs every construction
+a construction throws is held and thrown only where the deferred carrier — which runs every construction
 once the parse has accepted — would have thrown it: `1/0=` is refused, and `1/0` throws.
 
 `Point` joins its parts with `~` and not `&`. The grammar skips spaces between the operands of
@@ -796,7 +796,7 @@ it, and the name this grammar will know it by:
 	""")]
 public static partial class Lexemes;
 
-[GramInclude(typeof(Lexemes), As = "Lex")]
+[GramInclude(typeof(Lexemes), Alias = "Lex")]
 [Gram("""
 	trivia = { ' '* }
 

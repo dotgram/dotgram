@@ -12,7 +12,7 @@ namespace DotGram.Compatibility
 	}
 
 	/// <summary>Captures taken as spans, over a buffer and over bytes.</summary>
-	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start\nparse Start as Boxed : @object", BufferedInput = true, BufferedBytes = true, SpanCaptures = true)]
+	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start\nparse Start as Boxed : @object", BufferedText = true, BufferedBytes = true, UseSpanCaptures = true)]
 	public partial class NativeCapture
 	{
 		static int ToInt(System.ReadOnlySpan<char> text)
@@ -31,7 +31,7 @@ namespace DotGram.Compatibility
 	}
 
 	/// <summary>A parse of buffered input, over characters and over bytes.</summary>
-	[Gram("Start : @int = \"ab\"* & '!' => @(42)\nparse Start", BufferedInput = true, BufferedBytes = true)]
+	[Gram("Start : @int = \"ab\"* & '!' => @(42)\nparse Start", BufferedText = true, BufferedBytes = true)]
 	public partial class BufferedInput
 	{
 	}
@@ -146,7 +146,7 @@ namespace DotGram.Compatibility
 		"state : @int\n" +
 		"Digits : @int  = d: ['0'..'9']+ => @(ToInt(d))\n" +
 		"Start  : @int  = v: Digits with state @(1) & when @(v > 0) & '!' => @(Under(v, parserState))\n" +
-		"parse Start", Carrier = GramCarrier.Tape)]
+		"parse Start", Carrier = GramCarrier.Deferred)]
 	public partial class MarkedGuard
 	{
 		static int ToInt(string text)
@@ -252,7 +252,7 @@ namespace DotGram.Compatibility
 		"L15 : @int = '(' & inner: L16 & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
 		"L16 : @int = '(' & inner: Digits & when @(inner >= 0) & ')' & tail: Digits => @(inner + tail) | leaf: Digits => @(leaf)\n" +
 		"Digits : @int = text: ['0'..'9']+ => @(ToInt(text))\n" +
-		"parse L01", Carrier = GramCarrier.Tape)]
+		"parse L01", Carrier = GramCarrier.Deferred)]
 	public partial class ManyArms
 	{
 		static int ToInt(string text)
@@ -284,7 +284,7 @@ namespace DotGram.Compatibility
 	}
 
 	/// <summary>A back-reference and a count by its length, read through a buffer, over characters and over bytes.</summary>
-	[Gram("Raw : @int = $q: '\"'+ & (?!$q & any)* & $q & 'x'{#q} => @(1)\nparse Raw", BufferedInput = true, BufferedBytes = true)]
+	[Gram("Raw : @int = $q: '\"'+ & (?!$q & any)* & $q & 'x'{#q} => @(1)\nparse Raw", BufferedText = true, BufferedBytes = true)]
 	public partial class BufferedBackReference
 	{
 	}

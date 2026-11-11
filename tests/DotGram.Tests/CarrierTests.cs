@@ -576,7 +576,7 @@ public sealed class CarrierTests
 		Assert.Equal(GramSeverity.Info, told.Severity);
 		Assert.Contains("carried as Immediate",                     told.Message, StringComparison.Ordinal);
 		Assert.Contains("constructions of Start can run again",     told.Message, StringComparison.Ordinal);
-		Assert.Contains("Carrier = GramCarrier.Tape",               told.Message, StringComparison.Ordinal);
+		Assert.Contains("Carrier = GramCarrier.Deferred",               told.Message, StringComparison.Ordinal);
 		Assert.DoesNotContain(Diagnostics(TakenBack, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierCaution);
 
 		// And the claim is true rather than merely printed: carried immediately, there is no walk

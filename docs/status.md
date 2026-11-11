@@ -123,10 +123,10 @@ then quietly mean nothing.
 | a mark read by a construction as `parserState` §7.8 | — | — | — | ✓ | ✓ |
 | a `context` strengthened, a `state` shared, across a composition (`GRAM3019`, `GRAM3020`) §7.7/§7.8 | — | — | ✓ | ✓ | ✓ |
 | a host inheriting the grammar of its base class | — | — | — | ✓ | ✓ |
-| the same naming itself with `[Gram(IncludedAs = "…")]` | — | — | — | ✓ | ✓ |
-| `[GramInclude(typeof(X), As = "…")]`, several at once §6.7 | — | — | — | ✓ | ✓ |
+| the same naming itself with `[Gram(DefaultAlias = "…")]` | — | — | — | ✓ | ✓ |
+| `[GramInclude(typeof(X), Alias = "…")]`, several at once §6.7 | — | — | — | ✓ | ✓ |
 | a base or an include in a referenced assembly, read from its `[GramSource]` §6.7 | — | — | — | ✓ | ✓ |
-| `[GramOptions(Suffix = "…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
+| `[GramVariant(Name = "…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
 | a rule's own refusal message, `on fail "…"`, in every reading §4/§7.5 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `internal parse`, `private find` §6 | ✓ | — | — | ✓ | ✓ |
 | `positional parse`: `TryParseR(input, at)` and `TryParseR(input, at, length)` §6.3 | ✓ | — | ✓ | ✓ | ✓ |
@@ -346,7 +346,7 @@ reports a bug in the author's own C# as "row 400 was malformed" is worse than on
 stops. The generator does not infer a parser outcome from the signature of the C# called
 by `=>`. Where a grammar says `ConstructionsMayThrow = true`, the immediate carrier holds the
 exception while the reading it was raised in may still be given up, and throws it where the
-tape would have built the value (§7.5); it is never an outcome, and one from a reading the
+deferred carrier would have built the value (§7.5); it is never an outcome, and one from a reading the
 parse abandons is never seen.
 
 `DecimalCalculator.Evaluate("1 . 5")` in the examples throws `FormatException` out of a
@@ -379,7 +379,7 @@ Power = left: Primary & '^' & right: Unary     // right at this level → right-
 can be another `^` and the left one cannot. There is no "right-recursive" in the
 compiler because there is nothing for it to do: `Power` never calls `Power` at all.
 
-**On the tape, nothing is built while matching, folds included.** What a match records is
+**Deferred, nothing is built while matching, folds included.** What a match records is
 a number: which alternative it came through, and — for a chain — which step followed which.
 Both ride on the backtracking frame, so an alternative or a step given back is forgotten
 with everything else it did, and the factories run at the accepting state in the recorded
@@ -561,7 +561,7 @@ it matched, and its recognizer has the signature it always had.
 
 A capture holds `(start, end)` into the input, or the value of the rule it names when
 that rule builds one. The whole value is constructed once, at the accepting state, from
-one expression. On the tape nothing is built during the match, so an attempt that is
+one expression. Deferred, nothing is built during the match, so an attempt that is
 abandoned costs nothing to undo — and any C# a grammar supplies will run on the parse that
 actually happened rather than once per attempt. On the immediate carrier a construction
 runs where its alternative is read, so a parse that fails may already have run some
@@ -970,8 +970,8 @@ What it took was still the text, where §3.4 says the value: `n: ?=Number` with 
 its records does — its ways back are put out and the call it read stays in the tape — and the
 capture names that call, as a capture of the call itself would. A guard reads it the same
 way, which is what the example asks. A lookahead at a pattern, or at a rule whose value is its
-text, is the text as before. Only the tape carries it: the direct reader and the immediate
-carrier hand a rule that captures a lookahead to the tape, as they did.
+text, is the text as before. Only the deferred carrier carries it: the direct reader and the immediate
+carrier hand a rule that captures a lookahead to the deferred carrier, as they did.
 
 Found by reading §3 with a probe rather than by writing a feature: five claims tested,
 one of them false in two ways.
@@ -1225,7 +1225,7 @@ of such a repetition are one member of the rule's result, whose slots are gather
 order their records were written — the walk over the tape reads them in that order already,
 and a reader by methods logs each record with the slot it came from, which says whose table
 holds it when the operands' types differ. The immediate carrier keeps one stack per type and
-so cannot order across them; a rule gathering several types is carried on the tape instead.
+so cannot order across them; a rule gathering several types is carried deferred instead.
 
 **Assignability is a question for the host**, so `ISymbolResolver` gained `IsAssignable`
 — the third thing the grammar half asked about C#, alongside "does this type exist" and
@@ -1361,7 +1361,7 @@ each other's, and have nothing to version.
 `internal` alone was not quite enough. An assembly granting `InternalsVisibleTo` to one
 that also uses .Gram handed it a second `DotGram.GramAttribute`, and every use warned
 (CS0436). Since 2026-09-13 the attributes and enums written into every assembly —
-`[Gram]`, `[GramOptions]`, `[GramInclude]`, `[GramSource]`, `GramCarrier` and the
+`[Gram]`, `[GramVariant]`, `[GramInclude]`, `[GramSource]`, `GramCarrier` and the
 tooling ones — are `[Embedded]`, with the definition asked of Roslyn
 (`AddEmbeddedAttributeDefinition` in `GramGenerator`), and a type marked embedded is not
 seen from another compilation at all.
@@ -1483,7 +1483,7 @@ the engine says the sentence.
 that accessibility: the whole form, the positional and windowed forms, and the reader
 overloads. Saying nothing is `public`. The words are modifiers only in front of `parse` or
 `find`, so a rule may still be called `internal`. A `private` publication in a
-`[GramOptions]` reading is private to that nested class.
+`[GramVariant]` reading is private to that nested class.
 
 **A position and a window.** Beside `TryParseR(string input)` a `positional parse` gets
 `TryParseR(string input, int at)` — read from `at`, not required to reach the end — and
@@ -1515,24 +1515,26 @@ and never where the smaller one streams.
 
 ## One grammar, several readings and several sources
 
-**`[GramOptions]`** carries what `[Gram]` does except which grammar: `Suffix`, `PartSize`,
-`Lexical`, `Carrier`, `ConstructionsMayThrow`, `BufferedInput`, `BufferedBytes`, `SpanCaptures`,
-`MaxRetained`, `BufferSize`, `Stacks`, `LocationType`, `PerCall`, `Portable` and `Trace`.
-`[Gram]` derives from it and adds the source and `IncludedAs`. Every `[GramOptions]` on a class is a
-compilation of its own in a nested class named by `Suffix` — `Sql.Immediate.TryParseR` —
+**`[GramVariant]`** carries what `[Gram]` does except which grammar. Both derive from the abstract
+`GramReadingAttribute`, which declares the options they share: `Name`, `TargetMethodPartSize`,
+`Lexical`, `Carrier`, `ConstructionsMayThrow`, `BufferedText`, `BufferedBytes`, `UseSpanCaptures`,
+`MaxBufferedInputLength`, `InitialBufferSize`, `MaxExtraStacks`, `LocationType`, `ExportGrammar` and
+`Trace`. `[Gram]` adds the source and `DefaultAlias`, `[GramVariant]` adds `UsePerCallLocations`.
+Every `[GramVariant]` on a class is a
+compilation of its own in a nested class named by `Name` — `Sql.Immediate.TryParseR` —
 taking from `[Gram]` whatever it does not say. Two wanting one scope is `GRAM0006`; a
-`Suffix` that is not an identifier is `GRAM0007`.
+`Name` that is not an identifier is `GRAM0007`.
 
-**`[GramInclude(typeof(X), As = "…")]`** splices `X`'s grammar into this one under a
-namespace named `As`, or `X`'s `IncludedAs`, or `X`'s name, and brings `X`'s static
+**`[GramInclude(typeof(X), Alias = "…")]`** splices `X`'s grammar into this one under a
+namespace named `Alias`, or `X`'s `DefaultAlias`, or `X`'s name, and brings `X`'s static
 members into the generated code's scope. It may be written many times, and what it names is
 walked in turn, together with the base classes. Two under one name is `GRAM0008`; an
-`IncludedAs` that is not an identifier is `GRAM0005`. `LexemeLibraryExample` in `examples/`
+`DefaultAlias` that is not an identifier is `GRAM0005`. `LexemeLibraryExample` in `examples/`
 includes a grammar this way. `DotGram.Sql`'s grammars include none: its T-SQL grammar restates
 the rules it shares with SQL-92.
 
 **`[GramSource]`** is the grammar's text, written by the generator onto a class it
-compiled where `Portable` holds — by default, where the class is visible outside its
+compiled where `ExportGrammar` holds — by default, where the class is visible outside its
 assembly. A base or an include in a referenced assembly has no `.gram` file in reach, so
 its text is read from there; the file wins where both are. This is what the table's
 referenced-assembly row rests on.
@@ -1542,7 +1544,7 @@ handed the range it was read from.
 
 ## A grammar cut in two
 
-`[Gram(..., Lexical = true)]`, or the same on `[GramOptions]`, cuts a grammar into a lexer
+`[Gram(..., Lexical = true)]`, or the same on `[GramVariant]`, cuts a grammar into a lexer
 over characters and a syntactic half over token kinds (`GramCompiler.Cut`,
 `LexicalSplit`, `TerminalInventory`, `LexicalAutomaton`, `LexerEmitter`; built from
 2026-09-01). The published methods do not change: they take a string and answer as before.
@@ -1594,8 +1596,8 @@ which is what docs/syntax.md §6.3 specifies; over characters an empty repetitio
 How a reader carries what it read until the constructions run: `[Gram(..., Carrier =
 GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
 
-- **`Auto`**, the default: compiled exactly as `Immediate`, byte for byte, and on the tape
-  for a machine that carrier refuses, in silence. Where the tape would hold back
+- **`Auto`**, the default: compiled exactly as `Immediate`, byte for byte, and deferred
+  for a machine that carrier refuses, in silence. Where `Deferred` would hold back
   constructions the immediate carrier runs — a rule the machine builds read for a
   derivation that may not stand, or read again after it has answered — the grammar is told:
   `GRAM5016`, a warning, where constructions share `context` with a `when`, a `switch`
@@ -1604,9 +1606,9 @@ GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
   information, for the rest. What counts is not a reading that is given up but one that has
   already built something: a rule read where the machine constructs nothing — under a
   lookahead, whose body the machine need not build — leaves nothing to hold back. Until
-  2026-10 `Auto` chose the tape wherever a gate held something back, and naming `Immediate`
+  2026-10 `Auto` chose the deferred carrier wherever a gate held something back, and naming `Immediate`
   over such a grammar was a warning of its own, now retired (diagnostics.md).
-- **`Tape`**: records built into values by a walk once the parse is accepted. The carrier a
+- **`Deferred`** (`Tape` before 0.3.0): records built into values by a walk once the parse is accepted. The carrier a
   `find` still takes, and the one that keeps "nothing is built while matching" whole. It was
   the only carrier that streamed or recovered until the buffered rendering: a machine reading
   over a buffer chooses its carrier like any other, so a stream and a `recover` can be
@@ -1617,7 +1619,7 @@ GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
   two fifths of a parse.
 
 A carrier is what a reader — the rendering by methods — holds. Where the immediate carrier
-named refuses a machine, or nothing in the grammar is read by methods, the tape is used and
+named refuses a machine, or nothing in the grammar is read by methods, the deferred carrier is used and
 `GRAM5007` says why, as a warning; left to the generator, the fallback is silent.
 
 ## What re-runs, and when

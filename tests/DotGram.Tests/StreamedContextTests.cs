@@ -35,7 +35,7 @@ public sealed class StreamedContextTests
 					Word  : @int   = w: ['a'..'z']+ => @(w.Length * context.Factor)
 					parse Rows as ReadRows
 					find Word as FindWords
-					""", Portable = true{{(throwing ? ", ConstructionsMayThrow = true" : "")}})]
+					""", ExportGrammar = true{{(throwing ? ", ConstructionsMayThrow = true" : "")}})]
 				public static partial class P
 				{
 				}
@@ -113,7 +113,7 @@ public sealed class StreamedContextTests
 					Row  : @int   = d: Digits & eol => @(d.Length + {{change}})
 					Rows : @int[] = (Row)* recover eol & eof
 					parse Rows as ReadRows
-					""", Portable = true)]
+					""", ExportGrammar = true)]
 				public static partial class P
 				{
 				}
