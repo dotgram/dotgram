@@ -52,7 +52,7 @@ namespace DotGram.Sql.TransactSql;
 // What it buys is the time the tape spent recording and replaying — about half of every T-SQL
 // row of the stand — for more bytes allocated on a reading that is abandoned part-way.
 [Gram("TransactSql.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
-[GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]
+[GramVariant(LocationType = typeof(ISqlLocatable), Name = "Located", UsePerCallLocations = true)]
 public abstract partial class TransactSqlParser
 {
 	// Every entry is static and nothing is made of the class, so nothing outside derives from it either.

@@ -8,8 +8,8 @@ namespace DotGram.Language;
 
 /// <summary>One grammar a host is built on, as the attributes on its class say.</summary>
 /// <param name="Type">The class whose grammar it is.</param>
-/// <param name="Attribute">That class's own <c>[Gram]</c>: the reading without a <c>Suffix</c>.</param>
-/// <param name="Name">What the including grammar reaches it under: the includer's <c>As</c>, its <c>IncludedAs</c>, or its class name.</param>
+/// <param name="Attribute">That class's own <c>[Gram]</c>: the reading without a <c>Name</c>.</param>
+/// <param name="Name">What the including grammar reaches it under: the includer's <c>Alias</c>, its <c>DefaultAlias</c>, or its class name.</param>
 /// <param name="Source">The attribute's argument unresolved — a path or the text — or null where it has none.</param>
 /// <param name="Portable">What the class carries in <c>[GramSource]</c>, which crosses an assembly reference.</param>
 readonly record struct GramInclude(
@@ -42,6 +42,11 @@ readonly record struct GramInclude(
 /// grammar built on a standard built on a library gets all three.
 /// </para>
 /// <para>
+/// The named arguments are read under the names DotGram 0.2 wrote too — <c>IncludedAs</c>,
+/// <c>As</c>, <c>Suffix</c> — so that a grammar is still included from an assembly built by it.
+/// Kept for one release.
+/// </para>
+/// <para>
 /// Named rather than inherited, cycles become possible, and they are ended rather
 /// than reported: a grammar already gathered is not gathered twice, so
 /// <c>A</c> naming <c>B</c> naming <c>A</c> splices each of them once, which is what
@@ -54,6 +59,15 @@ static class GramIncludes
 	public const string GramAttribute        = "DotGram.GramAttribute";
 	public const string GramIncludeAttribute = "DotGram.GramIncludeAttribute";
 	public const string GramSourceAttribute  = "DotGram.GramSourceAttribute";
+
+	/// <summary>The named argument of <c>[Gram]</c> that says what an includer calls the grammar where it says nothing.</summary>
+	public const string DefaultAliasArgument = "DefaultAlias";
+
+	/// <summary>The named argument of <c>[GramInclude]</c> that says what the includer calls the grammar.</summary>
+	public const string AliasArgument = "Alias";
+
+	/// <summary>The named argument of a reading that names the nested class it is compiled into.</summary>
+	public const string NameArgument = "Name";
 
 	/// <summary>Every grammar <paramref name="type"/> is built on, nearest first.</summary>
 	/// <param name="visited">
@@ -94,9 +108,7 @@ static class GramIncludes
 
 			// What the includer calls it wins over what the includee calls itself: the
 			// name a grammar is reached under inside yours is your business.
-			var under = called ?? attribute.NamedArguments
-				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
-				.Value.Value as string;
+			var under = called ?? Named(attribute, DefaultAliasArgument, "IncludedAs");
 
 			included.Add(new GramInclude(
 				above,
@@ -116,18 +128,28 @@ static class GramIncludes
 		return included;
 	}
 
-	/// <summary>Every <c>[Gram]</c> on a class: its own reading and any suffixed ones.</summary>
+	/// <summary>Every <c>[Gram]</c> on a class: its own reading, or one that names a nested class.</summary>
 	public static IEnumerable<AttributeData> Grams(ISymbol type)
 	{
 		return type.GetAttributes().Where(static candidate =>
 			candidate.AttributeClass?.ToDisplayString() == GramAttribute);
 	}
 
-	/// <summary>The class's own <c>[Gram]</c>, the one without a <c>Suffix</c>; null where every one has one.</summary>
+	/// <summary>The class's own <c>[Gram]</c>, the one without a <c>Name</c>; null where every one has one.</summary>
 	public static AttributeData? Primary(ISymbol type)
 	{
 		return Grams(type).FirstOrDefault(static candidate =>
-			candidate.NamedArguments.All(static named => named.Key != "Suffix"));
+			candidate.NamedArguments.All(static named => named.Key is not NameArgument and not "Suffix"));
+	}
+
+	/// <summary>
+	/// A string named argument under its name, or else under the name DotGram 0.2 wrote it under;
+	/// null where neither was written.
+	/// </summary>
+	public static string? Named(AttributeData attribute, string name, string legacy)
+	{
+		return attribute.NamedArguments.FirstOrDefault(argument => argument.Key == name).Value.Value as string ??
+		attribute.NamedArguments.FirstOrDefault(argument => argument.Key == legacy).Value.Value as string;
 	}
 
 	/// <summary>The attribute's argument — a path or the grammar itself — or null where it has none.</summary>
@@ -183,9 +205,7 @@ static class GramIncludes
 			{
 				yield return (
 					grammar,
-					attribute.NamedArguments
-						.FirstOrDefault(static argument => argument.Key == "As")
-						.Value.Value as string);
+					Named(attribute, AliasArgument, "As"));
 			}
 	}
 }

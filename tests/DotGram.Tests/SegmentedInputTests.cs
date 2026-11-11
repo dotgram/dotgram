@@ -323,8 +323,8 @@ public sealed class SegmentedInputTests
 					Name  : @Name   = ['a'..'z']+ => @(new Name())
 					parse Names
 					""")]
-				[DotGram.GramOptions(Carrier = DotGram.GramCarrier.Immediate, Suffix = "Immediate")]
-				[DotGram.GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				[DotGram.GramVariant(Carrier = DotGram.GramCarrier.Immediate, Name = "Immediate")]
+				[DotGram.GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
 				public static partial class Args
 				{
 					[DotGram.Gram("""
@@ -1089,7 +1089,7 @@ public sealed class SegmentedInputTests
 	/// and over a view, read by methods, and with a value, read by the engine and asked again for it.
 	/// </summary>
 	[Theory]
-	[InlineData("Tape")]
+	[InlineData("Deferred")]
 	[InlineData("Immediate")]
 	public void A_recognizer_of_the_host_reads_to_the_end_of_its_segment(string carrier)
 	{

@@ -114,13 +114,13 @@ public sealed class GenerationReportTests
 	[Fact]
 	public void Named_variants_get_separate_reports()
 	{
-		var run = Run(Source.Replace("public partial", "[DotGram.GramOptions(Suffix = \"Alternate\", Carrier = DotGram.GramCarrier.Tape)] public partial", StringComparison.Ordinal), "full");
+		var run = Run(Source.Replace("public partial", "[DotGram.GramVariant(Name = \"Alternate\", Carrier = DotGram.GramCarrier.Deferred)] public partial", StringComparison.Ordinal), "full");
 		var reports = run.GeneratedTrees.Where(tree => tree.FilePath.EndsWith(".DotGramReport.g.cs", StringComparison.Ordinal)).Select(tree => tree.ToString()).ToArray();
 		var details = run.GeneratedTrees.Where(tree => tree.FilePath.EndsWith(".DotGramReportDetail.g.cs", StringComparison.Ordinal)).Select(tree => tree.ToString()).ToArray();
 		Assert.Equal(2, reports.Length);
 		Assert.Equal(2, details.Length);
 		Assert.Contains(reports, report => report.Contains("DotGram: Parser,", StringComparison.Ordinal));
-		Assert.Contains(details, detail => detail.Contains("DotGram: Parser.Alternate,", StringComparison.Ordinal) && detail.Contains("Carrier=Tape", StringComparison.Ordinal));
+		Assert.Contains(details, detail => detail.Contains("DotGram: Parser.Alternate,", StringComparison.Ordinal) && detail.Contains("Carrier=Deferred", StringComparison.Ordinal));
 	}
 
 	static string Report(GeneratorDriverRunResult run)

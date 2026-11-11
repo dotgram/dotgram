@@ -39,10 +39,10 @@ namespace DotGram.Examples.Languages;
 // choice goes on to the next one. Here the name alternative is the last, so a name nobody
 // declared ends the parse — and `TryParseProgram` says where.
 //
-// The grammar names its carrier, the tape. What is said above of a `=>` is the tape's: it holds
+// The grammar names its carrier, Deferred. What is said above of a `=>` is Deferred's: it holds
 // every construction back until the parse has accepted. Left to the generator, a grammar is
 // carried as Immediate, where a construction runs as its alternative is read — interleaved
-// with the `when`s that share its context — and the generator warns (GRAM5016) that the tape
+// with the `when`s that share its context — and the generator warns (GRAM5016) that Deferred
 // would be safer for a grammar whose constructions and guards share one. Here they do, and
 // that is the point of the example.
 
@@ -104,7 +104,7 @@ public sealed class Names
 	            | name: Identifier & when @(context.Known(name!)) => @(context.Of(name))
 
 	parse Program
-	""", Carrier = GramCarrier.Tape)]
+	""", Carrier = GramCarrier.Deferred)]
 public static partial class Scoped
 {
 	/// <summary>What a program works out to, or the reason it does not.</summary>

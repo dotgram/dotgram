@@ -20,7 +20,7 @@ public sealed class LocatedNullTests
 	static string Source(string carrier, bool lexical, bool perCall)
 	{
 		var options = perCall
-			? "[GramOptions(LocationType = typeof(ILoc), Suffix = \"Located\", PerCall = true)]"
+			? "[GramVariant(LocationType = typeof(ILoc), Name = \"Located\", UsePerCallLocations = true)]"
 			: "";
 		var located = perCall ? "" : ", LocationType = typeof(ILoc)";
 
@@ -101,11 +101,11 @@ public sealed class LocatedNullTests
 	}
 
 	[Theory]
-	[InlineData("Tape", true, false)]
-	[InlineData("Tape", false, false)]
+	[InlineData("Deferred", true, false)]
+	[InlineData("Deferred", false, false)]
 	[InlineData("Immediate", true, false)]
 	[InlineData("Immediate", false, false)]
-	[InlineData("Tape", true, true)]
+	[InlineData("Deferred", true, true)]
 	[InlineData("Immediate", true, true)]
 	public void A_located_rule_that_hands_back_null_is_not_told_where(string carrier, bool lexical, bool perCall)
 	{

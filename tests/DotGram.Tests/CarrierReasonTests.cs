@@ -228,7 +228,7 @@ public sealed class CarrierReasonTests
 		var refused = Assert.Single(Told(grammar, CarrierKind.Immediate), static one => one.Id == GramCompiler.CarrierRefused);
 
 		Assert.Equal(GramSeverity.Warning, refused.Severity);
-		Assert.Contains("ParseS [whole] is carried on the tape rather than as Immediate", refused.Message, StringComparison.Ordinal);
+		Assert.Contains("ParseS [whole] is carried deferred rather than as Immediate", refused.Message, StringComparison.Ordinal);
 		Assert.Contains("'S' gathers two members onto one stack", refused.Message, StringComparison.Ordinal);
 		Assert.Equal(Source(grammar, CarrierKind.Tape), Source(grammar, CarrierKind.Auto));
 	}
@@ -270,7 +270,7 @@ public sealed class CarrierReasonTests
 
 		var auto  = GeneratorDriverTests.RunGenerator(Host(""));
 		var named = GeneratorDriverTests.RunGenerator(Host(", Carrier = GramCarrier.Immediate"));
-		var tape  = GeneratorDriverTests.RunGenerator(Host(", Carrier = GramCarrier.Tape"));
+		var tape  = GeneratorDriverTests.RunGenerator(Host(", Carrier = GramCarrier.Deferred"));
 
 		Assert.DoesNotContain(auto.Diagnostics, static one => one.Severity != DiagnosticSeverity.Info);
 		Assert.Equal(GeneratorDriverTests.GetGeneratedSource(tape, "P.g.cs"), GeneratorDriverTests.GetGeneratedSource(auto, "P.g.cs"));
@@ -289,7 +289,7 @@ public sealed class CarrierReasonTests
 
 		Assert.Equal(DiagnosticSeverity.Warning, said.Severity);
 		Assert.Contains($"constructions of {rule} and its `when`/`switch`/recognizers", said.GetMessage(), StringComparison.Ordinal);
-		Assert.Contains("Carrier = GramCarrier.Tape", said.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("Carrier = GramCarrier.Deferred", said.GetMessage(), StringComparison.Ordinal);
 		Assert.DoesNotContain(told, static one => one.Id == GramCompiler.CarrierChosen);
 	}
 
@@ -303,7 +303,7 @@ public sealed class CarrierReasonTests
 			"using System;\n" +
 			"using DotGram;\n" +
 			"[Gram(@\"" + grammar.Replace("\"", "\"\"", StringComparison.Ordinal) + "\")]\n" +
-			"[GramOptions(Carrier = GramCarrier.Tape, Suffix = \"Tape\")]\n" +
+			"[GramVariant(Carrier = GramCarrier.Deferred, Name = \"Tape\")]\n" +
 			"public static partial class Probe\n" +
 			"{\n" +
 			"\tpublic sealed class Ctx { public int N; }\n" +

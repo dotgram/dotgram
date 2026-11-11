@@ -20,7 +20,7 @@ namespace DotGram.Benchmarks;
 /// and the comparison is kept the other way about: <c>SqlComparisonBenchmarks</c>, <c>SqlCounters</c>,
 /// <c>--slope</c>, <c>--big</c> and <c>--spin</c> read each input by the shipped parser and by this
 /// copy, and the stand's <c>sql92/</c> rows time the two side by side. It is not the shipped parser:
-/// a caller who wants SQL-92 on the tape compiles the grammar with <c>Carrier = GramCarrier.Tape</c>
+/// a caller who wants SQL-92 on the tape compiles the grammar with <c>Carrier = GramCarrier.Deferred</c>
 /// as this class does.
 /// </para>
 /// <para>
@@ -28,7 +28,7 @@ namespace DotGram.Benchmarks;
 /// GRAM5016 to hear here and nothing to measure the tape against itself by mistake.
 /// </para>
 /// </remarks>
-[Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Tape)]
+[Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Deferred)]
 public static partial class TapeSql
 {
 }

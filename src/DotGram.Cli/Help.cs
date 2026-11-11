@@ -79,7 +79,7 @@ static class Help
 		  --class <Name>              the host's name (default: the file's name)
 		  --public                    a public host (default: internal)
 		  --option <Name>=<value>     a [Gram] property: Lexical=true, Carrier=Immediate,
-		                              LocationType=My.ISpan, Suffix=Fast, PartSize=200, ...
+		                              LocationType=My.ISpan, Name=Fast, TargetMethodPartSize=200, ...
 		  --sources <file.cs|glob>    C# the grammar builds, and a partial host with the members its
 		                              hooks call (no [Gram] on it)
 

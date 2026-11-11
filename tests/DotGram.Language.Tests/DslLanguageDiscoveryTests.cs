@@ -124,7 +124,7 @@ public sealed class DslLanguageDiscoveryTests
 	{
 		var catalog = Discover(Support + """
 
-			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			[DotGram.Gram("Word = ['a'..'z']+", DefaultAlias = "Lexical")]
 			class BaseParser;
 
 			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
@@ -149,11 +149,11 @@ public sealed class DslLanguageDiscoveryTests
 			class Lexemes;
 
 			[DotGram.Gram("Word = Lex.Letter+")]
-			[DotGram.GramInclude(typeof(Lexemes), As = "Lex")]
+			[DotGram.GramInclude(typeof(Lexemes), Alias = "Lex")]
 			class Words;
 
 			[DotGram.Gram("using Lexical;\nStart = Lexical.Word\nparse Start")]
-			[DotGram.GramInclude(typeof(Words), As = "Lexical")]
+			[DotGram.GramInclude(typeof(Words), Alias = "Lexical")]
 			[DotGram.GramLanguage("derived")]
 			class DerivedParser;
 			""");

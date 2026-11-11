@@ -297,8 +297,9 @@ sealed class LexicalSplit
 
 				// A rule that is told where it was written goes on being told: the split
 				// changes what the syntactic machine reads, not what its values are.
-				Located    = [.. graph.Located.Where(rules.Contains)],
-				PerCall    = graph.PerCall,
+				Located      = [.. graph.Located.Where(rules.Contains)],
+				LocationType = graph.LocationType,
+				PerCall      = graph.PerCall,
 
 				// By spelling and not by rule, so what the host said of a type is said of it here.
 				ReferenceTypes = graph.ReferenceTypes,
