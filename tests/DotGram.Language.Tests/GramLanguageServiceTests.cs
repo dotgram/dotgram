@@ -220,7 +220,7 @@ public sealed class GramLanguageServiceTests
 		Assert.All(document.Diagnostics, diagnostic =>
 		{
 			Assert.Equal("i", source.Substring(diagnostic.Position, diagnostic.Length));
-			Assert.Contains("cannot be a character-set element", diagnostic.Message, StringComparison.Ordinal);
+			Assert.Contains("a case-insensitive one cannot be its element", diagnostic.Message, StringComparison.Ordinal);
 		});
 		Assert.Contains(document.Classifications, span =>
 			source.Substring(span.Position, span.Length) == ".." &&

@@ -261,8 +261,11 @@ sealed partial class GrammarNormalizer
 				foreach (var name in Unhanded(text, handed, isGuard && declaresState, scanner).Except(misused))
 					Report(
 						SuppliedNameNotHere,
-						$"'{rule.Name}' names '{name}' in {place}, which is not handed it: {place} is handed " +
-						$"{Handed(handed, !isGuard && declaresState)} (docs/syntax.md §8.2).",
+						SuppliedNames.Internal.Contains(name)
+							? $"'{rule.Name}' names '{name}' in {place}, a parameter the generated parser keeps for " +
+								$"itself: {place} is handed {Handed(handed, !isGuard && declaresState)} (docs/syntax.md §8.2)."
+							: $"'{rule.Name}' names '{name}' in {place}, which is not handed it: {place} is handed " +
+								$"{Handed(handed, !isGuard && declaresState)} (docs/syntax.md §8.2).",
 						rule.Declaration.At);
 			}
 		}
@@ -282,8 +285,11 @@ sealed partial class GrammarNormalizer
 				foreach (var name in Unhanded(factory, SuppliedNames.ToRecoveries, flagMarks: true, scanner).Except(misused))
 					Report(
 						SuppliedNameNotHere,
-						$"A 'recover' factory names '{name}', which is not handed to it: a rejected element was " +
-						"never read, so no mark stands over it (docs/syntax.md §8.2).",
+						SuppliedNames.Internal.Contains(name)
+							? $"A 'recover' factory names '{name}', a parameter the generated parser keeps for itself " +
+								"and hands to nothing a grammar writes (docs/syntax.md §8.2)."
+							: $"A 'recover' factory names '{name}', which is not handed to it: a rejected element was " +
+								"never read, so no mark stands over it (docs/syntax.md §8.2).",
 						recovery.At);
 			}
 
@@ -307,7 +313,7 @@ sealed partial class GrammarNormalizer
 	{
 		var other = scanner?.NamesNotAsValues(text);
 
-		return other is null ? [] : [.. SuppliedNames.All.Where(other.Contains)];
+		return other is null ? [] : [.. SuppliedNames.All.Concat(SuppliedNames.Internal).Where(other.Contains)];
 	}
 
 	/// <summary>The supplied names the C# asks for that its position is not handed, in the order they are declared.</summary>
@@ -320,7 +326,8 @@ sealed partial class GrammarNormalizer
 	{
 		var free = scanner?.FreeNames(text);
 
-		foreach (var name in SuppliedNames.All)
+		// The parser's own parameters among them, which are handed to nothing the author writes.
+		foreach (var name in SuppliedNames.All.Concat(SuppliedNames.Internal))
 		{
 			if (handed.Contains(name) || SuppliedNames.WithState.Contains(name) && !flagMarks)
 				continue;

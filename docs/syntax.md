@@ -114,7 +114,9 @@ One rule, no exceptions and no clever resolution:
 
 `@` never qualifies or overrides — it switches vocabulary. There is no fallback in
 either direction (a bare name that sometimes finds a C# type and sometimes generates
-one): that is the single source of ambiguity worth removing outright.
+one): that is the single source of ambiguity worth removing outright. Only a C# name is
+generic: `@Make<int>` is a C# method, and `Rule<int>`, type arguments after a name of the
+grammar, is refused (`GRAM2016`).
 
 ```dotgram
 Row = ...                // type Row will be generated
@@ -233,7 +235,10 @@ Square brackets in an expression are always an element set, testing **one** inpu
 item. Inside them `|` is set union rather than ordered choice, and only ranges,
 characters and references to other elementary rules are allowed. The brackets are
 required: without them `Letter | @IsDigit` would be indistinguishable from structural
-alternation, which means something else.
+alternation, which means something else. A range has a character at each end, both written as
+characters are, without `i`, and stands only between brackets: `['a'..]`, `['a'..'z'i]` and
+`'a'..'z'` are refused (`GRAM2014`, `GRAM2015`). A case-insensitive set is written with both
+cases, `['a'..'z' | 'A'..'Z']`.
 
 #### 3.1.1 Built-in rules
 
@@ -354,7 +359,10 @@ X{#q}  X{#q,}  X{n,#q}  by the length of a bound text, §3.5.1
 
 Every quantifier is postfix, and together they form one consistent family. Braces
 immediately following an operand with a numeric or parameterized body are a count;
-braces in primary position are an atomic group.
+braces in primary position are an atomic group. An operand takes one quantifier, and every
+repetition is greedy: there are no lazy or possessive forms, so `X*?` and `X+*` are refused
+(`GRAM2017`). A repetition is repeated in a group, `(X*)?`, and kept from giving back what it
+read with braces, `{ X* }`.
 
 The body of `X*`, `X+` or `X{n,m}` must consume at least one input item per
 iteration — a build-time check, not runtime behaviour. `(A?)*` and `(?!A)*` are
@@ -779,7 +787,8 @@ A null string selects `default`, if present.
 
 Each body is a grammar expression and may capture values, construct a result, or
 contain ordinary alternatives. Consecutive labels may share one body. Duplicate
-labels and multiple defaults are errors. A semicolon after a body is optional.
+labels and multiple defaults are errors (`GRAM2021`), and so are labels of both kinds
+(`GRAM2022`), a switch with no label and a label with no body (`GRAM2023`). A semicolon after a body is optional.
 If no label matches, `default` is selected; without it recognition fails.
 Failure inside the selected body fails the switch and never tries another case,
 including `default`. An enclosing ordinary alternative can still backtrack.
@@ -1081,8 +1090,9 @@ Besides captures, the names the parser supplies are always in scope inside `=>` 
 current rule's `SourceSpan`) in both, and §8.2's table says which of the rest a `=>` or a
 `recover` is handed; a `when` is handed no more than those two. A name written where it is
 not handed is refused (`GRAM4053`) rather than left to the C# compiler. They all begin with
-`parser`, which is what that prefix is for — a capture may not take one of those names
-(GRAM4012), and every other name in the grammar is the author's to choose.
+`parser`, which is what that prefix is for — a capture or a rule's parameter may not take one
+of those names, nor one of the few the parser gives its own parameters (§8.2; GRAM4012), and
+every other name in the grammar is the author's to choose.
 
 **A capture that is optional ON THE PATH reaches a `when` nullable**, and one that every
 route to the guard writes reaches it as the value itself. The two are told apart by the
@@ -1122,6 +1132,11 @@ Digits(n: int)          : int    = ['0'..'9']{n} => @int.Parse(parserText)
 | `item` | a recognizer; result type comes from the call site | a rule, a literal or a recognition expression |
 | `item: Row` | a recognizer constrained to produce `Row` | the same, but obliged to produce `Row` |
 | `n: int`, `t: @Tag` | a value | a literal, or a value this rule was handed itself |
+
+An argument is one sequence of operands, or a value: a choice is written in brackets,
+`List((A | B), ',')`, and what belongs to an alternative of a rule's own body — a
+construction `=>`, a binding power `<< n` — is refused in one (`GRAM2018`); name the
+argument as a rule that has it, and pass that rule.
 
 Which kind a parameter is follows from §2, with nothing new needed: **rules** live in
 the grammar namespace, **types** in C#'s. That settles an ambiguity otherwise
@@ -1822,7 +1837,7 @@ two are told apart below.
 
 `using X;` without `@` brings the names of namespace `X` into the current namespace
 unqualified. Import directives stand at the top of the file or at the top of a
-`namespace` block — where C# expects them. If two imports supply the same name, the
+`namespace` block — where C# expects them; one after a declaration is refused (`GRAM2019`). If two imports supply the same name, the
 error is raised at the use site rather than at the import, and is settled by
 qualification, as in C#.
 
@@ -4300,7 +4315,12 @@ there is none to hand over (a streamed parse, a buffered form, a grammar that na
 is not handed is `GRAM4053`. **The supplied names are reserved in the C# of a grammar** — `parserText`, `parserPosition`,
 `parserOrdinal`, `parserLine`, `parserColumn`, `parserSpan`, `parserMessage`, `parserExpected`,
 `parserFailurePosition`, `parserFailureLine`, `parserFailureColumn`, `parserInput`, `parserState` and
-`parserMarks`: a host method, type, local, parameter or capture is not to be spelled like one. Calling
+`parserMarks` — and so are the names the generated code gives parameters of its own beside them, which
+are handed to nothing a grammar writes: `parserSource`, `parserStarts` and `parserLengths` (the tokens a
+split grammar builds its values from), `parserReading` and `parserLocating` (which of a rule's readings
+is read, and where a located value began) and `parserWhole` (the input a reader probes). A host method,
+type, local, parameter or capture is not to be spelled like one; a capture or a rule's parameter that
+is is refused (`GRAM4012`), and so is C# in the grammar that names one of the parser's own (`GRAM4053`). Calling
 one, writing it as a type or a type argument, or declaring one as a parameter, a local or a pattern
 variable is `GRAM4053`. A method group handed on (`new Func<string>(parserMessage)`) or a static class of
 that name with a member cannot be told from the value without a compilation and is left to the C#
