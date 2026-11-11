@@ -102,7 +102,7 @@ public sealed class StreamedParseTests
 		{ "an optional call", Rules("Hash : @string = '#' & w: Word & eol => @(w)\nStart : @string[] = Line* & Hash?"), ["a\nb\n#c\n", "a\n", "#c\n#d\n"] },
 	};
 
-	static readonly CarrierKind[] Carriers = [CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate];
+	static readonly CarrierKind[] Carriers = [CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate];
 
 	[Theory]
 	[MemberData(nameof(Shapes))]

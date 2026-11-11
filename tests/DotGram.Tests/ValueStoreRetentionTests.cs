@@ -138,7 +138,7 @@ public sealed class ValueStoreRetentionTests
 	{
 		var compiled = GramCompiler.Compile(Nesting, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+			ClassName = "Grammar", Carrier = CarrierKind.Deferred, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 
 		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
@@ -199,7 +199,7 @@ public sealed class ValueStoreRetentionTests
 	{
 		var compiled = GramCompiler.Compile(Grammar, new GramCompilerOptions
 		{
-			ClassName = "Grammar", Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+			ClassName = "Grammar", Carrier = CarrierKind.Deferred, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 
 		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);

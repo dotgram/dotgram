@@ -125,7 +125,7 @@ public sealed class ReaderCountTests
 			ClassName     = "Counted",
 			CSharpScanner = RoslynCSharpScanner.Instance,
 			Direct        = true,
-			Carrier       = CarrierKind.Tape,
+			Carrier       = CarrierKind.Deferred,
 		});
 
 		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);

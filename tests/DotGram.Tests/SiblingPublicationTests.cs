@@ -30,7 +30,7 @@ public sealed class SiblingPublicationTests
 			"Text : @string = n: R0 => @(n.ToString())\nparse Number\nparse Text";
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+			Carrier = CarrierKind.Deferred, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
@@ -59,7 +59,7 @@ public sealed class SiblingPublicationTests
 			"parse Text with (Version = \"New\") as NewText";
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+			Carrier = CarrierKind.Deferred, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
@@ -86,7 +86,7 @@ public sealed class SiblingPublicationTests
 			"Text : @string = 't' & n: R0 => @(n.ToString())\n";
 		var options = new GramCompilerOptions
 		{
-			Carrier = CarrierKind.Tape, CSharpScanner = RoslynCSharpScanner.Instance,
+			Carrier = CarrierKind.Deferred, CSharpScanner = RoslynCSharpScanner.Instance,
 		};
 		var together = GramCompiler.Compile(rules + "parse Number\nparse Text", options);
 		EmittedCode.Quiet(together.Diagnostics);

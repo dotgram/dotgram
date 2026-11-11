@@ -40,7 +40,7 @@ public sealed class GuardRepeatedCaptureTests
 
 	public static IEnumerable<object[]> Readings()
 	{
-		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 			foreach (var direct in new[] { false, true })
 				foreach (var find in new[] { false, true })
 					yield return [carrier, direct, find];
@@ -362,7 +362,7 @@ public sealed class GuardRepeatedCaptureTests
 			{
 				ClassName     = "Counted",
 				CSharpScanner = RoslynCSharpScanner.Instance,
-				Carrier       = CarrierKind.Tape,
+				Carrier       = CarrierKind.Deferred,
 				Direct        = true,
 			});
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
@@ -802,7 +802,7 @@ public sealed class GuardRepeatedCaptureTests
 
 	public static IEnumerable<object[]> Carriers()
 	{
-		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 			foreach (var direct in new[] { false, true })
 				yield return [carrier, direct];
 	}
@@ -810,7 +810,7 @@ public sealed class GuardRepeatedCaptureTests
 	public static IEnumerable<object[]> Hosts()
 	{
 		foreach (var host in new[] { "spans", "buffered", "bytes", "lexical" })
-			foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+			foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 				foreach (var direct in new[] { false, true })
 					yield return [host, carrier, direct];
 	}

@@ -1722,7 +1722,7 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// </summary>
 	static string ReportedOptions(GramHostOptions options)
 	{
-		var carrier = (CarrierKind)options.Carrier == CarrierKind.Tape ? "Deferred" : ((CarrierKind)options.Carrier).ToString();
+		var carrier = ((CarrierKind)options.Carrier).ToString();
 
 		return string.Join(", ",
 			"Lexical="                + options.Lexical,

@@ -37,7 +37,7 @@ public sealed class RefusalTests
 		const string Grammar =
 			"trivia = ' '*\nItem : @string = t: 'b' => @(t)\nStart : @string[] = '[' & (Item & ';')* & eof\nparse Start\n";
 
-		foreach (var (carrier, direct) in new[] { (CarrierKind.Tape, false), (CarrierKind.Tape, true), (CarrierKind.Immediate, true) })
+		foreach (var (carrier, direct) in new[] { (CarrierKind.Deferred, false), (CarrierKind.Deferred, true), (CarrierKind.Immediate, true) })
 		{
 			var compilation = GramCompiler.Compile(Grammar, new GramCompilerOptions
 			{

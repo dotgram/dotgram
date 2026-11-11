@@ -81,7 +81,7 @@ public sealed class PaddingAfterRunCountTests
 
 		foreach (var grammar in new[] { nameof(Items), nameof(Statements) })
 			foreach (var direct in new[] { true, false })
-				foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+				foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 					cases.Add(grammar, direct, carrier);
 
 		return cases;

@@ -166,7 +166,7 @@ public sealed class AnyButFewScanTests
 		var seen   = false;
 
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var (fast, searched) = Build(row.Grammar + "\nparse Start\n", carrier, direct, row.Searches);
 			var (slow, _)        = Build(row.Grammar + "\nparse Start\n", carrier, direct, null, oneByOne: true);
@@ -281,7 +281,7 @@ public sealed class AnyButFewScanTests
 		var publishing = grammar + (row.Finds ? "find Start\n" : "");
 
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var (fast, searched) = Build(publishing, carrier, direct, row.Searches);
 			var (slow, _)        = Build(publishing, carrier, direct, null, oneByOne: true);
@@ -351,7 +351,7 @@ public sealed class AnyButFewScanTests
 		var seen     = false;
 
 		foreach (var (carrier, direct) in new[]
-			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+			{ (CarrierKind.Deferred, true), (CarrierKind.Immediate, true), (CarrierKind.Deferred, false), (CarrierKind.Immediate, false) })
 		{
 			var (fast, searched) = Build(row.Grammar + "\nparse Start\n", carrier, direct, row.Searches);
 			var (slow, _)        = Build(row.Grammar + "\nparse Start\n", carrier, direct, null, oneByOne: true);

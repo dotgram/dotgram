@@ -77,8 +77,8 @@ public sealed class NamedRuleTypeTests
 		return new()
 		{
 			{ CarrierKind.Immediate, true },
-			{ CarrierKind.Tape,      true },
-			{ CarrierKind.Tape,      false },
+			{ CarrierKind.Deferred,      true },
+			{ CarrierKind.Deferred,      false },
 		};
 	}
 

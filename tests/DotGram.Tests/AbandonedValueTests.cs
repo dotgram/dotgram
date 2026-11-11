@@ -25,7 +25,7 @@ public sealed class AbandonedValueTests
 {
 	public static IEnumerable<object[]> Readings()
 	{
-		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 			foreach (var direct in new[] { false, true })
 				foreach (var find in new[] { false, true })
 					yield return [carrier, direct, find];

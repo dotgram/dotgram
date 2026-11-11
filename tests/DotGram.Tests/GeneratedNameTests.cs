@@ -114,7 +114,7 @@ public sealed class GeneratedNameTests
 		var grammar = $"{name} = x: 'a'\nS = {name} & eof\nparse S";
 
 		foreach (var direct in new[] { true, false })
-			foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+			foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 				foreach (var buffered in new[] { false, true })
 				{
 					_ = Built(grammar, direct, buffered, carrier);
@@ -554,7 +554,7 @@ public sealed class GeneratedNameTests
 			BufferedBytes = said.Contains("bytes"),
 			Lexical       = said.Contains("lexical"),
 			Trace         = said.Contains("trace"),
-			Carrier       = said.Contains("Tape") ? CarrierKind.Tape : CarrierKind.Auto,
+			Carrier       = said.Contains("Tape") ? CarrierKind.Deferred : CarrierKind.Auto,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 

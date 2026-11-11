@@ -52,14 +52,14 @@ public sealed class RejectionMessageTests
 	/// <summary>The renderings that read by methods, whose refusals a choice says over a call (Refuse_DotGram_Over).</summary>
 	public static TheoryData<string, bool, CarrierKind> Readers => new()
 	{
-		{ "tape", true, CarrierKind.Tape },
+		{ "tape", true, CarrierKind.Deferred },
 		{ "immediate", true, CarrierKind.Immediate },
 	};
 
 	public static TheoryData<string, bool, CarrierKind> Renderings => new()
 	{
-		{ "engine", false, CarrierKind.Tape },
-		{ "tape", true, CarrierKind.Tape },
+		{ "engine", false, CarrierKind.Deferred },
+		{ "tape", true, CarrierKind.Deferred },
 		{ "immediate", true, CarrierKind.Immediate },
 	};
 

@@ -493,7 +493,7 @@ static partial class CSharpEmitter
 				return null;
 			}
 
-			if (carrier == CarrierKind.Tape)
+			if (carrier == CarrierKind.Deferred)
 				return false;
 
 			// Shared where the immediate carrier will carry it. A machine it refuses stays alone,
@@ -1381,7 +1381,7 @@ static partial class CSharpEmitter
 					(machines.Exists(static one => one.Direct) &&
 						machines.TrueForAll(static one => !one.Direct || one.Machine.CarriesImmediately));
 
-				carriers.Add($"carrier: {(carrier == CarrierKind.Tape ? "deferred" : carrier.ToString().ToLowerInvariant())}{(given ? "" : " refused")}, the author's" +
+				carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}{(given ? "" : " refused")}, the author's" +
 					Points(graph, null));
 				Memoised(carriers, [.. machines.Where(static one => one.Direct)]);
 			}

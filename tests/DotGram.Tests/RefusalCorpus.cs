@@ -108,8 +108,8 @@ static class RefusalCorpus
 
 	static readonly (string Name, bool Direct, CarrierKind Carrier)[] Renderings =
 	[
-		("engine",    false, CarrierKind.Tape),
-		("tape",      true,  CarrierKind.Tape),
+		("engine",    false, CarrierKind.Deferred),
+		("tape",      true,  CarrierKind.Deferred),
 		("immediate", true,  CarrierKind.Immediate),
 	];
 

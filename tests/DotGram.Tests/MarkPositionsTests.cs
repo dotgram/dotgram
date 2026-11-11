@@ -88,7 +88,7 @@ public sealed class MarkPositionsTests
 			CSharpScanner = RoslynCSharpScanner.Instance,
 			Lexical       = lexical,
 			Direct        = reading != "engine",
-			Carrier       = reading == "immediate" ? CarrierKind.Immediate : CarrierKind.Tape,
+			Carrier       = reading == "immediate" ? CarrierKind.Immediate : CarrierKind.Deferred,
 		});
 
 		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);

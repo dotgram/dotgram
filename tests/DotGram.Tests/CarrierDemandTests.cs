@@ -65,7 +65,7 @@ public sealed class CarrierDemandTests
 	[InlineData("ab;cd")]
 	public void The_immediate_carrier_builds_what_the_tape_builds(string input)
 	{
-		var (tape, _)          = Run(CarrierKind.Tape, input);
+		var (tape, _)          = Run(CarrierKind.Deferred, input);
 		var (immediate, value) = Run(CarrierKind.Immediate, input);
 
 		Assert.Equal(tape.Answer, immediate.Answer);
@@ -104,7 +104,7 @@ public sealed class CarrierDemandTests
 	[InlineData("ab;", "Leaf×2")]
 	public void A_refused_input_is_read_again_without_building(string input, string built)
 	{
-		var (tape, _)      = Run(CarrierKind.Tape, input);
+		var (tape, _)      = Run(CarrierKind.Deferred, input);
 		var (immediate, _) = Run(CarrierKind.Immediate, input);
 
 		Assert.StartsWith("<refused", immediate.Answer, StringComparison.Ordinal);
@@ -130,7 +130,7 @@ public sealed class CarrierDemandTests
 	[InlineData("1,2,3;", "Digit×6, Fold×6, Start×1")]
 	public void A_rule_whose_guard_reads_its_value_so_far_builds_on_every_reading(string input, string built)
 	{
-		var (tape, _)      = Run(CarrierKind.Tape, input, SelfAsking);
+		var (tape, _)      = Run(CarrierKind.Deferred, input, SelfAsking);
 		var (immediate, _) = Run(CarrierKind.Immediate, input, SelfAsking);
 
 		Assert.StartsWith("<refused", immediate.Answer, StringComparison.Ordinal);
@@ -150,7 +150,7 @@ public sealed class CarrierDemandTests
 		""";
 
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Auto)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_guard_naming_the_value_so_far_by_an_escape_is_found(CarrierKind carrier)
@@ -176,7 +176,7 @@ public sealed class CarrierDemandTests
 		""";
 
 	[Theory]
-	[InlineData(CarrierKind.Tape)]
+	[InlineData(CarrierKind.Deferred)]
 	[InlineData(CarrierKind.Auto)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_guard_naming_a_capture_by_an_escape_is_found(CarrierKind carrier)
@@ -220,7 +220,7 @@ public sealed class CarrierDemandTests
 	[InlineData("[xyz][q]", "held,held")]
 	public void What_is_gathered_where_nothing_is_built_is_not_handed_on(string input, string expected)
 	{
-		var (tape, _)          = Run(CarrierKind.Tape, input, Gathering);
+		var (tape, _)          = Run(CarrierKind.Deferred, input, Gathering);
 		var (immediate, value) = Run(CarrierKind.Immediate, input, Gathering);
 
 		Assert.Equal(expected, value);
@@ -249,7 +249,7 @@ public sealed class CarrierDemandTests
 	[InlineData("X;Y;")]
 	public void What_a_recovery_synchronizes_on_is_not_built(string input)
 	{
-		var (tape, _) = Run(CarrierKind.Tape, input, Synchronized);
+		var (tape, _) = Run(CarrierKind.Deferred, input, Synchronized);
 		var (auto, _) = Run(CarrierKind.Auto, input, Synchronized);
 
 		Assert.Equal(tape.Answer, auto.Answer);

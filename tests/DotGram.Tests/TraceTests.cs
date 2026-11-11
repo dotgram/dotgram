@@ -989,7 +989,7 @@ public sealed class TraceTests(ITestOutputHelper output)
 	[Fact]
 	public void The_immediate_carrier_is_traced_as_the_tape_is()
 	{
-		var tape      = Traced(Twice, carrier: CarrierKind.Tape);
+		var tape      = Traced(Twice, carrier: CarrierKind.Deferred);
 		var immediate = Traced(Twice, carrier: CarrierKind.Immediate);
 		var input     = "1+(2^1+";
 
@@ -1229,8 +1229,8 @@ public sealed class TraceTests(ITestOutputHelper output)
 	/// that throws is, on the immediate carrier, and the tape builds once the reading is done.
 	/// </summary>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "[7!]")]
-	[InlineData(CarrierKind.Tape, "[8!]")]
+	[InlineData(CarrierKind.Deferred, "[7!]")]
+	[InlineData(CarrierKind.Deferred, "[8!]")]
 	[InlineData(CarrierKind.Immediate, "[7!]")]
 	[InlineData(CarrierKind.Immediate, "[8!]")]
 	public void An_exception_leaves_every_rule_it_was_thrown_inside(CarrierKind carrier, string input)

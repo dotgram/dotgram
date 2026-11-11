@@ -323,7 +323,7 @@ public sealed class StreamedPositionTests
 
 		foreach (var (name, _, _, _, _) in Handed)
 			foreach (var direct in new[] { false, true })
-				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 					cases.Add(name, direct, carrier);
 
 		return cases;
@@ -462,7 +462,7 @@ public sealed class StreamedPositionTests
 	[Theory]
 	[InlineData(false, CarrierKind.Auto)]
 	[InlineData(true, CarrierKind.Auto)]
-	[InlineData(false, CarrierKind.Tape)]
+	[InlineData(false, CarrierKind.Deferred)]
 	[InlineData(true, CarrierKind.Immediate)]
 	public void A_recovery_no_window_reaches_is_told_no_origin(bool direct, CarrierKind carrier)
 	{

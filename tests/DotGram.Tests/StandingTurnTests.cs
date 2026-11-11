@@ -242,7 +242,7 @@ public sealed class StandingTurnTests
 		{
 			ClassName      = "Probe",
 			Direct         = direct,
-			Carrier        = tape ? CarrierKind.Tape : CarrierKind.Auto,
+			Carrier        = tape ? CarrierKind.Deferred : CarrierKind.Auto,
 			BufferedInput  = buffered,
 			BufferedBytes  = buffered,
 			SymbolResolver = buffered ? ViewResolver.Instance : PermissiveSymbolResolver.Instance,

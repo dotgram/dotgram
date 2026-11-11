@@ -99,7 +99,7 @@ public sealed class ProvenanceTests
 		// publication tokenizes and then parses, and the caller hands over a string.
 		var text = CSharpEmitter.Emit(
 			split.Syntax,
-			new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Tape, MemoiseFailures = false },
+			new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Deferred, MemoiseFailures = false },
 			new EmitContext { Diagnostics = diagnostics, Lexical = split });
 
 		var grammar = EmittedCode.Compile(text).GetType("Grammar")!;
