@@ -98,31 +98,17 @@ static class SupportEmitter
 		{
 			/// <summary>
 			/// How a reading of a grammar is compiled: the options <c>[Gram]</c> and
-			/// <c>[GramVariant]</c> share.
+			/// <c>[GramParserVariant]</c> share.
 			/// </summary>
 			/// <remarks>
 			/// Never written itself. A class writes one <c>[Gram]</c>, which says which grammar,
-			/// and a <c>[GramVariant]</c> for every further reading of it; an option that means
+			/// and a <c>[GramParserVariant]</c> for every further reading of it; an option that means
 			/// something on only one of the two is declared on that one.
 			/// </remarks>
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			[global::Microsoft.CodeAnalysis.Embedded]
 			internal abstract class GramReadingAttribute : global::System.Attribute
 			{
-				/// <summary>
-				/// The nested class this reading is compiled into. One identifier; the host
-				/// class itself where nothing is said.
-				/// </summary>
-				/// <remarks>
-				/// Two compilations cannot share a scope — a file's support is written
-				/// once and named for what it is — so every <c>[GramVariant]</c> names a class,
-				/// and its parse methods are reached through it: <c>Sql.Immediate.TryParseR</c>.
-				/// On <c>[Gram]</c> it puts the first reading into a nested class too. What the
-				/// host declares is still in reach from inside, a nested class reading the
-				/// static members around it by their simple names.
-				/// </remarks>
-				public string Name { get; set; }
-
 				/// <summary>
 				/// How large the parts of a divided recognizer are aimed to be, in the
 				/// generator's estimate of basic blocks. Zero takes the measured default.
@@ -280,7 +266,7 @@ static class SupportEmitter
 				/// entered; and <c>GramProfile</c>, how often each rule was entered and how long
 				/// it took. Off, nothing of it is written. The build property
 				/// <c>DotGramTrace</c> asks the same of every grammar in a project, and a
-				/// <c>[GramVariant(Name = "Traced", Trace = true)]</c> puts a traced reading
+				/// <c>[GramParserVariant("Traced", Trace = true)]</c> puts a traced reading
 				/// beside an untouched one (docs/syntax.md, §6.9).
 				/// </remarks>
 				public bool Trace { get; set; }
@@ -293,22 +279,39 @@ static class SupportEmitter
 			/// <remarks>
 			/// The same grammar compiled again under different options — another carrier,
 			/// another division, locations where the first has none. Each reading needs a
-			/// scope of its own, so each names a nested class with
-			/// <see cref="GramReadingAttribute.Name"/>, and what it does not say it takes from
-			/// <c>[Gram]</c>.
+			/// scope of its own, so each names the nested class it is compiled into, and what it
+			/// does not say it takes from <c>[Gram]</c>.
 			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			[global::Microsoft.CodeAnalysis.Embedded]
-			internal sealed class GramVariantAttribute : GramReadingAttribute
+			internal sealed class GramParserVariantAttribute : GramReadingAttribute
 			{
+				/// <param name="name">
+				/// The nested class this reading is compiled into: one identifier, which no other
+				/// reading of the class names.
+				/// </param>
+				public GramParserVariantAttribute(string name) => Name = name;
+
+				/// <summary>
+				/// The nested class this reading is compiled into.
+				/// </summary>
+				/// <remarks>
+				/// Two compilations cannot share a scope — a file's support is written once and
+				/// named for what it is — so every further reading names a class, and its parse
+				/// methods are reached through it: <c>Sql.Immediate.TryParseR</c>. What the host
+				/// declares is still in reach from inside, a nested class reading the static members
+				/// around it by their simple names.
+				/// </remarks>
+				public string Name { get; }
+
 				/// <summary>
 				/// Whether this reading is the class's own parser called with locations on, rather
 				/// than a second compilation of the grammar.
 				/// </summary>
 				/// <remarks>
-				/// Written on a <c>[GramVariant]</c> that names a <see cref="GramReadingAttribute.LocationType"/>
-				/// and a <see cref="GramReadingAttribute.Name"/>: the grammar is compiled once, its
+				/// Written on a <c>[GramParserVariant]</c> that names a <see cref="GramReadingAttribute.LocationType"/>
+				/// and a <see cref="Name"/>: the grammar is compiled once, its
 				/// constructions are told where they were written only when a call asks, and the
 				/// nested class of that name holds the same published methods, each of them asking. A call that does
 				/// not ask pays a test per construction and nothing else.
@@ -378,7 +381,7 @@ static class SupportEmitter
 			/// </summary>
 			/// <remarks>
 			/// One per class: this says <em>which</em> grammar, which is a thing a class has
-			/// one of. How to read it is what it shares with <see cref="GramVariantAttribute"/>,
+			/// one of. How to read it is what it shares with <see cref="GramParserVariantAttribute"/>,
 			/// and a class wanting the same grammar read a second way writes one of those.
 			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
@@ -396,6 +399,16 @@ static class SupportEmitter
 				public GramAttribute(string source) => Source = source;
 
 				public string Source { get; }
+
+				/// <summary>
+				/// The nested class the first reading is compiled into, where it is not to be the
+				/// host class itself; nothing said is the host class.
+				/// </summary>
+				/// <remarks>
+				/// A class whose only reading is in a nested class answers through that class:
+				/// <c>[Gram("…", Name = "Fast")]</c> publishes <c>Host.Fast.ParseR</c>.
+				/// </remarks>
+				public string Name { get; set; }
 
 				/// <summary>
 				/// The name another grammar includes this one under, where nothing else was

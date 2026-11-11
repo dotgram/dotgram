@@ -126,7 +126,7 @@ then quietly mean nothing.
 | the same naming itself with `[Gram(DefaultAlias = "…")]` | — | — | — | ✓ | ✓ |
 | `[GramInclude(typeof(X), Alias = "…")]`, several at once §6.7 | — | — | — | ✓ | ✓ |
 | a base or an include in a referenced assembly, read from its `[GramSource]` §6.7 | — | — | — | ✓ | ✓ |
-| `[GramVariant(Name = "…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
+| `[GramParserVariant("…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
 | a rule's own refusal message, `on fail "…"`, in every reading §4/§7.5 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `internal parse`, `private find` §6 | ✓ | — | — | ✓ | ✓ |
 | `positional parse`: `TryParseR(input, at)` and `TryParseR(input, at, length)` §6.3 | ✓ | — | ✓ | ✓ | ✓ |
@@ -1361,7 +1361,7 @@ each other's, and have nothing to version.
 `internal` alone was not quite enough. An assembly granting `InternalsVisibleTo` to one
 that also uses .Gram handed it a second `DotGram.GramAttribute`, and every use warned
 (CS0436). Since 2026-09-13 the attributes and enums written into every assembly —
-`[Gram]`, `[GramVariant]`, `[GramInclude]`, `[GramSource]`, `GramCarrier` and the
+`[Gram]`, `[GramParserVariant]`, `[GramInclude]`, `[GramSource]`, `GramCarrier` and the
 tooling ones — are `[Embedded]`, with the definition asked of Roslyn
 (`AddEmbeddedAttributeDefinition` in `GramGenerator`), and a type marked embedded is not
 seen from another compilation at all.
@@ -1483,7 +1483,7 @@ the engine says the sentence.
 that accessibility: the whole form, the positional and windowed forms, and the reader
 overloads. Saying nothing is `public`. The words are modifiers only in front of `parse` or
 `find`, so a rule may still be called `internal`. A `private` publication in a
-`[GramVariant]` reading is private to that nested class.
+`[GramParserVariant]` reading is private to that nested class.
 
 **A position and a window.** Beside `TryParseR(string input)` a `positional parse` gets
 `TryParseR(string input, int at)` — read from `at`, not required to reach the end — and
@@ -1515,15 +1515,15 @@ and never where the smaller one streams.
 
 ## One grammar, several readings and several sources
 
-**`[GramVariant]`** carries what `[Gram]` does except which grammar. Both derive from the abstract
-`GramReadingAttribute`, which declares the options they share: `Name`, `TargetMethodPartSize`,
+**`[GramParserVariant]`** carries what `[Gram]` does except which grammar. Both derive from the abstract
+`GramReadingAttribute`, which declares the options they share: `TargetMethodPartSize`,
 `Lexical`, `Carrier`, `ConstructionsMayThrow`, `BufferedText`, `BufferedBytes`, `UseSpanCaptures`,
 `MaxBufferedInputLength`, `InitialBufferSize`, `MaxExtraStacks`, `LocationType`, `ExportGrammar` and
-`Trace`. `[Gram]` adds the source and `DefaultAlias`, `[GramVariant]` adds `UsePerCallLocations`.
-Every `[GramVariant]` on a class is a
-compilation of its own in a nested class named by `Name` — `Sql.Immediate.TryParseR` —
-taking from `[Gram]` whatever it does not say. Two wanting one scope is `GRAM0006`; a
-`Name` that is not an identifier is `GRAM0007`.
+`Trace`. `[Gram]` adds the source, `DefaultAlias` and an optional `Name`; `[GramParserVariant]` adds
+`UsePerCallLocations`, and takes the name of its class as its one, required argument. Every
+`[GramParserVariant("…")]` on a class is a compilation of its own in the nested class it names —
+`Sql.Immediate.TryParseR` — taking from `[Gram]` whatever it does not say. Two wanting one scope
+is `GRAM0006`; a name that is empty or not an identifier is `GRAM0007`.
 
 **`[GramInclude(typeof(X), Alias = "…")]`** splices `X`'s grammar into this one under a
 namespace named `Alias`, or `X`'s `DefaultAlias`, or `X`'s name, and brings `X`'s static
@@ -1544,7 +1544,7 @@ handed the range it was read from.
 
 ## A grammar cut in two
 
-`[Gram(..., Lexical = true)]`, or the same on `[GramVariant]`, cuts a grammar into a lexer
+`[Gram(..., Lexical = true)]`, or the same on `[GramParserVariant]`, cuts a grammar into a lexer
 over characters and a syntactic half over token kinds (`GramCompiler.Cut`,
 `LexicalSplit`, `TerminalInventory`, `LexicalAutomaton`, `LexerEmitter`; built from
 2026-09-01). The published methods do not change: they take a string and answer as before.

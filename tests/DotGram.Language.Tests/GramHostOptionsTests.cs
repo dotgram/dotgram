@@ -12,7 +12,7 @@ using Xunit;
 namespace DotGram.Language.Tests;
 
 /// <summary>
-/// The one reader of a <c>[Gram]</c>'s and a <c>[GramVariant]</c>'s named arguments, which the
+/// The one reader of a <c>[Gram]</c>'s and a <c>[GramParserVariant]</c>'s named arguments, which the
 /// generator compiles with and the editor analyses with.
 /// </summary>
 public sealed class GramHostOptionsTests
@@ -72,7 +72,7 @@ public sealed class GramHostOptionsTests
 				LocationType = typeof(Where), Carrier = DotGram.GramCarrier.Deferred, MaxExtraStacks = 3, Name = "S",
 				ConstructionsMayThrow = true, UseSpanCaptures = true, BufferedBytes = true, BufferedText = true,
 				MaxBufferedInputLength = 9, InitialBufferSize = 64, Trace = true)]
-			[DotGram.GramVariant(Name = "Located", UsePerCallLocations = true)]
+			[DotGram.GramParserVariant("Located", UsePerCallLocations = true)]
 			public partial class Parser;
 			""");
 
@@ -166,7 +166,7 @@ public sealed class GramHostOptionsTests
 	{
 		var options = Read("""
 			[DotGram.Gram("A = 'a'", DefaultAlias = "Inc", Lexical = true, TargetMethodPartSize = 7, MaxExtraStacks = 3, Trace = true)]
-			[DotGram.GramVariant(Name = "B", TargetMethodPartSize = 2)]
+			[DotGram.GramParserVariant("B", TargetMethodPartSize = 2)]
 			public partial class Parser;
 			""");
 
@@ -190,7 +190,7 @@ public sealed class GramHostOptionsTests
 	{
 		var compilation = Compile("");
 		var attribute   = compilation.GetTypeByMetadataName("DotGram.GramAttribute")!;
-		var variant     = compilation.GetTypeByMetadataName("DotGram.GramVariantAttribute")!;
+		var variant     = compilation.GetTypeByMetadataName("DotGram.GramParserVariantAttribute")!;
 		var declared    = new[] { attribute, attribute.BaseType!, variant }
 			.SelectMany(static type => type.GetMembers().OfType<IPropertySymbol>())
 			.Select(static property => property.Name)
@@ -207,7 +207,7 @@ public sealed class GramHostOptionsTests
 			.OfType<INamedTypeSymbol>()
 			.Single();
 		var readings    = type.GetAttributes()
-			.Where(static attribute => attribute.AttributeClass?.Name is "GramAttribute" or "GramVariantAttribute")
+			.Where(static attribute => attribute.AttributeClass?.Name is "GramAttribute" or "GramParserVariantAttribute")
 			.OrderBy(static attribute => attribute.ApplicationSyntaxReference!.Span.Start)
 			.ToArray();
 

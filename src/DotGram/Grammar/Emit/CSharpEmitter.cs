@@ -692,7 +692,7 @@ static partial class CSharpEmitter
 
 		// Unless the author declared that class, in which case what the author wrote says who
 		// may see it and this part says nothing: `internal static partial class Immediate { }`
-		// beside `[GramVariant(Name = "Immediate")]` is a reading nobody outside can reach.
+		// beside `[GramParserVariant("Immediate")]` is a reading nobody outside can reach.
 		if (options.Suffix is { Length: > 0 })
 			scope.Push(file.Block(SuffixClass(options.Suffix, options.SuffixDeclared)));
 

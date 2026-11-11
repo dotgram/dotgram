@@ -7,13 +7,13 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// <c>[GramVariant(UsePerCallLocations = true)]</c>: one parser whose located door is a nested class of the same
+/// <c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>: one parser whose located door is a nested class of the same
 /// published methods, on every carrier, beside a reading of its own that locates nothing.
 /// </summary>
 /// <remarks>
 /// The offers stand beside the reader, which the immediate carrier builds values in and which is
 /// not generic; the walk that builds a tape's values is. Both have to compile and say the same, and
-/// a further <c>[GramVariant]</c> reading must not inherit the per-call location type.
+/// a further <c>[GramParserVariant]</c> reading must not inherit the per-call location type.
 /// </remarks>
 public sealed class PerCallLocationTests
 {
@@ -76,8 +76,8 @@ public sealed class PerCallLocationTests
 
 					parse List
 					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
-				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
-				[GramVariant(Name = "Other")]
+				[GramParserVariant("Located", LocationType = typeof(ILoc), UsePerCallLocations = true)]
+				[GramParserVariant("Other")]
 				public static partial class P
 				{
 				}
@@ -180,7 +180,7 @@ public sealed class PerCallLocationTests
 
 					parse Entry
 					""", Lexical = {{(lexical ? "true" : "false")}}, Carrier = GramCarrier.{{carrier}})]
-				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
+				[GramParserVariant("Located", LocationType = typeof(ILoc), UsePerCallLocations = true)]
 				public static partial class P
 				{
 				}
@@ -264,7 +264,7 @@ public sealed class PerCallLocationTests
 
 					parse Config
 					""", Carrier = GramCarrier.{{carrier}})]
-				[GramVariant(LocationType = typeof(ILoc), Name = "Located", UsePerCallLocations = true)]
+				[GramParserVariant("Located", LocationType = typeof(ILoc), UsePerCallLocations = true)]
 				public static partial class P
 				{
 				}

@@ -447,12 +447,12 @@ division, a lookup) can stay immediate with `ConstructionsMayThrow = true`: what
 held and thrown only where the deferred carrier would have thrown it, so a reading given up or a refused
 parse throws nothing. It costs every construction a little; leave it off where none throws.
 
-`[GramVariant]` may be written as many times as there are further readings wanted, each
+`[GramParserVariant]` may be written as many times as there are further readings wanted, each
 naming the nested class it goes into:
 
 ```csharp
 [Gram("Sql.gram", Lexical = true)]
-[GramVariant(Carrier = GramCarrier.Deferred, Name = "Deferred")]
+[GramParserVariant("Deferred", Carrier = GramCarrier.Deferred)]
 public static partial class Sql;
 ```
 
