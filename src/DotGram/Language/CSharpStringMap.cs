@@ -27,7 +27,6 @@ sealed class CSharpStringMap
 
 	public int Length => _starts.Length;
 
-	/// <summary>Creates a map for a non-interpolated regular, verbatim or raw string.</summary>
 	/// <summary>
 	/// Where a string literal's value is written, its quotes and prefix left out; the expression's own
 	/// span where it is no literal or its spelling cannot be mapped.
@@ -44,6 +43,7 @@ sealed class CSharpStringMap
 		return expression.Span;
 	}
 
+	/// <summary>Creates a map for a non-interpolated regular, verbatim or raw string.</summary>
 	public static bool TryCreate(SyntaxToken token, out CSharpStringMap? map)
 	{
 		map = null;
