@@ -7,7 +7,7 @@ static class Help
 {
 	public const string Usage = """
 		Usage: dotnet dotgram generate <project.csproj | grammar.gram> -o <dir> [options] [@file.rsp]
-		       dotnet dotgram --help | generate --help | --skill | --version
+		       dotnet dotgram --help | help | generate --help | --skill | --version
 		""";
 
 	public const string Generate = """
@@ -73,7 +73,8 @@ static class Help
 		For a .gram input only (a project's build decides these for a project):
 		  --reference <file.dll|dir>  an assembly the grammar's types come from (every *.dll of a dir)
 		  --package <Name>@<Version>  a package's assemblies, from the global packages folder
-		  --define <SYMBOL>           a preprocessor symbol, beside the framework's
+		  --define <SYMBOL>           a preprocessor symbol, beside the framework's; several in one
+		                              value, separated by ; or ,
 		  --langversion <version>     the C# version (default: the SDK's for the framework)
 		  --namespace <Ns>            the host's namespace (default: none)
 		  --class <Name>              the host's name (default: the file's name)

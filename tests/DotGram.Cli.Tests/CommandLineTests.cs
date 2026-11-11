@@ -225,6 +225,7 @@ public sealed class CommandLineTests
 	[Theory]
 	[InlineData("--help")]
 	[InlineData("-h")]
+	[InlineData("help")]
 	public void Help_lists_every_option_and_the_exit_codes(string flag)
 	{
 		var run = Tool.Run(Directory.GetCurrentDirectory(), flag);
