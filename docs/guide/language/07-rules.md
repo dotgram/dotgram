@@ -119,8 +119,7 @@ Notes:
 - So a value parameter is always something known when the grammar is built — a literal, or what the
   caller was handed. A captured value is not: it exists only while a parse runs. Pass what was
   captured to a `=>` instead.
-- An argument is one alternative: a choice needs brackets, `List(Word, (';' | '|'))`. A `=>` or `<<`
-  in an argument is refused, later than it should be.
+- An argument is one alternative: a choice needs brackets, `List(Word, (';' | '|'))`.
 - `item[]` gathers the operands that **build** a value: `Word` above builds its text with a `=>`; a
   rule that is only its text builds nothing, even declared `: string`, and `List(Word, …)` would then
   have nothing to collect (`GRAM4008`).
@@ -146,7 +145,15 @@ Short = List('a')
 parse Short
 ```
 
-A parameterized rule's name alone is no rule, and a call must pass every parameter (`GRAM4013`).
+```dotgram GRAM2016
+Word  = ['a'..'z']+
+Typed = Word<int>
+
+parse Typed
+```
+
+A parameterized rule's name alone is no rule, and a call must pass every parameter (`GRAM4013`). A
+rule takes no type arguments: only a C# name is generic, written `@Name<T>` (`GRAM2016`).
 
 <!-- ru:begin -->
 > **RU.** Правило может принимать параметры, записанные как захваты: `name` или `name: Type`. Вид
@@ -159,14 +166,14 @@ A parameterized rule's name alone is no rule, and a call must pass every paramet
 > рекурсия, порождающая бесконечно много специализаций, отвергается. Поэтому параметр-значение —
 > всегда то, что известно при сборке (литерал или то, что передали вызывающему); захваченное значение
 > существует только во время разбора — передавайте его в `=>`. Аргумент — одна альтернатива: выбор
-> пишется в скобках `List(Word, (';' | '|'))`; `=>` или `<<` в аргументе отвергаются, но позже, чем
-> следовало бы. `item[]` собирает операнды, которые **строят** значение: `Word` строит свой текст через `=>`;
+> пишется в скобках `List(Word, (';' | '|'))`. `item[]` собирает операнды, которые **строят** значение: `Word` строит свой текст через `=>`;
 > правило, которое есть просто свой текст, ничего не строит, даже с `: string`, и тогда `List(Word, …)`
 > нечего собирать (`GRAM4008`). Параметр-значение стоит там,
 > где ожидается значение (счётчик, аргумент `@M`, внутри `@(…)`); в позиции куска грамматики он
 > отвергается (`GRAM4013`) — поэтому `Padded` принимает заполнитель как распознаватель. Правило, тело которого — вызов, не получает тип вызова: `Numbers`
 > захватывает список и передаёт его. Отвергаются (`GRAM4013`): имя параметризованного правила без
-> аргументов и вызов с неверным числом аргументов.
+> аргументов и вызов с неверным числом аргументов; аргументы типа у правила (`Word<int>`) — `GRAM2016`:
+> обобщённым бывает только имя C#, `@Name<T>`.
 <!-- ru:end -->
 
 ## Rules that give back

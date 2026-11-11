@@ -241,9 +241,9 @@ ParsePair("ab=cd") → "abcd"
 ```
 
 An import names a namespace declared anywhere in the grammar, before or after it. A `using`
-written after a declaration is not an import, and is read as the start of a rule:
+written after a declaration is refused: move it up (`GRAM2019`).
 
-```dotgram GRAM2001 GRAM2002 recheck
+```dotgram GRAM2019
 Word = ['a'..'z']+
 
 using Lexical;
@@ -262,8 +262,8 @@ Notes:
 > **RU.** `@using X.Y;` импортирует пространство имён C# (для C#-кода грамматики), `using X;` —
 > пространство имён грамматики. Оба пишутся как директива C#, с точкой с запятой, и стоят перед
 > объявлениями файла или блока `namespace`; импортировать можно пространство, объявленное где угодно
-> в грамматике. `using` после объявления — уже не импорт, а начало правила (второй пример,
-> `GRAM2001`/`GRAM2002`). Пространства имён C# по умолчанию не импортируются, даже `System`
+> в грамматике. `using` после объявления отвергается — перенесите его наверх (второй
+> пример, `GRAM2019`). Пространства имён C# по умолчанию не импортируются, даже `System`
 > (`GRAM3004`). Неизвестное пространство грамматики — `GRAM3003`; два импорта с одинаковым именем —
 > ошибка в месте использования, снимается квалификацией. Стандартная библиотека — пространство `Std`.
 <!-- ru:end -->
