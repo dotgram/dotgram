@@ -381,8 +381,11 @@ sealed partial class GrammarNormalizer
 	/// the call and handing both to a <c>=&gt;</c>.
 	/// </para>
 	/// <para>
-	/// A capture of the rule of the same name is the value C# reads, and is not this. Said once for each
-	/// parameter as it was written, whatever number of specializations the rule has.
+	/// Asked of the C# the rule's declaration writes, as written: what an argument brings in is the
+	/// caller's, and may name a host member of the parameter's name (<c>Use('a' &amp; when @(x()))</c>).
+	/// Said only where certain. A capture of the rule of the same name is the value C# reads; a name
+	/// written only before a dot may be a namespace or a type (<c>System.Math</c>), and is left to the
+	/// C# compiler. Said once for each parameter as it was written.
 	/// </para>
 	/// </remarks>
 	void CheckRecognizersInCSharp()
@@ -390,9 +393,11 @@ sealed partial class GrammarNormalizer
 		if (_scanner is null)
 			return;
 
+		var asked = new HashSet<Decl.Rule>(new DeclarationIdentity());
+
 		foreach (var rule in _rules)
 		{
-			if (rule.Declaration is not { Params.Count: > 0 } declaration || !_bodies.TryGetValue(rule, out var body))
+			if (rule.Declaration is not { Params.Count: > 0 } declaration || !asked.Add(declaration))
 				continue;
 
 			var recognizers = declaration.Params
@@ -402,17 +407,12 @@ sealed partial class GrammarNormalizer
 			if (recognizers.Count == 0)
 				continue;
 
-			var captured = _results.TryGetValue(rule, out var members)
-				? new HashSet<string>(members.Select(static member => member.Name), StringComparer.Ordinal)
-				: [];
+			var captured = new HashSet<string>(
+				Walk(declaration.Body).OfType<Expr.Capture>().Select(static capture => capture.Name), StringComparer.Ordinal);
 
-			foreach (var (text, at) in CSharpOf(body))
-			{
-				if (_scanner.FreeNames(text) is not { } free)
-					continue;
-
+			foreach (var (named, at) in Named(declaration.Body))
 				foreach (var parameter in recognizers)
-					if (free.Contains(parameter.Name) && !captured.Contains(parameter.Name) && _parametersInCSharp.Add(parameter))
+					if (named(parameter.Name) && !captured.Contains(parameter.Name) && _parametersInCSharp.Add(parameter))
 						Report(
 							RecognizerInCSharp,
 							$"C# in '{declaration.Name}' names '{parameter.Name}', a parameter that stands for a piece of " +
@@ -420,32 +420,99 @@ sealed partial class GrammarNormalizer
 							$"'{parameter.Name}: @string', and is a literal or a value the caller was handed itself; " +
 							"what the parse produces is captured where the rule is called and handed to a '=>' there " +
 							"(docs/syntax.md §4.2).",
-							at >= 0 ? new Location(at, text.Length) : parameter.At);
+							at);
+		}
+
+		// For each value the declaration writes — a guard's, a construction's, a switch's selector, a
+		// mark's, a recovery's factory — whether it certainly names a name, and where it stands.
+		IEnumerable<(Func<string, bool> Names, Location At)> Named(Expr body)
+		{
+			foreach (var expression in Walk(body))
+			{
+				var value = expression switch
+				{
+					Expr.Guard(var guarded)               => guarded,
+					Expr.Construct(_, var built)          => built,
+					Expr.Switch(var selector, _)          => selector,
+					Expr.Marked(_, var marked)            => marked,
+					Expr.Recovering(_, _, { } factory)    => factory,
+					_                                     => null,
+				};
+
+				if (value is not null)
+					foreach (var part in Walk(value))
+						switch (part)
+						{
+							// A grammar name in a value is the rule's own name for something.
+							case Expr.Reference(false, var name, _):
+								yield return (one => one == name, part.At);
+								break;
+
+							case Expr.CSharp(var text):
+								yield return (one => UsedAsValue(text, one), part.At);
+								break;
+						}
 			}
 		}
 
-		// Every piece of C# in a body, and where it was written.
-		static IEnumerable<(string Text, int At)> CSharpOf(Node body)
+		// Free in the C#, and written at least once not before a dot, where it could be a namespace or a
+		// type's name rather than the parameter.
+		bool UsedAsValue(string text, string name)
 		{
-			foreach (var node in NodeWalk.Descendants(body))
-				switch (node)
-				{
-					case Node.Guard(var text, var at):
-						yield return (text, at);
-						break;
+			if (_scanner.FreeNames(text) is not { } free || !free.Contains(name))
+				return false;
 
-					case Node.Construct(_, Construction.Expression(var text, var at)):
-						yield return (text, at);
-						break;
+			for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0; at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
+			{
+				var end = at + name.Length;
 
-					case Node.Marked(_, var text):
-						yield return (text, -1);
-						break;
+				if (at > 0 && (char.IsLetterOrDigit(text[at - 1]) || text[at - 1] is '_' or '.' or '@'))
+					continue;
 
-					case Node.Choice { Selection.Selector: var selector }:
-						yield return (selector.Text, selector.At);
-						break;
-				}
+				if (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_'))
+					continue;
+
+				var next = end;
+
+				while (next < text.Length && char.IsWhiteSpace(text[next]))
+					next++;
+
+				if (next >= text.Length || text[next] != '.')
+					return true;
+			}
+
+			return false;
+		}
+
+		static IEnumerable<Expr> Walk(Expr root)
+		{
+			var pending = new Stack<Expr>();
+
+			pending.Push(root);
+
+			while (pending.Count > 0)
+			{
+				var current = pending.Pop();
+
+				yield return current;
+
+				foreach (var child in Dump.Children(current))
+					pending.Push(child);
+			}
+		}
+	}
+
+	/// <summary>Declarations by identity: a record compares its whole body, and clones share the one instance.</summary>
+	sealed class DeclarationIdentity : IEqualityComparer<Decl.Rule>
+	{
+		public bool Equals(Decl.Rule? x, Decl.Rule? y)
+		{
+			return ReferenceEquals(x, y);
+		}
+
+		public int GetHashCode(Decl.Rule rule)
+		{
+			return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(rule);
 		}
 	}
 
