@@ -212,7 +212,7 @@ sealed partial class Machine
 			return "the step of a repetition that recovers";
 
 		if (!CarriesImmediately)
-			return "the tape builds nothing while it reads";
+			return "the deferred carrier builds nothing while it reads";
 
 		if (_graph.Context is not null)
 			return ExcludedByContext;

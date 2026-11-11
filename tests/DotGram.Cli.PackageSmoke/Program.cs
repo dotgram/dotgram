@@ -170,7 +170,7 @@ static class Program
 
 		// A name only the newer runtime's Unicode tables accept (U+A7CB, added in Unicode 16): the tool has to
 		// decide as a build on the newest runtime does, with the package's own policy and with the newest forced.
-		var plain  = new[] { "dotnet", "dotgram", "generate", "adder.gram", "--namespace", "Smoke", "--class", "Adder", "--public", "--option", "Suffix=\uA7CB" };
+		var plain  = new[] { "dotnet", "dotgram", "generate", "adder.gram", "--namespace", "Smoke", "--class", "Adder", "--public", "--option", "Name=\uA7CB" };
 		var forced = Runtime(roll: "LatestMajor");
 
 		Run(_work, "dotnet", [.. plain, "-o", "Unicode/Own"], onTen);

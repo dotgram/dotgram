@@ -173,7 +173,7 @@ public enum Side
 	Sep     = '|'
 
 	parse Feed
-	""", PartSize = 1500)]
+	""", TargetMethodPartSize = 1500)]
 public static partial class Settlements
 {
 	// The first grammar here that wants the size set, and it wants the coarse one. Most

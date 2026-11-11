@@ -119,7 +119,7 @@ public sealed class EditorBuildAgreementTests
 	/// </summary>
 	[Theory]
 	[InlineData("",                                     true)]
-	[InlineData(", Carrier = DotGram.GramCarrier.Tape", false)]
+	[InlineData(", Carrier = DotGram.GramCarrier.Deferred", false)]
 	public void The_carrier_the_host_names_is_the_one_analysed(string options, bool told)
 	{
 		const string grammar = """

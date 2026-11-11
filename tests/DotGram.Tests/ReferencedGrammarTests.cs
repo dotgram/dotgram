@@ -45,7 +45,7 @@ public sealed class ReferencedGrammarTests
 	const string Consumer = """
 		using GrammarLibrary;
 
-		[DotGram.GramInclude(typeof(Lexemes), As = "L")]
+		[DotGram.GramInclude(typeof(Lexemes), Alias = "L")]
 		[DotGram.Gram("using L;\nSum : @int = a: L.Number & '+' & b: L.Number => @(a + b)\nparse Sum")]
 		public partial class ImportedGrammar { }
 
@@ -86,7 +86,7 @@ public sealed class ReferencedGrammarTests
 			// would land somewhere other than the attribute.
 			using GrammarLibrary;
 
-			[DotGram.GramInclude(typeof(Lexemes), As = "L")]
+			[DotGram.GramInclude(typeof(Lexemes), Alias = "L")]
 			[DotGram.Gram("using L;\nSum : @int = a: L.Number & '+' & b: L.Number => @(a + b)\nparse Sum")]
 			public partial class ImportedGrammar { }
 			""";
@@ -152,6 +152,100 @@ public sealed class ReferencedGrammarTests
 		var built    = context.LoadFromStream(new MemoryStream(Emit("AliasConsumer", consumer, reference: image, aliases: ["X"])));
 
 		Assert.True(IsSuccess(built, "App.Host", "TryParseStart", "abc"));
+	}
+
+	/// <summary>
+	/// An assembly built by DotGram 0.2 carries its attributes under the names they had then —
+	/// <c>IncludedAs</c> on <c>[Gram]</c>, <c>As</c> on <c>[GramInclude]</c> — and a grammar is
+	/// still included from it under the name it says.
+	/// </summary>
+	[Fact]
+	public void A_grammar_is_included_from_an_assembly_built_by_DotGram_0_2()
+	{
+		const string library = """
+			namespace DotGram
+			{
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+				internal class GramOptionsAttribute : System.Attribute
+				{
+					public string Suffix { get; set; }
+					public bool Portable { get; set; } = true;
+				}
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+				internal sealed class GramAttribute : GramOptionsAttribute
+				{
+					public GramAttribute(string source) { Source = source; }
+					public string Source { get; }
+					public string IncludedAs { get; set; }
+				}
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+				internal sealed class GramSourceAttribute : System.Attribute
+				{
+					public GramSourceAttribute(string text) { Text = text; }
+					public string Text { get; }
+				}
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+				internal sealed class GramIncludeAttribute : System.Attribute
+				{
+					public GramIncludeAttribute(System.Type grammar) { Grammar = grammar; }
+					public System.Type Grammar { get; }
+					public string As { get; set; }
+				}
+			}
+
+			namespace OldLibrary
+			{
+				[DotGram.Gram("Lexemes.gram", IncludedAs = "Lex")]
+				[DotGram.GramSource("Number : @int = n: ['0'..'9']+ => @(int.Parse(n))\nparse Number")]
+				public partial class Lexemes { }
+
+				[DotGram.GramInclude(typeof(Lexemes), As = "L")]
+				[DotGram.Gram("Pairs.gram")]
+				[DotGram.GramSource("using L;\nPair : @int = a: L.Number & ',' & b: L.Number => @(a * b)\nparse Pair")]
+				public partial class Pairs { }
+			}
+			""";
+
+		const string consumer = """
+			using OldLibrary;
+
+			[DotGram.GramInclude(typeof(Lexemes))]
+			[DotGram.Gram("using Lex;\nSum : @int = a: Lex.Number & '+' & b: Lex.Number => @(a + b)\nparse Sum")]
+			public partial class ByDefaultAlias { }
+
+			[DotGram.GramInclude(typeof(Pairs))]
+			[DotGram.Gram("using Pairs;\nStart : @int = p: Pair & '!' => @(p)\nparse Start")]
+			public partial class ByAlias { }
+			""";
+
+		var image    = Compile("OldLibrary", library);
+		var context  = new Context("OldLibrary", image);
+		var built    = context.LoadFromStream(new MemoryStream(Emit("OldConsumer", consumer, reference: image)));
+
+		Assert.Equal(42, Call(built, "ByDefaultAlias", "ParseSum", "19+23"));
+		Assert.Equal(42, Call(built, "ByAlias", "ParseStart", "6,7!"));
+	}
+
+	/// <summary>A source compiled as it stands, with no generator: an assembly some other build made.</summary>
+	static byte[] Compile(string name, string source)
+	{
+		var compilation = CSharpCompilation.Create(
+			name,
+			[CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview), name + ".cs")],
+			((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
+				.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		using var stream = new MemoryStream();
+
+		var emitted = compilation.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
+
+		Assert.True(emitted.Success, string.Join("\n", emitted.Diagnostics.Where(static one => one.Severity == DiagnosticSeverity.Error)));
+
+		return stream.ToArray();
 	}
 
 	static object? Call(Assembly assembly, string type, string method, string input)

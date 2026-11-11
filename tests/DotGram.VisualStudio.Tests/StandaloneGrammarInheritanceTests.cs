@@ -22,9 +22,9 @@ public sealed class StandaloneGrammarInheritanceTests
 			[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 			sealed class GramAttribute(string source) : System.Attribute
 			{
-				public string IncludedAs { get; set; } = "";
+				public string DefaultAlias { get; set; } = "";
 				public bool Lexical { get; set; }
-				public string Suffix { get; set; } = "";
+				public string Name { get; set; } = "";
 			}
 
 			sealed class GramSourceAttribute(string text) : System.Attribute;
@@ -32,13 +32,13 @@ public sealed class StandaloneGrammarInheritanceTests
 			[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 			sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
 			{
-				public string As { get; set; } = "";
+				public string Alias { get; set; } = "";
 			}
 		}
 		""";
 
 	const string Hosts = """
-		[DotGram.Gram("SqlStandard92.gram", IncludedAs = "Sql92")]
+		[DotGram.Gram("SqlStandard92.gram", DefaultAlias = "Sql92")]
 		abstract class SqlStandard92;
 
 		[DotGram.Gram("TransactSql.gram", Lexical = true)]
@@ -147,11 +147,11 @@ public sealed class StandaloneGrammarInheritanceTests
 	public async Task FindsTheHostThroughASuffixedReading()
 	{
 		const string hosts = """
-			[DotGram.Gram("SqlStandard92.gram", IncludedAs = "Sql92")]
+			[DotGram.Gram("SqlStandard92.gram", DefaultAlias = "Sql92")]
 			abstract class SqlStandard92;
 
 			[DotGram.Gram("Other.gram")]
-			[DotGram.Gram("TransactSql.gram", Suffix = "Dialect", Lexical = true)]
+			[DotGram.Gram("TransactSql.gram", Name = "Dialect", Lexical = true)]
 			[DotGram.GramInclude(typeof(SqlStandard92))]
 			abstract class TransactSql;
 			""";
@@ -176,7 +176,7 @@ public sealed class StandaloneGrammarInheritanceTests
 	public async Task AnAmbiguousIncludedFileFallsBackOnWhatTheClassCarries()
 	{
 		const string hosts = """
-			[DotGram.Gram("SqlStandard92.gram", IncludedAs = "Sql92")]
+			[DotGram.Gram("SqlStandard92.gram", DefaultAlias = "Sql92")]
 			[DotGram.GramSource("Carried = 'c'")]
 			abstract class SqlStandard92;
 

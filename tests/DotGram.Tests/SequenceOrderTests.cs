@@ -86,9 +86,9 @@ public sealed class SequenceOrderTests
 	/// <c>Circle</c> is a <c>Shape</c> is the host's answer and not a permissive one.
 	/// </remarks>
 	[Theory]
-	[InlineData("Tape",      false)]
+	[InlineData("Deferred",  false)]
 	[InlineData("Immediate", false)]
-	[InlineData("Tape",      true)]
+	[InlineData("Deferred",  true)]
 	[InlineData("Immediate", true)]
 	public void Choices_of_different_types_keep_their_order(string carrier, bool lexical)
 	{

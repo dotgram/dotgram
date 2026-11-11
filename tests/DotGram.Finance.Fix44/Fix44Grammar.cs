@@ -3,10 +3,10 @@
 
 namespace DotGram.Finance.Fix.Fix44;
 
-[Gram("Fix44Grammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
+[Gram("Fix44Grammar.gram", LocationType = typeof(IFixLocation), UseSpanCaptures = true, BufferedText = true, TargetMethodPartSize = 1000, ExportGrammar = false)]
 sealed partial class Fix44Grammar : FixFieldGrammar;
 
-[Gram("FixField.gram", IncludedAs = "Known", Portable = false)]
+[Gram("FixField.gram", DefaultAlias = "Known", ExportGrammar = false)]
 abstract partial class FixFieldGrammar;
 
 sealed class Fix44Reading

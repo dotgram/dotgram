@@ -212,7 +212,7 @@ public sealed class StandardLibraryTests
 				""")]
 			public static partial class Counts;
 
-			[GramInclude(typeof(Counts), As = "C")]
+			[GramInclude(typeof(Counts), Alias = "C")]
 			[Gram("""
 				using C;
 
