@@ -239,6 +239,15 @@ public sealed class LanguageGuideTests
 
 			at++;
 
+			if (text[at] == 'u' && at + 4 < text.Length)
+			{
+				built.Append((char)int.Parse(text.Substring(at + 1, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+
+				at += 4;
+
+				continue;
+			}
+
 			built.Append(text[at] switch
 			{
 				'n' => '\n',
