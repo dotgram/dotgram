@@ -105,6 +105,56 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// The name of the type the grammar generates for a rule, where it will generate one: a rule that
+	/// declares no type, captures, and builds nothing of its own (§4.1 case 3). Null for any other.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Asked where another rule takes this one's type, <c>Swapped : Pair</c>, before the results are
+	/// worked out. The
+	/// type is spelled as the class it is nested in reads it, the rule's identifier, which is what
+	/// <see cref="Emit.ResultTypes"/> calls it unless that name is taken, and a name the grammar
+	/// writes may not be (GRAM5018).
+	/// </para>
+	/// <para>
+	/// It used to be <c>string</c>, the text such a rule matched: a rule typed by it was handed a value
+	/// of the generated type and declared to give back a string, and the generated file did not
+	/// compile (CS0029).
+	/// </para>
+	/// </remarks>
+	string? GeneratedTypeOf(RuleSymbol rule)
+	{
+		if (GeneratedNameOf(rule) is not { } name)
+			return null;
+
+		_namedTypes[name] = rule;
+
+		return name;
+	}
+
+	/// <summary>The same, asked without the grammar's naming it.</summary>
+	string? GeneratedNameOf(RuleSymbol rule)
+	{
+		if (rule.Declaration is null || _types.ContainsKey(rule) || _produces.ContainsKey(rule) ||
+			!_bodies.TryGetValue(rule, out var body) || !HasCapture(body) || Constructs(body).Any())
+			return null;
+
+		return Emit.CSharpEmitter.IdentifierOf(rule);
+	}
+
+	/// <summary>
+	/// The rules whose generated type the grammar names, by that name: a rule typed by one
+	/// (<see cref="GeneratedTypeOf"/>) and a construction that builds one (<c>=&gt; Pair(a, b)</c>).
+	/// </summary>
+	readonly Dictionary<string, RuleSymbol> _namedTypes = new(StringComparer.Ordinal);
+
+	/// <summary>Whether the grammar generates a type for this rule, made from its captures (§4.1 case 3).</summary>
+	bool HasGeneratedType(RuleSymbol rule)
+	{
+		return !_types.ContainsKey(rule) && _results.TryGetValue(rule, out var members) && members.Count > 0;
+	}
+
+	/// <summary>
 	/// §4.2's <c>: item</c>: a specialization's result type is its argument's.
 	/// </summary>
 	/// <remarks>
@@ -138,7 +188,7 @@ sealed partial class GrammarNormalizer
 					if (_produces.ContainsKey(pair.Value.Produces))
 						continue;
 
-					type = "string";
+					type = GeneratedTypeOf(pair.Value.Produces) ?? "string";
 				}
 
 				_types[pair.Key] = pair.Value.IsSequence ? type + "[]" : type;
@@ -551,6 +601,15 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	bool TryConstructors(string type, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
 	{
+		// A type the grammar generates has one constructor, of the captures of the rule it is made
+		// for, in the order the rule writes them; the host knows nothing of it yet.
+		if (_namedTypes.TryGetValue(type, out var named) && _results.TryGetValue(named, out var members))
+		{
+			constructors = [[.. members.Select(static member => new MethodParameter(member.Name, "", false))]];
+
+			return true;
+		}
+
 		if (_resolver.TryResolveConstructors(type, out constructors))
 			return true;
 
@@ -792,9 +851,15 @@ sealed partial class GrammarNormalizer
 			_                                          => null,
 		};
 
-		return called is not null &&
-			_types.TryGetValue(called, out var type) &&
-			_resolver.IsAssignable(type, element);
+		if (called is null)
+			return false;
+
+		// A type the grammar generates is known to no host: a value of one fits a sequence of that
+		// type and of no other, and nothing but one fits a sequence of it.
+		if (_namedTypes.ContainsKey(element))
+			return (_types.TryGetValue(called, out var declared) ? declared : GeneratedNameOf(called)) == element;
+
+		return _types.TryGetValue(called, out var type) && _resolver.IsAssignable(type, element);
 	}
 
 	static bool IsCSharpKeyword(string name)
