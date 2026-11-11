@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis;
 namespace DotGram.Language;
 
 /// <summary>
-/// What one reading of a grammar — a <c>[Gram]</c> or a <c>[GramVariant]</c> — asks of the
+/// What one reading of a grammar — a <c>[Gram]</c> or a <c>[GramParserVariant]</c> — asks of the
 /// compilation, as its named arguments say it, with what it does not say taken from the
 /// class's first reading.
 /// </summary>
@@ -105,7 +105,7 @@ sealed record GramHostOptions
 	public bool Trace { get; init; }
 
 	/// <summary>One reading's options.</summary>
-	/// <param name="attribute">The <c>[Gram]</c> or <c>[GramVariant]</c> read.</param>
+	/// <param name="attribute">The <c>[Gram]</c> or <c>[GramParserVariant]</c> read.</param>
 	/// <param name="type">The class it is written on, whose visibility is the default for <see cref="ExportGrammar"/>.</param>
 	/// <param name="first">
 	/// The options of the class's first reading, which a later one takes everything it does not
@@ -122,7 +122,9 @@ sealed record GramHostOptions
 			LocationType           = (Named(attribute, nameof(LocationType)) as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType,
 			Carrier                = Named(attribute, nameof(Carrier)) as int? ?? first?.Carrier ?? 0,
 			MaxExtraStacks         = Named(attribute, nameof(MaxExtraStacks), "Stacks") as int? ?? first?.MaxExtraStacks ?? 0,
-			Name                   = Named(attribute, nameof(Name), "Suffix") as string,
+			Name                   = attribute.AttributeClass?.Name == "GramParserVariantAttribute"
+				? attribute.ConstructorArguments.FirstOrDefault().Value as string
+				: Named(attribute, nameof(Name), "Suffix") as string,
 			ConstructionsMayThrow  = Named(attribute, nameof(ConstructionsMayThrow)) as bool? ?? first?.ConstructionsMayThrow ?? false,
 			UseSpanCaptures        = Named(attribute, nameof(UseSpanCaptures), "SpanCaptures") as bool? ?? first?.UseSpanCaptures ?? false,
 			BufferedBytes          = Named(attribute, nameof(BufferedBytes)) as bool? ?? first?.BufferedBytes ?? false,

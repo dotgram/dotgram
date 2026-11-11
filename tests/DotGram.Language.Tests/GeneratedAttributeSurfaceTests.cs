@@ -34,6 +34,7 @@ public sealed class GeneratedAttributeSurfaceTests
 		    ctor()
 		    ctor(string source)
 		    string Source { get; }
+		    string Name { get; set; }
 		    string DefaultAlias { get; set; }
 		internal enum GramCarrier
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
@@ -93,10 +94,16 @@ public sealed class GeneratedAttributeSurfaceTests
 		    string EntriesPayload { get; }
 		    string ClassificationsPayload { get; }
 		    string RecognitionContractPayload { get; }
+		internal sealed class GramParserVariantAttribute : DotGram.GramReadingAttribute
+		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
+		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
+		    ctor(string name)
+		    string Name { get; }
+		    bool UsePerCallLocations { get; set; }
 		internal abstract class GramReadingAttribute : System.Attribute
 		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
-		    string Name { get; set; }
 		    int TargetMethodPartSize { get; set; }
 		    bool Lexical { get; set; }
 		    DotGram.GramCarrier Carrier { get; set; }
@@ -133,11 +140,6 @@ public sealed class GeneratedAttributeSurfaceTests
 		    ctor(string expression, bool accepted)
 		    string Expression { get; }
 		    bool Accepted { get; }
-		internal sealed class GramVariantAttribute : DotGram.GramReadingAttribute
-		    [System.AttributeUsageAttribute(System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-		    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
-		    [Microsoft.CodeAnalysis.EmbeddedAttribute]
-		    bool UsePerCallLocations { get; set; }
 		""";
 
 	[Fact]

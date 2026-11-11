@@ -264,7 +264,7 @@ public sealed class TransactSqlWriterTextTests
 
 	/// <summary>Every node says where it was written.</summary>
 	/// <remarks>
-	/// What <c>[GramVariant(LocationType = typeof(ISqlSpan), Name = "Located")]</c> asks for: the
+	/// What <c>[GramParserVariant("Located", LocationType = typeof(ISqlSpan))]</c> asks for: the
 	/// reader offers each construction the range it was read over, and the value keeps the
 	/// last offer. The span is the node's own text without the trivia around it, which is
 	/// what lets a comment fall between two of them rather than inside one.

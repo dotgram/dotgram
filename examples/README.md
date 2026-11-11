@@ -30,7 +30,7 @@ then a feed, then an expression language, then one of the larger ones.
 | [`MarkdownExample.cs`](DotGram.Examples/Formats/MarkdownExample.cs) | block structure — headings, bullets, fenced code, paragraphs |
 | [`YamlExample.cs`](DotGram.Examples/Formats/YamlExample.cs) | nesting by indentation, to any depth |
 | [`MetricsLineExample.cs`](DotGram.Examples/Formats/MetricsLineExample.cs) | a line of measurements, and the standard library doing nearly all of it — `using Std;`, comments and numbers said by name |
-| [`LocatedConfigExample.cs`](DotGram.Examples/Formats/LocatedConfigExample.cs) | one grammar read twice — `[GramVariant]`, `LocationType`, and `: @SourceSpan` where a rule is simply its own extent |
+| [`LocatedConfigExample.cs`](DotGram.Examples/Formats/LocatedConfigExample.cs) | one grammar read twice — `[GramParserVariant]`, `LocationType`, and `: @SourceSpan` where a rule is simply its own extent |
 | [`FileNameExample.cs`](DotGram.Examples/Formats/FileNameExample.cs) | a path split into names the platform would take — `[@M]`, a set of characters that is data rather than syntax |
 
 ## Feeds

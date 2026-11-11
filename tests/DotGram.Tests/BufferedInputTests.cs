@@ -544,8 +544,8 @@ public sealed partial class BufferedInputTests
 		var host = """"
 			using DotGram;
 			[Gram("Start = any*\nparse Start", BufferedText = true, BufferedBytes = true)]
-			[GramVariant(Name = "Inherited")]
-			[GramVariant(Name = "Plain", BufferedText = false, BufferedBytes = false)]
+			[GramParserVariant("Inherited")]
+			[GramParserVariant("Plain", BufferedText = false, BufferedBytes = false)]
 			public partial class Grammar { }
 			"""";
 		var assembly = GeneratorDriverTests.Build(host);
@@ -763,7 +763,7 @@ public sealed partial class BufferedInputTests
 		var assembly = GeneratorDriverTests.Build(""""
 			using DotGram;
 			[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start", UseSpanCaptures = true, BufferedBytes = true)]
-			[GramVariant(Name = "Plain", UseSpanCaptures = false, BufferedBytes = false)]
+			[GramParserVariant("Plain", UseSpanCaptures = false, BufferedBytes = false)]
 			public partial class Grammar
 			{
 				static int ToInt(System.ReadOnlySpan<char> text) => text.Length;

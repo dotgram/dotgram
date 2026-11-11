@@ -66,7 +66,7 @@ public sealed class ClassificationTargetTests
 	{
 		var run = GeneratorDriverTests.RunGenerator(
 			"[DotGram.Gram(\"" + Grammar + "\")]\n" +
-			"[DotGram.GramVariant(Name = \"Second\", Carrier = DotGram.GramCarrier.Deferred)]\n" +
+			"[DotGram.GramParserVariant(\"Second\", Carrier = DotGram.GramCarrier.Deferred)]\n" +
 			"[DotGram.GramLanguage(\"com.example.test\")]\n" +
 			"[DotGram.GramClassify(\"Nowhere\", DotGram.GramClassification.Keyword)]\n" +
 			"public partial class Parser;");

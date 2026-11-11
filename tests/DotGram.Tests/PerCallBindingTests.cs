@@ -23,8 +23,8 @@ public sealed class PerCallBindingTests
 	static string Source(bool perCall, bool shared)
 	{
 		var options = perCall
-			? "[GramVariant(LocationType = typeof(ILoc), Name = \"Located\", UsePerCallLocations = true)]"
-			: "[GramVariant(LocationType = typeof(ILoc), Name = \"Located\")]";
+			? "[GramParserVariant(\"Located\", LocationType = typeof(ILoc), UsePerCallLocations = true)]"
+			: "[GramParserVariant(\"Located\", LocationType = typeof(ILoc))]";
 		var param   = shared ? "Param  = '$' & ['0'..'9']*" : "";
 		var value   = shared
 			? "Value : @Text = t: Quoted => @(new Text(t)) | t: Param => @(new Text(t))"
