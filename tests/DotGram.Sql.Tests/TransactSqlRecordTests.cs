@@ -899,4 +899,39 @@ public sealed class TransactSqlRecordTests
 
 		Assert.IsType<Ast.Query.Select>(Assert.IsType<Ast.Expression.Subquery>(Assert.Single(insert.Values)).Query);
 	}
+
+	/// <summary>
+	/// The date-part functions are told apart by a length and a prefix before the set is asked, which holds only while
+	/// every name in the set is DATE and three to eight more characters: a name added that is not would be skipped.
+	/// </summary>
+	[Fact]
+	public void Every_date_part_function_passes_the_check_made_before_the_set()
+	{
+		Assert.NotEmpty(Syntax.DatePartFunctions);
+
+		foreach (var name in Syntax.DatePartFunctions)
+		{
+			Assert.True(Syntax.IsDatePartFunction(name), name);
+			Assert.True(Syntax.IsDatePartFunction(name.ToLowerInvariant()), name);
+		}
+	}
+
+	/// <summary>
+	/// A call is cut into words to see whether it is NEXT VALUE FOR only where its name is fourteen characters at least and
+	/// has VALUE in it: the shortest spelling, any case, and comments and blanks between the words still read as one.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT NEXT VALUE FOR s")]
+	[InlineData("SELECT next value for s")]
+	[InlineData("SELECT Next Value For s")]
+	[InlineData("SELECT NEXT /* c */ VALUE -- x\n FOR s")]
+	[InlineData("SELECT NEXT\tVALUE  FOR s")]
+	public void Next_value_for_is_read_however_it_is_spelled(string text)
+	{
+		var statement = Assert.IsType<Ast.Statement.Select>(TransactSqlParser.ParseStatement(text));
+		var query     = Assert.IsType<Ast.Query.Select>(statement.Query);
+		var item      = Assert.IsType<Ast.SelectColumn.ExpressionItem>(Assert.Single(query.Columns));
+
+		Assert.IsType<Ast.Expression.NextValue>(item.Expression);
+	}
 }
