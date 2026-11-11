@@ -30,7 +30,10 @@ namespace DotGram.Tests;
 /// (<c>```dotgram GRAM4006</c>) says the grammar reports it, and nothing else at the level of a
 /// warning or above; no identifier says it reports nothing at that level. <c>Lexical</c> compiles it
 /// with <c>Lexical = true</c>, as the host attribute would. A grammar that reports no error is then
-/// compiled as C#, and what the generator wrote has to compile without a warning.
+/// compiled as C#, and what the generator wrote has to compile without a warning. <c>pending</c>
+/// marks a grammar that shows the behaviour of a fix not yet made, and is skipped until the word is
+/// taken away; <c>recheck</c> marks one whose diagnostics a fix in flight may change, and is held to
+/// what it says now.
 /// </para>
 /// <para>
 /// A <c>```csharp</c> fence right after a grammar that declares a <c>partial class</c> is the host it is
@@ -53,6 +56,10 @@ public sealed class LanguageGuideTests
 	public void A_grammar_of_the_guide_says_what_the_page_says(string page, int index)
 	{
 		var example  = All(page)[index];
+
+		if (example.Words.Contains("pending"))
+			Assert.Skip($"{page}, grammar {index + 1} (line {example.Line}) shows behaviour a fix has not landed yet.");
+
 		var host     = example.Host is { } declared ? ShippedPages.HostIn(declared) ?? "Grammar" : "Grammar";
 		var hostCode = example.Host ?? "partial class Grammar { }";
 
