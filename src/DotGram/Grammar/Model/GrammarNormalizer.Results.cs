@@ -424,22 +424,25 @@ sealed partial class GrammarNormalizer
 		}
 
 		// For each value the declaration writes — a guard's, a construction's, a switch's selector, a
-		// mark's, a recovery's factory — whether it certainly names a name, and where it stands.
+		// mark's, a recovery's factory, a guard among a condition's tests, C# written as an operand — whether
+		// it certainly names a name, and where it stands.
 		IEnumerable<(Func<string, bool> Names, Location At)> Named(Expr body)
 		{
 			foreach (var expression in Walk(body))
 			{
-				var value = expression switch
+				IReadOnlyList<Expr> values = expression switch
 				{
-					Expr.Guard(var guarded)               => guarded,
-					Expr.Construct(_, var built)          => built,
-					Expr.Switch(var selector, _)          => selector,
-					Expr.Marked(_, var marked)            => marked,
-					Expr.Recovering(_, _, { } factory)    => factory,
-					_                                     => null,
+					Expr.Guard(var guarded)               => [guarded],
+					Expr.Construct(_, var built)          => [built],
+					Expr.Switch(var selector, _)          => [selector],
+					Expr.Marked(_, var marked)            => [marked],
+					Expr.Recovering(_, _, { } factory)    => [factory],
+					Expr.Condition(var test)              => Parsing.Test.Guards(test),
+					Expr.CSharp                           => [expression],
+					_                                     => [],
 				};
 
-				if (value is not null)
+				foreach (var value in values)
 					foreach (var part in Walk(value))
 						switch (part)
 						{
@@ -448,40 +451,16 @@ sealed partial class GrammarNormalizer
 								yield return (one => one == name, part.At);
 								break;
 
+							// From the C#'s tokens: a name in a comment or a literal is none, `@x` is `x`, and
+							// one written only before a dot may be a namespace or a type, and is left to the
+							// C# compiler.
 							case Expr.CSharp(var text):
-								yield return (one => UsedAsValue(text, one), part.At);
+								var asValues = _scanner.NamesAsValues(text);
+
+								yield return (one => asValues?.Contains(one) == true, part.At);
 								break;
 						}
 			}
-		}
-
-		// Free in the C#, and written at least once not before a dot, where it could be a namespace or a
-		// type's name rather than the parameter.
-		bool UsedAsValue(string text, string name)
-		{
-			if (_scanner.FreeNames(text) is not { } free || !free.Contains(name))
-				return false;
-
-			for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0; at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
-			{
-				var end = at + name.Length;
-
-				if (at > 0 && (char.IsLetterOrDigit(text[at - 1]) || text[at - 1] is '_' or '.' or '@'))
-					continue;
-
-				if (end < text.Length && (char.IsLetterOrDigit(text[end]) || text[end] == '_'))
-					continue;
-
-				var next = end;
-
-				while (next < text.Length && char.IsWhiteSpace(text[next]))
-					next++;
-
-				if (next >= text.Length || text[next] != '.')
-					return true;
-			}
-
-			return false;
 		}
 
 		static IEnumerable<Expr> Walk(Expr root)
