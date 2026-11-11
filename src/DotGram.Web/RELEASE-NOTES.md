@@ -14,7 +14,7 @@ NEW
 FIXED
 
 - Refusal time. Content-Type, Accept, Forwarded and Link refuse a field with a long run of spaces in linear time, where it was cubic (2.6 seconds for a Content-Type of 1,600 spaces); the Structured Field readers refuse a long key or token in linear time. An email address with an unclosed comment, quoted string or domain literal or a long run of commas, a Content-Type with many empty parameters and a Structured Field Dictionary with many members are refused in linear time, where it was quadratic (1.3 seconds for an address list of 8 KB). Link, Forwarded, Content-Disposition and Accept refuse a long adversarial header in linear time, where each was quadratic. Values, refusals and messages of these are as before.
-- A language tag cut after a long run of variants, extensions or private-use subtags (en-a-abc-…-a) is refused in linear time, where it was quadratic (856 ms for 8,192 extensions); values, refusals and messages are as before.
+- A language tag cut after a long run of variants or extensions (en-a-abc-…-a) is refused in linear time, where it was quadratic (856 ms for 8,192 extensions); values, refusals and messages are as before.
 - Against the RFCs: an IPvFuture host may write its version flag as V (RFC 3986); a URI Template literal refuses the noncharacters at the end of each supplementary plane and U+E0000 to U+E0FFF (RFC 6570); a Set-Cookie Max-Age within a long's range is read exactly, where the values nearest either end came back as long.MaxValue or long.MinValue; a Forwarded field of semicolons alone (;) is a field with no pairs, where it was refused.
 
 CHANGED
