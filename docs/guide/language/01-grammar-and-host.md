@@ -243,7 +243,7 @@ ParsePair("ab=cd") → "abcd"
 An import names a namespace declared anywhere in the grammar, before or after it. A `using`
 written after a declaration is not an import, and is read as the start of a rule:
 
-```dotgram GRAM2001 GRAM2002
+```dotgram GRAM2001 GRAM2002 recheck
 Word = ['a'..'z']+
 
 using Lexical;
