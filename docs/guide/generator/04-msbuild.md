@@ -43,13 +43,31 @@ that references it. Nothing has to be imported by hand.
 
 A build says nothing about the generator unless asked. `summary` prints one line per parser — the
 host and the reading, how many rules the grammar has once normalized, how large the generated C# is,
-and how long generating it took:
+and how long generating it took. For a host with a second reading:
+
+```csharp example=report
+using DotGram;
+
+namespace Demo;
+
+[Gram("""
+	trivia = { ' '* }
+
+	Sum  : @int = left: Sum & '+' & right: Term << 1 => @(left + right)
+	            | value: Term                       => @(value)
+	Term : @int = digits: { ['0'..'9']+ } => @(int.Parse(digits))
+
+	parse Sum
+	""")]
+[GramParserVariant("Deferred", Carrier = GramCarrier.Deferred)]
+public static partial class Adder;
+```
 
 ```shell
 dotnet build -p:DotGramReportGeneration=summary
 ```
 
-```text
+```text report example=report
 DotGram: Demo.Adder.Deferred, 3 normalized rules, 33442 bytes UTF-8 C#, 4.30 ms generation
 DotGram: Demo.Adder, 3 normalized rules, 24076 bytes UTF-8 C#, 3.39 ms generation
 ```
@@ -85,7 +103,7 @@ warning. `true` and `false` are older spellings of `full` and `none`.
 <!-- ru:begin -->
 > **RU.** Сборка ничего не говорит о генераторе, если не попросить. `summary` печатает по строке на
 > парсер: хост и чтение, сколько правил у грамматики после нормализации, размер сгенерированного C# и
-> время генерации (пример выше). Строки идут с важностью, которую показывает минимальная сборка
+> время генерации (пример выше — для хоста со вторым чтением). Строки идут с важностью, которую показывает минимальная сборка
 > (умолчание `dotnet build`); при `-v:quiet` их нет. Время — собственное время генератора (чтение,
 > анализ и запись грамматики), а не компилятора C#. `cached` значит, что парсер взят из прошлой
 > сборки (`DotGramNoCache`, ниже). Сборка, которая ничего не компилирует, ничего и не печатает, а
