@@ -822,8 +822,18 @@ static partial class CSharpEmitter
 			// from here, as a grammar compiled on its own names one.
 			var rooted = locationType.IndexOf('.') >= 0 ? "global::" + locationType : locationType;
 
-			using (file.Block($"static void {Named("Locate")}<T>(ref T made, int at, int length) where T : {rooted}"))
-				file.Line("made.Locate(at, length);");
+			// A class is called on itself, whatever the value's own class: a constraint cannot name a
+			// sealed one, and nothing a class declares is hidden from it as an explicit implementation is.
+			if (options.LocationTypeIsClass)
+			{
+				using (file.Block($"static void {Named("Locate")}<T>(ref T made, int at, int length) where T : class"))
+					file.Line($"(({rooted})(object)made).Locate(at, length);");
+			}
+			else
+			{
+				using (file.Block($"static void {Named("Locate")}<T>(ref T made, int at, int length) where T : {rooted}"))
+					file.Line("made.Locate(at, length);");
+			}
 
 			file.Line();
 		}
@@ -4654,8 +4664,8 @@ file.Line("return spare;");
 					// test teaches the compiler that the value may be null, which the rule's type
 					// says it is not; it is handed back as the author's C# made it (CS8603).
 					//
-					// Told through the interface (LocatedHelper): an explicit implementation of it is
-					// called too, and a struct is told in place.
+					// Told through the generic helper written once for the class (Locate): an explicit
+					// implementation of the interface is called too, and a struct is told in place.
 					if (IsReferenceType(graph, graph.Types[rule]))
 					{
 						// Not `is not null`, which a consumer on C# 8 cannot compile.
