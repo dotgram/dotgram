@@ -462,6 +462,71 @@ public sealed class PoolRetentionTests
 		Assert.Same(store, arguments[0]);
 	}
 
+	/// <summary>
+	/// A window whose tokens outgrow the room it started with keeps its buffer: what it took is
+	/// what it asked, and the buffer is never read as room left unused.
+	/// </summary>
+	/// <remarks>
+	/// A window starts at sixty-four tokens and doubles, while what it asks of the buffer was the
+	/// guess of a quarter of its characters. A window of a hundred and twenty-eight tokens of one
+	/// character each guesses forty-eight and takes arrays of two hundred and fifty-six (the end
+	/// is written after the last token), past four times the guess: read against the guess alone,
+	/// eight such readings in a row let the buffer go, and a collection then has it grown again
+	/// from sixty-four. Read here through the tokenizer itself, over a window of a longer text,
+	/// and the buffer given back after each reading, as a parse over that window gives it.
+	/// </remarks>
+	[Fact]
+	public void A_window_that_outgrows_its_first_room_keeps_its_buffer()
+	{
+		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
+
+		var compiled = GramCompiler.Compile("""
+			trivia = { ' '* }
+			Start : @int = items: Item+ => @(items.Length)
+			Item : @int = "a" => @(1)
+			parse Start
+			positional parse Start as Placed
+			""", new GramCompilerOptions
+		{
+			ClassName = "Grammar", Lexical = true, Carrier = CarrierKind.Tape,
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+
+		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text);
+		var owner    = assembly.GetType("Grammar")!;
+		var type     = owner.GetNestedType("Tokens_DotGram", Flags)!;
+		var tokenize = Array.Find(owner.GetMethods(Flags),
+			method => method.Name == "Tokenize_DotGram" && method.GetParameters().Length == 4)!;
+		var back     = Recycler(owner, "Tokens_DotGram")!;
+		var slot     = owner.GetField("_spareTokens", Flags)!;
+		var idle     = owner.GetField("_spareTokensIdle", Flags)!;
+		var kinds    = type.GetField("Kinds", Flags)!;
+		var count    = type.GetField("Count", Flags)!;
+
+		var text = new string('a', 300);
+
+		object? first = null;
+
+		for (var reading = 1; reading <= 12; reading++)
+		{
+			var tokens = tokenize.Invoke(null, [text, 10, 138, true])!;
+
+			Assert.Equal(128, count.GetValue(tokens));
+
+			first ??= tokens;
+
+			Assert.Same(first, tokens);
+			Assert.True(((char[])kinds.GetValue(tokens)!).Length > 128);
+
+			back.Invoke(null, [tokens]);
+
+			Assert.Same(first, slot.GetValue(null));
+			Assert.Equal(0, idle.GetValue(null));
+		}
+	}
+
 	/// <summary>The method that gives a parser or a set of tokens back: one name, an overload for each.</summary>
 	static System.Reflection.MethodInfo? Recycler(Type owner, string kept)
 	{

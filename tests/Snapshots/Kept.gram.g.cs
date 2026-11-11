@@ -1788,7 +1788,18 @@ namespace DotGram.Snapshots
 
 			tokens.Cut = false;
 
-			tokens.Room((to - from) / 4 + 16);
+			var window  = from != 0 || to != input.Length;
+
+			if (!window)
+			{
+				tokens.Room((to - from) / 4 + 16);
+			}
+			else
+			{
+				tokens.Room(64);
+
+				tokens.Asked = (to - from) / 4 + 16;
+			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, to);
 			var kinds   = tokens.Kinds;
@@ -1858,6 +1869,9 @@ namespace DotGram.Snapshots
 			tokens.Grow(count); tokens.Starts[count] = p;
 			tokens.Count   = count;
 			tokens.Stopped = stopped;
+
+			if (window && count >= tokens.Asked)
+				tokens.Asked = count + 1;
 
 			return tokens;
 		}
