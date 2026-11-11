@@ -71,7 +71,7 @@ public sealed class WholeValueTriviaTests
 			var data = new TheoryData<string, CarrierKind, bool>();
 
 			foreach (var name in Grammars.Keys)
-				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 					foreach (var direct in new[] { true, false })
 						data.Add(name, carrier, direct);
 
@@ -168,7 +168,7 @@ public sealed class WholeValueTriviaTests
 			var data = new TheoryData<string, CarrierKind, bool>();
 
 			foreach (var name in Built.Keys)
-				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 					foreach (var direct in new[] { true, false })
 						data.Add(name, carrier, direct);
 

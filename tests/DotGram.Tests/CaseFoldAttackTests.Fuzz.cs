@@ -155,7 +155,7 @@ public sealed partial class CaseFoldAttackTests
 	{
 		yield return ("engine", Options(static one => one.Direct = false));
 		yield return ("direct", Options(static _ => { }));
-		yield return ("direct, tape", Options(static one => one.Carrier = CarrierKind.Tape));
+		yield return ("direct, tape", Options(static one => one.Carrier = CarrierKind.Deferred));
 		yield return ("no prefix tables", Options(static one => { one.Direct = false; one.PrefixTables = false; }));
 		yield return ("lexical", Options(static one => one.Lexical = true));
 		yield return ("buffered engine", Options(static one => { one.Direct = false; one.BufferedInput = true; one.BufferSize = 1; }));

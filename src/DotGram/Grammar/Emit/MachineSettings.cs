@@ -73,7 +73,7 @@ sealed record MachineSettings
 	/// Which carrier the machine was asked for — the immediate one where the host left it to the
 	/// generator — and what it gets is <see cref="Machine.Carrier"/>.
 	/// </summary>
-	public CarrierKind Carrier { get; init; } = CarrierKind.Tape;
+	public CarrierKind Carrier { get; init; } = CarrierKind.Deferred;
 
 	/// <summary>
 	/// How many stacks a parse may take past the one it began on, or nought for as many as there

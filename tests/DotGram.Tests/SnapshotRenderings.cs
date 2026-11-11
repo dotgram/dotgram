@@ -101,7 +101,7 @@ static class SnapshotRenderings
 				// both readings immediately otherwise, and there would be one reading twice.
 				var tape = Options();
 
-				tape.Carrier  = CarrierKind.Tape;
+				tape.Carrier  = CarrierKind.Deferred;
 				tape.Readings = TwiceReadings;
 
 				yield return (tape, null);
@@ -122,7 +122,7 @@ static class SnapshotRenderings
 
 				traced.Suffix   = "Traced";
 				traced.Trace    = true;
-				traced.Carrier  = CarrierKind.Tape;
+				traced.Carrier  = CarrierKind.Deferred;
 				traced.Readings = TwiceReadings;
 
 				yield return (traced, null);
@@ -176,7 +176,7 @@ static class SnapshotRenderings
 			{
 				var tower = Options();
 
-				tower.Carrier  = CarrierKind.Tape;
+				tower.Carrier  = CarrierKind.Deferred;
 				tower.Readings = ["Checked"];
 
 				yield return (tower, null);
@@ -186,7 +186,7 @@ static class SnapshotRenderings
 				// it is compiled with the symbol defined.
 				var checks = Options();
 
-				checks.Carrier  = CarrierKind.Tape;
+				checks.Carrier  = CarrierKind.Deferred;
 				checks.Checks   = true;
 				checks.Suffix   = "Checked";
 				checks.Readings = ["Checked"];
@@ -201,7 +201,7 @@ static class SnapshotRenderings
 				var located = Options();
 
 				located.LocationType   = "ILocated";
-				located.Carrier        = CarrierKind.Tape;
+				located.Carrier        = CarrierKind.Deferred;
 				located.SymbolResolver = new RoslynSymbolResolver(
 					CSharpCompilation.Create(
 						name,
@@ -295,7 +295,7 @@ static class SnapshotRenderings
 
 				// The tape, named: the syntax rereads an item's first token across its
 				// alternatives, which the generator would otherwise say a word about.
-				begun.Carrier = CarrierKind.Tape;
+				begun.Carrier = CarrierKind.Deferred;
 
 				yield return (begun, null);
 

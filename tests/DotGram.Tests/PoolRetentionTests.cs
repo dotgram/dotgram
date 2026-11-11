@@ -42,10 +42,10 @@ public sealed class PoolRetentionTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues_DotGram")]
-	[InlineData(CarrierKind.Tape, "Ways_DotGram")]
+	[InlineData(CarrierKind.Deferred, "DirectValues_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Ways_DotGram")]
 	[InlineData(CarrierKind.Immediate, "ImmediateValues_DotGram")]
-	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Tokens_DotGram")]
 	public void An_oversized_store_is_kept_in_a_slot_of_its_own_and_comes_back_as_new(CarrierKind carrier, string name)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
@@ -157,11 +157,11 @@ public sealed class PoolRetentionTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues_DotGram")]
-	[InlineData(CarrierKind.Tape, "Ways_DotGram")]
+	[InlineData(CarrierKind.Deferred, "DirectValues_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Ways_DotGram")]
 	[InlineData(CarrierKind.Immediate, "ImmediateValues_DotGram")]
-	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
-	[InlineData(CarrierKind.Tape, "Parser_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Tokens_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Parser_DotGram")]
 	public void A_kept_store_is_let_go_after_eight_parses_that_did_not_use_the_room(CarrierKind carrier, string name)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
@@ -324,11 +324,11 @@ public sealed class PoolRetentionTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues_DotGram")]
+	[InlineData(CarrierKind.Deferred, "DirectValues_DotGram")]
 	[InlineData(CarrierKind.Immediate, "ImmediateValues_DotGram")]
-	[InlineData(CarrierKind.Tape, "Ways_DotGram")]
-	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
-	[InlineData(CarrierKind.Tape, "Parser_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Ways_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Tokens_DotGram")]
+	[InlineData(CarrierKind.Deferred, "Parser_DotGram")]
 	public void The_ordinary_spare_is_let_go_after_eight_parses_that_left_its_room_unused(CarrierKind carrier, string name)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
@@ -488,7 +488,7 @@ public sealed class PoolRetentionTests
 			positional parse Start as Placed
 			""", new GramCompilerOptions
 		{
-			ClassName = "Grammar", Lexical = true, Carrier = CarrierKind.Tape,
+			ClassName = "Grammar", Lexical = true, Carrier = CarrierKind.Deferred,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
 

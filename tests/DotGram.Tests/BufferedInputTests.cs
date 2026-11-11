@@ -265,7 +265,7 @@ public sealed partial class BufferedInputTests
 	{
 		var compilation = GramCompiler.Compile(grammar + "\nparse Start stream", new GramCompilerOptions
 		{
-			CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape,
+			CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Deferred,
 		});
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var source = Assert.Single(compilation.Sources).Text;
@@ -302,7 +302,7 @@ public sealed partial class BufferedInputTests
 	{
 		var compilation = GramCompiler.Compile(grammar + "\nparse Start stream", new GramCompilerOptions
 		{
-			CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape,
+			CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Deferred,
 		});
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var source = Assert.Single(compilation.Sources).Text;
@@ -370,7 +370,7 @@ public sealed partial class BufferedInputTests
 			Name : @string = t: ['a'..'z']+ & ('.' & ['a'..'z']+)* => @(t)
 			parse Start stream
 			""",
-			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape });
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Deferred });
 
 		EmittedCode.Quiet(compilation.Diagnostics);
 
@@ -403,7 +403,7 @@ public sealed partial class BufferedInputTests
 	{
 		var compilation = GramCompiler.Compile(
 			"Start = Item & (',' & Item)*\nItem = Word & \"==\" & Word | Word\nWord = ['a'..'z']+\nparse Start stream bytes",
-			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape });
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Deferred });
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var source = Assert.Single(compilation.Sources).Text;
 
@@ -439,7 +439,7 @@ public sealed partial class BufferedInputTests
 	{
 		var compilation = GramCompiler.Compile(
 			"Start = '(' & Start & ')' | Item\nItem = Word & '=' & Word | Word\nWord = ['a'..'z']+\nparse Start stream",
-			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Tape });
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Deferred });
 		var told = Assert.Single(compilation.Diagnostics, one => one.Id == GramCompiler.BufferedOnEngine);
 
 		Assert.Equal(GramSeverity.Info, told.Severity);
@@ -724,7 +724,7 @@ public sealed partial class BufferedInputTests
 	public void Actions_receive_native_spans(string grammar, string input, int expected)
 	{
 		foreach (var partSize in new[] { 1, 500 })
-		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			var compilation = GramCompiler.Compile(grammar + "\nparse Start stream bytes", new GramCompilerOptions
 			{

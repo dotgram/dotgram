@@ -21,7 +21,7 @@ public sealed class DelimiterScanTests
 			var rows = new TheoryData<string, string, string, CarrierKind, bool, bool>();
 
 			foreach (var (literal, folds, kept) in new[] { ("s", "sS", "\u017F"), ("k", "kK", "\u212A"), ("μ", "μΜ", "\u00B5") })
-				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Deferred, CarrierKind.Immediate })
 					foreach (var direct in new[] { false, true })
 						foreach (var find in new[] { false, true })
 							rows.Add(literal, folds, kept, carrier, direct, find);
@@ -354,7 +354,7 @@ public sealed class DelimiterScanTests
 			"k=a | bad x  | k=b", "bad |", "k=abc|", "k=xyz|k=fa|", "bad fx|k=abc|", "badxyz", "k=fff",
 			"bad ;k=a;", "k=a" + run + "b | k=v", "bad" + run + "x | k=v", "bad" + run, "k=a" + run };
 
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			Assembly Build(string text, bool scans)
 			{
@@ -443,7 +443,7 @@ public sealed class DelimiterScanTests
 			.Select(input => input.Replace(' ', space))
 			.ToArray();
 
-		foreach (var carrier in new[] { CarrierKind.Tape, CarrierKind.Immediate })
+		foreach (var carrier in new[] { CarrierKind.Deferred, CarrierKind.Immediate })
 		{
 			Assembly Build(string text, bool scans)
 			{

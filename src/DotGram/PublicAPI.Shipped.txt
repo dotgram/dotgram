@@ -2,7 +2,7 @@
 DotGram.Grammar.CarrierKind
 DotGram.Grammar.CarrierKind.Auto = 0 -> DotGram.Grammar.CarrierKind
 DotGram.Grammar.CarrierKind.Immediate = 2 -> DotGram.Grammar.CarrierKind
-DotGram.Grammar.CarrierKind.Tape = 1 -> DotGram.Grammar.CarrierKind
+DotGram.Grammar.CarrierKind.Deferred = 1 -> DotGram.Grammar.CarrierKind
 DotGram.Grammar.GramSeverity
 DotGram.Grammar.GramSeverity.Error = 2 -> DotGram.Grammar.GramSeverity
 DotGram.Grammar.GramSeverity.Info = 0 -> DotGram.Grammar.GramSeverity
