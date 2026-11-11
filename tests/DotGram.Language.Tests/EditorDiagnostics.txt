@@ -5,7 +5,7 @@
 // "--- GRAMnnnn reason" is an exclusion. Every number the generator's source names is here once.
 --- GRAM0001 the Roslyn shell's own failure; the editor never runs the generator's shell
 --- GRAM0002 Roslyn shell: needs the [Gram] host class, which must be partial; the editor has no host class
---- GRAM4056 no grammar is known to reach it that is not refused already (GRAM4002); it guards the first-set fixed point against going round
+--- GRAM4057 no grammar is known to reach it that is not refused already (GRAM4002); it guards the first-set fixed point against going round
 --- GRAM4054 the shared-recursion analysis is a second on a grammar of a thousand rules; the editor leaves it to the build (GramCompilerOptions.AnalyseSharedRecursion)
 --- GRAM0003 Roslyn shell: needs the [Gram] class and the project's AdditionalFiles to find a grammar file; the editor is handed the file
 --- GRAM0004 Roslyn shell: needs several AdditionalFiles matching one [Gram] name

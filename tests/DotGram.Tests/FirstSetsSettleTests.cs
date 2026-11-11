@@ -31,7 +31,7 @@ namespace DotGram.Tests;
 /// Such a grammar is refused — it is left recursion no rewrite takes — but only once the
 /// normalizer has finished, and the normalizer asks what rules begin with on the way. So the loop
 /// is bounded by how often one rule's answer may change, from the height of the answers the
-/// grammar can have, and past it the grammar is refused (GRAM4056, or what refuses it already).
+/// grammar can have, and past it the grammar is refused (GRAM4057, or what refuses it already).
 /// Every grammar that settled before settles the same.
 /// </para>
 /// </remarks>
@@ -346,7 +346,7 @@ public sealed class FirstSetsSettleTests
 
 		Assert.True(result is not null, $"{name}: the compiler did not finish in {Limit.TotalSeconds} s");
 		Assert.Contains(result.Diagnostics, static one => one.Id == "GRAM4002");
-		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == "GRAM4056");
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == "GRAM4057");
 	}
 
 	/// <summary>

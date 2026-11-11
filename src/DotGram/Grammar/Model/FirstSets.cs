@@ -1985,7 +1985,7 @@ static class FirstSets
 			var next = Of(body, graph, estimates);
 
 			// Gone round: from here every answer is joined with the one before, which only
-			// climbs, and the grammar is refused (GramCompiler, GRAM4056).
+			// climbs, and the grammar is refused (GramCompiler, GRAM4057).
 			if (graph.FirstUnsettled is not null)
 				next = estimates[rule].Or(next);
 
