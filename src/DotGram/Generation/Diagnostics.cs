@@ -120,6 +120,20 @@ static class Diagnostics
 		description:        "A rule whose value implements the LocationType is told where it was written through that interface: void Locate(int at, int length), or with UsePerCallLocations void Locate(int at, int length, int gapStart). It is called through the interface, so an explicit implementation serves.");
 
 	/// <summary>
+	/// A name the generator's attributes had before 0.3.0, said with what it is called now rather than
+	/// left to C#'s "could not be found".
+	/// </summary>
+	public static readonly DiagnosticDescriptor RenamedName = new(
+		id:                 "GRAM0012",
+		title:              "A name was renamed in 0.3.0",
+		messageFormat:      "'{0}' was renamed to '{1}' in 0.3.0",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM0012"),
+		description:        "The attributes' options were renamed in 0.3.0, with no aliases kept: IncludedAs is DefaultAlias, Suffix is Name, [GramOptions(Suffix = \"X\")] is [GramParserVariant(\"X\")], GramCarrier.Tape is GramCarrier.Deferred, and the rest as the release notes list them. A host written with one is not told what its grammar then seems to say wrong.");
+
+	/// <summary>
 	/// A grammar a referenced assembly carries is the grammar it was compiled from; a local file of
 	/// the same name is not read in its place, and is told of where it says something else.
 	/// </summary>
@@ -174,7 +188,8 @@ static class Diagnostics
 
 	/// <summary>
 	/// Where an identifier is described: its row of <c>docs/diagnostics.md</c> at the tag of the
-	/// version that reports it, so that a link never shows a later meaning of the number.
+	/// version that reports it, so that a link never shows a later meaning of the number. A
+	/// prerelease has no tag of its own, and links to <c>main</c>.
 	/// </summary>
 	public static string HelpLink(string id)
 	{
@@ -187,7 +202,9 @@ static class Diagnostics
 		if (plus >= 0)
 			version = version.Substring(0, plus);
 
-		return "https://github.com/dotgram/dotgram/blob/v" + version + "/docs/diagnostics.md#" + id.ToLowerInvariant();
+		var at = version.Length == 0 || version.IndexOf('-') >= 0 ? "main" : "v" + version;
+
+		return "https://github.com/dotgram/dotgram/blob/" + at + "/docs/diagnostics.md#" + id.ToLowerInvariant();
 	}
 
 	/// <summary>
