@@ -161,6 +161,9 @@ public sealed class ConditionAndParameterTests
 	[InlineData("Value(tag) = switch @(Kind(tag)) { case 0: Digits default: none }\nField = tag: Digits & '=' & Value(tag)")]
 	[InlineData("Value(x) = x & when @(x != null)\nField = '=' & Value(Digits)")]
 	[InlineData("Value(x) : @int = x & 'z' => @(Count(x))\nField : @int = '=' & v: Value(Digits) => @(v)")]
+	[InlineData("Value(x) = x & when (@(x != null))\nField = '=' & Value(Digits)")]
+	[InlineData("Version = \"2000\" | \"2022\"\nValue(x) = x & when Version is \"2000\" and @(x != null)\nField = '=' & Value(Digits)")]
+	[InlineData("Value(x) = x & when @(@x != null)\nField = '=' & Value(Digits)")]
 	public void C_sharp_that_names_a_recognizer_parameter_is_said_on_the_grammar(string rules)
 	{
 		var grammar = "Digits = ['0'..'9']+\n" + rules + "\nparse Field";
@@ -178,6 +181,8 @@ public sealed class ConditionAndParameterTests
 	[InlineData("Use(x) = x & 'z'\nTest = Use('a' & when @(x()))\nparse Test", "TryParseTest")]
 	[InlineData("Use(x) = x & 'z'\nW = 'a'\nV = 'b'\nTest = Use(W & when @(x()))\nparse Test with (W = V) as P", "TryP")]
 	[InlineData("Use(System) = System & 'z' & when @(System.Math.Abs(-1) > 0)\nTest = Use('a')\nparse Test", "TryParseTest")]
+	[InlineData("Use(System) = System & 'z' & when @(System /*System*/ .Math.Abs(-1) > 0)\nTest = Use('a')\nparse Test", "TryParseTest")]
+	[InlineData("Use(System) = System & 'z' & when @(System.Math.Abs(-1) > 0 && \"System\".Length > 0)\nTest = Use('a')\nparse Test", "TryParseTest")]
 	public void The_csharp_a_rule_s_own_declaration_writes_is_what_is_asked(string grammar, string method)
 	{
 		var result = Compile(grammar);
@@ -189,6 +194,22 @@ public sealed class ConditionAndParameterTests
 			declarationMembers: "static bool x() { return true; }");
 
 		Assert.True(EmittedCode.Match(assembly, "Grammar", method, method == "TryP" ? "bz" : "az").IsSuccess);
+	}
+
+	/// <summary>
+	/// The gap left open: a parameter written only before a dot cannot be told from a namespace or a
+	/// type without binding, so it is not said, and the C# compiler says it in the generated file.
+	/// </summary>
+	[Fact]
+	public void A_recognizer_parameter_written_only_before_a_dot_is_left_to_the_csharp_compiler()
+	{
+		var result = Compile("Digits = ['0'..'9']+\nValue(x) : @int = x & 'z' => @(x.Length)\nField : @int = '=' & v: Value(Digits) => @(v)\nparse Field");
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var errors = EmittedCode.Errors(string.Join("\n", result.Sources.Select(static one => one.Text)), "Grammar", null, null, null);
+
+		Assert.Contains(errors, static one => one.Id == "CS0103");
 	}
 
 	[Theory]

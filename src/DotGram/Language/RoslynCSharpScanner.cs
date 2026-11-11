@@ -73,6 +73,32 @@ sealed class RoslynCSharpScanner : ICSharpScanner
 	/// What is declared is every parameter, local and pattern variable of the expression, wherever it
 	/// is in scope: a supplied name cannot be one, and its scope does not matter for that.
 	/// </remarks>
+	public IReadOnlyCollection<string>? NamesAsValues(string expression)
+	{
+		if (expression is null || NamesNotAsValues(expression) is not { } other)
+			return null;
+
+		var parsed = SyntaxFactory.ParseExpression(expression);
+
+		if (parsed.ContainsDiagnostics)
+			return null;
+
+		var names = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var name in Free(parsed))
+			if (!Qualifies(name) && !other.Contains(name.Identifier.ValueText))
+				names.Add(name.Identifier.ValueText);
+
+		return names;
+
+		// The left of a dot, which may be a namespace or a type as well as a value.
+		static bool Qualifies(IdentifierNameSyntax name)
+		{
+			return name.Parent is MemberAccessExpressionSyntax member && member.Expression == name ||
+				name.Parent is QualifiedNameSyntax qualified && qualified.Left == name;
+		}
+	}
+
 	public IReadOnlyCollection<string>? NamesNotAsValues(string expression)
 	{
 		if (expression is null)
