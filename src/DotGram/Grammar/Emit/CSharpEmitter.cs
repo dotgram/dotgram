@@ -5165,6 +5165,22 @@ file.Line("return spare;");
 
 		return found;
 
+		// The capture a turn is: the turn itself, or under a trivia that reads something the one part of
+		// it that is not the seam trivia wove before it (§4.5), as the normalizer's check takes it.
+		Node.Capture? Turn(Node repeated)
+		{
+			if (repeated is Node.Capture capture)
+				return capture;
+
+			if (repeated is not Node.Sequence(var parts) || !graph.Trivia.TryGetValue(rule, out var seam) ||
+				seam is not Node.Call(var woven, _))
+				return null;
+
+			var element = parts.Where(part => part is not Node.Call(var called, _) || !ReferenceEquals(called, woven)).ToList();
+
+			return parts.Count > 1 && element is [Node.Capture only] ? only : null;
+		}
+
 		// The capture is where a recovered element goes: the same sequence its successful
 		// siblings collect into. It may be either side of the quantifier — `rows: Row*` is
 		// `(rows: Row)*`, because a capture binds tighter (§10) — so both are looked at.
@@ -5174,7 +5190,7 @@ file.Line("return spare;");
 			{
 				found.Add((
 					node, recovery,
-					slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1));
+					slot >= 0 ? slot : Turn(repeated) is { } capture ? layout.SlotOf(capture) : -1));
 
 				return;
 			}
