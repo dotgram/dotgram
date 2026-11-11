@@ -12,9 +12,16 @@
 --- GRAM0005 Roslyn shell: needs the [Gram(DefaultAlias = ...)] attribute option
 --- GRAM0006 Roslyn shell: needs a [Gram] and [GramVariant] attributes on one class
 --- GRAM0007 Roslyn shell: needs the [GramVariant(Name = ...)] attribute option
---- GRAM0008 Roslyn shell: needs two included grammars (As / IncludedAs) from a host compilation
---- GRAM0009 Roslyn shell: needs the [Gram(MaxRetained/BufferSize)] attribute options
+--- GRAM0008 Roslyn shell: needs two included grammars (Alias / DefaultAlias) from a host compilation
+--- GRAM0009 Roslyn shell: needs the [Gram(MaxBufferedInputLength/InitialBufferSize)] attribute options
 --- GRAM0010 Roslyn shell: needs the project's C# LangVersion
+--- GRAM0011 Roslyn shell: needs the LocationType's symbol from a host compilation
+--- GRAM0017 Roslyn shell: needs a referenced assembly that carries the grammar beside a local file
+--- GRAM6001 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
+--- GRAM6002 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
+--- GRAM6003 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
+--- GRAM6004 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
+--- GRAM6005 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
 === GRAM1001
 A = 'a
 parse A

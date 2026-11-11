@@ -149,9 +149,13 @@ sealed class GramGenerator : IIncrementalGenerator
 		// host's own file above its attribute re-runs the last, and only it.
 		// The names are what a test reads to say which stage re-ran, and are the only way
 		// to tell "the answers were the same" from "nothing was asked".
+		// Each host is handed only the files it can read — its own and its includes' — so that
+		// editing a .gram another host reads leaves this one's stage comparing equal, and its
+		// grammar is not read again.
 		var asked = hosts
 			.Combine(files)
-			.Select(static (input, _) => AskedSafely(input.Left, input.Right))
+			.Select(static (input, _) => (Host: input.Left, Files: Candidates(input.Left, input.Right)))
+			.Select(static (input, _) => AskedSafely(input.Host, input.Files.Items))
 			.WithTrackingName(AskedStage);
 
 		var answered = asked
@@ -335,6 +339,17 @@ sealed class GramGenerator : IIncrementalGenerator
 	{
 		try
 		{
+			// A location type that cannot be told a place is said once, on the attribute, rather
+			// than as a compiler error in every generated construction that would tell one.
+			if (LocationRefused(grammar.Host, compilation) is { } refused)
+				return grammar with
+				{
+					Text    = null,
+					Reports = new EquatableArray<Report>([
+						.. grammar.Reports.Items,
+						Report.Of(Diagnostics.LocationTypeNotLocatable, Site.Attribute, grammar.Host.ClassName, refused.Type, refused.Locate)]),
+				};
+
 			return grammar with
 			{
 				Answers = new EquatableArray<Answer>(Questions.Ask(
@@ -352,6 +367,51 @@ sealed class GramGenerator : IIncrementalGenerator
 		{
 			return Failed(grammar, "answering C# type questions", exception);
 		}
+	}
+
+	/// <summary>
+	/// The location type a reading is compiled with, where it is not an interface that declares the
+	/// <c>Locate</c> the reading calls: two integers, or three where the locations are asked for per
+	/// call. Null where there is none, where it is such an interface, or where it cannot be found.
+	/// </summary>
+	/// <remarks>
+	/// The interface's own <c>Locate</c> or one it inherits: generated code calls it through the
+	/// interface, so an explicit implementation serves and nothing about the implementing types
+	/// needs checking.
+	/// </remarks>
+	static (string Type, string Locate)? LocationRefused(Host host, Compilation compilation)
+	{
+		if (host.LocationType is not { } named)
+			return null;
+
+		var type = compilation.GetTypeByMetadataName(host.MetadataName)?
+			.GetAttributes()
+			.SelectMany(static attribute => attribute.NamedArguments)
+			.Where(static argument => argument.Key == "LocationType")
+			.Select(static argument => argument.Value.Value as INamedTypeSymbol)
+			.FirstOrDefault(found => found?.ToDisplayString() == named);
+
+		// A type C# cannot find is the compiler's to report, and is.
+		if (type is null || type.TypeKind == TypeKind.Error)
+			return null;
+
+		var arity  = host.LocatedFacade is null ? 2 : 3;
+		var locate = arity == 2 ? "void Locate(int at, int length)" : "void Locate(int at, int length, int gapStart)";
+
+		if (type.TypeKind != TypeKind.Interface)
+			return (named, locate);
+
+		var declared = type.GetMembers("Locate")
+			.Concat(type.AllInterfaces.SelectMany(static inherited => inherited.GetMembers("Locate")))
+			.OfType<IMethodSymbol>()
+			.Any(method =>
+				!method.IsStatic &&
+				method.ReturnsVoid &&
+				method.TypeParameters.Length == 0 &&
+				method.Parameters.Length == arity &&
+				method.Parameters.All(static parameter => parameter.RefKind == RefKind.None && parameter.Type.SpecialType == SpecialType.System_Int32));
+
+		return declared ? null : (named, locate);
 	}
 
 	/// <summary>
@@ -1048,6 +1108,20 @@ sealed class GramGenerator : IIncrementalGenerator
 		if (!TryResolveGrammar(reports, host, files, out var own, out var path))
 			return new Grammar(host, null, null, default, default, Values(reports));
 
+		// What [GramClassify] names, held to the grammar as written — the binder the editor reports
+		// the same identifiers from, at the same places (ClassificationTargets).
+		if (host.Classified.Items.Length > 0)
+		{
+			var targets = ClassificationTargets.Bind(own, host.Classified.Items, RoslynCSharpScanner.Instance);
+
+			for (var index = 0; index < targets.Count; index++)
+				if (targets[index].Id is { } id)
+					reports.Add(Report.Of(
+						Diagnostics.DescriptorFor(id, DiagnosticCatalog.TitleOf(id), "{0}", DiagnosticSeverity.Warning),
+						Site.Classify(index),
+						targets[index].Message!));
+		}
+
 		// What the host inherits, joined onto the end of its own — which is where it goes
 		// so that the text somebody is editing keeps the offsets it always had
 		// (GrammarSplice). A base whose grammar cannot be found is reported against the
@@ -1067,7 +1141,35 @@ sealed class GramGenerator : IIncrementalGenerator
 			// than reported twice, which is why the first attempt keeps its own list.
 			var aside = ImmutableArray.CreateBuilder<Report>();
 
-			if (TryResolveGrammar(
+			// Except for a class of a referenced assembly that carries its grammar: that text is
+			// the grammar the assembly was compiled from and ships with, and a file of the same
+			// name here is somebody else's — a fixture, a copy, another project's. The assembly's
+			// is read, and a local file that says something else is told of (GRAM0017).
+			if (!inherited.Placed && inherited.Portable is { Length: > 0 } shipped)
+			{
+				if (TryResolveGrammar(
+						aside,
+						inherited.Source,
+						SimpleNameOf(inherited.ClassName),
+						inherited.ClassName,
+						anchor,
+						files,
+						out var local,
+						out var localPath) &&
+					localPath is not null &&
+					!string.Equals(Normalized(local), Normalized(shipped), StringComparison.Ordinal))
+				{
+					reports.Add(Report.Of(
+						Diagnostics.LocalFileNotReferencedGrammar,
+						Site.Attribute,
+						localPath,
+						inherited.ClassName));
+				}
+
+				parts.Add(new GrammarSplice.Part(shipped, inherited.Name, null));
+				bases.Add((inherited with { Source = null, Literal = null }, anchor));
+			}
+			else if (TryResolveGrammar(
 				aside,
 				inherited.Source,
 				SimpleNameOf(inherited.ClassName),
@@ -1264,8 +1366,8 @@ sealed class GramGenerator : IIncrementalGenerator
 			// hole here and filled in where the text is placed (Parser.PlacedAt).
 			timer is not null && result.Sources.Count > 0
 				? string.Format(CultureInfo.InvariantCulture,
-					"DotGram: {0}, {1} normalized rules, {{0}} bytes UTF-8 C#, {2:F2} ms generation",
-					host.HintName, result.NormalizedRuleCount, timer.Elapsed.TotalMilliseconds)
+					"DotGram: {0}, {1} normalized {3}, {{0}} bytes UTF-8 C#, {2:F2} ms generation",
+					host.HintName, result.NormalizedRuleCount, timer.Elapsed.TotalMilliseconds, result.NormalizedRuleCount == 1 ? "rule" : "rules")
 				: null,
 			reporting == Reporting.Full && result.Sources.Count > 0
 				? string.Format(CultureInfo.InvariantCulture,
@@ -1465,6 +1567,35 @@ sealed class GramGenerator : IIncrementalGenerator
 		return GramIncludes.IsPath(source);
 	}
 
+	/// <summary>A grammar's text with its line ends made one, so that a file checked out with CRLF is the text an assembly carries with LF.</summary>
+	static string Normalized(string text)
+	{
+		return text.Replace("\r\n", "\n");
+	}
+
+	/// <summary>
+	/// The grammar files a host can read: those its own grammar, or a grammar it includes, would be
+	/// looked for by — the same names <see cref="TryResolveGrammar(ImmutableArray{Report}.Builder, string?, string, string, int, ImmutableArray{GrammarFile}, out string, out string?)"/>
+	/// matches against.
+	/// </summary>
+	/// <remarks>
+	/// What the stage that reads the grammar is handed, so that it compares equal while every file it
+	/// can read stays as it was, whatever else changes.
+	/// </remarks>
+	static EquatableArray<GrammarFile> Candidates(Host host, ImmutableArray<GrammarFile> files)
+	{
+		var wanted = new List<string>();
+
+		if (host.Source is not { } own || IsPath(own))
+			wanted.Add(host.Source ?? host.SimpleName + GramFileExtension);
+
+		foreach (var included in host.Includes.Items)
+			if (included.Source is not { } source || IsPath(source))
+				wanted.Add(included.Source ?? SimpleNameOf(included.ClassName) + GramFileExtension);
+
+		return new EquatableArray<GrammarFile>([.. files.Where(file => wanted.Any(one => Matches(file.Path, one)))]);
+	}
+
 	/// <summary>
 	/// A file matches a wanted path when it ends with it on a separator boundary — the
 	/// attribute names a path relative to the project, and what reaches us is absolute.
@@ -1590,7 +1721,8 @@ sealed class GramGenerator : IIncrementalGenerator
 		string? LocationType   = null,
 		string? LocatedFacade  = null,
 		bool    LocatedFacadeDeclared = false,
-		EquatableArray<string> Readings = default)
+		EquatableArray<string> Readings = default,
+		EquatableArray<string> Classified = default)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1874,6 +2006,19 @@ sealed class GramGenerator : IIncrementalGenerator
 
 			site = site with { Named = named ? firstRead!.Value.Site.Named : site.At };
 
+			// What the class classifies, held to its grammar once, with the first reading: a
+			// [GramClassify] is about the language, which every reading of the class speaks. The
+			// targets go with what the class says, where each is written with where it is (D145).
+			var classifies = reading == 0
+				? type.GetAttributes()
+					.Where(static one =>
+						one.AttributeClass?.ToDisplayString() == GramMetadataNames.QualifiedClassify &&
+						one.ConstructorArguments is [{ Value: string }, ..])
+					.ToArray()
+				: [];
+
+			site = site with { Classified = new EquatableArray<Site.Base>([.. classifies.Select(static one => new Site.Base(Place.Of(TargetOf(one)), 0))]) };
+
 			var host = new Host(
 				Key:        key,
 				ClassName:  string.Join(".", names),
@@ -1898,7 +2043,8 @@ sealed class GramGenerator : IIncrementalGenerator
 				SpanDeclared:   spanDeclared,
 				SpanDeclaredInReading: spanDeclaredInReading,
 				// The reading's own until the per-call facade's is given to the first (All).
-				LocationType:   options.LocationType);
+				LocationType:   options.LocationType,
+				Classified:     new EquatableArray<string>([.. classifies.Select(static one => (string)one.ConstructorArguments[0].Value!)]));
 
 			return (host, site, options);
 		}
@@ -1915,6 +2061,20 @@ sealed class GramGenerator : IIncrementalGenerator
 			var field = role.Type?.GetMembers().OfType<IFieldSymbol>().FirstOrDefault(candidate =>
 				candidate.HasConstantValue && Equals(candidate.ConstantValue, role.Value));
 			return field is null ? null : target + "\t" + field.Name;
+		}
+
+		/// <summary>Where a <c>[GramClassify]</c>'s target is written, as the editor reports it too; the attribute where it cannot be found.</summary>
+		static Microsoft.CodeAnalysis.Location? TargetOf(AttributeData attribute)
+		{
+			if (attribute.ApplicationSyntaxReference is not { } reference)
+				return null;
+
+			var syntax = reference.GetSyntax();
+			var span   = syntax is AttributeSyntax { ArgumentList.Arguments: [{ Expression: var expression }, ..] }
+				? DotGram.Language.CSharpStringMap.ValueSpanOf(expression)
+				: reference.Span;
+
+			return Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, span);
 		}
 
 		static string? RecognitionContract(AttributeData attribute)

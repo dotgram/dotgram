@@ -68,17 +68,12 @@ static class DslClassificationDiagnostics
 		return result;
 	}
 
+	/// <summary>Where the target is written in the attribute, as the build reports it too (GramGenerator).</summary>
 	static TextSpan TargetSpan(AttributeSyntax attribute)
 	{
-		if (attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression is not { } expression)
-			return attribute.Span;
-
-		if (expression is LiteralExpressionSyntax literal &&
-			CSharpStringMap.TryCreate(literal.Token, out var map) &&
-			map!.TryMap(0, literal.Token.ValueText.Length, out var mapped))
-			return mapped;
-
-		return expression.Span;
+		return attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression is { } expression
+			? CSharpStringMap.ValueSpanOf(expression)
+			: attribute.Span;
 	}
 
 	static string Id(DslClassificationBindingDiagnosticKind kind)

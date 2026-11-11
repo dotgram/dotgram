@@ -56,7 +56,8 @@ readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines
 /// </para>
 /// <para>
 /// A report names a place here by an anchor rather than by carrying one: <see cref="None"/>,
-/// <see cref="Attribute"/>, or <see cref="Include"/> of an include's index.
+/// <see cref="Attribute"/>, <see cref="Include"/> of an include's index, or <see cref="Classify"/>
+/// of a <c>[GramClassify]</c>'s.
 /// </para>
 /// </remarks>
 /// <param name="Key">Which host this is, the same as its <c>Host.Key</c>.</param>
@@ -71,6 +72,7 @@ readonly record struct Place(string? Path, TextSpan Span, LinePositionSpan Lines
 /// grammar from the class's first, the first's. What two diagnostics are told apart by when
 /// neither can be placed inside the grammar (<c>GramGenerator.Said</c>).
 /// </param>
+/// <param name="Classified">Where the target of each of the class's <c>[GramClassify]</c> is written, in the class's order.</param>
 readonly record struct Site(
 	string                    Key,
 	Place?                    At,
@@ -79,7 +81,8 @@ readonly record struct Site(
 	int                       Line,
 	int                       Column,
 	EquatableArray<Site.Base> Bases,
-	Place?                    Named = null)
+	Place?                    Named = null,
+	EquatableArray<Site.Base> Classified = default)
 {
 	public const int None      = -1;
 	public const int Attribute = 0;
@@ -94,6 +97,12 @@ readonly record struct Site(
 		return index + 1;
 	}
 
+	/// <summary>The anchor of the target of the class's <c>[GramClassify]</c> at <paramref name="index"/>.</summary>
+	public static int Classify(int index)
+	{
+		return -2 - index;
+	}
+
 	/// <summary>The attribute that names the grammar a report of <paramref name="anchor"/> is about.</summary>
 	public Place? GrammarOf(int anchor)
 	{
@@ -102,6 +111,9 @@ readonly record struct Site(
 
 	public Place? PlaceOf(int anchor)
 	{
+		if (anchor <= Classify(0))
+			return -2 - anchor < Classified.Items.Length ? Classified.Items[-2 - anchor].At : null;
+
 		return anchor == Attribute
 			? At
 			: anchor > Attribute && anchor <= Bases.Items.Length ? Bases.Items[anchor - 1].At : null;
@@ -182,7 +194,7 @@ readonly record struct Report(
 
 		return new Report(
 			diagnostic.Id,
-			diagnostic.Id,
+			DiagnosticCatalog.TitleOf(diagnostic.Id),
 			"{0}",
 			diagnostic.Severity switch
 			{

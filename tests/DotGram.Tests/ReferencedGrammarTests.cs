@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -229,6 +230,51 @@ public sealed class ReferencedGrammarTests
 		Assert.Equal(42, Call(built, "ByAlias", "ParseStart", "6,7!"));
 	}
 
+	/// <summary>
+	/// A grammar a referenced assembly carries is the one included, whatever a local file of the
+	/// same name says: a fixture called <c>Lexemes.gram</c> here is not the library's grammar. Where it
+	/// says something else the build is told, as information.
+	/// </summary>
+	[Theory]
+	[InlineData("Number : @int = n: ['0'..'9']+ => @(int.Parse(n) * 100)\nparse Number", true)]
+	[InlineData(Lexemes, false)]
+	public void A_local_file_does_not_take_the_place_of_a_referenced_grammar(string local, bool told)
+	{
+		var library  = Emit("GrammarLibrary", Library, ("Lexemes.gram", Lexemes));
+		var context  = new Context("GrammarLibrary", library);
+		var consumer = context.LoadFromStream(new MemoryStream(
+			Reporting("GrammarConsumer", Consumer, ("fixtures/Lexemes.gram", local), library, null, out var diagnostics)));
+
+		Assert.Equal(42, Call(consumer, "ImportedGrammar", "ParseSum", "19+23"));
+		Assert.Equal(42, Call(consumer, "DerivedGrammar", "ParseStart", "42!"));
+		Assert.Equal(told ? 2 : 0, diagnostics.Count(static one => one.Id == "GRAM0017"));
+		Assert.All(diagnostics.Where(static one => one.Id == "GRAM0017"), static one =>
+		{
+			Assert.Equal(DiagnosticSeverity.Info, one.Severity);
+			Assert.Contains("fixtures/Lexemes.gram", one.GetMessage(), StringComparison.Ordinal);
+		});
+	}
+
+	/// <summary>A class compiled beside the host is read from its file, which is the one being edited.</summary>
+	[Fact]
+	public void A_grammar_of_this_compilation_is_read_from_its_file()
+	{
+		const string source = """
+			[DotGram.Gram]
+			[DotGram.GramSource("Number : @int = n: ['0'..'9']+ => @(int.Parse(n) * 100)\nparse Number")]
+			internal partial class Lexemes { }
+
+			[DotGram.GramInclude(typeof(Lexemes))]
+			[DotGram.Gram("using Lexemes;\nSum : @int = a: Number & '+' & b: Number => @(a + b)\nparse Sum")]
+			public partial class Summing { }
+			""";
+
+		var built = new Context("None", []).LoadFromStream(new MemoryStream(Reporting("Beside", source, ("Lexemes.gram", Lexemes), null, null, out var diagnostics)));
+
+		Assert.Equal(42, Call(built, "Summing", "ParseSum", "19+23"));
+		Assert.DoesNotContain(diagnostics, static one => one.Id == "GRAM0017");
+	}
+
 	/// <summary>A source compiled as it stands, with no generator: an assembly some other build made.</summary>
 	static byte[] Compile(string name, string source)
 	{
@@ -264,6 +310,18 @@ public sealed class ReferencedGrammarTests
 	/// <param name="aliases">The extern aliases the reference is given; with them, the build holds warnings to be errors.</param>
 	static byte[] Emit(string name, string source, (string Path, string Text)? file = null, byte[]? reference = null, string[]? aliases = null)
 	{
+		return Reporting(name, source, file, reference, aliases, out _);
+	}
+
+	/// <summary>The same, and what the generator reported.</summary>
+	static byte[] Reporting(
+		string                      name,
+		string                      source,
+		(string Path, string Text)? file,
+		byte[]?                     reference,
+		string[]?                   aliases,
+		out ImmutableArray<Diagnostic> reported)
+	{
 		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var compilation  = CSharpCompilation.Create(
 			name,
@@ -283,6 +341,8 @@ public sealed class ReferencedGrammarTests
 			.RunGeneratorsAndUpdateCompilation(compilation, out var output, out var diagnostics, TestContext.Current.CancellationToken);
 
 		Assert.Empty(diagnostics.Where(static one => one.Severity != DiagnosticSeverity.Info));
+
+		reported = diagnostics;
 
 		using var stream = new MemoryStream();
 

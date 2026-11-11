@@ -11,9 +11,9 @@ and adds nothing the other editors would then lack.
 
 The file list is `../Language.projitems`; every host imports it and compiles the same sources into its own assembly:
 the Visual Studio extension (net472), the tests in `tests/DotGram.Language.Tests` and `tests/DotGram.Language.Tests.Slow`,
-and the guard below. The generator compiles `Grammar/**` and three Roslyn seams in this folder — the scanner of `@(...)`
-(`RoslynCSharpScanner`), the walk of included grammars (`GramIncludes`) and the reading of a `[Gram]`'s options
-(`GramHostOptions`) — and leaves the rest of the folder out: an analyzer must not carry editor code or Roslyn's
+and the guard below. The generator compiles `Grammar/**` and four Roslyn seams in this folder — the scanner of `@(...)`
+(`RoslynCSharpScanner`), the walk of included grammars (`GramIncludes`), the reading of a `[Gram]`'s options
+(`GramHostOptions`) and the map of a string literal's value onto its spelling (`CSharpStringMap`) — and leaves the rest of the folder out: an analyzer must not carry editor code or Roslyn's
 Workspaces.
 
 Nothing references the generator's assembly. Visual Studio already holds a copy of it — whichever version the open
