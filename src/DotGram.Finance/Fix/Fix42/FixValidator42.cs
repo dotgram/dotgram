@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace DotGram.Finance.Fix.Fix42;
 
@@ -307,45 +306,45 @@ partial class FixValidator42
 
 	static void ValidateAdvertisement(Fix42Context context, FixCheck check, FixMessage.Advertisement message)
 	{
-		if (message.AdvId is null) Missing(check, FixTag.AdvId);
+		if   (message.AdvId is null) Missing(check, FixTag.AdvId);
 		else context.Validators.AdvId(context, check, message.AdvId);
-		if (message.AdvTransType is null) Missing(check, FixTag.AdvTransType);
+		if   (message.AdvTransType is null) Missing(check, FixTag.AdvTransType);
 		else context.Validators.AdvTransType(context, check, message.AdvTransType);
-		if (message.AdvRefID is not null) context.Validators.AdvRefID(context, check, message.AdvRefID);
-		if (message.Symbol is null) Missing(check, FixTag.Symbol);
+		if   (message.AdvRefID is not null) context.Validators.AdvRefID(context, check, message.AdvRefID);
+		if   (message.Symbol is null) Missing(check, FixTag.Symbol);
 		else context.Validators.Symbol(context, check, message.Symbol);
-		if (message.SymbolSfx is not null) context.Validators.SymbolSfx(context, check, message.SymbolSfx);
-		if (message.SecurityID is not null) context.Validators.SecurityID(context, check, message.SecurityID);
-		if (message.IDSource is not null) context.Validators.IDSource(context, check, message.IDSource);
-		if (message.SecurityType is not null) context.Validators.SecurityType(context, check, message.SecurityType);
-		if (message.MaturityMonthYear is not null) context.Validators.MaturityMonthYear(context, check, message.MaturityMonthYear);
-		if (message.MaturityDay is not null) context.Validators.MaturityDay(context, check, message.MaturityDay);
-		if (message.PutOrCall is not null) context.Validators.PutOrCall(context, check, message.PutOrCall);
-		if (message.StrikePrice is not null) context.Validators.StrikePrice(context, check, message.StrikePrice);
-		if (message.OptAttribute is not null) context.Validators.OptAttribute(context, check, message.OptAttribute);
-		if (message.ContractMultiplier is not null) context.Validators.ContractMultiplier(context, check, message.ContractMultiplier);
-		if (message.CouponRate is not null) context.Validators.CouponRate(context, check, message.CouponRate);
-		if (message.SecurityExchange is not null) context.Validators.SecurityExchange(context, check, message.SecurityExchange);
-		if (message.Issuer is not null) context.Validators.Issuer(context, check, message.Issuer);
-		if (message.EncodedIssuerLen is not null) context.Validators.EncodedIssuerLen(context, check, message.EncodedIssuerLen);
-		if (message.EncodedIssuer is not null) context.Validators.EncodedIssuer(context, check, message.EncodedIssuer);
-		if (message.SecurityDesc is not null) context.Validators.SecurityDesc(context, check, message.SecurityDesc);
-		if (message.EncodedSecurityDescLen is not null) context.Validators.EncodedSecurityDescLen(context, check, message.EncodedSecurityDescLen);
-		if (message.EncodedSecurityDesc is not null) context.Validators.EncodedSecurityDesc(context, check, message.EncodedSecurityDesc);
-		if (message.AdvSide is null) Missing(check, FixTag.AdvSide);
+		if   (message.SymbolSfx is not null) context.Validators.SymbolSfx(context, check, message.SymbolSfx);
+		if   (message.SecurityID is not null) context.Validators.SecurityID(context, check, message.SecurityID);
+		if   (message.IDSource is not null) context.Validators.IDSource(context, check, message.IDSource);
+		if   (message.SecurityType is not null) context.Validators.SecurityType(context, check, message.SecurityType);
+		if   (message.MaturityMonthYear is not null) context.Validators.MaturityMonthYear(context, check, message.MaturityMonthYear);
+		if   (message.MaturityDay is not null) context.Validators.MaturityDay(context, check, message.MaturityDay);
+		if   (message.PutOrCall is not null) context.Validators.PutOrCall(context, check, message.PutOrCall);
+		if   (message.StrikePrice is not null) context.Validators.StrikePrice(context, check, message.StrikePrice);
+		if   (message.OptAttribute is not null) context.Validators.OptAttribute(context, check, message.OptAttribute);
+		if   (message.ContractMultiplier is not null) context.Validators.ContractMultiplier(context, check, message.ContractMultiplier);
+		if   (message.CouponRate is not null) context.Validators.CouponRate(context, check, message.CouponRate);
+		if   (message.SecurityExchange is not null) context.Validators.SecurityExchange(context, check, message.SecurityExchange);
+		if   (message.Issuer is not null) context.Validators.Issuer(context, check, message.Issuer);
+		if   (message.EncodedIssuerLen is not null) context.Validators.EncodedIssuerLen(context, check, message.EncodedIssuerLen);
+		if   (message.EncodedIssuer is not null) context.Validators.EncodedIssuer(context, check, message.EncodedIssuer);
+		if   (message.SecurityDesc is not null) context.Validators.SecurityDesc(context, check, message.SecurityDesc);
+		if   (message.EncodedSecurityDescLen is not null) context.Validators.EncodedSecurityDescLen(context, check, message.EncodedSecurityDescLen);
+		if   (message.EncodedSecurityDesc is not null) context.Validators.EncodedSecurityDesc(context, check, message.EncodedSecurityDesc);
+		if   (message.AdvSide is null) Missing(check, FixTag.AdvSide);
 		else context.Validators.AdvSide(context, check, message.AdvSide);
-		if (message.Shares is null) Missing(check, FixTag.Quantity);
+		if   (message.Shares is null) Missing(check, FixTag.Quantity);
 		else context.Validators.Shares(context, check, message.Shares);
-		if (message.Price is not null) context.Validators.Price(context, check, message.Price);
-		if (message.Currency is not null) context.Validators.Currency(context, check, message.Currency);
-		if (message.TradeDate is not null) context.Validators.TradeDate(context, check, message.TradeDate);
-		if (message.TransactTime is not null) context.Validators.TransactTime(context, check, message.TransactTime);
-		if (message.Text is not null) context.Validators.Text(context, check, message.Text);
-		if (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, check, message.EncodedTextLen);
-		if (message.EncodedText is not null) context.Validators.EncodedText(context, check, message.EncodedText);
-		if (message.URLLink is not null) context.Validators.URLLink(context, check, message.URLLink);
-		if (message.LastMkt is not null) context.Validators.LastMkt(context, check, message.LastMkt);
-		if (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, check, message.TradingSessionID);
+		if   (message.Price is not null) context.Validators.Price(context, check, message.Price);
+		if   (message.Currency is not null) context.Validators.Currency(context, check, message.Currency);
+		if   (message.TradeDate is not null) context.Validators.TradeDate(context, check, message.TradeDate);
+		if   (message.TransactTime is not null) context.Validators.TransactTime(context, check, message.TransactTime);
+		if   (message.Text is not null) context.Validators.Text(context, check, message.Text);
+		if   (message.EncodedTextLen is not null) context.Validators.EncodedTextLen(context, check, message.EncodedTextLen);
+		if   (message.EncodedText is not null) context.Validators.EncodedText(context, check, message.EncodedText);
+		if   (message.URLLink is not null) context.Validators.URLLink(context, check, message.URLLink);
+		if   (message.LastMkt is not null) context.Validators.LastMkt(context, check, message.LastMkt);
+		if   (message.TradingSessionID is not null) context.Validators.TradingSessionID(context, check, message.TradingSessionID);
 	}
 
 	static void ValidateAllocation(Fix42Context context, FixCheck check, FixMessage.Allocation message)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DotGram.Finance.Fix.Fix42;
 
@@ -33,7 +34,7 @@ public abstract class FixCustomMessage : FixMessage
 	/// <summary>Puts a field of the body where this message keeps it; answers whether it belongs here.</summary>
 	/// <param name="field">A field of the body, the header's and the trailer's taken already.</param>
 	/// <returns>False where the field is not one this message holds, which is reported as out of scope.</returns>
-	/// <remarks>By default every field belongs, and stays in <see cref="FixMessage.Fields"/> where it was read.</remarks>
+	/// <remarks>By default, every field belongs, and stays in <see cref="FixMessage.Fields"/> where it was read.</remarks>
 	protected virtual bool Place(FixField field)
 	{
 		return true;
