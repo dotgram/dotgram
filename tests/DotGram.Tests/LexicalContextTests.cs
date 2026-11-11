@@ -346,17 +346,14 @@ public sealed class LexicalContextTests
 	/// two readings from a position is answered by a cutting made under it — reached through a nested rule, a
 	/// specialization of a rule with a parameter, and a rule of another namespace the terminal's imports.
 	/// </summary>
-	/// <remarks>
-	/// Not run yet: a guard that reads a capture's value inside a terminal the lexer measures does not compile, context
-	/// or none — the measuring machine calls the parser's walk over values so far (<c>Materialized</c>,
-	/// <c>Truncate</c>, <c>Reopen</c>), which the parser it writes into does not have (CS1061). The test stands for the
-	/// day it does, when the cutting this guard reads through must not be kept.
-	/// </remarks>
-	[Theory(Skip = "Known defect: a guard reading a capture's value inside a measured lexical terminal does not compile (CS1061 on Parser_DotGram.Materialized), with or without a context.")]
-	[InlineData("nested")]
-	[InlineData("parameter")]
-	[InlineData("imported")]
-	public void A_guard_reading_a_value_built_from_the_context_keeps_no_cutting(string through)
+	[Theory]
+	[InlineData("nested",    "Tape")]
+	[InlineData("nested",    "Immediate")]
+	[InlineData("parameter", "Tape")]
+	[InlineData("parameter", "Immediate")]
+	[InlineData("imported",  "Tape")]
+	[InlineData("imported",  "Immediate")]
+	public void A_guard_reading_a_value_built_from_the_context_keeps_no_cutting(string through, string carrier)
 	{
 		// Lines of the grammar, each indented as the grammar's own are inside the host below.
 		const string Line = "\n\t\t\t\t\t";
@@ -399,7 +396,7 @@ public sealed class LexicalContextTests
 					Start : @string = n: Tokens.Name+ => @(string.Concat(n))
 
 					positional parse Start
-					""", Lexical = true)]
+					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
 				public static partial class P
 				{
 				}
@@ -420,6 +417,66 @@ public sealed class LexicalContextTests
 
 			Assert.Equal(ok, (bool)read.Invoke(null, arguments)!);
 			Assert.Equal(ok ? "abcd" : null, arguments[3]);
+		}
+	}
+
+	/// <summary>
+	/// A guard that reads a capture's value inside a terminal the lexer measures, with no context anywhere: the machine
+	/// that measures it builds that value as it reads, through the walk over values so far the parser it writes into
+	/// keeps for it — which that parser used to keep only for a guard of the syntax's own (CS1061).
+	/// </summary>
+	[Theory]
+	[InlineData("Tape")]
+	[InlineData("Immediate")]
+	public void A_guard_reading_a_captured_value_inside_a_measured_terminal_is_read(string carrier)
+	{
+		// The same grammar over characters is what the tokens have to answer.
+		var split = Read(carrier, lexical: true);
+		var whole = Read(carrier, lexical: false);
+
+		Assert.Equal("12,34,7", split("12 34 7"));
+
+		foreach (var input in new[] { "12 34 7", "12 345", "345", "99 100", "100" })
+			Assert.Equal(whole(input), split(input));
+
+		static Func<string, string?> Read(string carrier, bool lexical)
+		{
+			var name     = "LexicalGuardCapture" + (lexical ? "Split" : "Whole");
+			var assembly = GeneratorDriverTests.Build($$""""
+				using DotGram;
+
+				namespace {{name}}
+				{
+					[Gram("""
+						wordboundary = ['a'..'z' | '0'..'9']
+						trivia = { ' '* }
+
+						namespace Tokens
+						{
+							trivia = none
+
+							Num   : @int = d: (['0'..'9'] & ['0'..'9']*) => @(int.Parse(d))
+							Small : @int = { n: Num & when @(n < 100) } => @(n)
+						}
+
+						Start : @string = v: Tokens.Small+ => @(string.Join(",", v))
+
+						parse Start
+						""", Lexical = {{(lexical ? "true" : "false")}}, Carrier = GramCarrier.{{carrier}})]
+					public static partial class P
+					{
+					}
+				}
+				"""", "GRAM5012");
+			var parse    = assembly.GetType(name + ".P")!.GetMethods(BindingFlags.Public | BindingFlags.Static).Single(static one =>
+				one.Name == "TryParseStart" && one.GetParameters() is [{ ParameterType.Name: "String" }, { IsOut: true }]);
+
+			return input =>
+			{
+				object?[] arguments = [input, null];
+
+				return (bool)parse.Invoke(null, arguments)! ? (string)arguments[1]! : null;
+			};
 		}
 	}
 
