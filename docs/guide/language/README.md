@@ -21,7 +21,7 @@ generates outside a build is [`cli.md`](../../cli.md).
 | [Recovery](12-recovery.md) | `recover`, the names a recovery is handed, `OnRecovered` |
 | [Context and state](13-context-and-state.md) | `context`, `state`, `with state` |
 | [The seam with C#](14-csharp-seam.md) | predicates, external recognizers, C# in constructions and guards |
-| [Host options](15-host-options.md) | `Lexical`, `Carrier`, buffered input, `[GramOptions]`, `[GramInclude]` |
+| [Host options](15-host-options.md) | `Lexical`, `Carrier`, buffered input, `[GramParserVariant]`, `[GramInclude]` |
 | [Quick reference](16-reference.md) | every sign and word on one page |
 
 ## Every example runs
@@ -31,7 +31,7 @@ disagrees with the code is a failing test rather than a stale page. For whoever 
 
 - A ` ```dotgram ` fence is a whole grammar, compiled. Diagnostic identifiers after the language say what
   it reports (` ```dotgram GRAM4006 `), and nothing else at the level of a warning or above; with none, it
-  reports nothing. `Lexical` compiles it with `Lexical = true`, `Tape` with `Carrier = GramCarrier.Tape`.
+  reports nothing. `Lexical` compiles it with `Lexical = true`, `Deferred` with `Carrier = GramCarrier.Deferred`.
   `pending` marks one that shows the behaviour of a fix not made yet; it is skipped until the word goes.
 - A ` ```csharp ` fence right after it that declares a `partial class` is its host.
 - A ` ```text examples ` fence after that holds runs, a line each: `ParseX("input") → value`,

@@ -317,7 +317,7 @@ Beside its captures, every `=>` and `when` may name what the parser knows about 
 
 | Name | In | Is |
 | --- | --- | --- |
-| `parserText` | `=>`, `when` | the text matched so far, a `string` (`ReadOnlySpan<char>` with `SpanCaptures`) |
+| `parserText` | `=>`, `when` | the text matched so far, a `string` (`ReadOnlySpan<char>` with `UseSpanCaptures`) |
 | `parserSpan` | `=>`, `when` | where it is, a `SourceSpan` with `Start` and `Length` |
 | `parserInput` | `=>` | the whole input, a `string` |
 
@@ -356,7 +356,7 @@ parse Word
 
 <!-- ru:begin -->
 > **RU.** Кроме захватов, каждый `=>` и `when` может назвать то, что парсер знает об альтернативе:
-> `parserText` — прочитанный текст (`string`, или `ReadOnlySpan<char>` при `SpanCaptures`);
+> `parserText` — прочитанный текст (`string`, или `ReadOnlySpan<char>` при `UseSpanCaptures`);
 > `parserSpan` — место (`SourceSpan` с `Start` и `Length`); `parserInput` — весь вход (только в
 > `=>`). В `when` правило ещё не закончено, поэтому там `parserText` и `parserSpan` — прочитанное
 > **до сих пор**. `parserInput` нужен значению, которое потом само вырежет свою строку; он держит
@@ -436,8 +436,8 @@ counts, logs or throws can. The host chooses otherwise:
 | `[Gram(…)]` | Constructions run |
 | --- | --- |
 | nothing (`Carrier = Auto`) | as read, wherever that is safe; the compiler says where it may not be (`GRAM5012`, `GRAM5016`) |
-| `Carrier = GramCarrier.Tape` | once the parse has accepted, for the reading kept only |
-| `ConstructionsMayThrow = true` | as read, with an exception held and thrown only where the tape would throw it |
+| `Carrier = GramCarrier.Deferred` | once the parse has accepted, for the reading kept only |
+| `ConstructionsMayThrow = true` | as read, with an exception held and thrown only where the deferred carrier would throw it |
 
 The details are in [`syntax.md` §3.7](../../syntax.md#37-construction) and
 [host options](15-host-options.md).
@@ -447,9 +447,9 @@ The details are in [`syntax.md` §3.7](../../syntax.md#37-construction) and
 > носитель): значение сразу доступно. Над символами альтернатива может быть прочитана и затем
 > отброшена, поэтому конструирование может выполниться для прочтения, которое разбор не сохранит;
 > чистой сборке значения это безразлично, а счётчику, логу или исключению — нет. Хост может выбрать
-> иначе (таблица): `Carrier = GramCarrier.Tape` — только после принятия, для оставленного прочтения;
+> иначе (таблица): `Carrier = GramCarrier.Deferred` — только после принятия, для оставленного прочтения;
 > `ConstructionsMayThrow = true` — по мере чтения, но исключение задерживается и бросается только там,
-> где бросила бы лента. Компилятор говорит, где это может иметь значение (`GRAM5012`, `GRAM5016`).
+> где бросил бы отложенный носитель. Компилятор говорит, где это может иметь значение (`GRAM5012`, `GRAM5016`).
 <!-- ru:end -->
 
 ## What a refusal says: `on fail`
