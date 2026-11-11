@@ -179,6 +179,9 @@ Notes:
   in an included grammar's class or a `global using static` — that is said on the grammar (`GRAM4025`)
   rather than by the C# compiler in a generated file.
 - Two `out T` overloads of one name with different `T` are a tie, reported rather than guessed (`GRAM4015`).
+- A recognizer over the input view may take the grammar's `context` as its last parameter, after an `out T`:
+  `bool M(ParserInput<char> input, ref int pos, out T value, Names context)`
+  ([context and state](13-context-and-state.md#context--t)).
 - In a grammar split into tokens, a terminal that is nothing but `@M` has no beginning the lexer can stop on,
   so the host is asked at every token (`GRAM5011`, a warning); write a regular beginning in front of it.
 
@@ -198,7 +201,8 @@ parse Number
 > входа, поэтому для чтения из `TextReader`/`Stream` он объявляется над `ParserInput<char>`/`<byte>` —
 > тип, который генератор пишет в хост (`Ensure`, `TryAdvance`, `Peek`, `Slice`); пример `Fixed`
 > проверен и над строкой, и над читателем. Метод нужной формы вне досягаемости хоста — `GRAM4025` (на
-> грамматике, а не ошибкой C#); две перегрузки `out T` с разными `T` — `GRAM4015`; терминал разделённой
+> грамматике, а не ошибкой C#); две перегрузки `out T` с разными `T` — `GRAM4015`; распознаватель над
+> `ParserInput` может последним параметром принять `context` грамматики (глава 13); терминал разделённой
 > грамматики из одного `@M` — предупреждение `GRAM5011`.
 <!-- ru:end -->
 

@@ -176,8 +176,7 @@ ParseItem("\"\"a\"\"") → "a (2 deep)"
 Notes:
 
 - `parserState` is a `ReadOnlySpan<T>` of the marks standing over the construction, outermost first, so the last
-  is the nearest. `parserMarks` is a `ReadOnlySpan<int>` beside it: where in the input each mark's reading
-  began, which tells two marks of the same value apart.
+  is the nearest. `parserMarks` is a `ReadOnlySpan<int>` beside it (below).
 - Both are handed to a `=>` that names them, and not to a `when`: what stands over a reading is not settled
   until it is accepted (`GRAM4053`). A grammar that places no mark hands an empty span.
 - One `state` type for all marks (`GRAM3016`); two concerns are two values of it, not two declarations. A
@@ -187,6 +186,32 @@ Notes:
 - An abandoned reading's marks are abandoned with it; nothing unwinds them.
 - `with state` and `with (…)` share a word and no mechanism: a rebinding replaces rules before anything runs,
   a mark leaves the grammar alone and is visible only to constructions.
+
+**Where each mark was placed.** A mark's value says *what* stands over a construction, never *which*: two
+groups side by side are both under `Group`. `parserMarks` tells them apart: for each mark standing over the
+construction, outermost first, where in the input the reading under it began.
+
+```dotgram
+state : @int
+
+Name  : @string = n: { ['a'..'z']+ } => @(n + "@" + string.Join(",", parserMarks.ToArray()))
+Group : @string = '(' & v: Item with state @(0) & ')' => v
+Item  : @string = g: Group => g
+                | n: Name  => n
+List  : @string[] = Item & (',' & Item)*
+
+parse List
+```
+
+```text examples
+ParseList("a") → ["a@"]
+ParseList("(a),(b)") → ["a@1", "b@5"]
+ParseList("((a))") → ["a@1,2"]
+```
+
+Each group is marked with the same value, `0`; the positions say that `a` and `b` stand under two different
+groups, and that `a` in `((a))` stands under two, begun at 1 and 2. Only the beginning is given: a
+construction may run before the reading under its mark ends.
 
 Refused:
 
@@ -222,7 +247,8 @@ A mark in a grammar that declares no `state` has no type to be (`GRAM4029`); a g
 > над конструированием, а то читает метки как `parserState`, от внешней к ближайшей (пример `Item`:
 > вложенные кавычки дают «1 deep», «2 deep»). `parserState` — `ReadOnlySpan<T>` меток над
 > конструированием; `parserMarks` — `ReadOnlySpan<int>` рядом: где во входе началось чтение под каждой
-> меткой (так различаются две метки одного значения). Оба передаются `=>`, который их называет, и не
+> меткой — так различаются две метки одного значения (пример `List`: `(a),(b)` → `a@1`, `b@5`; `((a))` →
+> `a@1,2`; дано только начало — конструирование может выполниться до конца чтения под меткой). Оба передаются `=>`, который их называет, и не
 > передаются `when` — что стоит над чтением, не решено до его принятия (`GRAM4053`). Грамматика без меток
 > передаёт пустой span. Один тип `state` на все метки (`GRAM3016`): две заботы — два значения, а не два
 > объявления; грамматика для включения объявляет его ссылочным типом. Значение метки — то, что написано в
