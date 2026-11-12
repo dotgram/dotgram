@@ -1,7 +1,11 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 
+using DotGram.Generation;
+
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 using Xunit;
 
@@ -114,6 +118,43 @@ public sealed class PublishesNothingTests
 		[GramParserVariant("Fast", Lexical = true)]
 		public static partial class Published { }
 		""")]
+	[InlineData("""
+		[Gram("namespace N { A = 'a'\nparse A }")]
+		public static partial class InANamespace { }
+		""")]
+	[InlineData("""
+		[Gram("A = 'a'")]
+		public partial class Lib<T> { }
+
+		[Gram("using Lib;\nS = A\nparse S")]
+		public partial class P : Lib<int> { }
+		""")]
+	[InlineData("""
+		[Gram("A = 'a'")]
+		public partial class Lib<T> { }
+
+		[GramInclude(typeof(Lib<int>))]
+		[Gram("S = Lib.A\nparse S")]
+		public static partial class P { }
+		""")]
+	[InlineData("""
+		public partial class Outer<T>
+		{
+			[Gram("A = 'a'")]
+			public partial class Lib { }
+		}
+
+		[GramInclude(typeof(Outer<int>.Lib))]
+		[Gram("S = Lib.A\nparse S")]
+		public static partial class P { }
+		""")]
+	[InlineData("""
+		[Gram("A = 'a'", Name = "Fast")]
+		public partial class Lib { }
+
+		[Gram("B = 'b'\nparse B")]
+		public partial class P : Lib { }
+		""")]
 	public void A_grammar_that_is_of_use_is_not_told(string hosts)
 	{
 		Assert.Empty(Warnings("using DotGram;\n\n" + hosts));
@@ -135,6 +176,63 @@ public sealed class PublishesNothingTests
 
 		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM3002");
 		Assert.Contains("'Kept'", Assert.Single(run.Diagnostics, static one => one.Id == "GRAM4059").GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A class of a referenced assembly is not this compilation's class of the same name: what derives
+	/// from the one says nothing of the other, which is told.
+	/// </summary>
+	[Fact]
+	public void A_referenced_class_of_the_same_name_is_another_class()
+	{
+		var parse    = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var external = CSharpCompilation.Create(
+			"External",
+			[
+				CSharpSyntaxTree.ParseText(
+					"namespace N { [DotGram.Gram(\"A = 'a'\\nparse A\")] public partial class Lib { } }\nnamespace External { public class Bridge : N.Lib { } }",
+					parse,
+					cancellationToken: TestContext.Current.CancellationToken),
+			],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parse)
+			.RunGeneratorsAndUpdateCompilation(external, out var generated, out _, TestContext.Current.CancellationToken);
+
+		using var image = new MemoryStream();
+
+		Assert.True(generated.Emit(image, cancellationToken: TestContext.Current.CancellationToken).Success);
+
+		var compilation = CSharpCompilation.Create(
+			"Local",
+			[
+				CSharpSyntaxTree.ParseText(
+					"""
+					using DotGram;
+
+					namespace N
+					{
+						[Gram("A = 'a'")]
+						public partial class Lib { }
+					}
+
+					[Gram("S = 's'\nparse S")]
+					public partial class P : External.Bridge { }
+					""",
+					parse,
+					cancellationToken: TestContext.Current.CancellationToken),
+			],
+			[.. EmittedCode.References, MetadataReference.CreateFromImage(image.ToArray())],
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var run = CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parse)
+			.RunGenerators(compilation, TestContext.Current.CancellationToken)
+			.GetRunResult();
+
+		Assert.Contains("'N.Lib'", Assert.Single(run.Diagnostics, static one => one.Id == "GRAM4059").GetMessage(), StringComparison.Ordinal);
 	}
 
 	static Diagnostic[] Warnings(string source)

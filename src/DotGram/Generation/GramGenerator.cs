@@ -331,15 +331,19 @@ sealed class GramGenerator : IIncrementalGenerator
 		// keystroke, so every host's reports were delivered again on each one anyway.
 		//
 		// And with them, what no host's grammar is found on: every class a [Gram] class of the
-		// compilation includes or is derived from, read from the walk each host already made. Here
-		// and not in the compile, so that a host that comes to include another compiles no parser
-		// again; only the reporting, which runs on every keystroke anyway, reads it (GRAM4059).
-		var included = found
-			.Select(static (one, _) => one.Host.Includes)
+		// compilation includes or is derived from, transitively, as the include walk passes it —
+		// every class it passes, whether its grammar is spliced or not (a base whose only reading
+		// has a Name is derived from all the same). Here and not in the compile, so that a host
+		// that comes to include another compiles no parser again; only the reporting, which runs
+		// on every keystroke anyway, reads it (GRAM4059).
+		var included = context.SyntaxProvider
+			.ForAttributeWithMetadataName(
+				GramAttribute,
+				static (node, _) => node is ClassDeclarationSyntax,
+				static (candidate, _) => new EquatableArray<string>(Reached((INamedTypeSymbol)candidate.TargetSymbol)))
 			.Collect()
 			.Select(static (all, _) => new EquatableArray<string>([.. all
 				.SelectMany(static one => one.Items.IsDefault ? [] : one.Items)
-				.Select(static one => one.Imported)
 				.Distinct(StringComparer.Ordinal)
 				.OrderBy(static one => one, StringComparer.Ordinal)]));
 
@@ -620,7 +624,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		if (host.Variant ||
 			host.Options.ExportGrammarWritten == true ||
 			grammar.Text is null ||
-			!grammar.Published.Items.IsDefaultOrEmpty ||
+			grammar.PublishesAny ||
 			parser.Reports.Items.Any(static report => report.Severity == DiagnosticSeverity.Error))
 		{
 			return null;
@@ -645,9 +649,64 @@ sealed class GramGenerator : IIncrementalGenerator
 					host.Parser with
 					{
 						Reports = new EquatableArray<Report>([
-							Report.Of(Diagnostics.GrammarPublishesNothing, Site.Attribute, identity.Substring(GlobalPrefix.Length))]),
+							Report.Of(Diagnostics.GrammarPublishesNothing, Site.Attribute, NameOf(identity))]),
 					},
 					host.Site);
+	}
+
+	/// <summary>
+	/// A class as GRAM4059 tells one from another: its assembly, and its definition fully qualified —
+	/// <c>Lib&lt;T&gt;</c> for <c>Lib&lt;int&gt;</c> too, and <c>Outer&lt;T&gt;.Lib</c> for a class nested in a
+	/// constructed one — so that a class of a referenced assembly is never one of this compilation's of
+	/// the same name, and a constructed generic is the class it is made of.
+	/// </summary>
+	static string IdentityOf(INamedTypeSymbol type)
+	{
+		return (type.ContainingAssembly?.Identity.ToString() ?? "") + IdentitySeparator +
+			type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+	}
+
+	/// <summary>What divides a class's assembly from its name in <see cref="IdentityOf"/>.</summary>
+	const string IdentitySeparator = "|";
+
+	/// <summary>The class's name in <see cref="IdentityOf"/>, as a message says it.</summary>
+	static string NameOf(string identity)
+	{
+		var name = identity.Substring(identity.IndexOf(IdentitySeparator, StringComparison.Ordinal) + 1);
+
+		return name.StartsWith(GlobalPrefix, StringComparison.Ordinal) ? name.Substring(GlobalPrefix.Length) : name;
+	}
+
+	/// <summary>
+	/// Every class a host is built on, by <see cref="IdentityOf"/>: every one the include walk passes,
+	/// its bases and what any of them includes, whether a grammar of it is spliced or not.
+	/// </summary>
+	static ImmutableArray<string> Reached(INamedTypeSymbol host)
+	{
+		var reached = new SortedSet<string>(StringComparer.Ordinal);
+
+		GramIncludes.Walk(host, passed => reached.Add(IdentityOf(passed)));
+
+		return [.. reached];
+	}
+
+	/// <summary>
+	/// Whether a grammar publishes anything of its own: a <c>parse</c>, <c>find</c> or <c>yield</c>
+	/// anywhere in the text the host wrote, inside a namespace of it too, and none an include spliced in.
+	/// </summary>
+	static bool PublishesOwn(IReadOnlyList<DotGram.Grammar.Parsing.Decl> declarations, int own)
+	{
+		foreach (var declaration in declarations)
+			switch (declaration)
+			{
+				case DotGram.Grammar.Parsing.Decl.Publish publish when publish.At.Position < own:
+					return true;
+
+				case DotGram.Grammar.Parsing.Decl.Namespace space when space.At.Position < own && PublishesOwn(space.Decls, own):
+					return true;
+			}
+
+		return false;
 	}
 
 	/// <summary>Whether a build asked for the parsers kept from earlier compilations, and how.</summary>
@@ -1177,7 +1236,8 @@ sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Report>   Reports,
 		EquatableArray<Piece>    Pieces = default,
 		EquatableArray<string>   Published = default,
-		bool                     LocatesClass = false);
+		bool                     LocatesClass = false,
+		bool                     PublishesAny = false);
 
 	/// <summary>
 	/// One grammar inside the joined text, and everything needed to put a position in it
@@ -1406,7 +1466,8 @@ sealed class GramGenerator : IIncrementalGenerator
 			default,
 			Values(reports),
 			new EquatableArray<Piece>(pieces.ToImmutable()),
-			new EquatableArray<string>(Questions.Published(parsed)));
+			new EquatableArray<string>(Questions.Published(parsed)),
+			PublishesAny: PublishesOwn(parsed.Decls, own.Length));
 	}
 
 	/// <summary>
@@ -1889,7 +1950,8 @@ sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<string> Readings = default,
 		EquatableArray<string> Classified = default,
 		bool    Variant        = false,
-		EquatableArray<string> DroppedAliases = default)
+		EquatableArray<string> DroppedAliases = default,
+		string  Identity       = "")
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1903,8 +1965,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		/// </remarks>
 		public string IncludedName => Options.DefaultAlias ?? SimpleName;
 
-		/// <summary>The class as an include of it names it (<see cref="Included.Imported"/>): <c>global::</c> and its full name.</summary>
-		public string Identity => GlobalPrefix + (Namespace is null ? "" : Namespace + ".") + ClassName;
+
 
 		/// <summary>
 		/// The host as metadata names it, for looking its own members up.
@@ -2226,6 +2287,8 @@ sealed class GramGenerator : IIncrementalGenerator
 				// Aliases written with a name they had before 0.3.0, here or on any class the grammar is
 				// built on: GRAM0012 says so, and the names they no longer reach are not said again.
 				DroppedAliases: new EquatableArray<string>(Renamed.DroppedAliases(type, candidate.SemanticModel.Compilation)),
+				// What GRAM4059 tells the class by, from every other host's walk (Reached).
+				Identity:       IdentityOf(type),
 				Classified:     new EquatableArray<string>([.. classifies.Select(static one => (string)one.ConstructorArguments[0].Value!)]));
 
 			return (host, site, options);
