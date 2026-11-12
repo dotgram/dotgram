@@ -57,23 +57,22 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 		var without = SqlVariants.Parser(SqlVariants.TransactSql, follow, memo: false);
 		var all     = Publications(with);
 		var random  = new Random(follow.Length * 7919);
-		var wrong   = new List<string>();
-		var count   = 0;
+		var plan    = new List<Ask>();
 		var index   = 0;
 
 		foreach (var statement in Statements())
 		{
-			Compare(with, without, SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement"), statement, random, ref count, wrong);
+			plan.Add(Ask.Draw(SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement"), statement, random));
 
 			if (index++ % 16 == 0)
 				foreach (var name in all)
-					Compare(with, without, name, statement, random, ref count, wrong);
+					plan.Add(Ask.Draw(name, statement, random));
 		}
 
 		foreach (var (name, text) in Nests(Tsql: true))
-			Compare(with, without, SqlVariants.Entry(SqlVariants.TransactSql, name), text, random, ref count, wrong);
+			plan.Add(Ask.Draw(SqlVariants.Entry(SqlVariants.TransactSql, name), text, random));
 
-		Report("T-SQL", count, wrong, 50_000);
+		Report("T-SQL", Read(with, without, plan), 50_000);
 	}
 
 	[Fact]
@@ -99,22 +98,56 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 	{
 		var all    = Publications(with);
 		var random = new Random(grammar.Length * 31 + follow.Length);
-		var wrong  = new List<string>();
-		var count  = 0;
+		var plan   = new List<Ask>();
 
 		foreach (var text in texts.Concat(Statements().Where((_, i) => i % 4 == 0)))
 			for (var i = 0; i < 3; i++)
-				Compare(with, without, all[random.Next(all.Count)], text, random, ref count, wrong);
+				plan.Add(Ask.Draw(all[random.Next(all.Count)], text, random));
 
 		foreach (var (_, text) in Nests(Tsql: false))
 			foreach (var name in all)
-				Compare(with, without, name, text, random, ref count, wrong);
+				plan.Add(Ask.Draw(name, text, random));
 
-		Report(grammar, count, wrong, 20_000);
+		Report(grammar, Read(with, without, plan), 20_000);
 	}
 
-	void Report(string grammar, int count, List<string> wrong, int least)
+	/// <summary>One publication asked of a text, with the places the random draws chose for it.</summary>
+	readonly record struct Ask(string Name, string Text, int Cut, int At, int Length)
 	{
+		/// <summary>Draws the cut, the place and the window the way a single pass over the plan would, so that the plan is the same whichever thread reads it.</summary>
+		public static Ask Draw(string name, string text, Random random)
+		{
+			var cut    = random.Next(text.Length + 1);
+			var at     = random.Next(text.Length + 1);
+			var length = random.Next(text.Length - at + 1);
+
+			return new Ask(name, text, cut, at, length);
+		}
+	}
+
+	/// <summary>
+	/// The plan read on several threads, each over a stretch of it, and joined in the order of the
+	/// plan: the answers compared are the ones a single pass would have compared, and the differences
+	/// are told in its order.
+	/// </summary>
+	static (int Count, List<string> Wrong) Read(Type with, Type without, List<Ask> plan)
+	{
+		var count = 0;
+		var wrong = new List<string>();
+
+		foreach (var (stretch, found) in ChunkedWork.Run(plan, static () => (Count: new int[1], Wrong: new List<string>()), (state, ask) => Compare(with, without, ask, ref state.Count[0], state.Wrong)))
+		{
+			count += stretch[0];
+			wrong.AddRange(found);
+		}
+
+		return (count, wrong);
+	}
+
+	void Report(string grammar, (int Count, List<string> Wrong) read, int least)
+	{
+		var (count, wrong) = read;
+
 		output.WriteLine($"{grammar}, positional follow {follow}: {count:N0} answers compared, {wrong.Count} different.");
 
 		Assert.True(count >= least, $"{grammar}: only {count} answers were compared.");
@@ -125,11 +158,9 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 	/// One publication asked of a text four ways: whole, cut short at a random place, from a random
 	/// place, and in a random window from there.
 	/// </summary>
-	static void Compare(Type with, Type without, string name, string text, Random random, ref int count, List<string> wrong)
+	static void Compare(Type with, Type without, Ask ask, ref int count, List<string> wrong)
 	{
-		var cut    = random.Next(text.Length + 1);
-		var at     = random.Next(text.Length + 1);
-		var length = random.Next(text.Length - at + 1);
+		var (name, text, cut, at, length) = ask;
 
 		(string Form, object[] Arguments)[] asked =
 		[

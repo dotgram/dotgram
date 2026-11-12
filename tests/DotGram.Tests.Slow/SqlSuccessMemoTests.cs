@@ -30,10 +30,12 @@ namespace DotGram.Tests;
 /// differ from the shipped grammar's, its size and its time.
 /// </summary>
 /// <remarks>
-/// Alone, so that the timings are not taken beside another class's readings; the differentials
-/// print every kind of difference with samples, and the memo's hold that there is none.
+/// Not Alone: what is held here is counts and answers, which no neighbour changes. The differentials
+/// print every kind of difference with samples, and the memo's hold that there is none; they read
+/// their answers on several threads, each over a stretch of a plan drawn beforehand from the seed, so
+/// that the answers asked, and the order the differences are told in, are what one thread would
+/// have asked and told. The timings are <see cref="SqlSuccessMemoTimingTests"/>, which are Alone.
 /// </remarks>
-[Collection(typeof(Alone))]
 public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 {
 	void Log(string line)
@@ -225,9 +227,6 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		Differential("shipped + memo vs cover", kept, cover, texts, holds: false);
 		Differential("shipped + memo vs split", kept, split, texts, holds: false);
 		LocatedDifferential("located: shipped + memo vs cover", keptL, coverL, located);
-
-		Timing("TryParseSelect", accepted, [("shipped, no memo", unkept), ("shipped + memo", kept), ("cover", cover), ("split", split)]);
-		Timing("TryParseSelect", accepted, [("shipped, no memo", unkept), ("shipped + memo", kept), ("cover", cover), ("split", split)]);
 	}
 
 	[Fact]
@@ -240,8 +239,6 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
 
 		var statement = SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement");
-		var condition = SqlVariants.Entry(SqlVariants.TransactSql, "TryParseSearchCondition");
-
 		var texts = Harvested("TransactSql")
 			.Concat(Statements())
 			.Concat(TSqlShapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
@@ -249,16 +246,13 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			.Distinct()
 			.ToList();
 
-		var accepted = Statements().Where(text => Answer(unkept, statement, [text]).Accepted).ToList();
+		var accepted = Accepted(unkept, statement, Statements());
 
 		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
 
 		var differences = Differential("T-SQL shipped: no memo vs memo", unkept, kept, texts, holds: true);
 
 		Assert.True(differences == 0, $"{differences} answers differ between the shipped T-SQL parser with the memo of successes and without; see the output.");
-
-		Timing(statement, accepted, [("shipped, no memo", unkept), ("shipped + memo", kept)]);
-		Timing(statement, accepted, [("shipped, no memo", unkept), ("shipped + memo", kept)]);
 	}
 
 	[Fact]
@@ -277,21 +271,52 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			.Distinct()
 			.ToList();
 
-		var accepted = Statements().Where(text => Answer(unkept, "TryParseStatement", [text]).Accepted).ToList();
+		var accepted = Accepted(unkept, "TryParseStatement", Statements());
 
 		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
 
 		var differences = Differential("SQL:2023 shipped: no memo vs memo", unkept, kept, texts, holds: true);
 
 		Assert.True(differences == 0, $"{differences} answers differ between the shipped SQL:2023 parser with the memo of successes and without; see the output.");
+	}
 
-		Timing("TryParseStatement", accepted, [("shipped, no memo", unkept), ("shipped + memo", kept)]);
+	/// <summary>The first <paramref name="limit"/> texts a parser accepts through one publication, in their order, read on several threads.</summary>
+	internal static List<string> Accepted(Type parser, string publication, IEnumerable<string> texts, int limit = int.MaxValue)
+	{
+		var accepted = texts.AsParallel().AsOrdered().WithDegreeOfParallelism(ChunkedWork.Degree).Where(text => Answer(parser, publication, [text]).Accepted);
+
+		// Take(int.MaxValue) makes the query size an array of that length.
+		return limit == int.MaxValue ? [.. accepted] : [.. accepted.Take(limit)];
 	}
 
 	/// <summary>A variant on the immediate carrier, the shipped parsers'.</summary>
-	static Type Immediate(string grammar, bool counts = false, bool keeps = true, bool located = false)
+	internal static Type Immediate(string grammar, bool counts = false, bool keeps = true, bool located = false)
 	{
 		return SqlVariants.Parser(grammar, "off", true, counts, immediate: true, keeps, located);
+	}
+
+	/// <summary>One publication asked of one text, with the places the random draws chose for it.</summary>
+	readonly record struct Ask(string Name, string Text, int Cut, int At, int Length, bool Whole)
+	{
+		/// <summary>Draws the cut, the place and the window the way a single pass over the plan would, so that the plan is the same whichever thread reads it.</summary>
+		public static Ask Draw(string name, string text, Random random, bool whole)
+		{
+			var cut = random.Next(text.Length + 1);
+			var at  = random.Next(text.Length + 1);
+			var len = random.Next(text.Length - at + 1);
+
+			return new Ask(name, text, cut, at, len, whole);
+		}
+	}
+
+	/// <summary>What one stretch of a plan counted and found.</summary>
+	sealed class Tally
+	{
+		public int Count;
+		public int Nontrivial;
+		public int AcceptedAnswers;
+		public readonly SortedDictionary<int, int> Depths = [];
+		public readonly Dictionary<string, List<string>> Kinds = new(StringComparer.Ordinal);
 	}
 
 	/// <summary>Every answer of every publication of both parsers over the texts, whole, cut and in windows, compared as text; the differences by kind, with samples; how many there were.</summary>
@@ -299,19 +324,40 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	{
 		var all    = Publications(after);
 		var random = new Random(92);
+		var plan   = new List<Ask>();
+
+		foreach (var text in texts)
+			for (var i = 0; i < 3; i++)
+				plan.Add(Ask.Draw(all[random.Next(all.Count)], text, random, whole: false));
+
+		foreach (var name in all)
+			foreach (var text in texts.Where(static one => one.Length < 120))
+				plan.Add(Ask.Draw(name, text, random, whole: true));
+
 		var kinds  = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 		var count  = 0;
 		var nontrivial = 0;
 		var acceptedAnswers = 0;
 		var depths = new SortedDictionary<int, int>();
 
-		foreach (var text in texts)
-			for (var i = 0; i < 3; i++)
-				Compare(before, after, all[random.Next(all.Count)], text, random, ref count, ref nontrivial, ref acceptedAnswers, depths, kinds);
+		// The stretches are joined in the order of the plan: the samples of a kind are the first ones, as before.
+		foreach (var part in ChunkedWork.Run(plan, static () => new Tally(), (tally, ask) => Compare(before, after, ask, tally)))
+		{
+			count           += part.Count;
+			nontrivial      += part.Nontrivial;
+			acceptedAnswers += part.AcceptedAnswers;
 
-		foreach (var name in all)
-			foreach (var text in texts.Where(static one => one.Length < 120))
-				Compare(before, after, name, text, random, ref count, ref nontrivial, ref acceptedAnswers, depths, kinds, whole: true);
+			foreach (var (depth, number) in part.Depths)
+				depths[depth] = depths.GetValueOrDefault(depth) + number;
+
+			foreach (var (kind, samples) in part.Kinds)
+			{
+				if (!kinds.TryGetValue(kind, out var into))
+					kinds[kind] = into = [];
+
+				into.AddRange(samples);
+			}
+		}
 
 		var different = kinds.Values.Sum(static one => one.Count);
 
@@ -388,49 +434,9 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		return unequal.Count + spansDiffer.Count + outcome.Count;
 	}
 
-	void Timing(string publication, List<string> accepted, (string Name, Type Parser)[] parsers)
+	static void Compare(Type before, Type after, Ask ask, Tally tally)
 	{
-		var texts   = accepted.Take(1500).ToList();
-		var methods = parsers.Select(one => one.Parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)!).ToArray();
-		var medians = new double[parsers.Length];
-		var rounds  = new List<double>[parsers.Length];
-
-		for (var i = 0; i < parsers.Length; i++)
-			rounds[i] = [];
-
-		// Warm up each, then five rounds, the parsers interleaved so that the machine's state is shared.
-		for (var round = 0; round < 6; round++)
-			for (var i = 0; i < parsers.Length; i++)
-			{
-				var clock = Stopwatch.StartNew();
-
-				foreach (var text in texts)
-					methods[i].Invoke(null, [text]);
-
-				clock.Stop();
-
-				if (round > 0)
-					rounds[i].Add(clock.Elapsed.TotalMilliseconds * 1000.0 / texts.Count);
-			}
-
-		for (var i = 0; i < parsers.Length; i++)
-		{
-			var sorted = rounds[i].OrderBy(static one => one).ToList();
-
-			medians[i] = sorted[sorted.Count / 2];
-		}
-
-		Log($"time per accepted generated statement ({texts.Count} texts, median of 5 rounds, directional on a shared machine):");
-
-		for (var i = 0; i < parsers.Length; i++)
-			Log($"  {parsers[i].Name,-16} {medians[i],8:F2} us  x{medians[i] / medians[0]:F3} of the first  (rounds: {string.Join(" ", rounds[i].Select(static one => one.ToString("F2")))})");
-	}
-
-	static void Compare(Type before, Type after, string name, string text, Random random, ref int count, ref int nontrivial, ref int acceptedAnswers, SortedDictionary<int, int> depths, Dictionary<string, List<string>> kinds, bool whole = false)
-	{
-		var cut = random.Next(text.Length + 1);
-		var at  = random.Next(text.Length + 1);
-		var len = random.Next(text.Length - at + 1);
+		var (name, text, cut, at, len, whole) = ask;
 
 		(string Form, object[] Arguments)[] asked = whole
 			? [("whole", [text])]
@@ -441,18 +447,18 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			var one = Answer(before, name, arguments);
 			var two = Answer(after, name, arguments);
 
-			count++;
+			tally.Count++;
 
 			if (one.Accepted || two.Accepted || one.Position > 0 || two.Position > 0)
-				nontrivial++;
+				tally.Nontrivial++;
 
 			if (one.Accepted)
 			{
-				acceptedAnswers++;
+				tally.AcceptedAnswers++;
 
 				var depth = Depth((string)arguments[0]);
 
-				depths[depth] = depths.GetValueOrDefault(depth) + 1;
+				tally.Depths[depth] = tally.Depths.GetValueOrDefault(depth) + 1;
 			}
 
 			if (one.Text == two.Text)
@@ -465,8 +471,8 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 				one.Position != two.Position ? "refusal position" :
 				"refusal message, same position: " + Gained(one.Text, two.Text);
 
-			if (!kinds.TryGetValue(kind, out var samples))
-				kinds[kind] = samples = [];
+			if (!tally.Kinds.TryGetValue(kind, out var samples))
+				tally.Kinds[kind] = samples = [];
 
 			samples.Add($"{name} {form} ({string.Join(", ", arguments.Skip(1))}) of {Show((string)arguments[0])}:\n  before {one.Text}\n  after  {two.Text}");
 		}
@@ -565,7 +571,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	}
 
 	/// <summary>A generated SQL-92 corpus: selects over values and conditions nested to a bounded depth, seeded.</summary>
-	static List<string> Generated(int count, int seed)
+	internal static List<string> Generated(int count, int seed)
 	{
 		var random = new Random(seed);
 		var texts  = new List<string>(count);
@@ -670,7 +676,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	}
 
 	/// <summary>What one form of a publication answers, written out, with the two things the kinds are told by.</summary>
-	static (string Text, bool Accepted, long Position) Answer(Type parser, string name, object[] arguments)
+	internal static (string Text, bool Accepted, long Position) Answer(Type parser, string name, object[] arguments)
 	{
 		var (match, text, accepted, position, _) = Invoke(parser, name, arguments);
 
@@ -841,7 +847,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		];
 	}
 
-	static List<string> Statements()
+	internal static List<string> Statements()
 	{
 		return _statements.Value;
 	}
