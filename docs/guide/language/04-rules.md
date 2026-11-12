@@ -161,7 +161,31 @@ Typed = Word<int>
 parse Typed
 ```
 
+```dotgram GRAM4058
+Value(tag) = switch @(Kind(tag)) {
+	case 0:  ['a'..'z']+
+	default: ['0'..'9']+
+}
+
+Field = tag: ['0'..'9'] & '=' & Value(tag)
+
+parse Field
+```
+
+```csharp
+partial class Grammar
+{
+	static int Kind(string tag)
+	{
+		return tag == "0" ? 0 : 1;
+	}
+}
+```
+
 A parameterized rule's name alone is no rule, and a call must pass every parameter (`GRAM4013`). A
+recognizer parameter is a piece of grammar, not a value: C# that names it — the `switch` selector above — is
+refused (`GRAM4058`, said only where no member of the host answers to the name). Capture what was read and
+hand the capture to C# in the rule that captured it. A
 rule takes no type arguments: only a C# name is generic, written `@Name<T>` (`GRAM2016`).
 
 <!-- ru:begin -->
@@ -181,7 +205,9 @@ rule takes no type arguments: only a C# name is generic, written `@Name<T>` (`GR
 > где ожидается значение (счётчик, аргумент `@M`, внутри `@(…)`); в позиции куска грамматики он
 > отвергается (`GRAM4013`) — поэтому `Padded` принимает заполнитель как распознаватель. Правило, тело которого — вызов, не получает тип вызова: `Numbers`
 > захватывает список и передаёт его. Отвергаются (`GRAM4013`): имя параметризованного правила без
-> аргументов и вызов с неверным числом аргументов; аргументы типа у правила (`Word<int>`) — `GRAM2016`:
+> аргументов и вызов с неверным числом аргументов; параметр-распознаватель — кусок грамматики, а не
+> значение: C#, который его называет (селектор `switch` в примере), отвергается (`GRAM4058`, если у хоста нет
+> члена с таким именем) — захватите прочитанное и передайте захват в C# в том правиле, где он сделан; аргументы типа у правила (`Word<int>`) — `GRAM2016`:
 > обобщённым бывает только имя C#, `@Name<T>`.
 <!-- ru:end -->
 
