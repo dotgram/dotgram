@@ -5,6 +5,15 @@ rules — `trivia`, `wordboundary` and `word` — that a grammar redefines, and 
 something automatic around them once they are not empty. The specification is
 [`syntax.md` §4.5–§4.6](../../syntax.md#45-trivia--insignificant-whitespace-and-comments).
 
+The examples call `Std` and declare namespaces as [the grammar and its host](01-grammar-and-host.md)
+introduced them; both have chapters of their own later, [the standard library](09-std.md) and
+[namespaces](10-namespaces.md).
+
+<!-- ru:begin -->
+> **RU.** Примеры вызывают `Std` и объявляют пространства имён так, как их представила глава 01; у обоих
+> дальше свои главы — 09 и 10.
+<!-- ru:end -->
+
 ## `trivia`: what may stand between operands
 
 `trivia` is inserted at every seam between the operands of a sequence. It is `none` by default, so
@@ -147,7 +156,7 @@ parse Row
 
 `trivia = { ' '* }` reads each run once. Braced trivia is read by a scanner, which cannot follow a rule
 that reaches itself; a comment that nests is written `Std.Nested(open, close)`, which a scanner reads
-with a counter ([standard library](10-std.md)).
+with a counter ([standard library](09-std.md)).
 
 <!-- ru:begin -->
 > **RU.** Комментарии — тоже trivia; в стандартной библиотеке есть обычные (пример выше, в том числе
@@ -242,7 +251,7 @@ Notes:
 - Two imports at one scope that each declare a `trivia`, in a scope that declares none, are refused
   (`GRAM3022`): the order of the `using`s never decides. Declare the one meant, `trivia = A.trivia`.
 - A substitution replaces `trivia` like any rule: `namespace N with (trivia = none) { … }` reuses rules
-  under another whitespace ([namespaces](09-namespaces.md)).
+  under another whitespace ([namespaces](10-namespaces.md)).
 
 ```dotgram GRAM3022
 using A;
@@ -299,7 +308,7 @@ inner list would be handed a shift.
 Notes:
 
 - Over tokens (`Lexical = true`) `~` asks the tokens themselves whether they touch, so a grammar reads
-  the same language either way.
+  the same language either way ([reading over tokens](06-lexical.md#adjacency-and-word-over-tokens)).
 - Inside a namespace whose `trivia` is `none`, `~` says nothing and is allowed for that reason.
 
 <!-- ru:begin -->

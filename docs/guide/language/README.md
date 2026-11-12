@@ -1,28 +1,30 @@
 # The .Gram language, a guide
 
-A guide to writing grammars, one topic a page, each feature with what it means, a small grammar that uses it,
+A guide to writing grammars, one topic a page, in the order a grammar needs them: what every grammar uses
+first, what is used often next, and the advanced material last; each feature with what it means, a small grammar that uses it,
 the cases worth knowing, and the form the generator refuses with the diagnostic it gives. The specification is
 [`syntax.md`](../../syntax.md); every message is in [`diagnostics.md`](../../diagnostics.md); the tool that
 generates outside a build is [`cli.md`](../../cli.md).
 
-| Page | What it covers |
-| --- | --- |
-| [The grammar and its host](01-grammar-and-host.md) | `[Gram]`, rules and declarations, `@` and C#, imports; a first look at trivia, `Std`, the built-in rules and the supplied names |
-| [Elements](02-elements.md) | literals and escapes, case-insensitive literals, element sets, `any`, `none`, `eol`, `eof`, `eos` |
-| [Composition](03-composition.md) | `&`, `\|`, groups, atomic groups, quantifiers, lookahead, the order of operators |
-| [Captures and values](04-values.md) | captures, what a rule gives back, `=>`, the supplied names, `on fail` |
-| [Guards and `switch`](05-guards-and-switch.md) | `when @(…)`, conditions `when A is B`, `switch` |
-| [Text bindings](06-bindings.md) | `$q: X`, `$q`, `X{#q}` |
-| [Rules](07-rules.md) | declarations, parameters, rules that give back, levels, left recursion, binding powers |
-| [Trivia and words](08-trivia-and-words.md) | `trivia`, `~`, `wordboundary`, `word` |
-| [Namespaces](09-namespaces.md) | namespaces, imports, rebinding with `with` |
-| [The standard library](10-std.md) | every rule of `Std` |
-| [Publication](11-publication.md) | `parse`, `find`, `as`, access, `positional`, `stream`, `yield` |
-| [Recovery](12-recovery.md) | `recover`, the names a recovery is handed, `OnRecovered` |
-| [Context and state](13-context-and-state.md) | `context`, `state`, `with state` |
-| [The seam with C#](14-csharp-seam.md) | predicates, external recognizers, C# in constructions and guards |
-| [Host options](15-host-options.md) | `Lexical`, `Carrier`, buffered input, `[GramParserVariant]`, `[GramInclude]` |
-| [Quick reference](16-reference.md) | every sign and word on one page |
+| | Page | What it covers |
+| --- | --- | --- |
+| 01 | [The grammar and its host](01-grammar-and-host.md) | `[Gram]`, rules and declarations, `@` and C#, imports; a first look at trivia, `Std`, the built-in rules and the supplied names |
+| 02 | [Elements](02-elements.md) | literals and escapes, case-insensitive literals, element sets, `any`, `none`, `eol`, `eof`, `eos` |
+| 03 | [Composition](03-composition.md) | `&`, `\|`, groups, atomic groups, quantifiers, lookahead, the order of operators |
+| 04 | [Rules](04-rules.md) | declarations, parameters, levels, left recursion, binding powers |
+| 05 | [Trivia and words](05-trivia-and-words.md) | `trivia`, `~`, `wordboundary`, `word` |
+| 06 | [Reading over tokens](06-lexical.md) | `Lexical = true`: how a grammar is cut, what changes, rules that give back, terminals, what cannot be cut |
+| 07 | [Captures and values](07-values.md) | captures, what a rule gives back, `=>`, the supplied names, `on fail` |
+| 08 | [Publication](08-publication.md) | `parse`, `find`, `as`, access, `positional`, `stream`, `yield` |
+| 09 | [The standard library](09-std.md) | every rule of `Std` |
+| 10 | [Namespaces](10-namespaces.md) | namespaces, imports, rebinding with `with` |
+| 11 | [Guards and `switch`](11-guards-and-switch.md) | `when @(…)`, conditions `when A is B`, `switch` |
+| 12 | [Text bindings](12-bindings.md) | `$q: X`, `$q`, `X{#q}` |
+| 13 | [Recovery](13-recovery.md) | `recover`, the names a recovery is handed, `OnRecovered` |
+| 14 | [The seam with C#](14-csharp-seam.md) | predicates, external recognizers, C# in constructions and guards |
+| 15 | [Context and state](15-context-and-state.md) | `context`, `state`, `with state` |
+| 16 | [Host options](16-host-options.md) | `Carrier`, buffered input, `[GramParserVariant]`, `[GramInclude]` |
+| 17 | [Quick reference](17-reference.md) | every sign and word on one page |
 
 ## Every example runs
 

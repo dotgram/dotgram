@@ -354,7 +354,7 @@ Notes:
 - `yield : @T` states the element type; bare `yield` takes it from the rule's `@T[]`.
 - The collection must be a whole `Rule*` or `Rule+`, possibly braced, with no factory, outer choice,
   prefix, suffix or implicit trivia; other shapes are refused rather than silently materialized
-  (`GRAM4027`). A recovering repetition is supported ([recovery](12-recovery.md)).
+  (`GRAM4027`). A recovering repetition is supported ([recovery](13-recovery.md)).
 - A malformed element throws `FormatException` from `MoveNext`, after the elements before it have been
   returned. There is no `Try` form: publish the ordinary `parse` as well for an all-or-nothing answer.
 - On a named rule the element type goes after `yield`, not before it (`GRAM2008`).
@@ -393,15 +393,15 @@ Every part, in order, every bracketed one optional:
 ```
 
 - `with (…)` reads the operand with rules replaced, which is how one grammar publishes several parsers
-  ([namespaces](09-namespaces.md#rebinding-a-publication)).
+  ([namespaces](10-namespaces.md#rebinding-a-publication)).
 - A whole `parse` reads the rule's `trivia` before and after it, and the value leaves it out
-  ([trivia](08-trivia-and-words.md#trivia-what-may-stand-between-operands)).
+  ([trivia](05-trivia-and-words.md#trivia-what-may-stand-between-operands)).
 - A grammar that names `eos` publishes over lists of strings and readers of lines only
   ([elements](02-elements.md#eos-and-input-in-segments)).
 
 <!-- ru:begin -->
 > **RU.** Полная директива — все части по порядку, каждая в скобках необязательна (схема выше). `with (…)`
-> читает операнд с заменёнными правилами — так одна грамматика публикует несколько парсеров (глава 09).
-> Целый `parse` читает `trivia` правила до и после него, а значение её не включает (глава 08).
+> читает операнд с заменёнными правилами — так одна грамматика публикует несколько парсеров (глава 10).
+> Целый `parse` читает `trivia` правила до и после него, а значение её не включает (глава 05).
 > Грамматика с `eos` публикуется только над списками строк и читателями строк (глава 02).
 <!-- ru:end -->

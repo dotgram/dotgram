@@ -7,12 +7,12 @@ This page is about the operators of `.Gram` itself — `&`, `|`, quantifiers —
 they bind inside one expression. The precedence of the operators of the language a grammar *reads*
 (`*` before `+` in arithmetic) is a property of rules, said with binding powers
 (`<< n`, `>> n`, [below](#not-to-be-confused-with-binding-powers) and in
-[rules](07-rules.md#binding-powers)).
+[rules](04-rules.md#binding-powers)).
 
 <!-- ru:begin -->
 > **RU.** Эта страница — об операторах самого `.Gram` (`&`, `|`, кванторы) и о порядке их связывания
 > внутри одного выражения. Приоритеты операторов того языка, который грамматика *читает* (`*` раньше
-> `+` в арифметике), — свойство правил и задаются силами связывания `<< n`, `>> n` (ниже и в главе 07).
+> `+` в арифметике), — свойство правил и задаются силами связывания `<< n`, `>> n` (ниже и в главе 04).
 <!-- ru:end -->
 
 ## Sequence: `&`
@@ -40,9 +40,9 @@ Notes:
 
 - Nothing may stand between the operands unless the grammar says so: `"x = y"` is refused. The rule
   `trivia` is what is woven between them, and it is empty by default
-  ([trivia](08-trivia-and-words.md)).
+  ([trivia](05-trivia-and-words.md)).
 - `a ~ b` is a sequence that never lets trivia between its operands; it matters only once
-  `trivia` is not empty ([`~`](08-trivia-and-words.md#adjacency-)).
+  `trivia` is not empty ([`~`](05-trivia-and-words.md#adjacency-)).
 - The missing connector above is reported where the next operand begins, as the start of a
   declaration that is not one (`GRAM2002`).
 
@@ -104,7 +104,7 @@ Notes:
 - In a grammar split into a lexer and a parser (`Lexical = true`), the syntactic half reads
   tokens, and there the first alternative that matches **stands**: nothing after it sends the
   parse back into it. A rule marked `Name?` gives back
-  ([rules](07-rules.md#rules-that-give-back), [host options](15-host-options.md)).
+  ([reading over tokens](06-lexical.md#choices-stand-and-rules-that-give-back)).
 - `|` inside square brackets is set union, a different construct ([elements](02-elements.md)).
 
 <!-- ru:begin -->
@@ -142,7 +142,7 @@ ParsePairs("aba") → refused
 Notes:
 
 - A group never changes what is matched; it only says what belongs together.
-- With a `=>` inside, a group builds a value of its own ([values](04-values.md#constructing-groups)).
+- With a `=>` inside, a group builds a value of its own ([values](07-values.md#constructing-groups)).
 - An expression nested more than 128 levels deep (groups, braces, lookaheads, captures, a call's
   arguments, …) is `GRAM2011`: name the inner part as a rule.
 
@@ -261,8 +261,8 @@ ParseGiveBack("aaa") → "aaa"
 
 Notes:
 
-- A count may also be a value parameter of the rule, `X{n}` ([parameters](07-rules.md#parameters)),
-  or the length of a bound text, `X{#q}` ([bindings](06-bindings.md)).
+- A count may also be a value parameter of the rule, `X{n}` ([parameters](04-rules.md#parameters)),
+  or the length of a bound text, `X{#q}` ([bindings](12-bindings.md)).
 - There are no lazy (`*?`) or possessive (`*+`) quantifiers, and one operand takes one quantifier:
   write `{ X* }` for possessive, and a group for a quantifier of a quantified operand, `(X+)*`.
 - The body of `*`, `+` and `{n,m}` must consume input on every turn, which is checked when the
@@ -329,7 +329,7 @@ Statements("a; b, c;") → ["a", "c"]
 ```
 
 `?!Keyword` refuses `iffy` as well: `"if"` matches at its start. Saying "a keyword is a whole word"
-is the job of `wordboundary` ([keyword boundaries](08-trivia-and-words.md#wordboundary)), or of a
+is the job of `wordboundary` ([keyword boundaries](05-trivia-and-words.md#wordboundary)), or of a
 lookahead after the keyword: `"if" & ?![\p{L}]`.
 
 A positive lookahead may be captured, and then holds what the operand would have given, without
@@ -355,7 +355,7 @@ Notes:
   refused (`GRAM4001`); write `?!(X*)`.
 - A lookahead reads its own way and gives everything back: a capture inside it, or a guard there that
   reads a capture made before it, is refused (`GRAM4006`). So are a binding `$q:` and a `recover`
-  inside one ([bindings](06-bindings.md), [recovery](12-recovery.md)).
+  inside one ([bindings](12-bindings.md), [recovery](13-recovery.md)).
 - A guard reads nothing, so `?=(when @(g))` is `when @(g)`.
 
 Refused:
@@ -413,13 +413,13 @@ ParseJoined("abc") → "abc"
 
 - A quantifier applies to everything before it in its operand: `name: X*` is `(name: X)*`, a
   capture made on every turn. Turns of a rule that builds a value are collected into an array; turns
-  of text are joined into one text ([values](04-values.md)). Likewise `?!X*` is `(?!X)*`.
+  of text are joined into one text ([values](07-values.md)). Likewise `?!X*` is `(?!X)*`.
 - `=>` binds to one alternative, so every branch of a `|` builds its own value
-  ([values](04-values.md)).
+  ([values](07-values.md)).
 - `recover` binds tighter than `|`: `X* recover '|' | eol` is `(X* recover '|') | eol`; a choice of
-  synchronizations needs brackets, `recover ('|' | eol)` ([recovery](12-recovery.md)).
+  synchronizations needs brackets, `recover ('|' | eol)` ([recovery](13-recovery.md)).
 - Inside a `when`, `is` binds tighter than `and`, and `and` than `or`
-  ([guards](05-guards-and-switch.md)).
+  ([guards](11-guards-and-switch.md)).
 
 <!-- ru:begin -->
 > **RU.** Порядок операторов `.Gram` внутри одного выражения грамматики, от высшего к низшему, — в таблице: префиксы (захват, привязка, просмотр) →
@@ -436,7 +436,7 @@ ParseJoined("abc") → "abc"
 The table above orders the operators of the grammar. The precedence of the operators of the
 language being read — `*` before `+`, `^` to the right — is said on the alternatives of a rule, with
 `<< n` (left-associative at level `n`) and `>> n` (right-associative). Higher binds tighter. The
-whole story is in [rules](07-rules.md#binding-powers); one calculator shows the shape:
+whole story is in [rules](04-rules.md#binding-powers); one calculator shows the shape:
 
 ```dotgram
 Expr : int = left: Expr & '+' & right: Expr   << 1  => @(left + right)
@@ -457,15 +457,15 @@ ParseExpr("2*3^2") → 18
 
 `8-2-1` is `(8-2)-1` because `-` is left-associative, and `2^3^2` is `2^(3^2)` because `^` is
 right-associative. A grammar can also say all of this with one rule per level and no markers; which
-to choose is in [rules](07-rules.md#levels-as-rules).
+to choose is in [rules](04-rules.md#levels-as-rules).
 
 <!-- ru:begin -->
 > **RU.** Таблица выше упорядочивает операторы самой грамматики. Приоритеты операторов читаемого
 > языка (`*` раньше `+`, `^` справа налево) задаются на альтернативах правила силами связывания:
 > `<< n` — левоассоциативно на уровне `n`, `>> n` — правоассоциативно; больше — сильнее. Подробно — в
-> главе 07; пример калькулятора выше: `8-2-1` — это `(8-2)-1` (левая ассоциативность `-`), `2^3^2` —
+> главе 04; пример калькулятора выше: `8-2-1` — это `(8-2)-1` (левая ассоциативность `-`), `2^3^2` —
 > `2^(3^2)` (правая у `^`). То же можно выразить и правилом на каждый уровень без маркеров — выбор
-> между способами описан в главе 07.
+> между способами описан в главе 04.
 <!-- ru:end -->
 
 ## A run that can be cut two ways

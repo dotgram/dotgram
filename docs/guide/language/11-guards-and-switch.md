@@ -85,9 +85,9 @@ Over characters a repetition gives back what a guard after it refuses: `find` re
 Notes:
 
 - A guard may run more than once, and for a reading the parse then gives up: it runs on the path
-  being tried. Keep it free of effects, or make them safe to repeat ([context](13-context-and-state.md)).
+  being tried. Keep it free of effects, or make them safe to repeat ([context](15-context-and-state.md)).
 - A capture that a route to the guard skips reaches it nullable: `('(' & a: X)? & when @(a is { … })`
-  ([values](04-values.md#a-capture-that-may-be-absent)).
+  ([values](07-values.md#a-capture-that-may-be-absent)).
 - A guard that names a capture whose value a `=>` builds asks for that value now: the construction runs
   during recognition, its value is kept, and acceptance reuses it.
 - A guard reads nothing, so it needs no lookahead around it: `?=(when @(g))` is `when @(g)`, and
@@ -121,7 +121,7 @@ The same word asks a second kind of question, about the grammar rather than the 
 recognizers have a string in common. It is answered when the parser is generated. Where it holds,
 nothing is emitted for it; where it does not, the alternative it stands in is not in that parser at
 all. What gives it more than one answer is a rebinding: a publication's `with` substitutes a rule, so
-one grammar publishes parsers that answer it differently ([namespaces](09-namespaces.md)).
+one grammar publishes parsers that answer it differently ([namespaces](10-namespaces.md)).
 
 ```dotgram
 trivia  = { ' '* }
@@ -340,7 +340,7 @@ Notes:
 - The selector sees earlier captures, `context`, `parserText` and `parserSpan` as a guard does, and
   like a guard may run again when the parse backtracks to it.
 - A `switch` enters one case and records nothing for the others, so a refusal names only what that case
-  expected. That makes it the cheap way to classify what was read once ([rules](07-rules.md#alternatives-that-decide-after-a-nested-construct)).
+  expected. That makes it the cheap way to classify what was read once ([rules](04-rules.md#alternatives-that-decide-after-a-nested-construct)).
 
 Refused:
 

@@ -4,7 +4,8 @@ The lexemes every grammar writes and none should have to — digits, an identifi
 comment, a quoted string — are a grammar of their own, carried inside the generator. Every grammar has it
 under the name `Std`. This page shows every rule of it; a short table is in
 [the grammar and its host](01-grammar-and-host.md#the-standard-library-at-a-glance), and the specification
-is [`syntax.md` §5.2](../../syntax.md#52-the-standard-library-std).
+is [`syntax.md` §5.2](../../syntax.md#52-the-standard-library-std). `Std` is a namespace like any other, and
+how names are opened and what wins between them is told with [namespaces](10-namespaces.md).
 
 ## Using the library
 
@@ -299,9 +300,9 @@ lookahead a lexer reads as a pattern: in a grammar read over tokens they are tok
 | --- | --- |
 | `any`, `none`, `eol`, `eof` | [elements](02-elements.md#any-none-eol-eof), [the grammar and its host](01-grammar-and-host.md#built-in-rules-and-supplied-names-at-a-glance) |
 | `eos` | [elements](02-elements.md#eos-and-input-in-segments) (compiled only: such a grammar reads lists of strings) |
-| `trivia` | [trivia](08-trivia-and-words.md#trivia-what-may-stand-between-operands) |
-| `wordboundary` | [words](08-trivia-and-words.md#wordboundary) |
-| `word` | [words](08-trivia-and-words.md#word) |
+| `trivia` | [trivia](05-trivia-and-words.md#trivia-what-may-stand-between-operands) |
+| `wordboundary` | [words](05-trivia-and-words.md#wordboundary) |
+| `word` | [words](05-trivia-and-words.md#word) |
 
 <!-- ru:begin -->
 > **RU.** `any`, `none`, `eol`, `eof` и `eos` встроены в каждую грамматику, а не записаны в `Std`, как и
