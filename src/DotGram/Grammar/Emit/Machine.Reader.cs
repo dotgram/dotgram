@@ -4575,9 +4575,19 @@ sealed partial class Machine
 
 			var id = inline.Id;
 
+			// The character read last and the exceptions held where the method began are a method's
+			// own: the caller may test the one it read after the call, and a construction in the part
+			// compares with what was held where the part began.
+			var reads  = inline.Body.Names("c");
+			var faults = inline.Body.Names("rbf");
+
 			if (declare)
 				code.Line($"int {took};");
 			code.Line($"var ip{id} = p;");
+			if (reads)
+				code.Line($"var ic{id} = c;");
+			if (faults)
+				code.Line($"var hf{id} = rbf; rbf = faults;");
 			if (inline.Fresh.Length > 0)
 				code.Line(inline.Fresh);
 			code.AppendIndented(inline.Body, 0);
@@ -4592,6 +4602,10 @@ sealed partial class Machine
 			}
 
 			code.Line($"p = ip{id};");
+			if (reads)
+				code.Line($"c = ic{id};");
+			if (faults)
+				code.Line($"rbf = hf{id};");
 		}
 
 		/// <summary>
