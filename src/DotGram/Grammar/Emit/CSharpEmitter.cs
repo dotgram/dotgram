@@ -400,7 +400,7 @@ static partial class CSharpEmitter
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
 			// machine's own publications now — a sibling that cannot lower no longer costs
-			// this one its flat path (docs/next.md, "Future optimization gate") — and of
+			// this one its flat path (docs/internal/next.md, "Future optimization gate") — and of
 			// the rules this machine actually reaches: a recovery, a climb or a streamed
 			// read elsewhere in the grammar is some other machine's business.
 			var lowered = group.Publications.Count > 0 &&
@@ -4599,7 +4599,7 @@ file.Line("return spare;");
 		// declared rather than by the effective type. The object is the caller's and every
 		// hook sees the same one; what differs is the type it is seen through, which belongs
 		// to whoever wrote the code. A rule included from another grammar goes on meaning
-		// what it meant, and the call upcasts on its own (docs/next.md, "Decided: `context`
+		// what it meant, and the call upcasts on its own (docs/internal/next.md, "Decided: `context`
 		// is a contract").
 		if (graph.ContextOf(rule) is { } contract && Asks(graph, factory, "context"))
 			parameters.Add($"{contract} context");
@@ -6300,7 +6300,7 @@ file.Line("return spare;");
 	/// value automaton over it, a boxed result and a cast. Measured on the expression
 	/// language, an operand that is a number cost about a hundred nanoseconds more than
 	/// one that is a name, where the hand-written parser pays the same for both
-	/// (docs/next.md).
+	/// (docs/internal/next.md).
 	/// </para>
 	/// <para>
 	/// Refused where the construction wants anything the token alone cannot answer: a

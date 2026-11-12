@@ -1,0 +1,31 @@
+- name: Getting started
+  href: index.md
+# The two guides are folders of chapters (docs/guide/language/ and docs/guide/generator/),
+# each with a README.md contents page. When one lands, add a toc.yml beside its chapters
+# (one entry per file, the README.md first) and uncomment its entry here. An entry for a folder
+# that does not exist is a build error under -WarningsAsErrors, so the lines stay commented
+# until the files are there.
+# - name: Language guide
+#   href: guide/language/
+# - name: Generator guide
+#   href: guide/generator/
+- name: Reference
+  items:
+    - name: Language (syntax)
+      href: syntax.md
+    - name: Diagnostics
+      href: diagnostics.md
+    - name: Command line
+      href: cli.md
+    - name: SQL tree (AST)
+      href: ast.md
+    - name: Carriers
+      href: carriers.md
+    - name: Visual Studio
+      href: visual-studio.md
+    - name: Feeds (a worked guide)
+      href: feeds.md
+- name: API
+  href: api/
+- name: Status
+  href: status.md

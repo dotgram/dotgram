@@ -16,7 +16,7 @@ namespace DotGram.Tests.Web;
 /// </summary>
 /// <remarks>
 /// The hand parsers are what the generated ones are measured against, and a ratio between two
-/// parsers that read different languages says nothing (docs/design/architecture-decisions.md,
+/// parsers that read different languages says nothing (docs/internal/design/architecture-decisions.md,
 /// D1). So the tests of a format read through here: every text they hand it is put to both, and
 /// a text that tells them apart fails where it stands. What comes back is the generated
 /// parser's answer, so the assertions after the call are about the parser the tests were

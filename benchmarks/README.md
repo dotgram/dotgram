@@ -669,7 +669,7 @@ worst work.
 ### Current result
 
 Windows, .NET 10, 2026-08-27, after the analysis work that closed the performance program
-(`docs/next.md`). Measured with `--against` rather than `DefaultJob`, for the reason under
+(`docs/internal/next.md`). Measured with `--against` rather than `DefaultJob`, for the reason under
 "Which instrument, and why" below. Two independent runs agreed to within 0.1 on every
 ratio. Indicative, not stable CI thresholds:
 
@@ -686,7 +686,7 @@ by 2.4× to 8.7×.
 
 **The 47-character URL is the one to watch, and it has been both sides of parity.** It was
 1.12× before the predicted-dispatch change, 0.99× after — that change removes work on every
-input and lost this one to profile-guided block layout anyway, which `docs/next.md` records
+input and lost this one to profile-guided block layout anyway, which `docs/internal/next.md` records
 under "What that change actually measured". Comparing a literal as one span put it back at
 1.01×, and it stands at 1.10× today. A margin of a few per cent on this input is layout as
 often as it is work, and is worth nothing without the `DOTNET_TieredPGO=0` check beside it.
@@ -763,7 +763,7 @@ the 84-character path and nothing else. A difference smaller than an input's own
 is not a difference, whatever the compiled pattern beside it did. The one time this was
 ignored, a 17% "regression" on the IP-host form survived a stable control
 and three repetitions of a second instrument before five repetitions said it had never
-been there (`docs/next.md`, "Three measurements said this was a regression").
+been there (`docs/internal/next.md`, "Three measurements said this was a regression").
 
 **Compare the ratios between runs, not the nanoseconds**, and only for the inputs stable
 enough to compare at all. Two runs back `Regex, compiled` sat at
@@ -781,7 +781,7 @@ carries whichever numbers were most recently refreshed.
 
 The earlier numbers this table used to carry before that — 774 ns for the short URL,
 1.84 us for the long path — were measured before those same optimizations landed.
-`docs/next.md` keeps what each of those was worth, and `Membership.cs` and `Scanning.cs`
+`docs/internal/next.md` keeps what each of those was worth, and `Membership.cs` and `Scanning.cs`
 beside this file keep the experiments that were measured and rejected.
 
 ### Historical per-rule result
@@ -924,7 +924,7 @@ first thing to look at in the generator, which is measured next.
 `--alloc` (`Allocation.cs`) asks the runtime what the thread allocated between two points
 and divides by how many parses happened in between — exact, where `MemoryDiagnoser` gives
 a rounded per-operation figure. 2026-08-25, before and after the deferred-`Expected`
-change (`docs/next.md`):
+change (`docs/internal/next.md`):
 
 | parse | before | after |
 | --- | --: | --: |
@@ -940,7 +940,7 @@ change (`docs/next.md`):
 **A rejected URL was never free.** This file and `docs/status.md` both used to say it
 allocated nothing; it allocated 440 B, and the furthest-failure set was what it spent them
 on. Two changes took that to 88: not rebuilding the set on every step back, and then not
-wording the message until somebody asks for it (`docs/next.md`, "a refusal says nothing
+wording the message until somebody asks for it (`docs/internal/next.md`, "a refusal says nothing
 until it is asked"). What is left is the list that accumulates tied terminals during the
 parse itself, which nothing can defer.
 
@@ -950,7 +950,7 @@ already holds where it began and where it reached.
 
 ## What a rule boundary costs
 
-`CallCost.cs` isolates the two things "one automaton instead of methods" (`next.md`) could
+`CallCost.cs` isolates the two things "one automaton instead of methods" (`docs/internal/next.md`) could
 plausibly cost — going through the arena, and not reusing the parser — measured separately
 so neither is blamed for the other's share. `--job short`, 2026-08-24, first numbers this
 file has carried:
@@ -990,7 +990,7 @@ of the time is recognition and how much is capturing and building the typed resu
 copies of one grammar, same character tests throughout — `WithCaptures` keeps seven named
 parts as strings, `SpanCaptures` keeps the same seven as extents with no string built,
 `NoCaptures` captures nothing at all. `DefaultJob`, 2026-08-25, before and after the
-single-walk materializer (`docs/next.md`):
+single-walk materializer (`docs/internal/next.md`):
 
 | | before | after | allocated |
 | --- | --: | --: | --: |
@@ -1002,7 +1002,7 @@ single-walk materializer (`docs/next.md`):
 control that says so: 90.8 ns to recognize this URL against 219.2 to recognize it and keep
 seven parts. Read it as a ratio rather than a subtraction, since the control moved too:
 the seven parts cost **2.19× recognition before this work and 1.41× after**, over the three
-changes `docs/next.md` records under materialization.
+changes `docs/internal/next.md` records under materialization.
 
 Note what this grammar does *not* show. Making the materializer a method of its own was
 worth 7% on `benchmarks/DotGram.Benchmarks/Urls.cs` and nothing measurable here — the recognizer this
@@ -1014,7 +1014,7 @@ sometimes small enough to miss what it is measuring.
 read: `--hot 5 everypart` runs the real URL grammar on the input that keeps the most, and
 the three materialization changes together took it from 13.44M parses in five seconds to
 17.97M. Medians of five, each measured against its own immediate predecessor rather than
-against a number from earlier in the day — `docs/next.md` has what believing the second
+against a number from earlier in the day — `docs/internal/next.md` has what believing the second
 kind cost.
 
 **The span row does not isolate what strings cost, though it was written to.** After the
@@ -1037,7 +1037,7 @@ takes **0.28-0.55x** of ScriptDom's time (1.8-3.6x faster), 0.42-0.67x with posi
 (`located`, the one to hold against it), and allocates **2.4-13.2 KB a statement against 48.5-138
 KB**. Under `DOTNET_TieredPGO=0` ScriptDom is 60-85% slower and the generated parser 8-20%, so
 the ratio widens to 0.21-0.32x; every figure here is with the default. The rows, the spreads
-and the twin are in [docs/design/stand-2026-09-18b.md](../docs/design/stand-2026-09-18b.md).
+and the twin are in [docs/internal/design/stand-2026-09-18b.md](../docs/internal/design/stand-2026-09-18b.md).
 
 The corpus-wide measurements, both taken on 2026-09-18 at 23:25 on a quiet machine, on logical
 processors 0-15 at high priority on the Windows machine of the time, with the runtime's defaults, on main at `68c60c58` (the silent
@@ -1338,7 +1338,7 @@ and here it costs nothing to use — it pays.
 about them. Both sizes failed in setup: a scanner that matched threw away how far it had
 followed the input, so a record the window cut in half looked like a record that did not
 match, and the stream closed a repetition that had not ended after a hundred and fourteen
-records of a hundred thousand (docs/next.md, "a scanner that matched threw away how far it
+records of a hundred thousand (docs/internal/next.md, "a scanner that matched threw away how far it
 had looked"). Nothing caught it until every benchmark in the repository was run at once.
 
 ## What a streamed parse holds
@@ -1389,4 +1389,4 @@ IL totals include handwritten partial members and nested types; they exclude met
 method headers, exception tables and native JIT code. The JSON-lines output can be kept
 beside throughput and allocation reports for each optimization.
 
-See [the September 15 comparison](../docs/design/parser-comparison-2026-09-15.md#generated-code-size).
+See [the September 15 comparison](../docs/internal/design/parser-comparison-2026-09-15.md#generated-code-size).

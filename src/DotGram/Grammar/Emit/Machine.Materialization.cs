@@ -14,7 +14,7 @@ namespace DotGram.Grammar.Emit;
 /// </summary>
 /// <remarks>
 /// Recognition records and construction runs afterwards, over what was accepted rather
-/// than over everything that was tried (docs/implementation.md §3). So this is a pass of
+/// than over everything that was tried (docs/internal/implementation.md §3). So this is a pass of
 /// its own: it starts when the parse has succeeded, walks the arena the parse left, and
 /// knows about grammars only through the types their rules can produce — one table for
 /// each, so that a value which is a struct is not boxed on its way in.
@@ -27,7 +27,7 @@ sealed partial class Machine
 	/// <remarks>
 	/// Emitted for every grammar that builds anything, not only for one whose guards read a
 	/// value mid-parse. The automaton is one method and the walk is large; leaving it inline
-	/// grew the one method whose size docs/next.md's "Future optimization gate" measured as
+	/// grew the one method whose size docs/internal/next.md's "Future optimization gate" measured as
 	/// the thing still worth moving. Naming it also lets a profiler say what materialization
 	/// costs, which nothing could while it was part of a method that is also the whole
 	/// recognizer.

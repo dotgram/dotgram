@@ -1830,7 +1830,7 @@ internal positional parse Dialect.Sql       as ParseSyntaxSql
 // SQL Server has one parser, and a database's compatibility level gates a small part of
 // what it reads. Measured rather than remembered: `--levels` asks every level from 100 to
 // 170 about every statement of the corpus, and 138 of 7,234 are answered differently
-// (docs/next.md). Those are the conditions written in this grammar and nothing else is — a
+// (docs/internal/next.md). Those are the conditions written in this grammar and nothing else is — a
 // feature that arrived in a later release and reads at every level, `FOR JSON`, `OFFSET`,
 // `IS DISTINCT FROM`, the `json` type, is read by every parser below, as the engine reads it.
 //
@@ -2576,7 +2576,7 @@ AtomicBody : @Build.Statement[]
 // A name the engine does not know is `Msg 195`, an option named twice `Msg 1039`, and a `TEXTSIZE`
 // of `1.5` `Msg 1080`: answers about what was written rather than its shape, which the parser
 // gives and then says nothing of what follows — `NOSUCH = 1, anything at all` is the same answer,
-// which is why the list once looked open after them (docs/next.md, 2026-09-13). They are refused
+// which is why the list once looked open after them (docs/internal/next.md, 2026-09-13). They are refused
 // when the procedure is made, and a closed list is decided by that. A list names its level and its
 // language, in either order: without one it is `Msg 10784`, "must specify a value for the option".
 // `TEXTSIZE = 1e3` is `Msg 102`.
@@ -5868,7 +5868,7 @@ AuditActionOn = "ON"i & SecurableClass? & TSqlQualifiedName & "BY"i & Grantees
 
 // ── An extended-event session ───────────────────────────────────────────────
 //
-// The published blocks, put to the engine some two hundred and sixty times (docs/next.md,
+// The published blocks, put to the engine some two hundred and sixty times (docs/internal/next.md,
 // 2026-09-13). Every list the grammar kept open is closed.
 //
 // A session made has an event (`Msg 102` without one, `156` with only options), and events are
@@ -6264,7 +6264,7 @@ LibraryWith = "WITH"i & '(' & "LANGUAGE"i & '=' & Quoted & ')'
 // every option a value of one kind. They were read as any name and any value, and the engine,
 // put the three objects' options by eight kinds of value — a name, a name in brackets, a string,
 // a national string, a whole number, a decimal, `ON`, a name in two parts — answered 384 lines
-// and 83 more (docs/next.md, 2026-09-13). `DATA_SOURCE = 's3_ds'`, which the reference writes in
+// and 83 more (docs/internal/next.md, 2026-09-13). `DATA_SOURCE = 's3_ds'`, which the reference writes in
 // a section for SQL Server 2022, is `Msg 102`: a data source is named, not quoted.
 //
 // Their bracketed lists take the commas loose in a way no other list does: `WITH (LOCATION =
@@ -6689,7 +6689,7 @@ DropKeyKind  = "ASYMMETRIC"i & "KEY"i | "SYMMETRIC"i & "KEY"i
 DropOnlyKind = "MASTER"i & "KEY"i | "DATABASE"i & "ENCRYPTION"i & "KEY"i
 
 // The rest, by what each takes — which is not what the published blocks say. Put to the engine
-// fifty-eight kinds times seven shapes (docs/next.md, 2026-09-13): `IF EXISTS`, a list, and a
+// fifty-eight kinds times seven shapes (docs/internal/next.md, 2026-09-13): `IF EXISTS`, a list, and a
 // name with a leading dot, two parts, three and an empty one.
 //
 // Eleven take all of it, `DROP TABLE IF EXISTS .x, a..b` among them.

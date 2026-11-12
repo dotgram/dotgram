@@ -5,7 +5,7 @@
 #
 # It tests the commit checked out (HEAD) in a worktree of its own, so the checkout it is started from is not
 # touched and uncommitted changes are not part of the run. Everything it writes is in one scratch folder,
-# a new one under $DOTGRAM_GATES_DIR or $TMPDIR, deleted at the end (--keep keeps it, and so does any failure). docs/development.md,
+# a new one under $DOTGRAM_GATES_DIR or $TMPDIR, deleted at the end (--keep keeps it, and so does any failure). docs/internal/development.md,
 # "The tool's release gates", says what each gate holds and what to do when one fails.
 #
 #   G2   the generator hosted by hand over the compiler arguments of a real build (diagnostic: it isolates the

@@ -2,7 +2,7 @@
 
 ## Coding conventions
 
-Read and follow [docs/coding-conventions.md](docs/coding-conventions.md) before
+Read and follow [docs/internal/coding-conventions.md](docs/internal/coding-conventions.md) before
 writing or editing code. It defines file formatting, C# style, naming and code
 locality, including the distinction between handwritten and emitted code.
 Keep the detailed rules there; this file covers project workflow and architecture.
@@ -24,9 +24,9 @@ repository, and branching only adds a merge step.
 ## Repository layout
 
 ```text
-docs/
-	README.md             the index: what authority each document carries, and when it
-	                      is expected to be out of date. Read it before believing one
+docs/                 what a user reads, published as the site at dotgram.github.io/dotgram
+	README.md             the index of the site's documents, and which of them is the specification
+	docfx.json, toc.yml   the site: docfx, with the pages in the order of toc.yml (docs/internal/ is not in it)
 	syntax.md             the language: notation and its bond with C#
 	feeds.md              a guide: feeds in pipes, CSV and fixed width, and one loaded into a
 	                      database; every example run by FeedsPageTests
@@ -34,17 +34,22 @@ docs/
 	                      exit code
 	status.md             what this version does, held against that specification
 	diagnostics.md        every message the generator reports, by identifier
-	implementation.md     engine plan
-	development.md        standing process: build, test, the snapshot baseline, measuring,
-	                      and the Linux container
 	visual-studio.md      the extension, and the StringSyntax annotations
 	ast.md                the tree the SQL parsers build, and where each node comes from
 	carriers.md           every grammar's carrier and what holds it on the tape; written
 	                      by --carriers, never edited
-	coverage.md           how much of Microsoft's T-SQL reference the T-SQL grammar reads;
-	                      written by --coverage, never edited
-	next.md               the engineering diary, authoritative about nothing present
-	design/               proposals and plans; no statement here is about the compiler
+	internal/             for people working on the repository, not on the site
+		README.md             what authority each of these carries, and when it is expected
+		                      to be out of date. Read it before believing one
+		implementation.md     engine plan
+		coding-conventions.md the formatting, C# style and naming rules
+		development.md        standing process: build, test, the snapshot baseline, measuring,
+		                      and the Linux container
+		coverage.md           how much of Microsoft's T-SQL reference the T-SQL grammar reads;
+		                      written by --coverage, never edited
+		next.md               the engineering diary, authoritative about nothing present
+		design/               proposals and plans; no statement here is about the compiler
+		handoffs/             continuation snapshots
 src/
 	DotGram/              the generator: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn
@@ -83,7 +88,7 @@ src/
 		                  Specification/ holds the ISO BNF
 		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's
 		                  published syntax. Each dialect is its own grammar, meeting the
-		                  others only in the tree (docs/design/sql-parsers.md)
+		                  others only in the tree (docs/internal/design/sql-parsers.md)
 	DotGram.Grammar.Guard/ Grammar/ compiled alone, with no Roslyn in reach; referenced
 	                      by nothing: building it is the assertion
 	DotGram.Language.Guard/ Grammar/ and Language/ compiled with Roslyn's Workspaces and

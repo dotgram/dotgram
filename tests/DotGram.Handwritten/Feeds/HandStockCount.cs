@@ -14,7 +14,7 @@ namespace DotGram.Handwritten.Feeds;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It reads exactly what the grammar reads (docs/design/architecture-decisions.md, D1): the
+/// It reads exactly what the grammar reads (docs/internal/design/architecture-decisions.md, D1): the
 /// same counts, the same lines taken for unreadable, and a refusal at the same position. The
 /// grammar's <c>recover</c> is line by line — at each line the closing line gets the first
 /// word, then an item, and a line that is neither is kept as unreadable — so this reads a line

@@ -152,7 +152,7 @@ sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot
 	/// its own, and the rules in there were written against whatever contract *that* grammar
 	/// declared — which the caller's object satisfies by being assignable to it, and which
 	/// the including grammar may strengthen for its own rules without changing what the
-	/// included ones were compiled against (docs/next.md, "Decided: `context` is a
+	/// included ones were compiled against (docs/internal/next.md, "Decided: `context` is a
 	/// contract"). Null anywhere no grammar declared one, including in the global namespace
 	/// of a grammar that declares none at all.
 	/// </remarks>
@@ -165,7 +165,7 @@ sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot
 	/// Recorded per namespace the same way <see cref="Context"/> is, and reconciled the
 	/// opposite way: a composed grammar has one mark type, not one per grammar, so what this
 	/// holds is a claim to be checked against the rest rather than a contract of its own
-	/// (docs/next.md, "Decided: `context` is a contract").
+	/// (docs/internal/next.md, "Decided: `context` is a contract").
 	/// </remarks>
 	public TypeRef? State { get; internal set; }
 

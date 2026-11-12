@@ -15,7 +15,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// A `context : @T` is a contract, not a variable (docs/next.md, "Decided: `context` is
+	/// A `context : @T` is a contract, not a variable (docs/internal/next.md, "Decided: `context` is
 	/// a contract"). The rules a grammar wrote are bound to the type that grammar declared,
 	/// and a grammar including it may need more of the same object — so one object flows
 	/// down and the parts of a composed grammar legitimately see it through different static

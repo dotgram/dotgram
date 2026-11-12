@@ -20,7 +20,7 @@ namespace DotGram.Grammar.Emit;
 /// recovers, climbs or streams; what the grammar's other machines need is theirs. This
 /// method mutates <c>_roots</c> and re-runs layout for its own entry alone, which would corrupt
 /// <see cref="Machine.RenderEngine"/>'s output if the two were ever asked of the same
-/// instance. See docs/next.md, "Future optimization gate" — this is the lever it names.
+/// instance. See docs/internal/next.md, "Future optimization gate" — this is the lever it names.
 /// </remarks>
 sealed partial class Machine
 {

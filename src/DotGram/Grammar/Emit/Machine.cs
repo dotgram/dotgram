@@ -109,7 +109,7 @@ sealed partial class Machine
 	}
 
 	// What the reader asks of its text, spelled for the text it holds: a span, as always, or a
-	// buffer that reads on as it is asked (docs/design/fix-reader-buffered-2026-09-18.md). Over a
+	// buffer that reads on as it is asked (docs/internal/design/fix-reader-buffered-2026-09-18.md). Over a
 	// span each is exactly what the reader wrote before it asked through these.
 
 	/// <summary>Whether <paramref name="position"/> is past the end of the input; where a window feeds the
@@ -1455,7 +1455,7 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Whether this machine reads token kinds rather than characters
-	/// (docs/design/lexical-adt-design.md).
+	/// (docs/internal/design/lexical-adt-design.md).
 	/// </summary>
 	/// <remarks>
 	/// It changes one thing and only one: a position is a token and not a character, so
@@ -2640,7 +2640,7 @@ sealed partial class Machine
 						{
 							// A call rather than the walk written out here, and the same call
 							// either way. What it buys is the size of the method around it:
-							// this one is the whole automaton, and docs/next.md's "Future
+							// this one is the whole automaton, and docs/internal/next.md's "Future
 							// optimization gate" measured that its size is the one thing
 							// still worth moving. It also puts a name on the walk, which is
 							// the difference between a profile that can say what
@@ -6062,7 +6062,7 @@ sealed partial class Machine
 					// through the link rather than past it. Skipping it would drop a
 					// failure the parse reports, so `expected` would change even
 					// though what is accepted would not. Left, with the trap named
-					// (docs/next.md).
+					// (docs/internal/next.md).
 					if (asked is { } begins)
 						writer.Line($"if (!({RangesTest(begins.Ranges, Tabulate)})) goto {Label(writer, Skipped(begins, target))};");
 
@@ -6270,7 +6270,7 @@ sealed partial class Machine
 	/// continuation is a block the profile-guided layout can put anywhere. Measured with one:
 	/// four inputs faster and the fifth 9% slower, and the fifth turned into a 6% gain the
 	/// moment dynamic PGO was switched off — an unmistakeable signature of layout rather than
-	/// of work (docs/next.md).
+	/// of work (docs/internal/next.md).
 	/// </para>
 	/// <para>
 	/// The two tests are compared as text on purpose. Identical text is the whole of what has

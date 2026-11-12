@@ -232,7 +232,7 @@ RowValueConstructorElement : @Expression
 // the additive and multiplicative levels on the way down whether an operator of that
 // strength was there or not. Measured on an arithmetic language written both ways
 // (benchmarks, `--ladders`), climbing is a fifth off nested input and eight per cent
-// onto flat; this tower is deeper than that one, and the numbers are in docs/next.md.
+// onto flat; this tower is deeper than that one, and the numbers are in docs/internal/next.md.
 //
 // The strengths are the standard's own precedence and nothing else: additive and
 // concatenation bind loosest and to the left, multiplicative tighter and to the left, a

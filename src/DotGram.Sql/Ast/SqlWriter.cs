@@ -13,7 +13,7 @@ namespace DotGram.Sql.Ast;
 /// <summary>The SQL:2023 tree back as SQL.</summary>
 /// <remarks>
 /// <para>
-/// <b>What it is for.</b> The tree is lossless (docs/design/sql-ast.md): whatever a parser read it keeps,
+/// <b>What it is for.</b> The tree is lossless (docs/internal/design/sql-ast.md): whatever a parser read it keeps,
 /// and so whatever it keeps can be written again. A parser that answers yes and builds something else is
 /// found by writing its tree, reading the text written, and holding the two trees to each other —
 /// `benchmarks --standard "~production" file` for the standard's grammar, and `--roundtrip` for T-SQL's

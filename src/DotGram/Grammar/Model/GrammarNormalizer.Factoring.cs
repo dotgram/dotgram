@@ -76,7 +76,7 @@ sealed partial class GrammarNormalizer
 			}
 
 			// The alternatives that begin alike, gathered into runs: all of them where all do,
-			// and otherwise every run of them (Q7.1's C, docs/design/shared-beginnings-over-kinds-
+			// and otherwise every run of them (Q7.1's C, docs/internal/design/shared-beginnings-over-kinds-
 			// 2026-09-18.md §4). A run keeps the order of its members and takes the place of its
 			// first. An alternative between two members that does not join them is passed over
 			// only where it cannot begin as they do and cannot match nothing — then no input

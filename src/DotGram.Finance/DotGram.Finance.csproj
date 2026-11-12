@@ -30,7 +30,7 @@
 
 		<!-- The generator's own output, analysed for dead or redundant emitted code
 		     (tools/DotGram.GeneratedAnalyzers), never packed, loaded only under
-		     DotGramAnalyzeGenerated=true (docs/development.md). -->
+		     DotGramAnalyzeGenerated=true (docs/internal/development.md). -->
 		<ProjectReference Include="../../tools/DotGram.GeneratedAnalyzers/DotGram.GeneratedAnalyzers.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false"
 		                  Condition="'$(DotGramAnalyzeGenerated)' == 'true'" />

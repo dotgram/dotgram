@@ -1088,7 +1088,7 @@ static partial class Build
 		/// <remarks>
 		/// <para>
 		/// Asked of the engine by every pair of twenty-four things a column may be told, by twenty-seven
-		/// ways of writing its type, and in each place a column is declared (docs/next.md, 2026-09-13).
+		/// ways of writing its type, and in each place a column is declared (docs/internal/next.md, 2026-09-13).
 		/// A tail has a front, which is the column's storage, and then a free list.
 		/// </para>
 		/// <para>

@@ -17,7 +17,7 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// A streamed parse holds what the grammar cannot yet let go of, and not what it has read
-/// (docs/design/architecture-decisions.md, D5).
+/// (docs/internal/design/architecture-decisions.md, D5).
 /// </summary>
 /// <remarks>
 /// <para>

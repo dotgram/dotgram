@@ -1,0 +1,53 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": [
+            ".build/bin/DotGram.Sql/release_net10.0/DotGram.Sql.dll",
+            ".build/bin/DotGram.Web/release_net10.0/DotGram.Web.dll",
+            ".build/bin/DotGram.Finance/release_net10.0/DotGram.Finance.dll",
+            ".build/bin/DotGram.ExpressionLanguage/release_net10.0/DotGram.ExpressionLanguage.dll"
+          ]
+        }
+      ],
+      "dest": "api",
+      "includePrivateMembers": false,
+      "disableGitFeatures": true,
+      "disableDefaultFilter": false,
+      "noRestore": true,
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [ "**/*.md", "**/toc.yml", "api/**.yml" ],
+        "exclude": [ "_site/**", "obj/**", "internal/**", "README.md" ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [ "**/*.png", "**/*.svg", "**/*.jpg" ],
+        "exclude": [ "_site/**", "obj/**", "internal/**" ]
+      }
+    ],
+    "output": "_site",
+    "globalMetadata": {
+      "_appTitle": ".Gram",
+      "_appName": ".Gram",
+      "_enableSearch": true,
+      "_gitContribute": {
+        "repo": "https://github.com/dotgram/dotgram",
+        "branch": "main",
+        "path": "docs"
+      },
+      "pdf": false
+    },
+    "template": [ "default", "modern" ],
+    "markdownEngineName": "markdig",
+    "disableGitFeatures": true
+  }
+}

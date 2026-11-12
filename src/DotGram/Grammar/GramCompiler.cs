@@ -103,7 +103,7 @@ static class GramCompiler
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
 		// reported, and only for the declarations that actually broke — a rule that is
 		// wrong should still be told about when the one above it is unreadable
-		// (implementation.md §0).
+		// (docs/internal/implementation.md §0).
 		var broken = Broken(parsed);
 
 		foreach (var diagnostic in model.Diagnostics)
@@ -170,7 +170,7 @@ static class GramCompiler
 		}
 
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule
-		// should still report what is wrong with the other twelve (implementation.md §0).
+		// should still report what is wrong with the other twelve (docs/internal/implementation.md §0).
 		// Only emission is skipped, because code built from a broken grammar would bury
 		// the real message under compiler errors in the consumer's build.
 		// The grammar cut in two, where the host asked and the grammar allows it. Asked

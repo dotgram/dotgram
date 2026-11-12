@@ -25,7 +25,7 @@ using State      = ExpressionParser.State;
 /// shaped by how the generator happens to work.
 /// </para>
 /// <para>
-/// It reads exactly the language the grammar does (docs/design/architecture-decisions.md, D1):
+/// It reads exactly the language the grammar does (docs/internal/design/architecture-decisions.md, D1):
 /// the same publications, the same accepted and refused input, the same trees, and a refusal
 /// at the same position. <c>ExpressionHandTests</c> holds it to that on every run of the suite.
 /// </para>

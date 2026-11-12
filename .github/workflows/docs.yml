@@ -1,0 +1,95 @@
+name: docs
+
+# The documentation site: docs/ built with docfx and, from main, published to GitHub Pages at
+# https://dotgram.github.io/dotgram/. A pull request builds the site and deploys nothing; the build
+# fails on any warning (-WarningsAsErrors), so a broken link or a missing cross-reference is a red run.
+#
+# The site is the latest main only. To publish versions as well, build a tag into its own folder of
+# the artifact (docfx build -o _site/<tag>) beside the latest, and have the site's index list them;
+# Pages serves whatever one artifact holds, so versions are paths of one deployment, not several.
+#
+# docs/internal/ is for contributors and is not part of the site (docs/docfx.json excludes it).
+# The API reference is read from the built assemblies of the four runtime libraries and their XML
+# documentation, which is why those projects are built here and why their folders trigger a run.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/DotGram.Sql/**'
+      - 'src/DotGram.Web/**'
+      - 'src/DotGram.Finance/**'
+      - 'src/DotGram.ExpressionLanguage/**'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'src/DotGram.Sql/**'
+      - 'src/DotGram.Web/**'
+      - 'src/DotGram.Finance/**'
+      - 'src/DotGram.ExpressionLanguage/**'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # docfx is a pinned dotnet tool (.config/dotnet-tools.json): changing its version is a commit.
+      - run: dotnet tool restore
+
+      # The four libraries the API reference documents, as net10.0 Release builds: docs/docfx.json
+      # names their assemblies under .build/bin.
+      - name: Build the libraries
+        run: |
+          for project in DotGram.Sql DotGram.Web DotGram.Finance DotGram.ExpressionLanguage; do
+            dotnet build "src/$project/$project.csproj" --configuration Release --framework net10.0 -warnaserror
+          done
+
+      - name: API metadata
+        working-directory: docs
+        run: dotnet docfx metadata docfx.json --warningsAsErrors
+
+      - name: Build the site
+        working-directory: docs
+        run: dotnet docfx build docfx.json --warningsAsErrors
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: docs/_site
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

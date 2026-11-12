@@ -37,7 +37,7 @@ sealed class GrammarBinder
 	/// It is a thing, and the reasoning confused two of them: one object is handed to the
 	/// whole parse, and the *type it is seen through* belongs to the grammar that wrote the
 	/// code — so a grammar included in another declares its own contract and its rules keep
-	/// it (docs/next.md, "Decided: `context` is a contract"). The number is left unused
+	/// it (docs/internal/next.md, "Decided: `context` is a contract"). The number is left unused
 	/// rather than given to something else: an id that changes meaning is worse than a gap,
 	/// because a suppression written against the old one would silently apply to the new.
 	/// </remarks>
@@ -435,7 +435,7 @@ sealed class GrammarBinder
 				// The contract the rules around it were written against. One object is handed
 				// to the whole parse — that has not changed — but *which type that object is
 				// seen through* belongs to the grammar that wrote the code, so a grammar
-				// included in another declares its own and its rules keep it (docs/next.md,
+				// included in another declares its own and its rules keep it (docs/internal/next.md,
 				// "Decided: `context` is a contract"). At the root it is also the effective
 				// type, which is what a publication takes and what a caller supplies.
 				case Decl.Context context:

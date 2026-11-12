@@ -2582,7 +2582,7 @@ public sealed class GeneratorDriverTests
 		// ever constructed — is never reached. Inner has nothing before it left to
 		// backtrack into the moment it returns, which once made it eligible for a since-
 		// removed immediate-construction optimization; Built() must still never run for a
-		// derivation whose surrounding parse does not succeed (docs/implementation.md §3).
+		// derivation whose surrounding parse does not succeed (docs/internal/implementation.md §3).
 		Assert.Throws<TargetInvocationException>(
 			() => type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
 		Assert.Equal(0, type.GetField("Calls")!.GetValue(null));
@@ -3523,7 +3523,7 @@ public sealed class GeneratorDriverTests
 
 	/// <summary>
 	/// Prefix tables are the generator's own choice, made for every reading: nothing in the
-	/// attribute turns them off (Q3, docs/design/architecture-decisions.md).
+	/// attribute turns them off (Q3, docs/internal/design/architecture-decisions.md).
 	/// </summary>
 	[Fact]
 	public void Prefix_tables_are_built_for_every_reading_and_are_not_an_option()

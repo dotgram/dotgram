@@ -13,7 +13,7 @@ using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
 /// How <c>SqlStandard.gram</c> makes the SQL:2023 tree out of what it read: the words and lists a
-/// rule captured, turned into nodes (docs/design/sql-ast.md).
+/// rule captured, turned into nodes (docs/internal/design/sql-ast.md).
 /// </summary>
 static class Nodes
 {

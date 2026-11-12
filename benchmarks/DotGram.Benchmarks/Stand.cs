@@ -22,7 +22,7 @@ namespace DotGram.Benchmarks;
 /// <summary>
 /// Where every generated parser stands against the hand-written one it is measured by, in one
 /// run: time and allocation a parse, the first call in a fresh process, what a streamed parse
-/// holds, and what the generator took to write each parser (docs/design/architecture-decisions.md,
+/// holds, and what the generator took to write each parser (docs/internal/design/architecture-decisions.md,
 /// Q7.4 and Q7.6).
 /// </summary>
 /// <remarks>
@@ -92,7 +92,7 @@ static partial class Stand
 	// to clearing every row but 4x the run, over budget) and this one, which keeps the run under
 	// 2x. Two rows resisted every Rounds/SampleMs combination on their own: sql/arithmetic and
 	// el/interpolation, both still mid-JIT-tier-promotion at the fixed three-sample warmup this
-	// used to be — see WarmUntilStable, which fixed most of it (see docs/design/stand-2026-09-18.md,
+	// used to be — see WarmUntilStable, which fixed most of it (see docs/internal/design/stand-2026-09-18.md,
 	// "sql/arithmetic: open" for what tuning alone could not).
 	const int Rounds   = 8;
 	const int SampleMs = 40;
@@ -1877,7 +1877,7 @@ static partial class Stand
 			// (The FIX rows of this family are skipped inside PairedSweeps itself where either side has no FixParser.)
 			.. PairedSweeps(before, after),
 
-			// The published forms no row read (docs/design/stand-coverage-2026-09-19.md): positional and window, the token scanner, FixMessages'
+			// The published forms no row read (docs/internal/design/stand-coverage-2026-09-19.md): positional and window, the token scanner, FixMessages'
 			// streams, readers and lazy reading, a span, the streaming feed.
 			// (PairedForms itself skips the fixmsg and fix/Order.span rows where either side has no FixParser.)
 			.. PairedForms(before, after),

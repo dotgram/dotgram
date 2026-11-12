@@ -147,7 +147,7 @@ jobs:
 
       - run: dotnet restore DotGram.slnx
 
-      # And with the generator's cache verified (docs/development.md): a parser taken from what an
+      # And with the generator's cache verified (docs/internal/development.md): a parser taken from what an
       # earlier compilation in the compiler server kept is compiled again and held to the kept one, and
       # a difference, which would be an input of the compile the cache's key does not hold, fails the
       # build with GRAM0001.
@@ -186,7 +186,7 @@ jobs:
         run: dotnet test DotGram.slnx --no-build --configuration Linux
 
   # The generator's own output, analysed permanently for dead or redundant emitted code
-  # (docs/development.md, "Analysing the generator's own output"). Two halves:
+  # (docs/internal/development.md, "Analysing the generator's own output"). Two halves:
   #
   # - tools/DotGram.GeneratedAnalyzers, our own single-walk analyzer (DGA001 a local copied
   #   into another and never read again, DGA003 a table spelled as code, DGA004 a report-only

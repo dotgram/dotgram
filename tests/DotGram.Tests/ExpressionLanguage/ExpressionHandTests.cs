@@ -11,7 +11,7 @@ namespace DotGram.Tests.ExpressionLanguage;
 
 /// <summary>
 /// <see cref="HandExpression"/> held to <see cref="ExpressionParser"/>: the same accepted and
-/// refused text, the same tree, a refusal at the same place (docs/design/architecture-decisions.md,
+/// refused text, the same tree, a refusal at the same place (docs/internal/design/architecture-decisions.md,
 /// D1 and D8).
 /// </summary>
 /// <remarks>

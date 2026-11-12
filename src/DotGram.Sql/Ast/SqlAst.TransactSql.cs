@@ -2,7 +2,7 @@
 
 namespace DotGram.Sql.Ast;
 
-// T-SQL's own nodes, in the standard's families and beside them (docs/design/sql-tsql-tree.md).
+// T-SQL's own nodes, in the standard's families and beside them (docs/internal/design/sql-tsql-tree.md).
 //
 // Every record here carries `// T-SQL:` and the page of Microsoft's reference it comes from (P1),
 // spelled as `TransactSql/Specification/syntax.md` spells the heading, so a reader can find it by

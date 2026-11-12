@@ -820,7 +820,7 @@ sealed class RecognitionGraph(
 	/// whose syntax did not come out can make one of any rule below it: what called it is
 	/// the rule that broke. Held apart so the compiler can raise them where it already
 	/// raises what §6.3 and the first sets have to say — after everything else, and only
-	/// where nothing else went wrong (implementation.md §0).
+	/// where nothing else went wrong (docs/internal/implementation.md §0).
 	/// </remarks>
 	public IReadOnlyList<GramDiagnostic> WhenSound { get; init; } = [];
 
@@ -1052,7 +1052,7 @@ sealed class RecognitionGraph(
 	/// through, which is whatever the grammar that declared the rule named. They differ only
 	/// where one grammar includes another: the included rules keep the contract they were
 	/// compiled against, and the including grammar may strengthen the effective type without
-	/// changing what they mean (docs/next.md, "Decided: `context` is a contract").
+	/// changing what they mean (docs/internal/next.md, "Decided: `context` is a contract").
 	/// </para>
 	/// <para>
 	/// Derived from where the rule was declared rather than recorded against the rule, which

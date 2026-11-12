@@ -1251,7 +1251,7 @@ sealed partial class Machine
 			// at `18.` matched `18`, and the caller's failure on the `.` that followed
 			// looked like an ordinary mismatch one short of the end rather than what it
 			// was — a record the window had cut in half. A stream then closed a repetition
-			// that had not ended and refused the input at the next thing (docs/next.md).
+			// that had not ended and refused the input at the next thing (docs/internal/next.md).
 			//
 			// Only where something streams, because only a stream can do anything with the
 			// answer, and asking costs a store on a path that is otherwise free.

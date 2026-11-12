@@ -1,5 +1,5 @@
 ﻿// The CI job's own last step -- a count ratchet, not a fixed enforced/report-only split
-// (docs/development.md). Reads one or more SARIF errorlogs (one per package, named
+// (docs/internal/development.md). Reads one or more SARIF errorlogs (one per package, named
 // "<Package>.sarif" by the caller) against the checked-in baseline, tools/generated-analysis/
 // counts.txt: one line per (package, rule) holding the ceiling "check" holds that pair to.
 // Every rule this job tracks is ratcheted the same way; see trackedRules below for why these
@@ -250,7 +250,7 @@ static void WriteCounts(string path, string[] packages, string[] rules, Dictiona
 {
 	using var writer = new StreamWriter(path, false);
 	writer.NewLine = "\r\n";
-	writer.WriteLine("# The generated-code count ratchet (docs/development.md). One line per (package, rule):");
+	writer.WriteLine("# The generated-code count ratchet (docs/internal/development.md). One line per (package, rule):");
 	writer.WriteLine("# the ceiling SarifGate's 'check' mode holds that pair to. Written by:");
 	writer.WriteLine("#   dotnet run --project tools/generated-analysis/SarifGate -- update tools/generated-analysis/counts.txt <sarif...>");
 	writer.WriteLine("# Numbers may only go down across commits -- 'update' itself refuses to write an increase");

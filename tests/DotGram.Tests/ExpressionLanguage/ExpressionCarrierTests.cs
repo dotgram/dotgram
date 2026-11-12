@@ -50,7 +50,7 @@ public sealed class ExpressionCarrierTests
 		"(double d) => (int)d + 1",
 
 		// A name that is a type and not a variable — read speculatively as a variable
-		// first, which is the shape that used to need the tape (docs/next.md).
+		// first, which is the shape that used to need the tape (docs/internal/next.md).
 		"using System; (int x) => Math.Max(x, 1)",
 		"(int x) => System.Math.Max(x, 1)",
 

@@ -13,7 +13,7 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// A repetition marked <c>recover</c> read by methods (docs/design/fix-reader-2026-09-18.md §8,
+/// A repetition marked <c>recover</c> read by methods (docs/internal/design/fix-reader-2026-09-18.md §8,
 /// the scenario of a repetition whose only way back is <c>recover</c>), held to the engine: the
 /// same answer on every input, the values the <c>recover</c> factories built included.
 /// </summary>

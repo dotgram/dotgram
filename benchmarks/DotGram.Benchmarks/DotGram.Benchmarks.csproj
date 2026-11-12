@@ -83,7 +83,7 @@
 		<!-- The SQL grammars once more, each on the tape, the carrier the package no longer ships them on
 		     (TapeSql.cs: SQL-92; TapeSqlStandard.cs: SQL:2023): the same files DotGram.Sql hosts, linked rather
 		     than copied so that they cannot drift, read by the generator here under the other carrier
-		     (docs/next.md, the redesign). -->
+		     (docs/internal/next.md, the redesign). -->
 		<AdditionalFiles Include="..\..\src\DotGram.Sql\Standard\SqlStandard92.gram" Link="SqlStandard92.gram" />
 		<AdditionalFiles Include="..\..\src\DotGram.Sql\Standard\SqlStandard.gram" Link="SqlStandard.gram" />
 	</ItemGroup>

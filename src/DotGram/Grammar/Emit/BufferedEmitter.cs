@@ -199,7 +199,7 @@ static partial class CSharpEmitter
 			}
 
 			// Read by methods where the string form is, over the buffer instead of a span
-			// (docs/design/fix-reader-buffered-2026-09-18.md): the same reader, asking the buffer
+			// (docs/internal/design/fix-reader-buffered-2026-09-18.md): the same reader, asking the buffer
 			// through the machine's helpers. Only there, so that the two forms of one publication
 			// are one rendering and answer alike to the character — a refusal inside a literal is
 			// placed where the literal began by the reader and where it broke off by the engine.

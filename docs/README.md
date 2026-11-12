@@ -1,130 +1,55 @@
-# The documents, and what each one is allowed to say
+# Documentation
 
-There is a lot written down here, which is worth having and is also a hazard: two
-documents can disagree, and a reader has no way to tell which one is wrong. So every
-document has a role, and the role says what authority it carries and when it is expected
-to be out of date.
+The published site is https://dotgram.github.io/dotgram/, built from these files with docfx
+(`docs/docfx.json`; the table of contents is `docs/toc.yml`). Build it locally with
+`dotnet tool restore`, then `dotnet docfx docs/docfx.json --serve`.
 
-Read this before believing any of them.
+This folder holds what a user of .Gram reads. Everything aimed at people working on the
+repository (the engine plan, the build and test process, coding conventions, design
+proposals, the engineering diary, handoffs) is under [`internal/`](internal/README.md), which is
+not part of the site, and which says what authority each of its documents carries.
 
-## Normative — what the language *is*
+There are three kinds of document here, and they say different things about the compiler.
+
+## The language
 
 | Document | |
 | --- | --- |
 | [`syntax.md`](syntax.md) | The specification: the notation and its bond with C#. |
 
-Written in the **present tense whether or not the compiler has caught up**. That is
-deliberate and it is the one thing to know about it: a construct described here may not
-build. It is the language's definition, not a report on the implementation — which is
-what the next document is for.
+Written in the **present tense whether or not the compiler has caught up**. A construct
+described here may not build: it is the language's definition, not a report on the
+implementation, which is what the next group is for.
 
-## Current — what this version actually does
+## What this version does
 
 | Document | |
 | --- | --- |
 | [`status.md`](status.md) | The implementation held against the specification, rule by rule, with what is refused and why. |
 | [`diagnostics.md`](diagnostics.md) | Every message the generator reports, by identifier. |
 | [`ast.md`](ast.md) | The tree the SQL parsers build, and the specification each node is named from. |
-| [`coverage.md`](coverage.md) | How much of Microsoft's T-SQL reference the T-SQL grammar reads, page by page, as SQL Server answers every example of it at every level. |
 | [`carriers.md`](carriers.md) | Which carrier `Auto` took for every grammar of the solution, and for one carried deferred, the gate that kept it and each rule held there with its cause. |
 
-These describe what is true today. A disagreement between one of these and `syntax.md`
-is not a contradiction — it is the gap the pair exists to measure. A disagreement between
-one of these and the code is a defect, and `ast.md` is held to that by a test that reads
-it.
+These describe what is true today. A disagreement between one of these and `syntax.md` is
+not a contradiction but the gap the pair exists to measure; a disagreement between one of
+these and the code is a defect, and `ast.md` is held to that by a test that reads it.
+`carriers.md` is written by `--carriers`, never edited, and is a run behind main by
+construction.
 
-`coverage.md` is a measurement rather than a text: `--coverage` writes it, nobody edits it,
-and it is out of date from the first change to the grammar until it is run again.
-
-`carriers.md` is one too: `--carriers` writes it from the reports a build with
-`-p:DotGramReportGeneration=full` leaves, nobody edits it, and it is a run behind main by
-construction. A change meant to move a grammar off the tape is measured by its difference.
-
-## Guides — worked examples, run as written
+## Guides, run as written
 
 | Document | |
 | --- | --- |
 | [`feeds.md`](feeds.md) | Feeds: trading files in pipes, CSV and fixed width with a header and a trailer, files kept by hand, and a feed of ten million records bulk-loaded into a database. |
 | [`cli.md`](cli.md) | `dotnet dotgram`: the generator run outside the build, every command, option and exit code, and what the files it writes promise. |
+| [`visual-studio.md`](visual-studio.md) | The Visual Studio extension, and the `StringSyntax` annotations. |
 
 Every example of a guide is compiled and run by a test, its output held to the page's, so a
 guide that disagrees with the code is a failing test rather than a stale page. The figures it
-quotes from a measurement are the exception: they are what one run on one machine answered,
-dated by the commit that wrote them.
-
-## Repository conventions
-
-| Document | |
-| --- | --- |
-| [`coding-conventions.md`](coding-conventions.md) | Required file formatting, C# layout, naming and code-locality conventions. The canonical source of coding style. |
-
-## How it is built
-
-| Document | |
-| --- | --- |
-| [`development.md`](development.md) | Standing process: build, test, the snapshot baseline, measuring, and the Linux container. |
-| [`implementation.md`](implementation.md) | The engine: how the notation is executed. A plan as much as a description, and the one most likely to lag. |
-| [`visual-studio.md`](visual-studio.md) | The extension, and the `StringSyntax` annotations. |
-| [`../src/DotGram/Language/README.md`](../src/DotGram/Language/README.md) | The shared language core the generator and the editors compile: who compiles which part, what it may reference, and the guards and tests that hold that. |
-
-## Design — proposals, not descriptions
-
-| Document | |
-| --- | --- |
-| [`design/lexical-adt-design.md`](design/lexical-adt-design.md) | Separating the lexical and syntactic machines. |
-| [`design/finance-fix44.md`](design/finance-fix44.md) | FIX 4.4 architecture assessment, definition maintenance and verified coverage matrix. |
-| [`design/sql-parsers.md`](design/sql-parsers.md) | The SQL parsers: independent grammars meeting in one tree, the standard's BNF as the reference, and the work that follows — a BNF-to-`.gram` converter among it. |
-| [`design/sql-ast.md`](design/sql-ast.md) | The requirements the SQL tree is held to — lossless, flat, composed rather than inherited, validation outside it — and how the SQL:2023 blank is adapted to them. |
-| [`design/sql-tsql-tree.md`](design/sql-tsql-tree.md) | T-SQL moved onto the SQL:2023 tree: what is decided, and a numbered proposal for the rest. |
-| [`design/sql-tsql-tree-inventory.md`](design/sql-tsql-tree-inventory.md) | Every node of the old SQL tree held against the SQL:2023 tree, the reference the proposal answers to. |
-| [`design/visual-studio-tooling-plan.md`](design/visual-studio-tooling-plan.md) | The living checklist for the extension. |
-| [`design/dsl-tooling-design.md`](design/dsl-tooling-design.md) | A plan for tooling an arbitrary DSL. |
-| [`design/DotGram_Tooling_Agent_Handoff.md`](design/DotGram_Tooling_Agent_Handoff.md) | A separate future project: IDE and LSP tooling. Not a description of anything that exists. |
-| [`design/architecture-decisions.md`](design/architecture-decisions.md) | The decisions the architect has collected, each with the measurement that settled it, the sessions' rules of work among them. |
-| [`design/open-questions.md`](design/open-questions.md) | The critic's objections (D21): what each one argues with, what it rests on, and the answer it was given. Open until answered. |
-| [`design/fix-reader-2026-09-18.md`](design/fix-reader-2026-09-18.md) | What the generated FIX parser would have to be to read like the hand-written one, and what stands in the way. The engine's own comments cite it. |
-| [`design/fix-reader-buffered-2026-09-18.md`](design/fix-reader-buffered-2026-09-18.md) | The same reading over a buffer: releasing a window as the parse commits. |
-| [`design/carrier-per-construction-2026-09-19.md`](design/carrier-per-construction-2026-09-19.md) | Whether one machine could build some of its constructions in place and leave the rest to the tape, and what the measurement said. |
-| [`design/normalizer-passes-2026-09-18.md`](design/normalizer-passes-2026-09-18.md), [`design/normalizer-optimize-2026-09-18.md`](design/normalizer-optimize-2026-09-18.md) | The normalizer split into building the graph and optimizing it, so the optimizing part may run again. |
-| [`design/shared-beginnings-over-kinds-2026-09-18.md`](design/shared-beginnings-over-kinds-2026-09-18.md) | What holds SQL:2023's rules on the tape over kinds, and what removes each kind of cause. |
-| [`design/sql-over-kinds.md`](design/sql-over-kinds.md) | Reading SQL over tokens rather than characters. |
-| [`design/reader-input-forms.md`](design/reader-input-forms.md) | The input forms the generator compiles for. |
-| [`design/padded-run-give-back-2026-09-29.md`](design/padded-run-give-back-2026-09-29.md) | A run up to a padded delimiter followed by padding of its own: why it is read in turns, why the engine and a one-way tape do not cure it, and the proof that settles it. |
-| [`design/test-audit-2026-09-18.md`](design/test-audit-2026-09-18.md) | What each test proves, and what was removed for proving it twice. |
-
-Nothing here is a statement about the current compiler. Where one of them has been
-built, `status.md` is what says so.
-
-The rest of `design/` is dated by name — `stand-2026-09-19.md`, `fix-slope-2026-09-18.md` and so
-on. Each is the record of one experiment or one measurement on the day it was taken: what was
-asked, how it was measured, what came out. They are not indexed one by one and they are not kept
-up to date; a figure in one is true of the tree it was taken on and of nothing else.
-
-## Historical
-
-| Document | |
-| --- | --- |
-| [`next.md`](next.md) | The engineering diary: what was built or found, and why the decision went the way it did. |
-
-**Nothing in it is authoritative about the present**, and it says so itself. It is
-written newest last and never revised, so an architecture, a file name or a number read
-there may have been replaced the same week. It is kept because the reasoning is worth
-more than the conclusion, and it is the only place a decision's alternatives survive.
-
-It stays at the top level rather than under a folder that would label it, because the
-generator's own comments cite it by that path.
+quotes from a measurement are the exception: they are what one run on one machine answered.
 
 ## For an agent
 
 [`../src/DotGram/SKILL.md`](../src/DotGram/SKILL.md) is how to write a grammar, written
 for an agent and shipped inside the NuGet package. It carries what an agent gets wrong
-rather than what a reader wants to know, and it is checked the only way that means
-anything: by asking one to write a grammar knowing nothing else.
-
-## Continuation snapshots
-
-- [`handoffs/finance.md`](handoffs/finance.md): Finance progress, decisions, validation
-  commands and open questions for continuing on another device. Verify its recorded
-  commits and current working tree before relying on the snapshot.
-- [`handoffs/release-0.3.0.md`](handoffs/release-0.3.0.md): the draft of the 0.3.0 GitHub
-  release text and its known issues, until the tag.
+rather than what a reader wants to know.

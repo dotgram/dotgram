@@ -295,11 +295,11 @@ public abstract partial record Statement : ISqlNode
 	public sealed partial record AlterTable : Statement
 	{
 		public required QualifiedName Name { get; init; }
-		// T-SQL: several actions in one statement; the standard's is a list of one (design/sql-tsql-tree.md, 17).
+		// T-SQL: several actions in one statement; the standard's is a list of one (docs/internal/design/sql-tsql-tree.md, 17).
 		public SqlList<AlterTableAction> Actions { get; init; } = [];
 	}
 
-	// BNF: <drop schema statement>. T-SQL's drops name a list, say IF EXISTS, and may leave the behavior out (design/sql-tsql-tree.md).
+	// BNF: <drop schema statement>. T-SQL's drops name a list, say IF EXISTS, and may leave the behavior out (docs/internal/design/sql-tsql-tree.md).
 	public sealed record DropSchema : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <drop table statement>

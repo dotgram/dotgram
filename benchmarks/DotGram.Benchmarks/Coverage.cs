@@ -584,6 +584,6 @@ static class Coverage
 		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
 			at = at.Parent;
 
-		return Path.Combine(at?.FullName ?? ".", "docs", "coverage.md");
+		return Path.Combine(at?.FullName ?? ".", "docs", "internal", "coverage.md");
 	}
 }

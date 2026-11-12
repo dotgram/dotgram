@@ -1330,7 +1330,7 @@ namespace DotGram.ExpressionLanguage;
 	// Written as levels there are ten calls and ten first-set tests between an assignment
 	// and a name, every one of them for every operand a text has — measured at 94
 	// nanoseconds a parenthesis against a hand-written parser's 30, which is the whole of
-	// what the two differed by (docs/next.md).
+	// what the two differed by (docs/internal/next.md).
 	//
 	// Three of the alternatives need a word about the character they begin with. `|` and
 	// `&` each begin a two-character operator one level out, and the lookahead is what

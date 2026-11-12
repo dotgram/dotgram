@@ -15,7 +15,7 @@ namespace DotGram.Benchmarks;
 /// <remarks>
 /// <para>
 /// Until 2026-10-06 this class was <c>ImmediateSql</c>, the immediate carrier the shipped tape was
-/// measured against: the ceiling the redesign measured towards (<c>docs/next.md</c>), a parser that
+/// measured against: the ceiling the redesign measured towards (<c>docs/internal/next.md</c>), a parser that
 /// builds where it reads, as one written by hand does. The shipped parser is now carried that way,
 /// and the comparison is kept the other way about: <c>SqlComparisonBenchmarks</c>, <c>SqlCounters</c>,
 /// <c>--slope</c>, <c>--big</c> and <c>--spin</c> read each input by the shipped parser and by this

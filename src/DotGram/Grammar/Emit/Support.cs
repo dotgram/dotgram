@@ -554,7 +554,7 @@ static partial class CSharpEmitter
 	/// a commit that still holds", and a flag set where a commit happens would call an
 	/// abandoned alternative's commit an error. An outcome that is sometimes wrong is
 	/// worse than one the caller has to ask about, so this says only what it knows (see
-	/// docs/next.md).
+	/// docs/internal/next.md).
 	/// </para>
 	/// </remarks>
 	internal const string OutcomeEnum = """

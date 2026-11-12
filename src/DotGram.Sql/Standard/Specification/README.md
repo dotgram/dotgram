@@ -14,6 +14,6 @@ written from. Its header says what it is for:
 
 The grammar of the standard in this directory is written from it and cites it by rule
 name; the tree the SQL parsers build is named and shaped after it
-(`docs/design/sql-parsers.md`). The syntax rules alone are not the standard: what each
+(`docs/internal/design/sql-parsers.md`). The syntax rules alone are not the standard: what each
 production means, and which are optional features, is in the standard's text, which ISO
 sells and this repository does not have.

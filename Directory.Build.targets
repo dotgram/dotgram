@@ -9,7 +9,7 @@
 	     targets, so that it is not part of what the package offers: `-p:DotGramVerifyCache=true`
 	     compiles afresh every grammar whose parser it takes from the cache, and fails the build where
 	     the two differ. A consumer who declares the property themselves gets the same check; it is
-	     simply not documented for them. One CI job builds with it (docs/development.md). -->
+	     simply not documented for them. One CI job builds with it (docs/internal/development.md). -->
 	<ItemGroup Condition="'$(_DotGramAnalyzerReferences)' != ''">
 		<CompilerVisibleProperty Include="DotGramVerifyCache" />
 	</ItemGroup>

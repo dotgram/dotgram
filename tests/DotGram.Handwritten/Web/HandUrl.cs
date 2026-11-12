@@ -10,7 +10,7 @@ namespace DotGram.Handwritten.Web;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It reads exactly what the grammar reads (docs/design/architecture-decisions.md, D1): the
+/// It reads exactly what the grammar reads (docs/internal/design/architecture-decisions.md, D1): the
 /// same accepted and refused text, the same parts, and a refusal at the same position. The
 /// grammar backtracks fully, so the position it reports is the furthest any of its readings
 /// got; for a language this regular that is where the text stops being the beginning of any

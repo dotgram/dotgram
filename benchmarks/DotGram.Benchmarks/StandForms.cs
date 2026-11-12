@@ -15,7 +15,7 @@ using Fix50 = DotGram.Finance.Fix.Fix50;
 
 namespace DotGram.Benchmarks;
 
-// The forms of the published API that had no row (the architect's order, 2026-09-19, after docs/design/stand-coverage-2026-09-19.md):
+// The forms of the published API that had no row (the architect's order, 2026-09-19, after docs/internal/design/stand-coverage-2026-09-19.md):
 // they are paired rows, so that a change to how they are read is measured beside the form, and a baseline of them is a pair of one
 // side against itself. The hand-written parser, where there is one, or this process's own generated parser is the constant.
 

@@ -10,7 +10,7 @@ namespace DotGram.Handwritten.Web;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It reads exactly what the grammar reads (docs/design/architecture-decisions.md, D1): the
+/// It reads exactly what the grammar reads (docs/internal/design/architecture-decisions.md, D1): the
 /// same accepted and refused text, the same values, and a refusal at the same position — where
 /// a character is wrong, or, for a date or time that is well formed but does not exist, just
 /// after it, where the grammar asks §5.7's questions.

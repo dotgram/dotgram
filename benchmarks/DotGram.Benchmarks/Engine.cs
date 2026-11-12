@@ -242,7 +242,7 @@ static class Engine
 	/// `time`. The name is in the message, and a call of it qualified — `dbo.time ()` — is a
 	/// user's function the parser passes over, so the statement is asked again so written, as
 	/// often as the answer names another function. What the mirages hid was measured by hand
-	/// for a day before this (docs/next.md, 2026-09-13); this is that measuring, done once.
+	/// for a day before this (docs/internal/next.md, 2026-09-13); this is that measuring, done once.
 	/// </para>
 	/// <para>
 	/// A statement in this corpus can take the connection down with it — a severity the

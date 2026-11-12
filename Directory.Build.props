@@ -35,7 +35,7 @@
 		     `dotnet format`, and by nothing else: a build does not read them, so a rule
 		     written there is a rule only for whoever was already going to follow it. That
 		     is how the block-body rule came to be broken in 2,962 places while sitting in
-		     docs/coding-conventions.md the whole time. With it, the next one fails a build
+		     docs/internal/coding-conventions.md the whole time. With it, the next one fails a build
 		     on the machine that wrote it. Measured: it wakes no other diagnostic, and its
 		     cost is not visible against the spread of a full rebuild. -->
 		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -91,7 +91,7 @@
 		     shipped package and the examples reference as an analyzer only under this property
 		     (their own .csproj). An ordinary build and the IDE never load it; the CI job that
 		     does turns it on explicitly (`-p:DotGramAnalyzeGenerated=true`, tools/generated-analysis/
-		     emit.sh). See docs/development.md. -->
+		     emit.sh). See docs/internal/development.md. -->
 		<DotGramAnalyzeGenerated Condition="'$(DotGramAnalyzeGenerated)' == ''">false</DotGramAnalyzeGenerated>
 
 		<!-- A field either of them adds needs an INITIALISER, not merely a declaration. A grammar whose

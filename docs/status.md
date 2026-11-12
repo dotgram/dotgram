@@ -159,7 +159,7 @@ answer different questions, one about a document and one about the hundred-milli
 record of a feed. **Incremental parsing** is not started, and has one known prerequisite
 rather than a design: the arena would have to record each entry's *size* instead of its
 position, so that a tail nothing touched stays valid when an edit shifts everything
-after it (`docs/next.md`, the Nitra reading).
+after it (`docs/internal/next.md`, the Nitra reading).
 
 ## Recovery in yielded collections
 
@@ -1804,7 +1804,7 @@ That last one has been both sides of parity within a day: 1.12× before the pred
 change, 0.99× after — that change removes work on every input and lost this one to
 profile-guided block layout anyway — 1.01× once a literal became one span comparison, and
 1.10× in the run above. A few per cent on this input is layout as often as it is work, and
-means nothing without the `DOTNET_TieredPGO=0` check beside it. `docs/next.md` has both.
+means nothing without the `DOTNET_TieredPGO=0` check beside it. `docs/internal/next.md` has both.
 
 **Measured with `--against` rather than `DefaultJob`**, and the difference matters for a
 ratio. BenchmarkDotNet runs each case in a process of its own, one after another, so
@@ -1829,7 +1829,7 @@ Read the ratios rather than the nanoseconds when comparing against an earlier ru
 only for the inputs stable enough to compare at all: the shortest ones move by 9% to 14%
 between runs of one unchanged binary, and the BCL's own numbers have moved by as much as a
 third between runs, on code no change of ours touched. Three repetitions is not enough on
-this machine, and `docs/next.md` records what believing three of them cost.
+this machine, and `docs/internal/next.md` records what believing three of them cost.
 
 **Allocation** is not at parity and has not been since the parser began to be kept between
 parses: the short URL costs 264 bytes against the pattern's 1032, and what is left is the
@@ -1955,7 +1955,7 @@ C# expression and let the tower's optionals settle, and every repetition that ma
 nothing is now entered through one character, so the general machinery is built only where
 its body could actually begin. What remains is the completion ceremony — two thirds of the
 remaining trace, measured to its floor and pinned by two recorded experiments
-(`docs/next.md`: eager construction, and the RuleCapture fusion) as the price of honest
+(`docs/internal/next.md`: eager construction, and the RuleCapture fusion) as the price of honest
 backtracking — and one enumerated two-token shape, the optional `name:` probe reading a
 word the reference after it reads again.
 
@@ -1965,7 +1965,7 @@ was built, measured, and then found unsound and removed. `Committed` proves only
 alternative derivation can still replace this one through backtracking; it says nothing
 about whether the suffix that follows will go on to succeed, so a rule could be, and in
 practice was, constructed on a parse that later failed entirely — a direct violation of
-§3's "nothing is built while matching." See `docs/next.md`, "Reverted: eager construction
+§3's "nothing is built while matching." See `docs/internal/next.md`, "Reverted: eager construction
 violated deferred-construction semantics" for the full account, including a second,
 compounding bug in how the region analysis it depended on read atomic-group commitment.
 

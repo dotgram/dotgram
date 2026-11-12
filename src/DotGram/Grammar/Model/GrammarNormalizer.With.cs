@@ -542,7 +542,7 @@ sealed partial class GrammarNormalizer
 	/// means and no one has. The shape that would answer it is a specialization keyed by
 	/// (rule, bindings) with memoization and a placeholder symbol before the body exists,
 	/// which turns this from a sequencing problem into ordinary graph construction — and
-	/// which is a piece of design, not a fix. `docs/next.md` carries the reasoning.
+	/// which is a piece of design, not a fix. `docs/internal/next.md` carries the reasoning.
 	/// </para>
 	/// <para>
 	/// A rule reaching only itself is not this: there is exactly one thing to do and one

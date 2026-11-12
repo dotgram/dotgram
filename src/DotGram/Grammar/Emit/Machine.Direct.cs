@@ -17,7 +17,7 @@ namespace DotGram.Grammar.Emit;
 /// automaton and keeping its vocabulary — a construct a labelled region, a failure a jump,
 /// and four passes to take the dead jumps, labels, marks and locals back out. The reader
 /// (<c>Machine.Reader.cs</c>) replaced it, construct by construct, until every grammar in
-/// the repository read the same tree either way; then the writer went (docs/next.md, "the
+/// the repository read the same tree either way; then the writer went (docs/internal/next.md, "the
 /// direct path goes").
 /// </para>
 /// <para>
@@ -188,7 +188,7 @@ sealed partial class Machine
 	/// <summary>
 	/// Why a reader cannot read this repetition marked <c>recover</c>, or null where it can:
 	/// the scenario of a repetition whose only way back is <c>recover</c>, whose continuation
-	/// <see cref="Commit.Recovering(RecognitionGraph, RuleSymbol, Node)"/> finds whole (docs/design/
+	/// <see cref="Commit.Recovering(RecognitionGraph, RuleSymbol, Node)"/> finds whole (docs/internal/design/
 	/// fix-reader-2026-09-18.md §8).
 	/// </summary>
 	/// <remarks>
@@ -263,7 +263,7 @@ sealed partial class Machine
 	/// <summary>
 	/// Whether a reader of this machine lets go of the input before each turn of the repetition
 	/// marked <c>recover</c> that <paramref name="rule"/> reads: the whole-result form of a stream
-	/// holding one turn and not all it has read (D5, docs/design/fix-reader-buffered-2026-09-18.md §3).
+	/// holding one turn and not all it has read (D5, docs/internal/design/fix-reader-buffered-2026-09-18.md §3).
 	/// </summary>
 	/// <remarks>
 	/// <para>

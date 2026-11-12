@@ -1,4 +1,4 @@
-# The generated-code count ratchet (docs/development.md). One line per (package, rule):
+# The generated-code count ratchet (docs/internal/development.md). One line per (package, rule):
 # the ceiling SarifGate's 'check' mode holds that pair to. Written by:
 #   dotnet run --project tools/generated-analysis/SarifGate -- update tools/generated-analysis/counts.txt <sarif...>
 # Numbers may only go down across commits -- 'update' itself refuses to write an increase

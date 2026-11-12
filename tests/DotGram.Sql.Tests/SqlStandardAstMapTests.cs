@@ -13,7 +13,7 @@ namespace DotGram.Sql.Tests;
 
 /// <summary>
 /// <c>SqlAst.BnfMap.csv</c> says where every rule of the SQL:2023 BNF goes in the tree, and it has
-/// to keep saying it (docs/design/sql-ast.md, requirement 21).
+/// to keep saying it (docs/internal/design/sql-ast.md, requirement 21).
 /// </summary>
 /// <remarks>
 /// Its <c>AST</c> column names, for every rule, a type (<c>Expression.Cast</c>), a property

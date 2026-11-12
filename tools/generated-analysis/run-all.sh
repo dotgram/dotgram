@@ -11,7 +11,7 @@
 # Leaves <scratch-dir>/emit/ (emit.sh's own output), <scratch-dir>/analysis/<pkg>/ (one
 # throwaway Analysis.csproj per package) and <scratch-dir>/sarif/<pkg>.sarif behind; the
 # caller reads the SARIF with SarifGate (check, to gate a build; update, to refresh
-# tools/generated-analysis/counts.txt after fixing something -- docs/development.md).
+# tools/generated-analysis/counts.txt after fixing something -- docs/internal/development.md).
 set -euo pipefail
 
 if [ $# -ne 2 ]; then echo "usage: run-all.sh <repository-root> <scratch-dir>" >&2; exit 2; fi

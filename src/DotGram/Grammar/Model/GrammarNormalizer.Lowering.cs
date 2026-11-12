@@ -783,7 +783,7 @@ sealed partial class GrammarNormalizer
 				// A value is a literal, or a value this rule was handed itself. §4.2's
 				// other spelling — a value captured earlier in the parse — is not one: a
 				// specialization is made before anything runs, and a captured value
-				// exists only while it does (docs/next.md).
+				// exists only while it does (docs/internal/next.md).
 				var value = argument switch
 				{
 					Expr.Number(var number) => Text(number),

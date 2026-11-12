@@ -88,3 +88,9 @@ appsettings.*.local.json
 
 ## Where BenchmarkDotNet leaves its reports and the Release copy it builds to run
 BenchmarkDotNet.Artifacts/
+
+## docfx
+docs/_site/
+docs/obj/
+docs/api/*.yml
+docs/api/.manifest

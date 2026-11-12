@@ -8,7 +8,7 @@ namespace DotGram.Grammar;
 /// <remarks>
 /// <para>
 /// The reader recognizes the same way whichever is chosen; what differs is where the
-/// pieces of a value wait and when a <c>=&gt;</c> is called (<c>docs/next.md</c>, the
+/// pieces of a value wait and when a <c>=&gt;</c> is called (<c>docs/internal/next.md</c>, the
 /// redesign). The default is <see cref="Immediate"/> wherever it can carry a machine; the
 /// others are the author's to choose, with what each gives up written beside it.
 /// </para>

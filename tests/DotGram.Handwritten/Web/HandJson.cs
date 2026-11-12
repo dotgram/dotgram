@@ -13,7 +13,7 @@ namespace DotGram.Handwritten.Web;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It reads exactly what the grammar reads (docs/design/architecture-decisions.md, D1): the
+/// It reads exactly what the grammar reads (docs/internal/design/architecture-decisions.md, D1): the
 /// same accepted and refused text, the same values — a number as its text, a string with its
 /// escapes undone and an escaped lone surrogate kept, an object's members in order with a name
 /// written twice kept twice — and a refusal where the text stops being the beginning of any

@@ -13,7 +13,7 @@
 
 		<!-- What a caller reads in the editor. The other packages here fail a build on a public
 		     member without a comment; this one cannot yet, because the tree that is leaving has four
-		     hundred records and none of them is documented (docs/design/sql-tsql-tree.md). So the
+		     hundred records and none of them is documented (docs/internal/design/sql-tsql-tree.md). So the
 		     documentation ships and CS1591 is off: a node written from here on carries its summary and
 		     the page of the specification it comes from, and the day the count reaches zero the NoWarn
 		     goes and the compiler keeps it at zero. Turning it on now rather than then is what makes
@@ -56,7 +56,7 @@
 	<ItemGroup Condition="'$(DotGramAnalyzeGenerated)' == 'true'">
 		<!-- The generator's own output, analysed for dead or redundant emitted code
 		     (tools/DotGram.GeneratedAnalyzers), never packed, loaded only under this
-		     property (docs/development.md). -->
+		     property (docs/internal/development.md). -->
 		<ProjectReference Include="../../tools/DotGram.GeneratedAnalyzers/DotGram.GeneratedAnalyzers.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>

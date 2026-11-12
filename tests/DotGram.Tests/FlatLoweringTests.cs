@@ -15,7 +15,7 @@ namespace DotGram.Tests;
 /// </summary>
 /// <remarks>
 /// One disqualifying rule anywhere in the grammar and nothing here applies: the fallback
-/// path is exactly today's, unchanged. See docs/next.md, "Future optimization gate".
+/// path is exactly today's, unchanged. See docs/internal/next.md, "Future optimization gate".
 /// </remarks>
 public sealed class FlatLoweringTests
 {

@@ -19,7 +19,7 @@ sealed class EmitContext
 	/// The split the graph is the syntactic half of, where it is one. Then the file carries
 	/// a lexical machine as well, the seam is skipped rather than woven, and a position is a
 	/// token — so the text a value is cut from travels beside the kinds rather than being what
-	/// is read (docs/design/lexical-adt-design.md).
+	/// is read (docs/internal/design/lexical-adt-design.md).
 	/// </summary>
 	public LexicalSplit? Lexical { get; init; }
 

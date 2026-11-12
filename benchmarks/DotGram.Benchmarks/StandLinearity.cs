@@ -90,7 +90,7 @@ static partial class Stand
 		yield return new Series("media type parameters", "generated", "parameters", [10, 100, 1000], n => { var t = "text/html" + string.Concat(Enumerable.Range(0, n).Select(static i => $"; a{i}=1")); return () => MediaType.TryParse(t, out _); });
 		yield return new Series("structured list", "generated", "items", [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n)); return () => StructuredField.TryParseList(t, out _); });
 
-		// The Web's lists and fields, one publication each (docs/design/stand-coverage-2026-09-19.md): a loop in the grammar, so a curve.
+		// The Web's lists and fields, one publication each (docs/internal/design/stand-coverage-2026-09-19.md): a loop in the grammar, so a curve.
 		yield return new Series("email address list",   "generated", "addresses", [100, 1000, 10000], n => { var t = string.Join(", ", Enumerable.Range(0, n).Select(static i => $"a{i}@example.com")); return () => EmailAddress.TryParseList(t, out _); });
 		// Three points ten times apart can straddle a step: finance-24 found the Accept curve to be flat up to 3,000 ranges, a drop between 3,000 and 4,000
 		// (the emitted parser pool keeps no more than 65,536 entries) and flat again, so the exponent 2.07 of the three points was a cliff between two of them.

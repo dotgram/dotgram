@@ -5,7 +5,7 @@
 # .g.cs needs that is not in scope), never on a style finding; "|| true" below deliberately
 # does not fail THIS script on that, because the SARIF is still written and still worth
 # reading -- SarifGate itself is what must catch a compile error (it reads the SARIF's own
-# "level":"error" results explicitly, docs/development.md), not an exit code this script
+# "level":"error" results explicitly, docs/internal/development.md), not an exit code this script
 # would otherwise throw away the detail of.
 #
 # Usage: analyze.sh <package> <analysis-dir> <sarif-path>

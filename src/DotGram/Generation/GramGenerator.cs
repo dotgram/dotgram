@@ -1829,7 +1829,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		/// The host's own name unless the attribute said otherwise, so that following the
 		/// <c>:</c> from an including class lands on the answer. Not the C# namespace of
 		/// the generated code, which is decided by where the host is declared — the two
-		/// senses of the word were separated on purpose (docs/next.md, the `context` to
+		/// senses of the word were separated on purpose (docs/internal/next.md, the `context` to
 		/// `namespace` rename) and are kept apart here by not using it.
 		/// </remarks>
 		public string IncludedName => Options.DefaultAlias ?? SimpleName;
@@ -2237,7 +2237,7 @@ sealed class GramGenerator : IIncrementalGenerator
 						: default;
 
 				// Null where the base is in a referenced assembly, which is what makes
-				// a diagnostic in its grammar have nowhere to point (docs/next.md).
+				// a diagnostic in its grammar have nowhere to point (docs/internal/next.md).
 				var at = Place.Of(attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: null);

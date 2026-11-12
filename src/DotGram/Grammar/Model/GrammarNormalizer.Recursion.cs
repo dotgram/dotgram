@@ -43,7 +43,7 @@ namespace DotGram.Grammar.Model;
 /// operands and its own <c>=&gt;</c> to the unfolded alternative, so the tail of the
 /// fold would have to apply two constructions in order, against an accumulator that is
 /// itself the result of one. That is a staged fold, and neither the value machinery nor
-/// the arena has a shape for it — see docs/next.md.
+/// the arena has a shape for it — see docs/internal/next.md.
 /// </para>
 /// </remarks>
 sealed partial class GrammarNormalizer

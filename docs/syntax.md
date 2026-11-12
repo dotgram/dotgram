@@ -1,6 +1,6 @@
 ﻿# .Gram — the language and its bond with C#
 
-The engine plan lives in [`implementation.md`](implementation.md). Nothing decided
+The engine plan lives in [`implementation.md`](https://github.com/dotgram/dotgram/blob/main/docs/internal/implementation.md). Nothing decided
 there is a decision about the language.
 
 **This is a specification, not a report.** It says what `.Gram` is, in the present

@@ -20,7 +20,7 @@
 // a guard handed several values asks for each of them, and the calls that do it are worth
 // seeing in a diff. One walk for all of them was tried and withdrawn — it is worth 0.6% on
 // this shape, which is what the same build is worth against itself
-// (docs/design/one-walk-per-guard-2026-09-20.md).
+// (docs/internal/design/one-walk-per-guard-2026-09-20.md).
 
 trivia = { ' '* }
 

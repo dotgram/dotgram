@@ -532,7 +532,7 @@ Validation: all 6417 Finance tests passed, including 2582 handwritten-parser cas
 
 The initial measurements above predate the quadratic-walk fixes. On the same
 128-order string workload, the current generated/handwritten ratio is about 3x,
-not 462x. See [the current gap analysis](../../docs/design/hand-fix-gap-2026-09-17.md)
+not 462x. See [the current gap analysis](../../docs/internal/design/hand-fix-gap-2026-09-17.md)
 for fresh measurements, CPU profiles, the separate Fix44 negative-prefix issue
 and a validated scratch grammar experiment.
 
@@ -540,7 +540,7 @@ and a validated scratch grammar experiment.
 
 The first implementation emits ordinary readers for suitable typed character-run
 rules while keeping the outer recovery machine and deferred factory semantics.
-See [the measured implementation](../../docs/design/fix-rule-methods-2026-09-17.md)
+See [the measured implementation](../../docs/internal/design/fix-rule-methods-2026-09-17.md)
 for paired before/after timings, memory, cold calls and the remaining handwritten gap.
 
-[Direct scalar demand in guards](../../docs/design/fix-scalar-guards-2026-09-17.md) adds a measured string-only improvement; the buffered trial was not retained.
+[Direct scalar demand in guards](../../docs/internal/design/fix-scalar-guards-2026-09-17.md) adds a measured string-only improvement; the buffered trial was not retained.

@@ -124,7 +124,7 @@ reads, so that a ratio is between two readings of one language and not between t
 ## The expression language
 
 `DotGram.Handwritten.HandExpression` reads the language `ExpressionParser` reads, as its
-grammar stands (docs/design/architecture-decisions.md, D1 and D8).
+grammar stands (docs/internal/design/architecture-decisions.md, D1 and D8).
 
 - **The same publications**: `TryParseLambda`, answering with the generated parser's own
   `Match`, and the two it reads again over a window of the text — a hole of an interpolated

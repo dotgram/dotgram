@@ -16,7 +16,7 @@ namespace DotGram.Tests.ExpressionLanguage;
 /// <remarks>
 /// <para>
 /// The handwritten parser is what the generated one is measured against, and a ratio between two
-/// parsers that read different languages says nothing (docs/design/architecture-decisions.md, D1).
+/// parsers that read different languages says nothing (docs/internal/design/architecture-decisions.md, D1).
 /// So the suite reads through here: every text <see cref="ExpressionParserTests"/> hands the
 /// language is put to both, and a text that tells them apart fails where it stands rather than in
 /// a benchmark nobody ran.

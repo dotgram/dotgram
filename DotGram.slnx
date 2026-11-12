@@ -40,8 +40,8 @@
 		</Project>
 	</Folder>
 	<Folder Name="/docs/">
-		<File Path="docs/coding-conventions.md" />
-		<File Path="docs/implementation.md" />
+		<File Path="docs/internal/coding-conventions.md" />
+		<File Path="docs/internal/implementation.md" />
 		<File Path="docs/status.md" />
 		<File Path="docs/syntax.md" />
 	</Folder>

@@ -1018,19 +1018,21 @@ read: formats, feeds, expressions, languages.
 
 ## Documentation
 
-[`docs/README.md`](docs/README.md) is the index, and says what authority each document
-carries — what is normative, what describes this version, what is a proposal and what is
-a diary. The ones a reader usually wants:
+The documentation is published at https://dotgram.github.io/dotgram/ and lives in [`docs/`](docs/README.md),
+which says what each document is. What is for people working on the repository (the engine plan,
+the build and test process, design proposals and the engineering diary) is under
+[`docs/internal/`](docs/internal/README.md), and says what authority each of those carries.
+The ones a reader usually wants:
 
 | Document | Contents |
 | --- | --- |
 | [`docs/syntax.md`](docs/syntax.md) | grammar notation and generated API |
-| [`docs/implementation.md`](docs/implementation.md) | how the generated parser works |
+| [`docs/internal/implementation.md`](docs/internal/implementation.md) | how the generated parser works |
 | [`docs/diagnostics.md`](docs/diagnostics.md) | compiler diagnostics |
 | [`docs/cli.md`](docs/cli.md) | `dotnet dotgram`, the generator run outside the build |
 | [`docs/visual-studio.md`](docs/visual-studio.md) | the Visual Studio extension, and the `StringSyntax` annotations |
 | [`docs/status.md`](docs/status.md) | implemented features, limitations, and measurements |
-| [`docs/development.md`](docs/development.md) | how this is built, checked and measured |
+| [`docs/internal/development.md`](docs/internal/development.md) | how this is built, checked and measured |
 
 ## Compatibility
 

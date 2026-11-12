@@ -23,7 +23,7 @@ namespace DotGram.Tests;
 /// <para>
 /// A parse may be read in more than one way before it answers: a first reading that records
 /// nothing, and a second that records, run only where the first refused (Q7.2,
-/// docs/design/diagnostics-off-the-hot-path-2026-09-18.md). Whatever the generator does to get
+/// docs/internal/design/diagnostics-off-the-hot-path-2026-09-18.md). Whatever the generator does to get
 /// there, a refusal has to come out as it did when a single reading recorded as it went. So
 /// the answers are kept in <c>RefusalTests.txt</c>, written by the generator as it was, and
 /// every change since is held to it.

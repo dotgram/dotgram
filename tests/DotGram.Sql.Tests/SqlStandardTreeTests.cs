@@ -9,7 +9,7 @@ using Xunit;
 namespace DotGram.Sql.Tests;
 
 /// <summary>
-/// What <see cref="SqlStandardParser"/> builds: the SQL:2023 tree (docs/design/sql-ast.md), held
+/// What <see cref="SqlStandardParser"/> builds: the SQL:2023 tree (docs/internal/design/sql-ast.md), held
 /// node by node to what was written.
 /// </summary>
 /// <remarks>

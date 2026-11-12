@@ -204,7 +204,7 @@ public sealed class ResolutionScope
 	/// it at all. Reading each assembly's names off its file instead, with metadata and loading
 	/// nothing, was measured and dropped: 112 ms against these 23, because the runtime's loader is
 	/// faster at this than reading 33,000 type names is
-	/// (docs/design/expression-resolution-scope-2026-09-25.md).
+	/// (docs/internal/design/expression-resolution-scope-2026-09-25.md).
 	/// </para>
 	/// <para>
 	/// <b>That instance is kept for the life of the process, and so is what it holds.</b> A scope

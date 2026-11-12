@@ -8,7 +8,7 @@ namespace DotGram.Grammar.Model;
 /// <summary>
 /// Where each reading of the graph is settled: for every call and every construction a body
 /// reads, the innermost point past which what it read is never taken back, so that a carrier
-/// that builds as it reads may build it there (docs/design/fix-reader-2026-09-18.md §5, §7).
+/// that builds as it reads may build it there (docs/internal/design/fix-reader-2026-09-18.md §5, §7).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -145,7 +145,7 @@ static class Commit
 	/// <summary>
 	/// The continuation a repetition marked <c>recover</c> tries first at every boundary, where it
 	/// is known whole, or null where it is not: the scenario of a repetition whose only way back
-	/// is <c>recover</c> (docs/design/fix-reader-2026-09-18.md §8).
+	/// is <c>recover</c> (docs/internal/design/fix-reader-2026-09-18.md §8).
 	/// </summary>
 	/// <remarks>
 	/// <para>

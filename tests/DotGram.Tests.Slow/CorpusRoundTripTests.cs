@@ -34,7 +34,7 @@ namespace DotGram.Tests;
 /// <b>The baseline is the old T-SQL tree's, which brought every statement back.</b> The parser now hands
 /// back <c>DotGram.Sql.Ast</c>, printed by <c>TransactSqlWriter</c>, and this gate is what that swap has
 /// to pass — a failure here is the swap losing a statement, not noise to be waved through
-/// (<c>docs/design/sql-tsql-tree.md</c>). What it does not bring back yet is listed, statement by
+/// (<c>docs/internal/design/sql-tsql-tree.md</c>). What it does not bring back yet is listed, statement by
 /// statement, in <see cref="Known"/>; a key word the writer prints in capitals where ScriptDom keeps
 /// what was written is no difference (<c>CorpusRoundTrip.KeyWordCaseOnly</c>).
 /// </para>

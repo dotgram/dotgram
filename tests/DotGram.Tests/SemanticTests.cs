@@ -681,7 +681,7 @@ public sealed class SemanticTests
 	{
 		// The silence is scoped to the declaration that broke, not to the file. One rule
 		// being unreadable must not hide what is wrong with the one below it
-		// (implementation.md §0) — here `Other` is perfectly readable and names something
+		// (docs/internal/implementation.md §0) — here `Other` is perfectly readable and names something
 		// that does not exist.
 		var reported = Compile(OneStrayCharacter + "\nOther = Missing").Diagnostics;
 
@@ -2498,7 +2498,7 @@ public sealed class SemanticTests
 	/// is not a thing. It is one, and the reasoning confused two: the caller hands over one
 	/// object for the whole parse, and the *type it is seen through* belongs to whoever wrote
 	/// the code — which is what lets a grammar be included in another and keep meaning what
-	/// it meant (docs/next.md, "Decided: `context` is a contract").
+	/// it meant (docs/internal/next.md, "Decided: `context` is a contract").
 	/// </remarks>
 	[Fact]
 	public void A_context_inside_a_namespace_is_that_grammar_own_contract()
@@ -2638,7 +2638,7 @@ public sealed class SemanticTests
 	/// <remarks>
 	/// What called the rule may be the declaration that did not come out. <c>Header</c> is
 	/// unreadable here and <c>Digit</c> is reached from nowhere else, so reporting it would
-	/// be one mistake told as two (implementation.md §0).
+	/// be one mistake told as two (docs/internal/implementation.md §0).
 	/// </remarks>
 	[Fact]
 	public void And_a_grammar_that_broke_is_asked_nothing()
@@ -3082,7 +3082,7 @@ public sealed class SemanticTests
 	/// <para>
 	/// A rule that is a choice of literals becomes one range over kinds at each of its call
 	/// sites, which is the whole reason a fifty-way keyword choice costs one comparison
-	/// (docs/design/lexical-adt-design.md). A boundary woven onto it — or written by hand as
+	/// (docs/internal/design/lexical-adt-design.md). A boundary woven onto it — or written by hand as
 	/// <c>(… | …) &amp; ?!\p{L}</c> — does not change what it accepts, so the search for the
 	/// choice looks through a sequence to its first part.
 	/// </para>

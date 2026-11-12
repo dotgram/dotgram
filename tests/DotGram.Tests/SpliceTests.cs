@@ -16,7 +16,7 @@ namespace DotGram.Tests;
 /// <remarks>
 /// The half of parser inheritance that has to be right before anything else can be built:
 /// a grammar included in another is compiled as one text, and every diagnostic and every
-/// <c>#line</c> has to find its way home from a position in the whole (docs/next.md,
+/// <c>#line</c> has to find its way home from a position in the whole (docs/internal/next.md,
 /// "Considered: parser inheritance").
 /// </remarks>
 public sealed class SpliceTests

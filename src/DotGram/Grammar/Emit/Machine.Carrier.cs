@@ -831,7 +831,7 @@ sealed partial class Machine
 	/// put back when an alternative fails. The names are for what a site <em>means</em> — a
 	/// record begun, a member put in it, the store put back to a mark — and not for how the
 	/// tape does it, so that another carrier can answer the same questions differently
-	/// (<c>docs/next.md</c>, the redesign; <see cref="CarrierKind"/> for the ones offered).
+	/// (<c>docs/internal/next.md</c>, the redesign; <see cref="CarrierKind"/> for the ones offered).
 	/// </para>
 	/// <para>
 	/// Marks and unwindings come in two because the tape has two stores and the reader marks
@@ -1193,7 +1193,7 @@ sealed partial class Machine
 	/// Every string here is what the reader wrote itself before the seam was cut, character
 	/// for character, and the snapshots are what say so. The tape is the carrier that
 	/// streams, finds and recovers — the others cannot yet — and it stays behind the seam
-	/// for as long as that is true (<c>docs/next.md</c>).
+	/// for as long as that is true (<c>docs/internal/next.md</c>).
 	/// </remarks>
 	sealed class TapeCarrier(Machine machine) : ValueCarrier
 	{

@@ -23,7 +23,7 @@ namespace DotGram.GeneratedAnalyzers;
 /// A finding whose location falls inside a <c>#line</c>-mapped region is the grammar author's
 /// own embedded C# (a <c>=&gt;</c>, a <c>when</c>, a switch selector) and not the emitter's, so
 /// every rule here (DGA001, DGA003, DGA004) is silent there — the same convention the stock
-/// rules follow through the CI job's SARIF gate (see <c>docs/development.md</c>), applied
+/// rules follow through the CI job's SARIF gate (see <c>docs/internal/development.md</c>), applied
 /// directly since we control our own reporting.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]

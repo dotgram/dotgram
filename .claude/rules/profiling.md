@@ -423,7 +423,7 @@ benchmarks/Aside.sh dotnet .build/bin/DotGram.Tests/debug/DotGram.Tests.dll -cla
 
 **Joined by `&&`, and not two commands.** A project that fails to build leaves its previous
 assembly on disk, and running it reports the results of code that no longer exists — five
-failures were once read here from a version already replaced. `docs/development.md` warns
+failures were once read here from a version already replaced. `docs/internal/development.md` warns
 about this, and the warning did not help the person who had read it: a rule beside the
 command is kept by whoever remembers it, a rule inside the command by everyone.
 

@@ -1091,7 +1091,7 @@ static class LexerEmitter
 				//
 				// The compare is not free and there is no way to have the run without it: it was
 				// tried as a table of which states run, as a call, and written out with the row
-				// already in hand, and all three measure alike (docs/next.md). A branch in a loop
+				// already in hand, and all three measure alike (docs/internal/next.md). A branch in a loop
 				// that waits on a dependent chain costs two to ten per cent, and a run entered
 				// and left at once is all cost. The trade is against how long a token is: a name
 				// of one letter pays it, and `customer_id` is read a fifth faster, `1000` and a

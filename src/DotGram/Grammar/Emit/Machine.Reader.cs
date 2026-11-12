@@ -2025,7 +2025,7 @@ sealed partial class Machine
 		/// at the end follows references and an abandoned record has none — but the log
 		/// grew with every alternative that failed, the value tables were sized to it, and
 		/// returning them cleared what had never been used. Half a microsecond a parse on
-		/// the SQL yardstick, measured (docs/next.md).
+		/// the SQL yardstick, measured (docs/internal/next.md).
 		/// </remarks>
 		readonly bool _logs = machine._directRules is { } rules && rules.Any(machine.Valued);
 

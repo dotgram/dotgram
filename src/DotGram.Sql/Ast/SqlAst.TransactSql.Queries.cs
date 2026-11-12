@@ -265,7 +265,7 @@ public abstract partial record SystemTimeSpecification
 	public sealed record All : SystemTimeSpecification;
 }
 
-// Variables where a query names a table or assigns a value (docs/design/sql-tsql-tree.md, Decided: a variable
+// Variables where a query names a table or assigns a value (docs/internal/design/sql-tsql-tree.md, Decided: a variable
 // is never a QualifiedName, and a family gains a T-SQL member Variable for it), and the graph path an aggregate
 // is taken over.
 public abstract partial record TableSource

@@ -21,7 +21,7 @@ bulk-loaded into a database.
 
 Every example here is run as it is written: the file at the top of it is the input, and what
 the loop prints must be the block below the loop, character for character. The same grammars
-are in [`examples/DotGram.Examples/Feeds`](../examples/DotGram.Examples/Feeds/), one file each,
+are in [`examples/DotGram.Examples/Feeds`](https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples/Feeds), one file each,
 for whoever wants to copy one.
 
 ## What the parser checks, and what it leaves to you
@@ -720,13 +720,13 @@ read.
 
 ## Ten million records into a database
 
-[`examples/DotGram.FeedLoad`](../examples/DotGram.FeedLoad/) is a console program that does
+[`examples/DotGram.FeedLoad`](https://github.com/dotgram/dotgram/tree/main/examples/DotGram.FeedLoad) is a console program that does
 with one of the feeds above what a client would: it writes the feed at any size, reads it with
 its grammar, and bulk-loads it into SQLite with [linq2db](https://github.com/linq2db/linq2db),
 the bad lines into a table of their own. It takes linq2db and Microsoft.Data.Sqlite from NuGet,
 the only project in the repository that takes a database at all. It is in `DotGram.slnx`, so
 every build compiles it, and `tests/DotGram.FeedLoad.Tests` runs it over each feed at ten
-thousand records (`DOTGRAM_FEEDLOAD_RECORDS=10M` asks the test for ten million; `docs/development.md`
+thousand records (`DOTGRAM_FEEDLOAD_RECORDS=10M` asks the test for ten million; `docs/internal/development.md`
 has the command). Run it on its own, from the repository root:
 
 ```sh
