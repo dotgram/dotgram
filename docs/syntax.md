@@ -2144,11 +2144,18 @@ name resolves to it from inside the namespace the included grammar was spliced i
 
 There is no class behind the library, and that decides what it can mean. Its values are
 what the .NET parsers make of the text, in the invariant culture — `Std.Integer` is
-`int.Parse`, and what `int.Parse` refuses, a number too wide for `int`, it refuses the
-way it always does. A grammar that wants a message instead of an exception, or a
-location, or a string with its escapes resolved, declares that rule itself: what a
-lexeme *means* takes code, and the code is the grammar's own. The library is the
-recognition, which every grammar spells the same way.
+what `int.Parse` makes of its digits. A number too wide for its type is not a number of
+that rule: `Integer`, `Long`, `Decimal` and `Double` check the text with the type's
+`TryParse` in a guard (§3.4) and **refuse** what does not fit, as they refuse a letter —
+the `Try` method returns false and the other throws the `FormatException` every refusal
+throws, and neither lets an `OverflowException` out. `Integer` reads `0` to `2147483647`,
+`Long` `0` to `9223372036854775807`, `Decimal` up to `79228162514264337593543950335`, and
+`Double` up to `double.MaxValue`: a `Double` that rounds to infinity (`1e309`) is refused
+too, where one that rounds to zero (`1e-400`) is read, as zero, because only the first
+is a number the type cannot hold. Leading zeros do not count against the width. A grammar
+that wants a message of its own, or a location, or a string with its escapes resolved,
+declares that rule itself: what a lexeme *means* takes code, and the code is the
+grammar's own. The library is the recognition, which every grammar spells the same way.
 
 | Rule | What it reads | Value |
 | --- | --- | --- |
@@ -2156,16 +2163,16 @@ recognition, which every grammar spells the same way.
 | `HexDigit` | one of `'0'..'9'`, `'a'..'f'`, `'A'..'F'` | text |
 | `Letter` | one letter, `\p{L}` | text |
 | `Space` | one space or tab | text |
-| `Whitespace` | one space, tab, or line-ending character | text |
+| `Whitespace` | one space, tab, carriage return or line feed | text |
 | `Digits` | one or more digits | text |
 | `HexDigits` | one or more hexadecimal digits | text |
 | `Blank` | one or more spaces and tabs | text |
 | `Spacing` | one or more whitespace characters | text |
 | `Identifier` | a letter or `_`, then letters, digits and `_`, in the Unicode reading | text |
-| `Integer` | digits | `int` |
-| `Long` | digits | `long` |
-| `Decimal` | digits, and a point and digits | `decimal` |
-| `Double` | digits, a point and digits, an exponent — each after the first optional | `double` |
+| `Integer` | digits, if the number fits `int` | `int` |
+| `Long` | digits, if the number fits `long` | `long` |
+| `Decimal` | digits, then optionally a point and digits (`3` and `3.25`, not `3.` or `.5`), if the number fits `decimal` | `decimal` |
+| `Double` | digits, then optionally a point and digits, then optionally `e` or `E`, an optional sign and digits (`3`, `3.25`, `1e5`, `2.5E-3`), if the number is finite | `double` |
 | `LineComment(start)` | `start` to the end of the line, the line ending left unread | text |
 | `BlockComment(open, close)` | `open` to the first `close` | text |
 | `Nested(open, close)` | `open` to the `close` that balances it, holding other pairs to any depth — `Nested("/*", "*/")` reads `/* a /* b */ c */` whole | text |

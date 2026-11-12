@@ -7,9 +7,9 @@
 // (§4.5). Whatever is not called is not compiled.
 //
 // What a lexeme means is left to the caller wherever meaning takes code — a string's
-// escapes, a number too wide for `int` — because there is no class behind this file to
-// put that code in. The values below are what the .NET parsers make of the text, and
-// what those refuse they refuse as they always do.
+// escapes — because there is no class behind this file to put that code in. The values
+// below are what the .NET parsers make of the text. A number too wide for its type is
+// not a number of that rule: the rule refuses it, as it refuses a letter, and never throws.
 
 // ── One character ────────────────────────────────────────────────────────────
 
@@ -37,12 +37,14 @@ Identifier = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 // `-` is part of a number or an operator in front of one is a question about that
 // grammar and not about digits.
 
-Integer : int     = Digits => @(int.Parse(parserText, global::System.Globalization.CultureInfo.InvariantCulture))
-Long    : long    = Digits => @(long.Parse(parserText, global::System.Globalization.CultureInfo.InvariantCulture))
-Decimal : decimal = Digits & ('.' & Digits)?
-	=> @(decimal.Parse(parserText, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture))
-Double  : double  = Digits & ('.' & Digits)? & ('e'i & ['+' | '-']? & Digits)?
-	=> @(double.Parse(parserText, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture))
+Integer : int     = n: Digits & when @(int.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _)) => @(int.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
+Long    : long    = n: Digits & when @(long.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _)) => @(long.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
+Decimal : decimal = n: (Digits & ('.' & Digits)?)
+	& when @(decimal.TryParse(n, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture, out _))
+	=> @(decimal.Parse(n, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture))
+Double  : double  = n: (Digits & ('.' & Digits)? & ('e'i & ['+' | '-']? & Digits)?)
+	& when @(double.TryParse(n, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture, out var d) && double.IsFinite(d))
+	=> @(double.Parse(n, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture))
 
 // ── Comments ─────────────────────────────────────────────────────────────────
 //
