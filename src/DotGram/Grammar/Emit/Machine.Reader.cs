@@ -2048,6 +2048,33 @@ sealed partial class Machine
 		/// </summary>
 		bool _failsPushed;
 
+		/// <summary>The parts being written in place where this method calls them, innermost last (<see cref="Called"/>).</summary>
+		readonly List<Inlined> _inlined = [];
+
+		/// <summary>How many parts this method has written in place, for the names of their locals and labels.</summary>
+		int _inlines;
+
+		/// <summary>
+		/// A part written in place rather than as a method of its own: its text, written at no depth,
+		/// what a failure of it leaves, and the locals of its own that a second reading of it must
+		/// find as the method's call would have.
+		/// </summary>
+		sealed class Inlined(int id, Writer body)
+		{
+			public int Id { get; } = id;
+
+			public Writer Body { get; } = body;
+
+			/// <summary>Whether anything in it fails, so that the label a failure goes to is written.</summary>
+			public bool Fails { get; set; }
+
+			/// <summary>Whether a failure of it may leave a gathered member pushed.</summary>
+			public bool Leaves { get; set; }
+
+			/// <summary>The locals it captures that nothing outside it reads, as a method of its own would declare them.</summary>
+			public string Fresh { get; set; } = "";
+		}
+
 		/// <summary>
 		/// The alternatives of one choice with their pushes kept apart: each is rendered from
 		/// what stood pushed before the choice — what the one before it pushed was given back
@@ -2304,6 +2331,20 @@ sealed partial class Machine
 		/// </remarks>
 		string Fails()
 		{
+			// Inside a part written in place, a failure is the part's: it leaves to where the call
+			// would have answered -1, and gives back nothing, as a part's method does not.
+			if (_inlined.Count > 0)
+			{
+				var region = _inlined[_inlined.Count - 1];
+
+				region.Fails = true;
+
+				if (_pushed)
+					region.Leaves = true;
+
+				return $"goto PartFailed{region.Id};";
+			}
+
 			var given = GivenBack();
 
 			// A failure past a push that is not given back here leaves it to the caller.
@@ -4013,7 +4054,7 @@ sealed partial class Machine
 			{
 				apart.Next();
 
-				var (part, undo, _, leaves) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
+				var (part, undo, _, leaves, inline) = Called(alternatives[i], following, Quiet(closing, alternatives, i), inline: true);
 
 				// The first attempt is made; each after it, only where the one before failed.
 				using (i == 0 ? null : code.Block($"if ({tried} < 0)"))
@@ -4053,7 +4094,7 @@ sealed partial class Machine
 					foreach (var line in raised)
 						code.Line(line);
 
-					code.Line(i == 0 ? $"var {tried} = {part};" : $"{tried} = {part};");
+					Invoke(code, part, inline, tried, declare: i == 0);
 
 					foreach (var line in restored)
 						code.Line(line);
@@ -4221,7 +4262,7 @@ sealed partial class Machine
 
 					apart.Next();
 
-					var (call, undo, opens, leaves) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
+					var (call, undo, opens, leaves, _) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
 
 					// Asked of the alternative once it is written; a loop that defers puts the
 					// gathered members back after an attempt that stood, too.
@@ -4355,7 +4396,12 @@ sealed partial class Machine
 		/// failure written past a push of its own. Elsewhere any call may. A caller marks and puts
 		/// back the gathered members only where the last is true.
 		/// </returns>
-		(string Call, string Undo, bool Opens, bool Leaves) Called(Node part, FollowSets.Continuation following, bool quiet = false)
+		/// <param name="inline">
+		/// Whether the site can take the part written in place (<see cref="Invoke"/>): one that reads
+		/// the answer once, outside a loop that asks the part again.
+		/// </param>
+		(string Call, string Undo, bool Opens, bool Leaves, Inlined? Inline) Called(
+			Node part, FollowSets.Continuation following, bool quiet = false, bool inline = false)
 		{
 			var (captured, used) = Reaches(part);
 			var elsewhere        = Elsewhere(part);
@@ -4382,8 +4428,12 @@ sealed partial class Machine
 					Framed(bare, machine.ReaderOf(bare.Rule), machine.DirectStrengthOf(bare, bare.Rule)),
 					"",
 					machine.Opens(part),
-					!machine.Carrier.CallsGiveBackGathered);
+					!machine.Carrier.CallsGiveBackGathered,
+					null);
 			}
+
+			if (inline && Inlines(part, quiet))
+				return Inline(part, following, taken, captured);
 
 			// What the part hands back is a local of this method, so this method declares it.
 			foreach (var slot in taken)
@@ -4428,11 +4478,116 @@ sealed partial class Machine
 					apart.Parts.Exists(one => one.Body.Contains("ways.Open(", StringComparison.Ordinal))) ||
 				machine.Opens(part);
 
+			// Whether the part wrote a way itself when the rule was read through, for the writing that may
+			// put it in place; what the rules it calls open is asked again then, once it is known.
+			if (analyzing)
+				machine._partOpens[part] = apart.ObservedOpen;
+
 			return (
 				$"{name}(p{Handing(given, taken, "", wider, ceilings)})",
 				undo.ToString().TrimEnd(),
 				opens,
-				apart._failsPushed || !machine.Carrier.CallsGiveBackGathered);
+				apart._failsPushed || !machine.Carrier.CallsGiveBackGathered,
+				null);
+		}
+
+		/// <summary>
+		/// How heavy a part may be estimated (<see cref="Machine.Weight"/>) and still be written where it
+		/// is called rather than as a method of its own.
+		/// </summary>
+		const int InlineWeight = 4;
+
+		/// <summary>
+		/// Whether a part is written in place: small, never asked again for another reading (nothing in
+		/// it opened a way when the rule was read through), and nothing about it that a method of its
+		/// own carries and a place in its caller would not — a frame of the trace, a quiet reading, a
+		/// fold's value or a strength handed by reference.
+		/// </summary>
+		bool Inlines(Node part, bool quiet)
+		{
+			return !analyzing && !quiet && machine.Tracing is null && !_folds && !_ceils && !_climbs &&
+				machine._partOpens.TryGetValue(part, out var opened) && !opened && !machine.Opens(part) &&
+				machine.Weight(part, InlineWeight + 1) <= InlineWeight;
+		}
+
+		/// <summary>
+		/// A part written into this method, to be placed by <see cref="Invoke"/>: rendered by this
+		/// writer, so that its locals are this method's and named by its counters, with every failure
+		/// in it leaving to a label rather than returning.
+		/// </summary>
+		(string Call, string Undo, bool Opens, bool Leaves, Inlined? Inline) Inline(
+			Node part, FollowSets.Continuation following, List<int> taken, HashSet<int> captured)
+		{
+			var region = new Inlined(_inlines++, new Writer(0));
+			var pushed = _pushed;
+
+			_pushed = false;
+			_inlined.Add(region);
+
+			Emit(region.Body, part, following);
+
+			_inlined.RemoveAt(_inlined.Count - 1);
+			_pushed |= pushed;
+
+			// A method of its own declared these afresh at every call; in place, a reading that comes
+			// round again finds what the last one left.
+			var fresh = new System.Text.StringBuilder();
+
+			foreach (var slot in captured.OrderBy(static one => one))
+			{
+				_kept.Add(slot);
+
+				if (taken.Contains(slot))
+					continue;
+
+				foreach (var name in Names(slot))
+					fresh.Append(name[0] == 'r' && !IsFlag(name) ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name + " = -1;").Append(' ');
+			}
+
+			region.Fresh = fresh.ToString().TrimEnd();
+
+			var undo = new System.Text.StringBuilder();
+
+			foreach (var slot in taken)
+				foreach (var name in Names(slot))
+					undo.Append(name[0] == 'r' && !IsFlag(name) ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name + " = -1;").Append(' ');
+
+			return ("", undo.ToString().TrimEnd(), false, region.Leaves || !machine.Carrier.CallsGiveBackGathered, region);
+		}
+
+		/// <summary>
+		/// Where a site reads a part's answer into <paramref name="took"/>: the call, or the part written
+		/// in place — reading on from where the call would have begun, and putting the position back,
+		/// so that the site finds what the call would have given it.
+		/// </summary>
+		void Invoke(Writer code, string call, Inlined? inline, string took, bool declare)
+		{
+			if (inline is null)
+			{
+				code.Line(declare ? $"var {took} = {call};" : $"{took} = {call};");
+
+				return;
+			}
+
+			var id = inline.Id;
+
+			if (declare)
+				code.Line($"int {took};");
+			code.Line($"var ip{id} = p;");
+			if (inline.Fresh.Length > 0)
+				code.Line(inline.Fresh);
+			code.AppendIndented(inline.Body, 0);
+			code.Line($"{took} = p;");
+
+			if (inline.Fails)
+			{
+				code.Line($"goto PartDone{id};");
+				code.Line($"PartFailed{id}:");
+				code.Line($"{took} = -1;");
+				code.Line($"PartDone{id}:");
+			}
+
+			code.Line($"p = ip{id};");
 		}
 
 		/// <summary>
@@ -4894,7 +5049,7 @@ sealed partial class Machine
 
 				var turn = $"q{_calls++}";
 				var back = _gathers || _logs ? _ways++ : -1;
-				var (call, undo, _, leaves) = Called(body, inside);
+				var (call, undo, _, leaves, inline) = Called(body, inside, inline: true);
 
 				// A turn that ended where it began is put back as a failed one is: only a turn that
 				// cannot stand still is put back for its failure alone.
@@ -4918,7 +5073,7 @@ sealed partial class Machine
 				foreach (var line in raised)
 					code.Line(line);
 
-				code.Line($"var {turn} = {call};");
+				Invoke(code, call, inline, turn, declare: true);
 
 				foreach (var line in restored)
 					code.Line(line);
@@ -5114,7 +5269,7 @@ sealed partial class Machine
 
 			var turn = $"q{_calls++}";
 			var back = _gathers || _logs ? _ways++ : -1;
-			var (call, undo, _, leaves) = Called(body, inside);
+			var (call, undo, _, leaves, inline) = Called(body, inside, inline: true);
 
 			// Put back where the part failed and where it ended where it began, which only a part
 			// that can read nothing does.
@@ -5138,7 +5293,7 @@ sealed partial class Machine
 			foreach (var line in raised)
 				code.Line(line);
 
-			code.Line($"var {turn} = {call};");
+			Invoke(code, call, inline, turn, declare: true);
 
 			foreach (var line in restored)
 				code.Line(line);
@@ -5677,7 +5832,7 @@ sealed partial class Machine
 			Writer code, Node part, FollowSets.Continuation following, string? mark = null,
 			Action<Writer, string>? succeeded = null, Action<Writer>? failed = null)
 		{
-			var (call, undo, opens, leaves) = Called(part, following);
+			var (call, undo, opens, leaves, inline) = Called(part, following, inline: true);
 			var segment = _ways++;
 			var began   = mark ?? $"s{segment}";
 			var took    = $"q{_calls++}";
@@ -5697,7 +5852,7 @@ sealed partial class Machine
 
 			if (!opens)
 			{
-				code.Line($"var {took} = {call};");
+				Invoke(code, call, inline, took, declare: true);
 				code.Line();
 
 				if (succeeded is not null)
@@ -5855,7 +6010,7 @@ sealed partial class Machine
 			var silent = quiet is not null && machine.SeamReached.Contains(owner);
 			var says   = quiet is not null && !silent;
 
-			var (call, undo, opens, leaves) = Called(body, inside);
+			var (call, undo, opens, leaves, inline) = Called(body, inside, inline: true);
 
 			// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops). Where a
 			// turn may be asked back, the turns passed over are one way, as a run's are
@@ -6124,7 +6279,7 @@ sealed partial class Machine
 				}
 				else
 				{
-					code.Line($"{took} = {call};");
+					Invoke(code, call, inline, took, declare: false);
 					code.Line();
 
 					if (still is not null)
@@ -6253,7 +6408,7 @@ sealed partial class Machine
 			// the star before it, and `{ A* & ?!B }` what the refusal lets through.
 			var segment             = _ways++;
 			var took                = $"q{_calls++}";
-			var (call, undo, opens, leaves) = Called(kept, FollowSets.Continuation.Sealed);
+			var (call, undo, opens, leaves, _) = Called(kept, FollowSets.Continuation.Sealed);
 
 			// Where nothing under the group can open a way, there is nothing to take back into it
 			// and nothing to seal: the loop never went round, the seal spent nothing, and the one
@@ -6716,7 +6871,7 @@ sealed partial class Machine
 			// match and gives back what it read, so a repetition standing at the end of its
 			// body is never asked for a shorter reading and owes no way. `?!LogSeparator`
 			// over `' '* & '|' & ' '*` was opening one for the trailing run of spaces.
-			var (call, undo, opens, _) = Called(inside, FollowSets.Continuation.Sealed);
+			var (call, undo, opens, _, _) = Called(inside, FollowSets.Continuation.Sealed);
 
 			// What a look recorded is dropped whether it saw or not: its outcome is one bit,
 			// and what it captured on the way to it is not the rule's. Over the tape, the body
