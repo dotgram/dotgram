@@ -291,6 +291,12 @@ sealed partial class Machine
 	readonly Dictionary<RuleSymbol,int>  _captureOffsets = [];
 	readonly Dictionary<Node,int>        _captureSlots = new(NodeIdentity.Instance);
 
+	/// <summary>
+	/// Whether each part a reader called, read through before the readers are written, opened a way:
+	/// one that did is asked again for its other readings and stays a method of its own.
+	/// </summary>
+	internal readonly Dictionary<Node, bool> _partOpens = new(NodeIdentity.Instance);
+
 	/// <summary>The rule whose value each slot holds, or null where it holds text.</summary>
 	readonly Dictionary<int,RuleSymbol?> _slotRules = [];
 	readonly Dictionary<Node,RuleSymbol> _owners = new(NodeIdentity.Instance);
