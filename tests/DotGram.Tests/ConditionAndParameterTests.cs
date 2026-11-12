@@ -170,7 +170,8 @@ public sealed class ConditionAndParameterTests
 
 	/// <summary>
 	/// A recognizer parameter stands for a piece of grammar, and C# that names it used to fail as CS0103
-	/// in the generated file: in a switch's selector, a guard, a construction.
+	/// in the generated file: in a switch's selector, a guard, a construction, a value handed to a call,
+	/// and before a dot, as in <c>item.Length</c>.
 	/// </summary>
 	[Theory]
 	[InlineData("Value(tag) = switch @(Kind(tag)) { case 0: Digits default: none }\nField = tag: Digits & '=' & Value(tag)")]
@@ -179,6 +180,9 @@ public sealed class ConditionAndParameterTests
 	[InlineData("Value(x) = x & when (@(x != null))\nField = '=' & Value(Digits)")]
 	[InlineData("Version = \"2000\" | \"2022\"\nValue(x) = x & when Version is \"2000\" and @(x != null)\nField = '=' & Value(Digits)")]
 	[InlineData("Value(x) = x & when @(@x != null)\nField = '=' & Value(Digits)")]
+	[InlineData("Value(item) = item & item & when @(item.Length > 0)\nField = '=' & Value(Digits)")]
+	[InlineData("Value(item) = switch @(item.Length) { case 0: Digits default: none }\nField = '=' & Value(Digits)")]
+	[InlineData("Value(x) : @int = x & 'z' => @(x.Length)\nField : @int = '=' & v: Value(Digits) => @(v)")]
 	public void C_sharp_that_names_a_recognizer_parameter_is_said_on_the_grammar(string rules)
 	{
 		var grammar = "Digits = ['0'..'9']+\n" + rules + "\nparse Field";
@@ -189,8 +193,20 @@ public sealed class ConditionAndParameterTests
 	}
 
 	/// <summary>
+	/// C# handed to a call as a value is refused for what it is, not a literal nor a value the rule was
+	/// handed (GRAM4013), and a recognizer parameter it names is said as well.
+	/// </summary>
+	[Fact]
+	public void C_sharp_handed_to_a_call_that_names_a_recognizer_parameter_is_said_too()
+	{
+		var errors = Errors("Digits = ['0'..'9']+\nInner(n: @int) = 'a'\nValue(x) = x & Inner(@(x.Length))\nField = '=' & Value(Digits)\nparse Field");
+
+		Assert.Contains(GrammarNormalizer.RecognizerInCSharp, errors);
+	}
+
+	/// <summary>
 	/// What an argument brings in is the caller's C#, which may name a host member called like the
-	/// parameter; and a name written before a dot may be a namespace or a type. Neither is the parameter.
+	/// parameter; and a name before a dot may be a namespace the host sees. Neither is the parameter.
 	/// </summary>
 	[Theory]
 	[InlineData("Use(x) = x & 'z'\nTest = Use('a' & when @(x()))\nparse Test", "TryParseTest")]
@@ -209,22 +225,6 @@ public sealed class ConditionAndParameterTests
 			declarationMembers: "static bool x() { return true; }");
 
 		Assert.True(EmittedCode.Match(assembly, "Grammar", method, method == "TryP" ? "bz" : "az").IsSuccess);
-	}
-
-	/// <summary>
-	/// The gap left open: a parameter written only before a dot cannot be told from a namespace or a
-	/// type without binding, so it is not said, and the C# compiler says it in the generated file.
-	/// </summary>
-	[Fact]
-	public void A_recognizer_parameter_written_only_before_a_dot_is_left_to_the_csharp_compiler()
-	{
-		var result = Compile("Digits = ['0'..'9']+\nValue(x) : @int = x & 'z' => @(x.Length)\nField : @int = '=' & v: Value(Digits) => @(v)\nparse Field");
-
-		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
-
-		var errors = EmittedCode.Errors(string.Join("\n", result.Sources.Select(static one => one.Text)), "Grammar", null, null, null);
-
-		Assert.Contains(errors, static one => one.Id == "CS0103");
 	}
 
 	/// <summary>
