@@ -219,6 +219,68 @@ public sealed class StandardLibraryTests
 		Assert.Null(Read("M", ".5"));
 	}
 
+	/// <summary>
+	/// A number the guard refuses is not given back in pieces: the caller that could read what the
+	/// rule would leave (an exponent, a fraction, more digits, a word) never gets a shorter number.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_refused_number_is_not_accepted_as_a_prefix(bool spans)
+	{
+		var built = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			[Gram("""
+				D : @string = a: Std.Double & 'e' & Std.Digits & eof => @("D" + a)
+				F : @string = a: Std.Double & '.' & Std.Digits & eof => @("F" + a)
+				I : @string = a: Std.Integer & Std.Digits & eof => @("I" + a)
+				J : @string = a: Std.Integer & Std.Identifier & eof => @("J" + a)
+				L : @string = a: Std.Long & Std.Digits & eof => @("L" + a)
+				M : @string = a: Std.Decimal & '.' & Std.Digits & eof => @("M" + a)
+				N : @string = a: Std.Decimal & Std.Digits & eof => @("N" + a)
+				parse D
+				parse F
+				parse I
+				parse J
+				parse L
+				parse M
+				parse N
+				""", UseSpanCaptures = {{(spans ? "true" : "false")}})]
+			public static partial class Pieces;
+			"""");
+
+		var type = built.GetType("Pieces")!;
+
+		string? Read(string rule, string input)
+		{
+			var read = type.GetMethod("TryParse" + rule, [typeof(string)])!.Invoke(null, [input])!;
+
+			return (bool)read.GetType().GetProperty("IsSuccess")!.GetValue(read)!
+				? (string?)read.GetType().GetProperty("Value")!.GetValue(read)
+				: null;
+		}
+
+		// A double that overflows is not `1` before an `e999` the caller can read.
+		Assert.Null(Read("D", "1e999"));
+		Assert.Null(Read("D", "1.5e999"));
+		Assert.Null(Read("F", "1e999.5"));
+		// And one that fits is read whole: the `e` the caller asks for is the one after it.
+		Assert.Equal("D1E+99", Read("D", "1e99e5"));
+
+		// More digits than an int or a long holds are not a number and the rest.
+		Assert.Null(Read("I", "99999999999"));
+		Assert.Null(Read("I", "2147483648"));
+		Assert.Null(Read("J", "99999999999x"));
+		Assert.Null(Read("L", "99999999999999999999"));
+		Assert.Null(Read("L", "9223372036854775808"));
+
+		// A decimal that fits only without its fraction is refused with it, not read without.
+		Assert.Null(Read("M", "79228162514264337593543950335.9.5"));
+		Assert.Null(Read("N", "79228162514264337593543950336"));
+		Assert.Null(Read("N", "79228162514264337593543950335.9"));
+	}
+
 	/// <summary>The guards of the number rules read their text as a span too, where captures are spans.</summary>
 	[Fact]
 	public void The_number_rules_read_over_span_captures()
