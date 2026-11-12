@@ -281,6 +281,61 @@ public sealed class StandardLibraryTests
 		Assert.Null(Read("N", "79228162514264337593543950335.9"));
 	}
 
+	/// <summary>
+	/// The number rules read over bytes, where a capture is a span of bytes, and in a host that has a
+	/// type called <c>System</c> of its own, which a name written as <c>System.X</c> would find instead.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void The_number_rules_read_over_bytes_and_in_a_host_with_a_System_of_its_own(bool shadowed)
+	{
+		var built = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			namespace Host
+			{
+				{{(shadowed ? "public class System { }" : "")}}
+
+				[Gram("""
+					I : @int     = n: Std.Integer & eof => @(n)
+					L : @long    = n: Std.Long    & eof => @(n)
+					M : @decimal = n: Std.Decimal & eof => @(n)
+					D : @double  = n: Std.Double  & eof => @(n)
+					parse I stream bytes
+					parse L stream bytes
+					parse M stream bytes
+					parse D stream bytes
+					parse I as Text
+					parse D as Reals
+					""")]
+				public static partial class Numbers;
+			}
+			"""");
+
+		var type = built.GetType("Host.Numbers")!;
+
+		object? Read(string rule, string input)
+		{
+			using var stream = new System.IO.MemoryStream(System.Text.Encoding.ASCII.GetBytes(input));
+			var read = type.GetMethod("TryParse" + rule, [typeof(System.IO.Stream), typeof(int?), typeof(int?)])!
+				.Invoke(null, [stream, 1, int.MaxValue])!;
+
+			return (bool)read.GetType().GetProperty("IsSuccess")!.GetValue(read)!
+				? read.GetType().GetProperty("Value")!.GetValue(read)
+				: null;
+		}
+
+		Assert.Equal(2147483647, Read("I", "2147483647"));
+		Assert.Null(Read("I", "2147483648"));
+		Assert.Equal(9223372036854775807L, Read("L", "9223372036854775807"));
+		Assert.Null(Read("L", "9223372036854775808"));
+		Assert.Equal(3.25m, Read("M", "3.25"));
+		Assert.Null(Read("M", "79228162514264337593543950336"));
+		Assert.Equal(1.5e3, Read("D", "1.5e3"));
+		Assert.Null(Read("D", "1e309"));
+	}
+
 	/// <summary>The guards of the number rules read their text as a span too, where captures are spans.</summary>
 	[Fact]
 	public void The_number_rules_read_over_span_captures()
