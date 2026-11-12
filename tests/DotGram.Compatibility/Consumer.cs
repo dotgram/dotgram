@@ -304,4 +304,28 @@ namespace DotGram.Compatibility
 	public partial class BegunBackReference
 	{
 	}
+
+	/// <summary>
+	/// The numbers of the standard library read as strings: the overloads they ask the parsers of
+	/// numbers for have to be on every framework a consumer builds for.
+	/// </summary>
+	[Gram("I : @int = n: Std.Integer & eof => @(n)\nL : @long = n: Std.Long & eof => @(n)\n" +
+		"M : @decimal = n: Std.Decimal & eof => @(n)\nD : @double = n: Std.Double & eof => @(n)\n" +
+		"parse I\nparse L\nparse M\nparse D")]
+	public partial class StdNumbers
+	{
+	}
+
+#if NET8_0_OR_GREATER
+	/// <summary>
+	/// The same over bytes, where the framework parses numbers from UTF-8 — the capture there is a
+	/// span of bytes, and the older frameworks have no parser to give it to.
+	/// </summary>
+	[Gram("I : @int = n: Std.Integer & eof => @(n)\nL : @long = n: Std.Long & eof => @(n)\n" +
+		"M : @decimal = n: Std.Decimal & eof => @(n)\nD : @double = n: Std.Double & eof => @(n)\n" +
+		"parse I stream bytes\nparse L stream bytes\nparse M stream bytes\nparse D stream bytes")]
+	public partial class StdNumbersOverBytes
+	{
+	}
+#endif
 }

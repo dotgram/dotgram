@@ -45,16 +45,16 @@ Identifier = { [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']* }
 // refuses is not given back as a shorter one — `1e999` is not `1` before an `e999`.
 
 Integer : int     = n: Digits
-	& when @(n.Length <= 9 || n.Length == 10 && System.MemoryExtensions.SequenceCompareTo<char>(n, "2147483647") <= 0 || int.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _))
+	& when @(n.Length <= 9 || int.TryParse(n, global::System.Globalization.NumberStyles.Integer, global::System.Globalization.CultureInfo.InvariantCulture, out _))
 	=> @(int.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
 Long    : long    = n: Digits
-	& when @(n.Length <= 18 || n.Length == 19 && System.MemoryExtensions.SequenceCompareTo<char>(n, "9223372036854775807") <= 0 || long.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _))
+	& when @(n.Length <= 18 || long.TryParse(n, global::System.Globalization.NumberStyles.Integer, global::System.Globalization.CultureInfo.InvariantCulture, out _))
 	=> @(long.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
 Decimal : decimal = n: { Digits & ('.' & Digits)? }
 	& when @(n.Length <= 28 || decimal.TryParse(n, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture, out _))
 	=> @(decimal.Parse(n, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture))
-Double  : double  = n: { Digits & ('.' & Digits)? & ('e'i & ['+' | '-']? & Digits)? }
-	& when @(System.MemoryExtensions.IndexOfAny(n, 'e', 'E') is var e && (e < 0 ? n.Length <= 308 : e <= 100 && (n.Length - e <= 3 || n.Length - e == 4 && (n[e + 1] == '+' || n[e + 1] == '-'))) || double.TryParse(n, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture, out var d) && double.IsFinite(d))
+Double  : double  = n: { Digits & ('.' & Digits)? & (['e' | 'E'] & ['+' | '-']? & Digits)? }
+	& when @(n.Length <= 4 || double.TryParse(n, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture, out var d) && !double.IsInfinity(d) && !double.IsNaN(d))
 	=> @(double.Parse(n, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture))
 
 // ── Comments ─────────────────────────────────────────────────────────────────
