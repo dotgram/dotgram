@@ -2331,8 +2331,9 @@ sealed partial class Machine
 		/// </remarks>
 		string Fails()
 		{
-			// Inside a part written in place, a failure is the part's: it leaves to where the call
-			// would have answered -1, and gives back nothing, as a part's method does not.
+			// Inside a part written in place, a failure is the part's: it leaves the block the part is
+			// written in, where the call would have answered -1, and gives back nothing, as a part's
+			// method does not.
 			if (_inlined.Count > 0)
 			{
 				var region = _inlined[_inlined.Count - 1];
@@ -2342,7 +2343,7 @@ sealed partial class Machine
 				if (_pushed)
 					region.Leaves = true;
 
-				return $"goto PartFailed{region.Id};";
+				return "break;";
 			}
 
 			var given = GivenBack();
@@ -4501,11 +4502,14 @@ sealed partial class Machine
 		/// Whether a part is written in place: small, never asked again for another reading (nothing in
 		/// it opened a way when the rule was read through), and nothing about it that a method of its
 		/// own carries and a place in its caller would not — a frame of the trace, a quiet reading, a
-		/// fold's value or a strength handed by reference.
+		/// fold's value or a strength handed by reference. And nothing in it written as a loop or a
+		/// switch — a choice, a repetition, a count, an atomic group, a look — since its failure leaves
+		/// the block it is written in by a break, which one of those would take for its own.
 		/// </summary>
 		bool Inlines(Node part, bool quiet)
 		{
 			return !analyzing && !quiet && machine.Tracing is null && !_folds && !_ceils && !_climbs &&
+				!NodeWalk.Descendants(part).Any(static one => one is Node.Choice or Node.Repeat or Node.Counted or Node.Atomic or Node.Lookahead or Node.Reading) &&
 				machine._partOpens.TryGetValue(part, out var opened) && !opened && !machine.Opens(part) &&
 				machine.Weight(part, InlineWeight + 1) <= InlineWeight;
 		}
@@ -4605,15 +4609,30 @@ sealed partial class Machine
 				code.Line($"var hf{id} = rbf; rbf = faults;");
 			if (inline.Fresh.Length > 0)
 				code.Line(inline.Fresh);
-			code.AppendIndented(inline.Body, 0);
-			code.Line($"{took} = p;");
 
+			// A failure leaves by the block's break, which only a block with no loop or switch of its
+			// own around it reaches (Inlines): the reader writes no jumps.
 			if (inline.Fails)
 			{
-				code.Line($"goto PartDone{id};");
-				code.Line($"PartFailed{id}:");
+				foreach (var line in inline.Body.ToString().Split('\n'))
+					if (System.Text.RegularExpressions.Regex.IsMatch(line, @"^\s*(while|for|foreach|do|switch)\b"))
+						throw new InvalidOperationException($"A part written in place in {owner.Name} holds a loop or a switch its failure would leave instead.");
+
 				code.Line($"{took} = -1;");
-				code.Line($"PartDone{id}:");
+				code.Line("do");
+
+				using (code.Block(""))
+				{
+					code.AppendIndented(inline.Body, 0);
+					code.Line($"{took} = p;");
+				}
+
+				code.Line("while (false);");
+			}
+			else
+			{
+				code.AppendIndented(inline.Body, 0);
+				code.Line($"{took} = p;");
 			}
 
 			code.Line($"p = ip{id};");
@@ -5865,7 +5884,8 @@ sealed partial class Machine
 			Writer code, Node part, FollowSets.Continuation following, string? mark = null,
 			Action<Writer, string>? succeeded = null, Action<Writer>? failed = null)
 		{
-			var (call, undo, opens, leaves, inline) = Called(part, following, inline: true);
+			// Not the synchronization's attempt: the method it is written in declares its locals itself.
+			var (call, undo, opens, leaves, inline) = Called(part, following, inline: succeeded is not null);
 			var segment = _ways++;
 			var began   = mark ?? $"s{segment}";
 			var took    = $"q{_calls++}";
