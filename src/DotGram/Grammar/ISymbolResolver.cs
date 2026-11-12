@@ -391,4 +391,11 @@ interface ICSharpNames
 	/// <c>using</c> and its semicolon.
 	/// </param>
 	bool Answers(string name, IReadOnlyList<string> usings);
+
+	/// <summary>
+	/// The simple names in a C# expression that bind to nothing where the generated code stands, beside
+	/// <paramref name="usings"/>: as the C# compiler binds them, each where it is written, inside the
+	/// lambdas, the locals and the patterns the expression declares. Null where this cannot say.
+	/// </summary>
+	IReadOnlyCollection<string>? UnboundIn(string expression, IReadOnlyList<string> usings);
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using DotGram.Grammar;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 namespace DotGram.Generation;
 
@@ -79,6 +80,12 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	public const int CSharpName = -11;
 
 	/// <summary>
+	/// And which simple names in a piece of a rule's C# bind to nothing where the generated code stands
+	/// (<see cref="ICSharpNames.UnboundIn"/>): asked of the C# that names a recognizer parameter (GRAM4058).
+	/// </summary>
+	public const int CSharpUnbound = -12;
+
+	/// <summary>
 	/// Whether <paramref name="name"/> answers in C# beside <paramref name="usings"/>, the grammar's
 	/// <c>@using</c> directives, which the question carries in <see cref="Against"/>: in order and
 	/// without repeats, so that the generator and the compiler ask the same question of one grammar.
@@ -90,7 +97,16 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 		return new(name, CSharpName, against.Length == 0 ? null : against);
 	}
 
-	/// <summary>The usings a <see cref="Named"/> question carries.</summary>
+	/// <summary>
+	/// Which names in <paramref name="expression"/> bind to nothing beside <paramref name="usings"/>,
+	/// carried as <see cref="Named"/> carries them.
+	/// </summary>
+	public static Question UnboundIn(string expression, IEnumerable<string> usings)
+	{
+		return Named(expression, usings) with { Kind = CSharpUnbound };
+	}
+
+	/// <summary>The usings a <see cref="Named"/> or an <see cref="UnboundIn"/> question carries.</summary>
 	public static IReadOnlyList<string> Usings(Question question)
 	{
 		return question.Against is { Length: > 0 } against ? against.Split('\n') : [];
@@ -175,7 +191,8 @@ readonly record struct Answer(
 	string? ExternalType = null,
 	bool    ExternalAmbiguous = false,
 	ExternalMethodResolution Method = ExternalMethodResolution.Found,
-	EquatableArray<string> Fits = default);
+	EquatableArray<string> Fits = default,
+	EquatableArray<string> Unbound = default);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -250,6 +267,7 @@ static class Questions
 		var contexts   = new List<string>();
 		var contracts  = new List<string>();
 		var bindings   = new HashSet<string>(StringComparer.Ordinal);
+		var fragments  = new HashSet<string>(StringComparer.Ordinal);
 
 		Collect(file.Usings, file.Decls);
 
@@ -378,6 +396,9 @@ static class Questions
 		foreach (var bound in bindings)
 			questions.Add(Question.Named(bound, imports));
 
+		foreach (var text in fragments)
+			questions.Add(Question.UnboundIn(text, imports));
+
 		foreach (var method in externals)
 		{
 			questions.Add(Question.ValueOf(method));
@@ -432,6 +453,19 @@ static class Questions
 						foreach (var parameter in parameters)
 							if (parameter.Type is not { IsCSharp: true })
 								bindings.Add(parameter.Name);
+
+						// And which names in each piece of the rule's C# that may name one of those bind to
+						// nothing there: the C# compiler's answer, which knows what a lambda or a local in it
+						// declares. Only the pieces whose names include a parameter's are asked about.
+						if (parameters.Any(static parameter => parameter.Type is not { IsCSharp: true }))
+							foreach (var part in GrammarNormalizer.InValues(body))
+								if (part is Expr.CSharp(var text) &&
+									RoslynCSharpScanner.Instance.FreeNames(text) is var free &&
+									parameters.Any(parameter => parameter.Type is not { IsCSharp: true } &&
+										(free?.Contains(parameter.Name) ?? text.Contains(parameter.Name))))
+								{
+									fragments.Add(text);
+								}
 
 						Walk(body);
 
@@ -607,6 +641,9 @@ static class Questions
 				Question.NullableType   => new Answer(question, resolver.IsNullable(question.Name)),
 				Question.Fitting        => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
 				Question.CSharpName     => new Answer(question, resolver is not ICSharpNames names || names.Answers(question.Name, Question.Usings(question))),
+				Question.CSharpUnbound  => (resolver as ICSharpNames)?.UnboundIn(question.Name, Question.Usings(question)) is { } unbound
+					? new Answer(question, true, Unbound: new EquatableArray<string>([.. unbound.OrderBy(static one => one, StringComparer.Ordinal)]))
+					: new Answer(question, false),
 
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
@@ -706,6 +743,14 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 	bool ICSharpNames.Answers(string name, IReadOnlyList<string> usings)
 	{
 		return !_answers.TryGetValue(Question.Named(name, usings), out var answer) || answer.Yes;
+	}
+
+	/// <remarks>Null for a piece nobody foresaw, or one the host could not bind: nothing is refused for it.</remarks>
+	IReadOnlyCollection<string>? ICSharpNames.UnboundIn(string expression, IReadOnlyList<string> usings)
+	{
+		return _answers.TryGetValue(Question.UnboundIn(expression, usings), out var answer) && answer.Yes
+			? answer.Unbound.Items
+			: null;
 	}
 
 	/// <remarks>

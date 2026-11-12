@@ -408,9 +408,11 @@ sealed partial class GrammarNormalizer
 				continue;
 
 			var captured = new HashSet<string>(
-				Walk(declaration.Body).OfType<Expr.Capture>().Select(static capture => capture.Name), StringComparer.Ordinal);
+				Subexpressions(declaration.Body).OfType<Expr.Capture>().Select(static capture => capture.Name), StringComparer.Ordinal);
 
-			foreach (var (named, at) in Named(declaration.Body))
+			var imports = Imports(_model.Root);
+
+			foreach (var (named, at) in Named(declaration.Body, imports))
 				foreach (var parameter in recognizers)
 					if (named(parameter.Name) && !captured.Contains(parameter.Name) && Unbound(parameter.Name) &&
 						_parametersInCSharp.Add(parameter))
@@ -435,61 +437,71 @@ sealed partial class GrammarNormalizer
 			return _resolver is ICSharpNames names && !names.Answers(name, Imports(_model.Root));
 		}
 
-		// For each value the declaration writes — a guard's, a construction's, a switch's selector, a
-		// mark's, a recovery's factory, a guard among a condition's tests, C# written as an operand — whether
-		// it certainly names a name, and where it stands.
-		IEnumerable<(Func<string, bool> Names, Location At)> Named(Expr body)
+		// For each value the declaration writes, whether it certainly names a name, and where it stands.
+		IEnumerable<(Func<string, bool> Names, Location At)> Named(Expr body, IReadOnlyList<string> imports)
 		{
-			foreach (var expression in Walk(body))
-			{
-				IReadOnlyList<Expr> values = expression switch
+			foreach (var part in InValues(body))
+				switch (part)
 				{
-					Expr.Guard(var guarded)               => [guarded],
-					Expr.Construct(_, var built)          => [built],
-					Expr.Switch(var selector, _)          => [selector],
-					Expr.Marked(_, var marked)            => [marked],
-					Expr.Recovering(_, _, { } factory)    => [factory],
-					Expr.Condition(var test)              => Parsing.Test.Guards(test),
-					Expr.CSharp                           => [expression],
-					_                                     => [],
-				};
+					// A grammar name in a value is the rule's own name for something.
+					case Expr.Reference(false, var name, _):
+						yield return (one => one == name, part.At);
+						break;
 
-				foreach (var value in values)
-					foreach (var part in Walk(value))
-						switch (part)
-						{
-							// A grammar name in a value is the rule's own name for something.
-							case Expr.Reference(false, var name, _):
-								yield return (one => one == name, part.At);
-								break;
+					// The C#'s names as the C# compiler binds them where the generated code stands, beside the
+					// grammar's @using directives: one that binds to nothing there is the parameter's. Which
+					// names a lambda, a local or a pattern declares, and over what, is the compiler's to say.
+					case Expr.CSharp(var text):
+						var unbound = _resolver is ICSharpNames names ? names.UnboundIn(text, imports) : null;
 
-							// From the C#'s tokens: a name in a comment or a literal is none, and `@x` is `x`.
-							// One before a dot, item.Length, is among them; a namespace or a type of that
-							// name answers in Unbound().
-							case Expr.CSharp(var text):
-								var asValues = _scanner.NamesAsValues(text);
-
-								yield return (one => asValues?.Contains(one) == true, part.At);
-								break;
-						}
-			}
+						yield return (one => unbound?.Contains(one) == true, part.At);
+						break;
+				}
 		}
+	}
 
-		static IEnumerable<Expr> Walk(Expr root)
+	/// <summary>
+	/// Every part of every value a rule's body writes — a guard's, a construction's, a switch's selector,
+	/// a mark's, a recovery's factory, a guard among a condition's tests, C# written as an operand.
+	/// </summary>
+	/// <remarks>What <see cref="CheckRecognizersInCSharp"/> asks about, and the generator asks the host about ahead of it.</remarks>
+	internal static IEnumerable<Expr> InValues(Expr body)
+	{
+		foreach (var expression in Subexpressions(body))
 		{
-			var pending = new Stack<Expr>();
-
-			pending.Push(root);
-
-			while (pending.Count > 0)
+			IReadOnlyList<Expr> values = expression switch
 			{
-				var current = pending.Pop();
+				Expr.Guard(var guarded)               => [guarded],
+				Expr.Construct(_, var built)          => [built],
+				Expr.Switch(var selector, _)          => [selector],
+				Expr.Marked(_, var marked)            => [marked],
+				Expr.Recovering(_, _, { } factory)    => [factory],
+				Expr.Condition(var test)              => Parsing.Test.Guards(test),
+				Expr.CSharp                           => [expression],
+				_                                     => [],
+			};
 
-				yield return current;
+			foreach (var value in values)
+				foreach (var part in Subexpressions(value))
+					yield return part;
+		}
+	}
 
-				foreach (var child in Dump.Children(current))
-					pending.Push(child);
-			}
+	/// <summary>An expression and every expression inside it.</summary>
+	static IEnumerable<Expr> Subexpressions(Expr root)
+	{
+		var pending = new Stack<Expr>();
+
+		pending.Push(root);
+
+		while (pending.Count > 0)
+		{
+			var current = pending.Pop();
+
+			yield return current;
+
+			foreach (var child in Dump.Children(current))
+				pending.Push(child);
 		}
 	}
 

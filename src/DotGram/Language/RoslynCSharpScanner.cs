@@ -66,38 +66,6 @@ sealed class RoslynCSharpScanner : ICSharpScanner
 	}
 
 	/// <summary>
-	/// Each use of a free name read as a value: not called, not in a type's place, and not on the left
-	/// of a qualified name.
-	/// </summary>
-	/// <remarks>
-	/// Decided for each use, where it stands: a lambda's parameter or a local is its own only over the
-	/// lambda or the block that declares it (<see cref="Free"/>), so <c>item</c> after
-	/// <c>xs.Any(item =&gt; …)</c> is still the outer one, and one spelling called in one place is
-	/// still a value in another.
-	/// </remarks>
-	public IReadOnlyCollection<string>? NamesAsValues(string expression)
-	{
-		if (expression is null)
-			return null;
-
-		var parsed = SyntaxFactory.ParseExpression(expression);
-
-		if (parsed.ContainsDiagnostics)
-			return null;
-
-		var names = new HashSet<string>(StringComparer.Ordinal);
-
-		foreach (var name in Free(parsed))
-			if (!IsCalled(name) && !IsType(name))
-				names.Add(name.Identifier.ValueText);
-
-		// A part of a qualified name is a type's place, which C# reads only as a namespace or a type. The
-		// left of a member access, item.Length, is a value unless something of that name is a namespace or
-		// a type where the code stands; that is the host's to say, and the caller asks it.
-		return names;
-	}
-
-	/// <summary>
 	/// The names the expression calls, writes as a type or a type argument, or declares.
 	/// </summary>
 	/// <remarks>
@@ -137,46 +105,46 @@ sealed class RoslynCSharpScanner : ICSharpScanner
 			return name.Parent is MemberAccessExpressionSyntax member && member.Name == name ||
 				name.Parent is MemberBindingExpressionSyntax binding && binding.Name == name;
 		}
-	}
 
-	static bool IsCalled(IdentifierNameSyntax name)
-	{
-		// Through the parentheses and the `!` it may be wrapped in: `(parserText)()` and `parserText!()`.
-		SyntaxNode target = name;
-
-		while (target.Parent is ParenthesizedExpressionSyntax or PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.SuppressNullableWarningExpression })
-			target = target.Parent;
-
-		return target.Parent is InvocationExpressionSyntax call && call.Expression == target;
-	}
-
-	// Where C# reads a name as a type: whatever stands in a type's place, and every part of a type.
-	static bool IsType(IdentifierNameSyntax name)
-	{
-		return name.Parent switch
+		static bool IsCalled(IdentifierNameSyntax name)
 		{
-			TypeArgumentListSyntax or ArrayTypeSyntax or NullableTypeSyntax or PointerTypeSyntax or RefTypeSyntax or
-				ScopedTypeSyntax or QualifiedNameSyntax or TupleElementSyntax or TypePatternSyntax or
-				ArrayCreationExpressionSyntax or StackAllocArrayCreationExpressionSyntax => true,
-			ObjectCreationExpressionSyntax creation  => creation.Type == name,
-			CastExpressionSyntax cast                => cast.Type == name,
-			TypeOfExpressionSyntax typeOf            => typeOf.Type == name,
-			DefaultExpressionSyntax fallback         => fallback.Type == name,
-			SizeOfExpressionSyntax size              => size.Type == name,
-			DeclarationExpressionSyntax declaration  => declaration.Type == name,
-			VariableDeclarationSyntax declaration    => declaration.Type == name,
-			DeclarationPatternSyntax pattern         => pattern.Type == name,
-			RecursivePatternSyntax pattern           => pattern.Type == name,
-			ParameterSyntax parameter                => parameter.Type == name,
-			LocalFunctionStatementSyntax function    => function.ReturnType == name,
-			CatchDeclarationSyntax caught            => caught.Type == name,
-			ForEachStatementSyntax loop              => loop.Type == name,
-			FromClauseSyntax from                    => from.Type == name,
-			JoinClauseSyntax join                    => join.Type == name,
-			ParenthesizedLambdaExpressionSyntax lambda => lambda.ReturnType == name,
-			BinaryExpressionSyntax binary            => binary.Right == name && (binary.IsKind(SyntaxKind.AsExpression) || binary.IsKind(SyntaxKind.IsExpression)),
-			_                                        => false,
-		};
+			// Through the parentheses and the `!` it may be wrapped in: `(parserText)()` and `parserText!()`.
+			SyntaxNode target = name;
+
+			while (target.Parent is ParenthesizedExpressionSyntax or PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.SuppressNullableWarningExpression })
+				target = target.Parent;
+
+			return target.Parent is InvocationExpressionSyntax call && call.Expression == target;
+		}
+
+		// Where C# reads a name as a type: whatever stands in a type's place, and every part of a type.
+		static bool IsType(IdentifierNameSyntax name)
+		{
+			return name.Parent switch
+			{
+				TypeArgumentListSyntax or ArrayTypeSyntax or NullableTypeSyntax or PointerTypeSyntax or RefTypeSyntax or
+					ScopedTypeSyntax or QualifiedNameSyntax or TupleElementSyntax or TypePatternSyntax or
+					ArrayCreationExpressionSyntax or StackAllocArrayCreationExpressionSyntax => true,
+				ObjectCreationExpressionSyntax creation  => creation.Type == name,
+				CastExpressionSyntax cast                => cast.Type == name,
+				TypeOfExpressionSyntax typeOf            => typeOf.Type == name,
+				DefaultExpressionSyntax fallback         => fallback.Type == name,
+				SizeOfExpressionSyntax size              => size.Type == name,
+				DeclarationExpressionSyntax declaration  => declaration.Type == name,
+				VariableDeclarationSyntax declaration    => declaration.Type == name,
+				DeclarationPatternSyntax pattern         => pattern.Type == name,
+				RecursivePatternSyntax pattern           => pattern.Type == name,
+				ParameterSyntax parameter                => parameter.Type == name,
+				LocalFunctionStatementSyntax function    => function.ReturnType == name,
+				CatchDeclarationSyntax caught            => caught.Type == name,
+				ForEachStatementSyntax loop              => loop.Type == name,
+				FromClauseSyntax from                    => from.Type == name,
+				JoinClauseSyntax join                    => join.Type == name,
+				ParenthesizedLambdaExpressionSyntax lambda => lambda.ReturnType == name,
+				BinaryExpressionSyntax binary            => binary.Right == name && (binary.IsKind(SyntaxKind.AsExpression) || binary.IsKind(SyntaxKind.IsExpression)),
+				_                                        => false,
+			};
+		}
 	}
 
 	/// <summary>
