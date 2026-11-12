@@ -4521,6 +4521,15 @@ sealed partial class Machine
 			var region = new Inlined(_inlines++, new Writer(0));
 			var pushed = _pushed;
 
+			// What this writer holds for the next thing it writes is not the part's: a method of its
+			// own would begin without it, and the caller finds it as it left it.
+			var (entry, closing, quieted, lead, trail, seals, refuseWith, refuseOver, guardRefuses) =
+				(_entry, _closing, _quiet, _leadMark, _trailMark, _sealsLead, _refuseWith, _refuseOver, _guardRefuses);
+			var texts = new Dictionary<string, string>(_guardTexts, StringComparer.Ordinal);
+
+			(_entry, _closing, _quiet, _leadMark, _trailMark, _sealsLead, _refuseWith, _refuseOver, _guardRefuses) =
+				(false, null, null, null, null, false, null, null, null);
+			_guardTexts.Clear();
 			_pushed = false;
 			_inlined.Add(region);
 
@@ -4528,6 +4537,12 @@ sealed partial class Machine
 
 			_inlined.RemoveAt(_inlined.Count - 1);
 			_pushed |= pushed;
+			(_entry, _closing, _quiet, _leadMark, _trailMark, _sealsLead, _refuseWith, _refuseOver, _guardRefuses) =
+				(entry, closing, quieted, lead, trail, seals, refuseWith, refuseOver, guardRefuses);
+			_guardTexts.Clear();
+
+			foreach (var one in texts)
+				_guardTexts[one.Key] = one.Value;
 
 			// A method of its own declared these afresh at every call; in place, a reading that comes
 			// round again finds what the last one left.
