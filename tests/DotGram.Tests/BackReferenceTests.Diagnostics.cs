@@ -293,6 +293,18 @@ public sealed partial class BackReferenceTests
 		Refused(id, grammar, at, says, occurrence);
 	}
 
+	/// <summary>
+	/// What GRAM4064 advises is accepted: the binding and its read in a rule a step calls, and for the
+	/// leading call, in the base. Binding and reading inside the step itself is what it refuses.
+	/// </summary>
+	[Theory]
+	[InlineData("E = E & '+' & P | T\nP = $q: T & $q\nT = 'a'")]
+	[InlineData("E = E & 'x' | $q: 'y' & $q")]
+	public void What_a_refused_binding_in_a_left_recursive_rule_advises_is_accepted(string grammar)
+	{
+		Assert.Empty(Errors(grammar));
+	}
+
 	[Theory]
 	[InlineData("R = $q: 'a' & ('b' & $q & ';')* recover ';'", "$q", 1)]
 	[InlineData("R = $q: 'a' & ('b'){#q} recover ';'",         "(",  0)]

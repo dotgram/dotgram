@@ -183,7 +183,7 @@ character the grammar's own position maps to. A grammar inherited from a base cl
 | <a id="gram4061"></a>`GRAM4061` | Error | One name bound twice on one route. | A name is bound once on each route. Give the second binding another name (§3.5.1). |
 | <a id="gram4062"></a>`GRAM4062` | Error | A reference or a length inside its own binding. | The text is still being bound there. Read it after the binding (§3.5.1). |
 | <a id="gram4063"></a>`GRAM4063` | Error | A binding and its reference on two sides of a constructing group. | A group `( … => … )` builds its value as a rule of its own, and a binding is read only in the rule that bound it. Bind and read on one side (§3.5.1). |
-| <a id="gram4064"></a>`GRAM4064` | Error | A binding in a step of a left-recursive rule, or around its leading call to itself. | The steps are read as a loop of their own, after the base (§4.3). Bind and read inside one step, or in a rule the step calls (§3.5.1). |
+| <a id="gram4064"></a>`GRAM4064` | Error | A binding in a step of a left-recursive rule, or around its leading call to itself. | The steps are read as a loop of their own, after the base (§4.3). Put the binding and its read in a rule the step calls; for the leading call, in the base or in such a rule (§3.5.1). |
 
 ## GRAM5xxx — what a grammar gets
 
