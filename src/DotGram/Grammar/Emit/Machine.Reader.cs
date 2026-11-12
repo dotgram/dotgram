@@ -6832,7 +6832,9 @@ sealed partial class Machine
 
 		// ---- caller-rollback probe (experiment only) -------------------------------------------
 
+#pragma warning disable RS1035 // Experiment-only probe switch; never reaches a shipped build.
 		static readonly string? ProbePath = System.Environment.GetEnvironmentVariable("DOTGRAM_ROLLBACK_PROBE");
+#pragma warning restore RS1035
 
 		static readonly string ProbeRun = System.Guid.NewGuid().ToString("N").Substring(0, 8);
 
