@@ -4348,10 +4348,11 @@ sealed partial class Machine
 		/// </remarks>
 		/// <returns>
 		/// The call; what has to be put back where it failed; whether it opens a way; and whether a
-		/// failure of it may leave a gathered member pushed. A rule's own method gives back what it
-		/// pushed wherever it fails (<see cref="GivenBack"/>), and a part is asked how it was written
-		/// (<see cref="_failsPushed"/>), so a caller marks and puts back the gathered members only where
-		/// the last is true.
+		/// failure of it may leave a gathered member pushed. Where the carrier's rules give back what
+		/// they pushed wherever they fail (<see cref="ValueCarrier.CallsGiveBackGathered"/>), a rule's
+		/// method never does, and a part is asked how it was written (<see cref="_failsPushed"/>): a
+		/// failure written past a push of its own. Elsewhere any call may. A caller marks and puts
+		/// back the gathered members only where the last is true.
 		/// </returns>
 		(string Call, string Undo, bool Opens, bool Leaves) Called(Node part, FollowSets.Continuation following, bool quiet = false)
 		{
@@ -4380,7 +4381,7 @@ sealed partial class Machine
 					Framed(bare, machine.ReaderOf(bare.Rule), machine.DirectStrengthOf(bare, bare.Rule)),
 					"",
 					machine.Opens(part),
-					false);
+					!machine.Carrier.CallsGiveBackGathered);
 			}
 
 			// What the part hands back is a local of this method, so this method declares it.
@@ -4430,7 +4431,7 @@ sealed partial class Machine
 				$"{name}(p{Handing(given, taken, "", wider, ceilings)})",
 				undo.ToString().TrimEnd(),
 				opens,
-				apart._failsPushed);
+				apart._failsPushed || !machine.Carrier.CallsGiveBackGathered);
 		}
 
 		/// <summary>

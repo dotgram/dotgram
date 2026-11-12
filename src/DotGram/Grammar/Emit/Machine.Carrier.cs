@@ -953,6 +953,14 @@ sealed partial class Machine
 			return [];
 		}
 
+		/// <summary>
+		/// Whether a call of a rule's own method leaves the gathered members as it found them where
+		/// it fails: every rule gives back what it pushed (<see cref="GiveBackGathered"/>), and one it
+		/// calls that answered collected what it pushed. Where it does not, a failed call may leave
+		/// anything pushed, and its caller puts the gathered members back itself.
+		/// </summary>
+		public virtual bool CallsGiveBackGathered => false;
+
 		// ---- the locals a value is kept in -----------------------------------------------------
 
 		/// <summary>
