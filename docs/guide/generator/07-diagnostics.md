@@ -321,6 +321,7 @@ reference, and a test fails where the two differ.
 | [`GRAM4055`](../../diagnostics.md#gram4055) | Error | `positional parse` in a grammar that names `eos`. |
 | [`GRAM4056`](../../diagnostics.md#gram4056) | Error | A construction's value cannot be the type it is declared to give: a capture handed back whole (`=> x`, `=> @(x)`) that holds text where an array or a value type is declared, or a generated type where another type is; a grammar's type built with the wrong number of values, or from a capture that cannot be its member (`=> Pair(right)`); a rule's name built or taken as a type where the grammar generates none for it, because it declares its own type or captures nothing. |
 | [`GRAM4057`](../../diagnostics.md#gram4057) | Error | What a rule can begin with does not settle. |
+| [`GRAM4059`](../../diagnostics.md#gram4059) | Warning | A grammar publishes nothing, and nothing includes it. |
 | [`GRAM5001`](../../diagnostics.md#gram5001) | Info | A publication gets no overload taking a reader, or, in a grammar that names `eos`, reads its segments whole. |
 | [`GRAM5002`](../../diagnostics.md#gram5002) | Info | A repetition can begin with the same input as what follows it. |
 | [`GRAM5003`](../../diagnostics.md#gram5003) | Warning | A generated method is left past the size at which the JIT stops optimizing it. |
