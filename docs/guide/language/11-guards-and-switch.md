@@ -182,7 +182,7 @@ What is generated is what is left once the conditions are answered:
 Notes:
 
 - A side is a recognizer: a name, a literal, an element set, a bracketed choice; anything with a
-  quantifier is named as a rule first. There is no combinator inside a side:
+  quantifier is named as a rule first (`GRAM2024` otherwise). There is no combinator inside a side:
   `Version is ("2008" | "2022")` already says what `Version is "2008" or "2022"` would.
 - A range is a rule, not an operator: `when Version is Since2008` with `Since2008 = "2008" | "2022"`.
 - `is`, `not`, `and` and `or` are words only after `when`.
@@ -197,7 +197,7 @@ Test = 'a' & when Version and Version is "2000"
 parse Test with (Version = "2000") as ParseOld
 ```
 
-```dotgram pending GRAM2009
+```dotgram GRAM2009
 Version = "2000" | "2022"
 
 Test = 'a' & when Version
@@ -215,6 +215,14 @@ Test = 'a' & when Version is Digits
 parse Test with (Version = "2000") as ParseOld
 ```
 
+```dotgram GRAM2024
+Version = "2000" | "2022"
+
+Test = 'a' & when Version is ['0'..'9']+
+
+parse Test with (Version = "2000") as ParseOld
+```
+
 ```dotgram GRAM4020
 Version = "2000" | "2022"
 
@@ -223,7 +231,7 @@ Test = 'a' & ('b' & when Version is "2000")*
 parse Test
 ```
 
-```dotgram pending GRAM4022
+```dotgram GRAM4022
 Version = "2000" | "2022"
 
 Old  = 'a' & when Version is "2000"
@@ -256,14 +264,13 @@ parse Test with (Version = "2022") as ParseNew
 > может стоять среди них (пример `Row`). Генерируется то, что остаётся после ответа (таблица): ложное
 > условие `and @(g)` — альтернативы нет и `g` не компилируется; истинное `and @(g)` — `when @(g)`;
 > истинное `or @(g)` — ничего. Сторона — распознаватель (имя, литерал, множество, выбор в скобках;
-> что-то с квантором сначала выносится в правило); комбинаторов
+> что-то с квантором сначала выносится в правило, иначе `GRAM2024`); комбинаторов
 > внутри стороны нет; диапазон — это правило (`Since2008 = "2008" | "2022"`). `is`, `not`, `and`, `or`
 > — ключевые слова только после `when`. Отвергается и сообщается: операнд после `when`, не C# и без
-> `is`, — `GRAM2009` (голое имя `when Version` сейчас уходит в C# — пример `pending`); сторона, не являющаяся перечислимым множеством строк, — `GRAM4021` (альтернатива
+> `is`, — `GRAM2009` (и голое имя `when Version`); сторона, не являющаяся перечислимым множеством строк, — `GRAM4021` (альтернатива
 > сохраняется: решать молча значило бы менять язык); условие не среди операндов альтернативы —
 > `GRAM4020`; правило, все альтернативы
-> которого исключены в данном парсере, — не ошибка, а информация `GRAM4022` (пример `pending`:
-> сгенерированный код сейчас даёт предупреждения CS0162); более 64 прочтений одной грамматики — `GRAM4023`; `when`, оставляющий разный C# в разных
+> которого исключены в данном парсере, — не ошибка, а информация `GRAM4022` (вызывающий такого правила получает обычный отказ); более 64 прочтений одной грамматики — `GRAM4023`; `when`, оставляющий разный C# в разных
 > прочтениях, — `GRAM4024`.
 <!-- ru:end -->
 
