@@ -121,6 +121,13 @@ sealed class GrammarBinder
 	public const string AmbiguousTrivia           = "GRAM3022";
 
 	/// <summary>
+	/// A name two imports at one scope both supply, read where neither the scope nor one nearer
+	/// declares it: which one it means is not decided by the order of the <c>using</c>s (§5).
+	/// Settled by qualification, <c>A.W</c>.
+	/// </summary>
+	public const string AmbiguousImport           = "GRAM3023";
+
+	/// <summary>
 	/// The built-in rules: what every grammar has without declaring it (§3.1.1). They live
 	/// in a namespace outside the global one, so a grammar can shadow any of them by
 	/// declaring its own — which is exactly how whitespace handling works (§4.5). Not the
@@ -217,6 +224,33 @@ sealed class GrammarBinder
 			standard.TryDeclare(new RuleSymbol(name, standard, Declaration: null));
 
 		return _standard = standard;
+	}
+
+	/// <summary>
+	/// <see cref="GrammarNamespace.LookupQualified"/>, where a name two imports supply is said to be
+	/// ambiguous where it is read (GRAM3023), and read as the first so that nothing after it is told
+	/// twice.
+	/// </summary>
+	RuleSymbol? Resolve(GrammarNamespace ns, string name, Location at)
+	{
+		if (name.IndexOf('.') < 0 && ns.Ambiguous(name) is { Count: > 1 } candidates)
+			Report(
+				AmbiguousImport,
+				$"'{name}' is supplied by more than one import: {string.Join(" and ", candidates.Select(static one => "'" + Qualified(one) + "'"))}. " +
+				"Which one is meant is not decided by the order of the 'using's; write the one meant in full (docs/syntax.md §5).",
+				at);
+
+		return ns.LookupQualified(name);
+
+		static string Qualified(RuleSymbol rule)
+		{
+			var name = rule.Name;
+
+			for (var ns = rule.Namespace; ns is { Name.Length: > 0, IsRoot: false }; ns = ns.Parent)
+				name = ns.Name + "." + name;
+
+			return name;
+		}
 	}
 
 	void Report(string id, string message, Location at)
@@ -355,7 +389,8 @@ sealed class GrammarBinder
 	{
 		foreach (var rule in ns.Rules.Values)
 			if (!BuiltIn.Contains(rule.Name) &&
-				ns.Imports.Any(imported => imported.Rules.ContainsKey(rule.Name)))
+				ns.Imports.Any(imported => imported.Rules.ContainsKey(rule.Name)) &&
+				!ns.Rebindings.Keys.Any(bound => bound.Name == rule.Name))
 				Report(ShadowsEnclosingRule, ShadowsMessage(rule.Name), rule.Declaration!.At);
 	}
 
@@ -507,7 +542,7 @@ sealed class GrammarBinder
 					if (publish.At.Position >= _own)
 						break;
 
-					if (ns.LookupQualified(publish.RuleName) is not { } published)
+					if (Resolve(ns, publish.RuleName, publish.At) is not { } published)
 					{
 						Report(UndefinedName, $"No rule named '{publish.RuleName}'.", publish.At);
 						break;
@@ -602,12 +637,21 @@ sealed class GrammarBinder
 
 		child.Rebindings = ChainResolve(ns.Rebindings, child.OwnRebindings);
 
+		// One number for a name the header binds and the block declares again, wherever the name came from:
+		// an enclosing namespace's rule was told as shadowing it (GRAM3012) by the declaring pass, which
+		// said to write the rebinding that is already written. That word is taken back here.
 		foreach (var rule in child.Rules.Values)
 			if (child.Rebindings.Keys.Any(bound => bound.Name == rule.Name))
+			{
+				var at = rule.Declaration!.At;
+
+				_diagnostics.RemoveAll(one => one.Id == ShadowsEnclosingRule && one.Position == at.Position);
+
 				Report(
 					NamespaceBoundNameRedeclared,
 					$"Rule '{rule.Name}' is bound by the active namespace's own header and cannot be redeclared. Use a nested namespace header to replace it.",
-					rule.Declaration!.At);
+					at);
+			}
 	}
 
 	/// <summary>
@@ -617,7 +661,7 @@ sealed class GrammarBinder
 	/// </summary>
 	ResolvedRebinding? ValidateRebinding(Rebinding rebinding, GrammarNamespace ns)
 	{
-		var left = ns.LookupQualified(rebinding.Left);
+		var left = Resolve(ns, rebinding.Left, rebinding.At);
 
 		if (left is null)
 		{
@@ -629,7 +673,7 @@ sealed class GrammarBinder
 			return null;
 		}
 
-		var right = ns.LookupQualified(rebinding.Right);
+		var right = Resolve(ns, rebinding.Right, rebinding.At);
 
 		if (right is null)
 		{
@@ -869,7 +913,7 @@ sealed class GrammarBinder
 			return;
 		}
 
-		if (parameters.ContainsKey(type.Name) || ns.LookupQualified(type.Name) is not null)
+		if (parameters.ContainsKey(type.Name) || Resolve(ns, type.Name, type.At) is not null)
 			return;
 
 		Report(UndefinedName, $"No rule, parameter or C# type named '{type.Name}'.", type.At);
@@ -1066,7 +1110,7 @@ sealed class GrammarBinder
 		if (_captures.Contains(reference.Name))
 			return;
 
-		if (ns.LookupQualified(reference.Name) is { } rule)
+		if (Resolve(ns, reference.Name, at) is { } rule)
 		{
 			Bind(rule);
 		}
