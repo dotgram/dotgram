@@ -412,7 +412,8 @@ sealed partial class GrammarNormalizer
 
 			foreach (var (named, at) in Named(declaration.Body))
 				foreach (var parameter in recognizers)
-					if (named(parameter.Name) && !captured.Contains(parameter.Name) && _parametersInCSharp.Add(parameter))
+					if (named(parameter.Name) && !captured.Contains(parameter.Name) && Unbound(parameter.Name) &&
+						_parametersInCSharp.Add(parameter))
 						Report(
 							RecognizerInCSharp,
 							$"C# in '{declaration.Name}' names '{parameter.Name}', a parameter that stands for a piece of " +
@@ -421,6 +422,17 @@ sealed partial class GrammarNormalizer
 							"what the parse produces is captured where the rule is called and handed to a '=>' there " +
 							"(docs/syntax.md §4.2).",
 							at);
+		}
+
+		// Whether nothing in the host's C# answers to the name where the generated code stands: a member of
+		// the host or of a class it derives from, a class around it or imported statically, a type or a
+		// namespace. There the parameter's name is that member's, and the C# compiles (`static int x`,
+		// a method handed on as `Check(x)`). Where no resolver can say — a grammar compiled with no host —
+		// nothing is said: the name may be the host's, and a refusal there would refuse a grammar that
+		// compiles; one that does not is told by the C# compiler on the grammar's line.
+		bool Unbound(string name)
+		{
+			return _resolver is ICSharpNames names && !names.Answers(name);
 		}
 
 		// For each value the declaration writes — a guard's, a construction's, a switch's selector, a

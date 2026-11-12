@@ -51,4 +51,34 @@ public sealed class RecoveryUnderTriviaTests
 
 		Assert.Contains(result.Diagnostics, static one => one.Id == "GRAM4010");
 	}
+
+	/// <summary>
+	/// Without a factory, what is reported for the rejected element names the element, <c>Let</c>, under
+	/// trivia as without it; it used to be "an element" there, the turn read as a group.
+	/// </summary>
+	[Theory]
+	[InlineData("trivia = { ' '* }\n", "let a; let 1; let c;")]
+	[InlineData("", "leta;let1;letc;")]
+	public void Without_a_factory_the_rejected_element_is_reported_by_its_rule(string trivia, string input)
+	{
+		const string Members =
+			"public static string Said = \"\"; " +
+			"static partial void OnRecovered(string rule, string text, long position, int line, int column, int ordinal, string message) " +
+			"{ Said += rule + \";\"; }";
+
+		var grammar =
+			trivia +
+			"Let    : @string   = \"let\" & name: { ['a'..'z']+ } & ';' => name\n" +
+			"Script : @string[] = Let* recover ';'\n" +
+			"parse Script\n";
+
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members);
+
+		Assert.Equal(["a", "c"], (string[])EmittedCode.Match(assembly, "Grammar", "TryParseScript", input).Value!);
+		Assert.Equal("Let;", assembly.GetType("Grammar")!.GetField("Said")!.GetValue(null));
+	}
 }
