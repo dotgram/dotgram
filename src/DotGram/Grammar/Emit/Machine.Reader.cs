@@ -4265,16 +4265,19 @@ sealed partial class Machine
 						// Nothing under it goes on the tape, so it has one reading and asking
 						// for another is a loop that can only go round once.
 						code.Line($"{tried} = {call};");
-						code.Line();
 
 						var back = Restore(segment, undo, gathered);
 
 						if (back.Count > 0)
+						{
+							code.Line();
+
 							using (code.Block($"if ({tried} < 0)"))
 							{
 								foreach (var line in back)
 									code.Line(line);
 							}
+						}
 					}
 
 					if (i < alternatives.Count - 1)
@@ -6135,7 +6138,8 @@ sealed partial class Machine
 					failing = Restore(segment, "", gathered);
 				}
 
-				code.Line();
+				if (opens)
+					code.Line();
 
 				using (code.Block($"if ({took} < 0)"))
 				{
