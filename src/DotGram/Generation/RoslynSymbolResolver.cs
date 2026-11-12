@@ -410,17 +410,35 @@ sealed class RoslynSymbolResolver(
 	}
 
 	/// <remarks>
+	/// <para>
 	/// What a simple name binds to where the generated call stands (<see cref="CallSite"/>): a member of
 	/// the host or of what it derives from, of a class around it or one imported statically, a type or a
 	/// namespace. Yes wherever there is no host in source to look from.
+	/// </para>
+	/// <para>
+	/// Looked up beside the grammar's <c>@using</c> directives as well, which the generated file writes
+	/// where the call stands: <c>Math</c> under <c>@using System;</c> is the class. The frame the
+	/// methods are looked up in leaves them out (<see cref="CallSiteText"/>); this one is made for each
+	/// set of them asked with, which is one per grammar.
+	/// </para>
 	/// </remarks>
-	bool ICSharpNames.Answers(string name)
+	bool ICSharpNames.Answers(string name, IReadOnlyList<string> usings)
 	{
-		if (CallSite() is not var (_, model, position, _))
+		var key = string.Join("\n", usings);
+
+		if (!_namesSites.TryGetValue(key, out var site))
+			_namesSites[key] = site = usings.Count == 0
+				? CallSite() is var (_, made, at, _) ? (made, at) : null
+				: Frame(usings) is var (_, model, position, _, _) ? (model, position) : null;
+
+		if (site is not var (semantic, place))
 			return true;
 
-		return model.LookupSymbols(position, name: name).Length > 0;
+		return semantic.LookupSymbols(place, name: name).Length > 0;
 	}
+
+	/// <summary>The sites <see cref="ICSharpNames.Answers"/> looks names up at, by the usings they were made with.</summary>
+	readonly Dictionary<string, (SemanticModel Model, int Position)?> _namesSites = new(StringComparer.Ordinal);
 
 	/// <summary>
 	/// Where the generated call stands, for the compiler to say what a simple name there binds
@@ -451,6 +469,20 @@ sealed class RoslynSymbolResolver(
 
 		_callSiteMade = true;
 
+		if (Frame([]) is not var (site, model, position, copied, text))
+			return null;
+
+		_callSiteText = text;
+
+		return _callSite = (site, model, position, copied);
+	}
+
+	/// <summary>
+	/// The file <see cref="CallSite"/> adds, with <paramref name="usings"/> written where the generated
+	/// file writes the grammar's <c>@using</c> directives, and what the compiler says from inside it.
+	/// </summary>
+	(RoslynSymbolResolver Site, SemanticModel Model, int Position, INamedTypeSymbol Host, string Text)? Frame(IReadOnlyList<string> usings)
+	{
 		if (_host is null || _compilation.GetTypeByMetadataName(_host) is not { } host ||
 			host.DeclaringSyntaxReferences.Length == 0)
 		{
@@ -473,9 +505,8 @@ sealed class RoslynSymbolResolver(
 			_suffix,
 			_suffixDeclared,
 			_published,
-			out var position);
-
-		_callSiteText = text;
+			out var position,
+			usings);
 
 		var options = _compilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions;
 		var tree    = CSharpSyntaxTree.ParseText(text, options);
@@ -489,7 +520,7 @@ sealed class RoslynSymbolResolver(
 		if (_suffix is { Length: > 0 } && copied.GetTypeMembers(_suffix).FirstOrDefault() is { } reading)
 			copied = reading;
 
-		return _callSite = (new RoslynSymbolResolver(copy, _host, _statics, _suffix, _suffixDeclared, _published), copy.GetSemanticModel(tree), position, copied);
+		return (new RoslynSymbolResolver(copy, _host, _statics, _suffix, _suffixDeclared, _published), copy.GetSemanticModel(tree), position, copied, text);
 	}
 
 	/// <summary>The methods a call of the simple name binds among, standing at the call site.</summary>
@@ -540,7 +571,7 @@ sealed class RoslynSymbolResolver(
 	/// </remarks>
 	internal static string CallSiteText(
 		string? @namespace, string className, IReadOnlyList<string> statics, string? suffix, bool suffixDeclared,
-		IReadOnlyList<string> published, out int position)
+		IReadOnlyList<string> published, out int position, IReadOnlyList<string>? usings = null)
 	{
 		var text    = new System.Text.StringBuilder();
 		var closing = 0;
@@ -553,6 +584,9 @@ sealed class RoslynSymbolResolver(
 			text.Append("namespace ").Append(@namespace).Append('\n').Append("{\n");
 			closing++;
 		}
+
+		foreach (var import in usings ?? [])
+			text.Append("using ").Append(import).Append(";\n");
 
 		foreach (var import in statics)
 			text.Append(DotGram.Grammar.Emit.CSharpEmitter.StaticImport(import)).Append('\n');

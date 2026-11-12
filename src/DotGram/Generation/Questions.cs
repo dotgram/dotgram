@@ -78,9 +78,22 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </summary>
 	public const int CSharpName = -11;
 
-	public static Question Named(string name)
+	/// <summary>
+	/// Whether <paramref name="name"/> answers in C# beside <paramref name="usings"/>, the grammar's
+	/// <c>@using</c> directives, which the question carries in <see cref="Against"/>: in order and
+	/// without repeats, so that the generator and the compiler ask the same question of one grammar.
+	/// </summary>
+	public static Question Named(string name, IEnumerable<string> usings)
 	{
-		return new(name, CSharpName);
+		var against = string.Join("\n", usings.Distinct(StringComparer.Ordinal).OrderBy(static one => one, StringComparer.Ordinal));
+
+		return new(name, CSharpName, against.Length == 0 ? null : against);
+	}
+
+	/// <summary>The usings a <see cref="Named"/> question carries.</summary>
+	public static IReadOnlyList<string> Usings(Question question)
+	{
+		return question.Against is { Length: > 0 } against ? against.Split('\n') : [];
 	}
 
 	public static Question Fits(string from, string to)
@@ -363,7 +376,7 @@ static class Questions
 		// And whether the C# around a generated call answers to the name of each binding: a name read
 		// in C# that is a binding and nothing else would not compile (GRAM4033).
 		foreach (var bound in bindings)
-			questions.Add(Question.Named(bound));
+			questions.Add(Question.Named(bound, imports));
 
 		foreach (var method in externals)
 		{
@@ -593,7 +606,7 @@ static class Questions
 				Question.ReferenceType  => new Answer(question, resolver.IsReferenceType(question.Name)),
 				Question.NullableType   => new Answer(question, resolver.IsNullable(question.Name)),
 				Question.Fitting        => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
-				Question.CSharpName     => new Answer(question, resolver is not ICSharpNames names || names.Answers(question.Name)),
+				Question.CSharpName     => new Answer(question, resolver is not ICSharpNames names || names.Answers(question.Name, Question.Usings(question))),
 
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
@@ -690,9 +703,9 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 	}
 
 	/// <remarks>Yes for a name nobody foresaw: the answer only ever withholds a refusal.</remarks>
-	bool ICSharpNames.Answers(string name)
+	bool ICSharpNames.Answers(string name, IReadOnlyList<string> usings)
 	{
-		return !_answers.TryGetValue(Question.Named(name), out var answer) || answer.Yes;
+		return !_answers.TryGetValue(Question.Named(name, usings), out var answer) || answer.Yes;
 	}
 
 	/// <remarks>

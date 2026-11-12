@@ -228,6 +228,63 @@ public sealed class ConditionAndParameterTests
 	}
 
 	/// <summary>
+	/// A name before a dot that the grammar's own <c>@using</c> brings in, a class, is
+	/// that, as it is in the generated file, which writes the directive where the call stands; not the
+	/// parameter of the same name. Without the directive the same rule is said on the grammar.
+	/// </summary>
+	[Theory]
+	[InlineData("@using System;\n", "Use(Math) = Math & 'z' & when @(Math.Abs(-1) > 0)")]
+	[InlineData("@using System.Text;\n", "Use(Encoding) = Encoding & 'z' & when @(Encoding.UTF8 != null)")]
+	public void A_name_the_grammar_s_own_using_brings_in_is_not_the_parameter(string usings, string rule)
+	{
+		var grammar = usings + rule + "\nTest = Use('a')\nparse Test";
+		var result  = Compile(grammar);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(string.Join("\n", result.Sources.Select(static one => one.Text)));
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseTest", "az").IsSuccess);
+
+		// The generator asks the same question ahead of time, beside the same directives.
+		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", grammar));
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+
+		// And without the directive, nothing answers to the name, and it is the parameter.
+		var bare = rule + "\nTest = Use('a')\nparse Test";
+
+		Assert.Contains(Compile(bare).Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		Assert.Contains(
+			GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", bare)).Diagnostics,
+			static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+	}
+
+	/// <summary>
+	/// A lambda's parameter or a local of a lambda's block is its own only inside that lambda: the
+	/// same name read after it is the rule's parameter, and said. Read only inside it, it is not.
+	/// </summary>
+	[Theory]
+	[InlineData("Use(item) = item & 'z' & when @(System.Linq.Enumerable.Any(new[] { \"a\" }, item => item.Length > 0) && item.Length > 0)", true)]
+	[InlineData("Use(item) = item & 'z' & when @(((System.Func<bool>)(() => { var item = \"a\"; return item.Length > 0; }))() && item.Length > 0)", true)]
+	[InlineData("Use(item) = item & 'z' & when @(System.Linq.Enumerable.Any(new[] { \"a\" }, item => item.Length > 0))", false)]
+	[InlineData("Use(item) = item & 'z' & when @(((System.Func<bool>)(() => { var item = \"a\"; return item.Length > 0; }))())", false)]
+	public void A_name_a_lambda_declares_is_its_own_only_inside_it(string rule, bool said)
+	{
+		var result = Compile(rule + "\nTest = Use('a')\nparse Test");
+
+		if (said)
+		{
+			Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		}
+		else
+		{
+			Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+			Assert.Empty(EmittedCode.Errors(string.Join("\n", result.Sources.Select(static one => one.Text)), "Grammar", null, null, null));
+		}
+	}
+
+	/// <summary>
 	/// A parameter's name in C# binds to the host's member of that name where the host has one, and the
 	/// grammar compiles and reads: a field, or a method handed on as a method group.
 	/// </summary>
