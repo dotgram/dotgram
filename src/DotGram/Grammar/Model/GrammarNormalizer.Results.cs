@@ -432,7 +432,7 @@ sealed partial class GrammarNormalizer
 		// compiles; one that does not is told by the C# compiler on the grammar's line.
 		bool Unbound(string name)
 		{
-			return _resolver is ICSharpNames names && !names.Answers(name);
+			return _resolver is ICSharpNames names && !names.Answers(name, Imports(_model.Root));
 		}
 
 		// For each value the declaration writes — a guard's, a construction's, a switch's selector, a

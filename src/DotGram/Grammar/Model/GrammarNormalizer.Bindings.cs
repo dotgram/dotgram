@@ -422,7 +422,7 @@ sealed partial class GrammarNormalizer
 					// is that, and compiles as it did; only where nothing does is it refused. Asked only of a
 					// resolver that can say (ICSharpNames); without one, nothing is refused.
 					if (!free.Contains(name) || captured.Contains(name) || rule.Declaration.Params.Any(one => one.Name == name) ||
-						_resolver is not ICSharpNames names || names.Answers(name))
+						_resolver is not ICSharpNames names || names.Answers(name, Imports(_model.Root)))
 						continue;
 
 					Report(
