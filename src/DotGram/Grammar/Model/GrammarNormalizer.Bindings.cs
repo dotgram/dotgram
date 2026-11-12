@@ -536,10 +536,12 @@ sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			// A binding refused where it stands (GRAM4060) and written before the read is why the read
-			// finds nothing bound: said once, as the refusal, and not again as a read with nothing bound.
-			// A read with nothing bound before it on its own account is still said.
-			if (refused.Any(one => ReferenceEquals(one.Binding, binding) && order[one.Bind] < order[site]))
+			// A binding refused where it stands (GRAM4060) is why a read finds nothing bound only where,
+			// counted as if the lookahead kept it, it binds the read on every route: said once, as the
+			// refusal. A read the refused binding never reaches — in a sibling branch, or past a route
+			// that skips it — is unbound on its own account and still said.
+			if (refused.Any(one => ReferenceEquals(one.Binding, binding)) &&
+				BindsBefore(body, site, binding, throughLookaheads: true))
 				continue;
 
 			if (!BindsBefore(body, site, binding))
@@ -711,9 +713,11 @@ sealed partial class GrammarNormalizer
 	/// <see cref="WritesBefore"/>'s question, asked of a binding rather than a capture, and with two
 	/// differences. A lookahead holding the site is a route to it — a reference inside <c>?!$q</c>
 	/// reads the outer binding. And what binds is <see cref="Binds"/>, where a repetition never does:
-	/// one that only repeats a binding was lifted out of it while lowering.
+	/// one that only repeats a binding was lifted out of it while lowering. With
+	/// <paramref name="throughLookaheads"/>, a binding inside a lookahead counts as bound past it:
+	/// whether a refused binding would have reached the site.
 	/// </remarks>
-	internal static bool BindsBefore(Node node, Node site, TextBinding binding)
+	internal static bool BindsBefore(Node node, Node site, TextBinding binding, bool throughLookaheads = false)
 	{
 		if (ReferenceEquals(node, site))
 			return false;
@@ -731,10 +735,10 @@ sealed partial class GrammarNormalizer
 						continue;
 
 					held = true;
-					var here = BindsBefore(nodes[index], site, binding);
+					var here = BindsBefore(nodes[index], site, binding, throughLookaheads);
 
 					for (var earlier = 0; earlier < index && !here; earlier++)
-						here = Binds(nodes[earlier], binding);
+						here = Binds(nodes[earlier], binding, throughLookaheads);
 
 					all &= here;
 				}
@@ -751,36 +755,41 @@ sealed partial class GrammarNormalizer
 					if (Holds(one, site))
 					{
 						held = true;
-						all &= BindsBefore(one, site, binding);
+						all &= BindsBefore(one, site, binding, throughLookaheads);
 					}
 
 				return held && all;
 			}
 
-			case Node.Repeat   (var body, _, _): return BindsBefore(body,   site, binding);
-			case Node.Counted  (var body, _, _): return BindsBefore(body,   site, binding);
-			case Node.Bind     (_, var body, _): return BindsBefore(body,   site, binding);
-			case Node.Capture  (_, var body):    return BindsBefore(body,   site, binding);
-			case Node.Atomic   (var body):       return BindsBefore(body,   site, binding);
-			case Node.Marked   (var body, _):    return BindsBefore(body,   site, binding);
-			case Node.Construct(var body, _):    return BindsBefore(body,   site, binding);
-			case Node.Lookahead(_, var body):    return BindsBefore(body,   site, binding);
+			case Node.Repeat   (var body, _, _): return BindsBefore(body, site, binding, throughLookaheads);
+			case Node.Counted  (var body, _, _): return BindsBefore(body, site, binding, throughLookaheads);
+			case Node.Bind     (_, var body, _): return BindsBefore(body, site, binding, throughLookaheads);
+			case Node.Capture  (_, var body):    return BindsBefore(body, site, binding, throughLookaheads);
+			case Node.Atomic   (var body):       return BindsBefore(body, site, binding, throughLookaheads);
+			case Node.Marked   (var body, _):    return BindsBefore(body, site, binding, throughLookaheads);
+			case Node.Construct(var body, _):    return BindsBefore(body, site, binding, throughLookaheads);
+			case Node.Lookahead(_, var body):    return BindsBefore(body, site, binding, throughLookaheads);
 			default:                             return false;
 		}
 	}
 
 	/// <summary>Whether matching the whole of a node always binds <paramref name="binding"/>.</summary>
-	internal static bool Binds(Node node, TextBinding binding)
+	/// <remarks>
+	/// With <paramref name="throughLookaheads"/>, a binding inside a lookahead counts, as if the
+	/// lookahead kept it: what a binding refused there would have bound.
+	/// </remarks>
+	internal static bool Binds(Node node, TextBinding binding, bool throughLookaheads = false)
 	{
 		return node switch
 		{
-			Node.Bind(var bound, var body, _) => ReferenceEquals(bound, binding) || Binds(body, binding),
-			Node.Capture(_, var body)         => Binds(body, binding),
-			Node.Atomic(var body)             => Binds(body, binding),
-			Node.Marked(var body, _)          => Binds(body, binding),
-			Node.Construct(var body, _)       => Binds(body, binding),
-			Node.Sequence(var nodes)          => nodes.Any(child => Binds(child, binding)),
-			Node.Choice(var nodes)            => nodes.All(child => Binds(child, binding)),
+			Node.Bind(var bound, var body, _) => ReferenceEquals(bound, binding) || Binds(body, binding, throughLookaheads),
+			Node.Capture(_, var body)         => Binds(body, binding, throughLookaheads),
+			Node.Atomic(var body)             => Binds(body, binding, throughLookaheads),
+			Node.Marked(var body, _)          => Binds(body, binding, throughLookaheads),
+			Node.Construct(var body, _)       => Binds(body, binding, throughLookaheads),
+			Node.Lookahead(_, var body) when throughLookaheads => Binds(body, binding, throughLookaheads),
+			Node.Sequence(var nodes)          => nodes.Any(child => Binds(child, binding, throughLookaheads)),
+			Node.Choice(var nodes)            => nodes.All(child => Binds(child, binding, throughLookaheads)),
 
 			// A repetition binds nothing a reading after it can rely on: one that repeats only a
 			// binding was lifted out of it while lowering, and what is left is an option — which may
