@@ -195,7 +195,7 @@ except where the table says so.
 | `TargetMethodPartSize` | `0`, the measured default | how large the parts of a recognizer too big for one method are aimed to be. A wish: no value fails a build. |
 | `LocationType` | none | an interface (or a class) the grammar's values implement to be told where in the input they were read. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink, for finding out why an input is refused. Changes no answer. |
-| `ExportGrammar` | not set: exported when the class and every class around it are public | carry the grammar's text on the class, so that a grammar in another assembly can include it. |
+| `ExportGrammar` | not set: exported when the class and every class around it are public | carry the grammar's text on the class, so that a grammar in another assembly can include it. Written as `true`, it also marks a grammar that publishes nothing as a library (`GRAM4059`). |
 | `Name` | none | `[Gram]` only: compile the first reading into a nested class of that name too ([`[GramParserVariant]`](#gramparservariant-another-reading-of-the-same-grammar)). |
 | `DefaultAlias` | the class's name | `[Gram]` only: the name a grammar that includes this one reaches it under ([including](#graminclude-one-grammar-built-on-another)). |
 
@@ -211,6 +211,8 @@ using DotGram;
 
 [Gram("""
 	Letter = ['a'..'z']
+
+	parse Letter
 	""", IncludedAs = "Lex")]
 public static partial class Lexemes;
 ```
@@ -233,7 +235,8 @@ public static partial class Lexemes;
 > большого метода; никакое значение не ломает сборку), `LocationType` (интерфейс, через который
 > значения узнают своё место во входе), `Trace` (trace-сборка: парсер сообщает приёмнику, что читает),
 > `ExportGrammar` (нести текст грамматики на классе, чтобы её можно было включить из другой сборки;
-> по умолчанию — если класс и все внешние классы `public`), `Name` (только `[Gram]`: увести и первое
+> по умолчанию — если класс и все внешние классы `public`; явное `true` ещё и помечает ничего не
+> публикующую грамматику как библиотеку, GRAM4059), `Name` (только `[Gram]`: увести и первое
 > чтение во вложенный класс) и `DefaultAlias` (только `[Gram]`: имя, под которым её видит включающая
 > грамматика). Полная семантика каждой — в `syntax.md` §6.3–§6.9.
 >
