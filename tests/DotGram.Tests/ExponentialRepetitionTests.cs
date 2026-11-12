@@ -689,10 +689,6 @@ public sealed class ExponentialRepetitionTests
 		// accepted, and nothing is refused after the two readings of `-o`. The snapshot beside it
 		// was written from this text.
 		("Segmented.gram [chars] Args: items: Arg*", "accepts every input"),
-
-		// The lookahead in front of the decimal refuses what `Long` would read, which a look of
-		// more than one character cannot show the analysis; the example silences it, with why.
-		("MetricsLineExample.cs [chars] Line: (trivia & item0: Reading)+", "a look of more than one character"),
 	];
 
 	static double Milliseconds(long ticks)
