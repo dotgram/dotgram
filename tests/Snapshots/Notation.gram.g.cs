@@ -2008,10 +2008,6 @@ namespace DotGram.Snapshots
 								q1 = ReadPart0_Small(p, pos, r0);
 
 								if (q1 < 0)
-								{
-								}
-
-								if (q1 < 0)
 									ways.Next(w0, 1, 2);
 							}
 							if (q1 < 0 && d0 <= 1)
@@ -2021,10 +2017,6 @@ namespace DotGram.Snapshots
 								q1 = ReadPart1_Small(p, pos, r0);
 
 								if (q1 < 0)
-								{
-								}
-
-								if (q1 < 0)
 									ways.Next(w0, 2, 2);
 							}
 							if (q1 < 0 && d0 <= 2)
@@ -2032,10 +2024,6 @@ namespace DotGram.Snapshots
 								var s3  = ways.Cursor;
 
 								q1 = ReadPart2_Small(p, pos, r0);
-
-								if (q1 < 0)
-								{
-								}
 							}
 
 							if (q1 < 0)
@@ -2494,10 +2482,6 @@ namespace DotGram.Snapshots
 					q0 = Read_Call(p);
 
 					if (q0 < 0)
-					{
-					}
-
-					if (q0 < 0)
 						ways.Next(w0, 1, 1);
 				}
 				if (q0 < 0 && d0 <= 1)
@@ -2505,10 +2489,6 @@ namespace DotGram.Snapshots
 					var s2  = ways.Cursor;
 
 					q0 = Read_Number(p);
-
-					if (q0 < 0)
-					{
-					}
 				}
 
 				if (q0 < 0)
@@ -2563,10 +2543,6 @@ namespace DotGram.Snapshots
 					var q1 = -1;
 
 					q1 = ReadPart0_Call(p, ref fold);
-
-					if (q1 < 0)
-					{
-					}
 
 					if (q1 < 0)
 					{

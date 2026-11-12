@@ -675,10 +675,6 @@ namespace DotGram.Snapshots
 
 					if (q0 < 0)
 					{
-					}
-
-					if (q0 < 0)
-					{
 
 						break;
 					}
@@ -782,10 +778,6 @@ namespace DotGram.Snapshots
 
 					if (q0 < 0)
 					{
-					}
-
-					if (q0 < 0)
-					{
 
 						break;
 					}
@@ -810,10 +802,6 @@ namespace DotGram.Snapshots
 					var q1 = -1;
 
 					q1 = ReadPart2_Std_Quoted_0(p);
-
-					if (q1 < 0)
-					{
-					}
 
 					if (q1 < 0)
 					{
@@ -907,10 +895,6 @@ namespace DotGram.Snapshots
 					var q0 = -1;
 
 					q0 = ReadPart3_Std_Quoted_0(p);
-
-					if (q0 < 0)
-					{
-					}
 
 					if (q0 < 0)
 					{

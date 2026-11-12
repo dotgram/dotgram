@@ -757,10 +757,6 @@ namespace DotGram.Snapshots
 								q0 = ReadPart0_eol(p);
 
 								if (q0 < 0)
-								{
-								}
-
-								if (q0 < 0)
 									ways.Next(w0, 1, 1);
 							}
 							if (q0 < 0 && d0 <= 1)
@@ -768,10 +764,6 @@ namespace DotGram.Snapshots
 								var s2  = ways.Cursor;
 
 								q0 = ReadPart1_eol(p);
-
-								if (q0 < 0)
-								{
-								}
 							}
 
 							if (q0 < 0)
@@ -1023,10 +1015,6 @@ namespace DotGram.Snapshots
 					var q0 = -1;
 
 					q0 = ReadPart0_Amount(p);
-
-					if (q0 < 0)
-					{
-					}
 
 					if (q0 < 0)
 					{
