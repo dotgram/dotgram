@@ -3484,12 +3484,16 @@ is emitted as C# and belongs entirely to the consumer's compiler:
 | C# signature | Role | Called from the grammar as |
 | --- | --- | --- |
 | `bool M(char c)` | element predicate | `[@M]` inside an element set |
-| `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M` as a grammar operand |
-| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | external recognizer with a value | bare `@M` as a grammar operand |
-| `bool M(ParserInput<char> input, ref int pos)` | contiguous or buffered external recognizer | bare `@M` |
-| `bool M(ParserInput<char> input, ref int pos, out T value, Context context)` | input-view recognizer with value and context; both trailing parameters are optional | bare `@M` |
+| `bool M(ParserInput<char> input, ref int pos)` | external recognizer, the form to write: it serves strings, readers and streams | bare `@M` as a grammar operand |
+| `bool M(ParserInput<char> input, ref int pos, out T value, Context context)` | the same with a value and the context; both trailing parameters are optional | bare `@M` |
+| `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer over a string only, faster where nothing else is read | bare `@M` |
+| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | the same with a value | bare `@M` |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` value | guard | `when @M(a)`, `when @(expr)` |
+
+A recognizer is written over `ParserInput<char>` unless there is a reason not to: one method then serves
+every publication of the grammar, a string, a `TextReader` and a stream alike. The span form is faster, and
+right where the grammar reads only strings; it cannot serve a buffered reading (below).
 
 **Everything under the `@` is the consumer's own C#, and the grammar does not look
 inside it.** `=> @M(a, b)` and `=> @(M(a, b))` are one construction written two ways:
@@ -4473,39 +4477,15 @@ What is left is the name collision, and a prefix costs nothing to solve it.
 
 ### 8.3 What a parse hands back
 
-One driver, four surfaces over it. None of them requires the author to declare
-anything; declaring is how control is taken, never how it is obtained.
+A recovering repetition hands its result back in one of two shapes, and neither requires
+the author to declare more than the grammar already says:
 
 | Wanted | Shape | Declared |
 | --- | --- | --- |
-| most control, no allocation per record | `Read()` and properties (not generated yet — status.md) | nothing |
-| failures in the stream, LINQ over it | `IEnumerable<RowOutcome>` (not generated yet — status.md) | nothing |
 | failures in the stream as the author's own types | `IEnumerable<FeedItem>` with a factory | `: T[]` |
 | successful records only, failures to a log | `IEnumerable<Row>` and a sink | nothing |
 
-The first is the primitive and the other three are built from it:
-
-```csharp
-var feed = FeedGrammar.ReadFeed(input);
-
-while (feed.Read())
-{
-    if (feed.HasError) reject.WriteLine($"{feed.Line}\t{feed.Error}\t{feed.Text}");
-    else               Handle(feed.Current);
-}
-```
-
-Success and failure are the same iteration here, so nothing has to be matched up
-afterwards, and there is no element to allocate. It is also the shape a reused record
-needs — `Current` valid until the next `Read` — which no compiler-generated iterator
-can offer.
-
-`RowOutcome` is generated per grammar, `public`, and nested in the host class, with
-members drawn from the BCL and from the grammar's own types. It follows the rule of §7.3
-rather than being an exception to it: no C# type declared, so one is generated. Nothing
-about it is shared between assemblies, which is what §6.2 says of everything.
-
-**The sink of the fourth row is a method of the host.** A grammar with a `recover` that has
+**The sink of the second row is a method of the host.** A grammar with a `recover` that has
 no `=>` (§8.2) gets this declaration in its host class:
 
 ```csharp

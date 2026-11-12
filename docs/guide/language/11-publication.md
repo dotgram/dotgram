@@ -177,7 +177,8 @@ Plain("5") → 5
 ```
 
 The rule's value must convert to `T` by identity, a reference conversion or boxing; no numeric or
-user-defined conversion is added (`GRAM4028`).
+user-defined conversion is added (`GRAM4028`). For another type, declare the rule with it (`Number : @long = …`) or
+convert in the construction (`=> @((long)n)`).
 
 ```dotgram GRAM4028
 Number : int = { ['0'..'9']+ } => @int.Parse(parserText)
@@ -190,7 +191,8 @@ parse Number as Wide : @long
 > того, как правило строит значение: `parse` возвращает `T`, `TryParse` — `Match<T>`, `find` —
 > `IEnumerable<Match<T>>` (пример `Boxed : @object`). Значение правила должно приводиться к `T`
 > тождественно, ссылочным преобразованием или упаковкой; числовых и пользовательских преобразований нет
-> (`GRAM4028`: `int` в `long` не публикуется).
+> (`GRAM4028`: `int` в `long` не публикуется). Для другого типа объявите правило с ним (`Number : @long = …`) или
+> преобразуйте в конструировании (`=> @((long)n)`).
 <!-- ru:end -->
 
 ## Access, and reading from a position
