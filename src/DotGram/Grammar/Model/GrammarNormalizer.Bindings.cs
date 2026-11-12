@@ -501,6 +501,7 @@ sealed partial class GrammarNormalizer
 		var binds   = new List<(Node.Bind Node, Node[] Around)>();
 		var reads   = new List<(Node Site, TextBinding Binding, int At, Node[] Around)>();
 		var around  = new List<Node>();
+		var refused = new List<(TextBinding Binding, Node Bind)>();
 
 		Walk(body);
 
@@ -516,6 +517,12 @@ sealed partial class GrammarNormalizer
 
 				continue;
 			}
+
+			// A binding refused where it stands (GRAM4033) and written before the read is why the read
+			// finds nothing bound: said once, as the refusal, and not again as a read with nothing bound.
+			// A read with nothing bound before it on its own account is still said.
+			if (refused.Any(one => ReferenceEquals(one.Binding, binding) && order[one.Bind] < order[site]))
+				continue;
 
 			if (!BindsBefore(body, site, binding))
 				Report(UnboundReference, Unbound(rule, body, site, binding, binds, order), Marked(binding, at));
@@ -536,12 +543,16 @@ sealed partial class GrammarNormalizer
 					// A lookahead gives back what it read, and its own records with it: a binding made
 					// inside one would be gone, or would be text nothing consumed.
 					if (outer.Any(one => one is Node.Lookahead))
+					{
 						Report(
 							MisplacedBinding,
 							$"'${binding.Name}' is bound inside a lookahead in '{rule.Name}', which is not " +
 							"supported: a lookahead gives back what it read. Bind it outside the lookahead; a " +
 							"reference inside one, as in '?!$q', reads an outer binding (docs/syntax.md §3.5.1).",
 							Marked(binding, at));
+
+						refused.Add((binding, bind));
+					}
 
 					else if (outer.Any(one => one is Node.Bind(var bound, _, _) && ReferenceEquals(bound, binding)))
 						Report(

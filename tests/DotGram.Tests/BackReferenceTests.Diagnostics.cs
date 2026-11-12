@@ -229,10 +229,38 @@ public sealed partial class BackReferenceTests
 	[InlineData("R = $q: 'a' | 'b' & $q",           "$q", 1, "another alternative")]
 	[InlineData("R = ('x' & $q: 'a' | 'y') & $q",   "$q", 1, "on some route")]
 	[InlineData("R = ('x' & $q: 'a' | 'y') & 'b'{#q}", "#q", 0, "on some route")]
-	[InlineData("R = ?!($q: 'a') & 'a' & $q",       "$q", 1, "")]
 	public void A_reference_some_route_reaches_unbound(string grammar, string at, int occurrence, string says)
 	{
 		Refused(GrammarNormalizer.UnboundReference, grammar, at, says, occurrence);
+	}
+
+	/// <summary>
+	/// A read after a binding refused where it stands (GRAM4033) finds nothing bound because of that
+	/// refusal, which is said once: not again as a read with nothing bound (GRAM4032).
+	/// </summary>
+	[Theory]
+	[InlineData("R = ?=($q: 'a') & $q")]
+	[InlineData("R = ?!($q: 'a') & 'a' & $q")]
+	[InlineData("R = ?=($q: 'a') & 'b' & 'c'{#q}")]
+	public void A_read_after_a_refused_binding_is_not_told_again(string grammar)
+	{
+		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", grammar + "\nparse R"));
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == GrammarNormalizer.MisplacedBinding);
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnboundReference);
+	}
+
+	/// <summary>A read with nothing bound before it on its own account is still told, beside the refusal.</summary>
+	[Theory]
+	[InlineData("R = $q & ?=($q: 'a')", "$q", 0)]
+	[InlineData("R = $q & ?=($q: 'a') & $q", "$q", 0)]
+	public void While_a_read_unbound_for_its_own_reason_is_still_told(string grammar, string at, int occurrence)
+	{
+		Refused(GrammarNormalizer.UnboundReference, grammar, at, "", occurrence);
+
+		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", grammar + "\nparse R"));
+
+		Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnboundReference);
 	}
 
 	[Theory]
