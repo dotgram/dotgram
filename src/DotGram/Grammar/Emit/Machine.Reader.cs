@@ -6066,6 +6066,9 @@ sealed partial class Machine
 				// A reading that stood still past the fewest, read as one that failed.
 				var still = stands ? stops is null ? $"if ({took} == p)" : $"if ({took} == p && {stops})" : null;
 
+				// What a failure puts back where nothing asks the part again.
+				var failing = new List<string>();
+
 				// The gathered members are put back where the turn may leave one pushed: where it
 				// failed and may, where it stood still, and after an attempt a deferring loop reads again.
 				var gathered = leaves || still is not null || defers;
@@ -6128,20 +6131,20 @@ sealed partial class Machine
 						code.Line();
 					}
 
-					var back = Restore(segment, "", gathered);
-
-					if (back.Count > 0)
-						using (code.Block($"if ({took} < 0)"))
-						{
-							foreach (var line in back)
-								code.Line(line);
-						}
+					// Put back on the failing branch below, which tests the same answer.
+					failing = Restore(segment, "", gathered);
 				}
 
 				code.Line();
 
 				using (code.Block($"if ({took} < 0)"))
 				{
+					foreach (var line in failing)
+						code.Line(line);
+
+					if (failing.Count > 0 && undo.Length > 0)
+						code.Line();
+
 					if (undo.Length > 0)
 					{
 						code.Line(undo);
