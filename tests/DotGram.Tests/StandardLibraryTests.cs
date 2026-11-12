@@ -130,6 +130,84 @@ public sealed class StandardLibraryTests
 	}
 
 	/// <summary>
+	/// A number too wide for its type is not a number of that rule: it is refused, and the
+	/// <c>Try</c> form says so rather than throwing; the throwing form says what every refusal says.
+	/// </summary>
+	[Fact]
+	public void A_number_too_wide_for_its_type_is_refused_not_thrown()
+	{
+		var built = GeneratorDriverTests.Build(""""
+			using DotGram;
+
+			[Gram("""
+				I : @int     = n: Std.Integer & eof => @(n)
+				L : @long    = n: Std.Long    & eof => @(n)
+				M : @decimal = n: Std.Decimal & eof => @(n)
+				D : @double  = n: Std.Double  & eof => @(n)
+				parse I
+				parse L
+				parse M
+				parse D
+				""")]
+			public static partial class Numbers;
+			"""");
+
+		var type = built.GetType("Numbers")!;
+
+		object? Read(string rule, string input)
+		{
+			var read = type.GetMethod("TryParse" + rule, [typeof(string)])!.Invoke(null, [input])!;
+			var ok   = (bool)read.GetType().GetProperty("IsSuccess")!.GetValue(read)!;
+
+			if (!ok)
+			{
+				Assert.Throws<System.FormatException>(() => Throw(rule, input));
+				return null;
+			}
+
+			return read.GetType().GetProperty("Value")!.GetValue(read);
+		}
+
+		void Throw(string rule, string input)
+		{
+			try
+			{
+				type.GetMethod("Parse" + rule, [typeof(string)])!.Invoke(null, [input]);
+			}
+			catch (System.Reflection.TargetInvocationException e)
+			{
+				throw e.InnerException!;
+			}
+		}
+
+		var huge = new string('9', 400);
+
+		// The boundary: the largest value is read, the next one is refused.
+		Assert.Equal(int.MaxValue,  Read("I", "2147483647"));
+		Assert.Null(Read("I", "2147483648"));
+		Assert.Equal(1,             Read("I", "0000000000000000001"));
+		Assert.Null(Read("I", huge));
+		Assert.Equal(long.MaxValue, Read("L", "9223372036854775807"));
+		Assert.Null(Read("L", "9223372036854775808"));
+		Assert.Null(Read("L", huge));
+		Assert.Equal(decimal.MaxValue, Read("M", "79228162514264337593543950335"));
+		Assert.Null(Read("M", "79228162514264337593543950336"));
+		Assert.Null(Read("M", huge + ".5"));
+
+		// A double that overflows to infinity is refused too; the largest one is read.
+		Assert.Equal(double.MaxValue, Read("D", "1.7976931348623157e308"));
+		Assert.Null(Read("D", "1e309"));
+		Assert.Null(Read("D", huge));
+		Assert.Equal(0.0, Read("D", "1e-400"));
+
+		// The doc examples: the fraction of a Decimal is optional.
+		Assert.Equal(3m,   Read("M", "3"));
+		Assert.Equal(3.25m, Read("M", "3.25"));
+		Assert.Null(Read("M", "3."));
+		Assert.Null(Read("M", ".5"));
+	}
+
+	/// <summary>
 	/// The library is there with nothing declared, named in full; a <c>using</c> opens it,
 	/// and then a name of its is a name of the grammar's — on the terms every <c>using</c>
 	/// has: at the top of the file the grammar's own rule wins over the opened one, and a
