@@ -208,6 +208,36 @@ public sealed class StandardLibraryTests
 	}
 
 	/// <summary>
+	/// A run of the library reads to the end of what it recognizes and never hands a character
+	/// back: what follows it is read from there, so a run that is followed by a character it
+	/// could itself have read is a refusal, not a reading one character shorter.
+	/// </summary>
+	[Theory]
+	[InlineData("Std.Digits",     "12345", "5")]
+	[InlineData("Std.HexDigits",  "12ab",  "b")]
+	[InlineData("Std.Blank",      "  \t", "\t")]
+	[InlineData("Std.Spacing",    " \n ", "' '")]
+	[InlineData("Std.Identifier", "abc",   "c")]
+	public void A_run_does_not_hand_a_character_back(string run, string input, string last)
+	{
+		var tail  = last.StartsWith('\'') ? last : "'" + last.Replace("\t", "\\t") + "'";
+		var built = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			[Gram("""
+				Start = {{run}} & {{tail}} & eof
+				parse Start
+				""")]
+			public static partial class Runs;
+			"""");
+
+		var parse = built.GetType("Runs")!.GetMethod("TryParseStart", [typeof(string)])!;
+		var read  = parse.Invoke(null, [input])!;
+
+		Assert.False((bool)read.GetType().GetProperty("IsSuccess")!.GetValue(read)!);
+	}
+
+	/// <summary>
 	/// The library is there with nothing declared, named in full; a <c>using</c> opens it,
 	/// and then a name of its is a name of the grammar's — on the terms every <c>using</c>
 	/// has: at the top of the file the grammar's own rule wins over the opened one, and a

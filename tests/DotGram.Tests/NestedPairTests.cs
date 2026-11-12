@@ -167,8 +167,12 @@ public sealed class NestedPairTests
 
 		// The engine reads the hand-written rule in trivia step by step, recording, where the
 		// counter's scanner refuses in silence; the reader of Direct reads both by calling.
+		// Std.Identifier is an atomic rule, and where one refusal of it stands the two readings word it
+		// differently: the scanner by the rule's name or by the trivia, the engine reading the hand-written
+		// pair by what could stand there. Answers and positions are held to the reference; the words of the
+		// refusal are held to the unrolled pair below, which the engine reads the same way.
 		foreach (var input in Inputs())
-			Agree(reference, counted, input, positions: direct, messages: direct);
+			Agree(reference, counted, input, positions: direct, messages: false);
 
 		foreach (var input in Inputs(deep: false))
 			Agree(unrolled, counted, input);
@@ -348,6 +352,25 @@ public sealed class NestedPairTests
 		Assert.True(EmittedCode.Match(cut, "Grammar", "TryParseStart", many).IsSuccess);
 		Assert.False(EmittedCode.Match(cut, "Grammar", "TryParseStart", "x " + new string('(', 100_000) + " #( y").IsSuccess);
 		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed.TotalMilliseconds:F0} ms");
+	}
+
+	/// <summary>
+	/// A class beside a pair in the trivia of a lexical grammar is tested through a table that the
+	/// scanner declares; the table is written with the scanner, whichever way the class is spelled.
+	/// </summary>
+	[Theory]
+	[InlineData("Std.Whitespace")]
+	[InlineData("Std.Spacing")]
+	[InlineData("Std.Blank")]
+	[InlineData("Std.HexDigits")]
+	public void A_class_beside_a_pair_in_the_trivia_compiles(string beside)
+	{
+		var grammar =
+			"trivia = { (" + beside + " | '#' & Std.Nested(\"(\", \")\"))* }\n" +
+			"Start : @string = 'x' & ('(' | ')')* & 'y' & eof => @(\"read\")\n" +
+			"parse Start\n";
+
+		Assert.NotNull(Build(grammar, CarrierKind.Auto, direct: true, lexical: true));
 	}
 
 	/// <summary>
