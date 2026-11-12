@@ -297,6 +297,11 @@ sealed partial class Machine
 	/// </summary>
 	internal readonly Dictionary<Node, bool> _partOpens = new(NodeIdentity.Instance);
 
+	/// <summary>What each part, and each rule's own method, was estimated at in basic blocks when read through.</summary>
+	internal readonly Dictionary<Node, int> _partBranches = new(NodeIdentity.Instance);
+
+	internal readonly Dictionary<RuleSymbol, int> _ruleBranches = [];
+
 	/// <summary>The rule whose value each slot holds, or null where it holds text.</summary>
 	readonly Dictionary<int,RuleSymbol?> _slotRules = [];
 	readonly Dictionary<Node,RuleSymbol> _owners = new(NodeIdentity.Instance);

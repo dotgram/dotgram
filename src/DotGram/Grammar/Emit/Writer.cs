@@ -28,12 +28,16 @@ sealed class Writer(int depth)
 
 	public bool Observed { get; private set; }
 
+	/// <summary>The basic blocks the observed text is estimated at (<see cref="Machine.Branches(string)"/>).</summary>
+	public int ObservedBranches { get; private set; }
+
 	bool Observe(string text)
 	{
 		if (_observing is null)
 			return false;
 
 		Observed = Observed || text.Contains(_observing, StringComparison.Ordinal);
+		ObservedBranches += Machine.Branches(text);
 		return true;
 	}
 

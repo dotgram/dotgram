@@ -359,6 +359,8 @@ sealed partial class Machine
 
 			if (reader.ObservedOpen)
 				opens.Add(rule);
+
+			_ruleBranches[rule] = reader.ObservedBranches;
 		}
 
 		SettlePending();
@@ -416,6 +418,9 @@ sealed partial class Machine
 
 				var reader = new ReaderWriter(this, rule);
 				var tape   = opens.Contains(rule);
+
+				if (_ruleBranches.TryGetValue(rule, out var branches))
+					reader._baseBranches = branches;
 				var inner  = tape ? CSharpEmitter.Inner("ReadBody", CSharpEmitter.IdentifierOf(rule)) : ReaderOf(rule);
 
 				if (tape)
@@ -2114,6 +2119,18 @@ sealed partial class Machine
 		/// <summary>Whether the provisional method or any of its parts writes an open way.</summary>
 		public bool ObservedOpen { get; private set; }
 
+		/// <summary>What the method read through is estimated at in basic blocks, its parts apart.</summary>
+		public int ObservedBranches { get; private set; }
+
+		/// <summary>
+		/// What the method was estimated at when it was read through, before any part was written in
+		/// it (<see cref="Machine.Branches(string)"/>); unknown, and so no room, where it was not.
+		/// </summary>
+		internal int _baseBranches = int.MaxValue;
+
+		/// <summary>The blocks the parts written in this method have added to it so far.</summary>
+		int _inlinedBranches;
+
 		bool _character;
 
 		/// <summary>Ways opened and marks taken, which only a reading over characters has.</summary>
@@ -2189,6 +2206,7 @@ sealed partial class Machine
 			if (analyzing)
 			{
 				ObservedOpen |= code.Observed;
+				ObservedBranches = code.ObservedBranches;
 				return;
 			}
 
@@ -4446,6 +4464,9 @@ sealed partial class Machine
 			apart._quiet = quiet ? part : null;
 			apart._outer = Open();
 
+			if (!analyzing && machine._partBranches.TryGetValue(part, out var partBranches))
+				apart._baseBranches = partBranches;
+
 			var written = apart.Render(part, following);
 			ObservedOpen |= apart.ObservedOpen;
 			_pushed      |= apart._pushed;
@@ -4482,7 +4503,10 @@ sealed partial class Machine
 			// Whether the part wrote a way itself when the rule was read through, for the writing that may
 			// put it in place; what the rules it calls open is asked again then, once it is known.
 			if (analyzing)
+			{
 				machine._partOpens[part] = apart.ObservedOpen;
+				machine._partBranches[part] = apart.ObservedBranches;
+			}
 
 			return (
 				$"{name}(p{Handing(given, taken, "", wider, ceilings)})",
@@ -4499,6 +4523,14 @@ sealed partial class Machine
 		const int InlineWeight = 4;
 
 		/// <summary>
+		/// What a part written in place is allowed for in the method's budget before it is written: more
+		/// than one of <see cref="InlineWeight"/> has been seen to cost. A method estimated over
+		/// <see cref="Machine.Budget"/> once its parts are in it keeps them as methods: the parts are
+		/// what keeps a rule's method under the line past which the JIT stops optimizing it.
+		/// </summary>
+		const int InlineBranches = 40;
+
+		/// <summary>
 		/// Whether a part is written in place: small, never asked again for another reading (nothing in
 		/// it opened a way when the rule was read through), and nothing about it that a method of its
 		/// own carries and a place in its caller would not — a frame of the trace, a quiet reading, a
@@ -4511,7 +4543,8 @@ sealed partial class Machine
 			return !analyzing && !quiet && machine.Tracing is null && !_folds && !_ceils && !_climbs &&
 				!NodeWalk.Descendants(part).Any(static one => one is Node.Choice or Node.Repeat or Node.Counted or Node.Atomic or Node.Lookahead or Node.Reading) &&
 				machine._partOpens.TryGetValue(part, out var opened) && !opened && !machine.Opens(part) &&
-				machine.Weight(part, InlineWeight + 1) <= InlineWeight;
+				machine.Weight(part, InlineWeight + 1) <= InlineWeight &&
+				(long)_baseBranches + _inlinedBranches + InlineBranches <= Budget;
 		}
 
 		/// <summary>
@@ -4540,6 +4573,7 @@ sealed partial class Machine
 			Emit(region.Body, part, following);
 
 			_inlined.RemoveAt(_inlined.Count - 1);
+			_inlinedBranches += Machine.Branches(region.Body.ToString());
 			_pushed |= pushed;
 			(_entry, _closing, _quiet, _leadMark, _trailMark, _sealsLead, _refuseWith, _refuseOver, _guardRefuses) =
 				(entry, closing, quieted, lead, trail, seals, refuseWith, refuseOver, guardRefuses);
