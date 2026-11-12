@@ -413,6 +413,13 @@ static class Questions
 						foreach (var parameter in parameters)
 							Type(parameter.Type);
 
+						// And whether the C# around a generated call answers to each parameter's name: C# in
+						// the rule that names a parameter standing for grammar binds to the host's member of
+						// that name where there is one, and fails to compile where there is none (GRAM4058).
+						foreach (var parameter in parameters)
+							if (parameter.Type is not { IsCSharp: true })
+								bindings.Add(parameter.Name);
+
 						Walk(body);
 
 						// A rule's whole body being one bare @Name is §4.1 case 3 applied to a
