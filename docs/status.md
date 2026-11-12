@@ -305,13 +305,12 @@ inside a string literal counts as asked for. That direction is the safe one — 
 always found, and a name that was not costs an unused parameter. Reading it exactly means
 lexing C#, which is the host's job and not the grammar half's.
 
-§8.3's first two surfaces, the `Read()` cursor and `IEnumerable<RowOutcome>`, are not
-generated in this version. A recovering repetition hands back its sequence instead: each
-rejection is either built by `recover … => …` and put in its place, which is the third row
-(failures as the author's own types), or dropped and reported, which is the fourth.
+A recovering repetition hands back its sequence: each rejection is either built by
+`recover … => …` and put in its place, which is §8.3's first row (failures as the author's own
+types), or dropped and reported, which is the second.
 
 **Without a `=>` the element is dropped and reported to a `partial void`**, which is
-§8.3's fourth row — successful records only, failures to a log, nothing declared. The
+§8.3's second row — successful records only, failures to a log, nothing declared. The
 generated class declares the channel and the consumer may implement it:
 
 ```csharp

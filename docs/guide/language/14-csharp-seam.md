@@ -10,9 +10,8 @@ meant; where `@M` is written says it:
 | Written | Role | C# shape |
 | --- | --- | --- |
 | `[@M]` | element predicate | `bool M(char c)` |
-| `@M` as an operand | external recognizer | `bool M(ReadOnlySpan<char> input, ref int pos)` |
-| `@M` as an operand | external recognizer with a value | `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` |
-| `@M` as an operand | recognizer over the input view | `bool M(ParserInput<char> input, ref int pos[, out T value][, Context context])` |
+| `@M` as an operand | external recognizer — the form to write | `bool M(ParserInput<char> input, ref int pos[, out T value][, Context context])` |
+| `@M` as an operand | external recognizer over a string only, faster | `bool M(ReadOnlySpan<char> input, ref int pos[, out T value])` |
 | `=> @M(a, b)`, `=> @(expr)` | construction | any C# value |
 | `when @M(a)`, `when @(expr)` | guard | any C# `bool` |
 
@@ -66,7 +65,38 @@ A predicate is never asked about the end of input: a set fails there before aski
 ## External recognizers: `@M` as an operand
 
 A bare `@M` hands the input and the position to the host, which moves the position past what it read and
-answers whether it read anything:
+answers whether it read anything. Write it over `ParserInput<char>`, a view of the input the generator writes
+into the host: one method then serves every publication of the grammar — a string, a `TextReader`, a stream
+(a `ParserInput<byte>` overload beside it serves `stream bytes`).
+`TryAdvance(ref position, length)`, `Ensure(position, length)`, `Peek(position, out value)` and
+`Slice(position, length)` read more of the input as they need it:
+
+```dotgram
+Record : @string = v: @Fixed & '\n' => v
+Records : @string[] = { Record* }
+
+parse Records stream
+```
+
+```csharp
+partial class Grammar
+{
+	static bool Fixed(ParserInput<char> input, ref int position)
+	{
+		return input.TryAdvance(ref position, 4);
+	}
+}
+```
+
+```text examples
+ParseRecords("abcd\nefgh\n") → ["abcd", "efgh"]
+ParseRecords(reader("abcd\nefgh\n")) → ["abcd", "efgh"]
+TryParseRecords(reader("abc\n")) → refused
+```
+
+**Over a string only, a span is faster.** Where the grammar reads nothing but strings, the recognizer may
+take the input as a `ReadOnlySpan<char>` instead. It cannot tell the end of a buffer from the end of the
+input, so a publication that reads a `TextReader` or a stream does not accept it:
 
 ```dotgram
 Hex = "0x" & @HexRun
@@ -138,40 +168,11 @@ ParseId("{0f8fad5b}") → refused
 ```
 
 The same name may be a predicate and a recognizer, by overloads: `[@Foo]` calls `bool Foo(char)`, `@Foo`
-calls `bool Foo(ReadOnlySpan<char>, ref int)`.
+calls the recognizer overload.
 
 **A recognizer is trusted absolutely.** The `ref` is the method saying it moves the position; nothing copies
 it away or checks it afterwards. Move it backwards or past the end and the rest of the grammar reads
 nonsense, undiagnosed. On failure it must leave `pos` where it was.
-
-**The input view.** A span-based recognizer cannot tell the end of a buffer from the end of the input, so a
-grammar read from a `TextReader` or a `Stream` declares its recognizer over `ParserInput<char>` (or
-`ParserInput<byte>`), a type the generator writes into the host: `Ensure(position, length)`,
-`TryAdvance(ref position, length)`, `Peek(position, out value)` and `Slice(position, length)` read more as
-needed.
-
-```dotgram
-Record : @string = v: @Fixed & '\n' => v
-Records : @string[] = { Record* }
-
-parse Records stream
-```
-
-```csharp
-partial class Grammar
-{
-	static bool Fixed(ParserInput<char> input, ref int position)
-	{
-		return input.TryAdvance(ref position, 4);
-	}
-}
-```
-
-```text examples
-ParseRecords("abcd\nefgh\n") → ["abcd", "efgh"]
-ParseRecords(reader("abcd\nefgh\n")) → ["abcd", "efgh"]
-TryParseRecords(reader("abc\n")) → refused
-```
 
 Notes:
 
@@ -193,14 +194,16 @@ parse Number
 
 <!-- ru:begin -->
 > **RU.** Голый `@M` передаёт хосту вход и позицию; хост сдвигает позицию за прочитанное и отвечает,
-> прочитал ли что-нибудь (пример `HexRun`). Значение — покрытый текст; распознаватель с `out T` строит
+> прочитал ли что-нибудь. Пишите его над `ParserInput<char>` — представлением входа, которое генератор
+> пишет в хост: один метод служит всем публикациям грамматики — строке, `TextReader`, потоку (пример
+> `Fixed` проверен и над строкой, и над читателем; `TryAdvance`, `Ensure`, `Peek`, `Slice` дочитывают вход
+> по мере надобности). **Только для строк быстрее span**: распознаватель над `ReadOnlySpan<char>` (пример
+> `HexRun`) не отличает конец буфера от конца входа, поэтому публикация над читателем или потоком его не
+> принимает. Значение — покрытый текст; распознаватель с `out T` строит
 > значение, и захват держит его (пример `ReadGuid` → `Guid`). Одно имя может быть и предикатом, и
 > распознавателем — перегрузками. **Распознавателю доверяют полностью**: позицию никто не копирует и не
 > проверяет; сдвинуть назад или за конец — значит сломать разбор без диагностики; при неудаче `pos` нужно
-> оставить на месте. **Представление входа**: распознаватель над span не отличает конец буфера от конца
-> входа, поэтому для чтения из `TextReader`/`Stream` он объявляется над `ParserInput<char>`/`<byte>` —
-> тип, который генератор пишет в хост (`Ensure`, `TryAdvance`, `Peek`, `Slice`); пример `Fixed`
-> проверен и над строкой, и над читателем. Метод нужной формы вне досягаемости хоста — `GRAM4025` (на
+> оставить на месте. Метод нужной формы вне досягаемости хоста — `GRAM4025` (на
 > грамматике, а не ошибкой C#); две перегрузки `out T` с разными `T` — `GRAM4015`; распознаватель над
 > `ParserInput` может последним параметром принять `context` грамматики (глава 13); терминал разделённой
 > грамматики из одного `@M` — предупреждение `GRAM5011`.

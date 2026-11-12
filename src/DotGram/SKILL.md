@@ -149,7 +149,7 @@ X{3}  X{2,4}  X{2,}     exactly, between, at least — the body must consume som
                         value is produced and may be captured
 ?!X                     negative lookahead: X does not match here, and nothing is produced
 
-@M                      an external recognizer, `bool M(ReadOnlySpan<char> input, ref int pos)`
+@M                      an external recognizer, `bool M(ParserInput<char> input, ref int pos)`
 name: X                 a capture
 $q: X                   a binding: q is the text X matched, and no capture
 $q                      the same text again (a back-reference)
@@ -222,8 +222,9 @@ signature to guess a role:
 | C# | Role | Written as |
 | --- | --- | --- |
 | `bool M(char c)` | element predicate | `[@M]`, inside an element set |
-| `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M`, as an operand |
-| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | recognizer with a value | bare `@M` |
+| `bool M(ParserInput<char> input, ref int pos)` | external recognizer; serves strings, readers and streams | bare `@M`, as an operand |
+| `bool M(ParserInput<char> input, ref int pos, out T value)` | recognizer with a value | bare `@M` |
+| `bool M(ReadOnlySpan<char> input, ref int pos[, out T value])` | the same over a string only, faster where nothing else is read | bare `@M` |
 | any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
 | any C# `bool` | guard | `when @M(a)`, `when @(expr)` |
 
