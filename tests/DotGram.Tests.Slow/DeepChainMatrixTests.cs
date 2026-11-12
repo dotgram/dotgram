@@ -35,12 +35,15 @@ namespace DotGram.Tests;
 /// (<c>DeepStack</c>) move as they would on any other.
 /// </para>
 /// <para>
-/// Not Alone, and in three classes so that the kinds are read beside each other: the case builds
-/// its own grammar and runs on a thread of its own with its own stack, and shares nothing with another
-/// case; what is asked is whether a walk's depth grows with the chain, which no neighbour changes.
+/// <b>Alone, though no number is read:</b> a walk down a chain thousands of rules deep leaves that many
+/// frames on the stack of every thread in one, and every collection, whichever thread's allocation asks
+/// for it, stops the process and scans all of those stacks. Beside other classes the cases cost many
+/// times what they cost by themselves (measured: five of these classes together took twice the wall time
+/// of the same classes one after another, on no more work).
 /// </para>
 /// </remarks>
-static class DeepChainMatrix
+[Collection(typeof(Alone))]
+public sealed class DeepChainMatrixTests
 {
 	const int Depth = 4000;
 
@@ -59,7 +62,7 @@ static class DeepChainMatrix
 	/// <param name="Lexical">Whether the kind may be cut in two at all: a grammar that names <c>eos</c> may not (GRAM4049).</param>
 	sealed record Kind(
 		string Name, string Bottom, Func<int, string> Level, string Head, Func<string, string> Use, string Chain = "A",
-		string Extra = "", bool Lexical = true, int Depth = DeepChainMatrix.Depth, int Stack = StackBytes);
+		string Extra = "", bool Lexical = true, int Depth = DeepChainMatrixTests.Depth, int Stack = StackBytes);
 
 	static readonly Kind[] Kinds =
 	[
@@ -92,24 +95,23 @@ static class DeepChainMatrix
 	static readonly string[] Tops = ["plain", "repeated", "looked"];
 
 	/// <summary>Every case: a kind, the order the rules are declared in, a seam or none, characters or cut in two, a top.</summary>
-	public static TheoryData<string, bool> Groups(int part)
+	public static TheoryData<string, bool> Groups()
 	{
 		var data = new TheoryData<string, bool>();
 
-		for (var i = part; i < Kinds.Length; i += Parts)
+		foreach (var kind in Kinds)
 		{
-			data.Add(Kinds[i].Name, false);
-			data.Add(Kinds[i].Name, true);
+			data.Add(kind.Name, false);
+			data.Add(kind.Name, true);
 		}
 
 		return data;
 	}
 
-	/// <summary>The classes the kinds are shared out between, beside each other.</summary>
-	public const int Parts = 3;
-
 	/// <summary>One kind and one order, every other dimension of it at once.</summary>
-	public static void Run(string kind, bool descending)
+	[Theory]
+	[MemberData(nameof(Groups))]
+	public void Every_shape_of_a_chain_compiles_on_a_small_stack(string kind, bool descending)
 	{
 		var cases =
 			from trivia in new[] { false, true }
@@ -218,56 +220,5 @@ static class DeepChainMatrix
 			throw new InvalidOperationException("The work threw on the small stack.", thrown);
 
 		return result!;
-	}
-}
-
-/// <inheritdoc cref="DeepChainMatrix"/>
-public sealed class DeepChainMatrixTests
-{
-	public static TheoryData<string, bool> Groups()
-	{
-		return DeepChainMatrix.Groups(0);
-	}
-
-	/// <summary>One kind and one order, every other dimension of it at once.</summary>
-	[Theory]
-	[MemberData(nameof(Groups))]
-	public void Every_shape_of_a_chain_compiles_on_a_small_stack(string kind, bool descending)
-	{
-		DeepChainMatrix.Run(kind, descending);
-	}
-}
-
-/// <inheritdoc cref="DeepChainMatrix"/>
-public sealed class DeepChainMatrixSecondTests
-{
-	public static TheoryData<string, bool> Groups()
-	{
-		return DeepChainMatrix.Groups(1);
-	}
-
-	/// <summary>One kind and one order, every other dimension of it at once.</summary>
-	[Theory]
-	[MemberData(nameof(Groups))]
-	public void Every_shape_of_a_chain_compiles_on_a_small_stack(string kind, bool descending)
-	{
-		DeepChainMatrix.Run(kind, descending);
-	}
-}
-
-/// <inheritdoc cref="DeepChainMatrix"/>
-public sealed class DeepChainMatrixThirdTests
-{
-	public static TheoryData<string, bool> Groups()
-	{
-		return DeepChainMatrix.Groups(2);
-	}
-
-	/// <summary>One kind and one order, every other dimension of it at once.</summary>
-	[Theory]
-	[MemberData(nameof(Groups))]
-	public void Every_shape_of_a_chain_compiles_on_a_small_stack(string kind, bool descending)
-	{
-		DeepChainMatrix.Run(kind, descending);
 	}
 }
