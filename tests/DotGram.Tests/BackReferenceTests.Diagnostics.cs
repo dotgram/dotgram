@@ -250,10 +250,16 @@ public sealed partial class BackReferenceTests
 		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnboundReference);
 	}
 
-	/// <summary>A read with nothing bound before it on its own account is still told, beside the refusal.</summary>
+	/// <summary>
+	/// A read with nothing bound before it on its own account is still told, beside the refusal: one
+	/// before the refused binding, one in a branch beside it, and one past a route that skips it.
+	/// </summary>
 	[Theory]
 	[InlineData("R = $q & ?=($q: 'a')", "$q", 0)]
 	[InlineData("R = $q & ?=($q: 'a') & $q", "$q", 0)]
+	[InlineData("R = (?=($q: 'a') | 'b' & $q) & 'c'", "$q", 1)]
+	[InlineData("R = (?=($q: 'a') | 'b' & 'c'{#q}) & 'd'", "#q", 0)]
+	[InlineData("R = (?=($q: 'a') | 'b') & $q", "$q", 1)]
 	public void While_a_read_unbound_for_its_own_reason_is_still_told(string grammar, string at, int occurrence)
 	{
 		Refused(GrammarNormalizer.UnboundReference, grammar, at, "", occurrence);
