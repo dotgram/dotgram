@@ -76,4 +76,48 @@ public sealed class ImportAmbiguityTests
 
 		Assert.Equal(GrammarBinder.ShadowsEnclosingRule, told.Id);
 	}
+
+	static bool Reads(string grammar, string method, string input)
+	{
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(string.Join("\n", result.Sources.Select(static one => one.Text)));
+
+		return EmittedCode.Match(assembly, "Grammar", method, input).IsSuccess;
+	}
+
+	/// <summary>
+	/// A rebinding's left side may be qualified: it means the rule the name resolves to, without a
+	/// <c>using</c>, the same as the unqualified name where that rule is in view.
+	/// </summary>
+	[Theory]
+	[InlineData("Num = Std.Digit+\nLower = ['a'..'f']\nP = Num with (Std.Digit = Lower)\nparse P")]
+	[InlineData("using Std;\nNum = Digit+\nLower = ['a'..'f']\nP = Num with (Std.Digit = Lower)\nparse P")]
+	[InlineData("using Std;\nNum = Digit+\nLower = ['a'..'f']\nP = Num with (Digit = Lower)\nparse P")]
+	public void A_qualified_left_side_rebinds_the_rule_it_names(string grammar)
+	{
+		Assert.True(Reads(grammar, "TryParseP", "abf"));
+		Assert.False(Reads(grammar, "TryParseP", "12"));
+	}
+
+	[Fact]
+	public void And_a_namespace_header_may_bind_one()
+	{
+		const string Grammar = "namespace A { B = 'b' }\nC = 'c'\nnamespace N with (A.B = C) { P = A.B & 'x' }\nparse N.P";
+
+		Assert.True(Reads(Grammar, "TryParseP", "cx"));
+		Assert.False(Reads(Grammar, "TryParseP", "bx"));
+	}
+
+	[Theory]
+	[InlineData("Num = Std.Digit+\nLower = ['a'..'f']\nP = Num with (Std.Nope = Lower)\nparse P", GrammarBinder.UnknownRebindingTarget)]
+	[InlineData("Num = Std.Digit+\nLower = ['a'..'f']\nP = Num with (Nowhere.Digit = Lower)\nparse P", GrammarBinder.UnknownRebindingTarget)]
+	[InlineData("Num = Std.Digit+\nWrap(x) = x\nP = Num with (Std.Digit = Wrap)\nparse P", GrammarBinder.ParameterizedRebinding)]
+	public void While_a_qualified_left_side_is_checked_as_an_unqualified_one_is(string grammar, string id)
+	{
+		Assert.Contains(Errors(grammar), one => one.Id == id);
+		Assert.DoesNotContain(Errors(grammar), static one => one.Id == "GRAM2001");
+	}
 }
