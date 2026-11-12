@@ -2138,7 +2138,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				Variant:        variant,
 				// Aliases written with a name they had before 0.3.0, here or on any class the grammar is
 				// built on: GRAM0012 says so, and the names they no longer reach are not said again.
-				DroppedAliases: new EquatableArray<string>(Renamed.DroppedAliases(type)),
+				DroppedAliases: new EquatableArray<string>(Renamed.DroppedAliases(type, candidate.SemanticModel.Compilation)),
 				Classified:     new EquatableArray<string>([.. classifies.Select(static one => (string)one.ConstructorArguments[0].Value!)]));
 
 			return (host, site, options);

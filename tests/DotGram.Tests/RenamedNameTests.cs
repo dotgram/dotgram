@@ -136,6 +136,8 @@ public sealed class RenamedNameTests
 		[Gram("A = 'a'\nparse A")]
 		public static partial class Lib { }
 
+		static class Names { public const string Old = "Old"; }
+
 		""";
 
 	/// <summary>
@@ -147,6 +149,9 @@ public sealed class RenamedNameTests
 	[InlineData("As = \"Old\"", "S = Typo\\nparse S", new[] { "GRAM3002" })]
 	[InlineData("As = \"Old\"", "S = Old.A & Typo\\nparse S", new[] { "GRAM3002" })]
 	[InlineData("Alias = \"Old\"", "S = Typo\\nparse S", new[] { "GRAM3002" })]
+	[InlineData("As = Names.Old", "using Old;\\nS = A\\nparse S", new string[0])]
+	[InlineData("As = nameof(Names.Old)", "using Old;\\nS = A\\nparse S", new string[0])]
+	[InlineData("As = Names.Old + \"er\"", "using Older;\\nS = A\\nparse S", new string[0])]
 	public void Only_what_a_dropped_alias_explains_is_held_back(string alias, string grammar, string[] said)
 	{
 		var run = GeneratorDriverTests.RunGenerator(Lib +
@@ -169,6 +174,28 @@ public sealed class RenamedNameTests
 
 		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM0012");
 		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM3003");
+	}
+
+	/// <summary>
+	/// An old <c>IncludedAs</c> on a grammar that has a <c>Name</c> is never what an include is called, as
+	/// such a grammar is never what is included: what its host then fails to reach is said.
+	/// </summary>
+	[Fact]
+	public void An_old_alias_on_a_named_grammar_holds_nothing_back()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			using DotGram;
+
+			[Gram("A = 'a'\nparse A", Name = "Other", IncludedAs = "Old")]
+			public static partial class Lib { }
+
+			[GramInclude(typeof(Lib))]
+			[Gram("S = Old.A\nparse S")]
+			public static partial class P { }
+			""");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM3002");
 	}
 
 	/// <summary>An old <c>As</c> between two included grammars explains what the outer host meets through it too.</summary>
@@ -198,6 +225,15 @@ public sealed class RenamedNameTests
 	[InlineData("using O = DotGram.GramOptionsAttribute;\n\n[O(Suffix = \"Fast\")]\n[DotGram.Gram(\"A = 'a'\\nparse A\")]\npublic static partial class X { }", "GramOptions")]
 	[InlineData("namespace Own { }\n\n[Own.GramOptions]\n[DotGram.Gram(\"A = 'a'\\nparse A\")]\npublic static partial class X { }", null)]
 	[InlineData("static class X { static object Tape = 1; static object Carried = Tape; }", null)]
+	[InlineData("global using static DotGram.GramCarrier;\n\nstatic class X { static object Carried = Tape; }", "GramCarrier.Tape")]
+	[InlineData("using static DotGram.GramCarrier;\n\nclass Tape { }\n\nstatic class X { static Tape Value; }", null)]
+	[InlineData("using static DotGram.GramCarrier;\n\nstatic class X { static Tape Value; static System.Collections.Generic.List<Tape> Values; }", null)]
+	[InlineData("static class X { static object Carried = Tape; }", null)]
+	[InlineData("namespace Own { namespace DotGram { } namespace Consumer { using O = DotGram.GramOptionsAttribute; [O] class X { } } }", null)]
+	[InlineData("namespace Own { namespace DotGram { } namespace Consumer { using O = global::DotGram.GramOptionsAttribute; [O] class X { } } }", "GramOptions")]
+	[InlineData("global using O = DotGram.GramOptionsAttribute;\n\n[O(Suffix = \"Fast\")]\n[DotGram.Gram(\"A = 'a'\\nparse A\")]\npublic static partial class X { }", "GramOptions")]
+	[InlineData("[GramOptions]\nclass X { }", null)]
+	[InlineData("using DotGram;\n\n[GramOptions]\nclass X { }", "GramOptions")]
 	public void An_old_name_is_found_as_C_sharp_reaches_it(string source, string? old)
 	{
 		var renamed = GeneratorDriverTests.RunGenerator(source).Diagnostics.Where(static one => one.Id == "GRAM0012").ToArray();
