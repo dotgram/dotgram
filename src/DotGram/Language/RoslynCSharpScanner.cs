@@ -91,11 +91,12 @@ sealed class RoslynCSharpScanner : ICSharpScanner
 
 		return names;
 
-		// The left of a dot, which may be a namespace or a type as well as a value.
+		// The left of a qualified name, which C# reads only as a namespace or a type. The left of a member
+		// access, item.Length, is a value unless something of that name is a namespace or a type where the
+		// code stands; that is the host's to say, and the caller asks it.
 		static bool Qualifies(IdentifierNameSyntax name)
 		{
-			return name.Parent is MemberAccessExpressionSyntax member && member.Expression == name ||
-				name.Parent is QualifiedNameSyntax qualified && qualified.Left == name;
+			return name.Parent is QualifiedNameSyntax qualified && qualified.Left == name;
 		}
 	}
 

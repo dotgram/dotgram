@@ -384,8 +384,8 @@ sealed partial class GrammarNormalizer
 	/// Asked of the C# the rule's declaration writes, as written: what an argument brings in is the
 	/// caller's, and may name a host member of the parameter's name (<c>Use('a' &amp; when @(x()))</c>).
 	/// Said only where certain. A capture of the rule of the same name is the value C# reads; a name
-	/// written only before a dot may be a namespace or a type (<c>System.Math</c>), and is left to the
-	/// C# compiler. Said once for each parameter as it was written.
+	/// before a dot (<c>item.Length</c>) is asked of the host as any other is, where a namespace or a
+	/// type of that name would answer. Said once for each parameter as it was written.
 	/// </para>
 	/// </remarks>
 	void CheckRecognizersInCSharp()
@@ -463,9 +463,9 @@ sealed partial class GrammarNormalizer
 								yield return (one => one == name, part.At);
 								break;
 
-							// From the C#'s tokens: a name in a comment or a literal is none, `@x` is `x`, and
-							// one written only before a dot may be a namespace or a type, and is left to the
-							// C# compiler.
+							// From the C#'s tokens: a name in a comment or a literal is none, and `@x` is `x`.
+							// One before a dot, item.Length, is among them; a namespace or a type of that
+							// name answers in Unbound().
 							case Expr.CSharp(var text):
 								var asValues = _scanner.NamesAsValues(text);
 
