@@ -106,7 +106,7 @@ character the grammar's own position maps to. A grammar inherited from a base cl
 | <a id="gram3007"></a>`GRAM3007` | Error | A rebinding's right side names no visible rule. | (§5.1) |
 | <a id="gram3008"></a>`GRAM3008` | Error | A rule is bound more than once in one `with`. | |
 | <a id="gram3009"></a>`GRAM3009` | Error | A rebinding's two sides take different numbers of parameters. | A rebinding substitutes one recognizer for another, so they have to take the same arguments (§4.2). |
-| <a id="gram3010"></a>`GRAM3010` | Error | A rule bound by the active namespace's own header cannot be redeclared. | Use a nested namespace header to replace it. |
+| <a id="gram3010"></a>`GRAM3010` | Error | A rule bound by the active namespace's own header cannot be redeclared. | Use a nested namespace header to replace it. Said for such a name wherever it came from, an enclosing namespace or an import; a name the header binds and the block declares again is never GRAM3012. |
 | <a id="gram3011"></a>`GRAM3011` | Error | A rebinding is circular. | In one header (`with (A = B, B = A)`), or once substitutions stack: `(X with (D = Y)) with (Y = D)` loops the same way, and so does a `with` over the header of a namespace its operand calls into from outside — `Ns.E with (D = B)` where `Ns` binds `B = D` — through however many bindings the loop goes (§5.1). |
 | <a id="gram3012"></a>`GRAM3012` | Error | A rule shadows one from an enclosing namespace or an import. | If it is meant to *replace* it, say so with a rebinding: `namespace Name with (X = …) { … }` (§5.1). |
 | <a id="gram3014"></a>`GRAM3014` | Error | A grammar declares two `context` types. | One contract for the rules written here. A grammar including this one may strengthen it for its own (§7.7). |
@@ -115,6 +115,7 @@ character the grammar's own position maps to. A grammar inherited from a base cl
 | <a id="gram3020"></a>`GRAM3020` | Error | Two grammars in one composition declare a different `state`. | Every mark a parse places is written in one type (§7.8). |
 | <a id="gram3021"></a>`GRAM3021` | Error | `$q` or `#q` where the rule binds nothing called `q`. | A binding is read in the rule that bound it (§3.5.1). Binding names are their own: a capture `q:` is not a binding — write `q: ($q: X)` to have both — and `$q` never names a rule. A rule that needs another rule's text receives it as a capture and compares with a guard. |
 | <a id="gram3022"></a>`GRAM3022` | Error | Two imports at one scope each declare a `trivia`, and the scope declares none. | Which one it reads with would depend on the order of the `using`s, which never decides between two imports (§5). Declare the one meant in the scope itself, `trivia = Spaces.trivia`. An import at a nearer scope is not ambiguous with one further out: the nearer one is read (§4.5). |
+| <a id="gram3023"></a>`GRAM3023` | Error | A name two imports at one scope supply, read where the scope does not declare it. | Which one it means would depend on the order of the `using`s, which never decides between two imports (§5): write the one meant in full, `A.W`. A rule the scope declares itself, or one nearer, is read as before, and so is one name imported twice from one namespace. Before 0.3.0 the first `using` was read without a word. |
 
 ## GRAM4xxx — what the grammar means
 
