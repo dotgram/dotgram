@@ -6851,7 +6851,7 @@ sealed partial class Machine
 
 			foreach (var line in (records.Length > 0 ? machine.Carrier.MarkRecords(records) : []).Concat(gathered.Length > 0 ? machine.Carrier.MarkGathered(owner, gathered) : []))
 			{
-				var m = System.Text.RegularExpressions.Regex.Match(line, @"^var ([^ ]+) = (.+);$");
+				var m = System.Text.RegularExpressions.Regex.Match(line, @"^var (.+?) = (.+);$");
 
 				if (!m.Success)
 					throw new InvalidOperationException("probe: " + line);
