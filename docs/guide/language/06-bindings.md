@@ -301,6 +301,28 @@ find Heredoc as Heredocs
 Heredocs("x = <<END\nline 1\nline 2\nEND\n") → ["<<END\nline 1\nline 2\nEND"]
 ```
 
+The closing tag is followed by `?=EndLine`, a lookahead, so the line break after it is not part of the
+match: that is what a `find` wants, and why the whole-input `parse` of this rule refuses a text that ends in
+that line break. Where the break belongs to the token, say `& EndLine` instead of `& ?=EndLine`:
+
+```dotgram
+Heredoc     = "<<" & $tag: Word & eol & { (?!($tag & EndLine) & Line)* } & $tag & ?=EndLine
+HeredocLine = "<<" & $tag: Word & eol & { (?!($tag & EndLine) & Line)* } & $tag & EndLine
+Word        = ['A'..'Z' | 'a'..'z' | '_']+
+Line        = [^ '\r' | '\n']+ & EndLine | eol
+EndLine     = eol | eof
+
+parse Heredoc
+parse HeredocLine
+```
+
+```text examples
+ParseHeredoc("<<END\nx\nEND") → "<<END\nx\nEND"
+ParseHeredoc("<<END\nx\nEND\n") → refused
+ParseHeredocLine("<<END\nx\nEND\n") → "<<END\nx\nEND\n"
+ParseHeredocLine("<<END\nx\nEND") → "<<END\nx\nEND"
+```
+
 A **Markdown fence**: the closing fence is the same character and at least as long, which is `$f`
 followed by more of the same — no comparison needed:
 
@@ -333,7 +355,10 @@ Notes:
 > **RU.** Рецепты (каждый распознаёт токен; что из него сделать — дело `=>` или C#): длинная скобка Lua,
 > сырые строки Rust (`#` вместо кавычек), heredoc с телом со следующей строки, ограждение Markdown
 > (закрывающее — тот же символ и не короче, т. е. `$f` и ещё таких же — сравнение не нужно; незакрытое
-> тянется до конца входа). Если закрытие начинается своим символом-разделителем (Lua, heredoc), позиция,
+> тянется до конца входа). Heredoc закрывается тегом с просмотром `?=EndLine`: перевод строки после тега не
+> входит в совпадение — это то, что нужно `find`, и поэтому `parse` такого правила отвергает текст, который
+> кончается этим переводом строки; если перевод строки принадлежит токену, пишите `& EndLine` вместо
+> `& ?=EndLine` (пример `HeredocLine`, проверен прогонами). Если закрытие начинается своим символом-разделителем (Lua, heredoc), позиция,
 > не начинающая закрытие, отвергается на первом элементе — просмотр линеен. Для `(?!$q & any)*` каждая
 > кавычка сравнивает привязку с текстом: в худшем случае длина текста на длину привязки, и подобранный
 > вход делает это настолько медленным, насколько длинно открытие. При чтении из `TextReader` или потока
