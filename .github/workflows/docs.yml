@@ -10,7 +10,8 @@ name: docs
 #
 # docs/internal/ is for contributors and is not part of the site (docs/docfx.json excludes it).
 # The API reference is read from the built assemblies of the four runtime libraries and their XML
-# documentation, which is why those projects are built here and why their folders trigger a run.
+# documentation, which is why those projects are built here and why their folders trigger a run,
+# along with the generator (src/DotGram/ emits their public API) and the shared build inputs.
 
 on:
   push:
@@ -21,6 +22,10 @@ on:
       - 'src/DotGram.Web/**'
       - 'src/DotGram.Finance/**'
       - 'src/DotGram.ExpressionLanguage/**'
+      - 'src/DotGram/**'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - 'global.json'
       - '.config/dotnet-tools.json'
       - '.github/workflows/docs.yml'
   pull_request:
@@ -31,6 +36,10 @@ on:
       - 'src/DotGram.Web/**'
       - 'src/DotGram.Finance/**'
       - 'src/DotGram.ExpressionLanguage/**'
+      - 'src/DotGram/**'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - 'global.json'
       - '.config/dotnet-tools.json'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
