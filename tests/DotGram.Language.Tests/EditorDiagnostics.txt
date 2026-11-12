@@ -140,6 +140,7 @@ parse A
 using Absent;
 A = 'a'
 --- GRAM3004 needs a C# symbol resolver that says a type does not exist; with none every type is taken to exist (PermissiveSymbolResolver.TypeExists)
+--- GRAM4058 needs a C# symbol resolver that sees the host and finds nothing a parameter's name could be there; with none nothing is said, the name may be the host's (GrammarNormalizer.CheckRecognizersInCSharp)
 === GRAM3005
 A = 'a'
 B = 'b'
@@ -499,11 +500,6 @@ positional parse Start
 Item : @string = 'a' => @("A")
 Items : @string[] = items: { Item }* => @(items)
 parse Items
-=== GRAM4058
-Digits = ['0'..'9']+
-Value(x) = x & when @(x != null)
-Field = '=' & Value(Digits)
-parse Field
 === GRAM5001
 A = 'a' & any* & 'b'
 find A
