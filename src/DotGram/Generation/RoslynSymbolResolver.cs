@@ -7,6 +7,7 @@ using DotGram.Grammar;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace DotGram.Generation;
 
@@ -470,18 +471,49 @@ sealed class RoslynSymbolResolver(
 				name.Parent is MemberBindingExpressionSyntax binding && binding.Name == name ||
 				name.Parent is NameColonSyntax or NameEqualsSyntax ||
 				name.Parent is AssignmentExpressionSyntax { Parent: InitializerExpressionSyntax } assignment && assignment.Left == name ||
-				name.IsVar)
+				name.IsVar && ImplicitType(name))
 			{
 				continue;
 			}
 
 			var info = speculative.GetSymbolInfo(name);
 
-			if (info.Symbol is null && info.CandidateSymbols.Length == 0)
-				unbound.Add(name.Identifier.ValueText);
+			if (info.Symbol is not null || info.CandidateSymbols.Length > 0)
+				continue;
+
+			// `nameof(…)` is an operator, spelled as a call of a name that binds to nothing; where something
+			// called nameof is in scope, it is a call of that, and bound.
+			if (name.Parent is InvocationExpressionSyntax call && call.Expression == name &&
+				speculative.GetOperation(call) is INameOfOperation)
+			{
+				continue;
+			}
+
+			unbound.Add(name.Identifier.ValueText);
 		}
 
 		return unbound;
+	}
+
+	/// <summary>
+	/// Whether a <c>var</c> stands where a declaration's type does — <c>out var n</c>, <c>var y = …</c>,
+	/// <c>foreach (var x …)</c> — where it is the keyword, which binds to the type it stands for or to
+	/// nothing. Anywhere else it is a name like any other, and <c>var.Length</c> reads it.
+	/// </summary>
+	static bool ImplicitType(TypeSyntax name)
+	{
+		var type = name;
+
+		while (type.Parent is RefTypeSyntax or ScopedTypeSyntax)
+			type = (TypeSyntax)type.Parent;
+
+		return type.Parent switch
+		{
+			DeclarationExpressionSyntax declaration => declaration.Type == type,
+			VariableDeclarationSyntax   declaration => declaration.Type == type,
+			ForEachStatementSyntax      loop        => loop.Type == type,
+			_                                       => false,
+		};
 	}
 
 	/// <summary>Where <see cref="ICSharpNames.Answers"/> and <see cref="ICSharpNames.UnboundIn"/> look, beside <paramref name="usings"/>.</summary>
