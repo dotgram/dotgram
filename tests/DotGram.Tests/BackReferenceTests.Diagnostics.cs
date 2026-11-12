@@ -235,7 +235,7 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>
-	/// A read after a binding refused where it stands (GRAM4033) finds nothing bound because of that
+	/// A read after a binding refused where it stands (GRAM4060) finds nothing bound because of that
 	/// refusal, which is said once: not again as a read with nothing bound (GRAM4032).
 	/// </summary>
 	[Theory]
@@ -246,7 +246,7 @@ public sealed partial class BackReferenceTests
 	{
 		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", grammar + "\nparse R"));
 
-		Assert.Contains(run.Diagnostics, static one => one.Id == GrammarNormalizer.MisplacedBinding);
+		Assert.Contains(run.Diagnostics, static one => one.Id == GrammarNormalizer.BindingInLookahead);
 		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnboundReference);
 	}
 
@@ -264,26 +264,27 @@ public sealed partial class BackReferenceTests
 	}
 
 	[Theory]
-	[InlineData("R = ?=($q: 'a') & 'b'",                          "$q", 0, "inside a lookahead")]
-	[InlineData("R = ?=($q: 'a' & $q) & 'b'",                     "$q", 0, "inside a lookahead")]
-	[InlineData("R = $q: ('a' & $q)",                             "$q", 1, "inside its own binding")]
-	[InlineData("R = $q: 'a'{#q}",                                "#q", 0, "inside its own binding")]
-	[InlineData("R = $q: 'a' & $q: 'b' & $q",                     "$q", 1, "bound twice on one route")]
-	[InlineData("R = $q: ('a' & $q: 'b')",                        "$q", 1, "bound twice on one route")]
-	[InlineData("R = $q: 'a' & F($q)\nF(x) = x",                  "$q", 1, "in an argument of 'F'")]
-	[InlineData("R : @string = $q: 'a' => $q",                    "$q", 1, "in the value of a '=>'")]
-	[InlineData("R = $q: 'a' & when $q is 'a' & 'b'",            "$q", 1, "'when … is …'")]
-	[InlineData("R = $q: 'a' & when $q & 'b'",                   "$q", 1, "in a 'when', which is C#")]
-	[InlineData("E = E & '+' & $q: T & $q | T\nT = 'a'",          "$q", 0, "a step of the left-recursive rule 'E'")]
-	[InlineData("R = $q: R & 'x' & $q | 'y'",                     "$q", 0, "the leading call of the left-recursive rule 'R'")]
-	[InlineData("R = $q: R & 'x' | 'y'",                          "$q", 0, "the leading call of the left-recursive rule 'R'")]
-	[InlineData("R = r: ($q: R) & 'x' & $q | 'y'",                "$q", 0, "the leading call of the left-recursive rule 'R'")]
-	[InlineData("R = $q: { R } & 'x' | 'y'",                      "$q", 0, "the leading call of the left-recursive rule 'R'")]
-	[InlineData("R = $q: (R | 'z') & 'x' & $q | 'y'",             "$q", 0, "the leading call of the left-recursive rule 'R'")]
-	[InlineData("R : @string = $q: 'a' & ('b' & $q => @(\"g\")) => @(\"r\")", "$q", 1, "constructing group")]
-	public void A_binding_or_a_reference_where_none_can_stand(string grammar, string at, int occurrence, string says)
+	[InlineData(GrammarNormalizer.BindingInLookahead, "R = ?=($q: 'a') & 'b'",                          "$q", 0, "inside a lookahead")]
+	[InlineData(GrammarNormalizer.BindingInLookahead, "R = ?=($q: 'a' & $q) & 'b'",                     "$q", 0, "inside a lookahead")]
+	[InlineData(GrammarNormalizer.ReadInOwnBinding, "R = $q: ('a' & $q)",                             "$q", 1, "inside its own binding")]
+	[InlineData(GrammarNormalizer.ReadInOwnBinding, "R = $q: 'a'{#q}",                                "#q", 0, "inside its own binding")]
+	[InlineData(GrammarNormalizer.BoundTwice, "R = $q: 'a' & $q: 'b' & $q",                     "$q", 1, "bound twice on one route")]
+	[InlineData(GrammarNormalizer.BoundTwice, "R = $q: ('a' & $q: 'b')",                        "$q", 1, "bound twice on one route")]
+	[InlineData(GrammarNormalizer.MisplacedBinding, "R = $q: 'a' & F($q)\nF(x) = x",                  "$q", 1, "in an argument of 'F'")]
+	[InlineData(GrammarNormalizer.MisplacedBinding, "R : @string = $q: 'a' => $q",                    "$q", 1, "in the value of a '=>'")]
+	[InlineData(GrammarNormalizer.MisplacedBinding, "R = $q: 'a' & when $q is 'a' & 'b'",            "$q", 1, "'when … is …'")]
+	[InlineData(GrammarNormalizer.MisplacedBinding, "R = $q: 'a' & when $q & 'b'",                   "$q", 1, "in a 'when', which is C#")]
+	[InlineData(GrammarNormalizer.BindingInFold, "E = E & '+' & $q: T & $q | T\nT = 'a'",          "$q", 0, "a step of the left-recursive rule 'E'")]
+	[InlineData(GrammarNormalizer.BindingInFold, "R = $q: R & 'x' & $q | 'y'",                     "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData(GrammarNormalizer.BindingInFold, "R = $q: R & 'x' | 'y'",                          "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData(GrammarNormalizer.BindingInFold, "R = r: ($q: R) & 'x' & $q | 'y'",                "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData(GrammarNormalizer.BindingInFold, "R = $q: { R } & 'x' | 'y'",                      "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData(GrammarNormalizer.BindingInFold, "R = $q: (R | 'z') & 'x' & $q | 'y'",             "$q", 0, "the leading call of the left-recursive rule 'R'")]
+	[InlineData(GrammarNormalizer.ReadAcrossGroup, "R : @string = $q: 'a' & ('b' & $q => @(\"g\")) => @(\"r\")", "$q", 1, "constructing group")]
+	public void A_binding_or_a_reference_where_none_can_stand(string id, string grammar, string at, int occurrence, string says)
 	{
-		Refused(GrammarNormalizer.MisplacedBinding, grammar, at, says, occurrence);
+		// Each place has a number of its own, which this pins; they were all GRAM4033 before 0.3.0.
+		Refused(id, grammar, at, says, occurrence);
 	}
 
 	[Theory]
