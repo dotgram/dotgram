@@ -386,7 +386,7 @@ parse F
 A = ($q: 'x')? & $q
 parse A
 === GRAM4033
-A = ?=($q: 'x') & 'y'
+A : @string = $q: 'x' => $q
 parse A
 === GRAM4034
 R = $q: 'a' & ('b' & $q & ';')* recover ';'
@@ -501,6 +501,22 @@ positional parse Start
 Item : @string = 'a' => @("A")
 Items : @string[] = items: { Item }* => @(items)
 parse Items
+=== GRAM4060
+A = ?=($q: 'x') & 'y'
+parse A
+=== GRAM4061
+A = $q: 'a' & $q: 'b' & $q
+parse A
+=== GRAM4062
+A = $q: ('a' & $q)
+parse A
+=== GRAM4063
+A : @string = $q: 'a' & ('b' & $q => @("g")) => @("r")
+parse A
+=== GRAM4064
+E = E & '+' & $q: T & $q | T
+T = 'a'
+parse E
 === GRAM5001
 A = 'a' & any* & 'b'
 find A
