@@ -183,6 +183,7 @@ public sealed class ConditionAndParameterTests
 	[InlineData("Value(item) = item & item & when @(item.Length > 0)\nField = '=' & Value(Digits)")]
 	[InlineData("Value(item) = switch @(item.Length) { case 0: Digits default: none }\nField = '=' & Value(Digits)")]
 	[InlineData("Value(x) : @int = x & 'z' => @(x.Length)\nField : @int = '=' & v: Value(Digits) => @(v)")]
+	[InlineData("Value(var) = var & when @(var.Length > 0)\nField = '=' & Value(Digits)")]
 	public void C_sharp_that_names_a_recognizer_parameter_is_said_on_the_grammar(string rules)
 	{
 		var grammar = "Digits = ['0'..'9']+\n" + rules + "\nparse Field";
@@ -190,6 +191,11 @@ public sealed class ConditionAndParameterTests
 
 		Assert.Equal(GrammarNormalizer.RecognizerInCSharp, told.Id);
 		Assert.Contains("'Value'", told.Message, StringComparison.Ordinal);
+
+		// And the generator, which asks the host ahead of time, says the same.
+		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", grammar));
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
 	}
 
 	/// <summary>
@@ -298,6 +304,8 @@ public sealed class ConditionAndParameterTests
 		"@using System.Linq;\n",
 		"Use(x) = x & 'z' & when @(((System.Func<bool>)(() => { var q = from a in Items(out var x) select a + x; return x > 0 && q.Any(); }))())",
 		"static int[] Items(out int v) { v = 1; return new[] { 1 }; }")]
+	[InlineData("", "Use(nameof) = nameof & 'z' & when @(nameof(System.String).Length > 0)", "")]
+	[InlineData("", "Use(var) = var & 'z' & when @(((System.Func<bool>)(() => { var n = 1; return n > 0; }))())", "")]
 	public void A_name_a_declaration_in_the_csharp_reaches_is_not_the_parameter(string usings, string rule, string members)
 	{
 		var grammar = usings + rule + "\nTest = Use('a')\nparse Test";
