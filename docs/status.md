@@ -533,10 +533,10 @@ What it does not do is refused at build time with a diagnostic that says where:
 
 - A binding is read by a reference in the same alternative of the same rule. A reference
   across a rule call, into or out of a constructing group, or in the step of a fold is
-  refused (`GRAM4033`), and so is a name that nothing bound (`GRAM3021`).
+  refused (`GRAM4063`, `GRAM4064`), and so is a name that nothing bound (`GRAM3021`).
 - A reference that may be reached on a route that skipped its binding is refused with the
   fix (`GRAM4032`).
-- A binding inside a lookahead is refused (`GRAM4033`); a reference inside one is fine.
+- A binding inside a lookahead is refused (`GRAM4060`); a reference inside one is fine.
 - Not yet supported (`GRAM4034`): a binding in a repetition that recovers, or in what such
   a repetition skips to; and in what `trivia` is made of once a grammar is cut into a lexer
   and a syntactic half. An atomic terminal that binds text in such a grammar is begun by the
