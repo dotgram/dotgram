@@ -4025,11 +4025,12 @@ sealed partial class Machine
 					var marks  = new List<string>();
 					var unwind = new List<string>();
 
-					if (_gathers && back >= 0 && (leaves || ProbePath is not null))
-						marks.AddRange(machine.Carrier.MarkGathered(owner, $"rr{back}"));
-
+					// Only where the alternative may leave one pushed (Called).
 					if (_gathers && back >= 0 && leaves)
+					{
+						marks.AddRange(machine.Carrier.MarkGathered(owner, $"rr{back}"));
 						unwind.AddRange(machine.Carrier.UnwindGathered(owner, $"rr{back}"));
+					}
 
 					if (_logs && back >= 0)
 					{
@@ -4057,13 +4058,12 @@ sealed partial class Machine
 					foreach (var line in restored)
 						code.Line(line);
 
-					if (unwind.Count > 0 || ProbePath is not null && marks.Count > 0)
+					if (unwind.Count > 0)
 					{
 						code.Line();
 
 						using (code.Block($"if ({tried} < 0)"))
 						{
-							ProbeFailed(code, "alternative", tried, _logs ? $"lm{back}" : "", _gathers ? $"rr{back}" : "", omitted: !leaves);
 							foreach (var line in unwind)
 								code.Line(line);
 						}
@@ -4227,7 +4227,7 @@ sealed partial class Machine
 					// gathered members back after an attempt that stood, too.
 					var gathered = leaves || opens && Defers(RetrySite.Alternative, noting: false);
 
-					if (gathered || ProbePath is not null)
+					if (gathered)
 						foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
 							code.Line(line);
 					code.Line();
@@ -4251,7 +4251,6 @@ sealed partial class Machine
 							code.Line();
 							Stood(code, tried, segment, defers, restore);
 							code.Line();
-							ProbeFailed(code, "alternative-retry", tried, $"lm{segment}", $"rr{segment}", omitted: !gathered);
 							foreach (var line in restore)
 								code.Line(line);
 
@@ -4270,10 +4269,9 @@ sealed partial class Machine
 
 						var back = Restore(segment, undo, gathered);
 
-						if (back.Count > 0 || ProbePath is not null)
+						if (back.Count > 0)
 							using (code.Block($"if ({tried} < 0)"))
 							{
-								ProbeFailed(code, "alternative-ways", tried, $"lm{segment}", $"rr{segment}", omitted: !gathered);
 								foreach (var line in back)
 									code.Line(line);
 							}
@@ -4901,7 +4899,7 @@ sealed partial class Machine
 
 				if (back >= 0)
 				{
-					if (gathered || _gathers && ProbePath is not null)
+					if (gathered)
 						foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
 							code.Line(line);
 
@@ -4931,8 +4929,6 @@ sealed partial class Machine
 
 				using (code.Block(stands ? $"if ({turn} < 0 || {turn} == p && {turns} >= {min})" : $"if ({turn} < 0 || {turn} == p)"))
 				{
-					if (back >= 0)
-						ProbeFailed(code, "turn", turn, _logs ? $"lm{back}" : "", _gathers ? $"rr{back}" : "", guardNegative: true, omitted: !gathered);
 					if (gathered && back >= 0)
 						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
 							code.Line(line);
@@ -5123,7 +5119,7 @@ sealed partial class Machine
 
 			if (back >= 0)
 			{
-				if (gathered || _gathers && ProbePath is not null)
+				if (gathered)
 					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
 						code.Line(line);
 
@@ -5146,8 +5142,7 @@ sealed partial class Machine
 
 			code.Line();
 
-			var undone = gathered && back >= 0 || _logs && back >= 0 && machine.Carrier.UnwindRecords($"lm{back}").Any() || undo.Length > 0 ||
-				ProbePath is not null && back >= 0;
+			var undone = gathered && back >= 0 || _logs && back >= 0 && machine.Carrier.UnwindRecords($"lm{back}").Any() || undo.Length > 0;
 
 			using (code.Block($"if ({turn} >= 0 && {turn} != p)"))
 				code.Line($"p = {turn};");
@@ -5155,8 +5150,6 @@ sealed partial class Machine
 			if (undone)
 				using (code.Block("else"))
 				{
-					if (back >= 0)
-						ProbeFailed(code, "optional", turn, _logs ? $"lm{back}" : "", _gathers ? $"rr{back}" : "", guardNegative: true, omitted: !gathered);
 					if (gathered && back >= 0)
 						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
 							code.Line(line);
@@ -5691,7 +5684,7 @@ sealed partial class Machine
 
 			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 				code.Line(line);
-			if (leaves || ProbePath is not null)
+			if (leaves)
 				foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
 					code.Line(line);
 
@@ -5704,20 +5697,17 @@ sealed partial class Machine
 				code.Line($"var {took} = {call};");
 				code.Line();
 
-				var probe = ProbePath is not null && !analyzing;
-
 				if (succeeded is not null)
 				{
 					using (code.Block($"if ({took} >= 0)"))
 						succeeded(code, took);
 
-					if (restore.Count > 0 || failed is not null || probe)
+					if (restore.Count > 0 || failed is not null)
 					{
 						code.Line("else");
 
 						using (code.Block(""))
 						{
-							ProbeFailed(code, "attempt", took, $"lm{segment}", $"rr{segment}", omitted: !leaves);
 							foreach (var line in restore)
 								code.Line(line);
 
@@ -5735,11 +5725,10 @@ sealed partial class Machine
 					return took;
 				}
 
-				if (restore.Count > 0 || probe)
+				if (restore.Count > 0)
 				{
 					using (code.Block($"if ({took} < 0)"))
 					{
-						ProbeFailed(code, "attempt", took, $"lm{segment}", $"rr{segment}", omitted: !leaves);
 						foreach (var line in restore)
 							code.Line(line);
 					}
@@ -5763,7 +5752,6 @@ sealed partial class Machine
 				code.Line($"if ({took} >= 0)");
 				code.Then("break;");
 				code.Line();
-				ProbeFailed(code, "attempt-retry", took, $"lm{segment}", $"rr{segment}", omitted: !leaves);
 				foreach (var line in restore)
 					code.Line(line);
 
@@ -6084,7 +6072,7 @@ sealed partial class Machine
 
 				foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 					code.Line(line);
-				if (gathered || ProbePath is not null)
+				if (gathered)
 					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
 						code.Line(line);
 				code.Line($"var {took} = -1;");
@@ -6120,7 +6108,6 @@ sealed partial class Machine
 
 						Stood(code, took, segment, defers, restore);
 						code.Line();
-						ProbeFailed(code, "turn-retry", took, $"lm{segment}", $"rr{segment}", omitted: !gathered);
 						foreach (var line in restore)
 							code.Line(line);
 						if (!defers || restore.Count > 0)
@@ -6143,10 +6130,9 @@ sealed partial class Machine
 
 					var back = Restore(segment, "", gathered);
 
-					if (back.Count > 0 || ProbePath is not null)
+					if (back.Count > 0)
 						using (code.Block($"if ({took} < 0)"))
 						{
-							ProbeFailed(code, "turn-ways", took, $"lm{segment}", $"rr{segment}", omitted: !gathered);
 							foreach (var line in back)
 								code.Line(line);
 						}
@@ -6285,7 +6271,7 @@ sealed partial class Machine
 				code.Line(DeclareDeferral(segment.ToString()));
 			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 				code.Line(line);
-			if (leaves || defers || ProbePath is not null)
+			if (leaves || defers)
 				foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
 					code.Line(line);
 			code.Line($"var {took} = -1;");
@@ -6299,7 +6285,6 @@ sealed partial class Machine
 				code.Line();
 				Stood(code, took, segment, defers, restore);
 				code.Line();
-				ProbeFailed(code, "atomic", took, $"lm{segment}", $"rr{segment}", omitted: !(leaves || defers));
 				foreach (var line in restore)
 					code.Line(line);
 
@@ -6910,56 +6895,6 @@ sealed partial class Machine
 		{
 			if (text.Length > 0)
 				code.Line(text);
-		}
-
-		// ---- caller-rollback probe (experiment only) -------------------------------------------
-
-#pragma warning disable RS1035 // Experiment-only probe switch; never reaches a shipped build.
-		static readonly string? ProbePath = System.Environment.GetEnvironmentVariable("DOTGRAM_ROLLBACK_PROBE");
-#pragma warning restore RS1035
-
-		static readonly string ProbeRun = System.Guid.NewGuid().ToString("N").Substring(0, 8);
-
-		/// <summary>
-		/// Where the probe is on, a check at a caller's failure branch, before it puts anything back:
-		/// whether the state the marks of <paramref name="segment"/> recorded still stands.
-		/// </summary>
-		void ProbeFailed(Writer code, string kind, string took, string records, string gathered, bool guardNegative = false, bool omitted = false)
-		{
-			if (ProbePath is null || analyzing)
-				return;
-
-			string Check(IEnumerable<string> marks)
-			{
-				var checks = new List<string>();
-
-				foreach (var line in marks)
-				{
-					var m = System.Text.RegularExpressions.Regex.Match(line, @"^var (.+?) = (.+);$");
-
-					if (!m.Success)
-						throw new InvalidOperationException("probe: " + line);
-
-					var (name, expr) = (m.Groups[1].Value, m.Groups[2].Value);
-
-					checks.Add(expr == "ways.Snap()"
-						? $"{name}.LogCount != ways.Snap().LogCount || {name}.Records != ways.Snap().Records || {name}.Last != ways.Snap().Last"
-						: $"{name} != {expr}");
-				}
-
-				return checks.Count == 0 ? "false" : "(" + string.Join(" || ", checks) + ")";
-			}
-
-			var dirtyRecords  = Check(records.Length > 0 ? machine.Carrier.MarkRecords(records) : []);
-			var dirtyGathered = Check(gathered.Length > 0 ? machine.Carrier.MarkGathered(owner, gathered) : []);
-			var site = $"{ProbeRun}|{owner.Name}|{kind}|{took}|{(_part ? "part" : "rule")}|{(omitted ? "omitted" : "kept")}";
-			var path = ProbePath.Replace("\\", "\\\\");
-			var log =
-				"{ var k_ = ((" + dirtyGathered + ") ? \"Dg\" : \"\") + ((" + dirtyRecords + ") ? \"Dr\" : \"\") + \"|" + site + "\"; var d_ = global::System.AppDomain.CurrentDomain; " +
-				"if (d_.GetData(k_) is null) { lock (d_) { if (d_.GetData(k_) is null) { d_.SetData(k_, k_); " +
-				"global::System.IO.File.AppendAllText(\"" + path + "\", k_ + \"|\" + global::System.Reflection.MethodBase.GetCurrentMethod()!.DeclaringType!.FullName + \"|\" + global::System.Reflection.MethodBase.GetCurrentMethod()!.Name + \"\\n\"); } } } }";
-
-			code.Line(guardNegative ? $"if ({took} < 0) {log}" : log);
 		}
 
 		void LogBack(Writer code, string count)
