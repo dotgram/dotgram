@@ -424,6 +424,69 @@ sealed class RoslynSymbolResolver(
 	/// </remarks>
 	bool ICSharpNames.Answers(string name, IReadOnlyList<string> usings)
 	{
+		if (Site(usings) is not var (model, position))
+			return true;
+
+		return model.LookupSymbols(position, name: name).Length > 0;
+	}
+
+	/// <summary>The sites <see cref="ICSharpNames.Answers"/> looks names up at, by the usings they were made with.</summary>
+	readonly Dictionary<string, (SemanticModel Model, int Position)?> _namesSites = new(StringComparer.Ordinal);
+
+	/// <remarks>
+	/// <para>
+	/// The expression is bound where the generated code stands, as the value of a local in the method
+	/// the names are looked up in (<see cref="ICSharpNames.Answers"/>), by a speculative model: nothing
+	/// is added to the compilation. A name is unbound where the compiler finds nothing for it, not even
+	/// a candidate — a member, a type, a namespace, a lambda's parameter, a local or a pattern
+	/// variable in scope where it is written. The right of a dot and a named argument's name are not
+	/// looked up as simple names and are left out.
+	/// </para>
+	/// <para>
+	/// The compiler rather than rules written here for which declaration reaches which name, because
+	/// those rules are many — a lambda's parameters, a block's locals, an <c>out var</c> in a
+	/// <c>lock</c> or in a query's first source — and each one written by hand was a way to tell a
+	/// name C# reads as unbound, or the other way round.
+	/// </para>
+	/// </remarks>
+	IReadOnlyCollection<string>? ICSharpNames.UnboundIn(string expression, IReadOnlyList<string> usings)
+	{
+		if (Site(usings) is not var (model, position))
+			return null;
+
+		if (SyntaxFactory.ParseExpression(expression).ContainsDiagnostics)
+			return null;
+
+		var statement = SyntaxFactory.ParseStatement("object _DotGram_Value = (" + expression + "\n);");
+
+		if (statement.ContainsDiagnostics || !model.TryGetSpeculativeSemanticModel(position, statement, out var speculative))
+			return null;
+
+		var unbound = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var name in statement.DescendantNodes().OfType<IdentifierNameSyntax>())
+		{
+			if (name.Parent is MemberAccessExpressionSyntax member && member.Name == name ||
+				name.Parent is MemberBindingExpressionSyntax binding && binding.Name == name ||
+				name.Parent is NameColonSyntax or NameEqualsSyntax ||
+				name.Parent is AssignmentExpressionSyntax { Parent: InitializerExpressionSyntax } assignment && assignment.Left == name ||
+				name.IsVar)
+			{
+				continue;
+			}
+
+			var info = speculative.GetSymbolInfo(name);
+
+			if (info.Symbol is null && info.CandidateSymbols.Length == 0)
+				unbound.Add(name.Identifier.ValueText);
+		}
+
+		return unbound;
+	}
+
+	/// <summary>Where <see cref="ICSharpNames.Answers"/> and <see cref="ICSharpNames.UnboundIn"/> look, beside <paramref name="usings"/>.</summary>
+	(SemanticModel Model, int Position)? Site(IReadOnlyList<string> usings)
+	{
 		var key = string.Join("\n", usings);
 
 		if (!_namesSites.TryGetValue(key, out var site))
@@ -431,14 +494,8 @@ sealed class RoslynSymbolResolver(
 				? CallSite() is var (_, made, at, _) ? (made, at) : null
 				: Frame(usings) is var (_, model, position, _, _) ? (model, position) : null;
 
-		if (site is not var (semantic, place))
-			return true;
-
-		return semantic.LookupSymbols(place, name: name).Length > 0;
+		return site;
 	}
-
-	/// <summary>The sites <see cref="ICSharpNames.Answers"/> looks names up at, by the usings they were made with.</summary>
-	readonly Dictionary<string, (SemanticModel Model, int Position)?> _namesSites = new(StringComparer.Ordinal);
 
 	/// <summary>
 	/// Where the generated call stands, for the compiler to say what a simple name there binds

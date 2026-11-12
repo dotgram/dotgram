@@ -285,6 +285,37 @@ public sealed class ConditionAndParameterTests
 	}
 
 	/// <summary>
+	/// What a declaration in the C# reaches is the C# compiler's to say: an expression variable in a
+	/// <c>lock</c>'s expression, or in a query's first source, belongs to the block around it, and is
+	/// what a later name of that spelling reads — not the parameter.
+	/// </summary>
+	[Theory]
+	[InlineData(
+		"",
+		"Use(x) = x & 'z' & when @(((System.Func<bool>)(() => { lock (Gate(out var x)) { } return x > 0; }))())",
+		"static object Gate(out int v) { v = 1; return new object(); }")]
+	[InlineData(
+		"@using System.Linq;\n",
+		"Use(x) = x & 'z' & when @(((System.Func<bool>)(() => { var q = from a in Items(out var x) select a + x; return x > 0 && q.Any(); }))())",
+		"static int[] Items(out int v) { v = 1; return new[] { 1 }; }")]
+	public void A_name_a_declaration_in_the_csharp_reaches_is_not_the_parameter(string usings, string rule, string members)
+	{
+		var grammar = usings + rule + "\nTest = Use('a')\nparse Test";
+		var result  = Compile(grammar, members: members);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(string.Join("\n", result.Sources.Select(static one => one.Text)), declarationMembers: members);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseTest", "az").IsSuccess);
+
+		// The generator asks the same of the host ahead of time.
+		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host { " + members + " }", ("/proj/Host.gram", grammar));
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+	}
+
+	/// <summary>
 	/// A parameter's name in C# binds to the host's member of that name where the host has one, and the
 	/// grammar compiles and reads: a field, or a method handed on as a method group.
 	/// </summary>
