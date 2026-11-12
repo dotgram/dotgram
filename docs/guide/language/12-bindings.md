@@ -187,16 +187,41 @@ NoBinding = 'a' & $q
 parse NoBinding
 ```
 
-```dotgram GRAM4033
-Inside = ?=($q: 'a') & 'a'
+```dotgram GRAM4060
+Inside = ?=($q: 'a') & $q
 
 parse Inside
 ```
 
-```dotgram GRAM4033
+```dotgram GRAM4061
 Twice = $q: 'a' & $q: 'b' & $q
 
 parse Twice
+```
+
+```dotgram GRAM4062
+Self = $q: ('a' & $q)
+
+parse Self
+```
+
+```dotgram GRAM4063
+Split : @string = v: ($q: 'a' & 'b' => @("ab")) & $q => v
+
+parse Split
+```
+
+```dotgram GRAM4064
+Fold : @string = l: Fold & $q: 'a' & $q => @(l + "a")
+               | 'x'                     => @("x")
+
+parse Fold
+```
+
+```dotgram GRAM4033
+Value = $q: 'a' & when $q is "a"
+
+parse Value
 ```
 
 - After `($q: X)?` the skipping route bound nothing (`GRAM4032`): write `$q: (X?)`, which binds `""`
@@ -205,9 +230,16 @@ parse Twice
   the repetition bind the whole run, `$q: (X & ',')*` (`GRAM4032`).
 - A name no binding of the rule gives is `GRAM3021`. A rule that needs another rule's text receives it as
   a capture and compares with a guard.
-- A binding inside a lookahead would bind nothing, since the lookahead gives back what it read; one name
-  bound twice on one route, a reference inside its own binding, and `$q` where a value goes are refused
-  too (`GRAM4033`).
+- A binding inside a lookahead would bind nothing, since the lookahead gives back what it read
+  (`GRAM4060`); a reference after it is not told again.
+- One name bound twice on one route is `GRAM4061`; a reference or a length inside its own binding,
+  `GRAM4062`.
+- A binding and its reference on two sides of a constructing group, which is built as a rule of its own,
+  are `GRAM4063`.
+- A binding in a step of a left-recursive rule, or around its leading call to itself, is `GRAM4064`: put the
+  binding and its read in a rule the step calls.
+- `$q` where a value goes — in a condition, as an argument — is `GRAM4033`: a binding is text to match
+  again, not a value.
 
 <!-- ru:begin -->
 > **RU.** Ссылка видит привязку слева от себя в той же альтернативе того же правила — сквозь группы,
@@ -220,8 +252,11 @@ parse Twice
 > Отвергается: ссылка после `($q: X)?` — `GRAM4032` (пишите `$q: (X?)`); повторённая привязка, шаг
 > которой больше неё (`($q: X & ',')*`), читается только внутри шага — `GRAM4032` (привяжите всю серию);
 > имя без привязки в правиле — `GRAM3021` (текст другого правила передаётся захватом и сравнивается
-> охранником); привязка внутри просмотра, повторная привязка одного имени на пути, ссылка внутри своей
-> привязки, `$q` там, где ожидается значение, — `GRAM4033`.
+> охранником); привязка внутри просмотра — `GRAM4060` (ссылка после неё повторно не сообщается);
+> повторная привязка одного имени на пути — `GRAM4061`; ссылка или длина внутри своей привязки —
+> `GRAM4062`; привязка и ссылка по разные стороны конструирующей группы — `GRAM4063`; привязка в шаге
+> левой рекурсии или вокруг её ведущего вызова — `GRAM4064` (вынесите привязку и чтение в правило, которое
+> вызывает шаг); `$q` там, где ожидается значение (в условии, как аргумент), — `GRAM4033`.
 <!-- ru:end -->
 
 ## Backtracking, and making a binding whole

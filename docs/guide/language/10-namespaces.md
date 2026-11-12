@@ -82,9 +82,10 @@ ParseList("a,b,c") → "a,b,c"
 file. Inside a namespace block, declaring a rule whose name already resolves — from an enclosing scope or
 through the block's own `using` — is refused (`GRAM3012`): a declaration always means a new rule, and
 replacing one is what a rebinding is for (below). Two imports that supply one name are an error where the
-name is used, settled by qualifying it, as in C#:
+name is used unqualified, settled by qualifying it, as in C# (`GRAM3023`); a rule the scope declares itself
+wins over both:
 
-```dotgram pending
+```dotgram GRAM3023
 using A;
 using B;
 
@@ -158,7 +159,7 @@ Notes:
 > Внутри блока `namespace` объявление правила, имя которого уже разрешается (из объемлющей области или
 > через `using` блока), отвергается (`GRAM3012`): объявление всегда значит новое правило, а замена — это
 > перепривязка. Два импорта с одним именем — ошибка в месте использования, снимается квалификацией, как
-> в C# (пример `pending`: сейчас генератор молча берёт одно из двух — дефект D4). Неизвестное пространство в `using` — `GRAM3003`; два правила с одним именем в одном пространстве
+> в C# (`GRAM3023`); собственное объявление области побеждает оба импорта. Неизвестное пространство в `using` — `GRAM3003`; два правила с одним именем в одном пространстве
 > — `GRAM3001`. Затенение встроенных правил (`trivia`, `wordboundary`, `word`, `any`, `none`, `eol`,
 > `eof`) — обычный механизм языка и никогда не сообщается. Стандартная библиотека — пространство `Std`.
 > `@using` импортирует пространство C#, а не грамматики.
@@ -233,9 +234,11 @@ Notes:
   `GRAM3008`; a loop, `with (A = B, B = A)`, is `GRAM3011`.
 - A parameterized rule may replace, and be replaced by, one of the same signature — the same number and
   kinds of parameters (`GRAM3009` otherwise); the call's arguments are kept.
-- Inside a namespace that binds a name, declaring a rule of that name is refused — `GRAM3012`, as any
-  declaration of a name that already resolves outside, and `GRAM3010` where the bound name came in by an
-  import: replace it with a nested header instead.
+- Inside a namespace that binds a name, declaring a rule of that name is refused (`GRAM3010`): replace it
+  with a nested header instead. `GRAM3012` is for a declaration that shadows a name from outside with no
+  header binding it.
+- The left side of a rebinding may be qualified, `with (Std.Digit = D)`; a qualifier that names no namespace
+  is `GRAM3006`.
 - A replacement whose result does not fit what the replaced rule's readers expect — a declared type, a
   sequence — is `GRAM4014`.
 - `with` is required in a header: `namespace N (A = B)` is `GRAM2006`.
@@ -303,7 +306,7 @@ namespace Ns with (Digit = D)
 parse Ns.E
 ```
 
-```dotgram GRAM3012
+```dotgram GRAM3010
 B = 'b'
 D = 'd'
 
@@ -311,6 +314,35 @@ namespace Ns with (B = D)
 {
 	B = 'x'
 	E = B
+}
+
+parse Ns.E
+```
+
+A qualified left side, and one whose qualifier names nothing:
+
+```dotgram
+D = ['a'..'f']
+
+namespace Hex with (Std.Digit = D)
+{
+	Run = Std.Digit+
+}
+
+parse Hex.Run
+```
+
+```text examples
+ParseRun("cafe") → "cafe"
+ParseRun("12") → refused
+```
+
+```dotgram GRAM3006
+D = 'd'
+
+namespace Ns with (Missing.Digit = D)
+{
+	E = D
 }
 
 parse Ns.E
@@ -329,8 +361,9 @@ parse Ns.E
 > наследует привязки внешнего и может заменить любую. Обе стороны — видимые правила (`GRAM3006`,
 > `GRAM3007`); одно правило дважды в заголовке — `GRAM3008`; цикл — `GRAM3011`; параметризованное правило
 > заменяется только правилом той же сигнатуры (`GRAM3009`), аргументы вызова сохраняются; объявление
-> правила с привязанным именем внутри пространства — `GRAM3012`, как любое объявление уже разрешимого
-> снаружи имени, и `GRAM3010`, если привязанное имя пришло импортом (используйте вложенный заголовок);
+> правила с привязанным именем внутри пространства — `GRAM3010` (используйте вложенный заголовок;
+> `GRAM3012` — для простого затенения без привязки в заголовке); левая сторона может быть квалифицированной
+> (`with (Std.Digit = D)`, пример `Hex`), несуществующий квалификатор — `GRAM3006`;
 > замена с несовместимым результатом — `GRAM4014`; `with` в заголовке обязателен (`GRAM2006`).
 <!-- ru:end -->
 
