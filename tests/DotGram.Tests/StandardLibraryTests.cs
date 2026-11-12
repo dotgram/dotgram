@@ -197,6 +197,18 @@ public sealed class StandardLibraryTests
 		// A double that overflows to infinity is refused too; the largest one is read.
 		Assert.Equal(double.MaxValue, Read("D", "1.7976931348623157e308"));
 		Assert.Null(Read("D", "1e309"));
+		Assert.Null(Read("D", "1e+309"));
+		Assert.Null(Read("D", "1" + new string('0', 100) + "e308"));
+		Assert.Equal(1e99, Read("D", "1e99"));
+		Assert.Equal(1e-5, Read("D", "1e-5"));
+		Assert.Equal(1e+99, Read("D", "1E+99"));
+		Assert.Equal(1e308, Read("D", "1e308"));
+		Assert.Equal(1e-308, Read("D", "1e-308"));
+		Assert.Equal(1.0, Read("D", "1e0000"));
+		Assert.Equal(1234567890, Read("I", "1234567890"));
+		Assert.Null(Read("I", "2147483700"));
+		Assert.Equal(1234567890123456789L, Read("L", "1234567890123456789"));
+		Assert.Null(Read("L", "9999999999999999999"));
 		Assert.Null(Read("D", huge));
 		Assert.Equal(0.0, Read("D", "1e-400"));
 
@@ -205,6 +217,44 @@ public sealed class StandardLibraryTests
 		Assert.Equal(3.25m, Read("M", "3.25"));
 		Assert.Null(Read("M", "3."));
 		Assert.Null(Read("M", ".5"));
+	}
+
+	/// <summary>The guards of the number rules read their text as a span too, where captures are spans.</summary>
+	[Fact]
+	public void The_number_rules_read_over_span_captures()
+	{
+		var built = GeneratorDriverTests.Build(""""
+			using DotGram;
+
+			[Gram("""
+				I : @int     = n: Std.Integer & eof => @(n)
+				L : @long    = n: Std.Long    & eof => @(n)
+				M : @decimal = n: Std.Decimal & eof => @(n)
+				D : @double  = n: Std.Double  & eof => @(n)
+				parse I
+				parse L
+				parse M
+				parse D
+				""", UseSpanCaptures = true)]
+			public static partial class SpanNumbers;
+			"""");
+
+		var type = built.GetType("SpanNumbers")!;
+
+		bool Ok(string rule, string input)
+		{
+			var read = type.GetMethod("TryParse" + rule, [typeof(string)])!.Invoke(null, [input])!;
+
+			return (bool)read.GetType().GetProperty("IsSuccess")!.GetValue(read)!;
+		}
+
+		Assert.True(Ok("I", "2147483647"));
+		Assert.False(Ok("I", "2147483648"));
+		Assert.True(Ok("L", "9223372036854775807"));
+		Assert.False(Ok("L", "9223372036854775808"));
+		Assert.False(Ok("M", "79228162514264337593543950336"));
+		Assert.True(Ok("D", "1e99"));
+		Assert.False(Ok("D", "1e309"));
 	}
 
 	/// <summary>
