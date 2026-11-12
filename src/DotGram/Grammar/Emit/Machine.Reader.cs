@@ -4535,13 +4535,17 @@ sealed partial class Machine
 
 			foreach (var slot in captured.OrderBy(static one => one))
 			{
-				_kept.Add(slot);
-
 				if (taken.Contains(slot))
-					continue;
+				{
+					_kept.Add(slot);
 
+					continue;
+				}
+
+				// Only a local the part names: one it captures into only where a capture is written.
 				foreach (var name in Names(slot))
-					fresh.Append(name[0] == 'r' && !IsFlag(name) ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name + " = -1;").Append(' ');
+					if (region.Body.Names(name))
+						fresh.Append(name[0] == 'r' && !IsFlag(name) ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name + " = -1;").Append(' ');
 			}
 
 			region.Fresh = fresh.ToString().TrimEnd();
