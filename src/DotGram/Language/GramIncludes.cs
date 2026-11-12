@@ -86,7 +86,7 @@ static class GramIncludes
 	public static IReadOnlyList<GramInclude> Walk(INamedTypeSymbol type, Action<INamedTypeSymbol>? visited = null)
 	{
 		var included = new List<GramInclude>();
-		var seen     = new HashSet<string>(StringComparer.Ordinal) { type.ToDisplayString() };
+		var seen     = new HashSet<string>(StringComparer.Ordinal) { Key(type) };
 		var pending  = new Queue<(INamedTypeSymbol Type, string? As)>();
 
 		for (var above = type.BaseType; above is not null; above = above.BaseType)
@@ -99,7 +99,7 @@ static class GramIncludes
 		{
 			var (above, called) = pending.Dequeue();
 
-			if (!seen.Add(above.ToDisplayString()))
+			if (!seen.Add(Key(above)))
 				continue;
 
 			visited?.Invoke(above);
@@ -135,6 +135,16 @@ static class GramIncludes
 		}
 
 		return included;
+	}
+
+	/// <summary>
+	/// What tells two classes the walk passes apart: the name as written — <c>Lib&lt;int&gt;</c> and
+	/// <c>Lib&lt;string&gt;</c> are two — and the assembly, so that a class of a referenced assembly
+	/// never stands for this compilation's class of the same name.
+	/// </summary>
+	static string Key(INamedTypeSymbol type)
+	{
+		return (type.ContainingAssembly?.Identity.ToString() ?? "") + "|" + type.ToDisplayString();
 	}
 
 	/// <summary>Every <c>[Gram]</c> on a class: its own reading, or one that names a nested class.</summary>

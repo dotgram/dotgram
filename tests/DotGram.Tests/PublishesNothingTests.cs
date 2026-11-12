@@ -185,6 +185,77 @@ public sealed class PublishesNothingTests
 	[Fact]
 	public void A_referenced_class_of_the_same_name_is_another_class()
 	{
+		var reported = Reported(
+			"""
+			using DotGram;
+
+			namespace N
+			{
+				[Gram("A = 'a'")]
+				public partial class Lib { }
+			}
+
+			[Gram("S = 's'\nparse S")]
+			public partial class P : External.Bridge { }
+			""");
+
+		Assert.Contains("'N.Lib'", Assert.Single(reported, static one => one.Id == "GRAM4059").GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The same names the other way round: a referenced class reached first does not stand for this
+	/// compilation's class of the same name, which is included as well and so is not told.
+	/// </summary>
+	[Fact]
+	public void A_referenced_class_of_the_same_name_does_not_hide_an_include_of_the_local_one()
+	{
+		Assert.DoesNotContain(Reported(
+			"""
+			using DotGram;
+
+			namespace N
+			{
+				[Gram("A = 'a'")]
+				public partial class Lib { }
+			}
+
+			[GramInclude(typeof(N.Lib), Alias = "Local")]
+			[Gram("S = Local.A\nparse S")]
+			public partial class P : External.Bridge { }
+			"""),
+			static one => one.Id == "GRAM4059");
+	}
+
+	/// <summary>A class that includes a constructed form of itself is not what includes it.</summary>
+	[Fact]
+	public void A_class_does_not_include_itself()
+	{
+		var warned = Warnings("""
+			using DotGram;
+
+			[GramInclude(typeof(Lib<int>))]
+			[Gram("A = 'a'", Name = "Fast")]
+			public partial class Lib<T> { }
+			""");
+
+		Assert.Contains("'Lib<T>'", Assert.Single(warned).GetMessage(), StringComparison.Ordinal);
+	}
+
+	static Diagnostic[] Warnings(string source)
+	{
+		var run = GeneratorDriverTests.RunGenerator(source);
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
+
+		return [.. run.Diagnostics.Where(static one => one.Id == "GRAM4059")];
+	}
+
+	/// <summary>
+	/// What the generator reports of a compilation that references an assembly built with it: <c>N.Lib</c>,
+	/// whose grammar publishes, and <c>External.Bridge</c> derived from it.
+	/// </summary>
+	static Diagnostic[] Reported(string source)
+	{
 		var parse    = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var external = CSharpCompilation.Create(
 			"External",
@@ -207,23 +278,7 @@ public sealed class PublishesNothingTests
 
 		var compilation = CSharpCompilation.Create(
 			"Local",
-			[
-				CSharpSyntaxTree.ParseText(
-					"""
-					using DotGram;
-
-					namespace N
-					{
-						[Gram("A = 'a'")]
-						public partial class Lib { }
-					}
-
-					[Gram("S = 's'\nparse S")]
-					public partial class P : External.Bridge { }
-					""",
-					parse,
-					cancellationToken: TestContext.Current.CancellationToken),
-			],
+			[CSharpSyntaxTree.ParseText(source, parse, cancellationToken: TestContext.Current.CancellationToken)],
 			[.. EmittedCode.References, MetadataReference.CreateFromImage(image.ToArray())],
 			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
@@ -232,15 +287,9 @@ public sealed class PublishesNothingTests
 			.RunGenerators(compilation, TestContext.Current.CancellationToken)
 			.GetRunResult();
 
-		Assert.Contains("'N.Lib'", Assert.Single(run.Diagnostics, static one => one.Id == "GRAM4059").GetMessage(), StringComparison.Ordinal);
-	}
-
-	static Diagnostic[] Warnings(string source)
-	{
-		var run = GeneratorDriverTests.RunGenerator(source);
-
 		Assert.DoesNotContain(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
 
-		return [.. run.Diagnostics.Where(static one => one.Id == "GRAM4059")];
+		return [.. run.Diagnostics];
 	}
+
 }

@@ -687,6 +687,9 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		GramIncludes.Walk(host, passed => reached.Add(IdentityOf(passed)));
 
+		// Never the host itself, which an include of a constructed form of it would reach.
+		reached.Remove(IdentityOf(host));
+
 		return [.. reached];
 	}
 
