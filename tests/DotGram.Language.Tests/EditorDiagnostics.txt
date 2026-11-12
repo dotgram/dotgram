@@ -203,6 +203,13 @@ namespace Spaces { trivia = { ' '* } }
 namespace Underscores { trivia = { '_'* } }
 Start = 'a' & 'b'
 parse Start
+=== GRAM3023
+using A;
+using B;
+namespace A { W = 'a' }
+namespace B { W = 'b' }
+P = W
+parse P
 === GRAM4001
 A = ('a'?)*
 parse A
