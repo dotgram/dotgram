@@ -27,8 +27,26 @@ sealed partial class GrammarNormalizer
 	/// <summary>A reference or a length read where, on some route, nothing bound the text.</summary>
 	public const string UnboundReference = "GRAM4032";
 
-	/// <summary>A binding or a reference where none can stand.</summary>
+	/// <summary>
+	/// A binding's text read where a value goes: in C# after <c>=&gt;</c> or <c>when</c>, in
+	/// <c>when … is …</c>, or in a call's argument.
+	/// </summary>
 	public const string MisplacedBinding = "GRAM4033";
+
+	/// <summary>A binding inside a lookahead, which gives back what it read.</summary>
+	public const string BindingInLookahead = "GRAM4060";
+
+	/// <summary>One name bound twice on one route.</summary>
+	public const string BoundTwice = "GRAM4061";
+
+	/// <summary>A reference or a length inside its own binding.</summary>
+	public const string ReadInOwnBinding = "GRAM4062";
+
+	/// <summary>A binding and its reference on two sides of a constructing group.</summary>
+	public const string ReadAcrossGroup = "GRAM4063";
+
+	/// <summary>A binding in a step of a left-recursive rule, or around its leading call to itself.</summary>
+	public const string BindingInFold = "GRAM4064";
 
 	/// <summary>A binding where this version of the compiler does not support one yet.</summary>
 	public const string BindingNotSupported = "GRAM4034";
@@ -510,7 +528,7 @@ sealed partial class GrammarNormalizer
 			if (outer.Any(one => one is Node.Bind(var bound, _, _) && ReferenceEquals(bound, binding)))
 			{
 				Report(
-					MisplacedBinding,
+					ReadInOwnBinding,
 					$"'${binding.Name}' is read inside its own binding in '{rule.Name}', while the text it would " +
 					"match is still being bound. Read it after the binding (docs/syntax.md §3.5.1).",
 					Marked(binding, at));
@@ -518,7 +536,7 @@ sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			// A binding refused where it stands (GRAM4033) and written before the read is why the read
+			// A binding refused where it stands (GRAM4060) and written before the read is why the read
 			// finds nothing bound: said once, as the refusal, and not again as a read with nothing bound.
 			// A read with nothing bound before it on its own account is still said.
 			if (refused.Any(one => ReferenceEquals(one.Binding, binding) && order[one.Bind] < order[site]))
@@ -545,7 +563,7 @@ sealed partial class GrammarNormalizer
 					if (outer.Any(one => one is Node.Lookahead))
 					{
 						Report(
-							MisplacedBinding,
+							BindingInLookahead,
 							$"'${binding.Name}' is bound inside a lookahead in '{rule.Name}', which is not " +
 							"supported: a lookahead gives back what it read. Bind it outside the lookahead; a " +
 							"reference inside one, as in '?!$q', reads an outer binding (docs/syntax.md §3.5.1).",
@@ -556,7 +574,7 @@ sealed partial class GrammarNormalizer
 
 					else if (outer.Any(one => one is Node.Bind(var bound, _, _) && ReferenceEquals(bound, binding)))
 						Report(
-							MisplacedBinding,
+							BoundTwice,
 							$"'${binding.Name}' is bound twice on one route in '{rule.Name}'. A name is bound once " +
 							"on each route; give the inner binding another name (docs/syntax.md §3.5.1).",
 							Marked(binding, at));
@@ -597,7 +615,7 @@ sealed partial class GrammarNormalizer
 						foreach (var inner in NodeWalk.Descendants(operand))
 							if (inner is Node.Bind(var binding, _, var at) && here.Add(binding) && earlier.Contains(binding))
 								Report(
-									MisplacedBinding,
+									BoundTwice,
 									$"'${binding.Name}' is bound twice on one route in '{rule.Name}'. A name is " +
 									"bound once on each route; give the second binding another name " +
 									"(docs/syntax.md §3.5.1).",
@@ -797,7 +815,7 @@ sealed partial class GrammarNormalizer
 				foreach (var (binding, at) in BoundTextAt(node))
 					if (inside.Contains(node) != bound.Contains(binding))
 						Report(
-							MisplacedBinding,
+							ReadAcrossGroup,
 							$"'${binding.Name}' is read across a constructing group '( … => … )' in '{owner.Name}'. " +
 							"The group builds its value as a rule of its own, and a binding is read only in the " +
 							"rule that bound it: bind and read it both inside the group or both outside it " +
@@ -815,7 +833,7 @@ sealed partial class GrammarNormalizer
 	{
 		if (FirstBoundText(step) is var (binding, at))
 			Report(
-				MisplacedBinding,
+				BindingInFold,
 				$"'${binding.Name}' stands in a step of the left-recursive rule '{rule.Name}' (docs/syntax.md §4.3), " +
 				"where it is not supported: the steps are read as a loop of their own. Bind and read it inside " +
 				"a rule the step calls.",
@@ -876,7 +894,7 @@ sealed partial class GrammarNormalizer
 		_boundHeads.Add(rule);
 
 		Report(
-			MisplacedBinding,
+			BindingInFold,
 			$"'${head.Binding.Name}' binds the leading call of the left-recursive rule '{rule.Name}' " +
 			"(docs/syntax.md §4.3), which is not supported: the rule is read as its base followed by a loop " +
 			"of steps, so that call is never read on its own. Bind and read the text inside the base, or " +
