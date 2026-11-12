@@ -20,13 +20,28 @@ public sealed class ConditionAndParameterTests
 {
 	const string Versions = "Version = \"2000\" | \"2022\"\n";
 
-	static GramCompilation Compile(string grammar, Func<GramCompilerOptions>? options = null)
+	/// <summary>
+	/// Compiled as a build compiles it: with a resolver that sees the host, which declares
+	/// <paramref name="members"/> and nothing else.
+	/// </summary>
+	static GramCompilation Compile(string grammar, Func<GramCompilerOptions>? options = null, string members = "")
 	{
 		var made = options?.Invoke() ?? new GramCompilerOptions();
 
-		made.CSharpScanner = RoslynCSharpScanner.Instance;
+		made.CSharpScanner  = RoslynCSharpScanner.Instance;
+		made.SymbolResolver = Resolver(members);
 
 		return GramCompiler.Compile(grammar, made);
+	}
+
+	static RoslynSymbolResolver Resolver(string members)
+	{
+		var host = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
+			"Host",
+			[Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}")],
+			EmittedCode.References);
+
+		return new RoslynSymbolResolver(host, "Grammar");
 	}
 
 	static string[] Errors(string grammar)
@@ -210,6 +225,42 @@ public sealed class ConditionAndParameterTests
 		var errors = EmittedCode.Errors(string.Join("\n", result.Sources.Select(static one => one.Text)), "Grammar", null, null, null);
 
 		Assert.Contains(errors, static one => one.Id == "CS0103");
+	}
+
+	/// <summary>
+	/// A parameter's name in C# binds to the host's member of that name where the host has one, and the
+	/// grammar compiles and reads: a field, or a method handed on as a method group.
+	/// </summary>
+	[Theory]
+	[InlineData("Use(x) = x & 'z' & when @(x > 0)", "static int x = 1;")]
+	[InlineData("Use(x) = x & 'z' & when @(Check(x))", "static bool x() { return true; } static bool Check(System.Func<bool> f) { return f(); }")]
+	public void A_parameter_s_name_the_host_declares_is_the_host_s_in_csharp(string rule, string members)
+	{
+		var grammar = rule + "\nTest = Use('a')\nparse Test";
+		var result  = Compile(grammar, members: members);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(string.Join("\n", result.Sources.Select(static one => one.Text)), declarationMembers: members);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseTest", "az").IsSuccess);
+
+		// And where the host declares no such name, the same rule is said on the grammar.
+		Assert.Contains(Compile(grammar).Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+	}
+
+	/// <summary>
+	/// With no host to ask — a grammar compiled on its own — the name may still be one the host will
+	/// declare, so nothing is said, and a C# that does not compile is the C# compiler's to say.
+	/// </summary>
+	[Fact]
+	public void With_no_host_to_ask_nothing_is_said()
+	{
+		var result = GramCompiler.Compile(
+			"Digits = ['0'..'9']+\nValue(x) = x & when @(x != null)\nField = '=' & Value(Digits)\nparse Field",
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
 	}
 
 	[Theory]
