@@ -758,8 +758,10 @@ sealed class GramParser
 
 		while (!AtEnd && !At(TokenKind.CloseParen))
 		{
+			// A name, qualified or not: `Std.Digit = HexDigit` means the rule that name resolves to,
+			// as `Digit = HexDigit` does where `Digit` is in view.
 			var start = Current.Position;
-			var left  = ExpectName();
+			var left  = ExpectQualifiedName();
 
 			Expect(TokenKind.Equals);
 
@@ -889,7 +891,8 @@ sealed class GramParser
 		if (replacement is Expr.Reference(false, var named, { Count: 0 }))
 			return named;
 
-		var name = left + "_With" + (++_substitutions).ToString(CultureInfo.InvariantCulture);
+		// A qualified left side names the rule by its last part: a rule's name has no dot.
+		var name = left.Substring(left.LastIndexOf('.') + 1) + "_With" + (++_substitutions).ToString(CultureInfo.InvariantCulture);
 
 		_lifted.Add(new Decl.Rule(name, [], null, replacement) { At = From(at), Replaces = left });
 

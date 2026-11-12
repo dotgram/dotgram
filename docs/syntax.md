@@ -1929,8 +1929,10 @@ parse List with (Comma = (',' | ';')) as Loose
 
 An expression here becomes a rule of its own, declared where the `with` is written and
 named after what it replaces, so the substitution reads the `trivia`, the imports and
-the bindings that surround it. The left side stays a name: it identifies what is being
-replaced, and identifying is what a name is for.
+the bindings that surround it. The left side stays a name, qualified or not: it identifies
+what is being replaced, and identifying is what a name is for. `X with (Std.Digit = HexDigit)`
+replaces the rule `Std.Digit` names, without a `using`, and is the same as `Digit = HexDigit`
+where `Digit` is that rule in view; both sides are checked the same way either form.
 
 A binding is not a declaration — it does not introduce a rule named `B` — so it does
 not shadow anything and nothing inside the same namespace, at any nesting depth, may
