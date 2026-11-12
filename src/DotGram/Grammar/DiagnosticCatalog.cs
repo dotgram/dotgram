@@ -93,6 +93,7 @@ static class DiagnosticCatalog
 		["GRAM3020"] = new("Two grammars in one composition declare a different state", GramSeverity.Error),
 		["GRAM3021"] = new("$q or #q where the rule binds nothing called q", GramSeverity.Error),
 		["GRAM3022"] = new("Two imports at one scope each declare a trivia, and the scope declares none", GramSeverity.Error),
+		["GRAM3023"] = new("A name two imports at one scope supply, read where the scope does not declare it", GramSeverity.Error),
 		["GRAM4001"] = new("The body of a repetition can match without consuming input", GramSeverity.Error),
 		["GRAM4002"] = new("Left recursion the rewrite cannot take", GramSeverity.Error),
 		["GRAM4003"] = new("trivia must accept empty input", GramSeverity.Error),
