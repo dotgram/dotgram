@@ -455,7 +455,19 @@ namespace DotGram.Snapshots
 						}
 
 
-						var q0 = ReadPart0_Program(p, rb_1);
+						int q0;
+						var ip0 = p;
+						q0 = -1;
+						do
+						{
+							var q1 = Read_Statement(p);
+							if (q1 < 0) break;
+							p = q1;
+							values.Push1(last1);
+							q0 = p;
+						}
+						while (false);
+						p = ip0;
 
 						if (q0 < 0 || q0 == p)
 						{
@@ -466,12 +478,12 @@ namespace DotGram.Snapshots
 					}
 					var rr1_1 = values.Count1;
 					failure.Looking++;
-					var q1 = ReadPart1_Program(p, rb_1);
+					var q2 = ReadPart0_Program(p, rb_1);
 					failure.Looking--;
 
 					values.Count1 = rr1_1;
 
-					if (q1 >= 0)
+					if (q2 >= 0)
 					{
 						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(0));
 						{ values.Count1 = rb_1; return -1; }
@@ -481,16 +493,6 @@ namespace DotGram.Snapshots
 				}
 
 				public int ReadPart0_Program(int pos, int refs_1)
-				{
-					var p = pos;
-					var q0 = Read_Statement(p);
-					if (q0 < 0) return -1;
-					p = q0;
-					values.Push1(last1);
-					return p;
-				}
-
-				public int ReadPart1_Program(int pos, int refs_1)
 				{
 					var p = pos;
 					var c = '\0';
@@ -558,6 +560,8 @@ namespace DotGram.Snapshots
 					var c = '\0';
 					var a0 = -1;
 					var b0 = -1;
+					var a1 = -1;
+					var b1 = -1;
 					var a2 = -1;
 					var b2 = -1;
 					if ((uint)p >= (uint)text.Length)
@@ -581,7 +585,31 @@ namespace DotGram.Snapshots
 								a0 = p;
 								p += 1;
 								b0 = p;
-								var q0 = ReadPart0_Expression(p, a0, b0);
+								int q0;
+								var ip0 = p;
+								a1 = -1; b1 = -1;
+								q0 = -1;
+								do
+								{
+									if ((uint)p >= (uint)text.Length || text[p] != '\u0006')
+									{
+										Refused_DotGram(ref failure, p, ExpectedSet_DotGram(7));
+										break;
+									}
+									p += 1;
+									a1 = p;
+									if ((uint)p >= (uint)text.Length || text[p] != '\u0003')
+									{
+										Refused_DotGram(ref failure, p, ExpectedSet_DotGram(6));
+										break;
+									}
+									p += 1;
+									b1 = p;
+									if (unbuilt == 0) last1 = New_DotGram_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
+									q0 = p;
+								}
+								while (false);
+								p = ip0;
 								if (q0 < 0)
 								{
 									if (unbuilt == 0) last1 = New1_DotGram_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
@@ -594,29 +622,6 @@ namespace DotGram.Snapshots
 							Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 							return -1;
 					}
-					return p;
-				}
-
-				public int ReadPart0_Expression(int pos, int a0, int b0)
-				{
-					var p = pos;
-					var a1 = -1;
-					var b1 = -1;
-					if ((uint)p >= (uint)text.Length || text[p] != '\u0006')
-					{
-						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(7));
-						return -1;
-					}
-					p += 1;
-					a1 = p;
-					if ((uint)p >= (uint)text.Length || text[p] != '\u0003')
-					{
-						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(6));
-						return -1;
-					}
-					p += 1;
-					b1 = p;
-					if (unbuilt == 0) last1 = New_DotGram_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
 					return p;
 				}
 
