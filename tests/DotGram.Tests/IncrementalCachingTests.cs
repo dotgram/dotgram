@@ -413,6 +413,62 @@ public sealed class IncrementalCachingTests
 		}
 	}
 
+	/// <summary>
+	/// What includes a grammar that publishes nothing is read where the diagnostics are delivered, and
+	/// nowhere a parser is compiled: a host added that includes it compiles no other parser again,
+	/// and the warning goes; an edit of a file no grammar is in runs nothing grammar-related again.
+	/// </summary>
+	[Fact]
+	public void What_includes_a_grammar_compiles_no_parser_again()
+	{
+		var parse       = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var unrelated   = CSharpSyntaxTree.ParseText("static class Unrelated { static int M() { return 1; } }", parse, "Unrelated.cs", cancellationToken: TestContext.Current.CancellationToken);
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.Incremental",
+			[
+				CSharpSyntaxTree.ParseText("using DotGram;\n\n[Gram(\"A = 'a'\")]\npublic static partial class Lib { }\n\n[Gram(\"B = 'b'\\nparse B\")]\npublic static partial class Other { }\n", parse, "Lib.cs", cancellationToken: TestContext.Current.CancellationToken),
+				unrelated,
+			],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var driver = (GeneratorDriver)CSharpGeneratorDriver.Create(
+			[new GramGenerator().AsSourceGenerator()],
+			parseOptions: parse,
+			driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+
+		driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+
+		Assert.Contains(driver.GetRunResult().Diagnostics, static one => one.Id == "GRAM4059");
+
+		var consumer = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(
+			"using DotGram;\n\n[GramInclude(typeof(Lib))]\n[Gram(\"S = Lib.A\\nparse S\")]\npublic static partial class P { }\n",
+			parse,
+			"P.cs",
+			cancellationToken: TestContext.Current.CancellationToken));
+
+		driver = driver.RunGenerators(consumer, TestContext.Current.CancellationToken);
+
+		var added = driver.GetRunResult();
+
+		Assert.DoesNotContain(added.Diagnostics, static one => one.Id == "GRAM4059");
+		Assert.Equal(2, Runs(added, GramGenerator.CompiledStage).Count(static reason => reason == IncrementalStepRunReason.Cached));
+		Assert.Equal(1, Runs(added, GramGenerator.CompiledStage).Count(static reason => reason == IncrementalStepRunReason.New));
+
+		var edited = driver
+			.RunGenerators(
+				consumer.ReplaceSyntaxTree(
+					unrelated,
+					CSharpSyntaxTree.ParseText("static class Unrelated { static int M() { return 2; } }", parse, "Unrelated.cs", cancellationToken: TestContext.Current.CancellationToken)),
+				TestContext.Current.CancellationToken)
+			.GetRunResult();
+
+		Assert.Equal(IncrementalStepRunReason.Cached, Reason(edited, GramGenerator.AskedStage));
+		Assert.Equal(IncrementalStepRunReason.Cached, Reason(edited, GramGenerator.CompiledStage));
+		Assert.Equal(IncrementalStepRunReason.Cached, Reason(edited, GramGenerator.PlacedStage));
+		Assert.DoesNotContain(edited.Diagnostics, static one => one.Id == "GRAM4059");
+	}
+
 	// ── The driver ────────────────────────────────────────────────────────────────
 
 	/// <summary>How a stage of the second run was reached, the same for every host or it fails.</summary>

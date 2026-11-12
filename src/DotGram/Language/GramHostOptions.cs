@@ -59,6 +59,13 @@ sealed record GramHostOptions
 	/// </summary>
 	public bool ExportGrammar { get; init; }
 
+	/// <summary>
+	/// What the attribute itself wrote of <see cref="ExportGrammar"/>, or the first reading's where
+	/// this one wrote nothing; null where neither did and the class's visibility decided. A grammar
+	/// that publishes nothing and says <c>true</c> here is a library grammar (GRAM4059).
+	/// </summary>
+	public bool? ExportGrammarWritten { get; init; }
+
 	/// <summary>The location type's display name, or null where none was named.</summary>
 	public string? LocationType { get; init; }
 
@@ -119,6 +126,7 @@ sealed record GramHostOptions
 			TargetMethodPartSize   = Named(attribute, nameof(TargetMethodPartSize), "PartSize") as int? ?? first?.TargetMethodPartSize ?? 0,
 			Lexical                = Named(attribute, nameof(Lexical)) as bool? ?? first?.Lexical ?? false,
 			ExportGrammar          = Named(attribute, nameof(ExportGrammar), "Portable") as bool? ?? first?.ExportGrammar ?? Visible(type),
+			ExportGrammarWritten   = Named(attribute, nameof(ExportGrammar), "Portable") as bool? ?? first?.ExportGrammarWritten,
 			LocationType           = (Named(attribute, nameof(LocationType)) as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType,
 			Carrier                = Named(attribute, nameof(Carrier)) as int? ?? first?.Carrier ?? 0,
 			MaxExtraStacks         = Named(attribute, nameof(MaxExtraStacks), "Stacks") as int? ?? first?.MaxExtraStacks ?? 0,

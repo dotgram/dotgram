@@ -18,6 +18,7 @@
 --- GRAM0011 Roslyn shell: needs the LocationType's symbol from a host compilation
 --- GRAM0012 Roslyn shell: about the C# of an attribute, not the grammar's text
 --- GRAM0017 Roslyn shell: needs a referenced assembly that carries the grammar beside a local file
+--- GRAM4059 Roslyn shell: needs every [Gram] class of a host compilation, to know that none includes the grammar
 --- GRAM6001 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
 --- GRAM6002 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's
 --- GRAM6003 about a [GramClassify] target, not the grammar's text: the build reports it, and Visual Studio shows the build's

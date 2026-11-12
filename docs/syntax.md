@@ -3078,6 +3078,11 @@ what the class already says: a host that is public, with every class around it, 
 grammar and one nobody outside can name does not, and `[Gram(ExportGrammar = …)]` says otherwise where that guess
 is wrong. An include that finds neither a file nor a carried text is `GRAM0003`.
 
+A grammar written only to be included elsewhere publishes nothing of its own. Where no `[Gram]` class
+of its compilation includes it or derives from its class, the build takes it for a grammar whose
+`parse` was forgotten (`GRAM4059`, a warning), unless it says `ExportGrammar = true` in so many
+words: written out, that is the mark of a library grammar, which the default for a public class is not.
+
 ### 6.8 Generation options
 
 The options written on `[Gram]` and `[GramParserVariant]` change how a grammar is compiled into a
@@ -3105,7 +3110,7 @@ of it fails a build.
 | `Name` | none — the host class itself | `[Gram]` only: the nested class the first reading goes into (§6.6). A `[GramParserVariant]` names its class as its one, required argument: `[GramParserVariant("Immediate", …)]`. |
 | `TargetMethodPartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
 | `MaxExtraStacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
-| `ExportGrammar` | not set: exported when the class and every class around it are public | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
+| `ExportGrammar` | not set: exported when the class and every class around it are public | whether the grammar's text travels on the class, for an include across a project reference (§6.7). Written as `true`, it also marks a grammar that publishes nothing as one for other assemblies to include (`GRAM4059`). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. The lexer's `Scan(text, pos, out kind)` is internal: the kind it answers with is the grammar's own numbering, which changes with the grammar. A host that wants token boundaries writes a method of its own under another name that calls it. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the deferred carrier would have (§7.5). Ignored by the deferred carrier. |

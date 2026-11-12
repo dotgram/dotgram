@@ -11,6 +11,7 @@ GRAM0010 | DotGram | Error | The generated parser needs C# 8 or later
 GRAM0011 | DotGram | Error | The location type declares no Locate
 GRAM0012 | DotGram | Error | A name was renamed in 0.3.0
 GRAM0017 | DotGram | Info | A local grammar file is not the grammar a referenced assembly carries
+GRAM4059 | DotGram | Warning | A grammar publishes nothing, and nothing includes it
 
 ## Release 0.2.0
 

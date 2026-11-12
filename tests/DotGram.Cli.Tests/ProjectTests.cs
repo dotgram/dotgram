@@ -306,7 +306,7 @@ public sealed class ProjectTests
 				[Gram("""
 					Word   = ['a'..'z']+
 					Digits = ['0'..'9']+
-					""")]
+					""", ExportGrammar = true)]
 				public static partial class Lexemes { }
 			}
 			"""");

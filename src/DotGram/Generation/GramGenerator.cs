@@ -38,6 +38,9 @@ sealed class GramGenerator : IIncrementalGenerator
 	}
 
 	const string GramFileExtension = ".gram";
+
+	/// <summary>What the name of a class of this compilation begins with as an include names it.</summary>
+	const string GlobalPrefix = "global::";
 	const string GramAttribute        = "DotGram.GramAttribute";
 	const string GramParserVariantAttribute = "DotGram.GramParserVariantAttribute";
 
@@ -326,27 +329,43 @@ sealed class GramGenerator : IIncrementalGenerator
 		// second reading compiles the same grammar twice, and each compilation finds the same
 		// warning at the same place. Nothing is lost by collecting: the trees change on every
 		// keystroke, so every host's reports were delivered again on each one anyway.
+		//
+		// And with them, what no host's grammar is found on: every class a [Gram] class of the
+		// compilation includes or is derived from, read from the walk each host already made. Here
+		// and not in the compile, so that a host that comes to include another compiles no parser
+		// again; only the reporting, which runs on every keystroke anyway, reads it (GRAM4059).
+		var included = found
+			.Select(static (one, _) => one.Host.Includes)
+			.Collect()
+			.Select(static (all, _) => new EquatableArray<string>([.. all
+				.SelectMany(static one => one.Items.IsDefault ? [] : one.Items)
+				.Select(static one => one.Imported)
+				.Distinct(StringComparer.Ordinal)
+				.OrderBy(static one => one, StringComparer.Ordinal)]));
+
 		context.RegisterSourceOutput(
-			located.Collect().Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
+			located.Collect().Combine(included).Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
 			static (production, input) =>
 			{
 				Dictionary<string, SyntaxTree>? found = null;
 
-				var said = new HashSet<Said>();
+				var said  = new HashSet<Said>();
+				var trees = input.Right;
 
-				foreach (var host in input.Left)
-					host.Parser.Report(
-						production,
-						host.Site,
-						path =>
-						{
-							found ??= input.Right
-								.GroupBy(static tree => tree.FilePath, StringComparer.Ordinal)
-								.ToDictionary(static one => one.Key, static one => one.First(), StringComparer.Ordinal);
+				SyntaxTree? TreeOf(string path)
+				{
+					found ??= trees
+						.GroupBy(static tree => tree.FilePath, StringComparer.Ordinal)
+						.ToDictionary(static one => one.Key, static one => one.First(), StringComparer.Ordinal);
 
-							return found.TryGetValue(path, out var tree) ? tree : null;
-						},
-						said);
+					return found.TryGetValue(path, out var tree) ? tree : null;
+				}
+
+				foreach (var host in input.Left.Left)
+					host.Parser.Report(production, host.Site, TreeOf, said);
+
+				foreach (var (parser, site) in PublishesNothing(input.Left.Left, input.Left.Right))
+					parser.Report(production, site, TreeOf, said);
 			});
 
 	}
@@ -569,13 +588,14 @@ sealed class GramGenerator : IIncrementalGenerator
 			// stands, a name the alias has nothing to do with among them.
 			var dropped = grammar.Host.DroppedAliases.Items;
 
-			return dropped.IsEmpty
-				? parser
-				: parser with
+			if (!dropped.IsEmpty)
+				parser = parser with
 				{
 					Reports = new EquatableArray<Report>([.. parser.Reports.Items.Where(one =>
 						!Renamed.Explained(one.Id, one.Arguments.Items.FirstOrDefault() ?? "", dropped, grammar.Text))]),
 				};
+
+			return parser with { Unpublished = Unpublished(grammar, parser) };
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
@@ -583,6 +603,51 @@ sealed class GramGenerator : IIncrementalGenerator
 
 			return new Parser(grammar.Host.Key, null, null, failed.Reports);
 		}
+	}
+
+	/// <summary>
+	/// The class a grammar is written on, where the grammar publishes nothing — no <c>parse</c>,
+	/// <c>find</c> or <c>yield</c> of any visibility — and nothing else is wrong with it: such a
+	/// grammar is only of use included, which the build tells once every host is known
+	/// (<see cref="PublishesNothing"/>). Null for a <c>[GramParserVariant]</c>, which compiles a
+	/// grammar its class's <c>[Gram]</c> answers for, and for one that says <c>ExportGrammar = true</c>,
+	/// which is what a grammar for other assemblies to include writes.
+	/// </summary>
+	static string? Unpublished(Grammar grammar, Parser parser)
+	{
+		var host = grammar.Host;
+
+		if (host.Variant ||
+			host.Options.ExportGrammarWritten == true ||
+			grammar.Text is null ||
+			!grammar.Published.Items.IsDefaultOrEmpty ||
+			parser.Reports.Items.Any(static report => report.Severity == DiagnosticSeverity.Error))
+		{
+			return null;
+		}
+
+		return host.Identity;
+	}
+
+	/// <summary>
+	/// GRAM4059 for every grammar that publishes nothing (<see cref="Parser.Unpublished"/>) and that no
+	/// <c>[Gram]</c> class of the compilation includes or is derived from: once per class, whichever of
+	/// its readings says it first.
+	/// </summary>
+	static IEnumerable<(Parser Parser, Site Site)> PublishesNothing(ImmutableArray<Located> hosts, EquatableArray<string> included)
+	{
+		var reachable = new HashSet<string>(included.Items.IsDefault ? [] : included.Items, StringComparer.Ordinal);
+		var said      = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var host in hosts)
+			if (host.Parser.Unpublished is { } identity && !reachable.Contains(identity) && said.Add(identity))
+				yield return (
+					host.Parser with
+					{
+						Reports = new EquatableArray<Report>([
+							Report.Of(Diagnostics.GrammarPublishesNothing, Site.Attribute, identity.Substring(GlobalPrefix.Length))]),
+					},
+					host.Site);
 	}
 
 	/// <summary>Whether a build asked for the parsers kept from earlier compilations, and how.</summary>
@@ -916,7 +981,11 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// Where the host has several readings, what of the types written once for all of them this one
 	/// needs, and where they go.
 	/// </param>
-	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false, SharedTypesOf? Shared = null)
+	/// <param name="Unpublished">
+	/// The class, as an include names it, where the grammar publishes nothing (<see cref="GramGenerator.Unpublished"/>);
+	/// null otherwise.
+	/// </param>
+	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false, SharedTypesOf? Shared = null, string? Unpublished = null)
 	{
 		/// <summary>The diagnostics, which need a tree to point into and so cannot be cached.</summary>
 		/// <param name="said">
@@ -1833,6 +1902,9 @@ sealed class GramGenerator : IIncrementalGenerator
 		/// `namespace` rename) and are kept apart here by not using it.
 		/// </remarks>
 		public string IncludedName => Options.DefaultAlias ?? SimpleName;
+
+		/// <summary>The class as an include of it names it (<see cref="Included.Imported"/>): <c>global::</c> and its full name.</summary>
+		public string Identity => GlobalPrefix + (Namespace is null ? "" : Namespace + ".") + ClassName;
 
 		/// <summary>
 		/// The host as metadata names it, for looking its own members up.

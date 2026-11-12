@@ -148,6 +148,7 @@ static class DiagnosticCatalog
 		["GRAM4055"] = new("positional parse in a grammar that names eos", GramSeverity.Error),
 		["GRAM4056"] = new("A construction's value cannot be the type it is declared to give: a capture handed back whole (=> x, => @(x)) that holds text where an array or a value type is declared, or a generated type where another type is; a grammar's type built with the wrong number of values, or from a capture that cannot be its member (=> Pair(right)); a rule's name built or taken as a type where the grammar generates none for it, because it declares its own type or captures nothing", GramSeverity.Error),
 		["GRAM4057"] = new("What a rule can begin with does not settle", GramSeverity.Error),
+		["GRAM4059"] = new("A grammar publishes nothing, and nothing includes it", GramSeverity.Warning),
 		["GRAM5001"] = new("A publication gets no overload taking a reader, or, in a grammar that names eos, reads its segments whole", GramSeverity.Info),
 		["GRAM5002"] = new("A repetition can begin with the same input as what follows it", GramSeverity.Info),
 		["GRAM5003"] = new("A generated method is left past the size at which the JIT stops optimizing it", GramSeverity.Warning),

@@ -148,6 +148,21 @@ static class Diagnostics
 		description:        "A class from a referenced assembly that carries its grammar ([GramSource]) is always included with that grammar: it is the one the assembly was compiled from. A .gram file of the same name in this project is somebody else's — a fixture, a copy — and is not read in its place.");
 
 	/// <summary>
+	/// A grammar that publishes nothing gives its class no method to call: it is only of use included
+	/// by another, and where nothing in the compilation includes it, it is most likely a grammar whose
+	/// <c>parse</c> was forgotten. A grammar written for other assemblies to include says so.
+	/// </summary>
+	public static readonly DiagnosticDescriptor GrammarPublishesNothing = new(
+		id:                 "GRAM4059",
+		title:              "A grammar publishes nothing, and nothing includes it",
+		messageFormat:      "The grammar of '{0}' publishes nothing (no parse, find or yield) and no [Gram] class in this compilation includes it; a grammar for other assemblies to include says [Gram(ExportGrammar = true)]",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Warning,
+		isEnabledByDefault: true,
+		helpLinkUri:        HelpLink("GRAM4059"),
+		description:        "Every publication counts, internal and private ones included. A [Gram] class that includes the grammar, or is derived from its class, is what it is for; so is ExportGrammar = true written on it, which marks a library grammar. A [GramParserVariant] is never told: its class's [Gram] answers for the grammar.");
+
+	/// <summary>
 	/// What a generated parser is written in is C# 8 at the least, and a project compiling an
 	/// earlier version would otherwise meet that as a wall of compiler errors in files it never
 	/// wrote.

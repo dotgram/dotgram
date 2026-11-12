@@ -94,7 +94,7 @@ public sealed class AliasTests
 	{
 		var loaded = GeneratorDriverTests.Build(
 			"""
-			[DotGram.Gram("A = \"x\"")]
+			[DotGram.Gram("A = \"x\"\nparse A")]
 			public partial class Aliased
 			{
 				public static string Where()

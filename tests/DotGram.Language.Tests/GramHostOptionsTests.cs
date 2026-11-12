@@ -60,6 +60,20 @@ public sealed class GramHostOptionsTests
 		Assert.Equal(exported, options.Single().ExportGrammar);
 	}
 
+	/// <summary>What was written of <c>ExportGrammar</c> is kept apart from what the class's visibility gave it.</summary>
+	[Theory]
+	[InlineData("[DotGram.Gram(\"A = 'a'\")] public partial class Parser;", true, null)]
+	[InlineData("[DotGram.Gram(\"A = 'a'\", ExportGrammar = true)] public partial class Parser;", true, true)]
+	[InlineData("[DotGram.Gram(\"A = 'a'\", ExportGrammar = true)] partial class Parser;", true, true)]
+	[InlineData("[DotGram.Gram(\"A = 'a'\", ExportGrammar = false)] public partial class Parser;", false, false)]
+	public void What_was_written_of_ExportGrammar_is_told_from_its_default(string declaration, bool exported, bool? written)
+	{
+		var options = Read(declaration).Single();
+
+		Assert.Equal(exported, options.ExportGrammar);
+		Assert.Equal(written, options.ExportGrammarWritten);
+	}
+
 	[Fact]
 	public void Every_named_argument_is_read_by_its_name()
 	{
@@ -83,6 +97,7 @@ public sealed class GramHostOptionsTests
 				TargetMethodPartSize   = 7,
 				Lexical                = true,
 				ExportGrammar          = false,
+				ExportGrammarWritten   = false,
 				LocationType           = "N.Where",
 				Carrier                = Carrier("Deferred"),
 				MaxExtraStacks         = 3,
@@ -183,7 +198,8 @@ public sealed class GramHostOptionsTests
 
 	/// <summary>
 	/// The reader asks for each argument by the name of its own property, so a property here the
-	/// attributes do not declare is an argument nobody can write.
+	/// attributes do not declare is an argument nobody can write. Except what one of them was written
+	/// as, which tells an option written from one left to its default (<c>…Written</c>).
 	/// </summary>
 	[Fact]
 	public void Every_option_is_a_property_of_the_attribute()
@@ -197,7 +213,7 @@ public sealed class GramHostOptionsTests
 			.ToHashSet(StringComparer.Ordinal);
 
 		foreach (var property in typeof(GramHostOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance))
-			Assert.Contains(property.Name, declared);
+			Assert.Contains(property.Name.EndsWith("Written", StringComparison.Ordinal) ? property.Name.Substring(0, property.Name.Length - "Written".Length) : property.Name, declared);
 	}
 
 	static GramHostOptions[] Read(string source)

@@ -31,11 +31,11 @@ public sealed class ScopeDeterminismTests
 
 	static readonly System.Reflection.Assembly Here = typeof(ScopeDeterminismTests).Assembly;
 
-	/// <summary>A grammar of one rule in a class of that name, declaring no namespace at all.</summary>
+	/// <summary>A grammar of one rule, published, in a class of that name, declaring no namespace at all.</summary>
 	static string Source(string name)
 	{
 		return $$"""
-		[DotGram.Gram("A = \"x\"")]
+		[DotGram.Gram("A = \"x\"\nparse A")]
 		public partial class {{name}}
 		{
 			public static string Where()
