@@ -295,17 +295,49 @@ sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot
 		{
 			foreach (var nested in ns._nested)
 				if (nested.Name == head)
-					return tail.Length == 0 ? nested : nested.FindNamespace(tail);
+					return nested.Within(tail);
 
 			// From a root, the other roots are in view by name — the references every
 			// compilation has — and nothing else of the grammar around it.
 			if (ns.IsRoot && ns.Parent is { } around)
 				foreach (var sibling in around._nested)
 					if (sibling.IsRoot && sibling.Name == head)
-						return tail.Length == 0 ? sibling : sibling.FindNamespace(tail);
+						return sibling.Within(tail);
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// A namespace by its path inside this one: only the first part of a qualified name is looked
+	/// up outward, and each part after it names a namespace declared in the one before. Looking
+	/// outward again would let <c>A.B.X</c> reach a <c>B</c> that is not in <c>A</c>.
+	/// </summary>
+	GrammarNamespace? Within(string path)
+	{
+		if (path.Length == 0)
+			return this;
+
+		var ns = this;
+
+		foreach (var part in path.Split('.'))
+		{
+			GrammarNamespace? found = null;
+
+			foreach (var nested in ns._nested)
+				if (nested.Name == part)
+				{
+					found = nested;
+					break;
+				}
+
+			if (found is null)
+				return null;
+
+			ns = found;
+		}
+
+		return ns;
 	}
 
 	/// <summary>A namespace by its path from here, resolved the way <see cref="Lookup"/> resolves a rule.</summary>

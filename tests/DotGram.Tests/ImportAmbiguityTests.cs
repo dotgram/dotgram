@@ -114,10 +114,24 @@ public sealed class ImportAmbiguityTests
 	[Theory]
 	[InlineData("Num = Std.Digit+\nLower = ['a'..'f']\nP = Num with (Std.Nope = Lower)\nparse P", GrammarBinder.UnknownRebindingTarget)]
 	[InlineData("Num = Std.Digit+\nLower = ['a'..'f']\nP = Num with (Nowhere.Digit = Lower)\nparse P", GrammarBinder.UnknownRebindingTarget)]
+	[InlineData("namespace A { }\nnamespace B { X = 'x' }\nY = 'y'\nP = B.X with (A.B.X = Y)\nparse P", GrammarBinder.UnknownRebindingTarget)]
 	[InlineData("Num = Std.Digit+\nWrap(x) = x\nP = Num with (Std.Digit = Wrap)\nparse P", GrammarBinder.ParameterizedRebinding)]
 	public void While_a_qualified_left_side_is_checked_as_an_unqualified_one_is(string grammar, string id)
 	{
 		Assert.Contains(Errors(grammar), one => one.Id == id);
 		Assert.DoesNotContain(Errors(grammar), static one => one.Id == "GRAM2001");
+	}
+
+	/// <summary>
+	/// Only the first part of a qualified name is looked up outward; each part after it names a
+	/// namespace declared in the one before. <c>A.B.X</c> with no <c>B</c> in <c>A</c> is no rule,
+	/// not the <c>B.X</c> declared beside <c>A</c>.
+	/// </summary>
+	[Theory]
+	[InlineData("namespace A { }\nnamespace B { X = 'x' }\nP = A.B.X\nparse P")]
+	[InlineData("namespace A { namespace C { } }\nnamespace B { X = 'x' }\nP = A.C.B.X\nparse P")]
+	public void A_qualified_name_goes_down_only_from_its_first_part(string grammar)
+	{
+		Assert.NotEmpty(Errors(grammar));
 	}
 }
