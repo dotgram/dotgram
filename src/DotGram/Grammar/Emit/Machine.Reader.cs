@@ -4573,7 +4573,8 @@ sealed partial class Machine
 			Emit(region.Body, part, following);
 
 			_inlined.RemoveAt(_inlined.Count - 1);
-			_inlinedBranches += Machine.Branches(region.Body.ToString());
+			// And the block it stands in, which the estimate counts as a loop's three.
+			_inlinedBranches += Machine.Branches(region.Body.ToString()) + (region.Fails ? Machine.Branches("while (false);") : 0);
 			_pushed |= pushed;
 			(_entry, _closing, _quiet, _leadMark, _trailMark, _sealsLead, _refuseWith, _refuseOver, _guardRefuses) =
 				(entry, closing, quieted, lead, trail, seals, refuseWith, refuseOver, guardRefuses);
