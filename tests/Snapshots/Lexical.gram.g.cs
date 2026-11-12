@@ -452,13 +452,11 @@ namespace DotGram.Snapshots
 						break;
 					}
 
-					var rr0_1 = values.Count1;
 
 					var q0 = ReadPart0_Program(p, rb_1);
 
 					if (q0 < 0 || q0 == p)
 					{
-						values.Count1 = rr0_1;
 						break;
 					}
 

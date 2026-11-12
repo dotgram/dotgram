@@ -1153,10 +1153,6 @@ namespace DotGram.Snapshots
 
 					if (q0 < 0)
 					{
-					}
-
-					if (q0 < 0)
-					{
 
 						break;
 					}
@@ -1302,10 +1298,6 @@ namespace DotGram.Snapshots
 
 					if (q0 < 0)
 					{
-					}
-
-					if (q0 < 0)
-					{
 
 						break;
 					}
@@ -1378,10 +1370,6 @@ namespace DotGram.Snapshots
 					var q0 = -1;
 
 					q0 = ReadPart1_DollarQuoted(p, a0, b0);
-
-					if (q0 < 0)
-					{
-					}
 
 					if (q0 < 0)
 					{
