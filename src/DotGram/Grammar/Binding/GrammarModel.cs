@@ -235,6 +235,35 @@ sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot
 		return null;
 	}
 
+	/// <summary>
+	/// The rules two or more imports supply under one name at the first scope that has the name at all,
+	/// where that scope does not declare it itself; empty where the name resolves to one rule or none.
+	/// </summary>
+	/// <remarks>
+	/// §5: which of two imports a name means is not decided by the order of the <c>using</c>s, as it is
+	/// not in C#. <see cref="Lookup"/> takes the first, and a reference that is not qualified asks this
+	/// first. One rule imported twice, by two <c>using</c>s of one namespace, is one rule.
+	/// </remarks>
+	public IReadOnlyList<RuleSymbol> Ambiguous(string name)
+	{
+		for (var ns = this; ns is not null; ns = ns.Outward)
+		{
+			if (ns._rules.ContainsKey(name))
+				return [];
+
+			var found = new List<RuleSymbol>();
+
+			foreach (var imported in ns._imports)
+				if (imported._rules.TryGetValue(name, out var fromImport) && !found.Contains(fromImport))
+					found.Add(fromImport);
+
+			if (found.Count > 0)
+				return found.Count > 1 ? found : [];
+		}
+
+		return [];
+	}
+
 	/// <summary>A qualified name, `Namespace.Rule`, resolved from here.</summary>
 	public RuleSymbol? LookupQualified(string qualifiedName)
 	{
