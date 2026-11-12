@@ -214,7 +214,19 @@ namespace DotGram.Snapshots
 					var rr0 = ways.RefsCount;
 					var lm0 = ways.Snap();
 
-					var q0 = ReadPart0_Items(p, pos, rb);
+					int q0;
+					var ip0 = p;
+					q0 = -1;
+					do
+					{
+						var q1 = Read_Item(p);
+						if (q1 < 0) break;
+						p = q1;
+						ways.Push(0, ways.Last, -1);
+						q0 = p;
+					}
+					while (false);
+					p = ip0;
 
 					if (q0 < 0 || q0 == p)
 					{
@@ -228,16 +240,6 @@ namespace DotGram.Snapshots
 				ways.Begin(0, pos, p);
 				ways.Collect(rb, 1L, false);
 				ways.End(rb);
-				return p;
-			}
-
-			public int ReadPart0_Items(int pos, int start, int refs)
-			{
-				var p = pos;
-				var q0 = Read_Item(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				ways.Push(0, ways.Last, -1);
 				return p;
 			}
 
