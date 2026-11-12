@@ -34,8 +34,11 @@ namespace DotGram.Tests;
 /// allocates more than about what the same text accepted allocates has rebuilt something: the one
 /// extra reading the attempt that stands costs is bounded by the accepted twin's own bytes.
 /// </para>
+/// <para>
+/// Not Alone: the bytes are counted on the measuring thread (<c>GC.GetAllocatedBytesForCurrentThread</c>),
+/// which no other thread's allocation enters.
+/// </para>
 /// </remarks>
-[Collection(typeof(Alone))]
 public sealed class GiveBackAllocationTests
 {
 	const string Grammar = """

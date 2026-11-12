@@ -17,25 +17,14 @@ namespace DotGram.Tests;
 /// A chain of calls ten thousand long is compiled on a stack of one megabyte, by the compiler
 /// on its own and by the generator as Roslyn runs it (<see cref="DeepChains"/>).
 /// </summary>
-[Collection(typeof(Alone))]
+/// <remarks>
+/// Not Alone: each case compiles on a thread of its own with its own stack and shares nothing with
+/// another, and none reads a clock or the heap but the one bound on the diamond, which is a hundred
+/// times looser than what it reads. The compile of every shape is <see cref="DeepChainShapeTests"/>,
+/// a class of its own so that it runs beside this one.
+/// </remarks>
 public sealed class DeepChainTests
 {
-	/// <summary>The whole compile, as the generator runs it with no host around it.</summary>
-	[Theory]
-	[MemberData(nameof(DeepChains.NamesAndReadings), MemberType = typeof(DeepChains))]
-	public void A_long_chain_of_calls_compiles_on_a_small_stack(string shape, bool direct)
-	{
-		var grammar  = DeepChains.Shapes[shape](DeepChains.Depth);
-		var compiled = DeepChains.OnSmallStack(() => GramCompiler.Compile(
-			grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Direct = direct }));
-
-		Assert.False(
-			compiled.HasErrors,
-			string.Join("\n", compiled.Diagnostics.Where(static d => d.Severity == GramSeverity.Error).Take(5)));
-
-		Assert.NotEmpty(compiled.Sources);
-	}
-
 	/// <summary>
 	/// What one rule nests is not walked with a stack of its own: it is bounded where it is read,
 	/// and a rule nested past the bound is told so once, on any stack, with nothing else said.
@@ -266,5 +255,25 @@ public sealed class DeepChainTests
 				.Where(static d => d.Severity == DiagnosticSeverity.Error).Take(5).ToArray());
 
 		Assert.Empty(errors);
+	}
+}
+
+/// <summary>A chain of calls ten thousand long, in every shape, compiled on a stack of one megabyte (<see cref="DeepChains"/>).</summary>
+public sealed class DeepChainShapeTests
+{
+	/// <summary>The whole compile, as the generator runs it with no host around it.</summary>
+	[Theory]
+	[MemberData(nameof(DeepChains.NamesAndReadings), MemberType = typeof(DeepChains))]
+	public void A_long_chain_of_calls_compiles_on_a_small_stack(string shape, bool direct)
+	{
+		var grammar  = DeepChains.Shapes[shape](DeepChains.Depth);
+		var compiled = DeepChains.OnSmallStack(() => GramCompiler.Compile(
+			grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Direct = direct }));
+
+		Assert.False(
+			compiled.HasErrors,
+			string.Join("\n", compiled.Diagnostics.Where(static d => d.Severity == GramSeverity.Error).Take(5)));
+
+		Assert.NotEmpty(compiled.Sources);
 	}
 }
