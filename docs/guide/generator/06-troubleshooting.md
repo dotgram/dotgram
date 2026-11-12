@@ -56,9 +56,36 @@ public static partial class Numbers;
 ```
 
 *Nothing reaches 'Letters': no publication names it, no rule the grammar reads calls it, and no
-rebinding puts it in place of one. Publish it, call it, or delete it.* A grammar that publishes nothing
-at all is not told this: it is taken for a library of rules that other grammars include
-([including](02-hosts-and-attributes.md#graminclude-one-grammar-built-on-another)), and has no methods.
+rebinding puts it in place of one. Publish it, call it, or delete it.*
+
+- **The grammar publishes nothing at all.** A grammar with no `parse`, `find` or `yield` gives its
+  class no method, and is of use only included by another grammar. Where no `[Gram]` class of the
+  compilation includes it or derives from its class, the build takes it for a grammar whose `parse`
+  was forgotten:
+
+```csharp example=publishes-nothing GRAM4059
+using DotGram;
+
+[Gram("""
+	Digits = ['0'..'9']+
+	""")]
+public static partial class Numbers;
+```
+
+*The grammar of 'Numbers' publishes nothing (no parse, find or yield) and no [Gram] class in this
+compilation includes it; a grammar for other assemblies to include says [Gram(ExportGrammar = true)].*
+It is said once per class, only where the grammar has no errors, and never of a `[GramParserVariant]`.
+A grammar written for other assemblies to include says so in so many words — that a public class
+exports its grammar by default is not enough, since every public class does:
+
+```csharp example=library
+using DotGram;
+
+[Gram("""
+	Digit = ['0'..'9']
+	""", ExportGrammar = true)]
+public static partial class Lexemes;
+```
 
 - **The method is in a nested class.** A reading of a `[GramParserVariant("Fast")]`, or of a
   `[Gram(Name = "Fast")]`, is `Numbers.Fast.ParseDigits`.
@@ -70,9 +97,13 @@ at all is not told this: it is taken for a library of rules that other grammars 
 > (или внешний класс): GRAM0002. **Грамматика не найдена:** GRAM0003 (файл не additional file) или
 > GRAM0004 (их два). **Правило не опубликовано:** правило становится методом только после
 > директивы — без `parse Letters` нет `ParseLetters`; если грамматика публикует что-то другое, правило,
-> до которого ничто не доходит, — предупреждение GRAM4018 (пример выше). Грамматике, которая не
-> публикует вообще ничего, этого не говорят: она считается библиотекой правил для включения в другие
-> грамматики, и методов у неё нет. **Метод во вложенном классе:** чтение
+> до которого ничто не доходит, — предупреждение GRAM4018 (первый пример). **Грамматика не публикует
+> ничего:** без `parse`, `find` и `yield` у её класса нет методов, и она нужна только для включения в
+> другую грамматику; если ни один класс с `[Gram]` в компиляции её не включает и не наследует её
+> класс, сборка считает, что `parse` забыли (GRAM4059, второй пример). Это говорится один раз на
+> класс, только если в грамматике нет ошибок, и никогда для `[GramParserVariant]`. Грамматика для
+> включения в другие сборки говорит об этом явно, `[Gram(ExportGrammar = true)]` (третий пример): того,
+> что публичный класс экспортирует грамматику по умолчанию, мало — так делает каждый публичный класс. **Метод во вложенном классе:** чтение
 > `[GramParserVariant("Fast")]` или `[Gram(Name = "Fast")]` — это `Numbers.Fast.ParseDigits`.
 > **Любая ошибка грамматики останавливает парсер:** исправлять надо первую ошибку в Error List,
 > неизвестный метод — её следствие.
@@ -98,12 +129,18 @@ it is called now — `'IncludedAs' was renamed to 'DefaultAlias' in 0.3.0` — w
 on ([the options](02-hosts-and-attributes.md#the-options-of-a-reading)). A library built by DotGram 0.2
 can still be included: its classes are read under the old names as well.
 
+A library grammar of 0.2 that publishes nothing and is included only by other assemblies is now told
+`GRAM4059`; `[Gram(ExportGrammar = true)]` says what it is
+([above](#the-parse-methods-do-not-exist)).
+
 <!-- ru:begin -->
 > **RU.** Хост, написанный для 0.2, использует имена, переименованные в 0.3.0: `[GramOptions]`,
 > `Suffix`, `IncludedAs`, `Portable`, `GramCarrier.Tape` и другие. Компилятор C# сообщает о
 > неизвестном имени, а генератор — как оно называется теперь (`'IncludedAs' was renamed to
 > 'DefaultAlias' in 0.3.0`); действовать надо по этому сообщению. Библиотеку, собранную DotGram 0.2,
 > по-прежнему можно включать: её классы читаются и под старыми именами.
+> Библиотечная грамматика 0.2, которая ничего не публикует и включается только из других сборок,
+> теперь получает GRAM4059; `[Gram(ExportGrammar = true)]` говорит, что это библиотека (выше).
 <!-- ru:end -->
 
 ## The build breaks with warnings as errors after an upgrade
