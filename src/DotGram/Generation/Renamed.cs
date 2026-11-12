@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 using DotGram.Grammar;
@@ -40,6 +41,12 @@ readonly record struct RenamedUse(string Old, string Now, Place? At);
 /// </remarks>
 static class Renamed
 {
+	/// <summary>
+	/// How many nodes were bound in the flow that set it: the cost of an edit, which a test holds to the
+	/// rare nodes spelled like an old name. Null, and nothing counted, everywhere else.
+	/// </summary>
+	internal static readonly AsyncLocal<StrongBox<int>?> Bound = new();
+
 	static readonly HashSet<string> Variants = new(StringComparer.Ordinal) { GramRenames.OldVariant, GramRenames.OldVariant + "Attribute" };
 
 	/// <summary>The classes of the generator's attributes whose options were renamed, by name in its namespace.</summary>
@@ -52,15 +59,15 @@ static class Renamed
 
 	/// <summary>
 	/// Whether a node may hold an old name, by syntax alone and cheaply: an attribute named like
-	/// <c>[GramOptions]</c> or with a named argument an old option was called, or a <c>.Tape</c>.
+	/// <c>[GramOptions]</c> or with a named argument an old option was called, or a <c>Tape</c>. Every
+	/// node it lets through is bound on every edit, so it lets through only what is rare: an attribute
+	/// named by an alias is found apart (<see cref="IsVariantAlias"/>, <see cref="FindThroughAliases"/>).
 	/// </summary>
 	public static bool IsCandidate(SyntaxNode node)
 	{
 		return node switch
 		{
-			// A simple name may be an alias of the old [GramOptions] from a `using` in any file, which only
-			// binding can say (Find).
-			AttributeSyntax attribute => attribute.Name is IdentifierNameSyntax || Variants.Contains(SimpleName(attribute.Name)) || OldArguments(attribute).Any(),
+			AttributeSyntax attribute => Variants.Contains(SimpleName(attribute.Name)) || OldArguments(attribute).Any(),
 			MemberAccessExpressionSyntax access => access.Name.Identifier.ValueText == "Tape",
 
 			// `Tape` on its own, reached through `using static DotGram.GramCarrier` (Find).
@@ -72,18 +79,23 @@ static class Renamed
 	/// <summary>Every old name a candidate node is written with, as C# binds it.</summary>
 	public static ImmutableArray<RenamedUse> Find(SyntaxNode node, SemanticModel model, CancellationToken cancellationToken)
 	{
+		if (Bound.Value is { } counted)
+			Interlocked.Increment(ref counted.Value);
+
 		var found = ImmutableArray.CreateBuilder<RenamedUse>();
 
 		if (node is IdentifierNameSyntax tape)
 		{
-			// A value written where nothing of that name is in view, and DotGram's enum's members in view
-			// by their simple names, as a `using static` in any file brings them; never a type or a
-			// namespace, which an enum's member could not have been.
+			// A value written where nothing of that name is in view, and a `using static` in view, in this
+			// file or a global one in any, that binds to DotGram's enum: what the old name would have
+			// bound to, whatever else of the new name is in view. Never a type or a namespace, which an
+			// enum's member could not have been.
 			if (!SyntaxFacts.IsInNamespaceOrTypeContext(tape) &&
 				model.GetSymbolInfo(tape, cancellationToken) is { Symbol: null, CandidateSymbols.Length: 0 } &&
-				model
-					.LookupSymbols(tape.SpanStart, name: "Deferred")
-					.Any(static member => member is IFieldSymbol { ContainingType: { } carrier } && IsDotGram(carrier, "GramCarrier")))
+				UsingsInView(tape, model.Compilation, cancellationToken)
+					.Any(directive => directive.StaticKeyword.IsKind(SyntaxKind.StaticKeyword) &&
+						Bind(directive.NamespaceOrType, model.Compilation, cancellationToken) is INamedTypeSymbol carrier &&
+						IsDotGram(carrier, "GramCarrier")))
 			{
 				found.Add(new RenamedUse(GramRenames.OldCarrier, GramRenames.NewCarrier, Place.Of(tape.GetLocation())));
 			}
@@ -197,34 +209,131 @@ static class Renamed
 	}
 
 	/// <summary>
-	/// Whether an attribute's name, which C# did not bind, is the old <c>[GramOptions]</c>, as binding says:
-	/// written where DotGram's attributes are in view by their simple names, qualified by a name that
-	/// binds to DotGram's namespace, or an alias whose target is so qualified.
+	/// Whether an attribute's name, which C# did not bind, is the old <c>[GramOptions]</c>, from what the old
+	/// name would have bound to: an alias of that name whose target is qualified by DotGram's namespace,
+	/// whatever the alias is called; else the old name written where DotGram's namespace is in view (a
+	/// <c>using</c> in this file or a global one, or a namespace it is written in), or qualified by a
+	/// name that binds to that namespace.
 	/// </summary>
 	static bool IsOldVariant(NameSyntax name, SemanticModel model, CancellationToken cancellationToken)
 	{
 		switch (name)
 		{
-			case IdentifierNameSyntax simple when Variants.Contains(simple.Identifier.ValueText):
-				return model
-					.LookupNamespacesAndTypes(simple.SpanStart, name: "GramParserVariantAttribute")
-					.OfType<INamedTypeSymbol>()
-					.Any(static type => IsDotGram(type, "GramParserVariantAttribute"));
+			case IdentifierNameSyntax simple:
+				// The alias in view of that name, or with C#'s `Attribute` after it as an attribute's name
+				// may be; C# gives one for a target it found nothing behind too.
+				if ((Alias(simple, simple.Identifier.ValueText) ?? Alias(simple, simple.Identifier.ValueText + "Attribute")) is { } alias)
+				{
+					return alias.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken) is UsingDirectiveSyntax directive &&
+						directive.NamespaceOrType is QualifiedNameSyntax target &&
+						Variants.Contains(target.Right.Identifier.ValueText) &&
+						IsDotGramNamespace(Bind(target.Left, model.Compilation, cancellationToken));
+				}
+
+				return Variants.Contains(simple.Identifier.ValueText) && SeesDotGram(simple, model, cancellationToken);
 
 			case QualifiedNameSyntax qualified when Variants.Contains(qualified.Right.Identifier.ValueText):
 				return IsDotGramNamespace(model.GetSymbolInfo(qualified.Left, cancellationToken).Symbol);
 
-			case IdentifierNameSyntax alias:
-				// The alias in view of that name: C# gives none for a name it found nothing behind.
-				return model.LookupNamespacesAndTypes(alias.SpanStart, name: alias.Identifier.ValueText).OfType<IAliasSymbol>().FirstOrDefault() is { } symbol &&
-					symbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(cancellationToken) is UsingDirectiveSyntax directive &&
-					directive.NamespaceOrType is QualifiedNameSyntax target &&
-					Variants.Contains(target.Right.Identifier.ValueText) &&
-					IsDotGramNamespace(model.Compilation.GetSemanticModel(directive.SyntaxTree).GetSymbolInfo(target.Left, cancellationToken).Symbol);
-
 			default:
 				return false;
 		}
+
+		IAliasSymbol? Alias(SyntaxNode at, string alias)
+		{
+			return model.LookupNamespacesAndTypes(at.SpanStart, name: alias).OfType<IAliasSymbol>().FirstOrDefault();
+		}
+	}
+
+	/// <summary>
+	/// Whether DotGram's namespace is in view at a name by its members' simple names: the name written in
+	/// it, or a plain <c>using</c> in view that binds to it.
+	/// </summary>
+	static bool SeesDotGram(SyntaxNode node, SemanticModel model, CancellationToken cancellationToken)
+	{
+		for (var space = model.GetEnclosingSymbol(node.SpanStart, cancellationToken)?.ContainingNamespace; space is { IsGlobalNamespace: false }; space = space.ContainingNamespace)
+			if (IsDotGramNamespace(space))
+				return true;
+
+		return UsingsInView(node, model.Compilation, cancellationToken)
+			.Any(directive => directive.Alias is null &&
+				!directive.StaticKeyword.IsKind(SyntaxKind.StaticKeyword) &&
+				IsDotGramNamespace(Bind(directive.NamespaceOrType, model.Compilation, cancellationToken)));
+	}
+
+	/// <summary>
+	/// The <c>using</c> directives in view at a node: those of the file and the namespaces around it,
+	/// and every file's global ones.
+	/// </summary>
+	static IEnumerable<UsingDirectiveSyntax> UsingsInView(SyntaxNode node, Compilation compilation, CancellationToken cancellationToken)
+	{
+		foreach (var scope in node.Ancestors())
+		{
+			var usings = scope switch
+			{
+				CompilationUnitSyntax unit           => unit.Usings,
+				BaseNamespaceDeclarationSyntax space => space.Usings,
+				_                                    => default,
+			};
+
+			foreach (var directive in usings)
+				yield return directive;
+		}
+
+		foreach (var tree in compilation.SyntaxTrees)
+			if (tree != node.SyntaxTree && tree.GetRoot(cancellationToken) is CompilationUnitSyntax unit)
+				foreach (var directive in unit.Usings)
+					if (directive.GlobalKeyword.IsKind(SyntaxKind.GlobalKeyword))
+						yield return directive;
+	}
+
+	/// <summary>What a name in any file of the compilation binds to.</summary>
+	static ISymbol? Bind(SyntaxNode name, Compilation compilation, CancellationToken cancellationToken)
+	{
+		return compilation.GetSemanticModel(name.SyntaxTree).GetSymbolInfo(name, cancellationToken).Symbol;
+	}
+
+	/// <summary>
+	/// Whether a node is a <c>using</c> alias whose target is named like the old <c>[GramOptions]</c>, by
+	/// syntax alone: those are rare, and their names are the only simple names an attribute
+	/// <see cref="FindThroughAliases"/> binds.
+	/// </summary>
+	public static bool IsVariantAlias(SyntaxNode node)
+	{
+		return node is UsingDirectiveSyntax { Alias: not null, NamespaceOrType: NameSyntax target } && Variants.Contains(SimpleName(target));
+	}
+
+	/// <summary>The name a <c>using</c> alias <see cref="IsVariantAlias"/> lets through is written under.</summary>
+	public static string AliasName(SyntaxNode node)
+	{
+		return ((UsingDirectiveSyntax)node).Alias!.Name.Identifier.ValueText;
+	}
+
+	/// <summary>
+	/// The old <c>[GramOptions]</c> written through an alias of another name: every attribute of the
+	/// compilation named by one of those aliases, which <see cref="IsCandidate"/> does not already let
+	/// through, as C# binds it. Nothing at all, and no binding, while no such alias is written.
+	/// </summary>
+	public static ImmutableArray<RenamedUse> FindThroughAliases(EquatableArray<string> aliases, Compilation compilation, CancellationToken cancellationToken)
+	{
+		if (aliases.Items.IsDefaultOrEmpty)
+			return ImmutableArray<RenamedUse>.Empty;
+
+		var names = new HashSet<string>(aliases.Items, StringComparer.Ordinal);
+		var found = ImmutableArray.CreateBuilder<RenamedUse>();
+
+		foreach (var tree in compilation.SyntaxTrees)
+		{
+			SemanticModel? model = null;
+
+			foreach (var attribute in tree.GetRoot(cancellationToken).DescendantNodes().OfType<AttributeSyntax>())
+				if (attribute.Name is IdentifierNameSyntax { Identifier.ValueText: var name } &&
+					(names.Contains(name) || names.Contains(name + "Attribute")) &&
+					!IsCandidate(attribute))
+					found.AddRange(Find(attribute, model ??= compilation.GetSemanticModel(tree), cancellationToken));
+		}
+
+		return found.ToImmutable();
 	}
 
 	/// <summary>Whether a symbol is DotGram's namespace, the one at the root the generator emits into.</summary>

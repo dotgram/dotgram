@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 using DotGram.Generation;
@@ -356,6 +357,60 @@ public sealed class IncrementalCachingTests
 		Assert.Equal(2, asked.Count(static reason => reason == IncrementalStepRunReason.Modified));
 		Assert.Equal(1, asked.Count(static reason => reason == IncrementalStepRunReason.Cached));
 		Assert.NotEqual(before, Generated(run)["Sums.g.cs"]);
+	}
+
+	/// <summary>
+	/// Looking for a name renamed in 0.3.0 binds only the rare nodes spelled like one: a test project's
+	/// hundreds of attributes are never bound, on the first run or on an edit of another file, and the
+	/// one <c>Tape</c> written is the only node bound.
+	/// </summary>
+	[Fact]
+	public void Only_what_is_spelled_like_an_old_name_is_bound()
+	{
+		var attributes = string.Join("\n", Enumerable.Range(0, 200).Select(static i => $"\t[Fact] public void Test{i}() {{ }}"));
+		var tests      = "sealed class FactAttribute : System.Attribute { }\n\nsealed class Tests\n{\n" + attributes + "\n}\n";
+		var parse      = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var edited     = CSharpSyntaxTree.ParseText("static class Edited { static int M() { return 1; } }", parse, "Edited.cs", cancellationToken: TestContext.Current.CancellationToken);
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.Incremental",
+			[
+				CSharpSyntaxTree.ParseText(tests, parse, "Tests.cs", cancellationToken: TestContext.Current.CancellationToken),
+				CSharpSyntaxTree.ParseText("using static DotGram.GramCarrier;\nstatic class Carried { static object Value = Tape; }", parse, "Carried.cs", cancellationToken: TestContext.Current.CancellationToken),
+				edited,
+			],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var driver = (GeneratorDriver)CSharpGeneratorDriver.Create(
+			[new GramGenerator().AsSourceGenerator()],
+			parseOptions: parse,
+			driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+
+		var bound = new StrongBox<int>();
+
+		Renamed.Bound.Value = bound;
+
+		try
+		{
+			var first = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+
+			Assert.Equal(1, bound.Value);
+			Assert.Single(first.GetRunResult().Diagnostics, static one => one.Id == "GRAM0012");
+
+			bound.Value = 0;
+
+			var edit = compilation.ReplaceSyntaxTree(
+				edited,
+				CSharpSyntaxTree.ParseText("static class Edited { static int M() { return 2; } }", parse, "Edited.cs", cancellationToken: TestContext.Current.CancellationToken));
+
+			first.RunGenerators(edit, TestContext.Current.CancellationToken);
+
+			Assert.InRange(bound.Value, 0, 1);
+		}
+		finally
+		{
+			Renamed.Bound.Value = null;
+		}
 	}
 
 	// ── The driver ────────────────────────────────────────────────────────────────

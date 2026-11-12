@@ -233,6 +233,13 @@ public sealed class RenamedNameTests
 	[InlineData("namespace Own { namespace DotGram { } namespace Consumer { using O = global::DotGram.GramOptionsAttribute; [O] class X { } } }", "GramOptions")]
 	[InlineData("global using O = DotGram.GramOptionsAttribute;\n\n[O(Suffix = \"Fast\")]\n[DotGram.Gram(\"A = 'a'\\nparse A\")]\npublic static partial class X { }", "GramOptions")]
 	[InlineData("[GramOptions]\nclass X { }", null)]
+	[InlineData("using GramOptions = DotGram.GramOptionsAttribute;\n\n[GramOptions]\nclass X { }", "GramOptions")]
+	[InlineData("using GramOptionsAttribute = DotGram.GramOptionsAttribute;\n\n[GramOptionsAttribute]\nclass X { }", "GramOptions")]
+	[InlineData("using OAttribute = DotGram.GramOptionsAttribute;\n\n[O]\nclass X { }", "GramOptions")]
+	[InlineData("using GramOptions = Own.GramOptionsAttribute;\n\nnamespace Own { }\n\n[GramOptions]\nclass X { }", null)]
+	[InlineData("using static DotGram.GramCarrier;\n\nstatic class X { const int Deferred = 0; static object Value = Tape; }", "GramCarrier.Tape")]
+	[InlineData("using DotGram;\n\nsealed class GramParserVariantAttribute : System.Attribute { }\n\n[GramOptions]\nclass X { }", "GramOptions")]
+	[InlineData("namespace DotGram.Mine { [GramOptions] class X { } }", "GramOptions")]
 	[InlineData("using DotGram;\n\n[GramOptions]\nclass X { }", "GramOptions")]
 	public void An_old_name_is_found_as_C_sharp_reaches_it(string source, string? old)
 	{

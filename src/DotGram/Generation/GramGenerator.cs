@@ -115,19 +115,34 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		// A name the attributes had before 0.3.0, wherever it is written, with what it is called now:
 		// C# only says it cannot find one (GramRenames).
+		// Only rare nodes are bound: the old names' own spellings, and attributes named by an alias the
+		// old [GramOptions] is given, which a cheap pass over the `using` directives names first.
+		var renamedAliases = context.SyntaxProvider
+			.CreateSyntaxProvider(
+				static (node, _) => Renamed.IsVariantAlias(node),
+				static (candidate, _) => Renamed.AliasName(candidate.Node))
+			.Collect()
+			.Select(static (names, _) => new EquatableArray<string>(names.Distinct(StringComparer.Ordinal).OrderBy(static name => name, StringComparer.Ordinal).ToImmutableArray()));
+
+		var renamed = context.SyntaxProvider
+			.CreateSyntaxProvider(
+				static (node, _) => Renamed.IsCandidate(node),
+				static (candidate, cancellationToken) => new EquatableArray<RenamedUse>(
+					Renamed.Find(candidate.Node, candidate.SemanticModel, cancellationToken)))
+			.Where(static found => found.Items.Length > 0)
+			.Collect()
+			.Combine(renamedAliases
+				.Combine(context.CompilationProvider)
+				.Select(static (input, cancellationToken) => new EquatableArray<RenamedUse>(
+					Renamed.FindThroughAliases(input.Left, input.Right, cancellationToken))));
+
 		context.RegisterSourceOutput(
-			context.SyntaxProvider
-				.CreateSyntaxProvider(
-					static (node, _) => Renamed.IsCandidate(node),
-					static (candidate, cancellationToken) => new EquatableArray<RenamedUse>(
-						Renamed.Find(candidate.Node, candidate.SemanticModel, cancellationToken)))
-				.Where(static found => found.Items.Length > 0)
-				.Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
+			renamed.Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
 			static (production, input) =>
 			{
-				var (found, trees) = input;
+				var ((named, aliased), trees) = input;
 
-				foreach (var use in found.Items)
+				foreach (var use in named.SelectMany(static one => one.Items).Concat(aliased.Items))
 					production.ReportDiagnostic(Diagnostic.Create(
 						Diagnostics.RenamedName,
 						use.At?.ToLocation(path => trees.FirstOrDefault(tree => tree.FilePath == path)) ?? Location.None,
