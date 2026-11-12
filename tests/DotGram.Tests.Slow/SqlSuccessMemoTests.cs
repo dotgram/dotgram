@@ -30,15 +30,16 @@ namespace DotGram.Tests;
 /// differ from the shipped grammar's, its size and its time.
 /// </summary>
 /// <remarks>
-/// Not Alone: what is held here is counts and answers, which no neighbour changes. The differentials
+/// One class for each grammar beside this base (a class's tests run one after another, and the
+/// reading of each grammar takes minutes). Not Alone: what is held here is counts and answers, which no neighbour changes. The differentials
 /// print every kind of difference with samples, and the memo's hold that there is none; they read
 /// their answers on several threads, each over a stretch of a plan drawn beforehand from the seed, so
 /// that the answers asked, and the order the differences are told in, are what one thread would
 /// have asked and told. The timings are <see cref="SqlSuccessMemoTimingTests"/>, which are Alone.
 /// </remarks>
-public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
+public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 {
-	void Log(string line)
+	protected void Log(string line)
 	{
 		output.WriteLine(line);
 
@@ -50,7 +51,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	const double Doubling = 2.14;
 
 	/// <summary>The SQL-92 nests a bracketed value holding a condition made exponential, each a level around <c>{0}</c>, and the shapes that were linear before.</summary>
-	static readonly (string Name, string Shape, string Core)[] Sql92Shapes =
+	internal static readonly (string Name, string Shape, string Core)[] Sql92Shapes =
 	[
 		("case-cond",        "(CASE WHEN {0} THEN 1 END = 1)",                          "a = 1"),
 		("case-value",       "(CASE WHEN {0} THEN 1 END) = 1",                          "a = 1"),
@@ -81,7 +82,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	];
 
 	/// <summary>The T-SQL nests: the bracketed condition the exponential reading was found in, the forms around it, and a bracketed subquery in FROM.</summary>
-	static readonly (string Name, string Shape, string Core)[] TSqlShapes =
+	internal static readonly (string Name, string Shape, string Core)[] TSqlShapes =
 	[
 		("case-cond",        "(CASE WHEN {0} THEN 1 END = 1)",                          "a = 1"),
 		("case-dbl-cond",    "((CASE WHEN {0} THEN 1 END) = 1)",                        "a = 1"),
@@ -102,7 +103,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	];
 
 	/// <summary>The SQL:2023 nests: the bracketed subquery the bracket reads and declines, and the condition forms.</summary>
-	static readonly (string Name, string Shape, string Core)[] StandardShapes =
+	internal static readonly (string Name, string Shape, string Core)[] StandardShapes =
 	[
 		("subq-declined",    "((SELECT a FROM t WHERE {0})) = 1",                       "a = 1"),
 		("subq-cond",        "((SELECT a FROM t WHERE {0}) = 1)",                       "a = 1"),
@@ -112,34 +113,16 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		("case-cond-unclosed","(CASE WHEN {0}",                                         "a = 1"),
 	];
 
-	const string Prefix = "SELECT a FROM t WHERE ";
+	internal const string Prefix = "SELECT a FROM t WHERE ";
 
 	static readonly int[] Depths = [4, 8, 16, 32];
-
-	[Fact]
-	public void Sql92_nests_cost_their_depth_with_the_memo()
-	{
-		Ladders("SQL-92", SqlVariants.Sql92, "TryParseSelect", Prefix, Sql92Shapes);
-	}
-
-	[Fact]
-	public void TSql_nests_cost_their_depth_with_the_memo()
-	{
-		Ladders("T-SQL", SqlVariants.TransactSql, SqlVariants.Entry(SqlVariants.TransactSql, "TryParseSearchCondition"), "", TSqlShapes);
-	}
-
-	[Fact]
-	public void Sql2023_nests_cost_their_depth_with_the_memo()
-	{
-		Ladders("SQL:2023", SqlVariants.Standard, "TryParseSearchCondition", "", StandardShapes);
-	}
 
 	/// <summary>
 	/// Every shape at four depths a doubling apart, with the memo and without: with it, twice the depth
 	/// costs at most <see cref="Doubling"/> times the entries; without it, the reading is counted to depth
 	/// 16 and a shape that took more than thirty seconds is marked <c>t</c>.
 	/// </summary>
-	void Ladders(string title, string grammar, string publication, string prefix, (string Name, string Shape, string Core)[] shapes)
+	protected void Ladders(string title, string grammar, string publication, string prefix, (string Name, string Shape, string Core)[] shapes)
 	{
 		var kept   = Immediate(grammar, counts: true);
 		var unkept = Immediate(grammar, counts: true, keeps: false);
@@ -176,108 +159,6 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		}
 
 		Assert.True(worst.Item2 <= Doubling, $"{title}: '{worst.Item1}' still grows faster than its depth: x{worst.Item2:F2} for twice the depth.");
-	}
-
-	[Fact]
-	public void Sql92_reads_the_same_with_the_memo()
-	{
-		var unkept  = Immediate(SqlVariants.Sql92, keeps: false);
-		var kept    = Immediate(SqlVariants.Sql92);
-		var unkeptL = Immediate(SqlVariants.Sql92, keeps: false, located: true).GetNestedType("Located")!;
-		var keptL   = Immediate(SqlVariants.Sql92, located: true).GetNestedType("Located")!;
-		var cover   = Immediate(SqlVariants.Sql92Cover);
-		var split   = Immediate(SqlVariants.Sql92Split);
-		var coverL  = Immediate(SqlVariants.Sql92Cover, located: true).GetNestedType("Located")!;
-
-		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept), ("cover", cover), ("split", split) })
-			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
-
-		var generated = Generated(3000, seed: 92);
-		var accepted  = generated.Where(text => Answer(unkept, "TryParseSelect", [text]).Accepted).ToList();
-		var corpus    = Statements().Where(text => Answer(unkept, "TryParseSelect", [text]).Accepted || Answer(unkept, "TryParseQuery", [text]).Accepted).ToList();
-
-		Log($"generated statements: {generated.Count}, of which the parser accepts {accepted.Count}; corpus statements the parser accepts as a select or a query: {corpus.Count} of {Statements().Count}");
-
-		var texts = Harvested("Sql92")
-			.Concat(Statements().Where((_, i) => i % 4 == 0))
-			.Concat(corpus)
-			.Concat(generated)
-			// To depth 8: without the memo the subquery with a set operation costs a hundred million entries there, and three to the depth beyond.
-			.Concat(Sql92Shapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => Prefix + Nest(shape.Shape, shape.Core, depth))))
-			.Concat(Sql92Shapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
-			.Concat(
-			[
-				"a", "(a)", "((a))", "(a) + 1", "(a, b) = (1, 2)", "(a, b) + 1 = 1", "(a = 1) = 1", "(a = 1) + 1", "-(a = 1)",
-				"NOT a", "a AND b", "a IS TRUE", "(a = 1, 2) = (1, 2)", "(NULL, 1) = (1, 2)", "(NULL)", "(DEFAULT, 1) = (1, 1)",
-				"1 + (a = 1)", "(SELECT a FROM t) = 1", "((SELECT a FROM t)) = 1", "a IN ((SELECT a FROM t), 2)",
-				"(a = 1 AND b = 2) OR c = 3", "((a))) = 1", "(a +", "(a = ", "(a, ", "(CASE WHEN a = 1 THEN 1 END",
-			])
-			.Distinct()
-			.ToList();
-
-		var located = accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList();
-
-		// The memo: the same answer, byte for byte, and the same records.
-		var differences = Differential("shipped: no memo vs memo", unkept, kept, texts, holds: true);
-
-		Assert.True(differences == 0, $"{differences} answers differ between the shipped SQL-92 parser with the memo of successes and without; see the output.");
-		Assert.Equal(0, LocatedDifferential("located: shipped, no memo vs memo", unkeptL, keptL, located));
-
-		// The rewrites, for the table: what they would change.
-		Differential("shipped + memo vs cover", kept, cover, texts, holds: false);
-		Differential("shipped + memo vs split", kept, split, texts, holds: false);
-		LocatedDifferential("located: shipped + memo vs cover", keptL, coverL, located);
-	}
-
-	[Fact]
-	public void TSql_reads_the_same_with_the_memo()
-	{
-		var unkept = Immediate(SqlVariants.TransactSql, keeps: false);
-		var kept   = Immediate(SqlVariants.TransactSql);
-
-		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept) })
-			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
-
-		var statement = SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement");
-		var texts = Harvested("TransactSql")
-			.Concat(Statements())
-			.Concat(TSqlShapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
-			.Concat(TSqlShapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
-			.Distinct()
-			.ToList();
-
-		var accepted = Accepted(unkept, statement, Statements());
-
-		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
-
-		var differences = Differential("T-SQL shipped: no memo vs memo", unkept, kept, texts, holds: true);
-
-		Assert.True(differences == 0, $"{differences} answers differ between the shipped T-SQL parser with the memo of successes and without; see the output.");
-	}
-
-	[Fact]
-	public void Sql2023_reads_the_same_with_the_memo()
-	{
-		var unkept = Immediate(SqlVariants.Standard, keeps: false);
-		var kept   = Immediate(SqlVariants.Standard);
-
-		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept) })
-			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
-
-		var texts = Harvested("SqlStandard")
-			.Concat(Statements())
-			.Concat(StandardShapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
-			.Concat(StandardShapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
-			.Distinct()
-			.ToList();
-
-		var accepted = Accepted(unkept, "TryParseStatement", Statements());
-
-		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
-
-		var differences = Differential("SQL:2023 shipped: no memo vs memo", unkept, kept, texts, holds: true);
-
-		Assert.True(differences == 0, $"{differences} answers differ between the shipped SQL:2023 parser with the memo of successes and without; see the output.");
 	}
 
 	/// <summary>The first <paramref name="limit"/> texts a parser accepts through one publication, in their order, read on several threads.</summary>
@@ -320,7 +201,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	}
 
 	/// <summary>Every answer of every publication of both parsers over the texts, whole, cut and in windows, compared as text; the differences by kind, with samples; how many there were.</summary>
-	int Differential(string title, Type before, Type after, List<string> texts, bool holds)
+	protected int Differential(string title, Type before, Type after, List<string> texts, bool holds)
 	{
 		var all    = Publications(after);
 		var random = new Random(92);
@@ -381,7 +262,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	}
 
 	/// <summary>Every accepted answer of a located reading compared record for record and span for span; how many differ in any way.</summary>
-	int LocatedDifferential(string title, Type before, Type after, List<string> texts)
+	protected int LocatedDifferential(string title, Type before, Type after, List<string> texts)
 	{
 		var all = Publications(after);
 		var compared = 0;
@@ -523,14 +404,14 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		return count == long.MaxValue / 4 ? "t" : count + (accepted ? "" : "r");
 	}
 
-	static string Show(string text)
+	internal static string Show(string text)
 	{
 		var shown = text.Replace("\r", "\\r").Replace("\n", "\\n");
 
 		return shown.Length > 160 ? shown.Substring(0, 157) + "..." : shown;
 	}
 
-	static string Nest(string shape, string core, int depth)
+	internal static string Nest(string shape, string core, int depth)
 	{
 		var text = core;
 
@@ -728,35 +609,9 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	/// out may hold an exception the tree keeps as a gap, whose stack trace names the frames the runtime
 	/// inlined, which are not the tree's. The outcome, position, length, message and tree stay as written.
 	/// </summary>
-	static string Normalized(string text)
+	internal static string Normalized(string text)
 	{
 		return Frames.Replace(text, "");
-	}
-
-	/// <summary>What the normalization keeps apart and what it takes out, held here so that a differential compares answers and not their absence.</summary>
-	[Theory]
-	[InlineData("Success at 0+15:  | SELECT 1 FROM t", "Success at 0+16:  | SELECT 99 FROM t")]
-	[InlineData("Success at 0+15:  | SELECT 1 FROM t", "Success at 0+15:  | SELECT 2 FROM t")]
-	[InlineData("NoMatch at 3+0: Expected 'a'. | ", "NoMatch at 4+0: Expected 'a'. | ")]
-	[InlineData("NoMatch at 3+0: Expected 'a'. | ", "NoMatch at 3+0: Expected 'b'. | ")]
-	public void Answers_that_differ_stay_apart_when_normalized(string one, string other)
-	{
-		Assert.NotEqual(Normalized(one), Normalized(other));
-		Assert.Equal(one, Normalized(one));
-	}
-
-	[Fact]
-	public void Only_the_frames_of_a_gap_are_taken_out()
-	{
-		const string frames =
-			"Success at 0+15:  | Built { Gap = DotGram.Sql.TransactSql.BuildGap: Statement.Dbcc: not kept\n" +
-			"   at DotGram.Sql.TransactSql.Build.Server.DbccOption(Dbcc owner, Clause clause) in /x/Build.Server.cs:line 930\n" +
-			"   at DotGram.Sql.TransactSql.Build.Server.<>c__DisplayClass36_0.<Dbcc>b__1(Clause one) in /x/Build.Server.cs:line 905\n" +
-			"   at DotGram.Sql.TransactSql.Build.Hold[T](T given, Func`2 build) in /x/Build.Built.cs:line 185, Given = Dbcc { } }";
-
-		Assert.Equal(
-			"Success at 0+15:  | Built { Gap = DotGram.Sql.TransactSql.BuildGap: Statement.Dbcc: not kept, Given = Dbcc { } }",
-			Normalized(frames));
 	}
 
 	static string Written(object? value)
@@ -859,7 +714,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "Corpus", "ScriptDom"));
 	}
 
-	static IEnumerable<string> Harvested(string prefix, [CallerFilePath] string here = "")
+	internal static IEnumerable<string> Harvested(string prefix, [CallerFilePath] string here = "")
 	{
 		var tests = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "DotGram.Sql.Tests"));
 		var found = new SortedSet<string>(StringComparer.Ordinal);
@@ -878,5 +733,163 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			}
 
 		return found;
+	}
+}
+
+/// <summary>The memo of successes held to the SQL-92 grammar, and what the normalization of an answer keeps apart.</summary>
+public sealed class SqlSuccessMemoSql92Tests(ITestOutputHelper output) : SqlSuccessMemoTests(output)
+{
+	[Fact]
+	public void Sql92_nests_cost_their_depth_with_the_memo()
+	{
+		Ladders("SQL-92", SqlVariants.Sql92, "TryParseSelect", Prefix, Sql92Shapes);
+	}
+
+	[Fact]
+	public void Sql92_reads_the_same_with_the_memo()
+	{
+		var unkept  = Immediate(SqlVariants.Sql92, keeps: false);
+		var kept    = Immediate(SqlVariants.Sql92);
+		var unkeptL = Immediate(SqlVariants.Sql92, keeps: false, located: true).GetNestedType("Located")!;
+		var keptL   = Immediate(SqlVariants.Sql92, located: true).GetNestedType("Located")!;
+		var cover   = Immediate(SqlVariants.Sql92Cover);
+		var split   = Immediate(SqlVariants.Sql92Split);
+		var coverL  = Immediate(SqlVariants.Sql92Cover, located: true).GetNestedType("Located")!;
+
+		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept), ("cover", cover), ("split", split) })
+			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
+
+		var generated = Generated(3000, seed: 92);
+		var accepted  = generated.Where(text => Answer(unkept, "TryParseSelect", [text]).Accepted).ToList();
+		var corpus    = Statements().Where(text => Answer(unkept, "TryParseSelect", [text]).Accepted || Answer(unkept, "TryParseQuery", [text]).Accepted).ToList();
+
+		Log($"generated statements: {generated.Count}, of which the parser accepts {accepted.Count}; corpus statements the parser accepts as a select or a query: {corpus.Count} of {Statements().Count}");
+
+		var texts = Harvested("Sql92")
+			.Concat(Statements().Where((_, i) => i % 4 == 0))
+			.Concat(corpus)
+			.Concat(generated)
+			// To depth 8: without the memo the subquery with a set operation costs a hundred million entries there, and three to the depth beyond.
+			.Concat(Sql92Shapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => Prefix + Nest(shape.Shape, shape.Core, depth))))
+			.Concat(Sql92Shapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
+			.Concat(
+			[
+				"a", "(a)", "((a))", "(a) + 1", "(a, b) = (1, 2)", "(a, b) + 1 = 1", "(a = 1) = 1", "(a = 1) + 1", "-(a = 1)",
+				"NOT a", "a AND b", "a IS TRUE", "(a = 1, 2) = (1, 2)", "(NULL, 1) = (1, 2)", "(NULL)", "(DEFAULT, 1) = (1, 1)",
+				"1 + (a = 1)", "(SELECT a FROM t) = 1", "((SELECT a FROM t)) = 1", "a IN ((SELECT a FROM t), 2)",
+				"(a = 1 AND b = 2) OR c = 3", "((a))) = 1", "(a +", "(a = ", "(a, ", "(CASE WHEN a = 1 THEN 1 END",
+			])
+			.Distinct()
+			.ToList();
+
+		var located = accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList();
+
+		// The memo: the same answer, byte for byte, and the same records.
+		var differences = Differential("shipped: no memo vs memo", unkept, kept, texts, holds: true);
+
+		Assert.True(differences == 0, $"{differences} answers differ between the shipped SQL-92 parser with the memo of successes and without; see the output.");
+		Assert.Equal(0, LocatedDifferential("located: shipped, no memo vs memo", unkeptL, keptL, located));
+
+		// The rewrites, for the table: what they would change.
+		Differential("shipped + memo vs cover", kept, cover, texts, holds: false);
+		Differential("shipped + memo vs split", kept, split, texts, holds: false);
+		LocatedDifferential("located: shipped + memo vs cover", keptL, coverL, located);
+	}
+
+	/// <summary>What the normalization keeps apart and what it takes out, held here so that a differential compares answers and not their absence.</summary>
+	[Theory]
+	[InlineData("Success at 0+15:  | SELECT 1 FROM t", "Success at 0+16:  | SELECT 99 FROM t")]
+	[InlineData("Success at 0+15:  | SELECT 1 FROM t", "Success at 0+15:  | SELECT 2 FROM t")]
+	[InlineData("NoMatch at 3+0: Expected 'a'. | ", "NoMatch at 4+0: Expected 'a'. | ")]
+	[InlineData("NoMatch at 3+0: Expected 'a'. | ", "NoMatch at 3+0: Expected 'b'. | ")]
+	public void Answers_that_differ_stay_apart_when_normalized(string one, string other)
+	{
+		Assert.NotEqual(Normalized(one), Normalized(other));
+		Assert.Equal(one, Normalized(one));
+	}
+
+	[Fact]
+	public void Only_the_frames_of_a_gap_are_taken_out()
+	{
+		const string frames =
+			"Success at 0+15:  | Built { Gap = DotGram.Sql.TransactSql.BuildGap: Statement.Dbcc: not kept\n" +
+			"   at DotGram.Sql.TransactSql.Build.Server.DbccOption(Dbcc owner, Clause clause) in /x/Build.Server.cs:line 930\n" +
+			"   at DotGram.Sql.TransactSql.Build.Server.<>c__DisplayClass36_0.<Dbcc>b__1(Clause one) in /x/Build.Server.cs:line 905\n" +
+			"   at DotGram.Sql.TransactSql.Build.Hold[T](T given, Func`2 build) in /x/Build.Built.cs:line 185, Given = Dbcc { } }";
+
+		Assert.Equal(
+			"Success at 0+15:  | Built { Gap = DotGram.Sql.TransactSql.BuildGap: Statement.Dbcc: not kept, Given = Dbcc { } }",
+			Normalized(frames));
+	}
+}
+
+/// <summary>The memo of successes held to the T-SQL grammar.</summary>
+public sealed class SqlSuccessMemoTSqlTests(ITestOutputHelper output) : SqlSuccessMemoTests(output)
+{
+	[Fact]
+	public void TSql_nests_cost_their_depth_with_the_memo()
+	{
+		Ladders("T-SQL", SqlVariants.TransactSql, SqlVariants.Entry(SqlVariants.TransactSql, "TryParseSearchCondition"), "", TSqlShapes);
+	}
+
+	[Fact]
+	public void TSql_reads_the_same_with_the_memo()
+	{
+		var unkept = Immediate(SqlVariants.TransactSql, keeps: false);
+		var kept   = Immediate(SqlVariants.TransactSql);
+
+		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept) })
+			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
+
+		var statement = SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement");
+		var texts = Harvested("TransactSql")
+			.Concat(Statements())
+			.Concat(TSqlShapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
+			.Concat(TSqlShapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
+			.Distinct()
+			.ToList();
+
+		var accepted = Accepted(unkept, statement, Statements());
+
+		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
+
+		var differences = Differential("T-SQL shipped: no memo vs memo", unkept, kept, texts, holds: true);
+
+		Assert.True(differences == 0, $"{differences} answers differ between the shipped T-SQL parser with the memo of successes and without; see the output.");
+	}
+}
+
+/// <summary>The memo of successes held to the SQL:2023 grammar.</summary>
+public sealed class SqlSuccessMemoSql2023Tests(ITestOutputHelper output) : SqlSuccessMemoTests(output)
+{
+	[Fact]
+	public void Sql2023_nests_cost_their_depth_with_the_memo()
+	{
+		Ladders("SQL:2023", SqlVariants.Standard, "TryParseSearchCondition", "", StandardShapes);
+	}
+
+	[Fact]
+	public void Sql2023_reads_the_same_with_the_memo()
+	{
+		var unkept = Immediate(SqlVariants.Standard, keeps: false);
+		var kept   = Immediate(SqlVariants.Standard);
+
+		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept) })
+			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
+
+		var texts = Harvested("SqlStandard")
+			.Concat(Statements())
+			.Concat(StandardShapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
+			.Concat(StandardShapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
+			.Distinct()
+			.ToList();
+
+		var accepted = Accepted(unkept, "TryParseStatement", Statements());
+
+		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
+
+		var differences = Differential("SQL:2023 shipped: no memo vs memo", unkept, kept, texts, holds: true);
+
+		Assert.True(differences == 0, $"{differences} answers differ between the shipped SQL:2023 parser with the memo of successes and without; see the output.");
 	}
 }
