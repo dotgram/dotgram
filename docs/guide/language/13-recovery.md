@@ -190,7 +190,7 @@ Notes:
 - Where a bad element **began** and where reading it **stopped** are different places: `3,20` begins at
   column 1, and it is the comma at column 2 where a `.` would have fit.
 - `parserMessage` puts them together, `Expected '.' at 2:2.`; a rule with `on fail` says its own sentence
-  instead ([values](04-values.md#what-a-refusal-says-on-fail)).
+  instead ([values](07-values.md#what-a-refusal-says-on-fail)).
 - Lines count as `eol` counts them, however a stream's buffer cut a `\r\n`.
 - A successful element may capture the same position names, which is how a record carries its own
   position.
@@ -307,7 +307,7 @@ parse Text
 - A token is the longest match of a regular language and has no elements to step over: in a grammar split
   into tokens, `recover` belongs in the syntax (`GRAM4044`).
 - A binding around or inside a recovering repetition is not supported yet (`GRAM4034`,
-  [bindings](06-bindings.md)).
+  [bindings](12-bindings.md)).
 
 <!-- ru:begin -->
 > **RU.** Где `recover` стоять не может: не на повторении или с `=>` на повторении, которое собирает текст,
@@ -323,7 +323,7 @@ parse Text
 The synchronization is also the bound on what a streamed parse holds: an element cannot reach back past the
 previous synchronization point, so a parse from a `TextReader` holds one element, not the file. A rule that
 marks two repetitions recovers in both when read whole, but gets no reader overload (`GRAM5001`), and a
-`yield` publication hands a rejected element over in its place ([publication](11-publication.md#a-lazy-result-yield)):
+`yield` publication hands a rejected element over in its place ([publication](08-publication.md#a-lazy-result-yield)):
 
 ```dotgram
 Row  : @string   = v: { ['a'..'z']+ } & '\n' => v

@@ -171,7 +171,7 @@ public sealed class LanguageGuideTests
 	[Fact]
 	public void The_reference_names_every_sign_and_word_of_the_notation()
 	{
-		var page   = File.ReadAllText(Path.Combine(SourceRoot.Directory, "docs", "guide", "language", "16-reference.md"));
+		var page   = File.ReadAllText(Path.Combine(SourceRoot.Directory, "docs", "guide", "language", "17-reference.md"));
 		var spans  = Regex.Matches(page, "`([^`\n]+)`").Select(static one => one.Groups[1].Value.Replace("\\|", "|", StringComparison.Ordinal)).ToList();
 		var parser = File.ReadAllText(Path.Combine(SourceRoot.Directory, "src", "DotGram", "Grammar", "Parsing", "GramParser.cs"));
 
@@ -196,7 +196,7 @@ public sealed class LanguageGuideTests
 			.Concat(signs.Where(sign => !spans.Any(span => span.Contains(sign, StringComparison.Ordinal))))
 			.ToList();
 
-		Assert.True(missing.Count == 0, "16-reference.md does not name: " + string.Join(" ", missing));
+		Assert.True(missing.Count == 0, "17-reference.md does not name: " + string.Join(" ", missing));
 	}
 
 	/// <summary>

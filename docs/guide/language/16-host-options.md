@@ -1,97 +1,10 @@
 # Host options that change what a grammar means
 
 Most options of `[Gram(…)]` say how a parser is generated, not what it reads. A few change what a grammar
-means, and those are on this page: reading over tokens (`Lexical`), when constructions run (`Carrier`,
-`ConstructionsMayThrow`), what captures are handed as, and grammars that are read twice or built on another.
+means, and those are on this page: when constructions run (`Carrier`, `ConstructionsMayThrow`), what
+captures are handed as, and grammars that are read twice or built on another. Reading over tokens,
+`Lexical = true`, has [a chapter of its own](06-lexical.md).
 The full list is [`syntax.md` §6.8](../../syntax.md#68-generation-options).
-
-## Reading over tokens: `Lexical = true`
-
-`[Gram("…", Lexical = true)]` cuts a grammar into a lexer and a syntactic half. The lexer turns the text into
-tokens by longest match; the syntactic half reads the tokens, deciding at each choice by the token in front of
-it and never going back — as a parser written by hand does.
-
-What makes the cut possible is two things: a namespace whose own `trivia` is `none`, whose rules are the
-tokens, and a braced `trivia` outside it, which the lexer skips between tokens.
-
-```dotgram Lexical
-namespace Lex
-{
-	trivia = none
-
-	Name   = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
-	Number = ['0'..'9']+
-}
-
-trivia       = { [' ' | '\t' | '\r' | '\n']* }
-wordboundary = [\p{L} | \p{Nd} | '_']
-
-Query    : @string = "select"i & c: Lex.Name & "where"i & w: Compare => @(c + " " + w)
-Compare  : @string = l: Lex.Name & op: Operator & r: Lex.Number => @(l + op + r)
-Operator : @string = t: ("<" | "<>" | "=") => t
-
-parse Query
-```
-
-```text examples
-ParseQuery("SELECT a WHERE b <> 1") → "a b<>1"
-ParseQuery("select a where b<1") → "a b<1"
-ParseQuery("selecta where b=1") → refused
-```
-
-The lexer settles `<>` as one token because it is the longer match, whatever the order of the alternatives;
-over characters, `"<" | "<>"` would need backtracking to find it. And `selecta` is one name, not `select`
-followed by `a`, because `wordboundary` is declared.
-
-What changes over tokens:
-
-| | Over characters | Over tokens |
-| --- | --- | --- |
-| a choice or a repetition | gives back when something later fails | stands once it matched; a rule marked `Name?` gives back inside itself ([rules](07-rules.md#rules-that-give-back)) |
-| alternatives of literals | ordered | longest match decides |
-| `~` | no seam is woven | the two tokens must touch ([trivia](08-trivia-and-words.md#adjacency-)) |
-| `word` | a run of boundary characters | one test of the token kind |
-| a binding `$q` | anywhere | only inside a terminal (`GRAM4035`, [bindings](06-bindings.md#bindings-in-a-grammar-split-into-tokens)) |
-| `recover` | anywhere on a repetition | in the syntax only (`GRAM4044`) |
-
-A grammar that cannot be cut is compiled over characters, as if the option were not there, and warned of
-(`GRAM5004`), which names what stood in the way — here a class of characters in a syntactic rule:
-
-```dotgram Lexical GRAM5004
-trivia = { ' '* }
-
-Word = { ['a'..'z']+ }
-Pair = Word & '=' & Word
-
-parse Pair
-```
-
-```text examples
-ParsePair("a = b") → "a = b"
-```
-
-Notes:
-
-- A grammar that names `eos` cannot be cut (`GRAM4049`).
-- A terminal that is nothing but a host recognizer `@M` has no beginning the lexer can stop on, so the host
-  is asked at every token (`GRAM5011`).
-- The lexer's `Scan(text, pos, out kind)` is internal to the host, for the host's own code.
-
-<!-- ru:begin -->
-> **RU.** `Lexical = true` разрезает грамматику на лексер и синтаксическую половину: лексер превращает текст
-> в токены по самому длинному совпадению, синтаксис читает токены и на каждом выборе решает по токену
-> перед собой, не возвращаясь — как рукописный парсер. Разрез возможен при двух условиях: пространство с
-> собственной `trivia = none`, правила которого — токены, и атомарная `trivia` снаружи, которую лексер
-> пропускает между токенами (пример `Query`: `<>` — один токен по самому длинному совпадению, независимо
-> от порядка альтернатив; `selecta` — одно имя благодаря `wordboundary`). Что меняется над токенами —
-> таблица: выбор и повторение стоят (кроме правил `Name?`); альтернативы литералов решает самое длинное
-> совпадение; `~` требует соприкосновения токенов; `word` — одна проверка вида токена; привязка — только
-> внутри терминала (`GRAM4035`); `recover` — только в синтаксисе (`GRAM4044`). Грамматика, которую нельзя
-> разрезать, компилируется над символами, как без опции, с предупреждением `GRAM5004`, называющим
-> препятствие (второй пример: класс символов в синтаксическом правиле). С `eos` разрез невозможен
-> (`GRAM4049`); терминал из одного `@M` — `GRAM5011`; `Scan(text, pos, out kind)` лексера — внутренний
-> метод хоста.
-<!-- ru:end -->
 
 ## When constructions run: `Carrier`
 
@@ -191,13 +104,13 @@ the answer is the deferred carrier's. The hold costs every construction a little
 | `MaxBufferedInputLength` | no limit | where a buffered call does not say, the most a buffered parse may hold |
 
 A buffer size or a retention of zero or less is `GRAM0009`. What the buffered forms are and which rules they
-take is in [publication](11-publication.md#input-from-a-reader-or-a-stream-stream-stream-bytes).
+take is in [publication](08-publication.md#input-from-a-reader-or-a-stream-stream-stream-bytes).
 
 <!-- ru:begin -->
 > **RU.** Захваты и буферизованный вход (таблица): `UseSpanCaptures` — символьные захваты и `parserText`
 > приходят в C# как `ReadOnlySpan<char>`; `BufferedText`/`BufferedBytes` — все `parse` и `find` получают
 > формы над `TextReader`/байтами, как с `stream`/`stream bytes`; `InitialBufferSize` и `MaxBufferedInputLength` — значения по
-> умолчанию для буферизованных вызовов; ноль или меньше — `GRAM0009`. Подробно — в главе 11.
+> умолчанию для буферизованных вызовов; ноль или меньше — `GRAM0009`. Подробно — в главе 08.
 <!-- ru:end -->
 
 ## Reading a grammar twice: `[GramParserVariant]`

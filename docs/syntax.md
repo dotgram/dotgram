@@ -4589,7 +4589,7 @@ assembly, which a new grammar joins without anyone remembering to add it.
 That grammar is a check, not the definition. What the generator reads is decided by its own
 parser, written by hand: `src/DotGram/Grammar/Parsing/GramLexer.cs` and `GramParser.cs`. Where
 the two disagree, the hand-written parser is the authority and the example grammar is the one to
-correct. The language guide's quick reference (`docs/guide/language/16-reference.md`) is held by a
+correct. The language guide's quick reference (`docs/guide/language/17-reference.md`) is held by a
 test to every word and sign that parser reads.
 
 Two things in the running grammar are worth knowing about, since neither is visible in
