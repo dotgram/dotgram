@@ -42,7 +42,7 @@ Notes:
 - A literal is compared one UTF-16 code unit at a time, like every element: a character outside
   the Basic Multilingual Plane is written as a string of its two surrogates, `"😀"`.
 - What a rule made only of a literal gives back is the text it matched, a `string`
-  ([values](04-values.md)).
+  ([values](07-values.md)).
 
 Refused:
 
@@ -92,9 +92,9 @@ ParseCrlf("\r\n") → "\r\n"
 Notes:
 
 - `parse` asks for the whole input, so `"selected"` is refused: `"select"` matched, and `ed` was
-  left over. A `find` would have found it ([publication](11-publication.md)).
+  left over. A `find` would have found it ([publication](08-publication.md)).
 - `"select"` does not stop at a word's end unless the grammar says what a word is made of: see
-  [`wordboundary`](08-trivia-and-words.md#wordboundary).
+  [`wordboundary`](05-trivia-and-words.md#wordboundary).
 - An empty string `""` matches nothing and always succeeds, like `none`. An unterminated string is
   `GRAM1002`.
 
@@ -160,7 +160,7 @@ Notes:
   followed by the name `id` (and then needs a connector between them).
 - It attaches to the literal only: `"in"i & Name` folds `in`, not whatever `Name` reads.
 - A back-reference `$q` never folds, whatever the literal that bound it did
-  ([bindings](06-bindings.md)).
+  ([bindings](12-bindings.md)).
 - There is no case-insensitive element set: `['a'..'z']i` is not a form, and `'a'i` is refused
   inside brackets, as an element or a range's bound (`GRAM2015`). Write both cases,
   `['a'..'z' | 'A'..'Z']`, or a choice of literals, `'a'i | 'b'i`:
@@ -350,7 +350,7 @@ Notes:
 - `eof` matters inside a rule (`Header & Row* & eof`) and in a `find`; a `parse` already asks for
   the whole input.
 - The remaining four built-ins are `eos` (below), `trivia`, `wordboundary` and `word`
-  ([trivia and words](08-trivia-and-words.md)).
+  ([trivia and words](05-trivia-and-words.md)).
 
 <!-- ru:begin -->
 > **RU.** Четыре встроенных правила: `any` — один любой элемент (не совпадает только в конце
@@ -387,12 +387,12 @@ be read as two plain arguments, and the compiler warns of the two readings (`GRA
 Notes:
 
 - Such a grammar is published over `IReadOnlyList<string>`, `IEnumerable<string>` and a
-  `TextReader` (one line a segment), and over nothing else ([publication](11-publication.md)).
+  `TextReader` (one line a segment), and over nothing else ([publication](08-publication.md)).
   A position counts one for each character and one for each boundary.
 - U+0000 is how a boundary is read: a segment holding it is refused before it is read, and a
   literal or set item that is U+0000 alone is an error (`GRAM4047`).
 - Not supported yet, and refused: text captured, bound or published across an `eos` (`GRAM4048`),
-  `Lexical = true` (`GRAM4049`), buffered or byte forms (`GRAM4050`), `positional parse`
+  `Lexical = true` (`GRAM4049`, [reading over tokens](06-lexical.md)), buffered or byte forms (`GRAM4050`), `positional parse`
   (`GRAM4055`).
 
 ```dotgram GRAM4048

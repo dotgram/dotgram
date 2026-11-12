@@ -182,7 +182,7 @@ Notes:
 - Two `out T` overloads of one name with different `T` are a tie, reported rather than guessed (`GRAM4015`).
 - A recognizer over the input view may take the grammar's `context` as its last parameter, after an `out T`:
   `bool M(ParserInput<char> input, ref int pos, out T value, Names context)`
-  ([context and state](13-context-and-state.md#context--t)).
+  ([context and state](15-context-and-state.md#context--t)).
 - In a grammar split into tokens, a terminal that is nothing but `@M` has no beginning the lexer can stop on,
   so the host is asked at every token (`GRAM5011`, a warning); write a regular beginning in front of it.
 
@@ -205,7 +205,7 @@ parse Number
 > проверяет; сдвинуть назад или за конец — значит сломать разбор без диагностики; при неудаче `pos` нужно
 > оставить на месте. Метод нужной формы вне досягаемости хоста — `GRAM4025` (на
 > грамматике, а не ошибкой C#); две перегрузки `out T` с разными `T` — `GRAM4015`; распознаватель над
-> `ParserInput` может последним параметром принять `context` грамматики (глава 13); терминал разделённой
+> `ParserInput` может последним параметром принять `context` грамматики (глава 15); терминал разделённой
 > грамматики из одного `@M` — предупреждение `GRAM5011`.
 <!-- ru:end -->
 
@@ -237,7 +237,7 @@ ParseColor("Red") → Red
 
 Notes:
 
-- Captures and the [supplied names](04-values.md#names-the-parser-supplies) are local variables there.
+- Captures and the [supplied names](07-values.md#names-the-parser-supplies) are local variables there.
   `=> @M(a, b)` and `=> @(M(a, b))` are one construction.
 - A C# mistake is a C# error, reported against the grammar's line through `#line`: a misspelt method
   surfaces where the grammar wrote it.
@@ -257,11 +257,11 @@ Notes:
 
 - **Constructions, guards, selectors and recognizers may run more than once**, and for a reading the parse
   then gives up: ordered choice and lookahead try them on the path being read. Keep them free of effects that
-  would need undoing ([values](04-values.md#when-a-construction-runs)).
+  would need undoing ([values](07-values.md#when-a-construction-runs)).
 - **Their answers depend on their arguments and the text only.** A reader over tokens remembers where a rule
   failed and answers the next entry there without reading again; a guard that reads a static field which
   changes during the parse may be answered from before the change. State that changes belongs in `context`,
-  which the generator can see ([context and state](13-context-and-state.md)).
+  which the generator can see ([context and state](15-context-and-state.md)).
 - **A recognizer restores the position on failure**, and may succeed without moving it: inside a repetition,
   past its fewest turns, a turn that does not move ends the repetition.
 - **Nothing is caught.** An exception from the C# leaves the parse, from `TryParse…` too.
