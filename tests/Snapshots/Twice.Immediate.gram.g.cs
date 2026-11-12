@@ -651,10 +651,6 @@ namespace DotGram.Snapshots
 									q4 = ReadPart0_Term(p, pos, r1);
 
 									if (q4 < 0)
-									{
-									}
-
-									if (q4 < 0)
 										ways.Next(w0, 1, 1);
 								}
 								if (q4 < 0 && d0 <= 1)
@@ -662,10 +658,6 @@ namespace DotGram.Snapshots
 									var s2  = ways.Cursor;
 
 									q4 = ReadPart1_Term(p, pos, r1);
-
-									if (q4 < 0)
-									{
-									}
 								}
 
 								if (q4 < 0)
