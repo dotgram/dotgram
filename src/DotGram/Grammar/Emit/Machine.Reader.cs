@@ -2042,6 +2042,13 @@ sealed partial class Machine
 		bool _pushed;
 
 		/// <summary>
+		/// Whether a failure leaves this method with a gathered member still pushed: one written past
+		/// a push and not giving it back (<see cref="Fails"/>). A part's caller puts the gathered
+		/// members back where the part failed only where this holds of the part (<see cref="Called"/>).
+		/// </summary>
+		bool _failsPushed;
+
+		/// <summary>
 		/// The alternatives of one choice with their pushes kept apart: each is rendered from
 		/// what stood pushed before the choice — what the one before it pushed was given back
 		/// before this one was tried, and is not on this one's path — and the choice leaves
@@ -2298,6 +2305,10 @@ sealed partial class Machine
 		string Fails()
 		{
 			var given = GivenBack();
+
+			// A failure past a push that is not given back here leaves it to the caller.
+			if (_pushed && given.Length == 0)
+				_failsPushed = true;
 
 			// The trivia's own method counts itself out as it leaves (SeamRoot).
 			if (SeamRoot)
@@ -4002,7 +4013,7 @@ sealed partial class Machine
 			{
 				apart.Next();
 
-				var (part, undo, _) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
+				var (part, undo, _, leaves) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
 
 				// The first attempt is made; each after it, only where the one before failed.
 				using (i == 0 ? null : code.Block($"if ({tried} < 0)"))
@@ -4014,7 +4025,8 @@ sealed partial class Machine
 					var marks  = new List<string>();
 					var unwind = new List<string>();
 
-					if (_gathers && back >= 0)
+					// Only where the alternative may leave one pushed (Called).
+					if (_gathers && back >= 0 && leaves)
 					{
 						marks.AddRange(machine.Carrier.MarkGathered(owner, $"rr{back}"));
 						unwind.AddRange(machine.Carrier.UnwindGathered(owner, $"rr{back}"));
@@ -4051,8 +4063,10 @@ sealed partial class Machine
 						code.Line();
 
 						using (code.Block($"if ({tried} < 0)"))
+						{
 							foreach (var line in unwind)
 								code.Line(line);
+						}
 					}
 				}
 			}
@@ -4204,13 +4218,19 @@ sealed partial class Machine
 					code.Line($"var s{segment}  = ways.Cursor;");
 					foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 						code.Line(line);
-					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
-						code.Line(line);
-					code.Line();
 
 					apart.Next();
 
-					var (call, undo, opens) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
+					var (call, undo, opens, leaves) = Called(alternatives[i], following, Quiet(closing, alternatives, i));
+
+					// Asked of the alternative once it is written; a loop that defers puts the
+					// gathered members back after an attempt that stood, too.
+					var gathered = leaves || opens && Defers(RetrySite.Alternative, noting: false);
+
+					if (gathered)
+						foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+							code.Line(line);
+					code.Line();
 
 					if (analyzing)
 						machine.NoteRetrySite(owner, alternatives[i]);
@@ -4218,7 +4238,7 @@ sealed partial class Machine
 					if (opens)
 					{
 						var defers  = Defers(RetrySite.Alternative);
-						var restore = Restore(segment, undo);
+						var restore = Restore(segment, undo, gathered);
 
 						// Declared here and not with the mark above: whether there is a loop to
 						// read it is known only once the alternative has been written.
@@ -4245,16 +4265,18 @@ sealed partial class Machine
 						// Nothing under it goes on the tape, so it has one reading and asking
 						// for another is a loop that can only go round once.
 						code.Line($"{tried} = {call};");
-						code.Line();
 
-						using (code.Block($"if ({tried} < 0)"))
+						var back = Restore(segment, undo, gathered);
+
+						if (back.Count > 0)
 						{
-							LogBack(code, $"lm{segment}");
-							foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
-								code.Line(line);
+							code.Line();
 
-							if (undo.Length > 0)
-								code.Line(undo);
+							using (code.Block($"if ({tried} < 0)"))
+							{
+								foreach (var line in back)
+									code.Line(line);
+							}
 						}
 					}
 
@@ -4325,7 +4347,15 @@ sealed partial class Machine
 		/// Leaving it is the defect this exists for: the alternative after it writes a
 		/// record naming the position, and gets the abandoned one.
 		/// </remarks>
-		(string Call, string Undo, bool Opens) Called(Node part, FollowSets.Continuation following, bool quiet = false)
+		/// <returns>
+		/// The call; what has to be put back where it failed; whether it opens a way; and whether a
+		/// failure of it may leave a gathered member pushed. Where the carrier's rules give back what
+		/// they pushed wherever they fail (<see cref="ValueCarrier.CallsGiveBackGathered"/>), a rule's
+		/// method never does, and a part is asked how it was written (<see cref="_failsPushed"/>): a
+		/// failure written past a push of its own. Elsewhere any call may. A caller marks and puts
+		/// back the gathered members only where the last is true.
+		/// </returns>
+		(string Call, string Undo, bool Opens, bool Leaves) Called(Node part, FollowSets.Continuation following, bool quiet = false)
 		{
 			var (captured, used) = Reaches(part);
 			var elsewhere        = Elsewhere(part);
@@ -4351,7 +4381,8 @@ sealed partial class Machine
 				return (
 					Framed(bare, machine.ReaderOf(bare.Rule), machine.DirectStrengthOf(bare, bare.Rule)),
 					"",
-					machine.Opens(part));
+					machine.Opens(part),
+					!machine.Carrier.CallsGiveBackGathered);
 			}
 
 			// What the part hands back is a local of this method, so this method declares it.
@@ -4400,7 +4431,8 @@ sealed partial class Machine
 			return (
 				$"{name}(p{Handing(given, taken, "", wider, ceilings)})",
 				undo.ToString().TrimEnd(),
-				opens);
+				opens,
+				apart._failsPushed || !machine.Carrier.CallsGiveBackGathered);
 		}
 
 		/// <summary>
@@ -4862,11 +4894,15 @@ sealed partial class Machine
 
 				var turn = $"q{_calls++}";
 				var back = _gathers || _logs ? _ways++ : -1;
-				var (call, undo, _) = Called(body, inside);
+				var (call, undo, _, leaves) = Called(body, inside);
+
+				// A turn that ended where it began is put back as a failed one is: only a turn that
+				// cannot stand still is put back for its failure alone.
+				var gathered = _gathers && (leaves || FirstSets.Nullable(body, _graph) || FirstSets.StandsStill(body, _graph));
 
 				if (back >= 0)
 				{
-					if (_gathers)
+					if (gathered)
 						foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
 							code.Line(line);
 
@@ -4896,7 +4932,7 @@ sealed partial class Machine
 
 				using (code.Block(stands ? $"if ({turn} < 0 || {turn} == p && {turns} >= {min})" : $"if ({turn} < 0 || {turn} == p)"))
 				{
-					if (_gathers && back >= 0)
+					if (gathered && back >= 0)
 						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
 							code.Line(line);
 
@@ -5078,11 +5114,15 @@ sealed partial class Machine
 
 			var turn = $"q{_calls++}";
 			var back = _gathers || _logs ? _ways++ : -1;
-			var (call, undo, _) = Called(body, inside);
+			var (call, undo, _, leaves) = Called(body, inside);
+
+			// Put back where the part failed and where it ended where it began, which only a part
+			// that can read nothing does.
+			var gathered = _gathers && (leaves || FirstSets.Nullable(body, _graph) || FirstSets.StandsStill(body, _graph));
 
 			if (back >= 0)
 			{
-				if (_gathers)
+				if (gathered)
 					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
 						code.Line(line);
 
@@ -5105,7 +5145,7 @@ sealed partial class Machine
 
 			code.Line();
 
-			var undone = _gathers && back >= 0 || _logs && back >= 0 || undo.Length > 0;
+			var undone = gathered && back >= 0 || _logs && back >= 0 && machine.Carrier.UnwindRecords($"lm{back}").Any() || undo.Length > 0;
 
 			using (code.Block($"if ({turn} >= 0 && {turn} != p)"))
 				code.Line($"p = {turn};");
@@ -5113,7 +5153,7 @@ sealed partial class Machine
 			if (undone)
 				using (code.Block("else"))
 				{
-					if (_gathers && back >= 0)
+					if (gathered && back >= 0)
 						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
 							code.Line(line);
 
@@ -5375,15 +5415,11 @@ sealed partial class Machine
 					}
 					else
 					{
-						var rest = Attempt(code, new Node.Sequence(read.Continuation), following);
-
-						code.Line($"if ({rest} >= 0)");
-
-						using (code.Block(""))
+						Attempt(code, new Node.Sequence(read.Continuation), following, succeeded: static (code, rest) =>
 						{
 							code.Line($"p = {rest};");
 							code.Line("break;");
-						}
+						});
 					}
 				}
 
@@ -5393,11 +5429,7 @@ sealed partial class Machine
 				code.Line("failure.Reach = p;");
 
 				var mark  = $"k{_ways++}";
-				var taken = Attempt(code, body, inside, ways ? mark : null);
-
-				code.Line($"if ({taken} >= 0)");
-
-				using (code.Block(""))
+				Attempt(code, body, inside, ways ? mark : null, succeeded: (code, taken) =>
 				{
 					// Committed: what it opened on the tape can never be asked for again.
 					if (ways)
@@ -5405,9 +5437,7 @@ sealed partial class Machine
 					code.Line($"p = {taken};");
 					code.Line($"{turn}++;");
 					code.Line("continue;");
-				}
-
-				code.Line();
+				});
 
 				// Neither, and nothing left: an element or the continuation is missing, which the
 				// two attempts have said. What the loop opened on the tape goes with it: the
@@ -5455,21 +5485,13 @@ sealed partial class Machine
 
 			code.Line("failure.Reach = p;");
 
-			var taken = Attempt(code, body, inside, ways ? mark : null);
-
-			code.Line($"if ({taken} >= 0)");
-
-			using (code.Block(""))
+			Attempt(code, body, inside, ways ? mark : null, succeeded: (code, taken) =>
 			{
 				if (ways)
 					code.Line($"ways.Count = ways.Cursor = {mark};");
 
 				code.Line($"p = {taken};");
-			}
-
-			code.Line("else");
-
-			using (code.Block(""))
+			}, failed: code =>
 			{
 				code.Line($"if ({machine.RawPast("p")})");
 				code.Then(Fails());
@@ -5478,7 +5500,7 @@ sealed partial class Machine
 
 				// The step's element is what it recovered: the item, as a read one would have been.
 				code.Line($"r{slot} = {machine.Carrier.Last(RuleOfSlot(slot))};");
-			}
+			});
 		}
 
 		/// <summary>
@@ -5646,9 +5668,16 @@ sealed partial class Machine
 		/// Where the attempt began on the tape's ways, declared under this name, for a caller
 		/// that commits what the attempt opened.
 		/// </param>
-		string Attempt(Writer code, Node part, FollowSets.Continuation following, string? mark = null)
+		/// <param name="succeeded">
+		/// What the caller does where the attempt answered, written here as the branch the failure's
+		/// own putting back is the other side of, so that the answer is tested once.
+		/// </param>
+		/// <param name="failed">What the caller does where it failed, after what the attempt put back.</param>
+		string Attempt(
+			Writer code, Node part, FollowSets.Continuation following, string? mark = null,
+			Action<Writer, string>? succeeded = null, Action<Writer>? failed = null)
 		{
-			var (call, undo, opens) = Called(part, following);
+			var (call, undo, opens, leaves) = Called(part, following);
 			var segment = _ways++;
 			var began   = mark ?? $"s{segment}";
 			var took    = $"q{_calls++}";
@@ -5658,25 +5687,57 @@ sealed partial class Machine
 
 			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 				code.Line(line);
-			foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
-				code.Line(line);
+			if (leaves)
+				foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+					code.Line(line);
+
+			// What a failure puts back: the records, the gathered members where the part may leave
+			// one pushed, and the positions it wrote.
+			var restore = Restore(segment, undo, leaves);
 
 			if (!opens)
 			{
 				code.Line($"var {took} = {call};");
 				code.Line();
 
-				using (code.Block($"if ({took} < 0)"))
+				if (succeeded is not null)
 				{
-					LogBack(code, $"lm{segment}");
-					foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
-						code.Line(line);
+					using (code.Block($"if ({took} >= 0)"))
+						succeeded(code, took);
 
-					if (undo.Length > 0)
-						code.Line(undo);
+					if (restore.Count > 0 || failed is not null)
+					{
+						code.Line("else");
+
+						using (code.Block(""))
+						{
+							foreach (var line in restore)
+								code.Line(line);
+
+							if (failed is not null)
+							{
+								if (restore.Count > 0)
+									code.Line();
+								failed(code);
+							}
+						}
+					}
+
+					code.Line();
+
+					return took;
 				}
 
-				code.Line();
+				if (restore.Count > 0)
+				{
+					using (code.Block($"if ({took} < 0)"))
+					{
+						foreach (var line in restore)
+							code.Line(line);
+					}
+
+					code.Line();
+				}
 
 				return took;
 			}
@@ -5694,14 +5755,11 @@ sealed partial class Machine
 				code.Line($"if ({took} >= 0)");
 				code.Then("break;");
 				code.Line();
-				LogBack(code, $"lm{segment}");
-				foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+				foreach (var line in restore)
 					code.Line(line);
 
-				if (undo.Length > 0)
-					code.Line(undo);
-
-				code.Line();
+				if (restore.Count > 0)
+					code.Line();
 				code.Line($"if (ways.Cursor > {began} && ways.Retry({began}))");
 				code.Then("continue;");
 				code.Line();
@@ -5709,6 +5767,22 @@ sealed partial class Machine
 			}
 
 			code.Line();
+
+			if (succeeded is not null)
+			{
+				using (code.Block($"if ({took} >= 0)"))
+					succeeded(code, took);
+
+				if (failed is not null)
+				{
+					code.Line("else");
+
+					using (code.Block(""))
+						failed(code);
+				}
+
+				code.Line();
+			}
 
 			return took;
 		}
@@ -5781,7 +5855,7 @@ sealed partial class Machine
 			var silent = quiet is not null && machine.SeamReached.Contains(owner);
 			var says   = quiet is not null && !silent;
 
-			var (call, undo, opens) = Called(body, inside);
+			var (call, undo, opens, leaves) = Called(body, inside);
 
 			// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops). Where a
 			// turn may be asked back, the turns passed over are one way, as a run's are
@@ -5992,21 +6066,29 @@ sealed partial class Machine
 				if (defers)
 					code.Line(DeclareDeferral(segment.ToString()));
 
-				foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
-					code.Line(line);
-				foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
-					code.Line(line);
-				code.Line($"var {took} = -1;");
-				code.Line();
-
 				// A reading that stood still past the fewest, read as one that failed.
 				var still = stands ? stops is null ? $"if ({took} == p)" : $"if ({took} == p && {stops})" : null;
+
+				// What a failure puts back where nothing asks the part again.
+				var failing = new List<string>();
+
+				// The gathered members are put back where the turn may leave one pushed: where it
+				// failed and may, where it stood still, and after an attempt a deferring loop reads again.
+				var gathered = leaves || still is not null || defers;
+
+				foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
+					code.Line(line);
+				if (gathered)
+					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+						code.Line(line);
+				code.Line($"var {took} = -1;");
+				code.Line();
 
 				if (opens)
 				{
 					// The failure branch puts back the records and the gathered members and no
 					// more: what a part wrote is undone only once the turn is given up, below.
-					var restore = Restore(segment, "");
+					var restore = Restore(segment, "", gathered);
 
 					using (code.Block("while (true)"))
 					{
@@ -6052,18 +6134,21 @@ sealed partial class Machine
 						code.Line();
 					}
 
-					using (code.Block($"if ({took} < 0)"))
-					{
-						LogBack(code, $"lm{segment}");
-						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
-							code.Line(line);
-					}
+					// Put back on the failing branch below, which tests the same answer.
+					failing = Restore(segment, "", gathered);
 				}
 
-				code.Line();
+				if (opens)
+					code.Line();
 
 				using (code.Block($"if ({took} < 0)"))
 				{
+					foreach (var line in failing)
+						code.Line(line);
+
+					if (failing.Count > 0 && undo.Length > 0)
+						code.Line();
+
 					if (undo.Length > 0)
 					{
 						code.Line(undo);
@@ -6168,7 +6253,7 @@ sealed partial class Machine
 			// the star before it, and `{ A* & ?!B }` what the refusal lets through.
 			var segment             = _ways++;
 			var took                = $"q{_calls++}";
-			var (call, undo, opens) = Called(kept, FollowSets.Continuation.Sealed);
+			var (call, undo, opens, leaves) = Called(kept, FollowSets.Continuation.Sealed);
 
 			// Where nothing under the group can open a way, there is nothing to take back into it
 			// and nothing to seal: the loop never went round, the seal spent nothing, and the one
@@ -6186,15 +6271,16 @@ sealed partial class Machine
 			}
 
 			var defers  = Defers(RetrySite.Atomic);
-			var restore = Restore(segment, undo);
+			var restore = Restore(segment, undo, leaves || defers);
 
 			code.Line($"var s{segment}  = ways.Cursor;");
 			if (defers)
 				code.Line(DeclareDeferral(segment.ToString()));
 			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
 				code.Line(line);
-			foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
-				code.Line(line);
+			if (leaves || defers)
+				foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+					code.Line(line);
 			code.Line($"var {took} = -1;");
 			code.Line();
 
@@ -6229,9 +6315,9 @@ sealed partial class Machine
 		/// written rather than read through for the first time — and never in a trace build, whose
 		/// sink would hear the attempt that stood twice.
 		/// </summary>
-		bool Defers(RetrySite site)
+		bool Defers(RetrySite site, bool noting = true)
 		{
-			return machine.Deferral(owner, site, noting: !analyzing).Defers && machine.Tracing is null;
+			return machine.Deferral(owner, site, noting: noting && !analyzing).Defers && machine.Tracing is null;
 		}
 
 		/// <summary>
@@ -6239,11 +6325,13 @@ sealed partial class Machine
 		/// the records to the loop's mark, the gathered members to theirs, and the positions the
 		/// part wrote where the site undoes those on a retry.
 		/// </summary>
-		List<string> Restore(int segment, string undo)
+		/// <param name="gathered">Whether the gathered members are put back too: whether the part may leave one pushed (<see cref="Called"/>).</param>
+		List<string> Restore(int segment, string undo, bool gathered)
 		{
 			var restore = new List<string>(machine.Carrier.UnwindRecords($"lm{segment}"));
 
-			restore.AddRange(machine.Carrier.UnwindGathered(owner, $"rr{segment}"));
+			if (gathered)
+				restore.AddRange(machine.Carrier.UnwindGathered(owner, $"rr{segment}"));
 
 			if (undo.Length > 0)
 				restore.Add(undo);
@@ -6628,7 +6716,7 @@ sealed partial class Machine
 			// match and gives back what it read, so a repetition standing at the end of its
 			// body is never asked for a shorter reading and owes no way. `?!LogSeparator`
 			// over `' '* & '|' & ' '*` was opening one for the trailing run of spaces.
-			var (call, undo, opens) = Called(inside, FollowSets.Continuation.Sealed);
+			var (call, undo, opens, _) = Called(inside, FollowSets.Continuation.Sealed);
 
 			// What a look recorded is dropped whether it saw or not: its outcome is one bit,
 			// and what it captured on the way to it is not the rule's. Over the tape, the body

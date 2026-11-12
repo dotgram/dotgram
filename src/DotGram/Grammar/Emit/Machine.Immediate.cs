@@ -742,6 +742,8 @@ sealed partial class Machine
 			return UnwindGathered(owner, name);
 		}
 
+		public override bool CallsGiveBackGathered => true;
+
 		/// <remarks>
 		/// A default is what says a local was never written, and for a value type the default
 		/// is also a value: an <c>int</c> left out and an <c>int</c> read as nought would be one
