@@ -61,7 +61,7 @@ Notes:
   written as C# writes such a name: `using: Word => @(@using)`.
 - One name may be captured in several alternatives, or several times in one, as long as it has one
   type everywhere.
-- A binding `$q: X` is not a capture: it adds no member and no name ([bindings](06-bindings.md)).
+- A binding `$q: X` is not a capture: it adds no member and no name ([bindings](12-bindings.md)).
 - Captures inside a lookahead are refused (`GRAM4006`, [composition](03-composition.md#lookahead-x-and-x)).
 
 ```dotgram
@@ -183,7 +183,7 @@ Notes:
 - Any type but `string` and `@SourceSpan` needs a `=>`, captures or a sequence: a rule declared
   `: int` with nothing to build the `int` from is refused (`GRAM4008`).
 - The text of a whole `parse` leaves out the trivia read before and after the rule
-  ([trivia](08-trivia-and-words.md)).
+  ([trivia](05-trivia-and-words.md)).
 
 Refused:
 
@@ -295,7 +295,7 @@ Notes:
 - What follows `@` is the consumer's C#, handed to the compiler as written: a misspelt method is a
   C# error, reported against the grammar's line ([C# seam](14-csharp-seam.md)).
 - An exception a construction throws is not a refusal: it leaves the parse, from `TryParse…` as from
-  `Parse…` (§8.2). Check what may not hold with a guard ([guards](05-guards-and-switch.md)).
+  `Parse…` (§8.2). Check what may not hold with a guard ([guards](11-guards-and-switch.md)).
 - `=>` binds looser than `&` and tighter than `|` ([composition](03-composition.md#operator-order-in-an-expression)).
 
 <!-- ru:begin -->
@@ -340,11 +340,11 @@ Slices("ab cd") → ["ab cd", "cd"]
 Notes:
 
 - A `when` runs before its rule is finished, so there `parserText` and `parserSpan` say what the rule
-  has matched **so far** ([guards](05-guards-and-switch.md)).
+  has matched **so far** ([guards](11-guards-and-switch.md)).
 - `parserInput` is what a value meant to cut its own string later is built from; holding it keeps the
   whole input alive, and a publication that reads from a stream does not have it.
-- The names of [recovery](12-recovery.md) (`parserLine`, `parserMessage`, …) and of
-  [state](13-context-and-state.md) (`parserState`, `parserMarks`) are supplied the same way. A name
+- The names of [recovery](13-recovery.md) (`parserLine`, `parserMessage`, …) and of
+  [state](15-context-and-state.md) (`parserState`, `parserMarks`) are supplied the same way. A name
   written where it is not handed over is refused, not left to the C# compiler (`GRAM4053`).
 - Every supplied name begins with `parser`, so no capture may (`GRAM4012`).
 
@@ -440,7 +440,7 @@ counts, logs or throws can. The host chooses otherwise:
 | `ConstructionsMayThrow = true` | as read, with an exception held and thrown only where the deferred carrier would throw it |
 
 The details are in [`syntax.md` §3.7](../../syntax.md#37-construction) and
-[host options](15-host-options.md).
+[host options](16-host-options.md).
 
 <!-- ru:begin -->
 > **RU.** По умолчанию конструирование выполняется **по мере чтения** альтернативы (немедленный

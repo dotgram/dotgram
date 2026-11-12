@@ -68,7 +68,7 @@ Everything a grammar is made of is in it:
   refusal, and `TryParseSum`, which answers a `Match<int>`.
 
 `Sum` calls itself first; such a rule is read as a loop and its `=>` as a fold
-([rules](07-rules.md#left-recursion)).
+([rules](04-rules.md#left-recursion)).
 
 <!-- ru:begin -->
 > **RU.** В примере выше есть всё, из чего состоит грамматика: **правило** — имя, необязательный
@@ -105,7 +105,7 @@ Notes:
 
 - Spaces in the grammar are not spaces in the input: `"ab, cd"` is refused above. What may stand
   between operands in the input is the rule `trivia` ([briefly below](#whitespace-in-the-input-trivia-briefly),
-  in full in [trivia](08-trivia-and-words.md)).
+  in full in [trivia](05-trivia-and-words.md)).
 - An unterminated `/*` is `GRAM1003`; a character nothing begins is `GRAM1005`.
 
 <!-- ru:begin -->
@@ -124,12 +124,12 @@ A grammar is a sequence of declarations, in any order:
 
 | Declaration | Example | Page |
 | --- | --- | --- |
-| a rule | `Name = body`, `Name : Type = body`, `Name(p) = body` | [rules](07-rules.md) |
-| a publication | `parse Name`, `find Name`, `internal parse X as Y` | [publication](11-publication.md) |
-| a namespace | `namespace Lexical { … }`, `namespace N with (A = B) { … }` | [namespaces](09-namespaces.md) |
+| a rule | `Name = body`, `Name : Type = body`, `Name(p) = body` | [rules](04-rules.md) |
+| a publication | `parse Name`, `find Name`, `internal parse X as Y` | [publication](08-publication.md) |
+| a namespace | `namespace Lexical { … }`, `namespace N with (A = B) { … }` | [namespaces](10-namespaces.md) |
 | an import | `using Lexical;`, `@using System.Text;` (first in the file or block) | below |
-| a context type | `context : @Names` | [context and state](13-context-and-state.md) |
-| a state type | `state : @Overflow` | [context and state](13-context-and-state.md) |
+| a context type | `context : @Names` | [context and state](15-context-and-state.md) |
+| a state type | `state : @Overflow` | [context and state](15-context-and-state.md) |
 
 The words that begin a declaration — `namespace`, `parse`, `find`, `public`, `internal`,
 `private`, `positional`, `context`, `state` — are words only there. A rule may be called `parse`
@@ -197,7 +197,7 @@ Notes:
   the compiler, so C# mistakes are C# errors, reported against the grammar's line.
 - An exception thrown by the C# is not a refusal: `ParseDate("2026-13-10")` matches the text and
   then `new DateOnly` throws `ArgumentOutOfRangeException` out of the parse. A value that may not
-  exist is checked with a guard ([guards](05-guards-and-switch.md)).
+  exist is checked with a guard ([guards](11-guards-and-switch.md)).
 - Inside `@(…)` and the arguments of `@M(…)` everything is C#: `=> @M(a, b)` and `=> @(M(a, b))`
   are the same construction.
 - There is no block form (`@{ … }`): code belongs in the host class.
@@ -257,7 +257,7 @@ Notes:
 - An unknown grammar namespace in `using` is `GRAM3003`. Two imports that supply one name are an
   error where the name is used, settled by qualifying it (`Lexical.Word`).
 - The standard library is the namespace `Std`, always present: `Std.Integer`, or `using Std;`
-  and then `Integer` ([standard library](10-std.md)).
+  and then `Integer` ([standard library](09-std.md)).
 
 <!-- ru:begin -->
 > **RU.** `@using X.Y;` импортирует пространство имён C# (для C#-кода грамматики), `using X;` —
@@ -289,22 +289,22 @@ ParsePair("a=b") → "a=b"
 ParsePair(" a =  b ") → "a =  b"
 ```
 
-Three things to know before [the full treatment](08-trivia-and-words.md):
+Three things to know before [the full treatment](05-trivia-and-words.md):
 
 - **Braces** around `trivia` and around lexemes such as `Word` say "what this read stays read". They
   are worth writing almost always; why is in [composition](03-composition.md#atomic-groups---) and
-  [trivia](08-trivia-and-words.md#comments-and-why-trivia-is-braced).
+  [trivia](05-trivia-and-words.md#comments-and-why-trivia-is-braced).
 - **A lexeme must not let trivia in.** `Word = ['a'..'z']+` is one repetition, so nothing is woven
   inside it. A rule built of several parts that is one token — a number with a fraction — is written
   in a namespace that says `trivia = none`, or with `~` between its parts, which allows no trivia.
 - **Keywords** are guarded against running into the next word once the grammar declares
-  `wordboundary`, the characters a word is made of ([words](08-trivia-and-words.md#wordboundary)).
+  `wordboundary`, the characters a word is made of ([words](05-trivia-and-words.md#wordboundary)).
 
 <!-- ru:begin -->
 > **RU.** Многие примеры руководства читают текст с пробелами или комментариями между частями. Что
 > может там стоять, задаёт правило `trivia`, которое есть в каждой грамматике: оно вплетается в каждый
 > `&` и пусто (`none`), пока грамматика не скажет иначе (пример выше: `" a =  b "` читается, значение
-> без внешних пробелов). До полного описания в главе 08 стоит знать три вещи: **фигурные скобки**
+> без внешних пробелов). До полного описания в главе 05 стоит знать три вещи: **фигурные скобки**
 > вокруг `trivia` и лексем (`Word`) означают «прочитанное остаётся прочитанным» — их стоит писать почти
 > всегда; **лексема не должна впускать trivia**: `Word = ['a'..'z']+` — одно повторение, внутрь ничего
 > не вплетается, а правило из нескольких частей, которое есть один токен (число с дробью), пишется в
@@ -351,7 +351,7 @@ ParseAssign("_n1=0;") → "_n1=0"
 ```
 
 The numbers are unsigned and read in the invariant culture; a number too large for its type throws, as
-`int.Parse` does. Every rule, with its edge cases, is in [the standard library](10-std.md).
+`int.Parse` does. Every rule, with its edge cases, is in [the standard library](09-std.md).
 
 <!-- ru:begin -->
 > **RU.** Лексемы, которые пишет каждая грамматика, — отдельная грамматика `Std`, доступная всегда:
@@ -361,7 +361,7 @@ The numbers are unsigned and read in the invariant culture; a number too large f
 > `Spacing`), `Identifier`, числа со значением (`Integer`, `Long`, `Decimal`, `Double`), комментарии
 > (`LineComment`, `BlockComment`, вложенный `Nested`) и строки (`Quoted` с удвоенной кавычкой,
 > `Escaped` с экранированием). Числа беззнаковые, читаются в инвариантной культуре; слишком большое
-> число бросает исключение, как `int.Parse`. Все правила с граничными случаями — в главе 10.
+> число бросает исключение, как `int.Parse`. Все правила с граничными случаями — в главе 09.
 <!-- ru:end -->
 
 ## Built-in rules and supplied names at a glance
@@ -376,9 +376,9 @@ may declare its own of the same name, and `trivia` and `wordboundary` exist to b
 | `eol` | one line ending: `\r\n`, `\n` or `\r` | `[^ '\r' \| '\n']* & eol` | [elements](02-elements.md#any-none-eol-eof) |
 | `eof` | the end of the input, reading nothing | `Header & Row* & eof` | [elements](02-elements.md#any-none-eol-eof) |
 | `eos` | the end of one segment, where the input is a list of strings | `Value & eos` | [elements](02-elements.md#eos-and-input-in-segments) |
-| `trivia` | what may stand between operands; `none` unless redeclared | `trivia = { ' '* }` | [trivia](08-trivia-and-words.md) |
-| `wordboundary` | the characters a word is made of; `none` unless redeclared | `wordboundary = ['a'..'z']` | [words](08-trivia-and-words.md#wordboundary) |
-| `word` | one whole word of those characters | `"set" & word` | [words](08-trivia-and-words.md#word) |
+| `trivia` | what may stand between operands; `none` unless redeclared | `trivia = { ' '* }` | [trivia](05-trivia-and-words.md) |
+| `wordboundary` | the characters a word is made of; `none` unless redeclared | `wordboundary = ['a'..'z']` | [words](05-trivia-and-words.md#wordboundary) |
+| `word` | one whole word of those characters | `"set" & word` | [words](05-trivia-and-words.md#word) |
 
 ```dotgram
 wordboundary = ['a'..'z' | '0'..'9']
@@ -407,12 +407,12 @@ although `' '*` may read nothing.
 
 | Name | Is | In full |
 | --- | --- | --- |
-| `parserText`, `parserSpan` | the text matched so far, and where it is | [values](04-values.md#names-the-parser-supplies) |
-| `parserInput` | the whole input (not in a `when`) | [values](04-values.md#names-the-parser-supplies) |
-| `parserOrdinal`, `parserLine`, `parserColumn`, `parserPosition` | which element of a recovering repetition, and where it begins | [recovery](12-recovery.md) |
-| `parserMessage`, `parserExpected`, `parserFailureLine`, `parserFailureColumn`, `parserFailurePosition` | why a rejected element was rejected, and where reading it stopped | [recovery](12-recovery.md) |
-| `parserState`, `parserMarks` | the `with state` marks standing over a construction | [state](13-context-and-state.md) |
-| `context` | the object a caller hands the parse, where the grammar declares `context : @T` | [context](13-context-and-state.md) |
+| `parserText`, `parserSpan` | the text matched so far, and where it is | [values](07-values.md#names-the-parser-supplies) |
+| `parserInput` | the whole input (not in a `when`) | [values](07-values.md#names-the-parser-supplies) |
+| `parserOrdinal`, `parserLine`, `parserColumn`, `parserPosition` | which element of a recovering repetition, and where it begins | [recovery](13-recovery.md) |
+| `parserMessage`, `parserExpected`, `parserFailureLine`, `parserFailureColumn`, `parserFailurePosition` | why a rejected element was rejected, and where reading it stopped | [recovery](13-recovery.md) |
+| `parserState`, `parserMarks` | the `with state` marks standing over a construction | [state](15-context-and-state.md) |
+| `context` | the object a caller hands the parse, where the grammar declares `context : @T` | [context](15-context-and-state.md) |
 
 Every supplied name but `context` begins with `parser`, and no capture or parameter may take a name that
 does (`GRAM4012`).

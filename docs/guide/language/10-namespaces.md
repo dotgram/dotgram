@@ -147,8 +147,8 @@ parse Word
 Notes:
 
 - Shadowing a built-in rule — `trivia`, `wordboundary`, `word`, `any`, `none`, `eol`, `eof` — is the
-  language's normal mechanism, at any depth, and is never reported ([trivia](08-trivia-and-words.md)).
-- The standard library is the namespace `Std`, in view in every grammar ([standard library](10-std.md)).
+  language's normal mechanism, at any depth, and is never reported ([trivia](05-trivia-and-words.md)).
+- The standard library is the namespace `Std`, in view in every grammar ([standard library](09-std.md)).
 - A `@using` imports a C# namespace, not a grammar one ([the grammar and its host](01-grammar-and-host.md#imports-using-and-using)).
 
 <!-- ru:begin -->
@@ -417,7 +417,7 @@ ParseEuropean("3.14") → refused
 
 The same rebinding answers conditions: `when Version is "2000"` is decided against the rules as each
 publication has them, so `parse Test with (Version = "2000")` and `with (Version = "2022")` are two
-parsers of one grammar ([conditions](05-guards-and-switch.md#conditions-when-a-is-b)).
+parsers of one grammar ([conditions](11-guards-and-switch.md#conditions-when-a-is-b)).
 
 **How substitutions stack.** Where several reach one call, the one written closer to where reading starts
 applies on top: an outer `with` over an inner one, a caller's header over the header of a namespace it calls
@@ -450,7 +450,7 @@ stacked is `GRAM3011`; two that each need the other applied first are `GRAM4017`
 <!-- ru:begin -->
 > **RU.** Директива `parse` или `find` может нести подстановку сама — так одна грамматика публикует
 > несколько парсеров (пример: `ParseInvariant` и `ParseEuropean` над одним `Number`). Та же перепривязка
-> отвечает на условия `when Version is …` (глава 05). **Как складываются подстановки.** Если к одному
+> отвечает на условия `when Version is …` (глава 11). **Как складываются подстановки.** Если к одному
 > вызову доходят несколько, та, что написана ближе к началу чтения, применяется поверх: внешний `with`
 > поверх внутреннего, заголовок вызывающего поверх заголовка пространства, в которое он вызывает, `with`
 > публикации поверх всего. Привязка имени, которое нижняя подстановка уже заменила, ничего не делает —

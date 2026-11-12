@@ -5,6 +5,15 @@ rules. This page covers how a rule is declared, the parameters it may take, how 
 and how the precedence of the operators of the language being read is said. The specification is
 [`syntax.md` §4–§4.3](../../syntax.md#4-rules).
 
+The examples build values with captures and `=>`, as [the first grammar](01-grammar-and-host.md#a-first-grammar)
+did; what a rule gives back is told in full in [captures and values](07-values.md), and the guards some
+examples use in [guards](11-guards-and-switch.md).
+
+<!-- ru:begin -->
+> **RU.** Примеры строят значения захватами и `=>`, как первая грамматика главы 01; что возвращает правило,
+> подробно — в главе 07, охранники, которые встречаются в примерах, — в главе 11.
+<!-- ru:end -->
+
 ## Declaring a rule
 
 ```text
@@ -17,7 +26,7 @@ Name : Type on fail "…" = body       and what a refusal of it says
 ```
 
 A declaration begins with the rule's name; the type is optional; what a rule gives back is the
-subject of [values](04-values.md), and `on fail` is shown there too.
+subject of [values](07-values.md), and `on fail` is shown there too.
 
 ```dotgram
 Digit             = ['0'..'9']
@@ -127,7 +136,7 @@ Notes:
   where a piece of grammar goes is refused (`GRAM4013`). `Padded` takes its padding as a recognizer
   for that reason: `pad: char` and then `pad*` is refused.
 - A rule whose body is only a call is not typed by the call: `Numbers` above captures the list and
-  hands it on, or it would be the text it matched ([values](04-values.md#what-a-rule-gives-back)).
+  hands it on, or it would be the text it matched ([values](07-values.md#what-a-rule-gives-back)).
 
 Refused:
 
@@ -178,71 +187,17 @@ rule takes no type arguments: only a C# name is generic, written `@Name<T>` (`GR
 
 ## Rules that give back
 
-Over characters a rule call is transparent: when something after a rule fails, the parse may go back
-into the rule and take another of its choices ([composition](03-composition.md#ordered-choice-)). A
-grammar split into a lexer and a parser (`Lexical = true`, [host options](15-host-options.md)) reads
-tokens, and there **a rule's answer stands**: once it has matched, nothing that fails after it sends
-the parse back into it — what a parser written by hand does at every choice.
-
-```dotgram Lexical
-namespace Lex
-{
-	trivia = none
-	Word   = ['a'..'z']+
-}
-
-trivia = { ' '* }
-Member = Lex.Word & ('.' & Lex.Word)* & '.' & Lex.Word
-
-parse Member
-```
-
-```text examples
-ParseMember("a.b.c") → refused
-```
-
-The lexical rules stand in a namespace whose `trivia` is `none`, so that a token is its characters
-with nothing between them ([host options](15-host-options.md)). The repetition reads `.b.c`, and the
-`'.'` after it then finds nothing: over tokens a repetition, like a choice, is not revisited. A rule
-that needs to give back says so with `?` after its name:
-
-```dotgram Lexical
-namespace Lex
-{
-	trivia = none
-	Word   = ['a'..'z']+
-}
-
-trivia = { ' '* }
-Member? = Lex.Word & ('.' & Lex.Word)* & '.' & Lex.Word
-
-parse Member
-```
-
-```text examples
-ParseMember("a.b.c") → "a.b.c"
-```
-
-Notes:
-
-- Inside a rule marked `?`, a choice or a repetition may be revisited when something later *in the
-  same rule* fails — here the repetition gives `.c` back to the `'.' & Lex.Word` after it. The answer
-  of the rule still stands at its boundary: a caller that fails after `Member` is not sent back into
-  it. What a caller needs given back it reads itself, as a parser written by hand does.
-- Over characters `?` is accepted and changes nothing: every rule there gives back already. Without
-  `Lexical = true` both grammars above read `a.b.c`.
-- `{ … }` over tokens says what is already so.
+Over characters a rule call is transparent: when something after a rule fails, the parse may go back into
+the rule and take another of its choices ([composition](03-composition.md#ordered-choice-)). In a grammar
+read over tokens a rule's answer stands instead, and a rule that needs to give back is marked `Name?`; that
+is told with the reading over tokens itself ([`Lexical`](06-lexical.md#choices-stand-and-rules-that-give-back)).
+Over characters `?` is accepted and changes nothing.
 
 <!-- ru:begin -->
-> **RU.** Над символами вызов правила прозрачен для отката. Грамматика, разделённая на лексер и
-> парсер (`Lexical = true`), читает токены, и там **ответ правила стоит**: после совпадения ничто не
-> возвращает разбор внутрь — как в рукописном парсере; выбор и повторение там тоже не пересматриваются.
-> В первом примере повторение читает `.b.c`, и `'.'` после него ничего не находит — отказ (лексические
-> правила стоят в пространстве с `trivia = none`, чтобы токен был своими символами без промежутков).
-> Правило, которому нужно отдавать, помечается `?` после имени (второй пример читает `a.b.c`): внутри
-> него выбор или повторение пересматриваются, если неудача случилась дальше **в том же правиле**; на
-> границе правила ответ по-прежнему стоит — вызывающий не может вернуться внутрь. Над
-> символами `?` допустим и ничего не меняет. `{ … }` над токенами говорит то, что и так верно.
+> **RU.** Над символами вызов правила прозрачен для отката: если после правила что-то не совпало, разбор может
+> вернуться внутрь и взять другой выбор. В грамматике над токенами ответ правила стоит, а правило, которому
+> нужно отдавать, помечается `Name?` — это описано вместе с чтением над токенами (глава 06). Над символами
+> `?` допустим и ничего не меняет.
 <!-- ru:end -->
 
 ## Levels as rules
@@ -324,7 +279,7 @@ ParseDigits("1,2,3") → "1+2+3"
 
 A guard on a step may read the value so far by that name, which asks for it early: the step's
 construction then runs while the input is read rather than after
-([guards](05-guards-and-switch.md)).
+([guards](11-guards-and-switch.md)).
 
 ```dotgram
 Number : int = { ['0'..'9']+ } => @int.Parse(parserText)

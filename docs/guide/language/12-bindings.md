@@ -367,66 +367,11 @@ Notes:
 
 ## Bindings in a grammar split into tokens
 
-A binding compares text, so it is read over characters only. In a grammar cut into a lexer and a parser
-(`Lexical = true`) a terminal of the lexical half may bind: when its body is braced and no other token
-can match a longer text that begins like it, the lexer starts it on its regular beginning and measures it
-with its own rule.
-
-```dotgram Lexical
-namespace Lex
-{
-	trivia = none
-
-	LongString = { '[' & $eq: '='* & '[' & (?!(']' & $eq & ']') & any)* & ']' & $eq & ']' }
-	Name       = ['a'..'z']+
-}
-
-trivia = { ' '* }
-
-Assign = Lex.Name & '=' & Lex.LongString
-
-parse Assign
-```
-
-```text examples
-ParseAssign("s = [=[a]]b]=]") → "s = [=[a]]b]=]"
-```
-
-In the syntactic half a binding would bind token kinds, not text, and is refused: compare two captures
-with a guard instead, `close: Name & when @(close == open)` (`GRAM4035`).
-
-```dotgram Lexical GRAM4035
-namespace Lex
-{
-	trivia = none
-
-	Name = ['a'..'z']+
-}
-
-trivia = { ' '* }
-
-Pair = $n: Lex.Name & '=' & $n
-
-parse Pair
-```
-
-Notes:
-
-- Where the lexer cannot read such a terminal as one token, that part of the grammar is read over
-  characters and `GRAM5004` says which token stood in the way and what to write.
-- Not yet supported, and refused with a message saying so (`GRAM4034`): a binding inside a repetition
-  that recovers, a binding in what `trivia` is made of once a grammar is split, and a binding terminal that
-  begins with nothing an automaton reads.
+A binding compares text, so in a grammar read over tokens it stands only inside a terminal of the lexical
+half; in the syntactic half it is refused (`GRAM4035`). Both are shown with the reading over tokens itself
+([`Lexical`](06-lexical.md#bindings-and-terminals-that-measure-themselves)).
 
 <!-- ru:begin -->
-> **RU.** Привязка сравнивает текст и потому читается только над символами. В грамматике, разделённой
-> на лексер и парсер (`Lexical = true`), привязывать может терминал лексической половины: если его тело
-> в скобках и никакой другой токен не может совпасть с более длинным текстом с того же начала, лексер
-> начинает его по регулярному началу и измеряет его собственным правилом (пример `Assign` с длинной
-> строкой Lua). В синтаксической половине привязка привязывала бы виды токенов, а не текст, и
-> отвергается: сравнивайте два захвата охранником, `close: Name & when @(close == open)` (`GRAM4035`).
-> Если лексер не может прочитать такой терминал одним токеном, эта часть читается над символами, и
-> `GRAM5004` говорит, какой токен мешает и что написать. Пока не поддерживается (`GRAM4034`): привязка
-> в восстанавливающемся повторении, в составе `trivia` разделённой грамматики и терминал с привязкой,
-> который начинается не с того, что читает автомат.
+> **RU.** Привязка сравнивает текст, поэтому в грамматике над токенами она стоит только внутри терминала
+> лексической половины, а в синтаксической отвергается (`GRAM4035`). Оба случая показаны в главе 06.
 <!-- ru:end -->
