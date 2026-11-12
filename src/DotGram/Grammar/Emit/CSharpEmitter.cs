@@ -3185,13 +3185,17 @@ static partial class CSharpEmitter
 			.Select(rule => (Rule: rule, Name: seam.Scanner(rule)))
 			.FirstOrDefault(one => one.Name is not null);
 
+		// The scanners first: a character table is declared by the scanner that tests with it, and
+		// the extras name only the tables some scanner used.
+		var scanners = seam.RenderScanners();
+
 		foreach (var extra in seam.Extras())
 		{
 			file.Write(extra);
 			file.Line();
 		}
 
-		file.Write(seam.RenderScanners());
+		file.Write(scanners);
 
 		if (valuing is not null)
 			file.Write(Rereading(lexical, valuing));

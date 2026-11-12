@@ -2179,6 +2179,12 @@ grammar's own. The library is the recognition, which every grammar spells the sa
 | `Quoted(quote)` | `quote` to `quote`, with `quote` doubled inside — `Quoted('\'')` is SQL's string, `Quoted('"')` its delimited identifier and CSV's field | text, as written |
 | `Escaped(quote, escape)` | `quote` to `quote`, with `escape` in front of a quote or anything else inside — `Escaped('"', '\\')` is C's string | text, as written |
 
+The runs — `Digits`, `HexDigits`, `Blank`, `Spacing`, `Identifier` and the body of `LineComment` —
+are atomic groups (§3.2): each reads to the end of what it recognizes and never hands a
+character back, so `Std.Digits & '5'` does not read `15`, and a run beside a seam of
+non-empty trivia is read one way, not as many as it is long. A grammar that wants a run to
+give characters back writes the repetition itself.
+
 A comment or a string is parameterized by what delimits it, because that is all that
 differs between one language's and the next: `Std.LineComment("--")` is SQL's and
 `Std.LineComment("//")` is C's, and each call is a specialization that costs what the

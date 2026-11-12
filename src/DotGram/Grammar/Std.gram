@@ -20,15 +20,19 @@ Space      = [' ' | '\t']
 Whitespace = [' ' | '\t' | '\r' | '\n']
 
 // ── Runs of them ─────────────────────────────────────────────────────────────
+//
+// Each run is atomic: it reads to the end of what it recognizes and never hands a character
+// back, which is what a lexeme means (syntax.md §3.2) and what keeps a run beside a seam
+// from being read two ways.
 
-Digits     = Digit+
-HexDigits  = HexDigit+
-Blank      = Space+
-Spacing    = Whitespace+
+Digits     = { Digit+ }
+HexDigits  = { HexDigit+ }
+Blank      = { Space+ }
+Spacing    = { Whitespace+ }
 
 // A letter or an underscore, then letters, digits and underscores: the identifier of
 // C, C# and most of what was written after them, in the Unicode reading.
-Identifier = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
+Identifier = { [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']* }
 
 // ── Numbers, as values ───────────────────────────────────────────────────────
 //
@@ -37,14 +41,14 @@ Identifier = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 // `-` is part of a number or an operator in front of one is a question about that
 // grammar and not about digits.
 
-Integer : int     = n: Digits & when @(int.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _)) => @(int.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
-Long    : long    = n: Digits & when @(long.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _)) => @(long.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
+Integer : int     = n: Digits & when @(n.Length <= 9 || int.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _)) => @(int.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
+Long    : long    = n: Digits & when @(n.Length <= 18 || long.TryParse(n, global::System.Globalization.CultureInfo.InvariantCulture, out _)) => @(long.Parse(n, global::System.Globalization.CultureInfo.InvariantCulture))
 Decimal : decimal = n: (Digits & ('.' & Digits)?)
-	& when @(decimal.TryParse(n, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture, out _))
+	& when @(n.Length <= 28 || decimal.TryParse(n, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture, out _))
 	=> @(decimal.Parse(n, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture))
-Double  : double  = n: (Digits & ('.' & Digits)? & ('e'i & ['+' | '-']? & Digits)?)
-	& when @(double.TryParse(n, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture, out var d) && double.IsFinite(d))
-	=> @(double.Parse(n, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture))
+Double  : double  = m: (Digits & ('.' & Digits)?) & ('e'i & ['+' | '-']? & Digits)?
+	& when @(parserText.Length == m.Length && m.Length <= 308 || double.TryParse(parserText, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture, out var d) && double.IsFinite(d))
+	=> @(double.Parse(parserText, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture))
 
 // ── Comments ─────────────────────────────────────────────────────────────────
 //
@@ -53,7 +57,7 @@ Double  : double  = n: (Digits & ('.' & Digits)? & ('e'i & ['+' | '-']? & Digits
 // The line comment stops short of the line ending and leaves it, so that a grammar
 // which counts lines still sees every one.
 
-LineComment(start)        = start & [^ '\r' | '\n']*
+LineComment(start)        = { start & [^ '\r' | '\n']* }
 BlockComment(open, close) = open & (?!close & any)* & close
 
 // A pair that holds others: `Nested("/*", "*/")` reads `/* a /* b */ c */` whole. Inside

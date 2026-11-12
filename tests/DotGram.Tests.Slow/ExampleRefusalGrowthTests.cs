@@ -321,8 +321,11 @@ public sealed class ExampleRefusalGrowthTests
 		Ladder("aliases", static n => Repeated("xASy;", n) + "!", Accepts);
 		Assert.True(Accepts("t;u AS v;xASy;"));
 
-		// `xASy` is a key, and `xAS y` a key and an alias: whichever reads the entry.
-		Assert.True(Accepts("xAS y;"));
+		// `Identifier` is atomic: `xAS` is one key and never a key `x` before the alias `AS`, so
+		// `xAS y;` is refused where a run that gave characters back read it, and the alias is
+		// written apart from its key.
+		Assert.False(Accepts("xAS y;"));
+		Assert.True(Accepts("x AS y;"));
 	}
 
 	/// <summary>
