@@ -81,13 +81,16 @@ static class SqlVariants
 	/// <param name="located">Whether a located reading is compiled beside the plain one, as a nested type <c>Located</c>.</param>
 	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool immediate, bool keeps = true, bool located = false)
 	{
-		return Compiled.GetOrAdd((grammar, follow, memo, counts, immediate, keeps, located), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.Immediate, key.Keeps, key.Located));
+		// Lazy, so that two classes asking for one variant at once compile it once: a factory handed to GetOrAdd may run twice.
+		return Compiled.GetOrAdd(
+			(grammar, follow, memo, counts, immediate, keeps, located),
+			static key => new Lazy<Type>(() => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.Immediate, key.Keeps, key.Located), LazyThreadSafetyMode.ExecutionAndPublication)).Value;
 	}
 
 	/// <summary>The size of what a variant compiled to: the generated C# in characters and the assembly in bytes.</summary>
 	public static readonly ConcurrentDictionary<Type, (long SourceChars, long AssemblyBytes)> Sizes = new();
 
-	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool Immediate, bool Keeps, bool Located), Type> Compiled = new();
+	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool Immediate, bool Keeps, bool Located), Lazy<Type>> Compiled = new();
 
 	static Type Compile(string grammar, string follow, bool memo, bool counts, bool immediate, bool keeps, bool located)
 	{

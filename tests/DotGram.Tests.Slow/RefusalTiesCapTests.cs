@@ -18,17 +18,14 @@ namespace DotGram.Tests;
 /// each refused over the ties of the others. Compiling and reading it takes minutes, so it is here and
 /// not with the fast tests (<c>RefusalTiesTests</c>).
 /// </summary>
-public sealed class RefusalTiesCapTests
+static class RefusalTiesCap
 {
 	/// <summary>
 	/// Past the cap the same choice whose widest group is a call refused over the ties ends "among others",
 	/// in every form, the same on two readings, and the list stays within the cap and its mark. Below it
 	/// (12 levels) the text is what it was.
 	/// </summary>
-	[Theory]
-	[InlineData(12)]
-	[InlineData(13)]
-	public void A_call_refused_over_a_long_list_of_ties_is_cut_at_the_cap_and_not_before(int levels)
+	public static void Run(int levels)
 	{
 		var want = levels < 13
 			? new Dictionary<string, string>
@@ -53,5 +50,27 @@ public sealed class RefusalTiesCapTests
 			Assert.Equal(want[name], first.Said);
 			Assert.Equal(first, TieShapes.Ask(parser, "TryParseStart", "aaa?"));
 		}
+	}
+}
+
+/// <inheritdoc cref="RefusalTiesCap.Run"/>
+/// <remarks>Below the cap; a class of its own, the next beside it, since a class's cases run one after another and each takes minutes.</remarks>
+public sealed class RefusalTiesCapTests
+{
+	[Fact]
+	public void A_call_refused_over_a_long_list_of_ties_is_cut_at_the_cap_and_not_before()
+	{
+		RefusalTiesCap.Run(12);
+	}
+}
+
+/// <inheritdoc cref="RefusalTiesCap.Run"/>
+/// <remarks>Past the cap.</remarks>
+public sealed class RefusalTiesPastCapTests
+{
+	[Fact]
+	public void A_call_refused_over_a_long_list_of_ties_is_cut_at_the_cap_and_not_before()
+	{
+		RefusalTiesCap.Run(13);
 	}
 }
