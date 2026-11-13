@@ -18,7 +18,11 @@ namespace DotGram.Generation;
 /// <param name="Old">The name as written.</param>
 /// <param name="Now">What it is called now.</param>
 /// <param name="At">Where it is written.</param>
-readonly record struct RenamedUse(string Old, string Now, Place? At);
+/// <param name="Host">
+/// The class whose attribute it is written in, by <see cref="GramGenerator.IdentityOf"/>, where it is one
+/// written on a class: what GRAM4059 is then not said of. Null elsewhere.
+/// </param>
+readonly record struct RenamedUse(string Old, string Now, Place? At, string? Host = null);
 
 /// <summary>
 /// Finds the names the generator's attributes had before 0.3.0 (<see cref="GramRenames"/>), so that the
@@ -114,14 +118,19 @@ static class Renamed
 		{
 			var bound = model.GetSymbolInfo(attribute, cancellationToken);
 
+			var host = attribute.Parent?.Parent is ClassDeclarationSyntax declaration &&
+				model.GetDeclaredSymbol(declaration, cancellationToken) is { } declared
+					? GramGenerator.IdentityOf(declared)
+					: null;
+
 			if (bound is { Symbol: null, CandidateSymbols.Length: 0 } && IsOldVariant(attribute.Name, model, cancellationToken))
-				found.Add(new RenamedUse(GramRenames.OldVariant, GramRenames.NewVariant, Place.Of(attribute.Name.GetLocation())));
+				found.Add(new RenamedUse(GramRenames.OldVariant, GramRenames.NewVariant, Place.Of(attribute.Name.GetLocation()), host));
 			else if ((bound.Symbol ?? bound.CandidateSymbols.FirstOrDefault()) is IMethodSymbol { ContainingType: var type } &&
 				RenamesOf(type) is { } renames)
 			{
 				foreach (var named in OldArguments(attribute))
 					if (renames.TryGetValue(named.Identifier.ValueText, out var now) && type.GetMembers(named.Identifier.ValueText).IsEmpty)
-						found.Add(new RenamedUse(named.Identifier.ValueText, now, Place.Of(named.GetLocation())));
+						found.Add(new RenamedUse(named.Identifier.ValueText, now, Place.Of(named.GetLocation()), host));
 			}
 		}
 

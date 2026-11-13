@@ -336,16 +336,31 @@ sealed class GramGenerator : IIncrementalGenerator
 		// has a Name is derived from all the same). Here and not in the compile, so that a host
 		// that comes to include another compiles no parser again; only the reporting, which runs
 		// on every keystroke anyway, reads it (GRAM4059).
+		//
+		// And which hosts the generator reports an error of its own on, by the host and not by where
+		// it is said: any reading's or variant's, the host's own (GRAM0002 to GRAM0011, carried in
+		// each reading's reports: Parser.Faulted) and an option of an attribute on any declaration of
+		// the class under a name it had before 0.3.0 (GRAM0012, RenamedUse.Host). Such a host is told
+		// that, and not also that its grammar publishes nothing, which may be all the error left of it.
 		var included = context.SyntaxProvider
 			.ForAttributeWithMetadataName(
 				GramAttribute,
 				static (node, _) => node is ClassDeclarationSyntax,
 				static (candidate, _) => new EquatableArray<string>(Reached((INamedTypeSymbol)candidate.TargetSymbol)))
 			.Collect()
-			.Select(static (all, _) => new EquatableArray<string>([.. all
-				.SelectMany(static one => one.Items.IsDefault ? [] : one.Items)
+			.Combine(renamed.Select(static (input, _) => new EquatableArray<string>([.. input.Left
+				.SelectMany(static one => one.Items)
+				.Concat(input.Right.Items)
+				.Select(static use => use.Host)
+				.OfType<string>()
 				.Distinct(StringComparer.Ordinal)
-				.OrderBy(static one => one, StringComparer.Ordinal)]));
+				.OrderBy(static one => one, StringComparer.Ordinal)])))
+			.Select(static (input, _) => new Reachability(
+				new EquatableArray<string>([.. input.Left
+					.SelectMany(static one => one.Items.IsDefault ? [] : one.Items)
+					.Distinct(StringComparer.Ordinal)
+					.OrderBy(static one => one, StringComparer.Ordinal)]),
+				input.Right));
 
 		context.RegisterSourceOutput(
 			located.Collect().Combine(included).Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
@@ -599,13 +614,17 @@ sealed class GramGenerator : IIncrementalGenerator
 						!Renamed.Explained(one.Id, one.Arguments.Items.FirstOrDefault() ?? "", dropped, grammar.Text))]),
 				};
 
-			return parser with { Unpublished = Unpublished(grammar, parser) };
+			return parser with
+			{
+				Unpublished = Unpublished(grammar, parser),
+				Faulted     = FaultedHost(grammar.Host, parser),
+			};
 		}
 		catch (Exception exception) when (Recoverable(exception))
 		{
 			var failed = Failed(grammar, "compiling the recognition graph", exception);
 
-			return new Parser(grammar.Host.Key, null, null, failed.Reports);
+			return new Parser(grammar.Host.Key, null, null, failed.Reports, Faulted: grammar.Host.Identity);
 		}
 	}
 
@@ -633,15 +652,30 @@ sealed class GramGenerator : IIncrementalGenerator
 		return host.Identity;
 	}
 
+	/// <summary>The host's identity where a reading of it reports an error, any of them; null where none does.</summary>
+	static string? FaultedHost(Host host, Parser parser)
+	{
+		return parser.Reports.Items.Any(static report => report.Severity == DiagnosticSeverity.Error) ? host.Identity : null;
+	}
+
 	/// <summary>
 	/// GRAM4059 for every grammar that publishes nothing (<see cref="Parser.Unpublished"/>) and that no
 	/// <c>[Gram]</c> class of the compilation includes or is derived from: once per class, whichever of
 	/// its readings says it first.
 	/// </summary>
-	static IEnumerable<(Parser Parser, Site Site)> PublishesNothing(ImmutableArray<Located> hosts, EquatableArray<string> included)
+	static IEnumerable<(Parser Parser, Site Site)> PublishesNothing(ImmutableArray<Located> hosts, Reachability reachability)
 	{
-		var reachable = new HashSet<string>(included.Items.IsDefault ? [] : included.Items, StringComparer.Ordinal);
+		var reachable = new HashSet<string>(reachability.Included.Items.IsDefault ? [] : reachability.Included.Items, StringComparer.Ordinal);
 		var said      = new HashSet<string>(StringComparer.Ordinal);
+
+		// A host the generator reports an error on of its own, in any reading or on the class, is told
+		// that, and nothing more here.
+		if (!reachability.Faulted.Items.IsDefault)
+			said.UnionWith(reachability.Faulted.Items);
+
+		foreach (var host in hosts)
+			if (host.Parser.Faulted is { } faulted)
+				said.Add(faulted);
 
 		foreach (var host in hosts)
 			if (host.Parser.Unpublished is { } identity && !reachable.Contains(identity) && said.Add(identity))
@@ -655,12 +689,18 @@ sealed class GramGenerator : IIncrementalGenerator
 	}
 
 	/// <summary>
+	/// Every class a <c>[Gram]</c> class of the compilation reaches, and the classes the generator
+	/// reports an option under its 0.2 name on (GRAM0012), each by <see cref="IdentityOf"/>.
+	/// </summary>
+	readonly record struct Reachability(EquatableArray<string> Included, EquatableArray<string> Faulted);
+
+	/// <summary>
 	/// A class as GRAM4059 tells one from another: its assembly, and its definition fully qualified —
 	/// <c>Lib&lt;T&gt;</c> for <c>Lib&lt;int&gt;</c> too, and <c>Outer&lt;T&gt;.Lib</c> for a class nested in a
 	/// constructed one — so that a class of a referenced assembly is never one of this compilation's of
 	/// the same name, and a constructed generic is the class it is made of.
 	/// </summary>
-	static string IdentityOf(INamedTypeSymbol type)
+	internal static string IdentityOf(INamedTypeSymbol type)
 	{
 		return (type.ContainingAssembly?.Identity.ToString() ?? "") + IdentitySeparator +
 			type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -1047,7 +1087,11 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// The class, as an include names it, where the grammar publishes nothing (<see cref="GramGenerator.Unpublished"/>);
 	/// null otherwise.
 	/// </param>
-	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false, SharedTypesOf? Shared = null, string? Unpublished = null)
+	/// <param name="Faulted">
+	/// The class, as <see cref="GramGenerator.IdentityOf"/> names it, where this reading reports an error:
+	/// its grammar's, or the host's own; null otherwise. No reading of the class is then told GRAM4059.
+	/// </param>
+	readonly record struct Parser(string Key, string? HintName, string? Text, EquatableArray<Report> Reports, EquatableArray<GeneratedSource> Parts = default, string? Summary = null, string? Detail = null, bool Marked = false, SharedTypesOf? Shared = null, string? Unpublished = null, string? Faulted = null)
 	{
 		/// <summary>The diagnostics, which need a tree to point into and so cannot be cached.</summary>
 		/// <param name="said">

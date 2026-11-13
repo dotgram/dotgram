@@ -203,6 +203,153 @@ public sealed class PublishesNothingTests
 	}
 
 	/// <summary>
+	/// A host the generator reports an error on — an option under the name it had before 0.3.0 — is
+	/// told that (GRAM0012), and not also that its grammar publishes nothing; another host beside it
+	/// still is.
+	/// </summary>
+	[Fact]
+	public void A_host_with_an_error_on_its_attributes_is_not_told_as_well()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			using DotGram;
+
+			[Gram("Letter = ['a'..'z']", IncludedAs = "Lex")]
+			public static partial class Lexemes { }
+
+			[Gram("A = 'a'")]
+			public static partial class Forgot { }
+			""");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.Contains("'Forgot'", Assert.Single(run.Diagnostics, static one => one.Id == "GRAM4059").GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>The same where the old name is written on another declaration of the partial class.</summary>
+	[Fact]
+	public void An_error_on_another_declaration_of_the_host_holds_it_back_too()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			using DotGram;
+
+			[Gram("B = 'b'", ExportGrammar = true)]
+			public static partial class Other { }
+
+			[Gram("Letter = ['a'..'z']")]
+			public static partial class Lexemes { }
+
+			[GramInclude(typeof(Other), As = "Old")]
+			public static partial class Lexemes { }
+			""");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM4059");
+	}
+
+	/// <summary>An error of any reading of the host — a variant's own option — holds back what the first is told.</summary>
+	[Fact]
+	public void An_error_in_a_variant_holds_it_back()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			using DotGram;
+
+			[Gram("A = 'a'")]
+			[GramParserVariant("Bad", InitialBufferSize = 0)]
+			public static partial class Lib { }
+			""");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM0009");
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM4059");
+	}
+
+	/// <summary>
+	/// An error is the host's it is written on, and not another's at the same place of another file of
+	/// the same path: two files with no path at all, the default, each with a host at the same offsets.
+	/// </summary>
+	[Fact]
+	public void An_error_is_the_hosts_and_not_one_at_the_same_place_in_another_file()
+	{
+		var run = Run(
+			("", "using DotGram;\n[Gram(\"A = 'a'\", IncludedAs = \"X\")]\npublic static partial class One { }\n"),
+			("", "using DotGram;\n[Gram(\"A = 'a'\", DefaultAlias = \"X\")]\npublic static partial class Two { }\n"));
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.Contains("'Two'", Assert.Single(run.Diagnostics, static one => one.Id == "GRAM4059").GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>An old name on a declaration of the partial class in another file holds it back as well.</summary>
+	[Fact]
+	public void An_error_on_a_declaration_in_another_file_holds_it_back()
+	{
+		var run = Run(
+			("Lexemes.cs", "using DotGram;\n[Gram(\"Letter = ['a'..'z']\")]\npublic static partial class Lexemes { }\n[Gram(\"B = 'b'\", ExportGrammar = true)]\npublic static partial class Other { }\n"),
+			("Lexemes.Include.cs", "using DotGram;\n[GramInclude(typeof(Other), As = \"Old\")]\npublic static partial class Lexemes { }\n"));
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM4059");
+	}
+
+	static GeneratorDriverRunResult Run(params (string Path, string Text)[] files)
+	{
+		var parse       = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var compilation = CSharpCompilation.Create(
+			"Files",
+			[.. files.Select(file => CSharpSyntaxTree.ParseText(file.Text, parse, file.Path, cancellationToken: TestContext.Current.CancellationToken))],
+			EmittedCode.References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		return CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parse)
+			.RunGenerators(compilation, TestContext.Current.CancellationToken)
+			.GetRunResult();
+	}
+
+	/// <summary>
+	/// A warning of the generator's on the host's attributes is no reason to hold this back: it is said
+	/// beside it.
+	/// </summary>
+	[Fact]
+	public void A_warning_beside_it_holds_nothing_back()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			using DotGram;
+
+			[Gram("A = 'a'")]
+			[GramLanguage("com.example.test")]
+			[GramClassify("Nowhere", GramClassification.Keyword)]
+			public static partial class Forgot { }
+			""");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM6002" && one.Severity == DiagnosticSeverity.Warning);
+		Assert.Single(run.Diagnostics, static one => one.Id == "GRAM4059");
+	}
+
+	/// <summary>Once the old name is put right, the warning the error held back is said.</summary>
+	[Fact]
+	public void The_warning_comes_back_once_the_error_is_fixed()
+	{
+		var parse       = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var host        = CSharpSyntaxTree.ParseText("using DotGram;\n\n[Gram(\"Letter = ['a'..'z']\", IncludedAs = \"Lex\")]\npublic static partial class Lexemes { }\n", parse, "Lexemes.cs", cancellationToken: TestContext.Current.CancellationToken);
+		var compilation = CSharpCompilation.Create("Fixed", [host], EmittedCode.References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		var driver      = (GeneratorDriver)CSharpGeneratorDriver.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parse);
+
+		driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+
+		Assert.Contains(driver.GetRunResult().Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.DoesNotContain(driver.GetRunResult().Diagnostics, static one => one.Id == "GRAM4059");
+
+		var fixedRun = driver
+			.RunGenerators(
+				compilation.ReplaceSyntaxTree(
+					host,
+					CSharpSyntaxTree.ParseText("using DotGram;\n\n[Gram(\"Letter = ['a'..'z']\", DefaultAlias = \"Lex\")]\npublic static partial class Lexemes { }\n", parse, "Lexemes.cs", cancellationToken: TestContext.Current.CancellationToken)),
+				TestContext.Current.CancellationToken)
+			.GetRunResult();
+
+		Assert.DoesNotContain(fixedRun.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.Single(fixedRun.Diagnostics, static one => one.Id == "GRAM4059");
+	}
+
+	/// <summary>
 	/// The same names the other way round: a referenced class reached first does not stand for this
 	/// compilation's class of the same name, which is included as well and so is not told.
 	/// </summary>
