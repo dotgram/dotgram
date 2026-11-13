@@ -135,7 +135,10 @@ public abstract partial record Expression
 /// library or a language, <c>(CONTENT = 0x…, PLATFORM = LINUX)</c>: the settings in brackets, in any order and as often as the
 /// grammar's <c>LibraryFileOption</c> and <c>LanguageOption</c> read them.
 /// </summary>
-public sealed record ExternalFile(SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ExternalFile(SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -143,13 +146,20 @@ public sealed record ExternalFile(SqlList<Option> Options) : ISqlNode { SqlLocat
 }
 
 /// <summary>T-SQL: ALTER EXTERNAL LIBRARY (Transact-SQL), ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server. A platform: <c>WINDOWS</c> or <c>LINUX</c>.</summary>
-public enum ExternalPlatform { Windows, Linux }
+public enum ExternalPlatform
+{
+	/// <summary><c>WINDOWS</c>.</summary>
+	Windows,
+	/// <summary><c>LINUX</c>.</summary>
+	Linux,
+}
 
 /// <summary>T-SQL: ALTER EXTERNAL LIBRARY (Transact-SQL). What is done to the files of a library.</summary>
 public abstract record ExternalLibraryChange : ISqlNode
 {
 	/// <summary>Where in the text this change was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this change was written.</summary>
@@ -174,6 +184,7 @@ public abstract record ExternalLanguageChange : ISqlNode
 {
 	/// <summary>Where in the text this change was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this change was written.</summary>

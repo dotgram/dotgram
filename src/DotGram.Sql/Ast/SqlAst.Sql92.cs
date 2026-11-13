@@ -21,7 +21,13 @@ public abstract partial record DataType
 }
 
 /// <summary>SQL-92: §6.1 &lt;bit string type&gt;; removed in SQL:2003. <c>BIT</c> or <c>BIT VARYING</c>.</summary>
-public enum BitStringTypeKind { Bit, BitVarying }
+public enum BitStringTypeKind
+{
+	/// <summary><c>BIT</c>, a bit string of a fixed length.</summary>
+	Bit,
+	/// <summary><c>BIT VARYING</c>, a bit string of a varying length up to the length written.</summary>
+	BitVarying,
+}
 
 public abstract partial record LiteralValue
 {

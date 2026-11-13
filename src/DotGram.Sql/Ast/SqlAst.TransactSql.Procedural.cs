@@ -133,8 +133,10 @@ public abstract partial record Statement
 public abstract record VariableDeclaration : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -172,8 +174,10 @@ public abstract record VariableDeclaration : ISqlNode
 public abstract record AtomicOption : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -198,7 +202,21 @@ public abstract record AtomicOption : ISqlNode
 }
 
 /// <summary>T-SQL: RAISERROR (Transact-SQL). An option after <c>WITH</c>.</summary>
-public enum RaiseErrorOption { Log, NoWait, SetError }
+public enum RaiseErrorOption
+{
+	/// <summary><c>LOG</c>: the error is written to the server's error log and the application log.</summary>
+	Log,
+	/// <summary><c>NOWAIT</c>: the message is sent to the client at once.</summary>
+	NoWait,
+	/// <summary><c>SETERROR</c>: the error number is set to 50000, whatever the message says.</summary>
+	SetError,
+}
 
 /// <summary>T-SQL: WAITFOR (Transact-SQL). Whether the value is how long to wait, or until when.</summary>
-public enum WaitForKind { Delay, Time }
+public enum WaitForKind
+{
+	/// <summary><c>DELAY</c>: the value is how long to wait.</summary>
+	Delay,
+	/// <summary><c>TIME</c>: the value is the time of day to wait until.</summary>
+	Time,
+}

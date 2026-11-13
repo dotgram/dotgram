@@ -135,7 +135,13 @@ public abstract partial record Statement
 /// T-SQL: INSERT (Transact-SQL). The word written before an INSERT's target: <c>INTO</c>, or <c>OVER</c>. Nullable
 /// with no <c>None</c> member, as <see cref="TransactionKeyword"/> is: null is no word.
 /// </summary>
-public enum IntoKeyword { Into, Over }
+public enum IntoKeyword
+{
+	/// <summary><c>INTO</c>.</summary>
+	Into,
+	/// <summary><c>OVER</c>, which the grammar reads where <c>INTO</c> is read.</summary>
+	Over,
+}
 
 public abstract partial record MergeClause
 {

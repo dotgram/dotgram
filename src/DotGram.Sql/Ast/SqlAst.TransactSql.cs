@@ -48,7 +48,10 @@ public sealed record Batch(SqlList<Statement> Statements, string? Go = null)
 /// T-SQL: TOP (Transact-SQL). A <c>TOP</c> before a select list or a data change statement's target; <see cref="With"/>
 /// is what its WITH says, null where none was written.
 /// </summary>
-public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, TopWith? With) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record TopClause(Expression Value, bool Parentheses, bool Percent, TopWith? With) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -59,13 +62,22 @@ public sealed record TopClause(Expression Value, bool Parentheses, bool Percent,
 /// T-SQL: TOP (Transact-SQL), VECTOR_SEARCH (Transact-SQL). What a TOP's WITH says: <c>WITH TIES</c>, the rows tied with
 /// the last; <c>WITH APPROXIMATE</c>, an approximate search's rows. The two exclude each other.
 /// </summary>
-public enum TopWith { Ties, Approximate }
+public enum TopWith
+{
+	/// <summary><c>WITH TIES</c>.</summary>
+	Ties,
+	/// <summary><c>WITH APPROXIMATE</c>.</summary>
+	Approximate,
+}
 
 /// <summary>
 /// T-SQL: INTO Clause (Transact-SQL). <c>SELECT … INTO t</c>, which makes a table. Not the
 /// standard's <see cref="IntoClause"/>, whose targets are variables.
 /// </summary>
-public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -73,7 +85,10 @@ public sealed record SelectIntoTable(QualifiedName Table, Identifier? FileGroup)
 }
 
 /// <summary>T-SQL: OPENJSON, OPENXML, OPENROWSET BULK (Transact-SQL). A column of a rowset function's <c>WITH (…)</c> schema.</summary>
-public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path, bool AsJson, int? Ordinal) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path, bool AsJson, int? Ordinal) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -87,8 +102,10 @@ public sealed record RowsetColumn(Identifier Name, DataType? Type, string? Path,
 public abstract record ForClause : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -112,17 +129,36 @@ public abstract record ForClause : ISqlNode
 }
 
 /// <summary>T-SQL: FOR Clause (Transact-SQL). How <c>FOR XML</c> shapes the rows.</summary>
-public enum XmlMode { Raw, Auto, Explicit, Path }
+public enum XmlMode
+{
+	/// <summary><c>RAW</c>: one element for each row.</summary>
+	Raw,
+	/// <summary><c>AUTO</c>: elements nested as the query's tables are.</summary>
+	Auto,
+	/// <summary><c>EXPLICIT</c>: the shape is given by the query's own columns.</summary>
+	Explicit,
+	/// <summary><c>PATH</c>: the shape is given by the column names.</summary>
+	Path,
+}
 
 /// <summary>T-SQL: FOR Clause (Transact-SQL). How <c>FOR JSON</c> shapes the rows.</summary>
-public enum JsonMode { Auto, Path }
+public enum JsonMode
+{
+	/// <summary><c>AUTO</c>: the structure follows the query's tables and columns.</summary>
+	Auto,
+	/// <summary><c>PATH</c>: the structure follows the column names.</summary>
+	Path,
+}
 
 /// <summary>
 /// T-SQL: FOR Clause (Transact-SQL). One directive after the mode: <see cref="Name"/> is the string of
 /// <c>ROOT ('r')</c> and <c>XMLSCHEMA ('uri')</c>; <see cref="Absent"/> is <c>ELEMENTS ABSENT</c>, which means what
 /// <c>ELEMENTS</c> alone means.
 /// </summary>
-public sealed record ForDirective(ForDirectiveKind Kind, Expression? Name = null, [property: Spelling] bool Absent = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ForDirective(ForDirectiveKind Kind, Expression? Name = null, [property: Spelling] bool Absent = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -134,7 +170,27 @@ public sealed record ForDirective(ForDirectiveKind Kind, Expression? Name = null
 /// <c>TYPE</c>, <c>XMLDATA</c>, <c>XMLSCHEMA</c>, <c>ELEMENTS</c>, <c>ELEMENTS XSINIL</c>; <c>FOR JSON</c> only:
 /// <c>INCLUDE_NULL_VALUES</c>, <c>WITHOUT_ARRAY_WRAPPER</c>; both: <c>ROOT</c>.
 /// </summary>
-public enum ForDirectiveKind { BinaryBase64, Type, Root, XmlData, XmlSchema, Elements, ElementsXsiNil, IncludeNullValues, WithoutArrayWrapper }
+public enum ForDirectiveKind
+{
+	/// <summary><c>BINARY BASE64</c>: binary data is returned base64-encoded.</summary>
+	BinaryBase64,
+	/// <summary><c>TYPE</c>: the result is returned as the <c>xml</c> type.</summary>
+	Type,
+	/// <summary><c>ROOT</c>: a root element, or object, named by the directive's value wraps the result.</summary>
+	Root,
+	/// <summary><c>XMLDATA</c>: an inline XDR schema is returned.</summary>
+	XmlData,
+	/// <summary><c>XMLSCHEMA</c>: an inline XSD schema is returned, with the target namespace the directive's value names.</summary>
+	XmlSchema,
+	/// <summary><c>ELEMENTS</c>: columns are returned as child elements, not attributes.</summary>
+	Elements,
+	/// <summary><c>ELEMENTS XSINIL</c>: as <c>ELEMENTS</c>, with an element for a null column marked <c>xsi:nil</c>.</summary>
+	ElementsXsiNil,
+	/// <summary><c>INCLUDE_NULL_VALUES</c>: null columns are written as <c>null</c>, not left out.</summary>
+	IncludeNullValues,
+	/// <summary><c>WITHOUT_ARRAY_WRAPPER</c>: the result is not wrapped in square brackets.</summary>
+	WithoutArrayWrapper,
+}
 
 /// <summary>
 /// T-SQL: Table Hints (Transact-SQL). A hint on a table source, <c>WITH (NOLOCK)</c> and the rest.
@@ -148,8 +204,10 @@ public enum ForDirectiveKind { BinaryBase64, Type, Root, XmlData, XmlSchema, Ele
 public abstract record TableHint : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -171,14 +229,24 @@ public abstract record TableHint : ISqlNode
 }
 
 /// <summary>T-SQL: Table Hints (Transact-SQL), Query Hints (Transact-SQL). <c>NAME (a, b)</c>, <c>NAME a</c>, <c>NAME = a</c>.</summary>
-public enum HintArgumentForm { Brackets, Bare, Assigned }
+public enum HintArgumentForm
+{
+	/// <summary><c>NAME (a, b)</c>.</summary>
+	Brackets,
+	/// <summary><c>NAME a</c>.</summary>
+	Bare,
+	/// <summary><c>NAME = a</c>.</summary>
+	Assigned,
+}
 
 /// <summary>T-SQL: Query Hints (Transact-SQL). A hint in a statement's <c>OPTION (…)</c>.</summary>
 public abstract record QueryHint : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -220,15 +288,48 @@ public abstract record QueryHint : ISqlNode
 /// <summary>T-SQL: Query Hints (Transact-SQL). The query hints of several fixed words.</summary>
 public enum QueryHintPhrase
 {
-	HashGroup, OrderGroup, ConcatUnion, HashUnion, MergeUnion, KeepUnion, LoopJoin, MergeJoin, HashJoin, ExpandViews,
-	ForceOrder, ForceScaleOutExecution, DisableScaleOutExecution, KeepPlan, KeepFixedPlan, RobustPlan,
+	/// <summary><c>HASH GROUP</c>.</summary>
+	HashGroup,
+	/// <summary><c>ORDER GROUP</c>.</summary>
+	OrderGroup,
+	/// <summary><c>CONCAT UNION</c>.</summary>
+	ConcatUnion,
+	/// <summary><c>HASH UNION</c>.</summary>
+	HashUnion,
+	/// <summary><c>MERGE UNION</c>.</summary>
+	MergeUnion,
+	/// <summary><c>KEEP UNION</c>.</summary>
+	KeepUnion,
+	/// <summary><c>LOOP JOIN</c>.</summary>
+	LoopJoin,
+	/// <summary><c>MERGE JOIN</c>.</summary>
+	MergeJoin,
+	/// <summary><c>HASH JOIN</c>.</summary>
+	HashJoin,
+	/// <summary><c>EXPAND VIEWS</c>.</summary>
+	ExpandViews,
+	/// <summary><c>FORCE ORDER</c>.</summary>
+	ForceOrder,
+	/// <summary><c>FORCE SCALEOUTEXECUTION</c>.</summary>
+	ForceScaleOutExecution,
+	/// <summary><c>DISABLE SCALEOUTEXECUTION</c>.</summary>
+	DisableScaleOutExecution,
+	/// <summary><c>KEEP PLAN</c>.</summary>
+	KeepPlan,
+	/// <summary><c>KEEPFIXED PLAN</c>.</summary>
+	KeepFixedPlan,
+	/// <summary><c>ROBUST PLAN</c>.</summary>
+	RobustPlan,
 }
 
 /// <summary>
 /// T-SQL: Query Hints (Transact-SQL). One variable of <c>OPTIMIZE FOR (…)</c>: the variable, keeping its <c>@</c>,
 /// and the value it is optimised for, or <c>UNKNOWN</c>, or neither.
 /// </summary>
-public sealed record OptimizeForVariable(Identifier Variable, Expression? Value, bool Unknown) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record OptimizeForVariable(Identifier Variable, Expression? Value, bool Unknown) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -236,7 +337,17 @@ public sealed record OptimizeForVariable(Identifier Variable, Expression? Value,
 }
 
 /// <summary>T-SQL: Join hints (Transact-SQL). How a join is to be performed.</summary>
-public enum JoinHint { Loop, Hash, Merge, Remote }
+public enum JoinHint
+{
+	/// <summary><c>LOOP</c>: a nested loops join.</summary>
+	Loop,
+	/// <summary><c>HASH</c>: a hash join.</summary>
+	Hash,
+	/// <summary><c>MERGE</c>: a merge join.</summary>
+	Merge,
+	/// <summary><c>REMOTE</c>: the join is performed at the right table's server.</summary>
+	Remote,
+}
 
 /// <summary>
 /// T-SQL: the <c>WITH (…)</c> of the CREATE and ALTER statements, each on its own page. A named
@@ -245,7 +356,10 @@ public enum JoinHint { Loop, Hash, Merge, Remote }
 /// option, with a value or options of its own. One record for the whole catalogue (proposal 20):
 /// it is a name and a value, not a tail of text, so a round trip has something typed to print.
 /// </remarks>
-public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -288,7 +402,10 @@ public sealed record Option(Identifier Name, Expression? Value, SqlList<Option> 
 /// T-SQL: BULK INSERT (Transact-SQL), OPENROWSET BULK (Transact-SQL). <c>ORDER (c1 ASC, …) [UNIQUE]</c>: the data is
 /// already sorted so.
 /// </summary>
-public sealed record RowOrder(SqlList<SortItem> Columns, bool Unique) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record RowOrder(SqlList<SortItem> Columns, bool Unique) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -296,7 +413,10 @@ public sealed record RowOrder(SqlList<SortItem> Columns, bool Unique) : ISqlNode
 }
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL). Where a table, its large values or its filestream data are put.</summary>
-public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Identifier>? Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Identifier>? Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -307,7 +427,17 @@ public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Id
 /// T-SQL: CREATE TABLE (Transact-SQL), DROP INDEX (Transact-SQL). Which placement a <see cref="Placement"/> is; <c>MoveTo</c>
 /// is an option's <c>MOVE TO</c> (<see cref="Option.Place"/>).
 /// </summary>
-public enum PlacementKind { On, TextImageOn, FilestreamOn, MoveTo }
+public enum PlacementKind
+{
+	/// <summary><c>ON</c>: the filegroup or partition scheme of the table or index.</summary>
+	On,
+	/// <summary><c>TEXTIMAGE_ON</c>: where the large values are put.</summary>
+	TextImageOn,
+	/// <summary><c>FILESTREAM_ON</c>: where the filestream data is put.</summary>
+	FilestreamOn,
+	/// <summary><c>MOVE TO</c>: where the data goes when a clustered index is dropped.</summary>
+	MoveTo,
+}
 
 /// <summary>
 /// T-SQL: OUTPUT clause (Transact-SQL). What a data change statement gives back, and where it puts it.
@@ -316,7 +446,10 @@ public enum PlacementKind { On, TextImageOn, FilestreamOn, MoveTo }
 /// <see cref="Next"/> because a statement may write both an <c>OUTPUT INTO</c> and a second
 /// <c>OUTPUT</c> to the caller.
 /// </remarks>
-public sealed record OutputClause(SqlList<SelectColumn> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record OutputClause(SqlList<SelectColumn> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -324,7 +457,10 @@ public sealed record OutputClause(SqlList<SelectColumn> Items, TableSource? Into
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). Whom a module or a statement runs as.</summary>
-public sealed record ExecutionContext(ExecutionContextKind Kind, Expression? Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ExecutionContext(ExecutionContextKind Kind, Expression? Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -332,10 +468,25 @@ public sealed record ExecutionContext(ExecutionContextKind Kind, Expression? Nam
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). Which execution context an <see cref="ExecutionContext"/> names.</summary>
-public enum ExecutionContextKind { Caller, Self, Owner, User, Login }
+public enum ExecutionContextKind
+{
+	/// <summary><c>CALLER</c>: the caller of the module.</summary>
+	Caller,
+	/// <summary><c>SELF</c>: the user who creates or alters the module.</summary>
+	Self,
+	/// <summary><c>OWNER</c>: the owner of the module or its schema.</summary>
+	Owner,
+	/// <summary><c>USER = name</c>: the database user named.</summary>
+	User,
+	/// <summary><c>LOGIN = name</c>: the login named.</summary>
+	Login,
+}
 
 /// <summary>T-SQL: TRUNCATE TABLE (Transact-SQL). A partition, or a range of them.</summary>
-public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -343,7 +494,10 @@ public sealed record PartitionRange(Expression From, Expression? To) : ISqlNode 
 }
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL). An edge constraint of a graph table: which node table connects to which.</summary>
-public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record EdgeConnection(QualifiedName From, QualifiedName To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -360,6 +514,7 @@ public abstract record SetOption : ISqlNode
 {
 	/// <summary>Where in the text this option was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this option was written.</summary>
@@ -392,7 +547,17 @@ public abstract record SetOption : ISqlNode
 }
 
 /// <summary>T-SQL: SET STATISTICS IO, PROFILE, TIME, XML (Transact-SQL). Which statistics report is asked for.</summary>
-public enum StatisticsKind { Io, Profile, Time, Xml }
+public enum StatisticsKind
+{
+	/// <summary><c>IO</c>: disk activity.</summary>
+	Io,
+	/// <summary><c>PROFILE</c>: the execution profile.</summary>
+	Profile,
+	/// <summary><c>TIME</c>: parse, compile and execution times.</summary>
+	Time,
+	/// <summary><c>XML</c>: the execution plan as XML.</summary>
+	Xml,
+}
 
 /// <summary>T-SQL's own value expressions, in the standard's family.</summary>
 public abstract partial record Expression
@@ -501,6 +666,7 @@ public abstract partial record Expression
 	/// </summary>
 	public sealed partial record Cast
 	{
+		/// <summary>Whether it is <c>TRY_CAST</c>, which gives null where the conversion fails, rather than <c>CAST</c>.</summary>
 		public bool Try { get; init; }
 	}
 
@@ -510,15 +676,28 @@ public abstract partial record Expression
 	/// </summary>
 	public sealed partial record NextValue
 	{
+		/// <summary>The <c>OVER (ORDER BY …)</c> that orders the numbering of the rows; null where none was written.</summary>
 		public WindowSpecification? Over { get; init; }
 	}
 }
 
 /// <summary>T-SQL: CONTAINS (Transact-SQL), FREETEXT (Transact-SQL). Which full-text predicate.</summary>
-public enum FullTextPredicateKind { Contains, FreeText }
+public enum FullTextPredicateKind
+{
+	/// <summary><c>CONTAINS</c>.</summary>
+	Contains,
+	/// <summary><c>FREETEXT</c>.</summary>
+	FreeText,
+}
 
 /// <summary>T-SQL: Vector Data Type. The base type a vector's elements are stored as, the page's two words.</summary>
-public enum VectorBaseType { Float32, Float16 }
+public enum VectorBaseType
+{
+	/// <summary><c>FLOAT32</c>: single-precision elements, the default.</summary>
+	Float32,
+	/// <summary><c>FLOAT16</c>: half-precision elements.</summary>
+	Float16,
+}
 
 /// <summary>T-SQL's own data types, in the standard's family (proposal 14).</summary>
 public abstract partial record DataType
@@ -587,7 +766,13 @@ public abstract partial record DataType
 }
 
 /// <summary>T-SQL: xml (Transact-SQL). The XML type's modifier, <c>DOCUMENT</c> or <c>CONTENT</c>, as SQL/XML names it.</summary>
-public enum XmlTypeModifier { Content, Document }
+public enum XmlTypeModifier
+{
+	/// <summary><c>CONTENT</c>: the value may be an XML fragment.</summary>
+	Content,
+	/// <summary><c>DOCUMENT</c>: the value is a well-formed document with one root.</summary>
+	Document,
+}
 
 /// <summary>
 /// T-SQL: DATEADD (Transact-SQL), DATEPART (Transact-SQL). The part of a date a function takes, by the table of
@@ -614,10 +799,50 @@ public enum XmlTypeModifier { Content, Document }
 /// <c>y</c> is the day of the year and <c>w</c> the weekday. Which function takes which part is the grammar's
 /// business, not the tree's; the word's case is not kept.
 /// </remarks>
-public enum DatePartKind { Year, Quarter, Month, DayOfYear, Day, Week, Weekday, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond, TzOffset, IsoWeek }
+public enum DatePartKind
+{
+	/// <summary><c>year</c>.</summary>
+	Year,
+	/// <summary><c>quarter</c>.</summary>
+	Quarter,
+	/// <summary><c>month</c>.</summary>
+	Month,
+	/// <summary><c>dayofyear</c>.</summary>
+	DayOfYear,
+	/// <summary><c>day</c>.</summary>
+	Day,
+	/// <summary><c>week</c>.</summary>
+	Week,
+	/// <summary><c>weekday</c>.</summary>
+	Weekday,
+	/// <summary><c>hour</c>.</summary>
+	Hour,
+	/// <summary><c>minute</c>.</summary>
+	Minute,
+	/// <summary><c>second</c>.</summary>
+	Second,
+	/// <summary><c>millisecond</c>.</summary>
+	Millisecond,
+	/// <summary><c>microsecond</c>.</summary>
+	Microsecond,
+	/// <summary><c>nanosecond</c>.</summary>
+	Nanosecond,
+	/// <summary><c>tzoffset</c>, the time zone offset.</summary>
+	TzOffset,
+	/// <summary><c>iso_week</c>, the ISO 8601 week.</summary>
+	IsoWeek,
+}
 
 /// <summary>T-SQL: DATEADD (Transact-SQL). Which of a date part's words was written (<see cref="DatePartKind"/>).</summary>
-public enum DatePartSpelling { Name, Abbreviation, SecondAbbreviation }
+public enum DatePartSpelling
+{
+	/// <summary>The name: <c>year</c>.</summary>
+	Name,
+	/// <summary>The first abbreviation: <c>yy</c>.</summary>
+	Abbreviation,
+	/// <summary>The second abbreviation: <c>yyyy</c>.</summary>
+	SecondAbbreviation,
+}
 
 /// <summary>T-SQL's own literals, in the standard's family (proposal 11).</summary>
 public abstract partial record LiteralValue
@@ -645,6 +870,7 @@ public abstract record AlterDatabaseAction : ISqlNode
 {
 	/// <summary>Where in the text this action was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this action was written.</summary>
@@ -729,7 +955,9 @@ public abstract record AlterDatabaseAction : ISqlNode
 /// <c>MAXSIZE = UNLIMITED</c> a name as one, and <c>SIZE = 10 MB</c> an
 /// <see cref="Expression.Measured"/>. So no part of it is a tail of text (P2).
 /// </remarks>
-public sealed record DatabaseFile(SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record DatabaseFile(SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span => _location.Span;
 	/// <summary>Records where this file was written.</summary>
 	public void Locate(int at, int length)
 	{
@@ -738,13 +966,20 @@ public sealed record DatabaseFile(SqlList<Option> Options) : ISqlNode { SqlLocat
 }
 
 /// <summary>T-SQL: ALTER DATABASE File and Filegroups. What a filegroup is declared to contain.</summary>
-public enum FileGroupContents { Filestream, MemoryOptimizedData }
+public enum FileGroupContents
+{
+	/// <summary><c>CONTAINS FILESTREAM</c>.</summary>
+	Filestream,
+	/// <summary><c>CONTAINS MEMORY_OPTIMIZED_DATA</c>.</summary>
+	MemoryOptimizedData,
+}
 
 /// <summary>T-SQL: ALTER DATABASE File and Filegroups. What <c>MODIFY FILEGROUP</c> changes.</summary>
 public abstract record FileGroupChange : ISqlNode
 {
 	/// <summary>Where in the text this change was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this change was written.</summary>
@@ -776,10 +1011,22 @@ public abstract record FileGroupChange : ISqlNode
 }
 
 /// <summary>T-SQL: ALTER DATABASE File and Filegroups. Whether a filegroup may be written to.</summary>
-public enum FileGroupUpdatability { ReadOnly, ReadWrite }
+public enum FileGroupUpdatability
+{
+	/// <summary><c>READONLY</c> or <c>READ_ONLY</c>.</summary>
+	ReadOnly,
+	/// <summary><c>READWRITE</c> or <c>READ_WRITE</c>.</summary>
+	ReadWrite,
+}
 
 /// <summary>T-SQL: ALTER DATABASE File and Filegroups. Which files a filegroup grows.</summary>
-public enum FileGroupAutoGrow { SingleFile, AllFiles }
+public enum FileGroupAutoGrow
+{
+	/// <summary><c>AUTOGROW_SINGLE_FILE</c>: files grow one at a time.</summary>
+	SingleFile,
+	/// <summary><c>AUTOGROW_ALL_FILES</c>: all files grow together.</summary>
+	AllFiles,
+}
 
 /// <summary>T-SQL's own statements, in the standard's family.</summary>
 public abstract partial record Statement
@@ -918,6 +1165,7 @@ public sealed record TransactionName(Identifier? Name, Expression? Variable = nu
 	/// <inheritdoc/>
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc/>
@@ -945,6 +1193,7 @@ public sealed record TransactionMark(Expression? Description = null) : ISqlNode
 	/// <inheritdoc/>
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <inheritdoc/>
@@ -973,14 +1222,26 @@ public sealed record TransactionMark(Expression? Description = null) : ISqlNode
 /// all written words. So every value here is a text, which is what makes the writer a switch whose
 /// default throws.
 /// </remarks>
-public enum TransactionKeyword { Tran, Transaction }
+public enum TransactionKeyword
+{
+	/// <summary><c>TRAN</c>.</summary>
+	Tran,
+	/// <summary><c>TRANSACTION</c>.</summary>
+	Transaction,
+}
 
 /// <summary>T-SQL: DECLARE CURSOR (Transact-SQL). <c>LOCAL</c> or <c>GLOBAL</c> after the word CURSOR.</summary>
 /// <remarks>
 /// Not <see cref="CursorReference"/>'s Global and Local, which qualify a cursor's <em>name</em> where it is
 /// used — <c>OPEN GLOBAL c</c>. This says how the cursor was declared.
 /// </remarks>
-public enum CursorScope { Local, Global }
+public enum CursorScope
+{
+	/// <summary><c>LOCAL</c>: the cursor is visible in the batch, procedure or trigger that declared it.</summary>
+	Local,
+	/// <summary><c>GLOBAL</c>: the cursor is visible to the whole connection.</summary>
+	Global,
+}
 
 /// <summary>T-SQL: DECLARE CURSOR (Transact-SQL). The kind of cursor asked for.</summary>
 /// <remarks>
@@ -988,20 +1249,39 @@ public enum CursorScope { Local, Global }
 /// INSENSITIVE and the other three have no standard word at all, so the two never stand for one another.
 /// <c>FAST_FORWARD</c> is a kind the page publishes as one word, not a pair of the others.
 /// </remarks>
-public enum CursorType { Static, Keyset, Dynamic, FastForward }
+public enum CursorType
+{
+	/// <summary><c>STATIC</c>: a copy of the rows, made when the cursor is opened.</summary>
+	Static,
+	/// <summary><c>KEYSET</c>: the set of rows is fixed when the cursor is opened, their values are not.</summary>
+	Keyset,
+	/// <summary><c>DYNAMIC</c>: changes to the rows are seen as the cursor scrolls.</summary>
+	Dynamic,
+	/// <summary><c>FAST_FORWARD</c>: a forward-only, read-only cursor tuned for speed.</summary>
+	FastForward,
+}
 
 /// <summary>T-SQL: DECLARE CURSOR (Transact-SQL). What may be done through the cursor while it is open.</summary>
 /// <remarks>
 /// <c>READ_ONLY</c> here is the concurrency of the extended form's word list, which is not the
 /// <c>FOR READ ONLY</c> of <see cref="UpdatabilityClause"/>: a page may write both.
 /// </remarks>
-public enum CursorConcurrency { ReadOnly, ScrollLocks, Optimistic }
+public enum CursorConcurrency
+{
+	/// <summary><c>READ_ONLY</c>: the cursor cannot be updated through.</summary>
+	ReadOnly,
+	/// <summary><c>SCROLL_LOCKS</c>: rows are locked as they are read, so updates succeed.</summary>
+	ScrollLocks,
+	/// <summary><c>OPTIMISTIC</c>: rows are not locked, an update fails if the row has changed since it was read.</summary>
+	Optimistic,
+}
 
 /// <summary>T-SQL: DROP INDEX (Transact-SQL). One index a <see cref="Statement.DropIndex"/> drops.</summary>
 public abstract record DroppedIndex : ISqlNode
 {
 	/// <summary>Where in the text this index was named.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this index was named.</summary>
@@ -1033,6 +1313,7 @@ public abstract record SignedBy : ISqlNode
 {
 	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -1071,6 +1352,7 @@ public abstract record SignatureProof : ISqlNode
 {
 	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -1091,10 +1373,22 @@ public abstract record SignatureProof : ISqlNode
 }
 
 /// <summary>T-SQL: DROP EVENT SESSION (Transact-SQL). Where an event session lives.</summary>
-public enum EventScope { Server, Database }
+public enum EventScope
+{
+	/// <summary><c>SERVER</c>.</summary>
+	Server,
+	/// <summary><c>DATABASE</c>.</summary>
+	Database,
+}
 
 /// <summary>T-SQL: DROP TRIGGER (Transact-SQL). What a DDL trigger was created on.</summary>
-public enum TriggerScope { Database, AllServer }
+public enum TriggerScope
+{
+	/// <summary><c>ON DATABASE</c>.</summary>
+	Database,
+	/// <summary><c>ON ALL SERVER</c>.</summary>
+	AllServer,
+}
 
 /// <summary>T-SQL: DROP EVENT NOTIFICATION (Transact-SQL). What an event notification was on.</summary>
 /// <remarks>
@@ -1105,6 +1399,7 @@ public abstract record NotificationScope : ISqlNode
 {
 	/// <summary>Where in the text this scope was written.</summary>
 	SqlLocation _location;
+	/// <inheritdoc cref="ISqlSpan.Span"/>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this scope was written.</summary>
