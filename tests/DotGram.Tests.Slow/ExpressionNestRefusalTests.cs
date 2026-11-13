@@ -57,28 +57,19 @@ public sealed class ExpressionNestRefusalTests
 		Assert.False(ExpressionParser.TryParse(cut).IsSuccess);
 		Assert.True(ExpressionParser.TryParse(closed).IsSuccess);
 
-		var (fewestCut, fewestClosed) = (double.MaxValue, double.MaxValue);
+		// Every timing covers at least the clock's floor of work, the two alternate, and a ratio over the bound is measured
+		// again: closed, a read is a few tens of milliseconds, where one pause of a millisecond or two decided a single reading.
+		var reading = ScalingClock.Settle(() => ExpressionParser.TryParse(closed), () => ExpressionParser.TryParse(cut), Bound);
 
-		for (var run = 0; run < 5; run++)
-		{
-			var clock = Stopwatch.StartNew();
-
-			ExpressionParser.TryParse(cut);
-
-			fewestCut = Math.Min(fewestCut, clock.Elapsed.TotalMilliseconds);
-			clock     = Stopwatch.StartNew();
-
-			ExpressionParser.TryParse(closed);
-
-			fewestClosed = Math.Min(fewestClosed, clock.Elapsed.TotalMilliseconds);
-		}
-
-		TestContext.Current.TestOutputHelper?.WriteLine($"{levels} levels: cut {fewestCut:F1} ms, closed {fewestClosed:F1} ms");
+		TestContext.Current.TestOutputHelper?.WriteLine($"{levels} levels: cut {reading.Longer / 1000:F1} ms, closed {reading.Shorter / 1000:F1} ms, ratios {reading.Readings}");
 		Assert.True(
-			fewestCut <= fewestClosed * 6,
-			$"A conditional chain of {levels} levels cut short took {fewestCut:F1} ms and closed {fewestClosed:F1} ms — " +
-			$"{fewestCut / fewestClosed:F1} times as long.");
+			reading.Within,
+			$"A conditional chain of {levels} levels cut short took {reading.Longer / 1000:F1} ms and closed {reading.Shorter / 1000:F1} ms — " +
+			$"{reading.Ratio:F1} times as long (attempts: {reading.Readings}).");
 	}
+
+	/// <summary>The most times as long a chain cut short may take as the same chain closed.</summary>
+	const double Bound = 6;
 
 	/// <summary>Bytes a level at four doubling depths stay within a quarter of one another.</summary>
 	static void AssertLinear(string shape, Func<int, string> textFor, bool accepted)

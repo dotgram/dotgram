@@ -101,15 +101,17 @@ public sealed class WebRunRefusalTests
 		// Eight times the run is eight times the work when the reading is linear, and sixty-four
 		// times when it is quadratic. The shorter is read again after the longer: its first reads
 		// can be in code the tiered compiler has not finished with, which would flatten the ratio.
-		var shorter = Best(refuse, Header / 8);
-		var longer  = Best(refuse, Header);
+		Assert.False(refuse(Header / 8));
+		Assert.False(refuse(Header));
 
-		shorter = Math.Min(shorter, Best(refuse, Header / 8));
+		// Each timing covers at least the clock's floor of work, the two sizes alternate, and a ratio over the bound is measured again.
+		var reading = ScalingClock.Settle(() => refuse(Header / 8), () => refuse(Header), 24);
 
+		TestContext.Current.TestOutputHelper?.WriteLine($"{shape}: {reading.Shorter:F0} µs, {reading.Longer:F0} µs, ratios {reading.Readings}");
 		Assert.True(
-			longer / Math.Max(shorter, 1) < 24,
-			$"{shape}: eight times the run took {longer / Math.Max(shorter, 1):F1} times as long " +
-			$"({shorter:F0} µs against {longer:F0} µs).");
+			reading.Within,
+			$"{shape}: eight times the run took {reading.Ratio:F1} times as long " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs; attempts: {reading.Readings}).");
 	}
 
 	/// <summary>Comments nested as deep as a large header allows, read at all and refused.</summary>
@@ -146,34 +148,16 @@ public sealed class WebRunRefusalTests
 			$"A seal around a group that holds the nested comment spends every level below again; seal the text " +
 			$"between the comments instead.");
 
-		var shallower = Fastest(read, Deep / 8);
-		var deeper    = Fastest(read, Deep);
+		// Each timing covers at least the clock's floor of work, the two depths alternate, and a ratio over the bound is
+		// measured again: at a quarter of the depth a read is some hundreds of microseconds, where a single timing of one is noise.
+		var reading = ScalingClock.Settle(() => read(Deep / 8), () => read(Deep), 24);
 
-		shallower = Math.Min(shallower, Fastest(read, Deep / 8));
+		TestContext.Current.TestOutputHelper?.WriteLine($"{shape}: {reading.Shorter:F0} µs, {reading.Longer:F0} µs, ratios {reading.Readings}");
 
 		Assert.True(
-			deeper / Math.Max(shallower, 1) < 24,
-			$"{shape}: eight times as deep took {deeper / Math.Max(shallower, 1):F1} times as long " +
-			$"({shallower:F0} µs against {deeper:F0} µs).");
-	}
-
-	/// <summary>The fastest of several reads, in microseconds, after one to compile it; accepted or not.</summary>
-	static double Fastest(Func<int, bool> read, int depth)
-	{
-		read(depth);
-
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 11; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			read(depth);
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
+			reading.Within,
+			$"{shape}: eight times as deep took {reading.Ratio:F1} times as long " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs; attempts: {reading.Readings}).");
 	}
 
 	static Func<int, bool> Reader(string shape)
@@ -238,24 +222,5 @@ public sealed class WebRunRefusalTests
 		{
 			return false;
 		}
-	}
-
-	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
-	static double Best(Func<int, bool> refuse, int length)
-	{
-		Assert.False(refuse(length));
-
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 31; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			refuse(length);
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
 	}
 }

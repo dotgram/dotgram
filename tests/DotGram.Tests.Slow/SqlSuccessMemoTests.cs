@@ -50,6 +50,13 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 	/// <summary>Twice the depth may cost at most this many times the entries: linear, with a seventh over for the ends of the text.</summary>
 	const double Doubling = 2.14;
 
+	/// <summary>
+	/// A reading without the memo is counted only while the depth before it cost no more entries than this: the next doubling
+	/// costs hundreds of times as many and takes longer than <see cref="Count"/> waits, and a reading left running on its thread
+	/// would keep adding to the counters that the next reading sums. Where it is left out, the shape is marked <c>t</c>, on every machine alike.
+	/// </summary>
+	const long UnkeptReach = 500_000;
+
 	/// <summary>The SQL-92 nests a bracketed value holding a condition made exponential, each a level around <c>{0}</c>, and the shapes that were linear before.</summary>
 	internal static readonly (string Name, string Shape, string Core)[] Sql92Shapes =
 	[
@@ -134,12 +141,13 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 		{
 			var line = $"{name,-20}";
 			var last = 0L;
+			var lastOne = 0L;
 			var ratio = 0.0;
 
 			foreach (var depth in Depths)
 			{
 				var text = prefix + Nest(shape, core, depth);
-				var (one, okOne) = Count(unkept, publication, text, depth <= 16);
+				var (one, okOne) = Count(unkept, publication, text, depth <= 16 && lastOne <= UnkeptReach);
 				var (two, okTwo) = Count(kept, publication, text);
 
 				line += $" | {depth}: {Shown(one, okOne)} -> {Shown(two, okTwo)}";
@@ -150,6 +158,7 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 					ratio = Math.Max(ratio, (double)two / last);
 
 				last = two;
+				lastOne = one;
 			}
 
 			if (ratio > worst.Item2)
@@ -665,31 +674,37 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 
 		var counters = Counters(parser);
 
-		foreach (var counter in counters)
-			counter.SetValue(null, 0L);
-
-		var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)
-			?? throw new InvalidOperationException($"no {publication} on " + parser);
-
-		object? match = null;
-		Exception? error = null;
-		var thread = new Thread(() =>
+		// The counters are static fields of the compiled parser, and a parser variant is one type for every test in this process
+		// (SharedRecursionTests reads this one too): one reading at a time, from the reset to the sum.
+		lock (parser)
 		{
-			try { match = read.Invoke(null, [text]); }
-			catch (Exception e) { error = e; }
-		}, 256 * 1024 * 1024) { IsBackground = true };
+			foreach (var counter in counters)
+				counter.SetValue(null, 0L);
 
-		thread.Start();
+			var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)
+				?? throw new InvalidOperationException($"no {publication} on " + parser);
 
-		if (!thread.Join(TimeSpan.FromSeconds(30)))
-			return (long.MaxValue / 4, false);
+			object? match = null;
+			Exception? error = null;
+			var thread = new Thread(() =>
+			{
+				try { match = read.Invoke(null, [text]); }
+				catch (Exception e) { error = e; }
+			}, 256 * 1024 * 1024) { IsBackground = true };
 
-		if (error is not null)
-			throw new InvalidOperationException("the counted reading threw", error);
+			thread.Start();
 
-		var ok = (bool)match!.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+			// A reading that outlives this wait goes on adding to the counters, and nothing read from them afterwards means anything.
+			if (!thread.Join(TimeSpan.FromSeconds(30)))
+				throw new InvalidOperationException($"the counted reading of {text.Length} characters took more than thirty seconds; the counters of {parser} can no longer be trusted");
 
-		return (counters.Sum(counter => (long)counter.GetValue(null)!), ok);
+			if (error is not null)
+				throw new InvalidOperationException("the counted reading threw", error);
+
+			var ok = (bool)match!.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+
+			return (counters.Sum(counter => (long)counter.GetValue(null)!), ok);
+		}
 	}
 
 	static FieldInfo[] Counters(Type parser)

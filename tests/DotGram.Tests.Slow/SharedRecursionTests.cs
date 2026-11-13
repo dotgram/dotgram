@@ -412,38 +412,42 @@ public sealed class SharedRecursionTests(ITestOutputHelper output)
 			.Where(static field => field.Name.StartsWith("CountEntered_", StringComparison.Ordinal))
 			.ToArray();
 
-		foreach (var counter in counters)
-			counter.SetValue(null, 0L);
-
-		var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)
-			?? throw new InvalidOperationException("no " + publication + " on " + parser);
-
-		object?    match = null;
-		Exception? error = null;
-
-		var thread = new Thread(() =>
+		// The counters are static fields of a parser type that the memo tests read as well, on another thread: one reading at a time.
+		lock (parser)
 		{
-			try
+			foreach (var counter in counters)
+				counter.SetValue(null, 0L);
+
+			var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)
+				?? throw new InvalidOperationException("no " + publication + " on " + parser);
+
+			object?    match = null;
+			Exception? error = null;
+
+			var thread = new Thread(() =>
 			{
-				match = read.Invoke(null, [text]);
-			}
-			catch (TargetInvocationException thrown)
-			{
-				error = thrown;
-			}
-		}, 256 * 1024 * 1024) { IsBackground = true };
+				try
+				{
+					match = read.Invoke(null, [text]);
+				}
+				catch (TargetInvocationException thrown)
+				{
+					error = thrown;
+				}
+			}, 256 * 1024 * 1024) { IsBackground = true };
 
-		thread.Start();
+			thread.Start();
 
-		if (!thread.Join(TimeSpan.FromSeconds(60)))
-			return (-1, false);
+			if (!thread.Join(TimeSpan.FromSeconds(60)))
+				return (-1, false);
 
-		if (error is not null)
-			throw new InvalidOperationException("the counted reading threw", error);
+			if (error is not null)
+				throw new InvalidOperationException("the counted reading threw", error);
 
-		var accepted = (bool)match!.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+			var accepted = (bool)match!.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
 
-		return (counters.Sum(static counter => (long)counter.GetValue(null)!), accepted);
+			return (counters.Sum(static counter => (long)counter.GetValue(null)!), accepted);
+		}
 	}
 
 	SharedRecursion.Result Report(string name, string grammar, bool lexical)

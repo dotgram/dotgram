@@ -60,7 +60,7 @@ public sealed class WebRefusalScalingTests
 		var refuse = Reader(shape);
 
 		// Short first: it compiles the path and it is quick even when the grammar is wrong.
-		var shorter = Best(refuse, 16);
+		Assert.False(refuse(16));
 
 		// One read, abandoned if it outstays the budget. This is the assertion that catches the
 		// catastrophe, and it catches it in a second and a half however bad the grammar is.
@@ -70,19 +70,19 @@ public sealed class WebRefusalScalingTests
 		Assert.True(
 			await Task.WhenAny(read, spent) == read,
 			$"{shape}: a refusal of twenty-eight characters had not finished in {Budget.TotalSeconds:F1} s, " +
-			$"where sixteen took {shorter:F0} µs. That is the shape of `(A+)*` — the run can be cut many " +
+			$"where sixteen are a read of microseconds. That is the shape of `(A+)*` — the run can be cut many " +
 			$"ways and a refusal tries them all. Make the run atomic: `{{ X+ }}`.");
 
 		// It finished inside the budget, so the catastrophe is gone. Now the milder regression:
 		// one that would not blow the budget at twenty-eight characters but would at forty. Timed
 		// the SAME way as the short one — the budgeted read above went through a task, and a task
 		// costs a thousand microseconds to start, which is a thousand times the work being timed.
-		var longer = Best(refuse, 28);
+		var reading = ScalingClock.Settle(() => refuse(16), () => refuse(28), 50);
 
 		Assert.True(
-			longer / Math.Max(shorter, 1) < 50,
-			$"{shape}: twelve more characters took {longer / Math.Max(shorter, 1):F0} times as long " +
-			$"({shorter:F0} µs against {longer:F0} µs).");
+			reading.Within,
+			$"{shape}: twelve more characters took {reading.Ratio:F0} times as long " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs; attempts: {reading.Readings}).");
 	}
 
 	static Func<int, bool> Reader(string shape)
@@ -96,27 +96,5 @@ public sealed class WebRefusalScalingTests
 			_ => length => EmailAddress.TryParseList(
 							  "<" + string.Concat(Enumerable.Repeat("(a)", length)) + "@a:b@c.d", out _),
 		};
-	}
-
-	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
-	static double Best(Func<int, bool> refuse, int length)
-	{
-		Assert.False(refuse(length));
-
-		GC.Collect();
-		GC.WaitForPendingFinalizers();
-
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 11; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			refuse(length);
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
 	}
 }

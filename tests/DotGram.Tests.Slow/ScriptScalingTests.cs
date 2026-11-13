@@ -34,39 +34,20 @@ public sealed class ScriptScalingTests
 	[Fact]
 	public void A_script_read_one_statement_at_a_time_costs_the_same_for_each()
 	{
-		var shorter = Best(10);
-		var longer  = Best(400);
+		var (few, many) = (Script(10), Script(400));
 
-		var exponent = Math.Log(longer / shorter) / Math.Log(40.0);
+		Assert.Equal(10, Read(few));
+		Assert.Equal(400, Read(many));
 
+		// Each timing covers at least the clock's floor of work, the two sizes alternate, and a ratio over the bound is measured again.
+		var reading  = ScalingClock.Settle(() => Read(few), () => Read(many), Math.Pow(40.0, 1.6));
+		var exponent = reading.Exponent(40.0);
+
+		TestContext.Current.TestOutputHelper?.WriteLine($"10 statements {reading.Shorter:F0} µs, 400 statements {reading.Longer:F0} µs, ratios {reading.Readings}");
 		Assert.True(
-			exponent <= 1.6,
-			$"Forty times the statements took {longer / shorter:F1} times as long " +
-			$"({shorter:F0} µs against {longer:F0} µs), an exponent of {exponent:F2}.");
-	}
-
-	/// <summary>The fastest of several readings of a script of <paramref name="statements"/>, in microseconds.</summary>
-	static double Best(int statements)
-	{
-		var text = Script(statements);
-
-		Assert.Equal(statements, Read(text));
-
-		GC.Collect();
-		GC.WaitForPendingFinalizers();
-
-		var best = double.MaxValue;
-
-		for (var run = 0; run < 7; run++)
-		{
-			var watch = Stopwatch.StartNew();
-
-			Read(text);
-
-			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
-		}
-
-		return best;
+			reading.Within,
+			$"Forty times the statements took {reading.Ratio:F1} times as long " +
+			$"({reading.Shorter:F0} µs against {reading.Longer:F0} µs), an exponent of {exponent:F2} (attempts: {reading.Readings}).");
 	}
 
 	/// <summary>How many statements a reading from a position finds, one after another.</summary>
