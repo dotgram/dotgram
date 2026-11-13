@@ -52,10 +52,16 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 
 	/// <summary>
 	/// A reading without the memo is counted only while the depth before it cost no more entries than this: the next doubling
-	/// costs hundreds of times as many and takes longer than <see cref="Count"/> waits, and a reading left running on its thread
-	/// would keep adding to the counters that the next reading sums. Where it is left out, the shape is marked <c>t</c>, on every machine alike.
+	/// costs hundreds of times as many and may take longer than <see cref="Count"/> waits, which a slow machine reaches sooner. Where it is left out,
+	/// the shape is marked <c>t</c>; the count is informative, and the growth that is asserted is the one with the memo.
 	/// </summary>
-	const long UnkeptReach = 500_000;
+	const long UnkeptReach = 100_000;
+
+	/// <summary>
+	/// The parser types whose reading without the memo outlived the wait: it runs on, adding to their counters, so none of them is read again
+	/// (every later reading of the type is marked <c>t</c>). The counters of the type with the memo are other fields and stay valid.
+	/// </summary>
+	static readonly HashSet<Type> Poisoned = [];
 
 	/// <summary>The SQL-92 nests a bracketed value holding a condition made exponential, each a level around <c>{0}</c>, and the shapes that were linear before.</summary>
 	internal static readonly (string Name, string Shape, string Core)[] Sql92Shapes =
@@ -147,7 +153,7 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 			foreach (var depth in Depths)
 			{
 				var text = prefix + Nest(shape, core, depth);
-				var (one, okOne) = Count(unkept, publication, text, depth <= 16 && lastOne <= UnkeptReach);
+				var (one, okOne) = Count(unkept, publication, text, depth <= 16 && lastOne <= UnkeptReach, informative: true);
 				var (two, okTwo) = Count(kept, publication, text);
 
 				line += $" | {depth}: {Shown(one, okOne)} -> {Shown(two, okTwo)}";
@@ -666,11 +672,17 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 		];
 	}
 
-	/// <summary>The rule entries one reading of a text costs, and whether it was accepted; a reading past thirty seconds is a timeout, marked <c>t</c>.</summary>
-	static (long Count, bool Accepted) Count(Type parser, string publication, string text, bool worth = true)
+	/// <summary>The rule entries one reading of a text costs, and whether it was accepted; a reading past thirty seconds is a timeout, marked <c>t</c> (an informative one gives its type up, any other fails).</summary>
+	static (long Count, bool Accepted) Count(Type parser, string publication, string text, bool worth = true, bool informative = false)
 	{
 		if (!worth)
 			return (long.MaxValue / 4, false);
+
+		lock (Poisoned)
+		{
+			if (Poisoned.Contains(parser))
+				return (long.MaxValue / 4, false);
+		}
 
 		var counters = Counters(parser);
 
@@ -696,7 +708,18 @@ public abstract class SqlSuccessMemoTests(ITestOutputHelper output)
 
 			// A reading that outlives this wait goes on adding to the counters, and nothing read from them afterwards means anything.
 			if (!thread.Join(TimeSpan.FromSeconds(30)))
+			{
+				// The reading without the memo only informs: it is marked and its type given up. The one the guard is about fails.
+				if (informative)
+				{
+					lock (Poisoned)
+						Poisoned.Add(parser);
+
+					return (long.MaxValue / 4, false);
+				}
+
 				throw new InvalidOperationException($"the counted reading of {text.Length} characters took more than thirty seconds; the counters of {parser} can no longer be trusted");
+			}
 
 			if (error is not null)
 				throw new InvalidOperationException("the counted reading threw", error);
