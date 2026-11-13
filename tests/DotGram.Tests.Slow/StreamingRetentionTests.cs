@@ -41,10 +41,13 @@ namespace DotGram.Tests;
 /// running beside it would be measured with it, and would pass or fail it at random.
 /// </para>
 /// <para>
-/// That holds of the two tests here which read bytes, and is why they read them at a PEAK and
-/// compare two sizes rather than two moments. The lazy forms, whose bound is a quarter of a
-/// megabyte, are measured in a process of their own, because a collection that runs alone still
-/// shares its process with what the other classes left in it (<see cref="Isolated"/>). It no longer holds of
+/// That holds of the tests here which read bytes, and is why they read them at a PEAK and
+/// compare two sizes rather than two moments. Every form, the lazy ones whose bound is a quarter of a
+/// megabyte and the whole ones whose bound is a thousand bytes a record, is measured in a process of
+/// its own, because a collection that runs alone still shares its process with what the other classes
+/// left in it (<see cref="Isolated"/>): after the rest of the suite the process holds a quarter of a
+/// gigabyte, and the two peaks of a whole form came out 1,150 bytes a record apart on one run where
+/// they are 455 in a fresh process. It no longer holds of
 /// <see cref="A_finished_parse_keeps_what_it_grew_until_the_work_stops_wanting_it"/>, which asks
 /// the parser's own slots and a weak reference instead, and so cannot be moved by a neighbour at
 /// all: it read the heap twice and failed twice on a shared runner before it was changed.
@@ -91,7 +94,7 @@ public sealed class StreamingRetentionTests
 	[InlineData("stream yield", true)]
 	public void A_lazy_form_holds_the_same_however_much_it_has_read(string form, bool buffered)
 	{
-		var measured = Isolated(form, buffered);
+		var measured = Isolated(form, buffered, nameof(A_lazy_form_holds_the_same_however_much_it_has_read));
 
 		if (measured is null)
 			return;
@@ -152,7 +155,12 @@ public sealed class StreamingRetentionTests
 	[InlineData("stream whole")]
 	public void A_whole_result_over_a_stream_holds_its_tape_and_not_the_text(string form)
 	{
-		var (small, large) = Measure(form, buffered: true);
+		var measured = Isolated(form, buffered: true, nameof(A_whole_result_over_a_stream_holds_its_tape_and_not_the_text));
+
+		if (measured is null)
+			return;
+
+		var (small, large) = measured.Value;
 		var perRecord      = (large.Peak - small.Peak) / (double)(large.Records - small.Records);
 
 		Assert.True(
@@ -350,7 +358,7 @@ public sealed class StreamingRetentionTests
 	/// </para>
 	/// </remarks>
 	// The case proves bounded retention in a fresh process, not after the history of the other tests.
-	static (Outcome Small, Outcome Large)? Isolated(string form, bool buffered)
+	static (Outcome Small, Outcome Large)? Isolated(string form, bool buffered, string test)
 	{
 		var child = Environment.GetEnvironmentVariable(ChildCase);
 
@@ -384,7 +392,7 @@ public sealed class StreamingRetentionTests
 				start.ArgumentList.Add(typeof(StreamingRetentionTests).Assembly.Location);
 
 			start.ArgumentList.Add("-method");
-			start.ArgumentList.Add(typeof(StreamingRetentionTests).FullName + "." + nameof(A_lazy_form_holds_the_same_however_much_it_has_read));
+			start.ArgumentList.Add(typeof(StreamingRetentionTests).FullName + "." + test);
 			start.Environment[ChildCase]   = form;
 			start.Environment[ChildResult] = result;
 
