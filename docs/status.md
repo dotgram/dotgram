@@ -29,6 +29,7 @@ then quietly mean nothing.
 | the same, on a publication, `parse R with (A = B) as X` §5.1/§6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, either side a parameterized rule §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `Std`'s runs atomic, and its numbers refusing a number too wide for their type §5.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `eos`, the end of a segment, and a sequence of segments read as the input §3.1.1/§6.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, text across a boundary, tokens and buffered forms refused (`GRAM4048`–`GRAM4050`) §3.1.1 | ✓ | ✓ | ✓ | — | — |
 | `Std.Nested(open, close)`, read with a counter in a scanner and in a token the lexer begins §5.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -38,6 +39,8 @@ then quietly mean nothing.
 | a directive naming an expression rather than a rule §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same declaring its type, `as Name : @T` §6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | an expression on the right of a rebinding §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a qualified name on the left of a rebinding, `X with (Std.Digit = HexDigit)` §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a name two imports supply, read unqualified, refused (`GRAM3023`) §5 | ✓ | ✓ | — | — | — |
 | the position a refusal names | — | — | — | ✓ | ✓ |
 | what a refusal says was expected, first tier §0/§11 | — | — | — | ✓ | ✓ |
 | captures `name:` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -1193,7 +1196,10 @@ output.
 
 The generator emits calls from `when` and `=>` even when their C# names do not exist.
 The consumer compiler then reports the missing name at the mapped grammar location. No
-partial helper declaration is generated and no intended signature is guessed.
+partial helper declaration is generated and no intended signature is guessed. One name is told
+on the grammar instead: a rule's parameter that stands for a piece of grammar, read by the
+rule's own C#, where nothing in the host answers to the name (`GRAM4058`); it holds no value C#
+could read.
 
 ## A rule can be a sequence of what it is made of
 
@@ -1386,11 +1392,11 @@ free while nothing had been released, and it stops being free at 0.1.0. From the
 retired number is not reused, because a suppression written against the old meaning would
 silently acquire a new one — which is what `AnalyzerReleases.Shipped.md` is for.
 
-Numbers go by the stage that raises them: `GRAM0002`–`GRAM0010` the Roslyn shell
+Numbers go by the stage that raises them: `GRAM0002`–`GRAM0012` and `GRAM0017` the Roslyn shell
 (the analyzer's release files), `GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx`
 the binder, `GRAM4xxx` the normalizer, `GRAM5xxx` the analyses that decide what a grammar
-gets rather than whether it is one; `GRAM6xxx` is the Visual Studio extension's, not the
-generator's. Retired, and listed at the end of
+gets rather than whether it is one; `GRAM6xxx` the tooling a grammar is annotated for
+(`[GramClassify]`), which the build reports as the editor does. Retired, and listed at the end of
 [`diagnostics.md`](diagnostics.md): `GRAM3013`, `GRAM3015`, `GRAM3017`, `GRAM3018`,
 `GRAM4004`, `GRAM5006`, `GRAM5008`, `GRAM5010` and `GRAM5015`.
 
@@ -1535,11 +1541,15 @@ the rules it shares with SQL-92.
 **`[GramSource]`** is the grammar's text, written by the generator onto a class it
 compiled where `ExportGrammar` holds — by default, where the class is visible outside its
 assembly. A base or an include in a referenced assembly has no `.gram` file in reach, so
-its text is read from there; the file wins where both are. This is what the table's
-referenced-assembly row rests on.
+its text is read from there. A class of a referenced assembly is always read from its
+`[GramSource]`, the grammar it was compiled from: a `.gram` file of the same name in the including
+project is left alone, and `GRAM0017` (information) says so where the two differ. This is what the
+table's referenced-assembly row rests on.
 
-`LocationType` names an interface with a settable `Span`; every value implementing it is
-handed the range it was read from.
+`LocationType` names an interface declaring `Locate(int at, int length)`, or a class declaring
+it; every value implementing it is handed the range it was read from, through the interface, so
+an explicit implementation serves and a struct is told on the value the rule returns. A type that
+is neither is `GRAM0011`.
 
 ## A grammar cut in two
 
@@ -1585,6 +1595,15 @@ with `GRAM5004`. A terminal that is nothing but `@M` has no beginning, so the ho
 at the start of every token before the automaton; that works and is `GRAM5011`, a warning.
 `Std.Nested(open, close)`, as the terminal or its last operand, is begun by its `open`, and
 its rest is read by its counter rather than by a machine over characters.
+
+**A terminal that names the context.** The lexer cuts the tokens before the syntactic half
+reads anything, so a guard or a `when … is …` of a terminal sees the context as the publication
+was handed it, and the lexer hands on the context, the reading and a per-call located argument
+to every terminal that reads them. Such a guard has to answer alike throughout the parse. Where a
+terminal's value is built by reading its token again, its guards run again against the context
+as the parse has written it by then: `GRAM5019` warns of a guard naming `context` there, and a
+token the second reading refuses throws `InvalidOperationException` naming the terminal. A
+grammar whose terminals depend on what the syntax has read is one for `Lexical = false`.
 
 **A window that holds no token is Starved over kinds.** A window, or a position, whose text is
 empty or trivia alone gives the syntactic half no token to read, and it answers `Starved` there,

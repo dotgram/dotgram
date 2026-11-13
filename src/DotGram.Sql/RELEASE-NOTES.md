@@ -35,9 +35,9 @@ CHANGED
 
 FASTER
 
-- Against 0.2.0 on the release benchmark. SqlStandardParser (SQL:2023) parses about 80% faster, with less than a third of the bytes.
-- Sql92Parser parses about 26% faster and allocates about 1.6 times the bytes; a refused text costs more, up to 88% slower, with up to 108 times the 208 bytes it took.
-- TransactSqlParser is 15% faster at the median, and a script of 400 statements 30% faster, but a long SELECT and an UPDATE with a subquery are 5 to 13% slower. Accepted T-SQL allocates 1.6 to 2.2 times the bytes, the cost of the one tree's records; a first call takes about 6% longer.
+- Against 0.2.0 on the release benchmark. SqlStandardParser (SQL:2023) parses about 80% faster, with less than a third of the bytes. TODO(freeze): re-measure.
+- Sql92Parser parses about 26% faster and allocates about 1.6 times the bytes; a refused text costs more, up to 88% slower, with up to 108 times the 208 bytes it took. TODO(freeze): re-measure.
+- TransactSqlParser is 15% faster at the median, and a script of 400 statements 30% faster, but a long SELECT and an UPDATE with a subquery are 5 to 13% slower. Accepted T-SQL allocates 1.6 to 2.2 times the bytes, the cost of the one tree's records; a first call takes about 6% longer. TODO(freeze): re-measure.
 - DotGram.Sql.dll carries 63% less IL (9.2 MB to 3.4 MB).
 
 FIXED

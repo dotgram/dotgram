@@ -17,13 +17,14 @@ One tree for every SQL parser, a parser generator that reads more and refuses in
 where it did not, bindings and back-references in the notation, a trace build that says why an
 input was refused, and a command-line tool for grammars too large to generate on every build.
 Every package's full notes, with what to write instead for each breaking change, are on its
-NuGet page.
+NuGet page. The documentation, with a guide to the language and one to the generator, is at
+https://dotgram.github.io/dotgram/.
 
 ## Highlights
 
 - **Generator.** The default carrier now builds as it reads wherever it can, so an accepted parse
   no longer walks a record at the end and is faster (the expression language's accepted text, by 16
-  to 51% against 0.2.0, about 40% on most); `Carrier = GramCarrier.Deferred` (`Tape` before) keeps the
+  to 51% against 0.2.0, about 40% on most; TODO(freeze): re-measure); `Carrier = GramCarrier.Deferred` (`Tape` before) keeps the
   old behaviour, and `GRAM5016` says where the deferred carrier is the safer choice. New in the notation:
   bindings and back-references (`$q: X`, `$q`, `X{#q}`) for constructs closed by the text that
   opened them, `eos` for input read as a sequence of segments, and `Std.Nested(open, close)`. A
@@ -43,6 +44,7 @@ NuGet page.
   Against 0.2.0, SQL:2023 parses about 80% faster and SQL-92 about 26%. T-SQL is 15% faster at the
   median, but a long SELECT and an UPDATE with a subquery are 5 to 13% slower, and accepted T-SQL
   allocates 1.6 to 2.2 times the bytes, the cost of the one tree. The assembly carries 63% less IL.
+  TODO(freeze): re-measure the SQL figures.
 - **DotGram.Finance**: validation is a question that keeps nothing, every finding says its path
   through the repeating groups, and the message limit and log framing are the context's.
 - **DotGram.Web** refuses a long adversarial Link, Forwarded, Content-Disposition or Accept header,
@@ -50,7 +52,7 @@ NuGet page.
   RFC 8288.
 - **DotGram.ExpressionLanguage** reads more of C# — initializers as C# reads them, `with`,
   target-typed `new()`, `T?` — and parses accepted text about 40% faster; a text refused late is
-  50 to 87% slower.
+  50 to 87% slower. TODO(freeze): re-measure.
 - **Visual Studio:** standalone grammars follow their host as the solution changes, and navigation
   reaches into included grammars.
 
@@ -58,9 +60,16 @@ NuGet page.
 
 Each package's notes list them with what to write instead. The ones most projects meet:
 
-- **DotGram:** the default carrier (above); new warnings `GRAM4043`, `GRAM4051`, `GRAM4042`,
-  `GRAM4052` and, for a grammar that names no carrier, `GRAM5016`, which fail a build with warnings as errors until the grammar is changed; `GRAM0010`
-  below C# 8; ignore-case literals no longer take a case partner across ASCII (`'s'i` and `ſ`).
+- **DotGram:** the attributes and options are renamed, with no aliases
+  (`[GramOptions(Suffix = "X")]` is `[GramParserVariant("X")]`, `GramCarrier.Tape` is
+  `GramCarrier.Deferred`, `PerCall` is `UsePerCallLocations`, …), and `GRAM0012` names the new
+  name where an old one is written; the default carrier (above); new warnings `GRAM4043`,
+  `GRAM4051`, `GRAM4042`, `GRAM4052`, `GRAM4059` (a grammar that publishes nothing and that
+  nothing includes; a library grammar says `ExportGrammar = true`), `GRAM6001`–`GRAM6005` from
+  the build and, for a grammar that names no carrier, `GRAM5016`, which fail a build with warnings
+  as errors until the grammar is changed; the forms read from a position are written only for a
+  `positional parse`; `GRAM0010` below C# 8; ignore-case literals no longer take a case partner
+  across ASCII (`'s'i` and `ſ`).
 - **DotGram.Sql:** the 0.2.0 T-SQL tree in `DotGram.Sql` is removed — read, walk and write
   `DotGram.Sql.Ast`; the 0.2.0 `DotGram.Sql.Ast` tree changes shape (a SELECT holds a `Query`,
   `SelectColumn`, one `Limit`, a DROP record per kind, reshaped SET options; docs/ast.md);
@@ -82,6 +91,11 @@ Each package's notes list them with what to write instead. The ones most project
 | [DotGram.ExpressionLanguage](https://www.nuget.org/packages/DotGram.ExpressionLanguage/0.3.0) | C#-style expressions to `System.Linq.Expressions` |
 | [DotGram.Finance](https://www.nuget.org/packages/DotGram.Finance/0.3.0) | FIX 4.2, 4.4, 5.0 SP2 |
 | [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=dotgram.DotGram.VisualStudio) | VS 2022 17.14+ and VS 18 |
+
+`LICENSE` is plain MIT. The code the generator and `dotnet dotgram generate` write may be used on
+terms of your choice, without carrying the notice: the grant is
+[`licenses/LICENSE-GENERATED-CODE`](https://github.com/dotgram/dotgram/blob/main/licenses/LICENSE-GENERATED-CODE),
+and the DotGram and DotGram.Cli packages carry it.
 
 ## Known issues
 

@@ -23,4 +23,4 @@ CHANGED
 
 FASTER
 
-- Against 0.2.0 on the release benchmark the readers are about 26% faster at the median (a full URL 36%, a JSON object 30%). A full Link field allocates what it did in 0.2.0 (2,936 bytes against 2,968): the default reading no longer reads and builds every link twice, which had made it 16% slower with 1.9 times the bytes. A refused Link field is 11 to 12% slower; a refused language tag is 17 to 20% slower, and a few refusals allocate more.
+- Against 0.2.0 on the release benchmark the readers are about 26% faster at the median (a full URL 36%, a JSON object 30%). A full Link field allocates what it did in 0.2.0 (2,936 bytes against 2,968): the default reading no longer reads and builds every link twice, which had made it 16% slower with 1.9 times the bytes. A refused Link field is 11 to 12% slower; a refused language tag is 17 to 20% slower (TODO(freeze): re-measure), and a few refusals allocate more.
