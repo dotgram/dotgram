@@ -40,17 +40,59 @@ public interface ISqlNode : ISqlSpan;
 [AttributeUsage(AttributeTargets.Property)]
 internal sealed class SpellingAttribute : Attribute;
 
-// Text is the identifier as written, its quotes included. UnicodeEscape is `U&"a" UESCAPE '!'`'s character.
-public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// An identifier: a name written in a statement, such as a table, a column, an alias or a parameter.
+/// </summary>
+/// <param name="Text">The identifier as written, its quotes included.</param>
+/// <param name="Style">How the identifier was written: plain, or delimited in one of the ways the dialect allows.</param>
+/// <param name="UnicodeEscape">
+/// The escape character of a Unicode delimited identifier: <c>!</c> in <c>U&amp;"a" UESCAPE '!'</c>; null where
+/// none was written.
+/// </param>
+public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierStyle.Regular, char? UnicodeEscape = null) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-// T-SQL: Database Identifiers (Transact-SQL). `Bracketed` is T-SQL's `[x]`.
-// T-SQL: SELECT Clause (Transact-SQL). `String` and `NationalString`: a column alias written as a string, 'x' or N'x',
-// whose text is the string's content with its doubled quotes undone.
-public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited, Bracketed, String, NationalString }
+
+/// <summary>
+/// How an <see cref="Identifier"/> was written.
+/// </summary>
+/// <remarks>
+/// T-SQL: Database Identifiers (Transact-SQL). <see cref="Bracketed"/> is T-SQL's <c>[x]</c>.
+/// T-SQL: SELECT Clause (Transact-SQL). <see cref="String"/> and <see cref="NationalString"/>: a column alias
+/// written as a string, <c>'x'</c> or <c>N'x'</c>, whose text is the string's content with its doubled quotes
+/// undone.
+/// </remarks>
+public enum IdentifierStyle
+{
+	/// <summary>A plain, undelimited identifier.</summary>
+	Regular,
+
+	/// <summary>A delimited identifier in double quotes: <c>"a"</c>.</summary>
+	Delimited,
+
+	/// <summary>A Unicode delimited identifier: <c>U&amp;"a"</c>, optionally with <c>UESCAPE</c>.</summary>
+	UnicodeDelimited,
+
+	/// <summary>T-SQL: an identifier in square brackets: <c>[a]</c>.</summary>
+	Bracketed,
+
+	/// <summary>T-SQL: a column alias written as a string: <c>'a'</c>.</summary>
+	String,
+
+	/// <summary>T-SQL: a column alias written as a national string: <c>N'a'</c>.</summary>
+	NationalString,
+}
 
 /// <summary>
 /// A statement: one of the records nested in this one, such as <see cref="Select"/>, <see cref="Insert"/>,
@@ -65,7 +107,11 @@ public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited, Bracketed, S
 public abstract partial record Statement : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -239,22 +285,59 @@ public abstract partial record Statement : ISqlNode
 		public SqlList<MergeClause> Clauses { get; init; } = [];
 	}
 
-	// BNF: <truncate table statement>
+	/// <summary>
+	/// BNF: <c>&lt;truncate table statement&gt;</c>. <c>TRUNCATE TABLE t [CONTINUE IDENTITY | RESTART IDENTITY]</c>:
+	/// every row of a table removed at once.
+	/// </summary>
 	public sealed partial record TruncateTable : Statement
 	{
+		/// <summary>
+		/// The table emptied.
+		/// </summary>
 		public required TableSource Target { get; init; }
+
+		/// <summary>
+		/// <c>CONTINUE IDENTITY</c> or <c>RESTART IDENTITY</c>: whether identity columns keep their counters;
+		/// null where neither was written.
+		/// </summary>
 		public IdentityRestart? Identity { get; init; }
 	}
 
-	// BNF: <schema definition>
+	/// <summary>
+	/// BNF: <c>&lt;schema definition&gt;</c>. <c>CREATE SCHEMA [name] [AUTHORIZATION owner] [DEFAULT CHARACTER SET c]
+	/// [PATH …] element …</c>: a schema and the statements that create its objects.
+	/// </summary>
 	public sealed record CreateSchema : Statement
 	{
+		/// <summary>
+		/// The schema's name; null where the schema is named only by its <see cref="Authorization"/>.
+		/// </summary>
 		public QualifiedName? Name { get; init; }
-		// BNF: <schema character set or path>, written either way round.
+
+		/// <summary>
+		/// BNF: <c>&lt;schema character set or path&gt;</c>, written either way round: true where <c>PATH</c> was
+		/// written before <c>DEFAULT CHARACTER SET</c>.
+		/// </summary>
 		public bool PathFirst { get; init; }
+
+		/// <summary>
+		/// The <c>AUTHORIZATION</c> owner of the schema; null where none was written.
+		/// </summary>
 		public AuthorizationIdentifier? Authorization { get; init; }
+
+		/// <summary>
+		/// The <c>DEFAULT CHARACTER SET</c> of the schema; null where none was written.
+		/// </summary>
 		public CharacterSetName? DefaultCharacterSet { get; init; }
+
+		/// <summary>
+		/// The <c>PATH</c> of schemas searched for unqualified routine names; null where none was written.
+		/// </summary>
 		public PathSpecification? Path { get; init; }
+
+		/// <summary>
+		/// The statements that follow, which create the objects of the schema, in the order written.
+		/// </summary>
 		public SqlList<Statement> Elements { get; init; } = [];
 	}
 
@@ -291,166 +374,1485 @@ public abstract partial record Statement : ISqlNode
 		public TableCommitAction? OnCommit { get; init; }
 	}
 
-	// BNF: <alter table statement>
+	/// <summary>
+	/// BNF: <c>&lt;alter table statement&gt;</c>. <c>ALTER TABLE t action</c>: a change to a table's columns or
+	/// constraints.
+	/// </summary>
 	public sealed partial record AlterTable : Statement
 	{
+		/// <summary>
+		/// The table altered, as written.
+		/// </summary>
 		public required QualifiedName Name { get; init; }
-		// T-SQL: several actions in one statement; the standard's is a list of one (docs/internal/design/sql-tsql-tree.md, 17).
+
+		/// <summary>
+		/// The actions, in the order written. The standard's statement has one; T-SQL may write several in one
+		/// statement.
+		/// </summary>
 		public SqlList<AlterTableAction> Actions { get; init; } = [];
 	}
 
-	// BNF: <drop schema statement>. T-SQL's drops name a list, say IF EXISTS, and may leave the behavior out (docs/internal/design/sql-tsql-tree.md).
-	public sealed record DropSchema : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	/// <summary>
+	/// BNF: <c>&lt;drop schema statement&gt;</c>. <c>DROP SCHEMA [IF EXISTS] s [CASCADE | RESTRICT]</c>. T-SQL's
+	/// drops name a list, say <c>IF EXISTS</c>, and may leave the behavior out.
+	/// </summary>
+	public sealed record DropSchema : Statement
+	{
+		/// <summary>
+		/// The schemas dropped, in the order written.
+		/// </summary>
+		public SqlList<QualifiedName> Names { get; init; } = [];
 
-	// BNF: <drop table statement>
-	public sealed record DropTable : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
 
-	// BNF: <view definition>
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop table statement&gt;</c>. <c>DROP TABLE [IF EXISTS] t [CASCADE | RESTRICT]</c>.
+	/// </summary>
+	public sealed record DropTable : Statement
+	{
+		/// <summary>
+		/// The tables dropped, in the order written.
+		/// </summary>
+		public SqlList<QualifiedName> Names { get; init; } = [];
+
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;view definition&gt;</c>. <c>CREATE [RECURSIVE] VIEW v [(columns)] AS query [WITH CHECK OPTION]</c>.
+	/// </summary>
 	public sealed partial record CreateView : Statement
 	{
+		/// <summary>
+		/// <c>RECURSIVE</c> was written before <c>VIEW</c>.
+		/// </summary>
 		public bool Recursive { get; init; }
+
+		/// <summary>
+		/// The view's name, as written.
+		/// </summary>
 		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// What follows the name: a list of column names, or the type a typed view is of; null where none was
+		/// written.
+		/// </summary>
 		public ViewSpecification? Specification { get; init; }
+
+		/// <summary>
+		/// The query after <c>AS</c> that the view is made of.
+		/// </summary>
 		public required Query Query { get; init; }
+
+		/// <summary>
+		/// <c>WITH [CASCADED | LOCAL] CHECK OPTION</c>; null where it was not written.
+		/// </summary>
 		public CheckOption? CheckOption { get; init; }
 	}
 
-	// BNF: <drop view statement>
-	public sealed record DropView : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	/// <summary>
+	/// BNF: <c>&lt;drop view statement&gt;</c>. <c>DROP VIEW [IF EXISTS] v [CASCADE | RESTRICT]</c>.
+	/// </summary>
+	public sealed record DropView : Statement
+	{
+		/// <summary>
+		/// The views dropped, in the order written.
+		/// </summary>
+		public SqlList<QualifiedName> Names { get; init; } = [];
 
-	// BNF: <domain definition>, <alter domain statement>, <drop domain statement>
-	public sealed record CreateDomain : Statement { public required QualifiedName Name { get; init; } public bool AsKeyword { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public SqlList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
-	public sealed record AlterDomain : Statement { public required QualifiedName Name { get; init; } public required AlterDomainAction Action { get; init; } }
-	public sealed record DropDomain : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
 
-	// BNF: character set/collation/translation/assertion statements
-	public sealed record CreateCharacterSet : Statement { public required CharacterSetName Name { get; init; } public bool AsKeyword { get; init; } public required CharacterSetName Source { get; init; } public CollationName? Collation { get; init; } }
-	public sealed record DropCharacterSet : Statement { public required CharacterSetName Name { get; init; } }
-	public sealed record CreateCollation : Statement { public required CollationName Name { get; init; } public required CharacterSetName CharacterSet { get; init; } public required CollationName Source { get; init; } public PadCharacteristic? Padding { get; init; } }
-	public sealed record DropCollation : Statement { public required CollationName Name { get; init; } public required DropBehavior Behavior { get; init; } }
-	public sealed record CreateTranslation : Statement { public required QualifiedName Name { get; init; } public required CharacterSetName SourceCharacterSet { get; init; } public required CharacterSetName TargetCharacterSet { get; init; } public required TranslationSource Source { get; init; } }
-	public sealed record DropTranslation : Statement { public required QualifiedName Name { get; init; } }
-	public sealed record CreateAssertion : Statement { public required QualifiedName Name { get; init; } public required Expression Condition { get; init; } public ConstraintCharacteristics? Characteristics { get; init; } }
-	public sealed record DropAssertion : Statement { public required QualifiedName Name { get; init; } public DropBehavior? Behavior { get; init; } }
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+	}
 
-	// BNF: trigger definition/drop trigger
+	/// <summary>
+	/// BNF: <c>&lt;domain definition&gt;</c>. <c>CREATE DOMAIN d [AS] type [DEFAULT x] [constraint …] [COLLATE c]</c>:
+	/// a named data type with a default and constraints.
+	/// </summary>
+	public sealed record CreateDomain : Statement
+	{
+		/// <summary>
+		/// The domain's name, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// The optional <c>AS</c> after the name was written.
+		/// </summary>
+		public bool AsKeyword { get; init; }
+
+		/// <summary>
+		/// The data type the domain is based on.
+		/// </summary>
+		public required DataType Type { get; init; }
+
+		/// <summary>
+		/// The <c>DEFAULT</c> value; null where none was written.
+		/// </summary>
+		public Expression? Default { get; init; }
+
+		/// <summary>
+		/// The domain's constraints, in the order written.
+		/// </summary>
+		public SqlList<Constraint> Constraints { get; init; } = [];
+
+		/// <summary>
+		/// The <c>COLLATE</c> collation; null where none was written.
+		/// </summary>
+		public CollationName? Collation { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;alter domain statement&gt;</c>. <c>ALTER DOMAIN d action</c>: a change to a domain's default or
+	/// constraints.
+	/// </summary>
+	public sealed record AlterDomain : Statement
+	{
+		/// <summary>
+		/// The domain altered, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// The change: <c>SET DEFAULT</c>, <c>DROP DEFAULT</c>, <c>ADD constraint</c> or <c>DROP CONSTRAINT</c>.
+		/// </summary>
+		public required AlterDomainAction Action { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop domain statement&gt;</c>. <c>DROP DOMAIN d CASCADE | RESTRICT</c>.
+	/// </summary>
+	public sealed record DropDomain : Statement
+	{
+		/// <summary>
+		/// The domain dropped, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>.
+		/// </summary>
+		public required DropBehavior Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;character set definition&gt;</c>. <c>CREATE CHARACTER SET c [AS] GET source [COLLATE x]</c>:
+	/// a character set made from another.
+	/// </summary>
+	public sealed record CreateCharacterSet : Statement
+	{
+		/// <summary>
+		/// The character set created.
+		/// </summary>
+		public required CharacterSetName Name { get; init; }
+
+		/// <summary>
+		/// The optional <c>AS</c> after the name was written.
+		/// </summary>
+		public bool AsKeyword { get; init; }
+
+		/// <summary>
+		/// The character set named after <c>GET</c>, which the new one is taken from.
+		/// </summary>
+		public required CharacterSetName Source { get; init; }
+
+		/// <summary>
+		/// The <c>COLLATE</c> collation; null where none was written.
+		/// </summary>
+		public CollationName? Collation { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop character set statement&gt;</c>. <c>DROP CHARACTER SET c</c>.
+	/// </summary>
+	public sealed record DropCharacterSet : Statement
+	{
+		/// <summary>
+		/// The character set dropped.
+		/// </summary>
+		public required CharacterSetName Name { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;collation definition&gt;</c>. <c>CREATE COLLATION c FOR set FROM source [NO PAD | PAD SPACE]</c>:
+	/// a collation for a character set, made from another collation.
+	/// </summary>
+	public sealed record CreateCollation : Statement
+	{
+		/// <summary>
+		/// The collation created.
+		/// </summary>
+		public required CollationName Name { get; init; }
+
+		/// <summary>
+		/// The character set after <c>FOR</c>, which the collation orders.
+		/// </summary>
+		public required CharacterSetName CharacterSet { get; init; }
+
+		/// <summary>
+		/// The collation after <c>FROM</c>, which the new one is taken from.
+		/// </summary>
+		public required CollationName Source { get; init; }
+
+		/// <summary>
+		/// <c>NO PAD</c> or <c>PAD SPACE</c>; null where neither was written.
+		/// </summary>
+		public PadCharacteristic? Padding { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop collation statement&gt;</c>. <c>DROP COLLATION c CASCADE | RESTRICT</c>.
+	/// </summary>
+	public sealed record DropCollation : Statement
+	{
+		/// <summary>
+		/// The collation dropped.
+		/// </summary>
+		public required CollationName Name { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>.
+		/// </summary>
+		public required DropBehavior Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;transliteration definition&gt;</c>. <c>CREATE TRANSLATION t FOR source TO target FROM x</c>: a
+	/// conversion between two character sets.
+	/// </summary>
+	public sealed record CreateTranslation : Statement
+	{
+		/// <summary>
+		/// The translation created, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// The character set after <c>FOR</c>, which the translation converts from.
+		/// </summary>
+		public required CharacterSetName SourceCharacterSet { get; init; }
+
+		/// <summary>
+		/// The character set after <c>TO</c>, which the translation converts to.
+		/// </summary>
+		public required CharacterSetName TargetCharacterSet { get; init; }
+
+		/// <summary>
+		/// What follows <c>FROM</c>: the routine that performs the conversion, or an existing translation.
+		/// </summary>
+		public required TranslationSource Source { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop transliteration statement&gt;</c>. <c>DROP TRANSLATION t</c>.
+	/// </summary>
+	public sealed record DropTranslation : Statement
+	{
+		/// <summary>
+		/// The translation dropped, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;assertion definition&gt;</c>. <c>CREATE ASSERTION a CHECK (condition)</c>: a condition the
+	/// database must hold at all times, not tied to one table.
+	/// </summary>
+	public sealed record CreateAssertion : Statement
+	{
+		/// <summary>
+		/// The assertion's name, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// The condition in <c>CHECK (…)</c>.
+		/// </summary>
+		public required Expression Condition { get; init; }
+
+		/// <summary>
+		/// The <c>[NOT] DEFERRABLE</c> and <c>INITIALLY …</c> characteristics; null where none was written.
+		/// </summary>
+		public ConstraintCharacteristics? Characteristics { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop assertion statement&gt;</c>. <c>DROP ASSERTION a [CASCADE | RESTRICT]</c>.
+	/// </summary>
+	public sealed record DropAssertion : Statement
+	{
+		/// <summary>
+		/// The assertion dropped, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;trigger definition&gt;</c>. <c>CREATE TRIGGER t BEFORE | AFTER | INSTEAD OF event ON table …</c>:
+	/// statements run when a table changes. Also T-SQL's <c>CREATE TRIGGER</c>, which holds its own members
+	/// beside these and leaves <see cref="Event"/> and <see cref="Action"/> null.
+	/// </summary>
 	public sealed partial record CreateTrigger : Statement
 	{
+		/// <summary>
+		/// The trigger's name, as written.
+		/// </summary>
 		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// When the trigger fires relative to the event: <c>BEFORE</c>, <c>AFTER</c> or <c>INSTEAD OF</c>.
+		/// </summary>
 		public required TriggerTime Time { get; init; }
+
+		/// <summary>
+		/// The event that fires the trigger (<c>INSERT</c>, <c>DELETE</c> or <c>UPDATE [OF columns]</c>); null in
+		/// a T-SQL trigger, which lists its events separately.
+		/// </summary>
 		public required TriggerEvent? Event { get; init; }
+
+		/// <summary>
+		/// The table after <c>ON</c>; null in a T-SQL trigger on the database or the server.
+		/// </summary>
 		public required QualifiedName? Table { get; init; }
+
+		/// <summary>
+		/// The <c>REFERENCING</c> aliases for the old and new rows or tables, in the order written.
+		/// </summary>
 		public SqlList<TransitionReference> Referencing { get; init; } = [];
+
+		/// <summary>
+		/// What runs: the <c>FOR EACH</c> granularity, the <c>WHEN</c> condition and the statements; null in a
+		/// T-SQL trigger, whose body is held by its own member.
+		/// </summary>
 		public required TriggerAction? Action { get; init; }
 	}
-	// T-SQL: DROP TRIGGER (Transact-SQL). `On` is the DDL trigger's scope, which the page publishes as
-	// `ON { DATABASE | ALL SERVER }` and requires there; null is the DML form, which has no scope.
-	public sealed record DropTrigger : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public TriggerScope? On { get; init; } }
 
-	// BNF: user-defined type/cast/ordering/transform statements
-	public sealed record CreateType : Statement { public required UserDefinedTypeDefinition Definition { get; init; } }
-	public sealed record AlterType : Statement { public required QualifiedName Name { get; init; } public required AlterTypeAction Action { get; init; } }
-	public sealed record DropType : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
-	public sealed record CreateCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required RoutineDesignator Function { get; init; } public bool AsAssignment { get; init; } }
-	public sealed record DropCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required DropBehavior Behavior { get; init; } }
-	public sealed record CreateOrdering : Statement { public required QualifiedName TypeName { get; init; } public required OrderingDefinition Ordering { get; init; } }
-	public sealed record DropOrdering : Statement { public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
-	public sealed record CreateTransform : Statement { public bool PluralKeyword { get; init; } public required QualifiedName TypeName { get; init; } public SqlList<TransformGroup> Groups { get; init; } = []; }
-	public sealed record AlterTransform : Statement { public bool PluralKeyword { get; init; } public required QualifiedName TypeName { get; init; } public SqlList<TransformAlterGroup> Groups { get; init; } = []; }
-	public sealed record DropTransform : Statement { public bool PluralKeyword { get; init; } public required TransformDropTarget Target { get; init; } public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
+	/// <summary>
+	/// T-SQL: DROP TRIGGER (Transact-SQL). <c>DROP TRIGGER [IF EXISTS] t, … [ON DATABASE | ON ALL SERVER]</c>.
+	/// </summary>
+	public sealed record DropTrigger : Statement
+	{
+		/// <summary>
+		/// The triggers dropped, in the order written.
+		/// </summary>
+		public SqlList<QualifiedName> Names { get; init; } = [];
 
-	// BNF: schema routine, alter/drop routine
-	public sealed partial record CreateRoutine : Statement { public required RoutineDefinition Definition { get; init; } }
-	public sealed record AlterRoutine : Statement { public required RoutineDesignator Routine { get; init; } public SqlList<RoutineCharacteristic> Characteristics { get; init; } = []; public required AlterRoutineBehavior Behavior { get; init; } }
-	// T-SQL: DROP PROCEDURE (Transact-SQL). The page publishes `DROP { PROC | PROCEDURE }`, two words for
-	// one statement, so which was written is kept beside it or `DROP PROC p` writes back as
-	// `DROP PROCEDURE p`.
-	public sealed record DropRoutine : Statement { public SqlList<RoutineDesignator> Routines { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } [Spelling] public bool Proc { get; init; } }
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
 
-	// BNF: sequence generator definition/alter/drop
-	public sealed record CreateSequence : Statement { public required QualifiedName Name { get; init; } public SqlList<SequenceOption> Options { get; init; } = []; }
-	public sealed record AlterSequence : Statement { public required QualifiedName Name { get; init; } public SqlList<SequenceOption> Options { get; init; } = []; }
-	public sealed record DropSequence : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+		/// <summary>
+		/// The DDL trigger's scope, which the page publishes as <c>ON { DATABASE | ALL SERVER }</c> and requires
+		/// there; null is the DML form, which has no scope.
+		/// </summary>
+		public TriggerScope? On { get; init; }
+	}
 
-	// BNF: GRANT/REVOKE/ROLE
-	public sealed record Grant : Statement { public required GrantBody Body { get; init; } }
-	public sealed record Revoke : Statement { public required RevokeBody Body { get; init; } }
-	public sealed partial record CreateRole : Statement { public required Identifier Name { get; init; } public Grantor? Admin { get; init; } }
-	public sealed record DropRole : Statement { public SqlList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	/// <summary>
+	/// BNF: <c>&lt;user-defined type definition&gt;</c>. <c>CREATE TYPE t …</c>: a distinct or structured type.
+	/// </summary>
+	public sealed record CreateType : Statement
+	{
+		/// <summary>
+		/// The type's name, representation and members.
+		/// </summary>
+		public required UserDefinedTypeDefinition Definition { get; init; }
+	}
 
-	// BNF: cursor/data control statements
-	// T-SQL: DECLARE CURSOR (Transact-SQL). The page publishes two forms: the ISO one writes the
-	// properties before the word CURSOR, the extended one after it, and `Extended` says which was
-	// written. With no property written at all the two forms print the same, so the flag only decides
-	// anything once one was.
-	public sealed record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } [Spelling] public bool Extended { get; init; } }
-	public sealed record OpenCursor : Statement { public required CursorReference Cursor { get; init; } public DynamicArguments? Using { get; init; } }
-	// BNF: <fetch statement>, <dynamic fetch statement>: targets, or `INTO [SQL] DESCRIPTOR d`, and whether FROM was written.
-	public sealed record FetchCursor : Statement { public FetchOrientation? Orientation { get; init; } public bool FromKeyword { get; init; } public required CursorReference Cursor { get; init; } public DynamicArguments? Into { get; init; } }
-	public sealed record CloseCursor : Statement { public required CursorReference Cursor { get; init; } }
-	public sealed record AllocateCursor : Statement { public required CursorReference Cursor { get; init; } public bool CursorKeyword { get; init; } public CursorProperties? Properties { get; init; } public required CursorAllocationSource SourceValue { get; init; } }
+	/// <summary>
+	/// BNF: <c>&lt;alter type statement&gt;</c>. <c>ALTER TYPE t ADD | DROP ATTRIBUTE | METHOD …</c>: a change to
+	/// a structured type's attributes or methods.
+	/// </summary>
+	public sealed record AlterType : Statement
+	{
+		/// <summary>
+		/// The type altered, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
 
-	// BNF: <temporary table declaration>.
-	public sealed record DeclareLocalTemporaryTable : Statement { public required QualifiedName Name { get; init; } public SqlList<TableElement> Elements { get; init; } = []; public TableCommitAction? OnCommit { get; init; } }
+		/// <summary>
+		/// The change: an attribute or a method added or dropped.
+		/// </summary>
+		public required AlterTypeAction Action { get; init; }
+	}
 
-	// BNF: <get diagnostics statement>.
-	public sealed record GetDiagnostics : Statement { public required DiagnosticsInformation Information { get; init; } }
+	/// <summary>
+	/// BNF: <c>&lt;drop data type statement&gt;</c>. <c>DROP TYPE [IF EXISTS] t [CASCADE | RESTRICT]</c>.
+	/// </summary>
+	public sealed record DropType : Statement
+	{
+		/// <summary>
+		/// The types dropped, in the order written.
+		/// </summary>
+		public SqlList<QualifiedName> Names { get; init; } = [];
 
-	public sealed record FreeLocator : Statement { public SqlList<Expression> Locators { get; init; } = []; }
-	public sealed record HoldLocator : Statement { public SqlList<Expression> Locators { get; init; } = []; }
-	public sealed record Call : Statement { public required Expression.Invocation Invocation { get; init; } }
-	public sealed record Return : Statement { public Expression? Value { get; init; } public bool NullKeyword { get; init; } }
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
 
-	// BNF: transaction statements
-	public sealed record StartTransaction : Statement { public SqlList<TransactionMode> Modes { get; init; } = []; }
-	// T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Tran` is the word written where the page
-	// publishes `TRAN` for `TRANSACTION`.
-	public sealed record SetTransaction : Statement { public bool Local { get; init; } public SqlList<TransactionMode> Modes { get; init; } = []; [Spelling] public bool Tran { get; init; } }
-	public sealed record SetConstraints : Statement { public ConstraintTarget Target { get; init; } = new ConstraintTarget.All(); public required ConstraintTiming Timing { get; init; } }
-	public sealed record Savepoint : Statement { public required Identifier Name { get; init; } }
-	public sealed record ReleaseSavepoint : Statement { public required Identifier Name { get; init; } }
-	// T-SQL: COMMIT TRANSACTION, COMMIT WORK (Transact-SQL). `Keyword` is the word after COMMIT, which the
-	// page makes optional — `COMMIT` and `COMMIT TRANSACTION` are both text and are not the same text — so
-	// null is no word and each value is one. A flag for the word beside a flag for its spelling would have
-	// had a state no text says: TRAN written and no keyword. `Name` is the transaction a commit may name,
-	// and
-	// `DelayedDurability` its `WITH (DELAYED_DURABILITY = { OFF | ON })`; null is no WITH at all.
-	public sealed record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
-	// T-SQL: ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL). `Keyword` is as Commit's. `Name` is what
-	// T-SQL writes after `ROLLBACK TRAN`, which its page says may be a transaction or a savepoint and
-	// which the syntax cannot tell apart; `ToSavepoint` is the standard's `TO SAVEPOINT s`, a different
-	// construct that knows what it names. At most one of the two is set — the writer refuses a node with
-	// both, and `SqlWriterCoverageTests` holds each grammar to the one it may use.
-	public sealed record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } }
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+	}
 
-	// BNF: connection/session statements
-	public sealed record Connect : Statement { public required ConnectionTarget Target { get; init; } }
-	public sealed record SetConnection : Statement { public required ConnectionObject Connection { get; init; } }
-	public sealed record Disconnect : Statement { public required DisconnectObject Object { get; init; } }
-	public sealed record SetSessionAuthorization : Statement { public required Expression Value { get; init; } }
-	public sealed record SetRole : Statement { public Expression? Value { get; init; } public bool None { get; init; } }
-	public sealed record SetTimeZone : Statement { public Expression? Value { get; init; } public bool Local { get; init; } }
-	public sealed record SetCatalog : Statement { public required Expression Value { get; init; } }
-	public sealed record SetSchema : Statement { public required Expression Value { get; init; } }
-	public sealed record SetNames : Statement { public required Expression Value { get; init; } }
-	public sealed record SetPath : Statement { public required Expression Value { get; init; } }
-	public sealed record SetTransformGroup : Statement { public required TransformGroupCharacteristic Value { get; init; } }
-	public sealed record SetCollation : Statement { public bool NoCollation { get; init; } public Expression? Value { get; init; } public SqlList<CharacterSetName> ForCharacterSets { get; init; } = []; }
-	// BNF: <session characteristic list>: one list of modes per `TRANSACTION ...` written.
-	public sealed record SetSessionCharacteristics : Statement { public SqlList<SqlList<TransactionMode>> Characteristics { get; init; } = []; }
+	/// <summary>
+	/// BNF: <c>&lt;user-defined cast definition&gt;</c>. <c>CREATE CAST (source AS target) WITH FUNCTION f [AS ASSIGNMENT]</c>:
+	/// a conversion between two types performed by a function.
+	/// </summary>
+	public sealed record CreateCast : Statement
+	{
+		/// <summary>
+		/// The type converted from.
+		/// </summary>
+		public required DataType SourceType { get; init; }
 
-	// BNF: diagnostics/descriptor/dynamic SQL
-	public sealed record AllocateDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public Expression? Max { get; init; } }
-	public sealed record DeallocateDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } }
-	public sealed record GetDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public required DescriptorGet Body { get; init; } }
-	public sealed record SetDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public required DescriptorSet Body { get; init; } }
-	public sealed record CopyDescriptor : Statement { public required DescriptorCopy Body { get; init; } }
-	public sealed record Prepare : Statement { public required StatementReference Statement { get; init; } public Expression? Attributes { get; init; } public required Expression Sql { get; init; } }
-	public sealed record DeallocatePrepare : Statement { public required StatementReference Statement { get; init; } }
-	public sealed record Describe : Statement { public required DescribeBody Body { get; init; } }
-	public sealed record Execute : Statement { public required StatementReference Statement { get; init; } public DynamicArguments? Result { get; init; } public DynamicArguments? Parameters { get; init; } }
-	public sealed record ExecuteImmediate : Statement { public required Expression Sql { get; init; } }
-	public sealed record PipeRow : Statement { public required DescriptorReference Descriptor { get; init; } }
+		/// <summary>
+		/// The type converted to.
+		/// </summary>
+		public required DataType TargetType { get; init; }
+
+		/// <summary>
+		/// The routine after <c>WITH</c>, which performs the conversion.
+		/// </summary>
+		public required RoutineDesignator Function { get; init; }
+
+		/// <summary>
+		/// <c>AS ASSIGNMENT</c> was written, so the cast is also applied implicitly in assignments.
+		/// </summary>
+		public bool AsAssignment { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop user-defined cast statement&gt;</c>. <c>DROP CAST (source AS target) CASCADE | RESTRICT</c>.
+	/// </summary>
+	public sealed record DropCast : Statement
+	{
+		/// <summary>
+		/// The type converted from.
+		/// </summary>
+		public required DataType SourceType { get; init; }
+
+		/// <summary>
+		/// The type converted to.
+		/// </summary>
+		public required DataType TargetType { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>.
+		/// </summary>
+		public required DropBehavior Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;user-defined ordering definition&gt;</c>. <c>CREATE ORDERING FOR t EQUALS ONLY | ORDER FULL BY …</c>:
+	/// how values of a user-defined type are compared.
+	/// </summary>
+	public sealed record CreateOrdering : Statement
+	{
+		/// <summary>
+		/// The user-defined type the ordering is for.
+		/// </summary>
+		public required QualifiedName TypeName { get; init; }
+
+		/// <summary>
+		/// The ordering: whether it covers equality only or the full order, and how it is computed
+		/// (<c>RELATIVE</c>, <c>MAP</c> or <c>STATE</c>).
+		/// </summary>
+		public required OrderingDefinition Ordering { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop user-defined ordering statement&gt;</c>. <c>DROP ORDERING FOR t CASCADE | RESTRICT</c>.
+	/// </summary>
+	public sealed record DropOrdering : Statement
+	{
+		/// <summary>
+		/// The user-defined type whose ordering is dropped.
+		/// </summary>
+		public required QualifiedName TypeName { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>.
+		/// </summary>
+		public required DropBehavior Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;transform definition&gt;</c>. <c>CREATE TRANSFORM FOR t group (TO SQL WITH f, FROM SQL WITH g)</c>:
+	/// functions that convert a user-defined type to and from host-language values, grouped by name.
+	/// </summary>
+	public sealed record CreateTransform : Statement
+	{
+		/// <summary>
+		/// <c>TRANSFORMS</c> was written in place of <c>TRANSFORM</c>.
+		/// </summary>
+		public bool PluralKeyword { get; init; }
+
+		/// <summary>
+		/// The user-defined type the transforms are for.
+		/// </summary>
+		public required QualifiedName TypeName { get; init; }
+
+		/// <summary>
+		/// The named groups of transform functions, in the order written.
+		/// </summary>
+		public SqlList<TransformGroup> Groups { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;alter transform statement&gt;</c>. <c>ALTER TRANSFORM FOR t group (ADD (…) | DROP (…))</c>: a change
+	/// to the transform functions of a user-defined type.
+	/// </summary>
+	public sealed record AlterTransform : Statement
+	{
+		/// <summary>
+		/// <c>TRANSFORMS</c> was written in place of <c>TRANSFORM</c>.
+		/// </summary>
+		public bool PluralKeyword { get; init; }
+
+		/// <summary>
+		/// The user-defined type the transforms are for.
+		/// </summary>
+		public required QualifiedName TypeName { get; init; }
+
+		/// <summary>
+		/// The groups altered, each with its additions and removals, in the order written.
+		/// </summary>
+		public SqlList<TransformAlterGroup> Groups { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop transform statement&gt;</c>. <c>DROP TRANSFORM group | ALL FOR t CASCADE | RESTRICT</c>.
+	/// </summary>
+	public sealed record DropTransform : Statement
+	{
+		/// <summary>
+		/// <c>TRANSFORMS</c> was written in place of <c>TRANSFORM</c>.
+		/// </summary>
+		public bool PluralKeyword { get; init; }
+
+		/// <summary>
+		/// What is dropped: one named group, or <c>ALL</c> groups.
+		/// </summary>
+		public required TransformDropTarget Target { get; init; }
+
+		/// <summary>
+		/// The user-defined type the transforms are for.
+		/// </summary>
+		public required QualifiedName TypeName { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>.
+		/// </summary>
+		public required DropBehavior Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;schema routine&gt;</c>. <c>CREATE PROCEDURE | FUNCTION | …</c>: a stored routine, with its
+	/// parameters, characteristics and body.
+	/// </summary>
+	public sealed partial record CreateRoutine : Statement
+	{
+		/// <summary>
+		/// The routine's kind, name, parameters, characteristics and body.
+		/// </summary>
+		public required RoutineDefinition Definition { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;alter routine statement&gt;</c>. <c>ALTER routine characteristic … RESTRICT</c>: a change to a
+	/// routine's characteristics.
+	/// </summary>
+	public sealed record AlterRoutine : Statement
+	{
+		/// <summary>
+		/// The routine altered: its kind and its name, with the parameter types where they tell routines apart.
+		/// </summary>
+		public required RoutineDesignator Routine { get; init; }
+
+		/// <summary>
+		/// The characteristics set, in the order written.
+		/// </summary>
+		public SqlList<RoutineCharacteristic> Characteristics { get; init; } = [];
+
+		/// <summary>
+		/// The trailing <c>RESTRICT</c>.
+		/// </summary>
+		public required AlterRoutineBehavior Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop routine statement&gt;</c>. <c>DROP PROCEDURE | FUNCTION | … r [CASCADE | RESTRICT]</c>.
+	/// T-SQL's list, <c>DROP PROCEDURE IF EXISTS p, q</c>, names the kind once, the first routine's, and
+	/// <c>IF EXISTS</c> after it; the standard's statement drops one routine and has no <c>IF EXISTS</c>.
+	/// </summary>
+	public sealed record DropRoutine : Statement
+	{
+		/// <summary>
+		/// The routines dropped, in the order written; all of one kind.
+		/// </summary>
+		public SqlList<RoutineDesignator> Routines { get; init; } = [];
+
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+
+		/// <summary>
+		/// T-SQL: DROP PROCEDURE (Transact-SQL). The page publishes <c>DROP { PROC | PROCEDURE }</c>, two words
+		/// for one statement, so which was written is kept beside it or <c>DROP PROC p</c> writes back as
+		/// <c>DROP PROCEDURE p</c>. True where <c>PROC</c> was written.
+		/// </summary>
+		[Spelling] public bool Proc { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;sequence generator definition&gt;</c>. <c>CREATE SEQUENCE s [option …]</c>: a generator of
+	/// consecutive numbers.
+	/// </summary>
+	public sealed record CreateSequence : Statement
+	{
+		/// <summary>
+		/// The sequence's name, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// The options (<c>START WITH</c>, <c>INCREMENT BY</c>, <c>MAXVALUE</c>, …), in the order written.
+		/// </summary>
+		public SqlList<SequenceOption> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;alter sequence generator statement&gt;</c>. <c>ALTER SEQUENCE s option …</c>: a change to a
+	/// sequence's options.
+	/// </summary>
+	public sealed record AlterSequence : Statement
+	{
+		/// <summary>
+		/// The sequence altered, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// The options changed (<c>RESTART</c>, <c>INCREMENT BY</c>, …), in the order written.
+		/// </summary>
+		public SqlList<SequenceOption> Options { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop sequence generator statement&gt;</c>. <c>DROP SEQUENCE [IF EXISTS] s [CASCADE | RESTRICT]</c>.
+	/// </summary>
+	public sealed record DropSequence : Statement
+	{
+		/// <summary>
+		/// The sequences dropped, in the order written.
+		/// </summary>
+		public SqlList<QualifiedName> Names { get; init; } = [];
+
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;grant statement&gt;</c>. <c>GRANT privileges ON object TO grantees</c>, or <c>GRANT roles TO grantees</c>.
+	/// </summary>
+	public sealed record Grant : Statement
+	{
+		/// <summary>
+		/// What is granted and to whom: privileges on an object, or roles.
+		/// </summary>
+		public required GrantBody Body { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;revoke statement&gt;</c>. <c>REVOKE privileges ON object FROM grantees</c>, or <c>REVOKE roles FROM grantees</c>.
+	/// </summary>
+	public sealed record Revoke : Statement
+	{
+		/// <summary>
+		/// What is revoked and from whom: privileges on an object, or roles.
+		/// </summary>
+		public required RevokeBody Body { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;role definition&gt;</c>. <c>CREATE ROLE r [WITH ADMIN CURRENT_USER | CURRENT_ROLE]</c>.
+	/// </summary>
+	public sealed partial record CreateRole : Statement
+	{
+		/// <summary>
+		/// The role created.
+		/// </summary>
+		public required Identifier Name { get; init; }
+
+		/// <summary>
+		/// The <c>WITH ADMIN</c> grantor, <c>CURRENT_USER</c> or <c>CURRENT_ROLE</c>; null where none was written.
+		/// </summary>
+		public Grantor? Admin { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;drop role statement&gt;</c>. <c>DROP ROLE [IF EXISTS] r [CASCADE | RESTRICT]</c>.
+	/// </summary>
+	public sealed record DropRole : Statement
+	{
+		/// <summary>
+		/// The roles dropped, in the order written.
+		/// </summary>
+		public SqlList<Identifier> Names { get; init; } = [];
+
+		/// <summary>
+		/// <c>IF EXISTS</c> was written.
+		/// </summary>
+		public bool IfExists { get; init; }
+
+		/// <summary>
+		/// <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.
+		/// </summary>
+		public DropBehavior? Behavior { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;declare cursor&gt;</c>. <c>DECLARE c [INSENSITIVE] [SCROLL] CURSOR FOR query</c>. T-SQL: DECLARE
+	/// CURSOR (Transact-SQL) publishes two forms: the ISO one writes the properties before the word
+	/// <c>CURSOR</c>, the extended one after it.
+	/// </summary>
+	public sealed record DeclareCursor : Statement
+	{
+		/// <summary>
+		/// The cursor declared.
+		/// </summary>
+		public required CursorReference Cursor { get; init; }
+
+		/// <summary>
+		/// The cursor's sensitivity, scrollability, holdability and returnability; each is null where it was
+		/// not written.
+		/// </summary>
+		public required CursorProperties Properties { get; init; }
+
+		/// <summary>
+		/// What the cursor reads: the query after <c>FOR</c>, with its updatability.
+		/// </summary>
+		public required CursorSource SourceValue { get; init; }
+
+		/// <summary>
+		/// T-SQL: the extended form was written, with the properties after the word <c>CURSOR</c>. With no
+		/// property written at all the two forms print the same, so the flag only decides anything once one
+		/// was.
+		/// </summary>
+		[Spelling] public bool Extended { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;open statement&gt;</c>, <c>&lt;dynamic open statement&gt;</c>. <c>OPEN c [USING args]</c>.
+	/// </summary>
+	public sealed record OpenCursor : Statement
+	{
+		/// <summary>
+		/// The cursor opened.
+		/// </summary>
+		public required CursorReference Cursor { get; init; }
+
+		/// <summary>
+		/// The arguments after <c>USING</c>, which a dynamic cursor binds to its parameters; null where none
+		/// were written.
+		/// </summary>
+		public DynamicArguments? Using { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;fetch statement&gt;</c>, <c>&lt;dynamic fetch statement&gt;</c>. <c>FETCH [orientation] [FROM] c [INTO targets]</c>:
+	/// one row read from a cursor.
+	/// </summary>
+	public sealed record FetchCursor : Statement
+	{
+		/// <summary>
+		/// The orientation (<c>NEXT</c>, <c>PRIOR</c>, <c>FIRST</c>, <c>LAST</c>, <c>ABSOLUTE n</c> or <c>RELATIVE n</c>);
+		/// null where none was written.
+		/// </summary>
+		public FetchOrientation? Orientation { get; init; }
+
+		/// <summary>
+		/// <c>FROM</c> was written before the cursor.
+		/// </summary>
+		public bool FromKeyword { get; init; }
+
+		/// <summary>
+		/// The cursor fetched from.
+		/// </summary>
+		public required CursorReference Cursor { get; init; }
+
+		/// <summary>
+		/// The targets after <c>INTO</c>, or <c>INTO [SQL] DESCRIPTOR d</c>; null where <c>INTO</c> was left out,
+		/// as T-SQL may, and the row goes to the client.
+		/// </summary>
+		public DynamicArguments? Into { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;close statement&gt;</c>. <c>CLOSE c</c>.
+	/// </summary>
+	public sealed record CloseCursor : Statement
+	{
+		/// <summary>
+		/// The cursor closed.
+		/// </summary>
+		public required CursorReference Cursor { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;allocate received cursor statement&gt;</c>, <c>&lt;allocate extended dynamic cursor statement&gt;</c>.
+	/// <c>ALLOCATE c [properties] CURSOR FOR statement | routine</c>: a cursor taken from a prepared
+	/// statement or from a routine's result.
+	/// </summary>
+	public sealed record AllocateCursor : Statement
+	{
+		/// <summary>
+		/// The cursor allocated.
+		/// </summary>
+		public required CursorReference Cursor { get; init; }
+
+		/// <summary>
+		/// The word <c>CURSOR</c> was written; where <see cref="Properties"/> is set it is always written.
+		/// </summary>
+		public bool CursorKeyword { get; init; }
+
+		/// <summary>
+		/// The properties written before and after the word <c>CURSOR</c>; null where none were.
+		/// </summary>
+		public CursorProperties? Properties { get; init; }
+
+		/// <summary>
+		/// What follows <c>FOR</c>: a prepared statement, or a routine whose result is received.
+		/// </summary>
+		public required CursorAllocationSource SourceValue { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;temporary table declaration&gt;</c>. <c>DECLARE LOCAL TEMPORARY TABLE t (…) [ON COMMIT …]</c>.
+	/// </summary>
+	public sealed record DeclareLocalTemporaryTable : Statement
+	{
+		/// <summary>
+		/// The table's name, as written.
+		/// </summary>
+		public required QualifiedName Name { get; init; }
+
+		/// <summary>
+		/// The column and constraint definitions, in the order written.
+		/// </summary>
+		public SqlList<TableElement> Elements { get; init; } = [];
+
+		/// <summary>
+		/// <c>ON COMMIT PRESERVE ROWS</c> or <c>ON COMMIT DELETE ROWS</c>; null where neither was written.
+		/// </summary>
+		public TableCommitAction? OnCommit { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;get diagnostics statement&gt;</c>. <c>GET DIAGNOSTICS target = item, …</c>: details of the
+	/// last statement or of a condition it raised, read into variables.
+	/// </summary>
+	public sealed record GetDiagnostics : Statement
+	{
+		/// <summary>
+		/// What is read: the statement's information items, or the items of one numbered condition.
+		/// </summary>
+		public required DiagnosticsInformation Information { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;free locator statement&gt;</c>. <c>FREE LOCATOR l, …</c>: LOB locators released.
+	/// </summary>
+	public sealed record FreeLocator : Statement
+	{
+		/// <summary>
+		/// The locators freed, in the order written.
+		/// </summary>
+		public SqlList<Expression> Locators { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;hold locator statement&gt;</c>. <c>HOLD LOCATOR l, …</c>: LOB locators kept past the end of the
+	/// transaction.
+	/// </summary>
+	public sealed record HoldLocator : Statement
+	{
+		/// <summary>
+		/// The locators held, in the order written.
+		/// </summary>
+		public SqlList<Expression> Locators { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;call statement&gt;</c>. <c>CALL p(args)</c>: a procedure invoked.
+	/// </summary>
+	public sealed record Call : Statement
+	{
+		/// <summary>
+		/// The routine invocation: its name and arguments.
+		/// </summary>
+		public required Expression.Invocation Invocation { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;return statement&gt;</c>. <c>RETURN value</c> or <c>RETURN NULL</c>: a routine's result. T-SQL's
+	/// bare <c>RETURN</c> has neither.
+	/// </summary>
+	public sealed record Return : Statement
+	{
+		/// <summary>
+		/// The value returned; null for <c>RETURN NULL</c> and for a bare <c>RETURN</c>.
+		/// </summary>
+		public Expression? Value { get; init; }
+
+		/// <summary>
+		/// <c>NULL</c> was written as a key word of its own rather than as a value (<c>RETURN NULL</c>).
+		/// </summary>
+		public bool NullKeyword { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;start transaction statement&gt;</c>. <c>START TRANSACTION [mode, …]</c>.
+	/// </summary>
+	public sealed record StartTransaction : Statement
+	{
+		/// <summary>
+		/// The modes (<c>ISOLATION LEVEL …</c>, <c>READ ONLY</c>, <c>READ WRITE</c>, <c>DIAGNOSTICS SIZE n</c>), in the order
+		/// written.
+		/// </summary>
+		public SqlList<TransactionMode> Modes { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set transaction statement&gt;</c>. <c>SET [LOCAL] TRANSACTION mode, …</c>. T-SQL: SET TRANSACTION
+	/// ISOLATION LEVEL (Transact-SQL).
+	/// </summary>
+	public sealed record SetTransaction : Statement
+	{
+		/// <summary>
+		/// <c>LOCAL</c> was written: the modes apply to the next transaction of this connection only.
+		/// </summary>
+		public bool Local { get; init; }
+
+		/// <summary>
+		/// The modes (<c>ISOLATION LEVEL …</c>, <c>READ ONLY</c>, <c>READ WRITE</c>, <c>DIAGNOSTICS SIZE n</c>), in the order
+		/// written.
+		/// </summary>
+		public SqlList<TransactionMode> Modes { get; init; } = [];
+
+		/// <summary>
+		/// T-SQL: <c>TRAN</c> was written where the page publishes it for <c>TRANSACTION</c>.
+		/// </summary>
+		[Spelling] public bool Tran { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set constraints mode statement&gt;</c>. <c>SET CONSTRAINTS ALL | c, … DEFERRED | IMMEDIATE</c>.
+	/// </summary>
+	public sealed record SetConstraints : Statement
+	{
+		/// <summary>
+		/// The constraints affected: <c>ALL</c>, which is the default, or a list of names.
+		/// </summary>
+		public ConstraintTarget Target { get; init; } = new ConstraintTarget.All();
+
+		/// <summary>
+		/// <c>DEFERRED</c> or <c>IMMEDIATE</c>.
+		/// </summary>
+		public required ConstraintTiming Timing { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;savepoint statement&gt;</c>. <c>SAVEPOINT s</c>: a point in the transaction to roll back to.
+	/// </summary>
+	public sealed record Savepoint : Statement
+	{
+		/// <summary>
+		/// The savepoint's name.
+		/// </summary>
+		public required Identifier Name { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;release savepoint statement&gt;</c>. <c>RELEASE SAVEPOINT s</c>.
+	/// </summary>
+	public sealed record ReleaseSavepoint : Statement
+	{
+		/// <summary>
+		/// The savepoint released.
+		/// </summary>
+		public required Identifier Name { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;commit statement&gt;</c>. <c>COMMIT [WORK] [AND [NO] CHAIN]</c>. T-SQL: COMMIT TRANSACTION, COMMIT
+	/// WORK (Transact-SQL), which also names the transaction and may set delayed durability.
+	/// </summary>
+	public sealed record Commit : Statement
+	{
+		/// <summary>
+		/// <c>WORK</c> was written.
+		/// </summary>
+		public bool Work { get; init; }
+
+		/// <summary>
+		/// <c>AND CHAIN</c> or <c>AND NO CHAIN</c>; null where neither was written.
+		/// </summary>
+		public ChainMode? Chain { get; init; }
+
+		/// <summary>
+		/// T-SQL: the word after <c>COMMIT</c>, which the page makes optional: <c>COMMIT</c> and
+		/// <c>COMMIT TRANSACTION</c> are both text and are not the same text. Null is no word and each value is
+		/// one. A flag for the word beside a flag for its spelling would have had a state no text says:
+		/// <c>TRAN</c> written and no keyword.
+		/// </summary>
+		[Spelling] public TransactionKeyword? Keyword { get; init; }
+
+		/// <summary>
+		/// T-SQL: the transaction a commit may name; null where none was written.
+		/// </summary>
+		public TransactionName? Name { get; init; }
+
+		/// <summary>
+		/// T-SQL: <c>WITH (DELAYED_DURABILITY = { OFF | ON })</c>: true for <c>ON</c>, false for <c>OFF</c>; null
+		/// is no <c>WITH</c> at all.
+		/// </summary>
+		public bool? DelayedDurability { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;rollback statement&gt;</c>. <c>ROLLBACK [WORK] [AND [NO] CHAIN] [TO SAVEPOINT s]</c>. T-SQL:
+	/// ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL).
+	/// </summary>
+	public sealed record Rollback : Statement
+	{
+		/// <summary>
+		/// <c>WORK</c> was written.
+		/// </summary>
+		public bool Work { get; init; }
+
+		/// <summary>
+		/// <c>AND CHAIN</c> or <c>AND NO CHAIN</c>; null where neither was written.
+		/// </summary>
+		public ChainMode? Chain { get; init; }
+
+		/// <summary>
+		/// The standard's <c>TO SAVEPOINT s</c>, a different construct from <see cref="Name"/> that knows what it
+		/// names; null where it was not written. At most one of the two is set: the writer refuses a node with
+		/// both.
+		/// </summary>
+		public Identifier? ToSavepoint { get; init; }
+
+		/// <summary>
+		/// T-SQL: the word after <c>ROLLBACK</c>, as <see cref="Commit.Keyword"/> is.
+		/// </summary>
+		[Spelling] public TransactionKeyword? Keyword { get; init; }
+
+		/// <summary>
+		/// T-SQL: what is written after <c>ROLLBACK TRAN</c>, which its page says may be a transaction or a
+		/// savepoint and which the syntax cannot tell apart; null where nothing was written.
+		/// </summary>
+		public TransactionName? Name { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;connect statement&gt;</c>. <c>CONNECT TO server [AS name] [USER user]</c>, or
+	/// <c>CONNECT TO DEFAULT</c>.
+	/// </summary>
+	public sealed record Connect : Statement
+	{
+		/// <summary>
+		/// The server, connection name and user connected as, or <c>DEFAULT</c>.
+		/// </summary>
+		public required ConnectionTarget Target { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set connection statement&gt;</c>. <c>SET CONNECTION name</c> or <c>SET CONNECTION DEFAULT</c>.
+	/// </summary>
+	public sealed record SetConnection : Statement
+	{
+		/// <summary>
+		/// The connection made current: a named one, or the default.
+		/// </summary>
+		public required ConnectionObject Connection { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;disconnect statement&gt;</c>. <c>DISCONNECT name | DEFAULT | CURRENT | ALL</c>.
+	/// </summary>
+	public sealed record Disconnect : Statement
+	{
+		/// <summary>
+		/// What is disconnected: a named connection, the default one, the current one, or all of them.
+		/// </summary>
+		public required DisconnectObject Object { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set session user identifier statement&gt;</c>. <c>SET SESSION AUTHORIZATION user</c>.
+	/// </summary>
+	public sealed record SetSessionAuthorization : Statement
+	{
+		/// <summary>
+		/// The user the session continues as.
+		/// </summary>
+		public required Expression Value { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set role statement&gt;</c>. <c>SET ROLE role</c> or <c>SET ROLE NONE</c>.
+	/// </summary>
+	public sealed record SetRole : Statement
+	{
+		/// <summary>
+		/// The role set; null where <see cref="None"/> is true.
+		/// </summary>
+		public Expression? Value { get; init; }
+
+		/// <summary>
+		/// <c>NONE</c> was written, which sets no role.
+		/// </summary>
+		public bool None { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set local time zone statement&gt;</c>. <c>SET TIME ZONE interval</c> or <c>SET TIME ZONE LOCAL</c>.
+	/// </summary>
+	public sealed record SetTimeZone : Statement
+	{
+		/// <summary>
+		/// The time zone offset set; null where <see cref="Local"/> is true.
+		/// </summary>
+		public Expression? Value { get; init; }
+
+		/// <summary>
+		/// <c>LOCAL</c> was written, which restores the system's time zone.
+		/// </summary>
+		public bool Local { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set catalog statement&gt;</c>. <c>SET CATALOG name</c>: the default catalog of the session.
+	/// </summary>
+	public sealed record SetCatalog : Statement
+	{
+		/// <summary>
+		/// The catalog name, as a value.
+		/// </summary>
+		public required Expression Value { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set schema statement&gt;</c>. <c>SET SCHEMA name</c>: the default schema of the session.
+	/// </summary>
+	public sealed record SetSchema : Statement
+	{
+		/// <summary>
+		/// The schema name, as a value.
+		/// </summary>
+		public required Expression Value { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set names statement&gt;</c>. <c>SET NAMES name</c>: the default character set of the session.
+	/// </summary>
+	public sealed record SetNames : Statement
+	{
+		/// <summary>
+		/// The character set name, as a value.
+		/// </summary>
+		public required Expression Value { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set path statement&gt;</c>. <c>SET PATH list</c>: the schemas searched for unqualified routine
+	/// names.
+	/// </summary>
+	public sealed record SetPath : Statement
+	{
+		/// <summary>
+		/// The path, as a value.
+		/// </summary>
+		public required Expression Value { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set transform group statement&gt;</c>. <c>SET DEFAULT TRANSFORM GROUP g</c> or
+	/// <c>SET TRANSFORM GROUP FOR TYPE t g</c>.
+	/// </summary>
+	public sealed record SetTransformGroup : Statement
+	{
+		/// <summary>
+		/// The group name, and the type it is for where <c>FOR TYPE</c> was written.
+		/// </summary>
+		public required TransformGroupCharacteristic Value { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set session collation statement&gt;</c>. <c>SET COLLATION c [FOR sets]</c> or
+	/// <c>SET NO COLLATION [FOR sets]</c>.
+	/// </summary>
+	public sealed record SetCollation : Statement
+	{
+		/// <summary>
+		/// <c>SET NO COLLATION</c> was written; <see cref="Value"/> is null then.
+		/// </summary>
+		public bool NoCollation { get; init; }
+
+		/// <summary>
+		/// The collation set, as a value; null where <see cref="NoCollation"/> is true.
+		/// </summary>
+		public Expression? Value { get; init; }
+
+		/// <summary>
+		/// The character sets after <c>FOR</c>, which the collation applies to; empty where none were written.
+		/// </summary>
+		public SqlList<CharacterSetName> ForCharacterSets { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set session characteristics statement&gt;</c>. <c>SET SESSION CHARACTERISTICS AS TRANSACTION mode, …</c>:
+	/// the default transaction modes of the session.
+	/// </summary>
+	public sealed record SetSessionCharacteristics : Statement
+	{
+		/// <summary>
+		/// One list of modes per <c>TRANSACTION …</c> written, in the order written.
+		/// </summary>
+		public SqlList<SqlList<TransactionMode>> Characteristics { get; init; } = [];
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;allocate descriptor statement&gt;</c>. <c>ALLOCATE [SQL] DESCRIPTOR d [WITH MAX n]</c>: a descriptor
+	/// area for dynamic SQL.
+	/// </summary>
+	public sealed record AllocateDescriptor : Statement
+	{
+		/// <summary>
+		/// The optional <c>SQL</c> before <c>DESCRIPTOR</c> was written.
+		/// </summary>
+		public bool SqlKeyword { get; init; }
+
+		/// <summary>
+		/// The descriptor allocated.
+		/// </summary>
+		public required DescriptorReference Descriptor { get; init; }
+
+		/// <summary>
+		/// The number of items after <c>WITH MAX</c>; null where it was not written.
+		/// </summary>
+		public Expression? Max { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;deallocate descriptor statement&gt;</c>. <c>DEALLOCATE [SQL] DESCRIPTOR d</c>.
+	/// </summary>
+	public sealed record DeallocateDescriptor : Statement
+	{
+		/// <summary>
+		/// The optional <c>SQL</c> before <c>DESCRIPTOR</c> was written.
+		/// </summary>
+		public bool SqlKeyword { get; init; }
+
+		/// <summary>
+		/// The descriptor deallocated.
+		/// </summary>
+		public required DescriptorReference Descriptor { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;get descriptor statement&gt;</c>. <c>GET [SQL] DESCRIPTOR d target = field, …</c> or
+	/// <c>… VALUE n target = field, …</c>: fields of a descriptor area read into variables.
+	/// </summary>
+	public sealed record GetDescriptor : Statement
+	{
+		/// <summary>
+		/// The optional <c>SQL</c> before <c>DESCRIPTOR</c> was written.
+		/// </summary>
+		public bool SqlKeyword { get; init; }
+
+		/// <summary>
+		/// The descriptor read.
+		/// </summary>
+		public required DescriptorReference Descriptor { get; init; }
+
+		/// <summary>
+		/// What is read: header fields, or the fields of the item after <c>VALUE</c>.
+		/// </summary>
+		public required DescriptorGet Body { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;set descriptor statement&gt;</c>. <c>SET [SQL] DESCRIPTOR d field = value, …</c> or
+	/// <c>… VALUE n field = value, …</c>: fields of a descriptor area written.
+	/// </summary>
+	public sealed record SetDescriptor : Statement
+	{
+		/// <summary>
+		/// The optional <c>SQL</c> before <c>DESCRIPTOR</c> was written.
+		/// </summary>
+		public bool SqlKeyword { get; init; }
+
+		/// <summary>
+		/// The descriptor written.
+		/// </summary>
+		public required DescriptorReference Descriptor { get; init; }
+
+		/// <summary>
+		/// What is written: header fields, or the fields of the item after <c>VALUE</c>.
+		/// </summary>
+		public required DescriptorSet Body { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;copy descriptor statement&gt;</c>. <c>COPY d1 TO d2</c>, or <c>COPY d1 VALUE n (options) TO d2 VALUE m</c>:
+	/// a descriptor area, or one item of it, copied.
+	/// </summary>
+	public sealed record CopyDescriptor : Statement
+	{
+		/// <summary>
+		/// What is copied: a whole descriptor, or one item with the fields chosen.
+		/// </summary>
+		public required DescriptorCopy Body { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;prepare statement&gt;</c>. <c>PREPARE s [ATTRIBUTES a] FROM sql</c>: a dynamic statement made
+	/// ready to execute.
+	/// </summary>
+	public sealed record Prepare : Statement
+	{
+		/// <summary>
+		/// The name the prepared statement is given.
+		/// </summary>
+		public required StatementReference Statement { get; init; }
+
+		/// <summary>
+		/// The cursor attributes string after <c>ATTRIBUTES</c>; null where it was not written.
+		/// </summary>
+		public Expression? Attributes { get; init; }
+
+		/// <summary>
+		/// The text of the statement, as a value.
+		/// </summary>
+		public required Expression Sql { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;deallocate prepared statement&gt;</c>. <c>DEALLOCATE PREPARE s</c>.
+	/// </summary>
+	public sealed record DeallocatePrepare : Statement
+	{
+		/// <summary>
+		/// The prepared statement released.
+		/// </summary>
+		public required StatementReference Statement { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;describe statement&gt;</c>. <c>DESCRIBE [OUTPUT] s USING [SQL] DESCRIPTOR d</c> or
+	/// <c>DESCRIBE INPUT s …</c>: the parameters or the result columns of a prepared statement, or the structure
+	/// of a cursor, written to a descriptor area.
+	/// </summary>
+	public sealed record Describe : Statement
+	{
+		/// <summary>
+		/// What is described: a statement's input, or its output or a cursor's structure, with the descriptor
+		/// receiving it.
+		/// </summary>
+		public required DescribeBody Body { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;execute statement&gt;</c>. <c>EXECUTE s [INTO targets] [USING arguments]</c>: a prepared
+	/// statement run.
+	/// </summary>
+	public sealed record Execute : Statement
+	{
+		/// <summary>
+		/// The prepared statement run.
+		/// </summary>
+		public required StatementReference Statement { get; init; }
+
+		/// <summary>
+		/// The targets after <c>INTO</c>, which receive the result row; null where it was not written.
+		/// </summary>
+		public DynamicArguments? Result { get; init; }
+
+		/// <summary>
+		/// The arguments after <c>USING</c>, bound to the statement's parameters; null where it was not written.
+		/// </summary>
+		public DynamicArguments? Parameters { get; init; }
+	}
+
+	/// <summary>
+	/// BNF: <c>&lt;execute immediate statement&gt;</c>. <c>EXECUTE IMMEDIATE sql</c>: a statement given as text,
+	/// prepared and run at once.
+	/// </summary>
+	public sealed record ExecuteImmediate : Statement
+	{
+		/// <summary>
+		/// The text of the statement, as a value.
+		/// </summary>
+		public required Expression Sql { get; init; }
+	}
+
+	/// <summary>
+	/// <c>PIPE ROW d</c>: a row handed back from a table function, taken from a descriptor area.
+	/// </summary>
+	public sealed record PipeRow : Statement
+	{
+		/// <summary>
+		/// The descriptor area that holds the row.
+		/// </summary>
+		public required DescriptorReference Descriptor { get; init; }
+	}
 
 	// BNF: embedded WHENEVER and implementation-defined preparable statement escape hatch
 	public sealed record Whenever : Statement { public required SqlCondition Condition { get; init; } public required ConditionAction Action { get; init; } }
