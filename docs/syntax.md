@@ -2259,9 +2259,8 @@ whether the result is lazy. The words on the left are written in that order, eac
 
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
-`ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `DefaultBufferSize` or
-`DefaultMaxRetained`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
-declares for its own use, nor in a grammar read over tokens `Scan`, which it declares internal for the
+`ParserInput`, `OnRecovered`, `OnHandingOff` or `OnTakingOver`, which the class declares for its callers, nor `Failure`, `ParserEntry`, `DefaultBufferSize` or `DefaultMaxRetained`, which it
+declares internal for its own use, nor in a grammar read over tokens `Scan`, which it declares internal for the
 host's own code, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
 which a trace build of the grammar declares (§6.9) — in every build, traced or not, so that a grammar a
 project traces in Debug alone means the same names in Release — nor the name of the class itself, and neither of its two names may be the other
@@ -2624,8 +2623,8 @@ A null buffer parameter takes the grammar's own default, and a number takes prec
 that call. The defaults are `[Gram(..., InitialBufferSize = 4096, MaxBufferedInputLength = int.MaxValue)]`,
 the values shown being what applies where the attribute does not say; a `[GramParserVariant]`
 inherits them and may set its own. The generated class holds them as the read-only
-`DefaultBufferSize` and `DefaultMaxRetained`, internal to the assembly, for a package that
-wants to tell its own callers what the limit is. Either set to zero or less is `GRAM0009`.
+`DefaultBufferSize` and `DefaultMaxRetained`, internal to the assembly: code beside the grammar
+can read them, a caller in another assembly cannot. Either set to zero or less is `GRAM0009`.
 
 The byte form uses `Stream` under the same method names. Explicit buffered input
 does not imply a lazy result: `parse` returns its declared result unless `yield`
