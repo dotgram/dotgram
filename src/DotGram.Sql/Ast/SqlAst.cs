@@ -3093,172 +3093,1003 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	/// <param name="Query">The query inside the brackets.</param>
 	public sealed record CollectionQuery(CollectionKind Kind, Query Query) : Expression;
 
-	// BNF: <array element reference>, and a JSON simplified accessor's `[1 TO 3]`. Trigraphs are `??(` and `??)`.
+	/// <summary>
+	/// BNF: <c>&lt;array element reference&gt;</c>, and a JSON simplified accessor's <c>[1 TO 3]</c>: an element of a
+	/// collection by its position, <c>a[i]</c>.
+	/// </summary>
+	/// <param name="Collection">The array or other collection value that is indexed.</param>
+	/// <param name="Index">The position, or the first position of a <c>TO</c> range.</param>
+	/// <param name="To">The last position after <c>TO</c>; null for a single element.</param>
+	/// <param name="Trigraphs">The brackets were written as the trigraphs <c>??(</c> and <c>??)</c>.</param>
 	public sealed record Element(Expression Collection, Expression Index, Expression? To = null, bool Trigraphs = false) : Expression;
 
-	// BNF: a JSON simplified accessor's `.*` and `[*]`.
-	// T-SQL: `t.*` as an argument (CHECKSUM, BINARY_CHECKSUM, CONTAINS, FREETEXT): all columns of `t`; the target is the table's reference, as in `SelectColumn.QualifiedAll`.
+	/// <summary>
+	/// BNF: a JSON simplified accessor's <c>.*</c> and <c>[*]</c>.
+	/// T-SQL: <c>t.*</c> as an argument (CHECKSUM, BINARY_CHECKSUM, CONTAINS, FREETEXT): all columns of <c>t</c>; the target is the table's reference, as in <see cref="SelectColumn.QualifiedAll"/>.
+	/// </summary>
+	/// <param name="Target">The value or table whose members or elements are all taken.</param>
+	/// <param name="Kind">Which wildcard was written: <c>.*</c> or <c>[*]</c>.</param>
 	public sealed record Wildcard(Expression Target, WildcardKind Kind) : Expression;
 
-	// BNF: a JSON simplified accessor's <JSON array accessor>, whose subscripts are in the path language: `a[$ to last]`.
+	/// <summary>
+	/// BNF: a JSON simplified accessor's <c>&lt;JSON array accessor&gt;</c>, whose subscripts are in the path language: <c>a[$ to last]</c>.
+	/// </summary>
+	/// <param name="Target">The value the accessor is applied to.</param>
+	/// <param name="Accessor">The accessor: a member, a wildcard or a subscript list in the JSON path language.</param>
 	public sealed record JsonAccessor(Expression Target, JsonPathAccessor Accessor) : Expression;
 
+	/// <param name="Sequence">The sequence the next value is taken from: <c>NEXT VALUE FOR s</c>.</param>
 	public sealed partial record NextValue(QualifiedName Sequence) : Expression;
 
-	// BNF: <collate clause> on a character factor.
+	/// <summary>
+	/// BNF: <c>&lt;collate clause&gt;</c> on a character factor: <c>a COLLATE c</c>.
+	/// </summary>
+	/// <param name="Value">The character value whose collation is set.</param>
+	/// <param name="Collation">The collation named after <c>COLLATE</c>.</param>
 	public sealed record Collate(Expression Value, CollationName Collation) : Expression;
 
-	// BNF: <time zone>, `a AT TIME ZONE z` and `a AT LOCAL`, where Zone is null.
+	/// <summary>
+	/// BNF: <c>&lt;time zone&gt;</c>: <c>a AT TIME ZONE z</c>, and <c>a AT LOCAL</c>.
+	/// </summary>
+	/// <param name="Value">The datetime value that is converted.</param>
+	/// <param name="Zone">The time zone, an interval or a name; null for <c>AT LOCAL</c>.</param>
 	public sealed record AtTimeZone(Expression Value, Expression? Zone) : Expression;
 
-	// BNF: <interval value expression>'s `(a - b) DAY TO SECOND`.
+	/// <summary>
+	/// BNF: <c>&lt;interval value expression&gt;</c>'s <c>(a - b) DAY TO SECOND</c>: a datetime difference given the
+	/// interval qualifier it is taken in.
+	/// </summary>
+	/// <param name="Value">The difference, usually a bracketed subtraction of two datetime values.</param>
+	/// <param name="Qualifier">The interval qualifier written after it.</param>
 	public sealed record IntervalQualified(Expression Value, IntervalQualifier Qualifier) : Expression;
 
 	// BNF: <string value function>s whose arguments are key words and not a comma list.
+
+	/// <summary>
+	/// <c>SUBSTRING (a FROM b [FOR c] [USING CHARACTERS | OCTETS])</c>, the standard's character substring function.
+	/// </summary>
+	/// <param name="Value">The string a part is taken of.</param>
+	/// <param name="From">The position the part starts at.</param>
+	/// <param name="For">The length of the part; null where the part runs to the end.</param>
+	/// <param name="Using">The unit of the positions and the length; null where none was written.</param>
 	public sealed record Substring(Expression Value, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
+
+	/// <summary>
+	/// <c>SUBSTRING (a SIMILAR p ESCAPE e)</c>, the regular substring function.
+	/// </summary>
+	/// <param name="Value">The string searched.</param>
+	/// <param name="Pattern">The <c>SIMILAR</c> pattern whose marked part is returned.</param>
+	/// <param name="Escape">The escape character of the pattern.</param>
 	public sealed record SubstringSimilar(Expression Value, Expression Pattern, Expression Escape) : Expression;
+
+	/// <summary>
+	/// <c>TRIM ([LEADING | TRAILING | BOTH] [c] [FROM] a)</c>: a string with characters removed from its ends.
+	/// </summary>
+	/// <param name="Specification">Which end is trimmed; null where none was written.</param>
+	/// <param name="Character">The character that is removed; null where the blank is meant.</param>
+	/// <param name="FromKeyword">The <c>FROM</c> key word was written before <paramref name="Source"/>.</param>
+	/// <param name="Source">The string that is trimmed.</param>
 	public sealed record Trim(TrimSpecification? Specification, Expression? Character, bool FromKeyword, Expression Source) : Expression;
+
+	/// <summary>
+	/// <c>OVERLAY (a PLACING b FROM c [FOR d] [USING CHARACTERS | OCTETS])</c>: a string with a part replaced.
+	/// </summary>
+	/// <param name="Value">The string whose part is replaced.</param>
+	/// <param name="Placing">The string put in place of the part.</param>
+	/// <param name="From">The position the replaced part starts at.</param>
+	/// <param name="For">The length of the replaced part; null where it is the length of <paramref name="Placing"/>.</param>
+	/// <param name="Using">The unit of the position and the length; null where none was written.</param>
 	public sealed record Overlay(Expression Value, Expression Placing, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
+
+	/// <summary>
+	/// <c>POSITION (a IN b [USING CHARACTERS | OCTETS])</c>: where a string is found in another.
+	/// </summary>
+	/// <param name="Value">The string that is looked for.</param>
+	/// <param name="Within">The string that is searched.</param>
+	/// <param name="Using">The unit the position is counted in; null where none was written.</param>
 	public sealed record Position(Expression Value, Expression Within, CharacterLengthUnits? Using) : Expression;
+
+	/// <summary>
+	/// <c>CHAR_LENGTH (a)</c>, <c>CHARACTER_LENGTH (a)</c> or <c>OCTET_LENGTH (a)</c>: the length of a string.
+	/// </summary>
+	/// <param name="Function">Which of the three functions was written.</param>
+	/// <param name="Value">The string measured.</param>
+	/// <param name="Using">The unit of the length, <c>USING CHARACTERS | OCTETS</c>; null where none was written.</param>
 	public sealed record Length(LengthFunction Function, Expression Value, CharacterLengthUnits? Using) : Expression;
+
+	/// <summary>
+	/// <c>EXTRACT (YEAR FROM a)</c>: one field of a datetime or interval value.
+	/// </summary>
+	/// <param name="Field">The field that is taken.</param>
+	/// <param name="Source">The datetime or interval value it is taken from.</param>
 	public sealed record Extract(ExtractField Field, Expression Source) : Expression;
-	// BNF: <normalize function>; a result length may carry a multiplier and its units, `10 K CHARACTERS`.
+
+	/// <summary>
+	/// BNF: <c>&lt;normalize function&gt;</c>: <c>NORMALIZE (a, NFC, 10)</c>; a result length may carry a multiplier and its units, <c>10 K CHARACTERS</c>.
+	/// </summary>
+	/// <param name="Value">The string that is normalized.</param>
+	/// <param name="Form">The normal form; null where none was written.</param>
+	/// <param name="MaxLength">The largest length of the result; null where none was written, and always null without a <paramref name="Form"/>.</param>
 	public sealed record Normalize(Expression Value, NormalForm? Form, Expression? MaxLength) : Expression
 	{
+		/// <summary>
+		/// The multiplier letter written against the length, <c>K</c>, <c>M</c> or <c>G</c>; null where there is none.
+		/// </summary>
 		public char? MaxLengthMultiplier { get; init; }
+
+		/// <summary>
+		/// The unit the length is counted in, <c>CHARACTERS</c> or <c>OCTETS</c>; null where none was written.
+		/// </summary>
 		public LengthUnit? MaxLengthUnit { get; init; }
 	}
+
+	/// <summary>
+	/// <c>CONVERT (a USING n)</c> and <c>TRANSLATE (a USING n)</c>: a string converted by a named conversion.
+	/// </summary>
+	/// <param name="Function">Which of the two functions was written.</param>
+	/// <param name="Value">The string that is converted.</param>
+	/// <param name="Name">The name of the conversion after <c>USING</c>.</param>
 	public sealed record TranslateUsing(TranslateFunction Function, Expression Value, QualifiedName Name) : Expression;
 
-	// BNF: <regex occurrences function>, <regex position expression>, <regex substring function>, <regex transliteration>.
+	/// <summary>
+	/// BNF: <c>&lt;regex occurrences function&gt;</c>, <c>&lt;regex position expression&gt;</c>, <c>&lt;regex substring function&gt;</c>, <c>&lt;regex transliteration&gt;</c>:
+	/// <c>SUBSTRING_REGEX (p FLAG f IN a FROM n OCCURRENCE k GROUP g)</c>. Only the clauses the function takes are set.
+	/// </summary>
+	/// <param name="Function">Which of the four regular expression functions was written.</param>
+	/// <param name="Pattern">The regular expression.</param>
+	/// <param name="Value">The string searched, after <c>IN</c>.</param>
 	public sealed record Regex(RegexFunction Function, Expression Pattern, Expression Value) : Expression
 	{
+		/// <summary>
+		/// The flags of the pattern, after <c>FLAG</c>; null where none was written.
+		/// </summary>
 		public Expression? Flag { get; init; }
+
+		/// <summary>
+		/// The position the search starts at, after <c>FROM</c>; null where none was written.
+		/// </summary>
 		public Expression? From { get; init; }
+
+		/// <summary>
+		/// The unit of the positions, <c>USING CHARACTERS | OCTETS</c>; null where none was written.
+		/// </summary>
 		public CharacterLengthUnits? Using { get; init; }
+
+		/// <summary>
+		/// <c>START</c> or <c>AFTER</c> in a position function: whether the position is where the match starts or where it ends; null elsewhere.
+		/// </summary>
 		public RegexPositionStartOrAfter? StartOrAfter { get; init; }
+
+		/// <summary>
+		/// The string put in place of a match, after <c>WITH</c>, in a transliteration; null elsewhere.
+		/// </summary>
 		public Expression? Replacement { get; init; }
+
+		/// <summary>
+		/// The number of the match that is taken, after <c>OCCURRENCE</c>; null where none was written or <see cref="AllOccurrences"/> is set.
+		/// </summary>
 		public Expression? Occurrence { get; init; }
+
+		/// <summary>
+		/// <c>OCCURRENCE ALL</c> was written: every match is replaced.
+		/// </summary>
 		public bool AllOccurrences { get; init; }
+
+		/// <summary>
+		/// The number of the capture group that is taken, after <c>GROUP</c>; null where none was written.
+		/// </summary>
 		public Expression? Group { get; init; }
 	}
 
 	// BNF predicate families collapsed into Expression children rather than a BooleanExpression hierarchy.
-	// T-SQL: Comparison Operators (Transact-SQL). `Exclamation` is true only for `!=`, which is
-	// `NotEqual` written with `!`; `!<` and `!>` are operators of their own, `NotLess` and
-	// `NotGreater`. A spelling is kept as a flag beside the value here as `Trigraphs` is on
-	// `AssignmentTarget`, so one meaning stays one operator and the text still writes back.
+
+	/// <summary>
+	/// A comparison predicate, <c>a = b</c>.
+	/// T-SQL: Comparison Operators (Transact-SQL). <see cref="Exclamation"/> is true only for <c>!=</c>, which is
+	/// <see cref="ComparisonOperator.NotEqual"/> written with <c>!</c>; <c>!&lt;</c> and <c>!&gt;</c> are operators of their own,
+	/// <see cref="ComparisonOperator.NotLess"/> and <see cref="ComparisonOperator.NotGreater"/>. A spelling is kept as a flag beside the value here as
+	/// <c>Trigraphs</c> is on <c>AssignmentTarget</c>, so one meaning stays one operator and the text still writes back.
+	/// </summary>
+	/// <param name="Left">The left operand.</param>
+	/// <param name="Operator">The comparison operator.</param>
+	/// <param name="Right">The right operand.</param>
+	/// <param name="Exclamation">The inequality was written <c>!=</c> and not <c>&lt;&gt;</c>.</param>
 	public sealed record Comparison(Expression Left, ComparisonOperator Operator, Expression Right, [property: Spelling] bool Exclamation = false) : Expression;
+
+	/// <summary>
+	/// A range predicate: <c>a [NOT] BETWEEN [ASYMMETRIC | SYMMETRIC] b AND c</c>.
+	/// </summary>
+	/// <param name="Value">The value that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="Symmetry">The <c>ASYMMETRIC</c> or <c>SYMMETRIC</c> key word; null where none was written.</param>
+	/// <param name="Lower">The bound after <c>BETWEEN</c>.</param>
+	/// <param name="Upper">The bound after <c>AND</c>.</param>
 	public sealed record Between(Expression Value, bool Not, BetweenSymmetry? Symmetry, Expression Lower, Expression Upper) : Expression;
+
+	/// <summary>
+	/// A membership predicate: <c>a [NOT] IN (1, 2)</c> or <c>a [NOT] IN (SELECT …)</c>.
+	/// </summary>
+	/// <param name="Value">The value that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="SourceValue">What the value is looked for in: a list of values or a subquery.</param>
 	public sealed record In(Expression Value, bool Not, InSource SourceValue) : Expression;
 
-	// BNF: <like predicate>, <similar predicate>, <regex like predicate> — whose FLAG is Flag.
+	/// <summary>
+	/// BNF: <c>&lt;like predicate&gt;</c>, <c>&lt;similar predicate&gt;</c>, <c>&lt;regex like predicate&gt;</c> — whose <c>FLAG</c> is <paramref name="Flag"/>:
+	/// <c>a [NOT] LIKE p [ESCAPE e]</c>, <c>a [NOT] SIMILAR TO p</c>, <c>a [NOT] LIKE_REGEX p [FLAG f]</c>.
+	/// </summary>
+	/// <param name="Value">The string that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="Kind">Which of the three predicates was written.</param>
+	/// <param name="Pattern">The pattern the string is matched with.</param>
+	/// <param name="Escape">The escape character of the pattern; null where none was written.</param>
+	/// <param name="Flag">The flags of a <c>LIKE_REGEX</c> pattern; null where none was written.</param>
 	public sealed partial record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null, Expression? Flag = null) : Expression;
 
+	/// <summary>
+	/// A null predicate: <c>a IS [NOT] NULL</c>.
+	/// </summary>
+	/// <param name="Value">The value that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
 	public sealed record IsNull(Expression Value, bool Not) : Expression;
 
-	// BNF: <boolean test>, `a IS NOT UNKNOWN`.
+	/// <summary>
+	/// BNF: <c>&lt;boolean test&gt;</c>, <c>a IS NOT UNKNOWN</c>: a truth value tested for one of the three truth values.
+	/// </summary>
+	/// <param name="Value">The condition that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="Truth">The truth value it is compared with: <c>TRUE</c>, <c>FALSE</c> or <c>UNKNOWN</c>.</param>
 	public sealed record IsTruth(Expression Value, bool Not, BooleanLiteral Truth) : Expression;
 
+	/// <summary>
+	/// A quantified comparison predicate: <c>a = ANY (SELECT …)</c>, <c>a &lt; ALL (SELECT …)</c>.
+	/// </summary>
+	/// <param name="Left">The value compared with every row of the subquery.</param>
+	/// <param name="Operator">The comparison operator.</param>
+	/// <param name="Quantifier">The key word that says how many rows must satisfy it: <c>ALL</c>, <c>SOME</c> or <c>ANY</c>.</param>
+	/// <param name="Query">The subquery.</param>
 	public sealed record QuantifiedComparison(Expression Left, ComparisonOperator Operator, Quantifier Quantifier, Query Query) : Expression;
+
+	/// <summary>
+	/// An existence predicate: <c>EXISTS (SELECT …)</c>.
+	/// </summary>
+	/// <param name="Query">The subquery whose rows are looked for.</param>
 	public sealed record Exists(Query Query) : Expression;
+
+	/// <summary>
+	/// A uniqueness predicate: <c>UNIQUE [NULLS [NOT] DISTINCT] (SELECT …)</c>.
+	/// </summary>
+	/// <param name="Nulls">Whether nulls are distinct from one another; null where none was written.</param>
+	/// <param name="Query">The subquery whose rows are compared with one another.</param>
 	public sealed record Unique(NullDistinctness? Nulls, Query Query) : Expression;
 
-	// BNF: <match predicate>.
+	/// <summary>
+	/// BNF: <c>&lt;match predicate&gt;</c>: <c>a MATCH [UNIQUE] [SIMPLE | PARTIAL | FULL] (SELECT …)</c>.
+	/// </summary>
+	/// <param name="Value">The row value that is looked for.</param>
+	/// <param name="UniqueKeyword">The <c>UNIQUE</c> key word was written.</param>
+	/// <param name="Type">The kind of match; null where none was written.</param>
+	/// <param name="Query">The subquery the row is looked for in.</param>
 	public sealed record Match(Expression Value, bool UniqueKeyword, MatchType? Type, Query Query) : Expression;
 
-	// BNF: <overlaps predicate>, whose two sides are rows.
+	/// <summary>
+	/// BNF: <c>&lt;overlaps predicate&gt;</c>, whose two sides are rows: <c>(a, b) OVERLAPS (c, d)</c>.
+	/// </summary>
+	/// <param name="Left">The row of the first period.</param>
+	/// <param name="Right">The row of the second period.</param>
 	public sealed record Overlaps(Expression Left, Expression Right) : Expression;
 
+	/// <summary>
+	/// A distinctness predicate: <c>a IS [NOT] DISTINCT FROM b</c>, which treats nulls as equal values.
+	/// </summary>
+	/// <param name="Left">The left operand.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="Right">The right operand.</param>
 	public sealed partial record IsDistinct(Expression Left, bool Not, Expression Right) : Expression;
+
+	/// <summary>
+	/// A normalization predicate: <c>a IS [NOT] [NFC | NFD | NFKC | NFKD] NORMALIZED</c>.
+	/// </summary>
+	/// <param name="Value">The string that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="Form">The normal form; null where none was written.</param>
 	public sealed record IsNormalized(Expression Value, bool Not, NormalForm? Form) : Expression;
+
+	/// <summary>
+	/// A member predicate: <c>a [NOT] MEMBER [OF] m</c>.
+	/// </summary>
+	/// <param name="Value">The value that is looked for.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="OfKeyword">The <c>OF</c> key word was written.</param>
+	/// <param name="Collection">The multiset the value is looked for in.</param>
 	public sealed record MemberOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
+
+	/// <summary>
+	/// A submultiset predicate: <c>a [NOT] SUBMULTISET [OF] m</c>.
+	/// </summary>
+	/// <param name="Value">The multiset that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="OfKeyword">The <c>OF</c> key word was written.</param>
+	/// <param name="Collection">The multiset that must contain it.</param>
 	public sealed record SubmultisetOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
+
+	/// <summary>
+	/// A set predicate: <c>a IS [NOT] A SET</c>, which is true for a multiset without duplicates.
+	/// </summary>
+	/// <param name="Value">The multiset that is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
 	public sealed record IsSet(Expression Value, bool Not) : Expression;
+
+	/// <summary>
+	/// A type predicate: <c>a IS [NOT] OF (ONLY t, u)</c>.
+	/// </summary>
+	/// <param name="Value">The value whose type is tested.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="Types">The types it is tested against, each with an optional <c>ONLY</c>.</param>
 	public sealed record IsOf(Expression Value, bool Not, SqlList<TypeTest> Types) : Expression;
+
+	/// <summary>
+	/// A period predicate: <c>p CONTAINS q</c>, <c>p OVERLAPS q</c>, <c>p IMMEDIATELY PRECEDES q</c> and the like.
+	/// </summary>
+	/// <param name="Left">The period on the left.</param>
+	/// <param name="Operator">The period operator.</param>
+	/// <param name="Right">The period or the point on the right.</param>
 	public sealed record PeriodPredicate(PeriodValue Left, PeriodOperator Operator, PeriodRight Right) : Expression;
+
+	/// <summary>
+	/// A JSON predicate: <c>a [FORMAT JSON] IS [NOT] JSON [VALUE | ARRAY | OBJECT | SCALAR] [WITH | WITHOUT UNIQUE KEYS]</c>.
+	/// </summary>
+	/// <param name="Value">The value that is tested.</param>
+	/// <param name="Input">The <c>FORMAT</c> clause after the value; null where none was written.</param>
+	/// <param name="Not">The predicate is negated with <c>NOT</c>.</param>
+	/// <param name="Type">The kind of JSON text required; null where none was written.</param>
+	/// <param name="Uniqueness">Whether object keys must be unique; null where none was written.</param>
 	public sealed record JsonPredicate(Expression Value, JsonInputClause? Input, bool Not, JsonPredicateType? Type, JsonKeyUniqueness? Uniqueness) : Expression;
+
+	/// <summary>
+	/// <c>JSON_EXISTS (a, p [PASSING …] [TRUE | FALSE | UNKNOWN | ERROR ON ERROR])</c>: whether a path finds an item.
+	/// </summary>
+	/// <param name="Common">The context value, the path and the <c>PASSING</c> arguments that every JSON query function takes.</param>
+	/// <param name="OnError">What the function does on an error; null where no <c>ON ERROR</c> was written.</param>
 	public sealed record JsonExists(JsonApiCommon Common, JsonExistsErrorBehavior? OnError) : Expression;
 
 	// BNF: <JSON value function>, <JSON query>, the <JSON value constructor>s and <JSON aggregate function>s.
+
+	/// <summary>
+	/// <c>JSON_VALUE (a, p [RETURNING t] [… ON EMPTY] [… ON ERROR])</c>: a scalar taken from a JSON value by a path.
+	/// </summary>
+	/// <param name="Common">The context value, the path and the <c>PASSING</c> arguments.</param>
+	/// <param name="Returning">The type of the result; null where no <c>RETURNING</c> was written.</param>
+	/// <param name="OnEmpty">What the function returns when the path finds nothing; null where none was written.</param>
+	/// <param name="OnError">What the function does on an error; null where none was written.</param>
 	public sealed record JsonValue(JsonApiCommon Common, DataType? Returning, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : Expression;
+
+	/// <summary>
+	/// <c>JSON_QUERY (a, p [RETURNING t] [WITH [CONDITIONAL | UNCONDITIONAL] WRAPPER] [… QUOTES] [… ON EMPTY] [… ON ERROR])</c>: an object or an array taken from a JSON value by a path.
+	/// </summary>
+	/// <param name="Common">The context value, the path and the <c>PASSING</c> arguments; T-SQL's one-argument form has no path.</param>
+	/// <param name="Output">The <c>RETURNING</c> clause: the type and the <c>FORMAT</c> of the result; null where none was written.</param>
+	/// <param name="Wrapper">Whether the result is wrapped in an array; null where no <c>WRAPPER</c> was written.</param>
+	/// <param name="Quotes">Whether a string result keeps its quotes; null where no <c>QUOTES</c> was written.</param>
+	/// <param name="OnEmpty">What the function returns when the path finds nothing; null where none was written.</param>
+	/// <param name="OnError">What the function does on an error; null where none was written.</param>
 	public sealed record JsonQuery(JsonApiCommon Common, JsonOutput? Output, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : Expression;
+
+	/// <summary>
+	/// <c>JSON_OBJECT (k : v, … [NULL | ABSENT ON NULL] [WITH | WITHOUT UNIQUE KEYS] [RETURNING t])</c>: a JSON object built from key and value pairs.
+	/// </summary>
+	/// <param name="Members">The key and value pairs; empty for <c>JSON_OBJECT ()</c>.</param>
+	/// <param name="Nulls">What a null value does: kept as a JSON null or left out; null where none was written.</param>
+	/// <param name="Uniqueness">Whether the keys must be unique; null where none was written.</param>
+	/// <param name="Output">The <c>RETURNING</c> clause; null where none was written.</param>
 	public sealed record JsonObject(SqlList<JsonMember> Members, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
+
+	/// <summary>
+	/// <c>JSON_ARRAY (a, b, … [NULL | ABSENT ON NULL] [RETURNING t])</c>: a JSON array built from values.
+	/// </summary>
+	/// <param name="Elements">The values; empty for <c>JSON_ARRAY ()</c>.</param>
+	/// <param name="Nulls">What a null value does: kept as a JSON null or left out; null where none was written.</param>
+	/// <param name="Output">The <c>RETURNING</c> clause; null where none was written.</param>
 	public sealed record JsonArray(SqlList<JsonElement> Elements, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
+
+	/// <summary>
+	/// <c>JSON_ARRAY (SELECT … [FORMAT JSON] [NULL | ABSENT ON NULL] [RETURNING t])</c>: a JSON array built from the rows of a query.
+	/// </summary>
+	/// <param name="Query">The query whose rows become the elements.</param>
+	/// <param name="Format">The <c>FORMAT</c> clause after the query; null where none was written.</param>
+	/// <param name="Output">The <c>RETURNING</c> clause; null where none was written.</param>
+	/// <param name="Nulls">What a null value does: kept as a JSON null or left out; null where none was written.</param>
 	public sealed record JsonArrayQuery(Query Query, JsonInputClause? Format, JsonOutput? Output, JsonNullHandling? Nulls = null) : Expression;
+
+	/// <summary>
+	/// <c>JSON_OBJECTAGG (k : v [NULL | ABSENT ON NULL] [WITH | WITHOUT UNIQUE KEYS] [RETURNING t])</c>: an aggregate that builds one JSON object from the pairs of a group or window.
+	/// </summary>
+	/// <param name="Pair">The key and value taken from each row.</param>
+	/// <param name="Nulls">What a null value does: kept as a JSON null or left out; null where none was written.</param>
+	/// <param name="Uniqueness">Whether the keys must be unique; null where none was written.</param>
+	/// <param name="Output">The <c>RETURNING</c> clause; null where none was written.</param>
 	public sealed record JsonObjectAggregate(JsonMember Pair, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression
 	{
-		// BNF: <aggregate function>'s <filter clause>, a <window function>'s window, a navigation's `RUNNING` or `FINAL`.
+		/// <summary>
+		/// BNF: <c>&lt;aggregate function&gt;</c>'s <c>&lt;filter clause&gt;</c>, <c>FILTER (WHERE c)</c>; null where none was written.
+		/// </summary>
 		public FilterClause? Filter { get; init; }
+
+		/// <summary>
+		/// A <c>&lt;window function&gt;</c>'s window, <c>OVER w</c> or <c>OVER (…)</c>; null for a plain aggregate.
+		/// </summary>
 		public WindowReference? Over { get; init; }
+
+		/// <summary>
+		/// A navigation's <c>RUNNING</c> or <c>FINAL</c> before the function in a row pattern; null where none was written.
+		/// </summary>
 		public RowPatternSemantics? Semantics { get; init; }
 	}
+
+	/// <summary>
+	/// <c>JSON_ARRAYAGG (a [ORDER BY …] [NULL | ABSENT ON NULL] [RETURNING t])</c>: an aggregate that builds one JSON array from the values of a group or window.
+	/// </summary>
+	/// <param name="Item">The value taken from each row.</param>
+	/// <param name="OrderBy">The order of the elements; null where none was written.</param>
+	/// <param name="Nulls">What a null value does: kept as a JSON null or left out; null where none was written.</param>
+	/// <param name="Output">The <c>RETURNING</c> clause; null where none was written.</param>
 	public sealed record JsonArrayAggregate(JsonElement Item, OrderByClause? OrderBy, JsonNullHandling? Nulls, JsonOutput? Output) : Expression
 	{
-		// BNF: <aggregate function>'s <filter clause>, a <window function>'s window, a navigation's `RUNNING` or `FINAL`.
+		/// <summary>
+		/// BNF: <c>&lt;aggregate function&gt;</c>'s <c>&lt;filter clause&gt;</c>, <c>FILTER (WHERE c)</c>; null where none was written.
+		/// </summary>
 		public FilterClause? Filter { get; init; }
+
+		/// <summary>
+		/// A <c>&lt;window function&gt;</c>'s window, <c>OVER w</c> or <c>OVER (…)</c>; null for a plain aggregate.
+		/// </summary>
 		public WindowReference? Over { get; init; }
+
+		/// <summary>
+		/// A navigation's <c>RUNNING</c> or <c>FINAL</c> before the function in a row pattern; null where none was written.
+		/// </summary>
 		public RowPatternSemantics? Semantics { get; init; }
 	}
+
+	/// <summary>
+	/// <c>JSON (a [FORMAT …] [WITH | WITHOUT UNIQUE KEYS])</c>: JSON text parsed into a JSON value.
+	/// </summary>
+	/// <param name="Value">The text that is parsed.</param>
+	/// <param name="Input">The <c>FORMAT</c> clause after the value; null where none was written.</param>
+	/// <param name="Uniqueness">Whether object keys must be unique; null where none was written.</param>
 	public sealed record JsonParse(Expression Value, JsonInputClause? Input, JsonKeyUniqueness? Uniqueness) : Expression;
+
+	/// <summary>
+	/// <c>JSON_SCALAR (a)</c>: an SQL value turned into a JSON scalar.
+	/// </summary>
+	/// <param name="Value">The SQL value that is converted.</param>
 	public sealed record JsonScalar(Expression Value) : Expression;
+
+	/// <summary>
+	/// <c>JSON_SERIALIZE (a [RETURNING t])</c>: a JSON value written out as character or binary text.
+	/// </summary>
+	/// <param name="Value">The JSON value that is serialized.</param>
+	/// <param name="Output">The <c>RETURNING</c> clause; null where none was written.</param>
 	public sealed record JsonSerialize(Expression Value, JsonOutput? Output) : Expression;
 
-	// BNF: <table argument>: `TABLE (t)`, `TABLE (SELECT ...)` or a call, with its name, partitioning, pruning and order.
+	/// <summary>
+	/// BNF: <c>&lt;table argument&gt;</c>: <c>TABLE (t)</c>, <c>TABLE (SELECT ...)</c> or a call, with its name, partitioning, pruning and order;
+	/// an argument of a polymorphic table function.
+	/// </summary>
+	/// <param name="Source">The table: a table name, a subquery or a table function call.</param>
+	/// <param name="TableKeyword">The <c>TABLE</c> key word was written before the source.</param>
 	public sealed record TableArgument(Expression Source, bool TableKeyword) : Expression
 	{
+		/// <summary>
+		/// The correlation name the table is given, with its column names where they are listed; null where none was written.
+		/// </summary>
 		public Alias? Alias { get; init; }
+
+		/// <summary>
+		/// The columns of <c>PARTITION BY</c>; null where no partitioning was written.
+		/// </summary>
 		public SqlList<Expression>? PartitionBy { get; init; }
+
+		/// <summary>
+		/// The partitioning columns were written in brackets, <c>PARTITION BY (a, b)</c>, which is the only way to write none or several.
+		/// </summary>
 		public bool PartitionParenthesized { get; init; }
+
+		/// <summary>
+		/// <c>PRUNE WHEN EMPTY</c> or <c>KEEP WHEN EMPTY</c>; null where none was written.
+		/// </summary>
 		public TablePruning? Pruning { get; init; }
+
+		/// <summary>
+		/// The sort items of <c>ORDER BY</c>; null where no ordering was written.
+		/// </summary>
 		public SqlList<SortItem>? OrderBy { get; init; }
+
+		/// <summary>
+		/// The ordering items were written in brackets, <c>ORDER BY (a, b)</c>.
+		/// </summary>
 		public bool OrderByParenthesized { get; init; }
 	}
 
-	// BNF: <descriptor value constructor>, `DESCRIPTOR (a INT, b)`.
+	/// <summary>
+	/// BNF: <c>&lt;descriptor value constructor&gt;</c>, <c>DESCRIPTOR (a INT, b)</c>: a list of column names, each with an optional type,
+	/// passed to a polymorphic table function.
+	/// </summary>
+	/// <param name="Columns">The columns of the descriptor.</param>
 	public sealed record DescriptorConstructor(SqlList<DescriptorColumn> Columns) : Expression;
 
-	// BNF: <current collation specification>, `COLLATION FOR (x)`.
+	/// <summary>
+	/// BNF: <c>&lt;current collation specification&gt;</c>, <c>COLLATION FOR (x)</c>: the collation of a value.
+	/// </summary>
+	/// <param name="Value">The value whose collation is asked.</param>
 	public sealed record CollationFor(Expression Value) : Expression;
 
-	// BNF: <default specification>, `DEFAULT` where a value stands.
+	/// <summary>
+	/// BNF: <c>&lt;default specification&gt;</c>, <c>DEFAULT</c> where a value stands: the default of a column or a parameter.
+	/// </summary>
 	public sealed record Default : Expression;
 
-	// BNF: <row marker expression>, `END_FRAME - 1`, and <value_of expression at row>, `VALUE_OF (x AT BEGIN_FRAME, d)`.
+	/// <summary>
+	/// BNF: <c>&lt;row marker expression&gt;</c>, <c>END_FRAME - 1</c>: a row of a window, with an offset from it.
+	/// </summary>
+	/// <param name="Kind">The row the marker names.</param>
+	/// <param name="DeltaSign">The sign of the offset, <see cref="UnaryOperator.Plus"/> or <see cref="UnaryOperator.Minus"/>; null where there is no offset.</param>
+	/// <param name="Delta">The number of rows of the offset; null where there is no offset.</param>
 	public sealed record RowMarker(RowMarkerKind Kind, UnaryOperator? DeltaSign = null, Expression? Delta = null) : Expression;
+
+	/// <summary>
+	/// BNF: <c>&lt;value_of expression at row&gt;</c>, <c>VALUE_OF (x AT BEGIN_FRAME, d)</c>: the value of an expression taken at another row of the window.
+	/// </summary>
+	/// <param name="Value">The expression that is evaluated.</param>
+	/// <param name="At">The row it is evaluated at, usually a <see cref="RowMarker"/>.</param>
+	/// <param name="Otherwise">The value used where there is no such row; null where none was written.</param>
 	public sealed record ValueOf(Expression Value, Expression At, Expression? Otherwise = null) : Expression;
 
+	/// <summary>
+	/// An expression of a dialect's own that no other node models.
+	/// </summary>
+	/// <param name="Dialect">The name of the dialect that defines the construct.</param>
+	/// <param name="Kind">The name of the construct within the dialect.</param>
+	/// <param name="Parts">The nodes the construct is made of.</param>
 	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : Expression;
 }
 
-public enum ParameterKind { Host, Sql, Dynamic, Embedded }
-public enum CurrentValue { Catalog, Date, DefaultTransformGroup, Path, Role, Schema, Time, Timestamp, User, SessionUser, SystemUser, Value, LocalTime, LocalTimestamp, CurrentUser, TransformGroupForType }
-// T-SQL: Bitwise Operators (Transact-SQL). `BitwiseNot` is `~`.
-public enum UnaryOperator { Plus, Minus, Not, BitwiseNot }
-// T-SQL: Arithmetic Operators, Bitwise Operators (Transact-SQL). From `Modulo` on: `%`, `&`, `|`, `^`,
-// `<<` and `>>`. `%` binds as `*` does.
-public enum BinaryOperator { Add, Subtract, Multiply, Divide, Concatenate, And, Or, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor, ShiftLeft, ShiftRight }
-public enum MultisetOperator { Union, Except, Intersect }
-// T-SQL: Comparison Operators (Transact-SQL). `NotLess` is `!<` and `NotGreater` is `!>`, which the
-// standard does not have. T-SQL's `!=` is `NotEqual` written differently, not an operator of its own.
-public enum ComparisonOperator { Equal, NotEqual, Less, Greater, LessOrEqual, GreaterOrEqual, NotLess, NotGreater }
-public enum BetweenSymmetry { Asymmetric, Symmetric }
-public enum Quantifier { All, Some, Any }
-public enum LikeKind { Like, Similar, Regex }
-public enum CollectionKind { Array, Multiset, Table }
-public enum MemberAccessKind { Dot, Dereference, StaticMethod }
-public enum WildcardKind { Member, Array }
-public enum NormalForm { NFC, NFD, NFKC, NFKD }
-public enum FromFirstOrLast { First, Last }
-public enum NullTreatment { RespectNulls, IgnoreNulls }
-public enum RowPatternSemantics { Running, Final }
-public enum CharacterLengthUnits { Characters, Octets }
-public enum TrimSpecification { Leading, Trailing, Both }
-public enum LengthFunction { CharLength, CharacterLength, OctetLength }
-public enum TranslateFunction { Convert, Translate }
-public enum ExtractField { Year, Month, Day, Hour, Minute, Second, TimezoneHour, TimezoneMinute }
-public enum RegexFunction { OccurrencesRegex, PositionRegex, SubstringRegex, TranslateRegex }
-public enum RegexPositionStartOrAfter { Start, After }
+/// <summary>
+/// What a <see cref="Expression.Parameter"/> stands for.
+/// </summary>
+public enum ParameterKind
+{
+	/// <summary>A host parameter, <c>:a</c>.</summary>
+	Host,
+
+	/// <summary>An SQL parameter, which has no text of its own to write.</summary>
+	Sql,
+
+	/// <summary>A dynamic parameter, <c>?</c>, whose value is given when the statement runs.</summary>
+	Dynamic,
+
+	/// <summary>An embedded variable of the host program, in embedded SQL.</summary>
+	Embedded,
+}
+
+/// <summary>
+/// Which value a <see cref="Expression.Current"/> reads: a key word of the standard with no argument, or one with a precision.
+/// </summary>
+public enum CurrentValue
+{
+	/// <summary><c>CURRENT_CATALOG</c>: the current catalog.</summary>
+	Catalog,
+
+	/// <summary><c>CURRENT_DATE</c>: the current date.</summary>
+	Date,
+
+	/// <summary><c>CURRENT_DEFAULT_TRANSFORM_GROUP</c>: the transform group used by default.</summary>
+	DefaultTransformGroup,
+
+	/// <summary><c>CURRENT_PATH</c>: the schema search path.</summary>
+	Path,
+
+	/// <summary><c>CURRENT_ROLE</c>: the current role.</summary>
+	Role,
+
+	/// <summary><c>CURRENT_SCHEMA</c>: the current schema.</summary>
+	Schema,
+
+	/// <summary><c>CURRENT_TIME [(p)]</c>: the current time with a time zone.</summary>
+	Time,
+
+	/// <summary><c>CURRENT_TIMESTAMP [(p)]</c>: the current timestamp with a time zone.</summary>
+	Timestamp,
+
+	/// <summary><c>USER</c>: the current user, as <c>CURRENT_USER</c>.</summary>
+	User,
+
+	/// <summary><c>SESSION_USER</c>: the user of the session.</summary>
+	SessionUser,
+
+	/// <summary><c>SYSTEM_USER</c>: the user as the operating system knows them.</summary>
+	SystemUser,
+
+	/// <summary><c>VALUE</c>: the value under check in a domain's constraint.</summary>
+	Value,
+
+	/// <summary><c>LOCALTIME [(p)]</c>: the current time without a time zone.</summary>
+	LocalTime,
+
+	/// <summary><c>LOCALTIMESTAMP [(p)]</c>: the current timestamp without a time zone.</summary>
+	LocalTimestamp,
+
+	/// <summary><c>CURRENT_USER</c>: the current user.</summary>
+	CurrentUser,
+
+	/// <summary><c>CURRENT_TRANSFORM_GROUP_FOR_TYPE t</c>: the transform group used for the named type.</summary>
+	TransformGroupForType,
+}
+
+/// <summary>
+/// A unary operator.
+/// T-SQL: Bitwise Operators (Transact-SQL). <see cref="BitwiseNot"/> is <c>~</c>.
+/// </summary>
+public enum UnaryOperator
+{
+	/// <summary>The unary plus, <c>+a</c>.</summary>
+	Plus,
+
+	/// <summary>The unary minus, <c>-a</c>.</summary>
+	Minus,
+
+	/// <summary>The logical negation, <c>NOT a</c>.</summary>
+	Not,
+
+	/// <summary>T-SQL: the bitwise complement, <c>~a</c>.</summary>
+	BitwiseNot,
+}
+
+/// <summary>
+/// A binary operator.
+/// T-SQL: Arithmetic Operators, Bitwise Operators (Transact-SQL). From <see cref="Modulo"/> on: <c>%</c>, <c>&amp;</c>, <c>|</c>, <c>^</c>,
+/// <c>&lt;&lt;</c> and <c>&gt;&gt;</c>. <c>%</c> binds as <c>*</c> does.
+/// </summary>
+public enum BinaryOperator
+{
+	/// <summary>Addition, <c>a + b</c>.</summary>
+	Add,
+
+	/// <summary>Subtraction, <c>a - b</c>.</summary>
+	Subtract,
+
+	/// <summary>Multiplication, <c>a * b</c>.</summary>
+	Multiply,
+
+	/// <summary>Division, <c>a / b</c>.</summary>
+	Divide,
+
+	/// <summary>Concatenation, <c>a || b</c>.</summary>
+	Concatenate,
+
+	/// <summary>The logical conjunction, <c>a AND b</c>.</summary>
+	And,
+
+	/// <summary>The logical disjunction, <c>a OR b</c>.</summary>
+	Or,
+
+	/// <summary>T-SQL: the remainder, <c>a % b</c>.</summary>
+	Modulo,
+
+	/// <summary>T-SQL: the bitwise AND, <c>a &amp; b</c>.</summary>
+	BitwiseAnd,
+
+	/// <summary>T-SQL: the bitwise OR, <c>a | b</c>.</summary>
+	BitwiseOr,
+
+	/// <summary>T-SQL: the bitwise exclusive OR, <c>a ^ b</c>.</summary>
+	BitwiseXor,
+
+	/// <summary>T-SQL: the left shift, <c>a &lt;&lt; b</c>.</summary>
+	ShiftLeft,
+
+	/// <summary>T-SQL: the right shift, <c>a &gt;&gt; b</c>.</summary>
+	ShiftRight,
+}
+
+/// <summary>
+/// The operator of a multiset combination, <c>a MULTISET UNION b</c>.
+/// </summary>
+public enum MultisetOperator
+{
+	/// <summary><c>MULTISET UNION</c>.</summary>
+	Union,
+
+	/// <summary><c>MULTISET EXCEPT</c>.</summary>
+	Except,
+
+	/// <summary><c>MULTISET INTERSECT</c>.</summary>
+	Intersect,
+}
+
+/// <summary>
+/// A comparison operator.
+/// T-SQL: Comparison Operators (Transact-SQL). <see cref="NotLess"/> is <c>!&lt;</c> and <see cref="NotGreater"/> is <c>!&gt;</c>, which the
+/// standard does not have. T-SQL's <c>!=</c> is <see cref="NotEqual"/> written differently, not an operator of its own.
+/// </summary>
+public enum ComparisonOperator
+{
+	/// <summary><c>=</c>.</summary>
+	Equal,
+
+	/// <summary><c>&lt;&gt;</c>.</summary>
+	NotEqual,
+
+	/// <summary><c>&lt;</c>.</summary>
+	Less,
+
+	/// <summary><c>&gt;</c>.</summary>
+	Greater,
+
+	/// <summary><c>&lt;=</c>.</summary>
+	LessOrEqual,
+
+	/// <summary><c>&gt;=</c>.</summary>
+	GreaterOrEqual,
+
+	/// <summary>T-SQL: <c>!&lt;</c>, not less than.</summary>
+	NotLess,
+
+	/// <summary>T-SQL: <c>!&gt;</c>, not greater than.</summary>
+	NotGreater,
+}
+
+/// <summary>
+/// Whether the bounds of a <c>BETWEEN</c> may be given in either order.
+/// </summary>
+public enum BetweenSymmetry
+{
+	/// <summary><c>ASYMMETRIC</c>: the lower bound must come first.</summary>
+	Asymmetric,
+
+	/// <summary><c>SYMMETRIC</c>: the bounds are put in order before the test.</summary>
+	Symmetric,
+}
+
+/// <summary>
+/// The key word of a quantified comparison, <c>a = ANY (SELECT …)</c>.
+/// </summary>
+public enum Quantifier
+{
+	/// <summary><c>ALL</c>: the comparison holds for every row.</summary>
+	All,
+
+	/// <summary><c>SOME</c>: the comparison holds for at least one row, as <c>ANY</c>.</summary>
+	Some,
+
+	/// <summary><c>ANY</c>: the comparison holds for at least one row, as <c>SOME</c>.</summary>
+	Any,
+}
+
+/// <summary>
+/// The kind of a <see cref="Expression.Like"/> predicate.
+/// </summary>
+public enum LikeKind
+{
+	/// <summary><c>LIKE</c>.</summary>
+	Like,
+
+	/// <summary><c>SIMILAR TO</c>.</summary>
+	Similar,
+
+	/// <summary><c>LIKE_REGEX</c>.</summary>
+	Regex,
+}
+
+/// <summary>
+/// The kind of collection a <see cref="Expression.CollectionQuery"/> builds from a subquery.
+/// </summary>
+public enum CollectionKind
+{
+	/// <summary><c>ARRAY (SELECT …)</c>.</summary>
+	Array,
+
+	/// <summary><c>MULTISET (SELECT …)</c>.</summary>
+	Multiset,
+
+	/// <summary><c>TABLE (SELECT …)</c>.</summary>
+	Table,
+}
+
+/// <summary>
+/// How a <see cref="Expression.Member"/> is reached from its target.
+/// </summary>
+public enum MemberAccessKind
+{
+	/// <summary><c>a.m</c>: an attribute or a method of a value.</summary>
+	Dot,
+
+	/// <summary><c>a -&gt; m</c>: a member of the value a reference points to.</summary>
+	Dereference,
+
+	/// <summary><c>T::m</c>: a static method of a type.</summary>
+	StaticMethod,
+}
+
+/// <summary>
+/// Which wildcard a <see cref="Expression.Wildcard"/> is.
+/// </summary>
+public enum WildcardKind
+{
+	/// <summary><c>.*</c>: every member.</summary>
+	Member,
+
+	/// <summary><c>[*]</c>: every element.</summary>
+	Array,
+}
+
+/// <summary>
+/// A Unicode normal form.
+/// </summary>
+public enum NormalForm
+{
+	/// <summary><c>NFC</c>: canonical composition.</summary>
+	NFC,
+
+	/// <summary><c>NFD</c>: canonical decomposition.</summary>
+	NFD,
+
+	/// <summary><c>NFKC</c>: compatibility composition.</summary>
+	NFKC,
+
+	/// <summary><c>NFKD</c>: compatibility decomposition.</summary>
+	NFKD,
+}
+
+/// <summary>
+/// Which end a window function's <c>NTH_VALUE</c> counts from: <c>FROM FIRST</c> or <c>FROM LAST</c>.
+/// </summary>
+public enum FromFirstOrLast
+{
+	/// <summary><c>FROM FIRST</c>: the count starts at the first row of the window frame.</summary>
+	First,
+
+	/// <summary><c>FROM LAST</c>: the count starts at the last row of the window frame.</summary>
+	Last,
+}
+
+/// <summary>
+/// How a window function treats null values: <c>RESPECT NULLS</c> or <c>IGNORE NULLS</c>.
+/// </summary>
+public enum NullTreatment
+{
+	/// <summary><c>RESPECT NULLS</c>: null values are counted as rows.</summary>
+	RespectNulls,
+
+	/// <summary><c>IGNORE NULLS</c>: rows with a null value are skipped.</summary>
+	IgnoreNulls,
+}
+
+/// <summary>
+/// The semantics of a navigation in a row pattern.
+/// </summary>
+public enum RowPatternSemantics
+{
+	/// <summary><c>RUNNING</c>: the value as of the current row of the match.</summary>
+	Running,
+
+	/// <summary><c>FINAL</c>: the value as of the last row of the match.</summary>
+	Final,
+}
+
+/// <summary>
+/// The unit a string function counts in: <c>USING CHARACTERS</c> or <c>USING OCTETS</c>.
+/// </summary>
+public enum CharacterLengthUnits
+{
+	/// <summary><c>CHARACTERS</c>: characters.</summary>
+	Characters,
+
+	/// <summary><c>OCTETS</c>: bytes.</summary>
+	Octets,
+}
+
+/// <summary>
+/// Which end of a string <c>TRIM</c> removes characters from.
+/// </summary>
+public enum TrimSpecification
+{
+	/// <summary><c>LEADING</c>: the start.</summary>
+	Leading,
+
+	/// <summary><c>TRAILING</c>: the end.</summary>
+	Trailing,
+
+	/// <summary><c>BOTH</c>: both ends.</summary>
+	Both,
+}
+
+/// <summary>
+/// The function a <see cref="Expression.Length"/> was written with.
+/// </summary>
+public enum LengthFunction
+{
+	/// <summary><c>CHAR_LENGTH</c>: the length in characters.</summary>
+	CharLength,
+
+	/// <summary><c>CHARACTER_LENGTH</c>: the length in characters, as <c>CHAR_LENGTH</c>.</summary>
+	CharacterLength,
+
+	/// <summary><c>OCTET_LENGTH</c>: the length in octets.</summary>
+	OctetLength,
+}
+
+/// <summary>
+/// The function a <see cref="Expression.TranslateUsing"/> was written with.
+/// </summary>
+public enum TranslateFunction
+{
+	/// <summary><c>CONVERT (a USING n)</c>: a conversion of the character set.</summary>
+	Convert,
+
+	/// <summary><c>TRANSLATE (a USING n)</c>: a transliteration.</summary>
+	Translate,
+}
+
+/// <summary>
+/// A field of a datetime or an interval, as <c>EXTRACT</c> takes it.
+/// </summary>
+public enum ExtractField
+{
+	/// <summary><c>YEAR</c>.</summary>
+	Year,
+
+	/// <summary><c>MONTH</c>.</summary>
+	Month,
+
+	/// <summary><c>DAY</c>.</summary>
+	Day,
+
+	/// <summary><c>HOUR</c>.</summary>
+	Hour,
+
+	/// <summary><c>MINUTE</c>.</summary>
+	Minute,
+
+	/// <summary><c>SECOND</c>.</summary>
+	Second,
+
+	/// <summary><c>TIMEZONE_HOUR</c>: the hour part of the time zone offset.</summary>
+	TimezoneHour,
+
+	/// <summary><c>TIMEZONE_MINUTE</c>: the minute part of the time zone offset.</summary>
+	TimezoneMinute,
+}
+
+/// <summary>
+/// The regular expression function an <see cref="Expression.Regex"/> was written with.
+/// </summary>
+public enum RegexFunction
+{
+	/// <summary><c>OCCURRENCES_REGEX</c>: the number of matches.</summary>
+	OccurrencesRegex,
+
+	/// <summary><c>POSITION_REGEX</c>: the position of a match.</summary>
+	PositionRegex,
+
+	/// <summary><c>SUBSTRING_REGEX</c>: the text of a match.</summary>
+	SubstringRegex,
+
+	/// <summary><c>TRANSLATE_REGEX</c>: the string with matches replaced.</summary>
+	TranslateRegex,
+}
+
+/// <summary>
+/// Which end of a match <c>POSITION_REGEX</c> reports.
+/// </summary>
+public enum RegexPositionStartOrAfter
+{
+	/// <summary><c>START</c>: the position where the match starts.</summary>
+	Start,
+
+	/// <summary><c>AFTER</c>: the position just after the match.</summary>
+	After,
+}
 
 // BNF: <listagg overflow clause>: `ON OVERFLOW ERROR`, or `ON OVERFLOW TRUNCATE [filler] WITH|WITHOUT COUNT`.
 // BNF: <descriptor column specification>.
