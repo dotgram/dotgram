@@ -81,18 +81,6 @@ builds it again. Deferred, only the accepted reading is built.
 `int.Parse`, a division, a lookup — and holds what it throws until the deferred carrier would have thrown it, so
 the answer is the deferred carrier's. The hold costs every construction a little, which is why it is asked for.
 
-<!-- ru:begin -->
-> **RU.** Конструирование выполняется там, куда его ставит носитель (таблица): `Auto` (по умолчанию) —
-> по мере чтения, где это безопасно, и компилятор говорит, где это может иметь значение (`GRAM5012`,
-> `GRAM5016`); `Immediate` — по мере чтения альтернативы, в том числе для отброшенных прочтений; `Deferred` —
-> после принятия разбора, только для сохранённого прочтения (если охранник не попросил значение раньше).
-> Разница видна только у конструирования с побочным действием (пример со счётчиком `Built`: по умолчанию
-> `Item` строится дважды — первая альтернатива строит его и отбрасывает на `,`, вторая строит снова; с
-> `Deferred` — один раз). `ConstructionsMayThrow = true` сохраняет немедленный носитель для конструирования,
-> единственный эффект которого — исключение, и придерживает исключение до места, где его бросил бы отложенный носитель;
-> это стоит каждому конструированию немного, поэтому включается явно.
-<!-- ru:end -->
-
 ## Captures and buffered input
 
 | Option | Default | Changes |
@@ -105,13 +93,6 @@ the answer is the deferred carrier's. The hold costs every construction a little
 
 A buffer size or a retention of zero or less is `GRAM0009`. What the buffered forms are and which rules they
 take is in [publication](08-publication.md#input-from-a-reader-or-a-stream-stream-stream-bytes).
-
-<!-- ru:begin -->
-> **RU.** Захваты и буферизованный вход (таблица): `UseSpanCaptures` — символьные захваты и `parserText`
-> приходят в C# как `ReadOnlySpan<char>`; `BufferedText`/`BufferedBytes` — все `parse` и `find` получают
-> формы над `TextReader`/байтами, как с `stream`/`stream bytes`; `InitialBufferSize` и `MaxBufferedInputLength` — значения по
-> умолчанию для буферизованных вызовов; ноль или меньше — `GRAM0009`. Подробно — в главе 08.
-<!-- ru:end -->
 
 ## Reading a grammar twice: `[GramParserVariant]`
 
@@ -132,15 +113,6 @@ cannot be left out; one that is not an identifier is `GRAM0007`. Two readings wa
 named like the class another reading is compiled into, or the one `[Gram(…, Name = …)]` already names — are
 refused (`GRAM0006`), and no publication or rule type may take the name of a reading's class (`GRAM5018`).
 
-<!-- ru:begin -->
-> **RU.** `[Gram]` говорит, какая у класса грамматика; каждый `[GramParserVariant("Name", …)]` просит ещё
-> одно её прочтение, скомпилированное во вложенный класс с этим именем (`Sql.Immediate.ParseQuery`). Всё,
-> чего вариант не говорит, берётся из `[Gram]`. Имя — единственный обязательный аргумент; не идентификатор —
-> `GRAM0007`. Два прочтения с одной областью (вариант с именем класса другого прочтения или того, что уже
-> назвал `[Gram(…, Name = …)]`) — `GRAM0006`; публикация или тип правила с именем класса прочтения —
-> `GRAM5018`.
-<!-- ru:end -->
-
 ## A grammar built on another: `[GramInclude]`
 
 ```csharp
@@ -157,27 +129,9 @@ with it, through a `using static` of its class. Two includes under one name are 
 collide (`GRAM0008`); a `DefaultAlias` that is not an identifier is `GRAM0005`. Across projects the
 grammar's text travels on its class (`ExportGrammar`, [`syntax.md` §6.7](../../syntax.md#67-graminclude-a-grammar-built-on-another)).
 
-<!-- ru:begin -->
-> **RU.** Включённая грамматика компилируется в эту внутри пространства с именем из `Alias` (или
-> `DefaultAlias` её класса, или имени класса): её правила — `Sql92.Identifier`, либо `using Sql92;`. Включённая
-> грамматика остаётся целым файлом: видит встроенные правила, `Std` и то, что включила сама, и никогда —
-> правила, `trivia`, `wordboundary` и `context` включающей. Вызываемый её правилами C# приходит с ней через
-> `using static` её класса. Два включения под одним именем при столкновении правил — `GRAM0008`; `DefaultAlias`
-> не идентификатор — `GRAM0005`. Между проектами текст грамматики путешествует на её классе
-> (`ExportGrammar`).
-<!-- ru:end -->
-
 ## Everything else
 
 `Name`, `TargetMethodPartSize`, `MaxExtraStacks`, `ExportGrammar`, `LocationType`, `UsePerCallLocations`,
 `Trace` and the attributes for tooling
 (`[GramLanguage]`, `[GramClassify]`, …) say how a parser is generated, traced or shown in an editor, and change
 no answer. They are in [`syntax.md` §6.4–§6.9](../../syntax.md#64-targetmethodpartsize-the-one-thing-a-host-may-tune).
-
-<!-- ru:begin -->
-> **RU.** Остальные опции (`Name`, `TargetMethodPartSize`, `MaxExtraStacks`, `ExportGrammar`, `LocationType`,
-> `UsePerCallLocations`, `Trace`) и
-> атрибуты для инструментов (`[GramLanguage]`, `[GramClassify]`, …) говорят о том, как парсер
-> генерируется, трассируется или показывается в редакторе, и ответов не меняют; они описаны в syntax.md
-> §6.4–§6.9.
-<!-- ru:end -->

@@ -43,18 +43,6 @@ Notes:
 - A rule whose value is a sequence is published with `parse` like any other; what comes back is the
   sequence.
 
-<!-- ru:begin -->
-> **RU.** Правило само по себе публичного API не создаёт — его создаёт директива. `parse R` говорит «весь
-> вход — это `R`» и генерирует `ParseR` (бросает `FormatException`), `TryParseR` → `Match<R>` и
-> `bool TryParseR(input, out R)` (прогоны с `out`); `find R` говорит «внутри есть `R`» и генерирует ленивый
-> `FindR` → `IEnumerable<Match<R>>`. `Match<T>`: `Outcome`, `Value`, `Error`, `Position`, `Length`,
-> `IsSuccess`; при совпадении `Position` — начало, при неудаче — дальше всего, куда удалось дочитать.
-> Форма с `out` читает один раз и ничего не объясняет; форма с `Match` может прочитать отвергнутый вход
-> дважды, чтобы сказать где и что ожидалось. `find` отдаёт вхождения по мере нахождения, без перекрытий,
-> пропуская несовпадающее; `First()`, `Where()`, `Take()` — это LINQ. Правило-последовательность
-> публикуется обычным `parse`.
-<!-- ru:end -->
-
 ## Naming the methods: `as`
 
 A directive names its methods after the rule: `ParseNumber`, `TryParseNumber`, `FindNumber`. `as` names
@@ -91,15 +79,6 @@ Name = ['A'..'Z']+
 parse Word as Read
 parse Name as Read
 ```
-
-<!-- ru:begin -->
-> **RU.** Директива называет методы по правилу (`ParseNumber`, `TryParseNumber`, `FindNumber`); `as` даёт
-> своё имя: `parse Number as ReadNumber` создаёт `ReadNumber` и `TryReadNumber`. Публикация — это члены
-> сгенерированного класса, поэтому её имя не может совпадать с тем, что класс объявляет для вызывающих
-> (`Match`, `Outcome`, `SourceSpan`, `ParserInput`, `OnRecovered`, …) или для себя, ни с именем самого
-> класса (`GRAM5018`); две публикации не могут дать один метод (`GRAM3005`); имена с `_DotGram`
-> принадлежат генератору (`GRAM1012`).
-<!-- ru:end -->
 
 ## Publishing an expression
 
@@ -150,15 +129,6 @@ parse (w: Word & '!' => @(w.ToUpperInvariant())) as Shout
 A publication of an expression needs `as` (`GRAM2007`), and one that constructs needs its type
 (`GRAM4008`). A choice needs brackets: the operand is one operand, as `recover`'s synchronization is.
 
-<!-- ru:begin -->
-> **RU.** Там, где директива называет правило, может стоять любой операнд: вызов, группа, множество. У
-> выражения нет имени для метода, поэтому `as` обязателен (иначе `GRAM2007`). Выражение становится
-> обычным правилом с этим именем, объявленным там, где написана директива: оно читает окружающие
-> `trivia`, импорты и перепривязки, а его значение — прочитанный текст. С объявленным типом оно может и
-> строить значение (пример `Shout`); конструирование без типа — `GRAM4008`. Выбор пишется в скобках:
-> операнд один, как синхронизация `recover`.
-<!-- ru:end -->
-
 ## The result contract: `: @T`
 
 On a named rule, `: @T` after the directive sets the type its methods return, without changing how the
@@ -185,15 +155,6 @@ Number : int = { ['0'..'9']+ } => @int.Parse(parserText)
 
 parse Number as Wide : @long
 ```
-
-<!-- ru:begin -->
-> **RU.** На именованном правиле `: @T` после директивы задаёт тип, который возвращают методы, не меняя
-> того, как правило строит значение: `parse` возвращает `T`, `TryParse` — `Match<T>`, `find` —
-> `IEnumerable<Match<T>>` (пример `Boxed : @object`). Значение правила должно приводиться к `T`
-> тождественно, ссылочным преобразованием или упаковкой; числовых и пользовательских преобразований нет
-> (`GRAM4028`: `int` в `long` не публикуется). Для другого типа объявите правило с ним (`Number : @long = …`) или
-> преобразуйте в конструировании (`=> @((long)n)`).
-<!-- ru:end -->
 
 ## Access, and reading from a position
 
@@ -246,16 +207,6 @@ Word = { ['a'..'z']+ }
 
 positional find Word
 ```
-
-<!-- ru:begin -->
-> **RU.** Директива публикует `public`-методы, если не сказано иное (как в C#), а `parse` читает весь вход,
-> если не сказано `positional` (таблица): `internal`/`private` — доступ всех методов директивы;
-> `positional` добавляет `TryParseWord(input, at)`, `TryParseWord(input, at, length)` и их `bool`-формы —
-> чтение с указанной позиции с остановкой до конца (прогоны: с позиции 3 — `cd`, с 0 — `ab`, окно
-> `(0, 1)` — `a`). Сначала доступ, затем `positional`, каждое один раз
-> (иначе `GRAM2013`); эти слова — ключевые только перед `parse`/`find`. `find` и так читает с каждой
-> позиции, у `yield` нет формы `Try` — `positional` им не положен (`GRAM2012`).
-<!-- ru:end -->
 
 ## Input from a reader or a stream: `stream`, `stream bytes`
 
@@ -317,20 +268,6 @@ Notes:
   not offered for a plain `parse`, the reason is reported (`GRAM5001`). What decides which rules stream is
   in [`syntax.md` §6.3](../../syntax.md#63-the-input-type-picks-the-execution-mode).
 
-<!-- ru:begin -->
-> **RU.** Строка читается в памяти. `stream` добавляет перегрузки над `TextReader`, `stream bytes` — над
-> байтовым `Stream`, `byte[]` и `ReadOnlyMemory<byte>`; строковая перегрузка остаётся. Над байтами
-> захваченный текст — `ReadOnlySpan<byte>`, который никто не декодирует, поэтому правило, строящее из
-> него `string`, для байтовой формы отвергается с подсказкой — метод хоста для каждого вида входа
-> (`GRAM4026`). Пример `Size`: одна конструкция `text.Length` работает и над строкой, и над байтами
-> (`ParseSize(bytes("ab\ncd\n")) → 6`, `stream(…)`). Читатель или поток
-> принадлежит вызывающему: разбор его не закрывает и может читать вперёд. `bufferSize` и `maxRetained` —
-> необязательные параметры вызова, по умолчанию — из `[Gram(InitialBufferSize, MaxBufferedInputLength)]`. Над байтами
-> литералы сравнивают значения байтов; категорий Unicode, свёртки регистра и предикатов над символами нет,
-> захваченный текст приходит в C# как `ReadOnlySpan<byte>`. Неподдерживаемая форма отвергается с причиной
-> (`GRAM4026`); если для обычного `parse` перегрузки над читателем нет, причина сообщается (`GRAM5001`).
-<!-- ru:end -->
-
 ## A lazy result: `yield`
 
 `yield` makes a `parse` of a sequence rule return `IEnumerable<T>` that reads one element at a time,
@@ -373,17 +310,6 @@ Rows : @string[] = { Row* }
 parse Rows as Each : @object yield
 ```
 
-<!-- ru:begin -->
-> **RU.** `yield` делает `parse` правила-последовательности ленивым `IEnumerable<T>`, читающим по одному
-> элементу, даже над строкой. `yield : @T` задаёт тип элемента, голый `yield` берёт его из `@T[]`
-> правила. Коллекция должна быть целым `Rule*` или `Rule+` (можно в скобках) без фабрики, внешнего выбора,
-> префикса, суффикса и неявной trivia; иначе — отказ, а не молчаливая материализация (`GRAM4027`, пример
-> со скобками `[ … ]`). Восстанавливающееся повторение поддерживается. Плохой элемент бросает
-> `FormatException` из `MoveNext` уже после выданных до него; формы `Try` нет — для ответа «всё или
-> ничего» опубликуйте и обычный `parse`. На именованном правиле тип элемента пишется после `yield`
-> (`GRAM2008`).
-<!-- ru:end -->
-
 ## A whole directive
 
 Every part, in order, every bracketed one optional:
@@ -398,10 +324,3 @@ Every part, in order, every bracketed one optional:
   ([trivia](05-trivia-and-words.md#trivia-what-may-stand-between-operands)).
 - A grammar that names `eos` publishes over lists of strings and readers of lines only
   ([elements](02-elements.md#eos-and-input-in-segments)).
-
-<!-- ru:begin -->
-> **RU.** Полная директива — все части по порядку, каждая в скобках необязательна (схема выше). `with (…)`
-> читает операнд с заменёнными правилами — так одна грамматика публикует несколько парсеров (глава 10).
-> Целый `parse` читает `trivia` правила до и после него, а значение её не включает (глава 05).
-> Грамматика с `eos` публикуется только над списками строк и читателями строк (глава 02).
-<!-- ru:end -->
