@@ -227,6 +227,7 @@ public abstract partial record Statement
 	public sealed record WaitForReceive(Statement.Receive Receive, Expression? Timeout) : Statement
 	{
 		// Declared, with `new`: the nested type Receive, which this record inherits from Statement, would otherwise be the member the name finds.
+		/// <summary>The <c>RECEIVE</c> that is waited on.</summary>
 		public new Statement.Receive Receive { get; init; } = Receive;
 	}
 
@@ -242,8 +243,9 @@ public abstract partial record Statement
 /// </summary>
 public abstract record MessageValidation : ISqlNode
 {
-	/// <summary>Where in the text this validation was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this validation was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this validation was written.</summary>
@@ -267,7 +269,15 @@ public abstract record MessageValidation : ISqlNode
 }
 
 /// <summary>T-SQL: CREATE CONTRACT (Transact-SQL). One message type of a contract and who may send it.</summary>
-public sealed record ContractMessage(Identifier MessageType, ContractSender SentBy) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ContractMessage(Identifier MessageType, ContractSender SentBy) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this contract message was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this contract message was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -275,15 +285,26 @@ public sealed record ContractMessage(Identifier MessageType, ContractSender Sent
 }
 
 /// <summary>T-SQL: CREATE CONTRACT (Transact-SQL). Who sends a message type: <c>INITIATOR</c>, <c>TARGET</c> or <c>ANY</c>.</summary>
-public enum ContractSender { Initiator, Target, Any }
+public enum ContractSender
+{
+	/// <summary><c>INITIATOR</c>: only the initiator of the conversation sends the message type.</summary>
+	Initiator,
+
+	/// <summary><c>TARGET</c>: only the target sends it.</summary>
+	Target,
+
+	/// <summary><c>ANY</c>: either side sends it.</summary>
+	Any
+}
 
 /// <summary>
 /// T-SQL: CREATE QUEUE (Transact-SQL), ALTER QUEUE (Transact-SQL). One option of a queue's <c>WITH</c>.
 /// </summary>
 public abstract record QueueOption : ISqlNode
 {
-	/// <summary>Where in the text this option was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this option was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this option was written.</summary>
@@ -315,8 +336,9 @@ public abstract record QueueOption : ISqlNode
 /// <summary>T-SQL: CREATE QUEUE (Transact-SQL), ALTER QUEUE (Transact-SQL). One setting of a queue's activation.</summary>
 public abstract record ActivationSetting : ISqlNode
 {
-	/// <summary>Where in the text this setting was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this setting was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this setting was written.</summary>
@@ -348,8 +370,9 @@ public abstract record ActivationSetting : ISqlNode
 /// <summary>T-SQL: ALTER QUEUE (Transact-SQL). What an ALTER QUEUE does to the queue.</summary>
 public abstract record QueueChange : ISqlNode
 {
-	/// <summary>Where in the text this change was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this change was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this change was written.</summary>
@@ -376,7 +399,15 @@ public abstract record QueueChange : ISqlNode
 }
 
 /// <summary>T-SQL: ALTER SERVICE (Transact-SQL). One contract added to a service or dropped from it.</summary>
-public sealed record ServiceChange(AddOrDrop Action, Identifier Contract) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ServiceChange(AddOrDrop Action, Identifier Contract) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this service change was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this service change was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -387,4 +418,11 @@ public sealed record ServiceChange(AddOrDrop Action, Identifier Contract) : ISql
 /// T-SQL: ALTER SERVICE (Transact-SQL), ALTER SERVER AUDIT SPECIFICATION (Transact-SQL), ALTER DATABASE AUDIT SPECIFICATION
 /// (Transact-SQL). <c>ADD</c> or <c>DROP</c>: how an item is changed.
 /// </summary>
-public enum AddOrDrop { Add, Drop }
+public enum AddOrDrop
+{
+	/// <summary><c>ADD</c>: the item is added.</summary>
+	Add,
+
+	/// <summary><c>DROP</c>: the item is dropped.</summary>
+	Drop
+}

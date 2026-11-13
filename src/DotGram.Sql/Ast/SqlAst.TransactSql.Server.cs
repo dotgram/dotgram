@@ -220,8 +220,9 @@ public abstract partial record Expression
 /// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). How an endpoint is reached.</summary>
 public abstract record EndpointTransport : ISqlNode
 {
-	/// <summary>Where in the text this transport was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this transport was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this transport was written.</summary>
@@ -247,8 +248,9 @@ public abstract record EndpointTransport : ISqlNode
 /// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). What an endpoint speaks.</summary>
 public abstract record EndpointPayload : ISqlNode
 {
-	/// <summary>Where in the text this payload was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this payload was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this payload was written.</summary>
@@ -284,8 +286,9 @@ public abstract record EndpointPayload : ISqlNode
 /// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). One item of a SOAP payload.</summary>
 public abstract record SoapItem : ISqlNode
 {
-	/// <summary>Where in the text this item was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this item was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this item was written.</summary>
@@ -319,13 +322,24 @@ public abstract record SoapItem : ISqlNode
 }
 
 /// <summary>T-SQL: CREATE ENDPOINT (Transact-SQL). What is done to a SOAP endpoint's web method.</summary>
-public enum WebMethodAction { Add, Alter, Drop }
+public enum WebMethodAction
+{
+	/// <summary><c>ADD</c>: the web method is added.</summary>
+	Add,
+
+	/// <summary><c>ALTER</c>: the web method is altered.</summary>
+	Alter,
+
+	/// <summary><c>DROP</c>: the web method is dropped.</summary>
+	Drop
+}
 
 /// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL). What an availability group is made of.</summary>
 public abstract record AvailabilitySource : ISqlNode
 {
-	/// <summary>Where in the text this source was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this source was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this source was written.</summary>
@@ -352,7 +366,15 @@ public abstract record AvailabilitySource : ISqlNode
 /// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). A replica: a server instance, and the
 /// bracket that says how it takes part.
 /// </summary>
-public sealed record AvailabilityReplica(LiteralValue.String Server, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record AvailabilityReplica(LiteralValue.String Server, SqlList<Option> Options) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this availability replica was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this availability replica was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -363,7 +385,15 @@ public sealed record AvailabilityReplica(LiteralValue.String Server, SqlList<Opt
 /// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). A group joined to another: named, and told
 /// where to listen.
 /// </summary>
-public sealed record AvailabilityGroupSpec(LiteralValue.String Group, SqlList<Option> Options) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record AvailabilityGroupSpec(LiteralValue.String Group, SqlList<Option> Options) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this availability group spec was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this availability group spec was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -373,8 +403,9 @@ public sealed record AvailabilityGroupSpec(LiteralValue.String Group, SqlList<Op
 /// <summary>T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). How a listener takes its address.</summary>
 public abstract record AvailabilityListener : ISqlNode
 {
-	/// <summary>Where in the text this listener was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this listener was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this listener was written.</summary>
@@ -402,7 +433,15 @@ public abstract record AvailabilityListener : ISqlNode
 /// T-SQL: CREATE AVAILABILITY GROUP (Transact-SQL), ALTER AVAILABILITY GROUP (Transact-SQL). An address of a listener, a string, and
 /// its subnet mask, a string, where the address has one.
 /// </summary>
-public sealed record ListenerAddress(LiteralValue.String Address, LiteralValue.String? Mask) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ListenerAddress(LiteralValue.String Address, LiteralValue.String? Mask) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this listener address was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this listener address was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -412,8 +451,9 @@ public sealed record ListenerAddress(LiteralValue.String Address, LiteralValue.S
 /// <summary>T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). What an ALTER AVAILABILITY GROUP does, one thing at a time.</summary>
 public abstract record AvailabilityAction : ISqlNode
 {
-	/// <summary>Where in the text this action was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this action was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this action was written.</summary>
@@ -481,8 +521,9 @@ public abstract record AvailabilityAction : ISqlNode
 /// <summary>T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). What <c>MODIFY LISTENER</c> changes.</summary>
 public abstract record ListenerChange : ISqlNode
 {
-	/// <summary>Where in the text this change was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this change was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this change was written.</summary>
@@ -503,7 +544,14 @@ public abstract record ListenerChange : ISqlNode
 }
 
 /// <summary>T-SQL: ALTER AVAILABILITY GROUP (Transact-SQL). <c>GRANT</c> or <c>DENY</c> of the permission to create any database.</summary>
-public enum AvailabilityPermission { Grant, Deny }
+public enum AvailabilityPermission
+{
+	/// <summary><c>GRANT</c>: the permission is granted.</summary>
+	Grant,
+
+	/// <summary><c>DENY</c>: the permission is denied.</summary>
+	Deny
+}
 
 public abstract partial record Expression
 {
@@ -515,13 +563,24 @@ public abstract partial record Expression
 }
 
 /// <summary>T-SQL: KILL (Transact-SQL). What a KILL does to the work it ends: <c>STATUSONLY</c>, <c>COMMIT</c> or <c>ROLLBACK</c>.</summary>
-public enum KillOption { StatusOnly, Commit, Rollback }
+public enum KillOption
+{
+	/// <summary><c>WITH STATUSONLY</c>: reports the progress of a rollback and ends nothing.</summary>
+	StatusOnly,
+
+	/// <summary><c>WITH COMMIT</c>: ends a distributed transaction by committing it.</summary>
+	Commit,
+
+	/// <summary><c>WITH ROLLBACK</c>: ends a distributed transaction by rolling it back.</summary>
+	Rollback
+}
 
 /// <summary>T-SQL: ALTER RESOURCE GOVERNOR (Transact-SQL). What an ALTER RESOURCE GOVERNOR does.</summary>
 public abstract record ResourceGovernorAction : ISqlNode
 {
-	/// <summary>Where in the text this action was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this action was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this action was written.</summary>
@@ -554,7 +613,15 @@ public abstract record ResourceGovernorAction : ISqlNode
 /// T-SQL: CREATE WORKLOAD GROUP (Transact-SQL), ALTER WORKLOAD GROUP (Transact-SQL). One pool a workload group is used in: a
 /// resource pool by its name, or <c>EXTERNAL</c> and an external resource pool by its name.
 /// </summary>
-public sealed record WorkloadPool(Identifier Name, bool External) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record WorkloadPool(Identifier Name, bool External) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this workload pool was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this workload pool was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

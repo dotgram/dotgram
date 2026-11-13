@@ -133,7 +133,15 @@ public abstract partial record Statement
 /// <c>ActionWords</c> reads: an event, an audit action or a group of them, <c>OBJECT_CREATED</c>, <c>SELECT</c>; a word is any
 /// run of a name's characters, a reserved one included, but <c>ON</c>, <c>TO</c>, <c>FROM</c>, <c>WITH</c> and <c>CASCADE</c>.
 /// </summary>
-public sealed record ActionWords(SqlList<Identifier> Words) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ActionWords(SqlList<Identifier> Words) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this run of action words was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this run of action words was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -143,8 +151,9 @@ public sealed record ActionWords(SqlList<Identifier> Words) : ISqlNode { SqlLoca
 /// <summary>T-SQL: CREATE SERVER AUDIT (Transact-SQL), ALTER SERVER AUDIT (Transact-SQL). Where an audit writes.</summary>
 public abstract record AuditTarget : ISqlNode
 {
-	/// <summary>Where in the text this target was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this target was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this target was written.</summary>
@@ -179,8 +188,9 @@ public abstract record AuditTarget : ISqlNode
 /// <summary>T-SQL: ALTER SERVER AUDIT (Transact-SQL). What an ALTER SERVER AUDIT does.</summary>
 public abstract record AuditChange : ISqlNode
 {
-	/// <summary>Where in the text this change was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this change was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this change was written.</summary>
@@ -220,7 +230,15 @@ public abstract record AuditChange : ISqlNode
 /// T-SQL: CREATE SERVER AUDIT SPECIFICATION (Transact-SQL), CREATE DATABASE AUDIT SPECIFICATION. One <c>ADD (…)</c> or <c>DROP (…)</c>
 /// of an audit specification: the actions, or groups of them, and what they are watched on.
 /// </summary>
-public sealed record AuditAction(AddOrDrop Action, SqlList<ActionWords> Actions) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record AuditAction(AddOrDrop Action, SqlList<ActionWords> Actions) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this audit action was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this audit action was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -237,7 +255,15 @@ public sealed record AuditAction(AddOrDrop Action, SqlList<ActionWords> Actions)
 }
 
 /// <summary>T-SQL: CREATE DATABASE AUDIT SPECIFICATION. What an audit action is watched on, and for whom: <c>ON OBJECT::dbo.t BY dbo, NULL</c>.</summary>
-public sealed record AuditActionOn(SecurableClass? Class, QualifiedName Name, SqlList<Grantee> Grantees) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record AuditActionOn(SecurableClass? Class, QualifiedName Name, SqlList<Grantee> Grantees) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this audit action target was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this audit action target was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -247,8 +273,9 @@ public sealed record AuditActionOn(SecurableClass? Class, QualifiedName Name, Sq
 /// <summary>T-SQL: CREATE EVENT SESSION (Transact-SQL), ALTER EVENT SESSION (Transact-SQL). One piece of an event session.</summary>
 public abstract record EventSessionPiece : ISqlNode
 {
-	/// <summary>Where in the text this piece was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this piece was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this piece was written.</summary>
@@ -297,8 +324,9 @@ public abstract record EventSessionPiece : ISqlNode
 /// </summary>
 public abstract record EventPredicate : ISqlNode
 {
-	/// <summary>Where in the text this predicate was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this predicate was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this predicate was written.</summary>
@@ -341,7 +369,21 @@ public abstract record EventPredicate : ISqlNode
 }
 
 /// <summary>T-SQL: CREATE EVENT SESSION (Transact-SQL). How an event's predicate terms are joined: <c>AND</c> or <c>OR</c> (<c>EventJoin</c>).</summary>
-public enum EventJoin { And, Or }
+public enum EventJoin
+{
+	/// <summary><c>AND</c>: both terms must hold.</summary>
+	And,
+
+	/// <summary><c>OR</c>: either term may hold.</summary>
+	Or
+}
 
 /// <summary>T-SQL: ALTER EVENT SESSION (Transact-SQL). <c>STATE = START</c> or <c>STOP</c>.</summary>
-public enum EventSessionState { Start, Stop }
+public enum EventSessionState
+{
+	/// <summary><c>START</c>: the event session is started.</summary>
+	Start,
+
+	/// <summary><c>STOP</c>: the event session is stopped.</summary>
+	Stop
+}

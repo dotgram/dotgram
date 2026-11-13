@@ -349,8 +349,9 @@ public abstract partial record Statement
 /// <summary>T-SQL: ALTER ROLE (Transact-SQL), ALTER SERVER ROLE (Transact-SQL). What is done to the role.</summary>
 public abstract record RoleAction : ISqlNode
 {
-	/// <summary>Where in the text this action was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this action was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this action was written.</summary>
@@ -376,8 +377,9 @@ public abstract record RoleAction : ISqlNode
 /// <summary>T-SQL: ALTER AUTHORIZATION (Transact-SQL). Whom the entity is given to.</summary>
 public abstract record AuthorizationTo : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -400,8 +402,9 @@ public abstract record AuthorizationTo : ISqlNode
 /// <summary>T-SQL: CREATE LOGIN (Transact-SQL). Where a login comes from, which also decides the settings it may have.</summary>
 public abstract record LoginSource : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -446,8 +449,9 @@ public abstract record LoginSource : ISqlNode
 /// <summary>T-SQL: ALTER LOGIN (Transact-SQL). What is done to the login.</summary>
 public abstract record AlterLoginAction : ISqlNode
 {
-	/// <summary>Where in the text this action was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this action was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this action was written.</summary>
@@ -482,8 +486,9 @@ public abstract record AlterLoginAction : ISqlNode
 /// <summary>T-SQL: CREATE USER (Transact-SQL). Where a user comes from.</summary>
 public abstract record UserSource : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -533,8 +538,9 @@ public abstract record UserSource : ISqlNode
 /// direction, <c>ENCRYPTION BY</c> or <c>DECRYPTION BY</c>, is the place's.</summary>
 public abstract record KeyEncryptor : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -574,8 +580,9 @@ public abstract record KeyEncryptor : ISqlNode
 /// <summary>T-SQL: CREATE ASYMMETRIC KEY (Transact-SQL). Where an asymmetric key is read from.</summary>
 public abstract record AsymmetricKeySource : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -605,8 +612,9 @@ public abstract record AsymmetricKeySource : ISqlNode
 /// <summary>T-SQL: CREATE CERTIFICATE (Transact-SQL). Where a certificate is read from.</summary>
 public abstract record CertificateSource : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -646,8 +654,9 @@ public abstract record CertificateSource : ISqlNode
 /// <summary>T-SQL: ALTER ASYMMETRIC KEY (Transact-SQL). What is done to the key.</summary>
 public abstract record AsymmetricKeyChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -676,8 +685,9 @@ public abstract record AsymmetricKeyChange : ISqlNode
 /// <summary>T-SQL: ALTER CERTIFICATE (Transact-SQL). What is done to the certificate.</summary>
 public abstract record CertificateChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -709,8 +719,9 @@ public abstract record CertificateChange : ISqlNode
 /// <summary>T-SQL: ALTER SYMMETRIC KEY (Transact-SQL). What is done to the key.</summary>
 public abstract record SymmetricKeyChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -733,8 +744,9 @@ public abstract record SymmetricKeyChange : ISqlNode
 /// <summary>T-SQL: ALTER MASTER KEY (Transact-SQL). What is done to the key.</summary>
 public abstract record MasterKeyChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -764,8 +776,9 @@ public abstract record MasterKeyChange : ISqlNode
 /// <summary>T-SQL: ALTER SERVICE MASTER KEY (Transact-SQL). What is done to the key.</summary>
 public abstract record ServiceMasterKeyChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -795,8 +808,9 @@ public abstract record ServiceMasterKeyChange : ISqlNode
 /// <summary>T-SQL: ALTER DATABASE ENCRYPTION KEY (Transact-SQL). What is done to the key.</summary>
 public abstract record DatabaseEncryptionKeyChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -820,13 +834,34 @@ public abstract record DatabaseEncryptionKeyChange : ISqlNode
 }
 
 /// <summary>T-SQL: CREATE DATABASE ENCRYPTION KEY (Transact-SQL). The algorithm the database encryption key uses.</summary>
-public enum DatabaseKeyAlgorithm { Aes128, Aes192, Aes256, TripleDes3Key }
+public enum DatabaseKeyAlgorithm
+{
+	/// <summary><c>AES_128</c>.</summary>
+	Aes128,
+
+	/// <summary><c>AES_192</c>.</summary>
+	Aes192,
+
+	/// <summary><c>AES_256</c>.</summary>
+	Aes256,
+
+	/// <summary><c>TRIPLE_DES_3KEY</c>.</summary>
+	TripleDes3Key
+}
 
 /// <summary>
 /// T-SQL: CREATE COLUMN ENCRYPTION KEY (Transact-SQL), ALTER COLUMN ENCRYPTION KEY (Transact-SQL). One value of the key, in brackets:
 /// <c>(COLUMN_MASTER_KEY = m, ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x…)</c>, the settings in the order written.
 /// </summary>
-public sealed record ColumnKeyValue(SqlList<Option> Settings) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record ColumnKeyValue(SqlList<Option> Settings) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this column key value was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this column key value was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -836,8 +871,9 @@ public sealed record ColumnKeyValue(SqlList<Option> Settings) : ISqlNode { SqlLo
 /// <summary>T-SQL: ALTER COLUMN ENCRYPTION KEY (Transact-SQL). What is done to the key.</summary>
 public abstract record ColumnKeyChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -860,8 +896,9 @@ public abstract record ColumnKeyChange : ISqlNode
 /// <summary>T-SQL: ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL). What is done to the provider.</summary>
 public abstract record CryptographicProviderChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -887,8 +924,9 @@ public abstract record CryptographicProviderChange : ISqlNode
 /// <summary>T-SQL: ALTER SECURITY POLICY (Transact-SQL). What is done to the policy.</summary>
 public abstract record SecurityPolicyChange : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -917,8 +955,9 @@ public abstract record SecurityPolicyChange : ISqlNode
 /// <summary>T-SQL: CREATE SECURITY POLICY (Transact-SQL), ALTER SECURITY POLICY (Transact-SQL). A predicate added, altered or dropped.</summary>
 public abstract record PolicyPredicate : ISqlNode
 {
-	/// <summary>Where in the text this was written.</summary>
 	SqlLocation _location;
+
+	/// <summary>Where in the text this was written.</summary>
 	public SqlSpan Span => _location.Span;
 
 	/// <summary>Records where this was written.</summary>
@@ -954,7 +993,15 @@ public abstract record PolicyPredicate : ISqlNode
 /// T-SQL: CREATE SECURITY POLICY (Transact-SQL). The function of a predicate, <c>dbo.f(c, @@ROWCOUNT)</c>: a name and the values it is
 /// called with, no variable among them.
 /// </summary>
-public sealed record PolicyFunction(QualifiedName Name, SqlList<Expression> Arguments) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record PolicyFunction(QualifiedName Name, SqlList<Expression> Arguments) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <summary>Where in the text this policy function was written.</summary>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>Records where this policy function was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -962,4 +1009,17 @@ public sealed record PolicyFunction(QualifiedName Name, SqlList<Expression> Argu
 }
 
 /// <summary>T-SQL: CREATE SECURITY POLICY (Transact-SQL). The change a block predicate blocks.</summary>
-public enum BlockOperation { AfterInsert, AfterUpdate, BeforeUpdate, BeforeDelete }
+public enum BlockOperation
+{
+	/// <summary><c>AFTER INSERT</c>: rows inserted that the predicate rejects are blocked.</summary>
+	AfterInsert,
+
+	/// <summary><c>AFTER UPDATE</c>: updates that leave a row the predicate rejects are blocked.</summary>
+	AfterUpdate,
+
+	/// <summary><c>BEFORE UPDATE</c>: updates of rows the predicate rejects are blocked.</summary>
+	BeforeUpdate,
+
+	/// <summary><c>BEFORE DELETE</c>: deletes of rows the predicate rejects are blocked.</summary>
+	BeforeDelete
+}

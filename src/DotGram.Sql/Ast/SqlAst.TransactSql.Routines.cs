@@ -57,14 +57,23 @@ public abstract partial record Statement
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). The word a call begins with.</summary>
-public enum ExecuteKeyword { Exec, Execute }
+public enum ExecuteKeyword
+{
+	/// <summary><c>EXEC</c>.</summary>
+	Exec,
+
+	/// <summary><c>EXECUTE</c>.</summary>
+	Execute
+}
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). The module EXECUTE calls: by its name, or through a variable.</summary>
 public abstract record ModuleReference : ISqlNode
 {
 	SqlLocation _location;
+	/// <summary>Where in the text this module reference was written.</summary>
 	public SqlSpan Span => _location.Span;
 
+	/// <summary>Records where this module reference was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -93,8 +102,10 @@ public sealed record ExecuteArgument(Expression Value) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <summary>Where in the text this execute argument was written.</summary>
 	public SqlSpan Span => _location.Span;
 
+	/// <summary>Records where this execute argument was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -108,14 +119,23 @@ public sealed record ExecuteArgument(Expression Value) : ISqlNode
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). The word that passes a variable back.</summary>
-public enum OutputKeyword { Output, Out }
+public enum OutputKeyword
+{
+	/// <summary><c>OUTPUT</c>.</summary>
+	Output,
+
+	/// <summary><c>OUT</c>.</summary>
+	Out
+}
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). One option after <c>WITH</c>.</summary>
 public abstract record ExecuteOption : ISqlNode
 {
 	SqlLocation _location;
+	/// <summary>Where in the text this execute option was written.</summary>
 	public SqlSpan Span => _location.Span;
 
+	/// <summary>Records where this execute option was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -136,14 +156,26 @@ public abstract record ExecuteOption : ISqlNode
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). What <c>RESULT SETS</c> says comes back; <c>None</c> is the word NONE.</summary>
-public enum ResultSetsKind { Undefined, None, Described }
+public enum ResultSetsKind
+{
+	/// <summary><c>RESULT SETS UNDEFINED</c>: no result shape is promised.</summary>
+	Undefined,
+
+	/// <summary><c>RESULT SETS NONE</c>: the call returns no result set.</summary>
+	None,
+
+	/// <summary><c>RESULT SETS (…)</c>: the sets are described in brackets.</summary>
+	Described
+}
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). One result set described.</summary>
 public abstract record ResultSet : ISqlNode
 {
 	SqlLocation _location;
+	/// <summary>Where in the text this result set was written.</summary>
 	public SqlSpan Span => _location.Span;
 
+	/// <summary>Records where this result set was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -267,8 +299,10 @@ public sealed partial record ParameterDefinition
 public abstract record RoutineOption : ISqlNode
 {
 	SqlLocation _location;
+	/// <summary>Where in the text this routine option was written.</summary>
 	public SqlSpan Span => _location.Span;
 
+	/// <summary>Records where this routine option was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -435,15 +469,27 @@ public abstract partial record Statement
 }
 
 /// <summary>T-SQL: CREATE ASSEMBLY (Transact-SQL). <c>PERMISSION_SET = SAFE | EXTERNAL_ACCESS | UNSAFE</c>.</summary>
-public enum AssemblyPermissionSet { Safe, ExternalAccess, Unsafe }
+public enum AssemblyPermissionSet
+{
+	/// <summary><c>SAFE</c>: code runs inside the server and touches nothing outside it.</summary>
+	Safe,
+
+	/// <summary><c>EXTERNAL_ACCESS</c>: code may reach outside resources such as files and networks.</summary>
+	ExternalAccess,
+
+	/// <summary><c>UNSAFE</c>: code runs without restrictions.</summary>
+	Unsafe
+}
 
 /// <summary>T-SQL: ALTER ASSEMBLY (Transact-SQL). A file added: <c>value [AS 'name']</c>.</summary>
 public sealed record AssemblyFile(Expression Value) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <summary>Where in the text this assembly file was written.</summary>
 	public SqlSpan Span => _location.Span;
 
+	/// <summary>Records where this assembly file was written.</summary>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
