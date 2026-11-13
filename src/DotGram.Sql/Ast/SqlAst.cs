@@ -7133,23 +7133,73 @@ public enum TriggerGranularity
 }
 
 // --- UDT/routines/transforms ------------------------------------------------
-public sealed record UserDefinedTypeDefinition(QualifiedName Name, QualifiedName? Under, TypeRepresentation? Representation, SqlList<UserTypeOption> Options, SqlList<MethodSpecification> Methods) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// A user-defined type definition, <c>CREATE TYPE</c>: <c>CREATE TYPE t UNDER s AS (a INT) INSTANTIABLE NOT FINAL METHOD …</c>.
+/// </summary>
+/// <param name="Name">The name of the type.</param>
+/// <param name="Under">The supertype after <c>UNDER</c>; null when none was written.</param>
+/// <param name="Representation">What the type is made of, after <c>AS</c>; null when no <c>AS</c> was written.</param>
+/// <param name="Options">The options after the representation (<c>INSTANTIABLE</c>, <c>FINAL</c>, <c>REF …</c>, <c>CAST …</c>), in the order written.</param>
+/// <param name="Methods">The method specifications that close the definition; empty when none.</param>
+public sealed record UserDefinedTypeDefinition(QualifiedName Name, QualifiedName? Under, TypeRepresentation? Representation, SqlList<UserTypeOption> Options, SqlList<MethodSpecification> Methods) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record TypeRepresentation : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected TypeRepresentation() { } public sealed record Type(DataType Value) : TypeRepresentation; public sealed record Members(SqlList<AttributeDefinition> Attributes) : TypeRepresentation; /* T-SQL: CREATE TYPE (Transact-SQL). `CREATE TYPE t AS TABLE (...)`, which the standard has no representation for. */ public sealed record Table(SqlList<TableElement> Elements) : TypeRepresentation; }
-public sealed record AttributeDefinition(Identifier Name, DataType Type, Expression? Default, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// What a user-defined type is made of, after <c>AS</c>.
+/// </summary>
+public abstract record TypeRepresentation : ISqlNode { SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); }
+	private protected TypeRepresentation() { }
+	/// <summary>
+	/// A predefined type the type is based on: <c>CREATE TYPE t AS INT</c>, a distinct type.
+	/// </summary>
+	/// <param name="Value">The data type.</param>
+	public sealed record Type(DataType Value) : TypeRepresentation;
+	/// <summary>
+	/// A list of attributes in brackets: <c>CREATE TYPE t AS (a INT, b VARCHAR(10))</c>, a structured type.
+	/// </summary>
+	/// <param name="Attributes">The attribute definitions, in the order written.</param>
+	public sealed record Members(SqlList<AttributeDefinition> Attributes) : TypeRepresentation;
+	/// <summary>
+	/// T-SQL: CREATE TYPE (Transact-SQL). A table type, <c>CREATE TYPE t AS TABLE (…)</c>, which the standard has no representation for.
+	/// </summary>
+	/// <param name="Elements">The columns and constraints of the table type.</param>
+	public sealed record Table(SqlList<TableElement> Elements) : TypeRepresentation;
+}
+/// <summary>
+/// An attribute of a structured type: <c>a INT DEFAULT 0 COLLATE c</c>.
+/// </summary>
+/// <param name="Name">The attribute name.</param>
+/// <param name="Type">The attribute data type.</param>
+/// <param name="Default">The <c>DEFAULT</c> value; null when none.</param>
+/// <param name="Collation">The <c>COLLATE</c> name; null when none.</param>
+public sealed record AttributeDefinition(Identifier Name, DataType Type, Expression? Default, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
+/// <summary>
+/// An option of a user-defined type definition, written after its representation.
+/// </summary>
 public abstract record UserTypeOption : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -7159,66 +7209,287 @@ public abstract record UserTypeOption : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// <c>INSTANTIABLE</c> or <c>NOT INSTANTIABLE</c>.
+	/// </summary>
+	/// <param name="Value">True for <c>INSTANTIABLE</c>, false for <c>NOT INSTANTIABLE</c>.</param>
 	public sealed record Instantiable(bool Value) : UserTypeOption;
+	/// <summary>
+	/// <c>FINAL</c> or <c>NOT FINAL</c>.
+	/// </summary>
+	/// <param name="Value">True for <c>FINAL</c>, false for <c>NOT FINAL</c>.</param>
 	public sealed record Final(bool Value) : UserTypeOption;
+	/// <summary>
+	/// A <c>REF</c> option: how the values that reference the type are represented.
+	/// </summary>
+	/// <param name="Representation">The representation of the reference type.</param>
 	public sealed record Reference(UserTypeReference Representation) : UserTypeOption;
+	/// <summary>
+	/// A <c>CAST (… AS …) WITH f</c> option that names the function casting between the type and its reference or source type.
+	/// </summary>
+	/// <param name="Kind">Which cast, the two types in the brackets.</param>
+	/// <param name="FunctionName">The function after <c>WITH</c>.</param>
 	public sealed record Cast(UserTypeCastKind Kind, Identifier FunctionName) : UserTypeOption;
 }
-public abstract record UserTypeReference : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected UserTypeReference() { } public sealed record Using(DataType Type) : UserTypeReference; public sealed record FromAttributes(SqlList<Identifier> Attributes) : UserTypeReference; public sealed record SystemGenerated : UserTypeReference; }
-public enum UserTypeCastKind { ToRef, ToType, ToDistinct, ToSource }
-public abstract record AlterTypeAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected AlterTypeAction() { } public sealed record AddAttribute(AttributeDefinition Attribute) : AlterTypeAction; public sealed record DropAttribute(Identifier Name) : AlterTypeAction; public sealed record AddMethod(MethodSpecification Method, bool Overriding) : AlterTypeAction; public sealed record DropMethod(MethodDesignator Method) : AlterTypeAction; }
-public sealed record MethodSpecification(MethodModifier? Modifier, Identifier Name, SqlList<ParameterDefinition> Parameters, ReturnsDefinition Returns, QualifiedName? SpecificName, bool SelfAsResult, bool SelfAsLocator, SqlList<RoutineCharacteristic> Characteristics, bool Overriding = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The representation of a reference type in a <c>REF</c> option.
+/// </summary>
+public abstract record UserTypeReference : ISqlNode { SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); }
+	private protected UserTypeReference() { }
+	/// <summary>
+	/// <c>REF USING t</c>: references are values of a predefined type.
+	/// </summary>
+	/// <param name="Type">The data type after <c>USING</c>.</param>
+	public sealed record Using(DataType Type) : UserTypeReference;
+	/// <summary>
+	/// <c>REF FROM (a, b)</c>: references are made of the listed attributes.
+	/// </summary>
+	/// <param name="Attributes">The attribute names, in the order written.</param>
+	public sealed record FromAttributes(SqlList<Identifier> Attributes) : UserTypeReference;
+	/// <summary>
+	/// <c>REF IS SYSTEM GENERATED</c>: references are generated by the system.
+	/// </summary>
+	public sealed record SystemGenerated : UserTypeReference;
+}
+/// <summary>
+/// Which cast a <c>CAST</c> option of a user-defined type defines.
+/// </summary>
+public enum UserTypeCastKind
+{
+	/// <summary>
+	/// <c>SOURCE AS REF</c>.
+	/// </summary>
+	ToRef,
+	/// <summary>
+	/// <c>REF AS SOURCE</c>.
+	/// </summary>
+	ToType,
+	/// <summary>
+	/// <c>SOURCE AS DISTINCT</c>.
+	/// </summary>
+	ToDistinct,
+	/// <summary>
+	/// <c>DISTINCT AS SOURCE</c>.
+	/// </summary>
+	ToSource,
+}
+/// <summary>
+/// The change made by <c>ALTER TYPE</c>.
+/// </summary>
+public abstract record AlterTypeAction : ISqlNode { SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); }
+	private protected AlterTypeAction() { }
+	/// <summary>
+	/// <c>ADD ATTRIBUTE a INT</c>.
+	/// </summary>
+	/// <param name="Attribute">The attribute added.</param>
+	public sealed record AddAttribute(AttributeDefinition Attribute) : AlterTypeAction;
+	/// <summary>
+	/// <c>DROP ATTRIBUTE a RESTRICT</c>.
+	/// </summary>
+	/// <param name="Name">The attribute dropped.</param>
+	public sealed record DropAttribute(Identifier Name) : AlterTypeAction;
+	/// <summary>
+	/// <c>ADD METHOD …</c>: a method specification, optionally <c>OVERRIDING</c>.
+	/// </summary>
+	/// <param name="Method">The method added.</param>
+	/// <param name="Overriding">True when <c>OVERRIDING</c> was written.</param>
+	public sealed record AddMethod(MethodSpecification Method, bool Overriding) : AlterTypeAction;
+	/// <summary>
+	/// <c>DROP METHOD m (t) RESTRICT</c>.
+	/// </summary>
+	/// <param name="Method">The designator of the method dropped.</param>
+	public sealed record DropMethod(MethodDesignator Method) : AlterTypeAction;
+}
+/// <summary>
+/// A method specification in <c>CREATE TYPE</c> or <c>ALTER TYPE</c>: <c>OVERRIDING INSTANCE METHOD m (p INT) RETURNS INT SPECIFIC s SELF AS RESULT …</c>.
+/// </summary>
+/// <param name="Modifier"><c>INSTANCE</c>, <c>STATIC</c> or <c>CONSTRUCTOR</c>; null when none was written.</param>
+/// <param name="Name">The method name.</param>
+/// <param name="Parameters">The parameters in brackets; empty when none.</param>
+/// <param name="Returns">The <c>RETURNS</c> clause.</param>
+/// <param name="SpecificName">The name after <c>SPECIFIC</c>; null when none.</param>
+/// <param name="SelfAsResult">True when <c>SELF AS RESULT</c> was written.</param>
+/// <param name="SelfAsLocator">True when <c>SELF AS LOCATOR</c> was written.</param>
+/// <param name="Characteristics">The routine characteristics after the returns clause.</param>
+/// <param name="Overriding">True when <c>OVERRIDING</c> was written.</param>
+public sealed record MethodSpecification(MethodModifier? Modifier, Identifier Name, SqlList<ParameterDefinition> Parameters, ReturnsDefinition Returns, QualifiedName? SpecificName, bool SelfAsResult, bool SelfAsLocator, SqlList<RoutineCharacteristic> Characteristics, bool Overriding = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum MethodModifier { Instance, Static, Constructor }
-public sealed record MethodDesignator(MethodModifier? Modifier, Identifier Name, SqlList<DataType> ParameterTypes) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The kind of a method.
+/// </summary>
+public enum MethodModifier
+{
+	/// <summary>
+	/// <c>INSTANCE</c>.
+	/// </summary>
+	Instance,
+	/// <summary>
+	/// <c>STATIC</c>.
+	/// </summary>
+	Static,
+	/// <summary>
+	/// <c>CONSTRUCTOR</c>.
+	/// </summary>
+	Constructor,
+}
+/// <summary>
+/// Names a method in <c>ALTER TYPE … DROP METHOD</c>: <c>STATIC METHOD m (INT, INT)</c>.
+/// </summary>
+/// <param name="Modifier"><c>INSTANCE</c>, <c>STATIC</c> or <c>CONSTRUCTOR</c>; null when none was written.</param>
+/// <param name="Name">The method name.</param>
+/// <param name="ParameterTypes">The parameter types in brackets.</param>
+public sealed record MethodDesignator(MethodModifier? Modifier, Identifier Name, SqlList<DataType> ParameterTypes) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
-// BNF: <schema procedure>, <schema function>, <method specification designator>. StaticDispatch is <dispatch clause>.
-public sealed partial record RoutineDefinition(RoutineKind Kind, QualifiedName Name, SqlList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, SqlList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null, bool StaticDispatch = false, bool SpecificMethod = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// A routine definition: the part of <c>CREATE</c> after the keyword, <c>PROCEDURE p (a INT) …</c>, <c>FUNCTION f (a INT) RETURNS INT …</c> or <c>METHOD m (…) FOR t …</c>, with its body. BNF: &lt;schema procedure&gt;, &lt;schema function&gt;, &lt;method specification designator&gt;; <c>StaticDispatch</c> is &lt;dispatch clause&gt;.
+/// </summary>
+/// <param name="Kind">Whether it is a procedure, function or method.</param>
+/// <param name="Name">The routine name.</param>
+/// <param name="Parameters">The parameters in brackets; empty when none.</param>
+/// <param name="Returns">The <c>RETURNS</c> clause; null for a procedure and for a method that has none.</param>
+/// <param name="Characteristics">The characteristics between the signature and the body, in the order written.</param>
+/// <param name="Body">The body of the routine.</param>
+/// <param name="MethodModifier"><c>INSTANCE</c>, <c>STATIC</c> or <c>CONSTRUCTOR</c> before <c>METHOD</c>; null when none or for another kind.</param>
+/// <param name="ForType">The type after <c>FOR</c> of a method; null for another kind.</param>
+/// <param name="StaticDispatch">True when a function has <c>STATIC DISPATCH</c>.</param>
+/// <param name="SpecificMethod">True for <c>SPECIFIC METHOD name</c>, which names an existing method by its specific name and has no signature.</param>
+public sealed partial record RoutineDefinition(RoutineKind Kind, QualifiedName Name, SqlList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, SqlList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null, bool StaticDispatch = false, bool SpecificMethod = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum RoutineKind { Routine, Procedure, Function, Method }
-// BNF: <SQL parameter declaration>. Locator is <locator indication>, `AS LOCATOR`.
-// T-SQL: CREATE PROCEDURE, CREATE FUNCTION (Transact-SQL). `ReadOnly`, `Varying` and `Nullable` are T-SQL's;
-// its `OUTPUT` is `ParameterMode.Out` and needs nothing of its own.
-public sealed partial record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false, bool ReadOnly = false, bool Varying = false, bool? Nullable = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// What a routine definition or designator names.
+/// </summary>
+public enum RoutineKind
+{
+	/// <summary>
+	/// <c>ROUTINE</c>: a procedure, function or method, not told apart.
+	/// </summary>
+	Routine,
+	/// <summary>
+	/// <c>PROCEDURE</c>.
+	/// </summary>
+	Procedure,
+	/// <summary>
+	/// <c>FUNCTION</c>.
+	/// </summary>
+	Function,
+	/// <summary>
+	/// <c>METHOD</c>.
+	/// </summary>
+	Method,
+}
+/// <summary>
+/// A routine parameter: <c>IN a INT RESULT DEFAULT 0</c>. BNF: &lt;SQL parameter declaration&gt;; <c>Locator</c> is &lt;locator indication&gt;, <c>AS LOCATOR</c>. T-SQL: CREATE PROCEDURE, CREATE FUNCTION (Transact-SQL): <c>ReadOnly</c>, <c>Varying</c> and <c>Nullable</c> are T-SQL's; its <c>OUTPUT</c> is <c>ParameterMode.Out</c> and needs nothing of its own.
+/// </summary>
+/// <param name="Mode"><c>IN</c>, <c>OUT</c> or <c>INOUT</c>; null when none was written.</param>
+/// <param name="Name">The parameter name; null when it has none.</param>
+/// <param name="Type">The data type.</param>
+/// <param name="Result">True when <c>RESULT</c> was written.</param>
+/// <param name="Default">The default value; null when none.</param>
+/// <param name="Locator">True when <c>AS LOCATOR</c> was written.</param>
+/// <param name="ReadOnly">T-SQL: <c>READONLY</c> was written.</param>
+/// <param name="Varying">T-SQL: the parameter is a <c>CURSOR VARYING</c> one.</param>
+/// <param name="Nullable">T-SQL: true for <c>NULL</c>, false for <c>NOT NULL</c> after the type; null when neither was written.</param>
+public sealed partial record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false, bool ReadOnly = false, bool Varying = false, bool? Nullable = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum ParameterMode { In, Out, InOut }
-// BNF: <returns clause>, <returns type>, <result cast>. `RETURNS TABLE` with no columns is TableKeyword alone.
+/// <summary>
+/// The direction of a routine parameter.
+/// </summary>
+public enum ParameterMode
+{
+	/// <summary>
+	/// <c>IN</c>.
+	/// </summary>
+	In,
+	/// <summary>
+	/// <c>OUT</c> (T-SQL <c>OUTPUT</c>).
+	/// </summary>
+	Out,
+	/// <summary>
+	/// <c>INOUT</c>.
+	/// </summary>
+	InOut,
+}
+/// <summary>
+/// A <c>RETURNS</c> clause of a routine or method: <c>RETURNS INT AS LOCATOR CAST FROM VARCHAR(10)</c>, <c>RETURNS TABLE (a INT)</c>, <c>RETURNS TABLE</c> alone or <c>RETURNS ONLY PASS THROUGH</c>. BNF: &lt;returns clause&gt;, &lt;returns type&gt;, &lt;result cast&gt;. <c>RETURNS TABLE</c> with no columns is <c>TableKeyword</c> alone.
+/// </summary>
+/// <param name="Type">The returned type; null for a table or for <c>ONLY PASS THROUGH</c>.</param>
+/// <param name="TableColumns">The columns of <c>RETURNS TABLE (…)</c>; null when none were listed.</param>
+/// <param name="OnlyPassThrough">True for <c>RETURNS ONLY PASS THROUGH</c>.</param>
 public sealed partial record ReturnsDefinition(DataType? Type, SqlList<FieldDefinition>? TableColumns, bool OnlyPassThrough = false) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	/// <summary>
+	/// True when the clause is <c>RETURNS TABLE</c>, with or without columns.
+	/// </summary>
 	public bool TableKeyword { get; init; }
+	/// <summary>
+	/// True when <c>AS LOCATOR</c> follows the returned type.
+	/// </summary>
 	public bool Locator { get; init; }
+	/// <summary>
+	/// The type after <c>CAST FROM</c>; null when none was written.
+	/// </summary>
 	public DataType? CastFrom { get; init; }
+	/// <summary>
+	/// True when <c>AS LOCATOR</c> follows the <c>CAST FROM</c> type.
+	/// </summary>
 	public bool CastFromLocator { get; init; }
 }
+/// <summary>
+/// A characteristic of a routine, written between its signature and its body or in <c>ALTER ROUTINE</c>.
+/// </summary>
 public abstract record RoutineCharacteristic : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -7228,25 +7499,125 @@ public abstract record RoutineCharacteristic : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// <c>LANGUAGE x</c>.
+	/// </summary>
+	/// <param name="Name">The language, as written.</param>
 	public sealed record Language(string Name) : RoutineCharacteristic;
+	/// <summary>
+	/// <c>PARAMETER STYLE SQL</c> or <c>PARAMETER STYLE GENERAL</c>.
+	/// </summary>
+	/// <param name="Style">The style.</param>
 	public sealed record ParameterStyle(ParameterStyleKind Style) : RoutineCharacteristic;
+	/// <summary>
+	/// <c>SPECIFIC n</c>: the specific name of the routine.
+	/// </summary>
+	/// <param name="Name">The specific name.</param>
 	public sealed record Specific(QualifiedName Name) : RoutineCharacteristic;
+	/// <summary>
+	/// <c>DETERMINISTIC</c> or <c>NOT DETERMINISTIC</c>.
+	/// </summary>
+	/// <param name="Value">True for <c>DETERMINISTIC</c>.</param>
 	public sealed record Deterministic(bool Value) : RoutineCharacteristic;
+	/// <summary>
+	/// <c>NO SQL</c>, <c>CONTAINS SQL</c>, <c>READS SQL DATA</c> or <c>MODIFIES SQL DATA</c>.
+	/// </summary>
+	/// <param name="Value">The kind of data access.</param>
 	public sealed record DataAccess(SqlDataAccess Value) : RoutineCharacteristic;
+	/// <summary>
+	/// <c>RETURNS NULL ON NULL INPUT</c> or <c>CALLED ON NULL INPUT</c>.
+	/// </summary>
+	/// <param name="Value">Which one.</param>
 	public sealed record NullCall(NullCallMode Value) : RoutineCharacteristic;
+	/// <summary>
+	/// <c>DYNAMIC RESULT SETS n</c>.
+	/// </summary>
+	/// <param name="Maximum">The number of result sets.</param>
 	public sealed record DynamicResultSets(int Maximum) : RoutineCharacteristic;
+	/// <summary>
+	/// <c>NEW SAVEPOINT LEVEL</c> or <c>OLD SAVEPOINT LEVEL</c>.
+	/// </summary>
+	/// <param name="Value">Which one.</param>
 	public sealed record SavepointLevel(SavepointLevelKind Value) : RoutineCharacteristic;
-	// BNF: `NAME <external routine name>`. Name is written as it stands, quotes included: `NAME x` and `NAME 'x'` differ.
+	/// <summary>
+	/// BNF: <c>NAME &lt;external routine name&gt;</c>. Name is written as it stands, quotes included: <c>NAME x</c> and <c>NAME 'x'</c> differ.
+	/// </summary>
+	/// <param name="Name">The external name, as written.</param>
 	public sealed record ExternalName(string Name) : RoutineCharacteristic;
 }
-public enum ParameterStyleKind { Sql, General }
-public enum SqlDataAccess { NoSql, ContainsSql, ReadsSqlData, ModifiesSqlData }
-public enum NullCallMode { ReturnsNullOnNullInput, CalledOnNullInput }
-public enum SavepointLevelKind { New, Old }
+/// <summary>
+/// The style of passing parameters to an external routine.
+/// </summary>
+public enum ParameterStyleKind
+{
+	/// <summary>
+	/// <c>SQL</c>.
+	/// </summary>
+	Sql,
+	/// <summary>
+	/// <c>GENERAL</c>.
+	/// </summary>
+	General,
+}
+/// <summary>
+/// What SQL a routine may run.
+/// </summary>
+public enum SqlDataAccess
+{
+	/// <summary>
+	/// <c>NO SQL</c>.
+	/// </summary>
+	NoSql,
+	/// <summary>
+	/// <c>CONTAINS SQL</c>.
+	/// </summary>
+	ContainsSql,
+	/// <summary>
+	/// <c>READS SQL DATA</c>.
+	/// </summary>
+	ReadsSqlData,
+	/// <summary>
+	/// <c>MODIFIES SQL DATA</c>.
+	/// </summary>
+	ModifiesSqlData,
+}
+/// <summary>
+/// What a routine does when an argument is null.
+/// </summary>
+public enum NullCallMode
+{
+	/// <summary>
+	/// <c>RETURNS NULL ON NULL INPUT</c>.
+	/// </summary>
+	ReturnsNullOnNullInput,
+	/// <summary>
+	/// <c>CALLED ON NULL INPUT</c>.
+	/// </summary>
+	CalledOnNullInput,
+}
+/// <summary>
+/// Whether a routine starts a new savepoint level.
+/// </summary>
+public enum SavepointLevelKind
+{
+	/// <summary>
+	/// <c>NEW SAVEPOINT LEVEL</c>.
+	/// </summary>
+	New,
+	/// <summary>
+	/// <c>OLD SAVEPOINT LEVEL</c>.
+	/// </summary>
+	Old,
+}
+/// <summary>
+/// The body of a routine.
+/// </summary>
 public abstract partial record RoutineBody : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -7256,77 +7627,286 @@ public abstract partial record RoutineBody : ISqlNode
 	{
 	}
 
-	// BNF: <SQL routine spec>: the rights it runs with and one <SQL procedure statement>.
+	/// <summary>
+	/// BNF: &lt;SQL routine spec&gt;: the rights it runs with and one &lt;SQL procedure statement&gt;.
+	/// </summary>
+	/// <param name="Statement">The statement that is the body.</param>
+	/// <param name="Security"><c>SQL SECURITY INVOKER</c> or <c>DEFINER</c>; null when none was written.</param>
 	public sealed record Sql(Statement Statement, SqlSecurity? Security = null) : RoutineBody;
-	// BNF: <external body reference>. Name is the <external routine name> as written, quotes included.
+	/// <summary>
+	/// BNF: &lt;external body reference&gt;: <c>EXTERNAL NAME 'x' PARAMETER STYLE … TRANSFORM GROUP … EXTERNAL SECURITY …</c>. Name is the &lt;external routine name&gt; as written, quotes included.
+	/// </summary>
+	/// <param name="Name">The name after <c>NAME</c>; null when none.</param>
+	/// <param name="ParameterStyle">The <c>PARAMETER STYLE</c>; null when none.</param>
+	/// <param name="TransformGroup">The <c>TRANSFORM GROUP</c> clause; null when none.</param>
+	/// <param name="Security">The <c>EXTERNAL SECURITY</c> clause; null when none.</param>
 	public sealed record External(string? Name, ParameterStyleKind? ParameterStyle, TransformGroupSpecification? TransformGroup, ExternalSecurity? Security) : RoutineBody;
+	/// <summary>
+	/// The body of a polymorphic table function: its component procedures.
+	/// </summary>
+	/// <param name="Body">The components.</param>
 	public sealed record PolymorphicTableFunction(PolymorphicTableFunctionBody Body) : RoutineBody;
 }
-public enum SqlSecurity { Invoker, Definer }
-public enum ExternalSecurity { Definer, Invoker, ImplementationDefined }
-// PrivateParameters is null where no `PRIVATE` was written; PrivateDataKeyword is `PRIVATE DATA`.
-public sealed record PolymorphicTableFunctionBody(SqlList<ParameterDefinition>? PrivateParameters, RoutineDesignator? Describe, RoutineDesignator? Start, RoutineDesignator Fulfill, RoutineDesignator? Finish, bool PrivateDataKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The rights an SQL routine runs with.
+/// </summary>
+public enum SqlSecurity
+{
+	/// <summary>
+	/// <c>SQL SECURITY INVOKER</c>.
+	/// </summary>
+	Invoker,
+	/// <summary>
+	/// <c>SQL SECURITY DEFINER</c>.
+	/// </summary>
+	Definer,
+}
+/// <summary>
+/// The rights an external routine runs with.
+/// </summary>
+public enum ExternalSecurity
+{
+	/// <summary>
+	/// <c>EXTERNAL SECURITY DEFINER</c>.
+	/// </summary>
+	Definer,
+	/// <summary>
+	/// <c>EXTERNAL SECURITY INVOKER</c>.
+	/// </summary>
+	Invoker,
+	/// <summary>
+	/// <c>EXTERNAL SECURITY IMPLEMENTATION DEFINED</c>.
+	/// </summary>
+	ImplementationDefined,
+}
+/// <summary>
+/// The components of a polymorphic table function: <c>PRIVATE (…) DESCRIBE WITH d START WITH s FULFILL WITH f FINISH WITH e</c>.
+/// </summary>
+/// <param name="PrivateParameters">The private parameters in brackets; null where no <c>PRIVATE</c> was written.</param>
+/// <param name="Describe">The <c>DESCRIBE WITH</c> component; null when none.</param>
+/// <param name="Start">The <c>START WITH</c> component; null when none.</param>
+/// <param name="Fulfill">The <c>FULFILL WITH</c> component, always present.</param>
+/// <param name="Finish">The <c>FINISH WITH</c> component; null when none.</param>
+/// <param name="PrivateDataKeyword">True for <c>PRIVATE DATA</c>, false for <c>PRIVATE</c>.</param>
+public sealed record PolymorphicTableFunctionBody(SqlList<ParameterDefinition>? PrivateParameters, RoutineDesignator? Describe, RoutineDesignator? Start, RoutineDesignator Fulfill, RoutineDesignator? Finish, bool PrivateDataKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record RoutineDesignator(RoutineKind Kind, QualifiedName Name, SqlList<DataType>? ParameterTypes = null, QualifiedName? ForType = null, bool SpecificKeyword = false, MethodModifier? MethodModifier = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// Names a routine: <c>SPECIFIC FUNCTION f</c>, <c>PROCEDURE p (INT)</c>, <c>STATIC METHOD m (INT) FOR t</c>.
+/// </summary>
+/// <param name="Kind">The word naming the kind: routine, procedure, function or method.</param>
+/// <param name="Name">The routine name.</param>
+/// <param name="ParameterTypes">The parameter types in brackets; null when no list was written.</param>
+/// <param name="ForType">The type after <c>FOR</c> of a method; null when none.</param>
+/// <param name="SpecificKeyword">True when <c>SPECIFIC</c> was written: the name is a specific name.</param>
+/// <param name="MethodModifier"><c>INSTANCE</c>, <c>STATIC</c> or <c>CONSTRUCTOR</c> before <c>METHOD</c>; null when none.</param>
+public sealed record RoutineDesignator(RoutineKind Kind, QualifiedName Name, SqlList<DataType>? ParameterTypes = null, QualifiedName? ForType = null, bool SpecificKeyword = false, MethodModifier? MethodModifier = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum AlterRoutineBehavior { Restrict }
+/// <summary>
+/// The drop behavior closing <c>ALTER ROUTINE</c>; the standard allows only one.
+/// </summary>
+public enum AlterRoutineBehavior
+{
+	/// <summary>
+	/// <c>RESTRICT</c>.
+	/// </summary>
+	Restrict,
+}
 
-public sealed record TranslationSource(QualifiedName? Existing, RoutineDesignator? Routine) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The routine a translation is created from, after <c>FROM</c>: an existing translation or a routine. Exactly one is set.
+/// </summary>
+/// <param name="Existing">The name of an existing translation; null when a routine is named.</param>
+/// <param name="Routine">The routine that does the translation; null when a translation is named.</param>
+public sealed record TranslationSource(QualifiedName? Existing, RoutineDesignator? Routine) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record OrderingDefinition(OrderingForm Form, OrderingCategory Category) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// How the values of a type are ordered, in <c>CREATE ORDERING</c>: <c>EQUALS ONLY BY STATE</c>, <c>ORDER FULL BY MAP WITH f</c>.
+/// </summary>
+/// <param name="Form"><c>EQUALS ONLY BY</c> or <c>ORDER FULL BY</c>.</param>
+/// <param name="Category">The way the comparison is done.</param>
+public sealed record OrderingDefinition(OrderingForm Form, OrderingCategory Category) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum OrderingForm { EqualsOnly, Full }
-public abstract record OrderingCategory : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected OrderingCategory() { } public sealed record Relative(RoutineDesignator Function) : OrderingCategory; public sealed record Map(RoutineDesignator Function) : OrderingCategory; public sealed record State(QualifiedName? SpecificName) : OrderingCategory; }
-public sealed record TransformGroup(Identifier Name, SqlList<TransformElement> Elements) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// Whether an ordering supports only equality or a full order.
+/// </summary>
+public enum OrderingForm
+{
+	/// <summary>
+	/// <c>EQUALS ONLY BY</c>.
+	/// </summary>
+	EqualsOnly,
+	/// <summary>
+	/// <c>ORDER FULL BY</c>.
+	/// </summary>
+	Full,
+}
+/// <summary>
+/// The way an ordering compares values, after <c>EQUALS ONLY BY</c> or <c>ORDER FULL BY</c>.
+/// </summary>
+public abstract record OrderingCategory : ISqlNode { SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); }
+	private protected OrderingCategory() { }
+	/// <summary>
+	/// <c>RELATIVE WITH f</c>: a function compares two values.
+	/// </summary>
+	/// <param name="Function">The comparison function.</param>
+	public sealed record Relative(RoutineDesignator Function) : OrderingCategory;
+	/// <summary>
+	/// <c>MAP WITH f</c>: a function maps a value to a comparable one.
+	/// </summary>
+	/// <param name="Function">The map function.</param>
+	public sealed record Map(RoutineDesignator Function) : OrderingCategory;
+	/// <summary>
+	/// <c>STATE [n]</c>: values are compared by their attributes.
+	/// </summary>
+	/// <param name="SpecificName">The specific name after <c>STATE</c>; null when none.</param>
+	public sealed record State(QualifiedName? SpecificName) : OrderingCategory;
+}
+/// <summary>
+/// A named group of transforms in <c>CREATE TRANSFORM</c>: <c>g (TO SQL WITH f, FROM SQL WITH h)</c>.
+/// </summary>
+/// <param name="Name">The group name.</param>
+/// <param name="Elements">The transforms in brackets.</param>
+public sealed record TransformGroup(Identifier Name, SqlList<TransformElement> Elements) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record TransformElement(TransformDirection Direction, RoutineDesignator Function) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// One transform: <c>TO SQL WITH f</c> or <c>FROM SQL WITH f</c>.
+/// </summary>
+/// <param name="Direction">Whether it converts to or from SQL.</param>
+/// <param name="Function">The function that does it.</param>
+public sealed record TransformElement(TransformDirection Direction, RoutineDesignator Function) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum TransformDirection { ToSql, FromSql }
-public sealed record TransformAlterGroup(Identifier Name, SqlList<TransformAlterAction> Actions) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The direction of a transform.
+/// </summary>
+public enum TransformDirection
+{
+	/// <summary>
+	/// <c>TO SQL</c>.
+	/// </summary>
+	ToSql,
+	/// <summary>
+	/// <c>FROM SQL</c>.
+	/// </summary>
+	FromSql,
+}
+/// <summary>
+/// A group changed in <c>ALTER TRANSFORM</c>: <c>g ADD (…) DROP (TO SQL RESTRICT)</c>.
+/// </summary>
+/// <param name="Name">The group name.</param>
+/// <param name="Actions">The changes, in the order written.</param>
+public sealed record TransformAlterGroup(Identifier Name, SqlList<TransformAlterAction> Actions) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record TransformAlterAction(bool Add, SqlList<TransformElement> Elements, SqlList<TransformDirection> DropKinds, DropBehavior? Behavior) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// One change of a transform group: <c>ADD (TO SQL WITH f)</c> or <c>DROP (TO SQL FROM SQL CASCADE)</c>.
+/// </summary>
+/// <param name="Add">True for <c>ADD</c>, false for <c>DROP</c>.</param>
+/// <param name="Elements">The transforms added; empty for <c>DROP</c>.</param>
+/// <param name="DropKinds">The directions dropped; empty for <c>ADD</c>.</param>
+/// <param name="Behavior">The <c>RESTRICT</c> or <c>CASCADE</c> of a <c>DROP</c>; null for <c>ADD</c>.</param>
+public sealed record TransformAlterAction(bool Add, SqlList<TransformElement> Elements, SqlList<TransformDirection> DropKinds, DropBehavior? Behavior) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record TransformDropTarget : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected TransformDropTarget() { } public sealed record All : TransformDropTarget; public sealed record Group(Identifier Name) : TransformDropTarget; }
-public sealed record TransformGroupSpecification(Identifier? SingleGroup, SqlList<TransformGroupForType> Groups) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// What <c>DROP TRANSFORM</c> drops.
+/// </summary>
+public abstract record TransformDropTarget : ISqlNode { SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); }
+	private protected TransformDropTarget() { }
+	/// <summary>
+	/// <c>ALL</c>: every transform group of the type.
+	/// </summary>
+	public sealed record All : TransformDropTarget;
+	/// <summary>
+	/// One named transform group.
+	/// </summary>
+	/// <param name="Name">The group name.</param>
+	public sealed record Group(Identifier Name) : TransformDropTarget;
+}
+/// <summary>
+/// The <c>TRANSFORM GROUP</c> of an external routine: one group for every type, or a group per type.
+/// </summary>
+/// <param name="SingleGroup">The group name when one group is named; null when the groups are listed per type.</param>
+/// <param name="Groups">The groups with their types; empty when <c>SingleGroup</c> is set.</param>
+public sealed record TransformGroupSpecification(Identifier? SingleGroup, SqlList<TransformGroupForType> Groups) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-// BNF: <group specification>, a transform group for a type.
-public sealed record TransformGroupForType(Identifier Group, QualifiedName Type) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: &lt;group specification&gt;, a transform group for a type: <c>g FOR TYPE t</c>.
+/// </summary>
+/// <param name="Group">The group name.</param>
+/// <param name="Type">The type the group is for.</param>
+public sealed record TransformGroupForType(Identifier Group, QualifiedName Type) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
