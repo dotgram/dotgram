@@ -33,3 +33,5 @@ FIXED
 KNOWN ISSUES
 
 - A lambda is never converted to an expression-tree type (Expression<TDelegate>): over an IQueryable, LINQ operators that take a lambda bind to Enumerable and run in memory, and Queryable's methods written out are refused.
+- Interpolated strings nested in one another's holes, $"{$"{$"{x}"}"}", are read in time that grows with the square of the depth: 1,100 levels (about 5 KB of text) take about half a second, 3,200 levels about four seconds. The memory is linear. Bound the size of untrusted input.
+- A chain of comparisons written as generics, a < a < a < … > b, is read in time that grows with the square of its length, because every a is tried as the start of a generic type's arguments first: 4,500 operands (about 18 KB) take about half a second, 6,400 about one second. Bound the size of untrusted input.

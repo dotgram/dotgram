@@ -127,6 +127,11 @@ Each package's notes list them with what to write instead. The ones most project
   `Enumerable` and run in memory, and `Queryable`'s methods written out are refused. Reading a text
   can already run code: a constant converted through a user-defined implicit operator is converted
   while the text is read (README, It is not a sandbox).
+- DotGram.ExpressionLanguage reads two shapes of input in time that grows with the square of their size:
+  interpolated strings nested in one another's holes (`$"{$"{$"{x}"}"}"`; 1,100 levels, about 5 KB, take
+  about half a second, 3,200 levels about four seconds; the memory is linear), and a chain of comparisons
+  that reads as generics until its end (`a < a < a < … > b`; 4,500 operands, about 18 KB, take about half a
+  second). Bound the size of untrusted input.
 - In Visual Studio, information-level diagnostics of a standalone `.gram` file (the GRAM5001 and
   GRAM5002 notes, for example) are underlined in the editor but not listed in the Error List,
   which asks only about C#, Visual Basic and F# documents. Errors and warnings of a `.gram` file
