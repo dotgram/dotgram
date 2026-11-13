@@ -7914,10 +7914,19 @@ public sealed record TransformGroupForType(Identifier Group, QualifiedName Type)
 }
 
 // --- Sequences --------------------------------------------------------------
+/// <summary>
+/// One option of a sequence or identity definition: <c>CREATE SEQUENCE</c>, <c>ALTER SEQUENCE</c> and
+/// the option list of an identity column. A statement holds them in the order written; a nested type is
+/// one option.
+/// </summary>
 public abstract partial record SequenceOption : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -7927,20 +7936,56 @@ public abstract partial record SequenceOption : ISqlNode
 	{
 	}
 
+	/// <summary>The <c>AS data_type</c> option: the type of the sequence's values.</summary>
+	/// <param name="Type">The type written after <c>AS</c>.</param>
 	public sealed record DataTypeOption(DataType Type) : SequenceOption;
+
+	/// <summary>The <c>START WITH n</c> option: the first value generated.</summary>
+	/// <param name="Value">The start value; a signed number.</param>
 	public sealed record Start(Expression Value) : SequenceOption;
+
+	/// <summary>The <c>INCREMENT BY n</c> option: the step between values.</summary>
+	/// <param name="Value">The step; a signed number, negative for a descending sequence.</param>
 	public sealed record Increment(Expression Value) : SequenceOption;
+
+	/// <summary>The <c>MAXVALUE n</c> option, or <c>NO MAXVALUE</c>.</summary>
+	/// <param name="Value">The upper bound; null with <paramref name="No"/>.</param>
+	/// <param name="No">The option was written <c>NO MAXVALUE</c>, which removes the bound; then <paramref name="Value"/> is null.</param>
 	public sealed record Max(Expression? Value, bool No = false) : SequenceOption;
+
+	/// <summary>The <c>MINVALUE n</c> option, or <c>NO MINVALUE</c>.</summary>
+	/// <param name="Value">The lower bound; null with <paramref name="No"/>.</param>
+	/// <param name="No">The option was written <c>NO MINVALUE</c>, which removes the bound; then <paramref name="Value"/> is null.</param>
 	public sealed record Min(Expression? Value, bool No = false) : SequenceOption;
+
+	/// <summary>
+	/// The <c>CYCLE</c> or <c>NO CYCLE</c> option: whether the sequence wraps round at its bound.
+	/// </summary>
+	/// <param name="Value">True for <c>CYCLE</c>, false for <c>NO CYCLE</c>.</param>
 	public sealed record Cycle(bool Value) : SequenceOption;
+
+	/// <summary>
+	/// The <c>RESTART [WITH n]</c> option of <c>ALTER SEQUENCE</c> and of an altered identity column.
+	/// </summary>
+	/// <param name="Value">
+	/// The value to restart at; null where <c>RESTART</c> was written alone and the sequence goes back
+	/// to its start value.
+	/// </param>
 	public sealed record Restart(Expression? Value) : SequenceOption;
 }
 
 // --- Privileges/roles -------------------------------------------------------
+/// <summary>
+/// What a <c>GRANT</c> gives: privileges on an object, or roles. A nested type is one of the two.
+/// </summary>
 public abstract record GrantBody : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -7950,17 +7995,46 @@ public abstract record GrantBody : ISqlNode
 	{
 	}
 
-	// T-SQL: GRANT (Transact-SQL). `Object` is nullable because T-SQL's `ON` is optional — a server
-	// permission is granted to a principal and names nothing — and `AsPrincipal` is its `AS p`, which is
-	// not `GrantedBy`: that is the standard's `GRANTED BY { CURRENT_USER | CURRENT_ROLE }`, an enum of
-	// two, where this is a principal's name.
+	/// <summary>
+	/// T-SQL: GRANT (Transact-SQL). <c>GRANT privileges [ON object] TO grantees [WITH ...] [GRANTED BY
+	/// ...] [AS principal]</c>.
+	/// </summary>
+	/// <param name="Items">The privileges granted.</param>
+	/// <param name="Object">
+	/// The <c>ON</c> object; null where <c>ON</c> is left out, which T-SQL allows for a server
+	/// permission: it is granted to a principal and names no securable.
+	/// </param>
+	/// <param name="Grantees">The principals the privileges are granted <c>TO</c>.</param>
+	/// <param name="HierarchyOption"><c>WITH HIERARCHY OPTION</c> was written.</param>
+	/// <param name="GrantOption"><c>WITH GRANT OPTION</c> was written: the grantees may pass the privileges on.</param>
+	/// <param name="GrantedBy">The standard's <c>GRANTED BY { CURRENT_USER | CURRENT_ROLE }</c>; null where it is absent.</param>
+	/// <param name="AsPrincipal">
+	/// T-SQL's <c>AS principal</c>, the name of the principal the grant is made as; null where absent.
+	/// It is not <paramref name="GrantedBy"/>, which is a choice of two words.
+	/// </param>
 	public sealed record Privileges(SqlList<Privilege> Items, PrivilegeObject? Object, SqlList<Grantee> Grantees, bool HierarchyOption, bool GrantOption, Grantor? GrantedBy, Identifier? AsPrincipal = null) : GrantBody;
+
+	/// <summary>
+	/// <c>GRANT role, ... TO grantee, ... [WITH ADMIN OPTION] [GRANTED BY ...]</c>: roles granted to
+	/// principals.
+	/// </summary>
+	/// <param name="Names">The roles granted.</param>
+	/// <param name="Grantees">The principals the roles are granted <c>TO</c>.</param>
+	/// <param name="AdminOption"><c>WITH ADMIN OPTION</c> was written: the grantees may grant the roles on.</param>
+	/// <param name="GrantedBy">The <c>GRANTED BY { CURRENT_USER | CURRENT_ROLE }</c> clause; null where absent.</param>
 	public sealed record Roles(SqlList<Identifier> Names, SqlList<Grantee> Grantees, bool AdminOption, Grantor? GrantedBy) : GrantBody;
 }
+/// <summary>
+/// What a <c>REVOKE</c> takes away: privileges on an object, or roles. A nested type is one of the two.
+/// </summary>
 public abstract record RevokeBody : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -7970,31 +8044,74 @@ public abstract record RevokeBody : ISqlNode
 	{
 	}
 
-	// T-SQL: REVOKE (Transact-SQL). `Object` and `AsPrincipal` are as GrantBody's. `Behavior` is nullable
-	// because T-SQL writes CASCADE or nothing where the standard always writes one of the two words, and
-	// `To` is the page's other spelling: it publishes `{ TO | FROM }` for the same clause, and FROM is
-	// the standard's, so the flag marks the deviation and not the norm.
+	/// <summary>
+	/// T-SQL: REVOKE (Transact-SQL). <c>REVOKE [option FOR] privileges [ON object] FROM grantees
+	/// [GRANTED BY ...] [CASCADE | RESTRICT] [AS principal]</c>.
+	/// </summary>
+	/// <param name="Option">The <c>GRANT OPTION FOR</c> or <c>HIERARCHY OPTION FOR</c> prefix; null where absent.</param>
+	/// <param name="Items">The privileges revoked.</param>
+	/// <param name="Object">The <c>ON</c> object; null where <c>ON</c> is left out, as in <see cref="GrantBody.Privileges"/>.</param>
+	/// <param name="Grantees">The principals the privileges are revoked from.</param>
+	/// <param name="GrantedBy">The <c>GRANTED BY { CURRENT_USER | CURRENT_ROLE }</c> clause; null where absent.</param>
+	/// <param name="Behavior">
+	/// The <c>CASCADE</c> or <c>RESTRICT</c> word. Null where none was written, which T-SQL allows for
+	/// <c>CASCADE</c>'s absence and the standard does not.
+	/// </param>
+	/// <param name="AsPrincipal">T-SQL's <c>AS principal</c>, as in <see cref="GrantBody.Privileges"/>; null where absent.</param>
+	/// <param name="To">
+	/// The clause was written <c>TO</c> where the standard writes <c>FROM</c>: the page publishes <c>{
+	/// TO | FROM }</c> for the same clause, so this marks the deviation and not the norm.
+	/// </param>
 	public sealed record Privileges(RevokeOption? Option, SqlList<Privilege> Items, PrivilegeObject? Object, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior? Behavior, Identifier? AsPrincipal = null, [property: Spelling] bool To = false) : RevokeBody;
+
+	/// <summary>
+	/// <c>REVOKE [ADMIN OPTION FOR] role, ... FROM grantee, ... [GRANTED BY ...] CASCADE |
+	/// RESTRICT</c>: roles taken away from principals.
+	/// </summary>
+	/// <param name="AdminOptionFor"><c>ADMIN OPTION FOR</c> was written: only the right to grant the roles on is revoked.</param>
+	/// <param name="Names">The roles revoked.</param>
+	/// <param name="Grantees">The principals the roles are revoked from.</param>
+	/// <param name="GrantedBy">The <c>GRANTED BY { CURRENT_USER | CURRENT_ROLE }</c> clause; null where absent.</param>
+	/// <param name="Behavior">The <c>CASCADE</c> or <c>RESTRICT</c> word, which the standard always writes here.</param>
 	public sealed record Roles(bool AdminOptionFor, SqlList<Identifier> Names, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
 }
-// BNF: <action>. PrivilegeKind is written by TransactSql/permissions.py, in SqlAst.Permissions.cs,
-// because T-SQL's members are its permission catalogue (D148).
-// T-SQL: GRANT (Transact-SQL). `Abbreviated` is the page's shorter word for the same permission: `ALL`
-// for ALL PRIVILEGES and `EXEC` for EXECUTE. It has no text on any other kind, and the writer refuses
-// it there.
-public sealed record Privilege(PrivilegeKind Kind, SqlList<Identifier> Columns, SqlList<RoutineDesignator> Methods, [property: Spelling] bool Abbreviated = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;action&gt;</c>, one privilege of a grant: a word such as <c>SELECT</c>, with the columns
+/// or methods it is limited to. T-SQL: GRANT (Transact-SQL).
+/// </summary>
+/// <param name="Kind">Which privilege. Its members are T-SQL's permission catalogue, generated into <c>SqlAst.Permissions.cs</c>.</param>
+/// <param name="Columns">The column list in parentheses after the privilege, <c>SELECT (a, b)</c>; empty where none was written.</param>
+/// <param name="Methods">
+/// The method designators in parentheses after the privilege; empty where none was written. Only where
+/// <paramref name="Columns"/> is empty.
+/// </param>
+/// <param name="Abbreviated">
+/// The page's shorter word for the same permission was written: <c>ALL</c> for <c>ALL PRIVILEGES</c>,
+/// <c>EXEC</c> for <c>EXECUTE</c>. It has no text on any other kind, and the writer refuses it there.
+/// </param>
+public sealed record Privilege(PrivilegeKind Kind, SqlList<Identifier> Columns, SqlList<RoutineDesignator> Methods, [property: Spelling] bool Abbreviated = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-// What a privilege is ON: the standard's <object name>, or T-SQL's securable written with its class. Two
-// members rather than one record with a nullable class, so that a class beside the standard's kind word,
-// its TABLE or its routine -- a node with no text -- cannot be built (Igor, D148).
+/// <summary>
+/// What a privilege is <c>ON</c>: the standard's <c>&lt;object name&gt;</c>, or T-SQL's securable
+/// written with its class. Two members rather than one record with a nullable class, so that a class
+/// written beside the standard's kind word, which has no text, cannot be built.
+/// </summary>
 public abstract record PrivilegeObject : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -8004,110 +8121,752 @@ public abstract record PrivilegeObject : ISqlNode
 	{
 	}
 
-	// BNF: <object name>. TableKeyword says `ON TABLE t` rather than `ON t`.
-	// T-SQL: GRANT Object Permissions (Transact-SQL). `ON t`, with no class written, which T-SQL reads as
-	// OBJECT. `Columns` is the column list that page lets follow the SECURABLE — `ON t (a, b)` — and not
-	// only a permission, which is `Privilege.Columns`. The engine reads both and objects afterwards where
-	// both are written (1019), so the tree holds them apart.
+	/// <summary>
+	/// BNF: <c>&lt;object name&gt;</c>. T-SQL: GRANT Object Permissions (Transact-SQL), where it is
+	/// <c>ON t</c> with no class written, which T-SQL reads as <c>OBJECT</c>.
+	/// </summary>
+	/// <param name="Kind">
+	/// The kind word of the standard's object: <c>DOMAIN</c>, <c>SEQUENCE</c> and so on. <see
+	/// cref="PrivilegeObjectKind.Table"/> is also what a bare name is.
+	/// </param>
+	/// <param name="Name">The object's name; for a routine, the name inside <paramref name="Routine"/>.</param>
+	/// <param name="Routine">
+	/// The routine designator, with its parameter types; set for <see
+	/// cref="PrivilegeObjectKind.Routine"/> alone and null otherwise.
+	/// </param>
+	/// <param name="TableKeyword"><c>ON TABLE t</c> was written rather than <c>ON t</c>.</param>
+	/// <param name="Columns">
+	/// T-SQL's column list on the securable, <c>ON t (a, b)</c>, which is not a permission's <see
+	/// cref="Privilege.Columns"/>. The engine reads both and objects afterwards where both are written,
+	/// so the tree holds them apart; null where absent.
+	/// </param>
 	public sealed record Named(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, SqlList<Identifier>? Columns = null) : PrivilegeObject;
 
-	// T-SQL: GRANT (Transact-SQL). `ON class::securable`, `SCHEMA::s`; `OBJECT::t` is the class written out.
-	// The grammar reads a column list after any class, `ON SCHEMA::s (c1)`, which the engine objects to
-	// afterwards (1019), so `Columns` is here too.
+	/// <summary>
+	/// T-SQL: GRANT (Transact-SQL). A securable written with its class: <c>ON class::securable</c>, as
+	/// <c>ON SCHEMA::s</c>; <c>OBJECT::t</c> is the class written out.
+	/// </summary>
+	/// <param name="Class">The securable's class, the word before <c>::</c>.</param>
+	/// <param name="Name">The securable's name.</param>
+	/// <param name="Columns">
+	/// The column list the grammar reads after any class, <c>ON SCHEMA::s (c1)</c>, which the engine
+	/// objects to afterwards; null where absent.
+	/// </param>
 	public sealed record Classed(SecurableClass Class, QualifiedName Name, SqlList<Identifier>? Columns = null) : PrivilegeObject;
 }
-public enum PrivilegeObjectKind { Table, Domain, Collation, CharacterSet, Translation, Type, Sequence, Routine }
-// T-SQL: GRANT (Transact-SQL). `Null` is the `NULL` the engine reads anywhere among the principals of GRANT,
-// DENY and REVOKE (and refuses after AS), which the standard has no word for.
-public abstract record Grantee : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected Grantee() { } public sealed record Public : Grantee; public sealed record Identifier(AuthorizationIdentifier Value) : Grantee; public sealed record Null : Grantee; }
-public enum Grantor { CurrentUser, CurrentRole }
-public enum RevokeOption { GrantOptionFor, HierarchyOptionFor }
+/// <summary>The kind word of a standard privilege object: <c>ON kind name</c>.</summary>
+public enum PrivilegeObjectKind
+{
+	/// <summary>A table or view; the <c>TABLE</c> word is optional (<see cref="PrivilegeObject.Named.TableKeyword"/>).</summary>
+	Table,
+
+	/// <summary><c>DOMAIN</c>.</summary>
+	Domain,
+
+	/// <summary><c>COLLATION</c>.</summary>
+	Collation,
+
+	/// <summary><c>CHARACTER SET</c>.</summary>
+	CharacterSet,
+
+	/// <summary><c>TRANSLATION</c>.</summary>
+	Translation,
+
+	/// <summary><c>TYPE</c>, a user-defined type.</summary>
+	Type,
+
+	/// <summary><c>SEQUENCE</c>.</summary>
+	Sequence,
+
+	/// <summary>A routine, named by its designator: a function, procedure or method.</summary>
+	Routine,
+}
+/// <summary>
+/// BNF: <c>&lt;grantee&gt;</c>, a principal a privilege or role is granted to or revoked from. A nested
+/// type is one of the forms.
+/// </summary>
+public abstract record Grantee : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected Grantee()
+	{
+	}
+
+	/// <summary>The <c>PUBLIC</c> grantee: every principal.</summary>
+	public sealed record Public : Grantee;
+
+	/// <summary>A named grantee: a user or role.</summary>
+	/// <param name="Value">The authorization identifier.</param>
+	public sealed record Identifier(AuthorizationIdentifier Value) : Grantee;
+
+	/// <summary>
+	/// T-SQL: GRANT (Transact-SQL). The <c>NULL</c> the engine reads anywhere among the principals of
+	/// <c>GRANT</c>, <c>DENY</c> and <c>REVOKE</c> (and refuses after <c>AS</c>), which the standard
+	/// has no word for.
+	/// </summary>
+	public sealed record Null : Grantee;
+}
+/// <summary>The role of <c>GRANTED BY</c>.</summary>
+public enum Grantor
+{
+	/// <summary><c>GRANTED BY CURRENT_USER</c>.</summary>
+	CurrentUser,
+
+	/// <summary><c>GRANTED BY CURRENT_ROLE</c>.</summary>
+	CurrentRole,
+}
+/// <summary>The option a <c>REVOKE</c> takes away on its own, written before the privileges.</summary>
+public enum RevokeOption
+{
+	/// <summary><c>GRANT OPTION FOR</c>.</summary>
+	GrantOptionFor,
+
+	/// <summary><c>HIERARCHY OPTION FOR</c>.</summary>
+	HierarchyOptionFor,
+}
 
 // --- Cursors/dynamic SQL/descriptors ---------------------------------------
-// BNF: <cursor name> (a <local qualified name>, `MODULE.c`), <extended cursor name>, and a dynamic cursor's <scope option>.
-// Name is null where the cursor is named by an extended name alone, `GLOBAL :c`.
-public sealed record CursorReference(QualifiedName? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;cursor name&gt;</c> (a <c>&lt;local qualified name&gt;</c>, <c>MODULE.c</c>),
+/// <c>&lt;extended cursor name&gt;</c>, and a dynamic cursor's <c>&lt;scope option&gt;</c>.
+/// </summary>
+/// <param name="Name">The cursor's name; null where the cursor is named by an extended name alone, <c>GLOBAL :c</c>.</param>
+/// <param name="ExtendedName">
+/// The extended cursor name, an expression such as a host variable that holds the name; null where
+/// <paramref name="Name"/> is set.
+/// </param>
+/// <param name="Ptf">The <c>PTF</c> word was written before the name.</param>
+/// <param name="Global">The <c>GLOBAL</c> scope word was written.</param>
+/// <param name="Local">The <c>LOCAL</c> scope word was written.</param>
+public sealed record CursorReference(QualifiedName? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-// T-SQL: DECLARE CURSOR, SET @local_variable (Transact-SQL). The extended form's words after CURSOR are
-// properties here rather than records of their own: `Scope` is `LOCAL | GLOBAL`, `Type` the cursor's kind
-// (`STATIC | KEYSET | DYNAMIC | FAST_FORWARD`, a different axis from the standard's sensitivity, which is
-// why STATIC is not Insensitive), `Concurrency` is `READ_ONLY | SCROLL_LOCKS | OPTIMISTIC`, and
-// `TypeWarning` is `TYPE_WARNING`. `ForwardOnly` is the word `FORWARD_ONLY` written where the standard
-// writes `NO SCROLL`: one meaning, two words, so Scrollability stays NoScroll and the flag says which
-// was written.
-public sealed record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The words of a cursor declaration that say how it behaves: <c>DECLARE ... CURSOR</c> and <c>ALLOCATE
+/// ... CURSOR</c>. Each is null (or false) where its words were not written. T-SQL: DECLARE CURSOR, SET
+/// @local_variable (Transact-SQL), whose extended form's words after <c>CURSOR</c> are the properties
+/// <see cref="Scope"/> to <see cref="ForwardOnly"/>.
+/// </summary>
+/// <param name="Sensitivity"><c>SENSITIVE</c>, <c>INSENSITIVE</c> or <c>ASENSITIVE</c>.</param>
+/// <param name="Scrollability"><c>SCROLL</c> or <c>NO SCROLL</c>.</param>
+/// <param name="Holdability"><c>WITH HOLD</c> or <c>WITHOUT HOLD</c>.</param>
+/// <param name="Returnability"><c>WITH RETURN</c> or <c>WITHOUT RETURN</c>.</param>
+public sealed record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <summary>T-SQL: <c>LOCAL</c> or <c>GLOBAL</c> after <c>CURSOR</c>; null where absent.</summary>
 	public CursorScope? Scope { get; init; }
+
+	/// <summary>
+	/// T-SQL: the cursor's kind, <c>STATIC | KEYSET | DYNAMIC | FAST_FORWARD</c>; null where absent. A
+	/// different axis from the standard's <c>Sensitivity</c>, which is why <c>STATIC</c> is not
+	/// <c>INSENSITIVE</c>.
+	/// </summary>
 	public CursorType? Type { get; init; }
+
+	/// <summary>T-SQL: <c>READ_ONLY | SCROLL_LOCKS | OPTIMISTIC</c>; null where absent.</summary>
 	public CursorConcurrency? Concurrency { get; init; }
+
+	/// <summary>T-SQL: <c>TYPE_WARNING</c> was written.</summary>
 	public bool TypeWarning { get; init; }
+
+	/// <summary>
+	/// T-SQL: the word <c>FORWARD_ONLY</c> was written where the standard writes <c>NO SCROLL</c>: one
+	/// meaning, two words, so <c>Scrollability</c> stays <c>NoScroll</c> and this says which was
+	/// written.
+	/// </summary>
 	[Spelling] public bool ForwardOnly { get; init; }
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum CursorSensitivity { Sensitive, Insensitive, Asensitive }
-public enum CursorScrollability { Scroll, NoScroll }
-public enum CursorHoldability { WithHold, WithoutHold }
-public enum CursorReturnability { WithReturn, WithoutReturn }
-// T-SQL: DECLARE CURSOR (Transact-SQL). `UpdatabilityBeforeOptions` says which of the query's `OPTION (…)`
-// and the cursor's `FOR UPDATE` was written first, which the engine reads either way round. It is a flag
-// about two children of this node — the Select whose OPTION it is, and the updatability beside it — and not
-// about a sibling's text, which is why it is allowed to live here.
-public abstract record CursorSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected CursorSource() { } public sealed record Query(Statement.Select Select, UpdatabilityClause? Updatability, [property: Spelling] bool UpdatabilityBeforeOptions = false) : CursorSource; public sealed record Prepared(StatementReference Statement) : CursorSource; }
-// T-SQL: DECLARE CURSOR (Transact-SQL). `Underscored` is `READ_ONLY`, which the ISO form of that page
-// publishes where the standard and T-SQL's `SET @c = CURSOR` write `READ ONLY`.
-public sealed record UpdatabilityClause(bool ReadOnly, SqlList<Identifier> UpdateColumns, [property: Spelling] bool Underscored = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>A cursor's sensitivity to changes made while it is open.</summary>
+public enum CursorSensitivity
+{
+	/// <summary><c>SENSITIVE</c>.</summary>
+	Sensitive,
+
+	/// <summary><c>INSENSITIVE</c>.</summary>
+	Insensitive,
+
+	/// <summary><c>ASENSITIVE</c>.</summary>
+	Asensitive,
+}
+/// <summary>Whether a cursor can move in both directions.</summary>
+public enum CursorScrollability
+{
+	/// <summary><c>SCROLL</c>.</summary>
+	Scroll,
+
+	/// <summary><c>NO SCROLL</c>; T-SQL's <c>FORWARD_ONLY</c> means the same, see <see cref="CursorProperties.ForwardOnly"/>.</summary>
+	NoScroll,
+}
+/// <summary>Whether a cursor stays open across a commit.</summary>
+public enum CursorHoldability
+{
+	/// <summary><c>WITH HOLD</c>.</summary>
+	WithHold,
+
+	/// <summary><c>WITHOUT HOLD</c>.</summary>
+	WithoutHold,
+}
+/// <summary>Whether a cursor is returned to the caller of its routine.</summary>
+public enum CursorReturnability
+{
+	/// <summary><c>WITH RETURN</c>.</summary>
+	WithReturn,
+
+	/// <summary><c>WITHOUT RETURN</c>.</summary>
+	WithoutReturn,
+}
+/// <summary>
+/// What a cursor is declared over: a query, or a prepared statement. A nested type is one of the two.
+/// </summary>
+public abstract record CursorSource : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected CursorSource()
+	{
+	}
+
+	/// <summary>
+	/// A cursor over a query: <c>FOR select [updatability]</c>. T-SQL: DECLARE CURSOR (Transact-SQL).
+	/// </summary>
+	/// <param name="Select">The query the cursor reads.</param>
+	/// <param name="Updatability">The <c>FOR READ ONLY</c> or <c>FOR UPDATE [OF columns]</c> clause; null where absent.</param>
+	/// <param name="UpdatabilityBeforeOptions">
+	/// The updatability was written before the query's <c>OPTION (...)</c>, which the engine reads
+	/// either way round. It is a flag about two children of this node, the select whose <c>OPTION</c>
+	/// it is and the updatability beside it, and not about a sibling's text, which is why it lives
+	/// here.
+	/// </param>
+	public sealed record Query(Statement.Select Select, UpdatabilityClause? Updatability, [property: Spelling] bool UpdatabilityBeforeOptions = false) : CursorSource;
+
+	/// <summary>A cursor over a prepared statement: <c>FOR statement_name</c>.</summary>
+	/// <param name="Statement">The prepared statement's name.</param>
+	public sealed record Prepared(StatementReference Statement) : CursorSource;
+}
+/// <summary>
+/// A cursor's <c>FOR READ ONLY</c> or <c>FOR UPDATE [OF column, ...]</c> clause. T-SQL: DECLARE CURSOR
+/// (Transact-SQL).
+/// </summary>
+/// <param name="ReadOnly">True for <c>READ ONLY</c>, false for <c>UPDATE</c>.</param>
+/// <param name="UpdateColumns">The columns after <c>UPDATE OF</c>; empty where none were named, and always for <c>READ ONLY</c>.</param>
+/// <param name="Underscored">
+/// The word was written <c>READ_ONLY</c>, which the ISO form of that page publishes where the standard
+/// and T-SQL's <c>SET @c = CURSOR</c> write <c>READ ONLY</c>.
+/// </param>
+public sealed record UpdatabilityClause(bool ReadOnly, SqlList<Identifier> UpdateColumns, [property: Spelling] bool Underscored = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record FetchOrientation(FetchOrientationKind Kind, Expression? Offset = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The orientation of a <c>FETCH</c>: which row of the cursor is read.</summary>
+/// <param name="Kind">The orientation word.</param>
+/// <param name="Offset">The row number or distance after <c>ABSOLUTE</c> or <c>RELATIVE</c>; null for the other kinds.</param>
+public sealed record FetchOrientation(FetchOrientationKind Kind, Expression? Offset = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum FetchOrientationKind { Next, Prior, First, Last, Absolute, Relative }
-public abstract record CursorAllocationSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected CursorAllocationSource() { } public sealed record Prepared(StatementReference Statement) : CursorAllocationSource; public sealed record Routine(RoutineDesignator Designator) : CursorAllocationSource; }
-public sealed record StatementReference(Identifier? Name, Expression? ExtendedName = null, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The orientation word of a <c>FETCH</c>.</summary>
+public enum FetchOrientationKind
+{
+	/// <summary><c>NEXT</c>: the row after the current one.</summary>
+	Next,
+
+	/// <summary><c>PRIOR</c>: the row before the current one.</summary>
+	Prior,
+
+	/// <summary><c>FIRST</c>: the first row.</summary>
+	First,
+
+	/// <summary><c>LAST</c>: the last row.</summary>
+	Last,
+
+	/// <summary><c>ABSOLUTE n</c>: the n-th row; negative counts from the end.</summary>
+	Absolute,
+
+	/// <summary><c>RELATIVE n</c>: n rows from the current one.</summary>
+	Relative,
+}
+/// <summary>What <c>ALLOCATE CURSOR</c> binds the new cursor to. A nested type is one of the two.</summary>
+public abstract record CursorAllocationSource : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected CursorAllocationSource()
+	{
+	}
+
+	/// <summary><c>ALLOCATE c CURSOR FOR statement_name</c>: the cursor is bound to a prepared statement.</summary>
+	/// <param name="Statement">The prepared statement.</param>
+	public sealed record Prepared(StatementReference Statement) : CursorAllocationSource;
+
+	/// <summary>
+	/// <c>ALLOCATE c CURSOR FOR routine</c>: the cursor is bound to a routine, named by its designator.
+	/// </summary>
+	/// <param name="Designator">The routine designator.</param>
+	public sealed record Routine(RoutineDesignator Designator) : CursorAllocationSource;
+}
+/// <summary>
+/// A reference to a prepared statement by name, as <c>PREPARE</c>, <c>EXECUTE</c> and a cursor
+/// declaration write it.
+/// </summary>
+/// <param name="Name">The statement's name; null where it is given by an extended name alone.</param>
+/// <param name="ExtendedName">
+/// The extended statement name, an expression such as a host variable that holds the name; null where
+/// <paramref name="Name"/> is set.
+/// </param>
+/// <param name="Global">The <c>GLOBAL</c> scope word was written.</param>
+/// <param name="Local">The <c>LOCAL</c> scope word was written.</param>
+public sealed record StatementReference(Identifier? Name, Expression? ExtendedName = null, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record DescriptorReference(Identifier? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// A reference to an SQL descriptor area by name, as <c>ALLOCATE DESCRIPTOR</c>, <c>GET DESCRIPTOR</c>
+/// and the statements that read one write it.
+/// </summary>
+/// <param name="Name">The descriptor's name; null where it is given by an extended name alone.</param>
+/// <param name="ExtendedName">
+/// The extended descriptor name, an expression such as a host variable that holds the name; null where
+/// <paramref name="Name"/> is set.
+/// </param>
+/// <param name="Ptf">The <c>PTF</c> word was written before the name.</param>
+/// <param name="Global">The <c>GLOBAL</c> scope word was written.</param>
+/// <param name="Local">The <c>LOCAL</c> scope word was written.</param>
+public sealed record DescriptorReference(Identifier? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record DescriptorGet : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DescriptorGet() { } public sealed record Header(SqlList<DescriptorRead> Items) : DescriptorGet; public sealed record Value(Expression Index, SqlList<DescriptorRead> Items) : DescriptorGet; }
-public abstract record DescriptorSet : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DescriptorSet() { } public sealed record Header(SqlList<DescriptorWrite> Items) : DescriptorSet; public sealed record Value(Expression Index, SqlList<DescriptorWrite> Items) : DescriptorSet; }
-public sealed record DescriptorRead(Expression Target, DescriptorItem Item) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// What <c>GET DESCRIPTOR</c> reads: the descriptor header, or one of its item descriptors. A nested
+/// type is one of the two.
+/// </summary>
+public abstract record DescriptorGet : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DescriptorGet()
+	{
+	}
+
+	/// <summary><c>GET DESCRIPTOR d target = item, ...</c>: header items such as <c>COUNT</c>.</summary>
+	/// <param name="Items">The reads, each storing one header item into a target.</param>
+	public sealed record Header(SqlList<DescriptorRead> Items) : DescriptorGet;
+
+	/// <summary><c>GET DESCRIPTOR d VALUE n target = item, ...</c>: items of the n-th item descriptor.</summary>
+	/// <param name="Index">The item descriptor's number, after <c>VALUE</c>.</param>
+	/// <param name="Items">The reads, each storing one item into a target.</param>
+	public sealed record Value(Expression Index, SqlList<DescriptorRead> Items) : DescriptorGet;
+}
+/// <summary>
+/// What <c>SET DESCRIPTOR</c> writes: the descriptor header, or one of its item descriptors. A nested
+/// type is one of the two.
+/// </summary>
+public abstract record DescriptorSet : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DescriptorSet()
+	{
+	}
+
+	/// <summary><c>SET DESCRIPTOR d item = value, ...</c>: header items such as <c>COUNT</c>.</summary>
+	/// <param name="Items">The writes, each setting one header item.</param>
+	public sealed record Header(SqlList<DescriptorWrite> Items) : DescriptorSet;
+
+	/// <summary><c>SET DESCRIPTOR d VALUE n item = value, ...</c>: items of the n-th item descriptor.</summary>
+	/// <param name="Index">The item descriptor's number, after <c>VALUE</c>.</param>
+	/// <param name="Items">The writes, each setting one item.</param>
+	public sealed record Value(Expression Index, SqlList<DescriptorWrite> Items) : DescriptorSet;
+}
+/// <summary>One <c>target = item</c> assignment of <c>GET DESCRIPTOR</c>.</summary>
+/// <param name="Target">The variable or parameter that receives the item.</param>
+/// <param name="Item">The descriptor item read.</param>
+public sealed record DescriptorRead(Expression Target, DescriptorItem Item) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record DescriptorWrite(DescriptorItem Item, Expression Value) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>One <c>item = value</c> assignment of <c>SET DESCRIPTOR</c>.</summary>
+/// <param name="Item">The descriptor item set.</param>
+/// <param name="Value">The value assigned to it.</param>
+public sealed record DescriptorWrite(DescriptorItem Item, Expression Value) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum DescriptorItem { Count, KeyType, DynamicFunction, DynamicFunctionCode, TopLevelCount, Cardinality, CharacterSetCatalog, CharacterSetName, CharacterSetSchema, CollationCatalog, CollationName, CollationSchema, Data, DatetimeIntervalCode, DatetimeIntervalPrecision, Degree, Indicator, KeyMember, Length, Level, Name, Nullable, NullOrdering, OctetLength, ParameterMode, ParameterOrdinalPosition, ParameterSpecificCatalog, ParameterSpecificName, ParameterSpecificSchema, Precision, ReturnedCardinality, ReturnedLength, ReturnedOctetLength, Scale, ScopeCatalog, ScopeName, ScopeSchema, SortDirection, Type, Unnamed, UserDefinedTypeCatalog, UserDefinedTypeName, UserDefinedTypeSchema, UserDefinedTypeCode }
-public abstract record DescriptorCopy : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DescriptorCopy() { } public sealed record Whole(DescriptorReference Source, DescriptorReference Target) : DescriptorCopy; public sealed record Item(DescriptorReference Source, Expression SourceIndex, SqlList<DescriptorCopyOption> Options, DescriptorReference Target, Expression TargetIndex) : DescriptorCopy; }
-public enum DescriptorCopyOption { Name, Type, Data }
-public abstract record DescribeBody : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DescribeBody() { } public sealed record Input(StatementReference Statement, DescriptorReference Descriptor, bool? WithNesting, bool SqlKeyword = false) : DescribeBody; public sealed record Output(DescribeObject Object, DescriptorReference Descriptor, bool? WithNesting, bool OutputKeyword, bool SqlKeyword = false) : DescribeBody; }
-public abstract record DescribeObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DescribeObject() { } public sealed record Statement(StatementReference Value) : DescribeObject; public sealed record Cursor(CursorReference Value) : DescribeObject; }
-public abstract record DynamicArguments : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DynamicArguments() { } public sealed record Values(SqlList<Expression> Items) : DynamicArguments; public sealed record Descriptor(DescriptorReference Value, bool SqlKeyword) : DynamicArguments; }
+/// <summary>
+/// An item of an SQL descriptor area, read by <c>GET DESCRIPTOR</c> and set by <c>SET DESCRIPTOR</c>.
+/// Each member is the keyword of that name in upper case with underscores.
+/// </summary>
+public enum DescriptorItem
+{
+	/// <summary><c>COUNT</c>: number of item descriptors in use (a header item).</summary>
+	Count,
+
+	/// <summary><c>KEY_TYPE</c>: type of the key of an item (header item).</summary>
+	KeyType,
+
+	/// <summary><c>DYNAMIC_FUNCTION</c>: the kind of the dynamic statement (header item).</summary>
+	DynamicFunction,
+
+	/// <summary><c>DYNAMIC_FUNCTION_CODE</c>: the numeric code of the dynamic statement (header item).</summary>
+	DynamicFunctionCode,
+
+	/// <summary><c>TOP_LEVEL_COUNT</c>: number of top-level item descriptors (header item).</summary>
+	TopLevelCount,
+
+	/// <summary><c>CARDINALITY</c>: cardinality of a multiset or array item.</summary>
+	Cardinality,
+
+	/// <summary><c>CHARACTER_SET_CATALOG</c>: catalog of the item's character set.</summary>
+	CharacterSetCatalog,
+
+	/// <summary><c>CHARACTER_SET_NAME</c>: name of the item's character set.</summary>
+	CharacterSetName,
+
+	/// <summary><c>CHARACTER_SET_SCHEMA</c>: schema of the item's character set.</summary>
+	CharacterSetSchema,
+
+	/// <summary><c>COLLATION_CATALOG</c>: catalog of the item's collation.</summary>
+	CollationCatalog,
+
+	/// <summary><c>COLLATION_NAME</c>: name of the item's collation.</summary>
+	CollationName,
+
+	/// <summary><c>COLLATION_SCHEMA</c>: schema of the item's collation.</summary>
+	CollationSchema,
+
+	/// <summary><c>DATA</c>: the item's value.</summary>
+	Data,
+
+	/// <summary><c>DATETIME_INTERVAL_CODE</c>: code of the datetime or interval subtype.</summary>
+	DatetimeIntervalCode,
+
+	/// <summary><c>DATETIME_INTERVAL_PRECISION</c>: leading precision of a datetime or interval item.</summary>
+	DatetimeIntervalPrecision,
+
+	/// <summary><c>DEGREE</c>: degree of a row item: its field count.</summary>
+	Degree,
+
+	/// <summary><c>INDICATOR</c>: the null indicator of the item.</summary>
+	Indicator,
+
+	/// <summary><c>KEY_MEMBER</c>: whether the item is a member of the key.</summary>
+	KeyMember,
+
+	/// <summary><c>LENGTH</c>: length of the item.</summary>
+	Length,
+
+	/// <summary><c>LEVEL</c>: nesting level of the item.</summary>
+	Level,
+
+	/// <summary><c>NAME</c>: name of the item.</summary>
+	Name,
+
+	/// <summary><c>NULLABLE</c>: whether the item may be null.</summary>
+	Nullable,
+
+	/// <summary><c>NULL_ORDERING</c>: null ordering of the item.</summary>
+	NullOrdering,
+
+	/// <summary><c>OCTET_LENGTH</c>: length of the item in octets.</summary>
+	OctetLength,
+
+	/// <summary><c>PARAMETER_MODE</c>: mode of the parameter: in, out or inout.</summary>
+	ParameterMode,
+
+	/// <summary><c>PARAMETER_ORDINAL_POSITION</c>: position of the parameter in the routine.</summary>
+	ParameterOrdinalPosition,
+
+	/// <summary><c>PARAMETER_SPECIFIC_CATALOG</c>: catalog of the routine's specific name.</summary>
+	ParameterSpecificCatalog,
+
+	/// <summary><c>PARAMETER_SPECIFIC_NAME</c>: the routine's specific name.</summary>
+	ParameterSpecificName,
+
+	/// <summary><c>PARAMETER_SPECIFIC_SCHEMA</c>: schema of the routine's specific name.</summary>
+	ParameterSpecificSchema,
+
+	/// <summary><c>PRECISION</c>: precision of a numeric item.</summary>
+	Precision,
+
+	/// <summary><c>RETURNED_CARDINALITY</c>: cardinality actually returned.</summary>
+	ReturnedCardinality,
+
+	/// <summary><c>RETURNED_LENGTH</c>: length actually returned.</summary>
+	ReturnedLength,
+
+	/// <summary><c>RETURNED_OCTET_LENGTH</c>: length in octets actually returned.</summary>
+	ReturnedOctetLength,
+
+	/// <summary><c>SCALE</c>: scale of a numeric item.</summary>
+	Scale,
+
+	/// <summary><c>SCOPE_CATALOG</c>: catalog of the scope of a reference item.</summary>
+	ScopeCatalog,
+
+	/// <summary><c>SCOPE_NAME</c>: name of the scope of a reference item.</summary>
+	ScopeName,
+
+	/// <summary><c>SCOPE_SCHEMA</c>: schema of the scope of a reference item.</summary>
+	ScopeSchema,
+
+	/// <summary><c>SORT_DIRECTION</c>: sort direction of the item.</summary>
+	SortDirection,
+
+	/// <summary><c>TYPE</c>: type code of the item.</summary>
+	Type,
+
+	/// <summary><c>UNNAMED</c>: whether the item has no name.</summary>
+	Unnamed,
+
+	/// <summary><c>USER_DEFINED_TYPE_CATALOG</c>: catalog of the item's user-defined type.</summary>
+	UserDefinedTypeCatalog,
+
+	/// <summary><c>USER_DEFINED_TYPE_NAME</c>: name of the item's user-defined type.</summary>
+	UserDefinedTypeName,
+
+	/// <summary><c>USER_DEFINED_TYPE_SCHEMA</c>: schema of the item's user-defined type.</summary>
+	UserDefinedTypeSchema,
+
+	/// <summary><c>USER_DEFINED_TYPE_CODE</c>: code of the item's user-defined type.</summary>
+	UserDefinedTypeCode,
+}
+/// <summary>
+/// What <c>COPY DESCRIPTOR</c> copies: a whole descriptor area, or items of one item descriptor. A
+/// nested type is one of the two.
+/// </summary>
+public abstract record DescriptorCopy : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DescriptorCopy()
+	{
+	}
+
+	/// <summary><c>COPY DESCRIPTOR source TO target</c>: the whole area.</summary>
+	/// <param name="Source">The descriptor copied from.</param>
+	/// <param name="Target">The descriptor copied to.</param>
+	public sealed record Whole(DescriptorReference Source, DescriptorReference Target) : DescriptorCopy;
+
+	/// <summary>
+	/// <c>COPY source VALUE n (options) TO target VALUE m</c>: some items of one item descriptor.
+	/// </summary>
+	/// <param name="Source">The descriptor copied from.</param>
+	/// <param name="SourceIndex">The source item descriptor's number.</param>
+	/// <param name="Options">The items copied, in the parentheses.</param>
+	/// <param name="Target">The descriptor copied to.</param>
+	/// <param name="TargetIndex">The target item descriptor's number.</param>
+	public sealed record Item(DescriptorReference Source, Expression SourceIndex, SqlList<DescriptorCopyOption> Options, DescriptorReference Target, Expression TargetIndex) : DescriptorCopy;
+}
+/// <summary>The items an item-wise <c>COPY DESCRIPTOR</c> copies.</summary>
+public enum DescriptorCopyOption
+{
+	/// <summary><c>NAME</c>.</summary>
+	Name,
+
+	/// <summary><c>TYPE</c>.</summary>
+	Type,
+
+	/// <summary><c>DATA</c>.</summary>
+	Data,
+}
+/// <summary>
+/// What <c>DESCRIBE</c> describes: the input parameters of a prepared statement, or its output. A
+/// nested type is one of the two.
+/// </summary>
+public abstract record DescribeBody : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DescribeBody()
+	{
+	}
+
+	/// <summary><c>DESCRIBE INPUT statement USING [SQL] DESCRIPTOR d [WITH | WITHOUT NESTING]</c>.</summary>
+	/// <param name="Statement">The prepared statement.</param>
+	/// <param name="Descriptor">The descriptor area that receives the description.</param>
+	/// <param name="WithNesting">True for <c>WITH NESTING</c>, false for <c>WITHOUT NESTING</c>, null where neither was written.</param>
+	/// <param name="SqlKeyword">The word <c>SQL</c> was written before <c>DESCRIPTOR</c>.</param>
+	public sealed record Input(StatementReference Statement, DescriptorReference Descriptor, bool? WithNesting, bool SqlKeyword = false) : DescribeBody;
+
+	/// <summary><c>DESCRIBE [OUTPUT] object USING [SQL] DESCRIPTOR d [WITH | WITHOUT NESTING]</c>.</summary>
+	/// <param name="Object">What is described: a prepared statement or a cursor.</param>
+	/// <param name="Descriptor">The descriptor area that receives the description.</param>
+	/// <param name="WithNesting">True for <c>WITH NESTING</c>, false for <c>WITHOUT NESTING</c>, null where neither was written.</param>
+	/// <param name="OutputKeyword">The word <c>OUTPUT</c> was written, which the standard allows to be left out.</param>
+	/// <param name="SqlKeyword">The word <c>SQL</c> was written before <c>DESCRIPTOR</c>.</param>
+	public sealed record Output(DescribeObject Object, DescriptorReference Descriptor, bool? WithNesting, bool OutputKeyword, bool SqlKeyword = false) : DescribeBody;
+}
+/// <summary>What an output <c>DESCRIBE</c> describes. A nested type is one of the two.</summary>
+public abstract record DescribeObject : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DescribeObject()
+	{
+	}
+
+	/// <summary>A prepared statement.</summary>
+	/// <param name="Value">The statement.</param>
+	public sealed record Statement(StatementReference Value) : DescribeObject;
+
+	/// <summary>A cursor, as <c>DESCRIBE CURSOR c</c>.</summary>
+	/// <param name="Value">The cursor.</param>
+	public sealed record Cursor(CursorReference Value) : DescribeObject;
+}
+/// <summary>
+/// The arguments or results of a dynamic statement: the <c>USING</c> or <c>INTO</c> list of
+/// <c>EXECUTE</c>, <c>OPEN</c> and <c>FETCH</c>, written without that leading word. A nested type is
+/// one of the two forms.
+/// </summary>
+public abstract record DynamicArguments : ISqlNode
+{
+	SqlLocation _location;
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DynamicArguments()
+	{
+	}
+
+	/// <summary>The values listed in place: <c>value, ...</c>.</summary>
+	/// <param name="Items">The expressions, or the variables that receive values.</param>
+	public sealed record Values(SqlList<Expression> Items) : DynamicArguments;
+
+	/// <summary>The values held in a descriptor area: <c>[SQL] DESCRIPTOR d</c>.</summary>
+	/// <param name="Value">The descriptor area.</param>
+	/// <param name="SqlKeyword">The word <c>SQL</c> was written before <c>DESCRIPTOR</c>.</param>
+	public sealed record Descriptor(DescriptorReference Value, bool SqlKeyword) : DynamicArguments;
+}
 
 // --- Transactions/connections ---------------------------------------------
 public abstract record TransactionMode : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected TransactionMode() { } public sealed record Isolation(IsolationLevel Level) : TransactionMode; public sealed record Access(TransactionAccess Mode) : TransactionMode; public sealed record DiagnosticsSize(Expression Size) : TransactionMode; }
