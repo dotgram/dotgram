@@ -10,6 +10,10 @@
 		<OutputType>Exe</OutputType>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
+
+		<!-- The workstation collector, deliberately: under the server collector (47m53s against 63m27s) a test that
+		     compares two timings of a few milliseconds failed once (ExpressionNestRefusalTests: 8.1 times against its
+		     bound of 6), probably because a pause of the server collector is a large part of what it times. -->
 	</PropertyGroup>
 
 	<ItemGroup>

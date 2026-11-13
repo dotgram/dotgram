@@ -10,6 +10,13 @@
 		     rather than being hosted by VSTest. -->
 		<OutputType>Exe</OutputType>
 
+		<!-- Server garbage collection: the suite compiles and loads thousands of small assemblies on a
+		     many-core machine, and the workstation collector, one thread stopping the process, was what
+		     the run waited for. Measured on the same binaries: 21m50s down to 9m37s of wall time and an
+		     18.4 GB peak down to 13.5 GB. The tests that measure time and the heap are in DotGram.Tests.Slow, which
+		     keeps the workstation collector; the few here that read a clock have bounds of seconds. -->
+		<ServerGarbageCollector>true</ServerGarbageCollector>
+
 		<!-- Generated files land on disk so they can be read and diffed as code. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
