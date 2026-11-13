@@ -5367,11 +5367,18 @@ public enum TableCommitAction
 	Delete,
 }
 
-/// <summary>BNF: grouping element families.</summary>
+/// <summary>
+/// BNF: <c>&lt;grouping element&gt;</c>. One item of a <c>GROUP BY</c> list: a column or expression, a
+/// <c>ROLLUP</c>, <c>CUBE</c> or <c>GROUPING SETS</c> list, or the empty set <c>()</c>. Switch on the nested type.
+/// </summary>
 public abstract partial record GroupingElement : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -5381,18 +5388,46 @@ public abstract partial record GroupingElement : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A plain grouping: one expression, <c>a</c>, or a list in brackets, <c>(a, b)</c>.
+	/// </summary>
+	/// <param name="Expressions">The expressions grouped by: one where the item is written without brackets, the list inside the brackets otherwise.</param>
+	/// <param name="Parenthesized">The list was written in brackets, <c>(a, b)</c>, so it is one grouping set and not several items; false for a bare expression.</param>
 	public sealed partial record Ordinary(SqlList<Expression> Expressions, bool Parenthesized = false) : GroupingElement;
+	/// <summary>
+	/// <c>ROLLUP (a, (b, c))</c>: the grouping sets that drop the trailing items one by one, down to the empty set.
+	/// </summary>
+	/// <param name="Items">The items inside the brackets.</param>
 	public sealed record Rollup(SqlList<GroupingElement> Items) : GroupingElement;
+	/// <summary>
+	/// <c>CUBE (a, b)</c>: every grouping set that can be made of the items.
+	/// </summary>
+	/// <param name="Items">The items inside the brackets.</param>
 	public sealed record Cube(SqlList<GroupingElement> Items) : GroupingElement;
+	/// <summary>
+	/// <c>GROUPING SETS (a, (b, c), ROLLUP (d), ())</c>: the grouping sets written out, each of which may itself be a <c>ROLLUP</c>, <c>CUBE</c> or <c>GROUPING SETS</c>.
+	/// </summary>
+	/// <param name="Items">The sets inside the brackets.</param>
 	public sealed record Sets(SqlList<GroupingElement> Items) : GroupingElement;
+	/// <summary>
+	/// The empty grouping set <c>()</c>: all rows as one group.
+	/// </summary>
 	public sealed record Empty : GroupingElement;
 }
 
-/// <summary>BNF: MATCH_RECOGNIZE and row-pattern grammar. Kept separate from normal SQL expressions.</summary>
+/// <summary>
+/// BNF: <c>&lt;row pattern&gt;</c>. The regular expression of a <c>MATCH_RECOGNIZE</c> clause's <c>PATTERN (…)</c>,
+/// over the names of its <c>DEFINE</c> variables. A language of its own, kept apart from the SQL expressions;
+/// switch on the nested type.
+/// </summary>
 public abstract record RowPattern : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -5402,62 +5437,241 @@ public abstract record RowPattern : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A pattern variable: <c>A</c>, one row that meets its <c>DEFINE</c> condition.
+	/// </summary>
+	/// <param name="Name">The variable's name.</param>
 	public sealed record Variable(Identifier Name) : RowPattern;
+	/// <summary>
+	/// <c>^</c>: the start of the partition.
+	/// </summary>
 	public sealed record StartAnchor : RowPattern;
+	/// <summary>
+	/// <c>$</c>: the end of the partition.
+	/// </summary>
 	public sealed record EndAnchor : RowPattern;
+	/// <summary>
+	/// Patterns one after another: <c>A B+ C</c>.
+	/// </summary>
+	/// <param name="Items">The patterns, in the order the rows must match them.</param>
 	public sealed record Sequence(SqlList<RowPattern> Items) : RowPattern;
+	/// <summary>
+	/// Alternatives: <c>A | B</c>, the match takes one of them.
+	/// </summary>
+	/// <param name="Items">The alternatives, in the order written.</param>
 	public sealed record Alternation(SqlList<RowPattern> Items) : RowPattern;
+	/// <summary>
+	/// A pattern repeated: <c>A+</c>, <c>(A B){2,3}?</c>.
+	/// </summary>
+	/// <param name="Pattern">The pattern repeated.</param>
+	/// <param name="Quantifier">How many times, and whether the fewest is preferred.</param>
 	public sealed record Quantified(RowPattern Pattern, RowPatternQuantifier Quantifier) : RowPattern;
+	/// <summary>
+	/// A pattern in brackets: <c>(A B)</c>, or the empty pattern <c>()</c>.
+	/// </summary>
+	/// <param name="Pattern">The pattern inside the brackets; null for <c>()</c>.</param>
 	public sealed record Parenthesized(RowPattern? Pattern) : RowPattern;
+	/// <summary>
+	/// <c>{- A -}</c>: rows that match the pattern but are left out of the output of <c>ALL ROWS PER MATCH</c>.
+	/// </summary>
+	/// <param name="Pattern">The pattern between the markers.</param>
 	public sealed record Excluded(RowPattern Pattern) : RowPattern;
+	/// <summary>
+	/// <c>PERMUTE (A, B, C)</c>: the patterns in any order, as the alternation of all their sequences.
+	/// </summary>
+	/// <param name="Items">The patterns to permute.</param>
 	public sealed record Permute(SqlList<RowPattern> Items) : RowPattern;
 }
-public sealed record RowPatternQuantifier(RowPatternQuantifierKind Kind, int? Min = null, int? Max = null, bool Reluctant = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public enum RowPatternQuantifierKind { ZeroOrMore, OneOrMore, ZeroOrOne, Range, Exact }
-public sealed record RowPatternClause(SqlList<Expression> PartitionBy, OrderByClause? OrderBy, SqlList<RowPatternMeasure> Measures, RowsPerMatch? RowsPerMatch, RowPatternSkip? AfterMatch, RowPatternInitial? Initial, RowPattern? Pattern, SqlList<RowPatternSubset> Subsets, SqlList<RowPatternDefinition> Definitions) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record RowPatternMeasure(Expression Expression, Identifier Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record RowPatternSubset(Identifier Name, SqlList<Identifier> Variables) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record RowPatternDefinition(Identifier Variable, Expression Condition) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public enum RowsPerMatch { One, All, AllShowEmpty, AllOmitEmpty, AllWithUnmatched }
-public enum RowPatternInitial { Initial, Seek }
-public sealed record RowPatternSkip(RowPatternSkipKind Kind, Identifier? Variable = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public enum RowPatternSkipKind { NextRow, PastLastRow, First, Last, Variable }
+/// <summary>
+/// BNF: <c>&lt;row pattern quantifier&gt;</c>. How often a pattern repeats: <c>*</c>, <c>+</c>, <c>?</c>,
+/// <c>{n}</c>, <c>{n,m}</c>, with a trailing <c>?</c> for the reluctant form.
+/// </summary>
+/// <param name="Kind">Which spelling it is.</param>
+/// <param name="Min">The lower bound of <c>{n,m}</c> and the count of <c>{n}</c>; null where the kind has none, or the range leaves it open.</param>
+/// <param name="Max">The upper bound of <c>{n,m}</c>; null where the kind has none, or the range leaves it open.</param>
+/// <param name="Reluctant">A <c>?</c> follows the quantifier: the match takes as few repetitions as it can, not as many.</param>
+public sealed record RowPatternQuantifier(RowPatternQuantifierKind Kind, int? Min = null, int? Max = null, bool Reluctant = false) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
 
-/// <summary>BNF: SQL/JSON path language. Separate expression language embedded in SQL.</summary>
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>Which spelling a <see cref="RowPatternQuantifier"/> is.</summary>
+public enum RowPatternQuantifierKind
+{
+	/// <summary><c>*</c>: zero or more times.</summary>
+	ZeroOrMore,
+
+	/// <summary><c>+</c>: one or more times.</summary>
+	OneOrMore,
+
+	/// <summary><c>?</c>: at most once.</summary>
+	ZeroOrOne,
+
+	/// <summary><c>{n,m}</c>: between <see cref="RowPatternQuantifier.Min"/> and <see cref="RowPatternQuantifier.Max"/> times.</summary>
+	Range,
+
+	/// <summary><c>{n}</c>: exactly <see cref="RowPatternQuantifier.Min"/> times.</summary>
+	Exact,
+}
+/// <summary>
+/// BNF: <c>&lt;row pattern recognition clause&gt;</c>. <c>MATCH_RECOGNIZE (…)</c> after a table: the rows of a
+/// partition that match a pattern, and what is returned for each match.
+/// </summary>
+/// <param name="PartitionBy">The <c>PARTITION BY</c> expressions; empty where none was written.</param>
+/// <param name="OrderBy">The <c>ORDER BY</c> of the rows within a partition; null where none was written.</param>
+/// <param name="Measures">The <c>MEASURES</c>: the values computed for a match; empty where none was written.</param>
+/// <param name="RowsPerMatch">The <c>ONE ROW PER MATCH</c> or <c>ALL ROWS PER MATCH</c> form; null where it was not written.</param>
+/// <param name="AfterMatch">The <c>AFTER MATCH SKIP …</c> clause; null where it was not written.</param>
+/// <param name="Initial">The <c>INITIAL</c> or <c>SEEK</c> keyword; null where it was not written.</param>
+/// <param name="Pattern">The <c>PATTERN (…)</c>; null for the empty pattern.</param>
+/// <param name="Subsets">The <c>SUBSET</c> unions of variables; empty where none was written.</param>
+/// <param name="Definitions">The <c>DEFINE</c> conditions, one per variable.</param>
+public sealed record RowPatternClause(SqlList<Expression> PartitionBy, OrderByClause? OrderBy, SqlList<RowPatternMeasure> Measures, RowsPerMatch? RowsPerMatch, RowPatternSkip? AfterMatch, RowPatternInitial? Initial, RowPattern? Pattern, SqlList<RowPatternSubset> Subsets, SqlList<RowPatternDefinition> Definitions) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>
+/// One of a <c>MEASURES</c> list: <c>LAST(A.price) AS last_price</c>.
+/// </summary>
+/// <param name="Expression">The value computed for a match.</param>
+/// <param name="Name">The name the column gets.</param>
+public sealed record RowPatternMeasure(Expression Expression, Identifier Name) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>
+/// One of a <c>SUBSET</c> list: <c>S = (A, B)</c>, a name for the rows of several variables together.
+/// </summary>
+/// <param name="Name">The name of the union.</param>
+/// <param name="Variables">The variables it joins.</param>
+public sealed record RowPatternSubset(Identifier Name, SqlList<Identifier> Variables) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>
+/// One of a <c>DEFINE</c> list: <c>A AS price &gt; 10</c>.
+/// </summary>
+/// <param name="Variable">The pattern variable defined.</param>
+/// <param name="Condition">The condition a row meets to be one of the variable's rows.</param>
+public sealed record RowPatternDefinition(Identifier Variable, Expression Condition) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>How many rows a match returns, from <c>… ROW(S) PER MATCH</c>.</summary>
+public enum RowsPerMatch
+{
+	/// <summary><c>ONE ROW PER MATCH</c>.</summary>
+	One,
+
+	/// <summary><c>ALL ROWS PER MATCH</c>.</summary>
+	All,
+
+	/// <summary><c>ALL ROWS PER MATCH SHOW EMPTY MATCHES</c>.</summary>
+	AllShowEmpty,
+
+	/// <summary><c>ALL ROWS PER MATCH OMIT EMPTY MATCHES</c>.</summary>
+	AllOmitEmpty,
+
+	/// <summary><c>ALL ROWS PER MATCH WITH UNMATCHED ROWS</c>.</summary>
+	AllWithUnmatched,
+}
+/// <summary>Where the search for a match starts, from <c>INITIAL</c> and <c>SEEK</c>.</summary>
+public enum RowPatternInitial
+{
+	/// <summary><c>INITIAL</c>: a match must start at the first row it is tried from.</summary>
+	Initial,
+
+	/// <summary><c>SEEK</c>: the search moves on to later rows to find a match.</summary>
+	Seek,
+}
+/// <summary>
+/// BNF: <c>&lt;row pattern skip to&gt;</c>. <c>AFTER MATCH SKIP …</c>: where the search for the next match starts.
+/// </summary>
+/// <param name="Kind">Which skip it is.</param>
+/// <param name="Variable">The variable named by <c>SKIP TO FIRST</c>, <c>SKIP TO LAST</c> and <c>SKIP TO</c>; null for the other two.</param>
+public sealed record RowPatternSkip(RowPatternSkipKind Kind, Identifier? Variable = null) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>Which <c>AFTER MATCH SKIP</c> a <see cref="RowPatternSkip"/> is.</summary>
+public enum RowPatternSkipKind
+{
+	/// <summary><c>SKIP TO NEXT ROW</c>.</summary>
+	NextRow,
+
+	/// <summary><c>SKIP PAST LAST ROW</c>.</summary>
+	PastLastRow,
+
+	/// <summary><c>SKIP TO FIRST</c> a variable.</summary>
+	First,
+
+	/// <summary><c>SKIP TO LAST</c> a variable.</summary>
+	Last,
+
+	/// <summary><c>SKIP TO</c> a variable: the last row of its rows, as <c>LAST</c>, the standard's plain form.</summary>
+	Variable,
+}
+
+/// <summary>
+/// BNF: <c>&lt;JSON path wff&gt;</c>. An expression of the SQL/JSON path language, the language of a JSON
+/// path string and of a simplified accessor's subscripts: a separate language embedded in SQL, not the
+/// SQL <see cref="Expression"/>. Switch on the nested type.
+/// </summary>
 public abstract record JsonPathExpression : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -5467,22 +5681,114 @@ public abstract record JsonPathExpression : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A literal of the path language: <c>"a"</c>, <c>1.5</c>.
+	/// </summary>
+	/// <param name="Text">The literal as written.</param>
+	/// <param name="Kind">What kind of literal it is.</param>
 	public sealed record Literal(string Text, JsonPathLiteralKind Kind) : JsonPathExpression;
+	/// <summary>
+	/// A variable of the path language: <c>$</c>, <c>$name</c>, <c>@</c>, <c>last</c>.
+	/// </summary>
+	/// <param name="Kind">Which variable it is.</param>
+	/// <param name="Name">The variable's name for a <see cref="JsonPathVariableKind.Named"/> one; null for the others.</param>
 	public sealed record Variable(JsonPathVariableKind Kind, Identifier? Name = null) : JsonPathExpression;
+	/// <summary>
+	/// A sign before an operand: <c>-$.a</c>.
+	/// </summary>
+	/// <param name="Operator">The sign.</param>
+	/// <param name="Operand">What it applies to.</param>
 	public sealed record Unary(JsonPathUnaryOperator Operator, JsonPathExpression Operand) : JsonPathExpression;
+	/// <summary>
+	/// Arithmetic between two operands: <c>$.a + 1</c>. The grouping is the tree's.
+	/// </summary>
+	/// <param name="Left">The operand before the operator.</param>
+	/// <param name="Operator">The operator.</param>
+	/// <param name="Right">The operand after it.</param>
 	public sealed record Binary(JsonPathExpression Left, JsonPathBinaryOperator Operator, JsonPathExpression Right) : JsonPathExpression;
+	/// <summary>
+	/// A step taken from a value: <c>$.a</c>, <c>$[*]</c>, <c>$.a ? (@ &gt; 1)</c>, <c>$.a.size()</c>.
+	/// </summary>
+	/// <param name="Target">The value the step starts from.</param>
+	/// <param name="Accessor">The step.</param>
 	public sealed record Access(JsonPathExpression Target, JsonPathAccessor Accessor) : JsonPathExpression;
+	/// <summary>
+	/// A predicate used as a value.
+	/// </summary>
+	/// <param name="Value">The predicate.</param>
 	public sealed record Predicate(JsonPathPredicate Value) : JsonPathExpression;
+	/// <summary>
+	/// An expression in brackets: <c>($.a + 1) * 2</c>.
+	/// </summary>
+	/// <param name="Value">The expression inside the brackets.</param>
 	public sealed record Parenthesized(JsonPathExpression Value) : JsonPathExpression;
 }
-public enum JsonPathLiteralKind { String, Numeric, Other }
-public enum JsonPathVariableKind { Context, Named, Current, Last }
-public enum JsonPathUnaryOperator { Plus, Minus }
-public enum JsonPathBinaryOperator { Add, Subtract, Multiply, Divide, Modulo }
+/// <summary>What a <see cref="JsonPathExpression.Literal"/> is.</summary>
+public enum JsonPathLiteralKind
+{
+	/// <summary>A string, in double quotes.</summary>
+	String,
+
+	/// <summary>A number.</summary>
+	Numeric,
+
+	/// <summary>Any other literal: <c>true</c>, <c>false</c>, <c>null</c>.</summary>
+	Other,
+}
+/// <summary>Which variable a <see cref="JsonPathExpression.Variable"/> is.</summary>
+public enum JsonPathVariableKind
+{
+	/// <summary><c>$</c>: the context item the path is applied to.</summary>
+	Context,
+
+	/// <summary><c>$name</c>: a variable passed in by <c>PASSING</c>.</summary>
+	Named,
+
+	/// <summary><c>@</c>: the item a filter is testing.</summary>
+	Current,
+
+	/// <summary><c>last</c>: the index of the last element of the array being subscripted.</summary>
+	Last,
+}
+/// <summary>The sign of a <see cref="JsonPathExpression.Unary"/>.</summary>
+public enum JsonPathUnaryOperator
+{
+	/// <summary><c>+</c>.</summary>
+	Plus,
+
+	/// <summary><c>-</c>.</summary>
+	Minus,
+}
+/// <summary>The operator of a <see cref="JsonPathExpression.Binary"/>.</summary>
+public enum JsonPathBinaryOperator
+{
+	/// <summary><c>+</c>.</summary>
+	Add,
+
+	/// <summary><c>-</c>.</summary>
+	Subtract,
+
+	/// <summary><c>*</c>.</summary>
+	Multiply,
+
+	/// <summary><c>/</c>.</summary>
+	Divide,
+
+	/// <summary><c>%</c>.</summary>
+	Modulo,
+}
+/// <summary>
+/// BNF: <c>&lt;JSON accessor op&gt;</c>. One step of a path taken from a value: a member, an array element,
+/// a filter or an item method. Switch on the nested type.
+/// </summary>
 public abstract record JsonPathAccessor : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -5492,23 +5798,65 @@ public abstract record JsonPathAccessor : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// <c>.name</c> or <c>."name"</c>: the member of an object.
+	/// </summary>
+	/// <param name="Name">The member's name, without any quotes.</param>
+	/// <param name="Quoted">The name was written in double quotes.</param>
 	public sealed record Member(string Name, bool Quoted) : JsonPathAccessor;
+	/// <summary>
+	/// <c>.*</c>: every member of an object.
+	/// </summary>
 	public sealed record WildcardMember : JsonPathAccessor;
+	/// <summary>
+	/// <c>[1, 3 TO 5]</c>: elements of an array by index.
+	/// </summary>
+	/// <param name="Subscripts">The indexes and ranges of indexes between the brackets.</param>
 	public sealed record Array(SqlList<JsonSubscript> Subscripts) : JsonPathAccessor;
+	/// <summary>
+	/// <c>[*]</c>: every element of an array.
+	/// </summary>
 	public sealed record WildcardArray : JsonPathAccessor;
+	/// <summary>
+	/// <c>? (@.a &gt; 1)</c>: keeps the items that meet a condition.
+	/// </summary>
+	/// <param name="Predicate">The condition in the brackets.</param>
 	public sealed record Filter(JsonPathPredicate Predicate) : JsonPathAccessor;
+	/// <summary>
+	/// <c>.size()</c>: an item method called on the value.
+	/// </summary>
+	/// <param name="Value">The method.</param>
 	public sealed record Method(JsonMethod Value) : JsonPathAccessor;
 }
-public sealed record JsonSubscript(JsonPathExpression From, JsonPathExpression? To = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// One subscript of an array accessor: <c>1</c> or <c>2 TO 4</c>.
+/// </summary>
+/// <param name="From">The index, or the first index of a range.</param>
+/// <param name="To">The last index of a range; null for a single index.</param>
+public sealed record JsonSubscript(JsonPathExpression From, JsonPathExpression? To = null) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
+/// <summary>
+/// BNF: <c>&lt;JSON path predicate&gt;</c>. A condition of the path language, as in a filter: an existence
+/// test, a comparison, a pattern match or a combination of them. Switch on the nested type.
+/// </summary>
 public abstract record JsonPathPredicate : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -5518,74 +5866,354 @@ public abstract record JsonPathPredicate : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// <c>EXISTS (path)</c>: the path yields at least one item.
+	/// </summary>
+	/// <param name="Expression">The path tested.</param>
 	public sealed record Exists(JsonPathExpression Expression) : JsonPathPredicate;
+	/// <summary>
+	/// A comparison of two path values: <c>@.a &lt;&gt; 1</c>.
+	/// </summary>
+	/// <param name="Left">The value before the operator.</param>
+	/// <param name="Operator">The comparison.</param>
+	/// <param name="Right">The value after it.</param>
 	public sealed record Comparison(JsonPathExpression Left, JsonPathComparisonOperator Operator, JsonPathExpression Right) : JsonPathPredicate;
+	/// <summary>
+	/// <c>value like_regex "pattern" flag "i"</c>: the value matches a regular expression.
+	/// </summary>
+	/// <param name="Value">The value tested.</param>
+	/// <param name="Pattern">The regular expression.</param>
+	/// <param name="Flags">The <c>flag</c> letters; null where there is no <c>flag</c> clause.</param>
 	public sealed record LikeRegex(JsonPathExpression Value, string Pattern, string? Flags) : JsonPathPredicate;
+	/// <summary>
+	/// <c>value starts with initial</c>: the string value begins with another string.
+	/// </summary>
+	/// <param name="Value">The value tested.</param>
+	/// <param name="Initial">The prefix.</param>
 	public sealed record StartsWith(JsonPathExpression Value, JsonPathExpression Initial) : JsonPathPredicate;
+	/// <summary>
+	/// <c>(predicate) IS UNKNOWN</c>: the predicate is neither true nor false.
+	/// </summary>
+	/// <param name="Predicate">The predicate tested.</param>
 	public sealed record IsUnknown(JsonPathPredicate Predicate) : JsonPathPredicate;
+	/// <summary>
+	/// <c>!(predicate)</c>: the predicate is false.
+	/// </summary>
+	/// <param name="Predicate">The predicate negated.</param>
 	public sealed record Not(JsonPathPredicate Predicate) : JsonPathPredicate;
+	/// <summary>
+	/// <c>p &amp;&amp; q</c>: every predicate is true.
+	/// </summary>
+	/// <param name="Items">The predicates joined.</param>
 	public sealed record And(SqlList<JsonPathPredicate> Items) : JsonPathPredicate;
+	/// <summary>
+	/// <c>p || q</c>: at least one predicate is true.
+	/// </summary>
+	/// <param name="Items">The predicates joined.</param>
 	public sealed record Or(SqlList<JsonPathPredicate> Items) : JsonPathPredicate;
+	/// <summary>
+	/// A predicate in brackets: <c>(p || q) &amp;&amp; r</c>.
+	/// </summary>
+	/// <param name="Predicate">The predicate inside the brackets.</param>
 	public sealed record Parenthesized(JsonPathPredicate Predicate) : JsonPathPredicate;
 }
-public enum JsonPathComparisonOperator { Equal, NotEqual, NotEqualBang, Less, Greater, LessOrEqual, GreaterOrEqual }
-public sealed record JsonMethod(JsonMethodKind Kind, int? Precision = null, int? Scale = null, string? DateTimeTemplate = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The operator of a <see cref="JsonPathPredicate.Comparison"/>.</summary>
+public enum JsonPathComparisonOperator
+{
+	/// <summary><c>==</c>.</summary>
+	Equal,
+
+	/// <summary><c>&lt;&gt;</c>.</summary>
+	NotEqual,
+
+	/// <summary><c>!=</c>, the other spelling of not equal.</summary>
+	NotEqualBang,
+
+	/// <summary><c>&lt;</c>.</summary>
+	Less,
+
+	/// <summary><c>&gt;</c>.</summary>
+	Greater,
+
+	/// <summary><c>&lt;=</c>.</summary>
+	LessOrEqual,
+
+	/// <summary><c>&gt;=</c>.</summary>
+	GreaterOrEqual,
+}
+/// <summary>
+/// An item method of the path language: <c>size()</c>, <c>decimal(10, 2)</c>, <c>timestamp_tz(3)</c>.
+/// </summary>
+/// <param name="Kind">Which method it is.</param>
+/// <param name="Precision">The first argument of <c>decimal</c> and the only one of the <c>time</c> and <c>timestamp</c> methods; null where none was written.</param>
+/// <param name="Scale">The second argument of <c>decimal</c>; null where none was written.</param>
+/// <param name="DateTimeTemplate">The template of <c>datetime</c>; null where none was written.</param>
+public sealed record JsonMethod(JsonMethodKind Kind, int? Precision = null, int? Scale = null, string? DateTimeTemplate = null) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum JsonMethodKind { Type, Size, Double, Ceiling, Floor, Abs, DateTime, KeyValue, BigInt, Boolean, Date, Decimal, Integer, Number, String, Time, TimeTz, Timestamp, TimestampTz }
-public sealed record JsonPath(JsonPathMode Mode, JsonPathExpression Expression) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>Which item method a <see cref="JsonMethod"/> is, by its name in the path language.</summary>
+public enum JsonMethodKind
+{
+	/// <summary><c>type()</c>.</summary>
+	Type,
+
+	/// <summary><c>size()</c>.</summary>
+	Size,
+
+	/// <summary><c>double()</c>.</summary>
+	Double,
+
+	/// <summary><c>ceiling()</c>.</summary>
+	Ceiling,
+
+	/// <summary><c>floor()</c>.</summary>
+	Floor,
+
+	/// <summary><c>abs()</c>.</summary>
+	Abs,
+
+	/// <summary><c>datetime()</c>.</summary>
+	DateTime,
+
+	/// <summary><c>keyvalue()</c>.</summary>
+	KeyValue,
+
+	/// <summary><c>bigint()</c>.</summary>
+	BigInt,
+
+	/// <summary><c>boolean()</c>.</summary>
+	Boolean,
+
+	/// <summary><c>date()</c>.</summary>
+	Date,
+
+	/// <summary><c>decimal()</c>.</summary>
+	Decimal,
+
+	/// <summary><c>integer()</c>.</summary>
+	Integer,
+
+	/// <summary><c>number()</c>.</summary>
+	Number,
+
+	/// <summary><c>string()</c>.</summary>
+	String,
+
+	/// <summary><c>time()</c>.</summary>
+	Time,
+
+	/// <summary><c>time_tz()</c>.</summary>
+	TimeTz,
+
+	/// <summary><c>timestamp()</c>.</summary>
+	Timestamp,
+
+	/// <summary><c>timestamp_tz()</c>.</summary>
+	TimestampTz,
+}
+/// <summary>
+/// An SQL/JSON path in full: <c>strict $.a[*]</c>.
+/// </summary>
+/// <param name="Mode">The mode written before the expression.</param>
+/// <param name="Expression">The path expression.</param>
+public sealed record JsonPath(JsonPathMode Mode, JsonPathExpression Expression) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum JsonPathMode { Strict, Lax }
+/// <summary>How a path treats a structural error, from the word before the path.</summary>
+public enum JsonPathMode
+{
+	/// <summary><c>strict</c>: a structural error is raised.</summary>
+	Strict,
+
+	/// <summary><c>lax</c>: a structural error is suppressed where it can be, by adapting the value.</summary>
+	Lax,
+}
 
 // --- JSON SQL structures ----------------------------------------------------
-// Path is the standard's character string literal, a value like any other; T-SQL takes any value there
-// (`JSON_VALUE (@j, @p)`), and its one-argument `JSON_QUERY (x)` has none, the one place Path is null.
-// ContextFormat is the context item's `FORMAT JSON`.
-public sealed record JsonApiCommon(Expression Context, Expression? Path, Identifier? PathName, SqlList<JsonArgument> Passing, JsonInputClause? ContextFormat = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;JSON API common syntax&gt;</c>. What the standard's JSON functions and <c>JSON_TABLE</c> begin with:
+/// the context item, the path and its arguments, <c>x FORMAT JSON, '$.a' AS p PASSING 1 AS v</c>.
+/// </summary>
+/// <param name="Context">The context item, the JSON value the path is applied to.</param>
+/// <param name="Path">
+/// The path. The standard's is a character string literal, a value like any other; T-SQL takes any value there
+/// (<c>JSON_VALUE (@j, @p)</c>). Null only for T-SQL's one-argument <c>JSON_QUERY (x)</c>.
+/// </param>
+/// <param name="PathName"><c>AS name</c> after the path: the name by which a nested path or a plan refers to it; null where none was written.</param>
+/// <param name="Passing">The <c>PASSING</c> arguments, the values the path's named variables take; empty where none was written.</param>
+/// <param name="ContextFormat">The context item's <c>FORMAT JSON</c>; null where none was written.</param>
+public sealed record JsonApiCommon(Expression Context, Expression? Path, Identifier? PathName, SqlList<JsonArgument> Passing, JsonInputClause? ContextFormat = null) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record JsonArgument(Expression Value, Identifier Name, JsonInputClause? Format = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// One of a <c>PASSING</c> list: <c>1 AS v</c>, a value bound to a variable of the path.
+/// </summary>
+/// <param name="Value">The value passed.</param>
+/// <param name="Name">The name of the path variable that takes it, as <c>$name</c>.</param>
+/// <param name="Format">The <c>FORMAT JSON</c> after the value; null where none was written.</param>
+public sealed record JsonArgument(Expression Value, Identifier Name, JsonInputClause? Format = null) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record JsonInputClause(JsonRepresentation Representation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;JSON input clause&gt;</c>. <c>FORMAT JSON [ENCODING UTF8]</c>: says that a value is JSON text.
+/// </summary>
+/// <param name="Representation">The representation named after <c>FORMAT</c>.</param>
+public sealed record JsonInputClause(JsonRepresentation Representation) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record JsonRepresentation(JsonEncoding? Encoding = null, string? ImplementationDefined = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;JSON representation&gt;</c>. <c>JSON</c>, or <c>JSON ENCODING UTF8</c>: the form a JSON value is held in.
+/// </summary>
+/// <param name="Encoding">The <c>ENCODING</c> written; null where none was.</param>
+/// <param name="ImplementationDefined">The text of the standard's implementation-defined representation option in place of <c>JSON</c>; null for <c>JSON</c> itself.</param>
+public sealed record JsonRepresentation(JsonEncoding? Encoding = null, string? ImplementationDefined = null) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum JsonEncoding { Utf8, Utf16, Utf32 }
-public enum JsonPredicateType { Value, Array, Object, Scalar }
-public enum JsonKeyUniqueness { WithUniqueKeys, WithUnique, WithoutUniqueKeys, WithoutUnique }
-public enum JsonExistsErrorBehavior { True, False, Unknown, Error }
-public sealed record JsonTableDefinition(JsonApiCommon Common, SqlList<JsonTableColumn> Columns, JsonTablePlan? Plan, JsonTableErrorBehavior? OnError, bool Primitive = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The character encoding of a <see cref="JsonRepresentation"/>.</summary>
+public enum JsonEncoding
+{
+	/// <summary><c>ENCODING UTF8</c>.</summary>
+	Utf8,
+
+	/// <summary><c>ENCODING UTF16</c>.</summary>
+	Utf16,
+
+	/// <summary><c>ENCODING UTF32</c>.</summary>
+	Utf32,
+}
+/// <summary>The kind of JSON value an <c>IS JSON</c> predicate tests for.</summary>
+public enum JsonPredicateType
+{
+	/// <summary><c>IS JSON VALUE</c>: any JSON value.</summary>
+	Value,
+
+	/// <summary><c>IS JSON ARRAY</c>.</summary>
+	Array,
+
+	/// <summary><c>IS JSON OBJECT</c>.</summary>
+	Object,
+
+	/// <summary><c>IS JSON SCALAR</c>: a number, a string, a boolean or <c>null</c>.</summary>
+	Scalar,
+}
+/// <summary>Whether the keys of a JSON object must be unique, from <c>WITH UNIQUE KEYS</c> and its forms.</summary>
+public enum JsonKeyUniqueness
+{
+	/// <summary><c>WITH UNIQUE KEYS</c>.</summary>
+	WithUniqueKeys,
+
+	/// <summary><c>WITH UNIQUE</c>, the same without the word <c>KEYS</c>.</summary>
+	WithUnique,
+
+	/// <summary><c>WITHOUT UNIQUE KEYS</c>.</summary>
+	WithoutUniqueKeys,
+
+	/// <summary><c>WITHOUT UNIQUE</c>, the same without the word <c>KEYS</c>.</summary>
+	WithoutUnique,
+}
+/// <summary>What <c>JSON_EXISTS</c> returns on an error, from <c>… ON ERROR</c>.</summary>
+public enum JsonExistsErrorBehavior
+{
+	/// <summary><c>TRUE ON ERROR</c>.</summary>
+	True,
+
+	/// <summary><c>FALSE ON ERROR</c>.</summary>
+	False,
+
+	/// <summary><c>UNKNOWN ON ERROR</c>.</summary>
+	Unknown,
+
+	/// <summary><c>ERROR ON ERROR</c>: the error is raised.</summary>
+	Error,
+}
+/// <summary>
+/// BNF: <c>&lt;JSON table&gt;</c>. <c>JSON_TABLE (value, path COLUMNS (…) PLAN (…) ERROR ON ERROR)</c>: a JSON
+/// value read as the rows of a table.
+/// </summary>
+/// <param name="Common">The context item, the row path and its <c>PASSING</c> arguments.</param>
+/// <param name="Columns">The <c>COLUMNS</c> list.</param>
+/// <param name="Plan">The <c>PLAN</c> or <c>PLAN DEFAULT</c> clause; null where none was written.</param>
+/// <param name="OnError">The <c>ERROR ON ERROR</c> or <c>EMPTY ON ERROR</c> clause; null where none was written.</param>
+/// <param name="Primitive">The function was <c>JSON_TABLE_PRIMITIVE</c>, the form with a column list of its own and no plan, not <c>JSON_TABLE</c>.</param>
+public sealed record JsonTableDefinition(JsonApiCommon Common, SqlList<JsonTableColumn> Columns, JsonTablePlan? Plan, JsonTableErrorBehavior? OnError, bool Primitive = false) : ISqlNode {
+	SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
+/// <summary>
+/// BNF: <c>&lt;JSON table column definition&gt;</c>. One entry of a <c>JSON_TABLE</c>'s <c>COLUMNS</c> list: an
+/// ordinality counter, a column of a value or of JSON text, or a nested path with columns of its own.
+/// Switch on the nested type.
+/// </summary>
 public abstract record JsonTableColumn : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
