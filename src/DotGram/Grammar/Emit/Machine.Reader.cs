@@ -1677,6 +1677,11 @@ sealed partial class Machine
 			if (Carrier.ReaderMethods is { Length: > 0 } methods)
 				header.Write(methods);
 
+			// Only where a construction names it: a reader that never does carried a member
+			// nothing read (IDE0051).
+			if (Carrier is ImmediateCarrier immediate && file.Names(ImmediateCarrier.Recut))
+				header.Write(immediate.RecutMethod);
+
 			if (!_readerWays && (file.Names("ways") || header.Names("ways")))
 				header.InsertLine(waysAt, $"const {WaysType}? ways = null;");
 		}
