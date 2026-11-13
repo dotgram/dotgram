@@ -870,19 +870,66 @@ sealed partial class Machine
 		}
 
 		/// <remarks>
+		/// <para>
 		/// Where a guard of the rule cut the member already, what it cut is the value when it
 		/// stands on the same positions: the same text, cut once. Compared where it is taken,
 		/// so a capture written again after the guard — another turn, another alternative —
 		/// is cut on its own.
+		/// </para>
+		/// <para>
+		/// That second cut is made by <see cref="RecutMethod"/>, out of line. Written in place it
+		/// is a second span of the input turned into a string in the method that reads, and
+		/// the JIT then keeps the span the guard's own cut makes in memory rather than in
+		/// registers: a store and a load on every guarded capture, for a cut that almost never
+		/// runs. Measured on a single number read whole, it was the whole of what a guard
+		/// naming its capture cost (about 3 ns of 30), and nothing with the cut moved out.
+		/// </para>
 		/// </remarks>
 		public override string PutText(DirectMember member, string from, string to, string? cached = null)
 		{
 			var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.Member.IsOptional ? "null" : "string.Empty";
 			var cut     = $"({from} < 0 ? {missing} : {machine.Cut(from, $"{to} - {from}")})";
 
-			_puts.Add((member, cached is null ? cut : $"({cached}From == {from} && {cached}To == {to} ? {cached} : {cut})"));
+			if (cached is null)
+			{
+				_puts.Add((member, cut));
+
+				return "";
+			}
+
+			// Over kinds the cut is a call already, and a borrowed capture is no string to make.
+			var again = machine.OverKinds || machine.BorrowedCaptures
+				? cut
+				: $"({from} < 0 ? {missing} : {Recut}({from}, {to}))";
+
+			_puts.Add((member, $"({cached}From == {from} && {cached}To == {to} ? {cached} : {again})"));
 
 			return "";
+		}
+
+		/// <summary>The reader's method that cuts a guarded text again (<see cref="PutText"/>).</summary>
+		internal const string Recut = "Recut_DotGram";
+
+		/// <summary>
+		/// <see cref="Recut"/> itself, written into a reader whose methods name it: kept from
+		/// being inlined, which is the whole of what it is for.
+		/// </summary>
+		internal string RecutMethod
+		{
+			get
+			{
+				var file = new Writer(0);
+
+				file.Line("/// <summary>A text a guard cut, cut again where its capture moved after the guard: out of line, so that the method that reads keeps its span in registers.</summary>");
+				file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
+
+				using (file.Block($"string {Recut}(int from, int to)"))
+					file.Line($"return {machine.Cut("from", "to - from")};");
+
+				file.Line();
+
+				return file.ToString();
+			}
 		}
 
 		public override string PutRecord(DirectMember member, string record)
