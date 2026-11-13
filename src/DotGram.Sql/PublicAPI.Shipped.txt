@@ -9,7 +9,6 @@ DotGram.Sql.Ast.ActionWords.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.ActionWords.Words.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>
 DotGram.Sql.Ast.ActionWords.Words.init -> void
 DotGram.Sql.Ast.ActivationSetting
-DotGram.Sql.Ast.ActivationSetting.ActivationSetting() -> void
 DotGram.Sql.Ast.ActivationSetting.ActivationSetting(DotGram.Sql.Ast.ActivationSetting! original) -> void
 DotGram.Sql.Ast.ActivationSetting.ExecuteAs
 DotGram.Sql.Ast.ActivationSetting.ExecuteAs.Context.get -> DotGram.Sql.Ast.ExecutionContext!
@@ -63,7 +62,6 @@ DotGram.Sql.Ast.AlterColumnAction.AddScope.Deconstruct(out DotGram.Sql.Ast.Quali
 DotGram.Sql.Ast.AlterColumnAction.AddScope.Equals(DotGram.Sql.Ast.AlterColumnAction.AddScope? other) -> bool
 DotGram.Sql.Ast.AlterColumnAction.AddScope.Table.get -> DotGram.Sql.Ast.QualifiedName
 DotGram.Sql.Ast.AlterColumnAction.AddScope.Table.init -> void
-DotGram.Sql.Ast.AlterColumnAction.AlterColumnAction() -> void
 DotGram.Sql.Ast.AlterColumnAction.AlterColumnAction(DotGram.Sql.Ast.AlterColumnAction! original) -> void
 DotGram.Sql.Ast.AlterColumnAction.DropDefault
 DotGram.Sql.Ast.AlterColumnAction.DropDefault.DropDefault() -> void
@@ -159,7 +157,6 @@ DotGram.Sql.Ast.AlterDatabaseAction.AddLogFile.Files.get -> DotGram.Sql.SqlList<
 DotGram.Sql.Ast.AlterDatabaseAction.AddLogFile.Files.init -> void
 DotGram.Sql.Ast.AlterDatabaseAction.AddLogFile.ToFileGroup.get -> DotGram.Sql.Ast.Identifier?
 DotGram.Sql.Ast.AlterDatabaseAction.AddLogFile.ToFileGroup.init -> void
-DotGram.Sql.Ast.AlterDatabaseAction.AlterDatabaseAction() -> void
 DotGram.Sql.Ast.AlterDatabaseAction.AlterDatabaseAction(DotGram.Sql.Ast.AlterDatabaseAction! original) -> void
 DotGram.Sql.Ast.AlterDatabaseAction.Collate
 DotGram.Sql.Ast.AlterDatabaseAction.Collate.Collate(DotGram.Sql.Ast.CollationName! Collation) -> void
@@ -236,7 +233,6 @@ DotGram.Sql.Ast.AlterDomainAction.AddConstraint.Constraint.get -> DotGram.Sql.As
 DotGram.Sql.Ast.AlterDomainAction.AddConstraint.Constraint.init -> void
 DotGram.Sql.Ast.AlterDomainAction.AddConstraint.Deconstruct(out DotGram.Sql.Ast.Constraint! Constraint) -> void
 DotGram.Sql.Ast.AlterDomainAction.AddConstraint.Equals(DotGram.Sql.Ast.AlterDomainAction.AddConstraint? other) -> bool
-DotGram.Sql.Ast.AlterDomainAction.AlterDomainAction() -> void
 DotGram.Sql.Ast.AlterDomainAction.AlterDomainAction(DotGram.Sql.Ast.AlterDomainAction! original) -> void
 DotGram.Sql.Ast.AlterDomainAction.DropConstraint
 DotGram.Sql.Ast.AlterDomainAction.DropConstraint.Deconstruct(out DotGram.Sql.Ast.QualifiedName Name) -> void
@@ -262,7 +258,6 @@ DotGram.Sql.Ast.AlterLoginAction.AddCredential.Deconstruct(out DotGram.Sql.Ast.I
 DotGram.Sql.Ast.AlterLoginAction.AddCredential.Equals(DotGram.Sql.Ast.AlterLoginAction.AddCredential? other) -> bool
 DotGram.Sql.Ast.AlterLoginAction.AddCredential.Name.get -> DotGram.Sql.Ast.Identifier!
 DotGram.Sql.Ast.AlterLoginAction.AddCredential.Name.init -> void
-DotGram.Sql.Ast.AlterLoginAction.AlterLoginAction() -> void
 DotGram.Sql.Ast.AlterLoginAction.AlterLoginAction(DotGram.Sql.Ast.AlterLoginAction! original) -> void
 DotGram.Sql.Ast.AlterLoginAction.Disable
 DotGram.Sql.Ast.AlterLoginAction.Disable.Disable() -> void
@@ -344,7 +339,6 @@ DotGram.Sql.Ast.AlterTableAction.AlterIndex.Deconstruct(out DotGram.Sql.Ast.Iden
 DotGram.Sql.Ast.AlterTableAction.AlterIndex.Equals(DotGram.Sql.Ast.AlterTableAction.AlterIndex? other) -> bool
 DotGram.Sql.Ast.AlterTableAction.AlterIndex.Name.get -> DotGram.Sql.Ast.Identifier!
 DotGram.Sql.Ast.AlterTableAction.AlterIndex.Name.init -> void
-DotGram.Sql.Ast.AlterTableAction.AlterTableAction() -> void
 DotGram.Sql.Ast.AlterTableAction.AlterTableAction(DotGram.Sql.Ast.AlterTableAction! original) -> void
 DotGram.Sql.Ast.AlterTableAction.ChangeTracking
 DotGram.Sql.Ast.AlterTableAction.ChangeTracking.ChangeTracking(bool Enable, DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> Options) -> void
@@ -503,7 +497,6 @@ DotGram.Sql.Ast.AlterTypeAction.AddMethod.Method.get -> DotGram.Sql.Ast.MethodSp
 DotGram.Sql.Ast.AlterTypeAction.AddMethod.Method.init -> void
 DotGram.Sql.Ast.AlterTypeAction.AddMethod.Overriding.get -> bool
 DotGram.Sql.Ast.AlterTypeAction.AddMethod.Overriding.init -> void
-DotGram.Sql.Ast.AlterTypeAction.AlterTypeAction() -> void
 DotGram.Sql.Ast.AlterTypeAction.AlterTypeAction(DotGram.Sql.Ast.AlterTypeAction! original) -> void
 DotGram.Sql.Ast.AlterTypeAction.DropAttribute
 DotGram.Sql.Ast.AlterTypeAction.DropAttribute.Deconstruct(out DotGram.Sql.Ast.Identifier! Name) -> void
@@ -591,7 +584,6 @@ DotGram.Sql.Ast.AssignmentTarget.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.AssignmentTarget.Trigraphs.get -> bool
 DotGram.Sql.Ast.AssignmentTarget.Trigraphs.init -> void
 DotGram.Sql.Ast.AsymmetricKeyChange
-DotGram.Sql.Ast.AsymmetricKeyChange.AsymmetricKeyChange() -> void
 DotGram.Sql.Ast.AsymmetricKeyChange.AsymmetricKeyChange(DotGram.Sql.Ast.AsymmetricKeyChange! original) -> void
 DotGram.Sql.Ast.AsymmetricKeyChange.AttestedBy
 DotGram.Sql.Ast.AsymmetricKeyChange.AttestedBy.Attestation.get -> DotGram.Sql.Ast.LiteralValue.String!
@@ -620,7 +612,6 @@ DotGram.Sql.Ast.AsymmetricKeySource.Assembly.Deconstruct(out DotGram.Sql.Ast.Qua
 DotGram.Sql.Ast.AsymmetricKeySource.Assembly.Equals(DotGram.Sql.Ast.AsymmetricKeySource.Assembly? other) -> bool
 DotGram.Sql.Ast.AsymmetricKeySource.Assembly.Name.get -> DotGram.Sql.Ast.QualifiedName
 DotGram.Sql.Ast.AsymmetricKeySource.Assembly.Name.init -> void
-DotGram.Sql.Ast.AsymmetricKeySource.AsymmetricKeySource() -> void
 DotGram.Sql.Ast.AsymmetricKeySource.AsymmetricKeySource(DotGram.Sql.Ast.AsymmetricKeySource! original) -> void
 DotGram.Sql.Ast.AsymmetricKeySource.File
 DotGram.Sql.Ast.AsymmetricKeySource.File.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Path) -> void
@@ -639,7 +630,6 @@ DotGram.Sql.Ast.AsymmetricKeySource.Provider.Name.init -> void
 DotGram.Sql.Ast.AsymmetricKeySource.Provider.Provider(DotGram.Sql.Ast.Identifier! Name) -> void
 DotGram.Sql.Ast.AsymmetricKeySource.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.AtomicOption
-DotGram.Sql.Ast.AtomicOption.AtomicOption() -> void
 DotGram.Sql.Ast.AtomicOption.AtomicOption(DotGram.Sql.Ast.AtomicOption! original) -> void
 DotGram.Sql.Ast.AtomicOption.Isolation
 DotGram.Sql.Ast.AtomicOption.Isolation.Deconstruct(out DotGram.Sql.Ast.IsolationLevel Level) -> void
@@ -705,7 +695,6 @@ DotGram.Sql.Ast.AuditActionOn.Name.get -> DotGram.Sql.Ast.QualifiedName
 DotGram.Sql.Ast.AuditActionOn.Name.init -> void
 DotGram.Sql.Ast.AuditActionOn.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.AuditChange
-DotGram.Sql.Ast.AuditChange.AuditChange() -> void
 DotGram.Sql.Ast.AuditChange.AuditChange(DotGram.Sql.Ast.AuditChange! original) -> void
 DotGram.Sql.Ast.AuditChange.Locate(int at, int length) -> void
 DotGram.Sql.Ast.AuditChange.ModifyName
@@ -731,7 +720,6 @@ DotGram.Sql.Ast.AuditTarget
 DotGram.Sql.Ast.AuditTarget.ApplicationLog
 DotGram.Sql.Ast.AuditTarget.ApplicationLog.ApplicationLog() -> void
 DotGram.Sql.Ast.AuditTarget.ApplicationLog.Equals(DotGram.Sql.Ast.AuditTarget.ApplicationLog? other) -> bool
-DotGram.Sql.Ast.AuditTarget.AuditTarget() -> void
 DotGram.Sql.Ast.AuditTarget.AuditTarget(DotGram.Sql.Ast.AuditTarget! original) -> void
 DotGram.Sql.Ast.AuditTarget.ExternalMonitor
 DotGram.Sql.Ast.AuditTarget.ExternalMonitor.Equals(DotGram.Sql.Ast.AuditTarget.ExternalMonitor? other) -> bool
@@ -760,7 +748,6 @@ DotGram.Sql.Ast.AuthorizationIdentifier.Name.get -> DotGram.Sql.Ast.Identifier!
 DotGram.Sql.Ast.AuthorizationIdentifier.Name.init -> void
 DotGram.Sql.Ast.AuthorizationIdentifier.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.AuthorizationTo
-DotGram.Sql.Ast.AuthorizationTo.AuthorizationTo() -> void
 DotGram.Sql.Ast.AuthorizationTo.AuthorizationTo(DotGram.Sql.Ast.AuthorizationTo! original) -> void
 DotGram.Sql.Ast.AuthorizationTo.Locate(int at, int length) -> void
 DotGram.Sql.Ast.AuthorizationTo.Principal
@@ -794,7 +781,6 @@ DotGram.Sql.Ast.AvailabilityAction.AddReplica.Deconstruct(out DotGram.Sql.Ast.Av
 DotGram.Sql.Ast.AvailabilityAction.AddReplica.Equals(DotGram.Sql.Ast.AvailabilityAction.AddReplica? other) -> bool
 DotGram.Sql.Ast.AvailabilityAction.AddReplica.Replica.get -> DotGram.Sql.Ast.AvailabilityReplica!
 DotGram.Sql.Ast.AvailabilityAction.AddReplica.Replica.init -> void
-DotGram.Sql.Ast.AvailabilityAction.AvailabilityAction() -> void
 DotGram.Sql.Ast.AvailabilityAction.AvailabilityAction(DotGram.Sql.Ast.AvailabilityAction! original) -> void
 DotGram.Sql.Ast.AvailabilityAction.CreateAnyDatabase
 DotGram.Sql.Ast.AvailabilityAction.CreateAnyDatabase.CreateAnyDatabase(DotGram.Sql.Ast.AvailabilityPermission Permission) -> void
@@ -884,7 +870,6 @@ DotGram.Sql.Ast.AvailabilityGroupSpec.Options.get -> DotGram.Sql.SqlList<DotGram
 DotGram.Sql.Ast.AvailabilityGroupSpec.Options.init -> void
 DotGram.Sql.Ast.AvailabilityGroupSpec.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.AvailabilityListener
-DotGram.Sql.Ast.AvailabilityListener.AvailabilityListener() -> void
 DotGram.Sql.Ast.AvailabilityListener.AvailabilityListener(DotGram.Sql.Ast.AvailabilityListener! original) -> void
 DotGram.Sql.Ast.AvailabilityListener.Dhcp
 DotGram.Sql.Ast.AvailabilityListener.Dhcp.Deconstruct(out DotGram.Sql.Ast.ListenerAddress? On) -> void
@@ -917,7 +902,6 @@ DotGram.Sql.Ast.AvailabilityReplica.Server.get -> DotGram.Sql.Ast.LiteralValue.S
 DotGram.Sql.Ast.AvailabilityReplica.Server.init -> void
 DotGram.Sql.Ast.AvailabilityReplica.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.AvailabilitySource
-DotGram.Sql.Ast.AvailabilitySource.AvailabilitySource() -> void
 DotGram.Sql.Ast.AvailabilitySource.AvailabilitySource(DotGram.Sql.Ast.AvailabilitySource! original) -> void
 DotGram.Sql.Ast.AvailabilitySource.Groups
 DotGram.Sql.Ast.AvailabilitySource.Groups.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.AvailabilityGroupSpec!> Specs) -> void
@@ -936,7 +920,6 @@ DotGram.Sql.Ast.AvailabilitySource.Replicas.Servers.get -> DotGram.Sql.SqlList<D
 DotGram.Sql.Ast.AvailabilitySource.Replicas.Servers.init -> void
 DotGram.Sql.Ast.AvailabilitySource.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.BackupDevice
-DotGram.Sql.Ast.BackupDevice.BackupDevice() -> void
 DotGram.Sql.Ast.BackupDevice.BackupDevice(DotGram.Sql.Ast.BackupDevice! original) -> void
 DotGram.Sql.Ast.BackupDevice.Locate(int at, int length) -> void
 DotGram.Sql.Ast.BackupDevice.Logical
@@ -957,7 +940,6 @@ DotGram.Sql.Ast.BackupDevice.Physical.Value.get -> DotGram.Sql.Ast.Expression!
 DotGram.Sql.Ast.BackupDevice.Physical.Value.init -> void
 DotGram.Sql.Ast.BackupDevice.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.BackupFile
-DotGram.Sql.Ast.BackupFile.BackupFile() -> void
 DotGram.Sql.Ast.BackupFile.BackupFile(DotGram.Sql.Ast.BackupFile! original) -> void
 DotGram.Sql.Ast.BackupFile.File
 DotGram.Sql.Ast.BackupFile.File.Deconstruct(out DotGram.Sql.Ast.Expression! Name) -> void
@@ -1061,7 +1043,6 @@ DotGram.Sql.Ast.CertificateChange.AttestedBy.Attestation.init -> void
 DotGram.Sql.Ast.CertificateChange.AttestedBy.AttestedBy(DotGram.Sql.Ast.LiteralValue.String! Attestation) -> void
 DotGram.Sql.Ast.CertificateChange.AttestedBy.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Attestation) -> void
 DotGram.Sql.Ast.CertificateChange.AttestedBy.Equals(DotGram.Sql.Ast.CertificateChange.AttestedBy? other) -> bool
-DotGram.Sql.Ast.CertificateChange.CertificateChange() -> void
 DotGram.Sql.Ast.CertificateChange.CertificateChange(DotGram.Sql.Ast.CertificateChange! original) -> void
 DotGram.Sql.Ast.CertificateChange.Locate(int at, int length) -> void
 DotGram.Sql.Ast.CertificateChange.RemoveAttestedOption
@@ -1092,7 +1073,6 @@ DotGram.Sql.Ast.CertificateSource.Binary.PrivateKey.get -> DotGram.Sql.SqlList<D
 DotGram.Sql.Ast.CertificateSource.Binary.PrivateKey.init -> void
 DotGram.Sql.Ast.CertificateSource.Binary.Value.get -> DotGram.Sql.Ast.LiteralValue.Binary!
 DotGram.Sql.Ast.CertificateSource.Binary.Value.init -> void
-DotGram.Sql.Ast.CertificateSource.CertificateSource() -> void
 DotGram.Sql.Ast.CertificateSource.CertificateSource(DotGram.Sql.Ast.CertificateSource! original) -> void
 DotGram.Sql.Ast.CertificateSource.File
 DotGram.Sql.Ast.CertificateSource.File.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Path) -> void
@@ -1179,7 +1159,6 @@ DotGram.Sql.Ast.ColumnDefinition.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.ColumnDefinition.Type.get -> DotGram.Sql.Ast.DataType?
 DotGram.Sql.Ast.ColumnDefinition.Type.init -> void
 DotGram.Sql.Ast.ColumnGeneration
-DotGram.Sql.Ast.ColumnGeneration.ColumnGeneration() -> void
 DotGram.Sql.Ast.ColumnGeneration.ColumnGeneration(DotGram.Sql.Ast.ColumnGeneration! original) -> void
 DotGram.Sql.Ast.ColumnGeneration.Default
 DotGram.Sql.Ast.ColumnGeneration.Default.Deconstruct(out DotGram.Sql.Ast.Expression! Value) -> void
@@ -1216,7 +1195,6 @@ DotGram.Sql.Ast.ColumnKeyChange.AddValue.Deconstruct(out DotGram.Sql.Ast.ColumnK
 DotGram.Sql.Ast.ColumnKeyChange.AddValue.Equals(DotGram.Sql.Ast.ColumnKeyChange.AddValue? other) -> bool
 DotGram.Sql.Ast.ColumnKeyChange.AddValue.Value.get -> DotGram.Sql.Ast.ColumnKeyValue!
 DotGram.Sql.Ast.ColumnKeyChange.AddValue.Value.init -> void
-DotGram.Sql.Ast.ColumnKeyChange.ColumnKeyChange() -> void
 DotGram.Sql.Ast.ColumnKeyChange.ColumnKeyChange(DotGram.Sql.Ast.ColumnKeyChange! original) -> void
 DotGram.Sql.Ast.ColumnKeyChange.DropValue
 DotGram.Sql.Ast.ColumnKeyChange.DropValue.Deconstruct(out DotGram.Sql.Ast.ColumnKeyValue! Value) -> void
@@ -1245,7 +1223,6 @@ DotGram.Sql.Ast.ColumnOption.Collation.Deconstruct(out DotGram.Sql.Ast.Collation
 DotGram.Sql.Ast.ColumnOption.Collation.Equals(DotGram.Sql.Ast.ColumnOption.Collation? other) -> bool
 DotGram.Sql.Ast.ColumnOption.Collation.Value.get -> DotGram.Sql.Ast.CollationName!
 DotGram.Sql.Ast.ColumnOption.Collation.Value.init -> void
-DotGram.Sql.Ast.ColumnOption.ColumnOption() -> void
 DotGram.Sql.Ast.ColumnOption.ColumnOption(DotGram.Sql.Ast.ColumnOption! original) -> void
 DotGram.Sql.Ast.ColumnOption.ColumnSet
 DotGram.Sql.Ast.ColumnOption.ColumnSet.ColumnSet() -> void
@@ -1374,7 +1351,6 @@ DotGram.Sql.Ast.ComparisonOperator.NotEqual = 1 -> DotGram.Sql.Ast.ComparisonOpe
 DotGram.Sql.Ast.ComparisonOperator.NotGreater = 7 -> DotGram.Sql.Ast.ComparisonOperator
 DotGram.Sql.Ast.ComparisonOperator.NotLess = 6 -> DotGram.Sql.Ast.ComparisonOperator
 DotGram.Sql.Ast.ConditionAction
-DotGram.Sql.Ast.ConditionAction.ConditionAction() -> void
 DotGram.Sql.Ast.ConditionAction.ConditionAction(DotGram.Sql.Ast.ConditionAction! original) -> void
 DotGram.Sql.Ast.ConditionAction.Continue
 DotGram.Sql.Ast.ConditionAction.Continue.Continue() -> void
@@ -1429,7 +1405,6 @@ DotGram.Sql.Ast.ConditionInformationItemName.TriggerCatalog = 24 -> DotGram.Sql.
 DotGram.Sql.Ast.ConditionInformationItemName.TriggerName = 25 -> DotGram.Sql.Ast.ConditionInformationItemName
 DotGram.Sql.Ast.ConditionInformationItemName.TriggerSchema = 26 -> DotGram.Sql.Ast.ConditionInformationItemName
 DotGram.Sql.Ast.ConnectionObject
-DotGram.Sql.Ast.ConnectionObject.ConnectionObject() -> void
 DotGram.Sql.Ast.ConnectionObject.ConnectionObject(DotGram.Sql.Ast.ConnectionObject! original) -> void
 DotGram.Sql.Ast.ConnectionObject.Default
 DotGram.Sql.Ast.ConnectionObject.Default.Default() -> void
@@ -1476,7 +1451,6 @@ DotGram.Sql.Ast.Constraint.Connection.Deconstruct(out DotGram.Sql.SqlList<DotGra
 DotGram.Sql.Ast.Constraint.Connection.Equals(DotGram.Sql.Ast.Constraint.Connection? other) -> bool
 DotGram.Sql.Ast.Constraint.Connection.OnDeleteCascade.get -> bool
 DotGram.Sql.Ast.Constraint.Connection.OnDeleteCascade.init -> void
-DotGram.Sql.Ast.Constraint.Constraint() -> void
 DotGram.Sql.Ast.Constraint.Constraint(DotGram.Sql.Ast.Constraint! original) -> void
 DotGram.Sql.Ast.Constraint.Default
 DotGram.Sql.Ast.Constraint.Default.Column.get -> DotGram.Sql.Ast.Identifier!
@@ -1553,7 +1527,6 @@ DotGram.Sql.Ast.ConstraintTarget
 DotGram.Sql.Ast.ConstraintTarget.All
 DotGram.Sql.Ast.ConstraintTarget.All.All() -> void
 DotGram.Sql.Ast.ConstraintTarget.All.Equals(DotGram.Sql.Ast.ConstraintTarget.All? other) -> bool
-DotGram.Sql.Ast.ConstraintTarget.ConstraintTarget() -> void
 DotGram.Sql.Ast.ConstraintTarget.ConstraintTarget(DotGram.Sql.Ast.ConstraintTarget! original) -> void
 DotGram.Sql.Ast.ConstraintTarget.Locate(int at, int length) -> void
 DotGram.Sql.Ast.ConstraintTarget.Names
@@ -1595,7 +1568,6 @@ DotGram.Sql.Ast.CorrespondingClause.Equals(DotGram.Sql.Ast.CorrespondingClause? 
 DotGram.Sql.Ast.CorrespondingClause.Locate(int at, int length) -> void
 DotGram.Sql.Ast.CorrespondingClause.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.CryptographicProviderChange
-DotGram.Sql.Ast.CryptographicProviderChange.CryptographicProviderChange() -> void
 DotGram.Sql.Ast.CryptographicProviderChange.CryptographicProviderChange(DotGram.Sql.Ast.CryptographicProviderChange! original) -> void
 DotGram.Sql.Ast.CryptographicProviderChange.Disable
 DotGram.Sql.Ast.CryptographicProviderChange.Disable.Disable() -> void
@@ -1629,7 +1601,6 @@ DotGram.Sql.Ast.CurrentValue.TransformGroupForType = 15 -> DotGram.Sql.Ast.Curre
 DotGram.Sql.Ast.CurrentValue.User = 8 -> DotGram.Sql.Ast.CurrentValue
 DotGram.Sql.Ast.CurrentValue.Value = 11 -> DotGram.Sql.Ast.CurrentValue
 DotGram.Sql.Ast.CursorAllocationSource
-DotGram.Sql.Ast.CursorAllocationSource.CursorAllocationSource() -> void
 DotGram.Sql.Ast.CursorAllocationSource.CursorAllocationSource(DotGram.Sql.Ast.CursorAllocationSource! original) -> void
 DotGram.Sql.Ast.CursorAllocationSource.Locate(int at, int length) -> void
 DotGram.Sql.Ast.CursorAllocationSource.Prepared
@@ -1708,7 +1679,6 @@ DotGram.Sql.Ast.CursorSensitivity.Asensitive = 2 -> DotGram.Sql.Ast.CursorSensit
 DotGram.Sql.Ast.CursorSensitivity.Insensitive = 1 -> DotGram.Sql.Ast.CursorSensitivity
 DotGram.Sql.Ast.CursorSensitivity.Sensitive = 0 -> DotGram.Sql.Ast.CursorSensitivity
 DotGram.Sql.Ast.CursorSource
-DotGram.Sql.Ast.CursorSource.CursorSource() -> void
 DotGram.Sql.Ast.CursorSource.CursorSource(DotGram.Sql.Ast.CursorSource! original) -> void
 DotGram.Sql.Ast.CursorSource.Locate(int at, int length) -> void
 DotGram.Sql.Ast.CursorSource.Prepared
@@ -1802,7 +1772,6 @@ DotGram.Sql.Ast.DataType.Character.Max.get -> bool
 DotGram.Sql.Ast.DataType.Character.Max.init -> void
 DotGram.Sql.Ast.DataType.Character.Unit.get -> DotGram.Sql.Ast.LengthUnit?
 DotGram.Sql.Ast.DataType.Character.Unit.init -> void
-DotGram.Sql.Ast.DataType.DataType() -> void
 DotGram.Sql.Ast.DataType.DataType(DotGram.Sql.Ast.DataType! original) -> void
 DotGram.Sql.Ast.DataType.DateTime
 DotGram.Sql.Ast.DataType.DateTime.DateTime(DotGram.Sql.Ast.DateTimeTypeKind Kind, int? Precision = null, DotGram.Sql.Ast.TimeZoneMode? TimeZone = null) -> void
@@ -1928,7 +1897,6 @@ DotGram.Sql.Ast.DatabaseContainment
 DotGram.Sql.Ast.DatabaseContainment.None = 0 -> DotGram.Sql.Ast.DatabaseContainment
 DotGram.Sql.Ast.DatabaseContainment.Partial = 1 -> DotGram.Sql.Ast.DatabaseContainment
 DotGram.Sql.Ast.DatabaseEncryptionKeyChange
-DotGram.Sql.Ast.DatabaseEncryptionKeyChange.DatabaseEncryptionKeyChange() -> void
 DotGram.Sql.Ast.DatabaseEncryptionKeyChange.DatabaseEncryptionKeyChange(DotGram.Sql.Ast.DatabaseEncryptionKeyChange! original) -> void
 DotGram.Sql.Ast.DatabaseEncryptionKeyChange.EncryptedBy
 DotGram.Sql.Ast.DatabaseEncryptionKeyChange.EncryptedBy.By.get -> DotGram.Sql.Ast.KeyEncryptor!
@@ -1971,7 +1939,6 @@ DotGram.Sql.Ast.DatabaseSource.AsSnapshotOf.Database.get -> DotGram.Sql.Ast.Iden
 DotGram.Sql.Ast.DatabaseSource.AsSnapshotOf.Database.init -> void
 DotGram.Sql.Ast.DatabaseSource.AsSnapshotOf.Deconstruct(out DotGram.Sql.Ast.Identifier! Database) -> void
 DotGram.Sql.Ast.DatabaseSource.AsSnapshotOf.Equals(DotGram.Sql.Ast.DatabaseSource.AsSnapshotOf? other) -> bool
-DotGram.Sql.Ast.DatabaseSource.DatabaseSource() -> void
 DotGram.Sql.Ast.DatabaseSource.DatabaseSource(DotGram.Sql.Ast.DatabaseSource! original) -> void
 DotGram.Sql.Ast.DatabaseSource.ForAttach
 DotGram.Sql.Ast.DatabaseSource.ForAttach.Deconstruct(out DotGram.Sql.Ast.AttachKind Kind) -> void
@@ -2021,7 +1988,6 @@ DotGram.Sql.Ast.DefinitionVerb.Alter = 1 -> DotGram.Sql.Ast.DefinitionVerb
 DotGram.Sql.Ast.DefinitionVerb.Create = 0 -> DotGram.Sql.Ast.DefinitionVerb
 DotGram.Sql.Ast.DefinitionVerb.CreateOrAlter = 2 -> DotGram.Sql.Ast.DefinitionVerb
 DotGram.Sql.Ast.DescribeBody
-DotGram.Sql.Ast.DescribeBody.DescribeBody() -> void
 DotGram.Sql.Ast.DescribeBody.DescribeBody(DotGram.Sql.Ast.DescribeBody! original) -> void
 DotGram.Sql.Ast.DescribeBody.Input
 DotGram.Sql.Ast.DescribeBody.Input.Deconstruct(out DotGram.Sql.Ast.StatementReference! Statement, out DotGram.Sql.Ast.DescriptorReference! Descriptor, out bool? WithNesting, out bool SqlKeyword) -> void
@@ -2058,7 +2024,6 @@ DotGram.Sql.Ast.DescribeObject.Cursor.Deconstruct(out DotGram.Sql.Ast.CursorRefe
 DotGram.Sql.Ast.DescribeObject.Cursor.Equals(DotGram.Sql.Ast.DescribeObject.Cursor? other) -> bool
 DotGram.Sql.Ast.DescribeObject.Cursor.Value.get -> DotGram.Sql.Ast.CursorReference!
 DotGram.Sql.Ast.DescribeObject.Cursor.Value.init -> void
-DotGram.Sql.Ast.DescribeObject.DescribeObject() -> void
 DotGram.Sql.Ast.DescribeObject.DescribeObject(DotGram.Sql.Ast.DescribeObject! original) -> void
 DotGram.Sql.Ast.DescribeObject.Locate(int at, int length) -> void
 DotGram.Sql.Ast.DescribeObject.Span.get -> DotGram.Sql.SqlSpan
@@ -2080,7 +2045,6 @@ DotGram.Sql.Ast.DescriptorColumn.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.DescriptorColumn.Type.get -> DotGram.Sql.Ast.DataType?
 DotGram.Sql.Ast.DescriptorColumn.Type.init -> void
 DotGram.Sql.Ast.DescriptorCopy
-DotGram.Sql.Ast.DescriptorCopy.DescriptorCopy() -> void
 DotGram.Sql.Ast.DescriptorCopy.DescriptorCopy(DotGram.Sql.Ast.DescriptorCopy! original) -> void
 DotGram.Sql.Ast.DescriptorCopy.Item
 DotGram.Sql.Ast.DescriptorCopy.Item.Deconstruct(out DotGram.Sql.Ast.DescriptorReference! Source, out DotGram.Sql.Ast.Expression! SourceIndex, out DotGram.Sql.SqlList<DotGram.Sql.Ast.DescriptorCopyOption> Options, out DotGram.Sql.Ast.DescriptorReference! Target, out DotGram.Sql.Ast.Expression! TargetIndex) -> void
@@ -2111,7 +2075,6 @@ DotGram.Sql.Ast.DescriptorCopyOption.Data = 2 -> DotGram.Sql.Ast.DescriptorCopyO
 DotGram.Sql.Ast.DescriptorCopyOption.Name = 0 -> DotGram.Sql.Ast.DescriptorCopyOption
 DotGram.Sql.Ast.DescriptorCopyOption.Type = 1 -> DotGram.Sql.Ast.DescriptorCopyOption
 DotGram.Sql.Ast.DescriptorGet
-DotGram.Sql.Ast.DescriptorGet.DescriptorGet() -> void
 DotGram.Sql.Ast.DescriptorGet.DescriptorGet(DotGram.Sql.Ast.DescriptorGet! original) -> void
 DotGram.Sql.Ast.DescriptorGet.Header
 DotGram.Sql.Ast.DescriptorGet.Header.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.DescriptorRead!> Items) -> void
@@ -2203,7 +2166,6 @@ DotGram.Sql.Ast.DescriptorReference.Ptf.get -> bool
 DotGram.Sql.Ast.DescriptorReference.Ptf.init -> void
 DotGram.Sql.Ast.DescriptorReference.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.DescriptorSet
-DotGram.Sql.Ast.DescriptorSet.DescriptorSet() -> void
 DotGram.Sql.Ast.DescriptorSet.DescriptorSet(DotGram.Sql.Ast.DescriptorSet! original) -> void
 DotGram.Sql.Ast.DescriptorSet.Header
 DotGram.Sql.Ast.DescriptorSet.Header.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.DescriptorWrite!> Items) -> void
@@ -2255,7 +2217,6 @@ DotGram.Sql.Ast.DiagnosticsInformation.Condition.Items.get -> DotGram.Sql.SqlLis
 DotGram.Sql.Ast.DiagnosticsInformation.Condition.Items.init -> void
 DotGram.Sql.Ast.DiagnosticsInformation.Condition.Number.get -> DotGram.Sql.Ast.Expression!
 DotGram.Sql.Ast.DiagnosticsInformation.Condition.Number.init -> void
-DotGram.Sql.Ast.DiagnosticsInformation.DiagnosticsInformation() -> void
 DotGram.Sql.Ast.DiagnosticsInformation.DiagnosticsInformation(DotGram.Sql.Ast.DiagnosticsInformation! original) -> void
 DotGram.Sql.Ast.DiagnosticsInformation.Locate(int at, int length) -> void
 DotGram.Sql.Ast.DiagnosticsInformation.Span.get -> DotGram.Sql.SqlSpan
@@ -2278,7 +2239,6 @@ DotGram.Sql.Ast.DisconnectObject.Connection.Value.init -> void
 DotGram.Sql.Ast.DisconnectObject.Current
 DotGram.Sql.Ast.DisconnectObject.Current.Current() -> void
 DotGram.Sql.Ast.DisconnectObject.Current.Equals(DotGram.Sql.Ast.DisconnectObject.Current? other) -> bool
-DotGram.Sql.Ast.DisconnectObject.DisconnectObject() -> void
 DotGram.Sql.Ast.DisconnectObject.DisconnectObject(DotGram.Sql.Ast.DisconnectObject! original) -> void
 DotGram.Sql.Ast.DisconnectObject.Locate(int at, int length) -> void
 DotGram.Sql.Ast.DisconnectObject.Span.get -> DotGram.Sql.SqlSpan
@@ -2286,7 +2246,6 @@ DotGram.Sql.Ast.DropBehavior
 DotGram.Sql.Ast.DropBehavior.Cascade = 0 -> DotGram.Sql.Ast.DropBehavior
 DotGram.Sql.Ast.DropBehavior.Restrict = 1 -> DotGram.Sql.Ast.DropBehavior
 DotGram.Sql.Ast.DroppedIndex
-DotGram.Sql.Ast.DroppedIndex.DroppedIndex() -> void
 DotGram.Sql.Ast.DroppedIndex.DroppedIndex(DotGram.Sql.Ast.DroppedIndex! original) -> void
 DotGram.Sql.Ast.DroppedIndex.Locate(int at, int length) -> void
 DotGram.Sql.Ast.DroppedIndex.Named
@@ -2315,7 +2274,6 @@ DotGram.Sql.Ast.DynamicArguments.Descriptor.SqlKeyword.get -> bool
 DotGram.Sql.Ast.DynamicArguments.Descriptor.SqlKeyword.init -> void
 DotGram.Sql.Ast.DynamicArguments.Descriptor.Value.get -> DotGram.Sql.Ast.DescriptorReference!
 DotGram.Sql.Ast.DynamicArguments.Descriptor.Value.init -> void
-DotGram.Sql.Ast.DynamicArguments.DynamicArguments() -> void
 DotGram.Sql.Ast.DynamicArguments.DynamicArguments(DotGram.Sql.Ast.DynamicArguments! original) -> void
 DotGram.Sql.Ast.DynamicArguments.Locate(int at, int length) -> void
 DotGram.Sql.Ast.DynamicArguments.Span.get -> DotGram.Sql.SqlSpan
@@ -2381,7 +2339,6 @@ DotGram.Sql.Ast.EmbeddedSql.DeclareSection.Prefix.get -> DotGram.Sql.Ast.Embedde
 DotGram.Sql.Ast.EmbeddedSql.DeclareSection.Prefix.init -> void
 DotGram.Sql.Ast.EmbeddedSql.DeclareSection.Terminator.get -> DotGram.Sql.Ast.EmbeddedTerminator?
 DotGram.Sql.Ast.EmbeddedSql.DeclareSection.Terminator.init -> void
-DotGram.Sql.Ast.EmbeddedSql.EmbeddedSql() -> void
 DotGram.Sql.Ast.EmbeddedSql.EmbeddedSql(DotGram.Sql.Ast.EmbeddedSql! original) -> void
 DotGram.Sql.Ast.EmbeddedSql.Locate(int at, int length) -> void
 DotGram.Sql.Ast.EmbeddedSql.Path
@@ -2414,17 +2371,6 @@ DotGram.Sql.Ast.EmbeddedTerminator
 DotGram.Sql.Ast.EmbeddedTerminator.EndExec = 0 -> DotGram.Sql.Ast.EmbeddedTerminator
 DotGram.Sql.Ast.EmbeddedTerminator.RightParen = 2 -> DotGram.Sql.Ast.EmbeddedTerminator
 DotGram.Sql.Ast.EmbeddedTerminator.Semicolon = 1 -> DotGram.Sql.Ast.EmbeddedTerminator
-DotGram.Sql.Ast.EndpointAlgorithm
-DotGram.Sql.Ast.EndpointAlgorithm.Aes = 0 -> DotGram.Sql.Ast.EndpointAlgorithm
-DotGram.Sql.Ast.EndpointAlgorithm.AesRc4 = 2 -> DotGram.Sql.Ast.EndpointAlgorithm
-DotGram.Sql.Ast.EndpointAlgorithm.Rc4 = 1 -> DotGram.Sql.Ast.EndpointAlgorithm
-DotGram.Sql.Ast.EndpointAlgorithm.Rc4Aes = 3 -> DotGram.Sql.Ast.EndpointAlgorithm
-DotGram.Sql.Ast.EndpointEncryptionLevel
-DotGram.Sql.Ast.EndpointEncryptionLevel.Disabled = 0 -> DotGram.Sql.Ast.EndpointEncryptionLevel
-DotGram.Sql.Ast.EndpointEncryptionLevel.Negotiated = 1 -> DotGram.Sql.Ast.EndpointEncryptionLevel
-DotGram.Sql.Ast.EndpointEncryptionLevel.Required = 4 -> DotGram.Sql.Ast.EndpointEncryptionLevel
-DotGram.Sql.Ast.EndpointEncryptionLevel.Strict = 2 -> DotGram.Sql.Ast.EndpointEncryptionLevel
-DotGram.Sql.Ast.EndpointEncryptionLevel.Supported = 3 -> DotGram.Sql.Ast.EndpointEncryptionLevel
 DotGram.Sql.Ast.EndpointPayload
 DotGram.Sql.Ast.EndpointPayload.DatabaseMirroring
 DotGram.Sql.Ast.EndpointPayload.DatabaseMirroring.DataMirroring.get -> bool
@@ -2434,7 +2380,6 @@ DotGram.Sql.Ast.EndpointPayload.DatabaseMirroring.Deconstruct(out DotGram.Sql.Sq
 DotGram.Sql.Ast.EndpointPayload.DatabaseMirroring.Equals(DotGram.Sql.Ast.EndpointPayload.DatabaseMirroring? other) -> bool
 DotGram.Sql.Ast.EndpointPayload.DatabaseMirroring.Options.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!>
 DotGram.Sql.Ast.EndpointPayload.DatabaseMirroring.Options.init -> void
-DotGram.Sql.Ast.EndpointPayload.EndpointPayload() -> void
 DotGram.Sql.Ast.EndpointPayload.EndpointPayload(DotGram.Sql.Ast.EndpointPayload! original) -> void
 DotGram.Sql.Ast.EndpointPayload.Locate(int at, int length) -> void
 DotGram.Sql.Ast.EndpointPayload.ServiceBroker
@@ -2457,7 +2402,6 @@ DotGram.Sql.Ast.EndpointPayload.Tsql.Options.get -> DotGram.Sql.SqlList<DotGram.
 DotGram.Sql.Ast.EndpointPayload.Tsql.Options.init -> void
 DotGram.Sql.Ast.EndpointPayload.Tsql.Tsql(DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> Options) -> void
 DotGram.Sql.Ast.EndpointTransport
-DotGram.Sql.Ast.EndpointTransport.EndpointTransport() -> void
 DotGram.Sql.Ast.EndpointTransport.EndpointTransport(DotGram.Sql.Ast.EndpointTransport! original) -> void
 DotGram.Sql.Ast.EndpointTransport.Http
 DotGram.Sql.Ast.EndpointTransport.Http.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> Options) -> void
@@ -2473,10 +2417,6 @@ DotGram.Sql.Ast.EndpointTransport.Tcp.Equals(DotGram.Sql.Ast.EndpointTransport.T
 DotGram.Sql.Ast.EndpointTransport.Tcp.Options.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!>
 DotGram.Sql.Ast.EndpointTransport.Tcp.Options.init -> void
 DotGram.Sql.Ast.EndpointTransport.Tcp.Tcp(DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> Options) -> void
-DotGram.Sql.Ast.EndpointWindowsMode
-DotGram.Sql.Ast.EndpointWindowsMode.Kerberos = 1 -> DotGram.Sql.Ast.EndpointWindowsMode
-DotGram.Sql.Ast.EndpointWindowsMode.Negotiate = 2 -> DotGram.Sql.Ast.EndpointWindowsMode
-DotGram.Sql.Ast.EndpointWindowsMode.Ntlm = 0 -> DotGram.Sql.Ast.EndpointWindowsMode
 DotGram.Sql.Ast.EventJoin
 DotGram.Sql.Ast.EventJoin.And = 0 -> DotGram.Sql.Ast.EventJoin
 DotGram.Sql.Ast.EventJoin.Or = 1 -> DotGram.Sql.Ast.EventJoin
@@ -2503,7 +2443,6 @@ DotGram.Sql.Ast.EventPredicate.Compare.Operator.get -> DotGram.Sql.Ast.Compariso
 DotGram.Sql.Ast.EventPredicate.Compare.Operator.init -> void
 DotGram.Sql.Ast.EventPredicate.Compare.Value.get -> DotGram.Sql.Ast.Expression!
 DotGram.Sql.Ast.EventPredicate.Compare.Value.init -> void
-DotGram.Sql.Ast.EventPredicate.EventPredicate() -> void
 DotGram.Sql.Ast.EventPredicate.EventPredicate(DotGram.Sql.Ast.EventPredicate! original) -> void
 DotGram.Sql.Ast.EventPredicate.Join
 DotGram.Sql.Ast.EventPredicate.Join.Deconstruct(out DotGram.Sql.Ast.EventPredicate! Left, out DotGram.Sql.Ast.EventJoin Operator, out DotGram.Sql.Ast.EventPredicate! Right) -> void
@@ -2575,7 +2514,6 @@ DotGram.Sql.Ast.EventSessionPiece.DropTarget.DropTarget(DotGram.Sql.Ast.Qualifie
 DotGram.Sql.Ast.EventSessionPiece.DropTarget.Equals(DotGram.Sql.Ast.EventSessionPiece.DropTarget? other) -> bool
 DotGram.Sql.Ast.EventSessionPiece.DropTarget.Target.get -> DotGram.Sql.Ast.QualifiedName
 DotGram.Sql.Ast.EventSessionPiece.DropTarget.Target.init -> void
-DotGram.Sql.Ast.EventSessionPiece.EventSessionPiece() -> void
 DotGram.Sql.Ast.EventSessionPiece.EventSessionPiece(DotGram.Sql.Ast.EventSessionPiece! original) -> void
 DotGram.Sql.Ast.EventSessionPiece.Locate(int at, int length) -> void
 DotGram.Sql.Ast.EventSessionPiece.Span.get -> DotGram.Sql.SqlSpan
@@ -2599,7 +2537,6 @@ DotGram.Sql.Ast.ExecuteKeyword
 DotGram.Sql.Ast.ExecuteKeyword.Exec = 0 -> DotGram.Sql.Ast.ExecuteKeyword
 DotGram.Sql.Ast.ExecuteKeyword.Execute = 1 -> DotGram.Sql.Ast.ExecuteKeyword
 DotGram.Sql.Ast.ExecuteOption
-DotGram.Sql.Ast.ExecuteOption.ExecuteOption() -> void
 DotGram.Sql.Ast.ExecuteOption.ExecuteOption(DotGram.Sql.Ast.ExecuteOption! original) -> void
 DotGram.Sql.Ast.ExecuteOption.Locate(int at, int length) -> void
 DotGram.Sql.Ast.ExecuteOption.Named
@@ -2830,7 +2767,6 @@ DotGram.Sql.Ast.Expression.Exists.Equals(DotGram.Sql.Ast.Expression.Exists? othe
 DotGram.Sql.Ast.Expression.Exists.Exists(DotGram.Sql.Ast.Query! Query) -> void
 DotGram.Sql.Ast.Expression.Exists.Query.get -> DotGram.Sql.Ast.Query!
 DotGram.Sql.Ast.Expression.Exists.Query.init -> void
-DotGram.Sql.Ast.Expression.Expression() -> void
 DotGram.Sql.Ast.Expression.Expression(DotGram.Sql.Ast.Expression! original) -> void
 DotGram.Sql.Ast.Expression.Extension
 DotGram.Sql.Ast.Expression.Extension.Deconstruct(out string! Dialect, out string! Kind, out DotGram.Sql.SqlList<DotGram.Sql.Ast.ISqlNode!> Parts) -> void
@@ -3574,7 +3510,6 @@ DotGram.Sql.Ast.ExternalLanguageChange.Add.Deconstruct(out DotGram.Sql.Ast.Exter
 DotGram.Sql.Ast.ExternalLanguageChange.Add.Equals(DotGram.Sql.Ast.ExternalLanguageChange.Add? other) -> bool
 DotGram.Sql.Ast.ExternalLanguageChange.Add.File.get -> DotGram.Sql.Ast.ExternalFile!
 DotGram.Sql.Ast.ExternalLanguageChange.Add.File.init -> void
-DotGram.Sql.Ast.ExternalLanguageChange.ExternalLanguageChange() -> void
 DotGram.Sql.Ast.ExternalLanguageChange.ExternalLanguageChange(DotGram.Sql.Ast.ExternalLanguageChange! original) -> void
 DotGram.Sql.Ast.ExternalLanguageChange.Locate(int at, int length) -> void
 DotGram.Sql.Ast.ExternalLanguageChange.RemovePlatform
@@ -3597,7 +3532,6 @@ DotGram.Sql.Ast.ExternalLibraryChange.Add.Deconstruct(out DotGram.Sql.SqlList<Do
 DotGram.Sql.Ast.ExternalLibraryChange.Add.Equals(DotGram.Sql.Ast.ExternalLibraryChange.Add? other) -> bool
 DotGram.Sql.Ast.ExternalLibraryChange.Add.Files.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.ExternalFile!>
 DotGram.Sql.Ast.ExternalLibraryChange.Add.Files.init -> void
-DotGram.Sql.Ast.ExternalLibraryChange.ExternalLibraryChange() -> void
 DotGram.Sql.Ast.ExternalLibraryChange.ExternalLibraryChange(DotGram.Sql.Ast.ExternalLibraryChange! original) -> void
 DotGram.Sql.Ast.ExternalLibraryChange.Locate(int at, int length) -> void
 DotGram.Sql.Ast.ExternalLibraryChange.Set
@@ -3683,7 +3617,6 @@ DotGram.Sql.Ast.FileGroupChange.AutoGrow.Kind.init -> void
 DotGram.Sql.Ast.FileGroupChange.Default
 DotGram.Sql.Ast.FileGroupChange.Default.Default() -> void
 DotGram.Sql.Ast.FileGroupChange.Default.Equals(DotGram.Sql.Ast.FileGroupChange.Default? other) -> bool
-DotGram.Sql.Ast.FileGroupChange.FileGroupChange() -> void
 DotGram.Sql.Ast.FileGroupChange.FileGroupChange(DotGram.Sql.Ast.FileGroupChange! original) -> void
 DotGram.Sql.Ast.FileGroupChange.Locate(int at, int length) -> void
 DotGram.Sql.Ast.FileGroupChange.Rename
@@ -3720,7 +3653,6 @@ DotGram.Sql.Ast.ForClause
 DotGram.Sql.Ast.ForClause.Browse
 DotGram.Sql.Ast.ForClause.Browse.Browse() -> void
 DotGram.Sql.Ast.ForClause.Browse.Equals(DotGram.Sql.Ast.ForClause.Browse? other) -> bool
-DotGram.Sql.Ast.ForClause.ForClause() -> void
 DotGram.Sql.Ast.ForClause.ForClause(DotGram.Sql.Ast.ForClause! original) -> void
 DotGram.Sql.Ast.ForClause.Json
 DotGram.Sql.Ast.ForClause.Json.Deconstruct(out DotGram.Sql.Ast.JsonMode Mode, out DotGram.Sql.SqlList<DotGram.Sql.Ast.ForDirective!> Directives) -> void
@@ -3804,7 +3736,6 @@ DotGram.Sql.Ast.FullTextAlteration.DropColumns.Equals(DotGram.Sql.Ast.FullTextAl
 DotGram.Sql.Ast.FullTextAlteration.Enable
 DotGram.Sql.Ast.FullTextAlteration.Enable.Enable() -> void
 DotGram.Sql.Ast.FullTextAlteration.Enable.Equals(DotGram.Sql.Ast.FullTextAlteration.Enable? other) -> bool
-DotGram.Sql.Ast.FullTextAlteration.FullTextAlteration() -> void
 DotGram.Sql.Ast.FullTextAlteration.FullTextAlteration(DotGram.Sql.Ast.FullTextAlteration! original) -> void
 DotGram.Sql.Ast.FullTextAlteration.Locate(int at, int length) -> void
 DotGram.Sql.Ast.FullTextAlteration.Options.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!>
@@ -3852,7 +3783,6 @@ DotGram.Sql.Ast.FullTextCatalogAction
 DotGram.Sql.Ast.FullTextCatalogAction.AsDefault
 DotGram.Sql.Ast.FullTextCatalogAction.AsDefault.AsDefault() -> void
 DotGram.Sql.Ast.FullTextCatalogAction.AsDefault.Equals(DotGram.Sql.Ast.FullTextCatalogAction.AsDefault? other) -> bool
-DotGram.Sql.Ast.FullTextCatalogAction.FullTextCatalogAction() -> void
 DotGram.Sql.Ast.FullTextCatalogAction.FullTextCatalogAction(DotGram.Sql.Ast.FullTextCatalogAction! original) -> void
 DotGram.Sql.Ast.FullTextCatalogAction.Locate(int at, int length) -> void
 DotGram.Sql.Ast.FullTextCatalogAction.Rebuild
@@ -3891,7 +3821,6 @@ DotGram.Sql.Ast.GeneratedAlwaysKind.SequenceNumberStart = 4 -> DotGram.Sql.Ast.G
 DotGram.Sql.Ast.GeneratedAlwaysKind.TransactionIdEnd = 3 -> DotGram.Sql.Ast.GeneratedAlwaysKind
 DotGram.Sql.Ast.GeneratedAlwaysKind.TransactionIdStart = 2 -> DotGram.Sql.Ast.GeneratedAlwaysKind
 DotGram.Sql.Ast.GrantBody
-DotGram.Sql.Ast.GrantBody.GrantBody() -> void
 DotGram.Sql.Ast.GrantBody.GrantBody(DotGram.Sql.Ast.GrantBody! original) -> void
 DotGram.Sql.Ast.GrantBody.Locate(int at, int length) -> void
 DotGram.Sql.Ast.GrantBody.Privileges
@@ -3926,7 +3855,6 @@ DotGram.Sql.Ast.GrantBody.Roles.Names.init -> void
 DotGram.Sql.Ast.GrantBody.Roles.Roles(DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!> Names, DotGram.Sql.SqlList<DotGram.Sql.Ast.Grantee!> Grantees, bool AdminOption, DotGram.Sql.Ast.Grantor? GrantedBy) -> void
 DotGram.Sql.Ast.GrantBody.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.Grantee
-DotGram.Sql.Ast.Grantee.Grantee() -> void
 DotGram.Sql.Ast.Grantee.Grantee(DotGram.Sql.Ast.Grantee! original) -> void
 DotGram.Sql.Ast.Grantee.Identifier
 DotGram.Sql.Ast.Grantee.Identifier.Deconstruct(out DotGram.Sql.Ast.AuthorizationIdentifier! Value) -> void
@@ -3979,7 +3907,6 @@ DotGram.Sql.Ast.GraphPattern.Chain.Start.get -> DotGram.Sql.Ast.GraphNode!
 DotGram.Sql.Ast.GraphPattern.Chain.Start.init -> void
 DotGram.Sql.Ast.GraphPattern.Chain.Steps.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.GraphStep!>
 DotGram.Sql.Ast.GraphPattern.Chain.Steps.init -> void
-DotGram.Sql.Ast.GraphPattern.GraphPattern() -> void
 DotGram.Sql.Ast.GraphPattern.GraphPattern(DotGram.Sql.Ast.GraphPattern! original) -> void
 DotGram.Sql.Ast.GraphPattern.LastNodes
 DotGram.Sql.Ast.GraphPattern.LastNodes.Deconstruct(out DotGram.Sql.Ast.Identifier! Left, out DotGram.Sql.Ast.Identifier! Right) -> void
@@ -4055,7 +3982,6 @@ DotGram.Sql.Ast.GroupingElement.Cube.Items.init -> void
 DotGram.Sql.Ast.GroupingElement.Empty
 DotGram.Sql.Ast.GroupingElement.Empty.Empty() -> void
 DotGram.Sql.Ast.GroupingElement.Empty.Equals(DotGram.Sql.Ast.GroupingElement.Empty? other) -> bool
-DotGram.Sql.Ast.GroupingElement.GroupingElement() -> void
 DotGram.Sql.Ast.GroupingElement.GroupingElement(DotGram.Sql.Ast.GroupingElement! original) -> void
 DotGram.Sql.Ast.GroupingElement.Locate(int at, int length) -> void
 DotGram.Sql.Ast.GroupingElement.Ordinary
@@ -4110,7 +4036,6 @@ DotGram.Sql.Ast.HostDeclaration.Fortran.Equals(DotGram.Sql.Ast.HostDeclaration.F
 DotGram.Sql.Ast.HostDeclaration.Fortran.Fortran(string! Text) -> void
 DotGram.Sql.Ast.HostDeclaration.Fortran.Text.get -> string!
 DotGram.Sql.Ast.HostDeclaration.Fortran.Text.init -> void
-DotGram.Sql.Ast.HostDeclaration.HostDeclaration() -> void
 DotGram.Sql.Ast.HostDeclaration.HostDeclaration(DotGram.Sql.Ast.HostDeclaration! original) -> void
 DotGram.Sql.Ast.HostDeclaration.Locate(int at, int length) -> void
 DotGram.Sql.Ast.HostDeclaration.Mumps
@@ -4133,7 +4058,6 @@ DotGram.Sql.Ast.HostDeclaration.Pli.Text.get -> string!
 DotGram.Sql.Ast.HostDeclaration.Pli.Text.init -> void
 DotGram.Sql.Ast.HostDeclaration.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.HostParameterDeclaration
-DotGram.Sql.Ast.HostParameterDeclaration.HostParameterDeclaration() -> void
 DotGram.Sql.Ast.HostParameterDeclaration.HostParameterDeclaration(DotGram.Sql.Ast.HostParameterDeclaration! original) -> void
 DotGram.Sql.Ast.HostParameterDeclaration.Locate(int at, int length) -> void
 DotGram.Sql.Ast.HostParameterDeclaration.Parameter
@@ -4178,7 +4102,6 @@ DotGram.Sql.Ast.IdentityRestart
 DotGram.Sql.Ast.IdentityRestart.Continue = 0 -> DotGram.Sql.Ast.IdentityRestart
 DotGram.Sql.Ast.IdentityRestart.Restart = 1 -> DotGram.Sql.Ast.IdentityRestart
 DotGram.Sql.Ast.InSource
-DotGram.Sql.Ast.InSource.InSource() -> void
 DotGram.Sql.Ast.InSource.InSource(DotGram.Sql.Ast.InSource! original) -> void
 DotGram.Sql.Ast.InSource.Locate(int at, int length) -> void
 DotGram.Sql.Ast.InSource.Span.get -> DotGram.Sql.SqlSpan
@@ -4201,7 +4124,6 @@ DotGram.Sql.Ast.IndexAlteration.Abort.Equals(DotGram.Sql.Ast.IndexAlteration.Abo
 DotGram.Sql.Ast.IndexAlteration.Disable
 DotGram.Sql.Ast.IndexAlteration.Disable.Disable() -> void
 DotGram.Sql.Ast.IndexAlteration.Disable.Equals(DotGram.Sql.Ast.IndexAlteration.Disable? other) -> bool
-DotGram.Sql.Ast.IndexAlteration.IndexAlteration() -> void
 DotGram.Sql.Ast.IndexAlteration.IndexAlteration(DotGram.Sql.Ast.IndexAlteration! original) -> void
 DotGram.Sql.Ast.IndexAlteration.Locate(int at, int length) -> void
 DotGram.Sql.Ast.IndexAlteration.Paths
@@ -4299,7 +4221,6 @@ DotGram.Sql.Ast.InsertSource.ExecuteString.Equals(DotGram.Sql.Ast.InsertSource.E
 DotGram.Sql.Ast.InsertSource.ExecuteString.ExecuteString(DotGram.Sql.Ast.Statement.ExecuteString! Statement) -> void
 DotGram.Sql.Ast.InsertSource.ExecuteString.Statement.get -> DotGram.Sql.Ast.Statement.ExecuteString!
 DotGram.Sql.Ast.InsertSource.ExecuteString.Statement.init -> void
-DotGram.Sql.Ast.InsertSource.InsertSource() -> void
 DotGram.Sql.Ast.InsertSource.InsertSource(DotGram.Sql.Ast.InsertSource! original) -> void
 DotGram.Sql.Ast.InsertSource.Locate(int at, int length) -> void
 DotGram.Sql.Ast.InsertSource.Span.get -> DotGram.Sql.SqlSpan
@@ -4363,7 +4284,6 @@ DotGram.Sql.Ast.JoinKind.OuterApply = 6 -> DotGram.Sql.Ast.JoinKind
 DotGram.Sql.Ast.JoinKind.Right = 3 -> DotGram.Sql.Ast.JoinKind
 DotGram.Sql.Ast.JoinKind.Union = 7 -> DotGram.Sql.Ast.JoinKind
 DotGram.Sql.Ast.JoinSpecification
-DotGram.Sql.Ast.JoinSpecification.JoinSpecification() -> void
 DotGram.Sql.Ast.JoinSpecification.JoinSpecification(DotGram.Sql.Ast.JoinSpecification! original) -> void
 DotGram.Sql.Ast.JoinSpecification.Locate(int at, int length) -> void
 DotGram.Sql.Ast.JoinSpecification.On
@@ -4540,7 +4460,6 @@ DotGram.Sql.Ast.JsonPathAccessor.Filter.Equals(DotGram.Sql.Ast.JsonPathAccessor.
 DotGram.Sql.Ast.JsonPathAccessor.Filter.Filter(DotGram.Sql.Ast.JsonPathPredicate! Predicate) -> void
 DotGram.Sql.Ast.JsonPathAccessor.Filter.Predicate.get -> DotGram.Sql.Ast.JsonPathPredicate!
 DotGram.Sql.Ast.JsonPathAccessor.Filter.Predicate.init -> void
-DotGram.Sql.Ast.JsonPathAccessor.JsonPathAccessor() -> void
 DotGram.Sql.Ast.JsonPathAccessor.JsonPathAccessor(DotGram.Sql.Ast.JsonPathAccessor! original) -> void
 DotGram.Sql.Ast.JsonPathAccessor.Locate(int at, int length) -> void
 DotGram.Sql.Ast.JsonPathAccessor.Member
@@ -4597,7 +4516,6 @@ DotGram.Sql.Ast.JsonPathExpression.Binary.Operator.get -> DotGram.Sql.Ast.JsonPa
 DotGram.Sql.Ast.JsonPathExpression.Binary.Operator.init -> void
 DotGram.Sql.Ast.JsonPathExpression.Binary.Right.get -> DotGram.Sql.Ast.JsonPathExpression!
 DotGram.Sql.Ast.JsonPathExpression.Binary.Right.init -> void
-DotGram.Sql.Ast.JsonPathExpression.JsonPathExpression() -> void
 DotGram.Sql.Ast.JsonPathExpression.JsonPathExpression(DotGram.Sql.Ast.JsonPathExpression! original) -> void
 DotGram.Sql.Ast.JsonPathExpression.Literal
 DotGram.Sql.Ast.JsonPathExpression.Literal.Deconstruct(out string! Text, out DotGram.Sql.Ast.JsonPathLiteralKind Kind) -> void
@@ -4673,7 +4591,6 @@ DotGram.Sql.Ast.JsonPathPredicate.IsUnknown.Equals(DotGram.Sql.Ast.JsonPathPredi
 DotGram.Sql.Ast.JsonPathPredicate.IsUnknown.IsUnknown(DotGram.Sql.Ast.JsonPathPredicate! Predicate) -> void
 DotGram.Sql.Ast.JsonPathPredicate.IsUnknown.Predicate.get -> DotGram.Sql.Ast.JsonPathPredicate!
 DotGram.Sql.Ast.JsonPathPredicate.IsUnknown.Predicate.init -> void
-DotGram.Sql.Ast.JsonPathPredicate.JsonPathPredicate() -> void
 DotGram.Sql.Ast.JsonPathPredicate.JsonPathPredicate(DotGram.Sql.Ast.JsonPathPredicate! original) -> void
 DotGram.Sql.Ast.JsonPathPredicate.LikeRegex
 DotGram.Sql.Ast.JsonPathPredicate.LikeRegex.Deconstruct(out DotGram.Sql.Ast.JsonPathExpression! Value, out string! Pattern, out string? Flags) -> void
@@ -4794,7 +4711,6 @@ DotGram.Sql.Ast.JsonTableColumn.Formatted.Type.get -> DotGram.Sql.Ast.DataType!
 DotGram.Sql.Ast.JsonTableColumn.Formatted.Type.init -> void
 DotGram.Sql.Ast.JsonTableColumn.Formatted.Wrapper.get -> DotGram.Sql.Ast.JsonWrapperBehavior?
 DotGram.Sql.Ast.JsonTableColumn.Formatted.Wrapper.init -> void
-DotGram.Sql.Ast.JsonTableColumn.JsonTableColumn() -> void
 DotGram.Sql.Ast.JsonTableColumn.JsonTableColumn(DotGram.Sql.Ast.JsonTableColumn! original) -> void
 DotGram.Sql.Ast.JsonTableColumn.Locate(int at, int length) -> void
 DotGram.Sql.Ast.JsonTableColumn.Nested
@@ -4881,7 +4797,6 @@ DotGram.Sql.Ast.JsonTablePlan.Inner.Equals(DotGram.Sql.Ast.JsonTablePlan.Inner? 
 DotGram.Sql.Ast.JsonTablePlan.Inner.Inner(DotGram.Sql.Ast.Identifier! Parent, DotGram.Sql.Ast.JsonTablePlan! Child) -> void
 DotGram.Sql.Ast.JsonTablePlan.Inner.Parent.get -> DotGram.Sql.Ast.Identifier!
 DotGram.Sql.Ast.JsonTablePlan.Inner.Parent.init -> void
-DotGram.Sql.Ast.JsonTablePlan.JsonTablePlan() -> void
 DotGram.Sql.Ast.JsonTablePlan.JsonTablePlan(DotGram.Sql.Ast.JsonTablePlan! original) -> void
 DotGram.Sql.Ast.JsonTablePlan.Locate(int at, int length) -> void
 DotGram.Sql.Ast.JsonTablePlan.Name
@@ -4921,7 +4836,6 @@ DotGram.Sql.Ast.JsonValueBehavior.Default.Value.init -> void
 DotGram.Sql.Ast.JsonValueBehavior.Error
 DotGram.Sql.Ast.JsonValueBehavior.Error.Equals(DotGram.Sql.Ast.JsonValueBehavior.Error? other) -> bool
 DotGram.Sql.Ast.JsonValueBehavior.Error.Error() -> void
-DotGram.Sql.Ast.JsonValueBehavior.JsonValueBehavior() -> void
 DotGram.Sql.Ast.JsonValueBehavior.JsonValueBehavior(DotGram.Sql.Ast.JsonValueBehavior! original) -> void
 DotGram.Sql.Ast.JsonValueBehavior.Locate(int at, int length) -> void
 DotGram.Sql.Ast.JsonValueBehavior.Null
@@ -4954,7 +4868,6 @@ DotGram.Sql.Ast.KeyEncryptor.Certificate.Name.get -> DotGram.Sql.Ast.QualifiedNa
 DotGram.Sql.Ast.KeyEncryptor.Certificate.Name.init -> void
 DotGram.Sql.Ast.KeyEncryptor.Certificate.WithPassword.get -> DotGram.Sql.Ast.LiteralValue.String?
 DotGram.Sql.Ast.KeyEncryptor.Certificate.WithPassword.init -> void
-DotGram.Sql.Ast.KeyEncryptor.KeyEncryptor() -> void
 DotGram.Sql.Ast.KeyEncryptor.KeyEncryptor(DotGram.Sql.Ast.KeyEncryptor! original) -> void
 DotGram.Sql.Ast.KeyEncryptor.Locate(int at, int length) -> void
 DotGram.Sql.Ast.KeyEncryptor.Password
@@ -5069,7 +4982,6 @@ DotGram.Sql.Ast.ListenerChange.AddIp.Address.get -> DotGram.Sql.Ast.ListenerAddr
 DotGram.Sql.Ast.ListenerChange.AddIp.Address.init -> void
 DotGram.Sql.Ast.ListenerChange.AddIp.Deconstruct(out DotGram.Sql.Ast.ListenerAddress! Address) -> void
 DotGram.Sql.Ast.ListenerChange.AddIp.Equals(DotGram.Sql.Ast.ListenerChange.AddIp? other) -> bool
-DotGram.Sql.Ast.ListenerChange.ListenerChange() -> void
 DotGram.Sql.Ast.ListenerChange.ListenerChange(DotGram.Sql.Ast.ListenerChange! original) -> void
 DotGram.Sql.Ast.ListenerChange.Locate(int at, int length) -> void
 DotGram.Sql.Ast.ListenerChange.Port
@@ -5118,7 +5030,6 @@ DotGram.Sql.Ast.LiteralValue.Interval.Sign.get -> DotGram.Sql.Ast.UnaryOperator?
 DotGram.Sql.Ast.LiteralValue.Interval.Sign.init -> void
 DotGram.Sql.Ast.LiteralValue.Interval.Text.get -> string!
 DotGram.Sql.Ast.LiteralValue.Interval.Text.init -> void
-DotGram.Sql.Ast.LiteralValue.LiteralValue() -> void
 DotGram.Sql.Ast.LiteralValue.LiteralValue(DotGram.Sql.Ast.LiteralValue! original) -> void
 DotGram.Sql.Ast.LiteralValue.Null
 DotGram.Sql.Ast.LiteralValue.Null.Equals(DotGram.Sql.Ast.LiteralValue.Null? other) -> bool
@@ -5181,7 +5092,6 @@ DotGram.Sql.Ast.LoginSource.ExternalProvider
 DotGram.Sql.Ast.LoginSource.ExternalProvider.Equals(DotGram.Sql.Ast.LoginSource.ExternalProvider? other) -> bool
 DotGram.Sql.Ast.LoginSource.ExternalProvider.ExternalProvider() -> void
 DotGram.Sql.Ast.LoginSource.Locate(int at, int length) -> void
-DotGram.Sql.Ast.LoginSource.LoginSource() -> void
 DotGram.Sql.Ast.LoginSource.LoginSource(DotGram.Sql.Ast.LoginSource! original) -> void
 DotGram.Sql.Ast.LoginSource.Password
 DotGram.Sql.Ast.LoginSource.Password.Deconstruct(out DotGram.Sql.Ast.Expression! Value) -> void
@@ -5213,7 +5123,6 @@ DotGram.Sql.Ast.MasterKeyChange.DropEncryption.Deconstruct(out DotGram.Sql.Ast.K
 DotGram.Sql.Ast.MasterKeyChange.DropEncryption.DropEncryption(DotGram.Sql.Ast.KeyEncryptor! By) -> void
 DotGram.Sql.Ast.MasterKeyChange.DropEncryption.Equals(DotGram.Sql.Ast.MasterKeyChange.DropEncryption? other) -> bool
 DotGram.Sql.Ast.MasterKeyChange.Locate(int at, int length) -> void
-DotGram.Sql.Ast.MasterKeyChange.MasterKeyChange() -> void
 DotGram.Sql.Ast.MasterKeyChange.MasterKeyChange(DotGram.Sql.Ast.MasterKeyChange! original) -> void
 DotGram.Sql.Ast.MasterKeyChange.Regenerate
 DotGram.Sql.Ast.MasterKeyChange.Regenerate.By.get -> DotGram.Sql.Ast.KeyEncryptor.Password!
@@ -5242,7 +5151,6 @@ DotGram.Sql.Ast.MergeClause.Matched.Action.init -> void
 DotGram.Sql.Ast.MergeClause.Matched.Deconstruct(out DotGram.Sql.Ast.MergeMatchedAction! Action) -> void
 DotGram.Sql.Ast.MergeClause.Matched.Equals(DotGram.Sql.Ast.MergeClause.Matched? other) -> bool
 DotGram.Sql.Ast.MergeClause.Matched.Matched(DotGram.Sql.Ast.MergeMatchedAction! Action) -> void
-DotGram.Sql.Ast.MergeClause.MergeClause() -> void
 DotGram.Sql.Ast.MergeClause.MergeClause(DotGram.Sql.Ast.MergeClause! original) -> void
 DotGram.Sql.Ast.MergeClause.NotMatched
 DotGram.Sql.Ast.MergeClause.NotMatched.Action.get -> DotGram.Sql.Ast.MergeInsertAction!
@@ -5279,7 +5187,6 @@ DotGram.Sql.Ast.MergeMatchedAction.Delete
 DotGram.Sql.Ast.MergeMatchedAction.Delete.Delete() -> void
 DotGram.Sql.Ast.MergeMatchedAction.Delete.Equals(DotGram.Sql.Ast.MergeMatchedAction.Delete? other) -> bool
 DotGram.Sql.Ast.MergeMatchedAction.Locate(int at, int length) -> void
-DotGram.Sql.Ast.MergeMatchedAction.MergeMatchedAction() -> void
 DotGram.Sql.Ast.MergeMatchedAction.MergeMatchedAction(DotGram.Sql.Ast.MergeMatchedAction! original) -> void
 DotGram.Sql.Ast.MergeMatchedAction.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.MergeMatchedAction.Update
@@ -5290,7 +5197,6 @@ DotGram.Sql.Ast.MergeMatchedAction.Update.Equals(DotGram.Sql.Ast.MergeMatchedAct
 DotGram.Sql.Ast.MergeMatchedAction.Update.Update(DotGram.Sql.SqlList<DotGram.Sql.Ast.Assignment!> Assignments) -> void
 DotGram.Sql.Ast.MessageValidation
 DotGram.Sql.Ast.MessageValidation.Locate(int at, int length) -> void
-DotGram.Sql.Ast.MessageValidation.MessageValidation() -> void
 DotGram.Sql.Ast.MessageValidation.MessageValidation(DotGram.Sql.Ast.MessageValidation! original) -> void
 DotGram.Sql.Ast.MessageValidation.Named
 DotGram.Sql.Ast.MessageValidation.Named.Deconstruct(out DotGram.Sql.Ast.Identifier! Word) -> void
@@ -5366,7 +5272,6 @@ DotGram.Sql.Ast.ModuleContent.Cursor.Declaration.init -> void
 DotGram.Sql.Ast.ModuleContent.Cursor.Deconstruct(out DotGram.Sql.Ast.Statement.DeclareCursor! Declaration) -> void
 DotGram.Sql.Ast.ModuleContent.Cursor.Equals(DotGram.Sql.Ast.ModuleContent.Cursor? other) -> bool
 DotGram.Sql.Ast.ModuleContent.Locate(int at, int length) -> void
-DotGram.Sql.Ast.ModuleContent.ModuleContent() -> void
 DotGram.Sql.Ast.ModuleContent.ModuleContent(DotGram.Sql.Ast.ModuleContent! original) -> void
 DotGram.Sql.Ast.ModuleContent.Procedure
 DotGram.Sql.Ast.ModuleContent.Procedure.Body.get -> DotGram.Sql.Ast.Statement!
@@ -5381,7 +5286,6 @@ DotGram.Sql.Ast.ModuleContent.Procedure.Procedure(DotGram.Sql.Ast.Identifier! Na
 DotGram.Sql.Ast.ModuleContent.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.ModuleReference
 DotGram.Sql.Ast.ModuleReference.Locate(int at, int length) -> void
-DotGram.Sql.Ast.ModuleReference.ModuleReference() -> void
 DotGram.Sql.Ast.ModuleReference.ModuleReference(DotGram.Sql.Ast.ModuleReference! original) -> void
 DotGram.Sql.Ast.ModuleReference.Named
 DotGram.Sql.Ast.ModuleReference.Named.DataSource.get -> DotGram.Sql.Ast.OpenDataSource?
@@ -5412,7 +5316,6 @@ DotGram.Sql.Ast.NotificationScope.Database
 DotGram.Sql.Ast.NotificationScope.Database.Database() -> void
 DotGram.Sql.Ast.NotificationScope.Database.Equals(DotGram.Sql.Ast.NotificationScope.Database? other) -> bool
 DotGram.Sql.Ast.NotificationScope.Locate(int at, int length) -> void
-DotGram.Sql.Ast.NotificationScope.NotificationScope() -> void
 DotGram.Sql.Ast.NotificationScope.NotificationScope(DotGram.Sql.Ast.NotificationScope! original) -> void
 DotGram.Sql.Ast.NotificationScope.Queue
 DotGram.Sql.Ast.NotificationScope.Queue.Deconstruct(out DotGram.Sql.Ast.QualifiedName Name) -> void
@@ -5520,7 +5423,6 @@ DotGram.Sql.Ast.OrderingCategory.Map.Equals(DotGram.Sql.Ast.OrderingCategory.Map
 DotGram.Sql.Ast.OrderingCategory.Map.Function.get -> DotGram.Sql.Ast.RoutineDesignator!
 DotGram.Sql.Ast.OrderingCategory.Map.Function.init -> void
 DotGram.Sql.Ast.OrderingCategory.Map.Map(DotGram.Sql.Ast.RoutineDesignator! Function) -> void
-DotGram.Sql.Ast.OrderingCategory.OrderingCategory() -> void
 DotGram.Sql.Ast.OrderingCategory.OrderingCategory(DotGram.Sql.Ast.OrderingCategory! original) -> void
 DotGram.Sql.Ast.OrderingCategory.Relative
 DotGram.Sql.Ast.OrderingCategory.Relative.Deconstruct(out DotGram.Sql.Ast.RoutineDesignator! Function) -> void
@@ -5622,7 +5524,6 @@ DotGram.Sql.Ast.PartitionFunctionAction.Merge.Boundary.init -> void
 DotGram.Sql.Ast.PartitionFunctionAction.Merge.Deconstruct(out DotGram.Sql.Ast.Expression? Boundary) -> void
 DotGram.Sql.Ast.PartitionFunctionAction.Merge.Equals(DotGram.Sql.Ast.PartitionFunctionAction.Merge? other) -> bool
 DotGram.Sql.Ast.PartitionFunctionAction.Merge.Merge(DotGram.Sql.Ast.Expression? Boundary) -> void
-DotGram.Sql.Ast.PartitionFunctionAction.PartitionFunctionAction() -> void
 DotGram.Sql.Ast.PartitionFunctionAction.PartitionFunctionAction(DotGram.Sql.Ast.PartitionFunctionAction! original) -> void
 DotGram.Sql.Ast.PartitionFunctionAction.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.PartitionFunctionAction.Split
@@ -5659,7 +5560,6 @@ DotGram.Sql.Ast.PathAction.Alter.Equals(DotGram.Sql.Ast.PathAction.Alter? other)
 DotGram.Sql.Ast.PathAction.Alter.Path.get -> DotGram.Sql.Ast.PromotedPath!
 DotGram.Sql.Ast.PathAction.Alter.Path.init -> void
 DotGram.Sql.Ast.PathAction.Locate(int at, int length) -> void
-DotGram.Sql.Ast.PathAction.PathAction() -> void
 DotGram.Sql.Ast.PathAction.PathAction(DotGram.Sql.Ast.PathAction! original) -> void
 DotGram.Sql.Ast.PathAction.Remove
 DotGram.Sql.Ast.PathAction.Remove.Deconstruct(out DotGram.Sql.Ast.Identifier! Name) -> void
@@ -5670,7 +5570,6 @@ DotGram.Sql.Ast.PathAction.Remove.Remove(DotGram.Sql.Ast.Identifier! Name) -> vo
 DotGram.Sql.Ast.PathAction.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.PathHint
 DotGram.Sql.Ast.PathHint.Locate(int at, int length) -> void
-DotGram.Sql.Ast.PathHint.PathHint() -> void
 DotGram.Sql.Ast.PathHint.PathHint(DotGram.Sql.Ast.PathHint! original) -> void
 DotGram.Sql.Ast.PathHint.Singleton
 DotGram.Sql.Ast.PathHint.Singleton.Equals(DotGram.Sql.Ast.PathHint.Singleton? other) -> bool
@@ -5746,7 +5645,6 @@ DotGram.Sql.Ast.PeriodRight.Period.Equals(DotGram.Sql.Ast.PeriodRight.Period? ot
 DotGram.Sql.Ast.PeriodRight.Period.Period(DotGram.Sql.Ast.PeriodValue! Value) -> void
 DotGram.Sql.Ast.PeriodRight.Period.Value.get -> DotGram.Sql.Ast.PeriodValue!
 DotGram.Sql.Ast.PeriodRight.Period.Value.init -> void
-DotGram.Sql.Ast.PeriodRight.PeriodRight() -> void
 DotGram.Sql.Ast.PeriodRight.PeriodRight(DotGram.Sql.Ast.PeriodRight! original) -> void
 DotGram.Sql.Ast.PeriodRight.Point
 DotGram.Sql.Ast.PeriodRight.Point.Deconstruct(out DotGram.Sql.Ast.Expression! Value) -> void
@@ -5757,7 +5655,6 @@ DotGram.Sql.Ast.PeriodRight.Point.Value.init -> void
 DotGram.Sql.Ast.PeriodRight.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.PeriodValue
 DotGram.Sql.Ast.PeriodValue.Locate(int at, int length) -> void
-DotGram.Sql.Ast.PeriodValue.PeriodValue() -> void
 DotGram.Sql.Ast.PeriodValue.PeriodValue(DotGram.Sql.Ast.PeriodValue! original) -> void
 DotGram.Sql.Ast.PeriodValue.Range
 DotGram.Sql.Ast.PeriodValue.Range.Deconstruct(out DotGram.Sql.Ast.Expression! Start, out DotGram.Sql.Ast.Expression! End) -> void
@@ -5855,7 +5752,6 @@ DotGram.Sql.Ast.PolicyPredicate.DropFilter.Equals(DotGram.Sql.Ast.PolicyPredicat
 DotGram.Sql.Ast.PolicyPredicate.DropFilter.On.get -> DotGram.Sql.Ast.QualifiedName
 DotGram.Sql.Ast.PolicyPredicate.DropFilter.On.init -> void
 DotGram.Sql.Ast.PolicyPredicate.Locate(int at, int length) -> void
-DotGram.Sql.Ast.PolicyPredicate.PolicyPredicate() -> void
 DotGram.Sql.Ast.PolicyPredicate.PolicyPredicate(DotGram.Sql.Ast.PolicyPredicate! original) -> void
 DotGram.Sql.Ast.PolicyPredicate.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.PolymorphicTableFunctionBody
@@ -6098,7 +5994,6 @@ DotGram.Sql.Ast.PrivilegeObject.Named.Routine.get -> DotGram.Sql.Ast.RoutineDesi
 DotGram.Sql.Ast.PrivilegeObject.Named.Routine.init -> void
 DotGram.Sql.Ast.PrivilegeObject.Named.TableKeyword.get -> bool
 DotGram.Sql.Ast.PrivilegeObject.Named.TableKeyword.init -> void
-DotGram.Sql.Ast.PrivilegeObject.PrivilegeObject() -> void
 DotGram.Sql.Ast.PrivilegeObject.PrivilegeObject(DotGram.Sql.Ast.PrivilegeObject! original) -> void
 DotGram.Sql.Ast.PrivilegeObject.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.PrivilegeObjectKind
@@ -6231,7 +6126,6 @@ DotGram.Sql.Ast.QueryHint.Phrase.Equals(DotGram.Sql.Ast.QueryHint.Phrase? other)
 DotGram.Sql.Ast.QueryHint.Phrase.Phrase(DotGram.Sql.Ast.QueryHintPhrase Words) -> void
 DotGram.Sql.Ast.QueryHint.Phrase.Words.get -> DotGram.Sql.Ast.QueryHintPhrase
 DotGram.Sql.Ast.QueryHint.Phrase.Words.init -> void
-DotGram.Sql.Ast.QueryHint.QueryHint() -> void
 DotGram.Sql.Ast.QueryHint.QueryHint(DotGram.Sql.Ast.QueryHint! original) -> void
 DotGram.Sql.Ast.QueryHint.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.QueryHint.UseHint
@@ -6271,7 +6165,6 @@ DotGram.Sql.Ast.QueueChange.MoveTo.Equals(DotGram.Sql.Ast.QueueChange.MoveTo? ot
 DotGram.Sql.Ast.QueueChange.MoveTo.MoveTo(DotGram.Sql.Ast.Placement! Target) -> void
 DotGram.Sql.Ast.QueueChange.MoveTo.Target.get -> DotGram.Sql.Ast.Placement!
 DotGram.Sql.Ast.QueueChange.MoveTo.Target.init -> void
-DotGram.Sql.Ast.QueueChange.QueueChange() -> void
 DotGram.Sql.Ast.QueueChange.QueueChange(DotGram.Sql.Ast.QueueChange! original) -> void
 DotGram.Sql.Ast.QueueChange.Rebuild
 DotGram.Sql.Ast.QueueChange.Rebuild.Deconstruct(out DotGram.Sql.Ast.LiteralValue.Numeric? MaxDop) -> void
@@ -6309,7 +6202,6 @@ DotGram.Sql.Ast.QueueOption.PoisonMessageHandling.Equals(DotGram.Sql.Ast.QueueOp
 DotGram.Sql.Ast.QueueOption.PoisonMessageHandling.On.get -> bool
 DotGram.Sql.Ast.QueueOption.PoisonMessageHandling.On.init -> void
 DotGram.Sql.Ast.QueueOption.PoisonMessageHandling.PoisonMessageHandling(bool On) -> void
-DotGram.Sql.Ast.QueueOption.QueueOption() -> void
 DotGram.Sql.Ast.QueueOption.QueueOption(DotGram.Sql.Ast.QueueOption! original) -> void
 DotGram.Sql.Ast.QueueOption.Retention
 DotGram.Sql.Ast.QueueOption.Retention.Deconstruct(out bool On) -> void
@@ -6383,7 +6275,6 @@ DotGram.Sql.Ast.ResourceGovernorAction.Reconfigure.Reconfigure() -> void
 DotGram.Sql.Ast.ResourceGovernorAction.ResetStatistics
 DotGram.Sql.Ast.ResourceGovernorAction.ResetStatistics.Equals(DotGram.Sql.Ast.ResourceGovernorAction.ResetStatistics? other) -> bool
 DotGram.Sql.Ast.ResourceGovernorAction.ResetStatistics.ResetStatistics() -> void
-DotGram.Sql.Ast.ResourceGovernorAction.ResourceGovernorAction() -> void
 DotGram.Sql.Ast.ResourceGovernorAction.ResourceGovernorAction(DotGram.Sql.Ast.ResourceGovernorAction! original) -> void
 DotGram.Sql.Ast.ResourceGovernorAction.Settings
 DotGram.Sql.Ast.ResourceGovernorAction.Settings.Deconstruct(out DotGram.Sql.Ast.Option! Setting) -> void
@@ -6419,7 +6310,6 @@ DotGram.Sql.Ast.ResultSet.Columns.Elements.get -> DotGram.Sql.SqlList<DotGram.Sq
 DotGram.Sql.Ast.ResultSet.Columns.Elements.init -> void
 DotGram.Sql.Ast.ResultSet.Columns.Equals(DotGram.Sql.Ast.ResultSet.Columns? other) -> bool
 DotGram.Sql.Ast.ResultSet.Locate(int at, int length) -> void
-DotGram.Sql.Ast.ResultSet.ResultSet() -> void
 DotGram.Sql.Ast.ResultSet.ResultSet(DotGram.Sql.Ast.ResultSet! original) -> void
 DotGram.Sql.Ast.ResultSet.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.ResultSetsKind
@@ -6473,7 +6363,6 @@ DotGram.Sql.Ast.RevokeBody.Privileges.Option.init -> void
 DotGram.Sql.Ast.RevokeBody.Privileges.Privileges(DotGram.Sql.Ast.RevokeOption? Option, DotGram.Sql.SqlList<DotGram.Sql.Ast.Privilege!> Items, DotGram.Sql.Ast.PrivilegeObject? Object, DotGram.Sql.SqlList<DotGram.Sql.Ast.Grantee!> Grantees, DotGram.Sql.Ast.Grantor? GrantedBy, DotGram.Sql.Ast.DropBehavior? Behavior, DotGram.Sql.Ast.Identifier? AsPrincipal = null, bool To = false) -> void
 DotGram.Sql.Ast.RevokeBody.Privileges.To.get -> bool
 DotGram.Sql.Ast.RevokeBody.Privileges.To.init -> void
-DotGram.Sql.Ast.RevokeBody.RevokeBody() -> void
 DotGram.Sql.Ast.RevokeBody.RevokeBody(DotGram.Sql.Ast.RevokeBody! original) -> void
 DotGram.Sql.Ast.RevokeBody.Roles
 DotGram.Sql.Ast.RevokeBody.Roles.AdminOptionFor.get -> bool
@@ -6507,7 +6396,6 @@ DotGram.Sql.Ast.RoleAction.DropMember.Equals(DotGram.Sql.Ast.RoleAction.DropMemb
 DotGram.Sql.Ast.RoleAction.DropMember.Member.get -> DotGram.Sql.Ast.Identifier!
 DotGram.Sql.Ast.RoleAction.DropMember.Member.init -> void
 DotGram.Sql.Ast.RoleAction.Locate(int at, int length) -> void
-DotGram.Sql.Ast.RoleAction.RoleAction() -> void
 DotGram.Sql.Ast.RoleAction.RoleAction(DotGram.Sql.Ast.RoleAction! original) -> void
 DotGram.Sql.Ast.RoleAction.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.RoleAction.WithName
@@ -6548,7 +6436,6 @@ DotGram.Sql.Ast.RoutineBody.PolymorphicTableFunction.Body.init -> void
 DotGram.Sql.Ast.RoutineBody.PolymorphicTableFunction.Deconstruct(out DotGram.Sql.Ast.PolymorphicTableFunctionBody! Body) -> void
 DotGram.Sql.Ast.RoutineBody.PolymorphicTableFunction.Equals(DotGram.Sql.Ast.RoutineBody.PolymorphicTableFunction? other) -> bool
 DotGram.Sql.Ast.RoutineBody.PolymorphicTableFunction.PolymorphicTableFunction(DotGram.Sql.Ast.PolymorphicTableFunctionBody! Body) -> void
-DotGram.Sql.Ast.RoutineBody.RoutineBody() -> void
 DotGram.Sql.Ast.RoutineBody.RoutineBody(DotGram.Sql.Ast.RoutineBody! original) -> void
 DotGram.Sql.Ast.RoutineBody.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.RoutineBody.Sql
@@ -6609,7 +6496,6 @@ DotGram.Sql.Ast.RoutineCharacteristic.ParameterStyle.Equals(DotGram.Sql.Ast.Rout
 DotGram.Sql.Ast.RoutineCharacteristic.ParameterStyle.ParameterStyle(DotGram.Sql.Ast.ParameterStyleKind Style) -> void
 DotGram.Sql.Ast.RoutineCharacteristic.ParameterStyle.Style.get -> DotGram.Sql.Ast.ParameterStyleKind
 DotGram.Sql.Ast.RoutineCharacteristic.ParameterStyle.Style.init -> void
-DotGram.Sql.Ast.RoutineCharacteristic.RoutineCharacteristic() -> void
 DotGram.Sql.Ast.RoutineCharacteristic.RoutineCharacteristic(DotGram.Sql.Ast.RoutineCharacteristic! original) -> void
 DotGram.Sql.Ast.RoutineCharacteristic.SavepointLevel
 DotGram.Sql.Ast.RoutineCharacteristic.SavepointLevel.Deconstruct(out DotGram.Sql.Ast.SavepointLevelKind Value) -> void
@@ -6703,7 +6589,6 @@ DotGram.Sql.Ast.RoutineOption.NullCall.Equals(DotGram.Sql.Ast.RoutineOption.Null
 DotGram.Sql.Ast.RoutineOption.NullCall.Mode.get -> DotGram.Sql.Ast.NullCallMode
 DotGram.Sql.Ast.RoutineOption.NullCall.Mode.init -> void
 DotGram.Sql.Ast.RoutineOption.NullCall.NullCall(DotGram.Sql.Ast.NullCallMode Mode) -> void
-DotGram.Sql.Ast.RoutineOption.RoutineOption() -> void
 DotGram.Sql.Ast.RoutineOption.RoutineOption(DotGram.Sql.Ast.RoutineOption! original) -> void
 DotGram.Sql.Ast.RoutineOption.Setting
 DotGram.Sql.Ast.RoutineOption.Setting.Deconstruct(out DotGram.Sql.Ast.Option! Option) -> void
@@ -6767,7 +6652,6 @@ DotGram.Sql.Ast.RowPattern.Quantified.Pattern.init -> void
 DotGram.Sql.Ast.RowPattern.Quantified.Quantified(DotGram.Sql.Ast.RowPattern! Pattern, DotGram.Sql.Ast.RowPatternQuantifier! Quantifier) -> void
 DotGram.Sql.Ast.RowPattern.Quantified.Quantifier.get -> DotGram.Sql.Ast.RowPatternQuantifier!
 DotGram.Sql.Ast.RowPattern.Quantified.Quantifier.init -> void
-DotGram.Sql.Ast.RowPattern.RowPattern() -> void
 DotGram.Sql.Ast.RowPattern.RowPattern(DotGram.Sql.Ast.RowPattern! original) -> void
 DotGram.Sql.Ast.RowPattern.Sequence
 DotGram.Sql.Ast.RowPattern.Sequence.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.RowPattern!> Items) -> void
@@ -6973,7 +6857,6 @@ DotGram.Sql.Ast.ScopedConfigurationAction.ClearProcedureCache.Equals(DotGram.Sql
 DotGram.Sql.Ast.ScopedConfigurationAction.ClearProcedureCache.PlanHandle.get -> DotGram.Sql.Ast.LiteralValue.Binary?
 DotGram.Sql.Ast.ScopedConfigurationAction.ClearProcedureCache.PlanHandle.init -> void
 DotGram.Sql.Ast.ScopedConfigurationAction.Locate(int at, int length) -> void
-DotGram.Sql.Ast.ScopedConfigurationAction.ScopedConfigurationAction() -> void
 DotGram.Sql.Ast.ScopedConfigurationAction.ScopedConfigurationAction(DotGram.Sql.Ast.ScopedConfigurationAction! original) -> void
 DotGram.Sql.Ast.ScopedConfigurationAction.Set
 DotGram.Sql.Ast.ScopedConfigurationAction.Set.Deconstruct(out DotGram.Sql.Ast.Option! Option) -> void
@@ -7016,7 +6899,6 @@ DotGram.Sql.Ast.SearchPropertyListAction.Drop.Equals(DotGram.Sql.Ast.SearchPrope
 DotGram.Sql.Ast.SearchPropertyListAction.Drop.Property.get -> DotGram.Sql.Ast.Expression!
 DotGram.Sql.Ast.SearchPropertyListAction.Drop.Property.init -> void
 DotGram.Sql.Ast.SearchPropertyListAction.Locate(int at, int length) -> void
-DotGram.Sql.Ast.SearchPropertyListAction.SearchPropertyListAction() -> void
 DotGram.Sql.Ast.SearchPropertyListAction.SearchPropertyListAction(DotGram.Sql.Ast.SearchPropertyListAction! original) -> void
 DotGram.Sql.Ast.SearchPropertyListAction.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SecurableClass
@@ -7062,7 +6944,6 @@ DotGram.Sql.Ast.SecurityPolicyChange.Predicates.Equals(DotGram.Sql.Ast.SecurityP
 DotGram.Sql.Ast.SecurityPolicyChange.Predicates.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.PolicyPredicate!>
 DotGram.Sql.Ast.SecurityPolicyChange.Predicates.Items.init -> void
 DotGram.Sql.Ast.SecurityPolicyChange.Predicates.Predicates(DotGram.Sql.SqlList<DotGram.Sql.Ast.PolicyPredicate!> Items) -> void
-DotGram.Sql.Ast.SecurityPolicyChange.SecurityPolicyChange() -> void
 DotGram.Sql.Ast.SecurityPolicyChange.SecurityPolicyChange(DotGram.Sql.Ast.SecurityPolicyChange! original) -> void
 DotGram.Sql.Ast.SecurityPolicyChange.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SecurityPolicyChange.State
@@ -7096,7 +6977,6 @@ DotGram.Sql.Ast.SelectColumn.QualifiedAll.Qualifier.get -> DotGram.Sql.Ast.Expre
 DotGram.Sql.Ast.SelectColumn.QualifiedAll.Qualifier.init -> void
 DotGram.Sql.Ast.SelectColumn.QualifiedAll.RenamedFields.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>?
 DotGram.Sql.Ast.SelectColumn.QualifiedAll.RenamedFields.init -> void
-DotGram.Sql.Ast.SelectColumn.SelectColumn() -> void
 DotGram.Sql.Ast.SelectColumn.SelectColumn(DotGram.Sql.Ast.SelectColumn! original) -> void
 DotGram.Sql.Ast.SelectColumn.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SelectColumn.VariableAssignment
@@ -7171,7 +7051,6 @@ DotGram.Sql.Ast.SequenceOption.Restart.Equals(DotGram.Sql.Ast.SequenceOption.Res
 DotGram.Sql.Ast.SequenceOption.Restart.Restart(DotGram.Sql.Ast.Expression? Value) -> void
 DotGram.Sql.Ast.SequenceOption.Restart.Value.get -> DotGram.Sql.Ast.Expression?
 DotGram.Sql.Ast.SequenceOption.Restart.Value.init -> void
-DotGram.Sql.Ast.SequenceOption.SequenceOption() -> void
 DotGram.Sql.Ast.SequenceOption.SequenceOption(DotGram.Sql.Ast.SequenceOption! original) -> void
 DotGram.Sql.Ast.SequenceOption.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SequenceOption.Start
@@ -7214,7 +7093,6 @@ DotGram.Sql.Ast.ServiceMasterKeyChange.Regenerate.Equals(DotGram.Sql.Ast.Service
 DotGram.Sql.Ast.ServiceMasterKeyChange.Regenerate.Force.get -> bool
 DotGram.Sql.Ast.ServiceMasterKeyChange.Regenerate.Force.init -> void
 DotGram.Sql.Ast.ServiceMasterKeyChange.Regenerate.Regenerate() -> void
-DotGram.Sql.Ast.ServiceMasterKeyChange.ServiceMasterKeyChange() -> void
 DotGram.Sql.Ast.ServiceMasterKeyChange.ServiceMasterKeyChange(DotGram.Sql.Ast.ServiceMasterKeyChange! original) -> void
 DotGram.Sql.Ast.ServiceMasterKeyChange.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SetOperation
@@ -7257,7 +7135,6 @@ DotGram.Sql.Ast.SetOption.Offsets.Keyword.init -> void
 DotGram.Sql.Ast.SetOption.Offsets.Offsets(DotGram.Sql.Ast.Identifier! Keyword, bool On) -> void
 DotGram.Sql.Ast.SetOption.Offsets.On.get -> bool
 DotGram.Sql.Ast.SetOption.Offsets.On.init -> void
-DotGram.Sql.Ast.SetOption.SetOption() -> void
 DotGram.Sql.Ast.SetOption.SetOption(DotGram.Sql.Ast.SetOption! original) -> void
 DotGram.Sql.Ast.SetOption.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SetOption.Statistics
@@ -7301,7 +7178,6 @@ DotGram.Sql.Ast.SignatureProof.Signature.Equals(DotGram.Sql.Ast.SignatureProof.S
 DotGram.Sql.Ast.SignatureProof.Signature.Signature(DotGram.Sql.Ast.LiteralValue.Binary! Value) -> void
 DotGram.Sql.Ast.SignatureProof.Signature.Value.get -> DotGram.Sql.Ast.LiteralValue.Binary!
 DotGram.Sql.Ast.SignatureProof.Signature.Value.init -> void
-DotGram.Sql.Ast.SignatureProof.SignatureProof() -> void
 DotGram.Sql.Ast.SignatureProof.SignatureProof(DotGram.Sql.Ast.SignatureProof! original) -> void
 DotGram.Sql.Ast.SignatureProof.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SignedBy
@@ -7328,7 +7204,6 @@ DotGram.Sql.Ast.SignedBy.Password.Equals(DotGram.Sql.Ast.SignedBy.Password? othe
 DotGram.Sql.Ast.SignedBy.Password.Password(DotGram.Sql.Ast.LiteralValue.String! Value) -> void
 DotGram.Sql.Ast.SignedBy.Password.Value.get -> DotGram.Sql.Ast.LiteralValue.String!
 DotGram.Sql.Ast.SignedBy.Password.Value.init -> void
-DotGram.Sql.Ast.SignedBy.SignedBy() -> void
 DotGram.Sql.Ast.SignedBy.SignedBy(DotGram.Sql.Ast.SignedBy! original) -> void
 DotGram.Sql.Ast.SignedBy.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SignedBy.SymmetricKey
@@ -7345,7 +7220,6 @@ DotGram.Sql.Ast.SoapItem.Setting.Equals(DotGram.Sql.Ast.SoapItem.Setting? other)
 DotGram.Sql.Ast.SoapItem.Setting.Setting(DotGram.Sql.Ast.Option! Value) -> void
 DotGram.Sql.Ast.SoapItem.Setting.Value.get -> DotGram.Sql.Ast.Option!
 DotGram.Sql.Ast.SoapItem.Setting.Value.init -> void
-DotGram.Sql.Ast.SoapItem.SoapItem() -> void
 DotGram.Sql.Ast.SoapItem.SoapItem(DotGram.Sql.Ast.SoapItem! original) -> void
 DotGram.Sql.Ast.SoapItem.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.SoapItem.WebMethod
@@ -7420,7 +7294,6 @@ DotGram.Sql.Ast.SqlCondition.Major.Major(DotGram.Sql.Ast.SqlConditionMajor Value
 DotGram.Sql.Ast.SqlCondition.Major.Value.get -> DotGram.Sql.Ast.SqlConditionMajor
 DotGram.Sql.Ast.SqlCondition.Major.Value.init -> void
 DotGram.Sql.Ast.SqlCondition.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.SqlCondition.SqlCondition() -> void
 DotGram.Sql.Ast.SqlCondition.SqlCondition(DotGram.Sql.Ast.SqlCondition! original) -> void
 DotGram.Sql.Ast.SqlCondition.State
 DotGram.Sql.Ast.SqlCondition.State.ClassCode.get -> string!
@@ -10327,7 +10200,6 @@ DotGram.Sql.Ast.Statement.StartTransaction.Equals(DotGram.Sql.Ast.Statement.Star
 DotGram.Sql.Ast.Statement.StartTransaction.Modes.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.TransactionMode!>
 DotGram.Sql.Ast.Statement.StartTransaction.Modes.init -> void
 DotGram.Sql.Ast.Statement.StartTransaction.StartTransaction() -> void
-DotGram.Sql.Ast.Statement.Statement() -> void
 DotGram.Sql.Ast.Statement.Statement(DotGram.Sql.Ast.Statement! original) -> void
 DotGram.Sql.Ast.Statement.Throw
 DotGram.Sql.Ast.Statement.Throw.Deconstruct(out DotGram.Sql.Ast.Expression? Number, out DotGram.Sql.Ast.Expression? Message, out DotGram.Sql.Ast.Expression? State) -> void
@@ -10546,7 +10418,6 @@ DotGram.Sql.Ast.StopListAction.DropAll.Language.get -> DotGram.Sql.Ast.Expressio
 DotGram.Sql.Ast.StopListAction.DropAll.Language.init -> void
 DotGram.Sql.Ast.StopListAction.Locate(int at, int length) -> void
 DotGram.Sql.Ast.StopListAction.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.StopListAction.StopListAction() -> void
 DotGram.Sql.Ast.StopListAction.StopListAction(DotGram.Sql.Ast.StopListAction! original) -> void
 DotGram.Sql.Ast.StopListSource
 DotGram.Sql.Ast.StopListSource.Locate(int at, int length) -> void
@@ -10557,7 +10428,6 @@ DotGram.Sql.Ast.StopListSource.Named.Name.get -> DotGram.Sql.Ast.QualifiedName
 DotGram.Sql.Ast.StopListSource.Named.Name.init -> void
 DotGram.Sql.Ast.StopListSource.Named.Named(DotGram.Sql.Ast.QualifiedName Name) -> void
 DotGram.Sql.Ast.StopListSource.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.StopListSource.StopListSource() -> void
 DotGram.Sql.Ast.StopListSource.StopListSource(DotGram.Sql.Ast.StopListSource! original) -> void
 DotGram.Sql.Ast.StopListSource.SystemStopList
 DotGram.Sql.Ast.StopListSource.SystemStopList.Equals(DotGram.Sql.Ast.StopListSource.SystemStopList? other) -> bool
@@ -10581,7 +10451,6 @@ DotGram.Sql.Ast.SymmetricKeyChange.DropEncryption.DropEncryption(DotGram.Sql.Sql
 DotGram.Sql.Ast.SymmetricKeyChange.DropEncryption.Equals(DotGram.Sql.Ast.SymmetricKeyChange.DropEncryption? other) -> bool
 DotGram.Sql.Ast.SymmetricKeyChange.Locate(int at, int length) -> void
 DotGram.Sql.Ast.SymmetricKeyChange.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.SymmetricKeyChange.SymmetricKeyChange() -> void
 DotGram.Sql.Ast.SymmetricKeyChange.SymmetricKeyChange(DotGram.Sql.Ast.SymmetricKeyChange! original) -> void
 DotGram.Sql.Ast.SystemTimeSpecification
 DotGram.Sql.Ast.SystemTimeSpecification.All
@@ -10621,7 +10490,6 @@ DotGram.Sql.Ast.SystemTimeSpecification.FromTo.To.get -> DotGram.Sql.Ast.Express
 DotGram.Sql.Ast.SystemTimeSpecification.FromTo.To.init -> void
 DotGram.Sql.Ast.SystemTimeSpecification.Locate(int at, int length) -> void
 DotGram.Sql.Ast.SystemTimeSpecification.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.SystemTimeSpecification.SystemTimeSpecification() -> void
 DotGram.Sql.Ast.SystemTimeSpecification.SystemTimeSpecification(DotGram.Sql.Ast.SystemTimeSpecification! original) -> void
 DotGram.Sql.Ast.TableCommitAction
 DotGram.Sql.Ast.TableCommitAction.Delete = 1 -> DotGram.Sql.Ast.TableCommitAction
@@ -10647,7 +10515,6 @@ DotGram.Sql.Ast.TableContents.Elements.Items.get -> DotGram.Sql.SqlList<DotGram.
 DotGram.Sql.Ast.TableContents.Elements.Items.init -> void
 DotGram.Sql.Ast.TableContents.Locate(int at, int length) -> void
 DotGram.Sql.Ast.TableContents.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.TableContents.TableContents() -> void
 DotGram.Sql.Ast.TableContents.TableContents(DotGram.Sql.Ast.TableContents! original) -> void
 DotGram.Sql.Ast.TableContents.Typed
 DotGram.Sql.Ast.TableContents.Typed.Deconstruct(out DotGram.Sql.Ast.QualifiedName TypeName, out DotGram.Sql.Ast.QualifiedName? Under, out DotGram.Sql.SqlList<DotGram.Sql.Ast.TableElement!> Items) -> void
@@ -10710,7 +10577,6 @@ DotGram.Sql.Ast.TableElement.TableConstraint.Equals(DotGram.Sql.Ast.TableElement
 DotGram.Sql.Ast.TableElement.TableConstraint.TableConstraint(DotGram.Sql.Ast.Constraint! Value) -> void
 DotGram.Sql.Ast.TableElement.TableConstraint.Value.get -> DotGram.Sql.Ast.Constraint!
 DotGram.Sql.Ast.TableElement.TableConstraint.Value.init -> void
-DotGram.Sql.Ast.TableElement.TableElement() -> void
 DotGram.Sql.Ast.TableElement.TableElement(DotGram.Sql.Ast.TableElement! original) -> void
 DotGram.Sql.Ast.TableHint
 DotGram.Sql.Ast.TableHint.ForceSeek
@@ -10733,7 +10599,6 @@ DotGram.Sql.Ast.TableHint.Named.Name.get -> DotGram.Sql.Ast.Identifier!
 DotGram.Sql.Ast.TableHint.Named.Name.init -> void
 DotGram.Sql.Ast.TableHint.Named.Named(DotGram.Sql.Ast.Identifier! Name, DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!> Arguments) -> void
 DotGram.Sql.Ast.TableHint.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.TableHint.TableHint() -> void
 DotGram.Sql.Ast.TableHint.TableHint(DotGram.Sql.Ast.TableHint! original) -> void
 DotGram.Sql.Ast.TableKind
 DotGram.Sql.Ast.TableKind.Edge = 2 -> DotGram.Sql.Ast.TableKind
@@ -11044,7 +10909,6 @@ DotGram.Sql.Ast.TableSource.TableFunction.Equals(DotGram.Sql.Ast.TableSource.Tab
 DotGram.Sql.Ast.TableSource.TableFunction.TableFunction(DotGram.Sql.Ast.Expression! Value, DotGram.Sql.Ast.Alias? Alias = null) -> void
 DotGram.Sql.Ast.TableSource.TableFunction.Value.get -> DotGram.Sql.Ast.Expression!
 DotGram.Sql.Ast.TableSource.TableFunction.Value.init -> void
-DotGram.Sql.Ast.TableSource.TableSource() -> void
 DotGram.Sql.Ast.TableSource.TableSource(DotGram.Sql.Ast.TableSource! original) -> void
 DotGram.Sql.Ast.TableSource.Unnest
 DotGram.Sql.Ast.TableSource.Unnest.Alias.get -> DotGram.Sql.Ast.Alias?
@@ -11097,7 +10961,6 @@ DotGram.Sql.Ast.Termination.RollbackImmediate
 DotGram.Sql.Ast.Termination.RollbackImmediate.Equals(DotGram.Sql.Ast.Termination.RollbackImmediate? other) -> bool
 DotGram.Sql.Ast.Termination.RollbackImmediate.RollbackImmediate() -> void
 DotGram.Sql.Ast.Termination.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.Termination.Termination() -> void
 DotGram.Sql.Ast.Termination.Termination(DotGram.Sql.Ast.Termination! original) -> void
 DotGram.Sql.Ast.TimeZoneMode
 DotGram.Sql.Ast.TimeZoneMode.With = 0 -> DotGram.Sql.Ast.TimeZoneMode
@@ -11157,7 +11020,6 @@ DotGram.Sql.Ast.TransactionMode.Isolation.Level.get -> DotGram.Sql.Ast.Isolation
 DotGram.Sql.Ast.TransactionMode.Isolation.Level.init -> void
 DotGram.Sql.Ast.TransactionMode.Locate(int at, int length) -> void
 DotGram.Sql.Ast.TransactionMode.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.TransactionMode.TransactionMode() -> void
 DotGram.Sql.Ast.TransactionMode.TransactionMode(DotGram.Sql.Ast.TransactionMode! original) -> void
 DotGram.Sql.Ast.TransactionName
 DotGram.Sql.Ast.TransactionName.<Clone>$() -> DotGram.Sql.Ast.TransactionName!
@@ -11215,7 +11077,6 @@ DotGram.Sql.Ast.TransformDropTarget.Group.Name.get -> DotGram.Sql.Ast.Identifier
 DotGram.Sql.Ast.TransformDropTarget.Group.Name.init -> void
 DotGram.Sql.Ast.TransformDropTarget.Locate(int at, int length) -> void
 DotGram.Sql.Ast.TransformDropTarget.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.TransformDropTarget.TransformDropTarget() -> void
 DotGram.Sql.Ast.TransformDropTarget.TransformDropTarget(DotGram.Sql.Ast.TransformDropTarget! original) -> void
 DotGram.Sql.Ast.TransformElement
 DotGram.Sql.Ast.TransformElement.<Clone>$() -> DotGram.Sql.Ast.TransformElement!
@@ -11373,7 +11234,6 @@ DotGram.Sql.Ast.TypeRepresentation.Type.Equals(DotGram.Sql.Ast.TypeRepresentatio
 DotGram.Sql.Ast.TypeRepresentation.Type.Type(DotGram.Sql.Ast.DataType! Value) -> void
 DotGram.Sql.Ast.TypeRepresentation.Type.Value.get -> DotGram.Sql.Ast.DataType!
 DotGram.Sql.Ast.TypeRepresentation.Type.Value.init -> void
-DotGram.Sql.Ast.TypeRepresentation.TypeRepresentation() -> void
 DotGram.Sql.Ast.TypeRepresentation.TypeRepresentation(DotGram.Sql.Ast.TypeRepresentation! original) -> void
 DotGram.Sql.Ast.TypeTest
 DotGram.Sql.Ast.TypeTest.<Clone>$() -> DotGram.Sql.Ast.TypeTest!
@@ -11457,7 +11317,6 @@ DotGram.Sql.Ast.UserSource.Login.Login(DotGram.Sql.Ast.Identifier! Name) -> void
 DotGram.Sql.Ast.UserSource.Login.Name.get -> DotGram.Sql.Ast.Identifier!
 DotGram.Sql.Ast.UserSource.Login.Name.init -> void
 DotGram.Sql.Ast.UserSource.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.UserSource.UserSource() -> void
 DotGram.Sql.Ast.UserSource.UserSource(DotGram.Sql.Ast.UserSource! original) -> void
 DotGram.Sql.Ast.UserSource.WithoutLogin
 DotGram.Sql.Ast.UserSource.WithoutLogin.Equals(DotGram.Sql.Ast.UserSource.WithoutLogin? other) -> bool
@@ -11496,7 +11355,6 @@ DotGram.Sql.Ast.UserTypeOption.Reference.Reference(DotGram.Sql.Ast.UserTypeRefer
 DotGram.Sql.Ast.UserTypeOption.Reference.Representation.get -> DotGram.Sql.Ast.UserTypeReference!
 DotGram.Sql.Ast.UserTypeOption.Reference.Representation.init -> void
 DotGram.Sql.Ast.UserTypeOption.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.UserTypeOption.UserTypeOption() -> void
 DotGram.Sql.Ast.UserTypeOption.UserTypeOption(DotGram.Sql.Ast.UserTypeOption! original) -> void
 DotGram.Sql.Ast.UserTypeReference
 DotGram.Sql.Ast.UserTypeReference.FromAttributes
@@ -11510,7 +11368,6 @@ DotGram.Sql.Ast.UserTypeReference.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.UserTypeReference.SystemGenerated
 DotGram.Sql.Ast.UserTypeReference.SystemGenerated.Equals(DotGram.Sql.Ast.UserTypeReference.SystemGenerated? other) -> bool
 DotGram.Sql.Ast.UserTypeReference.SystemGenerated.SystemGenerated() -> void
-DotGram.Sql.Ast.UserTypeReference.UserTypeReference() -> void
 DotGram.Sql.Ast.UserTypeReference.UserTypeReference(DotGram.Sql.Ast.UserTypeReference! original) -> void
 DotGram.Sql.Ast.UserTypeReference.Using
 DotGram.Sql.Ast.UserTypeReference.Using.Deconstruct(out DotGram.Sql.Ast.DataType! Type) -> void
@@ -11543,7 +11400,6 @@ DotGram.Sql.Ast.VariableDeclaration.Typed.Type.init -> void
 DotGram.Sql.Ast.VariableDeclaration.Typed.Typed(DotGram.Sql.Ast.Identifier! Name, DotGram.Sql.Ast.DataType! Type, DotGram.Sql.Ast.Expression? Value) -> void
 DotGram.Sql.Ast.VariableDeclaration.Typed.Value.get -> DotGram.Sql.Ast.Expression?
 DotGram.Sql.Ast.VariableDeclaration.Typed.Value.init -> void
-DotGram.Sql.Ast.VariableDeclaration.VariableDeclaration() -> void
 DotGram.Sql.Ast.VariableDeclaration.VariableDeclaration(DotGram.Sql.Ast.VariableDeclaration! original) -> void
 DotGram.Sql.Ast.VectorBaseType
 DotGram.Sql.Ast.VectorBaseType.Float16 = 1 -> DotGram.Sql.Ast.VectorBaseType
@@ -11571,7 +11427,6 @@ DotGram.Sql.Ast.ViewElement.SelfReference.Name.get -> DotGram.Sql.Ast.Identifier
 DotGram.Sql.Ast.ViewElement.SelfReference.Name.init -> void
 DotGram.Sql.Ast.ViewElement.SelfReference.SelfReference(DotGram.Sql.Ast.Identifier! Name, DotGram.Sql.Ast.ReferenceGeneration? Generation) -> void
 DotGram.Sql.Ast.ViewElement.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.ViewElement.ViewElement() -> void
 DotGram.Sql.Ast.ViewElement.ViewElement(DotGram.Sql.Ast.ViewElement! original) -> void
 DotGram.Sql.Ast.ViewSpecification
 DotGram.Sql.Ast.ViewSpecification.Locate(int at, int length) -> void
@@ -11592,7 +11447,6 @@ DotGram.Sql.Ast.ViewSpecification.Regular.Deconstruct(out DotGram.Sql.SqlList<Do
 DotGram.Sql.Ast.ViewSpecification.Regular.Equals(DotGram.Sql.Ast.ViewSpecification.Regular? other) -> bool
 DotGram.Sql.Ast.ViewSpecification.Regular.Regular(DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!> Columns) -> void
 DotGram.Sql.Ast.ViewSpecification.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.ViewSpecification.ViewSpecification() -> void
 DotGram.Sql.Ast.ViewSpecification.ViewSpecification(DotGram.Sql.Ast.ViewSpecification! original) -> void
 DotGram.Sql.Ast.WaitForKind
 DotGram.Sql.Ast.WaitForKind.Delay = 0 -> DotGram.Sql.Ast.WaitForKind
@@ -11678,7 +11532,6 @@ DotGram.Sql.Ast.WindowFrameExtent.Single.Deconstruct(out DotGram.Sql.Ast.WindowF
 DotGram.Sql.Ast.WindowFrameExtent.Single.Equals(DotGram.Sql.Ast.WindowFrameExtent.Single? other) -> bool
 DotGram.Sql.Ast.WindowFrameExtent.Single.Single(DotGram.Sql.Ast.WindowFrameBound! Bound) -> void
 DotGram.Sql.Ast.WindowFrameExtent.Span.get -> DotGram.Sql.SqlSpan
-DotGram.Sql.Ast.WindowFrameExtent.WindowFrameExtent() -> void
 DotGram.Sql.Ast.WindowFrameExtent.WindowFrameExtent(DotGram.Sql.Ast.WindowFrameExtent! original) -> void
 DotGram.Sql.Ast.WindowFrameUnit
 DotGram.Sql.Ast.WindowFrameUnit.Groups = 2 -> DotGram.Sql.Ast.WindowFrameUnit
@@ -11699,7 +11552,6 @@ DotGram.Sql.Ast.WindowReference.Specification.Equals(DotGram.Sql.Ast.WindowRefer
 DotGram.Sql.Ast.WindowReference.Specification.Specification(DotGram.Sql.Ast.WindowSpecification! Value) -> void
 DotGram.Sql.Ast.WindowReference.Specification.Value.get -> DotGram.Sql.Ast.WindowSpecification!
 DotGram.Sql.Ast.WindowReference.Specification.Value.init -> void
-DotGram.Sql.Ast.WindowReference.WindowReference() -> void
 DotGram.Sql.Ast.WindowReference.WindowReference(DotGram.Sql.Ast.WindowReference! original) -> void
 DotGram.Sql.Ast.WindowSpecification
 DotGram.Sql.Ast.WindowSpecification.<Clone>$() -> DotGram.Sql.Ast.WindowSpecification!
@@ -11951,13 +11803,6 @@ DotGram.Sql.TransactSql.TransactSqlParser.Outcome
 DotGram.Sql.TransactSql.TransactSqlParser.Outcome.NoMatch = 1 -> DotGram.Sql.TransactSql.TransactSqlParser.Outcome
 DotGram.Sql.TransactSql.TransactSqlParser.Outcome.Starved = 2 -> DotGram.Sql.TransactSql.TransactSqlParser.Outcome
 DotGram.Sql.TransactSql.TransactSqlParser.Outcome.Success = 0 -> DotGram.Sql.TransactSql.TransactSqlParser.Outcome
-DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan
-DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.End.get -> int
-DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.Length.get -> int
-DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.On(System.ReadOnlySpan<char> text) -> System.ReadOnlySpan<char>
-DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan() -> void
-DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan(int start, int length) -> void
-DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.Start.get -> int
 abstract DotGram.Sql.Ast.ActivationSetting.<Clone>$() -> DotGram.Sql.Ast.ActivationSetting!
 abstract DotGram.Sql.Ast.AlterColumnAction.<Clone>$() -> DotGram.Sql.Ast.AlterColumnAction!
 abstract DotGram.Sql.Ast.AlterDatabaseAction.<Clone>$() -> DotGram.Sql.Ast.AlterDatabaseAction!
@@ -15932,7 +15777,6 @@ override DotGram.Sql.SqlList<T>.Equals(object? obj) -> bool
 override DotGram.Sql.SqlList<T>.GetHashCode() -> int
 override DotGram.Sql.SqlList<T>.ToString() -> string!
 override DotGram.Sql.SqlSpan.GetHashCode() -> int
-override DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.ToString() -> string!
 override sealed DotGram.Sql.Ast.ActivationSetting.ExecuteAs.Equals(DotGram.Sql.Ast.ActivationSetting? other) -> bool
 override sealed DotGram.Sql.Ast.ActivationSetting.MaxQueueReaders.Equals(DotGram.Sql.Ast.ActivationSetting? other) -> bool
 override sealed DotGram.Sql.Ast.ActivationSetting.ProcedureName.Equals(DotGram.Sql.Ast.ActivationSetting? other) -> bool
@@ -18266,7 +18110,6 @@ static DotGram.Sql.Ast.PrivilegeObject.operator !=(DotGram.Sql.Ast.PrivilegeObje
 static DotGram.Sql.Ast.PrivilegeObject.operator ==(DotGram.Sql.Ast.PrivilegeObject? left, DotGram.Sql.Ast.PrivilegeObject? right) -> bool
 static DotGram.Sql.Ast.PromotedPath.operator !=(DotGram.Sql.Ast.PromotedPath? left, DotGram.Sql.Ast.PromotedPath? right) -> bool
 static DotGram.Sql.Ast.PromotedPath.operator ==(DotGram.Sql.Ast.PromotedPath? left, DotGram.Sql.Ast.PromotedPath? right) -> bool
-static DotGram.Sql.Ast.QualifiedName.Of(params DotGram.Sql.Ast.Identifier![]! parts) -> DotGram.Sql.Ast.QualifiedName
 static DotGram.Sql.Ast.QualifiedName.operator !=(DotGram.Sql.Ast.QualifiedName left, DotGram.Sql.Ast.QualifiedName right) -> bool
 static DotGram.Sql.Ast.QualifiedName.operator ==(DotGram.Sql.Ast.QualifiedName left, DotGram.Sql.Ast.QualifiedName right) -> bool
 static DotGram.Sql.Ast.Query.Parenthesized.operator !=(DotGram.Sql.Ast.Query.Parenthesized? left, DotGram.Sql.Ast.Query.Parenthesized? right) -> bool
@@ -19511,7 +19354,6 @@ static DotGram.Sql.Standard.Sql92Parser.ParseQuery(string! input) -> DotGram.Sql
 static DotGram.Sql.Standard.Sql92Parser.ParseSearchCondition(string! input) -> DotGram.Sql.Ast.Expression!
 static DotGram.Sql.Standard.Sql92Parser.ParseSelect(string! input) -> DotGram.Sql.Ast.Statement!
 static DotGram.Sql.Standard.Sql92Parser.ParseValueExpression(string! input) -> DotGram.Sql.Ast.Expression!
-static DotGram.Sql.Standard.Sql92Parser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
 static DotGram.Sql.Standard.Sql92Parser.TryParseQuery(string! input) -> DotGram.Sql.Standard.Sql92Parser.Match<DotGram.Sql.Ast.Query!>
 static DotGram.Sql.Standard.Sql92Parser.TryParseQuery(string! input, int at) -> DotGram.Sql.Standard.Sql92Parser.Match<DotGram.Sql.Ast.Query!>
 static DotGram.Sql.Standard.Sql92Parser.TryParseQuery(string! input, int at, int length) -> DotGram.Sql.Standard.Sql92Parser.Match<DotGram.Sql.Ast.Query!>
@@ -19542,7 +19384,6 @@ static DotGram.Sql.Standard.SqlStandardParser.ParseSearchCondition(string! input
 static DotGram.Sql.Standard.SqlStandardParser.ParseSql(string! input) -> DotGram.Sql.Ast.Statement![]!
 static DotGram.Sql.Standard.SqlStandardParser.ParseStatement(string! input) -> DotGram.Sql.Ast.Statement!
 static DotGram.Sql.Standard.SqlStandardParser.ParseValue(string! input) -> DotGram.Sql.Ast.LiteralValue!
-static DotGram.Sql.Standard.SqlStandardParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
 static DotGram.Sql.Standard.SqlStandardParser.TryParseDataType(string! input) -> DotGram.Sql.Standard.SqlStandardParser.Match<DotGram.Sql.Ast.DataType!>
 static DotGram.Sql.Standard.SqlStandardParser.TryParseDataType(string! input, int at) -> DotGram.Sql.Standard.SqlStandardParser.Match<DotGram.Sql.Ast.DataType!>
 static DotGram.Sql.Standard.SqlStandardParser.TryParseDataType(string! input, int at, int length) -> DotGram.Sql.Standard.SqlStandardParser.Match<DotGram.Sql.Ast.DataType!>
@@ -19819,7 +19660,6 @@ static DotGram.Sql.TransactSql.TransactSqlParser.ParseStatement140(string! input
 static DotGram.Sql.TransactSql.TransactSqlParser.ParseStatement150(string! input) -> DotGram.Sql.Ast.Statement!
 static DotGram.Sql.TransactSql.TransactSqlParser.ParseStatement160(string! input) -> DotGram.Sql.Ast.Statement!
 static DotGram.Sql.TransactSql.TransactSqlParser.ParseStatement170(string! input) -> DotGram.Sql.Ast.Statement!
-static DotGram.Sql.TransactSql.TransactSqlParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
 static DotGram.Sql.TransactSql.TransactSqlParser.TryParseExpression(string! input) -> DotGram.Sql.TransactSql.TransactSqlParser.Match<DotGram.Sql.Ast.Expression!>
 static DotGram.Sql.TransactSql.TransactSqlParser.TryParseExpression(string! input, int at) -> DotGram.Sql.TransactSql.TransactSqlParser.Match<DotGram.Sql.Ast.Expression!>
 static DotGram.Sql.TransactSql.TransactSqlParser.TryParseExpression(string! input, int at, int length) -> DotGram.Sql.TransactSql.TransactSqlParser.Match<DotGram.Sql.Ast.Expression!>

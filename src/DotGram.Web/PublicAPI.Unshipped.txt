@@ -1,4 +1,1 @@
 #nullable enable
-*REMOVED*static DotGram.Web.AddrSpec.IsDotAtom(string! text) -> bool
-*REMOVED*static DotGram.Web.JsonPointer.ArrayIndex(string! token) -> int?
-*REMOVED*static DotGram.Web.JsonPointer.IsPastTheEnd(string! token) -> bool

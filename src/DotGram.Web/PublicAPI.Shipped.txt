@@ -686,7 +686,6 @@ override sealed DotGram.Web.JsonValue.String.Equals(DotGram.Web.JsonValue? other
 override sealed DotGram.Web.JsonValue.ToString() -> string!
 override sealed DotGram.Web.UriTemplate.Expression.Equals(DotGram.Web.UriTemplate.Part? other) -> bool
 override sealed DotGram.Web.UriTemplate.Literal.Equals(DotGram.Web.UriTemplate.Part? other) -> bool
-static DotGram.Web.AddrSpec.IsDotAtom(string! text) -> bool
 static DotGram.Web.AddrSpec.Parse(string! text) -> DotGram.Web.AddrSpec!
 static DotGram.Web.AddrSpec.ParseStrict(string! text) -> DotGram.Web.AddrSpec!
 static DotGram.Web.AddrSpec.TryParse(string! text, out DotGram.Web.AddrSpec? address) -> bool
@@ -787,8 +786,6 @@ static DotGram.Web.JsonPatch.Read(DotGram.Web.JsonValue! document) -> DotGram.We
 static DotGram.Web.JsonPatch.TryRead(DotGram.Web.JsonValue! document, out DotGram.Web.JsonPatch? patch, out string? error) -> bool
 static DotGram.Web.JsonPatch.operator !=(DotGram.Web.JsonPatch? left, DotGram.Web.JsonPatch? right) -> bool
 static DotGram.Web.JsonPatch.operator ==(DotGram.Web.JsonPatch? left, DotGram.Web.JsonPatch? right) -> bool
-static DotGram.Web.JsonPointer.ArrayIndex(string! token) -> int?
-static DotGram.Web.JsonPointer.IsPastTheEnd(string! token) -> bool
 static DotGram.Web.JsonPointer.Parse(string! text) -> DotGram.Web.JsonPointer!
 static DotGram.Web.JsonPointer.ParseFragment(string! text) -> DotGram.Web.JsonPointer!
 static DotGram.Web.JsonPointer.Root.get -> DotGram.Web.JsonPointer!

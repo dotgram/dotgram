@@ -36592,7 +36592,6 @@ DotGram.Finance.Fix.FixContext.MaxMessageLength.get -> int
 DotGram.Finance.Fix.FixContext.MaxMessageLength.init -> void
 DotGram.Finance.Fix.FixContext.MaxRetained.get -> int
 DotGram.Finance.Fix.FixContext.MaxRetained.init -> void
-DotGram.Finance.Fix.FixConvert
 DotGram.Finance.Fix.FixDictionary
 DotGram.Finance.Fix.FixDictionary.Components.get -> System.Collections.ObjectModel.KeyedCollection<string!, DotGram.Finance.Fix.FixDictionaryComponent!>!
 DotGram.Finance.Fix.FixDictionary.Fields.get -> System.Collections.Generic.Dictionary<int, DotGram.Finance.Fix.FixDictionaryField!>!
@@ -36644,9 +36643,6 @@ DotGram.Finance.Fix.FixField.Decimal.Decimal(int tag, (bool Valid, decimal Value
 DotGram.Finance.Fix.FixField.Integer
 DotGram.Finance.Fix.FixField.Integer.Integer(int tag, (bool Valid, long Value) value) -> void
 DotGram.Finance.Fix.FixField.Invalid
-DotGram.Finance.Fix.FixField.Invalid.Invalid(System.ReadOnlySpan<byte> raw, int position, string! message) -> void
-DotGram.Finance.Fix.FixField.Invalid.Invalid(System.ReadOnlySpan<char> raw, int position, string! message) -> void
-DotGram.Finance.Fix.FixField.Invalid.Invalid(string! raw, int position, string! message) -> void
 DotGram.Finance.Fix.FixField.Invalid.IsByteInput.get -> bool
 DotGram.Finance.Fix.FixField.Invalid.Message.get -> string!
 DotGram.Finance.Fix.FixField.Invalid.RawBytes.get -> System.ReadOnlyMemory<byte>
@@ -38227,7 +38223,6 @@ static DotGram.Finance.Fix.Fix42.Fix42Context.operator !=(DotGram.Finance.Fix.Fi
 static DotGram.Finance.Fix.Fix42.Fix42Context.operator ==(DotGram.Finance.Fix.Fix42.Fix42Context? left, DotGram.Finance.Fix.Fix42.Fix42Context? right) -> bool
 static DotGram.Finance.Fix.Fix42.FixParser.BuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
 static DotGram.Finance.Fix.Fix42.FixParser.BuildMessage(string! source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
-static DotGram.Finance.Fix.Fix42.FixParser.DefaultMaxRetained.get -> int
 static DotGram.Finance.Fix.Fix42.FixParser.ParseFields(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.FixField![]!
 static DotGram.Finance.Fix.Fix42.FixParser.ParseFields(byte[]! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.FixField![]!
 static DotGram.Finance.Fix.Fix42.FixParser.ParseFields(string! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.FixField![]!
@@ -38256,7 +38251,6 @@ static DotGram.Finance.Fix.Fix44.Fix44Context.operator !=(DotGram.Finance.Fix.Fi
 static DotGram.Finance.Fix.Fix44.Fix44Context.operator ==(DotGram.Finance.Fix.Fix44.Fix44Context? left, DotGram.Finance.Fix.Fix44.Fix44Context? right) -> bool
 static DotGram.Finance.Fix.Fix44.FixParser.BuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
 static DotGram.Finance.Fix.Fix44.FixParser.BuildMessage(string! source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
-static DotGram.Finance.Fix.Fix44.FixParser.DefaultMaxRetained.get -> int
 static DotGram.Finance.Fix.Fix44.FixParser.ParseFields(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.FixField![]!
 static DotGram.Finance.Fix.Fix44.FixParser.ParseFields(byte[]! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.FixField![]!
 static DotGram.Finance.Fix.Fix44.FixParser.ParseFields(string! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.FixField![]!
@@ -38285,7 +38279,6 @@ static DotGram.Finance.Fix.Fix50.Fix50Context.operator !=(DotGram.Finance.Fix.Fi
 static DotGram.Finance.Fix.Fix50.Fix50Context.operator ==(DotGram.Finance.Fix.Fix50.Fix50Context? left, DotGram.Finance.Fix.Fix50.Fix50Context? right) -> bool
 static DotGram.Finance.Fix.Fix50.FixParser.BuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
 static DotGram.Finance.Fix.Fix50.FixParser.BuildMessage(string! source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
-static DotGram.Finance.Fix.Fix50.FixParser.DefaultMaxRetained.get -> int
 static DotGram.Finance.Fix.Fix50.FixParser.ParseFields(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.FixField![]!
 static DotGram.Finance.Fix.Fix50.FixParser.ParseFields(byte[]! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.FixField![]!
 static DotGram.Finance.Fix.Fix50.FixParser.ParseFields(string! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.FixField![]!
@@ -38310,62 +38303,6 @@ static DotGram.Finance.Fix.Fix50.FixParser.TryReadMessage(System.IO.Stream! inpu
 static DotGram.Finance.Fix.Fix50.FixParser.TryReadMessage(System.IO.TextReader! input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
 static DotGram.Finance.Fix.FixContext.operator !=(DotGram.Finance.Fix.FixContext? left, DotGram.Finance.Fix.FixContext? right) -> bool
 static DotGram.Finance.Fix.FixContext.operator ==(DotGram.Finance.Fix.FixContext? left, DotGram.Finance.Fix.FixContext? right) -> bool
-static DotGram.Finance.Fix.FixConvert.ToBoolean(this System.ReadOnlySpan<byte> raw) -> (bool Valid, bool Value)
-static DotGram.Finance.Fix.FixConvert.ToBoolean(this System.ReadOnlySpan<byte> raw, out bool value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToBoolean(this System.ReadOnlySpan<char> raw) -> (bool Valid, bool Value)
-static DotGram.Finance.Fix.FixConvert.ToBoolean(this System.ReadOnlySpan<char> raw, out bool value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToCharacter(this System.ReadOnlySpan<byte> raw) -> (bool Valid, char Value)
-static DotGram.Finance.Fix.FixConvert.ToCharacter(this System.ReadOnlySpan<byte> raw, out char value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToCharacter(this System.ReadOnlySpan<char> raw) -> (bool Valid, char Value)
-static DotGram.Finance.Fix.FixConvert.ToCharacter(this System.ReadOnlySpan<char> raw, out char value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToData(this System.ReadOnlySpan<byte> raw) -> (bool Valid, System.ReadOnlyMemory<byte> Value)
-static DotGram.Finance.Fix.FixConvert.ToData(this System.ReadOnlySpan<byte> raw, out System.ReadOnlyMemory<byte> value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToData(this System.ReadOnlySpan<char> raw) -> (bool Valid, System.ReadOnlyMemory<byte> Value)
-static DotGram.Finance.Fix.FixConvert.ToData(this System.ReadOnlySpan<char> raw, out System.ReadOnlyMemory<byte> value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToDate(this System.ReadOnlySpan<byte> raw) -> (bool Valid, System.DateOnly Value)
-static DotGram.Finance.Fix.FixConvert.ToDate(this System.ReadOnlySpan<byte> raw, out System.DateOnly value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToDate(this System.ReadOnlySpan<char> raw) -> (bool Valid, System.DateOnly Value)
-static DotGram.Finance.Fix.FixConvert.ToDate(this System.ReadOnlySpan<char> raw, out System.DateOnly value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToDecimal(this System.ReadOnlySpan<byte> raw) -> (bool Valid, decimal Value)
-static DotGram.Finance.Fix.FixConvert.ToDecimal(this System.ReadOnlySpan<byte> raw, out decimal value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToDecimal(this System.ReadOnlySpan<char> raw) -> (bool Valid, decimal Value)
-static DotGram.Finance.Fix.FixConvert.ToDecimal(this System.ReadOnlySpan<char> raw, out decimal value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToInteger(this System.ReadOnlySpan<byte> raw) -> (bool Valid, long Value)
-static DotGram.Finance.Fix.FixConvert.ToInteger(this System.ReadOnlySpan<byte> raw, out long value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToInteger(this System.ReadOnlySpan<char> raw) -> (bool Valid, long Value)
-static DotGram.Finance.Fix.FixConvert.ToInteger(this System.ReadOnlySpan<char> raw, out long value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToMonthYear(this System.ReadOnlySpan<byte> raw) -> (bool Valid, string! Value)
-static DotGram.Finance.Fix.FixConvert.ToMonthYear(this System.ReadOnlySpan<byte> raw, out string! value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToMonthYear(this System.ReadOnlySpan<char> raw) -> (bool Valid, string! Value)
-static DotGram.Finance.Fix.FixConvert.ToMonthYear(this System.ReadOnlySpan<char> raw, out string! value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToMultiple(this System.ReadOnlySpan<byte> raw) -> (bool Valid, string![]! Value)
-static DotGram.Finance.Fix.FixConvert.ToMultiple(this System.ReadOnlySpan<byte> raw, out string![]! value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToMultiple(this System.ReadOnlySpan<char> raw) -> (bool Valid, string![]! Value)
-static DotGram.Finance.Fix.FixConvert.ToMultiple(this System.ReadOnlySpan<char> raw, out string![]! value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToMultipleString(this System.ReadOnlySpan<byte> raw) -> (bool Valid, string![]! Value)
-static DotGram.Finance.Fix.FixConvert.ToMultipleString(this System.ReadOnlySpan<byte> raw, out string![]! value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToMultipleString(this System.ReadOnlySpan<char> raw) -> (bool Valid, string![]! Value)
-static DotGram.Finance.Fix.FixConvert.ToMultipleString(this System.ReadOnlySpan<char> raw, out string![]! value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToTag(this System.ReadOnlySpan<byte> value) -> int
-static DotGram.Finance.Fix.FixConvert.ToTag(this System.ReadOnlySpan<char> value) -> int
-static DotGram.Finance.Fix.FixConvert.ToText(this System.ReadOnlySpan<byte> raw) -> string!
-static DotGram.Finance.Fix.FixConvert.ToText(this System.ReadOnlySpan<char> raw) -> string!
-static DotGram.Finance.Fix.FixConvert.ToTime(this System.ReadOnlySpan<byte> raw) -> (bool Valid, System.TimeOnly Value)
-static DotGram.Finance.Fix.FixConvert.ToTime(this System.ReadOnlySpan<byte> raw, out System.TimeOnly value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToTime(this System.ReadOnlySpan<char> raw) -> (bool Valid, System.TimeOnly Value)
-static DotGram.Finance.Fix.FixConvert.ToTime(this System.ReadOnlySpan<char> raw, out System.TimeOnly value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToTimestamp(this System.ReadOnlySpan<byte> raw) -> (bool Valid, System.DateTimeOffset Value)
-static DotGram.Finance.Fix.FixConvert.ToTimestamp(this System.ReadOnlySpan<byte> raw, out System.DateTimeOffset value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToTimestamp(this System.ReadOnlySpan<char> raw) -> (bool Valid, System.DateTimeOffset Value)
-static DotGram.Finance.Fix.FixConvert.ToTimestamp(this System.ReadOnlySpan<char> raw, out System.DateTimeOffset value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToZonedTime(this System.ReadOnlySpan<byte> raw) -> (bool Valid, (System.TimeOnly Time, System.TimeSpan Offset) Value)
-static DotGram.Finance.Fix.FixConvert.ToZonedTime(this System.ReadOnlySpan<byte> raw, out (System.TimeOnly Time, System.TimeSpan Offset) value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToZonedTime(this System.ReadOnlySpan<char> raw) -> (bool Valid, (System.TimeOnly Time, System.TimeSpan Offset) Value)
-static DotGram.Finance.Fix.FixConvert.ToZonedTime(this System.ReadOnlySpan<char> raw, out (System.TimeOnly Time, System.TimeSpan Offset) value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToZonedTimestamp(this System.ReadOnlySpan<byte> raw) -> (bool Valid, System.DateTimeOffset Value)
-static DotGram.Finance.Fix.FixConvert.ToZonedTimestamp(this System.ReadOnlySpan<byte> raw, out System.DateTimeOffset value) -> bool
-static DotGram.Finance.Fix.FixConvert.ToZonedTimestamp(this System.ReadOnlySpan<char> raw) -> (bool Valid, System.DateTimeOffset Value)
-static DotGram.Finance.Fix.FixConvert.ToZonedTimestamp(this System.ReadOnlySpan<char> raw, out System.DateTimeOffset value) -> bool
 static DotGram.Finance.Fix.FixDictionary.LoadFile(string! fileName) -> DotGram.Finance.Fix.FixDictionary!
 static DotGram.Finance.Fix.FixDictionary.Parse(string! text) -> DotGram.Finance.Fix.FixDictionary!
 static DotGram.Finance.Fix.FixDictionary.Read(System.IO.Stream! input) -> DotGram.Finance.Fix.FixDictionary!
