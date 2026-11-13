@@ -1,14 +1,12 @@
 - name: Getting started
   href: index.md
 # The two guides are folders of chapters (docs/guide/language/ and docs/guide/generator/),
-# each with a README.md contents page. When one lands, add a toc.yml beside its chapters
-# (one entry per file, the README.md first) and uncomment its entry here. An entry for a folder
-# that does not exist is a build error under -WarningsAsErrors, so the lines stay commented
-# until the files are there.
+# each with a README.md contents page and a toc.yml beside its chapters: one entry per file,
+# the README.md first.
 - name: Language guide
   href: guide/language/
-# - name: Generator guide
-#   href: guide/generator/
+- name: Generator guide
+  href: guide/generator/
 - name: Reference
   items:
     - name: Language (syntax)

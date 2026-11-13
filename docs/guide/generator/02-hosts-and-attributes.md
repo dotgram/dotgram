@@ -4,19 +4,11 @@ Every parser is generated into a class of yours, the **host**. This page covers 
 to be, the attributes that attach a grammar to it — `[Gram]`, `[GramParserVariant]`, `[GramInclude]` — the
 options they take, the attributes for editors, and the names of what comes out. What the generated
 methods take and answer is the [parser API](../../syntax.md#6-publication); the notation is the
-[language guide](../language/01-grammar-and-host.md).
+[language guide](../language/README.md).
 
 All the attributes live in the namespace `DotGram` and are written into your project by the
 generator itself ([setup](01-setup.md#what-the-generator-adds-to-every-compilation)): `using DotGram;`
 is all a file needs.
-
-<!-- ru:begin -->
-> **RU.** Каждый парсер генерируется в ваш класс — **хост**. Здесь: каким должен быть хост, атрибуты,
-> которые прикрепляют к нему грамматику (`[Gram]`, `[GramParserVariant]`, `[GramInclude]`), их опции,
-> атрибуты для редакторов и имена того, что получается. Что принимают и возвращают сгенерированные
-> методы — в описании API парсера; нотация — в руководстве по языку. Все атрибуты лежат в пространстве
-> имён `DotGram` и записываются в проект самим генератором: файлу достаточно `using DotGram;`.
-<!-- ru:end -->
 
 ## What the host has to be
 
@@ -91,21 +83,6 @@ public sealed partial class Letters
 Letters.CountIn("abc") → 3
 ```
 
-<!-- ru:begin -->
-> **RU.** Хост — **класс, объявленный `partial`**: сгенерированная часть — его вторая половина.
-> Вложенному хосту нужно, чтобы все внешние классы тоже были `partial`. Забытый `partial` — первая
-> ошибка, которую встречает почти каждый (GRAM0002, пример выше). В остальном класс ваш:
-> **`static` или нет** — сгенерированные методы статические в любом случае; `static` говорит, что
-> класс — только парсер; без `static` у класса могут быть экземпляры и члены экземпляра, и он может
-> сам быть `context` грамматики — объектом, который вызывающий передаёт в каждый разбор и в который
-> пишут охранные условия и конструкции грамматики (пример выше). **Доступность** — `public` или
-> `internal`, как скажет класс; сгенерированные методы — его публичные члены, если грамматика не
-> скажет иначе. Можно ли назвать хост извне сборки, решает и то, можно ли там включить его грамматику
-> (`ExportGrammar`, ниже). **Вложенный, обобщённый** — хост может быть вложен в другие partial-классы
-> и быть обобщённым; обобщённый `Parser<T>` ищется по имени без параметров типа: `[Gram]` без
-> аргументов на нём читает `Parser.gram`.
-<!-- ru:end -->
-
 ## `[Gram]`: which grammar
 
 `[Gram]` says which grammar the class is compiled from. It is written once on a class.
@@ -166,14 +143,6 @@ Settings.ParsePair("mode=fast").Value → "fast"
 HexDigits.TryParseHex("cafe").IsSuccess → true
 ```
 
-<!-- ru:begin -->
-> **RU.** `[Gram]` говорит, из какой грамматики компилируется класс, и пишется на классе один раз.
-> Три формы (таблица и пример выше): без аргумента — файл `.gram`, названный по классу; путь к файлу
-> относительно проекта; сам текст грамматики. Однострочный аргумент, оканчивающийся на `.gram`, —
-> путь, всё остальное — текст. Файл нужно передать компилятору как additional file; как файлы
-> находятся и что может пойти не так — на странице о файлах грамматик.
-<!-- ru:end -->
-
 ## The options of a reading
 
 `[Gram]` also says how the grammar is read — compiled into a parser — through named arguments. Every
@@ -219,34 +188,6 @@ public static partial class Lexemes;
 
 *'IncludedAs' was renamed to 'DefaultAlias' in 0.3.0.*
 
-<!-- ru:begin -->
-> **RU.** Ещё `[Gram]` именованными аргументами говорит, как читать грамматику, то есть как
-> компилировать её в парсер. У каждой опции есть умолчание, и грамматика, которая ничего не сказала,
-> получает подходящий ей парсер; опции — для того, чего умолчания знать не могут. Они меняют то, как
-> работает парсер, а не то, что он принимает, кроме оговорённого в таблице. Таблица выше перечисляет
-> все опции с умолчаниями: `Lexical` (чтение по токенам, просьба — неразрезаемая грамматика читается
-> по символам с GRAM5004), `Carrier` (когда выполняются конструкции `=>`: `Immediate` — по мере
-> чтения альтернативы, `Deferred` — после принятия разбора; `Auto` выбирает `Immediate`, где может, и
-> говорит, где `Deferred` безопаснее), `ConstructionsMayThrow`, `BufferedText` и `BufferedBytes`
-> (дополнительные формы над `TextReader` и над `Stream`/байтами), `UseSpanCaptures`,
-> `InitialBufferSize` и `MaxBufferedInputLength` (начальная вместимость буфера и предел удерживаемого
-> входа, не меньше 1 — иначе GRAM0009), `MaxExtraStacks` (сколько дополнительных стеков может взять
-> разбор глубоко вложенного входа), `TargetMethodPartSize` (пожелание о размере частей слишком
-> большого метода; никакое значение не ломает сборку), `LocationType` (интерфейс, через который
-> значения узнают своё место во входе), `Trace` (trace-сборка: парсер сообщает приёмнику, что читает),
-> `ExportGrammar` (нести текст грамматики на классе, чтобы её можно было включить из другой сборки;
-> по умолчанию — если класс и все внешние классы `public`; явное `true` ещё и помечает ничего не
-> публикующую грамматику как библиотеку, GRAM4059), `Name` (только `[Gram]`: увести и первое
-> чтение во вложенный класс) и `DefaultAlias` (только `[Gram]`: имя, под которым её видит включающая
-> грамматика). Полная семантика каждой — в `syntax.md` §6.3–§6.9.
->
-> **Имена до 0.3.0.** В 0.3.0 несколько опций переименованы без сохранения старого написания:
-> `IncludedAs` — теперь `DefaultAlias`, `Suffix` — `Name`, `[GramOptions(Suffix = "X")]` —
-> `[GramParserVariant("X")]`, `GramCarrier.Tape` — `GramCarrier.Deferred`, остальное — по списку в
-> release notes. Хосту, написанному со старым именем, говорят, как оно называется теперь (GRAM0012,
-> пример выше).
-<!-- ru:end -->
-
 ### Reading from a `TextReader`
 
 `BufferedText` adds an overload over a `TextReader` beside the one over a string. A file of any
@@ -285,14 +226,6 @@ public static partial class Numbers;
 ```
 
 *InitialBufferSize = 0 reads no input; it has to be at least 1.*
-
-<!-- ru:begin -->
-> **RU.** `BufferedText` добавляет перегрузку над `TextReader` рядом с перегрузкой над строкой. Файл
-> любого размера читается через буфер начальной вместимости `InitialBufferSize`, который растёт ровно
-> настолько, сколько нужно одной записи (пример выше). `InitialBufferSize` и `MaxBufferedInputLength`
-> — лишь умолчания: каждая буферизованная перегрузка принимает и свои `bufferSize` и `maxRetained`.
-> Значение меньше 1 отвергается там, где написано (GRAM0009, второй пример).
-<!-- ru:end -->
 
 ### Where a value was read: `LocationType`
 
@@ -368,16 +301,6 @@ A grammar that names no type pays nothing for this. Read from a buffered
 input, a place past `int.MaxValue` characters cannot be told, and the parse throws
 `InvalidOperationException` where it would tell one.
 
-<!-- ru:begin -->
-> **RU.** Назовите интерфейс с методом `void Locate(int at, int length)`, и каждое правило, чьё
-> значение его реализует, узнает диапазон входа, из которого построено, без trivia вокруг (пример
-> выше). Вместо интерфейса можно назвать базовый класс, объявляющий `Locate`. Тип без такого
-> `Locate` отвергается там, где назван (GRAM0011), а не ошибкой в сгенерированном коде. Грамматика,
-> которая не называет тип, за это ничего не платит. При чтении из
-> буферизованного входа место дальше `int.MaxValue` символов сообщить нельзя, и разбор бросает
-> `InvalidOperationException` там, где должен был бы его сообщить.
-<!-- ru:end -->
-
 ### Why an input was refused: `Trace`
 
 `Trace = true` makes a trace build of the reading. Its class then also holds a sink to set with
@@ -421,14 +344,6 @@ Expected ')'. (line 1, column 4)
 The rules below were reading there, each wanting what it names.
   wanted ')' in Value 1:1 > Value 1:2
 ```
-
-<!-- ru:begin -->
-> **RU.** `Trace = true` делает trace-сборку чтения. В его классе появляются приёмник, который
-> ставится через `Tracing(sink)`, и три готовых: `GramWhy` говорит, почему последний вызов отвергнут и
-> какими правилами; `GramTraceLog` — журнал входов в правила с отступами; `GramProfile` — сколько раз
-> вызвано каждое правило и сколько это заняло. Свойство сборки `DotGramTrace` просит того же для всех
-> грамматик проекта. Пример выше и полный текст `GramWhy` для этого входа.
-<!-- ru:end -->
 
 ## `[GramParserVariant]`: another reading of the same grammar
 
@@ -490,23 +405,6 @@ the same methods with locations asked for per call. The interface's method then 
 argument, `Locate(int at, int length, int gapStart)`
 ([`syntax.md`](../../syntax.md#usepercalllocations)).
 
-<!-- ru:begin -->
-> **RU.** У класса одна грамматика, но читать её можно по-разному: по токенам и по символам, с разными
-> носителями, с трассировкой и без. Каждое следующее чтение — `[GramParserVariant("Имя")]`, оно
-> компилируется во вложенный класс с этим именем (единственный обязательный аргумент). Чего вариант не
-> сказал, он берёт у `[Gram]` (пример выше):
-> `Adder.ParseSum` — чтение `[Gram]`, `Adder.Traced.ParseSum` — чтение варианта, та же грамматика со
-> всем, что сказал `[Gram]`, плюс trace-сборка. Каждое чтение — отдельная компиляция в отдельном файле
-> (`Demo.Adder.g.cs`, `Demo.Adder.Traced.g.cs`); общие для чтений типы (`Match<T>`, `SourceSpan`,
-> `ParserInput<T>`) пишутся один раз, в хосте, в `Demo.Adder.gram-shared.g.cs`. Имя — один
-> идентификатор C# (GRAM0007), и два чтения не могут делить одно имя (GRAM0006, второй пример).
-> `[Gram(Name = "…")]` уводит во вложенный класс и первое чтение; тогда ему нужно имя, которого нет ни
-> у одного варианта. **`UsePerCallLocations`** — опция только `[GramParserVariant]`: вместе с
-> `LocationType` даёт вариант, который не является вторым парсером — грамматика
-> компилируется один раз, а во вложенном классе те же методы, просящие позиции при каждом вызове;
-> метод интерфейса тогда принимает третий аргумент, `Locate(int at, int length, int gapStart)`.
-<!-- ru:end -->
-
 ## `[GramInclude]`: one grammar built on another
 
 `[GramInclude(typeof(X))]` brings the rules of `X`'s grammar into this one, inside a grammar
@@ -562,21 +460,6 @@ Labels.ParseLabel("port:8080").Name → "port"
 - A grammar may also be inherited by deriving from the class that holds it. That is the older
   spelling, and it says less: a class has one base and many attributes.
 
-<!-- ru:begin -->
-> **RU.** `[GramInclude(typeof(X))]` приносит правила грамматики `X` в эту, внутри грамматического
-> пространства имён, названного по `X`, так что до них достают `using X;` и `X.Rule`. Пишется
-> столько раз, сколько грамматик берётся за основу. `DefaultAlias` у `X` переименовывает это
-> пространство для всех включающих, `Alias` у включающего — только для этой грамматики (пример выше).
-> Статические члены включённого класса приходят вместе с правилами, так что его `@`-вызовы работают.
-> Два включения под одним именем — одно пространство, их правила сталкиваются: GRAM0008, лечится
-> `Alias` у одного из них; псевдоним — один идентификатор (GRAM0005). **Между сборками** грамматика
-> едет на классе: хост с включённым `ExportGrammar` (по умолчанию — публичный) несёт свой текст в
-> `[GramSource]`, который пишет генератор, и `[GramInclude(typeof(X))]` в другом проекте читает его
-> оттуда; грамматику internal-хоста вне сборки включить нельзя, если он не скажет
-> `ExportGrammar = true`. Грамматику можно и унаследовать, наследуясь от класса с ней, — это старый
-> способ, и он говорит меньше: база у класса одна, атрибутов много.
-<!-- ru:end -->
-
 ## Attributes for editors
 
 Two attributes describe a grammar's language to editors. They change nothing the parser reads or
@@ -618,19 +501,6 @@ completion: `[GramSource]` and `[GramLanguageDescriptor]`, which it writes on th
 and `[GramToolingGuard]` and `[GramToolingExternal]`, which are experimental and may change in any
 release.
 
-<!-- ru:begin -->
-> **RU.** Два атрибута описывают язык грамматики для редакторов и ничего не меняют в том, что парсер
-> читает или строит (таблица и пример выше): `[GramLanguage(id, Extensions = …)]` — устойчивый
-> идентификатор языка (обычно в виде обратного доменного имени) и расширения файлов, которые он себе
-> берёт; `[GramClassify(target, role)]` — роль из `GramClassification` для правила или его захвата
-> (роль захвата важнее роли правила). С расширением DotGram строковый параметр, помеченный
-> `[StringSyntax("com.example.query")]`, подсвечивается как этот язык там, где ему передаётся литерал.
-> Цель, не называющая ни правила, ни захвата, — предупреждение (GRAM6001–GRAM6005). Ещё четыре
-> атрибута генератор объявляет, но не для ручного использования, и прячет их из автодополнения:
-> `[GramSource]` и `[GramLanguageDescriptor]` он пишет сам на скомпилированных классах, а
-> `[GramToolingGuard]` и `[GramToolingExternal]` экспериментальные и могут измениться в любом релизе.
-<!-- ru:end -->
-
 ## What comes out
 
 For a host `Demo.Adder` with one `[GramParserVariant("Traced")]`, the project gains:
@@ -647,12 +517,3 @@ parameters between underscores (`Demo.Parser_T_.g.cs`). Every type and member th
 declares for its own use has `_DotGram` in its name, which no name a grammar writes may contain
 (`GRAM1012`), so nothing generated collides with what the host declares.
 
-<!-- ru:begin -->
-> **RU.** Для хоста `Demo.Adder` с одним `[GramParserVariant("Traced")]` в проекте появляются файлы
-> из таблицы выше: атрибуты (один раз на проект), чтение `[Gram]`, чтение варианта во вложенном
-> классе `Adder.Traced` и общие для чтений типы, записанные один раз в `Adder`. Вложенный хост
-> называется вместе с внешними классами (`Demo.Formats.HexDigits.g.cs`), обобщённый — с параметрами
-> типа между подчёркиваниями (`Demo.Parser_T_.g.cs`). Все типы и члены, которые сгенерированный класс
-> объявляет для себя, содержат в имени `_DotGram`, а грамматика такого имени написать не может
-> (GRAM1012), поэтому ничего сгенерированное не сталкивается с тем, что объявил хост.
-<!-- ru:end -->
