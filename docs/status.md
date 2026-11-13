@@ -1541,15 +1541,17 @@ the rules it shares with SQL-92.
 **`[GramSource]`** is the grammar's text, written by the generator onto a class it
 compiled where `ExportGrammar` holds — by default, where the class is visible outside its
 assembly. A base or an include in a referenced assembly has no `.gram` file in reach, so
-its text is read from there. A class of a referenced assembly is always read from its
-`[GramSource]`, the grammar it was compiled from: a `.gram` file of the same name in the including
+its text is read from there. A class of a referenced assembly that carries its grammar in
+`[GramSource]` is always read from there, the grammar it was compiled from: a `.gram` file of the same name in the including
 project is left alone, and `GRAM0017` (information) says so where the two differ. This is what the
 table's referenced-assembly row rests on.
 
-`LocationType` names an interface declaring `Locate(int at, int length)`, or a class declaring
-it; every value implementing it is handed the range it was read from, through the interface, so
-an explicit implementation serves and a struct is told on the value the rule returns. A type that
-is neither is `GRAM0011`.
+`LocationType` names an interface declaring `void Locate(int at, int length)` — with
+`UsePerCallLocations`, `void Locate(int at, int length, int gapStart)` — or a class declaring or
+inheriting it; every value of that type is handed the range it was read from. An interface is
+called through the interface, so an explicit implementation serves and a struct is told on the
+value the rule returns; a class is called on the class. A type that is neither, or that lacks the
+form its reading needs, is `GRAM0011`.
 
 ## A grammar cut in two
 
