@@ -6223,16 +6223,55 @@ public abstract record JsonTableColumn : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A <c>name FOR ORDINALITY</c> column of <c>JSON_TABLE</c>: the number of the row among the rows the path produced.
+	/// </summary>
+	/// <param name="Name">The column's name.</param>
 	public sealed record Ordinality(Identifier Name) : JsonTableColumn;
+	/// <summary>
+	/// A column of <c>JSON_TABLE</c> that holds one scalar picked out by a path: <c>name type [PATH 'p'] [v ON EMPTY] [v ON ERROR]</c>.
+	/// </summary>
+	/// <param name="Name">The column's name.</param>
+	/// <param name="Type">The data type the value is returned as.</param>
+	/// <param name="Path">The path literal after <c>PATH</c>, as written; null where there is no <c>PATH</c> and the column's name is the path.</param>
+	/// <param name="OnEmpty">The <c>ON EMPTY</c> behavior, null where none was written.</param>
+	/// <param name="OnError">The <c>ON ERROR</c> behavior, null where none was written.</param>
 	public sealed record Regular(Identifier Name, DataType Type, string? Path, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : JsonTableColumn;
+	/// <summary>
+	/// A column of <c>JSON_TABLE</c> that holds a JSON fragment: <c>name type [FORMAT JSON] [PATH 'p'] [wrapper WRAPPER] [quotes] [b ON EMPTY] [b ON ERROR]</c>.
+	/// </summary>
+	/// <param name="Name">The column's name.</param>
+	/// <param name="Type">The data type the fragment is returned as.</param>
+	/// <param name="Format">The <c>FORMAT</c> clause with its encoding, null where none was written.</param>
+	/// <param name="Path">The path literal after <c>PATH</c>, as written; null where there is no <c>PATH</c>.</param>
+	/// <param name="Wrapper">The array wrapper behavior, null where no <c>WRAPPER</c> clause was written.</param>
+	/// <param name="Quotes">The <c>KEEP QUOTES</c> or <c>OMIT QUOTES</c> clause, null where none was written.</param>
+	/// <param name="OnEmpty">The <c>ON EMPTY</c> behavior, null where none was written.</param>
+	/// <param name="OnError">The <c>ON ERROR</c> behavior, null where none was written.</param>
 	public sealed record Formatted(Identifier Name, DataType Type, JsonRepresentation? Format, string? Path, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : JsonTableColumn;
+	/// <summary>
+	/// A <c>NESTED [PATH] 'p' [AS name] COLUMNS (...)</c> group: columns taken from the items an inner path selects, one row for each.
+	/// </summary>
+	/// <param name="Path">The path literal, as written.</param>
+	/// <param name="Name">The path name after <c>AS</c>, which a plan can refer to; null where none was written.</param>
+	/// <param name="Columns">The columns of the group, which may nest further.</param>
+	/// <param name="PathKeyword"><c>PATH</c> was written after <c>NESTED</c>.</param>
 	public sealed record Nested(string Path, Identifier? Name, SqlList<JsonTableColumn> Columns, bool PathKeyword = false) : JsonTableColumn;
+	/// <summary>
+	/// A <c>name FOR CHAINING</c> column, a form of the <c>JSON_TABLE_PRIMITIVE</c> column list that stands beside <c>FOR ORDINALITY</c>.
+	/// </summary>
+	/// <param name="Name">The column's name.</param>
 	public sealed record Chaining(Identifier Name) : JsonTableColumn;
 }
+/// <summary>
+/// BNF: <c>&lt;JSON table plan&gt;</c>. How the rows of the nested paths of a <c>JSON_TABLE</c> are joined to those of their parents: the text inside <c>PLAN (...)</c>.
+/// </summary>
 public abstract record JsonTablePlan : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6242,24 +6281,148 @@ public abstract record JsonTablePlan : ISqlNode
 	{
 	}
 
+	/// <summary>A plan that is a path name alone, as given by <c>AS name</c>.</summary>
+	/// <param name="Value">The path name.</param>
 	public sealed record Name(Identifier Value) : JsonTablePlan;
+	/// <summary>
+	/// A <c>parent OUTER child</c> plan: every row of the parent path is kept, and gets null columns where the child path found nothing.
+	/// </summary>
+	/// <param name="Parent">The path name of the parent.</param>
+	/// <param name="Child">The plan of the nested paths.</param>
 	public sealed record Outer(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
+	/// <summary>
+	/// A <c>parent INNER child</c> plan: only the rows of the parent path the child path found something for are kept.
+	/// </summary>
+	/// <param name="Parent">The path name of the parent.</param>
+	/// <param name="Child">The plan of the nested paths.</param>
 	public sealed record Inner(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
+	/// <summary>A <c>a UNION b</c> plan: the rows of sibling paths follow one another.</summary>
+	/// <param name="Items">The sibling plans, in the order they were written.</param>
 	public sealed record Union(SqlList<JsonTablePlan> Items) : JsonTablePlan;
+	/// <summary>A <c>a CROSS b</c> plan: every row of one sibling path is paired with every row of the others.</summary>
+	/// <param name="Items">The sibling plans, in the order they were written.</param>
 	public sealed record Cross(SqlList<JsonTablePlan> Items) : JsonTablePlan;
+	/// <summary>
+	/// A <c>PLAN DEFAULT (INNER, UNION)</c> plan: one join choice for every nested path instead of a plan written out.
+	/// </summary>
+	/// <param name="InnerOuter">The <c>INNER</c> or <c>OUTER</c> choice, null where it was left out.</param>
+	/// <param name="UnionCross">The <c>UNION</c> or <c>CROSS</c> choice, null where it was left out.</param>
+	/// <param name="UnionCrossFirst">The <c>UNION</c> or <c>CROSS</c> choice was written before the <c>INNER</c> or <c>OUTER</c> one.</param>
 	public sealed record Default(JsonTableDefaultInnerOuter? InnerOuter, JsonTableDefaultUnionCross? UnionCross, bool UnionCrossFirst = false) : JsonTablePlan;
+	/// <summary>A plan in brackets.</summary>
+	/// <param name="Value">The plan inside the brackets.</param>
 	public sealed record Parenthesized(JsonTablePlan Value) : JsonTablePlan;
 }
-public enum JsonTableDefaultInnerOuter { Inner, Outer }
-public enum JsonTableDefaultUnionCross { Union, Cross }
-public enum JsonTableErrorBehavior { Error, Empty }
-public abstract record JsonValueBehavior : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected JsonValueBehavior() { } public sealed record Error : JsonValueBehavior; public sealed record Null : JsonValueBehavior; public sealed record Default(Expression Value) : JsonValueBehavior; }
-public enum JsonWrapperBehavior { Without, WithoutArray, With, WithConditional, WithUnconditional, WithArray, WithConditionalArray, WithUnconditionalArray }
-public enum JsonQuotesBehavior { Keep, Omit }
-public enum JsonQueryBehavior { Error, Null, EmptyArray, EmptyObject }
+/// <summary>The join <c>PLAN DEFAULT</c> uses between a path and its nested paths.</summary>
+public enum JsonTableDefaultInnerOuter
+{
+	/// <summary><c>INNER</c>: a row of the parent path is kept only if the nested path found something for it.</summary>
+	Inner,
+	/// <summary>
+	/// <c>OUTER</c>: a row of the parent path is kept, with null columns where the nested path found nothing.
+	/// </summary>
+	Outer,
+}
+/// <summary>The combination <c>PLAN DEFAULT</c> uses between sibling nested paths.</summary>
+public enum JsonTableDefaultUnionCross
+{
+	/// <summary><c>UNION</c>: the rows of one sibling follow those of the other.</summary>
+	Union,
+	/// <summary><c>CROSS</c>: every row of one sibling is paired with every row of the other.</summary>
+	Cross,
+}
+/// <summary>The trailing <c>ON ERROR</c> behavior of a <c>JSON_TABLE</c>.</summary>
+public enum JsonTableErrorBehavior
+{
+	/// <summary><c>ERROR ON ERROR</c>: an error is raised.</summary>
+	Error,
+	/// <summary><c>EMPTY ON ERROR</c>: the result is an empty table.</summary>
+	Empty,
+}
+/// <summary>
+/// BNF: <c>&lt;JSON value empty/error behavior&gt;</c>: what <c>JSON_VALUE</c> or a <c>JSON_TABLE</c> column returns
+/// where the path finds nothing or fails, the words before <c>ON EMPTY</c> or <c>ON ERROR</c>.
+/// </summary>
+public abstract record JsonValueBehavior : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected JsonValueBehavior()
+	{
+	}
+
+	/// <summary><c>ERROR</c>: an error is raised.</summary>
+	public sealed record Error : JsonValueBehavior;
+
+	/// <summary><c>NULL</c>: the result is null.</summary>
+	public sealed record Null : JsonValueBehavior;
+
+	/// <summary><c>DEFAULT v</c>: the result is the value of an expression.</summary>
+	/// <param name="Value">The expression after <c>DEFAULT</c>.</param>
+	public sealed record Default(Expression Value) : JsonValueBehavior;
+}
+/// <summary>
+/// The <c>WRAPPER</c> clause of <c>JSON_QUERY</c> or a <c>JSON_TABLE</c> column: whether the items found are wrapped in an array.
+/// </summary>
+public enum JsonWrapperBehavior
+{
+	/// <summary><c>WITHOUT WRAPPER</c>.</summary>
+	Without,
+	/// <summary><c>WITHOUT ARRAY WRAPPER</c>.</summary>
+	WithoutArray,
+	/// <summary><c>WITH WRAPPER</c>.</summary>
+	With,
+	/// <summary><c>WITH CONDITIONAL WRAPPER</c>: wrapped unless the path found a single array or object.</summary>
+	WithConditional,
+	/// <summary><c>WITH UNCONDITIONAL WRAPPER</c>: always wrapped.</summary>
+	WithUnconditional,
+	/// <summary><c>WITH ARRAY WRAPPER</c>.</summary>
+	WithArray,
+	/// <summary><c>WITH CONDITIONAL ARRAY WRAPPER</c>.</summary>
+	WithConditionalArray,
+	/// <summary><c>WITH UNCONDITIONAL ARRAY WRAPPER</c>.</summary>
+	WithUnconditionalArray,
+}
+/// <summary>Whether the quotes around a scalar string are kept in the result of <c>JSON_QUERY</c>.</summary>
+public enum JsonQuotesBehavior
+{
+	/// <summary><c>KEEP QUOTES</c>.</summary>
+	Keep,
+	/// <summary><c>OMIT QUOTES</c>.</summary>
+	Omit,
+}
+/// <summary>
+/// What <c>JSON_QUERY</c> or a <c>JSON_TABLE</c> column returns where the path finds nothing or fails: the word before <c>ON EMPTY</c> or <c>ON ERROR</c>.
+/// </summary>
+public enum JsonQueryBehavior
+{
+	/// <summary><c>ERROR</c>: an error is raised.</summary>
+	Error,
+	/// <summary><c>NULL</c>.</summary>
+	Null,
+	/// <summary><c>EMPTY ARRAY</c>: <c>[]</c>.</summary>
+	EmptyArray,
+	/// <summary><c>EMPTY OBJECT</c>: <c>{}</c>.</summary>
+	EmptyObject,
+}
 
 // BNF: <JSON output clause>: `RETURNING t FORMAT JSON ENCODING UTF8`.
-public sealed record JsonOutput(DataType Type, JsonRepresentation? Format = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;JSON output clause&gt;</c>: <c>RETURNING t FORMAT JSON ENCODING UTF8</c>, the type a JSON function returns.
+/// </summary>
+/// <param name="Type">The data type after <c>RETURNING</c>.</param>
+/// <param name="Format">The <c>FORMAT</c> clause with its encoding, null where none was written.</param>
+public sealed record JsonOutput(DataType Type, JsonRepresentation? Format = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6267,7 +6430,13 @@ public sealed record JsonOutput(DataType Type, JsonRepresentation? Format = null
 }
 
 // BNF: <JSON query quotes behavior>: `KEEP QUOTES ON SCALAR STRING`.
-public sealed record JsonQuotes(JsonQuotesBehavior Behavior, bool OnScalarString) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>BNF: <c>&lt;JSON query quotes behavior&gt;</c>: <c>KEEP QUOTES ON SCALAR STRING</c>.</summary>
+/// <param name="Behavior">Whether the quotes around a scalar string are kept or omitted.</param>
+/// <param name="OnScalarString"><c>ON SCALAR STRING</c> was written.</param>
+public sealed record JsonQuotes(JsonQuotesBehavior Behavior, bool OnScalarString) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6275,30 +6444,68 @@ public sealed record JsonQuotes(JsonQuotesBehavior Behavior, bool OnScalarString
 }
 
 // BNF: <JSON name and value>: `KEY k VALUE v`, `k VALUE v` or `k : v`, with the value's format.
-public sealed record JsonMember(Expression Key, Expression Value, JsonMemberSyntax Syntax, JsonInputClause? Format = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;JSON name and value&gt;</c>: <c>KEY k VALUE v</c>, <c>k VALUE v</c> or <c>k : v</c>, with the value's format. A member of <c>JSON_OBJECT</c> or <c>JSON_OBJECTAGG</c>.
+/// </summary>
+/// <param name="Key">The member's name.</param>
+/// <param name="Value">The member's value.</param>
+/// <param name="Syntax">The words that join the key and the value.</param>
+/// <param name="Format">The <c>FORMAT</c> clause of the value, null where none was written.</param>
+public sealed record JsonMember(Expression Key, Expression Value, JsonMemberSyntax Syntax, JsonInputClause? Format = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum JsonMemberSyntax { KeyValue, Value, Colon }
+/// <summary>The words that join the key and the value of a <see cref="JsonMember"/>.</summary>
+public enum JsonMemberSyntax
+{
+	/// <summary><c>KEY k VALUE v</c>.</summary>
+	KeyValue,
+	/// <summary><c>k VALUE v</c>.</summary>
+	Value,
+	/// <summary><c>k : v</c>.</summary>
+	Colon,
+}
 
 // BNF: <JSON value expression> in an array constructor or aggregate, with its format.
-public sealed record JsonElement(Expression Value, JsonInputClause? Format = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;JSON value expression&gt;</c> in an array constructor or aggregate, with its format: <c>v [FORMAT JSON]</c>.
+/// </summary>
+/// <param name="Value">The element's value.</param>
+/// <param name="Format">The <c>FORMAT</c> clause of the value, null where none was written.</param>
+public sealed record JsonElement(Expression Value, JsonInputClause? Format = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
-// BNF: <JSON constructor null clause>.
-public enum JsonNullHandling { NullOnNull, AbsentOnNull }
+/// <summary>BNF: <c>&lt;JSON constructor null clause&gt;</c>: what a JSON constructor does with a null value.</summary>
+public enum JsonNullHandling
+{
+	/// <summary><c>NULL ON NULL</c>: the null is written as a JSON null.</summary>
+	NullOnNull,
+	/// <summary><c>ABSENT ON NULL</c>: the member or element is left out.</summary>
+	AbsentOnNull,
+}
 
 // --- DML helper families ----------------------------------------------------
+/// <summary>
+/// BNF: <c>&lt;insert columns and source&gt;</c>. Where an <c>INSERT</c> takes its rows from: a query, a <c>VALUES</c> list, or <c>DEFAULT VALUES</c>.
+/// </summary>
 public abstract partial record InsertSource : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6308,21 +6515,46 @@ public abstract partial record InsertSource : ISqlNode
 	{
 	}
 
+	/// <summary>A query as the source, <c>INSERT INTO t SELECT ...</c>.</summary>
+	/// <param name="Query">The query whose rows are inserted.</param>
 	public sealed record Subquery(Query Query) : InsertSource;
+	/// <summary>A <c>VALUES (...), (...)</c> list as the source.</summary>
+	/// <param name="Rows">The rows, each written in brackets.</param>
 	public sealed record Values(SqlList<RowValue> Rows) : InsertSource;
+	/// <summary>A <c>DEFAULT VALUES</c> source: one row in which every column takes its default.</summary>
 	public sealed record DefaultValues : InsertSource;
 }
-public sealed record RowValue(SqlList<Expression> Items, bool RowKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>One row of a <c>VALUES</c> list: <c>(1, DEFAULT)</c> or <c>ROW (1, DEFAULT)</c>.</summary>
+/// <param name="Items">The values of the row, in column order.</param>
+/// <param name="RowKeyword"><c>ROW</c> was written before the brackets.</param>
+public sealed record RowValue(SqlList<Expression> Items, bool RowKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum OverrideKind { UserValue, SystemValue }
+/// <summary>
+/// The <c>OVERRIDING</c> clause of <c>INSERT</c> or <c>MERGE</c>: which values an identity column takes.
+/// </summary>
+public enum OverrideKind
+{
+	/// <summary><c>OVERRIDING USER VALUE</c>: the value supplied is ignored and the column generates one.</summary>
+	UserValue,
+	/// <summary><c>OVERRIDING SYSTEM VALUE</c>: the value supplied is used.</summary>
+	SystemValue,
+}
+/// <summary>
+/// BNF: <c>&lt;merge when clause&gt;</c>. One <c>WHEN [NOT] MATCHED [AND c] THEN ...</c> clause of a <c>MERGE</c> statement.
+/// </summary>
 public abstract partial record MergeClause : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6332,19 +6564,63 @@ public abstract partial record MergeClause : ISqlNode
 	{
 	}
 
+	/// <summary>The condition after <c>AND</c> in the clause's head, <c>WHEN MATCHED AND c</c>; null where none was written.</summary>
 	public Expression? Condition { get; init; }
+	/// <summary>A <c>WHEN MATCHED</c> clause: what is done with a target row that a source row matched.</summary>
+	/// <param name="Action">The action after <c>THEN</c>, an update or a delete.</param>
 	public sealed record Matched(MergeMatchedAction Action) : MergeClause;
+	/// <summary>A <c>WHEN NOT MATCHED</c> clause: the insert done for a source row that no target row matched.</summary>
+	/// <param name="Action">The <c>INSERT</c> after <c>THEN</c>.</param>
 	public sealed partial record NotMatched(MergeInsertAction Action) : MergeClause;
 }
-public abstract record MergeMatchedAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected MergeMatchedAction() { } public sealed record Update(SqlList<Assignment> Assignments) : MergeMatchedAction; public sealed record Delete : MergeMatchedAction; }
-public sealed partial record MergeInsertAction(SqlList<Identifier> Columns, OverrideKind? Override, SqlList<Expression> Values) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>What a <c>MERGE</c> clause does to a target row it found: <c>UPDATE SET ...</c> or <c>DELETE</c>.</summary>
+public abstract record MergeMatchedAction : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected MergeMatchedAction()
+	{
+	}
+
+	/// <summary>An <c>UPDATE SET a = 1, b = 2</c> action.</summary>
+	/// <param name="Assignments">The assignments of the <c>SET</c> list.</param>
+	public sealed record Update(SqlList<Assignment> Assignments) : MergeMatchedAction;
+	/// <summary>A <c>DELETE</c> action.</summary>
+	public sealed record Delete : MergeMatchedAction;
+}
+/// <summary>
+/// The <c>INSERT [(columns)] [OVERRIDING ...] VALUES (...)</c> of a <c>WHEN NOT MATCHED</c> clause of <c>MERGE</c>.
+/// </summary>
+/// <param name="Columns">The columns listed in brackets, empty where none were listed.</param>
+/// <param name="Override">The <c>OVERRIDING</c> clause, null where none was written.</param>
+/// <param name="Values">The values after <c>VALUES</c>, one for each listed column.</param>
+public sealed partial record MergeInsertAction(SqlList<Identifier> Columns, OverrideKind? Override, SqlList<Expression> Values) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 // BNF: <set clause>, <multiple column assignment>. Parenthesized where the targets were written in brackets: `(a) = (1)` is not `a = (1)`.
-public sealed partial record Assignment(SqlList<AssignmentTarget> Targets, Expression Value, bool Parenthesized = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;set clause&gt;</c>, <c>&lt;multiple column assignment&gt;</c>. One <c>target = value</c> of the <c>SET</c> list of <c>UPDATE</c> or <c>MERGE</c>, or <c>(a, b) = (1, 2)</c>.
+/// </summary>
+/// <param name="Targets">The columns assigned, one unless several were written in brackets.</param>
+/// <param name="Value">The new value; a row or a subquery where there are several targets.</param>
+/// <param name="Parenthesized">The targets were written in brackets: <c>(a) = (1)</c> is not <c>a = (1)</c>.</param>
+public sealed partial record Assignment(SqlList<AssignmentTarget> Targets, Expression Value, bool Parenthesized = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6352,19 +6628,45 @@ public sealed partial record Assignment(SqlList<AssignmentTarget> Targets, Expre
 }
 
 // BNF: <set target>, <update target>, <mutated set clause>. Trigraphs are `??(` and `??)` around the index.
-public sealed record AssignmentTarget(QualifiedName Name, Expression? Index = null, SqlList<Identifier>? MutationPath = null, bool Trigraphs = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;set target&gt;</c>, <c>&lt;update target&gt;</c>, <c>&lt;mutated set clause&gt;</c>. The left side of an assignment: a column, an element of an array column, or an attribute of a structured one.
+/// </summary>
+/// <param name="Name">The column's name.</param>
+/// <param name="Index">The array index in <c>[...]</c> after the name, null where none was written.</param>
+/// <param name="MutationPath">The attribute names written after the column, <c>c.x.y</c>, null where none were written.</param>
+/// <param name="Trigraphs">The index was written with the trigraphs <c>??(</c> and <c>??)</c> in place of the square brackets.</param>
+public sealed record AssignmentTarget(QualifiedName Name, Expression? Index = null, SqlList<Identifier>? MutationPath = null, bool Trigraphs = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record PeriodPortion(Identifier Name, Expression From, Expression To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;update/delete target&gt;</c>'s <c>FOR PORTION OF period FROM a TO b</c>: the part of a row's application-time period an <c>UPDATE</c> or <c>DELETE</c> applies to.
+/// </summary>
+/// <param name="Name">The name of the period.</param>
+/// <param name="From">The start of the portion.</param>
+/// <param name="To">The end of the portion.</param>
+public sealed record PeriodPortion(Identifier Name, Expression From, Expression To) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum IdentityRestart { Continue, Restart }
+/// <summary>The identity clause of <c>TRUNCATE TABLE</c>.</summary>
+public enum IdentityRestart
+{
+	/// <summary><c>CONTINUE IDENTITY</c>: identity columns go on from where they were.</summary>
+	Continue,
+	/// <summary><c>RESTART IDENTITY</c>: identity columns start again.</summary>
+	Restart,
+}
 
 // --- Names and small value objects -----------------------------------------
 //
@@ -6503,6 +6805,7 @@ public readonly record struct QualifiedName : ISqlNode
 	{
 	}
 
+	/// <summary>Whether both names have the same parts; where they were written is not compared.</summary>
 	public bool Equals(QualifiedName other)
 	{
 		if (!EqualityComparer<Identifier>.Default.Equals(_first, other._first))
@@ -6511,6 +6814,7 @@ public readonly record struct QualifiedName : ISqlNode
 		return new SqlList<Identifier>(_rest).Equals(new SqlList<Identifier>(other._rest));
 	}
 
+	/// <summary>A hash of the parts, which leaves their positions out as <see cref="Equals(QualifiedName)"/> does.</summary>
 	public override int GetHashCode()
 	{
 		return SqlHash.Finish(SqlHash.Add(SqlHash.Add(SqlHash.Start(Count), _first?.GetHashCode() ?? 0), new SqlList<Identifier>(_rest).GetHashCode()));
@@ -6526,6 +6830,7 @@ public readonly record struct QualifiedName : ISqlNode
 		return true;
 	}
 
+	/// <summary>The enumerator <c>foreach</c> walks the parts with, the first part first.</summary>
 	public Enumerator GetEnumerator()
 	{
 		return new Enumerator(this);
@@ -6543,33 +6848,57 @@ public readonly record struct QualifiedName : ISqlNode
 			_at   = -1;
 		}
 
+		/// <summary>The part the enumeration stands at.</summary>
 		public readonly Identifier Current => _name[_at];
 
+		/// <summary>Moves to the next part; false after the last.</summary>
 		public bool MoveNext()
 		{
 			return ++_at < _name.Count;
 		}
 	}
 }
-public sealed record CharacterSetName(QualifiedName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The name of a character set, <c>UTF8</c> or <c>s.latin1</c>, after <c>CHARACTER SET</c>.</summary>
+/// <param name="Name">The name, with every part written.</param>
+public sealed record CharacterSetName(QualifiedName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record CollationName(QualifiedName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The name of a collation, as it follows <c>COLLATE</c>.</summary>
+/// <param name="Name">The name, with every part written.</param>
+public sealed record CollationName(QualifiedName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record AuthorizationIdentifier(Identifier Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The owner named by <c>AUTHORIZATION</c> in <c>CREATE SCHEMA</c>.</summary>
+/// <param name="Name">The owner's name.</param>
+public sealed record AuthorizationIdentifier(Identifier Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record PathSpecification(SqlList<QualifiedName> Schemas) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;path specification&gt;</c>: <c>PATH s1, s2</c>, the schemas that unqualified routine names are looked up in.
+/// </summary>
+/// <param name="Schemas">The schemas, in the order they are searched.</param>
+public sealed record PathSpecification(SqlList<QualifiedName> Schemas) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6577,10 +6906,15 @@ public sealed record PathSpecification(SqlList<QualifiedName> Schemas) : ISqlNod
 }
 
 // --- Temporal/table source --------------------------------------------------
+/// <summary>
+/// BNF: <c>FOR SYSTEM_TIME ...</c>, the period of a system-versioned table whose rows a table reference asks for.
+/// </summary>
 public abstract partial record SystemTimeSpecification : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6590,16 +6924,32 @@ public abstract partial record SystemTimeSpecification : ISqlNode
 	{
 	}
 
+	/// <summary>A <c>FOR SYSTEM_TIME AS OF p</c> specification: the rows as they were at one point in time.</summary>
+	/// <param name="Point">The point in time.</param>
 	public sealed record AsOf(Expression Point) : SystemTimeSpecification;
+	/// <summary>
+	/// A <c>FOR SYSTEM_TIME BETWEEN [ASYMMETRIC | SYMMETRIC] a AND b</c> specification: the rows that were current at some time in a range, whose end is included.
+	/// </summary>
+	/// <param name="From">The start of the range.</param>
+	/// <param name="To">The end of the range.</param>
+	/// <param name="Symmetry">The <c>ASYMMETRIC</c> or <c>SYMMETRIC</c> word, null where none was written.</param>
 	public sealed record Between(Expression From, Expression To, BetweenSymmetry? Symmetry) : SystemTimeSpecification;
+	/// <summary>
+	/// A <c>FOR SYSTEM_TIME FROM a TO b</c> specification: the rows that were current at some time in a range, whose end is left out.
+	/// </summary>
+	/// <param name="From">The start of the range.</param>
+	/// <param name="To">The end of the range.</param>
 	public sealed record FromTo(Expression From, Expression To) : SystemTimeSpecification;
 }
 
 // --- ALTER DOMAIN -----------------------------------------------------------
+/// <summary>BNF: <c>&lt;alter domain action&gt;</c>. What an <c>ALTER DOMAIN</c> statement does.</summary>
 public abstract record AlterDomainAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6609,17 +6959,29 @@ public abstract record AlterDomainAction : ISqlNode
 	{
 	}
 
+	/// <summary>An <c>ALTER DOMAIN d SET DEFAULT e</c> action.</summary>
+	/// <param name="Value">The new default.</param>
 	public sealed record SetDefault(Expression Value) : AlterDomainAction;
+	/// <summary>An <c>ALTER DOMAIN d DROP DEFAULT</c> action.</summary>
 	public sealed record DropDefault : AlterDomainAction;
+	/// <summary>An <c>ALTER DOMAIN d ADD CONSTRAINT ...</c> action.</summary>
+	/// <param name="Constraint">The constraint added.</param>
 	public sealed record AddConstraint(Constraint Constraint) : AlterDomainAction;
+	/// <summary>An <c>ALTER DOMAIN d DROP CONSTRAINT c</c> action.</summary>
+	/// <param name="Name">The constraint's name.</param>
 	public sealed record DropConstraint(QualifiedName Name) : AlterDomainAction;
 }
 
 // --- Views -----------------------------------------------------------------
+/// <summary>
+/// BNF: <c>&lt;view specification&gt;</c>. The part of <c>CREATE VIEW</c> between the name and <c>AS</c> that says what kind of view it is.
+/// </summary>
 public abstract record ViewSpecification : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -6629,35 +6991,146 @@ public abstract record ViewSpecification : ISqlNode
 	{
 	}
 
+	/// <summary>A view of the ordinary kind, <c>CREATE VIEW v (a, b) AS ...</c>.</summary>
+	/// <param name="Columns">The column names listed in brackets, empty where none were listed.</param>
 	public sealed record Regular(SqlList<Identifier> Columns) : ViewSpecification;
+	/// <summary>
+	/// A typed view, <c>CREATE VIEW v OF t [UNDER u] (elements) AS ...</c>, whose rows are values of a structured type.
+	/// </summary>
+	/// <param name="TypeName">The structured type after <c>OF</c>.</param>
+	/// <param name="Under">The view after <c>UNDER</c> this one is a subview of, null where none was written.</param>
+	/// <param name="Elements">The elements in brackets, empty where there are none.</param>
 	public sealed record Referenceable(QualifiedName TypeName, QualifiedName? Under, SqlList<ViewElement> Elements) : ViewSpecification;
 }
-public abstract record ViewElement : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected ViewElement() { } public sealed record SelfReference(Identifier Name, ReferenceGeneration? Generation) : ViewElement; public sealed record ColumnOption(Identifier Name, QualifiedName Scope) : ViewElement; }
-public enum CheckOption { Cascaded, Local, Unqualified }
+/// <summary>
+/// BNF: <c>&lt;view element&gt;</c>. One entry of the bracketed list of a typed view: its self-referencing column or an
+/// option for a column.
+/// </summary>
+public abstract record ViewElement : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ViewElement()
+	{
+	}
+
+	/// <summary>The <c>REF IS name [SYSTEM GENERATED | USER GENERATED | DERIVED]</c> entry: the column that holds each row's reference.</summary>
+	/// <param name="Name">The column's name.</param>
+	/// <param name="Generation">How the references are made, null where none was written.</param>
+	public sealed record SelfReference(Identifier Name, ReferenceGeneration? Generation) : ViewElement;
+
+	/// <summary>A <c>column WITH OPTIONS SCOPE t</c> entry: the table a reference column points into.</summary>
+	/// <param name="Name">The column's name.</param>
+	/// <param name="Scope">The table after <c>SCOPE</c>.</param>
+	public sealed record ColumnOption(Identifier Name, QualifiedName Scope) : ViewElement;
+}
+/// <summary>The check option of <c>CREATE VIEW</c>: <c>WITH [CASCADED | LOCAL] CHECK OPTION</c>.</summary>
+public enum CheckOption
+{
+	/// <summary>
+	/// <c>WITH CASCADED CHECK OPTION</c>: rows written through the view must satisfy its condition and those of the views below it.
+	/// </summary>
+	Cascaded,
+	/// <summary><c>WITH LOCAL CHECK OPTION</c>: rows written through the view must satisfy its own condition.</summary>
+	Local,
+	/// <summary><c>WITH CHECK OPTION</c>, with neither word; T-SQL's only form.</summary>
+	Unqualified,
+}
 
 // --- Triggers ---------------------------------------------------------------
-public enum TriggerTime { Before, After, InsteadOf }
-public sealed record TriggerEvent(TriggerEventKind Kind, SqlList<Identifier> Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>When a trigger fires relative to the statement that fires it.</summary>
+public enum TriggerTime
+{
+	/// <summary><c>BEFORE</c>.</summary>
+	Before,
+	/// <summary><c>AFTER</c>; in T-SQL also <c>FOR</c>.</summary>
+	After,
+	/// <summary><c>INSTEAD OF</c>: the trigger runs in place of the statement.</summary>
+	InsteadOf,
+}
+/// <summary>
+/// BNF: <c>&lt;trigger event&gt;</c>: <c>INSERT</c>, <c>DELETE</c> or <c>UPDATE [OF a, b]</c>, the statement that fires a trigger.
+/// </summary>
+/// <param name="Kind">The kind of statement.</param>
+/// <param name="Columns">The columns after <c>OF</c>, empty where none were listed.</param>
+public sealed record TriggerEvent(TriggerEventKind Kind, SqlList<Identifier> Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum TriggerEventKind { Insert, Delete, Update }
-public sealed record TransitionReference(TransitionKind Kind, Identifier Name, bool RowKeyword = false, bool AsKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The kind of statement that fires a trigger.</summary>
+public enum TriggerEventKind
+{
+	/// <summary><c>INSERT</c>.</summary>
+	Insert,
+	/// <summary><c>DELETE</c>.</summary>
+	Delete,
+	/// <summary><c>UPDATE</c>.</summary>
+	Update,
+}
+/// <summary>
+/// BNF: <c>&lt;transition table or variable&gt;</c>: one entry of a trigger's <c>REFERENCING</c> list, <c>OLD ROW AS o</c> or <c>NEW TABLE n</c>.
+/// </summary>
+/// <param name="Kind">Which of the four transition values is named.</param>
+/// <param name="Name">The correlation name the trigger body uses for it.</param>
+/// <param name="RowKeyword"><c>ROW</c> was written after <c>OLD</c> or <c>NEW</c>.</param>
+/// <param name="AsKeyword"><c>AS</c> was written before the name.</param>
+public sealed record TransitionReference(TransitionKind Kind, Identifier Name, bool RowKeyword = false, bool AsKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum TransitionKind { OldRow, NewRow, OldTable, NewTable }
-public sealed record TriggerAction(TriggerGranularity? Granularity, Expression? When, SqlList<Statement> Statements, bool AtomicBlock = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>Which transition value of a trigger a <see cref="TransitionReference"/> names.</summary>
+public enum TransitionKind
+{
+	/// <summary><c>OLD [ROW]</c>: the row as it was before the statement.</summary>
+	OldRow,
+	/// <summary><c>NEW [ROW]</c>: the row as it is after the statement.</summary>
+	NewRow,
+	/// <summary><c>OLD TABLE</c>: all affected rows as they were before.</summary>
+	OldTable,
+	/// <summary><c>NEW TABLE</c>: all affected rows as they are after.</summary>
+	NewTable,
+}
+/// <summary>
+/// BNF: <c>&lt;triggered action&gt;</c>: <c>[FOR EACH ROW | FOR EACH STATEMENT] [WHEN (c)] statement</c> or <c>BEGIN ATOMIC ... END</c>, what a trigger does when it fires.
+/// </summary>
+/// <param name="Granularity">Whether the action runs for each row or each statement, null where none was written.</param>
+/// <param name="When">The condition in <c>WHEN (c)</c>, null where none was written.</param>
+/// <param name="Statements">The statements of the action: those between <c>BEGIN ATOMIC</c> and <c>END</c>, or the one statement written alone.</param>
+/// <param name="AtomicBlock">The statements were written as a <c>BEGIN ATOMIC ... END</c> block.</param>
+public sealed record TriggerAction(TriggerGranularity? Granularity, Expression? When, SqlList<Statement> Statements, bool AtomicBlock = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum TriggerGranularity { Row, Statement }
+/// <summary>How often a trigger's action runs.</summary>
+public enum TriggerGranularity
+{
+	/// <summary><c>FOR EACH ROW</c>.</summary>
+	Row,
+	/// <summary><c>FOR EACH STATEMENT</c>.</summary>
+	Statement,
+}
 
 // --- UDT/routines/transforms ------------------------------------------------
 public sealed record UserDefinedTypeDefinition(QualifiedName Name, QualifiedName? Under, TypeRepresentation? Representation, SqlList<UserTypeOption> Options, SqlList<MethodSpecification> Methods) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
