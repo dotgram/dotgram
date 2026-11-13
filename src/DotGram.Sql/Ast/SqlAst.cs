@@ -4686,38 +4686,173 @@ public abstract partial record DataType : ISqlNode
 	public sealed record Extension(string Dialect, string Name, SqlList<ISqlNode> Arguments) : DataType;
 }
 
+/// <summary>The spelling of a character string type's name.</summary>
 public enum CharacterTypeKind
 {
-	Character, Char, CharacterVarying, CharVarying, Varchar, CharacterLargeObject, CharLargeObject, Clob, NationalCharacter, NationalChar, Nchar, NationalCharacterVarying, NationalCharVarying, NcharVarying, NationalCharacterLargeObject, NcharLargeObject, Nclob,
+	/// <summary><c>CHARACTER</c>.</summary>
+	Character,
+	/// <summary><c>CHAR</c>.</summary>
+	Char,
+	/// <summary><c>CHARACTER VARYING</c>.</summary>
+	CharacterVarying,
+	/// <summary><c>CHAR VARYING</c>.</summary>
+	CharVarying,
+	/// <summary><c>VARCHAR</c>.</summary>
+	Varchar,
+	/// <summary><c>CHARACTER LARGE OBJECT</c>.</summary>
+	CharacterLargeObject,
+	/// <summary><c>CHAR LARGE OBJECT</c>.</summary>
+	CharLargeObject,
+	/// <summary><c>CLOB</c>.</summary>
+	Clob,
+	/// <summary><c>NATIONAL CHARACTER</c>.</summary>
+	NationalCharacter,
+	/// <summary><c>NATIONAL CHAR</c>.</summary>
+	NationalChar,
+	/// <summary><c>NCHAR</c>.</summary>
+	Nchar,
+	/// <summary><c>NATIONAL CHARACTER VARYING</c>.</summary>
+	NationalCharacterVarying,
+	/// <summary><c>NATIONAL CHAR VARYING</c>.</summary>
+	NationalCharVarying,
+	/// <summary><c>NCHAR VARYING</c>.</summary>
+	NcharVarying,
+	/// <summary><c>NATIONAL CHARACTER LARGE OBJECT</c>.</summary>
+	NationalCharacterLargeObject,
+	/// <summary><c>NCHAR LARGE OBJECT</c>.</summary>
+	NcharLargeObject,
+	/// <summary><c>NCLOB</c>.</summary>
+	Nclob,
 
 	/// <summary>T-SQL: nchar and nvarchar (Transact-SQL), a page syntax.md does not transcribe.</summary>
 	Nvarchar,
 }
-public enum BinaryTypeKind { Binary, BinaryVarying, Varbinary, BinaryLargeObject, Blob }
-public enum NumericTypeKind { Numeric, Decimal, Dec, SmallInt, Integer, Int, BigInt, Float, Real, DoublePrecision, DecFloat }
-public enum DateTimeTypeKind { Date, Time, Timestamp }
-public enum TimeZoneMode { With, Without }
-public enum LengthUnit { Characters, Octets }
+/// <summary>The spelling of a binary string type's name.</summary>
+public enum BinaryTypeKind
+{
+	/// <summary><c>BINARY</c>.</summary>
+	Binary,
+	/// <summary><c>BINARY VARYING</c>.</summary>
+	BinaryVarying,
+	/// <summary><c>VARBINARY</c>.</summary>
+	Varbinary,
+	/// <summary><c>BINARY LARGE OBJECT</c>.</summary>
+	BinaryLargeObject,
+	/// <summary><c>BLOB</c>.</summary>
+	Blob,
+}
+/// <summary>The spelling of a numeric type's name.</summary>
+public enum NumericTypeKind
+{
+	/// <summary><c>NUMERIC</c>.</summary>
+	Numeric,
+	/// <summary><c>DECIMAL</c>.</summary>
+	Decimal,
+	/// <summary><c>DEC</c>.</summary>
+	Dec,
+	/// <summary><c>SMALLINT</c>.</summary>
+	SmallInt,
+	/// <summary><c>INTEGER</c>.</summary>
+	Integer,
+	/// <summary><c>INT</c>.</summary>
+	Int,
+	/// <summary><c>BIGINT</c>.</summary>
+	BigInt,
+	/// <summary><c>FLOAT</c>.</summary>
+	Float,
+	/// <summary><c>REAL</c>.</summary>
+	Real,
+	/// <summary><c>DOUBLE PRECISION</c>.</summary>
+	DoublePrecision,
+	/// <summary><c>DECFLOAT</c>, the standard's decimal floating-point type.</summary>
+	DecFloat,
+}
+/// <summary>Which datetime type a <see cref="DataType.DateTime"/> is.</summary>
+public enum DateTimeTypeKind
+{
+	/// <summary><c>DATE</c>.</summary>
+	Date,
+	/// <summary><c>TIME</c>.</summary>
+	Time,
+	/// <summary><c>TIMESTAMP</c>.</summary>
+	Timestamp,
+}
+/// <summary>Whether a <c>TIME</c> or <c>TIMESTAMP</c> type carries a time zone.</summary>
+public enum TimeZoneMode
+{
+	/// <summary><c>WITH TIME ZONE</c>.</summary>
+	With,
+	/// <summary><c>WITHOUT TIME ZONE</c>.</summary>
+	Without,
+}
+/// <summary>The unit a character string's length is counted in.</summary>
+public enum LengthUnit
+{
+	/// <summary><c>CHARACTERS</c>.</summary>
+	Characters,
+	/// <summary><c>OCTETS</c>.</summary>
+	Octets,
+}
+/// <summary>
+/// A large object's length: <c>2K</c>, <c>10M</c>.
+/// </summary>
+/// <param name="Value">The number.</param>
+/// <param name="Multiplier">The multiplier written against the number (<c>K</c>, <c>M</c>, <c>G</c>, <c>T</c> or <c>P</c>); null where none is written.</param>
 public readonly record struct LargeObjectSize(long Value, char? Multiplier);
-public sealed record FieldDefinition(Identifier Name, DataType Type) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// A field of a row type: <c>a INT</c>.
+/// </summary>
+/// <param name="Name">The field's name.</param>
+/// <param name="Type">The field's type.</param>
+public sealed record FieldDefinition(Identifier Name, DataType Type) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record IntervalQualifier(DateTimeField Start, int? LeadingPrecision = null, DateTimeField? End = null, int? FractionalPrecision = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The fields an interval holds: <c>YEAR</c>, <c>DAY(3) TO SECOND(2)</c>, <c>SECOND(5, 3)</c>.
+/// </summary>
+/// <param name="Start">The first field, or the only one.</param>
+/// <param name="LeadingPrecision">The precision in the brackets after the first field; null where none is written. For a lone <c>SECOND</c> it is the digits before the point.</param>
+/// <param name="End">The field after <c>TO</c>; null where the interval has one field.</param>
+/// <param name="FractionalPrecision">The digits after the point of the seconds: the second number of a lone <c>SECOND(p, f)</c>, or the bracket after <c>TO SECOND</c>; null where none is written.</param>
+public sealed record IntervalQualifier(DateTimeField Start, int? LeadingPrecision = null, DateTimeField? End = null, int? FractionalPrecision = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum DateTimeField { Year, Month, Day, Hour, Minute, Second }
+/// <summary>A field of a datetime or an interval, as an interval qualifier names it.</summary>
+public enum DateTimeField
+{
+	/// <summary><c>YEAR</c>.</summary>
+	Year,
+	/// <summary><c>MONTH</c>.</summary>
+	Month,
+	/// <summary><c>DAY</c>.</summary>
+	Day,
+	/// <summary><c>HOUR</c>.</summary>
+	Hour,
+	/// <summary><c>MINUTE</c>.</summary>
+	Minute,
+	/// <summary><c>SECOND</c>.</summary>
+	Second,
+}
 
 /// <summary>BNF: table element/column/period/constraint/LIKE/typed-table/as-subquery structures.</summary>
 public abstract partial record TableContents : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4727,16 +4862,41 @@ public abstract partial record TableContents : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A table defined by a list of elements: <c>(a INT, PRIMARY KEY (a))</c>.
+	/// </summary>
+	/// <param name="Items">The elements, in order.</param>
 	public sealed record Elements(SqlList<TableElement> Items) : TableContents;
+	/// <summary>
+	/// A table of a structured type: <c>OF t UNDER s (REF IS id SYSTEM GENERATED, …)</c>.
+	/// </summary>
+	/// <param name="TypeName">The structured type.</param>
+	/// <param name="Under">The supertable after <c>UNDER</c>; null where none is written.</param>
+	/// <param name="Items">The elements in the brackets; empty where the brackets are omitted.</param>
 	public sealed record Typed(QualifiedName TypeName, QualifiedName? Under, SqlList<TableElement> Items) : TableContents;
-	// T-SQL: CREATE TABLE AS SELECT (Microsoft Fabric and Azure Synapse Analytics) writes no `WITH [NO] DATA`: Data is null there.
+	/// <summary>
+	/// A table made from a query: <c>(a, b) AS (SELECT …) WITH DATA</c>.
+	/// </summary>
+	/// <param name="Columns">The column names listed before <c>AS</c>; empty where none are.</param>
+	/// <param name="Query">The query the table is made from.</param>
+	/// <param name="Data">Whether the query's rows are kept. T-SQL: CREATE TABLE AS SELECT (Microsoft Fabric and Azure Synapse Analytics) writes no <c>WITH [NO] DATA</c>, so it is null there.</param>
 	public sealed partial record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode? Data) : TableContents;
 }
-public enum WithDataMode { WithData, WithNoData }
+/// <summary>Whether a table made from a query takes the query's rows.</summary>
+public enum WithDataMode
+{
+	/// <summary><c>WITH DATA</c>: the table is filled with the query's rows.</summary>
+	WithData,
+	/// <summary><c>WITH NO DATA</c>: the table takes the query's columns and no rows.</summary>
+	WithNoData,
+}
+/// <summary>An element in the list that defines a table: a column, a period, a constraint, a <c>LIKE</c> clause.</summary>
 public abstract partial record TableElement : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4746,23 +4906,64 @@ public abstract partial record TableElement : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A column.
+	/// </summary>
+	/// <param name="Definition">The column.</param>
 	public sealed record Column(ColumnDefinition Definition) : TableElement;
+	/// <summary>
+	/// A period: <c>PERIOD FOR SYSTEM_TIME (a, b)</c>.
+	/// </summary>
+	/// <param name="Definition">The period.</param>
 	public sealed record Period(PeriodDefinition Definition) : TableElement;
+	/// <summary>
+	/// A constraint written among the elements, over the table's columns.
+	/// </summary>
+	/// <param name="Value">The constraint.</param>
 	public sealed record TableConstraint(Constraint Value) : TableElement;
+	/// <summary>
+	/// <c>LIKE t INCLUDING DEFAULTS</c>: the columns of another table.
+	/// </summary>
+	/// <param name="Table">The table copied from.</param>
+	/// <param name="Options">What is copied and what is left out; empty where none are written.</param>
 	public sealed record Like(QualifiedName Table, SqlList<LikeOption> Options) : TableElement;
+	/// <summary>
+	/// <c>REF IS id SYSTEM GENERATED</c>: the self-referencing column of a typed table.
+	/// </summary>
+	/// <param name="Name">The column's name.</param>
+	/// <param name="Generation">How its values are made; null where none is written.</param>
 	public sealed record SelfReference(Identifier Name, ReferenceGeneration? Generation) : TableElement;
+	/// <summary>
+	/// <c>c WITH OPTIONS SCOPE t DEFAULT 1 NOT NULL</c>: options for a column a typed table inherits from its type.
+	/// </summary>
+	/// <param name="Name">The column's name.</param>
+	/// <param name="Options">The scope, default and constraints written.</param>
 	public sealed record ColumnOptions(Identifier Name, ColumnOptionList Options) : TableElement;
 }
-public sealed partial record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, SqlList<Constraint> Constraints, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// A column: <c>a INT NOT NULL DEFAULT 0</c>.
+/// </summary>
+/// <param name="Name">The column's name.</param>
+/// <param name="Type">The column's type; null where none is written, as for a generated column.</param>
+/// <param name="Generation">How the column's values are made: its default, identity or generation expression; null where none is written.</param>
+/// <param name="Constraints">The constraints written on the column, in order; empty where none are.</param>
+/// <param name="Collation">The <c>COLLATE</c> written after the constraints; null where none is.</param>
+public sealed partial record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, SqlList<Constraint> Constraints, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
+/// <summary>How the values of a column are made.</summary>
 public abstract record ColumnGeneration : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4772,26 +4973,84 @@ public abstract record ColumnGeneration : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// <c>DEFAULT value</c>.
+	/// </summary>
+	/// <param name="Value">The value a missing one is replaced with.</param>
 	public sealed record Default(Expression Value) : ColumnGeneration;
+	/// <summary>
+	/// <c>GENERATED ALWAYS AS IDENTITY (START WITH 1)</c>: an identity column.
+	/// </summary>
+	/// <param name="Generation">Whether a value may be given.</param>
+	/// <param name="Options">The sequence options in the brackets; empty where none are written.</param>
 	public sealed record Identity(IdentityGeneration Generation, SqlList<SequenceOption> Options) : ColumnGeneration;
+	/// <summary>
+	/// <c>GENERATED ALWAYS AS (expression)</c>: a column computed from the row.
+	/// </summary>
+	/// <param name="Expression">The expression.</param>
 	public sealed record Generated(Expression Expression) : ColumnGeneration;
+	/// <summary><c>GENERATED ALWAYS AS ROW START</c>: the start of a row's period of system time.</summary>
 	public sealed record RowStart : ColumnGeneration;
+	/// <summary><c>GENERATED ALWAYS AS ROW END</c>: the end of a row's period of system time.</summary>
 	public sealed record RowEnd : ColumnGeneration;
 }
-public enum IdentityGeneration { Always, ByDefault }
-public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default, SqlList<Constraint> Constraints) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>When a database generates the value of an identity column.</summary>
+public enum IdentityGeneration
+{
+	/// <summary><c>GENERATED ALWAYS</c>: always; a value cannot be given.</summary>
+	Always,
+	/// <summary><c>GENERATED BY DEFAULT</c>: unless a value is given.</summary>
+	ByDefault,
+}
+/// <summary>
+/// The options of an inherited column: <c>SCOPE t DEFAULT 1 NOT NULL</c>.
+/// </summary>
+/// <param name="Scope">The table after <c>SCOPE</c>; null where none is written.</param>
+/// <param name="Default">The default value; null where none is written.</param>
+/// <param name="Constraints">The constraints, in order; empty where none are.</param>
+public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default, SqlList<Constraint> Constraints) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum LikeOption { IncludingIdentity, ExcludingIdentity, IncludingDefaults, ExcludingDefaults, IncludingGenerated, ExcludingGenerated }
-public enum ReferenceGeneration { SystemGenerated, UserGenerated, Derived }
+/// <summary>What a <c>LIKE</c> table element copies from the other table, or leaves out.</summary>
+public enum LikeOption
+{
+	/// <summary><c>INCLUDING IDENTITY</c>.</summary>
+	IncludingIdentity,
+	/// <summary><c>EXCLUDING IDENTITY</c>.</summary>
+	ExcludingIdentity,
+	/// <summary><c>INCLUDING DEFAULTS</c>.</summary>
+	IncludingDefaults,
+	/// <summary><c>EXCLUDING DEFAULTS</c>.</summary>
+	ExcludingDefaults,
+	/// <summary><c>INCLUDING GENERATED</c>.</summary>
+	IncludingGenerated,
+	/// <summary><c>EXCLUDING GENERATED</c>.</summary>
+	ExcludingGenerated,
+}
+/// <summary>How the values of a typed table's self-referencing column are generated.</summary>
+public enum ReferenceGeneration
+{
+	/// <summary><c>SYSTEM GENERATED</c>.</summary>
+	SystemGenerated,
+	/// <summary><c>USER GENERATED</c>.</summary>
+	UserGenerated,
+	/// <summary><c>DERIVED</c>.</summary>
+	Derived,
+}
 
+/// <summary>A constraint of a column or a table. One with no columns of its own is a column's.</summary>
 public abstract partial record Constraint : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4801,36 +5060,132 @@ public abstract partial record Constraint : ISqlNode
 	{
 	}
 
+	/// <summary>The name after <c>CONSTRAINT</c>; null where none is written.</summary>
 	public QualifiedName? Name { get; init; }
+
+	/// <summary>When the constraint is checked and whether it is enforced; null where none is written.</summary>
 	public ConstraintCharacteristics? Characteristics { get; init; }
+
+	/// <summary><c>NOT NULL</c>.</summary>
 	public sealed record NotNull : Constraint;
+	/// <summary>
+	/// <c>UNIQUE</c>, <c>PRIMARY KEY</c> or <c>UNIQUE (VALUE)</c>.
+	/// </summary>
+	/// <param name="Kind">Which key it is.</param>
+	/// <param name="Nulls"><c>NULLS DISTINCT</c> or <c>NULLS NOT DISTINCT</c> as written; null where neither is.</param>
+	/// <param name="Columns">The columns in the brackets; empty on a column's own constraint.</param>
+	/// <param name="WithoutOverlapsPeriod">The period written last in the brackets, <c>(a, p WITHOUT OVERLAPS)</c>; null where none is.</param>
 	public sealed partial record Unique(UniqueKind Kind, NullDistinctness? Nulls, SqlList<Identifier> Columns, Identifier? WithoutOverlapsPeriod = null) : Constraint;
+	/// <summary>
+	/// <c>FOREIGN KEY (a) REFERENCES t (b)</c>.
+	/// </summary>
+	/// <param name="Columns">The referencing columns; empty on a column's own constraint.</param>
+	/// <param name="ReferencingPeriod">The period written last in the brackets, <c>(a, PERIOD p)</c>; null where none is.</param>
+	/// <param name="References">The referenced table and what a change to it does.</param>
 	public sealed partial record ForeignKey(SqlList<Identifier> Columns, Identifier? ReferencingPeriod, ReferencesSpecification References) : Constraint;
+	/// <summary>
+	/// <c>CHECK (condition)</c>.
+	/// </summary>
+	/// <param name="Condition">The condition the rows satisfy.</param>
 	public sealed partial record Check(Expression Condition) : Constraint;
 }
-public enum UniqueKind { Unique, PrimaryKey, UniqueValue }
-public enum NullDistinctness { Distinct, NotDistinct }
-public sealed partial record ReferencesSpecification(QualifiedName Table, SqlList<Identifier> Columns, Identifier? Period, MatchType? Match, ReferentialAction? OnUpdate, ReferentialAction? OnDelete, bool DeleteRuleFirst = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>Which key a <see cref="Constraint.Unique"/> constraint declares.</summary>
+public enum UniqueKind
+{
+	/// <summary><c>UNIQUE</c>.</summary>
+	Unique,
+	/// <summary><c>PRIMARY KEY</c>.</summary>
+	PrimaryKey,
+	/// <summary><c>UNIQUE (VALUE)</c>, the standard's uniqueness of a whole row; it names no column.</summary>
+	UniqueValue,
+}
+/// <summary>Whether null values count as equal under a uniqueness constraint.</summary>
+public enum NullDistinctness
+{
+	/// <summary><c>NULLS DISTINCT</c>: nulls are distinct, so several may repeat.</summary>
+	Distinct,
+	/// <summary><c>NULLS NOT DISTINCT</c>: nulls are equal, so only one may stand.</summary>
+	NotDistinct,
+}
+/// <summary>
+/// <c>REFERENCES t (a) MATCH FULL ON UPDATE CASCADE ON DELETE SET NULL</c>.
+/// </summary>
+/// <param name="Table">The referenced table.</param>
+/// <param name="Columns">The referenced columns; empty where none are written.</param>
+/// <param name="Period">The period written last in the brackets, <c>(a, PERIOD p)</c>; null where none is.</param>
+/// <param name="Match">The <c>MATCH</c> type; null where none is written.</param>
+/// <param name="OnUpdate">The action of <c>ON UPDATE</c>; null where none is written.</param>
+/// <param name="OnDelete">The action of <c>ON DELETE</c>; null where none is written.</param>
+/// <param name="DeleteRuleFirst"><c>ON DELETE</c> is written before <c>ON UPDATE</c>.</param>
+public sealed partial record ReferencesSpecification(QualifiedName Table, SqlList<Identifier> Columns, Identifier? Period, MatchType? Match, ReferentialAction? OnUpdate, ReferentialAction? OnDelete, bool DeleteRuleFirst = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum MatchType { Full, Partial, Simple }
-public enum ReferentialAction { Cascade, SetNull, SetDefault, Restrict, NoAction }
-// DeferrableFirst: `DEFERRABLE INITIALLY DEFERRED` rather than `INITIALLY DEFERRED DEFERRABLE`.
-public sealed record ConstraintCharacteristics(ConstraintTiming? Timing, bool? Deferrable, bool? Enforced, bool DeferrableFirst = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>How a foreign key matches a row with null columns against the referenced rows.</summary>
+public enum MatchType
+{
+	/// <summary><c>MATCH FULL</c>.</summary>
+	Full,
+	/// <summary><c>MATCH PARTIAL</c>.</summary>
+	Partial,
+	/// <summary><c>MATCH SIMPLE</c>.</summary>
+	Simple,
+}
+/// <summary>What a foreign key does to a row when the referenced row is updated or deleted.</summary>
+public enum ReferentialAction
+{
+	/// <summary><c>CASCADE</c>: the change is carried to the row.</summary>
+	Cascade,
+	/// <summary><c>SET NULL</c>: the row's columns are set to null.</summary>
+	SetNull,
+	/// <summary><c>SET DEFAULT</c>: the row's columns are set to their defaults.</summary>
+	SetDefault,
+	/// <summary><c>RESTRICT</c>: the change is refused.</summary>
+	Restrict,
+	/// <summary><c>NO ACTION</c>: the change is refused where the constraint is checked.</summary>
+	NoAction,
+}
+/// <summary>
+/// How a constraint is checked: <c>DEFERRABLE INITIALLY DEFERRED NOT ENFORCED</c>.
+/// </summary>
+/// <param name="Timing"><c>INITIALLY DEFERRED</c> or <c>INITIALLY IMMEDIATE</c> as written; null where neither is.</param>
+/// <param name="Deferrable"><c>DEFERRABLE</c> (true) or <c>NOT DEFERRABLE</c> (false); null where neither is written.</param>
+/// <param name="Enforced"><c>ENFORCED</c> (true) or <c>NOT ENFORCED</c> (false); null where neither is written.</param>
+/// <param name="DeferrableFirst"><c>DEFERRABLE INITIALLY DEFERRED</c> is written rather than <c>INITIALLY DEFERRED DEFERRABLE</c>.</param>
+public sealed record ConstraintCharacteristics(ConstraintTiming? Timing, bool? Deferrable, bool? Enforced, bool DeferrableFirst = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum ConstraintTiming { InitiallyDeferred, InitiallyImmediate, Deferred, Immediate }
+/// <summary>When a deferrable constraint is checked.</summary>
+public enum ConstraintTiming
+{
+	/// <summary><c>INITIALLY DEFERRED</c>: at the end of the transaction, until set otherwise.</summary>
+	InitiallyDeferred,
+	/// <summary><c>INITIALLY IMMEDIATE</c>: at the end of each statement, until set otherwise.</summary>
+	InitiallyImmediate,
+	/// <summary><c>DEFERRED</c>, as <c>SET CONSTRAINTS</c> says: the constraints are checked at the end of the transaction.</summary>
+	Deferred,
+	/// <summary><c>IMMEDIATE</c>, as <c>SET CONSTRAINTS</c> says: the constraints are checked at the end of each statement.</summary>
+	Immediate,
+}
 
+/// <summary>One action of an <c>ALTER TABLE</c> statement.</summary>
 public abstract partial record AlterTableAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4840,26 +5195,78 @@ public abstract partial record AlterTableAction : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// <c>ADD [COLUMN] a INT</c>.
+	/// </summary>
+	/// <param name="Column">The column added.</param>
+	/// <param name="ColumnKeyword"><c>COLUMN</c> is written.</param>
 	public sealed record AddColumn(ColumnDefinition Column, bool ColumnKeyword = false) : AlterTableAction;
+	/// <summary>
+	/// <c>ALTER [COLUMN] a SET DEFAULT 0</c>.
+	/// </summary>
+	/// <param name="Column">The column changed.</param>
+	/// <param name="Action">The change.</param>
+	/// <param name="ColumnKeyword"><c>COLUMN</c> is written.</param>
 	public sealed record AlterColumn(Identifier Column, AlterColumnAction Action, bool ColumnKeyword = false) : AlterTableAction;
-	// T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.
+	/// <summary>
+	/// <c>DROP [COLUMN] a CASCADE</c>.
+	/// </summary>
+	/// <param name="Column">The column dropped.</param>
+	/// <param name="Behavior">What happens to what depends on the column. T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.</param>
+	/// <param name="ColumnKeyword"><c>COLUMN</c> is written.</param>
 	public sealed partial record DropColumn(Identifier Column, DropBehavior? Behavior, bool ColumnKeyword = false) : AlterTableAction;
+	/// <summary>
+	/// <c>ADD CONSTRAINT c CHECK (…)</c>.
+	/// </summary>
+	/// <param name="Constraint">The constraint added.</param>
 	public sealed record AddConstraint(Constraint Constraint) : AlterTableAction;
+	/// <summary>
+	/// <c>ALTER CONSTRAINT c [NOT] ENFORCED</c>.
+	/// </summary>
+	/// <param name="Name">The constraint changed.</param>
+	/// <param name="Enforced"><c>ENFORCED</c> (true) or <c>NOT ENFORCED</c> (false).</param>
 	public sealed record AlterConstraint(QualifiedName Name, bool Enforced) : AlterTableAction;
-	// T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.
+	/// <summary>
+	/// <c>DROP CONSTRAINT c CASCADE</c>.
+	/// </summary>
+	/// <param name="Name">The constraint dropped.</param>
+	/// <param name="Behavior">What happens to what depends on the constraint. T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.</param>
 	public sealed partial record DropConstraint(QualifiedName Name, DropBehavior? Behavior) : AlterTableAction;
+	/// <summary>
+	/// <c>ADD PERIOD FOR p (a, b)</c>, with the columns it adds.
+	/// </summary>
+	/// <param name="Period">The period added.</param>
+	/// <param name="AddedColumns">The <c>ADD COLUMN</c> parts written after the period; empty where none are.</param>
 	public sealed record AddPeriod(PeriodDefinition Period, SqlList<AddColumn> AddedColumns) : AlterTableAction;
-	// T-SQL: ALTER TABLE (Transact-SQL). `DROP PERIOD FOR SYSTEM_TIME` writes no behavior, which the standard demands: the
-	// behavior is null there, and each writer refuses the form its own grammar does not read.
+	/// <summary>
+	/// <c>DROP PERIOD FOR p CASCADE</c>.
+	/// </summary>
+	/// <param name="Kind">Which period it is.</param>
+	/// <param name="ApplicationName">The period's name; null for the system time, which has none.</param>
+	/// <param name="Behavior">What happens to what depends on the period. T-SQL: ALTER TABLE (Transact-SQL). <c>DROP PERIOD FOR SYSTEM_TIME</c> writes no behavior, which the standard demands: the behavior is null there, and each writer refuses the form its own grammar does not read.</param>
 	public sealed record DropPeriod(PeriodKind Kind, Identifier? ApplicationName, DropBehavior? Behavior) : AlterTableAction;
+	/// <summary><c>ADD SYSTEM VERSIONING</c>.</summary>
 	public sealed record AddSystemVersioning : AlterTableAction;
+	/// <summary>
+	/// <c>DROP SYSTEM VERSIONING CASCADE</c>.
+	/// </summary>
+	/// <param name="Behavior">What happens to what depends on the history.</param>
 	public sealed record DropSystemVersioning(DropBehavior Behavior) : AlterTableAction;
+	/// <summary>
+	/// An action of one dialect that the shared tree has no node for.
+	/// </summary>
+	/// <param name="Dialect">The dialect that defines the action.</param>
+	/// <param name="Kind">Which action it is, in the dialect's terms.</param>
+	/// <param name="Parts">The nodes the action is made of, in order.</param>
 	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : AlterTableAction;
 }
+/// <summary>The change an <c>ALTER COLUMN</c> makes to a column.</summary>
 public abstract partial record AlterColumnAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4869,28 +5276,96 @@ public abstract partial record AlterColumnAction : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// <c>SET DEFAULT value</c>.
+	/// </summary>
+	/// <param name="Value">The new default.</param>
 	public sealed record SetDefault(Expression Value) : AlterColumnAction;
+	/// <summary><c>DROP DEFAULT</c>.</summary>
 	public sealed record DropDefault : AlterColumnAction;
+	/// <summary><c>SET NOT NULL</c>.</summary>
 	public sealed record SetNotNull : AlterColumnAction;
+	/// <summary><c>DROP NOT NULL</c>.</summary>
 	public sealed record DropNotNull : AlterColumnAction;
+	/// <summary>
+	/// <c>ADD SCOPE t</c>: the table a reference column is scoped to.
+	/// </summary>
+	/// <param name="Table">The table.</param>
 	public sealed record AddScope(QualifiedName Table) : AlterColumnAction;
+	/// <summary>
+	/// <c>DROP SCOPE CASCADE</c>.
+	/// </summary>
+	/// <param name="Behavior">What happens to what depends on the scope.</param>
 	public sealed record DropScope(DropBehavior Behavior) : AlterColumnAction;
+	/// <summary>
+	/// <c>SET DATA TYPE t</c>.
+	/// </summary>
+	/// <param name="Type">The new type.</param>
 	public sealed partial record SetDataType(DataType Type) : AlterColumnAction;
+	/// <summary>
+	/// <c>SET GENERATED ALWAYS SET INCREMENT BY 2</c>: the identity's generation, with options changed after it.
+	/// </summary>
+	/// <param name="Generation">Whether a value may be given.</param>
+	/// <param name="Options">The sequence options changed; empty where none are written.</param>
 	public sealed record SetIdentityGeneration(IdentityGeneration Generation, SqlList<SequenceOption> Options) : AlterColumnAction;
+	/// <summary>
+	/// <c>SET INCREMENT BY 2 RESTART</c>: sequence options of an identity column, changed alone.
+	/// </summary>
+	/// <param name="Options">The sequence options changed.</param>
 	public sealed record IdentityOptions(SqlList<SequenceOption> Options) : AlterColumnAction;
+	/// <summary><c>DROP IDENTITY</c>.</summary>
 	public sealed record DropIdentity : AlterColumnAction;
+	/// <summary><c>DROP EXPRESSION</c>: a generated column becomes an ordinary one.</summary>
 	public sealed record DropExpression : AlterColumnAction;
 }
-public sealed record PeriodDefinition(PeriodKind Kind, Identifier? ApplicationName, Identifier BeginColumn, Identifier EndColumn) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// A period: <c>PERIOD FOR SYSTEM_TIME (a, b)</c>, <c>PERIOD FOR p (a, b)</c>.
+/// </summary>
+/// <param name="Kind">Which period it is.</param>
+/// <param name="ApplicationName">The period's name; null for the system time, which has none.</param>
+/// <param name="BeginColumn">The column that holds the start.</param>
+/// <param name="EndColumn">The column that holds the end.</param>
+public sealed record PeriodDefinition(PeriodKind Kind, Identifier? ApplicationName, Identifier BeginColumn, Identifier EndColumn) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum PeriodKind { SystemTime, ApplicationTime }
-public enum DropBehavior { Cascade, Restrict }
-public enum TableScope { GlobalTemporary, LocalTemporary }
-public enum TableCommitAction { Preserve, Delete }
+/// <summary>Which kind of period a period definition declares.</summary>
+public enum PeriodKind
+{
+	/// <summary><c>SYSTEM_TIME</c>: the period of system versioning, which has no name of its own.</summary>
+	SystemTime,
+	/// <summary>An application-time period, <c>PERIOD FOR name</c>.</summary>
+	ApplicationTime,
+}
+/// <summary>What a drop does to the objects that depend on the dropped one.</summary>
+public enum DropBehavior
+{
+	/// <summary><c>CASCADE</c>: they are dropped too.</summary>
+	Cascade,
+	/// <summary><c>RESTRICT</c>: the drop is refused while they exist.</summary>
+	Restrict,
+}
+/// <summary>The scope of a temporary table.</summary>
+public enum TableScope
+{
+	/// <summary><c>GLOBAL TEMPORARY</c>.</summary>
+	GlobalTemporary,
+	/// <summary><c>LOCAL TEMPORARY</c>.</summary>
+	LocalTemporary,
+}
+/// <summary>What happens to the rows of a temporary table when a transaction commits.</summary>
+public enum TableCommitAction
+{
+	/// <summary><c>ON COMMIT PRESERVE ROWS</c>.</summary>
+	Preserve,
+	/// <summary><c>ON COMMIT DELETE ROWS</c>.</summary>
+	Delete,
+}
 
 /// <summary>BNF: grouping element families.</summary>
 public abstract partial record GroupingElement : ISqlNode
