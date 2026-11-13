@@ -11,10 +11,9 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 
-		<!-- Server garbage collection, as in DotGram.Tests: measured on the same binaries, 63m27s down to 47m53s
-		     of wall time and a 15.6 GB peak down to 8.7 GB, with every test, the ones that read the heap and
-		     the clock included, passing. -->
-		<ServerGarbageCollector>true</ServerGarbageCollector>
+		<!-- The workstation collector, deliberately: under the server collector (47m53s against 63m27s) a test that
+		     compares two timings of a few milliseconds failed once (ExpressionNestRefusalTests: 8.1 times against its
+		     bound of 6), probably because a pause of the server collector is a large part of what it times. -->
 	</PropertyGroup>
 
 	<ItemGroup>
