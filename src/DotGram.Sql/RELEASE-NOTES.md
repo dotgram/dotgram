@@ -52,4 +52,4 @@ FIXED
 
 KNOWN ISSUES
 
-- Most DotGram.Sql.Ast records have no XML summary yet. The entry points have one (Batch; Statement with Select, Insert, Update, Delete, Merge and CreateTable; Query with Select; TableSource with Named, Subquery and Join; Expression with Reference, Unary and Binary), and most of the others that have one name the Microsoft reference page or the BNF production they follow.
+- Most DotGram.Sql.Ast records have no XML summary yet. The entry points have one (Batch; Statement with Select, Insert, Update, Delete, Merge and CreateTable; Query with Select; TableSource with Named, Subquery and Join; Expression with Reference, Unary and Binary), and most of the others that have one name the Microsoft reference page or the BNF production they follow. The tree's members carry no XML documentation beyond that yet; docs/ast.md is the reference, and the documentation comes in a later release.

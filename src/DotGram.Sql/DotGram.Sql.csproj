@@ -11,22 +11,12 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;sql;iso-sql;sql-2023;sql-92;tsql;t-sql;sql-server;dotgram</PackageTags>
 
-		<!-- What a caller reads in the editor. The other packages here fail a build on a public
-		     member without a comment; this one cannot yet, because the tree that is leaving has four
-		     hundred records and none of them is documented (docs/internal/design/sql-tsql-tree.md). So the
-		     documentation ships and CS1591 is off: a node written from here on carries its summary and
-		     the page of the specification it comes from, and the day the count reaches zero the NoWarn
-		     goes and the compiler keeps it at zero. Turning it on now rather than then is what makes
-		     the new nodes visible to IntelliSense while they are being written. -->
+		<!-- What a caller reads in the editor. A public member without a comment (CS1591, and CS1573
+		     for a record that documents some of its parameters and not the rest) fails the build, as
+		     in the other packages. The syntax tree's members are the one documented exception for now:
+		     the .editorconfig beside this project turns both off for the Ast folder only (docs/ast.md
+		     is the reference), so a new undocumented member anywhere else is an error. -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<!-- The two that say a comment is MISSING: CS1591 for a public member without one, CS1573 for
-		     a record that documents some of its parameters and not the rest. Both are about coverage,
-		     and both are the old tree's. The ones that say a comment is WRONG stay on: CS1570 for
-		     malformed XML, CS1574 for a cref that resolves to nothing, because those are defects in
-		     what a reader is told rather than gaps in what they are told. Turning the documentation on
-		     found six of CS1570 in the summaries of SqlAst.cs, where a BNF production name was
-		     written in angle brackets and is not XML. -->
-		<NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->

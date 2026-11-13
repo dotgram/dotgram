@@ -90,6 +90,8 @@ Each package's notes list them with what to write instead. The ones most project
   ([#5](https://github.com/dotgram/dotgram/issues/5)), the token form being the specified one.
 - `Start = (Lex.Kw | Lex.Digits)*` refuses `"if 12"` and `"1 2"` over characters and accepts them
   over tokens ([#5](https://github.com/dotgram/dotgram/issues/5)).
+- DotGram.Sql: the syntax tree's members carry no XML documentation yet; `docs/ast.md` is the reference, and the
+  documentation comes in a later release. The build enforces it everywhere else in the project.
 - Below C# 11, each parser class adds its expected-set table to the assembly's user-string heap
   (about 600 KB for T-SQL); an assembly near the heap's 16 MB fails with CS8103
   ([#35](https://github.com/dotgram/dotgram/issues/35); README, Compatibility).

@@ -369,6 +369,9 @@ static partial class Build
 	/// skimmed reading builds its queries and sources too, since the values its rules build take them at once.
 	/// </summary>
 	/// <param name="state">What the rule read, handed back to the builder, so that it captures nothing.</param>
+	/// <param name="build">Makes the node from the state.</param>
+	/// <param name="made">The node, when the builder made one.</param>
+	/// <param name="gap">The gap the builder found, when it made no node.</param>
 	static void Building<T, TState>(TState state, Func<TState, T> build, out T? made, out BuildGap? gap)
 	{
 		made = default;

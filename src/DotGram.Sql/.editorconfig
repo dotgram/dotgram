@@ -1,0 +1,13 @@
+# Documented exception for the 0.3.0 release: the syntax tree's public members carry no XML
+# documentation yet (docs/ast.md is the reference), and the builder's reading methods document
+# some of a record's parameters and not the rest. The warnings that say a comment is missing
+# (CS1591) or incomplete (CS1573) are off for these files only; everywhere else in this project
+# they are errors, so a new undocumented public member fails the build.
+# Remove a section as its files get their documentation.
+
+[Ast/**.cs]
+dotnet_diagnostic.CS1591.severity = none
+dotnet_diagnostic.CS1573.severity = none
+
+[TransactSql/Building/Build.Read.cs]
+dotnet_diagnostic.CS1573.severity = none
