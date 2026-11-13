@@ -106,6 +106,10 @@
 		     restored this package can read how to write a grammar without leaving the
 		     machine. The README says where it is, in a comment nothing renders. -->
 		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+
+		<!-- The grant for the code the generator writes into a compilation: LICENSE is plain MIT,
+		     and this file says what may be done with the generated output. -->
+		<None Include="../../licenses/LICENSE-GENERATED-CODE" Pack="true" PackagePath="licenses/" />
 	</ItemGroup>
 
 	<ItemGroup>

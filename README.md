@@ -1089,6 +1089,6 @@ extension and its tests (they build only on Windows): `dotnet build DotGram.slnx
 
 ## License
 
-[MIT](LICENSE), with one addition for the code the generator writes into your compilation:
-you may use it under terms of your choice, without carrying the notice. The exact words are
-at the end of [LICENSE](LICENSE).
+[MIT](LICENSE). The code the generator writes into your compilation, and the files
+`dotnet dotgram generate` writes, may be used under terms of your choice, without carrying
+the notice: see [LICENSE-GENERATED-CODE](licenses/LICENSE-GENERATED-CODE).

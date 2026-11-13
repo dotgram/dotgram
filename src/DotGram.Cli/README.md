@@ -91,3 +91,6 @@ Exit codes: 0 generated; 2 grammar errors (nothing written), unless every one is
 grammar names is not in view), which exits 3; 3 usage, input or output, a project not
 restored, MSBuild failing for a framework, a generator that will not load, an error the project's build
 would report too, frameworks that generate different files.
+
+[MIT](https://github.com/dotgram/dotgram/blob/main/LICENSE). The files the tool writes may be used under terms of
+your choice, without carrying the notice: the grant is in `licenses/LICENSE-GENERATED-CODE` in this package.

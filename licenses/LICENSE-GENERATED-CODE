@@ -1,0 +1,23 @@
+DotGram Generated Code License
+
+Copyright (c) 2026 Igor Tkachev
+
+Generated output. The C# source that the DotGram generator writes into a
+compilation of yours -- the parser and the support code it copies there -- and
+the files that the DotGram.Cli tool (`dotnet dotgram generate`) writes,
+including the support code it copies beside them, may be used, modified and
+distributed under terms of your choice, without reproducing the copyright and
+permission notices of the DotGram license (the MIT License in the LICENSE file
+of the DotGram repository).
+
+This grant covers that generated output only. The DotGram packages, the
+generator, the tool and the rest of the DotGram source are licensed under the
+MIT License.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

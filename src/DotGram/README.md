@@ -479,10 +479,7 @@ rules, and the
 over 80. Each of the four ships its own `README.md` and `SKILL.md`, which say what its
 parsers publish and what is easy to get wrong.
 
-[MIT](https://github.com/dotgram/dotgram/blob/main/LICENSE). The licence ends with one addition,
-for what the generator writes, quoted here as it stands there:
-
-> Generated output. The C# source that the DotGram generator writes into a compilation of
-> yours — the parser and the support code it copies there — may be used, modified and
-> distributed under terms of your choice, without reproducing the copyright and permission
-> notices above. The disclaimer of warranty above still applies to it.
+[MIT](https://github.com/dotgram/dotgram/blob/main/LICENSE). The code the generator writes into
+your compilation may be used under terms of your choice, without carrying the notice: the grant is
+in [`licenses/LICENSE-GENERATED-CODE`](https://github.com/dotgram/dotgram/blob/main/licenses/LICENSE-GENERATED-CODE),
+and the same file is in this package.
