@@ -32,15 +32,6 @@ Notes:
   answering to one name `GRAM0004`.
 - The host may also be generated outside a build by the `dotnet dotgram` tool ([`cli.md`](../../cli.md)).
 
-<!-- ru:begin -->
-> **RU.** Грамматика прикрепляется к `partial`-классу (хосту) атрибутом `[Gram]` тремя способами:
-> файл, найденный по имени класса; файл, указанный явно; текст грамматики прямо в атрибуте (пример
-> выше). Файл `.gram` передаётся в сборку как `<AdditionalFiles>`. Каждый опубликованный метод
-> становится статическим членом хоста. Хост обязан быть `partial` (`GRAM0002`); ненайденный файл —
-> `GRAM0003`, два подходящих файла — `GRAM0004`. Хост можно сгенерировать и вне сборки утилитой
-> `dotnet dotgram`.
-<!-- ru:end -->
-
 ## A first grammar
 
 ```dotgram
@@ -70,15 +61,6 @@ Everything a grammar is made of is in it:
 `Sum` calls itself first; such a rule is read as a loop and its `=>` as a fold
 ([rules](04-rules.md#left-recursion)).
 
-<!-- ru:begin -->
-> **RU.** В примере выше есть всё, из чего состоит грамматика: **правило** — имя, необязательный
-> тип после `:`, `=` и тело; `&` соединяет операнды в последовательность, `|` разделяет
-> альтернативы; `left:`, `right:`, `n:` — **захваты** прочитанного; `=>` строит значение
-> альтернативы (здесь C#-кодом после `@`); `parse Sum` **публикует** правило: появляются
-> `ParseSum` (бросает `FormatException` при отказе) и `TryParseSum` (возвращает `Match<int>`).
-> `Sum` вызывает сам себя первым — такое правило читается циклом, а его `=>` — свёрткой.
-<!-- ru:end -->
-
 ## Layout and comments
 
 Whitespace and line breaks in a grammar mean nothing, and comments are C#'s: `// to the end of
@@ -107,16 +89,6 @@ Notes:
   between operands in the input is the rule `trivia` ([briefly below](#whitespace-in-the-input-trivia-briefly),
   in full in [trivia](05-trivia-and-words.md)).
 - An unterminated `/*` is `GRAM1003`; a character nothing begins is `GRAM1005`.
-
-<!-- ru:begin -->
-> **RU.** Пробелы и переводы строк в грамматике ничего не значат; комментарии — как в C#: `//` до
-> конца строки и `/* … */` (без вложенности). **Разделитель правил не нужен**: любые два операнда
-> соединены `&`, `|` или `~`, поэтому выражение не может «перетечь» в следующее правило — имя, за
-> которым идёт `=`, `:` или `(` там, где выражение уже закончено, начинает новое объявление.
-> Пробелы в грамматике — не пробелы во входе: `"ab, cd"` выше отвергается; что может стоять между
-> операндами во входе, задаёт правило `trivia`. Незакрытый `/*` — `GRAM1003`; символ, с которого
-> ничего не начинается, — `GRAM1005`.
-<!-- ru:end -->
 
 ## Declarations
 
@@ -148,15 +120,6 @@ ParsePhrase("parse state") → "parse state"
 ```
 
 Anything else at the top of a grammar is `GRAM2002`.
-
-<!-- ru:begin -->
-> **RU.** Грамматика — последовательность объявлений в любом порядке: правило, публикация,
-> пространство имён, импорт (только в начале файла или блока), тип контекста, тип состояния
-> (таблица выше). Слова, начинающие объявление (`namespace`, `parse`, `find`, `public`,
-> `internal`, `private`, `positional`, `context`, `state`), — ключевые только в этой позиции:
-> правило может называться `parse` или `state`, решает то, что идёт после имени (`=`, `:`, `(`).
-> Всё прочее на верхнем уровне — `GRAM2002`.
-<!-- ru:end -->
 
 ## Two vocabularies: `@` and its absence
 
@@ -204,19 +167,6 @@ Notes:
 - `@(` must be written together: `@ (a + b)` is a call on a missing name. An unterminated
   `@(` is `GRAM1006`.
 
-<!-- ru:begin -->
-> **RU.** Голое имя ищется среди правил грамматики (а внутри правила — среди его захватов и
-> параметров); имя после `@` — это C#: тип, метод, свойство. Никакого «запасного» поиска в другую
-> сторону нет. Ключевые слова C# (`string`, `int`, …) — всегда типы C# и не могут быть именами
-> правил. После `@` может стоять имя, имя через точку, вызов, обобщённое имя или C#-выражение в
-> скобках. Генератор не разбирает C#: он лишь находит конец вставки и передаёт текст компилятору,
-> поэтому ошибки C# — это ошибки C#, привязанные к строке грамматики. Внутри `@(…)` и аргументов
-> `@M(…)` всё — C#. Блочной формы `@{ … }` нет. `@(` пишется слитно; незакрытая `@(` — `GRAM1006`.
-> Исключение из C#-кода — не отказ: `ParseDate("2026-13-10")` совпадает с текстом, а затем
-> `new DateOnly` бросает `ArgumentOutOfRangeException` наружу; допустимость значения проверяется
-> охранником (`when`). (Значение `DateOnly` в примере показано через его `ToString` в инвариантной культуре.)
-<!-- ru:end -->
-
 ## Imports: `@using` and `using`
 
 `@using X.Y;` imports a C# namespace for the C# the grammar names; `using X;` imports a grammar
@@ -259,16 +209,6 @@ Notes:
 - The standard library is the namespace `Std`, always present: `Std.Integer`, or `using Std;`
   and then `Integer` ([standard library](09-std.md)).
 
-<!-- ru:begin -->
-> **RU.** `@using X.Y;` импортирует пространство имён C# (для C#-кода грамматики), `using X;` —
-> пространство имён грамматики. Оба пишутся как директива C#, с точкой с запятой, и стоят перед
-> объявлениями файла или блока `namespace`; импортировать можно пространство, объявленное где угодно
-> в грамматике. `using` после объявления отвергается — перенесите его наверх (второй
-> пример, `GRAM2019`). Пространства имён C# по умолчанию не импортируются, даже `System`
-> (`GRAM3004`). Неизвестное пространство грамматики — `GRAM3003`; два импорта с одинаковым именем —
-> ошибка в месте использования, снимается квалификацией. Стандартная библиотека — пространство `Std`.
-<!-- ru:end -->
-
 ## Whitespace in the input: `trivia`, briefly
 
 Many examples in this guide read text with spaces or comments between its parts. What may stand
@@ -299,19 +239,6 @@ Three things to know before [the full treatment](05-trivia-and-words.md):
   in a namespace that says `trivia = none`, or with `~` between its parts, which allows no trivia.
 - **Keywords** are guarded against running into the next word once the grammar declares
   `wordboundary`, the characters a word is made of ([words](05-trivia-and-words.md#wordboundary)).
-
-<!-- ru:begin -->
-> **RU.** Многие примеры руководства читают текст с пробелами или комментариями между частями. Что
-> может там стоять, задаёт правило `trivia`, которое есть в каждой грамматике: оно вплетается в каждый
-> `&` и пусто (`none`), пока грамматика не скажет иначе (пример выше: `" a =  b "` читается, значение
-> без внешних пробелов). До полного описания в главе 05 стоит знать три вещи: **фигурные скобки**
-> вокруг `trivia` и лексем (`Word`) означают «прочитанное остаётся прочитанным» — их стоит писать почти
-> всегда; **лексема не должна впускать trivia**: `Word = ['a'..'z']+` — одно повторение, внутрь ничего
-> не вплетается, а правило из нескольких частей, которое есть один токен (число с дробью), пишется в
-> пространстве с `trivia = none` или с `~` между частями (без trivia); **ключевые слова** защищены от
-> слияния со следующим словом, когда грамматика объявляет `wordboundary` — символы, из которых состоит
-> слово.
-<!-- ru:end -->
 
 ## The standard library at a glance
 
@@ -352,17 +279,6 @@ ParseAssign("_n1=0;") → "_n1=0"
 
 The numbers are unsigned and read in the invariant culture; a number too large for its type throws, as
 `int.Parse` does. Every rule, with its edge cases, is in [the standard library](09-std.md).
-
-<!-- ru:begin -->
-> **RU.** Лексемы, которые пишет каждая грамматика, — отдельная грамматика `Std`, доступная всегда:
-> полным именем `Std.Integer` или через `using Std;`. Каждое правило записано без trivia внутри;
-> вызывающая грамматика расставляет пробелы вокруг вызова как обычно. Таблица выше: одиночные символы
-> (`Digit`, `HexDigit`, `Letter`, `Space`, `Whitespace`), их серии (`Digits`, `HexDigits`, `Blank`,
-> `Spacing`), `Identifier`, числа со значением (`Integer`, `Long`, `Decimal`, `Double`), комментарии
-> (`LineComment`, `BlockComment`, вложенный `Nested`) и строки (`Quoted` с удвоенной кавычкой,
-> `Escaped` с экранированием). Числа беззнаковые, читаются в инвариантной культуре; слишком большое
-> число бросает исключение, как `int.Parse`. Все правила с граничными случаями — в главе 09.
-<!-- ru:end -->
 
 ## Built-in rules and supplied names at a glance
 
@@ -416,20 +332,3 @@ although `' '*` may read nothing.
 
 Every supplied name but `context` begins with `parser`, and no capture or parameter may take a name that
 does (`GRAM4012`).
-
-<!-- ru:begin -->
-> **RU.** Восемь правил есть в каждой грамматике без объявления; это обычные правила, а не ключевые
-> слова: грамматика может объявить своё с тем же именем, а `trivia` и `wordboundary` и существуют, чтобы
-> их переопределяли. Таблица: `any` — один любой элемент; `none` — ничего, всегда успешно; `eol` —
-> перевод строки; `eof` — конец входа; `eos` — конец сегмента, когда вход — список строк; `trivia` —
-> что может стоять между операндами (по умолчанию `none`); `wordboundary` — символы слова (по умолчанию
-> `none`); `word` — одно целое слово из этих символов; для каждого — пример и глава с полным описанием.
-> В проверенном примере `"set"` при объявленной `wordboundary` — слово и не совпадает с началом `setx`.
-> **Имена, которые парсер даёт C#** (в `=>`, `when`, фабрике `recover`, рядом с захватами):
-> `parserText`, `parserSpan` — прочитанный текст и место; `parserInput` — весь вход (не в `when`);
-> `parserOrdinal`, `parserLine`, `parserColumn`, `parserPosition` — номер и место элемента
-> восстанавливающегося повторения; `parserMessage`, `parserExpected`, `parserFailure…` — почему
-> отвергнут и где остановилось чтение; `parserState`, `parserMarks` — метки `with state`; `context` —
-> объект, переданный вызывающим. Все, кроме `context`, начинаются с `parser`, и захват или параметр так
-> называться не может (`GRAM4012`).
-<!-- ru:end -->

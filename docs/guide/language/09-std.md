@@ -46,16 +46,6 @@ namespace Mine
 parse Mine.Digit
 ```
 
-<!-- ru:begin -->
-> **RU.** `Std.Integer` называет правило полностью, без объявлений; `using Std;` открывает пространство,
-> как любой `using`, и дальше достаточно `Integer`. У библиотеки нет своей `trivia`: токен — это его
-> символы без промежутков, а вызывающая грамматика расставляет пробелы вокруг вызова как обычно.
-> Невызванное не компилируется — библиотека стоит ровно используемых правил. На верхнем уровне файла
-> собственное правило грамматики сильнее открытого имени; пространство, которое открывает библиотеку и
-> объявляет одно из её имён, отвергается (`GRAM3012`). Грамматика со своими лексемами называет
-> библиотеку полностью и сохраняет свои имена.
-<!-- ru:end -->
-
 ## One character
 
 | Rule | Reads |
@@ -87,12 +77,6 @@ Whitespace("\n") → "\n"
 ```
 
 Each is one item and may stand in an element set: `[Std.Digit | '_']`.
-
-<!-- ru:begin -->
-> **RU.** Один символ (таблица): `Digit` — цифра `0..9`; `HexDigit` — шестнадцатеричная цифра;
-> `Letter` — буква `\p{L}`; `Space` — пробел или табуляция; `Whitespace` — пробел, табуляция, `\r` или
-> `\n`. Каждое — один элемент и может стоять в множестве: `[Std.Digit | '_']`.
-<!-- ru:end -->
 
 ## Runs, and an identifier
 
@@ -130,13 +114,6 @@ Notes:
 - The runs are not braced in the library; a grammar that needs them atomic writes `{ Std.Digits }`
   ([composition](03-composition.md#atomic-groups---)).
 
-<!-- ru:begin -->
-> **RU.** Серии и идентификатор (таблица): `Digits`, `HexDigits` — одна и больше цифр; `Blank` — пробелы и
-> табуляции; `Spacing` — любые пробельные символы, включая переводы строк; `Identifier` — буква или `_`,
-> затем буквы, цифры и `_` в прочтении Unicode (`имя2` подходит). Значение — прочитанный текст. В
-> библиотеке серии не атомарны; если нужно, пишите `{ Std.Digits }`.
-<!-- ru:end -->
-
 ## Numbers as values
 
 | Rule | Reads | Value |
@@ -173,15 +150,6 @@ Notes:
   `OverflowException` out of the parse, not a refusal. A grammar that wants a message, a location or a
   range of its own declares the rule itself — what a lexeme *means* takes code, and the code is the
   grammar's.
-
-<!-- ru:begin -->
-> **RU.** Числа как значения (таблица): `Integer` — `int` через `int.Parse`; `Long` — `long`; `Decimal` —
-> цифры и необязательные `.` с цифрами, `decimal`; `Double` — цифры, необязательные дробная часть и
-> порядок `e`/`E` со знаком, `double`. Читаются в инвариантной культуре. Беззнаковые: минус —
-> вопрос вызывающей грамматики (`'-'? & Std.Integer` и знак в `=>`). Что отвергает парсер .NET, то он
-> отвергает как обычно: слишком большое `Integer` бросает `OverflowException` из разбора, а не даёт отказ;
-> кому нужно сообщение, место или свой диапазон — объявляет правило сам.
-<!-- ru:end -->
 
 ## Comments
 
@@ -240,17 +208,6 @@ Word = { ['a'..'z']+ }
 parse Word
 ```
 
-<!-- ru:begin -->
-> **RU.** Комментарии (таблица): `LineComment(start)` — от `start` до конца строки, сам перевод строки не
-> читается (грамматика, считающая строки, видит каждую); `BlockComment(open, close)` — до первого
-> `close`; `Nested(open, close)` — до `close`, уравновешивающего открытие, с вложенными парами любой
-> глубины; несбалансированная пара отвергается там, где открылась. `Nested` — единственное
-> самоссылающееся правило библиотеки; атомарная `trivia` и лексер разделённой грамматики читают его
-> счётчиком, который должен знать, какой разделитель стоит там, где он остановился: поэтому аргументы —
-> два непустых литерала, которые не могут начинаться в одном месте (иначе `GRAM4037`). Пример с `trivia`
-> показывает вложенный комментарий между операндами.
-<!-- ru:end -->
-
 ## Quoted text
 
 | Rule | Reads | Value |
@@ -282,15 +239,6 @@ for differs between languages that agree on how it is spelled, so turning `\t` i
 grammar's `=>`. They are written with the until idiom rather than an element set, which is the one
 lookahead a lexer reads as a pattern: in a grammar read over tokens they are tokens.
 
-<!-- ru:begin -->
-> **RU.** Строки в кавычках (таблица): `Quoted(quote)` — от кавычки до кавычки, кавычка внутри удваивается
-> (строка SQL `'it''s'`, имя SQL и поле CSV `"…"`); `Escaped(quote, escape)` — с символом экранирования
-> перед кавычкой или чем угодно (строка C). Оба возвращают текст вместе с кавычками как написан, с
-> экранированиями: что значит экранирование, у языков разное, поэтому превращать `\t` в табуляцию —
-> дело `=>` вызывающей грамматики. Записаны идиомой «до разделителя», а не множеством: это единственный
-> вид просмотра, который лексер читает как образец, — в грамматике над токенами это токены.
-<!-- ru:end -->
-
 ## The built-in rules
 
 `any`, `none`, `eol`, `eof` and `eos` are built into every grammar rather than written in `Std`, and so are
@@ -303,9 +251,3 @@ lookahead a lexer reads as a pattern: in a grammar read over tokens they are tok
 | `trivia` | [trivia](05-trivia-and-words.md#trivia-what-may-stand-between-operands) |
 | `wordboundary` | [words](05-trivia-and-words.md#wordboundary) |
 | `word` | [words](05-trivia-and-words.md#word) |
-
-<!-- ru:begin -->
-> **RU.** `any`, `none`, `eol`, `eof` и `eos` встроены в каждую грамматику, а не записаны в `Std`, как и
-> `trivia`, `wordboundary` и `word`. Каждое показано с прогонами там, где описано полностью (таблица со
-> ссылками); `eos` — только компиляцией: такая грамматика читает списки строк.
-<!-- ru:end -->

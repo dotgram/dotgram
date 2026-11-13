@@ -51,10 +51,6 @@ namespace DotGram.Tests;
 /// matches is their values. A value is shown as C# writes a literal of it (<c>"text"</c>, <c>'c'</c>,
 /// <c>3</c>, <c>true</c>, <c>null</c>), a sequence as <c>[a, b]</c>, anything else by its <c>ToString</c>.
 /// </para>
-/// <para>
-/// The Russian blocks between <c>&lt;!-- ru:begin --&gt;</c> and <c>&lt;!-- ru:end --&gt;</c> hold no
-/// fences and are skipped regardless, so that removing them changes nothing here.
-/// </para>
 /// </remarks>
 public sealed class LanguageGuideTests
 {
@@ -295,7 +291,6 @@ public sealed class LanguageGuideTests
 		var blocks = Regex
 			.Matches(text, "^```([^\n]*)\n(.*?)^```[ \t]*$", RegexOptions.Singleline | RegexOptions.Multiline)
 			.Cast<Match>()
-			.Where(one => !InRussian(text, one.Index))
 			.Select(one => (
 				Line: text.Take(one.Index).Count(static c => c == '\n') + 1,
 				Words: one.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries),
@@ -324,15 +319,6 @@ public sealed class LanguageGuideTests
 		}
 
 		return examples;
-	}
-
-	/// <summary>Whether an offset of a page stands inside a Russian block.</summary>
-	static bool InRussian(string text, int at)
-	{
-		var opens  = text.LastIndexOf("<!-- ru:begin -->", at, StringComparison.Ordinal);
-		var closes = text.LastIndexOf("<!-- ru:end -->", at, StringComparison.Ordinal);
-
-		return opens >= 0 && opens > closes;
 	}
 
 	/// <summary><c>Method("input") → answer</c>, the input a C# string literal.</summary>
