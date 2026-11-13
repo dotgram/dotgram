@@ -84,6 +84,9 @@ static partial class Build
 		/// <see cref="Query.FromExecute"/> for T-SQL's <c>INSERT … EXEC</c>, and
 		/// <see cref="Query.DefaultValues"/> for <c>DEFAULT VALUES</c>.
 		/// </remarks>
+		/// <param name="Target">The table written into; null for the target-less form some statements allow.</param>
+		/// <param name="Columns">The columns the values go to, in order; null where none were listed.</param>
+		/// <param name="Rows">What is written: a <c>VALUES</c> list, a query, or <c>DEFAULT VALUES</c>.</param>
 		/// <param name="With">The common table expressions in front of it.</param>
 		/// <param name="Top">T-SQL's <c>TOP</c>, where one was written.</param>
 		/// <param name="Output">T-SQL's <c>OUTPUT</c> clause, where one was written.</param>
@@ -148,6 +151,8 @@ static partial class Build
 		public sealed record Declare(SqlList<Clause> Variables) : Statement;
 
 		/// <summary>A transaction begun, committed, rolled back or saved, and its name.</summary>
+		/// <param name="Kind">The statement's verb: <c>BEGIN</c>, <c>COMMIT</c>, <c>ROLLBACK</c> or <c>SAVE</c>.</param>
+		/// <param name="Name">The transaction or savepoint name, or a variable holding it; null where none was given.</param>
 		/// <param name="Word"><c>TRANSACTION</c>, <c>TRAN</c> or <c>WORK</c>, as written.</param>
 		/// <param name="Tail">A mark or a durability, as written.</param>
 		public sealed record Transaction(
@@ -156,6 +161,9 @@ static partial class Build
 		/// <summary>
 		/// <c>EXECUTE</c>: what is called, with what, and the variable the return code goes to.
 		/// </summary>
+		/// <param name="Into">The variable the return code goes to, as written after <c>EXEC</c>; null where there is none.</param>
+		/// <param name="Name">The procedure, or the string or variable being run.</param>
+		/// <param name="Arguments">The values passed, in order; empty where none were.</param>
 		/// <param name="Context">The login or the user a string runs as, <see cref="Clause.ExecutionContext"/>.</param>
 		/// <param name="At">The linked server it runs on.</param>
 		/// <param name="DataSource">The external data source it runs on instead, <c>AT DATA_SOURCE ds</c>.</param>
@@ -263,6 +271,10 @@ static partial class Build
 			}
 		}
 
+		/// <param name="Name">The table changed.</param>
+		/// <param name="Action">What is done to it, such as <c>ADD</c>, <c>DROP</c> or <c>ALTER COLUMN</c>.</param>
+		/// <param name="Elements">The definitions or names the action carries; empty where it takes none.</param>
+		/// <param name="Options">The <c>WITH</c> options after the action; null where there were none.</param>
 		/// <param name="Tail">What the action was given, where the tree keeps it as written.</param>
 		public sealed record AlterTable(
 			string Name, string Action, SqlList<Clause> Elements, SqlList<Clause>? Options = null, string? Tail = null) : Statement;
@@ -294,16 +306,29 @@ static partial class Build
 			SqlList<Clause>? Order = null, string? External = null, string Verb = "CREATE") : Statement;
 
 		/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
+		/// <param name="Name">The trigger's name.</param>
+		/// <param name="On">The table, view, database or <c>ALL SERVER</c> it fires on.</param>
+		/// <param name="Events">The events that fire it, such as <c>INSERT</c> or <c>CREATE_TABLE</c>.</param>
+		/// <param name="Body">The statements it runs.</param>
 		/// <param name="When"><c>AFTER</c>, <c>FOR</c> or <c>INSTEAD OF</c>, as written.</param>
+		/// <param name="Options">The <c>WITH</c> options before the <c>AS</c>; null where there were none.</param>
+		/// <param name="Append">Whether <c>WITH APPEND</c> was said.</param>
+		/// <param name="NotForReplication">Whether <c>NOT FOR REPLICATION</c> was said.</param>
 		/// <param name="External">The method in an assembly, where that is the body.</param>
+		/// <param name="Verb"><c>CREATE</c>, <c>ALTER</c> or <c>CREATE OR ALTER</c>, as written.</param>
 		public sealed record CreateTrigger(
 			string Name, string On, SqlList<string> Events, SqlList<Statement> Body,
 			string When = "AFTER", SqlList<Clause>? Options = null, bool Append = false,
 			bool NotForReplication = false, string? External = null, string Verb = "CREATE") : Statement;
 
 		/// <summary>§11.32 a view, which is a name given to a query.</summary>
+		/// <param name="Name">The view's name.</param>
+		/// <param name="Columns">The names given to its columns; null where the query's own are kept.</param>
+		/// <param name="Body">The query the view names.</param>
 		/// <param name="Options">The <c>WITH</c> between the name and the <c>AS</c>: <c>SCHEMABINDING</c>, a materialized view's distribution.</param>
 		/// <param name="CheckOption">The <c>WITH CHECK OPTION</c> after the query.</param>
+		/// <param name="Materialized">Whether it is a materialized view.</param>
+		/// <param name="Verb"><c>CREATE</c>, <c>ALTER</c> or <c>CREATE OR ALTER</c>, as written.</param>
 		public sealed record ViewDefinition(
 			string Name, SqlList<string>? Columns, Statement Body,
 			SqlList<Clause>? Options = null, bool CheckOption = false, bool Materialized = false,
@@ -316,6 +341,8 @@ static partial class Build
 		/// <c>CREATE INDEX</c>: the table, and the index — the same node an index written inside
 		/// a table is, since it is the same thing said in the same words.
 		/// </summary>
+		/// <param name="On">The table or view the index is on.</param>
+		/// <param name="Index">The index, in the same node an index inside a table uses.</param>
 		/// <param name="Kind">
 		/// The words between <c>CREATE</c> and <c>INDEX</c> that are not the index's own —
 		/// <c>PRIMARY XML</c>, <c>XML</c>, <c>SELECTIVE XML</c> — where the index is one of those.
@@ -402,6 +429,7 @@ static partial class Build
 		// Four statements, each its own shape, as agreed.
 
 		/// <summary><c>TRUNCATE TABLE</c>: every row of a table removed, or of some of its partitions.</summary>
+		/// <param name="Table">The table emptied.</param>
 		/// <param name="Partitions">
 		/// What <c>WITH (PARTITIONS (…))</c> named, a <see cref="Clause.PartitionRange"/> each;
 		/// null where it named none.
@@ -409,6 +437,7 @@ static partial class Build
 		public sealed record Truncate(string Table, SqlList<Clause>? Partitions = null) : Statement;
 
 		/// <summary><c>ENABLE TRIGGER</c> or <c>DISABLE TRIGGER</c>.</summary>
+		/// <param name="Enable">Whether the triggers are enabled; false for <c>DISABLE</c>.</param>
 		/// <param name="Triggers">The triggers by name; null for <c>ALL</c>.</param>
 		/// <param name="On">What they are on: an object's name, <c>DATABASE</c> or <c>ALL SERVER</c>.</param>
 		public sealed record TriggerSwitch(bool Enable, SqlList<string>? Triggers, string On) : Statement;
@@ -438,6 +467,8 @@ static partial class Build
 			string Column, Ast.Expression Pointer, Ast.Expression Offset, Ast.Expression Size, bool HoldLock = false) : Statement;
 
 		/// <summary><c>WRITETEXT</c>: a <c>text</c>, <c>ntext</c> or <c>image</c> value replaced through its pointer.</summary>
+		/// <param name="Column">The column, by two parts to four.</param>
+		/// <param name="Pointer">The text pointer: a variable, or a binary string.</param>
 		/// <param name="Data">
 		/// What it is replaced with; null where nothing was written, as after <c>BULK</c>, where
 		/// the data comes by the bulk protocol instead.
@@ -450,6 +481,8 @@ static partial class Build
 			Ast.Expression? Timestamp = null) : Statement;
 
 		/// <summary><c>UPDATETEXT</c>: part of a <c>text</c>, <c>ntext</c> or <c>image</c> value replaced through its pointer.</summary>
+		/// <param name="Column">The column, by two parts to four.</param>
+		/// <param name="Pointer">The text pointer: a variable, or a binary string.</param>
 		/// <param name="Offset">Where the change starts; <c>NULL</c> for the end.</param>
 		/// <param name="Length">How much is taken out; <c>NULL</c> for all of it to the end.</param>
 		/// <param name="Data">What is put in, where it is a value.</param>
@@ -457,6 +490,7 @@ static partial class Build
 		/// Another column what is put in is taken from instead, with <see cref="SourcePointer"/>
 		/// its pointer.
 		/// </param>
+		/// <param name="SourcePointer">The pointer of the column that <see cref="Source"/> names; null where none was given.</param>
 		/// <param name="Bulk">Whether <c>BULK</c> was said, the data then coming by the bulk protocol.</param>
 		/// <param name="Log">Whether <c>WITH LOG</c> was said.</param>
 		/// <param name="Timestamp">The <c>TIMESTAMP = 0x…</c> the row must still carry, where one was said.</param>
@@ -572,10 +606,12 @@ static partial class Build
 		/// <summary>The database the rest of the batch is read against.</summary>
 		public sealed record Use(Ast.Expression Name) : Statement;
 
+		/// <param name="Arguments">The message, severity and state, then the values the message formats.</param>
 		/// <param name="Tail">The <c>WITH LOG, NOWAIT, SETERROR</c> after it, as written.</param>
 		public sealed record RaiseError(SqlList<Ast.Expression> Arguments, string? Tail = null) : Statement;
 
 		/// <summary>A delay, or a time to wait until.</summary>
+		/// <param name="Value">How long to wait, or the time to wait until.</param>
 		/// <param name="Kind">
 		/// <c>DELAY</c> or <c>TIME</c> — how long to wait against when to stop waiting, which
 		/// the one value cannot say.
@@ -685,6 +721,7 @@ static partial class Build
 		/// The variable, and the property or method of it where one was named: <c>@g.STSrid</c>,
 		/// <c>@x.modify</c>, as <see cref="Clause.Set"/> names a column's.
 		/// </param>
+		/// <param name="Value">What is assigned.</param>
 		/// <param name="Operator">
 		/// The assignment as written — <c>=</c>, <c>+=</c>, …; empty where a method was called, whose
 		/// value is then the call's arguments.
@@ -696,7 +733,10 @@ static partial class Build
 		// ---- §12.1 the permissions -----------------------------------------------------------------
 
 		/// <summary><c>GRANT</c>: what is being said about, and to whom.</summary>
+		/// <param name="Privileges">The permissions granted, as written.</param>
+		/// <param name="Principals">The logins, users or roles they go to.</param>
 		/// <param name="On">The securable, class and all, as written after <c>ON</c>.</param>
+		/// <param name="GrantOption">Whether <c>WITH GRANT OPTION</c> was said.</param>
 		/// <param name="As">The principal the statement is run as.</param>
 		public sealed record Grant(
 			SqlList<string> Privileges, SqlList<string> Principals,
@@ -1241,6 +1281,13 @@ static partial class Build
 		/// the table rather than a clause: it takes nothing, and it makes the alias an ordered
 		/// collection that a <c>SHORTEST_PATH</c> may repeat.
 		/// </remarks>
+		/// <param name="Table">The table's name, by as many parts as were written.</param>
+		/// <param name="SystemTime">The <c>FOR SYSTEM_TIME</c> clause of a temporal table; null where none was said.</param>
+		/// <param name="ForPath">Whether <c>FOR PATH</c> was said.</param>
+		/// <param name="Name">The alias; null where the table was not given one.</param>
+		/// <param name="Columns">The names given to its columns after the alias; null where none were.</param>
+		/// <param name="Sample">The <c>TABLESAMPLE</c> clause; null where none was said.</param>
+		/// <param name="Hints">The table hints of its <c>WITH (…)</c>; empty where there were none.</param>
 		/// <param name="Server">
 		/// <c>OPENDATASOURCE (…)</c>, where it stood for the server the table is on: the call,
 		/// with <see cref="Table"/> the rest of the name after it.
@@ -1298,6 +1345,13 @@ static partial class Build
 		/// <see cref="On"/> where the join was qualified by a condition, <see cref="Using"/> where
 		/// it named columns, and neither for a cross or a natural join.
 		/// </remarks>
+		/// <param name="Kind">Which join it is, such as inner, left, right or cross.</param>
+		/// <param name="Outer">Whether the word <c>OUTER</c> was written.</param>
+		/// <param name="Natural">Whether the join is <c>NATURAL</c>.</param>
+		/// <param name="Left">The source on the left of the join.</param>
+		/// <param name="Right">The source on the right of the join.</param>
+		/// <param name="On">The condition of <c>ON</c>; null for a join that has none.</param>
+		/// <param name="Using">The columns of <c>USING</c>; null for a join that has none.</param>
 		/// <param name="Hint">T-SQL's join hint, <c>HASH</c>, <c>LOOP</c>, <c>MERGE</c>, …, written before the <c>JOIN</c>.</param>
 		public sealed record Joined(
 			SqlJoin Kind, bool Outer, bool Natural, TableReference Left, TableReference Right,
@@ -1484,6 +1538,10 @@ static partial class Build
 		/// <see cref="Type"/> is null where the whole schema was named rather than written out,
 		/// which is <c>OPENXML</c>'s spelling: <c>WITH tablename</c>.
 		/// </remarks>
+		/// <param name="Name">The column's name.</param>
+		/// <param name="Type">Its type as written; null where the rowset gives none.</param>
+		/// <param name="Path">The path or pattern the value is read from, where one was said; null otherwise.</param>
+		/// <param name="AsJson">Whether <c>AS JSON</c> was said, the column then holding a JSON fragment.</param>
 		/// <param name="Ordinal">
 		/// Which column of the file it is, where a bulk rowset numbers them; null where none was
 		/// said. A column has this or a path, never both: the number is `OPENROWSET (BULK …)`'s and
@@ -1542,7 +1600,9 @@ static partial class Build
 		/// §14.14 one entry of a <c>SET</c>: what is assigned, the operator it was assigned with
 		/// where that was not a plain <c>=</c>, and the value.
 		/// </summary>
+		/// <param name="Target">The column, variable or property assigned.</param>
 		/// <param name="Operator">The assignment as written — <c>=</c>, <c>+=</c>, …; empty for <c>.WRITE (…)</c>, whose value is the call's arguments.</param>
+		/// <param name="Value">What it is assigned.</param>
 		/// <param name="Through">The column of <c>SET @v = column op= value</c>, which assigns both.</param>
 		public sealed record Set(string Target, string? Operator, Ast.Expression Value, string? Through = null) : Clause;
 
@@ -1569,6 +1629,11 @@ static partial class Build
 		/// <summary>
 		/// One variable: its name, the type as written, and what it was given to start with.
 		/// </summary>
+		/// <param name="Name">The variable's name, with its <c>@</c>.</param>
+		/// <param name="Type">The type as written; null where the variable is a cursor or a table of <see cref="Elements"/>.</param>
+		/// <param name="Value">The initial value; null where none was given.</param>
+		/// <param name="Elements">The columns and constraints of a table variable; null otherwise.</param>
+		/// <param name="Nullability"><c>NULL</c> or <c>NOT NULL</c> where written; null otherwise.</param>
 		/// <param name="As">
 		/// Whether <c>AS</c> stood between the name and the type. It is optional everywhere and
 		/// only a table variable needs it remembered: <c>DECLARE @v INT</c> and <c>DECLARE @v AS
@@ -1639,12 +1704,19 @@ static partial class Build
 		/// was given one, which kind it is, and the columns it names — and everything T-SQL
 		/// writes after those, each where it was written and nothing where it was not.
 		/// </summary>
+		/// <param name="Name">The name given by <c>CONSTRAINT</c>; null where none was.</param>
+		/// <param name="Kind">Which constraint or index it is, such as <c>PRIMARY KEY</c>, <c>UNIQUE</c>, <c>CHECK</c> or <c>INDEX</c>.</param>
 		/// <param name="Columns">Sort specifications: a column and the direction it was given.</param>
-		/// <param name="Clustering"><c>CLUSTERED</c> or <c>NONCLUSTERED</c>, as written.</param>
 		/// <param name="Check">The condition of a <c>CHECK</c>, or the value of a <c>DEFAULT</c>.</param>
+		/// <param name="Clustering"><c>CLUSTERED</c> or <c>NONCLUSTERED</c>, as written.</param>
+		/// <param name="Hash">Whether it is a <c>HASH</c> index.</param>
+		/// <param name="Columnstore">Whether it is a columnstore index.</param>
+		/// <param name="Order">The columns of an <c>ORDER (…)</c>; null where none was said.</param>
+		/// <param name="Include">The columns of <c>INCLUDE (…)</c>; null where none was said.</param>
 		/// <param name="Filter">The <c>WHERE</c> of a filtered index.</param>
 		/// <param name="Referenced">The <c>REFERENCES</c> of a foreign key.</param>
 		/// <param name="Options">The <c>WITH (…)</c>; for <c>CONNECTION</c>, the pairs and the actions.</param>
+		/// <param name="Placements">The <c>ON</c> placements: a filegroup, a partition scheme and its column, or <c>FILESTREAM_ON</c>.</param>
 		/// <param name="Enforced">Null where nothing was said, false for <c>NOT ENFORCED</c>.</param>
 		/// <param name="ForColumn">The column a <c>DEFAULT … FOR</c> names.</param>
 		/// <param name="Bracketed">
@@ -1678,6 +1750,9 @@ static partial class Build
 		/// has one — the words in the order the drop writes them, which is not the order a
 		/// definition writes them in.
 		/// </summary>
+		/// <param name="Kind">What kind of thing is dropped, such as <c>COLUMN</c> or <c>CONSTRAINT</c>.</param>
+		/// <param name="Name">Its name; null where the drop names none.</param>
+		/// <param name="IfExists">Whether <c>IF EXISTS</c> was said.</param>
 		/// <param name="Tail">What the drop was given — <c>WITH (…)</c>, and the words of a period.</param>
 		public sealed record Dropped(
 			string Kind, string? Name, bool IfExists = false, string? Tail = null) : Clause;
