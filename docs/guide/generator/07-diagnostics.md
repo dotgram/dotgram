@@ -5,13 +5,6 @@ Everything the generator has to say about a grammar or a host is a compiler diag
 them and how a project decides what each one does to its build. Every number, with what it means and
 what to do about it, is in the reference, [`diagnostics.md`](../../diagnostics.md).
 
-<!-- ru:begin -->
-> **RU.** Всё, что генератор хочет сказать о грамматике или хосте, — диагностика компилятора с номером
-> `GRAMnnnn`: в Error List, в выводе сборки, в `dotnet dotgram`. Здесь — как их читать и как проект
-> решает, что каждая делает с его сборкой. Каждый номер с его смыслом и тем, что делать, — в
-> справочнике `diagnostics.md`.
-<!-- ru:end -->
-
 ## Reading a message
 
 ```text
@@ -35,19 +28,6 @@ Hosts.cs(5,2): warning GRAM4018: Nothing reaches 'Unused': no publication names 
 | `GRAM4xxx` | what the grammar means: recursion, captures, rebindings | errors; a few warnings about a grammar that is right but probably not what was meant |
 | `GRAM5xxx` | what a grammar gets: the reader, the carrier, the methods published | information and warnings: the grammar is correct, and this is what it costs |
 | `GRAM6xxx` | the attributes for editors (`[GramClassify]`) | warnings |
-
-<!-- ru:begin -->
-> **RU.** **Где:** грамматика в файле `.gram` указывается в этом файле, на строке и столбце;
-> грамматика в `[Gram("…")]` — внутри строкового литерала, на том же символе; сообщение о самом
-> хосте (не `partial`, опция вне диапазона) указывает на атрибут. **Номер** говорит, какой этап
-> нашёл проблему, и не меняется от релиза к релизу; выведенный из употребления номер никогда не
-> получает новый смысл. **Ссылка** в конце ведёт на строку номера в справочнике в той версии, которая
-> это сообщила; в Visual Studio номер в Error List — та же ссылка. Диапазоны номеров — в таблице
-> выше: 0xxx — поиск грамматики (хост, атрибуты, файлы), 1xxx — символы, 2xxx — структура, 3xxx —
-> имена и C#-типы, 4xxx — смысл (в основном ошибки, несколько предупреждений о правильной, но,
-> вероятно, не задуманной грамматике), 5xxx — что грамматика получает (информация и предупреждения:
-> грамматика верна, и вот цена), 6xxx — атрибуты для редакторов.
-<!-- ru:end -->
 
 ## Errors, warnings and information
 
@@ -75,20 +55,6 @@ using DotGram;
 	""")]
 public static partial class Numbers;
 ```
-
-<!-- ru:begin -->
-> **RU.** **Ошибка** — парсера для этого хоста нет: это не грамматика, или хост не может её принять;
-> исправлять надо первую ошибку, остальные ошибки проекта о несуществующих методах — её следствие.
-> **Предупреждение** — парсер сгенерирован и делает то, что сказано в грамматике, но грамматика,
-> вероятно, говорит не то, что задумано, или обойдётся дороже, чем выглядит: правило, до которого
-> ничто не доходит, повторение, читающее один текст двумя способами, носитель, который безопаснее
-> поменять. **Информация** — что генератор решил там, где у него был выбор (перегрузка, которую он не
-> смог дать, выбранный носитель); сборка её не показывает, Error List — показывает в Messages.
-> Предупреждение рассчитано на то, чтобы по нему действовать: большинство говорит, что написать
-> вместо. Проект может собираться с warnings as errors, не опасаясь генератора, если разбирается с
-> каждым встреченным предупреждением — в грамматике или решением об этом номере (ниже). Пример выше —
-> предупреждение GRAM4018.
-<!-- ru:end -->
 
 ## Deciding what a number does
 
@@ -142,19 +108,6 @@ For one of those, use `NoWarn`, `WarningsAsErrors` or the global configuration.
 `dotnet dotgram generate` applies a project's settings the same way the build does, and stops on an
 error among them as the build would.
 
-<!-- ru:begin -->
-> **RU.** Номер `GRAM` настраивается так же, как любая диагностика компилятора. **Вокруг одной
-> грамматики**, написанной в атрибуте, — `#pragma` с причиной рядом (первый пример). **Для проекта** —
-> в его файле: `NoWarn` (не сообщать), `WarningsAsErrors` (сделать ошибкой), `WarningsNotAsErrors`
-> (оставить предупреждением при `TreatWarningsAsErrors`). **Для C#-файлов папки** — секция
-> `.editorconfig`, которая доходит до грамматик в атрибутах этих файлов. **Для всего, что видит
-> компилятор**, включая файлы `.gram`, — глобальная конфигурация анализаторов. У грамматики в файле
-> `.gram` нет C# вокруг: `#pragma` в ней не напишешь, а секция `.editorconfig` для `*.gram` до её
-> сообщений не доходит, потому что компилятор применяет секции только к C#-файлам; для таких —
-> `NoWarn`, `WarningsAsErrors` или глобальная конфигурация. `dotnet dotgram generate` применяет
-> настройки проекта так же, как сборка, и останавливается на ошибке среди них так же, как она.
-<!-- ru:end -->
-
 ## What to silence, and what not
 
 Silence a number where the grammar is right and the warning is wrong about it, at the narrowest place
@@ -170,31 +123,12 @@ Two families are worth reading rather than silencing:
   for every way of cutting it. Fixing the grammar removes a cost that grows exponentially with the
   input.
 
-<!-- ru:begin -->
-> **RU.** Глушите номер там, где грамматика правильна, а предупреждение о ней ошибается, — в самом
-> узком месте, которое это покрывает (`#pragma` вокруг одного атрибута раньше, чем `NoWarn` на весь
-> проект), и пишите рядом почему. Номер, заглушённый на весь проект, заглушён и для следующей
-> грамматики, о которой он может быть прав. Два семейства стоит читать, а не глушить: **GRAM5016** —
-> грамматика, оставившая выбор носителя генератору, выполняет конструкции по мере чтения, а
-> отложенный носитель был бы безопаснее; назвать носитель (`Carrier = GramCarrier.Deferred` или
-> `Immediate`) — значит ответить и заглушить. **GRAM4052** — повторение может прочитать один отрезок
-> текста двумя способами, поэтому отвергнутый вход перечитывается для каждого способа разрезать его;
-> исправление грамматики убирает цену, растущую экспоненциально с входом.
-<!-- ru:end -->
-
 ## Appendix: every number
 
 Every number the generator, the build and the editor report, with the severity it has unless the
 project says otherwise and the one line the reference opens with. Each links to its row in
 [`diagnostics.md`](../../diagnostics.md), which says what to do. The table is written from the
 reference, and a test fails where the two differ.
-
-<!-- ru:begin -->
-> **RU.** Все номера, которые сообщают генератор, сборка и редактор, с severity, которую номер имеет,
-> если проект не скажет иначе, и строкой, с которой его описание начинается в справочнике. Каждый
-> номер — ссылка на его строку в `diagnostics.md`, где сказано, что делать. Таблица пишется из
-> справочника, и тест падает, если они расходятся.
-<!-- ru:end -->
 
 <!-- generated from docs/diagnostics.md: begin -->
 
@@ -247,6 +181,7 @@ reference, and a test fails where the two differ.
 | [`GRAM2021`](../../diagnostics.md#gram2021) | Error | A `switch` label, or its `default`, is written twice. |
 | [`GRAM2022`](../../diagnostics.md#gram2022) | Error | A `switch`'s labels are numbers and strings both. |
 | [`GRAM2023`](../../diagnostics.md#gram2023) | Error | A `switch` has no case, or a label has no body after its `:`. |
+| [`GRAM2024`](../../diagnostics.md#gram2024) | Error | A side of `is` has a quantifier: `when Version is ['0'..'9']+`. |
 | [`GRAM3001`](../../diagnostics.md#gram3001) | Error | A rule of this name is already defined in this namespace. |
 | [`GRAM3002`](../../diagnostics.md#gram3002) | Error | No rule of that name. |
 | [`GRAM3003`](../../diagnostics.md#gram3003) | Error | No namespace of that name is in view. |
@@ -265,6 +200,7 @@ reference, and a test fails where the two differ.
 | [`GRAM3020`](../../diagnostics.md#gram3020) | Error | Two grammars in one composition declare a different `state`. |
 | [`GRAM3021`](../../diagnostics.md#gram3021) | Error | `$q` or `#q` where the rule binds nothing called `q`. |
 | [`GRAM3022`](../../diagnostics.md#gram3022) | Error | Two imports at one scope each declare a `trivia`, and the scope declares none. |
+| [`GRAM3023`](../../diagnostics.md#gram3023) | Error | A name two imports at one scope supply, read where the scope does not declare it. |
 | [`GRAM4001`](../../diagnostics.md#gram4001) | Error | The body of a repetition can match without consuming input. |
 | [`GRAM4002`](../../diagnostics.md#gram4002) | Error | Left recursion the rewrite cannot take. |
 | [`GRAM4003`](../../diagnostics.md#gram4003) | Error | `trivia` must accept empty input. |
@@ -296,7 +232,7 @@ reference, and a test fails where the two differ.
 | [`GRAM4030`](../../diagnostics.md#gram4030) | Error | A mark's value names a capture of its own alternative. |
 | [`GRAM4031`](../../diagnostics.md#gram4031) | Error | A guard in a fold step names another step's name for the value so far, which this step has none of. |
 | [`GRAM4032`](../../diagnostics.md#gram4032) | Error | A reference or a length may be read where nothing bound its text. |
-| [`GRAM4033`](../../diagnostics.md#gram4033) | Error | A binding or a reference where none can stand. |
+| [`GRAM4033`](../../diagnostics.md#gram4033) | Error | A binding's text read where a value goes. |
 | [`GRAM4034`](../../diagnostics.md#gram4034) | Error | A binding, reference or length where it is not supported yet. |
 | [`GRAM4035`](../../diagnostics.md#gram4035) | Error | A binding, reference or length in a rule read over token kinds. |
 | [`GRAM4036`](../../diagnostics.md#gram4036) | Error | A `with` expression inside an instance of a parameterized rule made only while another rebinding was applied. |
@@ -321,7 +257,13 @@ reference, and a test fails where the two differ.
 | [`GRAM4055`](../../diagnostics.md#gram4055) | Error | `positional parse` in a grammar that names `eos`. |
 | [`GRAM4056`](../../diagnostics.md#gram4056) | Error | A construction's value cannot be the type it is declared to give: a capture handed back whole (`=> x`, `=> @(x)`) that holds text where an array or a value type is declared, or a generated type where another type is; a grammar's type built with the wrong number of values, or from a capture that cannot be its member (`=> Pair(right)`); a rule's name built or taken as a type where the grammar generates none for it, because it declares its own type or captures nothing. |
 | [`GRAM4057`](../../diagnostics.md#gram4057) | Error | What a rule can begin with does not settle. |
+| [`GRAM4058`](../../diagnostics.md#gram4058) | Error | C# in a rule — a guard, a `switch`'s selector, a construction, a mark — names one of the rule's parameters that stands for a piece of grammar: `Value(tag) = switch @(Kind(tag)) { … }`. |
 | [`GRAM4059`](../../diagnostics.md#gram4059) | Warning | A grammar publishes nothing, and nothing includes it. |
+| [`GRAM4060`](../../diagnostics.md#gram4060) | Error | A binding inside a lookahead. |
+| [`GRAM4061`](../../diagnostics.md#gram4061) | Error | One name bound twice on one route. |
+| [`GRAM4062`](../../diagnostics.md#gram4062) | Error | A reference or a length inside its own binding. |
+| [`GRAM4063`](../../diagnostics.md#gram4063) | Error | A binding and its reference on two sides of a constructing group. |
+| [`GRAM4064`](../../diagnostics.md#gram4064) | Error | A binding in a step of a left-recursive rule, or around its leading call to itself. |
 | [`GRAM5001`](../../diagnostics.md#gram5001) | Info | A publication gets no overload taking a reader, or, in a grammar that names `eos`, reads its segments whole. |
 | [`GRAM5002`](../../diagnostics.md#gram5002) | Info | A repetition can begin with the same input as what follows it. |
 | [`GRAM5003`](../../diagnostics.md#gram5003) | Warning | A generated method is left past the size at which the JIT stops optimizing it. |

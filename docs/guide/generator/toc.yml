@@ -1,0 +1,16 @@
+- name: Contents
+  href: README.md
+- name: Setting up
+  href: 01-setup.md
+- name: The host class and its attributes
+  href: 02-hosts-and-attributes.md
+- name: Grammar files
+  href: 03-grammar-files.md
+- name: MSBuild properties
+  href: 04-msbuild.md
+- name: The command-line tool
+  href: 05-cli.md
+- name: When something is wrong
+  href: 06-troubleshooting.md
+- name: Diagnostics
+  href: 07-diagnostics.md

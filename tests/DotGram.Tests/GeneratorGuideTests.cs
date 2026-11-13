@@ -52,8 +52,7 @@ namespace DotGram.Tests;
 /// <para>
 /// <c>pending</c> on the first C# fence of an example skips it, for an example that shows the behaviour of a
 /// change not landed yet. Every C# or grammar fence that belongs to no example says <c>fragment</c>, so that
-/// nothing is left unchecked by accident. The Russian blocks between <c>&lt;!-- ru:begin --&gt;</c> and
-/// <c>&lt;!-- ru:end --&gt;</c> hold no fences and are skipped.
+/// nothing is left unchecked by accident.
 /// </para>
 /// </remarks>
 public sealed class GeneratorGuideTests
@@ -320,7 +319,6 @@ public sealed class GeneratorGuideTests
 
 		return Regex
 			.Matches(text, "^```([^\n]*)\n(.*?)^```[ \t]*$", RegexOptions.Singleline | RegexOptions.Multiline)
-			.Where(one => !InRussian(text, one.Index))
 			.Select(one => new Fence(
 				text.Take(one.Index).Count(static c => c == '\n') + 1,
 				one.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries),
@@ -378,15 +376,6 @@ public sealed class GeneratorGuideTests
 		}
 
 		return examples;
-	}
-
-	/// <summary>Whether an offset of a page stands inside a Russian block.</summary>
-	static bool InRussian(string text, int at)
-	{
-		var opens  = text.LastIndexOf("<!-- ru:begin -->", at, StringComparison.Ordinal);
-		var closes = text.LastIndexOf("<!-- ru:end -->", at, StringComparison.Ordinal);
-
-		return opens >= 0 && opens > closes;
 	}
 
 	/// <summary>The runs of an example as methods of one class, which sees every namespace the example declares.</summary>

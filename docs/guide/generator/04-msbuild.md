@@ -5,13 +5,6 @@ reports what it did, whether every grammar of a project is a trace build, whethe
 parser it compiled before. They are MSBuild properties, set in the project, in a
 `Directory.Build.props` for many projects at once, or on the command line with `-p:`.
 
-<!-- ru:begin -->
-> **RU.** Кое-что генератору говорит сборка, а не атрибут грамматики: сообщать ли, что он сделал,
-> делать ли trace-сборку из всех грамматик проекта, можно ли повторно использовать уже
-> скомпилированный парсер. Это свойства MSBuild: их задают в проекте, в `Directory.Build.props` сразу
-> для многих проектов или в командной строке через `-p:`.
-<!-- ru:end -->
-
 ## The properties
 
 | Property | Values | Default | What it does |
@@ -26,18 +19,6 @@ property is not reported, and a build with the property unset is the build it wo
 
 They reach the generator through `build/DotGram.targets`, which the package brings into every project
 that references it. Nothing has to be imported by hand.
-
-<!-- ru:begin -->
-> **RU.** Свойства перечислены в таблице выше: `DotGramReportGeneration` (`none`, `summary`, `full`,
-> по умолчанию `none`) печатает строку на каждый парсер, а с `full` — ещё и что генератор для него
-> решил; `DotGramTrace=true` делает trace-сборку из всех грамматик проекта, будто каждая сказала
-> `Trace = true`; `DotGramNoCache=true` компилирует каждую грамматику заново, не беря парсер из
-> прошлой сборки; `DotGramPositionalFollow` (`true` или `split`, экспериментальное) компилирует каждый
-> `parse` с учётом чтения с позиции. Значения сравниваются без учёта регистра; значение не из таблицы
-> означает «выключено» — опечатка в свойстве не сообщается, и сборка с незаданным свойством остаётся
-> той же. Генератору они доходят через `build/DotGram.targets`, который пакет приносит в каждый
-> проект, ссылающийся на него; ничего импортировать вручную не нужно.
-<!-- ru:end -->
 
 ## What the generator did: `DotGramReportGeneration`
 
@@ -99,26 +80,6 @@ the parsers, so any value other than `none` turns on `EmitCompilerGeneratedFiles
 files are written to disk, under `obj/<configuration>/<framework>/DotGramGenerated/` unless
 `CompilerGeneratedFilesOutputPath` says elsewhere. No value changes a parser or turns a message into a
 warning. `true` and `false` are older spellings of `full` and `none`.
-
-<!-- ru:begin -->
-> **RU.** Сборка ничего не говорит о генераторе, если не попросить. `summary` печатает по строке на
-> парсер: хост и чтение, сколько правил у грамматики после нормализации, размер сгенерированного C# и
-> время генерации (пример выше — для хоста со вторым чтением). Строки идут с важностью, которую показывает минимальная сборка
-> (умолчание `dotnet build`); при `-v:quiet` их нет. Время — собственное время генератора (чтение,
-> анализ и запись грамматики), а не компилятора C#. `cached` значит, что парсер взят из прошлой
-> сборки (`DotGramNoCache`, ниже). Сборка, которая ничего не компилирует, ничего и не печатает, а
-> фоновые сборки редактора не сообщают никогда.
->
-> `full` добавляет — с важностью, которую показывает `-v:normal` и выше, — что генератор решил:
-> опции чтения, как он их скомпилировал, и как каждая машина парсера несёт прочитанное (второй пример).
-> `full` стоит анализа, который выбирает носители и делается только ради отчёта.
->
-> **Что ещё делает любой отчёт.** Генератор пишет отчёт файлами из одних комментариев рядом с
-> парсерами, поэтому любое значение кроме `none` включает `EmitCompilerGeneratedFiles`:
-> сгенерированные файлы пишутся на диск, в `obj/<конфигурация>/<платформа>/DotGramGenerated/`, если
-> `CompilerGeneratedFilesOutputPath` не говорит другого. Ни одно значение не меняет парсер и не
-> превращает сообщение в предупреждение. `true` и `false` — старые написания `full` и `none`.
-<!-- ru:end -->
 
 ## Every grammar traced: `DotGramTrace`
 
@@ -188,16 +149,6 @@ Console.WriteLine(why);                     // Expected ['0'..'9']. (line 1, col
 #endif
 ```
 
-<!-- ru:begin -->
-> **RU.** `Trace = true` на одном `[Gram]` делает trace-сборкой одно чтение; `DotGramTrace` делает то
-> же для всех грамматик проекта — обычно это нужно Debug-сборке (первый пример). С этим свойством
-> приёмники есть и у хоста, который о трассировке ничего не говорит (второй пример). Trace-сборка отвечает
-> ровно то же, что обычный парсер; она добавляет в каждый хост приёмники (`GramWhy`, `GramTraceLog`,
-> `GramProfile`) и `Tracing(sink)` и стоит парсеру вызовов, которые им сообщают. Имена, которые
-> объявляет trace-сборка, зарезервированы в любой сборке, поэтому код, который их называет, за
-> `#if DEBUG` компилируется и в Release (последний пример).
-<!-- ru:end -->
-
 ## Reusing a parser: `DotGramNoCache`
 
 A command-line build runs the compiler in a server that outlives it by some minutes, and the
@@ -218,19 +169,6 @@ Set, every grammar is generated afresh. `dotnet build-server shutdown` empties w
 with the server it lives in. Either is the thing to try where a parser looks older than the grammar it
 was compiled from — which would be a defect worth reporting.
 
-<!-- ru:begin -->
-> **RU.** Сборка из командной строки запускает компилятор в сервере, который живёт ещё несколько минут
-> после неё, и генератор держит там скомпилированные парсеры. Следующая сборка после правки только
-> C# — грамматика, её опции и все ответы о C#-типах хоста те же — берёт парсер оттуда, а не генерирует
-> заново: для грамматики в тысячу правил это секунды на сборку. Парсер находится по всему, что читала
-> его компиляция, поэтому любая существенная правка компилирует заново. Хранимое ограничено (около
-> 80 МБ и 64 парсера на каждую версию генератора), а сборки внутри редактора ничего не хранят.
-> С `DotGramNoCache=true` каждая грамматика генерируется заново (пример выше); `dotnet build-server
-> shutdown` опустошает хранимое вместе с сервером. И то и другое стоит попробовать, если парсер
-> выглядит старше грамматики, из которой скомпилирован, — и это был бы дефект, о котором стоит
-> сообщить.
-<!-- ru:end -->
-
 ## Reading from a position: `DotGramPositionalFollow` (experimental)
 
 A `positional parse` has whole forms, which read all of the input, and forms that begin where the
@@ -250,18 +188,6 @@ rests on. `split` gives the same answers and keeps those proofs where the two ki
 apart, so it costs less. Both are experimental, and both are for a build that needs the positional
 forms right now; the whole forms are right without either.
 
-<!-- ru:begin -->
-> **RU.** У `positional parse` есть целые формы, которые читают весь вход, и формы, которые начинают с
-> указанной позиции и читают столько, сколько возьмёт правило. Правило компилируется один раз для
-> обоих видов, в расчёте на конец входа, и в нескольких формах грамматики решение, верное для целых
-> форм, заставляет позиционную форму отвергнуть или не дочитать первое прочтение правила.
-> `DotGramPositionalFollow` компилирует каждый `parse` с учётом чтения с позиции (пример выше). `true`
-> делает позиционные формы правильными и лишает целые формы части доказательств, на которых держится
-> их скорость; `split` даёт те же ответы и сохраняет эти доказательства там, где два вида входа можно
-> различить, поэтому обходится дешевле. Оба значения экспериментальные и нужны сборке, которой
-> позиционные формы нужны правильными уже сейчас; целые формы правильны и без них.
-<!-- ru:end -->
-
 ## Seeing the generated code
 
 Visual Studio lists every generated file under **Dependencies → Analyzers → DotGram** of the project.
@@ -269,8 +195,3 @@ To have them on disk without a report, set the compiler's own `EmitCompilerGener
 ([setup](01-setup.md#what-the-generator-adds-to-every-compilation)). Nothing about the parser depends
 on either.
 
-<!-- ru:begin -->
-> **RU.** Visual Studio показывает все сгенерированные файлы в узле проекта **Dependencies → Analyzers
-> → DotGram**. Чтобы получить их на диске без отчёта, задайте собственное свойство компилятора
-> `EmitCompilerGeneratedFiles`. Парсер ни от того, ни от другого не зависит.
-<!-- ru:end -->
