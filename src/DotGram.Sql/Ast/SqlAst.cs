@@ -4091,19 +4091,57 @@ public enum RegexPositionStartOrAfter
 	After,
 }
 
-// BNF: <listagg overflow clause>: `ON OVERFLOW ERROR`, or `ON OVERFLOW TRUNCATE [filler] WITH|WITHOUT COUNT`.
-// BNF: <descriptor column specification>.
-public sealed record DescriptorColumn(Identifier Name, DataType? Type = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;descriptor column specification&gt;</c>: one column of a <c>DESCRIPTOR (a INT, b)</c> constructor.
+/// </summary>
+/// <param name="Name">The column's name.</param>
+/// <param name="Type">The column's data type, or null where only the name was written.</param>
+public sealed record DescriptorColumn(Identifier Name, DataType? Type = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
-// BNF: <row marker>.
-public enum RowMarkerKind { BeginPartition, BeginFrame, CurrentRow, FrameRow, EndFrame, EndPartition }
+/// <summary>
+/// BNF: <c>&lt;row marker&gt;</c>: the key word of a <see cref="Expression.RowMarker"/>, which names a row of the
+/// window by its place in the partition or the frame.
+/// </summary>
+public enum RowMarkerKind
+{
+	/// <summary><c>BEGIN_PARTITION</c>: the first row of the partition.</summary>
+	BeginPartition,
 
-public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, bool? WithCount = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	/// <summary><c>BEGIN_FRAME</c>: the first row of the window frame.</summary>
+	BeginFrame,
+
+	/// <summary><c>CURRENT_ROW</c>: the row the window function is evaluated for.</summary>
+	CurrentRow,
+
+	/// <summary><c>FRAME_ROW</c>: the row of the frame the enclosing function is reading.</summary>
+	FrameRow,
+
+	/// <summary><c>END_FRAME</c>: the last row of the window frame.</summary>
+	EndFrame,
+
+	/// <summary><c>END_PARTITION</c>: the last row of the partition.</summary>
+	EndPartition,
+}
+
+/// <summary>
+/// BNF: <c>&lt;listagg overflow clause&gt;</c>: what <c>LISTAGG</c> does when its result does not fit,
+/// <c>ON OVERFLOW ERROR</c>, or <c>ON OVERFLOW TRUNCATE [filler] WITH|WITHOUT COUNT</c>.
+/// </summary>
+/// <param name="Truncate"><c>true</c> for <c>TRUNCATE</c>, <c>false</c> for <c>ERROR</c>, where the other two parts are not written.</param>
+/// <param name="Filler">The text put where the result is cut, or null where none was written (the default filler).</param>
+/// <param name="WithCount"><c>true</c> for <c>WITH COUNT</c>, which appends how many values were cut, and <c>false</c> or null for <c>WITHOUT COUNT</c>; read after <c>TRUNCATE</c> only.</param>
+public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, bool? WithCount = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4121,97 +4159,429 @@ public abstract partial record LiteralValue : Expression
 	{
 	}
 
+	/// <summary>A number: <c>42</c>, <c>1.5</c>, <c>2E3</c>, <c>0xFF</c>.</summary>
+	/// <param name="Text">The number as written, with its sign where it was written with one.</param>
+	/// <param name="Kind">The form the number is written in: a whole number of some radix, with a point, with an exponent, or a currency amount.</param>
 	public sealed record Numeric(string Text, NumericLiteralKind Kind) : LiteralValue;
-	// Text is the literal's spelling as written, from its first quote to its last: the segments of `'a' 'b'`
-	// and the separators between them included, the introducer not.
+
+	/// <summary>A character string: <c>'abc'</c>, <c>N'abc'</c>, <c>U&amp;'\0061'</c>, <c>_utf8'abc'</c>.</summary>
+	/// <param name="Text">
+	/// The literal's spelling as written, from its first quote to its last: the segments of <c>'a' 'b'</c>
+	/// and the separators between them included, the introducer not.
+	/// </param>
+	/// <param name="Kind">Which prefix it was written with, if any.</param>
+	/// <param name="CharacterSet">The introducer, <c>_utf8</c> in <c>_utf8'abc'</c>, or null where none was written.</param>
+	/// <param name="UnicodeEscape">The escape character of <c>UESCAPE 'x'</c> after a Unicode literal, or null where none was written.</param>
 	public sealed record String(string Text, StringLiteralKind Kind, CharacterSetName? CharacterSet = null, char? UnicodeEscape = null) : LiteralValue;
+	/// <summary>A binary string: <c>X'1F'</c>, or in T-SQL <c>0x1F</c>.</summary>
+	/// <param name="Text">The quoted hexadecimal digits for the <c>X'..'</c> form, and the bare digits after <c>0x</c> for the T-SQL form.</param>
 	// `new`: Expression.Binary, an operator applied to two values, is another node, which a literal's own
 	// Binary hides inside LiteralValue.
 	public new sealed partial record Binary(string Text) : LiteralValue;
+
+	/// <summary>A truth value: <c>TRUE</c>, <c>FALSE</c> or <c>UNKNOWN</c>.</summary>
+	/// <param name="Value">Which of the three.</param>
 	public sealed record Boolean(BooleanLiteral Value) : LiteralValue;
+
+	/// <summary>A date, time or timestamp: <c>DATE '2024-01-31'</c>.</summary>
+	/// <param name="Kind">The key word before the quoted text.</param>
+	/// <param name="Text">The quoted text, quotes included.</param>
 	public sealed record DateTime(DateTimeLiteralKind Kind, string Text) : LiteralValue;
-	// Sign is `INTERVAL -'1' DAY`'s, null where none was written.
+
+	/// <summary>An interval: <c>INTERVAL '1' DAY</c>, <c>INTERVAL -'1-2' YEAR TO MONTH</c>.</summary>
+	/// <param name="Text">The quoted text, quotes included.</param>
+	/// <param name="Qualifier">The fields the text counts, <c>DAY</c> or <c>YEAR TO MONTH</c>.</param>
+	/// <param name="Sign">The sign written before the quoted text, as in <c>INTERVAL -'1' DAY</c>, or null where none was written.</param>
 	public sealed record Interval(string Text, IntervalQualifier Qualifier, UnaryOperator? Sign = null) : LiteralValue;
+
+	/// <summary>The <c>NULL</c> literal.</summary>
 	public sealed record Null : LiteralValue;
 }
-// T-SQL: money and smallmoney (Transact-SQL). `Money` is a literal written with a currency sign.
-public enum NumericLiteralKind { DecimalInteger, HexInteger, OctalInteger, BinaryInteger, Decimal, Approximate, Money }
-public enum StringLiteralKind { Character, National, Unicode }
-public enum BooleanLiteral { True, False, Unknown }
-public enum DateTimeLiteralKind { Date, Time, Timestamp }
+/// <summary>The form a number is written in.</summary>
+public enum NumericLiteralKind
+{
+	/// <summary>A whole number in decimal digits: <c>42</c>.</summary>
+	DecimalInteger,
 
-// BNF: <simple when clause>, <searched when clause>. A simple one's <when operand list> is `WHEN 1, 2`; a
-// searched one has a single condition.
-public sealed record CaseWhen(SqlList<Expression> When, Expression Then) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record Argument(Expression Value, Identifier? Name = null, bool NamedAssignment = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record FilterClause(Expression Condition) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record WithinGroupClause(OrderByClause OrderBy) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public abstract record WindowReference : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected WindowReference() { } public sealed record NameRef(Identifier Name) : WindowReference; public sealed record Specification(WindowSpecification Value) : WindowReference; }
-public sealed record WindowSpecification(Identifier? Existing, SqlList<Expression> PartitionBy, OrderByClause? OrderBy, WindowFrame? Frame) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record WindowDefinition(Identifier Name, WindowSpecification Specification) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public sealed record WindowFrame(WindowFrameUnit Unit, WindowFrameExtent Extent, WindowFrameExclusion? Exclusion, RowPatternClause? Pattern) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public enum WindowFrameUnit { Rows, Range, Groups }
-public abstract record WindowFrameExtent : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected WindowFrameExtent() { } public sealed record Single(WindowFrameBound Bound) : WindowFrameExtent; public sealed record Between(WindowFrameBound From, WindowFrameBound To) : WindowFrameExtent; }
-public sealed record WindowFrameBound(WindowBoundKind Kind, Expression? Offset = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public enum WindowBoundKind { UnboundedPreceding, Preceding, CurrentRow, Following, UnboundedFollowing }
-public enum WindowFrameExclusion { CurrentRow, Group, Ties, NoOthers }
+	/// <summary>A whole number in hexadecimal: <c>0xFF</c>.</summary>
+	HexInteger,
 
-public abstract record InSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected InSource() { } public sealed record Subquery(Query Query) : InSource; public sealed record Values(SqlList<Expression> Items) : InSource; }
-public sealed record TypeTest(QualifiedName TypeName, bool Only) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	/// <summary>A whole number in octal: <c>0o17</c>.</summary>
+	OctalInteger,
+
+	/// <summary>A whole number in binary: <c>0b101</c>.</summary>
+	BinaryInteger,
+
+	/// <summary>An exact number with a decimal point: <c>1.5</c>.</summary>
+	Decimal,
+
+	/// <summary>An approximate number with an exponent: <c>1.5E3</c>.</summary>
+	Approximate,
+
+	/// <summary>T-SQL: money and smallmoney (Transact-SQL). A number written with a currency sign: <c>$12.50</c>.</summary>
+	Money,
+}
+
+/// <summary>The prefix a character string is written with.</summary>
+public enum StringLiteralKind
+{
+	/// <summary>No prefix: <c>'abc'</c>.</summary>
+	Character,
+
+	/// <summary>The national prefix: <c>N'abc'</c>.</summary>
+	National,
+
+	/// <summary>The Unicode prefix, with escapes: <c>U&amp;'\0061'</c>.</summary>
+	Unicode,
+}
+
+/// <summary>A truth value literal.</summary>
+public enum BooleanLiteral
+{
+	/// <summary><c>TRUE</c>.</summary>
+	True,
+
+	/// <summary><c>FALSE</c>.</summary>
+	False,
+
+	/// <summary><c>UNKNOWN</c>.</summary>
+	Unknown,
+}
+
+/// <summary>The key word a date or time literal starts with.</summary>
+public enum DateTimeLiteralKind
+{
+	/// <summary><c>DATE '2024-01-31'</c>.</summary>
+	Date,
+
+	/// <summary><c>TIME '12:30:00'</c>.</summary>
+	Time,
+
+	/// <summary><c>TIMESTAMP '2024-01-31 12:30:00'</c>.</summary>
+	Timestamp,
+}
+
+/// <summary>
+/// BNF: <c>&lt;simple when clause&gt;</c>, <c>&lt;searched when clause&gt;</c>: one <c>WHEN .. THEN ..</c> branch of a
+/// <c>CASE</c> expression.
+/// </summary>
+/// <param name="When">
+/// What the branch tests. A simple <c>CASE</c> lists the values to compare with its operand, <c>WHEN 1, 2</c>;
+/// a searched one holds a single condition.
+/// </param>
+/// <param name="Then">The result when the branch is taken.</param>
+public sealed record CaseWhen(SqlList<Expression> When, Expression Then) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record PeriodValue : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected PeriodValue() { } public sealed record Reference(QualifiedName Name) : PeriodValue; public sealed record Range(Expression Start, Expression End) : PeriodValue; }
-public abstract record PeriodRight : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected PeriodRight() { } public sealed record Period(PeriodValue Value) : PeriodRight; public sealed record Point(Expression Value) : PeriodRight; }
-public enum PeriodOperator { Overlaps, Equals, Contains, Precedes, Succeeds, ImmediatelyPrecedes, ImmediatelySucceeds }
+/// <summary>An argument of a routine call: <c>x</c>, or <c>name =&gt; x</c>.</summary>
+/// <param name="Value">The value passed.</param>
+/// <param name="Name">The parameter's name in <c>name =&gt; x</c>, or null for an argument passed by position.</param>
+/// <param name="NamedAssignment"><c>true</c> where the argument was written with <c>=&gt;</c>; set exactly when <paramref name="Name"/> is.</param>
+public sealed record Argument(Expression Value, Identifier? Name = null, bool NamedAssignment = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>BNF: <c>&lt;filter clause&gt;</c>: <c>FILTER (WHERE condition)</c> after an aggregate.</summary>
+/// <param name="Condition">The condition a row must meet to be aggregated.</param>
+public sealed record FilterClause(Expression Condition) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>BNF: <c>&lt;within group specification&gt;</c>: <c>WITHIN GROUP (ORDER BY ..)</c> after an ordered-set aggregate.</summary>
+/// <param name="OrderBy">The ordering the aggregate reads its rows in.</param>
+public sealed record WithinGroupClause(OrderByClause OrderBy) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>What <c>OVER</c> names: a window defined elsewhere, or a window written in place.</summary>
+public abstract record WindowReference : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected WindowReference()
+	{
+	}
+
+	/// <summary>A window by name: <c>OVER w</c>, which a <c>WINDOW</c> clause defines.</summary>
+	/// <param name="Name">The window's name.</param>
+	public sealed record NameRef(Identifier Name) : WindowReference;
+
+	/// <summary>A window written in place: <c>OVER (PARTITION BY a ORDER BY b)</c>.</summary>
+	/// <param name="Value">The window's specification.</param>
+	public sealed record Specification(WindowSpecification Value) : WindowReference;
+}
+/// <summary>
+/// BNF: <c>&lt;window specification details&gt;</c>: what stands between the brackets of
+/// <c>OVER (existing PARTITION BY .. ORDER BY .. frame)</c>.
+/// </summary>
+/// <param name="Existing">The window this one extends, or null where none was named.</param>
+/// <param name="PartitionBy">The <c>PARTITION BY</c> expressions, empty where there is no such clause.</param>
+/// <param name="OrderBy">The <c>ORDER BY</c> clause, or null where there is none.</param>
+/// <param name="Frame">The frame, or null where none was written.</param>
+public sealed record WindowSpecification(Identifier? Existing, SqlList<Expression> PartitionBy, OrderByClause? OrderBy, WindowFrame? Frame) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>BNF: <c>&lt;window definition&gt;</c>: one entry of a <c>WINDOW</c> clause, <c>w AS (..)</c>.</summary>
+/// <param name="Name">The name the window is given.</param>
+/// <param name="Specification">What the window is.</param>
+public sealed record WindowDefinition(Identifier Name, WindowSpecification Specification) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>BNF: <c>&lt;window frame clause&gt;</c>: <c>ROWS BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE TIES</c>.</summary>
+/// <param name="Unit">What the bounds count: rows, a value range or peer groups.</param>
+/// <param name="Extent">The bound, or the two bounds, of the frame.</param>
+/// <param name="Exclusion">The <c>EXCLUDE</c> option, or null where none was written.</param>
+/// <param name="Pattern">The row pattern measures and common syntax written with the frame, or null where there are none.</param>
+public sealed record WindowFrame(WindowFrameUnit Unit, WindowFrameExtent Extent, WindowFrameExclusion? Exclusion, RowPatternClause? Pattern) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>What the bounds of a window frame count.</summary>
+public enum WindowFrameUnit
+{
+	/// <summary><c>ROWS</c>: a number of rows.</summary>
+	Rows,
+
+	/// <summary><c>RANGE</c>: a difference in the sort key's value.</summary>
+	Range,
+
+	/// <summary><c>GROUPS</c>: a number of groups of peer rows.</summary>
+	Groups,
+}
+/// <summary>BNF: <c>&lt;window frame extent&gt;</c>: where a window frame starts and ends.</summary>
+public abstract record WindowFrameExtent : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected WindowFrameExtent()
+	{
+	}
+
+	/// <summary>A frame given by its start alone: <c>ROWS 1 PRECEDING</c>, which ends at the current row.</summary>
+	/// <param name="Bound">The start of the frame.</param>
+	public sealed record Single(WindowFrameBound Bound) : WindowFrameExtent;
+
+	/// <summary>A frame given by both ends: <c>BETWEEN 1 PRECEDING AND 1 FOLLOWING</c>.</summary>
+	/// <param name="From">The start of the frame.</param>
+	/// <param name="To">The end of the frame.</param>
+	public sealed record Between(WindowFrameBound From, WindowFrameBound To) : WindowFrameExtent;
+}
+/// <summary>BNF: <c>&lt;window frame start&gt;</c>, <c>&lt;window frame bound&gt;</c>: one end of a window frame.</summary>
+/// <param name="Kind">Where the end lies.</param>
+/// <param name="Offset">How far from the current row, set for <see cref="WindowBoundKind.Preceding"/> and <see cref="WindowBoundKind.Following"/> and null for the other kinds.</param>
+public sealed record WindowFrameBound(WindowBoundKind Kind, Expression? Offset = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>Where one end of a window frame lies.</summary>
+public enum WindowBoundKind
+{
+	/// <summary><c>UNBOUNDED PRECEDING</c>: the first row of the partition.</summary>
+	UnboundedPreceding,
+
+	/// <summary><c>n PRECEDING</c>: <c>n</c> before the current row.</summary>
+	Preceding,
+
+	/// <summary><c>CURRENT ROW</c>.</summary>
+	CurrentRow,
+
+	/// <summary><c>n FOLLOWING</c>: <c>n</c> after the current row.</summary>
+	Following,
+
+	/// <summary><c>UNBOUNDED FOLLOWING</c>: the last row of the partition.</summary>
+	UnboundedFollowing,
+}
+
+/// <summary>Which rows a window frame leaves out after its bounds are applied.</summary>
+public enum WindowFrameExclusion
+{
+	/// <summary><c>EXCLUDE CURRENT ROW</c>.</summary>
+	CurrentRow,
+
+	/// <summary><c>EXCLUDE GROUP</c>: the current row and its peers.</summary>
+	Group,
+
+	/// <summary><c>EXCLUDE TIES</c>: the peers of the current row, but not the row itself.</summary>
+	Ties,
+
+	/// <summary><c>EXCLUDE NO OTHERS</c>: nothing is left out.</summary>
+	NoOthers,
+}
+
+/// <summary>BNF: <c>&lt;in predicate value&gt;</c>: what the right side of <c>IN</c> holds.</summary>
+public abstract record InSource : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected InSource()
+	{
+	}
+
+	/// <summary>A subquery: <c>IN (SELECT ..)</c>.</summary>
+	/// <param name="Query">The subquery, without its brackets.</param>
+	public sealed record Subquery(Query Query) : InSource;
+
+	/// <summary>A list of values: <c>IN (1, 2, 3)</c>.</summary>
+	/// <param name="Items">The values, in the order written.</param>
+	public sealed record Values(SqlList<Expression> Items) : InSource;
+}
+/// <summary>One type of an <c>IS OF (..)</c> predicate: <c>t</c> or <c>ONLY t</c>.</summary>
+/// <param name="TypeName">The type's name.</param>
+/// <param name="Only"><c>true</c> for <c>ONLY t</c>, which matches that type and not its subtypes.</param>
+public sealed record TypeTest(QualifiedName TypeName, bool Only) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>BNF: <c>&lt;period predicand&gt;</c>: a period in a period predicate.</summary>
+public abstract record PeriodValue : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected PeriodValue()
+	{
+	}
+
+	/// <summary>A period by name: the period of a table, <c>t.p</c>.</summary>
+	/// <param name="Name">The period's name, with every part.</param>
+	public sealed record Reference(QualifiedName Name) : PeriodValue;
+
+	/// <summary>A period written out: <c>PERIOD (a, b)</c>.</summary>
+	/// <param name="Start">The value the period starts at.</param>
+	/// <param name="End">The value the period ends at.</param>
+	public sealed record Range(Expression Start, Expression End) : PeriodValue;
+}
+/// <summary>The right side of a period predicate: a period, or a single point in time.</summary>
+public abstract record PeriodRight : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected PeriodRight()
+	{
+	}
+
+	/// <summary>A period: <c>t.p</c> or <c>PERIOD (a, b)</c>.</summary>
+	/// <param name="Value">The period.</param>
+	public sealed record Period(PeriodValue Value) : PeriodRight;
+
+	/// <summary>A single value, which <c>CONTAINS</c> takes: <c>PERIOD (a, b) CONTAINS x</c>.</summary>
+	/// <param name="Value">The datetime value.</param>
+	public sealed record Point(Expression Value) : PeriodRight;
+}
+/// <summary>The operator of a period predicate.</summary>
+public enum PeriodOperator
+{
+	/// <summary><c>OVERLAPS</c>: the periods share some time.</summary>
+	Overlaps,
+
+	/// <summary><c>EQUALS</c>: the periods start and end together.</summary>
+	Equals,
+
+	/// <summary><c>CONTAINS</c>: the left period holds the right one, or a point.</summary>
+	Contains,
+
+	/// <summary><c>PRECEDES</c>: the left period ends before the right one starts.</summary>
+	Precedes,
+
+	/// <summary><c>SUCCEEDS</c>: the left period starts after the right one ends.</summary>
+	Succeeds,
+
+	/// <summary><c>IMMEDIATELY PRECEDES</c>: the left period ends where the right one starts.</summary>
+	ImmediatelyPrecedes,
+
+	/// <summary><c>IMMEDIATELY SUCCEEDS</c>: the left period starts where the right one ends.</summary>
+	ImmediatelySucceeds,
+}
 
 /// <summary>BNF: <c>&lt;data type&gt;</c> and all predefined/row/reference/collection/user-defined type rules.</summary>
 public abstract partial record DataType : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -4221,25 +4591,98 @@ public abstract partial record DataType : ISqlNode
 	{
 	}
 
-	// T-SQL: char and varchar, nchar and nvarchar (Transact-SQL). `Max` is the length written as
-	// `MAX`, and `Length` is null where it is set.
+	/// <summary>
+	/// A character string type: <c>CHAR (10)</c>, <c>VARCHAR (20 CHARACTERS) CHARACTER SET utf8 COLLATE c</c>,
+	/// <c>CLOB (2K)</c>. T-SQL: char and varchar, nchar and nvarchar (Transact-SQL).
+	/// </summary>
+	/// <param name="Kind">The key word or words the type is named by.</param>
+	/// <param name="Length">The length in brackets, or null where none was written or <paramref name="LargeObject"/> or <paramref name="Max"/> holds it.</param>
+	/// <param name="Unit">The unit of the length, <c>CHARACTERS</c> or <c>OCTETS</c>, or null where none was written.</param>
+	/// <param name="CharacterSet">The <c>CHARACTER SET</c> clause, or null where there is none.</param>
+	/// <param name="Collation">The <c>COLLATE</c> clause, or null where there is none.</param>
+	/// <param name="LargeObject">The length of a large object type with its multiplier, <c>2K</c>, or null where none was written.</param>
+	/// <param name="Max">T-SQL: <c>true</c> where the length was written as <c>MAX</c>, in which case <paramref name="Length"/> is null.</param>
 	public sealed record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
-	// T-SQL: binary and varbinary (Transact-SQL). `Max` is the length written as `MAX`, and
-	// `Length` is null where it is set.
+	/// <summary>
+	/// A binary string type: <c>BINARY (16)</c>, <c>BLOB (2K)</c>. T-SQL: binary and varbinary (Transact-SQL).
+	/// </summary>
+	/// <param name="Kind">The key word or words the type is named by.</param>
+	/// <param name="Length">The length in brackets, or null where none was written or <paramref name="LargeObject"/> or <paramref name="Max"/> holds it.</param>
+	/// <param name="LargeObject">The length of a large object type with its multiplier, <c>2K</c>, or null where none was written.</param>
+	/// <param name="Max">T-SQL: <c>true</c> where the length was written as <c>MAX</c>, in which case <paramref name="Length"/> is null.</param>
 	public sealed record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
+	/// <summary>A number type: <c>INTEGER</c>, <c>DECIMAL (10, 2)</c>, <c>FLOAT (24)</c>.</summary>
+	/// <param name="Kind">The key word or words the type is named by.</param>
+	/// <param name="Precision">The precision in brackets, or null where none was written.</param>
+	/// <param name="Scale">The scale after the precision, or null where none was written.</param>
 	public sealed record Numeric(NumericTypeKind Kind, int? Precision = null, int? Scale = null) : DataType;
+
+	/// <summary>The <c>BOOLEAN</c> type.</summary>
 	public sealed record Boolean : DataType;
+
+	/// <summary>A date or time type: <c>DATE</c>, <c>TIME (3) WITH TIME ZONE</c>, <c>TIMESTAMP (6)</c>.</summary>
+	/// <param name="Kind">Which of the three.</param>
+	/// <param name="Precision">The precision of the fractional seconds in brackets, or null where none was written.</param>
+	/// <param name="TimeZone">The <c>WITH TIME ZONE</c> or <c>WITHOUT TIME ZONE</c> clause, or null where there is none.</param>
 	public sealed record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;
+
+	/// <summary>An interval type: <c>INTERVAL DAY TO SECOND (3)</c>.</summary>
+	/// <param name="Qualifier">The fields the interval counts.</param>
 	public sealed record Interval(IntervalQualifier Qualifier) : DataType;
+
+	/// <summary>A row type: <c>ROW (a INT, b VARCHAR (10))</c>.</summary>
+	/// <param name="Fields">The fields, in the order written.</param>
 	public sealed record Row(SqlList<FieldDefinition> Fields) : DataType;
+
+	/// <summary>A reference type: <c>REF (t) SCOPE s</c>.</summary>
+	/// <param name="ReferencedType">The structured type the reference points to.</param>
+	/// <param name="Scope">The table the reference is scoped to, or null where there is no <c>SCOPE</c> clause.</param>
 	public sealed record Reference(QualifiedName ReferencedType, QualifiedName? Scope = null) : DataType;
+
+	/// <summary>An array type: <c>INT ARRAY</c>, <c>INT ARRAY [10]</c>.</summary>
+	/// <param name="ElementType">The type of the elements.</param>
+	/// <param name="MaximumCardinality">The most elements the array holds, written in brackets, or null where none was written.</param>
+	/// <param name="Trigraphs">
+	/// <c>true</c> where the brackets were written as the trigraphs <c>??(</c> and <c>??)</c>; it changes the text and not the meaning.
+	/// </param>
 	public sealed record Array(DataType ElementType, int? MaximumCardinality = null, bool Trigraphs = false) : DataType;
+
+	/// <summary>A multiset type: <c>INT MULTISET</c>.</summary>
+	/// <param name="ElementType">The type of the elements.</param>
 	public sealed record Multiset(DataType ElementType) : DataType;
+
+	/// <summary>A type of the user's, by its name: <c>dbo.mytype</c>.</summary>
+	/// <param name="Name">The type's name, with every part.</param>
 	public sealed partial record UserDefined(QualifiedName Name) : DataType;
+
+	/// <summary>The <c>JSON</c> type.</summary>
 	public sealed record Json : DataType;
+
+	/// <summary>
+	/// A domain used as a type, by its name. No rule of the standard grammar builds it, and the writer has no text for it: a
+	/// domain's name read from text is a <see cref="UserDefined"/>.
+	/// </summary>
+	/// <param name="Name">The domain's name.</param>
 	public sealed record Domain(QualifiedName Name) : DataType;
+
+	/// <summary>The <c>DESCRIPTOR</c> type, of an argument that is a list of column names.</summary>
 	public sealed record Descriptor : DataType;
+
+	/// <summary>
+	/// The type of a table passed to a polymorphic table function: <c>TABLE PASS THROUGH WITH ROW SEMANTICS PRUNE ON EMPTY</c>.
+	/// </summary>
+	/// <param name="PassThrough">The <c>PASS THROUGH</c> or <c>NO PASS THROUGH</c> option, or null where none was written.</param>
+	/// <param name="Semantics">The <c>WITH ROW SEMANTICS</c> or <c>WITH SET SEMANTICS</c> option, or null where none was written.</param>
+	/// <param name="Pruning">The <c>PRUNE ON EMPTY</c> or <c>KEEP ON EMPTY</c> option, or null where none was written.</param>
 	public sealed record GenericTable(PassThroughMode? PassThrough, TableSemantics? Semantics, TablePruning? Pruning) : DataType;
+
+	/// <summary>
+	/// A type that belongs to a dialect and has no node of its own. The standard writer has no text for it; a writer of the
+	/// dialect gives it one.
+	/// </summary>
+	/// <param name="Dialect">The dialect that defines the type.</param>
+	/// <param name="Name">The type's name in that dialect.</param>
+	/// <param name="Arguments">The type's arguments, nodes of that dialect, in the order written.</param>
 	public sealed record Extension(string Dialect, string Name, SqlList<ISqlNode> Arguments) : DataType;
 }
 
