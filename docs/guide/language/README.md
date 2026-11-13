@@ -40,5 +40,3 @@ disagrees with the code is a failing test rather than a stale page. For whoever 
   `→ refused`, or `→ refused: message`. The input may be `reader("…")`, `stream("…")` or `bytes("…")`;
   whole numbers after it are a position and a length, `new` hands a fresh context, a last `out` calls the
   form that answers only whether. `@Name → value` reads what the host kept after the calls above it.
-- Russian review blocks between `<!-- ru:begin -->` and `<!-- ru:end -->` are temporary, hold no fences, and
-  are skipped.
