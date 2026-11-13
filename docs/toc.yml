@@ -5,8 +5,8 @@
 # (one entry per file, the README.md first) and uncomment its entry here. An entry for a folder
 # that does not exist is a build error under -WarningsAsErrors, so the lines stay commented
 # until the files are there.
-# - name: Language guide
-#   href: guide/language/
+- name: Language guide
+  href: guide/language/
 # - name: Generator guide
 #   href: guide/generator/
 - name: Reference
