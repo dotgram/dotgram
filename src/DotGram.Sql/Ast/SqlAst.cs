@@ -8869,21 +8869,196 @@ public abstract record DynamicArguments : ISqlNode
 }
 
 // --- Transactions/connections ---------------------------------------------
-public abstract record TransactionMode : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected TransactionMode() { } public sealed record Isolation(IsolationLevel Level) : TransactionMode; public sealed record Access(TransactionAccess Mode) : TransactionMode; public sealed record DiagnosticsSize(Expression Size) : TransactionMode; }
-// T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Snapshot` is T-SQL's.
-public enum IsolationLevel { ReadUncommitted, ReadCommitted, RepeatableRead, Serializable, Snapshot }
-public enum TransactionAccess { ReadOnly, ReadWrite }
-public abstract record ConstraintTarget : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected ConstraintTarget() { } public sealed record All : ConstraintTarget; public sealed record Names(SqlList<QualifiedName> Values) : ConstraintTarget; }
-public enum ChainMode { Chain, NoChain }
-public sealed record ConnectionTarget(Expression? Server, Expression? Name, Expression? User, bool Default) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;transaction mode&gt;</c>: one characteristic in <c>START TRANSACTION</c> or <c>SET TRANSACTION</c>.
+/// </summary>
+public abstract record TransactionMode : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected TransactionMode()
+	{
+	}
+
+	/// <summary>
+	/// <c>ISOLATION LEVEL …</c>.
+	/// </summary>
+	/// <param name="Level">The isolation level.</param>
+	public sealed record Isolation(IsolationLevel Level) : TransactionMode;
+
+	/// <summary>
+	/// <c>READ ONLY</c> or <c>READ WRITE</c>.
+	/// </summary>
+	/// <param name="Mode">The access mode.</param>
+	public sealed record Access(TransactionAccess Mode) : TransactionMode;
+
+	/// <summary>
+	/// <c>DIAGNOSTICS SIZE n</c>: how many conditions the diagnostics area holds.
+	/// </summary>
+	/// <param name="Size">The number of conditions.</param>
+	public sealed record DiagnosticsSize(Expression Size) : TransactionMode;
+}
+/// <summary>
+/// The isolation levels of <c>SET TRANSACTION</c> and <c>START TRANSACTION</c>. <c>Snapshot</c> is T-SQL's.
+/// </summary>
+public enum IsolationLevel
+{
+	/// <summary><c>READ UNCOMMITTED</c>.</summary>
+	ReadUncommitted,
+	/// <summary><c>READ COMMITTED</c>.</summary>
+	ReadCommitted,
+	/// <summary><c>REPEATABLE READ</c>.</summary>
+	RepeatableRead,
+	/// <summary><c>SERIALIZABLE</c>.</summary>
+	Serializable,
+	/// <summary>T-SQL: <c>SNAPSHOT</c>.</summary>
+	Snapshot,
+}
+/// <summary>
+/// The access modes of a transaction.
+/// </summary>
+public enum TransactionAccess
+{
+	/// <summary><c>READ ONLY</c>.</summary>
+	ReadOnly,
+	/// <summary><c>READ WRITE</c>.</summary>
+	ReadWrite,
+}
+/// <summary>
+/// BNF: <c>&lt;constraint name list&gt;</c> of <c>SET CONSTRAINTS</c>: every constraint, or the named ones.
+/// </summary>
+public abstract record ConstraintTarget : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ConstraintTarget()
+	{
+	}
+
+	/// <summary>
+	/// <c>ALL</c>: every deferrable constraint.
+	/// </summary>
+	public sealed record All : ConstraintTarget;
+
+	/// <summary>
+	/// A list of constraint names.
+	/// </summary>
+	/// <param name="Values">The constraints, in written order.</param>
+	public sealed record Names(SqlList<QualifiedName> Values) : ConstraintTarget;
+}
+/// <summary>
+/// Whether <c>COMMIT</c> or <c>ROLLBACK</c> starts a new transaction at once.
+/// </summary>
+public enum ChainMode
+{
+	/// <summary><c>AND CHAIN</c>: a new transaction with the same characteristics starts.</summary>
+	Chain,
+	/// <summary><c>AND NO CHAIN</c>: no new transaction starts.</summary>
+	NoChain,
+}
+/// <summary>
+/// BNF: <c>&lt;connection target&gt;</c> of <c>CONNECT TO</c>: <c>server [AS name] [USER user]</c>, or <c>DEFAULT</c>.
+/// </summary>
+/// <param name="Server">The server name, a simple value specification; <see langword="null"/> for <c>DEFAULT</c>.</param>
+/// <param name="Name">The connection name after <c>AS</c>; <see langword="null"/> where omitted.</param>
+/// <param name="User">The user after <c>USER</c>; <see langword="null"/> where omitted.</param>
+/// <param name="Default"><see langword="true"/> for <c>CONNECT TO DEFAULT</c>.</param>
+public sealed record ConnectionTarget(Expression? Server, Expression? Name, Expression? User, bool Default) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record ConnectionObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected ConnectionObject() { } public sealed record Default : ConnectionObject; public sealed record Named(Expression Name) : ConnectionObject; }
-public abstract record DisconnectObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DisconnectObject() { } public sealed record Connection(ConnectionObject Value) : DisconnectObject; public sealed record All : DisconnectObject; public sealed record Current : DisconnectObject; }
-public sealed record TransformGroupCharacteristic(bool DefaultGroup, QualifiedName? ForType, Expression Value) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: <c>&lt;connection object&gt;</c> of <c>SET CONNECTION</c>: the default connection or a named one.
+/// </summary>
+public abstract record ConnectionObject : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ConnectionObject()
+	{
+	}
+
+	/// <summary>
+	/// <c>DEFAULT</c>: the default connection.
+	/// </summary>
+	public sealed record Default : ConnectionObject;
+
+	/// <summary>
+	/// A connection named by a value.
+	/// </summary>
+	/// <param name="Name">The connection name, a simple value specification.</param>
+	public sealed record Named(Expression Name) : ConnectionObject;
+}
+/// <summary>
+/// BNF: <c>&lt;disconnect object&gt;</c> of <c>DISCONNECT</c>: one connection, all of them, or the current one.
+/// </summary>
+public abstract record DisconnectObject : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected DisconnectObject()
+	{
+	}
+
+	/// <summary>
+	/// One connection, named or the default: <c>DISCONNECT c</c>, <c>DISCONNECT DEFAULT</c>.
+	/// </summary>
+	/// <param name="Value">The connection.</param>
+	public sealed record Connection(ConnectionObject Value) : DisconnectObject;
+
+	/// <summary>
+	/// <c>ALL</c>: every connection.
+	/// </summary>
+	public sealed record All : DisconnectObject;
+
+	/// <summary>
+	/// <c>CURRENT</c>: the current connection.
+	/// </summary>
+	public sealed record Current : DisconnectObject;
+}
+/// <summary>
+/// BNF: <c>&lt;transform group characteristic&gt;</c> of <c>SET TRANSFORM GROUP</c>: <c>DEFAULT TRANSFORM GROUP v</c> or <c>TRANSFORM GROUP FOR TYPE t v</c>.
+/// </summary>
+/// <param name="DefaultGroup"><see langword="true"/> for the <c>DEFAULT TRANSFORM GROUP</c> form.</param>
+/// <param name="ForType">The user-defined type after <c>FOR TYPE</c>; <see langword="null"/> for the default group.</param>
+/// <param name="Value">The transform group name, a value specification.</param>
+public sealed record TransformGroupCharacteristic(bool DefaultGroup, QualifiedName? ForType, Expression Value) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -8892,11 +9067,15 @@ public sealed record TransformGroupCharacteristic(bool DefaultGroup, QualifiedNa
 
 // --- Diagnostics ------------------------------------------------------------
 
-// BNF: <SQL diagnostics information>: a statement's items, a condition's items, or all of either.
+/// <summary>
+/// BNF: <c>&lt;SQL diagnostics information&gt;</c> of <c>GET DIAGNOSTICS</c>: a statement's items, a condition's items, or all of either.
+/// </summary>
 public abstract record DiagnosticsInformation : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -8906,39 +9085,240 @@ public abstract record DiagnosticsInformation : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// Statement information items: <c>:n = NUMBER, :r = ROW_COUNT</c>.
+	/// </summary>
+	/// <param name="Items">The assignments, in written order.</param>
 	public sealed record Statement(SqlList<StatementInformationItem> Items) : DiagnosticsInformation;
+	/// <summary>
+	/// Condition information items: <c>EXCEPTION 1 :m = MESSAGE_TEXT</c>.
+	/// </summary>
+	/// <param name="Number">The number of the condition read.</param>
+	/// <param name="Items">The assignments, in written order.</param>
 	public sealed record Condition(Expression Number, SqlList<ConditionInformationItem> Items) : DiagnosticsInformation;
 
-	// BNF: <all information>, `:t = ALL CONDITION 1`; Qualifier null where none was written.
+	/// <summary>
+	/// BNF: <c>&lt;all information&gt;</c>: everything at once, <c>:t = ALL CONDITION 1</c>.
+	/// </summary>
+	/// <param name="Target">The variable that receives the information.</param>
+	/// <param name="Qualifier">What <c>ALL</c> collects; <see langword="null"/> where no qualifier was written.</param>
+	/// <param name="ConditionNumber">The condition number after <c>CONDITION</c>; <see langword="null"/> where omitted.</param>
 	public sealed record All(Expression Target, AllInformationQualifier? Qualifier, Expression? ConditionNumber = null) : DiagnosticsInformation;
 }
-public sealed record StatementInformationItem(Expression Target, StatementInformationItemName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// One assignment of a statement information item in <c>GET DIAGNOSTICS</c>: <c>:n = ROW_COUNT</c>.
+/// </summary>
+/// <param name="Target">The variable or parameter that receives the value.</param>
+/// <param name="Name">The item read.</param>
+public sealed record StatementInformationItem(Expression Target, StatementInformationItemName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record ConditionInformationItem(Expression Target, ConditionInformationItemName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// One assignment of a condition information item in <c>GET DIAGNOSTICS EXCEPTION n</c>: <c>:m = MESSAGE_TEXT</c>.
+/// </summary>
+/// <param name="Target">The variable or parameter that receives the value.</param>
+/// <param name="Name">The item read.</param>
+public sealed record ConditionInformationItem(Expression Target, ConditionInformationItemName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum AllInformationQualifier { Statement, Condition }
-public enum StatementInformationItemName { Number, More, CommandFunction, CommandFunctionCode, DynamicFunction, DynamicFunctionCode, RowCount, TransactionsCommitted, TransactionsRolledBack, TransactionActive }
-public enum ConditionInformationItemName { CatalogName, ClassOrigin, ColumnName, ConditionNumber, ConnectionName, ConstraintCatalog, ConstraintName, ConstraintSchema, CursorName, MessageLength, MessageOctetLength, MessageText, ParameterMode, ParameterName, ParameterOrdinalPosition, ReturnedSqlstate, RoutineCatalog, RoutineName, RoutineSchema, SchemaName, ServerName, SpecificName, SubclassOrigin, TableName, TriggerCatalog, TriggerName, TriggerSchema }
+/// <summary>
+/// What <c>GET DIAGNOSTICS … = ALL</c> collects.
+/// </summary>
+public enum AllInformationQualifier
+{
+	/// <summary><c>STATEMENT</c>: the statement information.</summary>
+	Statement,
+	/// <summary><c>CONDITION</c>: the information of a condition.</summary>
+	Condition,
+}
+/// <summary>
+/// The statement information items of <c>GET DIAGNOSTICS</c>, spelled in SQL with underscores.
+/// </summary>
+public enum StatementInformationItemName
+{
+	/// <summary><c>NUMBER</c>: how many conditions the statement raised.</summary>
+	Number,
+	/// <summary><c>MORE</c>: whether more conditions were raised than the diagnostics area holds.</summary>
+	More,
+	/// <summary><c>COMMAND_FUNCTION</c>: the kind of the statement, as text.</summary>
+	CommandFunction,
+	/// <summary><c>COMMAND_FUNCTION_CODE</c>: the kind of the statement, as a number.</summary>
+	CommandFunctionCode,
+	/// <summary><c>DYNAMIC_FUNCTION</c>: the kind of the dynamically executed statement, as text.</summary>
+	DynamicFunction,
+	/// <summary><c>DYNAMIC_FUNCTION_CODE</c>: the kind of the dynamically executed statement, as a number.</summary>
+	DynamicFunctionCode,
+	/// <summary><c>ROW_COUNT</c>: the number of rows the statement affected.</summary>
+	RowCount,
+	/// <summary><c>TRANSACTIONS_COMMITTED</c>: how many transactions were committed.</summary>
+	TransactionsCommitted,
+	/// <summary><c>TRANSACTIONS_ROLLED_BACK</c>: how many transactions were rolled back.</summary>
+	TransactionsRolledBack,
+	/// <summary><c>TRANSACTION_ACTIVE</c>: whether a transaction is active.</summary>
+	TransactionActive,
+}
+/// <summary>
+/// The condition information items of <c>GET DIAGNOSTICS EXCEPTION n</c>, spelled in SQL with underscores.
+/// </summary>
+public enum ConditionInformationItemName
+{
+	/// <summary><c>CATALOG_NAME</c>: the catalog of the object the condition concerns.</summary>
+	CatalogName,
+	/// <summary><c>CLASS_ORIGIN</c>: the standard that defines the class of the SQLSTATE value.</summary>
+	ClassOrigin,
+	/// <summary><c>COLUMN_NAME</c>: the column the condition concerns.</summary>
+	ColumnName,
+	/// <summary><c>CONDITION_NUMBER</c>: the number of the condition.</summary>
+	ConditionNumber,
+	/// <summary><c>CONNECTION_NAME</c>: the connection the condition arose on.</summary>
+	ConnectionName,
+	/// <summary><c>CONSTRAINT_CATALOG</c>: the catalog of the violated constraint.</summary>
+	ConstraintCatalog,
+	/// <summary><c>CONSTRAINT_NAME</c>: the name of the violated constraint.</summary>
+	ConstraintName,
+	/// <summary><c>CONSTRAINT_SCHEMA</c>: the schema of the violated constraint.</summary>
+	ConstraintSchema,
+	/// <summary><c>CURSOR_NAME</c>: the cursor the condition concerns.</summary>
+	CursorName,
+	/// <summary><c>MESSAGE_LENGTH</c>: the length of the message text, in characters.</summary>
+	MessageLength,
+	/// <summary><c>MESSAGE_OCTET_LENGTH</c>: the length of the message text, in octets.</summary>
+	MessageOctetLength,
+	/// <summary><c>MESSAGE_TEXT</c>: the message text.</summary>
+	MessageText,
+	/// <summary><c>PARAMETER_MODE</c>: the mode of the parameter the condition concerns.</summary>
+	ParameterMode,
+	/// <summary><c>PARAMETER_NAME</c>: the name of the parameter the condition concerns.</summary>
+	ParameterName,
+	/// <summary><c>PARAMETER_ORDINAL_POSITION</c>: the position of the parameter the condition concerns.</summary>
+	ParameterOrdinalPosition,
+	/// <summary><c>RETURNED_SQLSTATE</c>: the SQLSTATE value of the condition.</summary>
+	ReturnedSqlstate,
+	/// <summary><c>ROUTINE_CATALOG</c>: the catalog of the routine the condition arose in.</summary>
+	RoutineCatalog,
+	/// <summary><c>ROUTINE_NAME</c>: the name of the routine the condition arose in.</summary>
+	RoutineName,
+	/// <summary><c>ROUTINE_SCHEMA</c>: the schema of the routine the condition arose in.</summary>
+	RoutineSchema,
+	/// <summary><c>SCHEMA_NAME</c>: the schema of the object the condition concerns.</summary>
+	SchemaName,
+	/// <summary><c>SERVER_NAME</c>: the server the condition arose on.</summary>
+	ServerName,
+	/// <summary><c>SPECIFIC_NAME</c>: the specific name of the routine the condition arose in.</summary>
+	SpecificName,
+	/// <summary><c>SUBCLASS_ORIGIN</c>: the standard that defines the subclass of the SQLSTATE value.</summary>
+	SubclassOrigin,
+	/// <summary><c>TABLE_NAME</c>: the table the condition concerns.</summary>
+	TableName,
+	/// <summary><c>TRIGGER_CATALOG</c>: the catalog of the trigger the condition arose in.</summary>
+	TriggerCatalog,
+	/// <summary><c>TRIGGER_NAME</c>: the name of the trigger the condition arose in.</summary>
+	TriggerName,
+	/// <summary><c>TRIGGER_SCHEMA</c>: the schema of the trigger the condition arose in.</summary>
+	TriggerSchema,
+}
 
 // --- SQL conditions / WHENEVER ---------------------------------------------
-public abstract record SqlCondition : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected SqlCondition() { } public sealed record Major(SqlConditionMajor Value) : SqlCondition; public sealed record State(string ClassCode, string? SubclassCode) : SqlCondition; public sealed record Constraint(QualifiedName Name) : SqlCondition; }
-public enum SqlConditionMajor { Exception, Warning, NotFound }
-public abstract record ConditionAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected ConditionAction() { } public sealed record Continue : ConditionAction; public sealed record GoTo(string Target, bool TwoWordKeyword) : ConditionAction; }
+/// <summary>
+/// BNF: <c>&lt;SQL condition&gt;</c> of <c>WHENEVER</c>: the condition whose occurrence triggers an action.
+/// </summary>
+public abstract record SqlCondition : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected SqlCondition()
+	{
+	}
+
+	/// <summary>
+	/// A major category: <c>SQLEXCEPTION</c>, <c>SQLWARNING</c> or <c>NOT FOUND</c>.
+	/// </summary>
+	/// <param name="Value">The category.</param>
+	public sealed record Major(SqlConditionMajor Value) : SqlCondition;
+
+	/// <summary>
+	/// <c>SQLSTATE (class, subclass)</c>: a specific SQLSTATE value.
+	/// </summary>
+	/// <param name="ClassCode">The class code, as written.</param>
+	/// <param name="SubclassCode">The subclass code, as written; <see langword="null"/> where only the class was given.</param>
+	public sealed record State(string ClassCode, string? SubclassCode) : SqlCondition;
+
+	/// <summary>
+	/// <c>CONSTRAINT name</c>: a violated integrity constraint.
+	/// </summary>
+	/// <param name="Name">The constraint name.</param>
+	public sealed record Constraint(QualifiedName Name) : SqlCondition;
+}
+/// <summary>
+/// The major categories of <c>WHENEVER</c>.
+/// </summary>
+public enum SqlConditionMajor
+{
+	/// <summary><c>SQLEXCEPTION</c>: an error.</summary>
+	Exception,
+	/// <summary><c>SQLWARNING</c>: a warning.</summary>
+	Warning,
+	/// <summary><c>NOT FOUND</c>: no data was found.</summary>
+	NotFound,
+}
+/// <summary>
+/// BNF: <c>&lt;condition action&gt;</c> of <c>WHENEVER</c>: what the host program does when the condition occurs.
+/// </summary>
+public abstract record ConditionAction : ISqlNode
+{
+	SqlLocation _location;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ConditionAction()
+	{
+	}
+
+	/// <summary>
+	/// <c>CONTINUE</c>: ignore the condition and go on.
+	/// </summary>
+	public sealed record Continue : ConditionAction;
+
+	/// <summary>
+	/// <c>GOTO label</c> or <c>GO TO label</c>: transfer control to a host-program label.
+	/// </summary>
+	/// <param name="Target">The label, as written in the host program.</param>
+	/// <param name="TwoWordKeyword"><see langword="true"/> for <c>GO TO</c>, <see langword="false"/> for <c>GOTO</c>.</param>
+	public sealed record GoTo(string Target, bool TwoWordKeyword) : ConditionAction;
+}
 
 // --- Embedded SQL -----------------------------------------------------------
 /// <summary>BNF: embedded SQL host-program sections. Kept out of the core SQL families.</summary>
 public abstract record EmbeddedSql : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -8948,19 +9328,75 @@ public abstract record EmbeddedSql : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// An embedded SQL statement: <c>EXEC SQL … END-EXEC</c>.
+	/// </summary>
+	/// <param name="Prefix">How the statement starts.</param>
+	/// <param name="Value">The SQL statement.</param>
+	/// <param name="Terminator">How the statement ends; <see langword="null"/> where none was written.</param>
 	public sealed record Statement(EmbeddedPrefix Prefix, DotGram.Sql.Ast.Statement Value, EmbeddedTerminator? Terminator) : EmbeddedSql;
+	/// <summary>
+	/// A declare section, <c>BEGIN DECLARE SECTION … END DECLARE SECTION</c>, holding host variable definitions.
+	/// </summary>
+	/// <param name="Prefix">How the opening statement starts.</param>
+	/// <param name="CharacterSet">The <c>SQL NAMES ARE</c> character set; <see langword="null"/> where omitted.</param>
+	/// <param name="Declarations">The host variable definitions, in written order.</param>
+	/// <param name="Terminator">How the opening statement ends; <see langword="null"/> where none was written.</param>
+	/// <param name="EndPrefix">How the closing statement starts; <see langword="null"/> where the section has no closing statement (the MUMPS form).</param>
+	/// <param name="EndTerminator">How the closing statement ends; <see langword="null"/> where none was written.</param>
 	public sealed record DeclareSection(EmbeddedPrefix Prefix, CharacterSetName? CharacterSet, SqlList<HostDeclaration> Declarations, EmbeddedTerminator? Terminator, EmbeddedPrefix? EndPrefix = null, EmbeddedTerminator? EndTerminator = null) : EmbeddedSql;
+	/// <summary>
+	/// An embedded authorization declaration: <c>DECLARE AUTHORIZATION …</c>.
+	/// </summary>
+	/// <param name="Value">The authorization clause.</param>
 	public sealed record Authorization(EmbeddedAuthorization Value) : EmbeddedSql;
+	/// <summary>
+	/// An embedded path declaration: <c>PATH s1, s2</c>.
+	/// </summary>
+	/// <param name="Value">The path.</param>
 	public sealed record Path(PathSpecification Value) : EmbeddedSql;
+	/// <summary>
+	/// An embedded transform group declaration: <c>TRANSFORM GROUP …</c>.
+	/// </summary>
+	/// <param name="Value">The transform group specification.</param>
 	public sealed record Transform(TransformGroupSpecification Value) : EmbeddedSql;
+	/// <summary>
+	/// An embedded collation declaration: <c>COLLATION c FOR …</c>.
+	/// </summary>
+	/// <param name="Values">The collation specifications, in written order.</param>
 	public sealed record Collation(SqlList<ModuleCollation> Values) : EmbeddedSql;
 }
-public enum EmbeddedPrefix { ExecSql, AmpersandSqlParen }
-public enum EmbeddedTerminator { EndExec, Semicolon, RightParen }
+/// <summary>
+/// How an embedded SQL statement starts.
+/// </summary>
+public enum EmbeddedPrefix
+{
+	/// <summary><c>EXEC SQL</c>.</summary>
+	ExecSql,
+	/// <summary><c>&amp;SQL(</c>, the MUMPS form.</summary>
+	AmpersandSqlParen,
+}
+/// <summary>
+/// How an embedded SQL statement ends.
+/// </summary>
+public enum EmbeddedTerminator
+{
+	/// <summary><c>END-EXEC</c>.</summary>
+	EndExec,
+	/// <summary><c>;</c>.</summary>
+	Semicolon,
+	/// <summary><c>)</c>, closing <c>&amp;SQL(</c>.</summary>
+	RightParen,
+}
+/// <summary>
+/// BNF: <c>&lt;host variable definition&gt;</c>: a variable declared in a declare section, in the syntax of its host language. Kept as the text written.
+/// </summary>
 public abstract record HostDeclaration : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -8970,22 +9406,76 @@ public abstract record HostDeclaration : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A variable definition in Ada.
+	/// </summary>
+	/// <param name="Text">The definition, as written.</param>
 	public sealed record Ada(string Text) : HostDeclaration;
+	/// <summary>
+	/// A variable definition in C.
+	/// </summary>
+	/// <param name="Text">The definition, as written.</param>
 	public sealed record C(string Text) : HostDeclaration;
+	/// <summary>
+	/// A variable definition in COBOL.
+	/// </summary>
+	/// <param name="Text">The definition, as written.</param>
 	public sealed record Cobol(string Text) : HostDeclaration;
+	/// <summary>
+	/// A variable definition in Fortran.
+	/// </summary>
+	/// <param name="Text">The definition, as written.</param>
 	public sealed record Fortran(string Text) : HostDeclaration;
+	/// <summary>
+	/// A variable definition in MUMPS.
+	/// </summary>
+	/// <param name="Text">The definition, as written.</param>
 	public sealed record Mumps(string Text) : HostDeclaration;
+	/// <summary>
+	/// A variable definition in Pascal.
+	/// </summary>
+	/// <param name="Text">The definition, as written.</param>
 	public sealed record Pascal(string Text) : HostDeclaration;
+	/// <summary>
+	/// A variable definition in PL/I.
+	/// </summary>
+	/// <param name="Text">The definition, as written.</param>
 	public sealed record Pli(string Text) : HostDeclaration;
 }
-public sealed record EmbeddedAuthorization(QualifiedName? Schema, AuthorizationIdentifier? Authorization, EmbeddedStaticMode? StaticMode) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// BNF: the authorization clause of an embedded <c>DECLARE</c> and of an SQL-client module: <c>SCHEMA s</c>, <c>AUTHORIZATION a [FOR STATIC …]</c>, or both.
+/// </summary>
+/// <param name="Schema">The schema after <c>SCHEMA</c>; <see langword="null"/> where omitted.</param>
+/// <param name="Authorization">The authorization identifier after <c>AUTHORIZATION</c>; <see langword="null"/> where omitted.</param>
+/// <param name="StaticMode">The <c>FOR STATIC</c> option; <see langword="null"/> where omitted.</param>
+public sealed record EmbeddedAuthorization(QualifiedName? Schema, AuthorizationIdentifier? Authorization, EmbeddedStaticMode? StaticMode) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum EmbeddedStaticMode { StaticOnly, StaticAndDynamic }
-public sealed record ModuleCollation(CollationName Collation, SqlList<CharacterSetName> CharacterSets) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// The <c>FOR STATIC</c> option of a module authorization clause.
+/// </summary>
+public enum EmbeddedStaticMode
+{
+	/// <summary><c>FOR STATIC ONLY</c>.</summary>
+	StaticOnly,
+	/// <summary><c>FOR STATIC AND DYNAMIC</c>.</summary>
+	StaticAndDynamic,
+}
+/// <summary>
+/// BNF: <c>&lt;module collation specification&gt;</c>: <c>COLLATION c [FOR character sets]</c>.
+/// </summary>
+/// <param name="Collation">The collation.</param>
+/// <param name="CharacterSets">The character sets after <c>FOR</c>; empty where omitted, meaning every character set.</param>
+public sealed record ModuleCollation(CollationName Collation, SqlList<CharacterSetName> CharacterSets) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -8994,34 +9484,69 @@ public sealed record ModuleCollation(CollationName Collation, SqlList<CharacterS
 
 // --- SQL-client modules -----------------------------------------------------
 
-// BNF: <SQL-client module definition>: its name and character set, language, authorization, path, transform groups,
-// collations, temporary tables, and what it contains.
+/// <summary>
+/// BNF: <c>&lt;SQL-client module definition&gt;</c>: its name and character set, language, authorization, path, transform groups,
+/// collations, temporary tables, and what it contains.
+/// </summary>
 public sealed record SqlClientModule : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	/// <summary>
+	/// The module name after <c>MODULE</c>; <see langword="null"/> where omitted.
+	/// </summary>
 	public Identifier? Name { get; init; }
+	/// <summary>
+	/// The <c>NAMES ARE</c> character set; <see langword="null"/> where omitted.
+	/// </summary>
 	public CharacterSetName? NamesAre { get; init; }
+	/// <summary>
+	/// The host language of the <c>LANGUAGE</c> clause, as written: <c>C</c>, <c>COBOL</c>, <c>ADA</c>, …
+	/// </summary>
 	public required string Language { get; init; }
+	/// <summary>
+	/// The module authorization clause.
+	/// </summary>
 	public required EmbeddedAuthorization Authorization { get; init; }
+	/// <summary>
+	/// The <c>PATH</c> clause; <see langword="null"/> where omitted.
+	/// </summary>
 	public PathSpecification? Path { get; init; }
+	/// <summary>
+	/// The <c>TRANSFORM GROUP</c> clause; <see langword="null"/> where omitted.
+	/// </summary>
 	public TransformGroupSpecification? TransformGroup { get; init; }
+	/// <summary>
+	/// The <c>COLLATION</c> clauses; empty where there are none.
+	/// </summary>
 	public SqlList<ModuleCollation> Collations { get; init; } = [];
+	/// <summary>
+	/// The <c>DECLARE LOCAL TEMPORARY TABLE</c> declarations; empty where there are none.
+	/// </summary>
 	public SqlList<Statement.DeclareLocalTemporaryTable> TemporaryTables { get; init; } = [];
+	/// <summary>
+	/// The cursors and procedures the module holds, in written order.
+	/// </summary>
 	public SqlList<ModuleContent> Contents { get; init; } = [];
 }
 
-// BNF: <module contents>: a cursor declared, statically or dynamically, or an <externally-invoked procedure>.
+/// <summary>
+/// BNF: <c>&lt;module contents&gt;</c>: a cursor declared, statically or dynamically, or an <c>&lt;externally-invoked procedure&gt;</c>.
+/// </summary>
 public abstract record ModuleContent : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -9031,15 +9556,29 @@ public abstract record ModuleContent : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A cursor declaration.
+	/// </summary>
+	/// <param name="Declaration">The <c>DECLARE CURSOR</c> statement.</param>
 	public sealed record Cursor(Statement.DeclareCursor Declaration) : ModuleContent;
+	/// <summary>
+	/// An externally-invoked procedure: <c>PROCEDURE p (:a INTEGER, SQLSTATE); statement;</c>.
+	/// </summary>
+	/// <param name="Name">The procedure name.</param>
+	/// <param name="Parameters">The host parameters, in written order.</param>
+	/// <param name="Body">The SQL procedure statement the procedure runs.</param>
 	public sealed record Procedure(Identifier Name, SqlList<HostParameterDeclaration> Parameters, Statement Body) : ModuleContent;
 }
 
-// BNF: <host parameter declaration>: a host parameter with its type, or the status parameter SQLSTATE.
+/// <summary>
+/// BNF: <c>&lt;host parameter declaration&gt;</c>: a host parameter with its type, or the status parameter <c>SQLSTATE</c>.
+/// </summary>
 public abstract record HostParameterDeclaration : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -9049,12 +9588,57 @@ public abstract record HostParameterDeclaration : ISqlNode
 	{
 	}
 
+	/// <summary>
+	/// A host parameter with its type.
+	/// </summary>
+	/// <param name="Name">The parameter name.</param>
+	/// <param name="Type">The SQL data type.</param>
+	/// <param name="Locator"><see langword="true"/> where the parameter holds a locator for a large object (<c>AS LOCATOR</c>).</param>
 	public sealed record Parameter(Identifier Name, DataType Type, bool Locator = false) : HostParameterDeclaration;
+	/// <summary>
+	/// The status parameter <c>SQLSTATE</c>.
+	/// </summary>
 	public sealed record Status : HostParameterDeclaration;
 }
 
 // --- Misc ------------------------------------------------------------------
-public enum PassThroughMode { PassThrough, NoPassThrough }
-public enum TableSemantics { Row, Set }
-public enum TablePruning { PruneOnEmpty, KeepOnEmpty }
-public enum PadCharacteristic { NoPad, PadSpace }
+/// <summary>
+/// Whether a generic <c>TABLE</c> parameter of a polymorphic table function passes its columns through.
+/// </summary>
+public enum PassThroughMode
+{
+	/// <summary><c>PASS THROUGH</c>.</summary>
+	PassThrough,
+	/// <summary><c>NO PASS THROUGH</c>.</summary>
+	NoPassThrough,
+}
+/// <summary>
+/// The semantics of a generic <c>TABLE</c> parameter of a polymorphic table function.
+/// </summary>
+public enum TableSemantics
+{
+	/// <summary><c>WITH ROW SEMANTICS</c>: each row is processed on its own.</summary>
+	Row,
+	/// <summary><c>WITH SET SEMANTICS</c>: rows are processed in partitions.</summary>
+	Set,
+}
+/// <summary>
+/// Whether a polymorphic table function is called for an empty input table.
+/// </summary>
+public enum TablePruning
+{
+	/// <summary><c>PRUNE ON EMPTY</c>: an empty input yields an empty result without a call.</summary>
+	PruneOnEmpty,
+	/// <summary><c>KEEP ON EMPTY</c>: the function is called even for an empty input.</summary>
+	KeepOnEmpty,
+}
+/// <summary>
+/// The pad characteristic of a collation.
+/// </summary>
+public enum PadCharacteristic
+{
+	/// <summary><c>NO PAD</c>: trailing spaces are significant.</summary>
+	NoPad,
+	/// <summary><c>PAD SPACE</c>: the shorter string is padded with spaces for comparison.</summary>
+	PadSpace,
+}
