@@ -398,6 +398,9 @@ sealed partial class Machine
 		// for again says it again from the start.
 		RetryLoops.Clear();
 
+		if (Carrier is ImmediateCarrier recutting)
+			recutting.Recuts = false;
+
 		var file  = new Writer(0);
 		var rules = _directRules;
 		var seen  = new HashSet<RuleSymbol>();
@@ -1677,9 +1680,10 @@ sealed partial class Machine
 			if (Carrier.ReaderMethods is { Length: > 0 } methods)
 				header.Write(methods);
 
-			// Only where a construction names it: a reader that never does carried a member
-			// nothing read (IDE0051).
-			if (Carrier is ImmediateCarrier immediate && file.Names(ImmediateCarrier.Recut))
+			// Only where a construction calls it: a reader that never does carried a member nothing
+			// read (IDE0051). Both asked: that a call was written, and that it is still in the text
+			// (a construction written and then dropped leaves the flag behind).
+			if (Carrier is ImmediateCarrier { Recuts: true } immediate && file.Names(ImmediateCarrier.Recut))
 				header.Write(immediate.RecutMethod);
 
 			if (!_readerWays && (file.Names("ways") || header.Names("ways")))

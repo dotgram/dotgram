@@ -76,6 +76,59 @@ public sealed class GuardTextReuseTests
 			""", input));
 	}
 
+	/// <summary>
+	/// The method that cuts a guarded text again is written where a construction calls it, and
+	/// only there. A literal of the grammar spelling its name is no call: with captures borrowed
+	/// as spans nothing calls it, and the method once written for that literal returned a span
+	/// where it promised a string, which did not compile.
+	/// </summary>
+	[Fact]
+	public void A_literal_spelling_the_recut_method_writes_no_such_method()
+	{
+		const string grammar = """
+			Atom = { "Recut_DotGram" }
+			R : @int = x: Atom & when @(x.Length > 0) => @(x.Length)
+			parse R
+			""";
+
+		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName = "Grammar", Carrier = CarrierKind.Immediate, SpanCaptures = true, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity == GramSeverity.Error);
+
+		var source = Assert.Single(compiled.Sources).Text;
+
+		Assert.DoesNotContain("Recut_DotGram(int from", source, StringComparison.Ordinal);
+
+		var host  = EmittedCode.Compile(source).GetType("Grammar")!;
+		var match = host.GetMethod("TryParseR", [typeof(string)])!.Invoke(null, ["Recut_DotGram"])!;
+
+		Assert.Equal(13, match.GetType().GetProperty("Value")!.GetValue(match));
+	}
+
+	/// <summary>Over strings the same reuse calls it, and it is written once, into the reader that does.</summary>
+	[Fact]
+	public void A_construction_that_may_cut_again_has_the_recut_method_written()
+	{
+		var compiled = GramCompiler.Compile("""
+			Atom = { "ab" }
+			R : @int = x: Atom & when @(x.Length > 0) => @(x.Length)
+			parse R
+			""", new GramCompilerOptions
+		{
+			ClassName = "Grammar", Carrier = CarrierKind.Immediate, CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		var source = Assert.Single(compiled.Sources).Text;
+		var at     = source.IndexOf("string Recut_DotGram(int from", StringComparison.Ordinal);
+
+		Assert.True(at >= 0);
+		Assert.Equal(-1, source.IndexOf("string Recut_DotGram(int from", at + 1, StringComparison.Ordinal));
+		Assert.Contains(": Recut_DotGram(", source, StringComparison.Ordinal);
+	}
+
 	static string? Parse(string grammar, string input)
 	{
 		var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions

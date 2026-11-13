@@ -902,6 +902,8 @@ sealed partial class Machine
 				? cut
 				: $"({from} < 0 ? {missing} : {Recut}({from}, {to}))";
 
+			Recuts |= again != cut;
+
 			_puts.Add((member, $"({cached}From == {from} && {cached}To == {to} ? {cached} : {again})"));
 
 			return "";
@@ -909,6 +911,14 @@ sealed partial class Machine
 
 		/// <summary>The reader's method that cuts a guarded text again (<see cref="PutText"/>).</summary>
 		internal const string Recut = "Recut_DotGram";
+
+		/// <summary>
+		/// Whether a construction of the reader being written calls <see cref="Recut"/>: set where the
+		/// call is written, cleared where a reader begins. Not a search of the text, which also holds
+		/// the grammar's own literals and C#: a literal that spells the name is no call, and the
+		/// method written for it — a string cut over an input it does not fit — did not compile.
+		/// </summary>
+		internal bool Recuts { get; set; }
 
 		/// <summary>
 		/// <see cref="Recut"/> itself, written into a reader whose methods name it: kept from
