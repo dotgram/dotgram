@@ -76,10 +76,9 @@ public sealed class ResolutionScope
 	/// besides its own, which is a constant handful of cached lookups per search — the answers
 	/// are kept per namespace and per holder, so nothing is worked out twice and no more methods
 	/// are tested for applicability. On an extension-heavy text it is single digit percent; on a
-	/// text that calls no extension method it is nothing at all, and it is never bytes. Measured
-	/// 2026-09-27 on `a.Select(n => n * 2).Sum()`: 24 holders considered against 8 with the set
-	/// left out, the same 67 methods tested either way, and the same allocation to within 40
-	/// bytes. <see cref="WithoutDefaultImports"/> is the way out.
+	/// text that calls no extension method it is nothing at all, and it is never bytes: the
+	/// same methods are tested and the same memory is allocated.
+	/// <see cref="WithoutDefaultImports"/> is the way out.
 	/// </para>
 	/// </remarks>
 	public static IReadOnlyList<string> DefaultImports { get; } =
@@ -180,20 +179,15 @@ public sealed class ResolutionScope
 	/// <see cref="Assemblies"/>.
 	/// </para>
 	/// <para>
-	/// <b>What that side effect costs, measured 2026-09-26.</b> Over the benchmark assembly it is
-	/// 23 ms and 145 assemblies brought in — the process held 12 before the walk and 157 after —
-	/// of which 92% is <c>Assembly.Load</c> (20.2 ms over 433 calls) and 2.7% the walk itself. On
-	/// the stand's first-call rows it was the whole of a first reading's rise when it was paid
-	/// here: `el/floor` 21.0 ms to 40.7, `el/ladder` 24.8 to 43.7, `el/block` 27.5 to 47.4, on both
-	/// carriers, while the methods the runtime compiled went DOWN (192 to 165 for `el/floor`) —
-	/// so it is loading and not compiling. It is now paid on the first text that NAMES a type,
-	/// not at scope creation, and once for the life of the scope.
+	/// <b>What that side effect costs.</b> Over a large application's assemblies, some 20 ms,
+	/// nearly all of it the runtime loading assemblies and not the walk itself; it is paid on the
+	/// first text that NAMES a type, not at scope creation, and once for the life of the scope.
 	/// </para>
 	/// <para>
 	/// <b>A long name costs once more.</b> The first dotted name of more than nine parts that may
 	/// be a type asks how deep the types in reach go, which lists the public and forwarded types
 	/// of every assembly in the closure, and every type of the caller's where its internals are
-	/// seen: measured 2026-11-10, about 12 ms and 260 KB over 29 assemblies. Each assembly is
+	/// seen: about 12 ms and 260 KB over 29 assemblies. Each assembly is
 	/// counted once in the process, whatever scopes it is in, so a scope over assemblies already
 	/// counted pays a lookup each. A name whose head the text declared — a member chain on a
 	/// parameter — never asks, and walks nothing.
@@ -202,9 +196,8 @@ public sealed class ResolutionScope
 	/// It is paid ONCE for an assembly, in the process that reads texts for it, and a host that
 	/// reads more than one text never pays it again. A host whose texts name no types does not pay
 	/// it at all. Reading each assembly's names off its file instead, with metadata and loading
-	/// nothing, was measured and dropped: 112 ms against these 23, because the runtime's loader is
-	/// faster at this than reading 33,000 type names is
-	/// (docs/internal/design/expression-resolution-scope-2026-09-25.md).
+	/// nothing, was tried and dropped: the runtime's loader is faster at this than reading every
+	/// type name is.
 	/// </para>
 	/// <para>
 	/// <b>That instance is kept for the life of the process, and so is what it holds.</b> A scope
