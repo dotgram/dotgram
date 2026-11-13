@@ -35,6 +35,11 @@
       }
     ],
     "output": "_site",
+    "fileMetadata": {
+      "_appTitle": {
+        "index.md": ""
+      }
+    },
     "globalMetadata": {
       "_appTitle": ".Gram",
       "_appName": ".Gram",
