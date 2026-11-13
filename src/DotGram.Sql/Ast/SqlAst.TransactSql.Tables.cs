@@ -46,13 +46,30 @@ public abstract partial record Statement
 }
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL), CREATE TABLE (SQL Graph). What kind of table a table is.</summary>
-public enum TableKind { FileTable, Node, Edge }
+public enum TableKind
+{
+	/// <summary><c>AS FILETABLE</c>: a table of files and directories.</summary>
+	FileTable,
+
+	/// <summary><c>AS NODE</c>: a node table of a graph.</summary>
+	Node,
+
+	/// <summary><c>AS EDGE</c>: an edge table of a graph.</summary>
+	Edge,
+}
 
 /// <summary>
 /// T-SQL: ALTER TABLE (Transact-SQL). <c>CHECK</c> or <c>NOCHECK</c>: before <c>ADD</c>, whether the rows there are
 /// checked; before <c>CONSTRAINT</c>, whether the constraints are switched on or off.
 /// </summary>
-public enum ConstraintCheck { Check, NoCheck }
+public enum ConstraintCheck
+{
+	/// <summary><c>CHECK</c>: the rows are checked, or the constraints switched on.</summary>
+	Check,
+
+	/// <summary><c>NOCHECK</c>: the rows are not checked, or the constraints switched off.</summary>
+	NoCheck,
+}
 
 public sealed partial record ColumnDefinition
 {
@@ -72,8 +89,10 @@ public sealed partial record ColumnDefinition
 public abstract record ColumnOption : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -167,7 +186,26 @@ public abstract record ColumnOption : ISqlNode
 }
 
 /// <summary>T-SQL: column_definition (Transact-SQL). What a <c>GENERATED ALWAYS AS</c> column holds.</summary>
-public enum GeneratedAlwaysKind { RowStart, RowEnd, TransactionIdStart, TransactionIdEnd, SequenceNumberStart, SequenceNumberEnd }
+public enum GeneratedAlwaysKind
+{
+	/// <summary><c>ROW START</c>: the column holds the time the row became current.</summary>
+	RowStart,
+
+	/// <summary><c>ROW END</c>: the column holds the time the row stopped being current.</summary>
+	RowEnd,
+
+	/// <summary><c>TRANSACTION_ID START</c>: the column holds the transaction that created the row.</summary>
+	TransactionIdStart,
+
+	/// <summary><c>TRANSACTION_ID END</c>: the column holds the transaction that ended the row.</summary>
+	TransactionIdEnd,
+
+	/// <summary><c>SEQUENCE_NUMBER START</c>: the column holds the sequence number of the operation that created the row.</summary>
+	SequenceNumberStart,
+
+	/// <summary><c>SEQUENCE_NUMBER END</c>: the column holds the sequence number of the operation that ended the row.</summary>
+	SequenceNumberEnd,
+}
 
 public abstract partial record Constraint
 {
@@ -247,10 +285,24 @@ public sealed partial record ReferencesSpecification
 }
 
 /// <summary>T-SQL: table_constraint (Transact-SQL), CREATE INDEX (Transact-SQL). <c>CLUSTERED</c> or <c>NONCLUSTERED</c>.</summary>
-public enum IndexClustering { Clustered, Nonclustered }
+public enum IndexClustering
+{
+	/// <summary><c>CLUSTERED</c>: the rows are stored in the index's order.</summary>
+	Clustered,
+
+	/// <summary><c>NONCLUSTERED</c>: the index is separate from the rows.</summary>
+	Nonclustered,
+}
 
 /// <summary>T-SQL: CREATE TABLE (Transact-SQL). How an index keeps its rows: <c>COLUMNSTORE</c>, <c>HASH</c>.</summary>
-public enum IndexStorage { Columnstore, Hash }
+public enum IndexStorage
+{
+	/// <summary><c>COLUMNSTORE</c>: the index keeps its data by column.</summary>
+	Columnstore,
+
+	/// <summary><c>HASH</c>: a hash index of a memory-optimized table.</summary>
+	Hash,
+}
 
 /// <summary>
 /// T-SQL: CREATE TABLE (Transact-SQL), CREATE INDEX (Transact-SQL), CREATE COLUMNSTORE INDEX (Transact-SQL). An index
@@ -261,15 +313,22 @@ public sealed record IndexDefinition(Identifier Name) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
+	/// <summary><c>UNIQUE</c>: no two rows hold the same key.</summary>
 	public bool Unique { get; init; }
+
+	/// <summary><c>CLUSTERED</c> or <c>NONCLUSTERED</c>; null where neither was written.</summary>
 	public IndexClustering? Clustering { get; init; }
+
+	/// <summary><c>COLUMNSTORE</c> or <c>HASH</c>; null for a rowstore B-tree index.</summary>
 	public IndexStorage? Storage { get; init; }
 
 	/// <summary>The key's columns, each with the direction written; none for a column's own index.</summary>
@@ -281,11 +340,13 @@ public sealed record IndexDefinition(Identifier Name) : ISqlNode
 	/// </summary>
 	public SqlList<Identifier> Order { get; init; } = [];
 
+	/// <summary><c>INCLUDE (a, b)</c>: the columns the index carries without keying on them.</summary>
 	public SqlList<Identifier> Include { get; init; } = [];
 
 	/// <summary>The filter, <c>WHERE …</c>.</summary>
 	public Expression? Where { get; init; }
 
+	/// <summary>The index's <c>WITH (…)</c> options.</summary>
 	public SqlList<Option> Options { get; init; } = [];
 
 	/// <summary>
@@ -446,10 +507,36 @@ public abstract partial record AlterColumnAction
 }
 
 /// <summary>T-SQL: ALTER TABLE (Transact-SQL). <c>NULL</c> or <c>NOT NULL</c> written after an altered column's type.</summary>
-public enum ColumnNullability { Null, NotNull }
+public enum ColumnNullability
+{
+	/// <summary><c>NULL</c>: the column may hold no value.</summary>
+	Null,
+
+	/// <summary><c>NOT NULL</c>: the column must hold a value.</summary>
+	NotNull,
+}
 
 /// <summary>T-SQL: ALTER TABLE (Transact-SQL). A column property that <c>ALTER COLUMN … ADD</c> and <c>DROP</c> change.</summary>
-public enum ColumnPropertyKind { RowGuidCol, Persisted, NotForReplication, Sparse, Hidden, Masked }
+public enum ColumnPropertyKind
+{
+	/// <summary><c>ROWGUIDCOL</c>.</summary>
+	RowGuidCol,
+
+	/// <summary><c>PERSISTED</c>.</summary>
+	Persisted,
+
+	/// <summary><c>NOT FOR REPLICATION</c>.</summary>
+	NotForReplication,
+
+	/// <summary><c>SPARSE</c>.</summary>
+	Sparse,
+
+	/// <summary><c>HIDDEN</c>.</summary>
+	Hidden,
+
+	/// <summary><c>MASKED</c>.</summary>
+	Masked,
+}
 
 // ── Indexes, full-text indexes, views, statistics, types, synonyms (task 5b) ─────────────────────────────────────────
 
@@ -484,6 +571,7 @@ public abstract partial record Statement
 		/// </summary>
 		public Identifier? ForPath { get; init; }
 
+		/// <summary>T-SQL: CREATE XML INDEX (Transact-SQL). The index's <c>WITH (…)</c> options.</summary>
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
@@ -506,6 +594,7 @@ public abstract partial record Statement
 		/// <summary>T-SQL: CREATE JSON INDEX (Transact-SQL). <c>FOR ('$.a', …)</c>: the paths, none where FOR is not written.</summary>
 		public SqlList<LiteralValue.String> Paths { get; init; } = [];
 
+		/// <summary>T-SQL: CREATE JSON INDEX (Transact-SQL). The index's <c>WITH (…)</c> options.</summary>
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
@@ -518,6 +607,7 @@ public abstract partial record Statement
 		/// <summary>T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). <c>WITH XMLNAMESPACES ('uri' AS p, …)</c>.</summary>
 		public SqlList<XmlNamespace> XmlNamespaces { get; init; } = [];
 
+		/// <summary>T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). The index's <c>WITH (…)</c> options.</summary>
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
@@ -536,6 +626,7 @@ public abstract partial record Statement
 		/// </summary>
 		[Spelling] public bool UsingBracketed { get; init; }
 
+		/// <summary>T-SQL: CREATE SPATIAL INDEX (Transact-SQL). The index's <c>WITH (…)</c> options.</summary>
 		public SqlList<Option> Options { get; init; } = [];
 
 		/// <summary>T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>ON</c> a filegroup.</summary>
@@ -548,6 +639,7 @@ public abstract partial record Statement
 	/// </summary>
 	public sealed record AlterIndex(QualifiedName Table, IndexAlteration Action) : Statement
 	{
+		/// <summary>T-SQL: ALTER INDEX (Transact-SQL). The index altered; null where <see cref="All"/> is set.</summary>
 		public Identifier? Name { get; init; }
 
 		/// <summary>T-SQL: ALTER INDEX (Transact-SQL). <c>ALL</c>: every index of the table.</summary>
@@ -578,6 +670,7 @@ public abstract partial record Statement
 		/// </summary>
 		[Spelling] public bool CatalogBracketed { get; init; }
 
+		/// <summary>T-SQL: CREATE FULLTEXT INDEX (Transact-SQL). The index's <c>WITH …</c> options.</summary>
 		public SqlList<Option> Options { get; init; } = [];
 
 		/// <summary>
@@ -648,6 +741,7 @@ public abstract partial record Statement
 	/// </summary>
 	public sealed record CreateTableType(QualifiedName Name, SqlList<TableElement> Elements) : Statement
 	{
+		/// <summary>T-SQL: CREATE TYPE (Transact-SQL). The type's <c>WITH (…)</c> options, such as <c>MEMORY_OPTIMIZED = ON</c>.</summary>
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
@@ -665,7 +759,17 @@ public abstract partial record Statement
 }
 
 /// <summary>T-SQL: CREATE XML INDEX (Transact-SQL). Which secondary XML index: <c>FOR VALUE</c>, <c>PATH</c>, <c>PROPERTY</c>.</summary>
-public enum XmlIndexFor { Value, Path, Property }
+public enum XmlIndexFor
+{
+	/// <summary><c>FOR VALUE</c>: the index serves queries by value.</summary>
+	Value,
+
+	/// <summary><c>FOR PATH</c>: the index serves queries by path.</summary>
+	Path,
+
+	/// <summary><c>FOR PROPERTY</c>: the index serves queries that fetch several properties of an object.</summary>
+	Property,
+}
 
 /// <summary>
 /// T-SQL: CREATE SELECTIVE XML INDEX (Transact-SQL). One path a selective index promotes: <c>path1 = '/a/b'</c> and what
@@ -675,8 +779,10 @@ public sealed record PromotedPath(Identifier? Name, LiteralValue.String Path) : 
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -690,8 +796,10 @@ public sealed record PromotedPath(Identifier? Name, LiteralValue.String Path) : 
 public abstract record PathHint : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -718,8 +826,10 @@ public abstract record PathHint : ISqlNode
 public abstract record PathAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -743,14 +853,29 @@ public abstract record PathAction : ISqlNode
 /// T-SQL: CREATE SPATIAL INDEX (Transact-SQL). <c>GEOMETRY_GRID</c>, <c>GEOGRAPHY_GRID</c>, <c>GEOMETRY_AUTO_GRID</c>,
 /// <c>GEOGRAPHY_AUTO_GRID</c>.
 /// </summary>
-public enum SpatialTessellation { GeometryGrid, GeographyGrid, GeometryAutoGrid, GeographyAutoGrid }
+public enum SpatialTessellation
+{
+	/// <summary><c>GEOMETRY_GRID</c>.</summary>
+	GeometryGrid,
+
+	/// <summary><c>GEOGRAPHY_GRID</c>.</summary>
+	GeographyGrid,
+
+	/// <summary><c>GEOMETRY_AUTO_GRID</c>.</summary>
+	GeometryAutoGrid,
+
+	/// <summary><c>GEOGRAPHY_AUTO_GRID</c>.</summary>
+	GeographyAutoGrid,
+}
 
 /// <summary>T-SQL: ALTER INDEX (Transact-SQL). What an <c>ALTER INDEX</c> does to the index.</summary>
 public abstract record IndexAlteration : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -784,6 +909,7 @@ public abstract record IndexAlteration : ISqlNode
 		/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). <c>WITH XMLNAMESPACES ('uri' AS p, …)</c>.</summary>
 		public SqlList<XmlNamespace> XmlNamespaces { get; init; } = [];
 
+		/// <summary>T-SQL: ALTER INDEX (Selective XML Indexes). The trailing <c>WITH (…)</c> options.</summary>
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
@@ -805,8 +931,10 @@ public sealed record FullTextIndexColumn(Identifier Column) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -826,8 +954,10 @@ public sealed record FullTextIndexColumn(Identifier Column) : ISqlNode
 public abstract record FullTextAlteration : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -898,18 +1028,61 @@ public abstract record FullTextAlteration : ISqlNode
 }
 
 /// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). What is done to a population.</summary>
-public enum PopulationAction { Start, Stop, Pause, Resume }
+public enum PopulationAction
+{
+	/// <summary><c>START</c>.</summary>
+	Start,
+
+	/// <summary><c>STOP</c>.</summary>
+	Stop,
+
+	/// <summary><c>PAUSE</c>.</summary>
+	Pause,
+
+	/// <summary><c>RESUME</c>.</summary>
+	Resume,
+}
 
 /// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). Which population is started.</summary>
-public enum PopulationKind { Full, Incremental, Update }
+public enum PopulationKind
+{
+	/// <summary><c>FULL</c>: every row is read.</summary>
+	Full,
+
+	/// <summary><c>INCREMENTAL</c>: the rows changed since the last population are read, by their timestamp.</summary>
+	Incremental,
+
+	/// <summary><c>UPDATE</c>: the rows changed since the change tracking was last processed are read.</summary>
+	Update,
+}
 
 /// <summary>
 /// T-SQL: CREATE VIEW (Transact-SQL), ALTER VIEW (Transact-SQL). The verb a definition opens with.
 /// </summary>
-public enum DefinitionVerb { Create, Alter, CreateOrAlter }
+public enum DefinitionVerb
+{
+	/// <summary><c>CREATE</c>.</summary>
+	Create,
+
+	/// <summary><c>ALTER</c>.</summary>
+	Alter,
+
+	/// <summary><c>CREATE OR ALTER</c>.</summary>
+	CreateOrAlter,
+}
 
 /// <summary>T-SQL: CREATE VIEW (Transact-SQL). A view's attribute, <c>WITH ENCRYPTION</c> and its fellows.</summary>
-public enum ViewAttribute { Encryption, SchemaBinding, ViewMetadata }
+public enum ViewAttribute
+{
+	/// <summary><c>ENCRYPTION</c>: the view's definition is stored encrypted.</summary>
+	Encryption,
+
+	/// <summary><c>SCHEMABINDING</c>: the objects the view reads cannot be changed in a way that breaks it.</summary>
+	SchemaBinding,
+
+	/// <summary><c>VIEW_METADATA</c>: the view's metadata, not the base tables', is returned to client libraries.</summary>
+	ViewMetadata,
+}
 
 public abstract partial record SequenceOption
 {

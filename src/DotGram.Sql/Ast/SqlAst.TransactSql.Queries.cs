@@ -36,7 +36,13 @@ public sealed partial record WithClause
 /// T-SQL: WITH XMLNAMESPACES (Transact-SQL). One namespace: <c>'uri' AS ns</c>, or the default,
 /// <c>DEFAULT 'uri'</c>, where <see cref="Prefix"/> is null.
 /// </summary>
-public sealed record XmlNamespace(Expression Uri, Identifier? Prefix) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record XmlNamespace(Expression Uri, Identifier? Prefix) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -68,7 +74,14 @@ public abstract partial record GroupingElement
 }
 
 /// <summary>T-SQL: GROUP BY (Transact-SQL). What the list's <c>WITH</c> adds.</summary>
-public enum GroupByWith { Cube, Rollup }
+public enum GroupByWith
+{
+	/// <summary><c>WITH CUBE</c>: a group for every combination of the listed columns.</summary>
+	Cube,
+
+	/// <summary><c>WITH ROLLUP</c>: a group for each prefix of the listed columns, and a grand total.</summary>
+	Rollup,
+}
 
 public abstract partial record TableSource
 {
@@ -120,7 +133,14 @@ public abstract partial record TableSource
 }
 
 /// <summary>T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). What a sample's number counts.</summary>
-public enum SampleUnit { Percent, Rows }
+public enum SampleUnit
+{
+	/// <summary><c>PERCENT</c>: the number is a percentage of the table's rows.</summary>
+	Percent,
+
+	/// <summary><c>ROWS</c>: the number is an approximate count of rows.</summary>
+	Rows,
+}
 
 // T-SQL's rowset functions (proposal 7): each a table source of its own, since their arguments are not all
 // values, with a WITH (…) schema as a list of RowsetColumn. A table-valued function whose arguments are
@@ -166,11 +186,6 @@ public abstract partial record TableSource
 	public sealed record OpenRowsetBulk(Expression File, SqlList<Option> Options, SqlList<RowsetColumn>? Schema, Alias? Alias = null) : TableSource;
 
 	/// <summary>
-	/// T-SQL: PREDICT (Transact-SQL). <c>PREDICT (MODEL = m, DATA = t AS d [, RUNTIME = ONNX]) WITH (…)</c>: the
-	/// model, the source scored with its alias, the runtime, and the columns the result adds — a name, a type, a
-	/// collation and <c>NOT NULL</c>, as the standard's column definition holds them, with no path.
-	/// </summary>
-	/// <summary>
 	/// T-SQL: AI_GENERATE_CHUNKS (Transact-SQL). <c>AI_GENERATE_CHUNKS (SOURCE = v, CHUNK_TYPE = FIXED, CHUNK_SIZE = v [,
 	/// OVERLAP = v [, ENABLE_CHUNK_SET_ID = v]])</c>: the five named in that order, the first three demanded, the type
 	/// the one bare word.
@@ -187,6 +202,16 @@ public abstract partial record TableSource
 		public Alias? Alias { get; init; }
 	}
 
+	/// <summary>
+	/// T-SQL: PREDICT (Transact-SQL). <c>PREDICT (MODEL = m, DATA = t AS d [, RUNTIME = ONNX]) WITH (…)</c>: the
+	/// model, the source scored with its alias, the runtime, and the columns the result adds — a name, a type, a
+	/// collation and <c>NOT NULL</c>, as the standard's column definition holds them, with no path.
+	/// </summary>
+	/// <param name="Model">The <c>MODEL =</c> value: the model's name or a variable holding it.</param>
+	/// <param name="Data">The <c>DATA =</c> source that is scored.</param>
+	/// <param name="Runtime">The <c>RUNTIME =</c> engine; null where it was not written.</param>
+	/// <param name="Schema">The columns of the <c>WITH (…)</c> clause, which the result adds.</param>
+	/// <param name="Alias">The correlation name of the result; null where none was written.</param>
 	public sealed record Predict(Expression Model, TableSource Data, Identifier? Runtime, SqlList<ColumnDefinition> Schema, Alias? Alias = null) : TableSource
 	{
 		/// <summary>T-SQL: PREDICT (Transact-SQL). <c>PREDICT (DATA = …, MODEL = …)</c>: the data written before the model.</summary>
@@ -239,7 +264,13 @@ public abstract partial record TableSource
 /// T-SQL: OPENDATASOURCE (Transact-SQL). <c>OPENDATASOURCE ('provider', 'init')</c>: the provider and the string it
 /// is initialised with.
 /// </summary>
-public sealed record OpenDataSource(Expression Provider, Expression InitString) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record OpenDataSource(Expression Provider, Expression InitString) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -249,7 +280,13 @@ public sealed record OpenDataSource(Expression Provider, Expression InitString) 
 /// <summary>
 /// T-SQL: OPENROWSET (Transact-SQL). <c>'datasource'; 'user'; 'password'</c>: where OPENROWSET connects, and as whom.
 /// </summary>
-public sealed record RowsetLogin(Expression DataSource, Expression User, Expression Password) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record RowsetLogin(Expression DataSource, Expression User, Expression Password) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -277,6 +314,7 @@ public abstract partial record TableSource
 	/// </summary>
 	public sealed record Variable(Identifier Name) : TableSource
 	{
+		/// <summary>T-SQL: FROM clause plus JOIN, APPLY, PIVOT (T-SQL). The correlation name; null where none was written.</summary>
 		public Alias? Alias { get; init; }
 
 		/// <summary>T-SQL: Table Hints (Transact-SQL).</summary>
@@ -318,7 +356,38 @@ public abstract partial record SelectColumn
 /// T-SQL: SELECT @local_variable (Transact-SQL). An assignment's operator: <c>=</c>, <c>+=</c>, <c>-=</c>, <c>*=</c>,
 /// <c>/=</c>, <c>%=</c>, <c>&amp;=</c>, <c>|=</c>, <c>^=</c>, and SQL Server 2025's <c>||=</c>.
 /// </summary>
-public enum AssignmentOperator { Assign, Add, Subtract, Multiply, Divide, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor, Concatenate }
+public enum AssignmentOperator
+{
+	/// <summary><c>=</c>.</summary>
+	Assign,
+
+	/// <summary><c>+=</c>.</summary>
+	Add,
+
+	/// <summary><c>-=</c>.</summary>
+	Subtract,
+
+	/// <summary><c>*=</c>.</summary>
+	Multiply,
+
+	/// <summary><c>/=</c>.</summary>
+	Divide,
+
+	/// <summary><c>%=</c>.</summary>
+	Modulo,
+
+	/// <summary><c>&amp;=</c>.</summary>
+	BitwiseAnd,
+
+	/// <summary><c>|=</c>.</summary>
+	BitwiseOr,
+
+	/// <summary><c>^=</c>.</summary>
+	BitwiseXor,
+
+	/// <summary><c>||=</c>, SQL Server 2025's string concatenation.</summary>
+	Concatenate,
+}
 
 public abstract partial record Expression
 {
@@ -366,8 +435,10 @@ public abstract partial record TableSource
 public abstract record GraphPattern : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -392,7 +463,13 @@ public abstract record GraphPattern : ISqlNode
 }
 
 /// <summary>T-SQL: MATCH (SQL Graph). A node: the alias or one-part name of a node table, or <c>LAST_NODE (x)</c>.</summary>
-public sealed record GraphNode(Identifier Alias, bool LastNode) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record GraphNode(Identifier Alias, bool LastNode) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -400,7 +477,13 @@ public sealed record GraphNode(Identifier Alias, bool LastNode) : ISqlNode { Sql
 }
 
 /// <summary>T-SQL: MATCH (SQL Graph). An edge and the node it reaches.</summary>
-public sealed record GraphStep(GraphEdge Edge, GraphNode Node) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record GraphStep(GraphEdge Edge, GraphNode Node) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -408,7 +491,13 @@ public sealed record GraphStep(GraphEdge Edge, GraphNode Node) : ISqlNode { SqlL
 }
 
 /// <summary>T-SQL: MATCH (SQL Graph). An edge, <c>-(e)-></c> or <c>&lt;-(e)-</c>.</summary>
-public sealed record GraphEdge(Identifier Alias, GraphDirection Direction) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record GraphEdge(Identifier Alias, GraphDirection Direction) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -416,14 +505,27 @@ public sealed record GraphEdge(Identifier Alias, GraphDirection Direction) : ISq
 }
 
 /// <summary>T-SQL: MATCH (SQL Graph). Which way an edge points: <c>-(e)-></c> is <see cref="Right"/>, <c>&lt;-(e)-</c> <see cref="Left"/>.</summary>
-public enum GraphDirection { Right, Left }
+public enum GraphDirection
+{
+	/// <summary><c>-(e)-></c>.</summary>
+	Right,
+
+	/// <summary><c>&lt;-(e)-</c>.</summary>
+	Left,
+}
 
 /// <summary>
 /// T-SQL: MATCH (SQL Graph). How many times <c>SHORTEST_PATH</c> repeats its steps: <c>{1,3}</c>, <c>{1,}</c> with
 /// no most, or <c>+</c>, which is <c>{1,}</c> written short (<see cref="Plus"/>; the writer refuses it with any other
 /// bounds).
 /// </summary>
-public sealed record GraphQuantifier(int Min, int? Max, [property: Spelling] bool Plus) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record GraphQuantifier(int Min, int? Max, [property: Spelling] bool Plus) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));

@@ -360,14 +360,23 @@ public abstract partial record Statement
 }
 
 /// <summary>T-SQL: CREATE PARTITION FUNCTION (Transact-SQL). Which side of a boundary its value belongs to.</summary>
-public enum RangeSide { Left, Right }
+public enum RangeSide
+{
+	/// <summary><c>RANGE LEFT</c>: a boundary value belongs to the partition on its left.</summary>
+	Left,
+
+	/// <summary><c>RANGE RIGHT</c>: a boundary value belongs to the partition on its right.</summary>
+	Right,
+}
 
 /// <summary>T-SQL: ALTER PARTITION FUNCTION (Transact-SQL). What an <c>ALTER PARTITION FUNCTION</c> does.</summary>
 public abstract record PartitionFunctionAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -391,8 +400,10 @@ public abstract record PartitionFunctionAction : ISqlNode
 public abstract record FullTextCatalogAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -419,8 +430,10 @@ public abstract record FullTextCatalogAction : ISqlNode
 public abstract record StopListSource : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -441,8 +454,10 @@ public abstract record StopListSource : ISqlNode
 public abstract record StopListAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -469,8 +484,10 @@ public abstract record StopListAction : ISqlNode
 public abstract record SearchPropertyListAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -497,8 +514,10 @@ public abstract record SearchPropertyListAction : ISqlNode
 public abstract record BackupDevice : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -518,10 +537,26 @@ public abstract record BackupDevice : ISqlNode
 }
 
 /// <summary>T-SQL: BACKUP (Transact-SQL). What a physical device is.</summary>
-public enum DeviceKind { Disk, Tape, Url }
+public enum DeviceKind
+{
+	/// <summary><c>DISK</c>.</summary>
+	Disk,
+
+	/// <summary><c>TAPE</c>.</summary>
+	Tape,
+
+	/// <summary><c>URL</c>.</summary>
+	Url,
+}
 
 /// <summary>T-SQL: BACKUP (Transact-SQL). <c>MIRROR TO device, …</c>: the devices, one at least.</summary>
-public sealed record BackupMirror(SqlList<BackupDevice> Devices) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record BackupMirror(SqlList<BackupDevice> Devices) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -532,8 +567,10 @@ public sealed record BackupMirror(SqlList<BackupDevice> Devices) : ISqlNode { Sq
 public abstract record BackupFile : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -560,7 +597,13 @@ public abstract record BackupFile : ISqlNode
 /// T-SQL: BACKUP MASTER KEY (Transact-SQL), BACKUP SYMMETRIC KEY (Transact-SQL), RESTORE MASTER KEY (Transact-SQL),
 /// RESTORE SYMMETRIC KEY (Transact-SQL). <c>{ FILE | URL } = 'path'</c>: where a key goes or comes from.
 /// </summary>
-public sealed record KeyPlace(KeyPlaceKind Kind, Expression Path) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record KeyPlace(KeyPlaceKind Kind, Expression Path) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -568,17 +611,37 @@ public sealed record KeyPlace(KeyPlaceKind Kind, Expression Path) : ISqlNode { S
 }
 
 /// <summary>T-SQL: BACKUP MASTER KEY (Transact-SQL). Whether a key's place is a file or a URL.</summary>
-public enum KeyPlaceKind { File, Url }
+public enum KeyPlaceKind
+{
+	/// <summary><c>FILE =</c>: a file path.</summary>
+	File,
+
+	/// <summary><c>URL =</c>: a URL.</summary>
+	Url,
+}
 
 /// <summary>T-SQL: CREATE DATABASE (Transact-SQL). Whether a database is contained.</summary>
 /// <remarks><see cref="None"/> is the word <c>NONE</c>; a database that says nothing has a null containment.</remarks>
-public enum DatabaseContainment { None, Partial }
+public enum DatabaseContainment
+{
+	/// <summary><c>CONTAINMENT = NONE</c>.</summary>
+	None,
+
+	/// <summary><c>CONTAINMENT = PARTIAL</c>.</summary>
+	Partial,
+}
 
 /// <summary>
 /// T-SQL: CREATE DATABASE (Transact-SQL). <c>FILEGROUP name [CONTAINS …] [DEFAULT] file, …</c>: a filegroup and its files,
 /// one at least.
 /// </summary>
-public sealed record FileGroup(Identifier Name, SqlList<DatabaseFile> Files) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed record FileGroup(Identifier Name, SqlList<DatabaseFile> Files) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -595,8 +658,10 @@ public sealed record FileGroup(Identifier Name, SqlList<DatabaseFile> Files) : I
 public abstract record DatabaseSource : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -623,7 +688,17 @@ public abstract record DatabaseSource : ISqlNode
 /// T-SQL: CREATE DATABASE (Transact-SQL). Which attach: <c>ATTACH</c>, <c>ATTACH_REBUILD_LOG</c>, or
 /// <c>ATTACH_FORCE_REBUILD_LOG</c>, which the grammar reads and the page does not name.
 /// </summary>
-public enum AttachKind { Attach, AttachRebuildLog, AttachForceRebuildLog }
+public enum AttachKind
+{
+	/// <summary><c>FOR ATTACH</c>.</summary>
+	Attach,
+
+	/// <summary><c>FOR ATTACH_REBUILD_LOG</c>.</summary>
+	AttachRebuildLog,
+
+	/// <summary><c>FOR ATTACH_FORCE_REBUILD_LOG</c>.</summary>
+	AttachForceRebuildLog,
+}
 
 /// <summary>
 /// T-SQL: ALTER DATABASE SET Options (Transact-SQL). <c>termination</c>: what is done with the sessions that stand in the way
@@ -632,8 +707,10 @@ public enum AttachKind { Attach, AttachRebuildLog, AttachForceRebuildLog }
 public abstract record Termination : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -661,8 +738,10 @@ public abstract record Termination : ISqlNode
 public abstract record ScopedConfigurationAction : ISqlNode
 {
 	SqlLocation _location;
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
 
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
