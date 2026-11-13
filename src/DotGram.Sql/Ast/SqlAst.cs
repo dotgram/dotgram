@@ -1855,8 +1855,34 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: embedded WHENEVER and implementation-defined preparable statement escape hatch
-	public sealed record Whenever : Statement { public required SqlCondition Condition { get; init; } public required ConditionAction Action { get; init; } }
-	public sealed record Extension : Statement { public required string Dialect { get; init; } public required string Kind { get; init; } public SqlList<ISqlNode> Parts { get; init; } = []; }
+	/// <summary>
+	/// An embedded SQL <c>WHENEVER &lt;condition&gt; &lt;action&gt;</c> declaration: what the host program does
+	/// when a statement raises the condition, such as <c>WHENEVER NOT FOUND GOTO done</c>.
+	/// </summary>
+	public sealed record Whenever : Statement
+	{
+		/// <summary>The condition watched: an exception, a warning, not found, an SQLSTATE or a constraint.</summary>
+		public required SqlCondition Condition { get; init; }
+
+		/// <summary>What is done when the condition is raised: <c>CONTINUE</c> or a jump to a label.</summary>
+		public required ConditionAction Action { get; init; }
+	}
+
+	/// <summary>
+	/// A statement a dialect's reader recognised but the common tree has no place for yet. The reader returns
+	/// it instead of failing, naming what was left out.
+	/// </summary>
+	public sealed record Extension : Statement
+	{
+		/// <summary>The dialect whose reader made the node, such as <c>T-SQL</c>.</summary>
+		public required string Dialect { get; init; }
+
+		/// <summary>What the reader says the statement is and why the common tree cannot hold it.</summary>
+		public required string Kind { get; init; }
+
+		/// <summary>The nodes the extension carries; empty where the reader keeps none, as T-SQL's does.</summary>
+		public SqlList<ISqlNode> Parts { get; init; } = [];
+	}
 }
 
 /// <summary>
@@ -1894,7 +1920,11 @@ public abstract partial record Statement : ISqlNode
 public abstract partial record Query : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2083,7 +2113,11 @@ public abstract partial record Query : ISqlNode
 public abstract partial record SelectColumn : ISqlNode, ISqlLocatable
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2100,19 +2134,56 @@ public abstract partial record SelectColumn : ISqlNode, ISqlLocatable
 		_location = SqlLocation.Told(at, length);
 	}
 
+	/// <summary>The bare <c>*</c> of a select list: every column of the table sources.</summary>
 	public sealed record All : SelectColumn;
+
+	/// <summary>One column of a select list: an expression with an optional alias, <c>a + 1 AS b</c>.</summary>
+	/// <param name="Expression">The value selected.</param>
+	/// <param name="Alias">The name given to the column; null where none was written.</param>
+	/// <param name="AsKeyword"><c>AS</c> was written before the alias.</param>
 	public sealed partial record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectColumn;
+
+	/// <summary>All the fields of one table or row value, <c>t.*</c>, standing for several result columns.</summary>
+	/// <param name="Qualifier">What stands before <c>.*</c>: a table's name or a row-valued expression.</param>
+	/// <param name="RenamedFields">The names given to the fields in <c>t.* AS (a, b)</c>; null where no list was written.</param>
 	public sealed record QualifiedAll(Expression Qualifier, SqlList<Identifier>? RenamedFields = null) : SelectColumn;
 }
 
-public enum SetQuantifier { All, Distinct }
+/// <summary>The quantifier of a set function, a select list or a grouping: <c>ALL</c> or <c>DISTINCT</c>.</summary>
+public enum SetQuantifier
+{
+	/// <summary><c>ALL</c>: duplicates are kept.</summary>
+	All,
+
+	/// <summary><c>DISTINCT</c>: duplicates are removed.</summary>
+	Distinct,
+}
 
 /// <summary>
 /// The six set operations. <c>ALL</c> changes the result — a bag rather than a set — so each kind with
 /// it is an operation of its own; a <c>DISTINCT</c> written out changes nothing, and is
 /// <see cref="SetOperation.Distinct"/>.
 /// </summary>
-public enum SetOperator { Union, UnionAll, Intersect, IntersectAll, Except, ExceptAll }
+public enum SetOperator
+{
+	/// <summary><c>UNION</c>: the rows of either operand, without duplicates.</summary>
+	Union,
+
+	/// <summary><c>UNION ALL</c>: the rows of both operands, duplicates kept.</summary>
+	UnionAll,
+
+	/// <summary><c>INTERSECT</c>: the rows in both operands, without duplicates.</summary>
+	Intersect,
+
+	/// <summary><c>INTERSECT ALL</c>: the rows in both operands, as often as the fewer of the two has them.</summary>
+	IntersectAll,
+
+	/// <summary><c>EXCEPT</c>: the rows of the left operand not in the right, without duplicates.</summary>
+	Except,
+
+	/// <summary><c>EXCEPT ALL</c>: the rows of the left operand, less as many as the right has of each.</summary>
+	ExceptAll,
+}
 
 /// <summary>
 /// BNF: the <c>UNION</c>, <c>EXCEPT</c> and <c>INTERSECT</c> of <c>&lt;query expression body&gt;</c> and
@@ -2123,7 +2194,11 @@ public sealed record SetOperation(SetOperator Operator, Query Query) : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2131,63 +2206,189 @@ public sealed record SetOperation(SetOperator Operator, Query Query) : ISqlNode
 
 	/// <summary><c>UNION DISTINCT</c> was written for <c>UNION</c>. Only with a kind without <c>ALL</c>.</summary>
 	[Spelling] public bool Distinct { get; init; }
+
+	/// <summary>
+	/// <c>CORRESPONDING [BY (…)]</c>: the operands are matched by column name rather than position; null
+	/// where it was not written.
+	/// </summary>
 	public CorrespondingClause? Corresponding { get; init; }
 }
 
-public sealed partial record WithClause(bool Recursive, SqlList<CommonTableExpression> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// <c>WITH [RECURSIVE] …</c>: the common table expressions a query can name. See <see cref="Query.With"/>.
+/// </summary>
+/// <param name="Recursive"><c>RECURSIVE</c> was written.</param>
+/// <param name="Items">The common table expressions, in text order.</param>
+public sealed partial record WithClause(bool Recursive, SqlList<CommonTableExpression> Items) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record CommonTableExpression(Identifier Name, SqlList<Identifier> Columns, Query Query, SearchClause? Search = null, CycleClause? Cycle = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// One common table expression of a <c>WITH</c>: <c>name (a, b) AS (query)</c>, with the standard's
+/// <c>SEARCH</c> and <c>CYCLE</c> clauses after it.
+/// </summary>
+/// <param name="Name">The name the query is given.</param>
+/// <param name="Columns">The column names listed after the name; empty where none were listed.</param>
+/// <param name="Query">The query in the brackets after <c>AS</c>.</param>
+/// <param name="Search">The <c>SEARCH</c> clause; null where none was written.</param>
+/// <param name="Cycle">The <c>CYCLE</c> clause; null where none was written.</param>
+public sealed record CommonTableExpression(Identifier Name, SqlList<Identifier> Columns, Query Query, SearchClause? Search = null, CycleClause? Cycle = null) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
 
-// BNF: <search clause>, <recursive search order>, <sequence column>.
-public sealed record SearchClause(SearchOrder Order, SqlList<Identifier> Columns, Identifier SequenceColumn) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
-}
-public enum SearchOrder { DepthFirst, BreadthFirst }
+/// <summary>
+/// BNF: <c>&lt;search clause&gt;</c>, <c>&lt;recursive search order&gt;</c>, <c>&lt;sequence column&gt;</c>.
+/// <c>SEARCH DEPTH FIRST BY a, b SET seq</c> of a recursive common table expression: numbers its rows in the
+/// order a traversal visits them.
+/// </summary>
+/// <param name="Order">Whether the traversal goes depth first or breadth first.</param>
+/// <param name="Columns">The columns the rows are ordered by within a level (the <c>BY</c> list).</param>
+/// <param name="SequenceColumn">The column that receives the visit number (the <c>SET</c> name).</param>
+public sealed record SearchClause(SearchOrder Order, SqlList<Identifier> Columns, Identifier SequenceColumn) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
 
-// BNF: <cycle clause>, <cycle column list>, <cycle mark column>, <cycle mark option>, <path column>.
-public sealed record CycleClause(SqlList<Identifier> Columns, Identifier MarkColumn, Expression? MarkValue, Expression? NonCycleMarkValue, Identifier PathColumn) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record FromClause(SqlList<TableSource> Sources) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The order a <see cref="SearchClause"/> numbers the rows of a recursive query in.</summary>
+public enum SearchOrder
+{
+	/// <summary><c>DEPTH FIRST</c>: a row is followed by its descendants before its siblings.</summary>
+	DepthFirst,
+
+	/// <summary><c>BREADTH FIRST</c>: all the rows of one level before the next.</summary>
+	BreadthFirst,
+}
+
+/// <summary>
+/// BNF: <c>&lt;cycle clause&gt;</c>, <c>&lt;cycle column list&gt;</c>, <c>&lt;cycle mark column&gt;</c>,
+/// <c>&lt;cycle mark option&gt;</c>, <c>&lt;path column&gt;</c>. <c>CYCLE a SET m TO 1 DEFAULT 0 USING p</c> of a
+/// recursive common table expression: marks a row that revisits a row already on its path.
+/// </summary>
+/// <param name="Columns">The columns whose values identify a row on the path.</param>
+/// <param name="MarkColumn">The column that receives the mark (the <c>SET</c> name).</param>
+/// <param name="MarkValue">The value marking a cyclic row (after <c>TO</c>); null where the mark values were left out.</param>
+/// <param name="NonCycleMarkValue">The value of every other row (after <c>DEFAULT</c>); null where the mark values were left out.</param>
+/// <param name="PathColumn">The column that receives the path (the <c>USING</c> name).</param>
+public sealed record CycleClause(SqlList<Identifier> Columns, Identifier MarkColumn, Expression? MarkValue, Expression? NonCycleMarkValue, Identifier PathColumn) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record IntoClause(SqlList<Expression> Targets) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The <c>FROM</c> clause of a query specification.</summary>
+/// <param name="Sources">The table sources, comma separated, in text order.</param>
+public sealed record FromClause(SqlList<TableSource> Sources) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed partial record GroupByClause(SetQuantifier? Quantifier, SqlList<GroupingElement> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The standard's <c>INTO :a, :b</c> of a query specification: the targets its row is assigned to.</summary>
+/// <param name="Targets">The targets, in text order.</param>
+public sealed record IntoClause(SqlList<Expression> Targets) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record WindowClause(SqlList<WindowDefinition> Windows) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The <c>GROUP BY</c> clause of a query specification.</summary>
+/// <param name="Quantifier"><c>ALL</c> or <c>DISTINCT</c> written after <c>GROUP BY</c>; null where neither was.</param>
+/// <param name="Items">The grouping elements: expressions, <c>ROLLUP</c>, <c>CUBE</c>, grouping sets, and the rest.</param>
+public sealed partial record GroupByClause(SetQuantifier? Quantifier, SqlList<GroupingElement> Items) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record OrderByClause(SqlList<SortItem> Items) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The <c>WINDOW</c> clause of a query specification: windows named for the <c>OVER</c>s that use them.</summary>
+/// <param name="Windows">The named window definitions, in text order.</param>
+public sealed record WindowClause(SqlList<WindowDefinition> Windows) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+/// <summary>An <c>ORDER BY</c> clause.</summary>
+/// <param name="Items">The sort items, in text order.</param>
+public sealed record OrderByClause(SqlList<SortItem> Items) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2206,7 +2407,11 @@ public sealed record Limit : ISqlNode
 {
 	SqlLocation _location;
 	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2233,34 +2438,121 @@ public sealed record Limit : ISqlNode
 	/// <summary><c>FETCH FIRST</c> or <c>FETCH NEXT</c>.</summary>
 	[Spelling] public FetchPosition Position { get; init; }
 }
-public enum RowWord { Row, Rows }
-public enum FetchPosition { First, Next }
+/// <summary>Which of the two interchangeable words follows a count in <c>OFFSET</c> and <c>FETCH</c>.</summary>
+public enum RowWord
+{
+	/// <summary><c>ROW</c>.</summary>
+	Row,
+
+	/// <summary><c>ROWS</c>.</summary>
+	Rows,
+}
+
+/// <summary>Which of the two interchangeable words follows <c>FETCH</c>.</summary>
+public enum FetchPosition
+{
+	/// <summary><c>FIRST</c>.</summary>
+	First,
+
+	/// <summary><c>NEXT</c>.</summary>
+	Next,
+}
 
 /// <summary>
 /// BNF: <c>&lt;updatability clause&gt;</c> of a <c>&lt;cursor specification&gt;</c>, and the row locks
 /// other dialects write in its place. One of a query's <see cref="Query.Locking"/>: <c>FOR UPDATE OF a</c>.
 /// </summary>
-public sealed record LockingClause(LockingMode Mode, SqlList<Identifier> Of) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <param name="Mode">Which lock or access is asked for.</param>
+/// <param name="Of">The names after <c>OF</c>; empty where there is no <c>OF</c>.</param>
+public sealed record LockingClause(LockingMode Mode, SqlList<Identifier> Of) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum LockingMode { ReadOnly, Update, NoKeyUpdate, Share, KeyShare }
-public sealed record CorrespondingClause(bool By, SqlList<Identifier> Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>What a <see cref="LockingClause"/> asks for.</summary>
+public enum LockingMode
+{
+	/// <summary><c>FOR READ ONLY</c>: the cursor is not updatable.</summary>
+	ReadOnly,
+
+	/// <summary><c>FOR UPDATE</c>: the rows are locked for update.</summary>
+	Update,
+
+	/// <summary><c>FOR NO KEY UPDATE</c>: locked for update, without blocking the shares of their keys.</summary>
+	NoKeyUpdate,
+
+	/// <summary><c>FOR SHARE</c>: the rows are locked against update by others.</summary>
+	Share,
+
+	/// <summary><c>FOR KEY SHARE</c>: locked against changes to their keys only.</summary>
+	KeyShare,
+}
+/// <summary>
+/// BNF: <c>&lt;corresponding spec&gt;</c>. <c>CORRESPONDING</c> or <c>CORRESPONDING BY (a, b)</c> after a set
+/// operator: the operands are matched by column name rather than by position.
+/// </summary>
+/// <param name="By"><c>BY</c> and its column list were written.</param>
+/// <param name="Columns">The columns of the <c>BY</c> list; empty where there is none.</param>
+public sealed record CorrespondingClause(bool By, SqlList<Identifier> Columns) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record SortItem(Expression Key, SortDirection? Direction = null, NullOrdering? NullOrdering = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>One item of an <c>ORDER BY</c>: <c>a DESC NULLS LAST</c>.</summary>
+/// <param name="Key">The value sorted by.</param>
+/// <param name="Direction"><c>ASC</c> or <c>DESC</c>; null where neither was written.</param>
+/// <param name="NullOrdering"><c>NULLS FIRST</c> or <c>NULLS LAST</c>; null where neither was written.</param>
+public sealed record SortItem(Expression Key, SortDirection? Direction = null, NullOrdering? NullOrdering = null) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum SortDirection { Asc, Desc }
-public enum NullOrdering { First, Last }
+/// <summary>The direction of a <see cref="SortItem"/>.</summary>
+public enum SortDirection
+{
+	/// <summary><c>ASC</c>: smallest first.</summary>
+	Asc,
+
+	/// <summary><c>DESC</c>: largest first.</summary>
+	Desc,
+}
+
+/// <summary>Where a <see cref="SortItem"/> puts null.</summary>
+public enum NullOrdering
+{
+	/// <summary><c>NULLS FIRST</c>.</summary>
+	First,
+
+	/// <summary><c>NULLS LAST</c>.</summary>
+	Last,
+}
 
 /// <summary>
 /// A table source: what a <c>FROM</c> lists and a statement changes. One of the records nested in this
@@ -2274,7 +2566,11 @@ public enum NullOrdering { First, Last }
 public abstract partial record TableSource : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2360,8 +2656,16 @@ public abstract partial record TableSource : ISqlNode
 		/// </summary>
 		public bool OuterKeyword { get; init; }
 
-		// BNF: <partitioned join table>'s <join column list> on either side, `t PARTITION BY (a) LEFT JOIN u`.
+		/// <summary>
+		/// BNF: <c>&lt;partitioned join table&gt;</c>'s <c>&lt;join column list&gt;</c> after the left source,
+		/// <c>t PARTITION BY (a) LEFT JOIN u</c>; null where none was written.
+		/// </summary>
 		public SqlList<Expression>? LeftPartition { get; init; }
+
+		/// <summary>
+		/// The same <c>PARTITION BY (…)</c> after the right source, <c>t LEFT JOIN u PARTITION BY (a)</c>; null
+		/// where none was written.
+		/// </summary>
 		public SqlList<Expression>? RightPartition { get; init; }
 
 		/// <summary>
@@ -2369,33 +2673,111 @@ public abstract partial record TableSource : ISqlNode
 		/// </summary>
 		public JoinSpecification? Specification { get; init; }
 
-		// T-SQL: Join hints (Transact-SQL). How the engine is told to perform the join.
+		/// <summary>
+		/// T-SQL: Join hints (Transact-SQL). How the engine is told to perform the join, the word inside the join
+		/// type: <c>INNER LOOP JOIN</c>. Null where none was written.
+		/// </summary>
 		public JoinHint? Hint { get; init; }
 	}
 
+	/// <summary>A table made of arrays or multisets: <c>UNNEST (a, b) WITH ORDINALITY AS t</c>.</summary>
+	/// <param name="Expressions">The collections unnested, in text order.</param>
+	/// <param name="WithOrdinality"><c>WITH ORDINALITY</c> was written: each row also carries its position.</param>
+	/// <param name="Alias">The name given to the table and its columns; null where none was written.</param>
 	public sealed record Unnest(SqlList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
+
+	/// <summary>A call of a table-valued function used as a table: <c>f(a) AS t</c>.</summary>
+	/// <param name="Invocation">The call.</param>
+	/// <param name="Alias">The name given to the result and its columns; null where none was written.</param>
 	public sealed partial record Function(Expression.Invocation Invocation, Alias? Alias = null) : TableSource;
 
-	// BNF: <table function derived table>, `TABLE (f (a))`.
+	/// <summary>
+	/// BNF: <c>&lt;table function derived table&gt;</c>, <c>TABLE (f (a))</c>: a collection-valued expression read as a table.
+	/// </summary>
+	/// <param name="Value">The expression inside the brackets.</param>
+	/// <param name="Alias">The name given to the table; null where none was written.</param>
 	public sealed record TableFunction(Expression Value, Alias? Alias = null) : TableSource;
 
-	// BNF: <row pattern recognition clause> after a table primary, `t MATCH_RECOGNIZE (…) AS m`.
+	/// <summary>
+	/// BNF: <c>&lt;row pattern recognition clause&gt;</c> after a table primary, <c>t MATCH_RECOGNIZE (…) AS m</c>:
+	/// the rows of a table matched against a pattern.
+	/// </summary>
+	/// <param name="Source">The table primary the clause follows.</param>
+	/// <param name="Clause">The <c>MATCH_RECOGNIZE</c> clause.</param>
+	/// <param name="Alias">The name given to the result; null where none was written.</param>
 	public sealed record RowPatternRecognition(TableSource Source, RowPatternClause Clause, Alias? Alias = null) : TableSource;
+	/// <summary>A <c>JSON_TABLE (…)</c>: a JSON document read as a table.</summary>
+	/// <param name="Definition">The document, path, columns and plan inside the brackets.</param>
+	/// <param name="Alias">The name given to the table; null where none was written.</param>
 	public sealed record JsonTable(JsonTableDefinition Definition, Alias? Alias = null) : TableSource;
-	// T-SQL: INSERT (Transact-SQL). Option null is T-SQL's form, `(MERGE … OUTPUT …) AS c`, where the statement's OUTPUT is the rows.
+
+	/// <summary>
+	/// A data change statement used as a table: <c>FINAL TABLE (INSERT …)</c>, whose rows are those the statement
+	/// affected. T-SQL: INSERT (Transact-SQL). Its form is <c>(MERGE … OUTPUT …) AS c</c>, where the statement's
+	/// <c>OUTPUT</c> is the rows and <paramref name="Option"/> is null.
+	/// </summary>
+	/// <param name="Option">Which version of the rows is read: <c>FINAL</c>, <c>NEW</c> or <c>OLD</c>; null in T-SQL's form.</param>
+	/// <param name="Change">The <c>INSERT</c>, <c>UPDATE</c>, <c>DELETE</c> or <c>MERGE</c> in the brackets.</param>
+	/// <param name="Alias">The name given to the rows; null where none was written.</param>
 	public sealed record DataChange(ResultOption? Option, Statement Change, Alias? Alias = null) : TableSource;
+	/// <summary>A pair of brackets around a table source: <c>(t JOIN u ON …)</c>.</summary>
+	/// <param name="Source">What the brackets hold.</param>
 	public sealed record Parenthesized(TableSource Source) : TableSource;
+
+	/// <summary>
+	/// A table source a dialect's reader recognised but the common tree has no place for yet. The reader
+	/// returns it instead of failing, naming what was left out.
+	/// </summary>
+	/// <param name="Dialect">The dialect whose reader made the node, such as <c>T-SQL</c>.</param>
+	/// <param name="Kind">What the reader says the source is and why the common tree cannot hold it.</param>
+	/// <param name="Parts">The nodes the extension carries; empty where the reader keeps none, as T-SQL's does.</param>
 	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : TableSource;
 }
 
-// T-SQL: FROM plus JOIN, APPLY, PIVOT, UNPIVOT (Transact-SQL). `CrossApply` and `OuterApply` join a
-// table source to one computed from each of its rows, which no standard join does.
-// SQL-92: §7.5 <joined table>, `Union`, `t UNION JOIN u`; removed in SQL:2003.
-public enum JoinKind { Cross, Inner, Left, Right, Full, CrossApply, OuterApply, Union }
+/// <summary>
+/// The kind of a <see cref="TableSource.Join"/>.
+/// </summary>
+/// <remarks>
+/// T-SQL: FROM plus JOIN, APPLY, PIVOT, UNPIVOT (Transact-SQL). <c>CrossApply</c> and <c>OuterApply</c> join a
+/// table source to one computed from each of its rows, which no standard join does.
+/// SQL-92: §7.5 <c>&lt;joined table&gt;</c>, <c>Union</c>, <c>t UNION JOIN u</c>; removed in SQL:2003.
+/// </remarks>
+public enum JoinKind
+{
+	/// <summary><c>CROSS JOIN</c>: every pairing of the two sources' rows.</summary>
+	Cross,
+
+	/// <summary><c>INNER JOIN</c>: the pairs that meet the condition.</summary>
+	Inner,
+
+	/// <summary><c>LEFT JOIN</c>: the inner pairs, and each left row with no pair, completed with nulls.</summary>
+	Left,
+
+	/// <summary><c>RIGHT JOIN</c>: the inner pairs, and each right row with no pair, completed with nulls.</summary>
+	Right,
+
+	/// <summary><c>FULL JOIN</c>: the inner pairs, and every row of either side with no pair, completed with nulls.</summary>
+	Full,
+
+	/// <summary>T-SQL: <c>CROSS APPLY</c>: the right source is computed from each left row; a left row it gives nothing for is dropped.</summary>
+	CrossApply,
+
+	/// <summary>T-SQL: <c>OUTER APPLY</c>: as <see cref="CrossApply"/>, but a left row it gives nothing for is kept, completed with nulls.</summary>
+	OuterApply,
+
+	/// <summary>SQL-92: <c>UNION JOIN</c>: the rows of both sources, each completed with nulls for the other's columns.</summary>
+	Union,
+}
+
+/// <summary>What a <see cref="TableSource.Join"/> joins on: <c>ON …</c> or <c>USING (…)</c>.</summary>
 public abstract record JoinSpecification : ISqlNode
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2405,23 +2787,75 @@ public abstract record JoinSpecification : ISqlNode
 	{
 	}
 
+	/// <summary><c>ON condition</c>.</summary>
+	/// <param name="Condition">The condition the joined rows meet.</param>
 	public sealed record On(Expression Condition) : JoinSpecification;
+
+	/// <summary><c>USING (a, b) [AS c]</c>: the columns the two sources are joined on by name.</summary>
+	/// <param name="Columns">The columns listed.</param>
+	/// <param name="Correlation">The name after <c>AS</c> that the joined columns go by; null where none was written.</param>
 	public sealed record Using(SqlList<Identifier> Columns, Identifier? Correlation = null) : JoinSpecification;
 }
-public sealed record Alias(Identifier Name, SqlList<Identifier>? Columns = null, bool AsKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>The name a table source is given: <c>[AS] t [(a, b)]</c>.</summary>
+/// <param name="Name">The table's name.</param>
+/// <param name="Columns">The names given to its columns; null where no list was written.</param>
+/// <param name="AsKeyword"><c>AS</c> was written before the name.</param>
+public sealed record Alias(Identifier Name, SqlList<Identifier>? Columns = null, bool AsKeyword = false) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed partial record SampleClause(SampleMethod Method, Expression Percentage, Expression? Repeat = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <summary>
+/// <c>TABLESAMPLE BERNOULLI (10) REPEATABLE (7)</c>: a random sample of a table source's rows.
+/// </summary>
+/// <param name="Method">The sampling method.</param>
+/// <param name="Percentage">The size of the sample; a percentage unless <c>Unit</c> says otherwise.</param>
+/// <param name="Repeat">The seed in <c>REPEATABLE (…)</c>; null where none was written.</param>
+public sealed partial record SampleClause(SampleMethod Method, Expression Percentage, Expression? Repeat = null) : ISqlNode
+{
+	SqlLocation _location;
+	Type EqualityContract => SqlLocation.Guard(GetType());
+
+	/// <inheritdoc/>
+	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum SampleMethod { Bernoulli, System }
-public enum ResultOption { Final, New, Old }
+/// <summary>How a <see cref="SampleClause"/> picks rows.</summary>
+public enum SampleMethod
+{
+	/// <summary><c>BERNOULLI</c>: each row is chosen on its own.</summary>
+	Bernoulli,
+
+	/// <summary><c>SYSTEM</c>: whole blocks of rows are chosen.</summary>
+	System,
+}
+
+/// <summary>Which version of the affected rows a <see cref="TableSource.DataChange"/> reads.</summary>
+public enum ResultOption
+{
+	/// <summary><c>FINAL TABLE</c>: the rows as the statement, and its triggers, leave them.</summary>
+	Final,
+
+	/// <summary><c>NEW TABLE</c>: the rows as the statement made them, before triggers fire.</summary>
+	New,
+
+	/// <summary><c>OLD TABLE</c>: the rows as they were before the statement.</summary>
+	Old,
+}
 
 /// <summary>
 /// A value or a condition: one of the records nested in this one — a column or variable by name
@@ -2436,7 +2870,11 @@ public enum ResultOption { Final, New, Old }
 public abstract partial record Expression : ISqlNode, ISqlLocatable
 {
 	SqlLocation _location;
+
+	/// <inheritdoc/>
 	public SqlSpan Span => _location.Span;
+
+	/// <inheritdoc/>
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -2462,15 +2900,31 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	/// <param name="Name">The name, as written, with every part.</param>
 	public sealed record Reference(QualifiedName Name) : Expression;
 
-	// BNF: <host parameter specification>, <embedded variable specification>, <dynamic parameter specification>.
+	/// <summary>
+	/// BNF: <c>&lt;host parameter specification&gt;</c>, <c>&lt;embedded variable specification&gt;</c>,
+	/// <c>&lt;dynamic parameter specification&gt;</c>. A value supplied from outside the statement: <c>:a</c> or <c>?</c>.
+	/// </summary>
+	/// <param name="Kind">Which kind of parameter it is.</param>
+	/// <param name="Name">The parameter's name, without the colon; null for a dynamic <c>?</c>.</param>
 	public sealed record Parameter(ParameterKind Kind, Identifier? Name = null) : Expression
 	{
-		// BNF: <indicator parameter>, <indicator variable> — `:a INDICATOR :i` or `:a :i`.
+		/// <summary>
+		/// BNF: <c>&lt;indicator parameter&gt;</c>, <c>&lt;indicator variable&gt;</c>. The variable after the
+		/// parameter that tells whether it is null, <c>:a INDICATOR :i</c> or <c>:a :i</c>; null where none was written.
+		/// </summary>
 		public Identifier? Indicator { get; init; }
+
+		/// <summary>The word <c>INDICATOR</c> was written before the indicator variable.</summary>
 		public bool IndicatorKeyword { get; init; }
 	}
 
-	// BNF: <general value specification>'s key words, <datetime value function>. Precision is `CURRENT_TIME (3)`'s.
+	/// <summary>
+	/// BNF: <c>&lt;general value specification&gt;</c>'s key words, <c>&lt;datetime value function&gt;</c>. A value
+	/// the session or the clock supplies, written as a word: <c>CURRENT_USER</c>, <c>CURRENT_TIMESTAMP (3)</c>.
+	/// </summary>
+	/// <param name="Kind">Which value it is.</param>
+	/// <param name="TypeName">The type named by <c>CURRENT_TRANSFORM_GROUP_FOR_TYPE</c>; null for every other value.</param>
+	/// <param name="Precision">The fractional-seconds precision in <c>CURRENT_TIME (3)</c>; null where none was written.</param>
 	public sealed record Current(CurrentValue Kind, QualifiedName? TypeName = null, Expression? Precision = null) : Expression;
 
 	/// <summary>
@@ -2489,69 +2943,154 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	/// <param name="Right">The operand after it.</param>
 	public sealed record Binary(Expression Left, BinaryOperator Operator, Expression Right) : Expression;
 
-	// BNF: <multiset value expression>, <multiset term> — `MULTISET UNION ALL`, which carries a quantifier.
+	/// <summary>
+	/// BNF: <c>&lt;multiset value expression&gt;</c>, <c>&lt;multiset term&gt;</c>: <c>a MULTISET UNION ALL b</c>.
+	/// </summary>
+	/// <param name="Left">The operand before the operator.</param>
+	/// <param name="Operator">The operator after <c>MULTISET</c>.</param>
+	/// <param name="Quantifier"><c>ALL</c> or <c>DISTINCT</c>; null where neither was written.</param>
+	/// <param name="Right">The operand after it.</param>
 	public sealed record MultisetOperation(Expression Left, MultisetOperator Operator, SetQuantifier? Quantifier, Expression Right) : Expression;
 
+	/// <summary>A row value constructor: <c>(1, 'a')</c> or <c>ROW (1, 'a')</c>.</summary>
+	/// <param name="Items">The fields, in text order.</param>
+	/// <param name="RowKeyword">The word <c>ROW</c> was written before the brackets.</param>
 	public sealed record Row(SqlList<Expression> Items, bool RowKeyword = false) : Expression;
+
+	/// <summary>A pair of brackets around an expression: <c>(a + b)</c>. It is a node so that the text is kept.</summary>
+	/// <param name="Value">What the brackets hold.</param>
 	public sealed record Parenthesized(Expression Value) : Expression;
+
+	/// <summary>A query used as a value, in its own brackets: <c>(SELECT MAX(a) FROM t)</c>.</summary>
+	/// <param name="Query">The query inside the brackets.</param>
 	public sealed record Subquery(Query Query) : Expression;
 
-	// BNF: <case expression>. In a simple CASE a when operand may be a predicate without its left side,
-	// `WHEN < 5`, whose missing operand is written as CaseOperand.
+	/// <summary>
+	/// BNF: <c>&lt;case expression&gt;</c>: <c>CASE [operand] WHEN … THEN … [ELSE …] END</c>. In a simple CASE a
+	/// when operand may be a predicate without its left side, <c>WHEN &lt; 5</c>, whose missing operand is
+	/// written as <see cref="CaseOperand"/>.
+	/// </summary>
+	/// <param name="Operand">The value every <c>WHEN</c> is compared with; null in a searched CASE, whose <c>WHEN</c>s are conditions.</param>
+	/// <param name="Whens">The <c>WHEN … THEN …</c> branches, in text order.</param>
+	/// <param name="Else">The value after <c>ELSE</c>; null where there is no <c>ELSE</c>.</param>
 	public sealed record Case(Expression? Operand, SqlList<CaseWhen> Whens, Expression? Else) : Expression;
 
-	// BNF: <case operand> standing where a <when operand> leaves it out. Nothing is written for it.
+	/// <summary>
+	/// BNF: <c>&lt;case operand&gt;</c> standing where a <c>&lt;when operand&gt;</c> leaves it out. Nothing is
+	/// written for it.
+	/// </summary>
 	public sealed record CaseOperand : Expression;
 
+	/// <summary>A conversion to a type: <c>CAST (a AS t [FORMAT 'f'])</c>.</summary>
+	/// <param name="Value">The value converted.</param>
+	/// <param name="Target">The type converted to.</param>
+	/// <param name="Format">The text after <c>FORMAT</c>, as written; null where there is no <c>FORMAT</c>.</param>
 	public sealed partial record Cast(Expression Value, DataType Target, string? Format = null) : Expression;
 
-	// BNF: <routine invocation>, <aggregate function>, <window function>, <row pattern navigation operation>,
-	// and the functions whose arguments are a plain comma list.
+	/// <summary>
+	/// BNF: <c>&lt;routine invocation&gt;</c>, <c>&lt;aggregate function&gt;</c>, <c>&lt;window function&gt;</c>,
+	/// <c>&lt;row pattern navigation operation&gt;</c>, and the functions whose arguments are a plain comma list:
+	/// a call, <c>f (a, b)</c>, with whatever clauses follow its brackets.
+	/// </summary>
+	/// <param name="Name">The function's name, as written.</param>
+	/// <param name="Arguments">The arguments, in text order.</param>
 	public sealed partial record Invocation(QualifiedName Name, SqlList<Argument> Arguments) : Expression
 	{
-		// BNF: <set quantifier> in a <general set function>, `COUNT (DISTINCT a)`.
+		/// <summary>
+		/// BNF: <c>&lt;set quantifier&gt;</c> in a <c>&lt;general set function&gt;</c>, <c>COUNT (DISTINCT a)</c>; null
+		/// where neither <c>ALL</c> nor <c>DISTINCT</c> was written.
+		/// </summary>
 		public SetQuantifier? Quantifier { get; init; }
 
-		// BNF: <sort specification list> inside the brackets, `ARRAY_AGG (a ORDER BY b)`.
+		/// <summary>
+		/// BNF: <c>&lt;sort specification list&gt;</c> inside the brackets, <c>ARRAY_AGG (a ORDER BY b)</c>; null
+		/// where there is none.
+		/// </summary>
 		public OrderByClause? OrderBy { get; init; }
 
-		// BNF: <listagg overflow clause>.
+		/// <summary>BNF: <c>&lt;listagg overflow clause&gt;</c>, <c>ON OVERFLOW …</c> inside the brackets; null where there is none.</summary>
 		public ListaggOverflow? Overflow { get; init; }
 
-		// BNF: <from first or last>, <null treatment>.
+		/// <summary>BNF: <c>&lt;from first or last&gt;</c>, <c>FROM FIRST</c> or <c>FROM LAST</c> after the brackets; null where neither was written.</summary>
 		public FromFirstOrLast? From { get; init; }
+
+		/// <summary>BNF: <c>&lt;null treatment&gt;</c>, <c>RESPECT NULLS</c> or <c>IGNORE NULLS</c> after the brackets; null where neither was written.</summary>
 		public NullTreatment? Nulls { get; init; }
 
-		// BNF: <row pattern navigation operation>'s `RUNNING` or `FINAL`.
+		/// <summary>BNF: <c>&lt;row pattern navigation operation&gt;</c>'s <c>RUNNING</c> or <c>FINAL</c> before the name; null where neither was written.</summary>
 		public RowPatternSemantics? Semantics { get; init; }
 
+		/// <summary>The <c>FILTER (WHERE …)</c> of an aggregate; null where there is none.</summary>
 		public FilterClause? Filter { get; init; }
+
+		/// <summary>The <c>OVER</c> of a window function: a window's name or its specification; null where there is none.</summary>
 		public WindowReference? Over { get; init; }
+
+		/// <summary>The <c>WITHIN GROUP (ORDER BY …)</c> of an ordered-set aggregate; null where there is none.</summary>
 		public WithinGroupClause? WithinGroup { get; init; }
 
-		// BNF: <co-partition clause>: `COPARTITION (a, b), (c, d)`.
+		/// <summary>
+		/// BNF: <c>&lt;co-partition clause&gt;</c>: <c>COPARTITION (a, b), (c, d)</c>, each group a list of names; null
+		/// where there is none.
+		/// </summary>
 		public SqlList<SqlList<QualifiedName>>? Copartition { get; init; }
 
-		// A row pattern measure used as a window function, `m OVER w`, is written without brackets.
+		/// <summary>
+		/// A row pattern measure used as a window function, <c>m OVER w</c>, is written without brackets: the name
+		/// stands with no argument list.
+		/// </summary>
 		public bool WithoutParentheses { get; init; }
 	}
 
-	// BNF: `COUNT (*)`'s <asterisk>, as the one argument.
+	/// <summary>BNF: <c>COUNT (*)</c>'s <c>&lt;asterisk&gt;</c>, as the one argument.</summary>
 	public sealed record Asterisk : Expression;
 
-	// BNF: <method invocation>, <attribute or method reference>, <static method invocation> (`T::m`), <dereference operation>.
+	/// <summary>
+	/// BNF: <c>&lt;method invocation&gt;</c>, <c>&lt;attribute or method reference&gt;</c>,
+	/// <c>&lt;static method invocation&gt;</c> (<c>T::m</c>), <c>&lt;dereference operation&gt;</c>: <c>(a).m</c>,
+	/// <c>(a).m (x)</c>, <c>a -&gt; m</c>, <c>T::m (x)</c>.
+	/// </summary>
+	/// <param name="Target">The value or type whose member is named.</param>
+	/// <param name="Kind">The operator between the target and the name.</param>
+	/// <param name="Name">The member's name.</param>
+	/// <param name="Arguments">The arguments of a method call; null for an attribute, which has no brackets.</param>
 	public sealed record Member(Expression Target, MemberAccessKind Kind, Identifier Name, SqlList<Argument>? Arguments = null) : Expression;
 
-	// BNF: <generalized expression>, `(a AS t).m ()`.
+	/// <summary>
+	/// BNF: <c>&lt;generalized expression&gt;</c>, the <c>(a AS t)</c> of <c>(a AS t).m ()</c>: a value taken as
+	/// an instance of a user-defined type, so that its methods can be called.
+	/// </summary>
+	/// <param name="Value">The value.</param>
+	/// <param name="Type">The type it is taken as.</param>
 	public sealed record Generalized(Expression Value, DataType Type) : Expression;
 
-	// BNF: <subtype treatment>, <new specification>, <reference resolution>.
+	/// <summary>BNF: <c>&lt;subtype treatment&gt;</c>, <c>TREAT (a AS t)</c>: a value taken as an instance of a subtype.</summary>
+	/// <param name="Value">The value.</param>
+	/// <param name="Target">The subtype it is taken as.</param>
 	public sealed record Treat(Expression Value, DataType Target) : Expression;
+
+	/// <summary>BNF: <c>&lt;new specification&gt;</c>, <c>NEW t (a, b)</c>: a new instance of a user-defined type.</summary>
+	/// <param name="TypeName">The type's name.</param>
+	/// <param name="Arguments">The constructor's arguments, in text order.</param>
 	public sealed record New(QualifiedName TypeName, SqlList<Argument> Arguments) : Expression;
+
+	/// <summary>BNF: <c>&lt;reference resolution&gt;</c>, <c>DEREF (r)</c>: the value a reference refers to.</summary>
+	/// <param name="Value">The reference.</param>
 	public sealed record Dereference(Expression Value) : Expression;
 
+	/// <summary>An array constructor from a list of values: <c>ARRAY [1, 2, 3]</c>.</summary>
+	/// <param name="Items">The elements, in text order.</param>
+	/// <param name="Trigraphs">The brackets were written as the trigraphs <c>??(</c> and <c>??)</c>.</param>
 	public sealed record Array(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
+
+	/// <summary>A multiset constructor from a list of values: <c>MULTISET [1, 2, 3]</c>.</summary>
+	/// <param name="Items">The elements, in text order.</param>
+	/// <param name="Trigraphs">The brackets were written as the trigraphs <c>??(</c> and <c>??)</c>.</param>
 	public sealed record Multiset(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
+
+	/// <summary>A collection built from a query: <c>ARRAY (SELECT …)</c>, <c>MULTISET (SELECT …)</c>, <c>TABLE (SELECT …)</c>.</summary>
+	/// <param name="Kind">The collection built.</param>
+	/// <param name="Query">The query inside the brackets.</param>
 	public sealed record CollectionQuery(CollectionKind Kind, Query Query) : Expression;
 
 	// BNF: <array element reference>, and a JSON simplified accessor's `[1 TO 3]`. Trigraphs are `??(` and `??)`.
