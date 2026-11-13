@@ -48,7 +48,7 @@ public sealed class SnapshotGrammarTests
 		""";
 
 	/// <summary>A project holding every snapshot grammar, each with its host.</summary>
-	static string Project(Scratch scratch, string framework, string extra)
+	internal static string Project(Scratch scratch, string framework, string extra, string items = "")
 	{
 		var hosts = new StringBuilder("using DotGram;\n\nnamespace DotGram.Snapshots\n{\n");
 
@@ -72,6 +72,7 @@ public sealed class SnapshotGrammarTests
 			  </PropertyGroup>
 			  <ItemGroup>
 			    <AdditionalFiles Include="Grammars/*.gram" />
+			    {items}
 			  </ItemGroup>
 			  {Build.AnalyzerItems}
 			</Project>

@@ -1,6 +1,18 @@
 Examples	DotGram.Examples.Expressions.ArithmeticTree.g.cs	0649
+Examples	DotGram.Examples.Expressions.ArithmeticTree.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Expressions.ArithmeticTree.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Expressions.ArithmeticTree.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Expressions.ArithmeticTree.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Expressions.Calculator.g.cs	0649
+Examples	DotGram.Examples.Expressions.Calculator.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Expressions.Calculator.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Expressions.Calculator.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Expressions.Calculator.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	0649
+Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	0649
 Examples	DotGram.Examples.Formats.Config.Located.g.cs	0649
 Examples	DotGram.Examples.Formats.Config.g.cs	0649
@@ -12,31 +24,83 @@ Examples	DotGram.Examples.Formats.FixedWidth.g.cs	0649
 Examples	DotGram.Examples.Formats.HttpParser.g.cs	0649
 Examples	DotGram.Examples.Formats.IniParser.g.cs	0649
 Examples	DotGram.Examples.Formats.JsonParser.g.cs	0649
+Examples	DotGram.Examples.Formats.JsonParser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Formats.JsonParser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Formats.JsonParser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Formats.JsonParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Formats.MetricsLine.g.cs	0649
 Examples	DotGram.Examples.Formats.Netstrings.g.cs	0649
+Examples	DotGram.Examples.Formats.XmlParser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Formats.XmlParser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Formats.XmlParser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Formats.XmlParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Formats.YamlLite.g.cs	0649
 Examples	DotGram.Examples.Languages.Filter.g.cs	0649
+Examples	DotGram.Examples.Languages.Filter.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Languages.Filter.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Languages.Filter.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Languages.Filter.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Languages.FilterFile.g.cs	0649
 Examples	DotGram.Examples.Languages.FilterFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Examples	DotGram.Examples.Languages.Filters.g.cs	0649
+Examples	DotGram.Examples.Languages.Filters.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Languages.Filters.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Languages.Filters.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Languages.Filters.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Languages.GramGrammar.g.cs	0649
+Examples	DotGram.Examples.Languages.GramGrammar.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Languages.GramGrammar.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Languages.GramGrammar.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Languages.GramGrammar.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Languages.Lexemes.g.cs	0649
 Examples	DotGram.Examples.Languages.Scoped.g.cs	0649
 Examples	DotGram.Examples.Languages.Scoped.g.cs	CS0649 // a table nothing writes still declares the field
+Examples	DotGram.Examples.Languages.Scoped.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Examples	DotGram.Examples.Languages.Scoped.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Examples	DotGram.Examples.Languages.Scoped.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Examples	DotGram.Examples.Languages.Scoped.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Examples	DotGram.Examples.Languages.Selectors.g.cs	0649
 Examples	DotGram.Examples.Languages.SettingsFile.g.cs	0649
 Examples	DotGram.Examples.Languages.SettingsFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Examples	DotGram.Examples.Languages.SqlDialect.g.cs	0649
 Examples	DotGram.Examples.Languages.TokenizedQuery.g.cs	0649
+ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+ExpressionLanguage	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
+Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Finance	DotGram.Finance.Fix.FixGrammar.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649
+Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
+Sql	DotGram.Sql.Standard.SqlStandardParser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Sql	DotGram.Sql.Standard.SqlStandardParser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Sql	DotGram.Sql.Standard.SqlStandardParser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Sql	DotGram.Sql.Standard.SqlStandardParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	0649
+Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Web	DotGram.Web.Rfc3339.g.cs	0649
+Web	DotGram.Web.Rfc5322.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Web	DotGram.Web.Rfc5322.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Web	DotGram.Web.Rfc5322.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Web	DotGram.Web.Rfc5322.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Web	DotGram.Web.Rfc6265.g.cs	0649
 Web	DotGram.Web.Rfc6266.g.cs	0649
 Web	DotGram.Web.Rfc6570.g.cs	0649
 Web	DotGram.Web.Rfc6901.g.cs	0649
 Web	DotGram.Web.Rfc7239.g.cs	0649
 Web	DotGram.Web.Rfc8259.g.cs	0649
+Web	DotGram.Web.Rfc8259.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Web	DotGram.Web.Rfc8259.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Web	DotGram.Web.Rfc8259.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Web	DotGram.Web.Rfc8259.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Web	DotGram.Web.Rfc8288.g.cs	0649
 Web	DotGram.Web.Rfc9110.g.cs	0649

@@ -109,6 +109,7 @@ FIXED (each takes effect once the parser is generated again)
 - A refusal at a place that very many alternatives tied for kept every set they said (gigabytes on forty characters). The list is kept up to 16384 sets; past them the message names the first 16384 and ends "among others", and a trace sink is handed GramTrace.TruncatedTies as the last set.
 - A reader that carries the reading onto a thread of its own when its stack runs low probes the stack again when it comes back (ten thousand nested T-SQL CASE ended the process).
 - The direct reader and the engine give every form of a parse one outcome, position and value, as docs/syntax.md section 7.5 says. A refused negative lookahead is refused where it stands; a reading from a position is never refused before where it began; input that runs out inside a negative lookahead no longer makes the parse Starved (?!("kk") & 'z' refuses "k" as NoMatch). Three refusals inside trivia still differ (the release's known issues).
+- A parser generated into a project that is itself an analyzer or a source generator no longer fails its build with RS1035 (the cultures read and set where a deep reading moves to a stack of its own); the generated lines carry the suppression themselves.
 
 KNOWN ISSUES
 

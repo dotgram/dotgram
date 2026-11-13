@@ -1219,8 +1219,10 @@ sealed partial class Machine
 		using (file.Block("internal void Go()"))
 		{
 			file.Line("deepContext   = global::System.Threading.ExecutionContext.Capture();");
+			file.Line("#pragma warning disable RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.");
 			file.Line("deepCulture   = global::System.Globalization.CultureInfo.CurrentCulture;");
 			file.Line("deepUiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;");
+			file.Line("#pragma warning restore RS1035");
 			file.Line();
 			file.Line("global::System.Threading.ThreadInterruptedException? interrupted = null;");
 			file.Line();
@@ -1375,22 +1377,28 @@ sealed partial class Machine
 		using (file.Block("static void ReadIn(object? state)"))
 		{
 			file.Line($"var deep      = ({deep})state!;");
+			file.Line("#pragma warning disable RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.");
 			file.Line("var culture   = global::System.Globalization.CultureInfo.CurrentCulture;");
 			file.Line("var uiCulture = global::System.Globalization.CultureInfo.CurrentUICulture;");
+			file.Line("#pragma warning restore RS1035");
 			file.Line();
 
 			using (file.Block("try"))
 			{
+				file.Line("#pragma warning disable RS1035 // The caller's cultures, set on the thread that does the caller's work.");
 				file.Line("global::System.Globalization.CultureInfo.CurrentCulture   = deep.deepCulture!;");
 				file.Line("global::System.Globalization.CultureInfo.CurrentUICulture = deep.deepUiCulture!;");
+				file.Line("#pragma warning restore RS1035");
 				file.Line();
 				file.Line("deep.Run();");
 			}
 
 			using (file.Block("finally"))
 			{
+				file.Line("#pragma warning disable RS1035 // This thread's own cultures, put back before it waits for the next reading.");
 				file.Line("global::System.Globalization.CultureInfo.CurrentCulture   = culture;");
 				file.Line("global::System.Globalization.CultureInfo.CurrentUICulture = uiCulture;");
+				file.Line("#pragma warning restore RS1035");
 			}
 		}
 
