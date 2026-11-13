@@ -101,7 +101,7 @@ static class Renamed
 						Bind(directive.NamespaceOrType, model.Compilation, cancellationToken) is INamedTypeSymbol carrier &&
 						IsDotGram(carrier, "GramCarrier")))
 			{
-				found.Add(new RenamedUse(GramRenames.OldCarrier, GramRenames.NewCarrier, Place.Of(tape.GetLocation())));
+				found.Add(new RenamedUse(GramRenames.OldCarrier, GramRenames.NewCarrier, Place.Of(tape.GetLocation()), HostOf(tape, model, cancellationToken)));
 			}
 		}
 		else if (node is MemberAccessExpressionSyntax access)
@@ -111,17 +111,14 @@ static class Renamed
 				model.GetSymbolInfo(access.Expression, cancellationToken).Symbol is INamedTypeSymbol carrier &&
 				IsDotGram(carrier, "GramCarrier"))
 			{
-				found.Add(new RenamedUse(GramRenames.OldCarrier, GramRenames.NewCarrier, Place.Of(access.GetLocation())));
+				found.Add(new RenamedUse(GramRenames.OldCarrier, GramRenames.NewCarrier, Place.Of(access.GetLocation()), HostOf(access, model, cancellationToken)));
 			}
 		}
 		else if (node is AttributeSyntax attribute)
 		{
 			var bound = model.GetSymbolInfo(attribute, cancellationToken);
 
-			var host = attribute.Parent?.Parent is ClassDeclarationSyntax declaration &&
-				model.GetDeclaredSymbol(declaration, cancellationToken) is { } declared
-					? GramGenerator.IdentityOf(declared)
-					: null;
+			var host = HostOf(attribute, model, cancellationToken);
 
 			if (bound is { Symbol: null, CandidateSymbols.Length: 0 } && IsOldVariant(attribute.Name, model, cancellationToken))
 				found.Add(new RenamedUse(GramRenames.OldVariant, GramRenames.NewVariant, Place.Of(attribute.Name.GetLocation()), host));
@@ -135,6 +132,19 @@ static class Renamed
 		}
 
 		return found.ToImmutable();
+	}
+
+	/// <summary>
+	/// The class an attribute is written on, by <see cref="GramGenerator.IdentityOf"/>, where the node is
+	/// in one written on a class — the attribute itself, or a value in its arguments such as
+	/// <c>GramCarrier.Tape</c>; null elsewhere.
+	/// </summary>
+	static string? HostOf(SyntaxNode node, SemanticModel model, CancellationToken cancellationToken)
+	{
+		return node.FirstAncestorOrSelf<AttributeSyntax>()?.Parent?.Parent is ClassDeclarationSyntax declaration &&
+			model.GetDeclaredSymbol(declaration, cancellationToken) is { } declared
+				? GramGenerator.IdentityOf(declared)
+				: null;
 	}
 
 	/// <summary>

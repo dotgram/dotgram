@@ -245,6 +245,23 @@ public sealed class PublishesNothingTests
 		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM4059");
 	}
 
+	/// <summary>
+	/// The old carrier's name in an attribute of the host — qualified, or imported by a
+	/// <c>using static</c>, on the <c>[Gram]</c> or on a variant — is the host's error too.
+	/// </summary>
+	[Theory]
+	[InlineData("using DotGram;\n\n[Gram(\"A = 'a'\", Carrier = GramCarrier.Tape)]\npublic static partial class Lib { }")]
+	[InlineData("using DotGram;\nusing static DotGram.GramCarrier;\n\n[Gram(\"A = 'a'\", Carrier = Tape)]\npublic static partial class Lib { }")]
+	[InlineData("using DotGram;\n\n[Gram(\"A = 'a'\")]\n[GramParserVariant(\"Kept\", Carrier = GramCarrier.Tape)]\npublic static partial class Lib { }")]
+	[InlineData("using DotGram;\nusing static DotGram.GramCarrier;\n\n[Gram(\"A = 'a'\")]\n[GramParserVariant(\"Kept\", Carrier = Tape)]\npublic static partial class Lib { }")]
+	public void The_old_carrier_in_an_attribute_holds_it_back(string source)
+	{
+		var run = GeneratorDriverTests.RunGenerator(source);
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM0012");
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == "GRAM4059");
+	}
+
 	/// <summary>An error of any reading of the host — a variant's own option — holds back what the first is told.</summary>
 	[Fact]
 	public void An_error_in_a_variant_holds_it_back()
