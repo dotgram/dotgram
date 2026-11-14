@@ -835,11 +835,13 @@ against the specifications that define them and held to their test suites — a 
 own.
 
 ```csharp
+using DotGram.Web;
+
 var accept = MediaRange.ParseAccept("text/*;q=0.3, text/plain;q=0.7, */*;q=0.5");
 
-MediaRange.Quality(accept, MediaType.Parse("text/plain"));   // 0.7
-JsonPointer.Parse("/a/1").Resolve(JsonValue.Parse("""{ "a": [0, 42] }"""));   // 42
-EmailAddress.ParseList("Mary Smith <mary@x.test>, jdoe@example.org").Length;  // 2
+Console.WriteLine(MediaRange.Quality(accept, MediaType.Parse("text/plain")));   // 0.7
+Console.WriteLine(JsonPointer.Parse("/a/1").Resolve(JsonValue.Parse("""{ "a": [0, 42] }""")));   // 42
+Console.WriteLine(EmailAddress.ParseList("Mary Smith <mary@x.test>, jdoe@example.org").Length);  // 2
 ```
 
 | Format | Read with | Specification, and its grammar |
@@ -869,11 +871,15 @@ namespace of its own. All three build one tree, the standard's own, in `DotGram.
 T-SQL's constructs beside the standard's; a writer turns it back into SQL.
 
 ```csharp
+using DotGram.Sql.Ast;
+using DotGram.Sql.TransactSql;
+
 var match  = TransactSqlParser.TryParseSelect("select name from Users where id > @id");
 var select = (Statement.Select)match.Value;
 var query  = (Query.Select)select.Query;
+var from   = (TableSource.Named)query.From!.Sources[0];
 
-query.From!.Sources[0];  // TableSource.Named { Name = Users }
+Console.WriteLine(from.Name.Last.Text);  // Users
 ```
 
 | Parser | What it reads |
@@ -1053,8 +1059,9 @@ assembly compiled at C# 8 to 10 that already holds close to 16 MB of strings fai
 
 Three things an older target has to say:
 
-* **A grammar written inside `[Gram]` is a raw string literal, which is C# 11.** On
-  `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
+* **A grammar written inside `[Gram]` is a raw string literal, which is C# 11,** and the examples
+  here end a class with `;`, which is C# 12. On `netstandard2.0` and `net472` the default is C# 7.3,
+  so `<LangVersion>` has to be set.
   A grammar in a `.gram` file still needs C# 8: below it the build reports GRAM0010 and
   generates no parser, so set `<LangVersion>8.0</LangVersion>` or later.
 * **`netstandard2.0` and `net472` need `System.Memory`**, for the `ReadOnlySpan<char>`
@@ -1065,7 +1072,7 @@ Three things an older target has to say:
 
 ```xml
 <PropertyGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
-  <LangVersion>11.0</LangVersion>
+  <LangVersion>12.0</LangVersion>
 </PropertyGroup>
 
 <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
