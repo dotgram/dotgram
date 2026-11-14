@@ -239,7 +239,11 @@ static class SharedRecursion
 	sealed record Step(FirstSets.First? Letter, Rest? After, RuleSymbol[] Entered, bool Guarded, Forbid Forbidden);
 
 	/// <summary>One joint letter of a witness, with the rules each side entered on it where both did, and the rules of the cycle both entered.</summary>
-	sealed record Trail(string Letter, RuleSymbol[] Both, Trail? Before);
+	/// <remarks>
+	/// Kept as the letter and the rules, not as the text a witness writes: a trail is made for every
+	/// joint letter the search passes, and only the few that end in a pair told are ever written.
+	/// </remarks>
+	sealed record Trail(FirstSets.First Letter, List<RuleSymbol>? InA, List<RuleSymbol>? InB, RuleSymbol[] Both, Trail? Before);
 
 	/// <summary>A pair of configurations being simulated.</summary>
 	readonly record struct State(Rest? A, Forbid ForbidA, Rest? B, Forbid ForbidB, int Joint, bool Guarded, Trail? Trail);
@@ -252,6 +256,22 @@ static class SharedRecursion
 
 	/// <summary>The rules on the way to a letter, as a list that shares its tail.</summary>
 	sealed record Entry(RuleSymbol Rule, Entry? Before);
+
+	/// <summary>An entry by reference: one is made per call entered, and a record's equality would walk its tail.</summary>
+	sealed class EntryIdentity : IEqualityComparer<Entry>
+	{
+		public static readonly EntryIdentity Instance = new();
+
+		public bool Equals(Entry? x, Entry? y)
+		{
+			return ReferenceEquals(x, y);
+		}
+
+		public int GetHashCode(Entry obj)
+		{
+			return RuntimeHelpers.GetHashCode(obj);
+		}
+	}
 
 	/// <summary>What a <c>?!</c> stands for: the letters it refuses outright, and its longer sequences.</summary>
 	sealed record Refusal(FirstSets.First? Single, int[] Sequences);
@@ -269,6 +289,10 @@ static class SharedRecursion
 		readonly HashSet<RuleSymbol>                    _seams     = [];
 
 		static readonly Step[] Ending = [new Step(null, null, [], false, Forbid.None)];
+
+		static readonly List<RuleSymbol> NoneInCycle = [];
+
+		readonly Dictionary<Entry, RuleSymbol[]> _entered = new(EntryIdentity.Instance);
 
 		int _callsCut;
 
@@ -531,7 +555,7 @@ static class SharedRecursion
 
 							foreach (var (letter, forbidA, forbidB) in Advance(joint, state.ForbidA.Or(a.Forbidden), state.ForbidB.Or(b.Forbidden)))
 							{
-								var trail = new Trail(Spelled(letter) + (entered ? $"{{{Names(inA)}|{Names(inB)}}}" : ""), entered ? [.. inA.Where(inB.Contains)] : [], state.Trail);
+								var trail = entered ? new Trail(letter, inA, inB, [.. inA.Where(inB.Contains)], state.Trail) : new Trail(letter, null, null, [], state.Trail);
 
 								if (selfA && selfB && Survives(a.After, b.After, forbidA, forbidB))
 									return (3, guarded, Written(trail), JointOf(trail));
@@ -564,20 +588,24 @@ static class SharedRecursion
 		}
 
 		/// <summary>The rules of the cycle among those entered, and whether the rule itself is one.</summary>
+		/// <remarks>
+		/// Asked for every pair of letters the search meets, and most enter no rule of the cycle: those
+		/// share one empty list, which nothing adds to, so that only an entry into the cycle allocates.
+		/// </remarks>
 		List<RuleSymbol> InCycle(RuleSymbol[] entered, int component, RuleSymbol rule, out bool self)
 		{
-			var inside = new List<RuleSymbol>();
+			List<RuleSymbol>? inside = null;
 
 			self = false;
 
 			foreach (var one in entered)
 				if (_component.TryGetValue(one, out var at) && at == component)
 				{
-					inside.Add(one);
+					(inside ??= []).Add(one);
 					self |= ReferenceEquals(one, rule) || one.Equals(rule);
 				}
 
-			return inside;
+			return inside ?? NoneInCycle;
 		}
 
 		static string Names(List<RuleSymbol> rules)
@@ -603,12 +631,12 @@ static class SharedRecursion
 			return joint;
 		}
 
-		static string Written(Trail? trail)
+		string Written(Trail? trail)
 		{
 			var letters = new List<string>();
 
 			for (var at = trail; at is not null; at = at.Before)
-				letters.Add(at.Letter);
+				letters.Add(Spelled(at.Letter) + (at.InA is { } inA && at.InB is { } inB ? $"{{{Names(inA)}|{Names(inB)}}}" : ""));
 
 			letters.Reverse();
 
@@ -924,11 +952,20 @@ static class SharedRecursion
 			return count;
 		}
 
-		static RuleSymbol[] Entered(Entry? entered)
+		/// <remarks>Remembered per entry, which every letter read past the same calls shares.</remarks>
+		RuleSymbol[] Entered(Entry? entered)
 		{
 			if (entered is null)
 				return [];
 
+			if (_entered.TryGetValue(entered, out var known))
+				return known;
+
+			return _entered[entered] = EnteredOnce(entered);
+		}
+
+		static RuleSymbol[] EnteredOnce(Entry entered)
+		{
 			var rules = new List<RuleSymbol>();
 
 			for (var at = entered; at is not null; at = at.Before)
