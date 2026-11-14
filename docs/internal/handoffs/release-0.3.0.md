@@ -23,8 +23,8 @@ https://dotgram.github.io/dotgram/.
 ## Highlights
 
 - **Generator.** The default carrier now builds as it reads wherever it can, so an accepted parse
-  no longer walks a record at the end and is faster (the expression language's accepted text, by 16
-  to 51% against 0.2.0, about 40% on most; TODO(freeze): re-measure); `Carrier = GramCarrier.Deferred` (`Tape` before) keeps the
+  no longer walks a record at the end and is faster (the expression language's accepted text, by 15
+  to 54% against 0.2.0, about 40% on most); `Carrier = GramCarrier.Deferred` (`Tape` before) keeps the
   old behaviour, and `GRAM5016` says where the deferred carrier is the safer choice. New in the notation:
   bindings and back-references (`$q: X`, `$q`, `X{#q}`) for constructs closed by the text that
   opened them, `eos` for input read as a sequence of segments, and `Std.Nested(open, close)`. A
@@ -41,10 +41,9 @@ https://dotgram.github.io/dotgram/.
 - **DotGram.Sql** builds one tree, `DotGram.Sql.Ast`, from all three parsers: T-SQL, SQL:2023 and
   SQL-92. `SqlStandardParser` reads by level (six entries), lists are `SqlList<T>` and compare by
   content, and `SqlScript.Read` cuts a script into batches byte for byte as sqlcmd 18.6 does.
-  Against 0.2.0, SQL:2023 parses about 80% faster and SQL-92 about 26%. T-SQL is 15% faster at the
-  median, but a long SELECT and an UPDATE with a subquery are 5 to 13% slower, and accepted T-SQL
-  allocates 1.6 to 2.2 times the bytes, the cost of the one tree. The assembly carries 63% less IL.
-  TODO(freeze): re-measure the SQL figures.
+  Against 0.2.0, SQL:2023 parses about 80% faster and SQL-92 about 29%. T-SQL is 22% faster at the
+  median, but an UPDATE with a subquery is 6 to 9% slower, and accepted T-SQL allocates up to 2.2
+  times the bytes, the cost of the one tree. The assembly carries 63% less IL.
 - **DotGram.Finance**: validation is a question that keeps nothing, every finding says its path
   through the repeating groups, and the message limit and log framing are the context's.
 - **DotGram.Web** refuses a long adversarial Link, Forwarded, Content-Disposition or Accept header,
@@ -52,7 +51,7 @@ https://dotgram.github.io/dotgram/.
   RFC 8288.
 - **DotGram.ExpressionLanguage** reads more of C# — initializers as C# reads them, `with`,
   target-typed `new()`, `T?` — and parses accepted text about 40% faster; a text refused late is
-  50 to 87% slower. TODO(freeze): re-measure.
+  38 to 71% slower.
 - **Visual Studio:** standalone grammars follow their host as the solution changes, and navigation
   reaches into included grammars.
 
