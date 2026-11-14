@@ -120,20 +120,29 @@ sealed class GramGenerator : IIncrementalGenerator
 		// C# only says it cannot find one (GramRenames).
 		// Only rare nodes are bound: the old names' own spellings, and attributes named by an alias the
 		// old [GramOptions] is given, which a cheap pass over the `using` directives names first.
-		var renamedAliases = context.SyntaxProvider
+		// One syntax provider for both: each walks every node of every tree on its own, and on a project
+		// of much C# two walks were most of the generator's time.
+		var renamedNodes = context.SyntaxProvider
 			.CreateSyntaxProvider(
-				static (node, _) => Renamed.IsVariantAlias(node),
-				static (candidate, _) => Renamed.AliasName(candidate.Node))
-			.Collect()
-			.Select(static (names, _) => new EquatableArray<string>(names.Distinct(StringComparer.Ordinal).OrderBy(static name => name, StringComparer.Ordinal).ToImmutableArray()));
+				static (node, _) => Renamed.IsVariantAlias(node) || Renamed.IsCandidate(node),
+				static (candidate, cancellationToken) => Renamed.IsVariantAlias(candidate.Node)
+					? new RenamedNode(Renamed.AliasName(candidate.Node), default)
+					: new RenamedNode(null, new EquatableArray<RenamedUse>(Renamed.Find(candidate.Node, candidate.SemanticModel, cancellationToken))))
+			.Collect();
 
-		var renamed = context.SyntaxProvider
-			.CreateSyntaxProvider(
-				static (node, _) => Renamed.IsCandidate(node),
-				static (candidate, cancellationToken) => new EquatableArray<RenamedUse>(
-					Renamed.Find(candidate.Node, candidate.SemanticModel, cancellationToken)))
-			.Where(static found => found.Items.Length > 0)
-			.Collect()
+		var renamedAliases = renamedNodes
+			.Select(static (nodes, _) => new EquatableArray<string>(nodes
+				.Select(static node => node.Alias)
+				.OfType<string>()
+				.Distinct(StringComparer.Ordinal)
+				.OrderBy(static name => name, StringComparer.Ordinal)
+				.ToImmutableArray()));
+
+		var renamed = renamedNodes
+			.Select(static (nodes, _) => nodes
+				.Where(static node => node.Alias is null && node.Uses.Items.Length > 0)
+				.Select(static node => node.Uses)
+				.ToImmutableArray())
 			.Combine(renamedAliases
 				.Combine(context.CompilationProvider)
 				.Select(static (input, cancellationToken) => new EquatableArray<RenamedUse>(
@@ -693,6 +702,9 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// reports an option under its 0.2 name on (GRAM0012), each by <see cref="IdentityOf"/>.
 	/// </summary>
 	readonly record struct Reachability(EquatableArray<string> Included, EquatableArray<string> Faulted);
+
+	/// <summary>What the one walk for the old names found at a node: an alias of the old <c>[GramOptions]</c>, or the uses of old names bound there.</summary>
+	readonly record struct RenamedNode(string? Alias, EquatableArray<RenamedUse> Uses);
 
 	/// <summary>
 	/// A class as GRAM4059 tells one from another: its assembly, and its definition fully qualified —
