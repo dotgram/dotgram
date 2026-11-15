@@ -16,6 +16,7 @@ Examples	DotGram.Examples.Expressions.ClampedExample.g.cs	RS1035 // This thread'
 Examples	DotGram.Examples.Expressions.LocaleNumber.g.cs	0649
 Examples	DotGram.Examples.Formats.Config.Located.g.cs	0649
 Examples	DotGram.Examples.Formats.Config.g.cs	0649
+Examples	DotGram.Examples.Formats.CssColor.g.cs	0649
 Examples	DotGram.Examples.Formats.FileNames.g.cs	0649
 Examples	DotGram.Examples.Formats.FixParser.g.cs	0649
 Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	0649
