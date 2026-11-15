@@ -52,12 +52,11 @@ static class PlaygroundEmbedded
 		var includedFile = await StandaloneGrammarInheritance.GramFilesAsync(document.Project, cancellationToken);
 		var analyses     = EmbeddedGrammarService.Analyze(model, rootNode, cancellationToken, includedFile);
 		var dsl          = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, rootNode, model, cancellationToken, new DslEmbeddedSiteCache());
-		var diagnostics  = await DslClassificationDiagnostics.AnalyzeAsync(document, rootNode, model.Compilation, cancellationToken);
 
 		return new EmbeddedGrammarView(
 			true,
 			[.. analyses.SelectMany(static item => item.Classifications)],
-			[.. analyses.SelectMany(static item => item.Diagnostics).Concat(diagnostics).Concat(dsl.Diagnostics)],
+			[.. analyses.SelectMany(static item => item.Diagnostics).Concat(dsl.Diagnostics)],
 			[.. analyses.SelectMany(static item => item.Symbols)],
 			dsl.Classifications,
 			dsl.Symbols,
