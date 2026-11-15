@@ -107,10 +107,11 @@ parser is generated into, as above, or in a `.gram` file listed as `<AdditionalF
   <img alt="The calculator grammar in Visual Studio: rules, operators, C# actions and publications each highlighted in their own colour" src="docs/images/vs-calculator-light.png" width="820">
 </picture>
 
-The [Visual Studio extension](docs/visual-studio.md) reads grammars in `.gram` files and inside `[Gram]` strings:
+The [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=dotgram.dotgram) reads grammars in
+`.gram` files and inside `[Gram]` strings:
 highlighting, errors as you type, Quick Info, completion, Go To Definition, Find All References, Rename, folding.
 And the languages you generate get the same: a string marked `[StringSyntax("yourlanguage")]` is highlighted
-and checked as your language.
+and checked as your language. What it does, and how to build it from source: [`docs/visual-studio.md`](docs/visual-studio.md).
 
 ## Documentation and agent skills
 
