@@ -4,7 +4,7 @@ First-class Visual Studio tooling for [.Gram](https://github.com/dotgram/dotgram
 a source generator that compiles grammars into strongly typed C# parsers with no runtime
 parser engine.
 
-![A .Gram grammar embedded in C# with syntax highlighting](images/dotgram-tooling.png)
+![A .Gram grammar embedded in C# with syntax highlighting](https://raw.githubusercontent.com/dotgram/dotgram/main/src/DotGram.VisualStudio/Assets/DotGram.Preview.png)
 
 ## Write grammars where they belong
 
