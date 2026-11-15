@@ -315,11 +315,19 @@ sealed class GramBufferAnalysis : IGramAnalysisHost<ITextSnapshot>
 			_textDocument = document;
 		}
 
-		if (document.FilePath is not { } path || !_session.Follow(path))
+		if (document.FilePath is not { } path)
 			return;
 
+		// Subscribed before the first search starts: a change that comes while it reads the
+		// solution must reach the tracker, or the grammar keeps an include's old text.
 		workspace.WorkspaceChanged    += WorkspaceChanged;
 		documents.TextDocumentDisposed += TextDocumentDisposed;
+
+		if (!_session.Follow(path))
+		{
+			workspace.WorkspaceChanged    -= WorkspaceChanged;
+			documents.TextDocumentDisposed -= TextDocumentDisposed;
+		}
 	}
 
 	public GramDocument Document(ITextSnapshot snapshot)
