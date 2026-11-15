@@ -38,9 +38,9 @@ from malformed record-oriented input.
 
 ## Learn more
 
+- [Documentation](https://dotgram.github.io/dotgram/)
 - [Project and installation](https://github.com/dotgram/dotgram)
-- [Language syntax](https://github.com/dotgram/dotgram/blob/main/docs/syntax.md)
-- [Documentation index](https://github.com/dotgram/dotgram/blob/main/docs/README.md)
+- [Language syntax](https://dotgram.github.io/dotgram/syntax.html)
 - [Report an issue](https://github.com/dotgram/dotgram/issues)
 
 The extension does not collect telemetry and does not communicate with external services.

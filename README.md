@@ -8,6 +8,7 @@
 # .Gram
 
 [![build](https://github.com/dotgram/dotgram/actions/workflows/build.yml/badge.svg)](https://github.com/dotgram/dotgram/actions/workflows/build.yml)
+[![Documentation](https://img.shields.io/badge/docs-dotgram.github.io-blue)](https://dotgram.github.io/dotgram/)
 [![DotGram on NuGet](https://img.shields.io/nuget/v/DotGram?label=DotGram&logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![DotGram.Sql on NuGet](https://img.shields.io/nuget/v/DotGram.Sql?label=DotGram.Sql&logo=nuget)](https://www.nuget.org/packages/DotGram.Sql)
 [![DotGram.Web on NuGet](https://img.shields.io/nuget/v/DotGram.Web?label=DotGram.Web&logo=nuget)](https://www.nuget.org/packages/DotGram.Web)
@@ -22,6 +23,8 @@
 
 .Gram is a source generator that compiles grammars into strongly typed C# parsers, from
 single-character rules and hand-written feeds to the SQL standard.
+
+**Documentation:** https://dotgram.github.io/dotgram/ — a guide to the language, a guide to the generator, every diagnostic, and the API reference.
 
 The grammar is known at compile time. The generated parser is ordinary C# in your own
 assembly — there is no parser engine, grammar graph, or runtime library to interpret.

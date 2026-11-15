@@ -61,7 +61,7 @@
 		<Version>0.3.0</Version>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryUrl>https://github.com/dotgram/dotgram</RepositoryUrl>
-		<PackageProjectUrl>https://github.com/dotgram/dotgram</PackageProjectUrl>
+		<PackageProjectUrl>https://dotgram.github.io/dotgram/</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
 
 		<!-- A package's release notes are prose, kept beside its project as RELEASE-NOTES.md
