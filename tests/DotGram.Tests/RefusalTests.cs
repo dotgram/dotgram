@@ -214,6 +214,52 @@ public sealed class RefusalTests
 			((System.Collections.IEnumerable)lines).Cast<string>());
 	}
 
+	/// <summary>
+	/// Guards that tie at the furthest place are kept alike by every rendering, and the one that
+	/// speaks is the same: the first in the order the alternatives are read, its own words where it
+	/// has them, every guard's C# where none has.
+	/// </summary>
+	/// <remarks>
+	/// The engine kept the tie of a guard against a guard of the same place by the last one only,
+	/// and said "Second." where the methods said "First.": its quiet reading had already moved the
+	/// furthest place there, and its recording one tied the first guard against nothing.
+	/// </remarks>
+	[Theory]
+	[InlineData("Start = 'a' & when @(false) on fail \"First.\" | 'a' & when @(1 == 2) on fail \"Second.\"", "First.")]
+	[InlineData("Start = 'a' & when @(false) | 'a' & when @(1 == 2) on fail \"Second.\" | 'a' & when @(2 == 3) on fail \"Third.\"", "Second.")]
+	[InlineData("Start = 'a' & when @(false) | 'a' & when @(1 == 2) | 'a' & when @(2 == 3)", "when @(false) or when @(1 == 2) or when @(2 == 3) said no.")]
+	[InlineData("Start = 'a' & (when @(false) | when @(1 == 2)) & 'b' | 'a' & when @(2 == 3) on fail \"Third.\"", "Third.")]
+	public void Guards_that_tie_are_said_alike_in_every_rendering(string grammar, string error)
+	{
+		foreach (var said in Errors(grammar + "\nparse Start\n", "a"))
+			Assert.Equal(error, said);
+	}
+
+	/// <summary>
+	/// A guard keeps its own words in a rule specialized for a rebinding (§5.1), as it does in the
+	/// rule it was copied from.
+	/// </summary>
+	[Fact]
+	public void A_guards_own_words_survive_a_specialization()
+	{
+		const string Grammar = "Token = 'a'\nStart = Token & when @(false) on fail \"Custom.\"\nparse Start\nparse Start with (Token = 'b') as Other\n";
+
+		foreach (var (carrier, direct) in new[] { (CarrierKind.Deferred, false), (CarrierKind.Deferred, true), (CarrierKind.Immediate, true) })
+		{
+			var compilation = GramCompiler.Compile(Grammar, new GramCompilerOptions
+			{
+				ClassName = "Grammar", Carrier = carrier, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+			EmittedCode.Quiet(compilation.Diagnostics);
+
+			var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text);
+
+			Assert.Equal("Custom.", EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a").Error);
+			Assert.Equal("Custom.", EmittedCode.Match(assembly, "Grammar", "TryOther", "b").Error);
+		}
+	}
+
 	/// <summary>What <c>TryParseStart</c> says of <paramref name="input"/> on the engine and on the methods of either carrier.</summary>
 	static IEnumerable<string?> Errors(string grammar, string input, string? members = null)
 	{

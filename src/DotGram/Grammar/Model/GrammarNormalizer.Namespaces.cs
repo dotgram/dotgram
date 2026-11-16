@@ -1514,7 +1514,7 @@ sealed partial class GrammarNormalizer
 			Node.Glue                                                               => Node.Glue.Instance,
 			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element  (negated, ranges, categories, references),
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
-			Node.Guard    (var text, var at)                                        => new Node.Guard    (Renaming(text), at),
+			Node.Guard    (var text, var at)                                        => new Node.Guard    (Renaming(text), at) { OnFail = ((Node.Guard)node).OnFail },
 			Node.External external                                                 => external with { },
 			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
 			Node.Choice   (var nodes)                                               => ((Node.Choice)node).Rebuild([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]) with

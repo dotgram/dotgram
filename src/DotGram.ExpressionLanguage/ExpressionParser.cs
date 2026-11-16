@@ -603,14 +603,14 @@ namespace DotGram.ExpressionLanguage;
 	// every name goes through, so `NamedType` finds it by asking what it always asks.
 	Aliases? : @string
 		= "using" & name: Identifier & '=' & aliased: Type & ';'
-		  & when @(context.Aliases(name, aliased, parserSpan)) on fail "Expected a known type."
+		  & when @(context.Aliases(name, aliased, parserSpan)) on fail "Expected an alias not already given to another type."
 		  => @(name)
 
 	// `using C = System.Collections.Generic;` — a name for a namespace, which is a name only
 	// something else is written after: `C.List<int>` is a type and `C` alone is not, as in C#.
 	AliasesSpace? : @string
 		= "using" & name: Identifier & '=' & head: Identifier & ('.' & part: Identifier)* & ';'
-		  & when @(context.Aliases(name, ExpressionParser.Dotted(head, part), parserSpan)) on fail "Expected a known namespace."
+		  & when @(context.Aliases(name, ExpressionParser.Dotted(head, part), parserSpan)) on fail "Expected an alias not already given, for a namespace that exists."
 		  => @(name)
 
 	Imports : @string
