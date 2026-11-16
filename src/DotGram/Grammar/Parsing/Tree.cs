@@ -191,7 +191,17 @@ abstract record Expr : ILocated
 
 	public sealed record Switch(Expr Value, IReadOnlyList<SwitchCase> Cases) : Expr;
 	public sealed record SwitchCase(string? Label, Expr Body);
-	public sealed record Guard     (Expr Value)                                : Expr;
+	public sealed record Guard     (Expr Value)                                : Expr
+	{
+		/// <summary>
+		/// What a refusal says where this guard said no and nothing else is named (§7.5):
+		/// <c>when @(…) on fail "…"</c>. Null where the guard is said by its C#.
+		/// </summary>
+		public string? OnFail { get; init; }
+
+		/// <summary>Where the <c>on</c> of its <c>on fail</c> stands, or -1 where it has none.</summary>
+		public int OnFailAt { get; init; } = -1;
+	}
 
 	/// <summary>
 	/// <c>when A is B</c> — a question about two recognizers rather than about the input.
@@ -463,6 +473,7 @@ static class Dump
 			Expr.Recovering => "Recovering",
 			Expr.Sequence => "Sequence",
 			Expr.Glued => "Glued",
+			Expr.Guard { OnFail: { } said } => $"Guard on fail {Quote(said)}",
 			Expr.Guard => "Guard",
 			Expr.Switch => "Switch",
 			Expr.Condition => "Condition",

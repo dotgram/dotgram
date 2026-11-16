@@ -391,6 +391,9 @@ abstract record Node
 
 	public sealed record Guard(string Text, int At = -1) : Node
 	{
+		/// <summary>What a refusal says where this guard said no and nothing else is named (§7.5), or null.</summary>
+		public string? OnFail { get; init; }
+
 		/// <summary>Without the position, for the passes that only read the C#.</summary>
 		public void Deconstruct(out string text)
 		{

@@ -812,6 +812,31 @@ public sealed class GramParserTests
 		Assert.Empty(Diagnostics("context : @System.Collections.Generic.List<string> = 'x'"));
 	}
 
+	[Fact]
+	public void A_guard_may_say_what_its_refusal_says()
+	{
+		Assert.Equal(
+			"""
+			File
+				Rule "A"
+					Sequence
+						Char "a"
+						Guard on fail "Expected a known name."
+							CSharp "Known()"
+						Reference "B"
+				Rule "on"
+					Char "o"
+			""",
+			Parse("A = 'a' & when @(Known()) on fail \"Expected a known name.\" & B\non = 'o'"));
+	}
+
+	[Fact]
+	public void A_guard_on_fail_without_its_words_is_told_and_the_guard_kept()
+	{
+		Assert.Equal(["GRAM2003 on fail"], Told("A = 'a' & when @(Known()) on fail\nB = 'b'"));
+		Assert.Contains("Guard\n", Parse("A = 'a' & when @(Known()) on fail\nB = 'b'").Replace("\r\n", "\n"), StringComparison.Ordinal);
+	}
+
 	/// <summary>What the parser says of a grammar, each with the text it points at.</summary>
 	static string[] Told(string source)
 	{
