@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DotGram.LanguageServer;
 
@@ -86,7 +87,7 @@ sealed record ProjectEvaluation(
 			File.WriteAllText(cross, CrossTargets);
 			File.WriteAllText(all, Traversal(projects, targets, cross));
 
-			var output = Run(directory, ["msbuild", all, "-nologo", "-nodeReuse:false", "-v:q", "-t:Run", "-getTargetResult:Run", "-getResultOutputFile:" + answer], cancellationToken);
+			var output = Run("dotnet", directory, ["msbuild", all, "-nologo", "-nodeReuse:false", "-v:q", "-t:Run", "-getTargetResult:Run", "-getResultOutputFile:" + answer], cancellationToken);
 
 			using var json = File.Exists(answer)
 				? JsonDocument.Parse(File.ReadAllText(answer, Encoding.UTF8))
@@ -229,10 +230,10 @@ sealed record ProjectEvaluation(
 		return null;
 	}
 
-	/// <summary>Runs <c>dotnet</c>; what it printed. A cancellation kills it.</summary>
-	static string Run(string directory, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+	/// <summary>Runs a program; what it printed. A cancellation kills it.</summary>
+	internal static string Run(string program, string directory, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
 	{
-		var start = new ProcessStartInfo("dotnet")
+		var start = new ProcessStartInfo(program)
 		{
 			WorkingDirectory       = directory,
 			RedirectStandardOutput = true,
@@ -253,7 +254,7 @@ sealed record ProjectEvaluation(
 		start.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
 		start.Environment["DOTNET_NOLOGO"] = "1";
 
-		using var process = Process.Start(start) ?? throw new InvalidOperationException("dotnet could not be started.");
+		using var process = Process.Start(start) ?? throw new InvalidOperationException(program + " could not be started.");
 
 		var output = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
 		var error  = process.StandardError.ReadToEndAsync(CancellationToken.None);
@@ -271,12 +272,16 @@ sealed record ProjectEvaluation(
 		}))
 		{
 			process.WaitForExit();
+
+			// What it printed, read to the end while a cancellation still kills and stops the wait: a child
+			// it left running may hold the output open after it has exited.
+			Task.WaitAll([output, error], cancellationToken);
 		}
 
 		cancellationToken.ThrowIfCancellationRequested();
 
 		if (process.ExitCode != 0)
-			throw new InvalidOperationException($"dotnet msbuild exited with {process.ExitCode}: {(output.Result + error.Result).Trim()}");
+			throw new InvalidOperationException($"{program} exited with {process.ExitCode}: {(output.Result + error.Result).Trim()}");
 
 		return output.Result;
 	}
