@@ -11,7 +11,8 @@ namespace DotGram.LanguageServer.Tests;
 
 /// <summary>
 /// The workspace a grammar's host is looked for in, as the build would see it: one project per
-/// <c>.csproj</c>, and every C# file of a project with its global usings and its base classes.
+/// <c>.csproj</c>, every C# file of a project with its global usings and its base classes, and the
+/// folders the client has now.
 /// </summary>
 public sealed class WorkspaceTests : IDisposable
 {
@@ -144,5 +145,112 @@ public sealed class WorkspaceTests : IDisposable
 		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
+	}
+
+	[Fact]
+	public async Task The_server_says_it_follows_the_workspace_folders()
+	{
+		await using var client = new LspClient();
+
+		var result  = await client.InitializeAsync(_folder);
+		var folders = result.GetProperty("capabilities").GetProperty("workspace").GetProperty("workspaceFolders");
+
+		Assert.True(folders.GetProperty("supported").GetBoolean());
+		Assert.True(folders.GetProperty("changeNotifications").GetBoolean());
+	}
+
+	/// <summary>A folder added to the workspace while a grammar in it is open: the grammar's host is looked for there.</summary>
+	[Fact]
+	public async Task A_folder_added_to_the_workspace_has_its_hosts_found()
+	{
+		var other  = Directory.CreateDirectory(Path.Combine(_folder, "other")).FullName;
+		var added  = Directory.CreateDirectory(Path.Combine(_folder, "added")).FullName;
+		var path   = Path.Combine(added, "Dialect.gram");
+		var uri    = LspClient.Uri(path);
+
+		File.WriteAllText(Path.Combine(added, "Hosts.cs"), Hosts(lexical: true));
+		File.WriteAllText(Path.Combine(added, "Base.gram"), "Word = ['a'..'z']+\n");
+		File.WriteAllText(path, Dialect);
+
+		await using var client = await LspClient.StartAsync(null, other);
+
+		await client.OpenAsync(uri, Dialect);
+		await client.DiagnosticsAsync(uri, 1);
+
+		Assert.True(client.Server.Document(uri)!.Session.Store.IsCopy(path));
+
+		await client.NotifyAsync("workspace/didChangeWorkspaceFolders", new
+		{
+			@event = new
+			{
+				added   = new[] { new { uri = LspClient.Uri(added), name = "added" } },
+				removed = Array.Empty<object>(),
+			},
+		});
+
+		var context = (await ResolvedAsync(client, uri)).Resolution.Context!.Value;
+
+		Assert.True(context.Lexical);
+		Assert.Equal(Path.Combine(added, "Base.gram"), context.Included.Single().FilePath);
+	}
+
+	/// <summary>A folder taken out of the workspace: its grammars are read as they stand, and its C# is no longer asked.</summary>
+	[Fact]
+	public async Task A_folder_removed_from_the_workspace_no_longer_hosts()
+	{
+		var other   = Directory.CreateDirectory(Path.Combine(_folder, "other")).FullName;
+		var removed = Directory.CreateDirectory(Path.Combine(_folder, "removed")).FullName;
+		var path    = Path.Combine(removed, "Dialect.gram");
+		var uri     = LspClient.Uri(path);
+
+		File.WriteAllText(Path.Combine(removed, "Hosts.cs"), Hosts(lexical: true));
+		File.WriteAllText(Path.Combine(removed, "Base.gram"), "Word = ['a'..'z']+\n");
+		File.WriteAllText(path, Dialect);
+
+		await using var client = await LspClient.StartAsync(null, other, removed);
+
+		await client.OpenAsync(uri, Dialect);
+		await ResolvedAsync(client, uri);
+
+		await client.NotifyAsync("workspace/didChangeWorkspaceFolders", new
+		{
+			@event = new
+			{
+				added   = Array.Empty<object>(),
+				removed = new[] { new { uri = LspClient.Uri(removed), name = "removed" } },
+			},
+		});
+
+		var deadline = DateTime.UtcNow + LspClient.Timeout;
+
+		while (!(client.Server.Document(uri) is { } document && document.Session.Store.IsCopy(path) && document.Session.Result is not null))
+		{
+			Assert.True(DateTime.UtcNow < deadline, "The grammar is still read with the removed folder's host.");
+			await Task.Delay(50, TestContext.Current.CancellationToken);
+		}
+
+		var folder = await client.Server.Folder;
+
+		Assert.False(folder.Contains(path));
+		Assert.DoesNotContain(
+			folder.Workspace.CurrentSolution.Projects.SelectMany(static project => project.Documents),
+			document => document.FilePath is { } file && file.StartsWith(removed, StringComparison.Ordinal));
+	}
+
+	/// <summary>The grammar's session settled with its host found; the document may have been opened again by the server meanwhile.</summary>
+	static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(LspClient client, string uri)
+	{
+		var deadline = DateTime.UtcNow + LspClient.Timeout;
+
+		while (DateTime.UtcNow < deadline)
+		{
+			if (client.Server.Document(uri)?.Session.Result is { Resolution.State: StandaloneGrammarState.Resolved } result)
+				return result;
+
+			await Task.Delay(50, TestContext.Current.CancellationToken);
+		}
+
+		Assert.Fail($"The host is {client.Server.Document(uri)?.Session.Resolution.State}, not resolved.");
+		return null;
 	}
 }

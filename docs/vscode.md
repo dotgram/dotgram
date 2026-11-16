@@ -61,24 +61,28 @@ a flag and a CI matrix, not a rewrite.
 |---|---|---|
 | `dotgram.server.path` | empty | A server to run instead of the one in the extension: a `DotGram.LanguageServer.dll`, run with `dotnet`, or an executable. |
 | `dotgram.dotnetPath` | empty | The `dotnet` that runs the server; empty asks the .NET Install Tool for .NET 10. |
+| `dotgram.trace.server` | `off` | `messages` or `verbose`: the protocol traced in the **.Gram** output panel. |
 
 The two settings that choose a program to run are the machine's: a workspace's `.vscode/settings.json` cannot set
 them, so a folder cloned from somewhere cannot make the extension run a program of its choosing.
-| `dotgram.trace.server` | `off` | `messages` or `verbose`: the protocol traced in the **.Gram** output panel. |
 
 The server itself takes `--version`, and `--log <path>` to append every message it reads and writes to a file.
 
 ## A grammar's host without a build
 
 Visual Studio finds a grammar's host — the C# class whose `[Gram("….gram")]` names the file — in the solution it has
-loaded. VS Code has no solution, so the server makes one: an ad-hoc project of the workspace folders' C# files that
-declare a grammar attribute (`[Gram]`, `[GramInclude]`, `[GramSource]`, found by their syntax), compiled against the
-.NET 10 reference assemblies and the generator's own attribute declarations, with every `.gram` file of the folders as
-an additional file. A host found there gives the grammar its `Lexical` option and the grammars it includes, read as
-the build reads them, so a rule from an included grammar is not reported missing and Go to Definition goes into its
-file — or, where only a class's `[GramSource]` carries it, into a read-only copy under the temporary directory, as in
-Visual Studio. The project follows the folder: a `.cs` or `.gram` file created, changed or deleted is read again, and
-the grammars whose host it can change are analysed again. A grammar open in the editor is its editor's text, unsaved
+loaded. VS Code has no solution, so the server makes one from the workspace folders: a project for every `.csproj`,
+holding every C# and `.gram` file below it that no nearer project file claims, with its project references, and one
+for each folder's files that no project file claims. Each is compiled against the .NET 10 reference assemblies and the
+generator's own attribute declarations, with its `.gram` files as additional files; the project file's `Using` items
+and `ImplicitUsings` are read as global usings. A grammar's host is looked for in the project that holds the grammar,
+as the build compiles it there: two projects that each have a `Parser.gram` and a host for it are two hosts. A host
+found there gives the grammar its `Lexical` option and the grammars it includes, read as the build reads them, so a
+rule from an included grammar is not reported missing and Go to Definition goes into its file — or, where only a
+class's `[GramSource]` carries it, into a read-only copy under the temporary directory, as in Visual Studio. The
+projects follow the folders: a `.cs` or `.gram` file created, changed or deleted is read again, a project file
+created, changed or deleted, or a folder added to or removed from the workspace, has the folders read again, and the
+grammars whose host it can change are analysed again. A grammar open in the editor is its editor's text, unsaved
 edits included, for every grammar that includes it, until it is closed.
 
 `bin`, `obj`, `node_modules`, folders whose name starts with a dot, and links (symbolic links, junctions) are not
@@ -88,8 +92,9 @@ grammars, like a `.gram` file
 opened outside any folder, are read as they stand and quiet about what depends on a host: syntax errors are shown,
 a name that may come from an included grammar is not reported.
 
-Only the C# files that declare a grammar are compiled, so what the host's other code depends on is not known; the
-diagnostics that depend on it are the build's, as they are in Visual Studio for any C# type a grammar names.
+Package references, `Directory.Build.props` and a project's other properties are not read, so what a host's code
+takes from them is not known; the diagnostics that depend on it are the build's, as they are in Visual Studio for any
+C# type a grammar names.
 
 ## What is not there
 

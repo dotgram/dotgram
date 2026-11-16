@@ -79,7 +79,12 @@ sealed record ServerCapabilities(
 	RenameOptions RenameProvider,
 	bool FoldingRangeProvider,
 	bool DocumentSymbolProvider,
-	SemanticTokensOptions SemanticTokensProvider);
+	SemanticTokensOptions SemanticTokensProvider,
+	WorkspaceServerCapabilities Workspace);
+
+sealed record WorkspaceFoldersServerCapabilities(bool Supported, bool ChangeNotifications);
+
+sealed record WorkspaceServerCapabilities(WorkspaceFoldersServerCapabilities WorkspaceFolders);
 
 sealed record SetTraceParams(string Value);
 
@@ -100,6 +105,10 @@ sealed record DidCloseTextDocumentParams(TextDocumentIdentifier TextDocument);
 sealed record FileEvent(string Uri, int Type);
 
 sealed record DidChangeWatchedFilesParams(IReadOnlyList<FileEvent> Changes);
+
+sealed record WorkspaceFoldersChangeEvent(IReadOnlyList<WorkspaceFolder> Added, IReadOnlyList<WorkspaceFolder> Removed);
+
+sealed record DidChangeWorkspaceFoldersParams(WorkspaceFoldersChangeEvent Event);
 
 // Diagnostics and messages.
 
@@ -223,6 +232,7 @@ static class Lsp
 [JsonSerializable(typeof(DidChangeTextDocumentParams))]
 [JsonSerializable(typeof(DidCloseTextDocumentParams))]
 [JsonSerializable(typeof(DidChangeWatchedFilesParams))]
+[JsonSerializable(typeof(DidChangeWorkspaceFoldersParams))]
 [JsonSerializable(typeof(PublishDiagnosticsParams))]
 [JsonSerializable(typeof(LogMessageParams))]
 [JsonSerializable(typeof(SemanticTokensParams))]

@@ -151,13 +151,14 @@ sealed class FolderWorkspace
 			return result!;
 
 		// The reading stops at its next look at the token; a workspace it finishes anyway is let go.
-		return Empty();
+		return Empty(log);
 	}
 
 	/// <summary>A project with nothing of the user's in it, for Roslyn's answers about the framework's own types.</summary>
-	public static FolderWorkspace Empty()
+	/// <param name="log">Told what a later <see cref="Reload"/> of folders added to it has to say.</param>
+	public static FolderWorkspace Empty(Action<string>? log = null)
 	{
-		return Create([], static _ => { }, CancellationToken.None);
+		return Create([], log ?? (static _ => { }), CancellationToken.None);
 	}
 
 	/// <summary>

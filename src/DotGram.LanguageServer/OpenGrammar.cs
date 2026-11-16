@@ -130,18 +130,42 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 		FilePath  = filePath;
 		_current  = first;
 		_services = services;
-		Session   = services.Analyze is { } analyze
+		Session   = NewSession();
+	}
+
+	GramAnalysisSession<GramVersion> NewSession()
+	{
+		var session = _services.Analyze is { } analyze
 			? new GramAnalysisSession<GramVersion>(this, analyze)
 			: new GramAnalysisSession<GramVersion>(this);
 
-		Session.Changed += Changed;
+		session.Changed += Changed;
+
+		return session;
 	}
 
 	public string Uri { get; }
 
 	public string? FilePath { get; }
 
-	public GramAnalysisSession<GramVersion> Session { get; }
+	GramAnalysisSession<GramVersion> _session = null!;
+
+	/// <summary>What analyses the document; a new one where the folders changed whether its host is followed.</summary>
+	public GramAnalysisSession<GramVersion> Session
+	{
+		get => Volatile.Read(ref _session);
+		private set => Volatile.Write(ref _session, value);
+	}
+
+	/// <summary>Whether the document was started following its host in the workspace.</summary>
+	public bool Following
+	{
+		get
+		{
+			lock (_gate)
+				return _workspace is not null;
+		}
+	}
 
 	/// <summary>
 	/// A version's analysis was published and is still the document's: the server tells the client,
@@ -219,6 +243,44 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 		// Before the start the session has seen no version, and the start analyses the latest.
 		if (started)
 			Session.Edited(before, after);
+	}
+
+	/// <summary>
+	/// The folders changed whether the document's host is followed: from now on a new session analyses
+	/// it, following the host in <paramref name="workspace"/>, or reading the grammar as it stands where
+	/// that is null; the old one is closed. A document not started yet is started as the folders are then.
+	/// </summary>
+	public void Rebind(FolderWorkspace? workspace)
+	{
+		GramAnalysisSession<GramVersion> old;
+
+		lock (_gate)
+		{
+			if (_closed || !_started)
+				return;
+
+			old = Session;
+
+			if (_workspace is not null)
+				_workspace.Changed -= WorkspaceChanged;
+
+			old.Changed -= Changed;
+
+			var session = NewSession();
+
+			if (FilePath is { } path)
+				session.Follow(path);
+
+			_workspace = workspace;
+
+			if (workspace is not null)
+				workspace.Changed += WorkspaceChanged;
+
+			Session = session;
+			session.Document(_current);
+		}
+
+		old.Close();
 	}
 
 	/// <summary>The server's workspace changed: the session looks for the host again where that concerns it.</summary>

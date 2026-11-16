@@ -50,6 +50,9 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	ImmutableDictionary<string, OpenGrammar> _documents = ImmutableDictionary.Create<string, OpenGrammar>(StringComparer.Ordinal);
 	Task<FolderWorkspace>                    _load;
+	IReadOnlyList<string>                    _folders = [];
+	readonly object                         _foldersGate = new();
+	readonly SemaphoreSlim                   _reloading = new(1, 1);
 	readonly WorkspaceUpdates                _updates;
 	bool                                     _refreshSemanticTokens;
 	bool                                     _initialized;
@@ -60,7 +63,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		_rpc     = rpc;
 		_options = options;
 		_store   = new ServerStore(options.Store, this);
-		_load    = Task.Run(FolderWorkspace.Empty);
+		_load    = Task.Run(() => FolderWorkspace.Empty());
 		_updates = new WorkspaceUpdates(() => Folder, Report, FolderWorkspace.PathComparer, FolderWorkspace.Read);
 	}
 
@@ -104,6 +107,10 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 			case "workspace/didChangeWatchedFiles":
 				WatchedFiles(Read(parameters, LspJson.Default.DidChangeWatchedFilesParams));
+				break;
+
+			case "workspace/didChangeWorkspaceFolders":
+				FoldersChanged(Read(parameters, LspJson.Default.DidChangeWorkspaceFoldersParams).Event);
 				break;
 
 			// Nothing to do: the session reads the document's text, saved or not, and a trace is
@@ -177,6 +184,74 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		foreach (var change in parameters.Changes)
 			if (FileUris.ToPath(change.Uri) is { } path)
 				_updates.FileChanged(path, change.Type == Lsp.FileDeleted);
+	}
+
+	/// <summary>
+	/// Folders were added to the workspace or taken out of it: the folders are read again, and an open
+	/// grammar that is in them now and was not, or was and is not, is analysed by a session of its own
+	/// that follows its host, or reads it as it stands. Each change is applied after the one before it,
+	/// with the folders as the last change left them.
+	/// </summary>
+	void FoldersChanged(WorkspaceFoldersChangeEvent change)
+	{
+		var removed = Paths(change.Removed);
+		var added   = Paths(change.Added);
+
+		lock (_foldersGate)
+		{
+			var folders = Volatile.Read(ref _folders);
+
+			Volatile.Write(ref _folders, [
+				.. folders.Where(folder => !removed.Contains(folder, FolderWorkspace.PathComparer)),
+				.. added.Where(folder => !folders.Contains(folder, FolderWorkspace.PathComparer)).Distinct(FolderWorkspace.PathComparer),
+			]);
+		}
+
+		_options.Scheduler.Run(ReloadAsync);
+	}
+
+	async Task ReloadAsync()
+	{
+		await _reloading.WaitAsync().ConfigureAwait(false);
+
+		try
+		{
+			var folder = await Folder.ConfigureAwait(false);
+
+			// Off the scheduler's thread: the walk of the folders blocks for as long as it takes.
+			await Task.Run(() => folder.Reload(Volatile.Read(ref _folders))).ConfigureAwait(false);
+
+			foreach (var document in Volatile.Read(ref _documents).Values)
+			{
+				var follows = document.FilePath is { } path && folder.Hosts && folder.Contains(path);
+
+				if (follows != document.Following)
+					document.Rebind(follows ? folder : null);
+			}
+		}
+		catch (Exception exception) when (exception is not OutOfMemoryException)
+		{
+			Report("Reading the workspace folders again", exception);
+		}
+		finally
+		{
+			_reloading.Release();
+		}
+	}
+
+	/// <summary>The folders' paths as the workspace reads them: full, without a separator at the end.</summary>
+	static string[] Paths(IEnumerable<string?> uris)
+	{
+		return uris
+			.Select(static uri => uri is null ? null : FileUris.ToPath(uri))
+			.OfType<string>()
+			.Select(static path => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)))
+			.ToArray();
+	}
+
+	static string[] Paths(IReadOnlyList<WorkspaceFolder>? folders)
+	{
+		return Paths((folders ?? []).Select(static folder => (string?)folder.Uri));
 	}
 
 	/// <summary>The workspace's pending updates; a test's barrier is their <see cref="WorkspaceUpdates.Drained"/>.</summary>
@@ -288,17 +363,14 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	{
 		Volatile.Write(ref _refreshSemanticTokens, Flag(parameters.Capabilities, "workspace", "semanticTokens", "refreshSupport"));
 
-		var folders = (parameters.WorkspaceFolders?.Select(static folder => folder.Uri) ?? [parameters.RootUri])
-			.Select(FileUris.ToPath)
-			.OfType<string>()
-			.ToArray();
+		var folders = parameters.WorkspaceFolders is { } given ? Paths(given) : Paths([parameters.RootUri]);
 
-		if (folders.Length > 0)
-		{
-			var load = Task.Run(() => ReadFolders(folders));
+		Volatile.Write(ref _folders, folders);
 
-			Volatile.Write(ref _load, load);
-		}
+		// Read with the server's log even where there is no folder: one may be added later.
+		var load = Task.Run(() => ReadFolders(folders));
+
+		Volatile.Write(ref _load, load);
 
 		var capabilities = new ServerCapabilities(
 			"utf-16",
@@ -312,7 +384,8 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 			new RenameOptions(true),
 			true,
 			true,
-			new SemanticTokensOptions(new SemanticTokensLegend(SemanticTokensMap.TokenTypes, SemanticTokensMap.TokenModifiers), true, false));
+			new SemanticTokensOptions(new SemanticTokensLegend(SemanticTokensMap.TokenTypes, SemanticTokensMap.TokenModifiers), true, false),
+			new WorkspaceServerCapabilities(new WorkspaceFoldersServerCapabilities(true, true)));
 
 		return RpcReply.Ok(new InitializeResult(capabilities, new ServerInfo("DotGram", Version)), LspJson.Default.InitializeResult);
 	}
@@ -326,7 +399,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		catch (Exception exception) when (exception is not OutOfMemoryException)
 		{
 			Report(exception);
-			return FolderWorkspace.Empty();
+			return FolderWorkspace.Empty(message => _ = _rpc.LogAsync(Lsp.MessageInfo, message));
 		}
 	}
 
