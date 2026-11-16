@@ -4266,8 +4266,8 @@ recognizer of the host that does not move ends the repetition rather than repeat
 
 **What a bad element swallows is everything up to the end of the next synchronization match, or to
 the end of the input.** The search does not look for the next good element, only for the
-synchronization: with `recover ';'`, a bad record followed by good ones that have no `;` of their
-own takes them with it, and with `recover eol`, a line that lost its line ending takes the next line.
+synchronization: with `recover ';'`, a record that lost its `;` takes the next record with it, good
+or not.
 A synchronization that every element is guaranteed to end with — the record separator, `eos` in a
 grammar over lines — loses nothing but the bad element itself; a narrower one trades lost records
 for records kept whole (below, and the choice `('|' | eol)` further down).

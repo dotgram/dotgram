@@ -103,7 +103,7 @@ parse Rows
 ```
 
 ```text examples
-ParseRows("a;b1 c;d;") → ["a", "bad: b1 c;", "d"]
+ParseRows("a;b1 c;d;") → ["a", "bad: b1 c", "d"]
 ```
 
 `c` was well formed and is gone with the bad record. A synchronization every element ends with — the record
