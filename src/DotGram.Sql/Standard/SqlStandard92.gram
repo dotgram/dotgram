@@ -281,7 +281,7 @@ ValueFunction : @Expression
         {
             case 0: none
             case 1: v: ValueExpression
-            default: when @(false)
+            default: when @(false) on fail "Expected FROM."
         }
       & ')'
         => @(head.From is not null

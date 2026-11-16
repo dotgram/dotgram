@@ -592,7 +592,7 @@ namespace DotGram.ExpressionLanguage;
 	// with the word; no C# namespace can be, so nothing is lost by preferring this reading.
 	Statically? : @string
 		= "using" & "static" & imported: Type & ';'
-		  & when @(context.Statically(imported, parserSpan))
+		  & when @(context.Statically(imported, parserSpan)) on fail "Expected a known type."
 		  => @("static")
 
 	// `using L = System.Collections.Generic.List<int>;` — a name for one type, closed generics
@@ -603,14 +603,14 @@ namespace DotGram.ExpressionLanguage;
 	// every name goes through, so `NamedType` finds it by asking what it always asks.
 	Aliases? : @string
 		= "using" & name: Identifier & '=' & aliased: Type & ';'
-		  & when @(context.Aliases(name, aliased, parserSpan))
+		  & when @(context.Aliases(name, aliased, parserSpan)) on fail "Expected a known type."
 		  => @(name)
 
 	// `using C = System.Collections.Generic;` — a name for a namespace, which is a name only
 	// something else is written after: `C.List<int>` is a type and `C` alone is not, as in C#.
 	AliasesSpace? : @string
 		= "using" & name: Identifier & '=' & head: Identifier & ('.' & part: Identifier)* & ';'
-		  & when @(context.Aliases(name, ExpressionParser.Dotted(head, part), parserSpan))
+		  & when @(context.Aliases(name, ExpressionParser.Dotted(head, part), parserSpan)) on fail "Expected a known namespace."
 		  => @(name)
 
 	Imports : @string
@@ -831,7 +831,7 @@ namespace DotGram.ExpressionLanguage;
 	// no entry either.
 	// A bracket is no entry here either: it begins an indexer's, and one that goes wrong is
 	// refused where it does.
-	Unbound = ?!(NameOnly & '=') & ?!'}' & ?!',' & ?!'[' & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan))
+	Unbound = ?!(NameOnly & '=') & ?!'}' & ?!',' & ?!'[' & ?=(NameOnly & any | ?!NameOnly & any) & when @(context.Strays(parserSpan)) on fail "Expected a member assignment, not an element, in an object initializer."
 
 	// The name and the `=` are read once, and what follows is `Initial`'s to tell apart. An
 	// indexer is set the same way, `[1] = value`, as C# allows among a member initializer's
@@ -927,7 +927,7 @@ namespace DotGram.ExpressionLanguage;
 		= "new" & type: Strict & args: Arguments
 		  & (fields: Bindings | '{' & items: Elements & '}')?
 		  => @(ExpressionParser.Made(type, args, fields, items, context.Here(parserSpan).Reach))
-		| "new" & type: Strict & when @(type is { IsArray: false })
+		| "new" & type: Strict & when @(type is { IsArray: false }) on fail "Expected a type that is not an array."
 		  & (fields: Bindings | '{' & items: Elements & '}')
 		  => @(ExpressionParser.Made(type, [], fields, items, context.Here(parserSpan).Reach))
 		| "typeof" & '(' & type: Strict & ')' => @(Expression.Constant(type, typeof(Type)))
@@ -940,7 +940,7 @@ namespace DotGram.ExpressionLanguage;
 	// moment this grammar has in the order it is written — and `parserSpan` is where it
 	// was read, which is the only thing that can say later which block it belongs to.
 	Parameter : @ParameterExpression
-		= type: Type & name: Identifier & when @(context.Takes(type, name, parserSpan))
+		= type: Type & name: Identifier & when @(context.Takes(type, name, parserSpan)) on fail "Expected a parameter name not taken before."
 		=> @(context.Named(name, parserSpan))
 
 	// ── A block, which is an expression like any other ──────────────────────────
@@ -969,7 +969,7 @@ namespace DotGram.ExpressionLanguage;
 		| s: Expression & ';'  => @(s)
 
 	Local : @Expression
-		= type: Type & name: Identifier & when @(context.Declare(type, name, parserSpan))
+		= type: Type & name: Identifier & when @(context.Declare(type, name, parserSpan)) on fail "Expected a name not declared before."
 		& '=' & value: Value & ';'
 		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
 
@@ -1010,7 +1010,7 @@ namespace DotGram.ExpressionLanguage;
 	InferredUnsettled : @Expression
 		= inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan)) on fail "Expected a type."
 		& name: Identifier & '=' & Value & ';'
-		& when @(context.Declare(typeof(object), name, parserSpan))
+		& when @(context.Declare(typeof(object), name, parserSpan)) on fail "Expected a name not declared before."
 		=> @(Expression.Empty())
 
 	Return : @Expression = "return" & value: Value & ';'
@@ -1139,7 +1139,7 @@ namespace DotGram.ExpressionLanguage;
 	// alternatives make is nullable in every guard of the rule (§4.2).
 	Foreach : @Expression
 		= "foreach" & '(' & type: Type & name: Identifier
-		& when @(context.Declare(type, name, parserSpan))
+		& when @(context.Declare(type, name, parserSpan)) on fail "Expected a name not declared before."
 		& "in" & source: Expression & ')' & body: Statement
 		& when @(context.Scoped(parserSpan))
 		=> @(context.Block(
@@ -1167,7 +1167,7 @@ namespace DotGram.ExpressionLanguage;
 	ForeachUnsettled : @Expression
 		= "foreach" & '(' & inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan)) on fail "Expected a type."
 		& name: Identifier & "in" & Expression & ')'
-		& when @(context.Declare(typeof(object), name, parserSpan))
+		& when @(context.Declare(typeof(object), name, parserSpan)) on fail "Expected a name not declared before."
 		& Statement
 		& when @(context.Scoped(parserSpan))
 		=> @(Expression.Empty())
@@ -1237,7 +1237,7 @@ namespace DotGram.ExpressionLanguage;
 	// handler's block, and without this the block around the `try` would claim it.
 	Catch : @CatchBlock
 		= "catch" & '(' & type: Type & name: Identifier
-		& when @(context.Declare(type, name, parserSpan)) & ')' & body: Block
+		& when @(context.Declare(type, name, parserSpan)) on fail "Expected a name not declared before." & ')' & body: Block
 		& when @(context.Scoped(parserSpan))
 		=> @(Expression.Catch(context.Named(name, parserSpan), body))
 
@@ -1283,7 +1283,7 @@ namespace DotGram.ExpressionLanguage;
 		// off every operand that no `=` follows. And the guard is handed only what its own
 		// condition names — `parserSpan` and `context` — never the operand: nothing of it is
 		// built to run a guard that only asks whether *something* is being written.
-		| operand: Conditional & (?='=' & when @(context.Writes(parserSpan)) & '=' & ?!'=' & value: Assignment)?
+		| operand: Conditional & (?='=' & when @(context.Writes(parserSpan)) on fail "Expected something that can be assigned to." & '=' & ?!'=' & value: Assignment)?
 		  => @(value is null ? operand : ExpressionParser.Assigned(context.Here(parserSpan).Written(operand), value))
 
 	// What may be written to. An element is read one way and written another — `ArrayIndex`
@@ -1299,7 +1299,7 @@ namespace DotGram.ExpressionLanguage;
 	// only work because it runs after the parse. What the guard asks is what the
 	// construction is about to do, so the two cannot drift.
 	Target : @Expression
-		= n: Name & ('.' & member: Identifier)? & when @(ExpressionParser.Has(n, member, context.Reach))
+		= n: Name & ('.' & member: Identifier)? & when @(ExpressionParser.Has(n, member, context.Reach)) on fail "Expected a known member."
 		=> @(member is null ? n : ExpressionParser.Member(n, member, context.Here(parserSpan).Reach))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
@@ -1455,7 +1455,7 @@ namespace DotGram.ExpressionLanguage;
 		// a text can never take. After it, a name that reads as anything at all never reaches
 		// here, and what does reach here would otherwise have been refused.
 		| when @(context.Statics())
-		& ?!Keyword & called: Word & when @(context.Calls(called, parserSpan)) & args: Arguments
+		& ?!Keyword & called: Word & when @(context.Calls(called, parserSpan)) on fail "Expected a method that can be called here." & args: Arguments
 		  => @(context.Calling(called, args))
 
 	// One step of a chain, said rather than built: which member, the arguments where it is a
@@ -1498,7 +1498,7 @@ namespace DotGram.ExpressionLanguage;
 		// the lexer taking the longest match — and the braces are what tell this from a
 		// constructor. Over kinds a rule's answer stands (§4), so `Type` is not asked to give
 		// the `[]` back for a `"[]"` written here; the guard asks for an array type instead.
-		| "new" & type: Type & when @(type is { IsArray: true })
+		| "new" & type: Type & when @(type is { IsArray: true }) on fail "Expected an array type."
 		  & '{' & (first: Expression & (',' & rest: Expression)* & ','?)? & '}'
 		  => @(Expression.NewArrayInit(
 		       type.GetElementType()!,
@@ -1628,7 +1628,7 @@ namespace DotGram.ExpressionLanguage;
 		// name a text declared, which is C#'s order; and behind a guard that reads nothing, so a
 		// text without the directive never reaches the word.
 		| when @(context.Statics())
-		& ?!Keyword & read: Word & when @(context.Reads(read, parserSpan))
+		& ?!Keyword & read: Word & when @(context.Reads(read, parserSpan)) on fail "Expected a known name."
 		  => @(context.Read(read))
 
 	// `( … )` read once whichever of its forms it turns out to be, as `Primary` says above.
@@ -1643,7 +1643,7 @@ namespace DotGram.ExpressionLanguage;
 	// threw for a name the next alternative reads perfectly well would only work because
 	// it runs after the parse; a `when` refuses while it is being read, which is what the
 	// rule means anyway — a name is a name where something declares it.
-	Name : @Expression = ?!Keyword & name: Word & when @(context.Knows(name, parserSpan))
+	Name : @Expression = ?!Keyword & name: Word & when @(context.Knows(name, parserSpan)) on fail "Expected a known name."
 	                   => @(context.Named(name, parserSpan))
 
 	// Internal, like everything below: what a scope has is `Parse`, `TryParse` and
