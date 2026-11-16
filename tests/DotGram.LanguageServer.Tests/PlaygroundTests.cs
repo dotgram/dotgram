@@ -201,7 +201,14 @@ public sealed class PlaygroundTests
 		var recorded = Comparable(expected);
 
 		// A server that answered nothing at all would match a recording that has nothing of it.
-		foreach (var kind in new[] { "completion", "quickinfo", "definition", "references", "rename", "highlight" })
+		// Nor would one that stopped answering a feature the recording has, signature help among them.
+		var kinds = recorded.Split('\n')
+			.Where(static line => line.Length > 0 && line[0] != ' ')
+			.Select(static line => line.Substring(0, line.IndexOf(' ') is var space and >= 0 ? space : line.Length))
+			.Concat(["completion", "quickinfo", "definition", "references", "rename", "highlight"])
+			.Distinct();
+
+		foreach (var kind in kinds)
 			Assert.Contains(kind + " ", actual, StringComparison.Ordinal);
 
 		Assert.True(
