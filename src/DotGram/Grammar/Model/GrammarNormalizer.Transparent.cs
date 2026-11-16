@@ -407,6 +407,6 @@ sealed partial class GrammarNormalizer
 	/// <summary>Whether the expression hands the capture back and does nothing else.</summary>
 	bool Forwards(string expression, string capture)
 	{
-		return string.Equals(_language.SoleName(expression), capture, StringComparison.Ordinal);
+		return string.Equals(_language.SoleName(expression, SoleNameRule.OneBracket), capture, StringComparison.Ordinal);
 	}
 }

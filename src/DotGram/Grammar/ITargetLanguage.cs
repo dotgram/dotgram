@@ -30,6 +30,17 @@ interface ITargetLanguage
 	KnownType Classify(string spelling, out TypeSpellingForm form);
 
 	/// <summary>
+	/// Which known type a spelling names read loosely, as a stage that cannot see the host reads
+	/// it: the prefixes that name the global and the language's own namespace taken off, each where
+	/// it is there, and what is left a keyword or a simple name. <see cref="KnownType.None"/> for any other.
+	/// </summary>
+	/// <remarks>
+	/// Looser than <see cref="Classify"/>, and on purpose: it answers "is this certainly one of the
+	/// language's own types", where an over-generous yes costs nothing but a question not asked.
+	/// </remarks>
+	KnownType ClassifyLoosely(string spelling);
+
+	/// <summary>
 	/// Whether a spelling is one of the language's keywords for a type that a grammar may write
 	/// without <c>@</c>, as a type and never a rule's name (§2).
 	/// </summary>
@@ -94,10 +105,16 @@ interface ITargetLanguage
 	bool Spells(string fragment, string name, NameSearch search);
 
 	/// <summary>
-	/// The name a fragment is, where it is one name and nothing else — bracketed as often as it
-	/// likes — or null: what a construction that hands a capture back as it stands is written as.
+	/// What is left of a fragment once the brackets around it are taken off as
+	/// <paramref name="rule"/> says, or null where the rule does not take it for one name: what a
+	/// construction that hands a capture back as it stands is written as.
 	/// </summary>
-	string? SoleName(string fragment);
+	/// <remarks>
+	/// One question asked by several stages, each by a rule of its own, and the rules differ in
+	/// what they answer about a fragment such as <c>((x))</c>; which stage asks by which is part
+	/// of what the generated code is.
+	/// </remarks>
+	string? SoleName(string fragment, SoleNameRule rule);
 
 	/// <summary>Whether <see cref="HostAnswersTo"/> and <see cref="NamesUnboundIn"/> can say anything.</summary>
 	bool KnowsHostNames { get; }
@@ -165,6 +182,25 @@ interface ITargetLanguage
 
 	/// <summary>Whether a type is the language's optional representation of a value type.</summary>
 	bool IsOptional(string type);
+}
+
+/// <summary>How <see cref="ITargetLanguage.SoleName"/> takes a fragment's brackets off, and what it takes for a name.</summary>
+enum SoleNameRule
+{
+	/// <summary>One pair of brackets at most, matched or not, and whatever is left: <c>((x))</c> is <c>(x)</c>.</summary>
+	OneBracket,
+
+	/// <summary>Every outer pair, matched or not, and whatever is left.</summary>
+	EveryBracket,
+
+	/// <summary>Every outer pair, matched or not, and what is left only where it is an identifier.</summary>
+	EveryBracketIdentifier,
+
+	/// <summary>
+	/// Every outer pair that wraps the whole — <c>(a) + (b)</c> keeps its brackets — and what is
+	/// left only where it is letters, digits and underscores.
+	/// </summary>
+	WrappingBrackets,
 }
 
 /// <summary>How <see cref="ITargetLanguage.Spells"/> looks for a name in the spelling of a fragment.</summary>

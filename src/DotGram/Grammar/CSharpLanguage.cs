@@ -83,6 +83,26 @@ sealed class CSharpLanguage : ITargetLanguage
 		return KnownType.None;
 	}
 
+	public KnownType ClassifyLoosely(string spelling)
+	{
+		if (spelling is null)
+			throw new ArgumentNullException(nameof(spelling));
+
+		// `global::` and then `System.`, each where it is there: `System.int` and `global::String`
+		// are read as `int` and `String`, which C# would not, and that is the reading this answers.
+		var name = spelling;
+
+		if (name.StartsWith("global::", StringComparison.Ordinal))
+			name = name.Substring("global::".Length);
+
+		if (name.StartsWith("System.", StringComparison.Ordinal))
+			name = name.Substring("System.".Length);
+
+		return Classify(name, out var form) is var kind && form is TypeSpellingForm.Syntax or TypeSpellingForm.Simple
+			? kind
+			: KnownType.None;
+	}
+
 	public bool IsGrammarKeyword(string spelling)
 	{
 		// The keywords of the value types and of text and object; not nint and nuint, which
@@ -170,22 +190,47 @@ sealed class CSharpLanguage : ITargetLanguage
 		}
 	}
 
-	public string? SoleName(string fragment)
+	public string? SoleName(string fragment, SoleNameRule rule)
 	{
 		var name = fragment.Trim();
 
-		// The brackets come off only where they wrap the whole: `(a) + (b)` is not `a) + (b`.
-		while (name.Length > 2 && name[0] == '(' && name[^1] == ')' && Wrapping(name))
-			name = name[1..^1].Trim();
+		switch (rule)
+		{
+			case SoleNameRule.OneBracket:
+				if (name.StartsWith("(", StringComparison.Ordinal) && name.EndsWith(")", StringComparison.Ordinal))
+					name = name[1..^1].Trim();
 
-		if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] == '_'))
-			return null;
+				return name;
 
-		foreach (var c in name)
-			if (!char.IsLetterOrDigit(c) && c != '_')
-				return null;
+			case SoleNameRule.EveryBracket:
+			case SoleNameRule.EveryBracketIdentifier:
+				while (name.Length > 1 && name[0] == '(' && name[name.Length - 1] == ')')
+					name = name.Substring(1, name.Length - 2).Trim();
 
-		return name;
+				if (rule == SoleNameRule.EveryBracket)
+					return name;
+
+				return name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_') && IsWord(name) ? name : null;
+
+			case SoleNameRule.WrappingBrackets:
+				// The brackets come off only where they wrap the whole: `(a) + (b)` is not `a) + (b`.
+				while (name.Length > 2 && name[0] == '(' && name[^1] == ')' && Wrapping(name))
+					name = name[1..^1].Trim();
+
+				return name.Length > 0 && IsWord(name) ? name : null;
+
+			default:
+				throw new ArgumentOutOfRangeException(nameof(rule), rule, null);
+		}
+
+		static bool IsWord(string text)
+		{
+			foreach (var c in text)
+				if (!char.IsLetterOrDigit(c) && c != '_')
+					return false;
+
+			return true;
+		}
 
 		// Whether the bracket that opens the text is the one that closes it.
 		static bool Wrapping(string text)

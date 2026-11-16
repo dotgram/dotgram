@@ -335,7 +335,7 @@ sealed partial class GrammarNormalizer
 			foreach (var alternative in ValueAlternatives(body))
 			{
 				if (alternative is not Node.Construct(_, Construction.Expression(var text, var at)) ||
-					_language.SoleName(text) is not { } name ||
+					_language.SoleName(text, SoleNameRule.EveryBracketIdentifier) is not { } name ||
 					members.FirstOrDefault(member => member.Name == name) is not { Element: null } held)
 					continue;
 
@@ -767,7 +767,7 @@ sealed partial class GrammarNormalizer
 	{
 		var name = type.EndsWith("?", StringComparison.Ordinal) ? type.Substring(0, type.Length - 1) : type;
 
-		return _language.Classify(name, out _) is >= KnownType.Text and <= KnownType.NUInt;
+		return _language.ClassifyLoosely(name) is >= KnownType.Text and <= KnownType.NUInt;
 	}
 
 	/// <summary>

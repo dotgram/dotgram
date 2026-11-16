@@ -366,7 +366,7 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	string? Handed(string text)
 	{
-		return _language.SoleName(text);
+		return _language.SoleName(text, SoleNameRule.WrappingBrackets);
 	}
 
 	/// <summary>Whether every alternative captures the one name the choice hands on.</summary>

@@ -615,7 +615,7 @@ static class Retention
 	/// </summary>
 	static bool HandsBack(ITargetLanguage language, Construction how, IReadOnlyList<Node> parts, RuleSymbol? seam)
 	{
-		if (how is not Construction.Expression(var text, _) || language.SoleName(text) is not { } name)
+		if (how is not Construction.Expression(var text, _) || language.SoleName(text, SoleNameRule.EveryBracket) is not { } name)
 			return false;
 
 		var captured = parts
