@@ -355,7 +355,7 @@ sealed partial class GrammarNormalizer
 					continue;
 
 				foreach (var node in NodeWalk.Descendants(seen))
-					if (node is Node.Guard(var text) && _scanner?.FreeNames(text) is { } free &&
+					if (node is Node.Guard(var text) && _language.NamesUsed(text) is { } free &&
 						captured.FirstOrDefault(free.Contains) is { } name &&
 						!rule.Declaration.Params.Any(one => one.Name == name))
 					{
@@ -413,16 +413,16 @@ sealed partial class GrammarNormalizer
 					_ => null,
 				};
 
-				if (text is null || _scanner?.FreeNames(text) is not { } free)
+				if (text is null || _language.NamesUsed(text) is not { } free)
 					continue;
 
 				foreach (var name in bound)
 				{
 					// A name the C# around the generated call answers to — a member of the host, a type —
 					// is that, and compiles as it did; only where nothing does is it refused. Asked only of a
-					// resolver that can say (ICSharpNames); without one, nothing is refused.
+					// language that knows the host's names; without one, nothing is refused.
 					if (!free.Contains(name) || captured.Contains(name) || rule.Declaration.Params.Any(one => one.Name == name) ||
-						_resolver is not ICSharpNames names || names.Answers(name, Imports(_model.Root)))
+						!_language.KnowsHostNames || _language.HostAnswersTo(name, Imports(_model.Root)))
 						continue;
 
 					Report(

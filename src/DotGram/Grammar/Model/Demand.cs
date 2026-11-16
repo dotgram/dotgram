@@ -318,7 +318,7 @@ static class Demand
 	{
 		return graph.FreeNames.TryGetValue(text, out var free)
 			? free.Contains(name)
-			: text.Contains(name);
+			: graph.Language.Spells(text, name, NameSearch.Substring);
 	}
 
 	/// <summary>

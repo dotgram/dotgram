@@ -51,7 +51,7 @@ static class GramLexer
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
-		return Lex(text, scanner);
+		return Lex(text, CSharpLanguage.Reading(scanner));
 	}
 
 	/// <summary>
@@ -90,6 +90,25 @@ static class GramLexer
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
+		return TokenizeIn(CSharpLanguage.Reading(scanner), text, cuts, splicedAt, CSharpLanguage.Reading(spliced));
+	}
+
+	/// <summary>
+	/// The same, with the language that reads the host fragments of each part: the author's
+	/// <paramref name="language"/>, and the one the spliced tail was written to be read by.
+	/// </summary>
+	public static TokenList TokenizeIn(
+		ITargetLanguage language, string text, IReadOnlyList<int>? cuts, int splicedAt, ITargetLanguage spliced)
+	{
+		if (language is null)
+			throw new ArgumentNullException(nameof(language));
+
+		if (text is null)
+			throw new ArgumentNullException(nameof(text));
+
+		if (spliced is null)
+			throw new ArgumentNullException(nameof(spliced));
+
 		var points = new SortedSet<int>(cuts ?? []);
 
 		points.Add(splicedAt);
@@ -98,7 +117,7 @@ static class GramLexer
 		cuts = [.. points];
 
 		if (cuts.Count == 0)
-			return Lex(text, splicedAt <= 0 ? spliced : scanner);
+			return Lex(text, splicedAt <= 0 ? spliced : language);
 
 		var tokens      = new List<Token>();
 		var diagnostics = new List<GramDiagnostic>();
@@ -107,7 +126,7 @@ static class GramLexer
 		for (var i = 0; i <= cuts.Count; i++)
 		{
 			var to    = i < cuts.Count ? cuts[i] : text.Length;
-			var piece = Lex(text.Substring(from, to - from), from >= splicedAt ? spliced : scanner);
+			var piece = Lex(text.Substring(from, to - from), from >= splicedAt ? spliced : language);
 
 			// Each part keeps its end-of-file token, in the middle of the list: the parser reads it
 			// as the end of that part and goes on to the next one after it.
@@ -123,7 +142,7 @@ static class GramLexer
 		return new TokenList(tokens, diagnostics, text);
 	}
 
-	static TokenList Lex(string text, ICSharpScanner? scanner)
+	static TokenList Lex(string text, ITargetLanguage language)
 	{
 		var tokens      = new List<Token>();
 		var diagnostics = new List<GramDiagnostic>();
@@ -289,7 +308,7 @@ static class GramLexer
 
 				case '@' when position + 1 < text.Length && text[position + 1] == '(':
 					position = ReadCSharpExpression(
-						text, position, scanner, diagnostics, out var expression);
+						text, position, language, diagnostics, out var expression);
 
 					if (expression is not null)
 						Add(TokenKind.CSharpExpression, start, position - start, expression);
@@ -526,7 +545,7 @@ static class GramLexer
 	static int ReadCSharpExpression(
 		string                text,
 		int                   position,
-		ICSharpScanner?       scanner,
+		ITargetLanguage       language,
 		List<GramDiagnostic>  diagnostics,
 		out string?           expression)
 	{
@@ -534,7 +553,7 @@ static class GramLexer
 
 		var openParen = position + 1;
 
-		if (scanner is null)
+		if (!language.ReadsFragments)
 		{
 			diagnostics.Add(new GramDiagnostic(
 				ExpressionNeedsScanner,
@@ -546,7 +565,7 @@ static class GramLexer
 			return position + 2;
 		}
 
-		if (!scanner.TryFindClosingParenthesis(text, openParen, out var closeParen))
+		if (!language.TryFindFragmentEnd(text, openParen, out var closeParen))
 		{
 			diagnostics.Add(new GramDiagnostic(
 				UnterminatedExpression,

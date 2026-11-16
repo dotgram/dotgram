@@ -149,10 +149,11 @@ sealed class GramCompilerOptions
 	public ISymbolResolver SymbolResolver { get; set; } = PermissiveSymbolResolver.Instance;
 
 	/// <summary>
-	/// The language the parser is generated in, which says how the types a grammar names are
-	/// spelled. C#, the only one there is.
+	/// The language the parser is generated in: how the types a grammar names are spelled, and what
+	/// reads the host fragments it hands over. Null makes C#'s of <see cref="SymbolResolver"/> and
+	/// <see cref="CSharpScanner"/>, which is what every caller does today.
 	/// </summary>
-	public ITargetLanguage Language { get; set; } = CSharpLanguage.Instance;
+	public ITargetLanguage? Language { get; set; }
 
 	/// <summary>
 	/// Finds where an inline <c>@(...)</c> expression ends. Null means the grammar may

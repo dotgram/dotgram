@@ -364,35 +364,9 @@ sealed partial class GrammarNormalizer
 	/// emitted is the text as written. So the brackets come off before the name is compared,
 	/// as many layers as there are.
 	/// </remarks>
-	static string? Handed(string text)
+	string? Handed(string text)
 	{
-		var handed = text.Trim();
-
-		while (handed.Length > 2 && handed[0] == '(' && handed[^1] == ')' && Wrapping(handed))
-			handed = handed[1..^1].Trim();
-
-		foreach (var c in handed)
-			if (!char.IsLetterOrDigit(c) && c != '_')
-				return null;
-
-		return handed.Length == 0 ? null : handed;
-	}
-
-	/// <summary>Whether the first bracket is the one the last closes.</summary>
-	static bool Wrapping(string text)
-	{
-		var depth = 0;
-
-		for (var at = 0; at < text.Length; at++)
-		{
-			if (text[at] == '(')
-				depth++;
-
-			else if (text[at] == ')' && --depth == 0)
-				return at == text.Length - 1;
-		}
-
-		return false;
+		return _language.SoleName(text);
 	}
 
 	/// <summary>Whether every alternative captures the one name the choice hands on.</summary>
@@ -413,7 +387,7 @@ sealed partial class GrammarNormalizer
 	/// The rule an alternative does nothing with but call and hand on, or false where it
 	/// does anything else.
 	/// </summary>
-	static bool Reaching(Node alternative, out RuleSymbol called)
+	bool Reaching(Node alternative, out RuleSymbol called)
 	{
 		called = null!;
 
@@ -1027,7 +1001,7 @@ sealed partial class GrammarNormalizer
 			if (node is not Node.Guard(var text))
 				continue;
 
-			if (_scanner?.FreeNames(text) is { } free)
+			if (_language.NamesUsed(text) is { } free)
 				names?.UnionWith(free);
 			else
 				names = null;
@@ -1157,7 +1131,7 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether an alternative is the operand and a `=&gt;` that hands it back.</summary>
-	static bool HandsBack(Node alternative)
+	bool HandsBack(Node alternative)
 	{
 		return alternative is Node.Construct(Node.Capture(var name, _), Construction.Expression(var text, _)) &&
 		string.Equals(Handed(text), name, StringComparison.Ordinal);

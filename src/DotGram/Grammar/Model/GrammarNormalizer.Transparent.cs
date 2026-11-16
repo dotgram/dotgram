@@ -405,13 +405,8 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether the expression hands the capture back and does nothing else.</summary>
-	static bool Forwards(string expression, string capture)
+	bool Forwards(string expression, string capture)
 	{
-		var text = expression.Trim();
-
-		if (text.StartsWith("(", StringComparison.Ordinal) && text.EndsWith(")", StringComparison.Ordinal))
-			text = text[1..^1].Trim();
-
-		return string.Equals(text, capture, StringComparison.Ordinal);
+		return string.Equals(_language.SoleName(expression), capture, StringComparison.Ordinal);
 	}
 }

@@ -176,14 +176,12 @@ sealed partial class GrammarNormalizer
 
 	readonly ISymbolResolver _resolver;
 
-	/// <summary>How the types a grammar names are spelled, asked instead of comparing spellings here.</summary>
-	readonly ITargetLanguage _language;
-
 	/// <summary>
-	/// Asked which names a guard uses, where the fold weighs whether a committed residue
-	/// could be seen through a value a guard reads. Null answers conservatively.
+	/// The language the parser is generated in: asked how the types a grammar names are spelled, and
+	/// which names a host fragment uses — never read here. Where it cannot read fragments, every
+	/// question about one answers conservatively.
 	/// </summary>
-	ICSharpScanner? _scanner;
+	readonly ITargetLanguage _language;
 
 	/// <summary>Whether the resolver cannot see the host's C#: see <see cref="UnseenHostSymbolResolver"/>.</summary>
 	bool _hostUnseen;
@@ -219,7 +217,11 @@ sealed partial class GrammarNormalizer
 	/// (<see cref="CollapseTransparent"/>). Always, but for a test that holds a trace build's frames
 	/// of the forwarding rules to a parser that calls them as written.
 	/// </param>
-	/// <param name="language">How the types the grammar names are spelled; C# where it is null.</param>
+	/// <param name="language">
+	/// The language the parser is generated in. Where it is null, C#'s is made of
+	/// <paramref name="resolver"/> and <paramref name="scanner"/>; where it is given, it reads the
+	/// host fragments itself and <paramref name="scanner"/> must be null.
+	/// </param>
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
 		string? locationType = null, bool positionalFollow = false, bool positionalSplit = false,
@@ -228,10 +230,13 @@ sealed partial class GrammarNormalizer
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
-		var normalizer = new GrammarNormalizer(
-			model, resolver ?? PermissiveSymbolResolver.Instance, language ?? CSharpLanguage.Instance)
+		if (language is not null && scanner is not null)
+			throw new ArgumentException("A language reads its own host fragments; pass no scanner beside it.", nameof(scanner));
+
+		language ??= new CSharpLanguage(resolver, scanner);
+
+		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance, language)
 		{
-			_scanner    = scanner,
 			_segmented  = NamesEndOfSegment(model),
 			_hostUnseen = resolver is UnseenHostSymbolResolver,
 		};
@@ -373,8 +378,8 @@ sealed partial class GrammarNormalizer
 
 		// After pruning, because a rule nothing reaches is never emitted, and a mark in one
 		// breaks nothing.
-		normalizer.CheckMarksHaveState(scanner);
-		normalizer.CheckSuppliedNamesAreHandedOver(scanner);
+		normalizer.CheckMarksHaveState();
+		normalizer.CheckSuppliedNamesAreHandedOver();
 
 		var located = Locating(normalizer, resolver, locationType, Imports(model.Root));
 
@@ -429,7 +434,7 @@ sealed partial class GrammarNormalizer
 			Context    = (normalizer._context ?? model.Context)?.Name,
 			State      = (normalizer._state ?? model.State)?.Name,
 			ContextRewinds = normalizer._rewinds,
-			FreeNames  = FreeNames(normalizer._bodies.Values, normalizer._recoveries.Values, scanner),
+			FreeNames  = FreeNames(normalizer._bodies.Values, normalizer._recoveries.Values, language),
 			WhenSound  = normalizer._whenSound,
 			Located    = located,
 			LocationType = located.Count > 0 ? locationType : null,
@@ -656,16 +661,16 @@ sealed partial class GrammarNormalizer
 	/// holds is the text that will be emitted.
 	/// </para>
 	/// <para>
-	/// An expression the scanner cannot parse is left out rather than recorded as using
+	/// An expression the language cannot read is left out rather than recorded as using
 	/// nothing, so a reader can tell "asks for none of them" from "could not be asked".
 	/// </para>
 	/// </remarks>
 	static IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames(
-		IEnumerable<Node> bodies, IEnumerable<Recovery> recoveries, ICSharpScanner? scanner)
+		IEnumerable<Node> bodies, IEnumerable<Recovery> recoveries, ITargetLanguage language)
 	{
 		var names = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
 
-		if (scanner is null)
+		if (!language.ReadsFragments)
 			return names;
 
 		foreach (var body in bodies)
@@ -679,13 +684,13 @@ sealed partial class GrammarNormalizer
 					_                                                          => null,
 				};
 
-				if (text is not null && !names.ContainsKey(text) && scanner.FreeNames(text) is { } free)
+				if (text is not null && !names.ContainsKey(text) && language.NamesUsed(text) is { } free)
 					names[text] = free;
 			}
 
 		// A recovery's factory is no node of a body, and is asked for the same names.
 		foreach (var recovery in recoveries)
-			if (recovery.Factory is { } factory && !names.ContainsKey(factory) && scanner.FreeNames(factory) is { } asked)
+			if (recovery.Factory is { } factory && !names.ContainsKey(factory) && language.NamesUsed(factory) is { } asked)
 				names[factory] = asked;
 
 		return names;

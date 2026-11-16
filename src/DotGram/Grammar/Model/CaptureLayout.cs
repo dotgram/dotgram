@@ -426,11 +426,11 @@ sealed record Recovery(Node Sync, string? Factory)
 	public bool YieldStep { get; init; }
 
 	/// <summary>
-	/// The scanner that reads the factory's C#, so that what it asks for is what the C# names:
+	/// The language that reads the factory, so that what it asks for is what the factory names:
 	/// not a spelling inside a string or a comment, and an identifier written with an <c>@</c>
-	/// or a Unicode escape is the name it spells. Null where the grammar has none.
+	/// or a Unicode escape is the name it spells. One that reads nothing where the grammar has none.
 	/// </summary>
-	public ICSharpScanner? Scanner { get; init; }
+	public ITargetLanguage Language { get; init; } = CSharpLanguage.Instance;
 
 	/// <summary>Where the grammar wrote the <c>recover</c>, for what is said about it.</summary>
 	public Parsing.Location At { get; init; }
@@ -470,10 +470,10 @@ sealed record Recovery(Node Sync, string? Factory)
 				return [];
 
 			var asked = new List<string>();
-			var free  = Scanner?.FreeNames(factory);
+			var free  = Language.NamesUsed(factory);
 
 			foreach (var name in Supplied)
-				if (free is not null ? free.Contains(name) : Mentions(factory, name))
+				if (free is not null ? free.Contains(name) : Language.Spells(factory, name, NameSearch.Word))
 					asked.Add(name);
 
 			return asked;
@@ -530,26 +530,6 @@ sealed record Recovery(Node Sync, string? Factory)
 	/// column where a name a factory is handed may not (GRAM4026).
 	/// </remarks>
 	public bool Words => Factory is null || Asks.Contains("parserMessage");
-
-	static bool Mentions(string csharp, string name)
-	{
-		for (var at = csharp.IndexOf(name, StringComparison.Ordinal); at >= 0;
-			 at = csharp.IndexOf(name, at + 1, StringComparison.Ordinal))
-		{
-			if ((at == 0 || !IsPartOfAName(csharp[at - 1])) &&
-				(at + name.Length == csharp.Length || !IsPartOfAName(csharp[at + name.Length])))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	static bool IsPartOfAName(char c)
-	{
-		return char.IsLetterOrDigit(c) || c is '_' or '@';
-	}
 }
 
 /// <summary>

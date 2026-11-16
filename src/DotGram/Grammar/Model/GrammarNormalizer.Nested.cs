@@ -416,25 +416,12 @@ sealed partial class GrammarNormalizer
 		return names;
 	}
 
-	/// <summary>Whether C# names a capture: by the scanner where there is one, by the word otherwise.</summary>
+	/// <summary>Whether C# names a capture: by what the language reads in it where it can, by the word otherwise.</summary>
 	bool Names(string text, string name)
 	{
-		if (_scanner?.FreeNames(text) is { } free)
+		if (_language.NamesUsed(text) is { } free)
 			return free.Contains(name);
 
-		for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0;
-			at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
-		{
-			if ((at == 0 || !(Continues(text[at - 1]) || text[at - 1] == '.')) &&
-				(at + name.Length == text.Length || !Continues(text[at + name.Length])))
-				return true;
-		}
-
-		return false;
-
-		static bool Continues(char c)
-		{
-			return char.IsLetterOrDigit(c) || c is '_' or '@';
-		}
+		return _language.Spells(text, name, NameSearch.WordNotMember);
 	}
 }

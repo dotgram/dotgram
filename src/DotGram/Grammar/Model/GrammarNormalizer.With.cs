@@ -897,7 +897,7 @@ sealed partial class GrammarNormalizer
 		List<(RuleSymbol Rule, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Method)> readers,
 		Queue<Publication> pending)
 	{
-		if (_scanner?.FreeNames(text) is not { Count: > 0 } free)
+		if (_language.NamesUsed(text) is not { Count: > 0 } free)
 			return text;
 
 		Dictionary<string, string>? names = null;
@@ -943,7 +943,7 @@ sealed partial class GrammarNormalizer
 				break;
 			}
 
-		return names is null ? text : _scanner.Renamed(text, names) ?? text;
+		return names is null ? text : _language.Renamed(text, names) ?? text;
 	}
 
 	/// <summary>A method name for a made publication that no other publication has.</summary>

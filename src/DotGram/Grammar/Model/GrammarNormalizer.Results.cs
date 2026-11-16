@@ -335,7 +335,7 @@ sealed partial class GrammarNormalizer
 			foreach (var alternative in ValueAlternatives(body))
 			{
 				if (alternative is not Node.Construct(_, Construction.Expression(var text, var at)) ||
-					HandedBack(text) is not { } name ||
+					_language.SoleName(text) is not { } name ||
 					members.FirstOrDefault(member => member.Name == name) is not { Element: null } held)
 					continue;
 
@@ -348,19 +348,6 @@ sealed partial class GrammarNormalizer
 						"holds the declared type, or build it from the capture in C#.",
 						at >= 0 ? new Location(at, name.Length) : rule.Declaration.At);
 			}
-		}
-
-		// `x` or `(x)` with nothing else around it.
-		static string? HandedBack(string text)
-		{
-			var name = text.Trim();
-
-			while (name.Length > 1 && name[0] == '(' && name[name.Length - 1] == ')')
-				name = name.Substring(1, name.Length - 2).Trim();
-
-			return name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_') && name.All(static c => char.IsLetterOrDigit(c) || c == '_')
-				? name
-				: null;
 		}
 	}
 
@@ -387,7 +374,7 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	void CheckRecognizersInCSharp()
 	{
-		if (_scanner is null)
+		if (!_language.ReadsFragments)
 			return;
 
 		var asked = new HashSet<Decl.Rule>(new DeclarationIdentity());
@@ -431,7 +418,7 @@ sealed partial class GrammarNormalizer
 		// compiles; one that does not is told by the C# compiler on the grammar's line.
 		bool Unbound(string name)
 		{
-			return _resolver is ICSharpNames names && !names.Answers(name, Imports(_model.Root));
+			return _language.KnowsHostNames && !_language.HostAnswersTo(name, Imports(_model.Root));
 		}
 
 		// For each value the declaration writes, whether it certainly names a name, and where it stands.
@@ -449,7 +436,7 @@ sealed partial class GrammarNormalizer
 					// grammar's @using directives: one that binds to nothing there is the parameter's. Which
 					// names a lambda, a local or a pattern declares, and over what, is the compiler's to say.
 					case Expr.CSharp(var text):
-						var unbound = _resolver is ICSharpNames names ? names.UnboundIn(text, imports) : null;
+						var unbound = _language.NamesUnboundIn(text, imports);
 
 						yield return (one => unbound?.Contains(one) == true, part.At);
 						break;

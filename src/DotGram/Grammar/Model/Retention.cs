@@ -310,7 +310,7 @@ static class Retention
 	{
 		return graph.FreeNames.TryGetValue(text, out var free)
 			? free.Contains("parserInput")
-			: text.Contains("parserInput", StringComparison.Ordinal);
+			: graph.Language.Spells(text, "parserInput", NameSearch.Substring);
 	}
 
 	/// <summary>
@@ -613,15 +613,10 @@ static class Retention
 	/// the elements of a repetition: <c>ranges: Range* =&gt; @(ranges)</c>, or the turn of a spaced
 	/// collection that captures them.
 	/// </summary>
-	static bool HandsBack(Construction how, IReadOnlyList<Node> parts, RuleSymbol? seam)
+	static bool HandsBack(ITargetLanguage language, Construction how, IReadOnlyList<Node> parts, RuleSymbol? seam)
 	{
-		if (how is not Construction.Expression(var text, _))
+		if (how is not Construction.Expression(var text, _) || language.SoleName(text) is not { } name)
 			return false;
-
-		var name = text.Trim();
-
-		while (name.Length > 1 && name[0] == '(' && name[name.Length - 1] == ')')
-			name = name.Substring(1, name.Length - 2).Trim();
 
 		var captured = parts
 			.SelectMany(static part => NodeWalk.Descendants(part))
@@ -758,7 +753,7 @@ static class Retention
 		// them afterwards: a `=>` on the rule would be skipped, and its value never seen. One
 		// that hands back the repetition it captured, as it stands, is what the stream does.
 		if (graph.Bodies[rule] is Node.Construct(_, var how) && how is not Construction.Sequence &&
-			!HandsBack(how, parts, seam))
+			!HandsBack(graph.Language, how, parts, seam))
 			return $"'{rule.Name}' builds its value with '=>', and a streamed parse hands each element " +
 				"to the caller as it reads it, with nothing left to build from. Let the rule collect " +
 				"its sequence itself (docs/syntax.md §4.1 case 2), or read it over a string.";

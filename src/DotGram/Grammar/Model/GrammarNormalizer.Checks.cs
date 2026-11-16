@@ -732,11 +732,13 @@ sealed partial class GrammarNormalizer
 				if (node is not Node.Marked(_, var text))
 					continue;
 
-				var free = _scanner?.FreeNames(text);
+				var free = _language.NamesUsed(text);
 
 				foreach (var name in captures)
 				{
-					if (free is not null ? !free.Contains(name) : !NamesWord(text, name))
+					// Where the expression would not parse: the name as a word of its own, and not a
+					// member of something else.
+					if (free is not null ? !free.Contains(name) : !_language.Spells(text, name, NameSearch.WordNotMember))
 						continue;
 
 					Report(
@@ -749,26 +751,6 @@ sealed partial class GrammarNormalizer
 					break;
 				}
 			}
-		}
-
-		// Where the expression would not parse: the name as a word of its own, and not a member
-		// of something else.
-		static bool NamesWord(string text, string name)
-		{
-			for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0;
-				at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
-			{
-				if ((at == 0 || !(Continues(text[at - 1]) || text[at - 1] == '.')) &&
-					(at + name.Length == text.Length || !Continues(text[at + name.Length])))
-					return true;
-			}
-
-			return false;
-		}
-
-		static bool Continues(char c)
-		{
-			return char.IsLetterOrDigit(c) || c is '_' or '@';
 		}
 	}
 
@@ -823,9 +805,9 @@ sealed partial class GrammarNormalizer
 				if (node is not Node.Guard(var text))
 					continue;
 
-				var free = _scanner?.FreeNames(text);
+				var free = _language.NamesUsed(text);
 
-				// Null where the scanner could not read the guard. Falling back to a word
+				// Null where the language could not read the guard. Falling back to a word
 				// match, as CheckMarks does, would answer a question the emitter itself
 				// cannot ask (Machine.GuardAccumulator asks the same scanner and falls back
 				// the same way, to never being handed the value so far) — so nothing is

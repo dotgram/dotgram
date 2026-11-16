@@ -181,7 +181,7 @@ sealed partial class GrammarNormalizer
 	/// Asked once per rule the parser keeps, after pruning, because a rule nothing reaches is
 	/// never emitted.
 	/// </remarks>
-	void CheckMarksHaveState(ICSharpScanner? scanner)
+	void CheckMarksHaveState()
 	{
 		if (_state is not null || _model.State is not null)
 			return;
@@ -198,8 +198,8 @@ sealed partial class GrammarNormalizer
 				what = node switch
 				{
 					Node.Marked                                                => "places a mark with 'with state'",
-					Node.Guard(var text, _)                                    => AsksForMarks(text, scanner),
-					Node.Construct(_, Construction.Expression(var text, _))    => AsksForMarks(text, scanner),
+					Node.Guard(var text, _)                                    => AsksForMarks(text),
+					Node.Construct(_, Construction.Expression(var text, _))    => AsksForMarks(text),
 					_                                                          => null,
 				};
 
@@ -227,7 +227,7 @@ sealed partial class GrammarNormalizer
 	/// out where the grammar declares no <c>state</c>, which <see cref="CheckMarksHaveState"/> says.
 	/// A recovery's factory is handed every name but the marks, which a rejected element has none of.
 	/// </remarks>
-	void CheckSuppliedNamesAreHandedOver(ICSharpScanner? scanner)
+	void CheckSuppliedNamesAreHandedOver()
 	{
 		var declaresState = _state is not null || _model.State is not null;
 
@@ -249,7 +249,7 @@ sealed partial class GrammarNormalizer
 					continue;
 
 				var isGuard = place == "a 'when'";
-				var misused = Misused(text, scanner);
+				var misused = Misused(text);
 
 				foreach (var name in misused)
 					Report(
@@ -258,7 +258,7 @@ sealed partial class GrammarNormalizer
 						"parser supplies are reserved in C# written in a grammar: rename it (docs/syntax.md §8.2).",
 						rule.Declaration.At);
 
-				foreach (var name in Unhanded(text, handed, isGuard && declaresState, scanner).Except(misused))
+				foreach (var name in Unhanded(text, handed, isGuard && declaresState).Except(misused))
 					Report(
 						SuppliedNameNotHere,
 						SuppliedNames.Internal.Contains(name)
@@ -273,7 +273,7 @@ sealed partial class GrammarNormalizer
 		foreach (var recovery in _recoveries.Values)
 			if (recovery.Factory is { } factory)
 			{
-				var misused = Misused(factory, scanner);
+				var misused = Misused(factory);
 
 				foreach (var name in misused)
 					Report(
@@ -282,7 +282,7 @@ sealed partial class GrammarNormalizer
 						"parser supplies are reserved in C# written in a grammar: rename it (docs/syntax.md §8.2).",
 						recovery.At);
 
-				foreach (var name in Unhanded(factory, SuppliedNames.ToRecoveries, flagMarks: true, scanner).Except(misused))
+				foreach (var name in Unhanded(factory, SuppliedNames.ToRecoveries, flagMarks: true).Except(misused))
 					Report(
 						SuppliedNameNotHere,
 						SuppliedNames.Internal.Contains(name)
@@ -309,9 +309,9 @@ sealed partial class GrammarNormalizer
 	/// A method group handed on (<c>new Func&lt;string&gt;(parserMessage)</c>) or a static class of that name with a
 	/// member cannot be told from a value without a compilation, and is left to the C# compiler.
 	/// </remarks>
-	static IReadOnlyList<string> Misused(string text, ICSharpScanner? scanner)
+	IReadOnlyList<string> Misused(string text)
 	{
-		var other = scanner?.NamesNotAsValues(text);
+		var other = _language.NamesNotUsedAsValues(text);
 
 		return other is null ? [] : [.. SuppliedNames.All.Concat(SuppliedNames.Internal).Where(other.Contains)];
 	}
@@ -322,9 +322,9 @@ sealed partial class GrammarNormalizer
 	/// a construction is handed them where it declares one, and without one says so in its own words
 	/// (<see cref="CheckMarksHaveState"/>).
 	/// </param>
-	static IEnumerable<string> Unhanded(string text, IReadOnlyCollection<string> handed, bool flagMarks, ICSharpScanner? scanner)
+	IEnumerable<string> Unhanded(string text, IReadOnlyCollection<string> handed, bool flagMarks)
 	{
-		var free = scanner?.FreeNames(text);
+		var free = _language.NamesUsed(text);
 
 		// The parser's own parameters among them, which are handed to nothing the author writes.
 		foreach (var name in SuppliedNames.All.Concat(SuppliedNames.Internal))
@@ -332,25 +332,25 @@ sealed partial class GrammarNormalizer
 			if (handed.Contains(name) || SuppliedNames.WithState.Contains(name) && !flagMarks)
 				continue;
 
-			if (free is not null ? free.Contains(name) : text.Contains(name, StringComparison.Ordinal))
+			if (free is not null ? free.Contains(name) : _language.Spells(text, name, NameSearch.Substring))
 				yield return name;
 		}
 	}
 
 	/// <summary>How a guard or a construction asks for the marks, or null where it does not.</summary>
-	static string? AsksForMarks(string text, ICSharpScanner? scanner)
+	string? AsksForMarks(string text)
 	{
-		var free = scanner?.FreeNames(text);
+		var free = _language.NamesUsed(text);
 
-		return Names(text, free, "parserState") ? "asks for 'parserState'"
-			: Names(text, free, "parserMarks") ? "asks for 'parserMarks'"
+		return Names(free, "parserState") ? "asks for 'parserState'"
+			: Names(free, "parserMarks") ? "asks for 'parserMarks'"
 			: null;
 
 		// Every supplied name begins with `parser`, so where the expression would not parse
 		// the spelling is enough to go on (CSharpEmitter.Uses answers the same way).
-		static bool Names(string text, IReadOnlyCollection<string>? free, string name)
+		bool Names(IReadOnlyCollection<string>? free, string name)
 		{
-			return free is not null ? free.Contains(name) : text.Contains(name);
+			return free is not null ? free.Contains(name) : _language.Spells(text, name, NameSearch.Substring);
 		}
 	}
 

@@ -545,8 +545,8 @@ sealed partial class GrammarNormalizer
 			Lower(sync, ns),
 			factory is null ? null : Valued(factory, "in the value of a '=>', which is C#"))
 		{
-			At      = at.At,
-			Scanner = _scanner,
+			At       = at.At,
+			Language = _language,
 		};
 
 		return repetition;

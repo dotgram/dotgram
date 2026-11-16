@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DotGram.Grammar;
 
@@ -48,4 +49,81 @@ interface ITargetLanguage
 	/// <see cref="KnownType.None"/> or <see cref="KnownType.Sequence"/>, which have no spelling of their own.
 	/// </exception>
 	string Spelling(KnownType kind);
+
+	// ── Host fragments: the text of the target language a grammar hands over ─────────
+	//
+	// Inline in `@(...)`, after `=>`, in a `when`, as a mark and as a recovery's factory. The
+	// grammar's stages never read one themselves: they ask where one ends, which names it uses,
+	// and for a copy with names replaced.
+
+	/// <summary>
+	/// Whether this language can read a host fragment at all. Where it cannot, an inline one is
+	/// refused, and every question below answers that it cannot say.
+	/// </summary>
+	bool ReadsFragments { get; }
+
+	/// <summary>
+	/// Where the host fragment whose opening bracket is at <paramref name="open"/> closes: the
+	/// index of its closing bracket, found past whatever literal or comment could hide one.
+	/// </summary>
+	/// <returns><c>false</c> where it does not close, or where fragments cannot be read.</returns>
+	bool TryFindFragmentEnd(string text, int open, out int close);
+
+	/// <summary>
+	/// The names a fragment uses and does not introduce itself, or null where it cannot be read:
+	/// a caller then falls back to <see cref="Spells"/> rather than concluding it uses none.
+	/// </summary>
+	IReadOnlyCollection<string>? NamesUsed(string fragment);
+
+	/// <summary>
+	/// The names a fragment uses as something other than a value — called, written as a type, or
+	/// declared — or null where it cannot be read.
+	/// </summary>
+	IReadOnlyCollection<string>? NamesNotUsedAsValues(string fragment);
+
+	/// <summary>
+	/// The fragment with each name it uses that is a key of <paramref name="names"/> replaced by
+	/// the value, or null where it cannot be read.
+	/// </summary>
+	string? Renamed(string fragment, IReadOnlyDictionary<string, string> names);
+
+	/// <summary>
+	/// Whether a name appears in a fragment's spelling, searched as <paramref name="search"/> says:
+	/// the answer for a fragment <see cref="NamesUsed"/> cannot read.
+	/// </summary>
+	bool Spells(string fragment, string name, NameSearch search);
+
+	/// <summary>
+	/// The name a fragment is, where it is one name and nothing else — bracketed as often as it
+	/// likes — or null: what a construction that hands a capture back as it stands is written as.
+	/// </summary>
+	string? SoleName(string fragment);
+
+	/// <summary>Whether <see cref="HostAnswersTo"/> and <see cref="NamesUnboundIn"/> can say anything.</summary>
+	bool KnowsHostNames { get; }
+
+	/// <summary>
+	/// Whether anything of the host answers to a simple name where the generated code stands,
+	/// beside the grammar's imports. False where <see cref="KnowsHostNames"/> is.
+	/// </summary>
+	bool HostAnswersTo(string name, IReadOnlyList<string> imports);
+
+	/// <summary>
+	/// The simple names in a fragment that bind to nothing where the generated code stands, beside
+	/// the grammar's imports; null where this cannot say.
+	/// </summary>
+	IReadOnlyCollection<string>? NamesUnboundIn(string fragment, IReadOnlyList<string> imports);
+}
+
+/// <summary>How <see cref="ITargetLanguage.Spells"/> looks for a name in the spelling of a fragment.</summary>
+enum NameSearch
+{
+	/// <summary>Anywhere, as a substring.</summary>
+	Substring,
+
+	/// <summary>As a whole word: not inside a longer name.</summary>
+	Word,
+
+	/// <summary>As a whole word that is not a member of something else: not after a dot.</summary>
+	WordNotMember,
 }

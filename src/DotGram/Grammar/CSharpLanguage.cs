@@ -7,13 +7,21 @@ namespace DotGram.Grammar;
 /// The language the generator writes today: C#'s spellings of the types a grammar knows.
 /// </summary>
 /// <remarks>
+/// <para>
 /// A keyword names its type whatever is imported; so does a name from <c>global::</c>. A
 /// simple or namespace-qualified name is classified too, and it is the asking stage's to decide
 /// whether to trust it, since a host may declare a type of the same name.
+/// </para>
+/// <para>
+/// C# handed over in a grammar is read by an <see cref="ICSharpScanner"/> — Roslyn's, in the
+/// generator and the editors — and the names it binds to where the generated code stands are
+/// asked of the resolver, where that one can say (<see cref="ICSharpNames"/>). One instance is
+/// made for each compilation, of the scanner and the resolver that compilation has.
+/// </para>
 /// </remarks>
 sealed class CSharpLanguage : ITargetLanguage
 {
-	/// <summary>The one instance: it holds nothing of a compilation's.</summary>
+	/// <summary>C# with nothing to read it and no host: what a grammar compiled from a string alone has.</summary>
 	public static CSharpLanguage Instance { get; } = new();
 
 	const string SequenceSuffix = "[]";
@@ -24,8 +32,21 @@ sealed class CSharpLanguage : ITargetLanguage
 	/// <summary>Each known type's keyword, in the order of <see cref="KnownType"/>.</summary>
 	static readonly string?[] Keywords = Keywords0();
 
-	CSharpLanguage()
+	readonly ICSharpScanner? _scanner;
+	readonly ICSharpNames?   _names;
+
+	/// <param name="resolver">The host, asked which names it answers to where it can say; null for none.</param>
+	/// <param name="scanner">Reads the C# a grammar hands over; null where nothing can.</param>
+	public CSharpLanguage(ISymbolResolver? resolver = null, ICSharpScanner? scanner = null)
 	{
+		_scanner = scanner;
+		_names   = resolver as ICSharpNames;
+	}
+
+	/// <summary>A language whose C# this scanner reads, for a caller that holds only a scanner.</summary>
+	public static CSharpLanguage Reading(ICSharpScanner? scanner)
+	{
+		return scanner is null ? Instance : new CSharpLanguage(scanner: scanner);
 	}
 
 	public KnownType Classify(string spelling, out TypeSpellingForm form)
@@ -86,6 +107,104 @@ sealed class CSharpLanguage : ITargetLanguage
 			throw new ArgumentOutOfRangeException(nameof(kind), kind, "A sequence, or no type, has no spelling of its own.");
 
 		return keyword;
+	}
+
+	public bool ReadsFragments => _scanner is not null;
+
+	public bool TryFindFragmentEnd(string text, int open, out int close)
+	{
+		if (_scanner is null)
+		{
+			close = -1;
+
+			return false;
+		}
+
+		return _scanner.TryFindClosingParenthesis(text, open, out close);
+	}
+
+	public IReadOnlyCollection<string>? NamesUsed(string fragment)
+	{
+		return _scanner?.FreeNames(fragment);
+	}
+
+	public IReadOnlyCollection<string>? NamesNotUsedAsValues(string fragment)
+	{
+		return _scanner?.NamesNotAsValues(fragment);
+	}
+
+	public string? Renamed(string fragment, IReadOnlyDictionary<string, string> names)
+	{
+		return _scanner?.Renamed(fragment, names);
+	}
+
+	public bool Spells(string fragment, string name, NameSearch search)
+	{
+		if (search == NameSearch.Substring)
+			return fragment.Contains(name);
+
+		for (var at = fragment.IndexOf(name, StringComparison.Ordinal); at >= 0;
+			at = fragment.IndexOf(name, at + 1, StringComparison.Ordinal))
+		{
+			if ((at == 0 || !(Continues(fragment[at - 1]) || search == NameSearch.WordNotMember && fragment[at - 1] == '.')) &&
+				(at + name.Length == fragment.Length || !Continues(fragment[at + name.Length])))
+				return true;
+		}
+
+		return false;
+
+		// What may stand inside a C# identifier, an `@` among it: `@name` is the name.
+		static bool Continues(char c)
+		{
+			return char.IsLetterOrDigit(c) || c is '_' or '@';
+		}
+	}
+
+	public string? SoleName(string fragment)
+	{
+		var name = fragment.Trim();
+
+		// The brackets come off only where they wrap the whole: `(a) + (b)` is not `a) + (b`.
+		while (name.Length > 2 && name[0] == '(' && name[^1] == ')' && Wrapping(name))
+			name = name[1..^1].Trim();
+
+		if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] == '_'))
+			return null;
+
+		foreach (var c in name)
+			if (!char.IsLetterOrDigit(c) && c != '_')
+				return null;
+
+		return name;
+
+		// Whether the bracket that opens the text is the one that closes it.
+		static bool Wrapping(string text)
+		{
+			var depth = 0;
+
+			for (var at = 0; at < text.Length; at++)
+			{
+				if (text[at] == '(')
+					depth++;
+
+				else if (text[at] == ')' && --depth == 0)
+					return at == text.Length - 1;
+			}
+
+			return false;
+		}
+	}
+
+	public bool KnowsHostNames => _names is not null;
+
+	public bool HostAnswersTo(string name, IReadOnlyList<string> imports)
+	{
+		return _names is not null && _names.Answers(name, imports);
+	}
+
+	public IReadOnlyCollection<string>? NamesUnboundIn(string fragment, IReadOnlyList<string> imports)
+	{
+		return _names?.UnboundIn(fragment, imports);
 	}
 
 	static string?[] Keywords0()

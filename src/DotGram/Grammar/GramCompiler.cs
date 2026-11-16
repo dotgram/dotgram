@@ -38,12 +38,21 @@ static class GramCompiler
 		if (grammarText is null)
 			throw new ArgumentNullException(nameof(grammarText));
 
+		return Read(CSharpLanguage.Reading(scanner), grammarText, own, cuts);
+	}
+
+	/// <summary>The same, with the language that reads the grammar's host fragments.</summary>
+	static ParseResult Read(ITargetLanguage language, string grammarText, int? own, IReadOnlyList<int>? cuts)
+	{
 		// The author's own text, the grammars the host included after it and the library are
 		// three texts: what one leaves open is not closed by the next.
-		return GramParser.Parse(GramLexer.Tokenize(
-			StandardLibrary.SplicedOnto(grammarText), scanner, CutsOf(own, cuts), grammarText.Length,
-			StandardLibrary.Scanner));
+		return GramParser.Parse(GramLexer.TokenizeIn(
+			language, StandardLibrary.SplicedOnto(grammarText), CutsOf(own, cuts), grammarText.Length,
+			StandardLibraryLanguage));
 	}
+
+	/// <summary>What reads the library's own C#, whatever the author's is read by.</summary>
+	static readonly ITargetLanguage StandardLibraryLanguage = CSharpLanguage.Reading(StandardLibrary.Scanner);
 
 	/// <summary>Where each text of its own begins in a joined one: the host's own cut, and the given ones.</summary>
 	internal static IReadOnlyList<int>? CutsOf(int? own, IReadOnlyList<int>? cuts)
@@ -81,21 +90,22 @@ static class GramCompiler
 		//   GrammarNormalizer.Normalize (model)         -> RecognitionGraph
 		//   CSharpEmitter    .Emit      (graph)         -> C#
 
-		var parsed = Read(grammarText, options.CSharpScanner, options.Own, options.Cuts);
+		// One language for the whole compilation: it reads the grammar's host fragments and is asked
+		// about its types, for every stage below.
+		var language = options.Language ?? new CSharpLanguage(options.SymbolResolver, options.CSharpScanner);
+		var parsed   = Read(language, grammarText, options.Own, options.Cuts);
 
 		diagnostics.AddRange(parsed.Diagnostics);
 
 		// Past the author's text is what was spliced on: what the host included, and after
 		// that the standard library, which Read put there. Each is a root of its own.
-		var language = options.Language;
-
 		var model = GrammarBinder.Bind(
 			parsed.File, options.SymbolResolver, Math.Min(options.Own ?? int.MaxValue, grammarText.Length), language);
 
 		options.Bound?.Invoke(model);
 
 		var graph = GrammarNormalizer.Normalize(
-			model, options.SymbolResolver, options.CSharpScanner, options.LocationType, options.PositionalFollow,
+			model, options.SymbolResolver, null, options.LocationType, options.PositionalFollow,
 			options.PositionalFollowSplit, options.CollapseForwarders, language);
 
 		if (options.LocatedFacade is { Length: > 0 } facade && options.LocationType is { } located)
