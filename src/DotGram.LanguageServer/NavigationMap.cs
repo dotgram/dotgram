@@ -103,9 +103,21 @@ static class NavigationMap
 	}
 
 	/// <summary>Every occurrence of the symbol, in this document and in the grammars the host includes.</summary>
-	public static Location[] References(GramReferences found, bool includeDeclaration, string uri, LineMap lines, IIncludedGrammarStore store)
+	/// <remarks>
+	/// An included grammar is opened and its lines counted once for all its references, not once for
+	/// each: a rule used hundreds of times in a grammar the size of T-SQL's would otherwise read the
+	/// whole grammar, and hash a carried one for its copy, hundreds of times over.
+	/// </remarks>
+	public static Location[] References(
+		GramReferences found,
+		bool includeDeclaration,
+		string uri,
+		LineMap lines,
+		IIncludedGrammarStore store,
+		CancellationToken cancellationToken)
 	{
-		var result = new List<Location>(found.Positions.Length + found.Elsewhere.Count);
+		var result   = new List<Location>(found.Positions.Length + found.Elsewhere.Count);
+		var grammars = new List<(StandaloneIncludedGrammar Grammar, string? Uri, LineMap? Lines)>();
 
 		foreach (var position in found.Positions)
 			if (includeDeclaration || position != found.DefinitionPosition)
@@ -113,18 +125,40 @@ static class NavigationMap
 
 		foreach (var reference in found.Elsewhere)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
+
 			if (!includeDeclaration && reference.IsDefinition)
 				continue;
 
-			if (store.PathToOpen(reference.Location.Grammar) is not { } path)
+			var (target, map) = Included(grammars, reference.Location.Grammar, store);
+
+			if (target is null)
 				continue;
 
-			var grammar = new LineMap(reference.Location.Grammar.Text);
-
-			result.Add(new Location(FileUri(path), grammar.Range(reference.Location.Offset, reference.Length)));
+			result.Add(new Location(target, map!.Range(reference.Location.Offset, reference.Length)));
 		}
 
 		return [.. result];
+	}
+
+	/// <summary>Where an included grammar opens and how its lines are counted, worked out the first time it is asked for.</summary>
+	static (string? Uri, LineMap? Lines) Included(
+		List<(StandaloneIncludedGrammar Grammar, string? Uri, LineMap? Lines)> grammars,
+		StandaloneIncludedGrammar grammar,
+		IIncludedGrammarStore store)
+	{
+		// By the text's identity: the references of one answer share their grammar's, and comparing two
+		// texts of half a megabyte character by character is what this is here to avoid.
+		foreach (var known in grammars)
+			if (ReferenceEquals(known.Grammar.Text, grammar.Text) && known.Grammar.Name == grammar.Name && known.Grammar.FilePath == grammar.FilePath)
+				return (known.Uri, known.Lines);
+
+		var path  = store.PathToOpen(grammar);
+		var entry = (grammar, path is null ? null : FileUri(path), path is null ? null : new LineMap(grammar.Text));
+
+		grammars.Add(entry);
+
+		return (entry.Item2, entry.Item3);
 	}
 
 	public static DocumentHighlight[] Highlights(IReadOnlyList<GramHighlight> highlights, LineMap lines)

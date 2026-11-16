@@ -1,0 +1,103 @@
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+
+using DotGram.Language;
+
+using Xunit;
+
+namespace DotGram.LanguageServer.Tests;
+
+/// <summary>What the references of a rule in an included grammar cost, and how often that grammar is opened for them.</summary>
+public sealed class IncludedReferencesTests : IDisposable
+{
+	readonly string _folder = Path.Combine(Path.GetTempPath(), "DotGram.LanguageServer.Tests", Guid.NewGuid().ToString("N"));
+
+	public IncludedReferencesTests()
+	{
+		Directory.CreateDirectory(_folder);
+	}
+
+	public void Dispose()
+	{
+		Directory.Delete(_folder, recursive: true);
+	}
+
+	/// <summary>
+	/// The references of a rule used three hundred times in T-SQL's grammar, which a dialect includes:
+	/// mapped onto the client's lines once per grammar, not once per reference.
+	/// </summary>
+	[Fact]
+	public async Task The_references_into_a_large_included_grammar_are_answered_quickly()
+	{
+		const string dialect = "Start = T.TSqlIdentifier\nparse Start\n";
+
+		File.Copy(Path.Combine(LspClient.SourceRoot(), "src", "DotGram.Sql", "TransactSql", "TransactSql.gram"), Path.Combine(_folder, "TransactSql.gram"));
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), dialect);
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), """
+			using DotGram;
+
+			namespace Parsers;
+
+			[Gram("TransactSql.gram", DefaultAlias = "T", Lexical = true)]
+			public partial class TSql;
+
+			[Gram("Dialect.gram", Lexical = true)]
+			[GramInclude(typeof(TSql))]
+			public partial class Dialect;
+			""");
+
+		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		var store = new CountingStore();
+
+		await using var client = await LspClient.StartAsync(new ServerOptions { Store = store }, _folder);
+
+		await client.OpenAsync(uri, dialect);
+		await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session);
+
+		var at      = LspClient.Position(dialect, dialect.IndexOf("TSqlIdentifier", StringComparison.Ordinal));
+		var request = new { textDocument = new { uri }, position = at, context = new { includeDeclaration = true } };
+
+		// Once to warm what the first request pays for anyway: the core's search of the included grammar.
+		var asked      = store.Asked;
+		var references = await client.RequestAsync("textDocument/references", request);
+
+		Assert.True(references.GetArrayLength() > 300, $"{references.GetArrayLength()} references.");
+
+		// The one included grammar is asked where it opens once, for all of its references.
+		Assert.Equal(1, store.Asked - asked);
+
+		var clock = Stopwatch.StartNew();
+
+		for (var repeat = 0; repeat < 5; repeat++)
+			await client.RequestAsync("textDocument/references", request);
+
+		var each = clock.Elapsed.TotalMilliseconds / 5;
+
+		// Measured on the T-SQL grammar: 92 ms a request when every reference counted the grammar's lines
+		// again, 2 ms once they are counted once; the bound sits between, for a machine that is busy.
+		Assert.True(each < 30, $"A request took {each:0} ms.");
+	}
+
+	/// <summary>The temporary directory's store, counting how often it is asked where a grammar opens.</summary>
+	sealed class CountingStore : IIncludedGrammarStore
+	{
+		int _asked;
+
+		public int Asked => Volatile.Read(ref _asked);
+
+		public string? PathToOpen(StandaloneIncludedGrammar grammar)
+		{
+			Interlocked.Increment(ref _asked);
+			return TempDirectoryIncludedGrammarStore.Instance.PathToOpen(grammar);
+		}
+
+		public bool IsCopy(string filePath)
+		{
+			return TempDirectoryIncludedGrammarStore.Instance.IsCopy(filePath);
+		}
+	}
+}

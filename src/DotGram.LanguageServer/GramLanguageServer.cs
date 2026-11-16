@@ -412,7 +412,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 		return found is null
 			? RpcReply.Null
-			: RpcReply.Ok(NavigationMap.References(found, includeDeclaration, document.Uri, version.Lines, _store), LspJson.Default.LocationArray);
+			: RpcReply.Ok(NavigationMap.References(found, includeDeclaration, document.Uri, version.Lines, _store, cancellationToken), LspJson.Default.LocationArray);
 	}
 
 	RpcReply Highlights(OpenGrammar document, GramVersion version, Position position)
