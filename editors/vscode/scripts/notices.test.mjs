@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { nugetSection, rtfText, spdx } from './notices.mjs';
+import { nuget, nugetSection, rtfText, spdx } from './notices.mjs';
 
 function nugetPackage(nuspec, files = {}) {
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'dotgram-notices-'));
@@ -67,4 +67,32 @@ test('the licence texts kept are SPDX\'s, and only those', () => {
 
     assert.equal(spdx('../package'), undefined);
     assert.equal(rtfText('{\\rtf1 a\\\'e9b}'), 'aéb');
+});
+
+test('a declared licence file that is empty fails the build', () => {
+    const folder = nugetPackage('<license type="file">LICENSE.txt</license>', { 'LICENSE.txt': ' \n\t\n' });
+
+    assert.throws(() => nugetSection('Empty.File', '1.0.0', folder), /LICENSE\.txt, which is empty/);
+});
+
+test('the runtime a self-contained server carries is read from its runtime pack, under the pack\'s id', () => {
+    const server = fs.mkdtempSync(path.join(os.tmpdir(), 'dotgram-notices-server-'));
+    const packages = fs.mkdtempSync(path.join(os.tmpdir(), 'dotgram-notices-packages-'));
+    const pack = path.join(packages, 'microsoft.netcore.app.runtime.linux-x64', '10.0.0');
+
+    // As the SDK writes a self-contained publish's dependencies: the pack's id with "runtimepack." before it.
+    fs.writeFileSync(path.join(server, 'Server.deps.json'), JSON.stringify({
+        libraries: {
+            'runtimepack.Microsoft.NETCore.App.Runtime.linux-x64/10.0.0': { type: 'runtimepack', serviceable: false, sha512: '' },
+        },
+    }));
+    fs.mkdirSync(pack, { recursive: true });
+    fs.writeFileSync(path.join(pack, 'microsoft.netcore.app.runtime.linux-x64.nuspec'), '<package><metadata><license type="expression">MIT</license></metadata></package>');
+    fs.writeFileSync(path.join(pack, 'LICENSE.TXT'), 'The MIT License (MIT)');
+    fs.writeFileSync(path.join(pack, 'THIRD-PARTY-NOTICES.TXT'), 'Runtime notices');
+
+    const [text] = nuget(server, packages);
+
+    assert.match(text, /Microsoft\.NETCore\.App\.Runtime\.linux-x64 10\.0\.0 \(NuGet, MIT\)/);
+    assert.match(text, /--- THIRD-PARTY-NOTICES\.TXT ---\n\nRuntime notices/);
 });

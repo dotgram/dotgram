@@ -185,6 +185,10 @@ export function nugetSection(id, version, folder) {
         }
 
         licence = fs.readFileSync(file, 'utf8').trim();
+
+        if (!licence) {
+            throw new Error(`${id} ${version} declares its licence in ${declared}, which is empty.`);
+        }
     } else if (expression) {
         // The expression's own text, where the package does not carry it: one expression, not a combination.
         licence = files(folder, licences).map((item) => item.text).join('\n\n') || spdx(expression);
@@ -206,7 +210,7 @@ export function nugetSection(id, version, folder) {
 }
 
 /** The NuGet packages the published server loads, and its runtime where it carries one. */
-function nuget(server, packages) {
+export function nuget(server, packages) {
     const deps = fs.readdirSync(server).find((file) => file.endsWith('.deps.json'));
 
     if (!deps) {
@@ -222,7 +226,11 @@ function nuget(server, packages) {
         }
 
         const slash = key.lastIndexOf('/');
-        const [id, version] = [key.slice(0, slash), key.slice(slash + 1)];
+        const version = key.slice(slash + 1);
+
+        // A runtime pack is written under its package's id with "runtimepack." before it
+        // (DependencyContextBuilder in the SDK); the packages folder has it under the id itself.
+        const id = library.type === 'runtimepack' ? key.slice(0, slash).replace(/^runtimepack\./, '') : key.slice(0, slash);
 
         result.push(nugetSection(id, version, path.join(packages, library.path ?? `${id.toLowerCase()}/${version}`)));
     }
