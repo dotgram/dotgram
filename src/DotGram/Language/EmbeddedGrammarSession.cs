@@ -390,12 +390,16 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 			if (model is null)
 				return;
 
-			// The project's .gram files only where this document has a grammar in an attribute,
-			// the one place an include is read; most C# documents have none.
-			var includedFile   = provisional.Count == 0
-				? null
-				: await StandaloneGrammarInheritance.GramFilesAsync(document.Project, cancellationToken).ConfigureAwait(false);
-			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken, includedFile);
+			// The project's .gram files, and those of the projects it references, only where this
+			// document has a grammar in an attribute, the one place an include is read; most C#
+			// documents have none.
+			var analyses = provisional.Count == 0
+				? EmbeddedGrammarService.Analyze(model, root, cancellationToken)
+				: EmbeddedGrammarService.Analyze(
+					model,
+					root,
+					cancellationToken,
+					await SolutionIncludedGrammars.ReadAsync(document.Project, cancellationToken).ConfigureAwait(false));
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var dslSites        = await DslEmbeddedSiteAnalysis.AnalyzeAsync(
 				document,

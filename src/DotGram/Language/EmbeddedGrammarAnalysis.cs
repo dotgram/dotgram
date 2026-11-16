@@ -119,6 +119,17 @@ static class EmbeddedGrammarService
 			EmbeddedGrammarFinder.Find(model, root, cancellationToken, includedFile), model.Compilation.Options, cancellationToken);
 	}
 
+	/// <param name="includes">What the host's project answers about the grammars it includes.</param>
+	public static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
+		SemanticModel model,
+		SyntaxNode root,
+		CancellationToken cancellationToken,
+		IncludedGrammarSources includes)
+	{
+		return Analyze(
+			EmbeddedGrammarFinder.Find(model, root, cancellationToken, includes), model.Compilation.Options, cancellationToken);
+	}
+
 	/// <param name="options">
 	/// The compilation's options, which say what the build makes of a diagnostic beside the C# file's
 	/// <c>#pragma</c>s; null where there is no compilation, and only the <c>#pragma</c>s are read.

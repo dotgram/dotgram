@@ -157,82 +157,16 @@ static class StandaloneGrammarInheritance
 				}
 		}
 
+		// Each include as the generator compiles it here (GramIncludes.Choose), a class of another
+		// project with what that project would carry; what each answer read is followed.
+		var sources = await SolutionIncludedGrammars.ReadAsync(project, cancellationToken).ConfigureAwait(false);
+
 		foreach (var include in GramIncludes.Walk(host, Watch))
-		{
-			string? text = null;
-			string? path = null;
+			if (sources.Select(include) is { Text: { } text } choice)
+				included.Add(new StandaloneIncludedGrammar(include.Name, text, choice.FilePath));
 
-			var wanted   = GramIncludes.Wanted(include);
-			var declared = DeclaringProject(solution, include.Type);
-
-			// In the host's own project; a class another project declares is, to the build, a class of a
-			// referenced assembly, as one only in metadata is.
-			var placed = declared is not null && declared.Id == project.Id;
-
-			// What the class carries: a [GramSource] written on it, or, for a class of another project of
-			// the solution, the one that project's generator writes there for a grammar it exports — its
-			// inline grammar or its project's file, as that project reads it.
-			var           carried     = include.Portable;
-			TextDocument? carriedFile = null;
-
-			if (carried is not { Length: > 0 } &&
-				declared is not null &&
-				!placed &&
-				GramHostOptions.Read(include.Attribute, include.Type, first: null).ExportGrammar)
-			{
-				if (include.Source is { } inline && !GramIncludes.IsPath(inline))
-					carried = inline;
-				else if (FileDocument(declared, wanted) is { } exported)
-				{
-					carriedFile = exported;
-					carried     = (await exported.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
-
-					documents.Add(exported.Id);
-				}
-			}
-
-			// The class's own reading, resolved in the host's project: its inline grammar, or the one file
-			// there its source names.
-			string?       resolvedText = null;
-			TextDocument? resolvedFile = null;
-
-			bool Resolve()
-			{
-				if (include.Source is { } written && !GramIncludes.IsPath(written))
-				{
-					resolvedText = written;
-					return true;
-				}
-
-				resolvedFile = FileDocument(project, wanted);
-
-				return resolvedFile is not null;
-			}
-
-			// The generator's order, from the one function it takes it from.
-			switch (GramIncludes.Choose(placed, carried, Resolve))
-			{
-				case IncludedGrammarOrigin.Carried:
-					text = carried;
-					path = carriedFile?.FilePath ??
-						await CarriedFileAsync(solution, include.Type, wanted, carried!, cancellationToken).ConfigureAwait(false);
-					break;
-
-				case IncludedGrammarOrigin.Resolved when resolvedFile is not null:
-					text = (await resolvedFile.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
-					path = resolvedFile.FilePath;
-
-					documents.Add(resolvedFile.Id);
-					break;
-
-				case IncludedGrammarOrigin.Resolved:
-					text = resolvedText;
-					break;
-			}
-
-			if (text is not null)
-				included.Add(new StandaloneIncludedGrammar(include.Name, text, path));
-		}
+		documents.UnionWith(sources.Documents);
+		projects.UnionWith(sources.Projects);
 
 		var (tail, map) = GrammarSplice.Join(
 			new GrammarSplice.Part("", null, null),
@@ -254,42 +188,6 @@ static class StandaloneGrammarInheritance
 			new StandaloneGrammarContext(tail, included, options.Lexical, GramHostReading.Of(options, host), project.CompilationOptions),
 			projects,
 			documents);
-	}
-
-	/// <summary>
-	/// A lookup of the project's <c>.gram</c> files by a <c>[Gram("….gram")]</c> argument, for
-	/// code that cannot wait on Roslyn: the texts are fetched now, and made strings only when
-	/// one is asked for. A name two files answer to is answered by neither, as the generator
-	/// refuses it.
-	/// </summary>
-	public static async Task<Func<string, string?>> GramFilesAsync(Project project, CancellationToken cancellationToken)
-	{
-		var files = new List<(string Path, SourceText Text)>();
-
-		foreach (var document in project.AdditionalDocuments)
-			if (document.FilePath is { } path && path.EndsWith(GramIncludes.GramFileExtension, StringComparison.OrdinalIgnoreCase))
-				files.Add((path, await document.GetTextAsync(cancellationToken).ConfigureAwait(false)));
-
-		return source =>
-		{
-			var found = files.Where(file => GramIncludes.Matches(file.Path, source)).ToArray();
-
-			return found.Length == 1 ? found[0].Text.ToString() : null;
-		};
-	}
-
-	/// <summary>
-	/// The additional file of a project that a <c>[Gram("….gram")]</c> argument names, or null
-	/// where none does or more than one does.
-	/// </summary>
-	public static TextDocument? FileDocument(Project project, string source)
-	{
-		var found = project.AdditionalDocuments
-			.Where(candidate => candidate.FilePath is not null && GramIncludes.Matches(candidate.FilePath, source))
-			.Take(2)
-			.ToArray();
-
-		return found.Length == 1 ? found[0] : null;
 	}
 
 	/// <summary>
@@ -393,41 +291,5 @@ static class StandaloneGrammarInheritance
 		}
 
 		return false;
-	}
-
-	/// <summary>The project of the solution that declares a class; null where it is only in metadata.</summary>
-	static Project? DeclaringProject(Solution solution, INamedTypeSymbol type)
-	{
-		foreach (var declaration in type.DeclaringSyntaxReferences)
-			if (solution.GetDocumentId(declaration.SyntaxTree) is { } declared)
-				return solution.GetProject(declared.ProjectId);
-
-		return null;
-	}
-
-	/// <summary>
-	/// The file a carried grammar was compiled from, where the class's own project is in the
-	/// solution and still holds it unchanged: then a definition in it can be opened as the
-	/// file rather than as a copy.
-	/// </summary>
-	static async Task<string?> CarriedFileAsync(
-		Solution solution,
-		INamedTypeSymbol type,
-		string wanted,
-		string carried,
-		CancellationToken cancellationToken)
-	{
-		foreach (var declaration in type.DeclaringSyntaxReferences)
-		{
-			var declared = solution.GetDocumentId(declaration.SyntaxTree);
-			var project  = declared is null ? null : solution.GetProject(declared.ProjectId);
-			var file     = project is null ? null : FileDocument(project, wanted);
-
-			if (file?.FilePath is not null &&
-				(await file.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString() == carried)
-				return file.FilePath;
-		}
-
-		return null;
 	}
 }

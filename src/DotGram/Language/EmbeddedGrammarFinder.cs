@@ -65,6 +65,16 @@ static class EmbeddedGrammarFinder
 		CancellationToken cancellationToken = default,
 		Func<string, string?>? includedFile = null)
 	{
+		return Find(model, root, cancellationToken, new CompilationIncludedGrammars(model.Compilation, includedFile));
+	}
+
+	/// <param name="includes">What the host's project answers about the grammars it includes; a solution's project in an editor.</param>
+	public static IReadOnlyList<EmbeddedGrammar> Find(
+		SemanticModel model,
+		SyntaxNode root,
+		CancellationToken cancellationToken,
+		IncludedGrammarSources includes)
+	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
@@ -90,7 +100,7 @@ static class EmbeddedGrammarFinder
 			if (IsFile(own))
 				continue;
 
-			var (included, host) = Host(model, attribute, includedFile, cancellationToken);
+			var (included, host) = Host(model, attribute, includes, cancellationToken);
 			var (analysisText, joinedMap) = included.Count == 0
 				? (own, null)
 				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included);
@@ -210,7 +220,7 @@ static class EmbeddedGrammarFinder
 	static (IReadOnlyList<GrammarSplice.Part> Included, GramHostReading? Reading) Host(
 		SemanticModel model,
 		AttributeSyntax attribute,
-		Func<string, string?>? includedFile,
+		IncludedGrammarSources includes,
 		CancellationToken cancellationToken)
 	{
 		if (attribute.Parent?.Parent is not TypeDeclarationSyntax declaration ||
@@ -219,36 +229,10 @@ static class EmbeddedGrammarFinder
 
 		var included = new List<GrammarSplice.Part>();
 
-		// In the generator's order (GramIncludes.Choose): what a class of a referenced assembly carries,
-		// else the class's own reading — its inline grammar or the host project's file — else what it
-		// carries.
+		// As the generator compiles each (GramIncludes.Choose), from what the project answers.
 		foreach (var include in GramIncludes.Walk(type))
-		{
-			string? resolved = null;
-
-			var placed = include.Type.DeclaringSyntaxReferences.Any(reference => model.Compilation.ContainsSyntaxTree(reference.SyntaxTree));
-			var origin = GramIncludes.Choose(
-				placed,
-				include.Portable,
-				() =>
-				{
-					resolved = include.Source is { } written && !IsFile(written)
-						? written
-						: includedFile?.Invoke(GramIncludes.Wanted(include));
-
-					return resolved is not null;
-				});
-
-			var text = origin switch
-			{
-				IncludedGrammarOrigin.Carried  => include.Portable,
-				IncludedGrammarOrigin.Resolved => resolved,
-				_                              => null,
-			};
-
-			if (text is not null)
+			if (includes.Select(include).Text is { } text)
 				included.Add(new GrammarSplice.Part(text, include.Name, null));
-		}
 
 		// The attribute's own options, read as the generator reads them: what a reading does not
 		// say it takes from the class's first one.
