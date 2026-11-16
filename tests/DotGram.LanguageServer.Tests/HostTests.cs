@@ -395,13 +395,30 @@ public sealed class HostTests : IDisposable
 			await client.NotifyAsync("textDocument/didClose", new { textDocument = new { uri } });
 			await client.SettleAsync();
 
-			GC.Collect();
-			GC.WaitForPendingFinalizers();
-			GC.Collect();
+			// The workspace keeps one text of the closed grammar, the last, until its file is read again;
+			// anything else holding one is a leak. Work set going before the close that the settle does not
+			// see may still hold a text for a moment after it, and a single collection then counts it: a
+			// collection is asked for again until no more than the one is left, or the bound passes, and a
+			// text held that long is one kept, not one not let go yet.
+			var alive    = 0;
+			var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
 
-			var alive = texts.Count(static text => text.TryGetTarget(out _));
+			do
+			{
+				GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+				GC.WaitForPendingFinalizers();
+				GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
 
-			Assert.True(alive <= 1, $"{alive} of 100 edited texts are still alive.");
+				alive = texts.Count(static text => text.TryGetTarget(out _));
+
+				if (alive <= 1)
+					break;
+
+				await Task.Delay(50, TestContext.Current.CancellationToken);
+			}
+			while (DateTime.UtcNow < deadline);
+
+			Assert.True(alive <= 1, $"{alive} of 100 edited texts are still alive after 10 s.");
 		}
 		finally
 		{
