@@ -36,10 +36,10 @@ public sealed class HostTests : IDisposable
 
 		namespace Parsers;
 
-		[Gram("Base.gram", IncludedAs = "B")]
+		[Gram("Base.gram", DefaultAlias = "B")]
 		public partial class Base;
 
-		[Gram("Missing.gram", IncludedAs = "C")]
+		[Gram("Missing.gram", DefaultAlias = "C")]
 		[GramSource("Letter = ['a'..'z']\n")]
 		public partial class Carried;
 
