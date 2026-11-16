@@ -28,15 +28,5 @@ generates outside a build is [`cli.md`](../../cli.md).
 
 ## Every example runs
 
-The guide is held to the generator by `LanguageGuideTests` (in `tests/DotGram.Tests`), so a page that
-disagrees with the code is a failing test rather than a stale page. For whoever edits it:
-
-- A ` ```dotgram ` fence is a whole grammar, compiled. Diagnostic identifiers after the language say what
-  it reports (` ```dotgram GRAM4006 `), and nothing else at the level of a warning or above; with none, it
-  reports nothing. `Lexical` compiles it with `Lexical = true`, `Deferred` with `Carrier = GramCarrier.Deferred`.
-  `pending` marks one that shows the behaviour of a fix not made yet; it is skipped until the word goes.
-- A ` ```csharp ` fence right after it that declares a `partial class` is its host.
-- A ` ```text examples ` fence after that holds runs, a line each: `ParseX("input") → value`,
-  `→ refused`, or `→ refused: message`. The input may be `reader("…")`, `stream("…")` or `bytes("…")`;
-  whole numbers after it are a position and a length, `new` hands a fresh context, a last `out` calls the
-  form that answers only whether. `@Name → value` reads what the host kept after the calls above it.
+Every grammar on these pages is compiled by the tests and every example under it is run, so a
+page that disagrees with the generator is a failing test rather than a stale page.
