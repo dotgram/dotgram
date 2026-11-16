@@ -629,10 +629,29 @@ static partial class CSharpEmitter
 							file.Line($"var reached = failure{i}.Reach - from;");
 						file.Line();
 
+						var starts = SyncStarts(recovery, graph);
+
 						using (file.Block("while (true)"))
 						{
 							using (file.Block("while (to <= window.Length)"))
 							{
+								// Only where the synchronization can begin: each place it is asked at is a
+								// reading of its own, and asked at every character of a corrupted line a
+								// megabyte long that was most of what stepping over it cost. The end of the
+								// window is asked as before, which is where it is refilled.
+								if (starts is not null)
+								{
+									file.Line(
+										"var syncAhead = " + (starts.Length switch
+										{
+											1    => $"global::System.MemoryExtensions.IndexOf(window.Span().Slice(to), {Char(starts[0])});",
+											<= 3 => $"global::System.MemoryExtensions.IndexOfAny(window.Span().Slice(to), {string.Join(", ", starts.Select(Char))});",
+											_    => $"global::System.MemoryExtensions.IndexOfAny(window.Span().Slice(to), global::System.MemoryExtensions.AsSpan({Quoted(starts)}));",
+										}));
+									file.Line("to = syncAhead < 0 ? window.Length : to + syncAhead;");
+									file.Line();
+								}
+
 								file.Line($"var syncFailure = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 								file.Line($"at = {sync}(window.Span(), to, ref syncFailure{context});");
 								file.Line();
@@ -1055,6 +1074,40 @@ static partial class CSharpEmitter
 		}
 
 		return placed;
+	}
+
+	/// <summary>
+	/// The characters a recovery's synchronization can begin with, where they are few enough to be
+	/// searched for at once; null where they are not known or not few.
+	/// </summary>
+	/// <remarks>
+	/// The first set is a superset, which is the direction a search may err in: a place it skips
+	/// is one where the synchronization refuses its first character, and so one it would have
+	/// refused there anyway. Where nothing useful is known — a predicate of the host, a category,
+	/// a choice computed in C# — every place is asked, as it was.
+	/// </remarks>
+	static string? SyncStarts(Recovery recovery, RecognitionGraph graph)
+	{
+		const int Few = 8;
+
+		var first = FirstSets.Of(recovery.Sync, graph);
+
+		if (!first.IsKnown)
+			return null;
+
+		var starts = new List<char>();
+
+		foreach (var range in first.Ranges)
+		{
+			if (range.To - range.From >= Few - starts.Count)
+				return null;
+
+			// Counted in an int: a range that ends at the last code unit would wrap a char.
+			for (int one = range.From; one <= range.To; one++)
+				starts.Add((char)one);
+		}
+
+		return starts.Count == 0 ? null : new string([.. starts]);
 	}
 
 	/// <summary>The names a recovery is handed that say where.</summary>
