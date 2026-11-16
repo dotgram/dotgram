@@ -349,6 +349,11 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 
 	StandaloneGrammarHostTracker? _tracker;
 	long?                         _followedSince;
+
+	// Ends the settling wait when the document closes: the wait holds the session, and with it the
+	// document's versions, for as long as it runs.
+	readonly CancellationTokenSource _settling = new();
+
 	bool                          _configured;
 	bool                          _copy;
 	bool                          _closed;
@@ -448,6 +453,11 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 
 			_closed = true;
 			_tracker?.Close();
+
+			// What is waiting lets go of the session now, not when its time is up: a closed document's
+			// texts are not kept for the settling time (twenty seconds) after it is closed.
+			_settling.Cancel();
+			_analysisCancellation?.Cancel();
 		}
 	}
 
@@ -560,7 +570,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 	{
 		try
 		{
-			await _host.Scheduler.DelayAsync(GramAnalysisSession.SettleMilliseconds, CancellationToken.None).ConfigureAwait(false);
+			await _host.Scheduler.DelayAsync(GramAnalysisSession.SettleMilliseconds, _settling.Token).ConfigureAwait(false);
 
 			lock (_gate)
 			{
@@ -571,6 +581,10 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 			}
 
 			ScheduleAnalysis(_host.Current, immediate: true);
+		}
+		catch (OperationCanceledException exception) when (GramFailures.Canceled(exception, _settling.Token))
+		{
+			// Closed while it waited.
 		}
 		catch (Exception exception) when (GramFailures.Recoverable(exception))
 		{

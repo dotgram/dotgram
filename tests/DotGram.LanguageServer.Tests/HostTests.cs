@@ -427,6 +427,58 @@ public sealed class HostTests : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// A grammar whose host is followed, closed: nothing the session set going keeps it — the wait
+	/// before a grammar still without its host is told about as it stands, twenty seconds, among it — so
+	/// its versions are let go at once, not when the waits end.
+	/// </summary>
+	[Fact]
+	public async Task A_closed_grammar_is_let_go_at_once()
+	{
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), Base);
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), Dialect);
+
+		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.OpenAsync(uri, Dialect);
+		await StateAsync(client.Server.Document(uri)!.Session, StandaloneGrammarState.NoHost);
+
+		var document = Weak(client, uri);
+
+		await client.NotifyAsync("textDocument/didClose", new { textDocument = new { uri } });
+		await client.SettleAsync();
+
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+
+		while (Alive(document) && DateTime.UtcNow < deadline)
+		{
+			GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+			GC.WaitForPendingFinalizers();
+			await Task.Delay(50, TestContext.Current.CancellationToken);
+		}
+
+		Assert.False(Alive(document), "The closed grammar is still alive 5 s after its close.");
+	}
+
+	/// <summary>
+	/// Whether the document is still alive, asked in a frame of its own: the target a check takes out
+	/// is a temporary the test's own frame would otherwise keep, and with it the document.
+	/// </summary>
+	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+	static bool Alive(WeakReference<OpenGrammar> document)
+	{
+		return document.TryGetTarget(out _);
+	}
+
+	/// <summary>The open document, held weakly; not inlined, so that no local of the test holds it.</summary>
+	[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+	static WeakReference<OpenGrammar> Weak(LspClient client, string uri)
+	{
+		return new WeakReference<OpenGrammar>(client.Server.Document(uri)!);
+	}
+
 	/// <summary>Edits an open document so many times and returns its texts, held weakly.</summary>
 	static async Task<List<WeakReference<Microsoft.CodeAnalysis.Text.SourceText>>> EditAsync(LspClient client, string uri, int count)
 	{
