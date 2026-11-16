@@ -153,6 +153,7 @@ internal static class DslRecognitionTrace
 			.Where(static rule => rule.Name == "trivia")
 			.ToHashSet();
 		int _bestMeaningfulEnd;
+		int _looking;
 		int _bestMeaningfulCount;
 
 		public int Furthest { get; private set; }
@@ -178,9 +179,17 @@ internal static class DslRecognitionTrace
 			}
 		}
 
-		public void Expect(int position, string expected, RuleSymbol? owner = null)
+		/// <summary>
+		/// Records a failure at <paramref name="position"/>; <paramref name="expected"/> null places it
+		/// without naming anything, as a refused look does.
+		/// </summary>
+		public void Expect(int position, string? expected, RuleSymbol? owner = null)
 		{
 			if (owner is not null && _trivia.Contains(owner))
+				return;
+
+			// A look does not report how far it looked: what fails inside one is no refusal of the text.
+			if (_looking > 0)
 				return;
 
 			if (position < Furthest)
@@ -192,7 +201,8 @@ internal static class DslRecognitionTrace
 				_expected.Clear();
 			}
 
-			_expected.Add(expected);
+			if (expected is not null)
+				_expected.Add(expected);
 		}
 
 		public IEnumerable<Match> Whole(RuleSymbol rule, Node trivia)
@@ -301,11 +311,14 @@ internal static class DslRecognitionTrace
 					yield break;
 
 				case Node.Lookahead lookahead:
+					_looking++;
 					var found = MatchNode(lookahead.Body, position, owner).Any();
+					_looking--;
+
+					// A refused look fails where it stands, as a generated parser's does.
 					if (found == lookahead.IsPositive)
 						yield return Match.Empty(position);
-					else if (found)
-						// A generated parser fails here, where what the look refuses begins.
+					else
 						Expect(position, Said(lookahead), owner);
 					yield break;
 
@@ -338,7 +351,7 @@ internal static class DslRecognitionTrace
 					if (position == 0 || !Element(behind.Test, input[position - 1]))
 						yield return Match.Empty(position);
 					else
-						Expect(position, behind.ToString(), owner);
+						Expect(position, null, owner);
 					yield break;
 
 				case Node.Glue:
@@ -428,12 +441,15 @@ internal static class DslRecognitionTrace
 				yield return current;
 		}
 
-		/// <summary>A refused look as a refusal names it: <c>eof</c> is the end of the input.</summary>
-		static string Said(Node.Lookahead lookahead)
+		/// <summary>
+		/// What a refused look names: <c>eof</c> the end of the input, any other look nothing — what
+		/// was wanted there is said by what else could have been read.
+		/// </summary>
+		static string? Said(Node.Lookahead lookahead)
 		{
 			return lookahead.Body is Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }
 				? "end of input"
-				: lookahead.ToString();
+				: null;
 		}
 
 		bool Element(Node.Element element, char value)

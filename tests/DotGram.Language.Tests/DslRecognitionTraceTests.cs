@@ -427,6 +427,29 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	/// <summary>
+	/// A look does not say how far it looked: a refusal is placed where the look stands,
+	/// not where what it read inside gave out.
+	/// </summary>
+	[Fact]
+	public void RefusalInsideLookIsPlacedWhereTheLookStands()
+	{
+		const string grammar = """
+			parse Start
+			Start   = "type:" & Segment & ('.' & Segment)*
+			Segment = "**" | ?!Keyword & ['a'..'z']+
+			Keyword = ("static" | "public") & ?!['a'..'z']
+			""";
+
+		var (graph, publication) = Compile(grammar);
+		var result = DslRecognitionTrace.Recognize(graph, publication, "type:a.static");
+
+		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
+		Assert.Equal("type:a.".Length, result.FailurePosition);
+		Assert.Equal(new[] { "\"**\"" }, result.Expected);
+		AgreesWithGeneratedParser(grammar, "type:a.static", "type:static", "type:statics", "type:a.**", "type:a.publi", "type:", "type:a.");
+	}
+
+	/// <summary>
 	/// What the interpreter answers for each input against what the parser generated
 	/// from the same grammar answers: accepted by both, or refused by both at the same
 	/// position.
