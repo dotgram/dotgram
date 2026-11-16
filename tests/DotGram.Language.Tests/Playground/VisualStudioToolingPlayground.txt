@@ -12,7 +12,7 @@ completion 15:22 applicable=15:22+4
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
-  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
   Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
@@ -26,7 +26,7 @@ completion 15:22 applicable=15:22+4
   namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
   none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
   not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
-  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
@@ -68,7 +68,7 @@ completion 15:30 applicable=15:28+3
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
-  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
   Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
@@ -82,7 +82,7 @@ completion 15:30 applicable=15:28+3
   namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
   none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
   not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
-  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
@@ -145,7 +145,7 @@ completion 41:20 applicable=41:20+1
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
-  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
   Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
@@ -158,7 +158,7 @@ completion 41:20 applicable=41:20+1
   namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
   none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
   not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
-  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
   positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
@@ -197,7 +197,7 @@ completion 81:7 applicable=81:7+3
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
-  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
   Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
@@ -210,7 +210,7 @@ completion 81:7 applicable=81:7+3
   namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
   none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
   not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
-  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
   positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
@@ -250,7 +250,7 @@ completion 11:14 applicable=11:14+2
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
-  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
   Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
@@ -263,7 +263,7 @@ completion 11:14 applicable=11:14+2
   namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
   none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
   not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
-  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
   positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
@@ -302,7 +302,7 @@ completion 103:34 applicable=103:34+11
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
-  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
   Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
@@ -315,7 +315,7 @@ completion 103:34 applicable=103:34+11
   namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
   none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
   not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
-  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
   positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
@@ -360,7 +360,7 @@ completion 45:15 applicable=45:15+0
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
-  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
   Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
@@ -373,7 +373,7 @@ completion 45:15 applicable=45:15+0
   namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
   none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
   not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
-  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
   or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
   parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
   positional | insert=positional | suffix= | sort=positional | filter=positional | DotGram keyword positional: a publication option, before 'parse' and after the access: the parse is also read from a position and inside a window of the input, 'internal positional parse Rule'
