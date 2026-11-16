@@ -65,6 +65,7 @@ input, and compile-time diagnostics that point back into the grammar.
 | [Command line](cli.md) | `dotnet dotgram`, the generator run outside the build. |
 | [Feeds](feeds.md) | A worked guide: trading files in pipes, CSV and fixed width, bulk-loaded into a database. |
 | [Visual Studio](visual-studio.md) | The extension, and the `StringSyntax` annotations. |
+| [Untrusted input](untrusted-input.md) | What a parser bounds, what it does not, and what to do. |
 | [Status](status.md) | What this version does, held against the specification. |
 | [API reference](api/index.md) | The public types of the runtime libraries. |
 

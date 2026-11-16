@@ -26,31 +26,40 @@ dotnet add package DotGram.Web
 
 ## What it reads
 
-| Format | Read with | Specification | Held to |
-| --- | --- | --- | --- |
-| **JSON** | | | |
-| JSON | `JsonValue.Parse` | [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259) | [JSONTestSuite](https://github.com/nst/JSONTestSuite) |
-| JSON Pointer | `JsonPointer.Parse`, `JsonPointer.ParseFragment` | [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) | the RFC's examples |
-| JSON Patch | `JsonPatch.Parse`, `JsonPatch.Read` | [RFC 6902](https://www.rfc-editor.org/rfc/rfc6902) | [json-patch-tests](https://github.com/json-patch/json-patch-tests) |
-| **HTTP** | | | |
-| `Content-Type` | `MediaType.Parse` | [RFC 9110 §8.3](https://www.rfc-editor.org/rfc/rfc9110#section-8.3) | the IANA media types registry |
-| `Accept` | `MediaRange.ParseAccept` | [RFC 9110 §12.5.1](https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1) | the RFC's examples |
-| Structured Fields | `StructuredField.ParseItem`, `ParseList`, `ParseDictionary` | [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) | [structured-field-tests](https://github.com/httpwg/structured-field-tests) |
-| `Link` | `WebLink.ParseField` | [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) | the RFC's examples |
-| `Content-Disposition` | `ContentDisposition.Parse` | [RFC 6266](https://www.rfc-editor.org/rfc/rfc6266) | [tc2231](http://test.greenbytes.de/tech/tc2231/) |
-| `Set-Cookie`, `Cookie` | `SetCookie.Parse`, `CookiePair.ParseField`, `CookieDate.Parse` | [RFC 6265](https://www.rfc-editor.org/rfc/rfc6265) | the httpstate working group's cases |
-| `Forwarded` | `ForwardedElement.ParseField`, `ForwardedNode.Parse` | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239) | the RFC's examples |
-| **Addresses** | | | |
-| URI | `UriReference.Parse`, `UriReference.ParseUri` | [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) | the RFC's examples |
-| URI Template | `UriTemplate.Parse` | [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570) | [uritemplate-test](https://github.com/uri-templates/uritemplate-test) |
-| Email address | `AddrSpec.Parse`, `EmailAddress.ParseList` | [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322) | [is_email](https://github.com/dominicsayers/isemail) |
-| **Time and language** | | | |
-| Timestamp | `Timestamp.Parse`, `FullDate.Parse`, `FullTime.Parse` | [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) | [JSON Schema test suite](https://github.com/json-schema-org/JSON-Schema-Test-Suite) |
-| Language tag | `LanguageTag.Parse` | [RFC 5646](https://www.rfc-editor.org/rfc/rfc5646) (BCP 47) | the IANA language subtag registry |
+| Format | Read with | Strict or lenient | Specification | Held to |
+| --- | --- | --- | --- | --- |
+| **JSON** | | | | |
+| JSON | `JsonValue.Parse` | strict: the RFC's grammar, no extensions; a lone surrogate escape is accepted, as the grammar allows | [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259) | [JSONTestSuite](https://github.com/nst/JSONTestSuite) |
+| JSON Pointer | `JsonPointer.Parse`, `JsonPointer.ParseFragment` | strict | [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) | the RFC's examples |
+| JSON Patch | `JsonPatch.Parse`, `JsonPatch.Read` | strict; members the RFC does not define are ignored, as it says | [RFC 6902](https://www.rfc-editor.org/rfc/rfc6902) | [json-patch-tests](https://github.com/json-patch/json-patch-tests) |
+| **HTTP** | | | | |
+| `Content-Type` | `MediaType.Parse` | lenient as a recipient: empty parameters | [RFC 9110 §8.3](https://www.rfc-editor.org/rfc/rfc9110#section-8.3) | the IANA media types registry |
+| `Accept` | `MediaRange.ParseAccept` | lenient as a recipient: empty parameters and list elements | [RFC 9110 §12.5.1](https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1) | the RFC's examples |
+| Structured Fields | `StructuredField.ParseItem`, `ParseList`, `ParseDictionary` | strict: the RFC's parsing algorithm, which refuses the field whole | [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651) | [structured-field-tests](https://github.com/httpwg/structured-field-tests) |
+| `Link` | `WebLink.ParseField`, `WebLink.ParseStrictField` | `ParseField` lenient in one point, a relation type in any case; `ParseStrictField` strict | [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) | the RFC's examples |
+| `Content-Disposition` | `ContentDisposition.Parse` | strict; a parameter named twice is refused | [RFC 6266](https://www.rfc-editor.org/rfc/rfc6266) | [tc2231](http://test.greenbytes.de/tech/tc2231/) |
+| `Set-Cookie`, `Cookie` | `SetCookie.Parse`, `CookiePair.ParseField`, `CookieDate.Parse` | `SetCookie` and `CookieDate` lenient: the user agent's algorithms of §5; `CookiePair` strict: the `Cookie` syntax of §4.2 | [RFC 6265](https://www.rfc-editor.org/rfc/rfc6265) | the httpstate working group's cases |
+| `Forwarded` | `ForwardedElement.ParseField`, `ForwardedNode.Parse` | strict | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239) | the RFC's examples |
+| **Addresses** | | | | |
+| URI | `UriReference.Parse`, `UriReference.ParseUri` | strict | [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) | the RFC's examples |
+| URI Template | `UriTemplate.Parse` | strict; the reserved operators are refused | [RFC 6570](https://www.rfc-editor.org/rfc/rfc6570) | [uritemplate-test](https://github.com/uri-templates/uritemplate-test) |
+| Email address | `AddrSpec.Parse`, `EmailAddress.ParseList` | lenient as a receiver: the obsolete syntax; the `Strict` forms only what a sender may write | [RFC 5322](https://www.rfc-editor.org/rfc/rfc5322) | [is_email](https://github.com/dominicsayers/isemail) |
+| **Time and language** | | | | |
+| Timestamp | `Timestamp.Parse`, `FullDate.Parse`, `FullTime.Parse` | strict, the calendar included; `t` and `z` in lowercase, as the RFC allows | [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) | [JSON Schema test suite](https://github.com/json-schema-org/JSON-Schema-Test-Suite) |
+| Language tag | `LanguageTag.Parse` | strict about the form; subtags are not looked up in the registry | [RFC 5646](https://www.rfc-editor.org/rfc/rfc5646) (BCP 47) | the IANA language subtag registry |
 
 Every `Parse` throws `FormatException`, its message naming where the text stopped fitting;
 every `TryParse` answers `false` instead. A value that parses is a record: equal to another
 that means the same, and written back by `ToString` in the form the specification generates.
+
+*Strict* is the specification's grammar for what a sender may write, to the letter; *lenient*
+is what the specification asks a recipient to accept besides, and the column says how far. What
+`ToString` changes is the syntax around the values — whitespace, quoting, the obsolete forms of an
+address — and the case only where the specification gives a canonical one: a language tag's
+subtags, a timestamp's `T` and `Z`. Everything else keeps the case it was written in, and the
+comparisons that ignore case say so below. A URI is not normalised at all: no case folding, no
+removal of dot segments, no decoding. No parser here normalises Unicode (NFC or otherwise):
+strings are compared and written back as the characters they were read as.
 
 Every one of these may be called from any number of threads at once; that is the generated
 parser's own contract, not something this package adds

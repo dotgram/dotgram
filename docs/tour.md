@@ -38,7 +38,7 @@ A grammar is read in one of two modes. **Character-level** parsing has no separa
 | Input | Types | Character-level | Lexical |
 | ----- | ----- | --------------- | ------- |
 | **Text in memory** | `string` (whole or a slice by start and length) | regex-like matching and search, configs, expressions, formats, queries | SQL and languages with keywords and trivia |
-| **Text stream** | `TextReader` | feed and log files, sockets — read through a bounded buffer, so a file of tens of gigabytes takes no more memory than one record | — memory only |
+| **Text stream** | `TextReader` | feed and log files, sockets — read through a window that holds what the parse cannot yet let go of, about a record in a well-formed feed: memory follows the longest record, not the size of the file | — memory only |
 | **Bytes** | `byte[]`, `ReadOnlyMemory<byte>`, `Stream` | byte formats with a fixed layout or delimiters, FIX on the wire with its binary data fields, byte feeds of any size | — memory only |
 | **Segments** | `IEnumerable<string>`, `IReadOnlyList<string>`, `TextReader` (as lines) | feed files line by line, CSV, argv; a reader over a file or socket is read a line at a time, each line end a segment boundary | — |
 
@@ -284,7 +284,10 @@ read 4, rejected 4; trailer: expected 8 — OK
 
 The header and the trailer are typed records of the same sequence, so they arrive in their
 places, and the trailer is checked by a loop that holds nothing: by the time it arrives, the
-count is known. `parserFailureColumn` is where reading the line stopped, and `FieldAt`, plain
+count is known. That checks the number of lines, good and bad, and only that: the trailer's total
+of the quantities cannot be confirmed once a line is rejected, since the quantity it meant is
+unknown, and checking totals is the program's business, not the grammar's
+([Feeds](feeds.md#end-of-day-trades-pipes) says what to do instead). `parserFailureColumn` is where reading the line stopped, and `FieldAt`, plain
 C# of the class, turns it into the name of the field. The parser tells you where the text does
 not fit; what the values mean is yours — a date is four digits, a dash, two and two, and
 whether that month has a 31st is business logic, so dates stay text here.
@@ -630,10 +633,12 @@ foreach (var row in StreamingFeed.ParseFeed(reader))
 	Handle(row);
 ```
 
-This is what makes the size of the input stop mattering. The window is bounded and reused
-as the parse moves along it, so what is held is the record being read rather than the file,
-and each record reaches the caller as it is read rather than in an array of all of them at
-the end. A grammar of the same shape
+This is what makes the size of the input stop mattering. The window is reused as the parse
+moves along it, so what is held is the record being read rather than the file, and each record
+reaches the caller as it is read rather than in an array of all of them at the end. The window
+grows to the longest record it has had to hold — this overload sets no limit on that, the `stream`
+forms take one ([Untrusted input](untrusted-input.md)) — and the records the caller keeps are the
+caller's memory. The reader stays the caller's too: the parse never closes it, and `using` does. A grammar of the same shape
 ([`StreamingBenchmarks.cs`](https://github.com/dotgram/dotgram/blob/main/benchmarks/DotGram.Benchmarks/StreamingBenchmarks.cs), records that
 end in `eos`), over a feed made a line at a time:
 
@@ -643,7 +648,8 @@ end in `eos`), over a feed made a line at a time:
 | 600,000,002 | 21.17 GiB | 198.1 s | 48.3 MiB | 78.2 MiB |
 
 Fifteen times the input leaves the working set no larger. A streamed parse holds its window
-and the record in hand; the file is not in the figure.
+and the record in hand; the file is not in the figure, and neither is its length: a feed of longer
+records holds a longer window.
 [`benchmarks/README.md`](https://github.com/dotgram/dotgram/blob/main/benchmarks/README.md) has the method and what the sampled column
 means.
 

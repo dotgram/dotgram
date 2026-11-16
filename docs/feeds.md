@@ -40,6 +40,15 @@ reads the records rather than in the grammar. So dates stay text here, and a num
 only where its digits are bounded, so that turning it into a `long` or a `decimal` cannot
 throw.
 
+So a line goes through three questions, and the parser answers the first two:
+
+1. **Could the line be read?** A rejected line comes back as a reject, with where and why, and the
+   next line is read: that is `recover`.
+2. **Which record is it, and are its fields written right?** A line that is read comes back as a
+   typed record — a header, a trade, a trailer.
+3. **Is what it says allowed?** A date that exists, a settlement after the trade, a price in range,
+   a total that adds up, an account that may trade: the program's own checks, on typed values.
+
 Each trading feed has a header and a trailer, and both are typed records of the same sequence:
 the header arrives first, the trailer last, once every detail line has been read. That is what
 lets a loop that holds nothing still check the trailer — by the time it arrives, the count is
@@ -200,7 +209,7 @@ read 4, rejected 4; trailer: expected 8 — OK
 ```
 
 `Read` returns an `IEnumerable<EodLine>` that reads a line when the loop asks for the next one,
-so a file of any size costs one line at a time. The `=>` after `recover` says what a bad line
+so what the parse holds is the line in hand, not the file (below, what that does not cover). The `=>` after `recover` says what a bad line
 becomes, from names the parser fills in: `parserLine` is the line a person opens the file at,
 `parserFailureColumn` the column reading stopped at, `parserText` the line, and `parserMessage`
 what would have fitted there. `FieldAt` is ordinary C# of the class: it counts the pipes in
@@ -213,6 +222,22 @@ never begins like the trailer, and `Trailer & eof` gets the first refusal at eve
 line that closes the file is never read as a bad trade. The trailer's count is the sender's
 count of detail lines, good and bad, so `trades + rejected` is what it is held against: a
 mismatch would mean lines lost on the way, not lines that were wrong.
+
+That is a check of the number of lines, and only that. The trailer's second field, the quantities
+added up, is read into `trailer.Quantity` and not compared with anything: once a line is rejected,
+the quantity it meant is unknown — `1,500` may be fifteen hundred or a typo — so the sum cannot be
+confirmed from what was read. A program that needs it adds up the accepted trades, compares the sum
+with the trailer only where nothing was rejected, and otherwise holds the file for a person. A
+reject means the totals are open, not that they are wrong; deciding what to do about that is the
+third question above, not the parser's.
+
+**What reading a file this way holds, and who closes it.** The parse holds the line it is reading
+and what it cannot yet let go of; the window it reads through grows to the longest line it has had
+to hold and stays that size. So memory follows the longest record and not the length of the file —
+a line of a gigabyte, or a file with no line ends at all, is held whole, since this overload has no
+limit of its own ([Untrusted input](untrusted-input.md)). The records the loop keeps, and what it
+adds up, are the loop's memory, not the parser's. The reader is the caller's: the parse never
+closes it, so `using var feed = …` does, whether the loop ran to the end, broke out early or threw.
 
 ## Corporate actions: CSV with quoted fields
 
@@ -859,8 +884,9 @@ count matched what was read.
 | peak working set | 120.5 MB | 114.2 MB | 116.1 MB |
 
 The parser reads the trades at about 80 MB a second, and SQLite takes about a quarter of that:
-loading is the database's time, not the parser's. Memory is flat — the peak working set was
-about 120 MB for ten million trades, and most of it is the runtime and linq2db themselves.
+loading is the database's time, not the parser's. Memory did not grow with the file — the peak
+working set was about 120 MB for ten million trades, and most of it is the runtime and linq2db
+themselves; the lines of this feed are short, and a feed of longer ones holds a longer window.
 The figures were taken with other work running on the machine, so they are good to about 10%;
 the same program with the feeds written on `eol` read the trades in 7.8 s, the actions in 1.6 s
 and the confirmations in 1.1 s in the same session; the actions read about 5% slower on

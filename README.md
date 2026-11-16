@@ -113,8 +113,19 @@ operator: [One grammar, three parsers](docs/tour.md#one-grammar-three-parsers).
 
 **The SQL standard.** The same notation reads [T-SQL in over 1,000 rules](src/DotGram.Sql/TransactSql/TransactSql.gram),
 one parser per SQL Server version from a single grammar, and [ISO SQL:2023](src/DotGram.Sql/Standard/SqlStandard.gram),
-written from the standard's BNF. They ship ready to use in [`DotGram.Sql`](src/DotGram.Sql/README.md). More examples,
-from formats and feeds to languages: [`examples/`](examples/README.md).
+written from the standard's BNF. They ship ready to use in [`DotGram.Sql`](src/DotGram.Sql/README.md), and what they read of
+SQL nobody here wrote is counted in [SQL conformance](docs/sql-conformance.md). More examples: [`examples/`](examples/README.md).
+
+**Three ways in.** Your own language or format: a grammar, as above. Records from a `TextReader`, a bad line reported and
+read past: [Feeds](docs/feeds.md). JSON, FIX, SQL, URIs: a [ready-made parser](#ready-made-parsers), and no grammar to write.
+
+## Limits
+
+- **A lexical grammar** (`Lexical = true`) reads text in memory: it has no reader or stream form.
+- **Streaming where the generator proves it**: a `TextReader` overload only where the parse can let input go (`GRAM5001`); memory follows the longest record.
+- **A large grammar costs build time** on every cold build; the CLI pays it once ([below](#big-grammars-fast-builds-fast-starts)).
+- **When a `=>` runs depends on the carrier**: by default as it is read, readings given up included ([the contract](docs/syntax.md#what-a-construction-can-count-on)).
+- **A generated parser limits nothing by default** — record size, nesting depth, time: see [Untrusted input](docs/untrusted-input.md).
 
 ## In Visual Studio
 

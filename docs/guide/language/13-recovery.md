@@ -86,6 +86,29 @@ Notes:
   the envelope around them.
 - Recovery is opt-in because "read something, then failed, therefore malformed" is wrong for ordinary
   grammars: an element that reads four characters and then backtracks is usually healthy.
+- **Every recovery moves forward.** The search for `S` begins where the bad element began and moves a
+  character at a time; a match of `S` that consumes nothing (a lookahead, an empty alternative) does not
+  count. So a bad element is at least one character long, and a recovering repetition cannot loop: it
+  reaches a synchronization that consumed input or the end of the input.
+
+A bad element takes everything up to the end of the next match of `S` with it. The parser looks for the
+synchronization, not for the next good element, so a record that lost its separator takes the next one
+along:
+
+```dotgram
+Row  : @string   = v: { ['a'..'z']+ } & ';' => v
+Rows : @string[] = Row* recover ';' => @("bad: " + parserText)
+
+parse Rows
+```
+
+```text examples
+ParseRows("a;b1 c;d;") → ["a", "bad: b1 c;", "d"]
+```
+
+`c` was well formed and is gone with the bad record. A synchronization every element ends with — the record
+separator, the end of the line in a file of lines — loses only the bad element; a choice of a narrower one
+and a wider backstop is below.
 
 A grammar with trivia recovers the same way, its factory included:
 

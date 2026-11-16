@@ -234,7 +234,9 @@ var context = Fix44Context.Default.With(dictionary);   // Load(text) and LoadFil
 `IEnumerable<FixField>`. `FixParser.ReadMessages` returns a lazy
 `IEnumerable<FixMessage>`, one message at a time, each at most the context's `MaxMessageLength`,
 16 MiB by default. `ParseMessage`/`TryParseMessage` over a buffer are not bounded by it: the caller
-holds the buffer and bounds untrusted input itself. Neither closes its input.
+holds the buffer and bounds untrusted input itself. Neither closes its input. A stream stops at
+the first thing between messages that is not one: `ReadMessages` throws `FormatException` there,
+after the messages before it, and does not look for the next `8=` to go on from.
 
 ## Mistakes to avoid
 

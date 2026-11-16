@@ -28,7 +28,9 @@ implementation, which is what the next group is for.
 | [`status.md`](status.md) | The implementation held against the specification, rule by rule, with what is refused and why. |
 | [`diagnostics.md`](diagnostics.md) | Every message the generator reports, by identifier. |
 | [`ast.md`](ast.md) | The tree the SQL parsers build, and the specification each node is named from. |
+| [`sql-conformance.md`](sql-conformance.md) | What the T-SQL parser reads of SQL nobody here wrote: SQL Server's reference examples against the engine, ScriptDom's corpus and its round trip, and what is left out. |
 | [`carriers.md`](carriers.md) | Which carrier `Auto` took for every grammar of the solution, and for one carried deferred, the gate that kept it and each rule held there with its cause. |
+| [`untrusted-input.md`](untrusted-input.md) | What a parser bounds when the input comes from someone else, what it does not bound yet, and what to do about it. |
 
 These describe what is true today. A disagreement between one of these and `syntax.md` is
 not a contradiction but the gap the pair exists to measure; a disagreement between one of

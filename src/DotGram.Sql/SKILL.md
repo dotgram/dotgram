@@ -140,7 +140,9 @@ value from outside still goes in as a parameter.
 **The compatibility level.** `ParseStatement`, `ParseSql` and `ParseScript` name no level and
 read everything any level reads. A database at level 150 refuses a `WINDOW` clause that
 `ParseStatement` accepts. To read what one database reads, use the level's own form:
-`ParseStatement150`, `ParseSql150`, `ParseScript150`, from `100` to `170`.
+`ParseStatement150`, `ParseSql150`, `ParseScript150`, from `100` to `170`. A level is what a
+current SQL Server reads at that compatibility level, not what the release of that number read:
+`FOR JSON` and `OFFSET` read at every level. It is held to SQL Server 2025's `SET PARSEONLY ON`.
 
 **Locations are paid for, and only where asked.** A node from `TransactSqlParser` has a `Span`
 that says nothing (`Known` is false). `TransactSqlParser.Located` is the same parser with

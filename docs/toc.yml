@@ -21,12 +21,16 @@
       href: cli.md
     - name: SQL tree (AST)
       href: ast.md
+    - name: SQL conformance
+      href: sql-conformance.md
     - name: Carriers
       href: carriers.md
     - name: Visual Studio
       href: visual-studio.md
     - name: Feeds (a worked guide)
       href: feeds.md
+    - name: Untrusted input
+      href: untrusted-input.md
     - name: Compatibility
       href: compatibility.md
 - name: API

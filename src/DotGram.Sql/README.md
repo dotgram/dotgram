@@ -74,7 +74,10 @@ A database's compatibility level gates a small part of what SQL Server reads —
 clause from 160, `OPENJSON`'s schema from 130. `TransactSqlParser.ParseStatement130` reads what
 the engine reads at level 130, and so on from `100` to `170`; `ParseStatement` names no level and
 reads them all. The levels are one grammar and one machine, told apart by a number, and what each
-gates is held against SQL Server.
+gates is held against SQL Server. A level is what today's engine reads with a database at that
+compatibility level — not what the release of that number read: `FOR JSON` and `OFFSET` read at
+every level, as they do on a current server. The engine the tests ask is SQL Server 2025, under
+`SET PARSEONLY ON`, so a level answers for syntax only.
 
 `TransactSqlParser.ParseStatement` reads one statement. `TransactSqlParser.ParseSql` reads a text
 of them — what a client sends the server in one call — and gives back a `Statement[]`: each ended
@@ -155,7 +158,8 @@ The tree they build is laid out in [`SqlAst.cs`](https://github.com/dotgram/dotg
 beside it, each record with the production of the standard or the page of Microsoft's reference it comes from.
 What they read is held against SQL Server itself, against a corpus of somebody else's SQL and
 against a round trip — parse, print, and compare the two readings — which catches a parser that
-answers yes and builds the wrong thing.
+answers yes and builds the wrong thing. The counts, and what is left out of them and why, are in
+[SQL conformance](https://dotgram.github.io/dotgram/sql-conformance.html).
 
 All three of these parsers may be called from any number of threads at once; that is the
 generated parser's own contract, not something this package adds

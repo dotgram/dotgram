@@ -26,7 +26,7 @@ A grammar is read in one of two modes. **Character-level** parsing has no separa
 | Input | Types | Character-level | Lexical |
 | ----- | ----- | --------------- | ------- |
 | **Text in memory** | `string` (whole or a slice by start and length) | regex-like matching and search, configs, expressions, formats, queries | SQL and languages with keywords and trivia |
-| **Text stream** | `TextReader` | feed and log files, sockets — read through a bounded buffer, so a file of tens of gigabytes takes no more memory than one record | — memory only |
+| **Text stream** | `TextReader` | feed and log files, sockets — read through a window that holds what the parse cannot yet let go of, about a record in a well-formed feed: memory follows the longest record, not the size of the file | — memory only |
 | **Bytes** | `byte[]`, `ReadOnlyMemory<byte>`, `Stream` | byte formats with a fixed layout or delimiters, FIX on the wire with its binary data fields, byte feeds of any size | — memory only |
 | **Segments** | `IEnumerable<string>`, `IReadOnlyList<string>`, `TextReader` (as lines) | feed files line by line, CSV, argv; a reader over a file or socket is read a line at a time, each line end a segment boundary | — |
 

@@ -870,6 +870,33 @@ Then what a construction throws is held, and thrown where the deferred carrier w
 so the answer is the deferred carrier's, exceptions included (§7.5). The hold costs every construction of the
 grammar a little whether anything throws or not, which is why it is asked for rather than given.
 
+#### What a construction can count on
+
+The paragraphs above in one table. A column is the carrier a machine is *read* with, which is not always
+the one asked for: left to the generator, a grammar is carried immediately wherever that carrier can
+carry it, and deferred where it cannot — among the reasons, most repetitions marked `recover` and the
+`TextReader` overload of a plain `parse` (below the table). Where `Carrier = Immediate` was named and a
+machine moved, `GRAM5007` says which and why; [`carriers.md`](carriers.md) lists every grammar of this
+repository. "Currently" marks what this version does and does not promise: a later version may change it
+without notice.
+
+| | Immediate | Deferred |
+| --- | --- | --- |
+| **Accepted input** | Every construction of the accepted derivation runs at least once, usually once; it runs again where the reading that built it is given back and read again (a choice trying its next alternative over the same operand, a repetition giving a turn back). | Every construction of the accepted derivation runs exactly once, after recognition. A value a `when` or `switch` asks for is built when asked, during recognition, and not built again. |
+| **A reading given up** — a rejected alternative, a turn given back | Its constructions have run, and their values are dropped. In a grammar with no `context` and no recovery, at most two attempts for each enclosing loop that gives back. | Nothing runs, but a value a guard asked for on that reading. |
+| **A refused input** | What was read before the refusal has been built; the second reading that says what was expected builds nothing but what a guard names (with a `context` or a recovery it builds again). | Nothing runs, but values guards asked for. |
+| **Under `recover`** | The part of a bad element read before it failed has been built; then the recovery's `=>` runs once for the bad element. | A bad element builds nothing of its own; the recovery's `=>` runs once for it. |
+| **Order** | A construction runs after every construction whose value it is handed: an element before its rule's `=>`. Among siblings, currently in input order. | The same rule for values handed. Among siblings, currently: in input order, but a value a guard asked for is built first (`a: A & b: B & c: C & when @(c > 0)` builds `C`, `A`, `B`), and a machine read by the shared automaton rather than by methods can build guarded siblings right to left; a recovering list read whole may build its bad elements before its good ones. The values come back in input order in every case. |
+| **A lazy result** — `yield`, a streamed `parse` of a sequence, `find` | Each element is built before it is handed over, and none after it until the caller asks for the next. A caller that leaves its `foreach` early builds nothing more. | The same. |
+| **The `TextReader` overload of a plain `parse`** (not `stream`) | Carried deferred. | An element read up to the end of what the window holds is read again once more input is in, and its constructions run again: currently the last element of every input, and any element ending where a read ends (§6.3). The `stream` forms build each element once. |
+| **An exception** | Escapes the publication wherever the construction ran — on a reading given up too, and from a `Try` method as well — unless `ConstructionsMayThrow = true`, which holds it and throws it only where the deferred carrier would. | Escapes only from a construction of the accepted derivation, or from a value a guard asked for. Nothing is caught on either carrier (§8.2); from a lazy result it is thrown by `MoveNext`, after the elements already handed over. |
+
+So a construction that only builds may be written for either carrier. One that counts, logs, writes
+somewhere or throws should name `Deferred` (or `ConstructionsMayThrow` for one that only throws), and even
+then not count on a number of runs where the reader overload reads an element again, nor on the order of
+siblings. The order a construction is *handed* values in — an element's values before its rule's — is the
+one order promised.
+
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
 needed for that:
@@ -928,9 +955,11 @@ matched to the result type by name — case 3 in §4.1, which covers most rules.
 for where automatic matching does not suffice, or where being explicit is worth it;
 when present it wins over the other cases.
 
-Construction is therefore not speculative like `when`: its value does not need rollback.
-A factory runs once for each accepted result it builds; a repeated rule may of course
-produce more than one such result.
+A construction's value never needs rollback: one built on a reading the parse gives up is dropped
+with that reading, and nothing the parser keeps is changed by it. How many times its code runs is the
+carrier's, as the table above says: deferred, once for each accepted result it builds (a repeated
+rule builds one per element, and the `TextReader` overload may build one again); carried immediately,
+also for readings given up.
 
 ### 3.8 Operator precedence
 
@@ -2523,7 +2552,11 @@ because it is a property of the data rather than of the grammar.
 
 The shape of what comes back does not change with the input: `parse` of a sequence
 rule yields a sequence either way, and `find` yields one either way. What changes is
-how much is held while it is walked.
+how much is held while it is walked: over a reader, the window grows to the longest element it has
+had to hold, with no limit of its own (the `stream` forms below take one), so memory follows the
+longest record rather than the input; what the caller keeps of the result is the caller's.
+In every form the reader is the caller's: a parse never disposes it, whether the result was walked
+to the end, left early or ended in an exception.
 
 **A grammar that names `eos` takes sequences and nothing else** (§3.1.1). Each of its
 `parse` publications is `Parse…`, `TryParse…` answering a `Match<T>`, and `TryParse…`
@@ -4025,9 +4058,12 @@ Local = type: Type & name: Word & when @(context.Declare(type, name, parserSpan)
 Name : @Expression = n: Word => @(context.Named(n, parserSpan))
 ```
 
-Reading and writing are on either side of the match, which is what the two hook kinds are
-for: a `when` runs while the text is read, in the order it is written, and a `=>` runs
-afterwards, against what the guards have by then recorded.
+Reading and writing are on either side of the match only where constructions are deferred: a
+`when` runs while the text is read, in the order it is written, and a deferred `=>` runs
+afterwards, against what the guards have by then recorded. Carried immediately, a `=>` runs as its
+alternative is read, interleaved with the guards, and sees what they have written up to that point
+and no further (`GRAM5016` warns of it); a grammar whose constructions read what its guards write
+names `Carrier = GramCarrier.Deferred` (§3.7).
 
 **One per grammar** (`GRAM3014`), and the one at the top of a file is the one a caller
 supplies. A grammar included in another (§6.7) may declare its own, and that is a *contract*
@@ -4187,7 +4223,10 @@ and input remains. Atomic groups govern backtracking, not this error classificat
 Construction runs after recognition when deferred, and during it carried immediately. Its C#
 must produce the rule's declared value;
 compile-time mistakes are C# diagnostics, and an exception thrown while constructing a
-value leaves the parse. The generator does not infer another parser outcome from a C#
+value leaves the parse — carried immediately, also one thrown on a reading the parse would have
+given up, unless the grammar says `ConstructionsMayThrow = true`: then it is held, dropped with a
+reading given up, and thrown only where the deferred carrier would have thrown it (§7.5). Nothing
+turns it into a refusal. The generator does not infer another parser outcome from a C#
 method's signature.
 
 There is also a failure that belongs to no single record: the **envelope**
@@ -4217,6 +4256,22 @@ Feed : FeedItem[] = Header
    fragment is recovered through EOF; an empty EOF is never invented as an error
    element. A missing required element or trailer still fails the enclosing parse.
 
+**Every recovery moves forward, so a recovering repetition always ends.** The search for the
+synchronization begins where the bad element began and moves one character at a time; a match
+that consumes nothing there — a lookahead, an empty alternative, a recognizer of the host that
+does not move — does not count, and the search goes on past it. So a bad element is at least one
+character long, and the parse reaches either a synchronization that consumed input or the end of
+the input. An element consumes input as well: the compiler checks it (§3.3), and a turn through a
+recognizer of the host that does not move ends the repetition rather than repeating (§7.2).
+
+**What a bad element swallows is everything up to the end of the next synchronization match, or to
+the end of the input.** The search does not look for the next good element, only for the
+synchronization: with `recover ';'`, a bad record followed by good ones that have no `;` of their
+own takes them with it, and with `recover eol`, a line that lost its line ending takes the next line.
+A synchronization that every element is guaranteed to end with — the record separator, `eos` in a
+grammar over lines — loses nothing but the bad element itself; a narrower one trades lost records
+for records kept whole (below, and the choice `('|' | eol)` further down).
+
 A reading that ends where the rule does — one that begins at a position or reads a
 window (§6.3) — has nothing after the rule, so a marked repetition at the end of it finds
 its continuation at once: past its minimum it reads no further. To read a recovering list
@@ -4239,7 +4294,8 @@ also have consumed that line. This is general sequence/repetition behavior, not 
 feed-specific rule.
 
 **Nothing is ever caught.** An exception out of a `=>` leaves the parse, inside a marked
-repetition as anywhere else. Catching would mean catching `Exception` — there is no way
+repetition as anywhere else (one held under `ConstructionsMayThrow`, §7.5, leaves it where the
+deferred carrier would have thrown it). Catching would mean catching `Exception` — there is no way
 to tell "this record's quantity is not a number" from `NullReferenceException` by type —
 and a parser that turns a bug in the author's own C# into "row 400 was malformed" is
 worse than one that stops.
