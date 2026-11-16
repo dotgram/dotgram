@@ -496,6 +496,11 @@ static class Questions
 
 						break;
 
+					// Only whether it exists: the binder looks it up as it looks up a context's.
+					case Decl.State(var marks):
+						Exists(marks);
+						break;
+
 					case Decl.Namespace(_, _, var nested, var inner):
 						Collect(nested, inner);
 						break;
