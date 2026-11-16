@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
@@ -94,6 +95,49 @@ public sealed class ShippedExampleTests
 
 		Assert.Equal("SELECT name FROM Users WHERE id > @id", text);
 		Assert.Equal(["Users"], tables);
+	}
+
+	/// <summary>The SKILL's names: a qualified name joined from its parts, and a CTE told from a table.</summary>
+	[Fact]
+	public void The_skill_names_example_runs()
+	{
+		var sql   = "with recent as (select id from sales.Orders) select * from recent join dbo.Users u on u.id = recent.id";
+		var ctes  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var names = new List<string>();
+
+		SqlWalker.Walk(TransactSqlParser.ParseStatement(sql), node =>
+		{
+			if (node is Ast.CommonTableExpression cte)
+				ctes.Add(cte.Name.Text);
+			else if (node is Ast.TableSource.Named { Name: var name } && !(name.Count == 1 && ctes.Contains(name.Last.Text)))
+				names.Add(string.Join(".", name.Parts.Select(part => part.Text)));   // sales.Orders, dbo.Users
+			return true;
+		});
+
+		Assert.Equal(["recent"], ctes);
+		Assert.Equal(["sales.Orders", "dbo.Users"], names);
+	}
+
+	/// <summary>The SKILL's refusal shown to a user: a line, a column and a word, not the list.</summary>
+	[Fact]
+	public void The_skill_refusal_example_runs()
+	{
+		var said = new List<string>();
+
+		var text    = "select name\nfrom Users where";
+		var refused = TransactSqlParser.TryParseStatement(text);
+
+		if (!refused.IsSuccess)
+		{
+			var before = text.Substring(0, (int)refused.Position);
+			var line   = before.Split('\n').Length;
+			var column = before.Length - before.LastIndexOf('\n');
+			var near   = refused.Position == text.Length ? "the end of the text" : "'" + text.Substring((int)refused.Position).Split(' ', '\n')[0] + "'";
+
+			said.Add($"Syntax error at {line}:{column}, near {near}.");   // Syntax error at 2:17, near the end of the text.
+		}
+
+		Assert.Equal(["Syntax error at 2:17, near the end of the text."], said);
 	}
 
 	/// <summary>

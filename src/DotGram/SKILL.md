@@ -73,6 +73,11 @@ the generator can see it (`GRAM0003` if it is not):
 <AdditionalFiles Include="Filter.gram" />
 ```
 
+The file goes to the attribute as its one positional argument, `[Gram("Filter.gram")]` — a
+single-line value ending in `.gram` is a path, anything else is grammar text — or the
+attribute is bare, `[Gram]`, and reads the file named after the class, `Filter.gram` for
+`partial class Filter`. There is no `File =` property.
+
 An inline grammar is a C# raw string literal, so it needs C# 11. A `.gram` file needs
 C# 8, the language of the generated code: below it (C# 7.3 is the default of `netstandard2.0`
 and `net472`) the build reports `GRAM0010` and generates no parser.
@@ -124,8 +129,9 @@ only need to know: it is never dearer, and on many grammars it is half.
 Row = "R" & '|' & symbol: Text & '|' & quantity: Digit+ & eol
 ```
 
-**`name:` is a capture, and it becomes a property of the type the rule generates.** A
-rule with captures and no `=>` builds a type of its own, named after the rule.
+**`name:` is a capture, and it becomes a property of the type the rule generates**, Pascal-cased:
+`symbol` is `Row.Symbol`. A rule with captures and no `=>` builds a type of its own, named after
+the rule; inside a `=>` the capture is the plain name, `symbol`.
 
 Everything an expression can be:
 
@@ -172,6 +178,10 @@ wordboundary    empty by default: what continues a word, for keyword boundaries
 word            one whole word, whatever `wordboundary` says a word is
 ```
 
+**Nothing else is there unqualified.** `Digits`, `Integer`, `Identifier`, `Quoted` and the
+rest are the standard library's (below): write `Std.Digits`, or `using Std;` at the top of the
+grammar. A bare `Digits` is `GRAM3002`.
+
 To produce something else, say what and build it:
 
 ```dotgram
@@ -180,7 +190,12 @@ Row : @string = "R" & '|' & t: Text & eol => @(t)
 
 `: @T` declares the rule's result as a C# type; `=> @(…)` is C# that builds it, with the
 captures in scope by name. `: OtherRule` means "whatever that rule produces", which is
-what makes substitution work. A `=>` without a declared type is `GRAM4008`.
+what makes substitution work. A `=>` without a declared type is `GRAM4008`, and so is a
+choice where some alternatives have a `=>` and others not: give each one.
+
+A C# type the grammar names is looked up through the grammar's own `@using` lines, not the
+file's, and `System` is not among them: `@using System;` at the top of the grammar, one line a
+namespace, semicolon included (`GRAM2001` without it, `GRAM3004` or `CS0246` without the line).
 
 Captures can also be matched straight to a constructor or to `required` properties, in
 which case the grammar holds no construction code at all.
@@ -237,6 +252,59 @@ Beside the captures, a `=>` or a `when` can name what the parse worked out: `par
 `parserLine`, `parserColumn`, `parserPosition`, `parserMessage`, `parserExpected` and
 `parserFailureLine`, `parserFailureColumn`, `parserFailurePosition`.
 
+**What C# throws is not a refusal.** An exception from a `=>` — `int.Parse` of too many digits,
+`ParseExact` of a date that is not one, a missing key — leaves `TryParseR` as it leaves `ParseR`.
+Ask first with a `when`, or read numbers with `Std.Integer`/`Std.Long`, which refuse what does
+not fit; the input is then refused instead.
+
+## A typed record from one line
+
+Captures are strings unless the rule they call builds something else; the `=>` converts:
+
+```csharp
+using System;
+
+public sealed record Visit(string Ip, DateTimeOffset At, int Status, long Bytes);
+
+[Gram("""
+	@using System;
+	@using System.Globalization;
+
+	Line : @Visit = ip: [^ ' ']+ & " [" & at: [^ ']']+ & "] "
+	              & status: Std.Integer & ' ' & bytes: Std.Long
+	              & when @(DateTimeOffset.TryParseExact(at, Format, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+	             => @(new Visit(ip, DateTimeOffset.ParseExact(at, Format, CultureInfo.InvariantCulture), status, bytes))
+
+	parse Line
+	""")]
+public static partial class AccessLog
+{
+	const string Format = "dd/MMM/yyyy:HH:mm:ss zzz";
+}
+```
+
+A refusal says where in `Position`, an offset; the line and column are the caller's to count.
+`Error` names what would have fit there, which can be a long list — show the place first:
+
+```csharp
+var text  = "203.0.113.7 [10/Oct/2026:13:55:36 +0000] 2x0 2326";
+var match = AccessLog.TryParseLine(text);
+
+if (!match.IsSuccess)
+{
+	var before = text.Substring(0, (int)match.Position);
+	var line   = before.Split('\n').Length;
+	var column = before.Length - before.LastIndexOf('\n');
+
+	Console.WriteLine($"{line}:{column}: {match.Error}");   // 1:43: Expected ' '.
+}
+```
+
+**A `when` that says no names nothing.** With the date wrong, the guard at the end of the line
+refuses, and the answer is `Starved`, `Expected more input.`, at the end: read it as "refused
+here", not as a cut line. Where a user needs the reason, keep the text a `string` capture and
+convert it in the host after the parse, where the message is yours.
+
 ## Rules that take arguments
 
 A parameter is written like a capture, and what may be passed follows from whether it
@@ -261,6 +329,13 @@ called (§4.1 case 4). Say the type to get the value:
 ```dotgram
 Bare    = List(Number, ',')                     // string: the text it matched
 Written : Number[] = Number & (',' & Number)*   // int[], if Number is `: @int`
+```
+
+**So is a choice of rules with no `=>`, even under a declared type**: `Field : @string = Quoted
+| Bare` is the text matched, quotes and all, not what `Quoted` built. Capture each alternative:
+
+```dotgram
+Field : @string = q: Quoted => @(q) | b: Bare => @(b)
 ```
 
 ## Namespaces
@@ -341,6 +416,8 @@ one convention or the other, never both (`GRAM4009`).
 
 The numbers are unsigned: whether `-` belongs to a number or is an operator in front of
 one is a question about the calling grammar. Whatever is not called is not compiled.
+`Quoted` and `Escaped` give back the text as written, quotes and escapes included: undoing
+them is a `=>`'s.
 
 ## One grammar, several parsers
 
@@ -396,6 +473,18 @@ The type is a C# name this notation never resolves. The caller makes one and han
 over, and every publication takes it: `Grammar.ParseLambda(text, names)`. `context` is
 then a name a `=>` or a `when` may use — and a hook that does not name it is not passed
 it, so declaring one and never using it costs nothing and adds no argument.
+
+```dotgram
+context : @Dictionary<string, double>
+
+Value : @double = n: Std.Double                                         => @(n)
+                | name: Std.Identifier & when @(context.ContainsKey(name)) => @(context[name])
+```
+
+Inside an `@(…)` it is a C# variable of the declared type. Where constructions read it, name
+`Carrier = GramCarrier.Deferred` on the attribute from the start: the default carrier runs them
+on readings the parse gives up, and on many such grammars the build says `GRAM5016`, an error
+under warnings-as-errors. A missing key throws out of `TryParse…` (above); the `when` refuses it.
 
 `state` is the other half: a value a parse carries and may set for part of itself,
 `X with state @(1)`, which is how a grammar reads something differently inside a region
@@ -481,6 +570,11 @@ the result. `parserLine` and `parserColumn` are where the bad record begins;
 `parserExpected` is what would have fit there (`'.'`, `Amount or '#'`). `parserMessage`
 says both: `Expected '.' at 3:17.`
 
+What follows `recover` is an expression, not a keyword: the parser skips past its next match
+and reads the next element there. `recover eol` picks up on the next line; records of several
+lines with a blank line between pick up after the blank line, `recover ({ eol } & { eol })` —
+braced, or a CRLF reads as the two line ends.
+
 **Reach for this whenever the records were written by a person** — a price list, an order
 sheet, a logbook, a CSV somebody edited by hand: a file that is right nearly everywhere and
 wrong somewhere. Do not split it into lines and parse each one, and do not let one bad line
@@ -489,11 +583,42 @@ fail the file. Write the record rule, mark its repetition `recover eol`, and pub
 sequence rule when header lines are to arrive in the same sequence. Then either give the
 `recover` a `=>` that builds a rejection of the same element type from `parserLine`,
 `parserText` and `parserMessage` (`parserFailureColumn` says where in the line reading
-stopped, which names the field), or leave it off and implement `OnRecovered`. The tour's
+stopped, which names the field), or leave it off and implement `OnRecovered`, below. The tour's
 [Feeds written by people](https://github.com/dotgram/dotgram/blob/main/docs/tour.md#feeds-written-by-people)
 has two complete examples, and [docs/feeds.md](https://github.com/dotgram/dotgram/blob/main/docs/feeds.md)
 the rest: trading feeds in pipes, CSV and fixed width with a header and a trailer, and a
 feed of ten million records bulk-loaded into a database.
+
+`OnRecovered` is a `static partial void` of the host, one for every grammar of the class, called
+as the bad element is read — during the enumeration, on its thread. To hand a caller its own
+reports, set a `[ThreadStatic]` field around the loop:
+
+```csharp
+[Gram("""
+	Pair   = key: ['a'..'z']+ & '=' & value: [^ '\r' | '\n']* & ({ eol } | eof)
+	Record : Pair[]   = Pair+ & ({ eol+ } | eof)
+	Feed   : Record[] = Record* recover ({ eol } & { eol })
+
+	parse Feed stream yield
+	""")]
+public static partial class KeyValueFeed
+{
+	[ThreadStatic]
+	public static Action<int, string>? Rejected;   // the line a bad record begins on, and why
+
+	static partial void OnRecovered(string rule, string text, long position, int line, int column, int ordinal, string message)
+	{
+		Rejected?.Invoke(line, message);
+	}
+}
+```
+
+```csharp
+KeyValueFeed.Rejected = (line, why) => Console.Error.WriteLine($"line {line}: {why}");
+
+foreach (var record in KeyValueFeed.ParseFeed(Console.In))   // the good records, a Pair[] each
+	Console.WriteLine(record.Length);
+```
 
 `Lexical = true` on the attribute compiles the grammar over tokens instead of characters:
 a lexical half makes them, and the half above decides each choice by the token in front of
@@ -559,19 +684,43 @@ by an exception, the sink is still told every rule it entered is left (`Exit` wi
 `GramTrace.Thrown` for the end) and the reading ended, so its stream stays balanced. The ready-made
 sinks never throw on their own account.
 
+## Recipes
+
+**A separated list as a value.** Declare the result as a sequence of the element *rule*, and
+every one the body reads is collected, the first and those after the separator alike:
+
+```dotgram
+Record : Field[]  = Field & (',' & Field)*
+Rows   : Record[] = Record & ({ eol } & ?!eof & Record)* & { eol }? & eof
+```
+
+**Line ends.** Where a line may be empty, `eol` can read a CRLF as one line end or as `\r`, an
+empty line and `\n` (`GRAM4052`); `{ eol }` keeps the CRLF it read. `Rows` takes a last line
+with or without its line end; lines that each end in `eol` would refuse the one without.
+
+**One line at a time, or a file.** Lines a host already holds one by one — a log being tailed,
+a message per line — are each a `TryParseLine`, with no `eol` in the grammar. A file is one
+`parse … stream yield` over a `TextReader`, with `recover` so that a bad line is reported by
+its number and the rest are still read (below).
+
 ## Diagnostics worth knowing before you meet them
 
 | | |
 | --- | --- |
 | `GRAM0002` | the host class is not `partial` |
-| `GRAM0003` | no grammar file: add it to `<AdditionalFiles>` |
-| `GRAM3004` | a `@Type` the grammar names is not in view — check the `@using` inside the grammar, which is separate from the file's |
+| `GRAM0003` | no grammar file: add it to `<AdditionalFiles>`, and name it `[Gram("X.gram")]` or call it after the class |
+| `GRAM2001` | the grammar does not read as the notation — often `@using Ns` without its `;` |
+| `GRAM3002` | a name that is no rule, parameter or capture — often a standard rule without `Std.` |
+| `GRAM3004` | a `@Type` the grammar names is not in view — add `@using Ns;` inside the grammar, which is separate from the file's |
+| `GRAM4001` | a repetition's body can match nothing (an empty row): make each turn read something, `?!eof` before an optional part |
 | `GRAM4003` | `trivia` must accept empty input |
-| `GRAM4008` | a `=>` on a rule that does not say what type it builds |
+| `GRAM4008` | a `=>` on a rule that does not say what type it builds, or on some alternatives only, or a declared type no operand builds |
 | `GRAM4018` | a rule nothing reaches, and so nothing compiled — publish it or delete it |
 | `GRAM4051` | `trivia` without braces beside a class that reads its characters: write `trivia = { … }` |
+| `GRAM4052` | a repetition reads some text two ways, exponential on refusal — usually `eol` beside an empty line: `{ eol }` |
 | `GRAM5001` | a publication got no reader overload, and why |
 | `GRAM5002` | a repetition can begin with the same input as what follows it |
+| `GRAM5016` | constructions that share `context` with guards, on the default carrier: `Carrier = GramCarrier.Deferred` |
 
 The message names the section of `docs/syntax.md` that settles the question. Read it
 rather than guessing at the notation.

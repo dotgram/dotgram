@@ -81,7 +81,9 @@ public sealed class GeneratorPageTests
 				.. sources.Select(one => CSharpSyntaxTree.ParseText(one.Text, cancellationToken: TestContext.Current.CancellationToken)),
 			],
 			EmittedCode.References,
-			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+			// Nullable on, as a project made from today's templates has it: a page's host may then
+			// write `string?`, which without it is a warning about the annotation, not about the page.
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
 		var complaints = built
 			.GetDiagnostics(TestContext.Current.CancellationToken)
@@ -179,7 +181,7 @@ public sealed class GeneratorPageTests
 	/// <summary>The blocks that are not files of their own, and why each one is not.</summary>
 	static readonly Dictionary<(string Page, int Block), string> Fragments = new()
 	{
-		[("SKILL.md", 3)] =
+		[("SKILL.md", 5)] =
 			"The attribute's options with the grammar itself elided: the page is showing what may be " +
 			"written beside a grammar, and writing one out there would bury the list it is making. " +
 			"Each option in it is held by a test of its own elsewhere.",

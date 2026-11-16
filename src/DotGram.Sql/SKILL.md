@@ -84,6 +84,30 @@ SqlWalker.Walk(select, node =>
 });
 ```
 
+**A name has parts, and a CTE's name is a `TableSource.Named` too.** `QualifiedName` is `s.t`
+or `db.s.t`: `Count`, the indexer, `First` and `Last`, each part an `Identifier` whose `Text` is
+the name without its brackets or quotes. A one-part name that a `WITH` of the same statement
+declares (`CommonTableExpression.Name`) is that CTE, not a table; the walker hands the CTE to
+`visit` before the query that reads it.
+
+```csharp
+using System;
+using System.Linq;
+
+var sql   = "with recent as (select id from sales.Orders) select * from recent join dbo.Users u on u.id = recent.id";
+var ctes  = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+var names = new List<string>();
+
+SqlWalker.Walk(TransactSqlParser.ParseStatement(sql), node =>
+{
+    if (node is CommonTableExpression cte)
+        ctes.Add(cte.Name.Text);
+    else if (node is TableSource.Named { Name: var name } && !(name.Count == 1 && ctes.Contains(name.Last.Text)))
+        names.Add(string.Join(".", name.Parts.Select(part => part.Text)));   // sales.Orders, dbo.Users
+    return true;
+});
+```
+
 ## What is easy to get wrong
 
 **Syntax is all it checks.** `SELECT nosuch FROM nowhere` reads: names are not resolved, types
@@ -131,7 +155,22 @@ holds what no tree is — `SqlList<T>`, `SqlSpan` and `ISqlSpan`, `SqlWalker`, `
 
 **A refusal's message can be long.** Where a statement stops at a position that could begin
 almost anything, `Error` lists everything that could have stood there, hundreds of keywords
-included. `Position` is the part to show a user; the list is for a tool.
+included. `Position` is the part to show a user; the list is for a tool:
+
+```csharp
+var text    = "select name\nfrom Users where";
+var refused = TransactSqlParser.TryParseStatement(text);
+
+if (!refused.IsSuccess)
+{
+    var before = text.Substring(0, (int)refused.Position);
+    var line   = before.Split('\n').Length;
+    var column = before.Length - before.LastIndexOf('\n');
+    var near   = refused.Position == text.Length ? "the end of the text" : "'" + text.Substring((int)refused.Position).Split(' ', '\n')[0] + "'";
+
+    Console.WriteLine($"Syntax error at {line}:{column}, near {near}.");   // Syntax error at 2:17, near the end of the text.
+}
+```
 
 **Where `SqlStandardParser` reads less than the standard.** A comment holds others at any
 depth, but a `/*` inside a comment always opens one: `/* a /* b */ 1` is refused, where the BNF
