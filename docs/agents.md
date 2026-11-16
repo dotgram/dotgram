@@ -60,7 +60,15 @@ with the shipped parsers, and so on.
 5. **Turn the samples into tests**: each good sample with the result it must give, each bad one
    with the refusal it must give. The tests keep the grammar honest when it changes later.
 
-<!-- TRIAL-NOTES -->
+## What a trial showed
+
+Before this page was written, five agents that had never seen .Gram were each given one task and nothing but the
+0.3.0 packages from nuget.org and their skills: a CSV export with quoted fields, an nginx access log line into a typed
+record, a calculator over named variables, the tables a T-SQL `SELECT` reads (with DotGram.Sql), and a multi-gigabyte
+feed of key=value records with recovery. All five finished with a working, tested parser; the first green build came
+after one to four attempts, each failed one stopped by a `GRAMnnnn` diagnostic that pointed into the grammar. What they
+had to guess — a file grammar's attribute form, exceptions thrown inside `=>`, line ends beside empty records, the
+shape of recovery for multi-line records — is now in the skills.
 
 ## What to check yourself
 

@@ -33,8 +33,6 @@ Skills: [DotGram](src/DotGram/SKILL.md) · [DotGram.Cli](src/DotGram.Cli/SKILL.m
 How to hand one to an agent and what to check afterwards: [Writing grammars with a coding agent](https://dotgram.github.io/dotgram/agents.html);
 the notation for people: the [language guide](https://dotgram.github.io/dotgram/guide/language/README.html).
 
-<!-- AGENT-EXAMPLE -->
-
 ## Install
 
 ```xml
@@ -131,23 +129,16 @@ Find All References, Rename, folding. The languages you generate get the same: a
 
 "× faster" is the other side's time divided by .Gram's.
 
-<!-- STAND: every number in this section is a placeholder from the night-1 release-candidate stand (c831e00b,
-     2026-11-04, exclusive window, 5 runs). Re-read all of them from the release stand (`--stand`, S1) on the
-     tagged commit: rows web/url.{plain,ipv4,full,long-path}, web/date-time.utc, fix/Order.text (readings
-     generated, regex-compiled(-lesser), regex(-lesser)); sql/select20, feeds/stock-count.good.text,
-     fix/Order.text, fix/Orders128.text, web/url.full (generated against hand). A row that is not a win on the
-     tag leaves the table. -->
-
 **Faster than `Regex`**, with both sides returning the same parts of every input, checked before timing:
 
 | Input | .Gram | `Regex`, compiled | | `Regex` | |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `http://example.com` | 121 ns | 594 ns | **4.9×** | 1,506 ns | **12×** |
-| `https://192.168.0.1/` | 159 ns | 583 ns | **3.7×** | 1,361 ns | **8.5×** |
-| a URL with every part, 47 characters | 230 ns | 595 ns | **2.6×** | 1,434 ns | **6.2×** |
-| a URL path of eight segments, 84 characters | 338 ns | 855 ns | **2.5×** | 2,986 ns | **8.8×** |
-| an RFC 3339 timestamp | 59 ns | 447 ns | **7.6×** | 646 ns | **11×** |
-| a FIX order message | 489 ns | 1,406 ns | **2.9×** | 1,978 ns | **4.0×** |
+| `http://example.com` | 128 ns | 594 ns | **4.6×** | 1,516 ns | **12×** |
+| `https://192.168.0.1/` | 158 ns | 585 ns | **3.7×** | 1,348 ns | **8.5×** |
+| a URL with every part, 47 characters | 234 ns | 607 ns | **2.6×** | 1,443 ns | **6.2×** |
+| a URL path of eight segments, 84 characters | 345 ns | 862 ns | **2.5×** | 2,925 ns | **8.5×** |
+| an RFC 3339 timestamp | 59 ns | 449 ns | **7.6×** | 641 ns | **11×** |
+| a FIX order message | 489 ns | 1,398 ns | **2.9×** | 1,962 ns | **4.0×** |
 
 The timestamp pattern does not check the calendar, and the FIX pattern only splits `tag=value`: .Gram does more
 work on those rows and is still faster.
@@ -156,15 +147,14 @@ work on those rows and is still faster.
 
 | What is parsed | .Gram | hand-written | |
 | --- | ---: | ---: | ---: |
-| a SQL `SELECT` of 20 columns | 6.3 µs | 12.5 µs | **2.0×** |
-| a hand-kept stock count, 1,000 lines | 35 µs | 61 µs | **1.7×** |
-| a FIX order message | 489 ns | 761 ns | **1.6×** |
-| 128 FIX messages | 57 µs | 88 µs | **1.5×** |
-| a URL with every part | 230 ns | 264 ns | **1.1×** |
+| a SQL `SELECT` of 20 columns | 5.4 µs | 11.6 µs | **2.1×** |
+| a hand-kept stock count, 1,000 lines | 35 µs | 60 µs | **1.7×** |
+| a FIX order message | 489 ns | 734 ns | **1.5×** |
+| 128 FIX messages | 57 µs | 86 µs | **1.5×** |
+| a URL with every part | 234 ns | 267 ns | **1.1×** |
 
-<!-- STAND: commit sha and results file of the release stand; commit the stand's stand.md and stand.json as
-     benchmarks/results/stand-<date>-0.3.0.{md,json} and link the .md below. -->
-Linux, AMD Ryzen 9 5950X, .NET 10; median of 5 runs, each in a fresh process, on an idle machine; commit `<sha>`.
+Linux, AMD Ryzen 9 5950X, .NET 10; median of 5 runs, each in a fresh process, on an idle machine; commit
+`c7cd493b0` (v0.3.0), [results](benchmarks/results/stand-2026-11-15-0.3.0.md).
 Every row we measure — every format, refusals, allocations, and the rows where a hand-written parser is still
 ahead — is in [the full results](benchmarks/README.md).
 
