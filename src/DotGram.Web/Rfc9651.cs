@@ -432,14 +432,14 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 
 	// §4.2.7. Padding only at the end, and a body that decodes.
 	SfBinary : @byte[]
-		= ':' & text: Base64 & ':' & when @(Rfc9651.Bytes(text!) is not null)
+		= ':' & text: Base64 & ':' & when @(Rfc9651.Bytes(text!) is not null) on fail "Expected valid base64."
 		=> @(Rfc9651.Bytes(text)!)
 
 	Base64 = [Alpha | Digit | '+' | '/']* & '='*
 
 	// §4.2.10. Lowercase escapes only, and bytes that are UTF-8.
 	SfDisplayString : @string
-		= '%' & '"' & text: DisplayText & '"' & when @(Rfc9651.Displayed(text!) is not null)
+		= '%' & '"' & text: DisplayText & '"' & when @(Rfc9651.Displayed(text!) is not null) on fail "Expected a valid display string."
 		=> @(Rfc9651.Displayed(text)!)
 
 	DisplayText = ([' '..'!' | '#'..'$' | '&'..'~'] | '%' & LcHexdig & LcHexdig)*

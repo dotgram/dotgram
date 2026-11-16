@@ -665,27 +665,27 @@ namespace DotGram.Snapshots
 #line default
 
 		static int New_DotGram_Small(int n) =>
-#line 29 "Notation.gram"
-                                  (n);
+#line 30 "Notation.gram"
+                                                                        (n);
 #line default
 
 		static int New1_DotGram_Small(int n) =>
-#line 30 "Notation.gram"
+#line 31 "Notation.gram"
                                          (n);
 #line default
 
 		static int New2_DotGram_Small(int n) =>
-#line 32 "Notation.gram"
+#line 33 "Notation.gram"
       (n);
 #line default
 
 		static int New3_DotGram_Small() =>
-#line 33 "Notation.gram"
+#line 34 "Notation.gram"
                   (0);
 #line default
 
 		static string New_DotGram_Marked(string v) =>
-#line 41 "Notation.gram"
+#line 42 "Notation.gram"
                                 (v);
 #line default
 
@@ -2950,32 +2950,32 @@ namespace DotGram.Snapshots
 		}
 
 		static bool RecognizeGuard0_DotGram_Small(int n) =>
-#line 31 "Notation.gram"
+#line 32 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
 		static bool RecognizeGuard1_DotGram_Small(int n) =>
-#line 29 "Notation.gram"
+#line 30 "Notation.gram"
                      (n < 10);
 #line default
 
 		static bool RecognizeGuard2_DotGram_Small(int n) =>
-#line 29 "Notation.gram"
+#line 30 "Notation.gram"
                      (n < 10);
 #line default
 
 		static bool RecognizeGuard3_DotGram_Small(int n) =>
-#line 31 "Notation.gram"
+#line 32 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
 		static bool RecognizeGuard4_DotGram_Small(int n) =>
-#line 29 "Notation.gram"
+#line 30 "Notation.gram"
                      (n < 10);
 #line default
 
 		static bool RecognizeGuard5_DotGram_Small(int n) =>
-#line 31 "Notation.gram"
+#line 32 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
@@ -3319,6 +3319,12 @@ namespace DotGram.Snapshots
 				return kept;
 			}
 
+			// A guard written with its own words (`when @(…) on fail "…"`) says them, as a rule's
+			// `on fail` does: the author took the wording, and it is the whole answer.
+			for (var i = 0; i < expected.Length; i++)
+				if (expected[i].Length > 1 && expected[i][0] == '\u0002' && expected[i][1] == '\u0000')
+					return new[] { expected[i].Substring(1) };
+
 			var said = new global::System.Text.StringBuilder("\u0000");
 			var seen = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
 
@@ -3432,7 +3438,6 @@ namespace DotGram.Snapshots
 
 			return tied;
 		}
-
 
 		sealed class Window_DotGram
 		{
@@ -4466,7 +4471,7 @@ namespace DotGram.Snapshots
 					"[',' | ';']",
 					"','",
 					"\u0002when @(n > 0)",
-					"\u0002when @(n < 10)",
+					"\u0002\0Expected a number below 10.",
 					"'!'",
 					"['0'..'9' | 'a'..'z']",
 					"['0'..'9']",

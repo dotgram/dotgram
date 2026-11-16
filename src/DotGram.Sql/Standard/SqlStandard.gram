@@ -345,15 +345,15 @@ IntervalQualifier : @IntervalQualifier
 	= s: StartField & "TO"i & e: EndField => @(Nodes.Qualifier(s, e))
 	| f: SingleDatetimeField => @(f)
 
-StartField : @IntervalQualifier = f: NonSecondPrimaryDatetimeField & ('(' & p: IntervalLeadingFieldPrecision & ')')? & when @(Nodes.Fits(p)) => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
+StartField : @IntervalQualifier = f: NonSecondPrimaryDatetimeField & ('(' & p: IntervalLeadingFieldPrecision & ')')? & when @(Nodes.Fits(p)) on fail "Expected a number that fits in an int." => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
 
 EndField : @IntervalQualifier
 	= f: NonSecondPrimaryDatetimeField => @(new IntervalQualifier(Nodes.Field(f)))
-	| f: "SECOND"i & ('(' & p: IntervalFractionalSecondsPrecision & ')')? & when @(Nodes.Fits(p)) => @(new IntervalQualifier(Nodes.Field(f), null, null, Nodes.Integer(p)))
+	| f: "SECOND"i & ('(' & p: IntervalFractionalSecondsPrecision & ')')? & when @(Nodes.Fits(p)) on fail "Expected a number that fits in an int." => @(new IntervalQualifier(Nodes.Field(f), null, null, Nodes.Integer(p)))
 
 SingleDatetimeField : @IntervalQualifier
-	= f: NonSecondPrimaryDatetimeField & ('(' & p: IntervalLeadingFieldPrecision & ')')? & when @(Nodes.Fits(p)) => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
-	| f: "SECOND"i & ('(' & p: IntervalLeadingFieldPrecision & (',' & q: IntervalFractionalSecondsPrecision)? & ')')? & when @(Nodes.Fits(p) && Nodes.Fits(q)) => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p), null, Nodes.Integer(q)))
+	= f: NonSecondPrimaryDatetimeField & ('(' & p: IntervalLeadingFieldPrecision & ')')? & when @(Nodes.Fits(p)) on fail "Expected a number that fits in an int." => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
+	| f: "SECOND"i & ('(' & p: IntervalLeadingFieldPrecision & (',' & q: IntervalFractionalSecondsPrecision)? & ')')? & when @(Nodes.Fits(p) && Nodes.Fits(q)) on fail "Expected numbers that fit in an int." => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p), null, Nodes.Integer(q)))
 
 NonSecondPrimaryDatetimeField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i
 IntervalFractionalSecondsPrecision = UnsignedInteger
@@ -416,7 +416,7 @@ DataTypeBase         : @DataType
 	| t: ReferenceType => @(t)
 	| n: PathResolvedUserDefinedTypeName => @(new DataType.UserDefined(n))
 CollectionTypeSuffix : @Nodes.Suffix
-	= "ARRAY"i & (l: LeftBracketOrTrigraph & n: UnsignedInteger & RightBracketOrTrigraph)? & when @(Nodes.Fits(n)) => @(Nodes.ArraySuffix(l, n))
+	= "ARRAY"i & (l: LeftBracketOrTrigraph & n: UnsignedInteger & RightBracketOrTrigraph)? & when @(Nodes.Fits(n)) on fail "Expected a number that fits in an int." => @(Nodes.ArraySuffix(l, n))
 	| "MULTISET"i => @(Nodes.MultisetSuffix())
 
 PredefinedType : @DataType
@@ -449,29 +449,29 @@ NationalCharacterStringType : @DataType
 	| "NCLOB"i & ('(' & l: CharacterLargeObjectLength & ')')? => @(Nodes.Character("NCLOB", l))
 
 BinaryStringType : @DataType
-	= "BINARY"i & "VARYING"i & ('(' & n: UnsignedInteger & ')')? & when @(Nodes.Fits(n)) => @(Nodes.Binary("BINARY VARYING", n, null))
+	= "BINARY"i & "VARYING"i & ('(' & n: UnsignedInteger & ')')? & when @(Nodes.Fits(n)) on fail "Expected a number that fits in an int." => @(Nodes.Binary("BINARY VARYING", n, null))
 	| "BINARY"i & "LARGE"i & "OBJECT"i & ('(' & s: LargeObjectLength & ')')? => @(Nodes.Binary("BINARY LARGE OBJECT", null, s))
-	| "BINARY"i & ('(' & n: UnsignedInteger & ')')? & when @(Nodes.Fits(n)) => @(Nodes.Binary("BINARY", n, null))
-	| "VARBINARY"i & ('(' & n: UnsignedInteger & ')')? & when @(Nodes.Fits(n)) => @(Nodes.Binary("VARBINARY", n, null))
+	| "BINARY"i & ('(' & n: UnsignedInteger & ')')? & when @(Nodes.Fits(n)) on fail "Expected a number that fits in an int." => @(Nodes.Binary("BINARY", n, null))
+	| "VARBINARY"i & ('(' & n: UnsignedInteger & ')')? & when @(Nodes.Fits(n)) on fail "Expected a number that fits in an int." => @(Nodes.Binary("VARBINARY", n, null))
 	| "BLOB"i & ('(' & s: LargeObjectLength & ')')? => @(Nodes.Binary("BLOB", null, s))
 
 NumericType : @DataType
-	= w: ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & p: UnsignedInteger & (',' & s: UnsignedInteger)? & ')')? & when @(Nodes.Fits(p) && Nodes.Fits(s)) => @(Nodes.NumericType(w, p, s))
+	= w: ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & p: UnsignedInteger & (',' & s: UnsignedInteger)? & ')')? & when @(Nodes.Fits(p) && Nodes.Fits(s)) on fail "Expected numbers that fit in an int." => @(Nodes.NumericType(w, p, s))
 	| w: ("SMALLINT"i | "INTEGER"i | "INT"i | "BIGINT"i | "REAL"i) => @(Nodes.NumericType(w, null, null))
-	| w: "FLOAT"i & ('(' & p: UnsignedInteger & ')')? & when @(Nodes.Fits(p)) => @(Nodes.NumericType(w, p, null))
+	| w: "FLOAT"i & ('(' & p: UnsignedInteger & ')')? & when @(Nodes.Fits(p)) on fail "Expected a number that fits in an int." => @(Nodes.NumericType(w, p, null))
 	| "DOUBLE"i & "PRECISION"i => @(Nodes.NumericType("DOUBLE PRECISION", null, null))
-	| w: "DECFLOAT"i & ('(' & p: UnsignedInteger & ')')? & when @(Nodes.Fits(p)) => @(Nodes.NumericType(w, p, null))
+	| w: "DECFLOAT"i & ('(' & p: UnsignedInteger & ')')? & when @(Nodes.Fits(p)) on fail "Expected a number that fits in an int." => @(Nodes.NumericType(w, p, null))
 
 DatetimeType : @DataType
 	= "DATE"i => @(new DataType.DateTime(DateTimeTypeKind.Date))
-	| w: ("TIME"i | "TIMESTAMP"i) & ('(' & p: UnsignedInteger & ')')? & when @(Nodes.Fits(p)) & (z: ("WITH"i | "WITHOUT"i) & "TIME"i & "ZONE"i)? => @(Nodes.DateTime(w, p, z))
+	| w: ("TIME"i | "TIMESTAMP"i) & ('(' & p: UnsignedInteger & ')')? & when @(Nodes.Fits(p)) on fail "Expected a number that fits in an int." & (z: ("WITH"i | "WITHOUT"i) & "TIME"i & "ZONE"i)? => @(Nodes.DateTime(w, p, z))
 
 // <character length>, <large object length>: `2 K` is a length and `2K` one token of it.
-CharacterLength            : @Nodes.Length = ?!GluedWord & n: UnsignedInteger & when @(Nodes.Fits(n)) & u: CharLengthUnits? => @(Nodes.LengthOf(n, u))
+CharacterLength            : @Nodes.Length = ?!GluedWord & n: UnsignedInteger & when @(Nodes.Fits(n)) on fail "Expected a number that fits in an int." & u: CharLengthUnits? => @(Nodes.LengthOf(n, u))
 CharacterLargeObjectLength : @Nodes.Length = s: LargeObjectLength & u: CharLengthUnits? => @(Nodes.LengthOf(s, u))
 LargeObjectLength          : @LargeObjectSize
-	= t: LengthToken & when @(Nodes.FitsSize(t)) => @(Nodes.Size(t))
-	| n: UnsignedInteger & when @(Nodes.FitsLong(n)) & m: Multiplier? => @(Nodes.Size(n, m))
+	= t: LengthToken & when @(Nodes.FitsSize(t)) on fail "Expected a length that fits in a long." => @(Nodes.Size(t))
+	| n: UnsignedInteger & when @(Nodes.FitsLong(n)) on fail "Expected a number that fits in a long." & m: Multiplier? => @(Nodes.Size(n, m))
 CharLengthUnits            = "CHARACTERS"i | "OCTETS"i
 
 RowType         : @DataType = "ROW"i & '(' & first: FieldDefinition & (',' & rest: FieldDefinition)* & ')' => @(new DataType.Row(Nodes.List(first, rest)))
@@ -645,7 +645,7 @@ Operator : @Towers.Op
 // a primary, and what may follow one: an interval qualifier (<interval primary>), a time zone
 // (<datetime factor>), a collate clause (<character factor>), or a type's name (<specific type
 // method>), which is a character value function and may be collated in turn.
-Operand : @Towers.Piece = s: Sign? & p: Primary & x: Postfix & when @(Towers.OperandRoles(Nodes.SignOf(s), p, x) != 0) => @(new Towers.Piece(Nodes.SignOf(s), p, x))
+Operand : @Towers.Piece = s: Sign? & p: Primary & x: Postfix & when @(Towers.OperandRoles(Nodes.SignOf(s), p, x) != 0) on fail "Expected a value its sign and suffix apply to." => @(new Towers.Piece(Nodes.SignOf(s), p, x))
 Postfix : @Towers.After
 	= '.' & w: "SPECIFICTYPE"i & b: ('(' & ')')? & c: CollateClause => @(new Towers.After(Towers.TypedCollated, new Expression.Collate(Nodes.SpecificType(w, b), c)))
 	| '.' & w: "SPECIFICTYPE"i & b: ('(' & ')')? => @(new Towers.After(Towers.Typed_, Nodes.SpecificType(w, b)))
@@ -1122,7 +1122,7 @@ JSONPathAccessorOp : @JsonPathAccessor
 	| '[' & '*' & ']' => @(new JsonPathAccessor.WildcardArray())
 	| '[' & first: JSONSubscript & (',' & rest: JSONSubscript)* & ']' => @(new JsonPathAccessor.Array(Nodes.List(first, rest)))
 	| '?' & '(' & p: JSONPathPredicate & ')' => @(new JsonPathAccessor.Filter(p))
-	| '.' & m: JSONMethod & when @(Nodes.FitsMethod(m)) => @(new JsonPathAccessor.Method(Nodes.PathMethod(m)))
+	| '.' & m: JSONMethod & when @(Nodes.FitsMethod(m)) on fail "Expected a precision and a scale that fit in an int." => @(new JsonPathAccessor.Method(Nodes.PathMethod(m)))
 
 // <JSON path predicate>. `&&`, `!`, `==` and `!=` are no SQL tokens — `!` is no SQL character at all
 // (§5.1) — so a conjunction of two, a negation and those comparisons are never read; `||` is the
@@ -1273,7 +1273,7 @@ TablePrimary : @Nodes.Factor
 
 // <parenthesized joined table>: a joined table in brackets, or one such in brackets again. Both
 // begin with a table factor, which is read once.
-ParenthesizedJoinedTable : @TableSource = '(' & f: TableFactor & j: Joins & ')' & when @(Nodes.JoinsOrJoined(f, j)) => @(Nodes.Joined(f.Source, j))
+ParenthesizedJoinedTable : @TableSource = '(' & f: TableFactor & j: Joins & ')' & when @(Nodes.JoinsOrJoined(f, j)) on fail "Expected a joined table inside the brackets." => @(Nodes.Joined(f.Source, j))
 
 // <correlation or recognition>: a correlation name, or a row pattern recognition clause with the
 // input's name before it, the output's after it, both or neither. Both begin with a name where they
@@ -1343,8 +1343,8 @@ RowPatternQuantifier : @RowPatternQuantifier
 	= '*' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.ZeroOrMore, Reluctant: r is not null))
 	| '+' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.OneOrMore, Reluctant: r is not null))
 	| PatternQuestionMark & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.ZeroOrOne, Reluctant: r is not null))
-	| '{' & min: UnsignedInteger? & ',' & max: UnsignedInteger? & '}' & when @(Nodes.Fits(min) && Nodes.Fits(max)) & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.Range, Nodes.Integer(min), Nodes.Integer(max), r is not null))
-	| '{' & exact: UnsignedInteger & '}' & when @(Nodes.Fits(exact)) => @(new RowPatternQuantifier(RowPatternQuantifierKind.Exact, Nodes.Integer(exact), Nodes.Integer(exact)))
+	| '{' & min: UnsignedInteger? & ',' & max: UnsignedInteger? & '}' & when @(Nodes.Fits(min) && Nodes.Fits(max)) on fail "Expected numbers that fit in an int." & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.Range, Nodes.Integer(min), Nodes.Integer(max), r is not null))
+	| '{' & exact: UnsignedInteger & '}' & when @(Nodes.Fits(exact)) on fail "Expected a number that fits in an int." => @(new RowPatternQuantifier(RowPatternQuantifierKind.Exact, Nodes.Integer(exact), Nodes.Integer(exact)))
 
 RowPatternSubsetClause : @Sql.SqlList<RowPatternSubset> = "SUBSET"i & first: RowPatternSubsetItem & (',' & rest: RowPatternSubsetItem)* => @(Nodes.List(first, rest))
 RowPatternSubsetItem   : @RowPatternSubset = n: Identifier & '=' & '(' & first: Identifier & (',' & rest: Identifier)* & ')' => @(new RowPatternSubset(n, Nodes.List(first, rest)))
@@ -2059,7 +2059,7 @@ SQLDataAccessIndication          : @SqlDataAccess = "NO"i & "SQL"i => @(SqlDataA
                                                   | "MODIFIES"i & "SQL"i & "DATA"i => @(SqlDataAccess.ModifiesSqlData)
 NullCallClause                   : @NullCallMode = "RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i => @(NullCallMode.ReturnsNullOnNullInput)
                                                  | "CALLED"i & "ON"i & "NULL"i & "INPUT"i => @(NullCallMode.CalledOnNullInput)
-ReturnedResultSetsCharacteristic : @int = "DYNAMIC"i & "RESULT"i & "SETS"i & n: UnsignedInteger & when @(Nodes.Fits(n)) => @(Nodes.Integer(n)!.Value)
+ReturnedResultSetsCharacteristic : @int = "DYNAMIC"i & "RESULT"i & "SETS"i & n: UnsignedInteger & when @(Nodes.Fits(n)) on fail "Expected a number that fits in an int." => @(Nodes.Integer(n)!.Value)
 
 // <routine body>: a statement, with the rights it runs with, or a reference to an external body, or a
 // polymorphic table function's component procedures.

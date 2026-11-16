@@ -673,10 +673,13 @@ search; the answer, and what a refusal says, are those of the loop as written.
 
 ```dotgram
 when @Predicate(args)
+when @Predicate(args) on fail "Expected …"
 ```
 
 An operand that consumes no input and produces no value: if the predicate returns
 `false`, the whole sequence did not match.
+`on fail "…"` after it says what a refusal says where the guard said no and nothing else
+is named (§7.5).
 
 The keyword is not ceremony. Syntactic position fixes every C# contract: `@ParseGuid`
 as an operand is an external recognizer, `[@IsLetter]` is an element predicate, and
@@ -3982,6 +3985,19 @@ guard is left out; where nothing else is, `Error` is that it said no, `when @(Is
 — several such guards joined by "or" — and a recovery's `parserMessage` and `parserExpected` say
 the same. The outcome is what it was: a guard refused at the end of the input is `Starved`, as
 any refusal there is.
+
+**A guard may say it in words of its own**, with `on fail` after its C#, as a rule may after its
+type (§4):
+
+```dotgram
+Target : @string = text: TargetText & when @(Rfc3986.TryParseReference(text!, out _)) on fail "Expected a valid URI reference." => @(text)
+```
+
+The words are said exactly where the guard's C# would have been — where it refused at the furthest
+place and nothing else is named there — and are then the whole of `Error`, as a rule's `on fail`
+is; the position, the outcome and the ties are what they would have been without them. Where two
+guards refused at one place, the first with words of its own says them. `on fail` there without its
+string is `GRAM2003`.
 
 Exceptions appear only at the publication boundary, and only in the methods without a
 `Try` prefix — where a .NET developer expects them. What is thrown is

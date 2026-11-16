@@ -1391,6 +1391,12 @@ namespace DotGram.Snapshots
 				return kept;
 			}
 
+			// A guard written with its own words (`when @(…) on fail "…"`) says them, as a rule's
+			// `on fail` does: the author took the wording, and it is the whole answer.
+			for (var i = 0; i < expected.Length; i++)
+				if (expected[i].Length > 1 && expected[i][0] == '\u0002' && expected[i][1] == '\u0000')
+					return new[] { expected[i].Substring(1) };
+
 			var said = new global::System.Text.StringBuilder("\u0000");
 			var seen = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
 
@@ -1502,7 +1508,6 @@ namespace DotGram.Snapshots
 
 			return tied;
 		}
-
 
 		static readonly byte[] Lex_DotGram_Runs =
 		{

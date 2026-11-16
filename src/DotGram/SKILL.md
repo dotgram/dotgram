@@ -303,9 +303,9 @@ if (!match.IsSuccess)
 **A `when` that says no is named by its C#.** With the date wrong, the guard at the end of the
 line refuses, and where nothing else would have fit there `Error` says so:
 `when @(DateTimeOffset.TryParseExact(…)) said no.`, the guard written out whole. The answer is
-`Starved`, as any refusal at the end of the input is. Where a user needs the reason in other
-words, keep the text a `string` capture and convert it in the host after the parse, where the
-message is yours.
+`Starved`, as any refusal at the end of the input is. Give the guard words of its own after its
+C# where a person reads the message — `when @(…) on fail "Expected a date."` — and `Error` is
+those words instead, said exactly where the C# would have been.
 
 ## Rules that take arguments
 

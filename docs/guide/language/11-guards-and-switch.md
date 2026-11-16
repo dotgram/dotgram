@@ -82,6 +82,28 @@ Shorts("abcd ef") → ["abc", "d", "ef"]
 
 Over characters a repetition gives back what a guard after it refuses: `find` reads `abc`, then `d`.
 
+**What a refused guard says.** Where a guard said no and nothing else would have fit there, the refusal
+names the guard by its C#. A guard can say it in words of its own instead, with `on fail` after its C#,
+as a rule can after its type ([values](07-values.md#what-a-refusal-says-on-fail)):
+
+```dotgram
+Number : int = { ['0'..'9']+ } => @int.Parse(parserText)
+Byte   : int = n: Number & when @(n <= 255) on fail "Expected a number up to 255." => n
+Octet  : int = n: Number & when @(n <= 255) => n
+
+parse Byte
+parse Octet
+```
+
+```text examples
+TryParseByte("256") → refused: Expected a number up to 255.
+TryParseOctet("256") → refused: when @(n <= 255) said no.
+```
+
+The words replace the guard's C# exactly where it would have been said, and nowhere else: where a
+terminal could have stood at the same place, the refusal names that. The position and the outcome do
+not change.
+
 Notes:
 
 - A guard may run more than once, and for a reading the parse then gives up: it runs on the path

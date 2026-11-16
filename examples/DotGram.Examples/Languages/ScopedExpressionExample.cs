@@ -90,7 +90,7 @@ public sealed class Names
 	// Read left to right, so the `when` runs after the value it records is known and
 	// before anything that could use the name.
 	Let = "let" & name: Identifier & '=' & value: Expr & ';'
-	    & when @(context.Declare(name, value))
+	    & when @(context.Declare(name, value)) on fail "Expected a name not declared before."
 
 	Expr : @int = left: Expr & '+' & right: Expr  << 1 => @(left + right)
 	            | left: Expr & '*' & right: Expr  << 2 => @(left * right)
@@ -101,7 +101,7 @@ public sealed class Names
 	            // `name` here is captured unconditionally right before the guard, so it is
 	            // never actually null — the `!` just matches the shape a conditional capture
 	            // would need. A `=>` runs after one alternative has been chosen and needs none.
-	            | name: Identifier & when @(context.Known(name!)) => @(context.Of(name))
+	            | name: Identifier & when @(context.Known(name!)) on fail "Expected a declared name." => @(context.Of(name))
 
 	parse Program
 	""", Carrier = GramCarrier.Deferred)]

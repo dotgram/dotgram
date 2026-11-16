@@ -16,7 +16,7 @@ namespace DotGram.Examples.Formats;
 // taken before it, and saying no is an ordinary non-match — so `<a></b>` fails to be an
 // element rather than parsing into one that is wrong.
 //
-//     Element = '<' & name: Name … "</" & close: Name & '>' & when @(name == close)
+//     Element = '<' & name: Name … "</" & close: Name & '>' & when @(name == close) on fail "Expected the closing tag of the open element."
 //
 // That is the whole trick, and it is why the guard is recognition rather than
 // validation: a language whose well-formedness rule lives outside the parser has two
@@ -59,7 +59,7 @@ namespace DotGram.Examples.Formats;
 	// names are captured, because a guard sees what was taken before it and nothing else.
 	Element : @XmlElement = '<' & name: Name & attributes: Attribute* & Lexical.Space & '>'
 	                      & children: Content*
-	                      & "</" & close: Name & Lexical.Space & '>' & when @(name == close)
+	                      & "</" & close: Name & Lexical.Space & '>' & when @(name == close) on fail "Expected the closing tag of the open element."
 	                        => @(new XmlElement(name, attributes, children))
 
 	                      | '<' & name: Name & attributes: Attribute* & Lexical.Space & "/>"

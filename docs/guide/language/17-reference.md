@@ -50,7 +50,7 @@ All are words only where the notation reads them; elsewhere they are ordinary na
 | `public`, `internal`, `private`, `positional` | before `parse` or `find` | [publication](08-publication.md#access-and-reading-from-a-position) |
 | `as`, `stream`, `bytes`, `yield` | after a directive's operand | [publication](08-publication.md) |
 | `context`, `state` | `context : @T`, `state : @T` | [context and state](15-context-and-state.md) |
-| `on fail` | `on fail "…"` in a rule's head | [values](07-values.md#what-a-refusal-says-on-fail) |
+| `on fail` | `on fail "…"` in a rule's head, or after a guard's C# | [values](07-values.md#what-a-refusal-says-on-fail), [guards](11-guards-and-switch.md#guards-when-) |
 | `when` | a guard or a condition | [guards](11-guards-and-switch.md) |
 | `is`, `not`, `and`, `or` | in a condition after `when` | [guards](11-guards-and-switch.md#conditions-when-a-is-b) |
 | `switch`, `case`, `default` | computed choice | [guards](11-guards-and-switch.md#computed-choice-switch) |

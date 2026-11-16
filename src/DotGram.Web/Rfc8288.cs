@@ -214,9 +214,9 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 	// with a guard has no first character to name, and a refusal there said `['<']` where it says `'<'`.
 	LinkValue : @WebLink
 		= '<' & when Reading is "strict" & target: Target & '>' & Ows & parameters: Parameters
-		  & when @(Rfc8288.AreValid(parameters!, strict: true)) => @(new WebLink(target, parameters))
+		  & when @(Rfc8288.AreValid(parameters!, strict: true)) on fail "Expected valid link parameters." => @(new WebLink(target, parameters))
 		| '<' & when Reading is "practice" & target: Target & '>' & Ows & parameters: Parameters
-		  & when @(Rfc8288.AreValid(parameters!, strict: false)) => @(new WebLink(target, parameters))
+		  & when @(Rfc8288.AreValid(parameters!, strict: false)) on fail "Expected valid link parameters." => @(new WebLink(target, parameters))
 
 	Reading = "strict" | "practice"
 
@@ -225,7 +225,7 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	// A URI-Reference, as Rfc3986 says. The check is a rule of its own, so that no guarded rule holds a
 	// repetition the reader would divide into a part.
-	Target : @string = text: TargetText & when @(Rfc3986.TryParseReference(text!, out _)) => @(text)
+	Target : @string = text: TargetText & when @(Rfc3986.TryParseReference(text!, out _)) on fail "Expected a valid URI reference." => @(text)
 
 	TargetText = [^ '>']*
 

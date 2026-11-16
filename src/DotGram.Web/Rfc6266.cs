@@ -189,7 +189,7 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 
 	// content-disposition = disposition-type *( ";" disposition-parm ).
 	DispositionField : @ContentDisposition
-		= Ows & type: Token & parameters: DispositionParms & Ows & when @(Rfc6266.AreDistinct(parameters!))
+		= Ows & type: Token & parameters: DispositionParms & Ows & when @(Rfc6266.AreDistinct(parameters!)) on fail "Expected each parameter once."
 		=> @(new ContentDisposition(type, parameters))
 
 	// The parameters are read to their end and never handed back. A whole field loses nothing by it: what
@@ -202,7 +202,7 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 
 	// filename-parm and disp-ext-parm alike: a name, `=`, and a value, taken apart beside the rule.
 	DispositionParm : @ContentDisposition.Parameter
-		= Ows & ';' & Ows & name: Token & Ows & '=' & Ows & value: ParmValue & when @(Rfc6266.IsParameter(name!, value!))
+		= Ows & ';' & Ows & name: Token & Ows & '=' & Ows & value: ParmValue & when @(Rfc6266.IsParameter(name!, value!)) on fail "Expected a valid parameter value."
 		=> @(Rfc6266.Parameter(name, value))
 
 	ParmValue = Token | QuotedString

@@ -40,13 +40,13 @@ namespace DotGram.Web;
 
 	// full-date, and §5.7's days of the month.
 	FullDate : @FullDate
-		= year: DateFullYear & '-' & month: TwoDigits & '-' & day: TwoDigits & when @(Rfc3339.IsDate(year, month, day))
+		= year: DateFullYear & '-' & month: TwoDigits & '-' & day: TwoDigits & when @(Rfc3339.IsDate(year, month, day)) on fail "Expected a valid date."
 		=> @(new FullDate(Rfc3339.Number(year), Rfc3339.Number(month), Rfc3339.Number(day)))
 
 	// full-time: partial-time and time-offset, and §5.7's hours, minutes and leap second.
 	FullTime : @FullTime
 		= hour: TwoDigits & ':' & minute: TwoDigits & ':' & second: TwoDigits & fraction: SecFrac & offset: TimeOffset
-		  & when @(Rfc3339.IsTime(hour, minute, second, offset))
+		  & when @(Rfc3339.IsTime(hour, minute, second, offset)) on fail "Expected a valid time."
 		=> @(Rfc3339.Time(hour, minute, second, fraction, offset))
 
 	// time-offset. What it means is worked out beside the time it belongs to.
