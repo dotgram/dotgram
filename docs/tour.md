@@ -1,9 +1,32 @@
 # A tour of .Gram
 
 The repository [README](https://github.com/dotgram/dotgram) shows .Gram in three steps: a grammar the size of a regular
-expression, a calculator, and the SQL grammars. This page is the longer walk: worked examples of what a
-grammar can do, each one short enough to read in a sitting. The notation itself is specified in
+expression, a calculator, and the SQL grammars. This page is the longer walk: the features in one list, then worked
+examples of them, each one short enough to read in a sitting. The notation itself is specified in
 [`syntax.md`](syntax.md); complete programs are in [`examples/`](https://github.com/dotgram/dotgram/blob/main/examples/README.md).
+
+## What a grammar can do
+
+* literals and element sets; ranges and Unicode categories;
+* sequence and ordered choice; `?`, `*`, `+`, and bounded repetition; lookahead and atomic groups;
+* named captures and generated result types, or [existing C# types](#typed-parsing), filled by
+  constructor or by `required` properties;
+* semantic actions and guards; external C# predicates and recognizers ([Grammar and C#](#grammar-and-c));
+* parameterized rules; rule rebinding and parser specialization ([one grammar, three parsers](#one-grammar-three-parsers));
+* conditions about the grammar — `when Version is "2022"` — decided when a parser is generated, which is how one
+  grammar is [several versions of a language](#versions-of-one-language);
+* left recursion — direct, and indirect through rules that only forward — with binding powers for expression grammars;
+* grammar namespaces, and [grammar libraries](#grammar-libraries) that cross a project reference;
+* a lexical split: the same notation read over tokens instead of characters;
+* `Parse`, `TryParse`, and `Find`, over strings, slices, bytes, streams and lines
+  ([what a grammar reads](#what-a-grammar-reads-and-what-comes-out));
+* streaming from `TextReader`, and recovery inside repetitions, so a bad record in a
+  [feed written by people](#feeds-written-by-people) is reported where it is and reading goes on
+  ([streaming, tokens and recovery](#streaming-tokens-and-recovery));
+* parser context and parsing state;
+* [why an input was refused](#why-an-input-was-refused): a trace build names the rules and the guard.
+
+[`status.md`](status.md) lists the features one by one, with what is not implemented and what is only partly.
 
 ## What a grammar reads, and what comes out
 

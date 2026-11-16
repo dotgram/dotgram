@@ -1,5 +1,7 @@
 - name: Getting started
   href: index.md
+- name: Writing grammars with a coding agent
+  href: agents.md
 - name: A tour, by example
   href: tour.md
 # The two guides are folders of chapters (docs/guide/language/ and docs/guide/generator/),

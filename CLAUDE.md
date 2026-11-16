@@ -28,6 +28,8 @@ docs/                 what a user reads, published as the site at dotgram.github
 	README.md             the index of the site's documents, and which of them is the specification
 	docfx.json, toc.yml   the site: docfx, with the pages in the order of toc.yml (docs/internal/ is not in it)
 	syntax.md             the language: notation and its bond with C#
+	agents.md             writing grammars with a coding agent: where each SKILL.md is,
+	                      and the loop of build, diagnostics and fixes
 	tour.md               what a grammar can do, by example: the README's former long
 	                      sections; its feeds run by FeedsPageTests
 	feeds.md              a guide: feeds in pipes, CSV and fixed width, and one loaded into a

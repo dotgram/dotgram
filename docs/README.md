@@ -40,6 +40,7 @@ construction.
 
 | Document | |
 | --- | --- |
+| [`agents.md`](agents.md) | Writing grammars with a coding agent: where each package's `SKILL.md` is, how to point an agent at it, a loop that works and what to check by hand. |
 | [`tour.md`](tour.md) | What a grammar can do, by example: feeds written by people, one grammar published three times, versions of one language, typed parsing, streaming and recovery, guards, why an input was refused, grammar libraries, and the four parser packages. |
 | [`feeds.md`](feeds.md) | Feeds: trading files in pipes, CSV and fixed width with a header and a trailer, files kept by hand, and a feed of ten million records bulk-loaded into a database. |
 | [`guide/language/`](guide/language/README.md) | The `.Gram` language, a page a topic: every feature with a grammar that uses it, the cases worth knowing and the forms refused with their diagnostics. |
@@ -58,4 +59,5 @@ used to explain at length, moved here, and only the tour's feeds are run by a te
 
 [`../src/DotGram/SKILL.md`](../src/DotGram/SKILL.md) is how to write a grammar, written
 for an agent and shipped inside the NuGet package. It carries what an agent gets wrong
-rather than what a reader wants to know.
+rather than what a reader wants to know. [`agents.md`](agents.md) is the page for the person
+driving the agent: where every package's skill is and how to work with one.

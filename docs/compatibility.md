@@ -1,7 +1,14 @@
 # Compatibility
 
-What a project targeting an older framework or language version needs, in full. The repository
-[README](https://github.com/dotgram/dotgram#compatibility) has the short form.
+What a project targeting an older framework or language version needs, in full. In short:
+
+| | |
+| --- | --- |
+| Building | .NET SDK 9.0.300+ (Roslyn 4.14; Visual Studio 17.14+); an SDK 8 build skips the generator (CS9057) |
+| Generated code | C# 8, for whatever the project targets: `netstandard2.0`, `net472`, `net8.0` and later are built on every commit |
+| Inline grammar (`[Gram("""…""")]`) | C# 11, for the raw string literal (the examples here end a class with `;`, which is C# 12); a `.gram` file needs C# 8 |
+| `netstandard2.0`, `net472` | `<LangVersion>` set, a `System.Memory` reference, and `IsExternalInit` for records |
+| Runtime dependencies | none: everything a parser needs is generated into your assembly as internal C#, so there is no runtime assembly to deploy and no version pair to drift apart |
 
 The generated parser is C# 8 and targets whatever the project around it targets.
 [`tests/DotGram.Compatibility`](https://github.com/dotgram/dotgram/tree/main/tests/DotGram.Compatibility) builds one grammar for
