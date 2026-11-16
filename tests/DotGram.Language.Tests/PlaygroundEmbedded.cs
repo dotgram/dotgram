@@ -49,8 +49,7 @@ static class PlaygroundEmbedded
 
 		var rootNode     = (await document.GetSyntaxRootAsync(cancellationToken))!;
 		var model        = (await document.GetSemanticModelAsync(cancellationToken))!;
-		var includes     = await SolutionIncludedGrammars.ReadAsync(document.Project, cancellationToken);
-		var analyses     = EmbeddedGrammarService.Analyze(model, rootNode, cancellationToken, includes);
+		var analyses     = await EmbeddedGrammarService.AnalyzeAsync(model, rootNode, SolutionIncludedGrammars.For(document.Project), cancellationToken);
 		var dsl          = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, rootNode, model, cancellationToken, new DslEmbeddedSiteCache());
 
 		return new EmbeddedGrammarView(

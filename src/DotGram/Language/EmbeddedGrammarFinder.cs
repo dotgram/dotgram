@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 using DotGram.Grammar;
 
@@ -65,15 +66,50 @@ static class EmbeddedGrammarFinder
 		CancellationToken cancellationToken = default,
 		Func<string, string?>? includedFile = null)
 	{
-		return Find(model, root, cancellationToken, new CompilationIncludedGrammars(model.Compilation, includedFile));
+		var includes = new CompilationIncludedGrammars(model.Compilation, includedFile);
+
+		return Find(model, root, cancellationToken, include => includes.Select(include).Text);
 	}
 
-	/// <param name="includes">What the host's project answers about the grammars it includes; a solution's project in an editor.</param>
-	public static IReadOnlyList<EmbeddedGrammar> Find(
+	/// <summary>
+	/// The same, what each include is compiled with asked of <paramref name="includes"/> first: what a
+	/// solution's project answers about the grammars it includes, in an editor.
+	/// </summary>
+	public static async Task<IReadOnlyList<EmbeddedGrammar>> FindAsync(
+		SemanticModel model,
+		SyntaxNode root,
+		IncludedGrammarSources includes,
+		CancellationToken cancellationToken)
+	{
+		var texts = new Dictionary<GramInclude, string?>();
+
+		foreach (var type in Hosts(model, root, cancellationToken))
+			foreach (var include in GramIncludes.Walk(type, includes.Visited))
+				if (!texts.ContainsKey(include))
+					texts[include] = (await includes.SelectAsync(include, cancellationToken).ConfigureAwait(false)).Text;
+
+		return Find(model, root, cancellationToken, include => texts.TryGetValue(include, out var text) ? text : null);
+	}
+
+	/// <summary>The classes a <c>[Gram]</c> of the document is written on, the attribute known by its symbol however it is spelled.</summary>
+	static IEnumerable<INamedTypeSymbol> Hosts(SemanticModel model, SyntaxNode root, CancellationToken cancellationToken)
+	{
+		var seen = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+		foreach (var attribute in root.DescendantNodes().OfType<AttributeSyntax>())
+			if (IsGramAttribute(model, attribute, cancellationToken) &&
+				attribute.Parent?.Parent is TypeDeclarationSyntax declaration &&
+				model.GetDeclaredSymbol(declaration, cancellationToken) is INamedTypeSymbol type &&
+				seen.Add(type))
+				yield return type;
+	}
+
+	/// <param name="includedText">What an include is compiled with; null where nothing.</param>
+	static IReadOnlyList<EmbeddedGrammar> Find(
 		SemanticModel model,
 		SyntaxNode root,
 		CancellationToken cancellationToken,
-		IncludedGrammarSources includes)
+		Func<GramInclude, string?> includedText)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -100,7 +136,7 @@ static class EmbeddedGrammarFinder
 			if (IsFile(own))
 				continue;
 
-			var (included, host) = Host(model, attribute, includes, cancellationToken);
+			var (included, host) = Host(model, attribute, includedText, cancellationToken);
 			var (analysisText, joinedMap) = included.Count == 0
 				? (own, null)
 				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included);
@@ -220,7 +256,7 @@ static class EmbeddedGrammarFinder
 	static (IReadOnlyList<GrammarSplice.Part> Included, GramHostReading? Reading) Host(
 		SemanticModel model,
 		AttributeSyntax attribute,
-		IncludedGrammarSources includes,
+		Func<GramInclude, string?> includedText,
 		CancellationToken cancellationToken)
 	{
 		if (attribute.Parent?.Parent is not TypeDeclarationSyntax declaration ||
@@ -231,7 +267,7 @@ static class EmbeddedGrammarFinder
 
 		// As the generator compiles each (GramIncludes.Choose), from what the project answers.
 		foreach (var include in GramIncludes.Walk(type))
-			if (includes.Select(include).Text is { } text)
+			if (includedText(include) is { } text)
 				included.Add(new GrammarSplice.Part(text, include.Name, null));
 
 		// The attribute's own options, read as the generator reads them: what a reading does not

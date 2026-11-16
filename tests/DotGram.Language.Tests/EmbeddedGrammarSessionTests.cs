@@ -237,6 +237,114 @@ public sealed class EmbeddedGrammarSessionTests
 		Assert.True(session.View(host.Current).Current);
 	}
 
+	const string Library = "namespace Library { [DotGram.Gram(\"Base.gram\", DefaultAlias = \"B\")] public partial class Base { } }";
+
+	const string LibraryGrammarPath = @"P:\Library\Base.gram";
+
+	/// <summary>
+	/// A host project referencing a library whose class exports Base.gram; the host's C# document is
+	/// <paramref name="source"/>. The library's grammar defines <c>FromLibrary</c>.
+	/// </summary>
+	static (EmbeddedHost Host, ProjectId Library, DocumentId Grammar) WithLibrary(AdhocWorkspace workspace, string source)
+	{
+		var markers  = DotGram.Grammar.GramCompiler.EmitMarkerAttributes();
+		var solution = workspace.CurrentSolution;
+		var library  = ProjectId.CreateNewId("Library");
+		var host     = ProjectId.CreateNewId("Host");
+		var grammar  = DocumentId.CreateNewId(library);
+
+		ProjectInfo Project(ProjectId id, string name)
+		{
+			return ProjectInfo.Create(
+				id, VersionStamp.Default, name, name, LanguageNames.CSharp,
+				parseOptions: Microsoft.CodeAnalysis.CSharp.CSharpParseOptions.Default.WithLanguageVersion(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview),
+				metadataReferences: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location), MetadataReference.CreateFromFile(typeof(System.Diagnostics.CodeAnalysis.StringSyntaxAttribute).Assembly.Location)]);
+		}
+
+		solution = solution
+			.AddProject(Project(library, "Library"))
+			.AddDocument(DocumentId.CreateNewId(library), markers.HintName, SourceText.From(markers.Text))
+			.AddDocument(DocumentId.CreateNewId(library), "Base.cs", SourceText.From(Library))
+			.AddAdditionalDocument(grammar, "Base.gram", SourceText.From("Word = 'a'\nFromLibrary = 'l'\n"), filePath: LibraryGrammarPath)
+			.AddProject(Project(host, "Host"))
+			.AddProjectReference(host, new ProjectReference(library))
+			.AddDocument(DocumentId.CreateNewId(host), markers.HintName, SourceText.From(markers.Text))
+			.AddDocument(DocumentId.CreateNewId(host), "Parser.cs", SourceText.From(source), filePath: HostPath);
+
+		Assert.True(workspace.TryApplyChanges(solution));
+
+		return (new EmbeddedHost(workspace, HostPath, source), library, grammar);
+	}
+
+	/// <summary>Runs the session's pending analyses to the end: a timer at a time, each told of.</summary>
+	static EmbeddedGrammarView Analysed(EmbeddedHost host, EmbeddedGrammarSession<EmbeddedHost.Version> session, SemaphoreSlim changed)
+	{
+		while (host.Scheduler.WaitForTimer(TimeSpan.FromSeconds(5)))
+		{
+			host.Scheduler.Advance(EmbeddedGrammarSession.SemanticAnalysisDelayMilliseconds + EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+			Assert.True(changed.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+		}
+
+		return session.View(host.Current);
+	}
+
+	/// <summary>
+	/// A grammar in C# whose attribute is named by an alias includes a library's class as the build does,
+	/// with the grammar the library exports: the attribute is known by what it is, not by how it is spelled.
+	/// </summary>
+	[Fact]
+	public void A_grammar_whose_attribute_is_an_alias_includes_what_the_library_exports()
+	{
+		using var workspace = new AdhocWorkspace();
+
+		var (host, _, _) = WithLibrary(workspace, """
+			using G = DotGram.GramAttribute;
+
+			[G("Start = B.FromLibrary\nparse Start")]
+			[DotGram.GramInclude(typeof(Library.Base))]
+			partial class Parser;
+			""");
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		session.Changed += _ => changed.Release();
+
+		var view = Analysed(host, session, changed);
+
+		Assert.NotEmpty(view.Symbols);
+		Assert.DoesNotContain(view.Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+	}
+
+	/// <summary>
+	/// The library's grammar a C# document's grammar includes is changed: the document is analysed
+	/// again, and what the change took away is told of.
+	/// </summary>
+	[Fact]
+	public void A_change_to_an_included_grammar_has_the_document_analysed_again()
+	{
+		using var workspace = new AdhocWorkspace();
+
+		var (host, library, grammar) = WithLibrary(workspace, """
+			[DotGram.Gram("Start = B.FromLibrary\nparse Start")]
+			[DotGram.GramInclude(typeof(Library.Base))]
+			partial class Parser;
+			""");
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		session.Changed += _ => changed.Release();
+
+		Assert.DoesNotContain(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+
+		var before = workspace.CurrentSolution;
+
+		Assert.True(workspace.TryApplyChanges(before.WithAdditionalDocumentText(grammar, SourceText.From("Word = 'a'\n"))));
+
+		session.WorkspaceChanged(new WorkspaceChangeEventArgs(WorkspaceChangeKind.AdditionalDocumentChanged, before, workspace.CurrentSolution, library, grammar));
+
+		Assert.Contains(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+	}
+
 	const string HostSource = """
 		namespace DotGram
 		{

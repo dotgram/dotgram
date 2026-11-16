@@ -159,14 +159,16 @@ static class StandaloneGrammarInheritance
 
 		// Each include as the generator compiles it here (GramIncludes.Choose), a class of another
 		// project with what that project would carry; what each answer read is followed.
-		var sources = await SolutionIncludedGrammars.ReadAsync(project, cancellationToken).ConfigureAwait(false);
+		var sources = SolutionIncludedGrammars.For(project);
 
 		foreach (var include in GramIncludes.Walk(host, Watch))
-			if (sources.Select(include) is { Text: { } text } choice)
+			if (await sources.SelectAsync(include, cancellationToken).ConfigureAwait(false) is { Text: { } text } choice)
 				included.Add(new StandaloneIncludedGrammar(include.Name, text, choice.FilePath));
 
-		documents.UnionWith(sources.Documents);
-		projects.UnionWith(sources.Projects);
+		var (read, touched) = sources.Dependencies.Snapshot();
+
+		documents.UnionWith(read);
+		projects.UnionWith(touched);
 
 		var (tail, map) = GrammarSplice.Join(
 			new GrammarSplice.Part("", null, null),

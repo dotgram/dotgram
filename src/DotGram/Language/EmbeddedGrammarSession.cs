@@ -210,6 +210,11 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 	readonly DslEmbeddedSiteCache           _dslCache = new();
 
 	CancellationTokenSource?          _cancellation;
+
+	// What the last analysis's includes were read from, other projects' grammars and classes among
+	// them: a change to any has the document analysed again.
+	(IReadOnlyCollection<DocumentId> Documents, IReadOnlyCollection<ProjectId> Projects) _dependencies = ([], []);
+
 	TVersion?                         _snapshot;
 	TVersion?                         _retrySnapshot;
 	int                               _retryCount;
@@ -312,7 +317,10 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 			GramAnalysisSession.Raise(Changed, after, _host.Report, "Embedded grammar buffer change notification");
 	}
 
-	/// <summary>The solution changed: the document is analysed again where the change is about it or its project.</summary>
+	/// <summary>
+	/// The solution changed: the document is analysed again where the change is about it or its project,
+	/// or about what its grammars' includes were last read from — a grammar file, a class, of any project.
+	/// </summary>
 	public void WorkspaceChanged(WorkspaceChangeEventArgs change)
 	{
 		if (_host.FilePath is not { } filePath)
@@ -320,12 +328,32 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 
 		var ids = change.NewSolution.GetDocumentIdsWithFilePath(filePath);
 
-		if (!ids.Any() ||
-			change.DocumentId is not null && !ids.Contains(change.DocumentId) ||
-			change.ProjectId is not null && !ids.Any(id => id.ProjectId == change.ProjectId))
+		if (!ids.Any())
+			return;
+
+		var own = (change.DocumentId is null || ids.Contains(change.DocumentId)) &&
+			(change.ProjectId is null || ids.Any(id => id.ProjectId == change.ProjectId));
+
+		if (!own && !Depends(change))
 			return;
 
 		Schedule(_host.Current);
+	}
+
+	bool Depends(WorkspaceChangeEventArgs change)
+	{
+		(IReadOnlyCollection<DocumentId> Documents, IReadOnlyCollection<ProjectId> Projects) dependencies;
+
+		lock (_gate)
+			dependencies = _dependencies;
+
+		if (change.DocumentId is { } document)
+			return dependencies.Documents.Contains(document) ||
+				(change.Kind is WorkspaceChangeKind.DocumentAdded or WorkspaceChangeKind.DocumentRemoved or
+					WorkspaceChangeKind.AdditionalDocumentAdded or WorkspaceChangeKind.AdditionalDocumentRemoved) &&
+				dependencies.Projects.Contains(document.ProjectId);
+
+		return change.ProjectId is { } project && dependencies.Projects.Contains(project);
 	}
 
 	void Schedule(TVersion snapshot)
@@ -390,16 +418,14 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 			if (model is null)
 				return;
 
-			// The project's .gram files, and those of the projects it references, only where this
-			// document has a grammar in an attribute, the one place an include is read; most C#
-			// documents have none.
-			var analyses = provisional.Count == 0
-				? EmbeddedGrammarService.Analyze(model, root, cancellationToken)
-				: EmbeddedGrammarService.Analyze(
-					model,
-					root,
-					cancellationToken,
-					await SolutionIncludedGrammars.ReadAsync(document.Project, cancellationToken).ConfigureAwait(false));
+			// What the grammars include, asked of the solution as the generator of this project would,
+			// whatever the attribute is spelled as; nothing is read for a document whose classes include
+			// nothing. What the answers were read from is followed until the next analysis.
+			var includes = SolutionIncludedGrammars.For(document.Project);
+			var analyses = await EmbeddedGrammarService.AnalyzeAsync(model, root, includes, cancellationToken).ConfigureAwait(false);
+
+			lock (_gate)
+				_dependencies = includes.Dependencies.Snapshot();
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var dslSites        = await DslEmbeddedSiteAnalysis.AnalyzeAsync(
 				document,

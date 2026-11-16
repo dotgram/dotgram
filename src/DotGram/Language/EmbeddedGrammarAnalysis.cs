@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 using DotGram.Grammar;
 
@@ -120,14 +121,16 @@ static class EmbeddedGrammarService
 	}
 
 	/// <param name="includes">What the host's project answers about the grammars it includes.</param>
-	public static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
+	public static async Task<IReadOnlyList<EmbeddedGrammarAnalysis>> AnalyzeAsync(
 		SemanticModel model,
 		SyntaxNode root,
-		CancellationToken cancellationToken,
-		IncludedGrammarSources includes)
+		IncludedGrammarSources includes,
+		CancellationToken cancellationToken)
 	{
 		return Analyze(
-			EmbeddedGrammarFinder.Find(model, root, cancellationToken, includes), model.Compilation.Options, cancellationToken);
+			await EmbeddedGrammarFinder.FindAsync(model, root, includes, cancellationToken).ConfigureAwait(false),
+			model.Compilation.Options,
+			cancellationToken);
 	}
 
 	/// <param name="options">

@@ -54,7 +54,9 @@ public sealed class IncludeSelectionTests
 	/// <summary>
 	/// One case: the library's class and files, the consumer's files, the rule under B the consumer
 	/// reaches (null for none), and the generator's diagnostics on the consumer, by id, when it reaches
-	/// for that rule — or for B.Word where it reaches none.
+	/// for that rule — or for B.Word where it reaches none. A case may put the included grammar's own
+	/// include in a third project the library references and the consumer does not, may name the
+	/// library's class otherwise in the consumer, and may name the grammar attribute by an alias there.
 	/// </summary>
 	sealed record Case(
 		string Attribute,
@@ -62,7 +64,13 @@ public sealed class IncludeSelectionTests
 		(string Path, string Text)[] ConsumerFiles,
 		string? Reached,
 		string[] Diagnostics,
-		string LibraryMore = "");
+		string LibraryMore = "",
+		string Class = "Base",
+		string Included = "Library.Base",
+		string? Common = null,
+		(string Path, string Text)[]? CommonFiles = null);
+
+	const string CommonProject = "namespace Shared { [DotGram.Gram(\"Common.gram\", DefaultAlias = \"C\")] public partial class Common { } }";
 
 	static readonly Dictionary<string, Case> All = new()
 	{
@@ -93,6 +101,20 @@ public sealed class IncludeSelectionTests
 			"C.FromCommon",
 			["GRAM0017"],
 			"[DotGram.Gram(\"Common.gram\", DefaultAlias = \"C\")] public partial class Common { }"),
+
+		// The same, the grammar it includes in a third project the consumer does not reference.
+		["exported empty, including another project's"] = new(
+			Exported + " [DotGram.GramInclude(typeof(Shared.Common))]",
+			[("/Library/Base.gram", "")],
+			OneConsumerFile,
+			"C.FromCommon",
+			["GRAM0017"],
+			Common: CommonProject,
+			CommonFiles: [("/Shared/Common.gram", CommonFile)]),
+
+		// A generic class: its grammar is its name's without the type parameters, Base.gram, and the
+		// consumer includes it constructed.
+		["exported, generic"] = new("[DotGram.Gram(DefaultAlias = \"B\")]", [("/Library/Base.gram", LibraryFile)], [], "FromLibrary", [], Class: "Base<T>", Included: "Library.Base<int>"),
 	};
 
 	public static TheoryData<string> Cases()
@@ -105,12 +127,18 @@ public sealed class IncludeSelectionTests
 	public async Task The_editor_includes_what_the_generator_includes(string name)
 	{
 		var test     = All[name];
-		var library  = $"namespace Library {{ {test.Attribute} public partial class Base {{ }} {test.LibraryMore} }}";
-		var consumer = "[DotGram.Gram(\"Dialect.gram\")] [DotGram.GramInclude(typeof(Library.Base))] public partial class Dialect { }";
-		var embedded = "[DotGram.Gram(\"Start = B.Word\\nparse Start\")] [DotGram.GramInclude(typeof(Library.Base))] public partial class Embedded { }";
+		var library  = $"namespace Library {{ {test.Attribute} public partial class {test.Class} {{ }} {test.LibraryMore} }}";
+		var consumer = $"[DotGram.Gram(\"Dialect.gram\")] [DotGram.GramInclude(typeof({test.Included}))] public partial class Dialect {{ }}";
+		var embedded = $"[DotGram.Gram(\"Start = B.Word\\nparse Start\")] [DotGram.GramInclude(typeof({test.Included}))] public partial class Embedded {{ }}";
 
-		// The generator: the library compiled with it, and the consumer against the library's assembly.
-		var image = Generate("Library", library, test.LibraryFiles, [], out _);
+		// The generator: the library compiled with it, and the consumer against the library's assembly
+		// (and the third project's, which a build hands it with the library's).
+		var commonImage = test.Common is null ? null : Generate("Shared", test.Common, test.CommonFiles ?? [], [], out _, out _);
+		MetadataReference[] below = commonImage is null ? [] : [MetadataReference.CreateFromImage(commonImage)];
+		var image   = Generate("Library", library, test.LibraryFiles, below, out _, out var built);
+		var carried = built.GetTypeByMetadataName(test.Class == "Base" ? "Library.Base" : "Library.Base`1")!.GetAttributes()
+			.FirstOrDefault(static attribute => attribute.AttributeClass?.Name == "GramSourceAttribute")?.ConstructorArguments[0].Value as string;
+		var told    = new Dictionary<string, string[]>();
 
 		foreach (var rule in Rules)
 		{
@@ -118,27 +146,22 @@ public sealed class IncludeSelectionTests
 				"Consumer",
 				consumer,
 				[("/Consumer/Dialect.gram", $"Start = B.{rule}\nparse Start\n"), .. test.ConsumerFiles],
-				[MetadataReference.CreateFromImage(image)],
-				out var diagnostics);
+				[MetadataReference.CreateFromImage(image), .. below],
+				out var diagnostics,
+				out _);
 
 			var reached = !diagnostics.Any(static diagnostic => diagnostic.Id == "GRAM3002");
 
 			Assert.True(reached == (rule == test.Reached), $"The generator {(reached ? "reaches" : "does not reach")} B.{rule}.");
 
-			if (rule == (test.Reached ?? Rules[0]))
-			{
-				// Less the warning every case has: the included grammar's rules the consumer does not reach.
-				var told = diagnostics
-					.Select(static diagnostic => diagnostic.Id)
-					.Where(static id => id.StartsWith("GRAM", StringComparison.Ordinal) && id != "GRAM4018")
-					.Distinct()
-					.Order(StringComparer.Ordinal);
+			told[rule] = [.. diagnostics.Select(static diagnostic => diagnostic.Id).Where(static id => id.StartsWith("GRAM", StringComparison.Ordinal)).Distinct().Order(StringComparer.Ordinal)];
 
-				Assert.Equal(test.Diagnostics, told);
-			}
+			// Less the warning every case has: the included grammar's rules the consumer does not reach.
+			if (rule == (test.Reached ?? Rules[0]))
+				Assert.Equal(test.Diagnostics, told[rule].Where(static id => id != "GRAM4018"));
 		}
 
-		// The editors: the two as projects of one solution, the consumer's grammar a file and one in C#.
+		// The editors: the projects of one solution, the consumer's grammar a file and one in C#.
 		using var workspace = new AdhocWorkspace();
 
 		var markers  = GramCompiler.EmitMarkerAttributes();
@@ -160,6 +183,16 @@ public sealed class IncludeSelectionTests
 		var consumerId = Add("Consumer", consumer);
 		var embeddedId = DocumentId.CreateNewId(consumerId);
 
+		if (test.Common is not null)
+		{
+			var commonId = Add("Shared", test.Common);
+
+			solution = solution.AddProjectReference(libraryId, new ProjectReference(commonId));
+
+			foreach (var (path, text) in test.CommonFiles ?? [])
+				solution = solution.AddAdditionalDocument(DocumentId.CreateNewId(commonId), Path.GetFileName(path), SourceText.From(text), filePath: path);
+		}
+
 		solution = solution
 			.AddProjectReference(consumerId, new ProjectReference(libraryId))
 			.AddDocument(embeddedId, "Embedded.cs", SourceText.From(embedded))
@@ -171,34 +204,49 @@ public sealed class IncludeSelectionTests
 		foreach (var (path, text) in test.ConsumerFiles)
 			solution = solution.AddAdditionalDocument(DocumentId.CreateNewId(consumerId), Path.GetFileName(path), SourceText.From(text), filePath: path);
 
-		var expected = test.Reached?.Split('.')[^1];
-
-		void Holds(string? text, string editor)
+		// The text the generator compiles B with: what the library carries, the consumer's file, or none.
+		var expected = test.Reached switch
 		{
-			foreach (var rule in Rules.Select(static rule => rule.Split('.')[^1]))
-				Assert.True(
-					(text?.Contains(rule + " = ", StringComparison.Ordinal) ?? false) == (rule == expected),
-					$"The {editor} {(rule == expected ? "does not include" : "includes")} {rule}: {text}");
-		}
+			null           => null,
+			"FromConsumer" => ConsumerFile,
+			_              => carried,
+		};
 
-		// A grammar file's host, as both editors read it.
+		// A grammar file's host, as both editors read it: B is the text the generator compiles it with,
+		// and every grammar diagnostic the generator reports of the consumer's grammar the editor shows.
 		var resolution = await StandaloneGrammarInheritance.ResolveAsync(solution, "/Consumer/Dialect.gram", TestContext.Current.CancellationToken);
+		var context    = Assert.NotNull(resolution.Context);
 
-		Holds(Assert.NotNull(resolution.Context).Included.SingleOrDefault(static item => item.Name == "B").Text, "standalone analysis");
+		Assert.Equal(expected, context.Included.SingleOrDefault(static item => item.Name == "B").Text);
+
+		foreach (var rule in Rules)
+		{
+			var shown = GramAnalysisSession.Analyze($"Start = B.{rule}\nparse Start\n", context, suppressContextDiagnostics: false).Document.Diagnostics
+				.Select(static diagnostic => diagnostic.Id)
+				.Distinct()
+				.Order(StringComparer.Ordinal);
+
+			// What only the build says: the host's file not found (GRAM0003), found twice (GRAM0004), or
+			// a local file that is not the grammar a referenced assembly carries (GRAM0017); and the
+			// carried rules the consumer leaves unreached (GRAM4018), told of the build's whole grammar.
+			Assert.Equal(told[rule].Where(static id => id is not ("GRAM0003" or "GRAM0004" or "GRAM0017" or "GRAM4018")), shown);
+		}
 
 		// A grammar in C#, as Visual Studio reads it.
 		var document = solution.GetDocument(embeddedId)!;
-		var model    = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
-		var root     = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
-		var found    = Assert.Single(EmbeddedGrammarFinder.Find(model!, root!, TestContext.Current.CancellationToken, await EmbeddedIncludesAsync(document)));
+		var found    = Assert.Single(await EmbeddedAsync(document));
+		var joined   = expected is null ? "Start = B.Word\nparse Start" : GrammarSplice.Join(new("Start = B.Word\nparse Start", null, null), [new(expected, "B", null)]).Text;
 
-		Holds(found.AnalysisText.Contains("namespace B", StringComparison.Ordinal) ? found.AnalysisText : null, "embedded analysis");
+		Assert.StartsWith(joined, found.AnalysisText, StringComparison.Ordinal);
 	}
 
-	/// <summary>What the embedded analysis is given of the project, as the session gives it.</summary>
-	static async Task<IncludedGrammarSources> EmbeddedIncludesAsync(Document document)
+	/// <summary>The grammars of a C# document as the embedded session finds them.</summary>
+	static async Task<IReadOnlyList<EmbeddedGrammar>> EmbeddedAsync(Document document)
 	{
-		return await SolutionIncludedGrammars.ReadAsync(document.Project, TestContext.Current.CancellationToken);
+		var model = await document.GetSemanticModelAsync(TestContext.Current.CancellationToken);
+		var root  = await document.GetSyntaxRootAsync(TestContext.Current.CancellationToken);
+
+		return await EmbeddedGrammarFinder.FindAsync(model!, root!, SolutionIncludedGrammars.For(document.Project), TestContext.Current.CancellationToken);
 	}
 
 	/// <summary>Runs the generator on one compilation; its image, which must build.</summary>
@@ -207,7 +255,8 @@ public sealed class IncludeSelectionTests
 		string source,
 		(string Path, string Text)[] files,
 		MetadataReference[] references,
-		out ImmutableArray<Diagnostic> diagnostics)
+		out ImmutableArray<Diagnostic> diagnostics,
+		out Compilation built)
 	{
 		var compilation = CSharpCompilation.Create(
 			name,
@@ -218,6 +267,8 @@ public sealed class IncludeSelectionTests
 		CSharpGeneratorDriver
 			.Create([Generator.Value.AsSourceGenerator()], [.. files.Select(static file => (AdditionalText)new File(file.Path, file.Text))], ParseOptions)
 			.RunGeneratorsAndUpdateCompilation(compilation, out var generated, out diagnostics, TestContext.Current.CancellationToken);
+
+		built = generated;
 
 		using var image = new MemoryStream();
 
