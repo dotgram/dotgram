@@ -353,8 +353,8 @@ public sealed class TokenReadingFindingsTests
 	/// turn at 0 would go untried.
 	/// (2) A look before an optional turn's first item reads to the last character of the text,
 	/// which does not fit; the turn stands below where the quiet reading got, and is tried all the
-	/// same. (3) The same, where nothing names what was wanted: the fallback says only that the
-	/// input did not match. (4) A fold whose
+	/// same. (3) The same, where nothing but the guard at the end names what was wanted: the
+	/// refusal is the guard's. (4) A fold whose
 	/// loop has ways, ending at a shut door: the quiet reading notes the ladder's tails there and
 	/// the reading that records tries the turn instead, which a look turns away silently — the
 	/// note is the quiet reading's path alone and must not write the furthest either.
@@ -368,7 +368,7 @@ public sealed class TokenReadingFindingsTests
 		"ax", "NoMatch at 1: Expected \"aq\".", null)]
 	[InlineData(
 		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & when @(Reject())\npositional parse Start\n",
-		"ax", "NoMatch at 1: Input does not match 'Start'.", null)]
+		"ax", "NoMatch at 1: when @(Reject()) said no.", null)]
 	[InlineData(
 		"Start = (\"mn\")? & Expr & ?!'x' & when @(Keep())\nExpr : @int = l: Expr & ?!'x' & '+' & 'a' => @(l + 1) | 'a' => @(1)\npositional parse Start\n",
 		"ax", "NoMatch at 1: Input does not match 'Start'.", "NoMatch at 1: Expected ?!'x'.")]

@@ -383,7 +383,9 @@ public sealed class TraceTests(ITestOutputHelper output)
 		Assert.Contains("recording reading of Sum at 1:1", log, StringComparison.Ordinal);
 		Assert.Contains("  Term 1:1 \"1^2\"", log, StringComparison.Ordinal);
 		Assert.Contains("when @(high >= low) at 1:4: no", log, StringComparison.Ordinal);
-		Assert.Contains("refused at 3: Expected more input.", log, StringComparison.Ordinal);
+		// The guard refused at the end of the input, which was all there: what the call answers
+		// names it, and not "Expected more input.", which it said when a guard named nothing.
+		Assert.Contains("refused at 3: when @(high >= low) said no.", log, StringComparison.Ordinal);
 	}
 
 	/// <summary>The profile counts quiet readings apart from recording ones.</summary>

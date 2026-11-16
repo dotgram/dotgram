@@ -146,7 +146,7 @@
 "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TeBook/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TeBook/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
 "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBoo/chapter4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBoo/chapter4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
 "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chater4>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chater4>; rel="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
-"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | Starved at 143: Expected more input. | same
+"</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | Starved at 143: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
 "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; re=\"next\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; re="next"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
 "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"net\"; title*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="net"; title*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
 "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, </TheBook/chapter4>; rel=\"next\"; itle*=UTF-8'de'n%c3%a4chstes%20Kapitel" | accepted </TheBook/chapter2>; rel="previous"; title*="UTF-8'de'letztes%20Kapitel" {UTF-8'de'"letztes Kapitel"}, </TheBook/chapter4>; rel="next"; itle*="UTF-8'de'n%c3%a4chstes%20Kapitel" {UTF-8'de'"n\u00E4chstes Kapitel"} | same
@@ -179,7 +179,7 @@
 "<http//example.org/>; rel=\"start http://example.net/relation/other\"" | accepted <http//example.org/>; rel="start http://example.net/relation/other" | same
 "<http://exmple.org/>; rel=\"start http://example.net/relation/other\"" | accepted <http://exmple.org/>; rel="start http://example.net/relation/other" | same
 "<http://exampleorg/>; rel=\"start http://example.net/relation/other\"" | accepted <http://exampleorg/>; rel="start http://example.net/relation/other" | same
-"<http://example.org/; rel=\"start http://example.net/relation/other\"" | Starved at 67: Expected more input. | same
+"<http://example.org/; rel=\"start http://example.net/relation/other\"" | Starved at 67: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
 "<http://example.org/>; re=\"start http://example.net/relation/other\"" | accepted <http://example.org/>; re="start http://example.net/relation/other" | same
 "<http://example.org/>; rel=\"strt http://example.net/relation/other\"" | accepted <http://example.org/>; rel="strt http://example.net/relation/other" | same
 "<http://example.org/>; rel=\"start htp://example.net/relation/other\"" | accepted <http://example.org/>; rel="start htp://example.net/relation/other" | same
@@ -276,7 +276,7 @@
 ", ,<a>;rel=next ,  , <b> ; rel = prev" | accepted <a>; rel="next", <b>; rel="prev" | same
 ", ,<a>;rel=next ,  , <b> ; rel = prev ;x" | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
 " ,<a>;rel=next ,  , <b> ; rel = prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
-", ,<a;rel=next ,  , <b> ; rel = prev ;x, " | NoMatch at 22: Input does not match 'Field'. | same
+", ,<a;rel=next ,  , <b> ; rel = prev ;x, " | NoMatch at 22: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
 ", ,<a>;relnext ,  , <b> ; rel = prev ;x, " | accepted <a>; relnext="", <b>; rel="prev"; x="" | same
 ", ,<a>;rel=next,  , <b> ; rel = prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
 ", ,<a>;rel=next ,  ,<b> ; rel = prev ;x, " | accepted <a>; rel="next", <b>; rel="prev"; x="" | same
@@ -438,22 +438,22 @@
 "<a>; media=\"(mi-width: 10px)\"" | accepted <a>; media="(mi-width: 10px)" | same
 "<a>; media=\"(min-widh: 10px)\"" | accepted <a>; media="(min-widh: 10px)" | same
 "<a>; media=\"(min-width: 1px)\"" | accepted <a>; media="(min-width: 1px)" | same
-"<a b>; rel=next" | NoMatch at 4: Input does not match 'Field'. | same
-"<a b" | Starved at 4: Expected more input. | same
-"<a b>; " | NoMatch at 4: Input does not match 'Field'. | same
-"<a b>; rel" | NoMatch at 4: Input does not match 'Field'. | same
-"<a b>; rel=ne" | NoMatch at 4: Input does not match 'Field'. | same
+"<a b>; rel=next" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<a b" | Starved at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<a b>; " | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<a b>; rel" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<a b>; rel=ne" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
 "a b>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
-"<a b> rel=next" | NoMatch at 4: Input does not match 'Field'. | same
-"<a b>; relnext" | NoMatch at 4: Input does not match 'Field'. | same
-"<%zz>; rel=next" | NoMatch at 4: Input does not match 'Field'. | same
-"<%zz" | Starved at 4: Expected more input. | same
-"<%zz>; " | NoMatch at 4: Input does not match 'Field'. | same
-"<%zz>; rel" | NoMatch at 4: Input does not match 'Field'. | same
-"<%zz>; rel=ne" | NoMatch at 4: Input does not match 'Field'. | same
+"<a b> rel=next" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<a b>; relnext" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<%zz>; rel=next" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<%zz" | Starved at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<%zz>; " | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<%zz>; rel" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<%zz>; rel=ne" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
 "%zz>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
-"<%zz> rel=next" | NoMatch at 4: Input does not match 'Field'. | same
-"<%zz>; relnext" | NoMatch at 4: Input does not match 'Field'. | same
+"<%zz> rel=next" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
+"<%zz>; relnext" | NoMatch at 4: when @(Rfc3986.TryParseReference(text!, out _)) said no. | same
 "https://example.com/>; rel=next" | NoMatch at 0: Expected ',', '<' or end of input. | same
 "h" | NoMatch at 0: Expected ',', '<' or end of input. | same
 "http" | NoMatch at 0: Expected ',', '<' or end of input. | same

@@ -4133,6 +4133,8 @@ namespace DotGram.Snapshots
 							expected = merged;
 						}
 
+						expected = Unguarded_DotGram(expected);
+
 						if (expected == null || expected.Length == 0)
 							return _otherwise;
 
@@ -4247,6 +4249,50 @@ namespace DotGram.Snapshots
 				}
 			}
 
+			static string[]? Unguarded_DotGram(string[]? expected)
+			{
+				if (expected == null)
+					return null;
+
+				var guards = 0;
+				var others = 0;
+
+				for (var i = 0; i < expected.Length; i++)
+					if (expected[i].Length > 0 && expected[i][0] == '\u0002')
+						guards++;
+					else if (expected[i] != "\u0001")
+						others++;
+
+				if (guards == 0)
+					return expected;
+
+				if (others > 0)
+				{
+					var kept = new string[expected.Length - guards];
+					var at   = 0;
+
+					for (var i = 0; i < expected.Length; i++)
+						if (expected[i].Length == 0 || expected[i][0] != '\u0002')
+							kept[at++] = expected[i];
+
+					return kept;
+				}
+
+				var said = new global::System.Text.StringBuilder("\u0000");
+				var seen = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+
+				for (var i = 0; i < expected.Length; i++)
+					if (expected[i].Length > 0 && expected[i][0] == '\u0002' && seen.Add(expected[i]))
+					{
+						if (said.Length > 1)
+							said.Append(" or ");
+
+						said.Append(expected[i], 1, expected[i].Length - 1);
+					}
+
+				return new[] { said.Append(" said no.").ToString() };
+			}
+
 			struct Failure
 			{
 				public int Position;
@@ -4302,6 +4348,7 @@ namespace DotGram.Snapshots
 			{
 				return ties == null || ties.Count == 0 ? null : ties.ToArray();
 			}
+
 
 			/// <summary>
 			/// What a traced reading of this grammar does, told one call a thing it does (docs/syntax.md, §6.9).
@@ -4835,8 +4882,12 @@ namespace DotGram.Snapshots
 
 				internal void Refused(int position, string[]? expected)
 				{
+					// A guard that said no is named in what a refusal records, for the message; the sink
+					// is told it by Guard, and its refusal names nothing, as it always has.
 					if (!Quiet)
-						Sink.Refused(position + _offset, expected);
+						Sink.Refused(
+							position + _offset,
+							expected != null && expected.Length == 1 && expected[0].Length > 0 && expected[0][0] == '\u0002' ? null : expected);
 				}
 
 				internal void Recovered(int rule, int from, int to, int reach)
@@ -5359,7 +5410,12 @@ namespace DotGram.Snapshots
 					}
 
 					var paths = new global::System.Collections.Generic.List<Path>();
-					var sets  = expected != null || expectedMore != null && expectedMore.Count > 0;
+					var sets  = Named(expected);
+
+					if (expectedMore != null)
+						foreach (var one in expectedMore)
+							sets |= Named(one);
+
 					var cause = "";
 
 					if (_furthest == position)
@@ -5558,6 +5614,11 @@ namespace DotGram.Snapshots
 							kept.Add(path);
 
 					return kept.ToArray();
+				}
+
+				static bool Named(string[]? set)
+				{
+					return set != null && !(set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002');
 				}
 
 				static string Wanted_DotGram(global::System.Collections.Generic.IReadOnlyList<string> expected)

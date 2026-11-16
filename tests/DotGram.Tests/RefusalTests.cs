@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -50,6 +51,58 @@ public sealed class RefusalTests
 			Assert.False(match.IsSuccess);
 			Assert.Equal(at, match.Position);
 			Assert.Equal("Expected 'b' or end of input.", match.Error);
+		}
+	}
+
+	/// <summary>
+	/// A guard that says no at the furthest place, where nothing else is named, is what the
+	/// refusal says — in every rendering, over a string and over a reader — and where something
+	/// else is named there, that is what would have fit and the guard is not mentioned.
+	/// </summary>
+	/// <remarks>
+	/// The guard used to be recorded naming nothing. At the end of a line that was all there, its
+	/// last field refused by a <c>when</c>, the message was the one for nothing named at the end:
+	/// "Expected more input.", as though the line had been cut short; anywhere else it was
+	/// "Input does not match", which says nothing either.
+	/// </remarks>
+	[Theory]
+	[InlineData("",                                                                       "when @(Long(value)) said no.")]
+	[InlineData("| key: ['a'..'z']+ & '=' & '\"' & [^ '\"']* & '\"' & ['0'..'9'] => @(key)", "Expected ['0'..'9'].")]
+	public void A_guard_that_said_no_is_what_the_refusal_says_where_nothing_else_is_named(string sibling, string error)
+	{
+		var grammar = $$"""
+			Line : @string = key: ['a'..'z']+ & '=' & '"' & value: [^ '"']* & '"' & when @(Long(value)) => @(key)
+			                 {{sibling}}
+			parse Line
+			parse Line as Buffered stream
+			""";
+
+		foreach (var (carrier, direct) in new[] { (CarrierKind.Deferred, false), (CarrierKind.Deferred, true), (CarrierKind.Immediate, true) })
+		{
+			var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions
+			{
+				ClassName = "Grammar", Carrier = carrier, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+			EmittedCode.Quiet(compilation.Diagnostics);
+
+			// The whole line is there; the guard refuses its value at the end of it.
+			const string Input = "k=\"ab\"";
+
+			var assembly = EmittedCode.Compile(
+				Assert.Single(compilation.Sources).Text,
+				declarationMembers: "static bool Long(string value) { return value.Length > 2; }");
+			var match    = EmittedCode.Match(assembly, "Grammar", "TryParseLine", Input);
+
+			Assert.False(match.IsSuccess);
+			Assert.Equal(Input.Length, match.Position);
+			Assert.Equal(error, match.Error);
+
+			var buffered = assembly.GetType("Grammar")!
+				.GetMethod("TryBuffered", [typeof(TextReader), typeof(int?), typeof(int?)])!
+				.Invoke(null, [new StringReader(Input), null, null])!;
+
+			Assert.Equal(error, (string?)buffered.GetType().GetProperty("Error")!.GetValue(buffered));
 		}
 	}
 

@@ -6616,7 +6616,9 @@ sealed partial class Machine
 				if (expected is not null)
 					machine._expectedUsed.Add(expected);
 
-				code.Line(Refusal(expected ?? "null"));
+				// Named, so that where nothing else is named here the refusal says this guard said
+				// no (Machine.Guarded); a dispatched group's names what the other groups begin with.
+				code.Line(Refusal(expected ?? machine.GuardRefusal(guard)));
 				code.Line(Fails());
 			}
 		}

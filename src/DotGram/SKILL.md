@@ -300,10 +300,12 @@ if (!match.IsSuccess)
 }
 ```
 
-**A `when` that says no names nothing.** With the date wrong, the guard at the end of the line
-refuses, and the answer is `Starved`, `Expected more input.`, at the end: read it as "refused
-here", not as a cut line. Where a user needs the reason, keep the text a `string` capture and
-convert it in the host after the parse, where the message is yours.
+**A `when` that says no is named by its C#.** With the date wrong, the guard at the end of the
+line refuses, and where nothing else would have fit there `Error` says so:
+`when @(DateTimeOffset.TryParseExact(…)) said no.`, the guard written out whole. The answer is
+`Starved`, as any refusal at the end of the input is. Where a user needs the reason in other
+words, keep the text a `string` capture and convert it in the host after the parse, where the
+message is yours.
 
 ## Rules that take arguments
 

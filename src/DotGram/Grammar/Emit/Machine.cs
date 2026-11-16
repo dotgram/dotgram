@@ -4477,7 +4477,7 @@ sealed partial class Machine
 					guardCall = $"GuardAsked_DotGram(ref failure, {Tracing.GuardOf((Node.Guard)node)}, p, {guardCall})";
 				}
 
-				writer.Line($"if (!{guardCall}) {{ {Cleared()} goto {Label(writer, _fail)}; }}");
+				writer.Line($"if (!{guardCall}) {{ {GuardCleared((Node.Guard)node)} goto {Label(writer, _fail)}; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
@@ -9289,6 +9289,28 @@ sealed partial class Machine
 		return "\u0000" + message;
 	}
 
+	/// <summary>A guard that said no, as a refusal names it: the guard as the grammar writes it, marked.</summary>
+	/// <remarks>
+	/// <para>
+	/// A guard that refused at the furthest place was recorded there naming nothing, and where
+	/// nothing else was named there the message was the one for nothing at all — "Expected more
+	/// input." at the end of a line that was all there, its last field refused by a <c>when</c>.
+	/// So the guard is one item like any other, and the furthest position, the ties and the sets a
+	/// later failure drops go on working as they do.
+	/// </para>
+	/// <para>
+	/// It is marked with a character a grammar cannot write, because it is the weakest thing that
+	/// can be said at a place: where anything else is named there, that is what would have fit,
+	/// and <c>Match&lt;T&gt;.Error</c> leaves the guard out (<c>Unguarded_DotGram</c>); only where
+	/// nothing else is does it say that the guard said no. Its C# is written on one line, for a
+	/// message that is one.
+	/// </para>
+	/// </remarks>
+	internal static string Guarded(string text)
+	{
+		return "\u0002when @" + string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+	}
+
 	string DeclareExpected(IReadOnlyList<string> display)
 	{
 		// Written out once per list: an answer kept by `Covered` is the same list every time it
@@ -9451,7 +9473,8 @@ sealed partial class Machine
 		if (display == "eof")
 			return EndOfInputSaid;
 
-		if (display.StartsWith("\u0000", StringComparison.Ordinal) || !display.Any(static character => character < ' '))
+		if (display.StartsWith("\u0000", StringComparison.Ordinal) || display.StartsWith("\u0002", StringComparison.Ordinal) ||
+			!display.Any(static character => character < ' '))
 			return display;
 
 		var said = new StringBuilder(display.Length + 4);
@@ -9621,6 +9644,26 @@ sealed partial class Machine
 	{
 		writer.Line(Cleared());
 		writer.Line($"goto {Label(writer, fail)};");
+	}
+
+	/// <summary>
+	/// What a guard that said no leaves for <c>Fail:</c> to record: the guard itself, named as
+	/// <see cref="Guarded"/> names it — but inside the trivia what any refusal there leaves, as the
+	/// trivia records only where the input ran out (§7.5).
+	/// </summary>
+	string GuardCleared(Node.Guard guard)
+	{
+		return _seamRule ? Cleared() : $"expected = {GuardRefusal(guard)};";
+	}
+
+	/// <summary>The set a guard that said no is recorded with, declared once per guard text.</summary>
+	internal string GuardRefusal(Node.Guard guard)
+	{
+		var name = DeclareExpected([Guarded(guard.Text)]);
+
+		_expectedUsed.Add(name);
+
+		return name;
 	}
 
 	/// <summary>

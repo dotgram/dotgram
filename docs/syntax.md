@@ -3975,6 +3975,14 @@ author took the wording, and nothing is appended to it. Being part of `Error`, t
 is held to what `Error` is held to above, not to the outcome's standard: a form may name what
 it expected where another says the sentence ([`status.md`](status.md) lists where this version does).
 
+**A guard that said no is named where nothing else is.** A `when` refused at the furthest place is
+recorded there like a terminal, as the guard the grammar wrote, and it is the weakest thing that
+can be said: where anything else is named at that place, that is what would have fit, and the
+guard is left out; where nothing else is, `Error` is that it said no, `when @(IsTime(at)) said no.`
+— several such guards joined by "or" — and a recovery's `parserMessage` and `parserExpected` say
+the same. The outcome is what it was: a guard refused at the end of the input is `Starved`, as
+any refusal there is.
+
 Exceptions appear only at the publication boundary, and only in the methods without a
 `Try` prefix — where a .NET developer expects them. What is thrown is
 `FormatException`: the same type as `int.Parse` throws, and one that requires nothing
