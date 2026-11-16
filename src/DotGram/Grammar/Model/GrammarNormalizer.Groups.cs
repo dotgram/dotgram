@@ -28,9 +28,7 @@ sealed partial class GrammarNormalizer
 			if (!Constructs(_bodies[owner]).Any(node => !offered.Contains(node)))
 				continue;
 
-			var expected = type.EndsWith("[]", StringComparison.Ordinal)
-				? type.Substring(0, type.Length - 2)
-				: type;
+			var expected = _language.ElementOf(type) ?? type;
 
 			_bodies[owner] = Visit(_bodies[owner], true);
 

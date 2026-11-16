@@ -176,6 +176,9 @@ sealed partial class GrammarNormalizer
 
 	readonly ISymbolResolver _resolver;
 
+	/// <summary>How the types a grammar names are spelled, asked instead of comparing spellings here.</summary>
+	readonly ITargetLanguage _language;
+
 	/// <summary>
 	/// Asked which names a guard uses, where the fold weighs whether a committed residue
 	/// could be seen through a value a guard reads. Null answers conservatively.
@@ -185,10 +188,11 @@ sealed partial class GrammarNormalizer
 	/// <summary>Whether the resolver cannot see the host's C#: see <see cref="UnseenHostSymbolResolver"/>.</summary>
 	bool _hostUnseen;
 
-	GrammarNormalizer(GrammarModel model, ISymbolResolver resolver)
+	GrammarNormalizer(GrammarModel model, ISymbolResolver resolver, ITargetLanguage language)
 	{
 		_model    = model;
 		_resolver = resolver;
+		_language = language;
 
 		_ruleIsNullable = rule => _nullable.TryGetValue(rule, out var nullable) && nullable;
 		_boundBodies    = BoundBodies;
@@ -215,15 +219,17 @@ sealed partial class GrammarNormalizer
 	/// (<see cref="CollapseTransparent"/>). Always, but for a test that holds a trace build's frames
 	/// of the forwarding rules to a parser that calls them as written.
 	/// </param>
+	/// <param name="language">How the types the grammar names are spelled; C# where it is null.</param>
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
 		string? locationType = null, bool positionalFollow = false, bool positionalSplit = false,
-		bool collapse = true)
+		bool collapse = true, ITargetLanguage? language = null)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
-		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance)
+		var normalizer = new GrammarNormalizer(
+			model, resolver ?? PermissiveSymbolResolver.Instance, language ?? CSharpLanguage.Instance)
 		{
 			_scanner    = scanner,
 			_segmented  = NamesEndOfSegment(model),
@@ -406,6 +412,7 @@ sealed partial class GrammarNormalizer
 			normalizer._publications,
 			normalizer._diagnostics)
 		{
+			Language   = normalizer._language,
 			Folds      = normalizer._folds,
 			NamedTypes = [.. normalizer._namedTypes.Values.Where(normalizer.HasGeneratedType).Distinct()],
 			Trivia     = normalizer._trivia,
@@ -580,7 +587,7 @@ sealed partial class GrammarNormalizer
 
 		foreach (var type in normalizer._types.Values)
 		{
-			if (type.EndsWith("[]", StringComparison.Ordinal) || !asked.Add(type))
+			if (normalizer._language.IsSequence(type) || !asked.Add(type))
 				continue;
 
 			if (IsReference(type))

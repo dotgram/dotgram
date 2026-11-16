@@ -557,6 +557,9 @@ sealed class RecognitionGraph(
 	/// </summary>
 	public IReadOnlyDictionary<RuleSymbol, string> Types { get; } = types;
 
+	/// <summary>How the spellings in <see cref="Types"/> are read: the language the grammar was normalized for.</summary>
+	public ITargetLanguage Language { get; init; } = CSharpLanguage.Instance;
+
 	/// <summary>
 	/// The spellings in <see cref="Types"/> the host knows to be classes rather than structs
 	/// (<see cref="ISymbolResolver.IsReferenceType"/>), arrays left out: a <c>T[]</c> is a

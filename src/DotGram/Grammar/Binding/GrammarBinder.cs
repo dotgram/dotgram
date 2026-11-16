@@ -140,6 +140,7 @@ sealed class GrammarBinder
 	const string TriviaRule = "trivia";
 
 	readonly ISymbolResolver                                               _symbols;
+	readonly ITargetLanguage                                               _language;
 	readonly Dictionary<Expr, Symbol>                                      _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<Expr, IReadOnlyList<ResolvedRebinding>>            _withOwnRebindings = new(NodeIdentityComparer.Instance);
@@ -177,18 +178,22 @@ sealed class GrammarBinder
 	/// </remarks>
 	readonly int _own;
 
-	GrammarBinder(ISymbolResolver symbols, int own)
+	GrammarBinder(ISymbolResolver symbols, ITargetLanguage language, int own)
 	{
-		_symbols = symbols;
-		_own     = own;
+		_symbols  = symbols;
+		_language = language;
+		_own      = own;
 	}
 
-	public static GrammarModel Bind(GrammarFile file, ISymbolResolver? symbols = null, int? own = null)
+	/// <param name="language">How the types the grammar names are spelled; C# where it is null.</param>
+	public static GrammarModel Bind(
+		GrammarFile file, ISymbolResolver? symbols = null, int? own = null, ITargetLanguage? language = null)
 	{
 		if (file is null)
 			throw new ArgumentNullException(nameof(file));
 
-		var binder   = new GrammarBinder(symbols ?? PermissiveSymbolResolver.Instance, own ?? int.MaxValue);
+		var binder   = new GrammarBinder(
+			symbols ?? PermissiveSymbolResolver.Instance, language ?? CSharpLanguage.Instance, own ?? int.MaxValue);
 		var standard = binder.CreateBuiltIn();
 		var global   = new GrammarNamespace("", standard);
 
@@ -727,16 +732,9 @@ sealed class GrammarBinder
 	/// §4.2's kind line: a parameter declared with a C# type is a value, anything else a
 	/// recognizer. The same reading <c>GrammarNormalizer</c> makes when a call passes one.
 	/// </summary>
-	static bool IsValueParam(Param parameter)
+	bool IsValueParam(Param parameter)
 	{
-		return parameter.Type is { } kind && (kind.IsCSharp || IsCSharpKeyword(kind.Name));
-	}
-
-	static bool IsCSharpKeyword(string name)
-	{
-		return name is
-			"bool" or "byte" or "sbyte" or "char"  or "decimal" or "double" or "float"  or
-			"int"  or "uint" or "long"  or "ulong" or "short"   or "ushort" or "string" or "object";
+		return parameter.Type is { } kind && (kind.IsCSharp || _language.IsGrammarKeyword(kind.Name));
 	}
 
 	/// <summary>
@@ -881,12 +879,6 @@ sealed class GrammarBinder
 			Captures(child);
 	}
 
-	/// <summary>However §4.1 case 4's own type is written.</summary>
-	static bool IsSourceSpan(string name)
-	{
-		return name is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
-	}
-
 	/// <summary>
 	/// A type names a C# type, a rule, or a parameter — the last being how `: item[]`
 	/// works in place of type parameters (§4.2).
@@ -899,7 +891,7 @@ sealed class GrammarBinder
 			// consumer's compilation to be found, because it is emitted into the host class
 			// this grammar is about to become — looking for it would be looking for the
 			// answer inside the question.
-			if (IsSourceSpan(type.Name))
+			if (_language.Classify(type.Name, out _) == KnownType.SourceSpan)
 				return;
 
 			// A generic type is its definition and its arguments, each of which has to exist:
@@ -943,12 +935,11 @@ sealed class GrammarBinder
 		return false;
 	}
 
-	static bool IsBuiltInCSharpType(string name)
+	/// <summary>A keyword of the language's that names a type, <c>void</c> among them.</summary>
+	bool IsBuiltInCSharpType(string name)
 	{
-		return name is
-			"bool"   or "byte" or "sbyte" or "char"  or "decimal" or "double" or "float"  or
-			"int"    or "uint" or "long"  or "ulong" or "short"   or "ushort" or "string" or
-			"object" or "void";
+		return _language.IsGrammarKeyword(name) ||
+			_language.Classify(name, out var form) == KnownType.Void && form == TypeSpellingForm.Syntax;
 	}
 
 	void ResolveExpression(

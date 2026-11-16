@@ -149,6 +149,12 @@ sealed class GramCompilerOptions
 	public ISymbolResolver SymbolResolver { get; set; } = PermissiveSymbolResolver.Instance;
 
 	/// <summary>
+	/// The language the parser is generated in, which says how the types a grammar names are
+	/// spelled. C#, the only one there is.
+	/// </summary>
+	public ITargetLanguage Language { get; set; } = CSharpLanguage.Instance;
+
+	/// <summary>
 	/// Finds where an inline <c>@(...)</c> expression ends. Null means the grammar may
 	/// not use one — a diagnostic, not a crash.
 	/// </summary>

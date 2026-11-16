@@ -473,7 +473,7 @@ static class Questions
 						// value-returning external recognizer rather than to another rule — known
 						// from syntax alone, both halves of it, unlike T itself.
 						if (type is not null && body is Expr.Reference(true, var method, _))
-							producers.Add((method, GrammarNormalizer.TypeName(type)));
+							producers.Add((method, GrammarNormalizer.TypeName(type, CSharpLanguage.Instance)));
 
 						break;
 
@@ -484,7 +484,7 @@ static class Questions
 					// pairing is asked for here — the same superset as §4.1's above.
 					case Decl.Publish { ResultType: { } resultType }:
 						Type(resultType);
-						contracts.Add(GrammarNormalizer.TypeName(resultType));
+						contracts.Add(GrammarNormalizer.TypeName(resultType, CSharpLanguage.Instance));
 						break;
 
 					case Decl.Context(var contract):
@@ -581,7 +581,7 @@ static class Questions
 					externals.Add(method);
 
 					if (typeArguments.Count > 0)
-						called.Add(GrammarNormalizer.ExternalName(expression));
+						called.Add(GrammarNormalizer.ExternalName(expression, CSharpLanguage.Instance));
 
 					break;
 

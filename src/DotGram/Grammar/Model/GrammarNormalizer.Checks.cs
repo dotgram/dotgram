@@ -366,7 +366,7 @@ sealed partial class GrammarNormalizer
 		// matched, and `string` is what an extent is. Declaring that type says out loud
 		// what a rule with no type says by default, and used to be refused for saying it.
 		else if (declared && building == 0 && !HasCapture(body) &&
-			string.Equals(_types[rule], "string", StringComparison.Ordinal))
+			IsKeyword(_types[rule], KnownType.Text))
 		{
 		}
 

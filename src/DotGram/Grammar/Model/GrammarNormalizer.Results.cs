@@ -52,7 +52,7 @@ sealed partial class GrammarNormalizer
 				// nothing says out loud what such a rule says by default — the extent it
 				// matched. Recorded as no declared type at all, because a declared one is
 				// what tells the emitter to expect a value the machine never builds.
-				if (string.Equals(TypeName(type), "string", StringComparison.Ordinal) &&
+				if (IsKeyword(TypeName(type), KnownType.Text) &&
 					_bodies.TryGetValue(rule, out var said) &&
 					!HasCapture(said) &&
 					Constructs(said).FirstOrDefault() is null)
@@ -160,12 +160,12 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	string TypeOf(ResultMember member)
 	{
-		var type = member.Rule is not { } rule ? "string"
+		var type = member.Rule is not { } rule ? _language.Spelling(KnownType.Text)
 			: _types.TryGetValue(rule, out var declared) ? declared
 			: HasGeneratedType(rule) ? Emit.CSharpEmitter.IdentifierOf(rule)
-			: "string";
+			: _language.Spelling(KnownType.Text);
 
-		return member.IsSequence ? type + "[]" : type;
+		return member.IsSequence ? _language.SequenceOf(type) : type;
 	}
 
 	/// <summary>
@@ -191,24 +191,24 @@ sealed partial class GrammarNormalizer
 		to   = Plain(to);
 		from = Plain(from);
 
-		if (!Known(to) || !Known(from) || to == from || to == "object")
+		if (!Known(to) || !Known(from) || to == from || IsKeyword(to, KnownType.Object))
 			return false;
 
-		var toArray   = to.EndsWith("[]", StringComparison.Ordinal);
-		var fromArray = from.EndsWith("[]", StringComparison.Ordinal);
+		var toElement   = _language.ElementOf(to);
+		var fromElement = _language.ElementOf(from);
 
-		if (toArray && fromArray)
-			return CannotHold(to.Substring(0, to.Length - 2), from.Substring(0, from.Length - 2));
+		if (toElement is not null && fromElement is not null)
+			return CannotHold(toElement, fromElement);
 
-		if (toArray != fromArray)
+		if (toElement is null != fromElement is null)
 			return true;
 
-		return to == "string" || from == "string" || Generated(to) || Generated(from);
+		return IsKeyword(to, KnownType.Text) || IsKeyword(from, KnownType.Text) || Generated(to) || Generated(from);
 
 		bool Known(string type)
 		{
-			return type.EndsWith("[]", StringComparison.Ordinal)
-				? Known(type.Substring(0, type.Length - 2))
+			return _language.ElementOf(type) is { } element
+				? Known(element)
 				: IsCSharpKeyword(type) || Generated(type);
 		}
 
@@ -225,14 +225,11 @@ sealed partial class GrammarNormalizer
 
 		// `global::System.String` is `string` whatever the grammar imports; `String` or `System.String`
 		// alone may be a type of the host's, and is left alone.
-		static string Plain(string type)
+		string Plain(string type)
 		{
-			return type switch
-			{
-				"global::System.String" => "string",
-				"global::System.Object" => "object",
-				_                       => type,
-			};
+			var kind = _language.Classify(type, out var form);
+
+			return kind is KnownType.Text or KnownType.Object && form == TypeSpellingForm.Global ? _language.Spelling(kind) : type;
 		}
 	}
 
@@ -250,7 +247,7 @@ sealed partial class GrammarNormalizer
 		{
 			if (rule.Declaration?.Type is not { IsCSharp: false } written ||
 				!_types.TryGetValue(rule, out var type) ||
-				!_namedTypes.TryGetValue(type.EndsWith("[]", StringComparison.Ordinal) ? type.Substring(0, type.Length - 2) : type, out var named) ||
+				!_namedTypes.TryGetValue(_language.ElementOf(type) ?? type, out var named) ||
 				HasGeneratedType(named))
 				continue;
 
@@ -401,7 +398,7 @@ sealed partial class GrammarNormalizer
 				continue;
 
 			var recognizers = declaration.Params
-				.Where(static parameter => parameter.Type is not { } type || !type.IsCSharp && !IsCSharpKeyword(type.Name))
+				.Where(parameter => parameter.Type is not { } type || !type.IsCSharp && !IsCSharpKeyword(type.Name))
 				.ToList();
 
 			if (recognizers.Count == 0)
@@ -556,10 +553,10 @@ sealed partial class GrammarNormalizer
 					if (_produces.ContainsKey(pair.Value.Produces))
 						continue;
 
-					type = GeneratedTypeOf(pair.Value.Produces) ?? "string";
+					type = GeneratedTypeOf(pair.Value.Produces) ?? _language.Spelling(KnownType.Text);
 				}
 
-				_types[pair.Key] = pair.Value.IsSequence ? type + "[]" : type;
+				_types[pair.Key] = pair.Value.IsSequence ? _language.SequenceOf(type) : type;
 				settled          = true;
 			}
 		}
@@ -625,12 +622,12 @@ sealed partial class GrammarNormalizer
 	{
 		foreach (var rule in _rules)
 		{
-			if (!_types.TryGetValue(rule, out var type) || !IsSourceSpan(type))
+			if (!_types.TryGetValue(rule, out var type) || _language.Classify(type, out _) != KnownType.SourceSpan)
 				continue;
 
 			// However the grammar wrote it, the type the emitter names is the one nested in
 			// the host class — there is no `DotGram.SourceSpan` to refer to any more.
-			_types[rule] = "SourceSpan";
+			_types[rule] = _language.Spelling(KnownType.SourceSpan);
 
 			var body = _bodies[rule];
 
@@ -648,12 +645,6 @@ sealed partial class GrammarNormalizer
 				? selected.Rebuild(rewritten)
 				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
-	}
-
-	/// <summary>The one type §4.1 case 4 names besides <c>string</c>, however it is written.</summary>
-	static bool IsSourceSpan(string type)
-	{
-		return type is "SourceSpan" or "DotGram.SourceSpan" or "global::DotGram.SourceSpan";
 	}
 
 	void PassThrough()
@@ -785,22 +776,11 @@ sealed partial class GrammarNormalizer
 	/// Whether a declared type is one of C#'s keyword types, by its keyword or by its name in
 	/// <c>System</c>, nullable or not: what a resolver that cannot see the host still knows about.
 	/// </summary>
-	static bool BuiltIn(string type)
+	bool BuiltIn(string type)
 	{
 		var name = type.EndsWith("?", StringComparison.Ordinal) ? type.Substring(0, type.Length - 1) : type;
 
-		if (name.StartsWith("global::", StringComparison.Ordinal))
-			name = name.Substring("global::".Length);
-
-		if (name.StartsWith("System.", StringComparison.Ordinal))
-			name = name.Substring("System.".Length);
-
-		return name is
-			"string" or "object" or "bool" or "char" or "byte" or "sbyte" or "short" or "ushort" or
-			"int" or "uint" or "long" or "ulong" or "nint" or "nuint" or "float" or "double" or "decimal" or
-			"String" or "Object" or "Boolean" or "Char" or "Byte" or "SByte" or "Int16" or "UInt16" or
-			"Int32" or "UInt32" or "Int64" or "UInt64" or "IntPtr" or "UIntPtr" or "Single" or "Double" or
-			"Decimal";
+		return _language.Classify(name, out _) is >= KnownType.Text and <= KnownType.NUInt;
 	}
 
 	/// <summary>
@@ -912,10 +892,7 @@ sealed partial class GrammarNormalizer
 			// first is asking whether a type called `item` exists, which is a question with
 			// no true answer — and the permissive resolver says yes to it, so this held
 			// together in tests and fell apart against a compilation.
-			var element = _types.TryGetValue(rule, out var resolved) &&
-				resolved.EndsWith("[]", StringComparison.Ordinal)
-					? resolved.Substring(0, resolved.Length - "[]".Length)
-					: declared.Name;
+			var element = (_types.TryGetValue(rule, out var resolved) ? _language.ElementOf(resolved) : null) ?? declared.Name;
 
 			var rewritten = new List<Node>();
 			var taken     = 0;
@@ -1230,11 +1207,16 @@ sealed partial class GrammarNormalizer
 		return _types.TryGetValue(called, out var type) && _resolver.IsAssignable(type, element);
 	}
 
-	static bool IsCSharpKeyword(string name)
+	/// <summary>Whether a type is one a grammar may write by keyword alone, without <c>@</c> (§2).</summary>
+	bool IsCSharpKeyword(string name)
 	{
-		return name is
-		"bool" or "byte" or "sbyte" or "char" or "decimal" or "double" or "float" or
-		"int" or "uint" or "long" or "ulong" or "short" or "ushort" or "string" or "object";
+		return _language.IsGrammarKeyword(name);
+	}
+
+	/// <summary>Whether a spelling is the language's keyword for <paramref name="kind"/>.</summary>
+	bool IsKeyword(string spelling, KnownType kind)
+	{
+		return _language.Classify(spelling, out var form) == kind && form == TypeSpellingForm.Syntax;
 	}
 
 	void ComputeResults()

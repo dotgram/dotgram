@@ -395,8 +395,7 @@ static class FirstSets
 			// which is what `'a'+ & 'a'` does and means. It becomes a defect exactly where
 			// the parse cannot go back: a rule declaring a sequence is asking to be handed
 			// over an element at a time, and an element handed over cannot be taken back.
-			if (!graph.Types.TryGetValue(rule, out var type) ||
-				!type.EndsWith("[]", StringComparison.Ordinal))
+			if (!graph.Types.TryGetValue(rule, out var type) || !graph.Language.IsSequence(type))
 			{
 				continue;
 			}

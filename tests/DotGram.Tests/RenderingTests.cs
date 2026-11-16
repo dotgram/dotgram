@@ -229,7 +229,7 @@ public sealed class RenderingTests
 			normalizer,
 			BindingFlags.NonPublic | BindingFlags.Instance,
 			binder: null,
-			[GrammarBinder.Bind(Parsed("Start = 'a'")), null],
+			[GrammarBinder.Bind(Parsed("Start = 'a'")), null, null],
 			culture: null)!;
 
 		// `Item1`, not `Table`: a tuple's element names live in the compiler and not in the

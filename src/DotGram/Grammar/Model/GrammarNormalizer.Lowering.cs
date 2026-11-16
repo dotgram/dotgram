@@ -361,9 +361,15 @@ sealed partial class GrammarNormalizer
 	/// The name of a recognizer of the host as a call writes it: the method, and the type arguments
 	/// written after it.
 	/// </summary>
-	internal static string ExternalName(Expr expression)
+	internal static string ExternalName(Expr expression, ITargetLanguage language)
 	{
-		return expression is Expr.Reference(_, var name, var types) ? name + TypeArguments(types) : expression.ToString();
+		return expression is Expr.Reference(_, var name, var types) ? name + TypeArguments(types, language) : expression.ToString();
+	}
+
+	/// <summary>The same, in the language this grammar is normalized for.</summary>
+	string ExternalName(Expr expression)
+	{
+		return ExternalName(expression, _language);
 	}
 
 	/// <summary>The method a call written <c>F&lt;int&gt;</c> names, which is what the host is asked about.</summary>
@@ -951,14 +957,14 @@ sealed partial class GrammarNormalizer
 	readonly HashSet<WithSite> _withInArguments = [];
 
 	/// <summary>The C# type a literal argument is, or null where the argument is not one.</summary>
-	static string? LiteralType(Expr argument)
+	string? LiteralType(Expr argument)
 	{
 		return argument switch
 		{
-			Expr.Number => "int",
-			Expr.Literal(true, _) => "char",
-			Expr.Literal(false, _) => "string",
-			_ => null,
+			Expr.Number            => _language.Spelling(KnownType.Int32),
+			Expr.Literal(true, _)  => _language.Spelling(KnownType.Char),
+			Expr.Literal(false, _) => _language.Spelling(KnownType.Text),
+			_                      => null,
 		};
 	}
 
@@ -1317,7 +1323,7 @@ sealed partial class GrammarNormalizer
 		return value switch
 		{
 			Expr.CSharp(var text) => $"({text})",
-			Expr.Reference(_, var name, var types) => name + TypeArguments(types),
+			Expr.Reference(_, var name, var types) => name + TypeArguments(types, _language),
 
 			// §3.7: a rule's name without `@` builds the type the grammar generates for that rule.
 			// It used to go across as written, a call of a type, which C# does not compile (CS1955).
@@ -1359,15 +1365,21 @@ sealed partial class GrammarNormalizer
 	/// <summary>Every construction of a grammar's type: the rule it is written in, the rule it builds, the call.</summary>
 	readonly List<(RuleSymbol Within, RuleSymbol Rule, Expr.Call Call)> _built = [];
 
-	static string TypeArguments(IReadOnlyList<TypeRef> types)
+	static string TypeArguments(IReadOnlyList<TypeRef> types, ITargetLanguage language)
 	{
-		return types.Count == 0 ? "" : "<" + string.Join(", ", types.Select(TypeName)) + ">";
+		return types.Count == 0 ? "" : "<" + string.Join(", ", types.Select(type => TypeName(type, language))) + ">";
 	}
 
-	/// <summary>A type as it is written in C#, which is as the grammar wrote it.</summary>
-	internal static string TypeName(TypeRef type)
+	/// <summary>A type as it is written in the target language, which is as the grammar wrote it.</summary>
+	internal static string TypeName(TypeRef type, ITargetLanguage language)
 	{
-		return type.Name + (type.IsSequence ? "[]" : "");
+		return type.IsSequence ? language.SequenceOf(type.Name) : type.Name;
+	}
+
+	/// <summary>The same, in the language this grammar is normalized for.</summary>
+	string TypeName(TypeRef type)
+	{
+		return TypeName(type, _language);
 	}
 
 	/// <summary>

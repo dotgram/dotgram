@@ -286,20 +286,19 @@ sealed partial class GrammarNormalizer
 	readonly Dictionary<RuleSymbol, RuleSymbol> _cloneOf = [];
 
 	/// <summary>
-	/// The <c>[]</c> a rule's type adds on the way from it to the rule it follows: <c>R : B[]</c>
+	/// A type with the sequences a rule's type adds on the way from it to the rule it follows: <c>R : B[]</c>
 	/// is a sequence of whatever <c>B</c> is, so a replacement of <c>B</c>'s type is read through
 	/// <c>R</c> as a sequence of it.
 	/// </summary>
-	string SequenceHops(RuleSymbol rule, RuleSymbol to)
+	string SequenceHops(string type, RuleSymbol rule, RuleSymbol to)
 	{
-		var hops = "";
 		var seen = new HashSet<RuleSymbol>();
 
 		for (var at = rule; !ReferenceEquals(at, to) && seen.Add(at) && _produces.TryGetValue(at, out var produces); at = produces.Produces)
 			if (produces.IsSequence)
-				hops += "[]";
+				type = _language.SequenceOf(type);
 
-		return hops;
+		return type;
 	}
 
 	/// <summary>
@@ -1907,7 +1906,7 @@ sealed partial class GrammarNormalizer
 
 		var actual = TypeOf(right, binding.Right)
 			?? DeclaredConcrete(binding.Right)
-				?? (binding.Right.Declaration is { Params.Count: > 0 } ? null : "string");
+				?? (binding.Right.Declaration is { Params.Count: > 0 } ? null : _language.Spelling(KnownType.Text));
 
 		if (actual is null)
 			return;
@@ -2074,7 +2073,7 @@ sealed partial class GrammarNormalizer
 					return false;
 				}
 
-				if (!Follows(rule, false, asked, readers, actual + SequenceHops(rule, called)))
+				if (!Follows(rule, false, asked, readers, SequenceHops(actual, rule, called)))
 					return false;
 
 				read = true;

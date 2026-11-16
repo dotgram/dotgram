@@ -194,7 +194,7 @@ static class Retention
 		// something that will not be there — and it would look like an offset either way,
 		// which is the failure this refuses rather than risks.
 		foreach (var owner in Reachable(graph, root))
-			if (graph.Types.TryGetValue(owner, out var type) && type == "SourceSpan")
+			if (graph.Types.TryGetValue(owner, out var type) && graph.Language.Classify(type, out _) == KnownType.SourceSpan)
 				return $"'{owner.Name}' has a 'SourceSpan' for its value (docs/syntax.md §4.1), " +
 					"which says where in the input it matched. A streamed parse reads through a " +
 					"window that moves on, so the place a span points at is gone by the time " +
@@ -272,7 +272,7 @@ static class Retention
 	/// </remarks>
 	static bool Streamable(RecognitionGraph graph, RuleSymbol rule)
 	{
-		return graph.Types.TryGetValue(rule, out var type) && type.EndsWith("[]", StringComparison.Ordinal);
+		return graph.Types.TryGetValue(rule, out var type) && graph.Language.IsSequence(type);
 	}
 
 	/// <summary>
@@ -686,7 +686,7 @@ static class Retention
 		if (rule is null)
 			throw new ArgumentNullException(nameof(rule));
 
-		if (!graph.Types.TryGetValue(rule, out var type) || !type.EndsWith("[]", StringComparison.Ordinal))
+		if (!graph.Types.TryGetValue(rule, out var type) || !graph.Language.IsSequence(type))
 			return $"'{rule.Name}' does not build a sequence, and a stream can only hand over " +
 				"what comes in parts. Declare its result as ': @T[]' (docs/syntax.md §4.1 case 2).";
 

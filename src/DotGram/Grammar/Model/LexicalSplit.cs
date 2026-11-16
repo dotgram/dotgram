@@ -283,6 +283,7 @@ sealed class LexicalSplit
 				// would be a place for whitespace that cannot arrive. Everything else a
 				// grammar declared is about values and control, not about the alphabet, and
 				// travels unchanged.
+				Language   = graph.Language,
 				Externals  = graph.Externals,
 				FreeNames  = graph.FreeNames,
 				Context    = graph.Context,

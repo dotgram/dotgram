@@ -22,7 +22,7 @@ sealed partial class GrammarNormalizer
 			string? reason = null;
 			if (publication.Kind != PublishKind.Parse)
 				reason = "'yield' is a modifier of 'parse'; 'find' already yields matches.";
-			else if (!_types.TryGetValue(root, out var result) || !result.EndsWith("[]", StringComparison.Ordinal))
+			else if (!_types.TryGetValue(root, out var result) || !_language.IsSequence(result))
 				reason = "The published rule must produce a sequence declared as '@T[]'.";
 
 			Node? body = null;
@@ -72,14 +72,14 @@ sealed partial class GrammarNormalizer
 			if (reason is null && body is Node.Repeat repeat && item is Node.Call call)
 			{
 				var element = call.Rule;
-				var collectedType = _types[root].Substring(0, _types[root].Length - 2);
+				var collectedType = _language.ElementOf(_types[root])!;
 				var type = publication.ResultType ?? new TypeRef(true, collectedType, false, publication.At);
 				if ((_nullable.TryGetValue(element, out var nullable) && nullable) || element.GivesBack)
 					reason = "A yielded element must consume input and must not give back a successful match.";
 				else if (!type.IsCSharp || type.IsSequence)
 					reason = "The yield element type must be a C# type written as '@T'.";
 				else if (!_types.TryGetValue(element, out var actual) || !_resolver.IsAssignable(actual, collectedType))
-					reason = $"The result of '{element.Name}' is not an element of the published collection '{collectedType}[]'.";
+					reason = $"The result of '{element.Name}' is not an element of the published collection '{_types[root]}'.";
 				else if (!PublicationFits(_resolver, actual, type.Name, publication.DeclaredIn))
 					reason = $"The result of '{element.Name}' is not assignable to the yield type '{type.Name}'.";
 				else
@@ -97,7 +97,7 @@ sealed partial class GrammarNormalizer
 						var step = new Node.Repeat(new Node.Capture("item", call), 1, scalar ? 1 : null);
 						_rules.Add(target);
 						_bodies[target] = new Node.Construct(step, scalar ? Construction.Operand.Instance : Construction.Sequence.Instance);
-						_types[target] = scalar ? collectedType : collectedType + "[]";
+						_types[target] = scalar ? collectedType : _language.SequenceOf(collectedType);
 						_nullable[target] = false;
 						_recoveries[step] = recovery! with { YieldStep = true };
 					}
