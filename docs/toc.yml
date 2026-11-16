@@ -27,6 +27,8 @@
       href: carriers.md
     - name: Visual Studio
       href: visual-studio.md
+    - name: VS Code
+      href: vscode.md
     - name: Feeds (a worked guide)
       href: feeds.md
     - name: Untrusted input
