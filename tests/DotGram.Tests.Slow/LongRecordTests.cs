@@ -176,6 +176,36 @@ public sealed class LongRecordTests
 			$"{ScalingClock.Attempts} measurements ({reading.Readings}).");
 	}
 
+	/// <summary>
+	/// The plain reader form steps over a corrupted line in no more than <see cref="AgainstBuffered"/>
+	/// times what the buffered form takes for the same line.
+	/// </summary>
+	/// <remarks>
+	/// Both read the line once to find the next place the synchronization stands. The reader form
+	/// asks for it with a reading of its own, which costs far more than a character does, and it
+	/// asked at every character of the line: a megabyte took ten times the buffered form's time,
+	/// linear and so invisible to the ratchet above. A ratio of the two forms over the same line, on
+	/// one machine in alternating rounds, is what shows it.
+	/// </remarks>
+	[Fact]
+	public void The_reader_form_steps_over_a_corrupted_line_about_as_fast_as_the_buffered_form()
+	{
+		var host    = FeedHost.Value;
+		var reading = ScalingClock.Settle(
+			() => Read(host, "stream whole", ShortLine, retained: null, look: false),
+			() => Read(host, "reader",       ShortLine, retained: null, look: false),
+			AgainstBuffered);
+
+		Assert.True(
+			reading.Within,
+			$"the reader form took {reading.Ratio:F2} times as long as the buffered form ({reading.Longer:F2} against " +
+			$"{reading.Shorter:F2}) to step over a corrupted line of {ShortLine:N0} characters, against a bound of " +
+			$"{AgainstBuffered:F1}, on every one of {ScalingClock.Attempts} measurements ({reading.Readings}).");
+	}
+
+	/// <summary>How many times the buffered form's time the reader form may take over one corrupted line.</summary>
+	const double AgainstBuffered = 3.0;
+
 	// ── A refusal at the end of a long record ───────────────────────────────────────
 
 	/// <summary>

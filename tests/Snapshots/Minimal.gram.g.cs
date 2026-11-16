@@ -5632,6 +5632,9 @@ namespace DotGram.Snapshots
 					{
 						while (to <= window.Length)
 						{
+							var syncAhead = global::System.MemoryExtensions.IndexOf(window.Span().Slice(to), ';');
+							to = syncAhead < 0 ? window.Length : to + syncAhead;
+
 							var syncFailure = new Failure();
 							at = WholeSync_DotGram_Sheet(window.Span(), to, ref syncFailure);
 
