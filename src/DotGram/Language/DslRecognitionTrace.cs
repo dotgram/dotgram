@@ -99,7 +99,7 @@ internal static class DslRecognitionTrace
 		if (publication.Kind != DotGram.Grammar.Parsing.PublishKind.Parse)
 			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []);
 
-		var matcher = new Matcher(graph, input, contract);
+		var matcher = new Matcher(graph, input, contract, publication.Reading);
 		Match[] candidates;
 
 		// The interpreter is recursion over the grammar and the text at once, a frame per rule
@@ -144,7 +144,8 @@ internal static class DslRecognitionTrace
 	sealed class Matcher(
 		RecognitionGraph graph,
 		string input,
-		IDslRecognitionContract? contract)
+		IDslRecognitionContract? contract,
+		int reading)
 	{
 		readonly HashSet<(RuleSymbol Rule, int Position)> _active = [];
 		readonly HashSet<string> _expected = new(StringComparer.Ordinal);
@@ -275,6 +276,11 @@ internal static class DslRecognitionTrace
 						yield return match;
 					yield break;
 
+				case Node.Choice { Selection: not null }:
+					// A dispatch on a value the host's C# computes, which nothing here may run.
+					Unsupported = true;
+					yield break;
+
 				case Node.Choice choice:
 					foreach (var alternative in choice.Nodes)
 						foreach (var match in MatchNode(alternative, position, owner))
@@ -298,6 +304,9 @@ internal static class DslRecognitionTrace
 					var found = MatchNode(lookahead.Body, position, owner).Any();
 					if (found == lookahead.IsPositive)
 						yield return Match.Empty(position);
+					else if (found)
+						// A generated parser fails here, where what the look refuses begins.
+						Expect(position, Said(lookahead), owner);
 					yield break;
 
 				case Node.Capture capture:
@@ -317,6 +326,29 @@ internal static class DslRecognitionTrace
 				case Node.Construct construct:
 					foreach (var match in MatchNode(construct.Body, position, owner))
 						yield return match;
+					yield break;
+
+				case Node.Marked marked:
+					foreach (var match in MatchNode(marked.Body, position, owner))
+						yield return match;
+					yield break;
+
+				case Node.Behind behind:
+					// The other half of a word literal's boundary: the item before it is no word character.
+					if (position == 0 || !Element(behind.Test, input[position - 1]))
+						yield return Match.Empty(position);
+					else
+						Expect(position, behind.ToString(), owner);
+					yield break;
+
+				case Node.Glue:
+					// Over characters adjacency is the absence of a seam, which the normalizer already left out.
+					yield return Match.Empty(position);
+					yield break;
+
+				case Node.Reading which:
+					if (((which.Readings >> reading) & 1UL) != 0UL)
+						yield return Match.Empty(position);
 					yield break;
 
 				case Node.Call call:
@@ -346,6 +378,17 @@ internal static class DslRecognitionTrace
 
 					foreach (var match in Rule(externalRule, position))
 						yield return match;
+					yield break;
+
+				// Text bindings are read against what an earlier operand matched on this route, which
+				// this model does not keep; a condition left in the graph is one the normalizer did not decide.
+				case Node.Bind or Node.Same or Node.Counted or Node.Condition:
+					Unsupported = true;
+					yield break;
+
+				default:
+					// A kind this model does not read: the site is one it cannot read, not one the text fails.
+					Unsupported = true;
 					yield break;
 			}
 		}
@@ -383,6 +426,14 @@ internal static class DslRecognitionTrace
 
 			if (count >= repeat.Min)
 				yield return current;
+		}
+
+		/// <summary>A refused look as a refusal names it: <c>eof</c> is the end of the input.</summary>
+		static string Said(Node.Lookahead lookahead)
+		{
+			return lookahead.Body is Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 }
+				? "end of input"
+				: lookahead.ToString();
 		}
 
 		bool Element(Node.Element element, char value)

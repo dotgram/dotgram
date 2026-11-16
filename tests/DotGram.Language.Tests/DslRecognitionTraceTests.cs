@@ -309,6 +309,124 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	/// <summary>
+	/// Every kind of node the recognition model has is either read or answered as a site
+	/// the interpreter cannot read; none is refused as if the text were wrong. A kind added
+	/// to the model fails here until it is given a case.
+	/// </summary>
+	[Fact]
+	public void EveryNodeKindIsReadOrAnsweredUnsupported()
+	{
+		var other   = new RuleSymbol("Other", new GrammarNamespace("", null), Declaration: null);
+		var start   = new RuleSymbol("Start", new GrammarNamespace("", null), Declaration: null);
+		var letter  = new Node.Element(false, [new CharRange('a', 'z')], [], []);
+		var a       = new Node.Literal("a");
+		var b       = new Node.Literal("b");
+		var binding = new TextBinding(start, 0, "q", -1);
+		var success = DslRecognitionStatus.Success;
+		var failure = DslRecognitionStatus.Failure;
+		var unsupported = DslRecognitionStatus.Unsupported;
+
+		var cases = new System.Collections.Generic.Dictionary<System.Type, (Node Body, string Input, DslRecognitionStatus Expected)[]>
+		{
+			[typeof(Node.Empty)]     = [(Node.Empty.Instance, "", success), (Node.Empty.Instance, "a", failure)],
+			[typeof(Node.Element)]   = [(letter, "q", success), (letter, "Q", failure)],
+			[typeof(Node.Literal)]   = [(new Node.Literal("ab"), "ab", success), (new Node.Literal("ab"), "aa", failure)],
+			[typeof(Node.Sequence)]  = [(new Node.Sequence([a, b]), "ab", success), (new Node.Sequence([a, b]), "ba", failure)],
+			[typeof(Node.Choice)]    =
+			[
+				(new Node.Choice([a, b]), "b", success),
+				(new Node.Choice([a, b]) { Selection = new Node.SwitchSelection(new Node.Guard("kind"), ["1", null]) }, "a", unsupported),
+			],
+			[typeof(Node.Atomic)]    = [(new Node.Atomic(a), "a", success)],
+			[typeof(Node.Marked)]    = [(new Node.Marked(a, "state"), "a", success), (new Node.Marked(a, "state"), "b", failure)],
+			[typeof(Node.Repeat)]    = [(new Node.Repeat(a, 1, null), "aaa", success), (new Node.Repeat(a, 1, null), "", failure)],
+			[typeof(Node.Lookahead)] =
+			[
+				(new Node.Sequence([new Node.Lookahead(true, a), letter]), "a", success),
+				(new Node.Sequence([new Node.Lookahead(false, a), letter]), "a", failure),
+			],
+			[typeof(Node.Behind)]    =
+			[
+				(new Node.Sequence([new Node.Literal("-"), new Node.Behind(letter), b]), "-b", success),
+				(new Node.Sequence([a, new Node.Behind(letter), b]), "ab", failure),
+				(new Node.Sequence([new Node.Behind(letter), b]), "b", success),
+			],
+			[typeof(Node.Reading)]   =
+			[
+				(new Node.Sequence([new Node.Reading(1), a]), "a", success),
+				(new Node.Sequence([new Node.Reading(2), a]), "a", failure),
+			],
+			[typeof(Node.Glue)]      = [(new Node.Sequence([a, Node.Glue.Instance, b]), "ab", success)],
+			[typeof(Node.Capture)]   = [(new Node.Capture("x", a), "a", success)],
+			[typeof(Node.Bind)]      = [(new Node.Bind(binding, a), "a", unsupported)],
+			[typeof(Node.Same)]      = [(new Node.Same(binding), "a", unsupported)],
+			[typeof(Node.Counted)]   = [(new Node.Counted(a, new CountBound.Length(binding), null), "a", unsupported)],
+			[typeof(Node.Condition)] = [(new Node.Condition(new DotGram.Grammar.Model.Test.Runs("true", -1)), "", unsupported)],
+			[typeof(Node.Guard)]     = [(new Node.Guard("ready"), "", unsupported)],
+			[typeof(Node.Construct)] = [(new Node.Construct(a, Construction.Sequence.Instance), "a", success)],
+			[typeof(Node.External)]  = [(new Node.External("Read"), "a", unsupported)],
+			[typeof(Node.Call)]      = [(new Node.Call(other, []), "a", success), (new Node.Call(other, []), "b", failure)],
+		};
+
+		var kinds = typeof(Node).Assembly.GetTypes()
+			.Where(static type => type.IsSubclassOf(typeof(Node)) && !type.IsAbstract)
+			.Select(static type => type.Name)
+			.OrderBy(static name => name, System.StringComparer.Ordinal);
+
+		Assert.Equal(kinds, cases.Keys.Select(static type => type.Name).OrderBy(static name => name, System.StringComparer.Ordinal));
+
+		foreach (var (kind, readings) in cases)
+		foreach (var (body, input, expected) in readings)
+		{
+			var graph = new RecognitionGraph(
+				[start, other],
+				new System.Collections.Generic.Dictionary<RuleSymbol, Node> { [start] = body, [other] = a },
+				new System.Collections.Generic.Dictionary<RuleSymbol, bool> { [start] = false, [other] = false },
+				new System.Collections.Generic.Dictionary<RuleSymbol, System.Collections.Generic.IReadOnlyList<ResultMember>>(),
+				new System.Collections.Generic.Dictionary<RuleSymbol, string>(),
+				[],
+				[],
+				[]);
+			var publication = new Publication(
+				PublishKind.Parse,
+				start,
+				"ParseStart",
+				new Location(0, 0),
+				start.Namespace,
+				new System.Collections.Generic.Dictionary<RuleSymbol, RuleSymbol>(),
+				[]);
+
+			var actual = DslRecognitionTrace.Recognize(graph, publication, input).Status;
+
+			Assert.True(expected == actual, $"{kind.Name} '{body}' over '{input}': expected {expected}, answered {actual}");
+		}
+	}
+
+	/// <summary>
+	/// A word literal is bounded on both sides, so it is not read at the end of a longer
+	/// word an operand before it gave back; <c>~</c> leaves no room for trivia.
+	/// </summary>
+	[Fact]
+	public void ReadsWordBoundariesAndGlueAsTheGeneratedParserDoes()
+	{
+		const string grammar = """
+			wordboundary = ['a'..'z']
+			trivia = ' '*
+			parse Start
+			Start = left: Name & "in" & right: Reference
+			Reference = Name ~ '.' ~ Name | Name
+			Name = ['a'..'z']+
+			""";
+
+		var (graph, publication) = Compile(grammar);
+
+		Assert.Equal(DslRecognitionStatus.Success, DslRecognitionTrace.Recognize(graph, publication, "ab in c.d").Status);
+		Assert.Equal(DslRecognitionStatus.Failure, DslRecognitionTrace.Recognize(graph, publication, "abin cd").Status);
+		Assert.Equal(DslRecognitionStatus.Failure, DslRecognitionTrace.Recognize(graph, publication, "ab in c . d").Status);
+		AgreesWithGeneratedParser(grammar, "ab in c.d", "abin cd", "ab incd", "ab in c . d", "ab in c. d", "in in in", "a in b");
+	}
+
+	/// <summary>
 	/// What the interpreter answers for each input against what the parser generated
 	/// from the same grammar answers: accepted by both, or refused by both at the same
 	/// position.
@@ -333,7 +451,7 @@ public sealed class DslRecognitionTraceTests
 			if (!expected.IsSuccess)
 				Assert.True(
 					expected.Position == actual.FailurePosition,
-					$"'{input}': the generated parser refuses at {expected.Position}, the interpreter at {actual.FailurePosition}");
+					$"'{input}': the generated parser refuses at {expected.Position} ({expected.Error}), the interpreter at {actual.FailurePosition} ({string.Join(", ", actual.Expected)})");
 		}
 	}
 
