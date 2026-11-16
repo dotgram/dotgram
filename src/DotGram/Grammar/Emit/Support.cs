@@ -703,6 +703,8 @@ static partial class CSharpEmitter
 						expected = merged;
 					}
 
+					expected = Unguarded_DotGram(expected);
+
 					if (expected == null || expected.Length == 0)
 						return _otherwise;
 
@@ -822,6 +824,61 @@ static partial class CSharpEmitter
 			{
 				return Match<TOther>.Failed(Outcome, _otherwise ?? otherwise, position, _expected, _tied);
 			}
+		}
+
+		/// <summary>
+		/// What was recorded, with the guards that said no where they belong: left out where
+		/// anything else was named, and where nothing else was, said as one sentence marked as a
+		/// rule's own words are (docs/syntax.md §7.5).
+		/// </summary>
+		/// <remarks>
+		/// A guard is the weakest thing a refusal can name. Where a terminal is named beside it,
+		/// that is what would have fit there; where only guards stood, that they said no is the
+		/// whole answer, and the message for nothing at all — "Expected more input." at the end of
+		/// a line that was all there — was what it used to say.
+		/// </remarks>
+		static string[]? Unguarded_DotGram(string[]? expected)
+		{
+			if (expected == null)
+				return null;
+
+			var guards = 0;
+			var others = 0;
+
+			for (var i = 0; i < expected.Length; i++)
+				if (expected[i].Length > 0 && expected[i][0] == '\u0002')
+					guards++;
+				else if (expected[i] != "\u0001")
+					others++;
+
+			if (guards == 0)
+				return expected;
+
+			if (others > 0)
+			{
+				var kept = new string[expected.Length - guards];
+				var at   = 0;
+
+				for (var i = 0; i < expected.Length; i++)
+					if (expected[i].Length == 0 || expected[i][0] != '\u0002')
+						kept[at++] = expected[i];
+
+				return kept;
+			}
+
+			var said = new global::System.Text.StringBuilder("\u0000");
+			var seen = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+
+			for (var i = 0; i < expected.Length; i++)
+				if (expected[i].Length > 0 && expected[i][0] == '\u0002' && seen.Add(expected[i]))
+				{
+					if (said.Length > 1)
+						said.Append(" or ");
+
+					said.Append(expected[i], 1, expected[i].Length - 1);
+				}
+
+			return new[] { said.Append(" said no.").ToString() };
 		}
 		""";
 
@@ -2639,6 +2696,8 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 		/// </summary>
 		static string? Wanted_DotGram(string[]? expected)
 		{
+			expected = Unguarded_DotGram(expected);
+
 			if (expected == null || expected.Length == 0)
 				return null;
 

@@ -147,13 +147,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = ExpectedSet_DotGram(7);
+						expected = ExpectedSet_DotGram(8);
 						goto Fail;
 					}
 					c = text[p];
 					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
 					{
-						expected = ExpectedSet_DotGram(7);
+						expected = ExpectedSet_DotGram(8);
 						goto Fail;
 					}
 					p++;
@@ -163,13 +163,13 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = ExpectedSet_DotGram(7);
+						expected = ExpectedSet_DotGram(8);
 						goto S11;
 					}
 					c = text[p];
 					if (!(((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))))
 					{
-						expected = ExpectedSet_DotGram(7);
+						expected = ExpectedSet_DotGram(8);
 						goto S11;
 					}
 					p++;
@@ -227,7 +227,7 @@ namespace DotGram.Snapshots
 						}
 					}
 					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
-					if (!RecognizeGuard0_DotGram(guardCaptured0)) { expected = null; goto Fail; }
+					if (!RecognizeGuard0_DotGram(guardCaptured0)) { expected = ExpectedSet_DotGram(7); goto Fail; }
 					goto Return;
 				}
 
@@ -468,7 +468,7 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)p >= (uint)text.Length)
 					{
-						expected = ExpectedSet_DotGram(8);
+						expected = ExpectedSet_DotGram(9);
 						goto S27;
 					}
 					p++;
@@ -959,6 +959,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
+
 		private sealed class Parser_DotGram
 		{
 			internal readonly ParserArena_DotGram Entries = new ParserArena_DotGram();
@@ -1290,8 +1291,8 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACGJLNPRTBADBCDCBDBBBCBEBFBGBH";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[9], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACGJLNPRTVBADBCDCBDBBBCBEBFBGBHBI";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[10], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"end of input",
@@ -1300,6 +1301,7 @@ namespace DotGram.Snapshots
 					"'\\r'",
 					"['0'..'9']",
 					"','",
+					"\u0002when @(text.Length <= 16)",
 					"['A'..'Z' | 'a'..'z']",
 					"[^ ]",
 				}, null) ?? ExpectedItems_DotGram!;
@@ -1309,7 +1311,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[9];
+				starts = new int[10];
 
 				for (var i = 0; i < starts.Length; i++)
 				{

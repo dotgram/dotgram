@@ -571,7 +571,7 @@ namespace DotGram.Snapshots
 					int g0 = (int)values.V0[g0At].Value!;
 					if (!Guarded_DotGram(0, p, RecognizeGuard4_DotGram(g0)))
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
 						return Exited_DotGram(1, pos, -1);
 					}
 					ways.Begin(0);
@@ -630,7 +630,7 @@ namespace DotGram.Snapshots
 					var r1 = -1;
 					if ((uint)p >= (uint)text.Length)
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(7));
 						return Exited_DotGram(3, pos, -1);
 					}
 					c = text[p];
@@ -651,7 +651,7 @@ namespace DotGram.Snapshots
 								p = q2;
 								if ((uint)p >= (uint)text.Length || text[p] != ')')
 								{
-									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
+									if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 									return Exited_DotGram(3, pos, -1);
 								}
 								p += 1;
@@ -666,7 +666,7 @@ namespace DotGram.Snapshots
 								var q3 = Read_Digits(p);
 								if (q3 < 0)
 								{
-									if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, ExpectedSet_DotGram(5), ExpectedSet_DotGram(6), fq3);
+									if (!failure.Quiet) Refuse_DotGram_Over(ref failure, p, ExpectedSet_DotGram(7), ExpectedSet_DotGram(8), fq3);
 									return Exited_DotGram(3, pos, -1);
 								}
 								p = q3;
@@ -737,7 +737,7 @@ namespace DotGram.Snapshots
 					p = q0;
 					if ((uint)p >= (uint)text.Length || text[p] != '^')
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(6));
 						return -1;
 					}
 					p += 1;
@@ -756,7 +756,7 @@ namespace DotGram.Snapshots
 					int g1 = (int)values.V0[g1At].Value!;
 					if (!Guarded_DotGram(1, p, RecognizeGuard5_DotGram(g0, g1)))
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, null);
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(5));
 						return -1;
 					}
 					ways.Begin(2);
@@ -834,7 +834,7 @@ namespace DotGram.Snapshots
 
 					if (p < m0 + 1)
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(6));
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 						return Exited_DotGram(4, pos, -1);
 					}
 
@@ -878,7 +878,7 @@ namespace DotGram.Snapshots
 					var r0 = -1;
 					if ((uint)p >= (uint)text.Length || text[p] != '+')
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(1));
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(2));
 						return Exited_DotGram(2, pos, -1);
 					}
 					p += 1;
@@ -934,7 +934,7 @@ namespace DotGram.Snapshots
 					p = q2;
 					if (p != text.Length)
 					{
-						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(7));
+						if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(9));
 						return -1;
 					}
 					return p;
@@ -1602,6 +1602,8 @@ namespace DotGram.Snapshots
 							expected = merged;
 						}
 
+						expected = Unguarded_DotGram(expected);
+
 						if (expected == null || expected.Length == 0)
 							return _otherwise;
 
@@ -1716,6 +1718,50 @@ namespace DotGram.Snapshots
 				}
 			}
 
+			static string[]? Unguarded_DotGram(string[]? expected)
+			{
+				if (expected == null)
+					return null;
+
+				var guards = 0;
+				var others = 0;
+
+				for (var i = 0; i < expected.Length; i++)
+					if (expected[i].Length > 0 && expected[i][0] == '\u0002')
+						guards++;
+					else if (expected[i] != "\u0001")
+						others++;
+
+				if (guards == 0)
+					return expected;
+
+				if (others > 0)
+				{
+					var kept = new string[expected.Length - guards];
+					var at   = 0;
+
+					for (var i = 0; i < expected.Length; i++)
+						if (expected[i].Length == 0 || expected[i][0] != '\u0002')
+							kept[at++] = expected[i];
+
+					return kept;
+				}
+
+				var said = new global::System.Text.StringBuilder("\u0000");
+				var seen = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+
+				for (var i = 0; i < expected.Length; i++)
+					if (expected[i].Length > 0 && expected[i][0] == '\u0002' && seen.Add(expected[i]))
+					{
+						if (said.Length > 1)
+							said.Append(" or ");
+
+						said.Append(expected[i], 1, expected[i].Length - 1);
+					}
+
+				return new[] { said.Append(" said no.").ToString() };
+			}
+
 			struct Failure
 			{
 				public int Position;
@@ -1784,6 +1830,7 @@ namespace DotGram.Snapshots
 			{
 				return ties == null || ties.Count == 0 ? null : ties.ToArray();
 			}
+
 
 			/// <summary>
 			/// What a traced reading of this grammar does, told one call a thing it does (docs/syntax.md, §6.9).
@@ -2317,8 +2364,12 @@ namespace DotGram.Snapshots
 
 				internal void Refused(int position, string[]? expected)
 				{
+					// A guard that said no is named in what a refusal records, for the message; the sink
+					// is told it by Guard, and its refusal names nothing, as it always has.
 					if (!Quiet)
-						Sink.Refused(position + _offset, expected);
+						Sink.Refused(
+							position + _offset,
+							expected != null && expected.Length == 1 && expected[0].Length > 0 && expected[0][0] == '\u0002' ? null : expected);
 				}
 
 				internal void Recovered(int rule, int from, int to, int reach)
@@ -2836,7 +2887,12 @@ namespace DotGram.Snapshots
 					}
 
 					var paths = new global::System.Collections.Generic.List<Path>();
-					var sets  = expected != null || expectedMore != null && expectedMore.Count > 0;
+					var sets  = Named(expected);
+
+					if (expectedMore != null)
+						foreach (var one in expectedMore)
+							sets |= Named(one);
+
 					var cause = "";
 
 					if (_furthest == position)
@@ -3035,6 +3091,11 @@ namespace DotGram.Snapshots
 							kept.Add(path);
 
 					return kept.ToArray();
+				}
+
+				static bool Named(string[]? set)
+				{
+					return set != null && !(set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002');
 				}
 
 				static string Wanted_DotGram(global::System.Collections.Generic.IReadOnlyList<string> expected)
@@ -4398,14 +4459,16 @@ namespace DotGram.Snapshots
 
 			static string[] ExpectedDecoded_DotGram(int id)
 			{
-				var data = "ACEGIKMOBABBBCBDBEBFBGBH";
-				var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[8], null) ?? ExpectedBuilt_DotGram!;
+				var data = "ACEGIKMOQSBABBBCBDBEBFBGBHBIBJ";
+				var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[10], null) ?? ExpectedBuilt_DotGram!;
 				var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 					{
 						"' '",
+						"\u0002when @(first >= 0)",
 						"'+'",
 						"')'",
 						"'('",
+						"\u0002when @(high >= low)",
 						"'^'",
 						"['(' | '0'..'9']",
 						"['0'..'9']",
@@ -4417,7 +4480,7 @@ namespace DotGram.Snapshots
 
 				if (starts == null)
 				{
-					starts = new int[8];
+					starts = new int[10];
 
 					for (var i = 0; i < starts.Length; i++)
 					{

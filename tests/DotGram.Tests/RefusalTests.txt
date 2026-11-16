@@ -1283,42 +1283,42 @@ a guard over a record | engine | "" | Starved at 0: Expected ['0'..'9'].
 a guard over a record | engine | "1" | accepted
 a guard over a record | engine | "2" | accepted
 a guard over a record | engine | "12!" | NoMatch at 2: Expected end of input.
-a guard over a record | engine | "122" | Starved at 3: Expected more input.
+a guard over a record | engine | "122" | Starved at 3: when @(d.Length < 3) said no.
 a guard over a record | engine | "12" | accepted
-a guard over a record | engine | "123" | Starved at 3: Expected more input.
-a guard over a record | engine | "234" | Starved at 3: Expected more input.
-a guard over a record | engine | "134" | Starved at 3: Expected more input.
-a guard over a record | engine | "124" | Starved at 3: Expected more input.
-a guard over a record | engine | "1234!" | NoMatch at 4: Input does not match 'Start'.
-a guard over a record | engine | "12344" | Starved at 5: Expected more input.
+a guard over a record | engine | "123" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | engine | "234" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | engine | "134" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | engine | "124" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | engine | "1234!" | NoMatch at 4: when @(d.Length < 3) said no.
+a guard over a record | engine | "12344" | Starved at 5: when @(d.Length < 3) said no.
 a guard over a record | engine | "x!" | NoMatch at 0: Expected ['0'..'9'].
 a guard over a record | engine | "xx" | NoMatch at 0: Expected ['0'..'9'].
 a guard over a record | tape | "" | Starved at 0: Expected ['0'..'9'].
 a guard over a record | tape | "1" | accepted
 a guard over a record | tape | "2" | accepted
 a guard over a record | tape | "12!" | NoMatch at 2: Expected end of input.
-a guard over a record | tape | "122" | Starved at 3: Expected more input.
+a guard over a record | tape | "122" | Starved at 3: when @(d.Length < 3) said no.
 a guard over a record | tape | "12" | accepted
-a guard over a record | tape | "123" | Starved at 3: Expected more input.
-a guard over a record | tape | "234" | Starved at 3: Expected more input.
-a guard over a record | tape | "134" | Starved at 3: Expected more input.
-a guard over a record | tape | "124" | Starved at 3: Expected more input.
-a guard over a record | tape | "1234!" | NoMatch at 4: Input does not match 'Start'.
-a guard over a record | tape | "12344" | Starved at 5: Expected more input.
+a guard over a record | tape | "123" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | tape | "234" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | tape | "134" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | tape | "124" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | tape | "1234!" | NoMatch at 4: when @(d.Length < 3) said no.
+a guard over a record | tape | "12344" | Starved at 5: when @(d.Length < 3) said no.
 a guard over a record | tape | "x!" | NoMatch at 0: Expected ['0'..'9'].
 a guard over a record | tape | "xx" | NoMatch at 0: Expected ['0'..'9'].
 a guard over a record | immediate | "" | Starved at 0: Expected ['0'..'9'].
 a guard over a record | immediate | "1" | accepted
 a guard over a record | immediate | "2" | accepted
 a guard over a record | immediate | "12!" | NoMatch at 2: Expected end of input.
-a guard over a record | immediate | "122" | Starved at 3: Expected more input.
+a guard over a record | immediate | "122" | Starved at 3: when @(d.Length < 3) said no.
 a guard over a record | immediate | "12" | accepted
-a guard over a record | immediate | "123" | Starved at 3: Expected more input.
-a guard over a record | immediate | "234" | Starved at 3: Expected more input.
-a guard over a record | immediate | "134" | Starved at 3: Expected more input.
-a guard over a record | immediate | "124" | Starved at 3: Expected more input.
-a guard over a record | immediate | "1234!" | NoMatch at 4: Input does not match 'Start'.
-a guard over a record | immediate | "12344" | Starved at 5: Expected more input.
+a guard over a record | immediate | "123" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | immediate | "234" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | immediate | "134" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | immediate | "124" | Starved at 3: when @(d.Length < 3) said no.
+a guard over a record | immediate | "1234!" | NoMatch at 4: when @(d.Length < 3) said no.
+a guard over a record | immediate | "12344" | Starved at 5: when @(d.Length < 3) said no.
 a guard over a record | immediate | "x!" | NoMatch at 0: Expected ['0'..'9'].
 a guard over a record | immediate | "xx" | NoMatch at 0: Expected ['0'..'9'].
 marks laid over an operand | engine | "" | Starved at 0: Expected ['(' | 'a'..'z'].

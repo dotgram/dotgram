@@ -399,7 +399,12 @@ static partial class CSharpEmitter
 				}
 
 				var paths = new global::System.Collections.Generic.List<Path>();
-				var sets  = expected != null || expectedMore != null && expectedMore.Count > 0;
+				var sets  = Named(expected);
+
+				if (expectedMore != null)
+					foreach (var one in expectedMore)
+						sets |= Named(one);
+
 				var cause = "";
 
 				if (_furthest == position)
@@ -598,6 +603,15 @@ static partial class CSharpEmitter
 						kept.Add(path);
 
 				return kept.ToArray();
+			}
+
+			/// <summary>
+			/// Whether a set names something: not a guard that said no, which the message names and
+			/// the sink was told by <c>Guard</c>, its refusal naming nothing.
+			/// </summary>
+			static bool Named(string[]? set)
+			{
+				return set != null && !(set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002');
 			}
 
 			static string Wanted_DotGram(global::System.Collections.Generic.IReadOnlyList<string> expected)

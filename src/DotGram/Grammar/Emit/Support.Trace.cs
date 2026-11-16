@@ -598,8 +598,12 @@ static partial class CSharpEmitter
 			/// </summary>
 			internal void Refused(int position, string[]? expected)
 			{
+				// A guard that said no is named in what a refusal records, for the message; the sink
+				// is told it by Guard, and its refusal names nothing, as it always has.
 				if (!Quiet)
-					Sink.Refused(position + _offset, expected);
+					Sink.Refused(
+						position + _offset,
+						expected != null && expected.Length == 1 && expected[0].Length > 0 && expected[0][0] == '\u0002' ? null : expected);
 			}
 
 			/// <summary>An element stepped over, told.</summary>

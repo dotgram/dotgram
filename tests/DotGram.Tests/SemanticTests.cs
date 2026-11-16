@@ -4263,13 +4263,13 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void With_nothing_left_to_try_it_says_the_input_ran_out()
+	public void With_nothing_else_named_it_says_the_guard_said_no()
 	{
-		// The guard fails at the end of the input and names no terminal of its own; a
-		// clear failure at a tied position does not erase what an earlier one recorded
-		// there, so this only holds when nothing else was tried at that exact position.
+		// The guard fails at the end of the input, which was all there, and nothing else was
+		// tried at that position: what refused is the guard, and it is named. It used to say
+		// "Expected more input.", which reads as a cut input.
 		Assert.Equal(
-			"Expected more input.",
+			"when @(false) said no.",
 			Refusal("Start = 'a' & when @(false)", "a").Error);
 	}
 

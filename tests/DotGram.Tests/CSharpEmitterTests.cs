@@ -1993,11 +1993,19 @@ public sealed class CSharpEmitterTests
 	}
 
 	[Fact]
-	public void A_non_terminal_failure_site_clears_it_instead()
+	public void A_guard_failure_site_records_itself()
 	{
+		// A guard is a failure site of no terminal, and it names itself, marked as the weakest thing
+		// a refusal can say (Unguarded_DotGram).
 		var source = Emit("Start = 'x' & when @(false)\nparse Start");
+		var site   = System.Text.RegularExpressions.Regex.Match(
+			source,
+			@"if \(!RecognizeGuard0_DotGram\(\)\) \{ expected = ExpectedSet_DotGram\((\d+)\); goto Fail; \}");
 
-		Assert.Contains("if (!RecognizeGuard0_DotGram()) { expected = null; goto Fail; }", source);
+		Assert.True(site.Success);
+		Assert.Equal(
+			["\u0002when @(false)"],
+			ExpectedTablesTests.SetsOf(source)[int.Parse(site.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)]!);
 	}
 
 	[Fact]
