@@ -484,6 +484,11 @@ sealed class GrammarBinder
 				// type, which is what a publication takes and what a caller supplies.
 				case Decl.Context context:
 
+					// The type goes into the generated file as it is written, beside the grammar's
+					// imports, so it is looked up there as a rule's result type is: a name only the
+					// host's file imports was a C# error inside generated code.
+					ResolveType(context.Type, ns, []);
+
 					if (ns.Context is not null)
 						Report(
 							DuplicateContext,
@@ -508,6 +513,9 @@ sealed class GrammarBinder
 				// read by one walk over one arena, and a type for part of that would be a
 				// type for part of an answer.
 				case Decl.State state:
+
+					// Looked up as a context's is, for the same reason.
+					ResolveType(state.Type, ns, []);
 
 					if (ns.State is not null)
 						Report(

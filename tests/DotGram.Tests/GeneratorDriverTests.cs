@@ -364,6 +364,75 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>
+	/// The type a <c>context</c> or a <c>state</c> declares is looked up the way a result type is:
+	/// beside the grammar's own <c>@using</c> lines, and one not in view is told at the declaration.
+	/// </summary>
+	/// <remarks>
+	/// The type goes into the generated file as it is written, and that file carries the grammar's
+	/// imports and not the host's. Left unchecked, a type the host's file imports and the grammar
+	/// does not was a CS0246 in generated code, at a line of a file the author never wrote, with
+	/// nothing pointing back at the declaration or at the missing <c>@using</c>.
+	/// </remarks>
+	[Theory]
+	[InlineData("context : @Settings", "context.Bias", true)]
+	[InlineData("context : @Settings", "context.Bias", false)]
+	[InlineData("state   : @Marks",    "0",            true)]
+	[InlineData("state   : @Marks",    "0",            false)]
+	public void A_context_or_state_type_is_looked_up_beside_the_grammars_imports(string declaration, string read, bool imported)
+	{
+		var run = RunGenerator(
+			$$""""
+			using App.Models;
+
+			namespace App.Models
+			{
+				public sealed class Settings
+				{
+					public int Bias;
+				}
+
+				public sealed class Marks;
+			}
+
+			namespace App
+			{
+				[DotGram.Gram("""
+					{{(imported ? "@using App.Models;" : "")}}
+					{{declaration}}
+					Digit : @int = d: ['0'..'9'] => @(d[0] - '0' + {{read}})
+					parse Digit
+					""", Carrier = DotGram.GramCarrier.Deferred)]
+				public static partial class Host;
+			}
+			"""",
+			out var output);
+
+		var errors = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(static one => one.Severity == DiagnosticSeverity.Error)
+			.ToList();
+
+		if (imported)
+		{
+			Assert.Empty(run.Diagnostics.Where(static one => one.Severity == DiagnosticSeverity.Error));
+			Assert.Empty(errors);
+
+			return;
+		}
+
+		var name     = declaration.Contains("Settings", StringComparison.Ordinal) ? "Settings" : "Marks";
+		var reported = Assert.Single(run.Diagnostics, static one => one.Id == "GRAM3004");
+
+		Assert.Equal($"No C# type named '{name}' is in view here.", reported.GetMessage(CultureInfo.InvariantCulture));
+
+		// At the declaration, in the host's file: its seventeenth line.
+		Assert.Equal(16, reported.Location.GetLineSpan().StartLinePosition.Line);
+
+		// And the generated code is not handed the name to fail on: the grammar is refused first.
+		Assert.DoesNotContain(errors, static one => one.Id == "CS0246");
+	}
+
+	/// <summary>
 	/// A result type the host nests is the one a bare name means, even where an imported
 	/// namespace has a class of the same name: a struct nested in the host keeps the cast its
 	/// <c>T?</c> local needs to become a <c>T</c>.
