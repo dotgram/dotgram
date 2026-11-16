@@ -737,7 +737,7 @@ sealed partial class GrammarNormalizer
 			// Where the resolver cannot see the host, its no is not a missing constructor: the rule is
 			// taken to be built by a constructor of its captures, which the build asks the host about. Not for a
 			// type of C#'s own, which no grammar's captures fill and which needs no host to say so.
-			if (!tied && chosen is null or { Count: 0 } && written is null && _hostUnseen && !BuiltIn(type))
+			if (!tied && chosen is null or { Count: 0 } && written is null && _language.HostUnseen && !BuiltIn(type))
 				chosen = [.. members.Select(static member => member.Name)];
 
 			if (tied || (chosen is null or { Count: 0 } && written is null))
@@ -942,11 +942,11 @@ sealed partial class GrammarNormalizer
 			return true;
 		}
 
-		if (_resolver.TryResolveConstructors(type, out constructors))
+		if (_language.TryWaysToBuild(type, out constructors))
 			return true;
 
 		foreach (var import in Imports(_model.Root))
-			if (_resolver.TryResolveConstructors(import + "." + type, out constructors))
+			if (_language.TryWaysToBuild(import + "." + type, out constructors))
 				return true;
 
 		return false;
@@ -954,11 +954,11 @@ sealed partial class GrammarNormalizer
 
 	bool TrySettable(string type, out IReadOnlyList<ObjectMember> properties)
 	{
-		if (_resolver.TryResolveSettableProperties(type, out properties))
+		if (_language.TrySettableMembers(type, out properties))
 			return true;
 
 		foreach (var import in Imports(_model.Root))
-			if (_resolver.TryResolveSettableProperties(import + "." + type, out properties))
+			if (_language.TrySettableMembers(import + "." + type, out properties))
 				return true;
 
 		return false;
@@ -1191,7 +1191,7 @@ sealed partial class GrammarNormalizer
 		if (_namedTypes.ContainsKey(element))
 			return (_types.TryGetValue(called, out var declared) ? declared : GeneratedNameOf(called)) == element;
 
-		return _types.TryGetValue(called, out var type) && _resolver.IsAssignable(type, element);
+		return _types.TryGetValue(called, out var type) && _language.Fits(type, element);
 	}
 
 	/// <summary>Whether a type is one a grammar may write by keyword alone, without <c>@</c> (§2).</summary>

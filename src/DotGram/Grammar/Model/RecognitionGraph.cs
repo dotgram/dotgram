@@ -562,7 +562,7 @@ sealed class RecognitionGraph(
 
 	/// <summary>
 	/// The spellings in <see cref="Types"/> the host knows to be classes rather than structs
-	/// (<see cref="ISymbolResolver.IsReferenceType"/>), arrays left out: a <c>T[]</c> is a
+	/// (<see cref="ITargetLanguage.IsReferenceType"/>), arrays left out: a <c>T[]</c> is a
 	/// class whatever <c>T</c> is. Empty where no host answered.
 	/// </summary>
 	public IReadOnlyCollection<string> ReferenceTypes { get; init; } = [];

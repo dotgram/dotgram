@@ -116,7 +116,7 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	bool Satisfies(TypeRef from, TypeRef to)
 	{
-		return from.Name == to.Name || _resolver.IsAssignable(from.Name, to.Name);
+		return from.Name == to.Name || _language.Fits(from.Name, to.Name);
 	}
 
 	/// <summary>
@@ -373,7 +373,7 @@ sealed partial class GrammarNormalizer
 		if (context is null || _recoveries.Count > 0)
 			return;
 
-		_rewinds = _resolver.Rewinds(context.Name);
+		_rewinds = _language.Rewinds(context.Name);
 
 		_diagnostics.Add(new GramDiagnostic(
 			ContextRestored,

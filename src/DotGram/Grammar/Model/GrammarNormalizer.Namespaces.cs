@@ -1920,7 +1920,7 @@ sealed partial class GrammarNormalizer
 		if (Follows(binding.Left, readers, actual))
 			return;
 
-		if (_resolver.IsAssignable(actual, expected))
+		if (_language.Fits(actual, expected))
 			return;
 
 		// Said of the rule that expects the old type where one does, by the names the author
@@ -2065,7 +2065,7 @@ sealed partial class GrammarNormalizer
 				{
 					var reads = _types.TryGetValue(rule, out var declared) ? declared : null;
 
-					if (!top && reads is not null && _resolver.IsAssignable(actual, reads))
+					if (!top && reads is not null && _language.Fits(actual, reads))
 						continue;
 
 					_misread = (rule, called, top ? null : reads, actual);

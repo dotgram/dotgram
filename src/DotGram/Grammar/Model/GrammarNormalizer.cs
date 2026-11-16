@@ -174,22 +174,16 @@ sealed partial class GrammarNormalizer
 	readonly List<GramDiagnostic>                              _whenSound   = [];
 	readonly List<RuleSymbol>                                  _rules       = [];
 
-	readonly ISymbolResolver _resolver;
-
 	/// <summary>
-	/// The language the parser is generated in: asked how the types a grammar names are spelled, and
-	/// which names a host fragment uses — never read here. Where it cannot read fragments, every
-	/// question about one answers conservatively.
+	/// The language the parser is generated in: asked how the types a grammar names are spelled,
+	/// which names a host fragment uses — never read here — and everything only the host can
+	/// answer. Where it cannot read fragments, every question about one answers conservatively.
 	/// </summary>
 	readonly ITargetLanguage _language;
 
-	/// <summary>Whether the resolver cannot see the host's C#: see <see cref="UnseenHostSymbolResolver"/>.</summary>
-	bool _hostUnseen;
-
-	GrammarNormalizer(GrammarModel model, ISymbolResolver resolver, ITargetLanguage language)
+	GrammarNormalizer(GrammarModel model, ITargetLanguage language)
 	{
 		_model    = model;
-		_resolver = resolver;
 		_language = language;
 
 		_ruleIsNullable = rule => _nullable.TryGetValue(rule, out var nullable) && nullable;
@@ -197,11 +191,11 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <param name="resolver">
-	/// Asked one thing only: whether one C# type fits into another, which is what §4.1
-	/// case 2 needs and nothing here can work out for itself.
+	/// The host, for a caller that holds only a C# resolver: C#'s language is made of it and of
+	/// <paramref name="scanner"/>. Null where <paramref name="language"/> is given.
 	/// </param>
 	/// <param name="scanner">
-	/// Asked which names each embedded C# expression uses. Optional, and where it is absent
+	/// Reads each embedded C# expression, for the same caller. Optional, and where it is absent
 	/// the emitter falls back to searching the spelling — which is what it used to do
 	/// always, and what got `@(Log("parserInput"))` counted as asking for the whole input.
 	/// </param>
@@ -218,9 +212,9 @@ sealed partial class GrammarNormalizer
 	/// of the forwarding rules to a parser that calls them as written.
 	/// </param>
 	/// <param name="language">
-	/// The language the parser is generated in. Where it is null, C#'s is made of
-	/// <paramref name="resolver"/> and <paramref name="scanner"/>; where it is given, it reads the
-	/// host fragments itself and <paramref name="scanner"/> must be null.
+	/// The language the parser is generated in, which reads the host fragments and answers for the
+	/// host itself. Where it is null, C#'s is made of <paramref name="resolver"/> and
+	/// <paramref name="scanner"/>.
 	/// </param>
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
@@ -230,15 +224,14 @@ sealed partial class GrammarNormalizer
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
-		if (language is not null && scanner is not null)
-			throw new ArgumentException("A language reads its own host fragments; pass no scanner beside it.", nameof(scanner));
+		if (language is not null && (resolver is not null || scanner is not null))
+			throw new ArgumentException("A language reads its own host fragments and answers for the host; pass neither a resolver nor a scanner beside it.", nameof(language));
 
 		language ??= new CSharpLanguage(resolver, scanner);
 
-		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance, language)
+		var normalizer = new GrammarNormalizer(model, language)
 		{
-			_segmented  = NamesEndOfSegment(model),
-			_hostUnseen = resolver is UnseenHostSymbolResolver,
+			_segmented = NamesEndOfSegment(model),
 		};
 
 		normalizer.Collect(model.Root);
@@ -381,7 +374,7 @@ sealed partial class GrammarNormalizer
 		normalizer.CheckMarksHaveState();
 		normalizer.CheckSuppliedNamesAreHandedOver();
 
-		var located = Locating(normalizer, resolver, locationType, Imports(model.Root));
+		var located = Locating(normalizer, locationType, Imports(model.Root));
 
 		// Last, so that every check above said what the author named: a grammar that names `eos`
 		// publishes its forms over text under names of their own, read through those over segments.
@@ -405,7 +398,7 @@ sealed partial class GrammarNormalizer
 			];
 		}
 
-		normalizer.CheckLocatedAreNotNullable(located, resolver, Imports(model.Root));
+		normalizer.CheckLocatedAreNotNullable(located, Imports(model.Root));
 
 		return new RecognitionGraph(
 			normalizer._rules,
@@ -441,7 +434,7 @@ sealed partial class GrammarNormalizer
 			Segmented  = normalizer._segmented,
 
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
-			ReferenceTypes = ReferenceTypes(normalizer, resolver, model.Root, Imports(model.Root)),
+			ReferenceTypes = ReferenceTypes(normalizer, model.Root, Imports(model.Root)),
 
 			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,
@@ -462,25 +455,27 @@ sealed partial class GrammarNormalizer
 	/// written from its parts loses nothing.
 	/// </remarks>
 	void CheckLocatedAreNotNullable(
-		IReadOnlyCollection<RuleSymbol> located, ISymbolResolver? resolver, IReadOnlyList<string> imports)
+		IReadOnlyCollection<RuleSymbol> located, IReadOnlyList<string> imports)
 	{
+		var host = _language;
+
 		// The first spelling that names a type at all decides, the way C# binds the name in the
 		// generated file: a class of the grammar's own called Nullable is what a bare name means,
 		// beside a using of System (as in ReferenceTypes).
 		bool IsNullable(string type, string? definition)
 		{
-			if (resolver is null)
+			if (!host.HasHost)
 				return false;
 
 			if (definition is null)
-				return resolver.IsNullable(type) || imports.Any(import => resolver.IsNullable(import + "." + type));
+				return host.IsOptional(type) || imports.Any(import => host.IsOptional(import + "." + type));
 
-			if (resolver.TypeExists(definition))
-				return resolver.IsNullable(type);
+			if (host.TypeExists(definition))
+				return host.IsOptional(type);
 
 			foreach (var import in imports)
-				if (resolver.TypeExists(import + "." + definition))
-					return resolver.IsNullable(import + "." + type);
+				if (host.TypeExists(import + "." + definition))
+					return host.IsOptional(import + "." + type);
 
 			return false;
 		}
@@ -521,10 +516,11 @@ sealed partial class GrammarNormalizer
 	/// </para>
 	/// </remarks>
 	static IReadOnlyCollection<RuleSymbol> Locating(
-		GrammarNormalizer normalizer, ISymbolResolver? resolver, string? named,
-		IReadOnlyList<string> imports)
+		GrammarNormalizer normalizer, string? named, IReadOnlyList<string> imports)
 	{
-		if (named is null || resolver is null)
+		var host = normalizer._language;
+
+		if (named is null || !host.HasHost)
 			return [];
 
 		var located = new HashSet<RuleSymbol>();
@@ -541,11 +537,11 @@ sealed partial class GrammarNormalizer
 		// the qualified spelling that a host compilation can answer about.
 		bool Fits(string type)
 		{
-			if (resolver.IsAssignable(type, named))
+			if (host.Fits(type, named))
 				return true;
 
 			foreach (var import in imports)
-				if (resolver.IsAssignable(import + "." + type, named))
+				if (host.Fits(import + "." + type, named))
 					return true;
 
 			return false;
@@ -554,7 +550,7 @@ sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// The declared types the host knows to be classes rather than structs, by the spelling
-	/// <see cref="RecognitionGraph.Types"/> carries (<see cref="ISymbolResolver.IsReferenceType"/>).
+	/// <see cref="RecognitionGraph.Types"/> carries (<see cref="ITargetLanguage.IsReferenceType"/>).
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -577,11 +573,12 @@ sealed partial class GrammarNormalizer
 	/// </para>
 	/// </remarks>
 	static IReadOnlyCollection<string> ReferenceTypes(
-		GrammarNormalizer normalizer, ISymbolResolver? resolver, GrammarNamespace root, IReadOnlyList<string> imports)
+		GrammarNormalizer normalizer, GrammarNamespace root, IReadOnlyList<string> imports)
 	{
 		var references = new HashSet<string>(StringComparer.Ordinal);
+		var host       = normalizer._language;
 
-		if (resolver is null)
+		if (!host.HasHost)
 			return references;
 
 		var written = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -626,23 +623,23 @@ sealed partial class GrammarNormalizer
 			if (!written.TryGetValue(type, out var definition))
 				return AnyIsReference(type);
 
-			if (resolver.TypeExists(definition))
-				return resolver.IsReferenceType(type);
+			if (host.TypeExists(definition))
+				return host.IsReferenceType(type);
 
 			foreach (var import in imports)
-				if (resolver.TypeExists(import + "." + definition))
-					return resolver.IsReferenceType(import + "." + type);
+				if (host.TypeExists(import + "." + definition))
+					return host.IsReferenceType(import + "." + type);
 
 			return false;
 		}
 
 		bool AnyIsReference(string type)
 		{
-			if (resolver.IsReferenceType(type))
+			if (host.IsReferenceType(type))
 				return true;
 
 			foreach (var import in imports)
-				if (resolver.IsReferenceType(import + "." + type))
+				if (host.IsReferenceType(import + "." + type))
 					return true;
 
 			return false;

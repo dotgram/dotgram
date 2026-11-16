@@ -7,11 +7,11 @@ namespace DotGram.Grammar.Model;
 
 sealed partial class GrammarNormalizer
 {
-	internal static bool PublicationFits(ISymbolResolver resolver, string from, string to, GrammarNamespace ns)
+	internal static bool PublicationFits(ITargetLanguage language, string from, string to, GrammarNamespace ns)
 	{
 		foreach (var source in Names(from))
 			foreach (var target in Names(to))
-				if (resolver.IsAssignable(source, target)) return true;
+				if (language.Fits(source, target)) return true;
 		return false;
 
 		IEnumerable<string> Names(string name)
@@ -34,7 +34,7 @@ sealed partial class GrammarNormalizer
 			// Generated capture records have no symbol in the host compilation yet.
 			// They are sealed objects without user-defined bases or interfaces.
 			var compatible = actual is null ? IsObject(expected) :
-				PublicationFits(_resolver, actual, expected, publication.DeclaredIn);
+				PublicationFits(_language, actual, expected, publication.DeclaredIn);
 			if (!type.IsCSharp || !compatible)
 				_diagnostics.Add(new GramDiagnostic(PublicationTypeMismatch,
 					$"The result of '{publication.Rule.Name}' ({actual ?? "generated capture record"}) is not assignable to publication type '{expected}'. Use a compatible C# type written as '@T'.",

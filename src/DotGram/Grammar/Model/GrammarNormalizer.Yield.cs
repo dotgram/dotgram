@@ -78,9 +78,9 @@ sealed partial class GrammarNormalizer
 					reason = "A yielded element must consume input and must not give back a successful match.";
 				else if (!type.IsCSharp || type.IsSequence)
 					reason = "The yield element type must be a C# type written as '@T'.";
-				else if (!_types.TryGetValue(element, out var actual) || !_resolver.IsAssignable(actual, collectedType))
+				else if (!_types.TryGetValue(element, out var actual) || !_language.Fits(actual, collectedType))
 					reason = $"The result of '{element.Name}' is not an element of the published collection '{_types[root]}'.";
-				else if (!PublicationFits(_resolver, actual, type.Name, publication.DeclaredIn))
+				else if (!PublicationFits(_language, actual, type.Name, publication.DeclaredIn))
 					reason = $"The result of '{element.Name}' is not assignable to the yield type '{type.Name}'.";
 				else
 				{

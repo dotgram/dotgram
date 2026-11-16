@@ -18,6 +18,12 @@ namespace DotGram.Grammar;
 /// asked of the resolver, where that one can say (<see cref="ICSharpNames"/>). One instance is
 /// made for each compilation, of the scanner and the resolver that compilation has.
 /// </para>
+/// <para>
+/// The host questions go to that resolver too: Roslyn's in a build that sees the host, the
+/// answers the incremental generator collected for it ahead of time, a permissive one where the
+/// host cannot be seen, and none at all for a grammar compiled from a string. Nothing here
+/// caches an answer; the resolver behind it does, where it was built to.
+/// </para>
 /// </remarks>
 sealed class CSharpLanguage : ITargetLanguage
 {
@@ -32,15 +38,19 @@ sealed class CSharpLanguage : ITargetLanguage
 	/// <summary>Each known type's keyword, in the order of <see cref="KnownType"/>.</summary>
 	static readonly string?[] Keywords = Keywords0();
 
+	readonly ISymbolResolver _resolver;
 	readonly ICSharpScanner? _scanner;
 	readonly ICSharpNames?   _names;
 
-	/// <param name="resolver">The host, asked which names it answers to where it can say; null for none.</param>
+	/// <param name="resolver">The host; null for none, which answers every question permissively.</param>
 	/// <param name="scanner">Reads the C# a grammar hands over; null where nothing can.</param>
 	public CSharpLanguage(ISymbolResolver? resolver = null, ICSharpScanner? scanner = null)
 	{
-		_scanner = scanner;
-		_names   = resolver as ICSharpNames;
+		_resolver  = resolver ?? PermissiveSymbolResolver.Instance;
+		_scanner   = scanner;
+		_names     = resolver as ICSharpNames;
+		HasHost    = resolver is not null;
+		HostUnseen = resolver is UnseenHostSymbolResolver;
 	}
 
 	/// <summary>A language whose C# this scanner reads, for a caller that holds only a scanner.</summary>
@@ -205,6 +215,55 @@ sealed class CSharpLanguage : ITargetLanguage
 	public IReadOnlyCollection<string>? NamesUnboundIn(string fragment, IReadOnlyList<string> imports)
 	{
 		return _names?.UnboundIn(fragment, imports);
+	}
+
+	public bool HasHost { get; }
+
+	public bool HostUnseen { get; }
+
+	public bool TypeExists(string name)
+	{
+		return _resolver.TypeExists(name);
+	}
+
+	public bool Fits(string from, string to)
+	{
+		return _resolver.IsAssignable(from, to);
+	}
+
+	public bool TryWaysToBuild(string type, out IReadOnlyList<IReadOnlyList<MethodParameter>> ways)
+	{
+		return _resolver.TryResolveConstructors(type, out ways);
+	}
+
+	public bool TrySettableMembers(string type, out IReadOnlyList<ObjectMember> members)
+	{
+		return _resolver.TryResolveSettableProperties(type, out members);
+	}
+
+	public ExternalValueResolution ExternalValue(string method, string? against, out string? valueType)
+	{
+		return _resolver.TryResolveExternalValue(method, against, out valueType);
+	}
+
+	public ExternalMethodResolution ExternalMethod(string method, ExternalMethodRole role)
+	{
+		return _resolver.ResolveExternalMethod(method, role);
+	}
+
+	public bool Rewinds(string type)
+	{
+		return _resolver.Rewinds(type);
+	}
+
+	public bool IsReferenceType(string type)
+	{
+		return _resolver.IsReferenceType(type);
+	}
+
+	public bool IsOptional(string type)
+	{
+		return _resolver.IsNullable(type);
 	}
 
 	static string?[] Keywords0()

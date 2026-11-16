@@ -137,7 +137,7 @@ sealed class ExecutionPlan
 			{
 				case Node.Element element:
 					if (!(element.IsNegated || element.Ranges.Count > 0 || element.Categories.Count > 0 ||
-						element.References.Any(static reference => reference is CSharpSymbol)))
+						element.References.Any(static reference => reference.IsHost())))
 						return false;
 
 					break;

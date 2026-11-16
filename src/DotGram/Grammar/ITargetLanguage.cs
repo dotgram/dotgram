@@ -113,6 +113,58 @@ interface ITargetLanguage
 	/// the grammar's imports; null where this cannot say.
 	/// </summary>
 	IReadOnlyCollection<string>? NamesUnboundIn(string fragment, IReadOnlyList<string> imports);
+
+	// ── The host: what only the code the parser is generated into can answer ──────────
+	//
+	// Types are named as the grammar wrote them, bare or under one of its imports. A language
+	// with no host answers every question permissively, and that is a legal answer: it is what
+	// a grammar compiled on its own, with nothing around it, gets.
+
+	/// <summary>
+	/// Whether a host was given at all. Where none was, the questions only a host can settle —
+	/// which rules are located, which types are classes, which are optional — are not asked.
+	/// </summary>
+	bool HasHost { get; }
+
+	/// <summary>
+	/// Whether the host's answers are stand-ins, given without seeing its code: a no from one is
+	/// not a refusal, and what it would settle is left for the build that sees the host.
+	/// </summary>
+	bool HostUnseen { get; }
+
+	/// <summary>Whether a type of this name is in scope in the host.</summary>
+	bool TypeExists(string name);
+
+	/// <summary>Whether a value of type <paramref name="from"/> may be put where <paramref name="to"/> is expected.</summary>
+	bool Fits(string from, string to);
+
+	/// <summary>
+	/// The ways a type can be built from named values: each a list of the values it takes, in order.
+	/// </summary>
+	/// <returns><c>false</c> where the type is not in scope, or offers no way to build it.</returns>
+	bool TryWaysToBuild(string type, out IReadOnlyList<IReadOnlyList<MethodParameter>> ways);
+
+	/// <summary>The members of a type that can be set as it is made.</summary>
+	/// <returns><c>false</c> where the type is not in scope, or nothing about it can be set.</returns>
+	bool TrySettableMembers(string type, out IReadOnlyList<ObjectMember> members);
+
+	/// <summary>
+	/// Whether an external recognizer of this name hands back a value of its own, and its type
+	/// where it does; <paramref name="against"/> is the type it is held to, where there is one.
+	/// </summary>
+	ExternalValueResolution ExternalValue(string method, string? against, out string? valueType);
+
+	/// <summary>The shape of an external recognizer or predicate the grammar calls in the given role.</summary>
+	ExternalMethodResolution ExternalMethod(string method, ExternalMethodRole role);
+
+	/// <summary>Whether a value of the context type can be put back as it was.</summary>
+	bool Rewinds(string type);
+
+	/// <summary>Whether a type is one whose values are references, rather than values copied whole.</summary>
+	bool IsReferenceType(string type);
+
+	/// <summary>Whether a type is the language's optional representation of a value type.</summary>
+	bool IsOptional(string type);
 }
 
 /// <summary>How <see cref="ITargetLanguage.Spells"/> looks for a name in the spelling of a fragment.</summary>

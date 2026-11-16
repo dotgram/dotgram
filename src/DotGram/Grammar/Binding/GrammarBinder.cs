@@ -139,7 +139,6 @@ sealed class GrammarBinder
 
 	const string TriviaRule = "trivia";
 
-	readonly ISymbolResolver                                               _symbols;
 	readonly ITargetLanguage                                               _language;
 	readonly Dictionary<Expr, Symbol>                                      _bindings = new(NodeIdentityComparer.Instance);
 	readonly Dictionary<Expr, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _withBindings = new(NodeIdentityComparer.Instance);
@@ -178,22 +177,27 @@ sealed class GrammarBinder
 	/// </remarks>
 	readonly int _own;
 
-	GrammarBinder(ISymbolResolver symbols, ITargetLanguage language, int own)
+	GrammarBinder(ITargetLanguage language, int own)
 	{
-		_symbols  = symbols;
 		_language = language;
 		_own      = own;
 	}
 
-	/// <param name="language">How the types the grammar names are spelled; C# where it is null.</param>
+	/// <param name="symbols">
+	/// The host, for a caller that holds only a C# resolver: C#'s language is made of it. Null
+	/// where <paramref name="language"/> is given.
+	/// </param>
+	/// <param name="language">The language the parser is generated in, which also answers for the host.</param>
 	public static GrammarModel Bind(
 		GrammarFile file, ISymbolResolver? symbols = null, int? own = null, ITargetLanguage? language = null)
 	{
 		if (file is null)
 			throw new ArgumentNullException(nameof(file));
 
-		var binder   = new GrammarBinder(
-			symbols ?? PermissiveSymbolResolver.Instance, language ?? CSharpLanguage.Instance, own ?? int.MaxValue);
+		if (language is not null && symbols is not null)
+			throw new ArgumentException("A language answers for the host itself; pass no resolver beside it.", nameof(symbols));
+
+		var binder   = new GrammarBinder(language ?? new CSharpLanguage(symbols), own ?? int.MaxValue);
 		var standard = binder.CreateBuiltIn();
 		var global   = new GrammarNamespace("", standard);
 
@@ -918,18 +922,18 @@ sealed class GrammarBinder
 	/// <remarks>
 	/// The search is here rather than in the resolver because what is imported is the
 	/// grammar's business — the host is asked only whether one whole name exists, which
-	/// is all <see cref="ISymbolResolver"/> knows how to answer. A name that resolves
+	/// is all <see cref="ITargetLanguage.TypeExists"/> knows how to answer. A name that resolves
 	/// through an import is emitted as it was written, and the generated file carries the
 	/// same <c>using</c> directives, so it stands there too.
 	/// </remarks>
 	bool TypeInView(string name, GrammarNamespace ns)
 	{
-		if (_symbols.TypeExists(name))
+		if (_language.TypeExists(name))
 			return true;
 
 		for (var at = ns; at is not null; at = at.Parent)
 			foreach (var import in at.CSharpImports)
-				if (_symbols.TypeExists(import + "." + name))
+				if (_language.TypeExists(import + "." + name))
 					return true;
 
 		return false;
@@ -1084,7 +1088,7 @@ sealed class GrammarBinder
 			if (csharpValue)
 				return;
 
-			Bind(new CSharpSymbol(reference.Name));
+			Bind(new HostSymbol(reference.Name));
 
 			return;
 		}

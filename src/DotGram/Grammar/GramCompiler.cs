@@ -100,12 +100,12 @@ static class GramCompiler
 		// Past the author's text is what was spliced on: what the host included, and after
 		// that the standard library, which Read put there. Each is a root of its own.
 		var model = GrammarBinder.Bind(
-			parsed.File, options.SymbolResolver, Math.Min(options.Own ?? int.MaxValue, grammarText.Length), language);
+			parsed.File, null, Math.Min(options.Own ?? int.MaxValue, grammarText.Length), language);
 
 		options.Bound?.Invoke(model);
 
 		var graph = GrammarNormalizer.Normalize(
-			model, options.SymbolResolver, null, options.LocationType, options.PositionalFollow,
+			model, null, null, options.LocationType, options.PositionalFollow,
 			options.PositionalFollowSplit, options.CollapseForwarders, language);
 
 		if (options.LocatedFacade is { Length: > 0 } facade && options.LocationType is { } located)
@@ -154,8 +154,8 @@ static class GramCompiler
 				if (publication.Kind != PublishKind.Yield && publication.ResultType is { } contract &&
 					(options.BufferedBytes || publication.BufferedBytes) &&
 					!graph.Types.ContainsKey(publication.Rule) && graph.Results[publication.Rule].Count == 0 &&
-					!GrammarNormalizer.PublicationFits(options.SymbolResolver ?? PermissiveSymbolResolver.Instance,
-						language.SequenceOf(language.Spelling(KnownType.Byte)), GrammarNormalizer.TypeName(contract, language),
+					!GrammarNormalizer.PublicationFits(
+						language, language.SequenceOf(language.Spelling(KnownType.Byte)), GrammarNormalizer.TypeName(contract, language),
 						publication.DeclaredIn))
 					diagnostics.Add(new GramDiagnostic(GrammarNormalizer.PublicationTypeMismatch,
 						"The byte input form returns byte[], which is not assignable to the publication type.",

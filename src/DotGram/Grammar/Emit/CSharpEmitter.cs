@@ -7067,7 +7067,7 @@ file.Line("return spare;");
 		// wrote it — the grammar's own `@using` directives are in the file, which is what
 		// they are there for — rather than qualified, which nothing here could do.
 		foreach (var reference in element.References)
-			if (reference is CSharpSymbol predicate)
+			if (reference is HostSymbol predicate)
 				tests.Add($"{HostCall(predicate.Name, ("char", ""))}(c)");
 
 		// An empty set admits nothing, and its complement admits everything. Said as

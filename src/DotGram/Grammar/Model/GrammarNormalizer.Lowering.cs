@@ -291,8 +291,8 @@ sealed partial class GrammarNormalizer
 		// The host is asked about the method by its name; the call names it as the grammar wrote it,
 		// type arguments and all: `@F<int>` is called as `F<int>(…)`, which C# cannot infer from
 		// the arguments, and is another recognizer than `@F<long>`.
-		if (symbol is CSharpSymbol reader)
-			switch (_resolver.TryResolveExternalValue(reader.Name, against: null, out var valueType))
+		if (symbol is HostSymbol reader)
+			switch (_language.ExternalValue(reader.Name, against: null, out var valueType))
 			{
 				case ExternalValueResolution.Found:
 					return CallTo(ExternalRuleFor(ExternalName(expression), valueType!), []);
@@ -311,7 +311,7 @@ sealed partial class GrammarNormalizer
 					// And whether it can be called at all. Without this the grammar compiled and the C#
 					// compiler refused the call, in a generated file, at a line of it the author never
 					// wrote. The host says no only where it is sure (RoslynSymbolResolver).
-					switch (_resolver.ResolveExternalMethod(ExternalName(expression), ExternalMethodRole.Recognizer))
+					switch (_language.ExternalMethod(ExternalName(expression), ExternalMethodRole.Recognizer))
 					{
 						case ExternalMethodResolution.NoMethod:
 							Report(
@@ -383,7 +383,7 @@ sealed partial class GrammarNormalizer
 	/// <remarks>Asked as the call is written, type arguments and all, which is what C# looks the name up by.</remarks>
 	Node.External ExternalNode(string written)
 	{
-		var resolution = _resolver.ResolveExternalMethod(written, ExternalMethodRole.Recognizer);
+		var resolution = _language.ExternalMethod(written, ExternalMethodRole.Recognizer);
 
 		return new Node.External(written)
 		{
@@ -432,9 +432,9 @@ sealed partial class GrammarNormalizer
 	/// <para>
 	/// Rewritten directly rather than through <c>_produces</c>/<c>PassThrough</c>'s own
 	/// generic machinery, and for a specific reason: that machinery settles whether an
-	/// operand's value fits the declared type by asking <see cref="ISymbolResolver.IsAssignable"/> as an ordinary, separately cached question — which needs both types
+	/// operand's value fits the declared type by asking <see cref="ITargetLanguage.Fits"/> as an ordinary, separately cached question — which needs both types
 	/// known from grammar syntax alone, ahead of asking. The type on this side of the
-	/// question is discovered by <em>this same call</em> (<see cref="ISymbolResolver.TryResolveExternalValue"/>'s <c>against</c> parameter already verified it), so
+	/// question is discovered by <em>this same call</em> (<see cref="ITargetLanguage.ExternalValue"/>'s <c>against</c> parameter already verified it), so
 	/// nothing upstream could have pre-asked an ordinary <c>Fits</c> question about it —
 	/// asking one here would be the exact "question the collector did not foresee" defect
 	/// <see cref="AnsweredSymbolResolver"/> exists to catch. Fitness is settled once, by the
@@ -456,7 +456,7 @@ sealed partial class GrammarNormalizer
 			if (rule.Declaration?.Type is { } type &&
 				_bodies[rule] is Node.Call(var called, _) &&
 				_bodies[called] is Node.External(var written) { HasValue: true } &&
-				_resolver.TryResolveExternalValue(MethodOf(written), TypeName(type), out _) == ExternalValueResolution.Found)
+				_language.ExternalValue(MethodOf(written), TypeName(type), out _) == ExternalValueResolution.Found)
 			{
 				_bodies[rule] = new Node.Construct(
 					new Node.Capture("item0", _bodies[rule]), Construction.Operand.Instance);
@@ -836,7 +836,7 @@ sealed partial class GrammarNormalizer
 				// the answer to the consumer's own compiler, which is where §7.4 puts
 				// every other question about the C# a grammar wrote.
 				if (LiteralType(argument) is { } actual &&
-					!_resolver.IsAssignable(actual, TypeName(kind)))
+					!_language.Fits(actual, TypeName(kind)))
 				{
 					Report(
 						UnbuiltCall,
@@ -1440,9 +1440,9 @@ sealed partial class GrammarNormalizer
 			// Emission writes Name(c), and the C# compiler resolves that overload — once the
 			// host has said there is one it could resolve (GRAM4025), which is said here about
 			// the brackets rather than by C# about a generated file.
-			if (symbol is CSharpSymbol predicate)
+			if (symbol is HostSymbol predicate)
 			{
-				switch (_resolver.ResolveExternalMethod(predicate.Name, ExternalMethodRole.Predicate))
+				switch (_language.ExternalMethod(predicate.Name, ExternalMethodRole.Predicate))
 				{
 					case ExternalMethodResolution.NoMethod:
 						Report(

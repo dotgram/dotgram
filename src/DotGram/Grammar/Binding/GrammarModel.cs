@@ -8,7 +8,15 @@ using DotGram.Grammar.Parsing;
 namespace DotGram.Grammar.Binding;
 
 /// <summary>A named thing a reference can resolve to.</summary>
-abstract record Symbol(string Name);
+abstract record Symbol(string Name)
+{
+	/// <summary>Whether the host answers for it: a recognizer or a predicate the grammar calls but does not define.</summary>
+	/// <remarks>A method rather than a property, which a record would print as one of its members.</remarks>
+	public virtual bool IsHost()
+	{
+		return false;
+	}
+}
 
 /// <summary>
 /// A rule. Declaration is null for the built-in rules, which have symbols but no
@@ -90,8 +98,14 @@ sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Name);
 /// <summary>One `A = B` entry in a `with (...)` header, resolved to symbols (§5, §7).</summary>
 sealed record ResolvedRebinding(RuleSymbol Left, RuleSymbol Right, Location At);
 
-/// <summary>A name that lives on the C# side.</summary>
-sealed record CSharpSymbol(string Name) : Symbol(Name);
+/// <summary>A name that lives in the host, the code the parser is generated into.</summary>
+sealed record HostSymbol(string Name) : Symbol(Name)
+{
+	public override bool IsHost()
+	{
+		return true;
+	}
+}
 
 /// <summary>
 /// One lexical namespace: the global one at the top of a file, or a `namespace` block.
