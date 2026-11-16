@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -80,6 +81,23 @@ public sealed class IncludedReferencesTests : IDisposable
 		// Measured on the T-SQL grammar: 92 ms a request when every reference counted the grammar's lines
 		// again, 2 ms once they are counted once; the bound sits between, for a machine that is busy.
 		Assert.True(each < 30, $"A request took {each:0} ms.");
+	}
+
+	/// <summary>A cancelled request maps none of a rule's uses in the document itself, however many there are.</summary>
+	[Fact]
+	public void A_cancelled_request_maps_no_local_reference()
+	{
+		var text       = string.Concat(Enumerable.Repeat("Word ", 300_000));
+		var positions  = Enumerable.Range(0, 300_000).Select(static index => index * 5).ToArray();
+		var found      = new GramReferences("Word", 0, positions);
+		var lines      = new LineMap(text);
+
+		using var cancelled = new CancellationTokenSource();
+
+		cancelled.Cancel();
+
+		Assert.Throws<OperationCanceledException>(() =>
+			NavigationMap.References(found, includeDeclaration: true, "untitled:A.gram", lines, new CountingStore(), cancelled.Token));
 	}
 
 	/// <summary>The temporary directory's store, counting how often it is asked where a grammar opens.</summary>

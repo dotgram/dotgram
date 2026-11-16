@@ -119,9 +119,17 @@ static class NavigationMap
 		var result   = new List<Location>(found.Positions.Length + found.Elsewhere.Count);
 		var grammars = new List<(StandaloneIncludedGrammar Grammar, string? Uri, LineMap? Lines)>();
 
-		foreach (var position in found.Positions)
+		for (var index = 0; index < found.Positions.Length; index++)
+		{
+			// Looked at now and then, not at every use: a grammar's own uses are many and each is cheap.
+			if (index % 1024 == 0)
+				cancellationToken.ThrowIfCancellationRequested();
+
+			var position = found.Positions[index];
+
 			if (includeDeclaration || position != found.DefinitionPosition)
 				result.Add(new Location(uri, lines.Range(position, found.Name.Length)));
+		}
 
 		foreach (var reference in found.Elsewhere)
 		{
