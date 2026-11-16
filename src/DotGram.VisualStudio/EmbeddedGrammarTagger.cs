@@ -259,6 +259,27 @@ sealed class EmbeddedGrammarBufferAnalysis : IEmbeddedGrammarHost<ITextSnapshot>
 
 		_buffer.Changed += BufferChanged;
 		_workspace.WorkspaceChanged += WorkspaceChanged;
+		_documents.TextDocumentDisposed += TextDocumentDisposed;
+	}
+
+	/// <summary>
+	/// The buffer's document is closed: the session stops and the events that fed it are let go, so
+	/// that neither the workspace nor the factory keeps the buffer and its analysis alive; a buffer
+	/// opened again gets an analysis of its own.
+	/// </summary>
+	void TextDocumentDisposed(object sender, Microsoft.VisualStudio.Text.TextDocumentEventArgs args)
+	{
+		EditorGuard.Run("Embedded grammar document close", () =>
+		{
+			if (args.TextDocument.TextBuffer != _buffer)
+				return;
+
+			_documents.TextDocumentDisposed -= TextDocumentDisposed;
+			_workspace.WorkspaceChanged    -= WorkspaceChanged;
+			_buffer.Changed                -= BufferChanged;
+			_buffer.Properties.RemoveProperty(typeof(EmbeddedGrammarBufferAnalysis));
+			_session.Close();
+		});
 	}
 
 	public event Action<ITextSnapshot>? Changed
