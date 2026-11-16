@@ -583,11 +583,12 @@ fail the file. Write the record rule, mark its repetition `recover eol`, and pub
 sequence rule when header lines are to arrive in the same sequence. Then either give the
 `recover` a `=>` that builds a rejection of the same element type from `parserLine`,
 `parserText` and `parserMessage` (`parserFailureColumn` says where in the line reading
-stopped, which names the field), or leave it off and implement `OnRecovered`, below. The tour's
+stopped, which names the field), or leave it off and implement `OnRecovered`, below. A whole
+feed, header to trailer, is [the next section](#a-feed-whole); the tour's
 [Feeds written by people](https://github.com/dotgram/dotgram/blob/main/docs/tour.md#feeds-written-by-people)
-has two complete examples, and [docs/feeds.md](https://github.com/dotgram/dotgram/blob/main/docs/feeds.md)
-the rest: trading feeds in pipes, CSV and fixed width with a header and a trailer, and a
-feed of ten million records bulk-loaded into a database.
+has two more, and [docs/feeds.md](https://github.com/dotgram/dotgram/blob/main/docs/feeds.md)
+the rest: trading feeds in CSV and fixed width, files kept by hand, and a feed of ten million
+records bulk-loaded into a database.
 
 `OnRecovered` is a `static partial void` of the host, one for every grammar of the class, called
 as the bad element is read — during the enumeration, on its thread. To hand a caller its own
@@ -632,6 +633,168 @@ no reader overloads over kinds.
 **A terminal of the lexical half is not a bare `@M`** (`GRAM5011`): the lexer has no
 beginning to stop on and asks the host at the start of every token. Write what the terminal
 begins with first — `Blob = '<' & @ReadBlob` — and the host is asked only where that stands.
+
+## A feed, whole
+
+The first trading feed of [docs/feeds.md](https://github.com/dotgram/dotgram/blob/main/docs/feeds.md),
+as it is there and in `examples/DotGram.Examples/Feeds/EodTradesExample.cs`: one record to a line,
+the fields between pipes and the record type first — `H` the header, `D` a trade, `T` the trailer
+with the number of trades. `trades.txt`:
+
+```text
+H|EOD-TRADES|2026-10-02|NORTHBRIDGE SECURITIES
+D|T-0101|2026-10-02|2026-10-05|US0378331005|BUY|1200|227.52|USD
+D|T-0102|2026-10-02|2026-10-06|DE0007164600|SELL|350|212.40|EUR
+D|T-0103|2026-10-02|2026-10-06|GB0002634946|BUY|1,500|7.384|GBP
+D|T-0104|2026-10-02|2026-10-05|US5949181045|SELL|800|USD
+D|T-0105|2026-1O-02|2026-10-06|NL0010273215|BUY|40|612.10|EUR
+D|T-0106|2026-10-02|2026-10-05|US88160R1014|BUY|600|243.85|USD
+D|T-0107|2026-10-02|2026-10-05|US0378331005|HOLD|100|227.60|USD
+D|T-0108|2026-10-02|2026-10-05|US0231351067|SELL|250|186.20|USD
+T|8|4840
+```
+
+Four of the eight trades are wrong: a quantity with a thousands separator, a trade whose price
+was left out, a letter O typed for a zero in a date, and a side the file does not know.
+
+```csharp
+using System;
+using System.Globalization;
+using System.IO;
+
+using DotGram;
+
+public abstract record EodLine;
+
+public sealed record EodHeader(string Feed, string BusinessDate, string Sender) : EodLine;
+
+public sealed record EodTrade(
+	string Id, string TradeDate, string SettlementDate, string Isin,
+	Side Side, long Quantity, decimal Price, string Currency) : EodLine;
+
+public sealed record EodTrailer(long Count, long Quantity) : EodLine;
+
+public sealed record EodReject(int Line, int Column, string Field, string Text, string Message) : EodLine;
+
+public enum Side
+{
+	Buy,
+	Sell,
+}
+
+[Gram("""
+	EodFile : @EodLine[] = Header
+	                     & Trade* recover eos
+	                         => @(new EodReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
+	                     & Trailer & eof
+
+	Header  : @EodLine = "H|" & feed: Text & '|' & day: Date & '|' & sender: Text & eos
+	                  => @(new EodHeader(feed, day, sender))
+
+	Trade   : @EodLine = "D|" & id: Text & '|' & traded: Date & '|' & settles: Date & '|' & isin: Isin
+	                   & '|' & side: BuySell & '|' & quantity: Quantity & '|' & price: Price & '|' & currency: Currency & eos
+	                  => @(new EodTrade(id, traded, settles, isin, side, quantity, price, currency))
+
+	Trailer : @EodLine = "T|" & count: Quantity & '|' & total: Quantity & eos
+	                  => @(new EodTrailer(count, total))
+
+	BuySell  : @Side     = "BUY" => @(Side.Buy) | "SELL" => @(Side.Sell)
+	Quantity : @long     = Digit{1,15} => @(Number(parserText))
+	Price    : @decimal  = Digit{1,12} & ('.' & Digit{1,6})? => @(Amount(parserText))
+
+	Date     = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
+	Isin     = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
+	Currency = ['A'..'Z']{3}
+	Text     = [^ '|']+
+	Digit    = ['0'..'9']
+
+	parse EodFile as Read
+	""")]
+public static partial class EodTrades
+{
+	static readonly string[] Fields =
+		["Record", "Id", "TradeDate", "SettlementDate", "Isin", "Side", "Quantity", "Price", "Currency"];
+
+	static long Number(string digits)
+	{
+		return long.Parse(digits, CultureInfo.InvariantCulture);
+	}
+
+	static decimal Amount(string text)
+	{
+		return decimal.Parse(text, CultureInfo.InvariantCulture);
+	}
+
+	public static string FieldAt(string line, int column)
+	{
+		var pipes = 0;
+
+		for (var at = 0; at < column - 1 && at < line.Length; at++)
+			if (line[at] == '|')
+				pipes++;
+
+		// A pipe where the line should have ended: one field more than a trade has.
+		if (pipes == Fields.Length - 1 && column - 1 < line.Length && line[column - 1] == '|')
+			return "(extra)";
+
+		return pipes < Fields.Length ? Fields[pipes] : "(extra)";
+	}
+}
+```
+
+```csharp
+using var feed = File.OpenText("trades.txt");
+
+var trades   = 0;
+var rejected = 0;
+
+foreach (var line in EodTrades.Read(feed))
+{
+	switch (line)
+	{
+		case EodHeader header:
+			Console.WriteLine($"{header.Feed} {header.BusinessDate} from {header.Sender}");
+			break;
+
+		case EodTrade trade:
+			trades++;
+			Console.WriteLine($"{trade.Id} {trade.Side} {trade.Quantity} {trade.Isin} at {trade.Price} {trade.Currency}");
+			break;
+
+		case EodReject reject:
+			rejected++;
+			Console.WriteLine($"line {reject.Line}, {reject.Field}: {reject.Message}");
+			break;
+
+		case EodTrailer trailer:
+			var check = trades + rejected == trailer.Count ? "OK" : "MISMATCH";
+			Console.WriteLine($"read {trades}, rejected {rejected}; trailer: expected {trailer.Count} — {check}");
+			break;
+	}
+}
+```
+
+```text
+EOD-TRADES 2026-10-02 from NORTHBRIDGE SECURITIES
+T-0101 Buy 1200 US0378331005 at 227.52 USD
+T-0102 Sell 350 DE0007164600 at 212.40 EUR
+line 4, Quantity: Expected '|' at 4:50.
+line 5, Price: Expected Digit at 5:54.
+line 6, TradeDate: Expected Date at 6:16.
+T-0106 Buy 600 US88160R1014 at 243.85 USD
+line 8, Side: Expected ['B' | 'S'] at 8:45.
+T-0108 Sell 250 US0231351067 at 186.20 USD
+read 4, rejected 4; trailer: expected 8 — OK
+```
+
+`Read` hands the lines over as the loop asks for them, so what the parse holds is the line in hand
+and not the file. A bad trade comes back in its place as an `EodReject`, built by the `=>` after
+`recover` from what the parser fills in: `parserLine`, `parserFailureColumn` (where reading
+stopped — `FieldAt` counts the pipes before it to name the field), `parserText` and
+`parserMessage`. `H|`, `D|` and `T|` are what a line is known by, so `Trailer & eof` is never read
+as a bad trade, and the trailer's count is held against the good lines and the bad ones together.
+A date, a quantity and a price are checked for their shape only: whether a 31st of November is a
+day is the program's question, not the grammar's.
 
 ## When a parse refuses and the message is not enough
 
