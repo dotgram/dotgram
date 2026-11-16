@@ -274,7 +274,7 @@ static class MSBuild
 						break;
 
 					case JsonTokenType.String when IsPathEntry(opened) && reader.GetString() is { Length: > 0 } entry && entry != "$host$" && !Path.IsPathRooted(entry):
-						edits.Add((start + (int)reader.TokenStartIndex, reader.ValueSpan.Length + 2, JsonSerializer.Serialize(Path.GetFullPath(entry, folder))));
+						edits.Add((start + (int)reader.TokenStartIndex, reader.ValueSpan.Length + 2, OutputFolder.Quoted(Path.GetFullPath(entry, folder))));
 						break;
 				}
 
