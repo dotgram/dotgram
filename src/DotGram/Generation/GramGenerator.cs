@@ -1418,55 +1418,64 @@ sealed class GramGenerator : IIncrementalGenerator
 			// Except for a class of a referenced assembly that carries its grammar: that text is
 			// the grammar the assembly was compiled from and ships with, and a file of the same
 			// name here is somebody else's — a fixture, a copy, another project's. The assembly's
-			// is read, and a local file that says something else is told of (GRAM0017).
-			if (!inherited.Placed && inherited.Portable is { Length: > 0 } shipped)
-			{
-				if (TryResolveGrammar(
-						aside,
-						inherited.Source,
-						SimpleNameOf(inherited.ClassName),
-						inherited.ClassName,
-						anchor,
-						files,
-						out var local,
-						out var localPath) &&
-					localPath is not null &&
-					!string.Equals(Normalized(local), Normalized(shipped), StringComparison.Ordinal))
-				{
-					reports.Add(Report.Of(
-						Diagnostics.LocalFileNotReferencedGrammar,
-						Site.Attribute,
-						localPath,
-						inherited.ClassName));
-				}
+			// is read, and a local file that says something else is told of (GRAM0017). The order
+			// is GramIncludes.Choose, which the editors take too.
+			string? inheritedText = null;
+			string? inheritedPath = null;
 
-				parts.Add(new GrammarSplice.Part(shipped, inherited.Name, null));
-				bases.Add((inherited with { Source = null, Literal = null }, anchor));
-			}
-			else if (TryResolveGrammar(
-				aside,
-				inherited.Source,
-				SimpleNameOf(inherited.ClassName),
-				inherited.ClassName,
-				anchor,
-				files,
-				out var inheritedText,
-				out var inheritedPath))
+			var origin = GramIncludes.Choose(
+				inherited.Placed,
+				inherited.Portable,
+				() => TryResolveGrammar(
+					aside,
+					inherited.Source,
+					SimpleNameOf(inherited.ClassName),
+					inherited.ClassName,
+					anchor,
+					files,
+					out inheritedText,
+					out inheritedPath));
+
+			switch (origin)
 			{
-				parts.Add(new GrammarSplice.Part(inheritedText, inherited.Name, null));
-				bases.Add((inherited with { Source = inheritedPath }, anchor));
-			}
-			else if (inherited.Portable is { Length: > 0 } carried)
-			{
-				// Carried by the assembly and written nowhere, so no literal of any file is it: a
-				// report in it lands on the attribute rather than being looked for in a spelling
-				// it was never in.
-				parts.Add(new GrammarSplice.Part(carried, inherited.Name, null));
-				bases.Add((inherited with { Source = null, Literal = null }, anchor));
-			}
-			else
-			{
-				reports.AddRange(aside);
+				case IncludedGrammarOrigin.Carried:
+					var carried = inherited.Portable!;
+
+					if (!inherited.Placed &&
+						TryResolveGrammar(
+							ImmutableArray.CreateBuilder<Report>(),
+							inherited.Source,
+							SimpleNameOf(inherited.ClassName),
+							inherited.ClassName,
+							anchor,
+							files,
+							out var local,
+							out var localPath) &&
+						localPath is not null &&
+						!string.Equals(Normalized(local), Normalized(carried), StringComparison.Ordinal))
+					{
+						reports.Add(Report.Of(
+							Diagnostics.LocalFileNotReferencedGrammar,
+							Site.Attribute,
+							localPath,
+							inherited.ClassName));
+					}
+
+					// Carried by the assembly and written nowhere, so no literal of any file is it: a
+					// report in it lands on the attribute rather than being looked for in a spelling
+					// it was never in.
+					parts.Add(new GrammarSplice.Part(carried, inherited.Name, null));
+					bases.Add((inherited with { Source = null, Literal = null }, anchor));
+					break;
+
+				case IncludedGrammarOrigin.Resolved:
+					parts.Add(new GrammarSplice.Part(inheritedText!, inherited.Name, null));
+					bases.Add((inherited with { Source = inheritedPath }, anchor));
+					break;
+
+				default:
+					reports.AddRange(aside);
+					break;
 			}
 		}
 

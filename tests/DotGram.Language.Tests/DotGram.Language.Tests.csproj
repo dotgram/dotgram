@@ -25,6 +25,12 @@
 	<Import Project="..\..\src\DotGram\Language.projitems" />
 
 	<ItemGroup>
+		<!-- The generator itself, for IncludeSelectionTests to run: under an alias, so that its copies of
+		     the shared sources stay out of this project's names (CS0436), and loaded by name. -->
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj" Aliases="generator" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- The compiler of emitted code, written once in DotGram.Tests. -->
 		<Compile Include="..\DotGram.Tests\EmittedCode.cs" Link="Shared\EmittedCode.cs" />
 	</ItemGroup>

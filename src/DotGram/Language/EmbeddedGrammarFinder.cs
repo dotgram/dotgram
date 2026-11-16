@@ -219,18 +219,32 @@ static class EmbeddedGrammarFinder
 
 		var included = new List<GrammarSplice.Part>();
 
-		// The file first, from the host's own project, which is where the generator looks; what
-		// the class carries is what there is across an assembly reference.
+		// In the generator's order (GramIncludes.Choose): what a class of a referenced assembly carries,
+		// else the class's own reading — its inline grammar or the host project's file — else what it
+		// carries.
 		foreach (var include in GramIncludes.Walk(type))
 		{
-			// A referenced assembly's grammar is the one it carries, as the generator reads it.
-			var text = include.Source is { } written && !IsFile(written)
-				? written
-				: include.Shipped
-					? include.Portable
-					: includedFile?.Invoke(GramIncludes.Wanted(include));
+			string? resolved = null;
 
-			text ??= include.Portable;
+			var placed = include.Type.DeclaringSyntaxReferences.Any(reference => model.Compilation.ContainsSyntaxTree(reference.SyntaxTree));
+			var origin = GramIncludes.Choose(
+				placed,
+				include.Portable,
+				() =>
+				{
+					resolved = include.Source is { } written && !IsFile(written)
+						? written
+						: includedFile?.Invoke(GramIncludes.Wanted(include));
+
+					return resolved is not null;
+				});
+
+			var text = origin switch
+			{
+				IncludedGrammarOrigin.Carried  => include.Portable,
+				IncludedGrammarOrigin.Resolved => resolved,
+				_                              => null,
+			};
 
 			if (text is not null)
 				included.Add(new GrammarSplice.Part(text, include.Name, null));

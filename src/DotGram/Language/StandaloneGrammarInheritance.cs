@@ -159,64 +159,75 @@ static class StandaloneGrammarInheritance
 
 		foreach (var include in GramIncludes.Walk(host, Watch))
 		{
-			// The file first, from the host's own project, which is where the generator looks;
-			// what the class carries is what there is across an assembly reference, and what
-			// the generator falls back on where the file is missing or ambiguous.
 			string? text = null;
 			string? path = null;
 
-			if (include.Source is { } written && !GramIncludes.IsPath(written))
-				text = written;
-			else if (include.Shipped)
+			var wanted   = GramIncludes.Wanted(include);
+			var declared = DeclaringProject(solution, include.Type);
+
+			// In the host's own project; a class another project declares is, to the build, a class of a
+			// referenced assembly, as one only in metadata is.
+			var placed = declared is not null && declared.Id == project.Id;
+
+			// What the class carries: a [GramSource] written on it, or, for a class of another project of
+			// the solution, the one that project's generator writes there for a grammar it exports — its
+			// inline grammar or its project's file, as that project reads it.
+			var           carried     = include.Portable;
+			TextDocument? carriedFile = null;
+
+			if (carried is not { Length: > 0 } &&
+				declared is not null &&
+				!placed &&
+				GramHostOptions.Read(include.Attribute, include.Type, first: null).ExportGrammar)
 			{
-				// A referenced assembly's grammar is the one it carries, as the generator reads it.
-				text = include.Portable;
-				path = await CarriedFileAsync(solution, include.Type, GramIncludes.Wanted(include), include.Portable!, cancellationToken).ConfigureAwait(false);
+				if (include.Source is { } inline && !GramIncludes.IsPath(inline))
+					carried = inline;
+				else if (FileDocument(declared, wanted) is { } exported)
+				{
+					carriedFile = exported;
+					carried     = (await exported.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+
+					documents.Add(exported.Id);
+				}
 			}
-			else
+
+			// The class's own reading, resolved in the host's project: its inline grammar, or the one file
+			// there its source names.
+			string?       resolvedText = null;
+			TextDocument? resolvedFile = null;
+
+			bool Resolve()
 			{
-				var wanted = GramIncludes.Wanted(include);
-
-				// A class another project of the solution declares is, to the build, a class of a
-				// referenced assembly, and the generator reads what that assembly carries where it
-				// carries a grammar: a [GramSource] written on the class, or the one the assembly's own
-				// generator writes there for a grammar it exports — its project's file. Where it carries
-				// none, as for ExportGrammar = false, the file of the host's own project is read, as
-				// for a class of this project, and a [GramSource] last (GramGenerator.Compile).
-				var declared = DeclaringProject(solution, include.Type);
-
-				if (declared is not null && declared.Id != project.Id)
+				if (include.Source is { } written && !GramIncludes.IsPath(written))
 				{
-					if (include.Portable is { Length: > 0 } carried)
-					{
-						text = carried;
-						path = await CarriedFileAsync(solution, include.Type, wanted, carried, cancellationToken).ConfigureAwait(false);
-					}
-					else if (GramHostOptions.Read(include.Attribute, include.Type, first: null).ExportGrammar &&
-						FileDocument(declared, wanted) is { } exported)
-					{
-						text = (await exported.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
-						path = exported.FilePath;
-						documents.Add(exported.Id);
-					}
+					resolvedText = written;
+					return true;
 				}
 
-				if (text is null)
-				{
-					var file = FileDocument(project, wanted);
+				resolvedFile = FileDocument(project, wanted);
 
-					if (file is not null)
-					{
-						text = (await file.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
-						path = file.FilePath;
-						documents.Add(file.Id);
-					}
-					else if (include.Portable is not null)
-					{
-						text = include.Portable;
-						path = await CarriedFileAsync(solution, include.Type, wanted, include.Portable, cancellationToken).ConfigureAwait(false);
-					}
-				}
+				return resolvedFile is not null;
+			}
+
+			// The generator's order, from the one function it takes it from.
+			switch (GramIncludes.Choose(placed, carried, Resolve))
+			{
+				case IncludedGrammarOrigin.Carried:
+					text = carried;
+					path = carriedFile?.FilePath ??
+						await CarriedFileAsync(solution, include.Type, wanted, carried!, cancellationToken).ConfigureAwait(false);
+					break;
+
+				case IncludedGrammarOrigin.Resolved when resolvedFile is not null:
+					text = (await resolvedFile.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+					path = resolvedFile.FilePath;
+
+					documents.Add(resolvedFile.Id);
+					break;
+
+				case IncludedGrammarOrigin.Resolved:
+					text = resolvedText;
+					break;
 			}
 
 			if (text is not null)

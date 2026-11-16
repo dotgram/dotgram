@@ -17,16 +17,7 @@ readonly record struct GramInclude(
 	AttributeData    Attribute,
 	string           Name,
 	string?          Source,
-	string?          Portable)
-{
-	/// <summary>
-	/// Whether the grammar is the one a referenced assembly carries: the class is not in this
-	/// compilation and has <c>[GramSource]</c>. That text is the grammar the assembly was compiled
-	/// from, so it is read and no local file takes its place — a file of the same name here is
-	/// somebody else's. The generator and the editor read it alike.
-	/// </summary>
-	public bool Shipped => Portable is not null && Attribute.ApplicationSyntaxReference is null;
-}
+	string?          Portable);
 
 /// <summary>
 /// Which grammars a host is built on, and which of a class's attributes is its grammar: the one
@@ -62,8 +53,45 @@ readonly record struct GramInclude(
 /// anybody writing it meant. Nothing is lost by not saying so.
 /// </para>
 /// </remarks>
+/// <summary>Where the text an included grammar is compiled with comes from.</summary>
+enum IncludedGrammarOrigin
+{
+	/// <summary>Nowhere: the include is reported, and what it would have given is missing.</summary>
+	None,
+
+	/// <summary>What the class carries: the <c>[GramSource]</c> on it, written by hand or by the generator of its assembly.</summary>
+	Carried,
+
+	/// <summary>The class's own reading of it: an inline grammar, or the one file of the including project its source names.</summary>
+	Resolved,
+}
+
 static class GramIncludes
 {
+	/// <summary>
+	/// Which text an included grammar is compiled with: the order the generator looks in, and the one
+	/// the editors take too, so that what they show is what the build compiles.
+	/// </summary>
+	/// <remarks>
+	/// A class of a referenced assembly that carries a grammar is compiled with that: it is the grammar
+	/// the assembly was compiled from, and a file of the same name here is somebody else's. Otherwise
+	/// the class's own reading is resolved here — its inline grammar, or the including project's file —
+	/// and what it carries is the fallback. Carried text that is empty is none.
+	/// </remarks>
+	/// <param name="placed">Whether the class is in the including compilation's source, not a referenced assembly's.</param>
+	/// <param name="carried">What the class carries; null or empty where it carries nothing.</param>
+	/// <param name="resolve">Resolves the class's own reading, and says whether it found one; asked only where it is the choice.</param>
+	public static IncludedGrammarOrigin Choose(bool placed, string? carried, Func<bool> resolve)
+	{
+		if (!placed && carried is { Length: > 0 })
+			return IncludedGrammarOrigin.Carried;
+
+		if (resolve())
+			return IncludedGrammarOrigin.Resolved;
+
+		return carried is { Length: > 0 } ? IncludedGrammarOrigin.Carried : IncludedGrammarOrigin.None;
+	}
+
 	public const string GramFileExtension    = ".gram";
 	public const string GramAttribute        = "DotGram.GramAttribute";
 	public const string GramIncludeAttribute = "DotGram.GramIncludeAttribute";
