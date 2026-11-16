@@ -1,11 +1,22 @@
-// Opens a grammar with a mistake in it and waits for the server's two answers that need it running:
-// the diagnostic, and the semantic tokens.
+// Checks that the extension running is the installed package, notices and all; then opens a grammar
+// with a mistake in it and waits for the server's two answers that need it running: the diagnostic,
+// and the semantic tokens.
 
 import * as assert from 'assert';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
 suite('.Gram extension', () => {
+    test('the extension is the installed package, with its notices', () => {
+        const extension = vscode.extensions.getExtension('dotgram.dotgram');
+        const installed = process.env.DOTGRAM_SMOKE_EXTENSIONS;
+
+        assert.ok(extension, 'the extension is installed');
+        assert.ok(installed && path.resolve(extension.extensionPath).startsWith(path.resolve(installed)), `${extension.extensionPath} is not the package`);
+        assert.ok(fs.existsSync(path.join(extension.extensionPath, 'ThirdPartyNotices.txt')), 'the package carries its third-party notices');
+    });
+
     test('a grammar gets its diagnostics and its colours', async () => {
         const folder = vscode.workspace.workspaceFolders![0].uri.fsPath;
         const uri = vscode.Uri.file(path.join(folder, 'Smoke.gram'));

@@ -25,7 +25,8 @@ pwsh editors/vscode/build.ps1      # Windows
 ```
 
 The script publishes the server into `editors/vscode/server`, installs the client's packages (`npm ci`), bundles the
-client with esbuild, and packages the whole as `artifacts/dotgram-<version>.vsix` at the repository root with
+client with esbuild, writes `ThirdPartyNotices.txt` — the licence of every npm package the bundle holds and of every
+NuGet package the server loads — and packages the whole as `artifacts/dotgram-<version>.vsix` at the repository root with
 `vsce package`. It needs the .NET SDK `global.json` names and Node 22. Nothing is published to the Marketplace.
 
 CI does the same in the `vscode` job of `.github/workflows/build.yml` and keeps the `.vsix` as the `vscode-vsix`
@@ -121,6 +122,11 @@ T-SQL grammar's diagnostics, every repository grammar's semantic tokens against 
 playground recordings the Visual Studio extension's answers were recorded in, asked through the protocol, hosts found
 in a folder, and the TextMate grammar's words against the core's vocabulary.
 
-`npm test` in `editors/vscode`, after a build, runs the packaged extension in a downloaded VS Code against
-`test-fixture/` and waits for a grammar's diagnostics and semantic tokens. It needs the network and a display
-(`xvfb-run -a npm test` on a Linux machine without one); the `vscode` CI job runs it after packaging.
+`npm test` in `editors/vscode`, after a build, installs the packaged `.vsix` into an extensions folder of its own,
+beside the .NET Install Tool, in a downloaded VS Code, and checks that the extension running is that package and
+carries its third-party notices; then it opens `test-fixture/` and waits for a grammar's diagnostics and semantic
+tokens. VS Code and the .NET Install Tool are pinned: VS Code 1.90.0, the oldest the manifest accepts, and the
+newest .NET Install Tool it runs (2.3.2); `DOTGRAM_SMOKE_VSCODE` and `DOTGRAM_SMOKE_RUNTIME_TOOL`
+(`ms-dotnettools.vscode-dotnet-runtime@<version>`) choose others for a run, and `DOTGRAM_VSIX` another package. It
+needs the network and a display (`xvfb-run -a npm test` on a Linux machine without one); the `vscode` CI job runs it
+after packaging.

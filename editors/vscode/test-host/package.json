@@ -1,0 +1,11 @@
+{
+  "name": "dotgram-smoke-host",
+  "displayName": "The .Gram smoke test's host",
+  "description": "Runs the smoke suite against the installed .Gram extension; contributes nothing.",
+  "version": "0.0.0",
+  "publisher": "dotgram",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  }
+}

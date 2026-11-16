@@ -357,8 +357,8 @@ jobs:
           path: artifacts/*.vsix
           if-no-files-found: error
 
-      # The packaged extension in a real VS Code, downloaded for the run, with the .NET Install Tool
-      # from the Marketplace: a grammar opened, its diagnostics and its semantic tokens waited for.
+      # The packaged .vsix installed in a real VS Code, beside the .NET Install Tool, both at the versions
+      # src/test/runTest.ts pins: a grammar opened, its diagnostics and its semantic tokens waited for.
       - name: Smoke-test the extension
         working-directory: editors/vscode
         run: xvfb-run -a npm test
