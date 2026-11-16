@@ -14,7 +14,12 @@ suite('.Gram extension', () => {
 
         assert.ok(extension, 'the extension is installed');
         assert.ok(installed && path.resolve(extension.extensionPath).startsWith(path.resolve(installed)), `${extension.extensionPath} is not the package`);
-        assert.ok(fs.existsSync(path.join(extension.extensionPath, 'ThirdPartyNotices.txt')), 'the package carries its third-party notices');
+        const notices = fs.readFileSync(path.join(extension.extensionPath, 'ThirdPartyNotices.txt'), 'utf8');
+
+        // The client's protocol library, Roslyn, and the notices Roslyn ships beside its licence.
+        for (const expected of ['vscode-languageclient', 'Microsoft.CodeAnalysis.Common', '--- ThirdPartyNotices.rtf ---']) {
+            assert.ok(notices.includes(expected), `the notices name ${expected}`);
+        }
     });
 
     test('a grammar gets its diagnostics and its colours', async () => {

@@ -26,7 +26,9 @@ pwsh editors/vscode/build.ps1      # Windows
 
 The script publishes the server into `editors/vscode/server`, installs the client's packages (`npm ci`), bundles the
 client with esbuild, writes `ThirdPartyNotices.txt` — the licence of every npm package the bundle holds and of every
-NuGet package the server loads — and packages the whole as `artifacts/dotgram-<version>.vsix` at the repository root with
+NuGet package the server loads, the runtime's where it carries one, each with the notices it ships, and the text of a
+licence a package only names from `scripts/licenses` (SPDX's); a package whose licence text is found nowhere fails
+the build — and packages the whole as `artifacts/dotgram-<version>.vsix` at the repository root with
 `vsce package`. It needs the .NET SDK `global.json` names and Node 22. Nothing is published to the Marketplace.
 
 CI does the same in the `vscode` job of `.github/workflows/build.yml` and keeps the `.vsix` as the `vscode-vsix`
