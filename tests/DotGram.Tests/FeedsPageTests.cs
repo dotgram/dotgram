@@ -18,8 +18,9 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// The pages about feeds — the tour's section on feeds written by people (<c>docs/tour.md</c>), and
-/// <c>docs/feeds.md</c> — run as they are written.
+/// The pages about feeds — the tour's section on feeds written by people (<c>docs/tour.md</c>),
+/// <c>docs/feeds.md</c>, and the whole feed the package's <c>SKILL.md</c> carries — run as they are
+/// written.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -39,9 +40,9 @@ namespace DotGram.Tests;
 /// </para>
 /// <para>
 /// The same grammars are in <c>examples/DotGram.Examples/Feeds</c>, for whoever copies an example
-/// as a file; the last test holds the copies to one text. An example may be on both pages — the
-/// tour shows the first trading feed of <c>docs/feeds.md</c> — so an example is named by its
-/// page and its class, and each page's copy is run and held to the file on its own.
+/// as a file; the last test holds the copies to one text. An example may be on more than one page —
+/// the tour and the skill show the first trading feed of <c>docs/feeds.md</c> — so an example is
+/// named by its page and its class, and each page's copy is run and held to the file on its own.
 /// </para>
 /// </remarks>
 public sealed class FeedsPageTests
@@ -160,7 +161,7 @@ public sealed class FeedsPageTests
 	}
 
 	/// <summary>The pages, by their path from the repository's root.</summary>
-	static readonly string[] Pages = [Tour, "docs/feeds.md"];
+	static readonly string[] Pages = [Tour, "docs/feeds.md", Skill];
 
 	/// <summary>One example: what was read, what reads it, and what that prints.</summary>
 	sealed record Example(string Host, int At, string Input, string Declaration, string Use, string Output);
@@ -201,21 +202,21 @@ public sealed class FeedsPageTests
 	}
 
 	/// <summary>
-	/// The fenced blocks of a page, with the language each is marked as: of the tour, the section
-	/// on feeds alone; of a page of its own, all of it.
+	/// The fenced blocks of a page, with the language each is marked as: of a page with a section on
+	/// feeds among others, that section alone; of a page of its own, all of it.
 	/// </summary>
 	static List<(string Language, string Text)> Blocks(string path)
 	{
 		var page    = File.ReadAllText(Path.Combine(Root, path)).Replace("\r\n", "\n", StringComparison.Ordinal);
 		var section = page;
 
-		if (path == Tour)
+		if (Headings.TryGetValue(path, out var heading))
 		{
-			var opens = page.IndexOf("\n" + Heading + "\n", StringComparison.Ordinal);
+			var opens = page.IndexOf("\n" + heading + "\n", StringComparison.Ordinal);
 
-			Assert.True(opens >= 0, $"{Tour} has no '{Heading}'.");
+			Assert.True(opens >= 0, $"{path} has no '{heading}'.");
 
-			var closes = page.IndexOf("\n## ", opens + Heading.Length, StringComparison.Ordinal);
+			var closes = page.IndexOf("\n## ", opens + heading.Length, StringComparison.Ordinal);
 
 			section = closes < 0 ? page[opens..] : page[opens..closes];
 		}
@@ -226,10 +227,21 @@ public sealed class FeedsPageTests
 			.ToList();
 	}
 
-	const string Heading = "## Feeds written by people";
+	/// <summary>The section on feeds of each page that has other sections too.</summary>
+	static readonly Dictionary<string, string> Headings = new(StringComparer.Ordinal)
+	{
+		[Tour]  = "## Feeds written by people",
+		[Skill] = "## A feed, whole",
+	};
 
 	/// <summary>The page of worked examples, which has a section on feeds among others.</summary>
 	const string Tour = "docs/tour.md";
+
+	/// <summary>
+	/// The skill the package ships, which has the first trading feed whole: an agent that has only
+	/// the package has it, and it is held here to the page and the file it is copied from.
+	/// </summary>
+	const string Skill = "src/DotGram/SKILL.md";
 
 	/// <summary>The block with the two names the run stands in for replaced.</summary>
 	static string Substituted(string code)
