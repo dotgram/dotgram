@@ -1,8 +1,8 @@
 # .Gram
 
 Fast, strongly typed C# parsers, generated from a grammar at compile time, with no runtime library.
-The generated parser is ordinary C# in your own assembly: there is no parser engine, grammar graph or
-runtime library to interpret, and nothing to deploy beside your application. One notation covers a
+The generated parser is ordinary C# in your own assembly: there is no parser engine or grammar graph
+to interpret, and nothing to deploy beside your application. One notation covers a
 six-character colour code, a calculator, feeds written by people and the SQL standard.
 
 A grammar is a small language of its own. Every package ships a skill for coding agents, so an
