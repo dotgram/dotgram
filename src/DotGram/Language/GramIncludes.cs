@@ -219,6 +219,33 @@ static class GramIncludes
 		return include.Source ?? (dot < 0 ? name : name.Substring(dot + 1)) + GramFileExtension;
 	}
 
+	/// <summary>
+	/// The file a host's own grammar is looked for under when its <c>[Gram]</c> names none: the innermost
+	/// class's name without its type parameters — <c>Parser&lt;T&gt;</c> reads <c>Parser.gram</c>. The
+	/// generator's, and the editors' where they read a grammar as another project's generator would.
+	/// </summary>
+	/// <param name="className">The class's name as the generator writes it: its namespace, the classes around it, its type parameters.</param>
+	public static string HostSimpleName(string className)
+	{
+		// The innermost class first, then its type parameters: a type parameter list never contains a
+		// dot, but a nested name does.
+		var name = className;
+		var dot  = name.LastIndexOf('.');
+
+		if (dot >= 0)
+			name = name.Substring(dot + 1);
+
+		var angle = name.IndexOf('<');
+
+		return angle < 0 ? name : name.Substring(0, angle);
+	}
+
+	/// <summary>The default file of a host's own grammar: <see cref="HostSimpleName"/> and <c>.gram</c>.</summary>
+	public static string HostFileName(string className)
+	{
+		return HostSimpleName(className) + GramFileExtension;
+	}
+
 	/// <summary>A single line ending in <c>.gram</c> is a path; anything else is the grammar itself.</summary>
 	public static bool IsPath(string source)
 	{

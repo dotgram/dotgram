@@ -2065,23 +2065,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		/// The class the grammar is looked up by: the innermost one, without its type
 		/// parameters — <c>Parser&lt;T&gt;</c> looks for <c>Parser.gram</c>.
 		/// </summary>
-		public string SimpleName
-		{
-			get
-			{
-				// The innermost class first, then its type parameters: a type parameter
-				// list never contains a dot, but a nested name does.
-				var name = ClassName;
-				var dot  = name.LastIndexOf('.');
-
-				if (dot >= 0)
-					name = name.Substring(dot + 1);
-
-				var angle = name.IndexOf('<');
-
-				return angle < 0 ? name : name.Substring(0, angle);
-			}
-		}
+		public string SimpleName => GramIncludes.HostSimpleName(ClassName);
 
 		static string TypeParametersOf(ClassDeclarationSyntax declaration)
 		{
