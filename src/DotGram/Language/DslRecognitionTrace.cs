@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
@@ -32,6 +33,9 @@ internal sealed class DslRecognitionResult(
 	public int FailurePosition { get; } = failurePosition;
 	public IReadOnlyList<DslRecognitionExtent> Extents { get; } = extents;
 	public IReadOnlyList<string> Expected { get; } = expected;
+
+	/// <summary>How many steps the interpreter took: what its cost is held to, rather than a clock.</summary>
+	public int Steps { get; init; }
 }
 
 /// <summary>
@@ -109,6 +113,27 @@ internal static class DslRecognitionTrace
 		string input,
 		IDslRecognitionContract? contract = null)
 	{
+		return Recognize(graph, publication, input, contract, Budget(input), CancellationToken.None);
+	}
+
+	/// <summary>
+	/// The steps a site may take before it is answered as one the interpreter cannot read: a
+	/// million, and a thousand more for each character, far above what a grammar the interpreter
+	/// reads in time linear in the text needs.
+	/// </summary>
+	internal static long Budget(string input)
+	{
+		return 1_000_000L + 1_000L * (input?.Length ?? 0);
+	}
+
+	internal static DslRecognitionResult Recognize(
+		RecognitionGraph graph,
+		Publication publication,
+		string input,
+		IDslRecognitionContract? contract,
+		long budget,
+		CancellationToken cancellationToken)
+	{
 		if (graph is null)       throw new ArgumentNullException(nameof(graph));
 		if (publication is null) throw new ArgumentNullException(nameof(publication));
 		if (input is null)       throw new ArgumentNullException(nameof(input));
@@ -116,20 +141,20 @@ internal static class DslRecognitionTrace
 		if (publication.Kind != DotGram.Grammar.Parsing.PublishKind.Parse)
 			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []);
 
-		var matcher = new Matcher(graph, publication, input, contract);
+		var matcher = new Matcher(graph, publication, input, contract, budget, cancellationToken);
 
 		if (matcher.Run() is { } successful)
 			return new DslRecognitionResult(
 				DslRecognitionStatus.Success,
 				input.Length,
 				Flatten(successful),
-				[]);
+				[]) { Steps = matcher.Steps };
 
 		return new DslRecognitionResult(
 			matcher.Unsupported ? DslRecognitionStatus.Unsupported : DslRecognitionStatus.Failure,
 			matcher.Furthest,
 			Flatten(matcher.Partial),
-			matcher.Expected);
+			matcher.Unsupported ? [] : matcher.Expected) { Steps = matcher.Steps };
 	}
 
 	/// <summary>The extents of a derivation, each rule or capture before those inside it, in the order the text has them.</summary>
@@ -236,7 +261,7 @@ internal static class DslRecognitionTrace
 	/// What a call reached is held as the rule's extent of each derivation, whose end is where it
 	/// ended: one cell where there is one, which is most calls, and a list only beyond.
 	/// </remarks>
-	sealed class Entry(int rule, int start, Entry? outer, Trail? head, bool silent, int steps)
+	sealed class Entry(int rule, int start, Entry? outer, Trail? head, bool silent, long steps)
 	{
 		Trail?        _first;
 		List<Trail>?  _more;
@@ -253,7 +278,7 @@ internal static class DslRecognitionTrace
 		public bool Silent { get; } = silent;
 
 		/// <summary>How many steps the machine had taken when the call was made.</summary>
-		public int Steps { get; } = steps;
+		public long Steps { get; } = steps;
 
 		/// <summary>Records a derivation whose extent is <paramref name="cell"/>; false if one ended there before.</summary>
 		public bool Reached(Trail cell)
@@ -333,6 +358,11 @@ internal static class DslRecognitionTrace
 
 		/// <summary>Nothing may follow: an alternative read again only for what it expected.</summary>
 		Halt,
+
+		/// <summary>
+		/// A call read to the end of its derivations has found one: it is kept, and the next is looked for.
+		/// </summary>
+		Collect,
 	}
 
 	/// <summary>One thing left to do, in front of the rest; shared by every route that branched after it was made.</summary>
@@ -356,6 +386,7 @@ internal static class DslRecognitionTrace
 	{
 		public int     B     { get; init; }
 		public int     C     { get; init; }
+		public int     D     { get; init; }
 		public Trail?  Mark  { get; init; }
 		public object? Extra { get; init; }
 	}
@@ -376,6 +407,12 @@ internal static class DslRecognitionTrace
 
 		/// <summary>The next end of a remembered call, <see cref="Point.Index"/>.</summary>
 		Replay,
+
+		/// <summary>
+		/// The call in <see cref="Point.Extra"/>, read to the end of its derivations, has no more: what it
+		/// found is remembered, and read on from where the call was made.
+		/// </summary>
+		Evaluated,
 	}
 
 	/// <summary>A route not yet taken, and where everything stood when it branched.</summary>
@@ -387,33 +424,44 @@ internal static class DslRecognitionTrace
 		public Trail?  Head;
 		public Entry   Entry;
 		public int     Looking;
+		public int     Cutting;
 		public Node?   Node;
 		public int     Index;
 		public object? Extra;
 	}
 
-	/// <summary>A repetition's turns, reached at each position once: a later route that reaches one again only repeats what failed.</summary>
-	/// <remarks>A repetition turns a few times as a rule, so the first positions are held without a set.</remarks>
+	/// <summary>
+	/// A repetition's turns, each reached once: a later route that reaches the same position with
+	/// what is left to read the same only repeats what failed.
+	/// </summary>
+	/// <remarks>
+	/// What is left to read is how many turns are still owed before the least, and how many are still
+	/// allowed before the most; past the least of an unbounded repetition, nothing. A repetition turns
+	/// a few times as a rule, so the first two are held without a set.
+	/// </remarks>
 	sealed class Turns
 	{
-		int           _first = -1;
-		int           _second = -1;
-		HashSet<int>? _reached;
+		long           _first = -1;
+		long           _second = -1;
+		HashSet<long>? _reached;
 
-		public bool Reach(int position)
+		public bool Reach(Node.Repeat repeat, int count, int position)
 		{
-			if (_reached is not null)
-				return _reached.Add(position);
+			var state = count < repeat.Min || repeat.Max is not null ? count : repeat.Min;
+			var key   = (long)state << 32 | (uint)position;
 
-			if (position == _first || position == _second)
+			if (_reached is not null)
+				return _reached.Add(key);
+
+			if (key == _first || key == _second)
 				return false;
 
 			if (_first < 0)
-				_first = position;
+				_first = key;
 			else if (_second < 0)
-				_second = position;
+				_second = key;
 			else
-				_reached = [_first, _second, position];
+				_reached = [_first, _second, key];
 
 			return true;
 		}
@@ -750,7 +798,11 @@ internal static class DslRecognitionTrace
 		int     _looking;
 		Node?   _node;
 		bool    _failed;
-		int     _steps;
+		long    _steps;
+		int     _cutting;
+
+		readonly long              _budget;
+		readonly CancellationToken _cancellationToken;
 		Point[] _points = new Point[64];
 		int     _count;
 
@@ -772,8 +824,16 @@ internal static class DslRecognitionTrace
 		int    _candidateEnd = -1;
 		int    _candidateTotal;
 
-		public Matcher(RecognitionGraph graph, Publication publication, string input, IDslRecognitionContract? contract)
+		public Matcher(
+			RecognitionGraph graph,
+			Publication publication,
+			string input,
+			IDslRecognitionContract? contract,
+			long budget,
+			CancellationToken cancellationToken)
 		{
+			_budget            = budget;
+			_cancellationToken = cancellationToken;
 			_graph    = graph;
 			_input    = input;
 			_contract = contract;
@@ -787,6 +847,7 @@ internal static class DslRecognitionTrace
 
 		public int  Furthest    { get; private set; }
 		public bool Unsupported { get; private set; }
+		public int  Steps       => (int)Math.Min(_steps, int.MaxValue);
 
 		/// <summary>
 		/// What a refusal highlights: the derivation that read the publication furthest where one
@@ -810,7 +871,8 @@ internal static class DslRecognitionTrace
 			if (Drive())
 				return _head;
 
-			Explain();
+			if (!Unsupported)
+				Explain();
 
 			return null;
 		}
@@ -820,7 +882,20 @@ internal static class DslRecognitionTrace
 		{
 			while (true)
 			{
-				_steps++;
+				// A part this cannot read answers for the whole site: whether it would have matched decides
+				// what is read after it, and nothing here may guess which way.
+				if (Unsupported)
+					return false;
+
+				if (++_steps > _budget)
+				{
+					Unsupported = true;
+
+					return false;
+				}
+
+				if ((_steps & 0xFFF) == 0)
+					_cancellationToken.ThrowIfCancellationRequested();
 
 				if (_failed)
 				{
@@ -899,6 +974,18 @@ internal static class DslRecognitionTrace
 			_failed = true;
 		}
 
+		/// <summary>
+		/// A part this cannot read: neither a match nor a mismatch, so the reading stops here. An
+		/// alternative read again only for what it expected could not have matched, and fails.
+		/// </summary>
+		void Unreadable()
+		{
+			if (!_explaining)
+				Unsupported = true;
+
+			_failed = true;
+		}
+
 		void Push(Route route, Node? node = null, int index = 0, object? extra = null)
 		{
 			if (_count == _points.Length)
@@ -912,6 +999,7 @@ internal static class DslRecognitionTrace
 				Head         = _head,
 				Entry        = _entry,
 				Looking      = _looking,
+				Cutting      = _cutting,
 				Node         = node,
 				Index        = index,
 				Extra        = extra,
@@ -925,6 +1013,7 @@ internal static class DslRecognitionTrace
 			_head         = point.Head;
 			_entry        = point.Entry;
 			_looking      = point.Looking;
+			_cutting      = point.Cutting;
 		}
 
 		/// <summary>Drops the routes from choice point <paramref name="marker"/> on.</summary>
@@ -994,6 +1083,38 @@ internal static class DslRecognitionTrace
 							Remember(entry, entry.Results);
 
 						continue;
+					}
+
+					case Route.Evaluated:
+					{
+						var entry = (Entry)point.Extra!;
+
+						Restore(point);
+						Cut(_count - 1);
+
+						if (!_cyclic)
+							Remember(entry, entry.Results);
+
+						var results = entry.Results;
+
+						if (results is Trail one)
+						{
+							Replayed(one);
+
+							return true;
+						}
+
+						var many = (Trail[])results;
+
+						if (many.Length == 0)
+							continue;
+
+						if (many.Length > 1)
+							Push(Route.Replay, index: 1, extra: many);
+
+						Replayed(many[0]);
+
+						return true;
 					}
 
 					case Route.Replay:
@@ -1131,6 +1252,8 @@ internal static class DslRecognitionTrace
 				case Step.AtomicEnd:
 					Cut(frame.A);
 
+					_cutting = ((WideFrame)frame).B;
+
 					return false;
 
 				case Step.LookEnd:
@@ -1143,6 +1266,7 @@ internal static class DslRecognitionTrace
 					var wide = (WideFrame)frame;
 
 					_looking  = wide.C;
+					_cutting  = wide.D;
 					_position = wide.B;
 					_head     = wide.Mark;
 
@@ -1176,6 +1300,21 @@ internal static class DslRecognitionTrace
 					Fail();
 
 					return false;
+
+				case Step.Collect:
+				{
+					var entry = frame.Entry;
+
+					entry.Reached(new Trail(
+						new DslRecognitionExtent(_rules[entry.Rule], null, entry.Start, _position - entry.Start),
+						!_isTrivia[entry.Rule],
+						_head,
+						entry.Head,
+						entry.Head));
+					Fail();
+
+					return false;
+				}
 
 				default:
 					throw new InvalidOperationException($"Unknown step {frame.Step}.");
@@ -1251,8 +1390,7 @@ internal static class DslRecognitionTrace
 
 				case Node.Choice { Selection: not null }:
 					// A dispatch on a value the host's C# computes, which nothing here may run.
-					Unsupported = true;
-					Fail();
+					Unreadable();
 
 					return;
 
@@ -1279,14 +1417,15 @@ internal static class DslRecognitionTrace
 				}
 
 				case Node.Atomic atomic:
-					_continuation = new Frame(Step.AtomicEnd, atomic, _entry, _continuation) { A = _count };
+					_continuation = new WideFrame(Step.AtomicEnd, atomic, _entry, _continuation) { A = _count, B = _cutting };
+					_cutting++;
 					_node         = atomic.Body;
 
 					return;
 
 				case Node.Repeat repeat:
 					// A turn that can end in one place only is never reached again by another route.
-					Turn(repeat, 0, repeat.Max is null && repeat.Body is not (Node.Element or Node.Literal or Node.Atomic) ? new Turns() : null);
+					Turn(repeat, 0, repeat.Body is not (Node.Element or Node.Literal or Node.Atomic) ? new Turns() : null);
 
 					return;
 
@@ -1298,11 +1437,13 @@ internal static class DslRecognitionTrace
 						A    = _count - 1,
 						B    = _position,
 						C    = _looking,
+						D    = _cutting,
 						Mark = _head,
 					};
 
 					// A look does not report how far it looked: what fails inside one is no refusal of the text.
 					_looking++;
+					_cutting++;
 					_node = look.Body;
 
 					return;
@@ -1355,8 +1496,7 @@ internal static class DslRecognitionTrace
 					if (_contract is null ||
 						!_contract.TryEvaluateGuard(guard, _rules[_entry.Rule], _position, out var accepted))
 					{
-						Unsupported = true;
-						Fail();
+						Unreadable();
 
 						return;
 					}
@@ -1370,8 +1510,7 @@ internal static class DslRecognitionTrace
 					if (_contract is null ||
 						!_contract.TryResolveExternal(external, _rules[_entry.Rule], out var externalRule))
 					{
-						Unsupported = true;
-						Fail();
+						Unreadable();
 
 						return;
 					}
@@ -1383,15 +1522,13 @@ internal static class DslRecognitionTrace
 				// Text bindings are read against what an earlier operand matched on this route, which
 				// this model does not keep; a condition left in the graph is one the normalizer did not decide.
 				case Node.Bind or Node.Same or Node.Counted or Node.Condition:
-					Unsupported = true;
-					Fail();
+					Unreadable();
 
 					return;
 
 				default:
 					// A kind this model does not read: the site is one it cannot read, not one the text fails.
-					Unsupported = true;
-					Fail();
+					Unreadable();
 
 					return;
 			}
@@ -1442,11 +1579,27 @@ internal static class DslRecognitionTrace
 
 			var called = new Entry(rule, _position, _entry, _head, _looking > 0, _steps);
 
-			Push(Route.Exhausted, extra: called);
+			// Inside an atomic group or a look, the first derivation that gets out drops the routes behind
+			// it, and a call read there as it is elsewhere would be dropped before it had been read to the
+			// end and remembered: another call there would read it again, and a grammar that does so at
+			// every level would take exponentially many steps. Such a call is read on its own, to the end
+			// of its derivations, before what follows it reads on.
+			if (_cutting > 0)
+			{
+				Push(Route.Evaluated, extra: called);
 
-			_continuation = new Frame(Step.RuleEnd, null, called, _continuation);
-			_entry        = called;
-			_node         = body;
+				_continuation = new Frame(Step.Collect, null, called, null);
+				_cutting      = 0;
+			}
+			else
+			{
+				Push(Route.Exhausted, extra: called);
+
+				_continuation = new Frame(Step.RuleEnd, null, called, _continuation);
+			}
+
+			_entry = called;
+			_node  = body;
 		}
 
 		void Remember(Entry entry, object results)
@@ -1480,7 +1633,7 @@ internal static class DslRecognitionTrace
 			var stops = count >= repeat.Min;
 			var turn  = repeat.Max is not { } most || count < most;
 
-			if (turns is not null && stops && !turns.Reach(_position))
+			if (turns is not null && !turns.Reach(repeat, count, _position))
 			{
 				Fail();
 
@@ -1630,7 +1783,7 @@ internal static class DslRecognitionTrace
 				known = (test.Categories >> (int)UnicodeCategories.Of(value) & 1UL) != 0;
 
 			if (!known && test.References)
-				Unsupported = true;
+				Unreadable();
 
 			return element.IsNegated ? !known && !test.References : known;
 		}

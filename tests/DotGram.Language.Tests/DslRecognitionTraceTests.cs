@@ -577,6 +577,147 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	/// <summary>
+	/// A part the interpreter cannot read is neither a match nor a mismatch for any combinator
+	/// around it: not a refusal a negative look turns into a match, not an alternative that lets
+	/// the next one be tried, not a turn a repetition stops before. The site is unsupported.
+	/// </summary>
+	[Fact]
+	public void UnreadablePartMakesTheSiteUnsupportedUnderEveryCombinator()
+	{
+		var start   = new RuleSymbol("Start", new GrammarNamespace("", null), Declaration: null);
+		var other   = new RuleSymbol("Other", new GrammarNamespace("", null), Declaration: null);
+		var a       = new Node.Literal("a");
+		var guarded = new Node.Sequence([new Node.Guard("ready"), a]);
+		var chosen  = new Node.Choice([a]) { Selection = new Node.SwitchSelection(new Node.Guard("kind"), ["0"]) };
+
+		var cases = new (string Name, Node Body, Node OtherBody)[]
+		{
+			("negative look",     new Node.Sequence([new Node.Lookahead(false, guarded), a]),        a),
+			("negative look, switch", new Node.Sequence([new Node.Lookahead(false, chosen), a]),     a),
+			("positive look",     new Node.Sequence([new Node.Lookahead(true, guarded), a]),         a),
+			("choice",            new Node.Choice([guarded, a]),                                     a),
+			("choice, switch",    new Node.Choice([chosen, a]),                                      a),
+			("repetition",        new Node.Sequence([new Node.Repeat(guarded, 0, null), a]),         a),
+			("option",            new Node.Sequence([new Node.Repeat(guarded, 0, 1), a]),            a),
+			("atomic",            new Node.Atomic(new Node.Choice([guarded, a])),                    a),
+			("capture",           new Node.Choice([new Node.Capture("x", guarded), a]),              a),
+			("call",              new Node.Choice([new Node.Call(other, []), a]),                    guarded),
+			("call in a look",    new Node.Sequence([new Node.Lookahead(false, new Node.Call(other, [])), a]), guarded),
+			("sequence",          new Node.Sequence([guarded, a]),                                   a),
+		};
+
+		foreach (var (name, body, otherBody) in cases)
+		{
+			var (graph, publication) = Graph(start, body, other, otherBody);
+			var result = DslRecognitionTrace.Recognize(graph, publication, "a");
+
+			Assert.True(result.Status == DslRecognitionStatus.Unsupported, $"{name}: answered {result.Status}");
+		}
+	}
+
+	/// <summary>
+	/// Grammars that send a backtracking reader round the same calls again and again — a call read
+	/// inside a look and then after it, a call inside an atomic group read again by the next
+	/// alternative, a repetition that has to reach a high minimum — are read in a number of steps
+	/// that grows with the length of the text as a polynomial, not as a power of two.
+	/// </summary>
+	[Theory]
+	[InlineData("Run = 'a' & ?=Run & Run | ['a'..'z']+", "", true)]
+	[InlineData("Run = 'a' & ?=Run & Run | ['a'..'z']+", "1", false)]
+	[InlineData("Run = 'a' & {Run} & 'x' | 'a' & Run | 'a'", "", true)]
+	[InlineData("Run = 'a' & {Run} & 'x' | 'a' & Run | 'a'", "1", false)]
+	[InlineData("Run = Item{12,} & 'y'\nItem = 'a' | \"aa\"", "z", false)]
+	[InlineData("Run = (Item & Item){6,} & 'y'\nItem = 'a' | \"aa\"", "z", false)]
+	public void RepeatedWorkIsReadInPolynomiallyManySteps(string rules, string tail, bool accepted)
+	{
+		var (graph, publication) = Compile("parse Start\nStart = Run\n" + rules);
+		var steps = new System.Collections.Generic.List<int>();
+
+		foreach (var length in new[] { 16, 32, 64 })
+		{
+			var result = DslRecognitionTrace.Recognize(graph, publication, new string('a', length) + tail);
+
+			Assert.Equal(accepted ? DslRecognitionStatus.Success : DslRecognitionStatus.Failure, result.Status);
+			steps.Add(result.Steps);
+		}
+
+		// Twice the text, at most eight times the steps: cubic at worst.
+		Assert.True(steps[1] <= 8 * steps[0] && steps[2] <= 8 * steps[1], $"steps: {string.Join(", ", steps)}");
+	}
+
+	/// <summary>
+	/// However a grammar makes the reader work, it stops: past its step budget the site is one it
+	/// cannot read, and an editor that no longer wants the answer can cancel it.
+	/// </summary>
+	[Fact]
+	public void ReadingStopsAtItsBudgetAndWhenCancelled()
+	{
+		var (graph, publication) = Compile("parse Start\nStart = ['a'..'z']* & 'y'");
+		var input = new string('a', 1000) + "z";
+
+		var limited = DslRecognitionTrace.Recognize(graph, publication, input, null, 100, TestContext.Current.CancellationToken);
+
+		Assert.Equal(DslRecognitionStatus.Unsupported, limited.Status);
+		Assert.True(limited.Steps <= 101, $"steps: {limited.Steps}");
+		Assert.Equal(DslRecognitionStatus.Failure, DslRecognitionTrace.Recognize(graph, publication, input).Status);
+
+		using var cancelled = new System.Threading.CancellationTokenSource();
+
+		cancelled.Cancel();
+
+		Assert.Throws<System.OperationCanceledException>(
+			() => DslRecognitionTrace.Recognize(graph, publication, input, null, DslRecognitionTrace.Budget(input), cancelled.Token));
+	}
+
+	/// <summary>
+	/// A refused text highlights its readable front as the parser would read it if the text ended
+	/// there: the first derivation, not a later one that only adds extents, so what is already
+	/// written keeps its colours while what follows it is being typed.
+	/// </summary>
+	[Fact]
+	public void PartialReadingIsTheFirstDerivationOfTheFront()
+	{
+		var (graph, publication) = Compile("""
+			parse Start
+			Start  = First | Second
+			First  = 'a'
+			Second = detail: 'a'
+			""");
+
+		var whole   = DslRecognitionTrace.Recognize(graph, publication, "a");
+		var refused = DslRecognitionTrace.Recognize(graph, publication, "ax");
+
+		Assert.Equal(DslRecognitionStatus.Success, whole.Status);
+		Assert.Equal(DslRecognitionStatus.Failure, refused.Status);
+		Assert.Equal(
+			whole.Extents.Select(static extent => (extent.Rule.Name, extent.Capture, extent.Position, extent.Length)),
+			refused.Extents.Select(static extent => (extent.Rule.Name, extent.Capture, extent.Position, extent.Length)));
+	}
+
+	static (RecognitionGraph Graph, Publication Publication) Graph(RuleSymbol start, Node body, RuleSymbol other, Node otherBody)
+	{
+		var graph = new RecognitionGraph(
+			[start, other],
+			new System.Collections.Generic.Dictionary<RuleSymbol, Node> { [start] = body, [other] = otherBody },
+			new System.Collections.Generic.Dictionary<RuleSymbol, bool> { [start] = false, [other] = false },
+			new System.Collections.Generic.Dictionary<RuleSymbol, System.Collections.Generic.IReadOnlyList<ResultMember>>(),
+			new System.Collections.Generic.Dictionary<RuleSymbol, string>(),
+			[],
+			[],
+			[]);
+		var publication = new Publication(
+			PublishKind.Parse,
+			start,
+			"ParseStart",
+			new Location(0, 0),
+			start.Namespace,
+			new System.Collections.Generic.Dictionary<RuleSymbol, RuleSymbol>(),
+			[]);
+
+		return (graph, publication);
+	}
+
+	/// <summary>
 	/// What the interpreter answers for each input against what the parser generated
 	/// from the same grammar answers: accepted by both, or refused by both at the same
 	/// position.
