@@ -49,6 +49,7 @@ Push-Location $here
 try {
 	Invoke-Checked "npm" @("ci")
 	Invoke-Checked "npm" @("run", "build")
+	Invoke-Checked "npm" @("run", "notices")
 	New-Item -ItemType Directory -Force (Join-Path $root "artifacts") | Out-Null
 	Invoke-Checked "npx" (@("vsce", "package") + $target + @("--out", (Join-Path $root "artifacts/")))
 }

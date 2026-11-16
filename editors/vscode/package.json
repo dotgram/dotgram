@@ -163,7 +163,8 @@
   "scripts": {
     "build": "npm run check && npm run bundle",
     "check": "tsc --noEmit -p .",
-    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node20 --minify --sourcemap",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node20 --minify --sourcemap --metafile=dist/meta.json",
+    "notices": "node scripts/notices.mjs",
     "compile-tests": "tsc -p . --outDir out",
     "test": "npm run bundle && npm run compile-tests && node ./out/test/runTest.js",
     "package": "vsce package --out ../../artifacts/"

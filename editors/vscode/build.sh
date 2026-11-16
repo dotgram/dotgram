@@ -46,5 +46,6 @@ fi
 cd "$here"
 npm ci
 npm run build
+npm run notices
 mkdir -p "$root/artifacts"
 npx vsce package "${target[@]}" --out "$root/artifacts/"

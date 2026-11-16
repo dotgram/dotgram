@@ -4,3 +4,4 @@ out/
 server/
 .vscode-test/
 *.vsix
+ThirdPartyNotices.txt
