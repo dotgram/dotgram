@@ -510,7 +510,7 @@ public sealed class HostTests : IDisposable
 
 	static async Task<string?> GrammarTextAsync(FolderWorkspace workspace, string path)
 	{
-		var document = workspace.Workspace.CurrentSolution.GetProject(workspace.Project)!.AdditionalDocuments
+		var document = workspace.Workspace.CurrentSolution.Projects.SelectMany(static project => project.AdditionalDocuments)
 			.SingleOrDefault(item => string.Equals(item.FilePath, path, StringComparison.OrdinalIgnoreCase));
 
 		return document is null ? null : (await document.GetTextAsync(TestContext.Current.CancellationToken)).ToString();
@@ -558,7 +558,7 @@ public sealed class HostTests : IDisposable
 		File.WriteAllText(lower, "[DotGram.Gram(\"Other.gram\")] partial class Other;");
 		workspace.FileChanged(lower, deleted: false);
 
-		var documents = workspace.Workspace.CurrentSolution.GetProject(workspace.Project)!.Documents
+		var documents = workspace.Workspace.CurrentSolution.Projects.SelectMany(static project => project.Documents)
 			.Where(static document => document.FilePath is not null)
 			.ToDictionary(static document => document.FilePath!, StringComparer.Ordinal);
 
@@ -617,25 +617,12 @@ public sealed class HostTests : IDisposable
 		Assert.Null(document.Session.Result);
 	}
 
-	[Fact]
-	public void A_file_is_in_the_project_for_what_its_syntax_declares()
-	{
-		Assert.True(FolderWorkspace.Declares("[DotGram.Gram(\"A.gram\")] partial class A;"));
-		Assert.True(FolderWorkspace.Declares("using DotGram; [GramAttribute] partial class A;"));
-		Assert.True(FolderWorkspace.Declares("[GramInclude(typeof(B))] partial class A;"));
-		Assert.True(FolderWorkspace.Declares("[global::DotGram.GramSource(\"x\")] class A;"));
-
-		// A mention of the name is not a declaration.
-		Assert.False(FolderWorkspace.Declares("// [Gram(\"A.gram\")]\nclass A { string s = \"[Gram(\\\"A.gram\\\")]\"; }"));
-		Assert.False(FolderWorkspace.Declares("[Grammar] class A;"));
-	}
-
-	static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(GramAnalysisSession<GramVersion> session)
+	internal static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(GramAnalysisSession<GramVersion> session)
 	{
 		return await StateAsync(session, StandaloneGrammarState.Resolved);
 	}
 
-	static async Task<GramAnalysisResult<GramVersion>> StateAsync(GramAnalysisSession<GramVersion> session, StandaloneGrammarState state)
+	internal static async Task<GramAnalysisResult<GramVersion>> StateAsync(GramAnalysisSession<GramVersion> session, StandaloneGrammarState state)
 	{
 		var deadline = DateTime.UtcNow + LspClient.Timeout;
 

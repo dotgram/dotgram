@@ -26,9 +26,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         debug: { ...server, transport: TransportKind.stdio },
     };
 
-    // The server looks for a grammar's host in the folder's C#, and for what it includes in the
-    // folder's grammars.
-    const watcher = vscode.workspace.createFileSystemWatcher('**/*.{cs,gram}');
+    // The server looks for a grammar's host in the folder's C#, for what it includes in the folder's
+    // grammars, and for which project a file is in in its project files.
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.{cs,gram,csproj}');
     context.subscriptions.push(watcher);
 
     const clientOptions: LanguageClientOptions = {
