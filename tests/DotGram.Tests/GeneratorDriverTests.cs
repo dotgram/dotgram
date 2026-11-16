@@ -4116,6 +4116,59 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>
+	/// A construction in a rule a <c>with</c> specializes is compiled once a reading, and every copy
+	/// of an error in it lands on the line the grammar wrote it on.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A rebinding clones the call graph it reaches (§5.1), so a construction written once is
+	/// emitted once for every reading that reaches it: here <c>More</c> is reached by the plain
+	/// <c>parse</c> and by two specializations, and C# sees three copies of the same mistake. What
+	/// is asserted is that each copy says where the author wrote it — the one line and the column
+	/// of <c>Missing</c> — and not a line of a file the author never wrote; and how many copies
+	/// there are, which is the number of readings, so that a change to how a specialization is
+	/// emitted (shared rather than cloned, or cloned twice over) shows here as well as in the
+	/// snapshot.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void An_error_in_a_specialized_construction_lands_on_the_grammars_line_once_a_reading()
+	{
+		RunGenerator(
+		""""
+		using DotGram;
+
+		[Gram("""
+			Item  : @int = text: ['0'..'9']+ => @(int.Parse(text))
+			Comma = ','
+			More  : @int = Comma & value: Item => @(Missing(value))
+			List  : @int = first: Item & rest: More* => @(first + rest.Length)
+			parse List
+			parse List with (Comma = ';') as ParseSemicolons
+			parse List with (Comma = (',' | ';')) as ParseLoose
+			""")]
+		public partial class Specialized;
+		"""",
+			out var output);
+
+		var errors = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.ToArray();
+
+		Assert.All(errors, static error => Assert.Contains("Missing", error.GetMessage(), StringComparison.Ordinal));
+
+		var places = errors
+			.Select(static error => error.Location.GetMappedLineSpan())
+			.Select(static at => (at.Path, at.StartLinePosition.Line, at.StartLinePosition.Character))
+			.ToArray();
+
+		// The sixth line of the source above, 0-based here, at the column `Missing` is written at.
+		Assert.All(places, static at => Assert.Equal(("GeneratorDriverTest.cs", 5, 41), at));
+		Assert.Equal(3, places.Length);
+	}
+
+	/// <summary>
 	/// A grammar's own C# that holds the character the output step reads as a mark is copied as
 	/// written, and nothing in it is rewritten.
 	/// </summary>

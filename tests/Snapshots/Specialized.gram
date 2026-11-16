@@ -1,0 +1,24 @@
+// One rule specialized twice by `with`, which is what a grammar reading several dialects writes.
+//
+// `parse … with (Comma = …) as Name` clones the call graph reached from `List` with one rule put in
+// another's place (docs/syntax.md §5.1), and each clone is a reader of its own in the generated
+// file. Until this file no snapshot held a `with`, so what the cloning emits — how many copies of
+// `More` and `Item` there are, what each is called, which `#line` each construction points back to —
+// could change without a line of any diff.
+//
+// Three publications of `List`: as written, with `;` in the place of `,`, and with an operand
+// in its place, a choice, which becomes a rule of its own declared where the `with` is written.
+// `More`'s construction is written once and runs in three readers; every copy of it in
+// Specialized.gram.g.cs should point back to the one line below.
+
+Item : @int = text: ['0'..'9']+ => @(int.Parse(text))
+
+Comma = ','
+
+More : @int = Comma & value: Item => @(value)
+
+List : @int = first: Item & rest: More* => @(first + rest.Length)
+
+parse List
+parse List with (Comma = ';') as ParseSemicolons
+parse List with (Comma = (',' | ';')) as ParseLoose
