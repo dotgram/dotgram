@@ -316,7 +316,9 @@ internal static class DslEmbeddedSiteAnalysis
 		string grammarSource,
 		string fingerprint)
 	{
-		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarSource));
+		// The C# in a grammar (`@(…)`, `when @(…)`) is delimited by a C# scanner: without one the lexer
+		// cannot tell where it ends, and every grammar that builds values would be refused here.
+		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarSource, RoslynCSharpScanner.Instance));
 		var grammarModel = GrammarBinder.Bind(parsed.File);
 		var graph = DslGrammarNormalizer.Normalize(
 			grammarModel,

@@ -161,6 +161,32 @@ public sealed class DslEmbeddedSiteAnalysisTests
 				.Select(item => (item.Role, text.ToString(item.Span))));
 	}
 
+	/// <summary>
+	/// A grammar that builds its values with <c>@(…)</c> holds C# the grammar's lexer can only
+	/// delimit with a C# scanner: read without one, the language is refused and its sites are
+	/// left unhighlighted.
+	/// </summary>
+	[Fact]
+	public async Task ClassifiesSiteOfGrammarThatBuildsValuesInCSharp()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = Source("let total").Replace(
+			"Start      = Keyword & ' ' & name: (Identifier)",
+			"Start : @string = Keyword & ' ' & name: Identifier => @(name.ToString())");
+		var document = Document(source);
+		var text     = await document.GetTextAsync(cancellationToken);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Diagnostics);
+		Assert.Equal(
+			new[] { ("Keyword", "let"), ("Variable", "total") },
+			result.Classifications.OrderBy(item => item.Span.Start)
+				.Select(item => (item.Role, text.ToString(item.Span))));
+	}
+
 	[Fact]
 	public async Task ResolvesNamedMethodArgumentThroughItsStringSyntaxParameter()
 	{
