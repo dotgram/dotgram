@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -103,6 +105,73 @@ public sealed class RefusalTests
 				.Invoke(null, [new StringReader(Input), null, null])!;
 
 			Assert.Equal(error, (string?)buffered.GetType().GetProperty("Error")!.GetValue(buffered));
+		}
+	}
+
+	/// <summary>
+	/// Guards that said no never push a named terminal out of what a refusal says, however many
+	/// times they are asked at the furthest place.
+	/// </summary>
+	/// <remarks>
+	/// The sets that tie at a place are kept up to a bound, and a guard is recorded there like a
+	/// terminal. Fifteen choices of two guards that pass, before two that refuse, ask the refusing
+	/// pair once for each of 2^15 ways: recorded each time, they filled the list before <c>'z'</c>
+	/// was reached, and the refusal named the guards alone where it used to name <c>'z'</c>.
+	/// </remarks>
+	[Fact]
+	public void Guards_asked_again_and_again_do_not_push_a_terminal_out()
+	{
+		var grammar =
+			"Start = " + string.Concat(Enumerable.Repeat("(when @(true) | when @(1 == 1)) & ", 15)) +
+			"(when @(false) | when @(1 == 2)) | 'z'\nparse Start\n";
+
+		foreach (var error in Errors(grammar, ""))
+			Assert.Equal("Expected 'z'.", error);
+	}
+
+	/// <summary>
+	/// A guard inside the trivia that says no where the input ran out is said the same by every
+	/// rendering: the engine too records it as a terminal of the trivia is recorded there.
+	/// </summary>
+	[Fact]
+	public void A_guard_in_the_trivia_is_said_alike_in_every_rendering()
+	{
+		const string Grammar = "trivia = { (' ' & when @(false))* }\nStart = 'a'\nparse Start\n";
+
+		foreach (var error in Errors(Grammar, "a "))
+			Assert.Equal("when @(false) said no.", error);
+	}
+
+	/// <summary>
+	/// A guard is named by its C# as written: whitespace between its tokens is said once, and what
+	/// a string or a character literal holds is left as it is.
+	/// </summary>
+	[Fact]
+	public void A_guard_is_named_by_its_CSharp_and_its_literals_are_left_whole()
+	{
+		const string Grammar = "Start = t: 'x' & when @(t  ==\n  \"a  b\" || t == \"\\\"  \" || t == @\"a  \"\"  b\" || t[0] == ' ')\nparse Start\n";
+
+		foreach (var error in Errors(Grammar, "x"))
+			Assert.Equal("when @(t == \"a  b\" || t == \"\\\"  \" || t == @\"a  \"\"  b\" || t[0] == ' ') said no.", error);
+	}
+
+	/// <summary>What <c>TryParseStart</c> says of <paramref name="input"/> on the engine and on the methods of either carrier.</summary>
+	static IEnumerable<string?> Errors(string grammar, string input)
+	{
+		foreach (var (carrier, direct) in new[] { (CarrierKind.Deferred, false), (CarrierKind.Deferred, true), (CarrierKind.Immediate, true) })
+		{
+			var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions
+			{
+				ClassName = "Grammar", Carrier = carrier, Direct = direct, CSharpScanner = RoslynCSharpScanner.Instance,
+			});
+
+			EmittedCode.Quiet(compilation.Diagnostics);
+
+			var match = EmittedCode.Match(EmittedCode.Compile(Assert.Single(compilation.Sources).Text), "Grammar", "TryParseStart", input);
+
+			Assert.False(match.IsSuccess);
+
+			yield return match.Error;
 		}
 	}
 

@@ -4338,10 +4338,37 @@ namespace DotGram.Snapshots
 				if (more == null)
 					failure.ExpectedMore = more = Ties_DotGram();
 
+				if (Guarding_DotGram(expected))
+				{
+					if (more.Count < TieCap_DotGram && !ReferenceEquals(failure.Expected, expected) && !more.Contains(expected))
+						more.Add(expected);
+
+					return;
+				}
+
 				if (more.Count < TieCap_DotGram)
+				{
 					more.Add(expected);
-				else if (more.Count == TieCap_DotGram)
+
+					return;
+				}
+
+				for (var at = more.Count - 1; at >= 0; at--)
+					if (Guarding_DotGram(more[at]))
+					{
+						more.RemoveAt(at);
+						more.Add(expected);
+
+						return;
+					}
+
+				if (more.Count == TieCap_DotGram)
 					more.Add(Truncated_DotGram);
+			}
+
+			private static bool Guarding_DotGram(string[] set)
+			{
+				return set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002';
 			}
 
 			private static string[][]? Tied_DotGram(global::System.Collections.Generic.List<string[]>? ties)
@@ -4885,9 +4912,7 @@ namespace DotGram.Snapshots
 					// A guard that said no is named in what a refusal records, for the message; the sink
 					// is told it by Guard, and its refusal names nothing, as it always has.
 					if (!Quiet)
-						Sink.Refused(
-							position + _offset,
-							expected != null && expected.Length == 1 && expected[0].Length > 0 && expected[0][0] == '\u0002' ? null : expected);
+						Sink.Refused(position + _offset, Told_DotGram(expected));
 				}
 
 				internal void Recovered(int rule, int from, int to, int reach)
@@ -4973,7 +4998,35 @@ namespace DotGram.Snapshots
 			static void Ended_DotGram(ref Failure failure, GramRead? read, int end)
 			{
 				if (read != null)
-					read.Sink.End(read, read.Absolute(end), read.Absolute(failure.Position), failure.Expected, failure.ExpectedMore);
+					read.Sink.End(read, read.Absolute(end), read.Absolute(failure.Position), Told_DotGram(failure.Expected), ToldTies_DotGram(failure.ExpectedMore));
+			}
+
+			static string[]? Told_DotGram(string[]? set)
+			{
+				return set != null && set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002' ? null : set;
+			}
+
+			static global::System.Collections.Generic.IReadOnlyList<string[]>? ToldTies_DotGram(global::System.Collections.Generic.List<string[]>? sets)
+			{
+				if (sets == null)
+					return null;
+
+				var guards = 0;
+
+				foreach (var set in sets)
+					if (Told_DotGram(set) == null)
+						guards++;
+
+				if (guards == 0)
+					return sets;
+
+				var told = new global::System.Collections.Generic.List<string[]>(sets.Count - guards);
+
+				foreach (var set in sets)
+					if (Told_DotGram(set) != null)
+						told.Add(set);
+
+				return told;
 			}
 
 			static bool Thrown_DotGram(ref Failure failure, GramRead? read)
@@ -5410,12 +5463,7 @@ namespace DotGram.Snapshots
 					}
 
 					var paths = new global::System.Collections.Generic.List<Path>();
-					var sets  = Named(expected);
-
-					if (expectedMore != null)
-						foreach (var one in expectedMore)
-							sets |= Named(one);
-
+					var sets  = expected != null || expectedMore != null && expectedMore.Count > 0;
 					var cause = "";
 
 					if (_furthest == position)
@@ -5614,11 +5662,6 @@ namespace DotGram.Snapshots
 							kept.Add(path);
 
 					return kept.ToArray();
-				}
-
-				static bool Named(string[]? set)
-				{
-					return set != null && !(set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002');
 				}
 
 				static string Wanted_DotGram(global::System.Collections.Generic.IReadOnlyList<string> expected)

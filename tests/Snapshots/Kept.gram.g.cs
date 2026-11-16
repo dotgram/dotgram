@@ -1457,10 +1457,37 @@ namespace DotGram.Snapshots
 			if (more == null)
 				failure.ExpectedMore = more = Ties_DotGram();
 
+			if (Guarding_DotGram(expected))
+			{
+				if (more.Count < TieCap_DotGram && !ReferenceEquals(failure.Expected, expected) && !more.Contains(expected))
+					more.Add(expected);
+
+				return;
+			}
+
 			if (more.Count < TieCap_DotGram)
+			{
 				more.Add(expected);
-			else if (more.Count == TieCap_DotGram)
+
+				return;
+			}
+
+			for (var at = more.Count - 1; at >= 0; at--)
+				if (Guarding_DotGram(more[at]))
+				{
+					more.RemoveAt(at);
+					more.Add(expected);
+
+					return;
+				}
+
+			if (more.Count == TieCap_DotGram)
 				more.Add(Truncated_DotGram);
+		}
+
+		private static bool Guarding_DotGram(string[] set)
+		{
+			return set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002';
 		}
 
 		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)

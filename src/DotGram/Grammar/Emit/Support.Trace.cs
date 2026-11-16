@@ -601,9 +601,7 @@ static partial class CSharpEmitter
 				// A guard that said no is named in what a refusal records, for the message; the sink
 				// is told it by Guard, and its refusal names nothing, as it always has.
 				if (!Quiet)
-					Sink.Refused(
-						position + _offset,
-						expected != null && expected.Length == 1 && expected[0].Length > 0 && expected[0][0] == '\u0002' ? null : expected);
+					Sink.Refused(position + _offset, Told_DotGram(expected));
 			}
 
 			/// <summary>An element stepped over, told.</summary>
@@ -704,7 +702,40 @@ static partial class CSharpEmitter
 		static void Ended_DotGram(ref Failure failure, GramRead? read, int end)
 		{
 			if (read != null)
-				read.Sink.End(read, read.Absolute(end), read.Absolute(failure.Position), failure.Expected, {{more}});
+				read.Sink.End(read, read.Absolute(end), read.Absolute(failure.Position), Told_DotGram(failure.Expected), ToldTies_DotGram({{more}}));
+		}
+
+		/// <summary>
+		/// A set as a sink is told it: null for a guard that said no, which the failure records for the
+		/// message, marked with a character a grammar cannot write, and which the sink was told by Guard.
+		/// </summary>
+		static string[]? Told_DotGram(string[]? set)
+		{
+			return set != null && set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002' ? null : set;
+		}
+
+		/// <summary>The sets that tied, as a sink is told them: without the guards that said no (Told_DotGram).</summary>
+		static global::System.Collections.Generic.IReadOnlyList<string[]>? ToldTies_DotGram(global::System.Collections.Generic.List<string[]>? sets)
+		{
+			if (sets == null)
+				return null;
+
+			var guards = 0;
+
+			foreach (var set in sets)
+				if (Told_DotGram(set) == null)
+					guards++;
+
+			if (guards == 0)
+				return sets;
+
+			var told = new global::System.Collections.Generic.List<string[]>(sets.Count - guards);
+
+			foreach (var set in sets)
+				if (Told_DotGram(set) != null)
+					told.Add(set);
+
+			return told;
 		}
 
 		/// <summary>

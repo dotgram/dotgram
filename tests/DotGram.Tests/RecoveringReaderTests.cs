@@ -208,6 +208,39 @@ public sealed class RecoveringReaderTests
 		return string.Join(" | ", told);
 	}
 
+	/// <summary>
+	/// A plain reading of a reader steps over a bad element to a synchronization that itself begins
+	/// by stepping over something: the synchronization can begin at any character there, not only
+	/// at those its good first element begins with.
+	/// </summary>
+	/// <remarks>
+	/// The driver searches for the next place the synchronization can begin, by its first set, and
+	/// asks only there. A synchronization led by a recovery begins wherever its own bad element
+	/// does — here at the <c>x</c>, which <c>'s'*</c> steps over to the <c>;</c> — and a search by
+	/// the first set alone skipped that place, found none further, and refused the whole input.
+	/// </remarks>
+	[Fact]
+	public void A_synchronization_led_by_a_recovery_is_asked_at_every_place()
+	{
+		var result = GramCompiler.Compile("""
+			Row  : @string   = 'a' & '!'                => @("row")
+			Rows : @string[] = Row* recover Sync        => @("bad")
+			Sync             = ('s'* recover ';') & '!' & when @(parserText.Length == 3)
+			parse Rows
+			""", new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var host   = EmittedCode.Compile(Assert.Single(result.Sources).Text).GetType("Grammar")!;
+		var method = host.GetMethod("ParseRows", [typeof(System.IO.TextReader)])!;
+		var told   = new List<string>();
+
+		foreach (var one in (IEnumerable)method.Invoke(null, [new System.IO.StringReader("x;!a!")])!)
+			told.Add((string)one);
+
+		Assert.Equal(["bad", "row"], told);
+	}
+
 	/// <summary>The factories a parse ran, counted by name.</summary>
 	static string Built(Assembly assembly, string input)
 	{

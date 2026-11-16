@@ -1084,11 +1084,17 @@ static partial class CSharpEmitter
 	/// The first set is a superset, which is the direction a search may err in: a place it skips
 	/// is one where the synchronization refuses its first character, and so one it would have
 	/// refused there anyway. Where nothing useful is known — a predicate of the host, a category,
-	/// a choice computed in C# — every place is asked, as it was.
+	/// a choice computed in C# — every place is asked, as it was; and so where the synchronization
+	/// begins with a repetition that recovers, which steps over a bad first element whatever
+	/// character it begins with (<see cref="FirstSets.LedByRecovery"/>): the first set says what a
+	/// good one begins with, and the synchronization can begin anywhere.
 	/// </remarks>
 	static string? SyncStarts(Recovery recovery, RecognitionGraph graph)
 	{
 		const int Few = 8;
+
+		if (FirstSets.LedByRecovery(recovery.Sync, graph))
+			return null;
 
 		var first = FirstSets.Of(recovery.Sync, graph);
 
