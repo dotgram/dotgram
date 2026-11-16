@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using DotGram.Language;
@@ -28,7 +29,9 @@ public sealed class WorkspaceTests : IDisposable
 		Directory.Delete(_folder, recursive: true);
 	}
 
-	const string Project = "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n</Project>\n";
+	// The grammars given to the build as the guide has them; a project that does not list a grammar does
+	// not compile it, and the server, which evaluates the project, does not either.
+	const string Project = "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n  <ItemGroup>\n    <AdditionalFiles Include=\"**/*.gram\" />\n  </ItemGroup>\n</Project>\n";
 	const string Dialect = "trivia = [' ']*\nStart = B.Word\nparse Start\n";
 
 	static string Hosts(bool lexical)
@@ -120,6 +123,206 @@ public sealed class WorkspaceTests : IDisposable
 
 		Assert.True(context.Lexical);
 		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
+	}
+
+	/// <summary>
+	/// A host includes a grammar class of a project it references: the grammar is that project's file, as
+	/// the build reads it from the referenced assembly, not one of the same name in the host's project.
+	/// </summary>
+	[Fact]
+	public async Task A_grammar_of_a_referenced_project_is_included_from_that_project()
+	{
+		var library = Directory.CreateDirectory(Path.Combine(_folder, "Library")).FullName;
+		var app     = Directory.CreateDirectory(Path.Combine(_folder, "App")).FullName;
+
+		File.WriteAllText(Path.Combine(library, "Library.csproj"), Project);
+		File.WriteAllText(Path.Combine(library, "Base.cs"), "using DotGram;\n\nnamespace Library;\n\n[Gram(\"Base.gram\", DefaultAlias = \"B\")]\npublic partial class Base;\n");
+		File.WriteAllText(Path.Combine(library, "Base.gram"), "Word = ['a'..'z']+\n");
+		File.WriteAllText(Path.Combine(app, "App.csproj"), Project.Replace("</Project>", "  <ItemGroup>\n    <ProjectReference Include=\"..\\Library\\Library.csproj\" />\n  </ItemGroup>\n</Project>", StringComparison.Ordinal));
+		File.WriteAllText(Path.Combine(app, "Hosts.cs"), "using DotGram;\n\nnamespace App;\n\n[Gram(\"Dialect.gram\")]\n[GramInclude(typeof(Library.Base))]\npublic partial class Dialect;\n");
+		File.WriteAllText(Path.Combine(app, "Base.gram"), "Other = 'x'\n");
+		File.WriteAllText(Path.Combine(app, "Dialect.gram"), Dialect);
+
+		var uri = LspClient.Uri(Path.Combine(app, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.OpenAsync(uri, Dialect);
+
+		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+
+		Assert.Equal(Path.Combine(library, "Base.gram"), context.Included.Single().FilePath);
+	}
+
+	/// <summary>
+	/// A project below another: the outer project compiles the inner one's C# too, as an SDK project's
+	/// glob takes every file below it, so a base class declared there is the outer host's base.
+	/// </summary>
+	[Fact]
+	public async Task A_project_compiles_the_files_of_a_project_below_it_as_the_build_does()
+	{
+		var nested = Directory.CreateDirectory(Path.Combine(_folder, "Nested")).FullName;
+
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project);
+		File.WriteAllText(Path.Combine(nested, "Nested.csproj"), Project);
+		File.WriteAllText(Path.Combine(_folder, "Base.cs"), "using DotGram;\n\nnamespace Parsers;\n\n[Gram(\"Base.gram\", DefaultAlias = \"B\")]\npublic abstract partial class Base;\n");
+		File.WriteAllText(Path.Combine(nested, "Middle.cs"), "namespace Parsers;\n\npublic abstract partial class Middle : Base;\n");
+		File.WriteAllText(Path.Combine(_folder, "Dialect.cs"), "using DotGram;\n\nnamespace Parsers;\n\n[Gram(\"Dialect.gram\")]\npublic partial class Dialect : Middle;\n");
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), "Word = ['a'..'z']+\n");
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), Dialect);
+
+		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.OpenAsync(uri, Dialect);
+
+		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+
+		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
+	}
+
+	/// <summary>
+	/// A project's usings as MSBuild has them: an implicit one the project removes is not there, and one
+	/// whose condition is false is not either.
+	/// </summary>
+	[Fact]
+	public async Task A_projects_usings_are_what_MSBuild_makes_of_them()
+	{
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project.Replace("</Project>", """
+			  <PropertyGroup>
+			    <ImplicitUsings>enable</ImplicitUsings>
+			  </PropertyGroup>
+			  <ItemGroup>
+			    <Using Remove="System.Threading.Tasks" />
+			    <Using Include="DotGram" Condition="false" />
+			  </ItemGroup>
+			</Project>
+			""", StringComparison.Ordinal));
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts(lexical: true).Replace("using DotGram;", "", StringComparison.Ordinal));
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), "Word = ['a'..'z']+\n");
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), Dialect);
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		var folder  = await client.Server.Folder;
+		var usings  = folder.Workspace.CurrentSolution.Projects
+			.SelectMany(static project => project.Documents)
+			.Single(static document => document.Name.EndsWith(".GlobalUsings.g.cs", StringComparison.Ordinal));
+		var text    = (await usings.GetTextAsync(TestContext.Current.CancellationToken)).ToString();
+
+		Assert.Contains("global::System.Linq;", text, StringComparison.Ordinal);
+		Assert.DoesNotContain("System.Threading.Tasks", text, StringComparison.Ordinal);
+		Assert.DoesNotContain("DotGram", text, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A workspace the client does not trust is not evaluated — MSBuild would run the project's own code —
+	/// and its projects are read from their folders as they stand.
+	/// </summary>
+	[Fact]
+	public async Task An_untrusted_workspace_is_read_without_MSBuild()
+	{
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project.Replace("</Project>", "  <ItemGroup>\n    <Using Include=\"DotGram\" Condition=\"false\" />\n  </ItemGroup>\n</Project>", StringComparison.Ordinal));
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts(lexical: true));
+
+		await using var client = new LspClient { Trusted = false };
+
+		await client.InitializeAsync(_folder);
+
+		var folder = await client.Server.Folder;
+
+		Assert.False(folder.Evaluated);
+		Assert.Single(folder.Workspace.CurrentSolution.Projects, static project => project.Name == "Parsers");
+	}
+
+	/// <summary>
+	/// A file a project's global usings are in, saved: the grammar's host is looked for again, and is gone
+	/// with the using; it comes back when the using does.
+	/// </summary>
+	[Fact]
+	public async Task A_saved_change_to_a_projects_global_usings_finds_the_host_again()
+	{
+		var usings = Path.Combine(_folder, "GlobalUsings.cs");
+
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project);
+		File.WriteAllText(usings, "global using DotGram;\n");
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts(lexical: true).Replace("using DotGram;", "", StringComparison.Ordinal));
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), "Word = ['a'..'z']+\n");
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), Dialect);
+
+		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.OpenAsync(uri, Dialect);
+		await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session);
+
+		File.WriteAllText(usings, "// nothing\n");
+		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(usings), type = Lsp.FileChanged } } });
+
+		var deadline = DateTime.UtcNow + LspClient.Timeout;
+
+		while (client.Server.Document(uri)!.Session.Resolution.State == StandaloneGrammarState.Resolved)
+		{
+			Assert.True(DateTime.UtcNow < deadline, "The host is still found without the using.");
+			await Task.Delay(50, TestContext.Current.CancellationToken);
+		}
+
+		File.WriteAllText(usings, "global using DotGram;\n");
+		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(usings), type = Lsp.FileChanged } } });
+
+		await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session);
+	}
+
+	/// <summary>
+	/// A file saved while the folders are read again: the reading began with the older text, and the newer
+	/// one, applied meanwhile, is what the workspace has once the reading is done.
+	/// </summary>
+	[Fact]
+	public async Task A_file_saved_while_the_folders_are_read_again_keeps_its_new_text()
+	{
+		var path    = Path.Combine(_folder, "Base.gram");
+		var reading = new ManualResetEventSlim(false);
+		var release = new ManualResetEventSlim(false);
+		var hold    = false;
+
+		File.WriteAllText(path, "Word = 'old'\n");
+
+		var workspace = FolderWorkspace.Create(
+			[_folder],
+			static _ => { },
+			TestContext.Current.CancellationToken,
+			read: file =>
+			{
+				var text = File.ReadAllText(file);
+
+				if (Volatile.Read(ref hold) && file == path)
+				{
+					reading.Set();
+					release.Wait(LspClient.Timeout);
+				}
+
+				return text;
+			});
+
+		Volatile.Write(ref hold, true);
+
+		var reload = Task.Run(() => workspace.Reload([_folder]), TestContext.Current.CancellationToken);
+
+		Assert.True(reading.Wait(LspClient.Timeout, TestContext.Current.CancellationToken));
+
+		File.WriteAllText(path, "Word = 'new'\n");
+		workspace.FileRead(path, "Word = 'new'\n");
+		release.Set();
+
+		await reload;
+
+		var document = workspace.Workspace.CurrentSolution.Projects
+			.SelectMany(static project => project.AdditionalDocuments)
+			.Single(document => document.FilePath == path);
+
+		Assert.Equal("Word = 'new'\n", (await document.GetTextAsync(TestContext.Current.CancellationToken)).ToString());
 	}
 
 	/// <summary>

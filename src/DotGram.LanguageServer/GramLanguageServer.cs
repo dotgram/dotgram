@@ -31,6 +31,12 @@ sealed record ServerOptions
 	/// <summary>Whether the C# of a grammar is completed, described and navigated by Roslyn.</summary>
 	public bool CSharp { get; init; } = true;
 
+	/// <summary>
+	/// Whether the projects of a workspace the client trusts are evaluated by MSBuild; off, every project
+	/// is read by its folder, as in a workspace the client does not trust.
+	/// </summary>
+	public bool Evaluate { get; init; } = true;
+
 	/// <summary>Asked for Quick Info in C# where <see cref="CSharp"/> is off; a test's hook.</summary>
 	public Func<string, int, CancellationToken, Task<RoslynGramQuickInfo?>>? CSharpQuickInfo { get; init; }
 }
@@ -51,6 +57,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	ImmutableDictionary<string, OpenGrammar> _documents = ImmutableDictionary.Create<string, OpenGrammar>(StringComparer.Ordinal);
 	Task<FolderWorkspace>                    _load;
 	IReadOnlyList<string>                    _folders = [];
+	FolderWorkspace.Evaluator?               _evaluate;
 	readonly object                         _foldersGate = new();
 	readonly SemaphoreSlim                   _reloading = new(1, 1);
 	readonly WorkspaceUpdates                _updates;
@@ -365,6 +372,11 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 		var folders = parameters.WorkspaceFolders is { } given ? Paths(given) : Paths([parameters.RootUri]);
 
+		// MSBuild runs a project's own code as it evaluates it: only in a workspace the client trusts. The
+		// extension starts the server again when the user grants the trust.
+		if (_options.Evaluate && Flag(parameters.InitializationOptions, "trusted"))
+			_evaluate = FolderWorkspace.MSBuild;
+
 		Volatile.Write(ref _folders, folders);
 
 		// Read with the server's log even where there is no folder: one may be added later.
@@ -394,12 +406,12 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	{
 		try
 		{
-			return FolderWorkspace.Load(folders, message => _ = _rpc.LogAsync(Lsp.MessageInfo, message));
+			return FolderWorkspace.Load(folders, message => _ = _rpc.LogAsync(Lsp.MessageInfo, message), evaluate: _evaluate);
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
 		{
 			Report(exception);
-			return FolderWorkspace.Empty(message => _ = _rpc.LogAsync(Lsp.MessageInfo, message));
+			return FolderWorkspace.Empty(message => _ = _rpc.LogAsync(Lsp.MessageInfo, message), _evaluate);
 		}
 	}
 

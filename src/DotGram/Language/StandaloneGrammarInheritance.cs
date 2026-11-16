@@ -175,8 +175,12 @@ static class StandaloneGrammarInheritance
 			}
 			else
 			{
-				var wanted = GramIncludes.Wanted(include);
-				var file   = FileDocument(project, wanted);
+				// A class another project of the solution declares is compiled there, with that project's
+				// files: what the build reads from the referenced assembly is that grammar, which a file of
+				// the same name in the host's own project does not replace.
+				var wanted   = GramIncludes.Wanted(include);
+				var declared = DeclaringProject(solution, include.Type);
+				var file     = FileDocument(declared is not null && declared.Id != project.Id ? declared : project, wanted);
 
 				if (file is not null)
 				{
@@ -354,6 +358,16 @@ static class StandaloneGrammarInheritance
 		}
 
 		return false;
+	}
+
+	/// <summary>The project of the solution that declares a class; null where it is only in metadata.</summary>
+	static Project? DeclaringProject(Solution solution, INamedTypeSymbol type)
+	{
+		foreach (var declaration in type.DeclaringSyntaxReferences)
+			if (solution.GetDocumentId(declaration.SyntaxTree) is { } declared)
+				return solution.GetProject(declared.ProjectId);
+
+		return null;
 	}
 
 	/// <summary>

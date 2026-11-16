@@ -27,8 +27,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     };
 
     // The server looks for a grammar's host in the folder's C#, for what it includes in the folder's
-    // grammars, and for which project a file is in in its project files.
-    const watcher = vscode.workspace.createFileSystemWatcher('**/*.{cs,gram,csproj}');
+    // grammars, and for what a project holds in its project files and the files they import.
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.{cs,gram,csproj,props,targets}');
     context.subscriptions.push(watcher);
 
     const clientOptions: LanguageClientOptions = {
@@ -37,6 +37,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         synchronize: {
             fileEvents: watcher,
         },
+        // MSBuild runs a project's own code as it evaluates it, so the server evaluates the projects only
+        // in a trusted workspace; in another it reads them by their folders.
+        // Asked again at every start, a restart's after the trust is granted among them.
+        initializationOptions: () => ({ trusted: vscode.workspace.isTrusted }),
     };
 
     client = new LanguageClient('dotgram', '.Gram language server', serverOptions, clientOptions);
@@ -46,6 +50,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Studio opens it: editing it would change nothing that is compiled.
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(readOnlyCopies));
     readOnlyCopies(vscode.window.activeTextEditor);
+
+    // Trust granted: started again, so that the projects are evaluated.
+    context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(async () => {
+        if (client) {
+            await client.restart();
+        }
+    }));
 
     await client.start();
 }

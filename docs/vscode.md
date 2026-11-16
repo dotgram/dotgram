@@ -72,19 +72,36 @@ The server itself takes `--version`, and `--log <path>` to append every message 
 ## A grammar's host without a build
 
 Visual Studio finds a grammar's host — the C# class whose `[Gram("….gram")]` names the file — in the solution it has
-loaded. VS Code has no solution, so the server makes one from the workspace folders: a project for every `.csproj`,
-holding every C# and `.gram` file below it that no nearer project file claims, with its project references, and one
-for each folder's files that no project file claims. Each is compiled against the .NET 10 reference assemblies and the
-generator's own attribute declarations, with its `.gram` files as additional files; the project file's `Using` items
-and `ImplicitUsings` are read as global usings. A grammar's host is looked for in the project that holds the grammar,
-as the build compiles it there: two projects that each have a `Parser.gram` and a host for it are two hosts. A host
-found there gives the grammar its `Lexical` option and the grammars it includes, read as the build reads them, so a
-rule from an included grammar is not reported missing and Go to Definition goes into its file — or, where only a
-class's `[GramSource]` carries it, into a read-only copy under the temporary directory, as in Visual Studio. The
-projects follow the folders: a `.cs` or `.gram` file created, changed or deleted is read again, a project file
-created, changed or deleted, or a folder added to or removed from the workspace, has the folders read again, and the
-grammars whose host it can change are analysed again. A grammar open in the editor is its editor's text, unsaved
-edits included, for every grammar that includes it, until it is closed.
+loaded. VS Code has no solution, so the server makes one from the workspace folders: a project for every `.csproj`.
+In a workspace VS Code trusts, on a machine with a .NET SDK, MSBuild evaluates the projects — once, all of them in
+one run of `dotnet msbuild` in each workspace folder, where its `global.json` chooses the SDK — and a project holds
+what the build gives its compiler: its `Compile` items, its `AdditionalFiles` grammars, the projects it references
+and its `Using` items, every glob, `Remove`, condition and import applied, `Directory.Build.props` and a restored
+package's build files among them. A file below a nested project is in both where both glob it, and a grammar class
+of a referenced project is included from that project's file, as the build reads it from the referenced assembly.
+The evaluation runs only the projects' `InitialTargets` and a target of the server's that returns those items;
+nothing is built or restored. On this repository, 54 projects, the folders are read and evaluated in about 2 s;
+a project file changed has its project evaluated again in about 1 s, a `.props` or `.targets` file every project
+in about 2 s.
+
+A project MSBuild cannot evaluate (the server says which in the output panel), every project of a workspace VS
+Code does not trust — evaluating a project runs its own code — and every project on a machine without a .NET SDK
+are read by their folders instead, the fallback: a project holds every C# and `.gram` file below it that no nearer
+project file claims, the project references and `Using` items its file lists (`ImplicitUsings` as the SDK's
+defaults), and nothing of its conditions, imports or packages. Trust granted later starts the server again,
+evaluating. The files no project holds are a project of each folder's own.
+
+Each project is compiled against the .NET 10 reference assemblies and the generator's own attribute declarations,
+with its grammars as additional files. A grammar's host is looked for in the project that holds the grammar, as the
+build compiles it there: two projects that each have a `Parser.gram` and a host for it are two hosts. A host found
+there gives the grammar its `Lexical` option and the grammars it includes, read as the build reads them, so a rule
+from an included grammar is not reported missing and Go to Definition goes into its file — or, where only a class's
+`[GramSource]` carries it, into a read-only copy under the temporary directory, as in Visual Studio. The projects
+follow the folders: a `.cs` or `.gram` file created, changed or deleted is read again, and a C# file saved has every
+grammar of its project look for its host again (a `global using` may be what binds it); a project file, `.props` or
+`.targets` file changed, or a folder added to or removed from the workspace, has the projects read again — a file
+saved while that runs keeps what it was saved as. A grammar open in the editor is its editor's text, unsaved edits
+included, for every grammar that includes it, until it is closed.
 
 `bin`, `obj`, `node_modules`, folders whose name starts with a dot, and links (symbolic links, junctions) are not
 read. A workspace with more than 2,000 C# files, more than 200,000 files and folders in all, or one that takes longer
@@ -93,9 +110,9 @@ grammars, like a `.gram` file
 opened outside any folder, are read as they stand and quiet about what depends on a host: syntax errors are shown,
 a name that may come from an included grammar is not reported.
 
-Package references, `Directory.Build.props` and a project's other properties are not read, so what a host's code
-takes from them is not known; the diagnostics that depend on it are the build's, as they are in Visual Studio for any
-C# type a grammar names.
+A project's package and assembly references are not compiled against, so what a host's code takes from them is not
+known; the diagnostics that depend on it are the build's, as they are in Visual Studio for any C# type a grammar
+names.
 
 ## What is not there
 

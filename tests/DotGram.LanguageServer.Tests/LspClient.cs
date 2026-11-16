@@ -62,6 +62,9 @@ sealed class LspClient : IAsyncDisposable
 
 	public GramLanguageServer Server { get; }
 
+	/// <summary>Whether the client says the workspace is trusted, which lets the server evaluate its projects with MSBuild.</summary>
+	public bool Trusted { get; init; } = true;
+
 	/// <summary>Starts a client and a server, and goes through <c>initialize</c> and <c>initialized</c>.</summary>
 	public static async Task<LspClient> StartAsync(ServerOptions? options = null, params string[] folders)
 	{
@@ -80,6 +83,7 @@ sealed class LspClient : IAsyncDisposable
 			rootUri          = folders.Length == 0 ? null : Uri(folders[0]),
 			workspaceFolders = folders.Select(folder => new { uri = Uri(folder), name = Path.GetFileName(folder) }).ToArray(),
 			capabilities     = new { workspace = new { semanticTokens = new { refreshSupport = true } } },
+			initializationOptions = new { trusted = Trusted },
 		});
 
 		await NotifyAsync("initialized", new { });
