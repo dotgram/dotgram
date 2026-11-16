@@ -31,7 +31,7 @@ and build: the generator's diagnostics (`GRAMnnnn`, pointing into the grammar) t
 Skills: [DotGram](src/DotGram/SKILL.md) · [DotGram.Cli](src/DotGram.Cli/SKILL.md) · [DotGram.Sql](src/DotGram.Sql/SKILL.md) ·
 [DotGram.Web](src/DotGram.Web/SKILL.md) · [DotGram.Finance](src/DotGram.Finance/SKILL.md) · [DotGram.ExpressionLanguage](src/DotGram.ExpressionLanguage/SKILL.md).
 How to hand one to an agent and what to check afterwards: [Writing grammars with a coding agent](https://dotgram.github.io/dotgram/agents.html);
-the notation for people: the [language guide](https://dotgram.github.io/dotgram/guide/language/).
+the notation for people: the [language guide](https://dotgram.github.io/dotgram/guide/language/README.html).
 
 <!-- AGENT-EXAMPLE -->
 
