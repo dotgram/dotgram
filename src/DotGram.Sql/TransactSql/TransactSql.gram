@@ -311,7 +311,7 @@ SetFunctionSpecification : @Ast.Expression
       & switch @(first is null ? 0 : 1)
         {
             case 0: args: Arguments? & model: UseModel? & ')' & tail: CallTail?
-            case 1: close: ')'? & switch @(close is not null ? 1 : first!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+            case 1: close: ')'? & switch @(close is not null ? 1 : first!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) on fail "Expected ')'." }
         }
         => @(close is not null ? new Build.Values.Call(name, [first!.Value], Syntax.Distinctly(quantifier))
              : more is not null ? Build.Values.Rested(name, quantifier, first!, null, more)
@@ -370,7 +370,7 @@ ValueFunction : @Ast.Expression
       & switch @(first is null ? 0 : 1)
         {
             case 0: quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
-            case 1: close: ')'? & switch @(close is not null ? 1 : first!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+            case 1: close: ')'? & switch @(close is not null ? 1 : first!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) on fail "Expected ')'." }
         }
         => @(close is not null ? new Build.Values.Call(name, [first!.Value])
              : more is not null ? Build.Values.Rested(name, null, first!, null, more)
@@ -390,7 +390,7 @@ ValueFunction : @Ast.Expression
       & switch @(head is null ? 0 : head.From is not null ? 2 : 1)
         {
             case 0: ?!TSqlTrimSpecification & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
-            case 1: close: ')'? & switch @(close is not null ? 1 : head!.What!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+            case 1: close: ')'? & switch @(close is not null ? 1 : head!.What!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) on fail "Expected ')'." }
             case 2: v: TSqlValueExpression & ')'
         }
         => @(head?.From is not null ? new Build.Values.Call(name, head.What is null ? [v!] : [head.What.Value, v!], head.How) { From = true }
@@ -634,9 +634,9 @@ DatePartFunction : @string
 	= t: ("DATEPART"i | "DATENAME"i | "DATEADD"i | "DATEDIFF_BIG"i | "DATEDIFF"i | "DATETRUNC"i | "DATE_BUCKET"i) => @(t)
 
 DatePart : @Ast.Expression
-	= t: TSqlIdentifier & when @(Syntax.IsDatePart(t))          => @(Build.Values.Worded(t))
+	= t: TSqlIdentifier & when @(Syntax.IsDatePart(t)) on fail "Expected a date part."          => @(Build.Values.Worded(t))
 	| '(' & p: DatePart & ')'                                   => @(Build.Values.Parenthesized(p))
-	| v: TSqlValueExpression & when @(!Build.Rules.IsColumn(v)) => @(v)
+	| v: TSqlValueExpression & when @(!Build.Rules.IsColumn(v)) on fail "Expected a date part." => @(v)
 
 // ODBC's escapes, which every driver has understood since before this language had a
 // standard and which SQL Server still reads: a function called the portable way, and the
@@ -733,9 +733,9 @@ TSqlValueFunction : @Ast.Expression
 	        case 1: (',' & chosen: CallItem)*
 	              & switch @(chosen is { Length: > 0 } ? 1 : 0)
 	                {
-	                    case 0: when @(Build.Values.Plain(at!, chosen)) & more: CallRest
+	                    case 0: when @(Build.Values.Plain(at!, chosen)) on fail "Expected ')'." & more: CallRest
 	                    case 1: close: ')'?
-	                          & switch @(close is not null ? 1 : Build.Values.Plain(at!, chosen) ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+	                          & switch @(close is not null ? 1 : Build.Values.Plain(at!, chosen) ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) on fail "Expected ')'." }
 	                }
 	    }
 		=> @(close is not null ? new Build.Values.Call(name, SqlList.Own(Build.Values.Listed(at!, chosen)))
@@ -768,7 +768,7 @@ TSqlValueFunction : @Ast.Expression
 	// and three are `Msg 189` at the parse — and the wrapper after either, the three words in
 	// that order: `WITHOUT`, `WITH WRAPPER`, `CONDITIONAL` and a value after them are 102.
 	| name: "JSON_VALUE"i & '(' & args: Arguments? & returning: JsonValueReturning? & ')' & tail: CallTail?
-	  & when @(returning is null || args is { Length: 2 })
+	  & when @(returning is null || args is { Length: 2 }) on fail "Expected two arguments before RETURNING."
 		=> @(Build.Values.Called(new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], returning))), tail))
 	| name: "JSON_QUERY"i & '(' & first: TSqlValueExpression & (',' & second: TSqlValueExpression)? & wrapped: JsonWrapper? & ')' & tail: CallTail?
 		=> @(Build.Values.Called(new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(second is null ? new[] { first } : new[] { first, second }, wrapped))), tail))
@@ -820,7 +820,7 @@ UseModelParameters = "PARAMETERS"i & TSqlValueExpression
 
 JsonNullClause     : @string = t: ("NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i)            => @(t)
 JsonReturningJson  : @string = t: ("RETURNING"i & "JSON"i)                                             => @(t)
-JsonValueReturning : @string =     "RETURNING"i & type: TSqlDataType & when @(Syntax.JsonValued(type)) => @("RETURNING " + type)
+JsonValueReturning : @string =     "RETURNING"i & type: TSqlDataType & when @(Syntax.JsonValued(type)) on fail "Expected a type JSON_VALUE can return." => @("RETURNING " + type)
 JsonWrapper        : @string = t: ("WITH"i  & "ARRAY"i & "WRAPPER"i)                                   => @(t)
 JsonOrder          : @string = t: ("ORDER"i & "BY"i & SortSpecification & (',' & SortSpecification)*)  => @(t)
 
@@ -848,7 +848,7 @@ NextValue : @Ast.Expression
 FunctionCall : @Ast.Expression
 	= ?!((JsonOwnName | "IIF"i | NamedCallName) & '(')
 	& ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
-	& name: TSqlQualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	& name: TSqlQualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name)) on fail "Expected a function name."
 	& '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 		=> @(Build.Values.Called(
 				new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
@@ -1205,7 +1205,7 @@ TSqlBooleanFactor : @Ast.Expression
 // statement that came in.
 TSqlQuerySpecification : @Build.Query
 	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: TSqlSelectList & into: Into?
-	  & when @(into is not null || !Build.Rules.HasIdentity(columns))
+	  & when @(into is not null || !Build.Rules.HasIdentity(columns)) on fail "Expected IDENTITY only in SELECT ... INTO."
 	  & from: FromClause? & where: WhereClause? & group: TSqlGroupByClause? & having: HavingClause?
 	  & windows: Window?
 		=> @(Build.Queries.Specification(
@@ -1444,7 +1444,7 @@ TSqlTablePrimary : @Build.TableReference
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & sample: TableSample? & close: SampledHint? & hints: SourceHints?
 	  & when @((call is null || (hints is null && close is null && path is null))
-			   && (close is null || (alias is not null && hints is null)))
+			   && (close is null || (alias is not null && hints is null))) on fail "Expected hints, a sample or a path only on a table, not on a function call."
 	  & pivot: PivotSuffix?
 		=> @(Build.Tables.Sourced(Build.Rules.Sourced(name, version, path is not null, call, SqlList.OwnOrNull(args), alias, SqlList.OwnOrNull(columns), sample, SqlList.OwnOrNull(hints ?? close), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| t: TSql.Variable & s: VariableSource & pivot: PivotSuffix? => @(Build.Tables.Sourced(Build.Rules.Pivoted(Build.Rules.OfVariable(t, s), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
@@ -1458,7 +1458,7 @@ TSqlTablePrimary : @Build.TableReference
 		=> @(Build.Tables.Sourced(Build.Rules.Pivoted(new Build.TableReference.Parenthesized(j), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	// ODBC's braces hold a join a pivot does not end — `{ OJ t1 LEFT JOIN t2 ON … PIVOT (…) p }`
 	// is `Msg 102` — and pivots may follow them.
-	| '{' & "OJ"i & j: TSqlTableReference & when @(!Build.Rules.Pivots(j)) & '}'
+	| '{' & "OJ"i & j: TSqlTableReference & when @(!Build.Rules.Pivots(j)) on fail "Expected a join inside the braces." & '}'
 	  & pivot: PivotSuffix?
 		=> @(Build.Tables.Sourced(Build.Rules.Pivoted(new Build.TableReference.OdbcJoin(j), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
@@ -1706,7 +1706,7 @@ TSqlRow : @Ast.Expression
 TSqlDirectSelect : @Build.Statement
 	= with: WithClause? & q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch?
 	  & shape: ForClause? & options: QueryHints?
-	  & when @((by is null || !Build.Rules.AssignsFromNothing(q)) && !Build.Rules.AssignsCombined(q))
+	  & when @((by is null || !Build.Rules.AssignsFromNothing(q)) && !Build.Rules.AssignsCombined(q)) on fail "Expected a query that assigns variables alone, with no ORDER BY and no UNION, EXCEPT or INTERSECT."
 		=> @(Build.Queries.Select(
 				 SqlList.Own(with), q, Build.Clause.Ordered(SqlList.OwnOrNull(by), window), shape, SqlList.Own(options)))
 
@@ -2239,11 +2239,11 @@ DmlSubject : @Build.TableReference = c: DmlCall => @(c) | t: DmlTarget => @(t)
 TSqlInsert : @Build.Statement
 	= "INSERT"i & top: Top? & into: InsertInto? & target: DmlTarget
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
-	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Build.Query.FromExecute)
+	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Build.Query.FromExecute) on fail "Expected no query hints on INSERT ... EXECUTE."
 		=> @(new Build.Statement.Insert(target, SqlList.OwnOrNull(columns), rows, null, top, output, into) { Options = SqlList.OwnOrNull(options) })
-	| "INSERT"i & top: Top? & into: InsertInto? & target: DmlCall & when @(Build.Rules.Written(target))
+	| "INSERT"i & top: Top? & into: InsertInto? & target: DmlCall & when @(Build.Rules.Written(target)) on fail "Expected a column list an insert can name."
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
-	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Build.Query.FromExecute)
+	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Build.Query.FromExecute) on fail "Expected no query hints on INSERT ... EXECUTE."
 		=> @(new Build.Statement.Insert(target, SqlList.OwnOrNull(columns), rows, null, top, output, into) { Options = SqlList.OwnOrNull(options) })
 
 // What an `INSERT` names its columns by, which is not the standard's plain identifier: a part
@@ -2275,7 +2275,7 @@ InsertRows : @Build.Query
 // hints after it. The statement is any of the four, with no `WITH` in front of it and no
 // second pair of brackets round it, and it returns its rows (`Syntax.Returns`).
 ChangedSource : @Build.Query
-	= "SELECT"i & columns: TSqlSelectList & when @(!Build.Rules.HasIdentity(columns))
+	= "SELECT"i & columns: TSqlSelectList & when @(!Build.Rules.HasIdentity(columns)) on fail "Expected IDENTITY only in SELECT ... INTO."
 	  & "FROM"i & source: ChangedTable & where: WhereClause?
 		=> @(Build.Queries.Specification(null, null, SqlList.Own(columns), null, [source], where, null, null, null))
 
@@ -2400,7 +2400,7 @@ MergeArm : @Build.Clause
 		=> @(new Build.Clause.MergeWhen(false, by is null ? null : "TARGET", c, a))
 
 MergeChange : @Build.Statement
-	= "UPDATE"i & "SET"i & sets: Assignments & when @(Build.Rules.Unchained(sets))
+	= "UPDATE"i & "SET"i & sets: Assignments & when @(Build.Rules.Unchained(sets)) on fail "Expected one variable or column for each assignment."
 		=> @(new Build.Statement.Update(null, SqlList.Own(sets), Build.TableReference.None, null))
 	| "DELETE"i
 		=> @(new Build.Statement.Delete(null, Build.TableReference.None, null))
@@ -2582,7 +2582,7 @@ AtomicBody : @Build.Statement[]
 // `TEXTSIZE = 1e3` is `Msg 102`.
 AtomicOptions : @Build.Clause[]
 	= '(' & first: AtomicOption & (',' & rest: AtomicOption)* & ')'
-	  & when @(first is null || (!Build.Rules.Repeats(Syntax.Listed(first, rest)) && Build.Rules.Atomically(Syntax.Listed(first, rest))))
+	  & when @(first is null || (!Build.Rules.Repeats(Syntax.Listed(first, rest)) && Build.Rules.Atomically(Syntax.Listed(first, rest)))) on fail "Expected each option once, with TRANSACTION ISOLATION LEVEL and LANGUAGE."
 		=> @(Syntax.Listed(first, rest))
 
 AtomicOption : @Build.Clause = ?=(AtomicSyntax & OptionEnds) & o: OptionSetting => @(o)
@@ -2671,7 +2671,7 @@ Declaration : @Build.Clause
 // where it is a table — `DECLARE @t TABLE (c1 INT NOT NULL)` is read — and that is the body's
 // business rather than this rule's.
 DeclaredAs : @Build.Clause.VariableDeclaration
-	= "TABLE"i & '(' & body: DeclaredBody & ')' & when @(Build.Rules.Declared(body))
+	= "TABLE"i & '(' & body: DeclaredBody & ')' & when @(Build.Rules.Declared(body)) on fail "Expected columns a table variable can hold."
 		=> @(new Build.Clause.VariableDeclaration("", "TABLE", null, SqlList.OwnOrNull(body)))
 	| "CURSOR"i                                 => @(new Build.Clause.VariableDeclaration("", "CURSOR", null))
 	| type: TSqlDataType & ('=' & v: SetValue)? => @(new Build.Clause.VariableDeclaration("", type, v, null))
@@ -2774,7 +2774,7 @@ CodeStatement : @Build.Statement
 		=> @(Build.Defined("ASSEMBLY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "ASSEMBLY"i & name: TSqlIdentifier
 	  & tail: (("FROM"i & SetValue)? & options: AssemblyOptions? & AssemblyDrop? & AssemblyAdd?)
-	  & when @(Syntax.Tail(tail) is not null)
+	  & when @(Syntax.Tail(tail) is not null) on fail "Expected what to alter."
 		=> @(Build.Defined("ASSEMBLY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: TSqlIdentifier & tail: ("FROM"i & "FILE"i & '=' & Quoted)
 		=> @(Build.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "CREATE"))
@@ -2783,7 +2783,7 @@ CodeStatement : @Build.Statement
 		=> @(Build.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "ALTER"))
 	| "CREATE"i & "EXTERNAL"i & "LANGUAGE"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)? & "FROM"i & file: LanguageFile & (',' & other: LanguageFile)?)
-	  & when @(Build.Rules.LanguageFiles(file, other))
+	  & when @(Build.Rules.LanguageFiles(file, other)) on fail "Expected each language file to name its content and platform."
 		=> @(Build.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "EXTERNAL"i & "LANGUAGE"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)?
@@ -2799,14 +2799,14 @@ CodeStatement : @Build.Statement
 	// variable. The model is named in one part.
 	| "CREATE"i & "EXTERNAL"i & "MODEL"i & name: TSqlIdentifier
 	  & tail: (("AUTHORIZATION"i & TSqlIdentifier)? & "WITH"i & options: ModelOptions)
-	  & when @(Build.Rules.NamedOnce(null, options))
+	  & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "EXTERNAL"i & "MODEL"i & name: TSqlIdentifier & tail: ("SET"i & options: ModelOptions)
-	  & when @(Build.Rules.NamedOnce(null, options))
+	  & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
-	| "CREATE"i & "RULE"i & name: TwoPartName & tail: ("AS"i & c: SearchCondition) & when @(Build.Rules.Binds(c, true))
+	| "CREATE"i & "RULE"i & name: TwoPartName & tail: ("AS"i & c: SearchCondition) & when @(Build.Rules.Binds(c, true)) on fail "Expected a condition a rule can be bound to."
 		=> @(Build.Defined("RULE", name, Syntax.Tail(tail)))
-	| "CREATE"i & "DEFAULT"i & name: TwoPartName & tail: ("AS"i & v: SetValue) & when @(Build.Rules.Binds(v, false))
+	| "CREATE"i & "DEFAULT"i & name: TwoPartName & tail: ("AS"i & v: SetValue) & when @(Build.Rules.Binds(v, false)) on fail "Expected a value a default can be bound to."
 		=> @(Build.Defined("DEFAULT", name, Syntax.Tail(tail)))
 	| "CREATE"i & "AGGREGATE"i & name: TwoPartName
 	  & tail: ('(' & AggregateParameter & (',' & AggregateParameter)* & ')'
@@ -2819,7 +2819,7 @@ CodeStatement : @Build.Statement
 AssemblyPermission = "SAFE"i | "EXTERNAL_ACCESS"i | "UNSAFE"i
 
 AssemblyOptions : @Build.Clause[]
-	= "WITH"i & first: AssemblyOption & (',' & rest: AssemblyOption)* & when @(Build.Rules.NamedOnce(first, rest))
+	= "WITH"i & first: AssemblyOption & (',' & rest: AssemblyOption)* & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once."
 		=> @(Syntax.Listed(first, rest))
 
 AssemblyOption : @Build.Clause
@@ -2897,7 +2897,7 @@ MaintenanceStatement : @Build.Statement
 		=> @(Build.Server.Kill("", t, with))
 	| "ADD"i & "SENSITIVITY"i & "CLASSIFICATION"i & "TO"i & first: ClassifiedColumn & (',' & rest: ClassifiedColumn)*
 	  & "WITH"i & '(' & option: ClassificationOption & (',' & options: ClassificationOption)* & ')'
-	  & when @(Build.Rules.NamedOnce(option, options))
+	  & when @(Build.Rules.NamedOnce(option, options)) on fail "Expected each option once."
 		=> @(Build.Security.Classification(SqlList.Own(Syntax.Named(first, rest)), SqlList.Own(Syntax.Listed(option, options)), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 
 TruncatePartitions : @Build.Clause[]
@@ -2958,7 +2958,7 @@ TypeStatement : @Build.Statement
 	| "CREATE"i & "SYNONYM"i & synonym: SynonymName & tail: ("FOR"i & TSqlQualifiedName)
 		=> @(Build.Defined("SYNONYM", synonym, Syntax.Tail(tail)))
 
-TableTypeBody : @Build.Clause[] = '(' & body: DeclaredBody & ')' & when @(Build.Rules.TableTyped(body)) => @(body)
+TableTypeBody : @Build.Clause[] = '(' & body: DeclaredBody & ')' & when @(Build.Rules.TableTyped(body)) on fail "Expected columns and options a table type can hold." => @(body)
 
 // A synonym's name, and a sequence's, is a qualified name as any table's is, empty parts and
 // all: `.mysyn2`, `..mysyn5`, `.dbo.mysyn7` and `....mysyn8` are read, and what the synonym
@@ -2982,10 +2982,10 @@ TypeName    = TSqlIdentifier & ('.' & TSqlIdentifier)*
 // and changes something (`Msg 11715`).
 SequenceStatement : @Build.Statement
 	= "CREATE"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption*)
-	  & when @(Build.Rules.NamedOnce(null, options) && !Build.Rules.HasOption(options, "RESTART"))
+	  & when @(Build.Rules.NamedOnce(null, options) && !Build.Rules.HasOption(options, "RESTART")) on fail "Expected each option once, and no RESTART."
 		=> @(Build.Defined("SEQUENCE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption+)
-	  & when @(Build.Rules.NamedOnce(null, options) && !Build.Rules.HasOption(options, "START") && !Build.Rules.HasOption(options, "AS"))
+	  & when @(Build.Rules.NamedOnce(null, options) && !Build.Rules.HasOption(options, "START") && !Build.Rules.HasOption(options, "AS")) on fail "Expected each option once, and no START or AS."
 		=> @(Build.Defined("SEQUENCE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 
 SequenceName : @string = t: TSqlQualifiedName => @(t)
@@ -3003,7 +3003,7 @@ SequenceOption : @Build.Clause
 		=> @(new Build.Clause.Option(Syntax.Squared(w), null, Build.Clause.None))
 
 SequenceValue : @Ast.Expression
-	= t: (('+' | '-')? & Lexical.UnsignedNumericLiteral) & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
+	= t: (('+' | '-')? & Lexical.UnsignedNumericLiteral) & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0) on fail "Expected a number without an exponent."
 		=> @(Build.Values.Number(Syntax.Compacted(t)))
 
 // ── Partitions ──────────────────────────────────────────────────────────────
@@ -3067,7 +3067,7 @@ GovernorSetting = "CLASSIFIER_FUNCTION"i & '=' & ("NULL"i | TSqlIdentifier & '.'
 
 // A number with no exponent. A rule of its own and a guard, because an exponent is the one
 // thing that tells the two apart and the lexer reads both as one kind.
-ExactNumber : @string = t: Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0) => @(t)
+ExactNumber : @string = t: Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0) on fail "Expected a number without an exponent." => @(t)
 
 ServerSetting
 	= "PROCESS"i & "AFFINITY"i & ("CPU"i & '=' & ("AUTO"i | ServerRanges) | "NUMANODE"i & '=' & ServerRanges)
@@ -3248,10 +3248,10 @@ BrokerStatement : @Build.Statement
 	// A queue's filegroup is a name or a string — `ON 'filegroup'`, `ON N'fg'` — and one part:
 	// `ON fg.x` is `Msg 102`. It stands after the options and not before them (`Msg 319`).
 	| "CREATE"i & "QUEUE"i & name: TSqlQualifiedName & tail: (options: QueueWith? & ("ON"i & (TSqlIdentifier | Quoted))?)
-	  & when @(Build.Rules.NamedOnce(null, options) && Build.Rules.Activates(options))
+	  & when @(Build.Rules.NamedOnce(null, options) && Build.Rules.Activates(options)) on fail "Expected each option once, and what an activation needs."
 		=> @(Build.Defined("QUEUE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "QUEUE"i & name: TSqlQualifiedName & tail: (options: QueueWith | QueueAction)
-	  & when @(Build.Rules.NamedOnce(null, options))
+	  & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("QUEUE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "SERVICE"i & name: TSqlIdentifier
 	  & tail: (Authorization? & "ON"i & "QUEUE"i & TSqlQualifiedName & ('(' & TSqlIdentifier & (',' & TSqlIdentifier)* & ')')?)
@@ -3260,25 +3260,25 @@ BrokerStatement : @Build.Statement
 	  & tail: ("ON"i & "QUEUE"i & TSqlQualifiedName & ServiceChanges? | ServiceChanges)
 		=> @(Build.Defined("SERVICE", name, Syntax.Tail(tail), "ALTER"))
 	| "CREATE"i & "ROUTE"i & name: TSqlIdentifier & tail: (Authorization? & "WITH"i & options: RouteOptions)
-	  & when @(Build.Rules.NamedOnce(null, options) && Build.Rules.HasOption(options, "ADDRESS"))
+	  & when @(Build.Rules.NamedOnce(null, options) && Build.Rules.HasOption(options, "ADDRESS")) on fail "Expected each option once, and an ADDRESS."
 		=> @(Build.Defined("ROUTE", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "ROUTE"i & name: TSqlIdentifier & tail: ("WITH"i & options: RouteOptions)
-	  & when @(Build.Rules.NamedOnce(null, options))
+	  & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("ROUTE", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: TSqlIdentifier
 	  & tail: (Authorization? & "TO"i & "SERVICE"i & BrokerString & "WITH"i & options: BindingOptions)
-	  & when @(Build.Rules.NamedOnce(null, options) && Build.Rules.HasOption(options, "USER"))
+	  & when @(Build.Rules.NamedOnce(null, options) && Build.Rules.HasOption(options, "USER")) on fail "Expected each option once, and a USER."
 		=> @(Build.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: TSqlIdentifier & tail: ("WITH"i & options: BindingOptions)
-	  & when @(Build.Rules.NamedOnce(null, options))
+	  & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 	| "CREATE"i & "BROKER"i & "PRIORITY"i & name: TSqlIdentifier
 	  & tail: ("FOR"i & "CONVERSATION"i & ("SET"i & '(' & options: PriorityOptions & ')')?)
-	  & when @(Build.Rules.NamedOnce(null, options))
+	  & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "CREATE", SqlList.OwnOrNull(options)))
 	| "ALTER"i & "BROKER"i & "PRIORITY"i & name: TSqlIdentifier
 	  & tail: ("FOR"i & "CONVERSATION"i & "SET"i & '(' & options: PriorityOptions & ')')
-	  & when @(Build.Rules.NamedOnce(null, options))
+	  & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "ALTER", SqlList.OwnOrNull(options)))
 
 MessageValidation = "VALIDATION"i & '=' & ("VALID_XML"i & "WITH"i & "SCHEMA"i & "COLLECTION"i & TSqlQualifiedName
@@ -3293,7 +3293,7 @@ QueueOption : @Build.Clause
 	| "RETENTION"i  & '=' & v: OnOff => @(new Build.Clause.Option("RETENTION", Build.Values.Reference(v), Build.Clause.None))
 	| "ACTIVATION"i & '(' & "DROP"i & ')'
 		=> @(new Build.Clause.Option("ACTIVATION", null, [new Build.Clause.Option("DROP", null, Build.Clause.None)], null, true))
-	| "ACTIVATION"i & '(' & first: Activation & (',' & rest: Activation)* & ')' & when @(Build.Rules.NamedOnce(first, rest))
+	| "ACTIVATION"i & '(' & first: Activation & (',' & rest: Activation)* & ')' & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once."
 		=> @(new Build.Clause.Option("ACTIVATION", null, SqlList.Own(Syntax.Listed(first, rest)), null, true))
 	| "POISON_MESSAGE_HANDLING"i & '(' & "STATUS"i & '=' & v: OnOff & ')'
 		=> @(new Build.Clause.Option("POISON_MESSAGE_HANDLING", null,
@@ -3372,7 +3372,7 @@ ConversationStatement : @Build.Statement
 	= "BEGIN"i & "DIALOG"i & said: "CONVERSATION"i? & handle: TSql.Variable
 	  & "FROM"i & "SERVICE"i & from: TSqlQualifiedName & "TO"i & "SERVICE"i & to: BrokerTarget
 	  & (',' & instance: BrokerTarget)? & ("ON"i & "CONTRACT"i & contract: TSqlQualifiedName)?
-	  & options: DialogWith? & when @(Build.Rules.DialogAgrees(options))
+	  & options: DialogWith? & when @(Build.Rules.DialogAgrees(options)) on fail "Expected each dialog option once."
 		=> @(Build.Broker.Dialog(handle, said is not null, from, to, instance, contract, SqlList.Own(options)))
 	| "BEGIN"i & "CONVERSATION"i & "TIMER"i & '(' & h: TSqlValueExpression & ')' & "TIMEOUT"i & '=' & timeout: TSqlValueExpression
 		=> @(Build.Broker.Timer(h, timeout))
@@ -3405,7 +3405,7 @@ ConversationError : @Ast.Expression
 
 MessageTypeName : @string
 	= t: TSqlQualifiedName => @(t)
-	| t: TSql.Variable & when @(!Syntax.IsServerVariable(t)) => @(t)
+	| t: TSql.Variable & when @(!Syntax.IsServerVariable(t)) on fail "Expected a local variable." => @(t)
 
 SendTargets : @Build.Statement.Send
 	= '(' & first: TSqlValueExpression & (',' & rest: TSqlValueExpression)* & ')'
@@ -3427,7 +3427,7 @@ GetConversationGroup : @Build.Statement
 ReceiveStatement : @Build.Statement
 	= "RECEIVE"i & top: ReceiveTop? & first: ReceiveColumn & (',' & rest: ReceiveColumn)* & "FROM"i & q: TSqlQualifiedName
 	  & ("INTO"i & into: TSql.Variable)? & ("WHERE"i & where: ReceiveWhere)?
-	  & when @(Build.Rules.OneWay(first, rest))
+	  & when @(Build.Rules.OneWay(first, rest)) on fail "Expected variables assigned or columns retrieved, not both."
 		=> @(Build.Broker.Receive(top, SqlList.Own(Syntax.Listed(first, rest)), q, into, where))
 
 ReceiveTop : @Build.Clause = "TOP"i & '(' & v: TSqlValueExpression & ')' => @(Build.Clause.Topped(Build.Values.Parenthesized(v), null))
@@ -3465,7 +3465,7 @@ DbccStatement : @Build.Statement
 	= "DBCC"i & name: DbccWord & args: DbccArguments? & options: DbccOptions?
 		=> @(Build.Server.Dbcc(name, SqlList.OwnOrNull(args), SqlList.Own(options)))
 
-DbccWord : @string = t: TSqlIdentifier & when @(Syntax.IsBare(t)) => @(t)
+DbccWord : @string = t: TSqlIdentifier & when @(Syntax.IsBare(t)) on fail "Expected a DBCC command name." => @(t)
 
 DbccArguments : @Ast.Expression[]
 	= '(' & ')' => @(System.Array.Empty<Ast.Expression>())
@@ -3498,9 +3498,9 @@ DbccFirst : @Build.Clause
 	| o: DbccOption => @(o)
 
 DbccOption : @Build.Clause
-	= "MAXDOP"i & '=' & t: Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
+	= "MAXDOP"i & '=' & t: Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0) on fail "Expected a number without an exponent."
 		=> @(new Build.Clause.Option("MAXDOP", Build.Values.Number(t), Build.Clause.None))
-	| "WAIT_AT_LOW_PRIORITY"i & '(' & first: DbccWait & (',' & rest: DbccWait)* & ')' & when @(Build.Rules.NamedOnce(first, rest))
+	| "WAIT_AT_LOW_PRIORITY"i & '(' & first: DbccWait & (',' & rest: DbccWait)* & ')' & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once."
 		=> @(new Build.Clause.Option("WAIT_AT_LOW_PRIORITY", null, SqlList.Own(Syntax.Listed(first, rest)), null, true))
 	| name: DbccWord => @(new Build.Clause.Option(Syntax.Squared(name), null, Build.Clause.None))
 
@@ -3518,17 +3518,17 @@ DbccWait : @Build.Clause
 // A word may be said twice and in any order; which words agree is `Syntax.CursorAgrees`.
 CursorDefinition : @Build.Clause.CursorDefinition
 	= before: CursorIsoWord+ & "CURSOR"i & "FOR"i & q: CursorQuery
-	  & when @(Build.Rules.CursorAgrees(before, q?.Access))
+	  & when @(Build.Rules.CursorAgrees(before, q?.Access)) on fail "Expected cursor options that agree with each other."
 		=> @(q with { Before = SqlList.Own(before) })
 	| "CURSOR"i & options: CursorOption* & "FOR"i & q: CursorQuery
-	  & when @(Build.Rules.CursorAgrees(options, q?.Access))
+	  & when @(Build.Rules.CursorAgrees(options, q?.Access)) on fail "Expected cursor options that agree with each other."
 		=> @(q with { Options = SqlList.Own(options) })
 
 // The same T-SQL form, where a variable is set to it: `READ_ONLY` and `FOR READ ONLY` are read
 // together here, and refused together in a declaration (`Msg 1058`).
 CursorInPlace : @Build.Clause.CursorDefinition
 	= "CURSOR"i & options: CursorOption* & "FOR"i & q: CursorQuery
-	  & when @(Build.Rules.CursorAgrees(options, q?.Access, false))
+	  & when @(Build.Rules.CursorAgrees(options, q?.Access, false)) on fail "Expected cursor options that agree with each other."
 		=> @(q with { Options = SqlList.Own(options) })
 
 CursorIsoWord : @string = t: ("INSENSITIVE"i | "SCROLL"i) => @(Syntax.Squared(t))
@@ -3549,7 +3549,7 @@ CursorQuery : @Build.Clause.CursorDefinition
 		=> @(Build.Rules.Cursor(SqlList.OwnOrNull(with), q, f, SqlList.OwnOrNull(hints), false))
 
 CursorSelect : @Build.Query
-	= q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch? & when @(Build.Rules.Cursorable(q))
+	= q: TSqlQueryExpression & by: OrderByClause? & window: OffsetFetch? & when @(Build.Rules.Cursorable(q)) on fail "Expected a query a cursor can be declared for."
 		=> @(Build.Queries.Ordered(q, SqlList.OwnOrNull(by), window, null))
 
 CursorFor : @Build.Clause
@@ -3588,14 +3588,14 @@ CursorName : @Build.Statement.CursorAction
 	| v: LocalVariable          => @(new Build.Statement.CursorAction("", v, false))
 
 FetchRow : @Ast.Expression
-	= t: ('-'? & Lexical.UnsignedNumericLiteral) & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
+	= t: ('-'? & Lexical.UnsignedNumericLiteral) & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0) on fail "Expected a number without an exponent."
 		=> @(Build.Values.Number(Syntax.Compacted(t)))
 	| v: LocalVariable => @(v)
 
 FetchInto : @Ast.Expression[] = "INTO"i & first: LocalVariable & (',' & rest: LocalVariable)* => @(Syntax.Listed(first, rest))
 
 LocalVariable : @Ast.Expression
-	= t: TSql.Variable & when @(!Syntax.IsServerVariable(t)) => @(Build.Values.Parameter(t))
+	= t: TSql.Variable & when @(!Syntax.IsServerVariable(t)) on fail "Expected a local variable." => @(Build.Values.Parameter(t))
 
 IndexOrder : @string = t: ("CLUSTERED"i | "NONCLUSTERED"i) => @(Syntax.Squared(t))
 
@@ -3622,7 +3622,7 @@ GeneratedWhen = "START"i | "END"i
 SetStatement : @Build.Statement
 	= "SET"i & name: TSql.Variable & '=' & d: CursorInPlace => @(Build.Procedural.SetCursor(name, d))
 	| "SET"i & name: TSql.Variable & ('.' & members: MemberName)+ & tail: MemberTail
-	  & when @(tail is not { Operator: "" } || members is { Length: 1 })
+	  & when @(tail is not { Operator: "" } || members is { Length: 1 }) on fail "Expected an assignment to the member."
 		=> @(Build.Procedural.SetVariable(Syntax.Member(name, members), tail.Value, tail.Operator))
 	| "SET"i & name: TSql.Variable & s: AssignTail
 		=> @(Build.Procedural.SetVariable(name, s.Value, s.Operator, s.Through))
@@ -3782,7 +3782,7 @@ ExecuteStatement : @Build.Statement.Execute = ExecWord & e: ExecuteBody => @(e)
 // there, and so is a context on a procedure. A server and a data source are one part each.
 ExecuteBody : @Build.Statement.Execute
 	= '(' & args: Arguments & ')' & context: ExecContext? & source: ExecDataSource? & at: ExecAt?
-	  & when @((source is null || at is null) && (at is not null || source is not null || args is { Length: 1 }))
+	  & when @((source is null || at is null) && (at is not null || source is not null || args is { Length: 1 })) on fail "Expected one of AT and AT DATA_SOURCE, or a single string to execute."
 	  & with: ExecWith?
 		=> @(new Build.Statement.Execute(null, "(", SqlList.Own(args), context, at, source, Syntax.Tail(with)))
 	| into: ExecReturn? & target: ExecTarget & args: ExecArguments? & at: ExecAt? & with: ExecWith?
@@ -3829,7 +3829,7 @@ ExecOption = "RESULT"i & "SETS"i & ResultSets
 
 // A result set's columns are a table's, each with its type: a table's column may leave its
 // type out and a result set's may not, `WITH RESULT SETS ((a, b))` being refused.
-ResultColumns : @Build.Clause[] = body: TableBody & when @(Build.Rules.Typed(body)) => @(body)
+ResultColumns : @Build.Clause[] = body: TableBody & when @(Build.Rules.Typed(body)) on fail "Expected a type, or a value to compute it from, for every column." => @(body)
 
 // `WITH RESULT SETS` says what comes back, and the three answers are none, undefined, or
 // the shapes written out. Left-factored on the two words, which is what GRAM4016 asks for
@@ -3914,11 +3914,11 @@ BulkColumnTail : @Build.Clause.ColumnDefinition
 // 156`), a count an unsigned number and everything else a string written out. The names are
 // a catalogue: `INCLUDE_HIDDEN` and `FOO` alike are `Msg 102`.
 BulkWith : @Build.Clause[]
-	= "WITH"i & '(' & first: BulkOption & (',' & rest: BulkOption)* & ')' & when @(Build.Rules.NamedOnce(first, rest))
+	= "WITH"i & '(' & first: BulkOption & (',' & rest: BulkOption)* & ')' & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once."
 		=> @(Syntax.Listed(first, rest))
 
 BulkStreamWith : @Build.Clause[]
-	= "WITH"i & '(' & first: BulkStreamOption & (',' & rest: BulkStreamOption)* & ')' & when @(Build.Rules.NamedOnce(first, rest))
+	= "WITH"i & '(' & first: BulkStreamOption & (',' & rest: BulkStreamOption)* & ')' & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once."
 		=> @(Syntax.Listed(first, rest))
 
 BulkOption : @Build.Clause
@@ -3965,7 +3965,7 @@ BulkCodePage : @Ast.Expression
 	| v: BulkString => @(v)
 
 BulkNumber : @Ast.Expression
-	= t: Lexical.UnsignedNumericLiteral & when @(Syntax.Plain(t))
+	= t: Lexical.UnsignedNumericLiteral & when @(Syntax.Plain(t)) on fail "Expected a whole number without an exponent."
 		=> @(Build.Values.Number(t))
 
 BulkDigits : @Ast.Expression
@@ -3976,11 +3976,11 @@ BulkString : @Ast.Expression
 	| t: Lexical.CharacterStringLiteral         => @(Build.Values.Text(t))
 
 BulkFileType : @Ast.Expression
-	= t: BulkString & when @(Build.Rules.OneOf(t, "char", "native", "widechar", "widenative", "widechar_ansi", "dts_buffers"))
+	= t: BulkString & when @(Build.Rules.OneOf(t, "char", "native", "widechar", "widenative", "widechar_ansi", "dts_buffers")) on fail "Expected a data file type: char, native, widechar, widenative, widechar_ansi or dts_buffers."
 		=> @(t)
 
 BulkFormat : @Ast.Expression
-	= t: BulkString & when @(Build.Rules.OneOf(t, "csv")) => @(t)
+	= t: BulkString & when @(Build.Rules.OneOf(t, "csv")) on fail "Expected the format CSV." => @(t)
 
 // ── A word and some values ──────────────────────────────────────────────────
 SimpleCommand : @Build.Statement
@@ -4056,7 +4056,7 @@ TableAs : @string = "AS"i & t: TSqlIdentifier => @(t)
 TablePlacement : @Build.Clause
 	// Large values go to a filegroup and not by a partition: `TEXTIMAGE_ON 'fg' (a)` is refused.
 	= k: ("ON"i | "TEXTIMAGE_ON"i | "FILESTREAM_ON"i) & p: PlacementTarget
-	  & when @(p is not { Columns: not null } || Syntax.Squared(k!) != "TEXTIMAGE_ON")
+	  & when @(p is not { Columns: not null } || Syntax.Squared(k!) != "TEXTIMAGE_ON") on fail "Expected a filegroup without columns."
 		=> @(p with { Kind = Syntax.Squared(k) })
 
 // The target and, for a partition scheme, the column it partitions on. The word in front
@@ -4191,7 +4191,7 @@ TableBody : @Build.Clause[] = first: TableElement & (',' & rest: TableElement)* 
 // index nor a period counts, `(x AS 1, INDEX i (x))` being refused. A table variable, a table
 // type and a function's returned table say it the same way; `ALTER TABLE t ADD c1 AS 1` does
 // not, the columns of its own being already there.
-DeclaredBody : @Build.Clause[] = body: TableBody & when @(Build.Rules.Stored(body)) => @(body)
+DeclaredBody : @Build.Clause[] = body: TableBody & when @(Build.Rules.Stored(body)) on fail "Expected a column for the computed column to be computed from." => @(body)
 
 TableElement : @Build.Clause
 	= "PERIOD"i & "FOR"i & "SYSTEM_TIME"i & '(' & columns: ColumnList & ')'
@@ -4212,13 +4212,13 @@ TableColumn : @Build.Clause = name: TSqlIdentifier & f: TableColumnBody => @(f w
 
 TableColumnBody : @Build.Clause.ColumnDefinition
 	= f: ColumnBody => @(f)
-	| tail: ColumnTail* & when @(Build.Rules.Untyped(tail))
+	| tail: ColumnTail* & when @(Build.Rules.Untyped(tail)) on fail "Expected a column type."
 		=> @(new Build.Clause.ColumnDefinition("", null, null, SqlList.Own(tail)))
 
 // A column's tail is read as it comes and then asked whether it came in the engine's order
 // (`Syntax.Tailed`): what belongs to the column's storage first, and then a free list.
 ColumnBody : @Build.Clause.ColumnDefinition
-	= "AS"i & v: TSqlValueExpression & tail: ColumnTail* & when @(Build.Rules.Tailed(null, tail))
+	= "AS"i & v: TSqlValueExpression & tail: ColumnTail* & when @(Build.Rules.Tailed(null, tail)) on fail "Expected the column's options in the order SQL Server reads them."
 		=> @(new Build.Clause.ColumnDefinition("", null, v, SqlList.Own(tail)))
 	// The length belongs to the type (`AnyLength`) and not to the column — with one
 	// exception, which is why the exact numerics' length is substituted here: `DECIMAL
@@ -4227,7 +4227,7 @@ ColumnBody : @Build.Clause.ColumnDefinition
 	// table type, a function's returned table — and are `Msg 156` in a `DECLARE`, a cast, a
 	// `CREATE TYPE … FROM`, a parameter and a scalar `RETURNS`.
 	| type: ColumnType & tail: ColumnTail*
-	  & when @(Build.Rules.Tailed(type, tail) && Build.Rules.Collated(type, tail))
+	  & when @(Build.Rules.Tailed(type, tail) && Build.Rules.Collated(type, tail)) on fail "Expected the column's options in the order SQL Server reads them."
 		=> @(new Build.Clause.ColumnDefinition("", type, null, SqlList.Own(tail)))
 
 // What may be said about a column after its type, each kept as what it is: an option, a
@@ -4247,7 +4247,7 @@ ColumnTrait : @Build.Clause
 		=> @(new Build.Clause.ColumnOption(Syntax.Squared(t), Build.Values.None, SqlList.Own(Build.Rules.Unit(h)), null))
 	| t: "ROWGUIDCOL"i                                => @(Build.Clause.Optioned(t))
 	| "ENCRYPTED"i & "WITH"i & '(' & first: EncryptionOption & (',' & rest: EncryptionOption)* & ')'
-	  & when @(Build.Rules.Encrypts(first, rest))     => @(new Build.Clause.ColumnOption("ENCRYPTED", Build.Values.None, SqlList.Own(Syntax.Listed(first, rest)), null))
+	  & when @(Build.Rules.Encrypts(first, rest)) on fail "Expected the column encryption key, the encryption type and the algorithm."     => @(new Build.Clause.ColumnOption("ENCRYPTED", Build.Values.None, SqlList.Own(Syntax.Listed(first, rest)), null))
 	| t: "PERSISTED"i                                 => @(Build.Clause.Optioned(t))
 	| t: ("COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i)       => @(Build.Clause.Optioned(t))
 	| "CONSTRAINT"i & name: TSqlIdentifier & n: NamedConstraint => @(Build.Clause.Named(n, name))
@@ -4321,7 +4321,7 @@ EdgePair : @Build.Clause = f: TSqlQualifiedName & "TO"i & t: TSqlQualifiedName =
 // a second `ON DELETE` are `Msg 156`, a second `NOT FOR REPLICATION` `Msg 102`.
 References : @Build.Clause
 	= "REFERENCES"i & t: TSqlQualifiedName & ('(' & c: ColumnList & ')')? & a: ReferenceOn*
-	  & n: ("NOT"i & "FOR"i & "REPLICATION"i)? & when @(Syntax.ActedOnce(a))
+	  & n: ("NOT"i & "FOR"i & "REPLICATION"i)? & when @(Syntax.ActedOnce(a)) on fail "Expected ON DELETE and ON UPDATE once each."
 		=> @(Build.Rules.Referenced(t, SqlList.OwnOrNull(c), a, n))
 
 ReferenceOn : @string = t: ("ON"i & DeleteOrUpdate & RefAction) => @(t)
@@ -4708,7 +4708,7 @@ AlterTableAction : @Build.Statement.AlterTable
 	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline? & when @(Build.Rules.AlteredColumn(column)) on fail "Expected a column definition ALTER COLUMN accepts."
 		=> @(Build.Statement.Altered("ALTER COLUMN", [column], SqlList.OwnOrNull(options)))
 	| "ALTER"i & "COLUMN"i & name: TSqlIdentifier & flag: AlterColumnWord & options: ColumnOnline?
-	  & when @(Build.Rules.FlagsOnline(flag, options))
+	  & when @(Build.Rules.FlagsOnline(flag, options)) on fail "Expected options this column flag allows."
 		=> @(Build.Statement.Flagged(name, flag, SqlList.OwnOrNull(options)))
 	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
 		=> @(Build.Statement.Altered("DROP", SqlList.OwnOrNull(Syntax.Listed(first, rest))))
@@ -4795,7 +4795,7 @@ IfExists = "IF"i & "EXISTS"i
 DropWith = "WITH"i & '(' & DropOptions & ')'
 
 DropOptions : @Build.Clause[]
-	= first: DropOption & (',' & rest: DropOption)* & when @(Build.Rules.NamedOnce(first, rest)) => @(Syntax.Listed(first, rest))
+	= first: DropOption & (',' & rest: DropOption)* & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once." => @(Syntax.Listed(first, rest))
 
 DropOption : @Build.Clause
 	= "MAXDOP"i & '=' & t: Lexical.Digits
@@ -4888,11 +4888,11 @@ ExecuteAsWho : @string
 // variable and the columns it holds.
 FunctionStatement : @Build.Statement
 	= "FUNCTION"i & name: TSqlQualifiedName & parameters: RoutineParameters?
-	  & "RETURNS"i & r: FunctionReturns & when @(!Build.Rules.HasCursorParameter(parameters) && !Build.Rules.HasOutputParameter(parameters))
+	  & "RETURNS"i & r: FunctionReturns & when @(!Build.Rules.HasCursorParameter(parameters) && !Build.Rules.HasOutputParameter(parameters)) on fail "Expected parameters a function takes, with no cursor and no OUTPUT."
 		=> @(r with { Name = name, Parameters = SqlList.Own(parameters) })
 
 FunctionReturns : @Build.Statement.CreateFunction
-	= "TABLE"i & '(' & columns: TableBody & ')' & when @(Build.Rules.Returned(columns))
+	= "TABLE"i & '(' & columns: TableBody & ')' & when @(Build.Rules.Returned(columns)) on fail "Expected columns a returned table can hold."
 	  & options: RoutineOptions? & ("ORDER"i & order: IndexColumns)?
 	  & "AS"i & "EXTERNAL"i & "NAME"i & external: TSqlQualifiedName
 		=> @(new Build.Statement.CreateFunction("", Build.Clause.None, "TABLE", Build.Statement.None, SqlList.OwnOrNull(options), SqlList.OwnOrNull(columns), null, SqlList.OwnOrNull(order), external))
@@ -4900,9 +4900,9 @@ FunctionReturns : @Build.Statement.CreateFunction
 	// scalar function: what a null argument does is the body's business, and this body is a
 	// query.
 	| "TABLE"i & options: RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
-	  & when @(Build.Rules.Inlined(options))
+	  & when @(Build.Rules.Inlined(options)) on fail "Expected no null-input option on an inline table function."
 		=> @(new Build.Statement.CreateFunction("", Build.Clause.None, "TABLE", SqlList.Own(body), SqlList.OwnOrNull(options)))
-	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Build.Rules.Declared(columns) && Build.Rules.Returned(columns))
+	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Build.Rules.Declared(columns) && Build.Rules.Returned(columns)) on fail "Expected columns a returned table can hold."
 	  & options: RoutineOptions? & "AS"i?
 	  & (atomic: AtomicBody | body: StatementList) & when @(Build.Rules.Natively(options, atomic is not null)) on fail "Expected NATIVE_COMPILATION together with an ATOMIC body."
 		=> @(new Build.Statement.CreateFunction("", Build.Clause.None, "TABLE", SqlList.Own(atomic ?? body), SqlList.OwnOrNull(options), SqlList.OwnOrNull(columns), name))
@@ -4927,7 +4927,7 @@ InlineReturn : @Build.Statement[]
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Build.Statement
 	= "TRIGGER"i & name: TSqlQualifiedName & "ON"i & on: TriggerOn & options: RoutineOptions?
-	  & fires: TriggerWhen & events: TriggerEvents & when @(Syntax.Fired(fires, events))
+	  & fires: TriggerWhen & events: TriggerEvents & when @(Syntax.Fired(fires, events)) on fail "Expected events this kind of trigger fires on."
 	  & append: ("WITH"i & "APPEND"i)? & replication: ("NOT"i & "FOR"i & "REPLICATION"i)?
 	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: TSqlQualifiedName | atomic: AtomicBody | body: StatementList)
 	  & when @(Build.Rules.Natively(options, atomic is not null)) on fail "Expected NATIVE_COMPILATION together with an ATOMIC body."
@@ -4950,7 +4950,7 @@ TriggerWhen : @string = t: ("INSTEAD"i & "OF"i | "AFTER"i | "FOR"i) => @(Syntax.
 // here. An event is a bare word: `FOR [CREATE_TABLE]` and `FOR "CREATE_TABLE"` are `Msg 102`. A
 // statement named twice is `Msg 1034`.
 TriggerEvents : @string[]
-	= first: DmlEvent & (',' & rest: DmlEvent)* & when @(Syntax.Distinct(first, rest))
+	= first: DmlEvent & (',' & rest: DmlEvent)* & when @(Syntax.Distinct(first, rest)) on fail "Expected each word once."
 		=> @(Syntax.Named(first, rest))
 	| named: TriggerEvent & (',' & more: TriggerEvent)* => @(Syntax.Named(named, more))
 
@@ -4987,13 +4987,13 @@ CreateIndexStatement : @Build.Statement
 	// as it reads no other (`SpatialWith`). Put to the engine some two hundred times.
 	| "CREATE"i & kind: "SPATIAL"i & "INDEX"i & name: TSqlIdentifier
 	  & "ON"i & on: TSqlQualifiedName & columns: SpatialColumn
-	  & over: ("USING"i & TSqlIdentifier)? & o: SpatialWith? & p: IndexOn? & when @(p is not Build.Clause.Placement(_, _, not null))
+	  & over: ("USING"i & TSqlIdentifier)? & o: SpatialWith? & p: IndexOn? & when @(p is not Build.Clause.Placement(_, _, not null)) on fail "Expected a filegroup without columns."
 		=> @(Build.Tables.CreateIndex(
 				 on, Build.Clause.Indexed(name, null, null, null, null, SqlList.OwnOrNull(columns), null, null, null, o?.Options, (Build.Clause.Placement?)p, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: TSqlIdentifier
 	  & "ON"i & on: TSqlQualifiedName & columns: IndexColumns
-	  & over: XmlIndexUsing? & when @(over is null || Syntax.Squared(kind!) == "XML") & o: XmlIndexWith?
+	  & over: XmlIndexUsing? & when @(over is null || Syntax.Squared(kind!) == "XML") on fail "Expected USING XML INDEX only on a secondary XML index." & o: XmlIndexWith?
 		=> @(Build.Tables.CreateIndex(
 				 on, Build.Clause.Indexed(name, null, null, null, null, SqlList.OwnOrNull(columns), null, null, null, o?.Options, null, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
@@ -5213,10 +5213,10 @@ KeyStatement : @Build.Statement
 	// allowed in the CREATE SECURITY POLICY statement", where `@@ROWCOUNT` and `'a@b'` read.
 	| "CREATE"i & "SECURITY"i & "POLICY"i & name: TSqlQualifiedName
 	  & tail: (PolicyPredicates? & PolicyWith? & NotForReplication?)
-	  & when @(Syntax.WithoutVariable(tail))
+	  & when @(Syntax.WithoutVariable(tail)) on fail "Expected no local variable here."
 		=> @(Build.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "SECURITY"i & "POLICY"i & name: TSqlQualifiedName & tail: PolicyAlteration
-	  & when @(Syntax.WithoutVariable(tail))
+	  & when @(Syntax.WithoutVariable(tail)) on fail "Expected no local variable here."
 		=> @(Build.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "ALTER"))
 
 KeyDecryptor
@@ -5502,7 +5502,7 @@ FullTextWith = "WITH"i & '(' & FullTextOptions & ')'
 
 FullTextOptions : @string[]
 	= first: FullTextOption & (',' & rest: FullTextOption)*
-	  & when @(Syntax.Once("CHANGE_TRACKING", first, rest) && Syntax.Once("STOPLIST", first, rest) && Syntax.Once("SEARCH", first, rest))
+	  & when @(Syntax.Once("CHANGE_TRACKING", first, rest) && Syntax.Once("STOPLIST", first, rest) && Syntax.Once("SEARCH", first, rest)) on fail "Expected CHANGE_TRACKING, STOPLIST and SEARCH PROPERTY LIST once each."
 		=> @(Syntax.Named(first, rest))
 
 FullTextOption : @string
@@ -5629,7 +5629,7 @@ CertificatePrivateKey = "WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i
 // and `ALTER CERTIFICATE` refuse it, and so do the keys' own backups — is a string, whatever
 // it says, and said once (`Msg 102`).
 CertificateKeyItems : @string[]
-	= first: CertificateKeyItem & (',' & rest: CertificateKeyItem)* & when @(Syntax.Once("ALGORITHM", first, rest))
+	= first: CertificateKeyItem & (',' & rest: CertificateKeyItem)* & when @(Syntax.Once("ALGORITHM", first, rest)) on fail "Expected ALGORITHM once."
 		=> @(Syntax.Named(first, rest))
 
 CertificateKeyItem : @string
@@ -5792,7 +5792,7 @@ AuditStatement : @Build.Statement
 	| verb: CreateOrAlter & "ENDPOINT"i & name: TSqlIdentifier & ("AUTHORIZATION"i & owner: TSqlIdentifier)?
 	  & standing: EndpointState? & reached: EndpointAs? & spoken: EndpointFor? & late: EndpointAs?
 	  & when @((owner is null || verb == "CREATE") && (reached is null || late is null)
-			  && Build.Rules.Created(verb, spoken))
+			  && Build.Rules.Created(verb, spoken)) on fail "Expected AUTHORIZATION only on CREATE, AS once, and web methods only where they may stand."
 		=> @(Build.Server.Endpoint(name, verb, owner,
 				 standing?.Name is "" ? null : standing?.Name, standing?.Options,
 				 (reached ?? late)?.Name, (reached ?? late)?.Options, spoken?.Name, spoken?.Options, new SqlSpan(parserSpan.Start, parserSpan.Length)))
@@ -6155,7 +6155,7 @@ EndpointWindowsMode = "NTLM"i | "KERBEROS"i | "NEGOTIATE"i
 // What is new is four clauses that are not a name and a value.
 ExternalStatement : @Build.Statement
 	= verb: CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: TSqlIdentifier
-	  & tail: (options: DataSourceBody) & when @(Build.Rules.NamedOnce(null, options))
+	  & tail: (options: DataSourceBody) & when @(Build.Rules.NamedOnce(null, options)) on fail "Expected each option once."
 		=> @(Build.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail), verb))
 	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: TSqlIdentifier & tail: FileFormatWith
 		=> @(Build.Defined("EXTERNAL FILE FORMAT", name, Syntax.Tail(tail)))
@@ -6285,7 +6285,7 @@ LibraryWith = "WITH"i & '(' & "LANGUAGE"i & '=' & Quoted & ')'
 // rejection `VALUE` or `PERCENTAGE` and its numbers unsigned, with no exponent. Each once
 // (`Msg 46547`, "attempted to set the option multiple times"), and nothing else (`Msg 102`).
 ExternalTableWith : @Build.Clause[]
-	= "WITH"i & '(' & ','* & items: ExternalTableItem* & ')' & when @(Build.Rules.NamedOnce(null, items))
+	= "WITH"i & '(' & ','* & items: ExternalTableItem* & ')' & when @(Build.Rules.NamedOnce(null, items)) on fail "Expected each option once."
 		=> @(items ?? [])
 
 ExternalTableItem : @Build.Clause = o: ExternalTableOption & ','* => @(o)
@@ -6371,7 +6371,7 @@ LibraryContent    = "CONTENT"i & '=' & (Quoted | TSql.BinaryLiteral | "NONE"i | 
 // A sample kept is kept from a scan: `PERSIST_SAMPLE_PERCENT` is `Msg 153` unless `FULLSCAN`,
 // `SAMPLE` or `RESAMPLE` stands in the same list — `NORECOMPUTE`, `ALL` and `MAXDOP` will not
 // do — and both statements say it the same way.
-CreateStatisticsWith : @string = t: ("WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*) & when @(Syntax.Sampled(t)) => @(t)
+CreateStatisticsWith : @string = t: ("WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*) & when @(Syntax.Sampled(t)) on fail "Expected FULLSCAN, SAMPLE or RESAMPLE with PERSIST_SAMPLE_PERCENT." => @(t)
 
 CreateStatisticsOption
 	= "FULLSCAN"i
@@ -6384,7 +6384,7 @@ CreateStatisticsOption
 	| "STATS_STREAM"i & '=' & TSql.BinaryLiteral
 
 UpdateStatisticsWith : @string
-	= t: ("WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*) & when @(Syntax.Sampled(t)) => @(t)
+	= t: ("WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*) & when @(Syntax.Sampled(t)) on fail "Expected FULLSCAN, SAMPLE or RESAMPLE with PERSIST_SAMPLE_PERCENT." => @(t)
 
 UpdateStatisticsOption
 	= CreateStatisticsOption
@@ -6668,7 +6668,7 @@ DropIndexName : @Ast.Expression
 DropIndexWith = "WITH"i & '(' & DropIndexOptions & ')'
 
 DropIndexOptions : @Build.Clause[]
-	= first: DropIndexOption & (',' & rest: DropIndexOption)* & when @(Build.Rules.NamedOnce(first, rest))
+	= first: DropIndexOption & (',' & rest: DropIndexOption)* & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once."
 		=> @(Syntax.Listed(first, rest))
 
 DropIndexOption : @Build.Clause
@@ -6678,7 +6678,7 @@ DropIndexOption : @Build.Clause
 		=> @(new Build.Clause.Option("ONLINE", Build.Values.Reference(o), Build.Clause.None))
 	| "MOVE"i & "TO"i & ?!"DEFAULT"i & p: PlacementTarget
 		=> @(new Build.Clause.Option("MOVE TO", null, [p]))
-	| "FILESTREAM_ON"i & p: PlacementTarget & when @(p is not { Columns: not null })
+	| "FILESTREAM_ON"i & p: PlacementTarget & when @(p is not { Columns: not null }) on fail "Expected a filegroup without columns."
 		=> @(new Build.Clause.Option("FILESTREAM_ON", null, [p]))
 	| "DATA_COMPRESSION"i & '=' & w: (RowCompression | ColumnstoreCompression) & OnPartitions?
 		=> @(new Build.Clause.Option("DATA_COMPRESSION", Build.Values.Reference(Syntax.Squared(w)), Build.Clause.None))
@@ -6772,12 +6772,12 @@ DatabaseTail : @Build.Statement.CreateDatabase
 	// `ENABLE_BROKER`, `RESTRICTED_USER` and an option twice are 102. Measured with the
 	// variables declared; the mirage had said the rebuilt log took no `WITH` at all.
 	| "FOR"i & "ATTACH"i & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
-	  & when @(Build.Rules.Attached(first, rest))
+	  & when @(Build.Rules.Attached(first, rest)) on fail "Expected each option once, and one broker option at most."
 		=> @(new Build.Statement.CreateDatabase(
 				"", Build.Clause.None, Tail: "FOR ATTACH",
 				With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
 	| "FOR"i & "ATTACH_REBUILD_LOG"i & ("WITH"i & first: RebuildLogOption & (',' & rest: RebuildLogOption)*)?
-	  & when @(Build.Rules.NamedOnce(first, rest))
+	  & when @(Build.Rules.NamedOnce(first, rest)) on fail "Expected each option once."
 		=> @(new Build.Statement.CreateDatabase(
 				"", Build.Clause.None, Tail: "FOR ATTACH_REBUILD_LOG",
 				With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))
@@ -6785,7 +6785,7 @@ DatabaseTail : @Build.Statement.CreateDatabase
 	// Undocumented and read: the same as `FOR ATTACH`, `WITH` and all.
 	| "FOR"i & "ATTACH_FORCE_REBUILD_LOG"i
 	  & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
-	  & when @(Build.Rules.Attached(first, rest))
+	  & when @(Build.Rules.Attached(first, rest)) on fail "Expected each option once, and one broker option at most."
 		=> @(new Build.Statement.CreateDatabase(
 				"", Build.Clause.None, Tail: "FOR ATTACH_FORCE_REBUILD_LOG",
 				With: SqlList.OwnOrNull(first is null ? null : Syntax.Listed(first, rest))))

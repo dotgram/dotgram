@@ -500,22 +500,22 @@ RightBracketOrTrigraph = "??)" | ']'
 // <value expression>. A value that is no boolean is a boolean primary with nothing around it, so
 // the boolean reading is the one reading. A datetime less a datetime is read the same way and is
 // no value: only a bracket takes it (`Bracketed`), for a qualifier to make an interval of it.
-ValueExpression : @Towers.Typed = e: Disjunction & when @((Towers.RolesOf(e) & ~Towers.Difference) != 0) => @(e)
+ValueExpression : @Towers.Typed = e: Disjunction & when @((Towers.RolesOf(e) & ~Towers.Difference) != 0) on fail "Expected a value that may stand here." => @(e)
 
 // <boolean value expression>, <search condition>: what only a boolean can be, or a predicand.
-BooleanValueExpression : @Towers.Typed = e: Disjunction & when @((Towers.RolesOf(e) & Towers.Truth) != 0) => @(e)
+BooleanValueExpression : @Towers.Typed = e: Disjunction & when @((Towers.RolesOf(e) & Towers.Truth) != 0) on fail "Expected a boolean value." => @(e)
 SearchCondition        : @Towers.Typed = e: BooleanValueExpression => @(e)
 
 // `OR`, `AND` and `NOT` join booleans; a term with none of them is whatever it is.
-Disjunction   : @Towers.Typed = first: Conjunction & rest: OrOperand* & when @(Towers.Connect(first, rest) != 0) => @(Towers.Connected(first, rest, BinaryOperator.Or))
+Disjunction   : @Towers.Typed = first: Conjunction & rest: OrOperand* & when @(Towers.Connect(first, rest) != 0) on fail "Expected values that can be concatenated." => @(Towers.Connected(first, rest, BinaryOperator.Or))
 OrOperand     : @Towers.Typed = "OR"i & e: Conjunction => @(e)
-Conjunction   : @Towers.Typed = first: BooleanFactor & rest: AndOperand* & when @(Towers.Connect(first, rest) != 0) => @(Towers.Connected(first, rest, BinaryOperator.And))
+Conjunction   : @Towers.Typed = first: BooleanFactor & rest: AndOperand* & when @(Towers.Connect(first, rest) != 0) on fail "Expected values that can be concatenated." => @(Towers.Connected(first, rest, BinaryOperator.And))
 AndOperand    : @Towers.Typed = "AND"i & e: BooleanFactor => @(e)
-BooleanFactor : @Towers.Typed = "NOT"i & e: BooleanTest & when @((Towers.RolesOf(e) & Towers.Truth) != 0) => @(new Towers.Typed(new Expression.Unary(UnaryOperator.Not, e.Node), Towers.Logical | Towers.Truth))
+BooleanFactor : @Towers.Typed = "NOT"i & e: BooleanTest & when @((Towers.RolesOf(e) & Towers.Truth) != 0) on fail "Expected a boolean value." => @(new Towers.Typed(new Expression.Unary(UnaryOperator.Not, e.Node), Towers.Logical | Towers.Truth))
                               | e: BooleanTest => @(e)
 
 // <boolean test>: `IS TRUE`, `IS NOT UNKNOWN`.
-BooleanTest : @Towers.Typed = e: BooleanPrimary & t: TruthTest & when @(!Nodes.TestedOf(t) || (Towers.RolesOf(e) & Towers.Truth) != 0) => @(t.Tested ? new Towers.Typed(new Expression.IsTruth(e.Node, t.Not, t.Value), Towers.Logical | Towers.Truth) : e)
+BooleanTest : @Towers.Typed = e: BooleanPrimary & t: TruthTest & when @(!Nodes.TestedOf(t) || (Towers.RolesOf(e) & Towers.Truth) != 0) on fail "Expected a boolean value." => @(t.Tested ? new Towers.Typed(new Expression.IsTruth(e.Node, t.Not, t.Value), Towers.Logical | Towers.Truth) : e)
 TruthTest   : @Nodes.Truth = "IS"i & n: "NOT"i? & v: TruthValue => @(new Nodes.Truth(true, n is not null, Nodes.Truthful(v))) | none => @(default)
 TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 
@@ -527,7 +527,7 @@ BooleanPrimary : @Towers.Typed
 	| j: JSONExistsPredicate => @(new Towers.Typed(j, Towers.Logical | Towers.Truth))
 	| "UNIQUE"i & ("NULLS"i & n: "NOT"i? & d: "DISTINCT"i)? & q: TableSubquery => @(new Towers.Typed(new Expression.Unique(Nodes.Nulls(d, n), q), Towers.Logical | Towers.Truth))
 	| p: PeriodConstructor & t: PeriodPredicatePart2 => @(new Towers.Typed(t with { Left = p }, Towers.Logical | Towers.Truth))
-	| e: CommonValueExpressionOrRow & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes), Towers.Logical | Towers.Truth))
+	| e: CommonValueExpressionOrRow & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) on fail "Expected a value of the kind the function takes." => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes), Towers.Logical | Towers.Truth))
 
 PredicatePart2Mark : @Towers.Tail = p: PredicatePart2 => @(p) | none => @(default)
 
@@ -567,7 +567,7 @@ NegatablePredicatePart2 : @Expression
 	= "BETWEEN"i & s: ("ASYMMETRIC"i | "SYMMETRIC"i)? & l: RowValuePredicand & "AND"i & h: RowValuePredicand => @(new Expression.Between(null!, false, Nodes.Symmetry(s), l.Node, h.Node))
 	| "IN"i & q: TableSubquery => @(new Expression.In(null!, false, new InSource.Subquery(q)))
 	| "IN"i & '(' & { first: RowValueExpression & (',' & rest: RowValueExpression)* } & ')' => @(new Expression.In(null!, false, new InSource.Values(Nodes.Values(first, rest))))
-	| "LIKE"i & p: StringValueExpression & e: LikeEscape & when @((Towers.RolesOf(p) & Towers.RolesOf(e) & Towers.String) != 0) => @(new Expression.Like(null!, false, LikeKind.Like, p.Node, e.Node))
+	| "LIKE"i & p: StringValueExpression & e: LikeEscape & when @((Towers.RolesOf(p) & Towers.RolesOf(e) & Towers.String) != 0) on fail "Expected two string values of one kind." => @(new Expression.Like(null!, false, LikeKind.Like, p.Node, e.Node))
 	| "SIMILAR"i & "TO"i & p: CharacterValueExpression & ("ESCAPE"i & x: CharacterNode)? => @(new Expression.Like(null!, false, LikeKind.Similar, p.Node, x))
 	| "LIKE_REGEX"i & p: CharacterValueExpression & ("FLAG"i & f: CharacterNode)? => @(new Expression.Like(null!, false, LikeKind.Regex, p.Node, null, f))
 	| m: ("MEMBER"i | "SUBMULTISET"i) & o: "OF"i? & c: MultisetValueExpression => @(Nodes.Membership(m, o is not null, c.Node))
@@ -615,19 +615,19 @@ PeriodConstructor : @PeriodValue = "PERIOD"i & '(' & s: DatetimeValueExpression 
 // value expression primary already are — or an explicit row value constructor. A row is read where a
 // bracket is (`Bracketed`), and `ROW (…)` where a primary begins; a row subquery is written as a
 // scalar subquery is, and read as one.
-RowValuePredicand : @Towers.Typed = e: CommonValueExpressionOrRow & when @((Towers.RolesOf(e) & ~Towers.Difference) != 0) => @(e)
+RowValuePredicand : @Towers.Typed = e: CommonValueExpressionOrRow & when @((Towers.RolesOf(e) & ~Towers.Difference) != 0) on fail "Expected a value that may stand here." => @(e)
 
 // <row value expression>: a value expression primary not in brackets, or an explicit row. So
 // `x IN (a + 1)` is refused by the BNF, whose <in value list> holds row value expressions.
-RowValueExpression : @Towers.Typed = e: CommonValueExpressionOrRow & when @((Towers.RolesOf(e) & (Towers.Row | Towers.Bare)) != 0) => @(e)
+RowValueExpression : @Towers.Typed = e: CommonValueExpressionOrRow & when @((Towers.RolesOf(e) & (Towers.Row | Towers.Bare)) != 0) on fail "Expected a row value." => @(e)
 
 // ── §6.28 Common value expressions ──────────────────────────────────────────
 
 // <common value expression>: operands and the operators between them, which Towers.cs holds to
 // the towers and builds the node of. An explicit row is an operand in shape, and something only
 // alone: where a row may stand, the one reading serves both.
-CommonValueExpressionOrRow : @Towers.Typed = first: Operand & rest: Operated* & when @(Towers.Common(first, rest) != 0) => @(Towers.Expression(first, rest))
-CommonValueExpression      : @Towers.Typed = e: CommonValueExpressionOrRow & when @((Towers.RolesOf(e) & Towers.Value) != 0) => @(e)
+CommonValueExpressionOrRow : @Towers.Typed = first: Operand & rest: Operated* & when @(Towers.Common(first, rest) != 0) on fail "Expected values of one kind." => @(Towers.Expression(first, rest))
+CommonValueExpression      : @Towers.Typed = e: CommonValueExpressionOrRow & when @((Towers.RolesOf(e) & Towers.Value) != 0) on fail "Expected a value." => @(e)
 
 // Not productions: the operators the towers share, read once for all of them. `||` joins character,
 // binary and array operands; `MULTISET UNION`, `EXCEPT` and `INTERSECT` multisets; `*`, `/`, `+`
@@ -659,26 +659,26 @@ Postfix : @Towers.After
 TimeZone        : @Expression = "AT"i & z: TimeZoneSpecifier => @(new Expression.AtTimeZone(null!, z.Node))
 TimeZoneSpecifier : @Towers.Typed = "LOCAL"i => @(new Towers.Typed(null!, 0))
                                   | "TIME"i & "ZONE"i & z: IntervalPrimary => @(z)
-IntervalPrimary : @Towers.Typed = p: Primary & q: IntervalQualifier? & when @(q is not null ? (Towers.RolesOf(p) & Towers.Value) == Towers.Value : (Towers.RolesOf(p) & Towers.Interval) != 0) => @(new Towers.Typed(q is null ? p.Node : new Expression.IntervalQualified(p.Node, q), Towers.Interval))
+IntervalPrimary : @Towers.Typed = p: Primary & q: IntervalQualifier? & when @(q is not null ? (Towers.RolesOf(p) & Towers.Value) == Towers.Value : (Towers.RolesOf(p) & Towers.Interval) != 0) on fail "Expected an interval value." => @(new Towers.Typed(q is null ? p.Node : new Expression.IntervalQualified(p.Node, q), Towers.Interval))
 
 // Not a production: a primary of any tower. A value function is of the tower it names; an array's
 // may be subscripted, and is then a value expression primary.
 Primary : @Towers.Typed
-	= f: ValueFunction & s: FunctionSubscript & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(f) & Towers.Array) != 0) => @(Towers.Stepped(f, s))
+	= f: ValueFunction & s: FunctionSubscript & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(f) & Towers.Array) != 0) on fail "Expected an array." => @(Towers.Stepped(f, s))
 	| p: PrimaryReading => @(p)
 
 FunctionSubscript : @Towers.Stepping = e: ArrayElementStep & s: PrimaryStep* => @(Towers.Subscripted(e, s))
                                      | none => @(Towers.Stepping.None)
 
 // The towers, each an expression the towers say it can be.
-NumericValueExpression    : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Numeric)   != 0) => @(e)
-StringValueExpression     : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.String)    != 0) => @(e)
-CharacterValueExpression  : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Character) != 0) => @(e)
-DatetimeValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Datetime)  != 0) => @(e)
-IntervalValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Interval)  != 0) => @(e)
-ArrayValueExpression      : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Array)     != 0) => @(e)
-MultisetValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Multiset)  != 0) => @(e)
-CollectionValueExpression : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & (Towers.Array | Towers.Multiset)) != 0) => @(e)
+NumericValueExpression    : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Numeric)   != 0) on fail "Expected a numeric value." => @(e)
+StringValueExpression     : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.String)    != 0) on fail "Expected a string value." => @(e)
+CharacterValueExpression  : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Character) != 0) on fail "Expected a character string value." => @(e)
+DatetimeValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Datetime)  != 0) on fail "Expected a datetime value." => @(e)
+IntervalValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Interval)  != 0) on fail "Expected an interval value." => @(e)
+ArrayValueExpression      : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Array)     != 0) on fail "Expected an array." => @(e)
+MultisetValueExpression   : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Multiset)  != 0) on fail "Expected a multiset." => @(e)
+CollectionValueExpression : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & (Towers.Array | Towers.Multiset)) != 0) on fail "Expected an array or a multiset." => @(e)
 
 // Not productions: a tower's node alone, where a rule keeps the node and asks nothing of its towers —
 // and where it may be left out, which a node says by being null.
@@ -689,7 +689,7 @@ CharacterNode : @Expression = e: CharacterValueExpression => @(e.Node)
 
 // <value expression primary>: a common value expression that is one — which a subscripted
 // concatenation is too (Towers.cs). A non-parenthesized one is `Towers.Bare`, asked where it stands.
-ValueExpressionPrimary : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & (Towers.Bare | Towers.Parenthesized)) != 0) => @(e)
+ValueExpressionPrimary : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & (Towers.Bare | Towers.Parenthesized)) != 0) on fail "Expected a value that may stand here." => @(e)
 
 // Not a production: a primary read as one. <field reference>, <method invocation>, <attribute or
 // method reference> and <array element reference> each begin with a value expression primary,
@@ -702,9 +702,9 @@ ValueExpressionPrimary : @Towers.Typed = e: CommonValueExpression & when @((Towe
 // which an in value list asks for. Asking the subquery first cost a reading of everything below every
 // bracket -- 200 rule entries a character at a depth of 800, against 12.5 at any depth now.
 PrimaryReading : @Towers.Typed
-	= b: Bracketed      & s: PrimarySteps & when @((Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0) && !Nodes.WrapsQuery(b)) => @(Towers.Stepped(b, s))
+	= b: Bracketed      & s: PrimarySteps & when @((Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0) && !Nodes.WrapsQuery(b)) on fail "Expected a value that may stand here." => @(Towers.Stepped(b, s))
 	| q: ScalarSubquery & s: PrimarySteps => @(Towers.Stepped(new Towers.Typed(new Expression.Subquery(q), Towers.Value | Towers.Truth | Towers.Bare), s))
-	| p: PrimaryBase    & s: PrimarySteps & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(p) & Towers.Row) == 0) => @(Towers.Stepped(p, s))
+	| p: PrimaryBase    & s: PrimarySteps & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(p) & Towers.Row) == 0) on fail "Expected a value that may stand here." => @(Towers.Stepped(p, s))
 
 // Not a production: a bracket, read once. A <parenthesized value expression>, an <explicit row value
 // constructor> and a <generalized invocation> each begin with a bracket and a value expression, and
@@ -712,7 +712,7 @@ PrimaryReading : @Towers.Typed
 // after another, each read the bracket's contents again, and a line refused deep inside nested
 // brackets cost a power of their depth — eight of them, 46 ms. A generalized invocation's value
 // expression is a primary.
-Bracketed : @Towers.Typed = '(' & e: Disjunction & t: BracketTail & when @(Nodes.Brackets(e, t)) => @(Nodes.Bracketed(e, t))
+Bracketed : @Towers.Typed = '(' & e: Disjunction & t: BracketTail & when @(Nodes.Brackets(e, t)) on fail "Expected a datetime difference in brackets." => @(Nodes.Bracketed(e, t))
 
 BracketTail : @Towers.Bracket
 	= ')' => @(new Towers.Bracket(Towers.Parenthesized))
@@ -806,7 +806,7 @@ Result             : @Expression = v: ValueNode => @(v) | "NULL"i => @(Nodes.Nul
 // Of those two, the ones that begin with a word a name may be spelled with (`FORMAT JSON IS JSON`,
 // `IMMEDIATELY PRECEDES`) are left out in front as well as by the guard: then the two alternatives
 // begin apart, and a second part that fails is not a reading the predicand replaces.
-WhenOperand : @Expression = ?!("FORMAT"i | "IMMEDIATELY"i) & p: PredicatePart2 & when @(Towers.RolesOf(p) == Towers.Any) => @(Nodes.Predicated(new Expression.CaseOperand(), p))
+WhenOperand : @Expression = ?!("FORMAT"i | "IMMEDIATELY"i) & p: PredicatePart2 & when @(Towers.RolesOf(p) == Towers.Any) on fail "Expected a value that may stand here." => @(Nodes.Predicated(new Expression.CaseOperand(), p))
                           | r: RowValuePredicand => @(r.Node)
 
 // <cast specification>. A domain's name is a user-defined type's in shape, and <data type> reads it.
@@ -858,7 +858,7 @@ ValueFunction : @Towers.Typed
 	| json: JSONTypedValueFunction => @(new Towers.Typed(json, Towers.Json))
 
 // <absolute value expression>, <interval absolute value function>.
-AbsoluteValue : @Towers.Typed = w: "ABS"i & '(' & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Numeric | Towers.Interval)) != 0) => @(new Towers.Typed(Nodes.Call(w, e.Node), e.Roles & (Towers.Numeric | Towers.Interval)))
+AbsoluteValue : @Towers.Typed = w: "ABS"i & '(' & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Numeric | Towers.Interval)) != 0) on fail "Expected a numeric or an interval value." => @(new Towers.Typed(Nodes.Call(w, e.Node), e.Roles & (Towers.Numeric | Towers.Interval)))
 
 // <numeric value function>, but `ABS`.
 NumericValueFunction : @Expression
@@ -879,13 +879,13 @@ NumericValueFunction : @Expression
 	| w: "MATCH_NUMBER"i & '(' & ')' => @(Nodes.Call(w))
 
 // <character position expression>, <binary position expression>.
-PositionExpression : @Expression = "POSITION"i & '(' & a: StringValueExpression & "IN"i & b: StringValueExpression & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u > 0)) => @(new Expression.Position(a.Node, b.Node, Nodes.UnitsOf(u)))
+PositionExpression : @Expression = "POSITION"i & '(' & a: StringValueExpression & "IN"i & b: StringValueExpression & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u > 0)) on fail "Expected character string values." => @(new Expression.Position(a.Node, b.Node, Nodes.UnitsOf(u)))
 
 // What the regular expression functions share: a pattern, its flags, the string searched, and where.
 RegexSearch : @Nodes.Search = p: CharacterValueExpression & ("FLAG"i & f: CharacterNode)? & "IN"i & v: CharacterValueExpression & ("FROM"i & start: NumericNode)? & ("USING"i & u: CharLengthUnits)? => @(new Nodes.Search(p.Node, f, v.Node, start, Nodes.UnitsOf(u)))
 
 // <extract expression>: a datetime's field, or an interval's.
-ExtractExpression : @Expression = "EXTRACT"i & '(' & f: ExtractField & "FROM"i & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Datetime | Towers.Interval)) != 0) => @(new Expression.Extract(Nodes.ExtractFieldOf(f), e.Node))
+ExtractExpression : @Expression = "EXTRACT"i & '(' & f: ExtractField & "FROM"i & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Datetime | Towers.Interval)) != 0) on fail "Expected a datetime or an interval value." => @(new Expression.Extract(Nodes.ExtractFieldOf(f), e.Node))
 ExtractField      = NonSecondPrimaryDatetimeField | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
 
 // Which units were named: none (0), characters (1), octets (2).
@@ -912,14 +912,14 @@ StringValueFunction : @Expression
 // <character substring function>, <binary substring function>, <regular expression substring
 // function>. All three begin with the string, which is read once and what follows it says which: the
 // last is a character string's alone.
-SubstringFunction : @Expression = "SUBSTRING"i & '(' & s: StringValueExpression & t: SubstringTail & ')' & when @(Nodes.SubstringFits(s, t)) => @(Nodes.Substring(s.Node, t))
+SubstringFunction : @Expression = "SUBSTRING"i & '(' & s: StringValueExpression & t: SubstringTail & ')' & when @(Nodes.SubstringFits(s, t)) on fail "Expected the arguments SUBSTRING takes for this value." => @(Nodes.Substring(s.Node, t))
 
 SubstringTail : @Nodes.SubstringParts
 	= "FROM"i & start: NumericNode & ("FOR"i & length: NumericNode)? & u: UsingUnits => @(new Nodes.SubstringParts(u > 0 ? 1 : 0, start, length, Nodes.UnitsOf(u), null, null))
 	| "SIMILAR"i & pattern: CharacterNode & "ESCAPE"i & escape: CharacterNode => @(new Nodes.SubstringParts(2, null, null, null, pattern, escape))
 
 // <single-character trim function>, <binary trim function>: what is trimmed, and from what, of one kind.
-TrimFunction : @Expression = "TRIM"i & '(' & t: TrimOperands & ')' & when @((Nodes.RolesOf(t) & Towers.String) != 0) => @(Nodes.Trimmed(t))
+TrimFunction : @Expression = "TRIM"i & '(' & t: TrimOperands & ')' & when @((Nodes.RolesOf(t) & Towers.String) != 0) on fail "Expected a string value." => @(Nodes.Trimmed(t))
 //
 // <trim operands> is `[ [ spec ] [ character ] FROM ] source`. What the operands begin with is read
 // once: a specification, `FROM`, or a string that is the source or, with `FROM` after it, the
@@ -938,7 +938,7 @@ TrimFrom : @Towers.Typed = "FROM"i & s: StringValueExpression => @(s)
 TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
 
 // <character overlay function>, <binary overlay function>.
-OverlayFunction : @Expression = "OVERLAY"i & '(' & a: StringValueExpression & "PLACING"i & b: StringValueExpression & "FROM"i & start: NumericNode & ("FOR"i & length: NumericNode)? & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u > 0)) => @(new Expression.Overlay(a.Node, b.Node, start, length, Nodes.UnitsOf(u)))
+OverlayFunction : @Expression = "OVERLAY"i & '(' & a: StringValueExpression & "PLACING"i & b: StringValueExpression & "FROM"i & start: NumericNode & ("FOR"i & length: NumericNode)? & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u > 0)) on fail "Expected character string values." => @(new Expression.Overlay(a.Node, b.Node, start, length, Nodes.UnitsOf(u)))
 
 // <datetime value function>.
 DatetimeValueFunction : @Expression
@@ -1078,7 +1078,7 @@ JSONTypedValueFunction : @Expression
 
 // <JSON serialize>, of a <JSON value expression>: a value expression primary or a typed value function.
 JSONSerialize        : @Expression = "JSON_SERIALIZE"i & '(' & v: JSONValueExpression & o: JSONOutputClause? & ')' => @(new Expression.JsonSerialize(v.Node, o))
-JSONValueExpression : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Json) != 0) => @(e)
+JSONValueExpression : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Json) != 0) on fail "Expected a JSON value." => @(e)
 
 // <JSON array aggregate constructor>, <JSON object aggregate constructor>.
 JSONAggregateFunction : @Expression
@@ -1157,7 +1157,7 @@ JSONTablePrimitiveColumn : @JsonTableColumn
 // is a regular one.
 JSONTableTypedColumn : @JsonTableColumn = c: ColumnName & t: DataType & f: JSONColumnFormat & ("PATH"i & p: CharacterStringLiteral)? & w: JSONColumnWrapper
 	& (b: JSONColumnBehavior & "ON"i & (e: "EMPTY"i & (r: JSONColumnBehavior & "ON"i & "ERROR"i)? | "ERROR"i))?
-	& when @(Nodes.ColumnKinds(f, w, Nodes.OnEmpty(b, e), Nodes.OnError(b, e, r)) != 3)
+	& when @(Nodes.ColumnKinds(f, w, Nodes.OnEmpty(b, e), Nodes.OnError(b, e, r)) != 3) on fail "Expected the clauses this kind of column takes."
 	=> @(Nodes.TypedColumn(c, t, f, p, w, Nodes.OnEmpty(b, e) ?? new Nodes.ColumnPart(0), Nodes.OnError(b, e, r) ?? new Nodes.ColumnPart(0)))
 
 JSONColumnFormat  : @Nodes.ColumnPart = "FORMAT"i & r: JSONRepresentation => @(new Nodes.ColumnPart(2) { Format = r })
@@ -1183,7 +1183,7 @@ JSONTableDefaultPlanChoices : @JsonTablePlan
 	= i: ("INNER"i | "OUTER"i) & (',' & u: ("UNION"i | "CROSS"i))? => @(Nodes.DefaultPlan(i, u, false))
 	| u: ("UNION"i | "CROSS"i) & (',' & i: ("INNER"i | "OUTER"i))? => @(Nodes.DefaultPlan(i, u, true))
 
-JSONTablePlan : @JsonTablePlan = p: JSONTablePlanPrimary & t: JSONTablePlanTail & when @(Nodes.PlanFits(p, t)) => @(Nodes.Plan(p, t))
+JSONTablePlan : @JsonTablePlan = p: JSONTablePlanPrimary & t: JSONTablePlanTail & when @(Nodes.PlanFits(p, t)) on fail "Expected a plan that fits the table." => @(Nodes.Plan(p, t))
 
 JSONTablePlanPrimary : @JsonTablePlan = n: Identifier => @(new JsonTablePlan.Name(n))
                                       | '(' & p: JSONTablePlan & ')' => @(new JsonTablePlan.Parenthesized(p))
@@ -1264,7 +1264,7 @@ TablePrimary : @Nodes.Factor
 	| n: TableOrQueryName & s: QuerySystemTimePeriodSpecification? & c: CorrelationOrRecognition? => @(Nodes.Correlate(new TableSource.Named(n) { SystemTime = s }, c))
 	| "LATERAL"i & q: TableSubquery & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.Subquery(q) { Lateral = true }, c))
 	| "UNNEST"i & '(' & first: CollectionNode & (',' & rest: CollectionNode)* & ')' & o: ("WITH"i & "ORDINALITY"i)? & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.Unnest(Nodes.List(first, rest), o is not null, null), c))
-	| "TABLE"i & '(' & e: CollectionValueExpression & ')' & a: Correlated & r: Recognized & when @(a is not null || r is not null || (Towers.RolesOf(e) & Towers.Invoked) != 0) => @(Nodes.Correlate(new TableSource.TableFunction(e.Node), new Nodes.Correlation(a, r)))
+	| "TABLE"i & '(' & e: CollectionValueExpression & ')' & a: Correlated & r: Recognized & when @(a is not null || r is not null || (Towers.RolesOf(e) & Towers.Invoked) != 0) on fail "Expected a value that may stand here." => @(Nodes.Correlate(new TableSource.TableFunction(e.Node), new Nodes.Correlation(a, r)))
 	| "ONLY"i & '(' & n: TableOrQueryName & ')' & c: CorrelationOrRecognition? => @(Nodes.Correlate(new TableSource.Named(n) { Only = true }, c))
 	| q: TableSubquery & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.Subquery(q), c))
 	| j: JSONTable & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.JsonTable(j), c))
@@ -1279,7 +1279,7 @@ ParenthesizedJoinedTable : @TableSource = '(' & f: TableFactor & j: Joins & ')' 
 // input's name before it, the output's after it, both or neither. Both begin with a name where they
 // have one, so a name is read and then a clause: `t s (c) MATCH_RECOGNIZE (…)` would otherwise be
 // read as a correlation and leave the clause behind.
-CorrelationOrRecognition : @Nodes.Correlation = a: Correlated & r: Recognized & when @(a is not null || r is not null) => @(new Nodes.Correlation(a, r))
+CorrelationOrRecognition : @Nodes.Correlation = a: Correlated & r: Recognized & when @(a is not null || r is not null) on fail "Expected a value that may stand here." => @(new Nodes.Correlation(a, r))
 
 // A query's lists give nothing back once read, and a correlation name is a word that is not reserved:
 // in `JSON_ARRAY(SELECT a FROM t FORMAT JSON)` the last table would be called `FORMAT`, and the JSON
@@ -1447,7 +1447,7 @@ SelectList : @Sql.SqlList<SelectColumn> = '*' => @(Nodes.Everything())
 //
 // A `.*` with nothing after it is a qualified asterisk, the reading a select list is written for; with
 // a name after it, the JSON accessor it is too, named.
-SelectSublist : @SelectColumn = e: ValueExpression & f: AllFields & when @(!Nodes.RenamesFields(f) || (Towers.RolesOf(e) & Towers.Starred) != 0) => @(Nodes.Selected(e.Node, f))
+SelectSublist : @SelectColumn = e: ValueExpression & f: AllFields & when @(!Nodes.RenamesFields(f) || (Towers.RolesOf(e) & Towers.Starred) != 0) on fail "Expected a row value whose fields can be renamed." => @(Nodes.Selected(e.Node, f))
 AllFields     : @Nodes.Fields = "AS"i & '(' & columns: ColumnNameList & ')' => @(new Nodes.Fields(null, false, columns))
                               | a: AsClause => @(a)
                               | none => @(new Nodes.Fields(null, false, null))
