@@ -252,7 +252,9 @@ internal static class DslEmbeddedSiteAnalysis
 				prepared.Graph,
 				publication,
 				literal.Token.ValueText,
-				prepared.RecognitionContract);
+				prepared.RecognitionContract,
+				DslRecognitionTrace.Budget(literal.Token.ValueText),
+				cancellationToken);
 			if (sourceMap!.TryMap(0, literal.Token.ValueText.Length, out var siteSpan) &&
 				sourceMap.TryMap(trace.FailurePosition, 0, out var completionSpan))
 				sites.Add(new HostDslSite(
