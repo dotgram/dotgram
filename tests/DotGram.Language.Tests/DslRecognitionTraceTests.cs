@@ -245,6 +245,98 @@ public sealed class DslRecognitionTraceTests
 		}
 	}
 
+	/// <summary>
+	/// A rule that matched nothing is left before what follows it is read: trivia read
+	/// at the start of the input, an operand that reads nothing, and trivia again at the
+	/// same position is no rule calling itself.
+	/// </summary>
+	[Fact]
+	public void RuleThatMatchedEmptyIsCalledAgainAtTheSamePosition()
+	{
+		const string grammar = """
+			trivia = ' '*
+			parse Start
+			Start = Sign & word: Word
+			Sign  = '-'?
+			Word  = ['a'..'z']+
+			""";
+
+		var (graph, publication) = Compile(grammar);
+		var result = DslRecognitionTrace.Recognize(graph, publication, "word");
+
+		Assert.Equal(DslRecognitionStatus.Success, result.Status);
+		Assert.Contains(result.Extents, extent =>
+			extent.Rule.Name == "Start" && extent.Capture == "word" &&
+			extent.Position == 0 && extent.Length == 4);
+		AgreesWithGeneratedParser(grammar, "word", " word ", "- word", "-word", "--word", "", " ");
+	}
+
+	/// <summary>
+	/// A rule that calls itself at the position it was entered at is still refused there,
+	/// before the match it hands on and after the caller resumes it.
+	/// </summary>
+	[Fact]
+	public void RuleCallingItselfWhereItWasEnteredIsRefusedThere()
+	{
+		var rule  = new RuleSymbol("Start", new GrammarNamespace("", null), Declaration: null);
+		var graph = new RecognitionGraph(
+			[rule],
+			new System.Collections.Generic.Dictionary<RuleSymbol, Node>
+			{
+				[rule] = new Node.Choice(
+				[
+					new Node.Sequence([new Node.Call(rule, []), new Node.Literal("b")]),
+					new Node.Sequence([new Node.Literal("a"), new Node.Repeat(new Node.Literal("c"), 0, null)]),
+				]),
+			},
+			new System.Collections.Generic.Dictionary<RuleSymbol, bool> { [rule] = false },
+			new System.Collections.Generic.Dictionary<RuleSymbol, System.Collections.Generic.IReadOnlyList<ResultMember>>(),
+			new System.Collections.Generic.Dictionary<RuleSymbol, string>(),
+			[],
+			[],
+			[]);
+		var publication = new Publication(
+			PublishKind.Parse,
+			rule,
+			"ParseStart",
+			new Location(0, 0),
+			rule.Namespace,
+			new System.Collections.Generic.Dictionary<RuleSymbol, RuleSymbol>(),
+			[]);
+
+		Assert.Equal(DslRecognitionStatus.Success, DslRecognitionTrace.Recognize(graph, publication, "acc").Status);
+		Assert.Equal(DslRecognitionStatus.Failure, DslRecognitionTrace.Recognize(graph, publication, "accb").Status);
+	}
+
+	/// <summary>
+	/// What the interpreter answers for each input against what the parser generated
+	/// from the same grammar answers: accepted by both, or refused by both at the same
+	/// position.
+	/// </summary>
+	static void AgreesWithGeneratedParser(string grammar, params string[] inputs)
+	{
+		var (graph, publication) = Compile(grammar);
+		var generated = EmittedCode.Compile(
+			DotGram.Grammar.Emit.CSharpEmitter.Emit(
+				graph,
+				new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Deferred, MemoiseFailures = false }));
+
+		foreach (var input in inputs)
+		{
+			var expected = EmittedCode.Match(generated, "Grammar", "Try" + publication.MethodName, input);
+			var actual   = DslRecognitionTrace.Recognize(graph, publication, input);
+
+			Assert.True(
+				expected.IsSuccess == (actual.Status == DslRecognitionStatus.Success),
+				$"'{input}': the generated parser {(expected.IsSuccess ? "accepts" : "refuses")} it, the interpreter answers {actual.Status}");
+
+			if (!expected.IsSuccess)
+				Assert.True(
+					expected.Position == actual.FailurePosition,
+					$"'{input}': the generated parser refuses at {expected.Position}, the interpreter at {actual.FailurePosition}");
+		}
+	}
+
 	static (RecognitionGraph Graph, Publication Publication) ExternalGraph()
 	{
 		var rule = new RuleSymbol("Start", new GrammarNamespace("", null), Declaration: null);

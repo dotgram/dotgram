@@ -220,7 +220,12 @@ internal static class DslRecognitionTrace
 					var complete = new Match(match.End, extents);
 					Consider(complete, rule);
 
+					// The guard stands for a body being read. While the match is handed on, what reads
+					// next is the caller's continuation, which may call this rule here again: trivia
+					// after an operand that matched nothing is no recursion.
+					_active.Remove((rule, position));
 					yield return complete;
+					_active.Add((rule, position));
 				}
 			}
 			finally
