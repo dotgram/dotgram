@@ -175,23 +175,47 @@ static class StandaloneGrammarInheritance
 			}
 			else
 			{
-				// A class another project of the solution declares is compiled there, with that project's
-				// files: what the build reads from the referenced assembly is that grammar, which a file of
-				// the same name in the host's own project does not replace.
-				var wanted   = GramIncludes.Wanted(include);
-				var declared = DeclaringProject(solution, include.Type);
-				var file     = FileDocument(declared is not null && declared.Id != project.Id ? declared : project, wanted);
+				var wanted = GramIncludes.Wanted(include);
 
-				if (file is not null)
+				// A class another project of the solution declares is, to the build, a class of a
+				// referenced assembly, and the generator reads what that assembly carries where it
+				// carries a grammar: a [GramSource] written on the class, or the one the assembly's own
+				// generator writes there for a grammar it exports — its project's file. Where it carries
+				// none, as for ExportGrammar = false, the file of the host's own project is read, as
+				// for a class of this project, and a [GramSource] last (GramGenerator.Compile).
+				var declared = DeclaringProject(solution, include.Type);
+
+				if (declared is not null && declared.Id != project.Id)
 				{
-					text = (await file.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
-					path = file.FilePath;
-					documents.Add(file.Id);
+					if (include.Portable is { Length: > 0 } carried)
+					{
+						text = carried;
+						path = await CarriedFileAsync(solution, include.Type, wanted, carried, cancellationToken).ConfigureAwait(false);
+					}
+					else if (GramHostOptions.Read(include.Attribute, include.Type, first: null).ExportGrammar &&
+						FileDocument(declared, wanted) is { } exported)
+					{
+						text = (await exported.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+						path = exported.FilePath;
+						documents.Add(exported.Id);
+					}
 				}
-				else if (include.Portable is not null)
+
+				if (text is null)
 				{
-					text = include.Portable;
-					path = await CarriedFileAsync(solution, include.Type, wanted, include.Portable, cancellationToken).ConfigureAwait(false);
+					var file = FileDocument(project, wanted);
+
+					if (file is not null)
+					{
+						text = (await file.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+						path = file.FilePath;
+						documents.Add(file.Id);
+					}
+					else if (include.Portable is not null)
+					{
+						text = include.Portable;
+						path = await CarriedFileAsync(solution, include.Type, wanted, include.Portable, cancellationToken).ConfigureAwait(false);
+					}
 				}
 			}
 

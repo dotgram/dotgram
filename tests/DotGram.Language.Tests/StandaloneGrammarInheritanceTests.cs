@@ -326,4 +326,82 @@ public sealed class StandaloneGrammarInheritanceTests
 		Assert.True(StandaloneGrammarInheritance.MayHost(root!, DialectPath));
 		Assert.False(StandaloneGrammarInheritance.MayHost(root!, @"P:\Parsers\Unknown.gram"));
 	}
+
+	/// <summary>
+	/// A grammar class of another project of the solution, as the build includes it from that
+	/// project's assembly: the grammar the assembly carries where it carries one — its project's file
+	/// for a grammar it exports — and otherwise the file of the host's own project, as the generator
+	/// reads it (GramGenerator.Compile).
+	/// </summary>
+	[Theory]
+	[InlineData("", true, true, "library")]
+	[InlineData(", ExportGrammar = true", true, true, "library")]
+	[InlineData(", ExportGrammar = false", true, true, "consumer")]
+	[InlineData(", ExportGrammar = false", true, false, null)]
+	[InlineData("", false, true, "consumer")]
+	[InlineData("", false, false, null)]
+	public async Task IncludesAGrammarOfAReferencedProjectAsTheBuildDoes(string export, bool libraryHasFile, bool consumerHasFile, string? expected)
+	{
+		const string attributes = """
+			namespace DotGram
+			{
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramAttribute(string source) : System.Attribute
+				{
+					public string DefaultAlias { get; set; } = "";
+					public bool ExportGrammar { get; set; }
+				}
+
+				sealed class GramSourceAttribute(string text) : System.Attribute;
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute;
+			}
+			""";
+
+		using var workspace = new AdhocWorkspace();
+
+		Project Add(string name, string source)
+		{
+			var project = workspace.AddProject(ProjectInfo.Create(
+				ProjectId.CreateNewId(),
+				VersionStamp.Default,
+				name,
+				name,
+				LanguageNames.CSharp,
+				parseOptions: CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview),
+				metadataReferences: [MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)]));
+
+			return workspace.AddDocument(project.Id, name + ".cs", SourceText.From(attributes + source)).Project;
+		}
+
+		var library  = Add("Library", $"namespace Library {{ [DotGram.Gram(\"Base.gram\", DefaultAlias = \"B\"{export})] public partial class Base; }}");
+		var consumer = Add("Consumer", "[DotGram.Gram(\"Dialect.gram\")] [DotGram.GramInclude(typeof(Library.Base))] partial class Dialect;");
+		var solution = workspace.CurrentSolution.AddProjectReference(consumer.Id, new ProjectReference(library.Id));
+
+		solution = solution.AddAdditionalDocument(DocumentId.CreateNewId(consumer.Id), "Dialect.gram", SourceText.From("Start = B.Word"), filePath: @"P:\Consumer\Dialect.gram");
+
+		if (libraryHasFile)
+			solution = solution.AddAdditionalDocument(DocumentId.CreateNewId(library.Id), "Base.gram", SourceText.From("Word = 'library'"), filePath: @"P:\Library\Base.gram");
+
+		if (consumerHasFile)
+			solution = solution.AddAdditionalDocument(DocumentId.CreateNewId(consumer.Id), "Base.gram", SourceText.From("Word = 'consumer'"), filePath: @"P:\Consumer\Base.gram");
+
+		var resolution = await StandaloneGrammarInheritance.ResolveAsync(solution, @"P:\Consumer\Dialect.gram", TestContext.Current.CancellationToken);
+
+		Assert.Equal(StandaloneGrammarState.Resolved, resolution.State);
+
+		var included = Assert.NotNull(resolution.Context).Included;
+
+		if (expected is null)
+		{
+			Assert.Empty(included);
+			return;
+		}
+
+		var grammar = Assert.Single(included);
+
+		Assert.Equal($"Word = '{expected}'", grammar.Text);
+		Assert.Equal(expected == "library" ? @"P:\Library\Base.gram" : @"P:\Consumer\Base.gram", grammar.FilePath);
+	}
 }
