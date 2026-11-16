@@ -13,6 +13,15 @@ static class OutputFolder
 	public const string ManifestName = ".dotgram.json";
 
 	/// <summary>
+	/// A string as a JSON literal, escaped as <see cref="JsonSerializer"/> escapes one by default. Not
+	/// through the serializer itself: its reflection is not there in the tool's native build.
+	/// </summary>
+	public static string Quoted(string value)
+	{
+		return "\"" + JsonEncodedText.Encode(value).ToString() + "\"";
+	}
+
+	/// <summary>
 	/// What the manifest says and how it is written: one format, versioned, the tool and generator that
 	/// wrote the folder, and the files, sorted — what the next run deletes when it no longer writes one.
 	/// </summary>
@@ -22,8 +31,8 @@ static class OutputFolder
 
 		text.Append("{\n");
 		text.Append("  \"format\": 1,\n");
-		text.Append("  \"tool\": ").Append(JsonSerializer.Serialize(toolVersion)).Append(",\n");
-		text.Append("  \"generator\": ").Append(JsonSerializer.Serialize(generatorVersion)).Append(",\n");
+		text.Append("  \"tool\": ").Append(Quoted(toolVersion)).Append(",\n");
+		text.Append("  \"generator\": ").Append(Quoted(generatorVersion)).Append(",\n");
 		text.Append("  \"files\": [");
 
 		var first = true;
@@ -31,7 +40,7 @@ static class OutputFolder
 		foreach (var name in files.Keys.Order(StringComparer.Ordinal))
 		{
 			text.Append(first ? "\n" : ",\n");
-			text.Append("    { \"name\": ").Append(JsonSerializer.Serialize(name)).Append(" }");
+			text.Append("    { \"name\": ").Append(Quoted(name)).Append(" }");
 
 			first = false;
 		}
