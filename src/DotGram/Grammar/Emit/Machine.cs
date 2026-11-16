@@ -9758,13 +9758,30 @@ sealed partial class Machine
 	/// (<see cref="EmitTerminalFailure"/>) — recorded where the input ran out, the sentinel
 	/// elsewhere — as the methods' <c>Refusal</c> records it.
 	/// </summary>
+	/// <remarks>
+	/// Inside a decision of tails that read nothing (<see cref="CompileAtomic"/>) a refused guard falls
+	/// to the tail behind it and not to <c>Fail:</c>, and what it left there was written over by the
+	/// next: of two guards that said no at one place only the last was said, where the methods say
+	/// both, and the first. So there it is recorded where it refused, as <c>Fail:</c> records it.
+	/// </remarks>
 	string GuardCleared(Node.Guard guard)
 	{
-		var set = GuardRefusal(guard);
-
-		return _seamRule && !_lowering && Sentinel is not null
+		var set     = GuardRefusal(guard);
+		var cleared = _seamRule && !_lowering && Sentinel is not null
 			? $"expected = {Recorded("p")} ? {set} : {Sentinel};"
 			: $"expected = {set};";
+
+		if (_fail == Fail || _lowering)
+			return cleared;
+
+		var recording = Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0";
+		var furthest  = KeepsDoors
+			? "{ failure.Position = p; if (!failure.Quiet) { failure.Expected = expected; failure.ExpectedMore?.Clear(); } }"
+			: "{ failure.Position = p; failure.Expected = expected; failure.ExpectedMore?.Clear(); }";
+
+		return cleared +
+			$" if ({(KeepsDoors ? "lookahead < 0" : recording)} && p > failure.Position) {furthest}" +
+			$" else if ({recording} && p == failure.Position && expected != null) Tie_DotGram(ref failure, expected);";
 	}
 
 	/// <summary>The set a guard that said no is recorded with, declared once per guard text.</summary>

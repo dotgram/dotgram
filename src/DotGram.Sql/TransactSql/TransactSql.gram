@@ -4227,7 +4227,8 @@ ColumnBody : @Build.Clause.ColumnDefinition
 	// table type, a function's returned table — and are `Msg 156` in a `DECLARE`, a cast, a
 	// `CREATE TYPE … FROM`, a parameter and a scalar `RETURNS`.
 	| type: ColumnType & tail: ColumnTail*
-	  & when @(Build.Rules.Tailed(type, tail) && Build.Rules.Collated(type, tail)) on fail "Expected the column's options in the order SQL Server reads them."
+	  & when @(Build.Rules.Tailed(type, tail)) on fail "Expected the column's options in the order SQL Server reads them."
+	  & when @(Build.Rules.Collated(type, tail)) on fail "Expected no COLLATE on a DECIMAL or NUMERIC with a precision and a scale."
 		=> @(new Build.Clause.ColumnDefinition("", type, null, SqlList.Own(tail)))
 
 // What may be said about a column after its type, each kept as what it is: an option, a
