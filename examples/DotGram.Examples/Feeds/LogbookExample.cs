@@ -39,7 +39,7 @@ public sealed record LogEntry(DateTime At, string Machine, string Note);
 	Log   : @LogEntry[] = Entry* recover eos
 
 	Entry : @LogEntry = at: Stamp
-	                    & when @(IsTime(at))
+	                    & when @(IsTime(at)) on fail "Expected a valid time."
 	                    & ' '+ & machine: Name & ' '+ & note: Rest & eos
 	                 => @(new LogEntry(ToTime(at), machine, note))
 

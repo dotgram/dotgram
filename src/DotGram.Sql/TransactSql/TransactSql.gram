@@ -773,7 +773,7 @@ TSqlValueFunction : @Ast.Expression
 	| name: "JSON_QUERY"i & '(' & first: TSqlValueExpression & (',' & second: TSqlValueExpression)? & wrapped: JsonWrapper? & ')' & tail: CallTail?
 		=> @(Build.Values.Called(new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(second is null ? new[] { first } : new[] { first, second }, wrapped))), tail))
 	| name: "JSON_ARRAYAGG"i & '(' & { items: Arguments? } & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturningJson? & ')'
-	  & tail: CallTail? & when @(Build.Rules.Aggregated(items, order, nulls, returning, tail))
+	  & tail: CallTail? & when @(Build.Rules.Aggregated(items, order, nulls, returning, tail)) on fail "Expected the clauses of JSON_ARRAYAGG in an order SQL Server reads."
 		=> @(Build.Values.Called(new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(items ?? [], order, nulls, returning))), tail))
 
 // **The null clause needs something to be null, and so does the return type.** The published
@@ -1085,7 +1085,7 @@ DottedTail
 // `NATIONAL` in front is part of the same question and not a second rule: whether it may
 // stand there is the last part's business too, which is why the condition is asked of the
 // whole of what was written.
-DottedType : @string = t: ("NATIONAL"i? & TSqlQualifiedName & DottedTail?) & when @(Syntax.Dotted(t)) => @(t)
+DottedType : @string = t: ("NATIONAL"i? & TSqlQualifiedName & DottedTail?) & when @(Syntax.Dotted(t)) on fail "Expected a data type." => @(t)
 
 TSqlLength = '(' & (Lexical.Digits | "MAX"i) & ')'
 
@@ -1430,7 +1430,7 @@ TSqlTablePrimary : @Build.TableReference
 		=> @(Build.Tables.Sourced(new Build.TableReference.FunctionCall(f, alias, null, SqlList.Own(schema)), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| f: ChunksFunction & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
 		=> @(Build.Tables.Sourced(Build.Rules.Pivoted(new Build.TableReference.FunctionCall(f, alias, null, Build.Clause.None), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
-	| f: RowsetFunction & schema: RowsetSchema? & when @(Build.Rules.Schemas(f, schema))
+	| f: RowsetFunction & schema: RowsetSchema? & when @(Build.Rules.Schemas(f, schema)) on fail "Expected a WITH schema this rowset function accepts."
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
 		=> @(Build.Tables.Sourced(Build.Rules.Pivoted(
@@ -1454,7 +1454,7 @@ TSqlTablePrimary : @Build.TableReference
 	// A join in brackets, and never one source alone, nor a join its pivot ends
 	// (`Syntax.Bracketable`). Pivots may follow the brackets; a sample or hints may not (`Msg
 	// 156`, `Msg 319`), and neither may a name (`Msg 102`).
-	| '(' & j: TSqlTableReference & ')' & when @(Build.Rules.Bracketable(j)) & pivot: PivotSuffix?
+	| '(' & j: TSqlTableReference & ')' & when @(Build.Rules.Bracketable(j)) on fail "Expected a join inside the brackets." & pivot: PivotSuffix?
 		=> @(Build.Tables.Sourced(Build.Rules.Pivoted(new Build.TableReference.Parenthesized(j), pivot), new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	// ODBC's braces hold a join a pivot does not end — `{ OJ t1 LEFT JOIN t2 ON … PIVOT (…) p }`
 	// is `Msg 102` — and pivots may follow them.
@@ -1958,7 +1958,7 @@ SchemaColumn : @Build.Clause
 // "column ordinal has to be greater than zero", which is the value and not the shape, where
 // `1.5` and `2147483648` are `Msg 102`. A path is the same kind of thing: `'$.x'` is read and
 // `'@b'`, `'1'` and `'x'` are `Msg 13607`, "JSON path is not properly formatted", after it.
-SchemaOrdinal : @string = t: ('-'? & Lexical.Digits) & when @(Syntax.Ranked(t)) => @(t)
+SchemaOrdinal : @string = t: ('-'? & Lexical.Digits) & when @(Syntax.Ranked(t)) on fail "Expected a column ordinal, a whole number an int holds." => @(t)
 
 JsonSchemaColumn : @Build.Clause
 	= name: TSqlIdentifier & type: TSqlDataType & c: SchemaCollate? & path: SchemaPath? & json: SchemaAsJson?
@@ -1992,7 +1992,7 @@ RowsetArgument : @Ast.Expression
 		=> @(new Build.Values.Prefixed(word, Build.Values.Row(SqlList.Own(Syntax.Listed(first, rest)))))
 	| word: "BULK"i & v: RowsetValue             => @(new Build.Values.Prefixed(word, v))
 	| name: TSqlIdentifier & '=' & v: RowsetValue & alias: DataAlias?
-	  & when @(alias is null || string.Equals(name, "DATA", System.StringComparison.OrdinalIgnoreCase))
+	  & when @(alias is null || string.Equals(name, "DATA", System.StringComparison.OrdinalIgnoreCase)) on fail "Expected an alias only after DATA."
 		=> @(new Build.Values.NamedArgument(name, alias is null ? v : (Ast.Expression)(alias with { Value = v })))
 	| word: TSqlIdentifier & ValueNotGoingOn & v: RowsetValue => @(new Build.Values.Prefixed(word, v))
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
@@ -2037,7 +2037,7 @@ RowsetFunction : @Build.Values.Call
 	// `OPENROWSET` over a provider is three arguments, the first two strings — `'p', 'c'; 'u';
 	// 'pw'` being one — and the third a string or an object's name: `OPENROWSET (something, @v)`
 	// is `Msg 156`, `('p', @v)` and `(@p, 'c', 'q')` 102, where `('p', 'c', db.dbo.t)` reads.
-	| name: RowsetName & '(' & args: RowsetArguments? & ')' & when @(Build.Rules.Provided(name, args))
+	| name: RowsetName & '(' & args: RowsetArguments? & ')' & when @(Build.Rules.Provided(name, args)) on fail "Expected a provider, a connection and a query or an object."
 		=> @(new Build.Values.Call(name, SqlList.Own(args)))
 	| name: FullTextTableName & '(' & table: TSqlQualifiedName & ',' & c: TableSearchColumns & ','
 	  & s: FullTextSearch & l: SearchLanguage? & n: SearchTop? & ')'
@@ -2125,7 +2125,7 @@ DataAlias : @Build.Values.Aliased
 // name, a type, perhaps a collation and then a nullability; no path, no `AS JSON`, no schema
 // named for it — and the alias after it takes no columns.
 PredictCall : @Build.Values.Call
-	= name: "PREDICT"i & '(' & args: RowsetArguments & ')' & when @(Build.Rules.Predicts(args))
+	= name: "PREDICT"i & '(' & args: RowsetArguments & ')' & when @(Build.Rules.Predicts(args)) on fail "Expected the MODEL and DATA arguments of PREDICT."
 		=> @(new Build.Values.Call(name, SqlList.Own(args)))
 
 PredictSchema : @Build.Clause[]
@@ -2284,10 +2284,10 @@ ChangedTable : @Build.TableReference
 		=> @(new Build.TableReference.Changed(s, alias, SqlList.OwnOrNull(columns)))
 
 ChangedStatement : @Build.Statement
-	= s: TSqlDelete & when @(Build.Rules.Returns(s)) => @(s)
-	| s: TSqlUpdate & when @(Build.Rules.Returns(s)) => @(s)
-	| s: TSqlInsert & when @(Build.Rules.Returns(s)) => @(s)
-	| s: TSqlMerge  & when @(Build.Rules.Returns(s)) => @(s)
+	= s: TSqlDelete & when @(Build.Rules.Returns(s)) on fail "Expected one OUTPUT clause that returns the rows." => @(s)
+	| s: TSqlUpdate & when @(Build.Rules.Returns(s)) on fail "Expected one OUTPUT clause that returns the rows." => @(s)
+	| s: TSqlInsert & when @(Build.Rules.Returns(s)) on fail "Expected one OUTPUT clause that returns the rows." => @(s)
+	| s: TSqlMerge  & when @(Build.Rules.Returns(s)) on fail "Expected one OUTPUT clause that returns the rows." => @(s)
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
 TSqlUpdate : @Build.Statement
@@ -3852,9 +3852,9 @@ ExecArguments : @Ast.Expression[]
 // clause it had just eaten. The shape is the same wherever an optional list stands in
 // front of a clause whose first word could belong to the list.
 ExecArgument : @Ast.Expression
-	= name: TSql.Variable & '=' & v: ExecValue & back: OutputWord? & when @(Build.Rules.Passes(v, back))
+	= name: TSql.Variable & '=' & v: ExecValue & back: OutputWord? & when @(Build.Rules.Passes(v, back)) on fail "Expected OUTPUT only after a variable."
 		=> @(Build.Rules.Hinted(new Build.Values.NamedArgument(name, v), back))
-	| ?!"AT"i & v: ExecValue & back: OutputWord? & when @(Build.Rules.Passes(v, back))
+	| ?!"AT"i & v: ExecValue & back: OutputWord? & when @(Build.Rules.Passes(v, back)) on fail "Expected OUTPUT only after a variable."
 		=> @(Build.Rules.Hinted(v, back))
 
 // The two spellings of the same word, kept as the author wrote it.
@@ -4526,7 +4526,7 @@ BareKeyOption : @Build.Clause
 SortedData : @string = ?!Label & t: ("SORTED_DATA_REORG"i | "SORTED_DATA"i) & ?!'=' => @(t)
 
 BareKeyOptions : @Build.Clause[]
-	= first: BareKeyOption & rest: BareKeyOption? & when @(Build.Rules.Paired(first, rest))
+	= first: BareKeyOption & rest: BareKeyOption? & when @(Build.Rules.Paired(first, rest)) on fail "Expected two different key options."
 		=> @(rest is null ? new Build.Clause[] { first } : new Build.Clause[] { first, rest })
 
 ConstraintWith : @Build.Clause.Option
@@ -4705,7 +4705,7 @@ AlterTableAction : @Build.Statement.AlterTable
 	| "WITH"i & mode: CheckWord & "ADD"i
 	  & body: TableBody with (ConstraintWith = AlterConstraintWith, DefaultTail = AddedDefaultTail)
 		=> @(Build.Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", SqlList.OwnOrNull(body)))
-	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline? & when @(Build.Rules.AlteredColumn(column))
+	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline? & when @(Build.Rules.AlteredColumn(column)) on fail "Expected a column definition ALTER COLUMN accepts."
 		=> @(Build.Statement.Altered("ALTER COLUMN", [column], SqlList.OwnOrNull(options)))
 	| "ALTER"i & "COLUMN"i & name: TSqlIdentifier & flag: AlterColumnWord & options: ColumnOnline?
 	  & when @(Build.Rules.FlagsOnline(flag, options))
@@ -4831,7 +4831,7 @@ ProcedureStatement : @Build.Statement
 	= ProcWord & name: TSqlQualifiedName & (';' & number: Lexical.Digits)?
 	  & parameters: RoutineParameters? & options: RoutineOptions? & replication: ("FOR"i & "REPLICATION"i)?
 	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: TSqlQualifiedName | atomic: AtomicBody | body: StatementList)
-	  & when @((external is null || Build.Rules.Externally(options)) && Build.Rules.Natively(options, atomic is not null))
+	  & when @((external is null || Build.Rules.Externally(options)) && Build.Rules.Natively(options, atomic is not null)) on fail "Expected options that fit the procedure's body."
 		=> @(new Build.Statement.CreateProcedure(name, SqlList.Own(parameters), SqlList.Own(atomic ?? body), SqlList.OwnOrNull(options), replication is not null, external, number))
 
 ProcWord = "PROCEDURE"i | "PROC"i
@@ -4904,11 +4904,11 @@ FunctionReturns : @Build.Statement.CreateFunction
 		=> @(new Build.Statement.CreateFunction("", Build.Clause.None, "TABLE", SqlList.Own(body), SqlList.OwnOrNull(options)))
 	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Build.Rules.Declared(columns) && Build.Rules.Returned(columns))
 	  & options: RoutineOptions? & "AS"i?
-	  & (atomic: AtomicBody | body: StatementList) & when @(Build.Rules.Natively(options, atomic is not null))
+	  & (atomic: AtomicBody | body: StatementList) & when @(Build.Rules.Natively(options, atomic is not null)) on fail "Expected NATIVE_COMPILATION together with an ATOMIC body."
 		=> @(new Build.Statement.CreateFunction("", Build.Clause.None, "TABLE", SqlList.Own(atomic ?? body), SqlList.OwnOrNull(options), SqlList.OwnOrNull(columns), name))
 	| type: TSqlDataType & options: RoutineOptions? & "AS"i?
 	  & ("EXTERNAL"i & "NAME"i & external: TSqlQualifiedName | atomic: AtomicBody | body: StatementList)
-	  & when @(Build.Rules.Natively(options, atomic is not null))
+	  & when @(Build.Rules.Natively(options, atomic is not null)) on fail "Expected NATIVE_COMPILATION together with an ATOMIC body."
 		=> @(new Build.Statement.CreateFunction("", Build.Clause.None, type, SqlList.Own(atomic ?? body), SqlList.OwnOrNull(options), null, null, null, external))
 
 // The query an inline function returns may open with a `WITH` — a common table expression,
@@ -4930,7 +4930,7 @@ TriggerStatement : @Build.Statement
 	  & fires: TriggerWhen & events: TriggerEvents & when @(Syntax.Fired(fires, events))
 	  & append: ("WITH"i & "APPEND"i)? & replication: ("NOT"i & "FOR"i & "REPLICATION"i)?
 	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: TSqlQualifiedName | atomic: AtomicBody | body: StatementList)
-	  & when @(Build.Rules.Natively(options, atomic is not null))
+	  & when @(Build.Rules.Natively(options, atomic is not null)) on fail "Expected NATIVE_COMPILATION together with an ATOMIC body."
 		=> @(new Build.Statement.CreateTrigger(name, on, SqlList.Own(events), SqlList.Own(atomic ?? body), fires, SqlList.OwnOrNull(options),
 				 append is not null, replication is not null, external))
 
@@ -5062,7 +5062,7 @@ SpatialWith : @Build.Clause.Option
 		=> @(new Build.Clause.Option("WITH", null, SqlList.Own(Syntax.Listed(first, rest))))
 
 SpatialOption : @Build.Clause
-	= name: word & '=' & o: SpatialSet & when @(Build.Rules.Spatial(name, o)) => @(o with { Name = name })
+	= name: word & '=' & o: SpatialSet & when @(Build.Rules.Spatial(name, o)) on fail "Expected a spatial index option SQL Server accepts." => @(o with { Name = name })
 
 // A bracket by name before one by position, which a word would begin as well.
 SpatialSet : @Build.Clause.Option
@@ -6034,7 +6034,7 @@ EndpointHttpAuthentication = "BASIC"i | "DIGEST"i | "NTLM"i | "KERBEROS"i | "INT
 EndpointTcpOption : @Build.Clause
 	= ?=("LISTENER_PORT"i & '=' & '-'? & Lexical.Digits & OptionEnds) & o: OptionSetting => @(o)
 	| ?=("LISTENER_IP"i & '=' & ("ALL"i | '(' & Quoted & (',' & Quoted)* & ')') & OptionEnds) & o: OptionSetting => @(o)
-	| "LISTENER_IP"i & '=' & t: EndpointAddress & when @(t is not null && Syntax.IsAddress(t))
+	| "LISTENER_IP"i & '=' & t: EndpointAddress & when @(t is not null && Syntax.IsAddress(t)) on fail "Expected an IP address."
 		=> @(new Build.Clause.Option("LISTENER_IP", Build.Values.Reference(Syntax.Compacted(t)), Build.Clause.None))
 
 EndpointAddress = '(' & (Lexical.UnsignedNumericLiteral | '.' | ':')+ & ')'
@@ -7266,16 +7266,16 @@ DatabaseTermination : @string
 // WAS measured, a rule per class reached by trying it, is GRAM5005: 87 statement alternatives make
 // PermissionStatement unreadable by methods and drop the dialect onto the shared engine.
 PermissionStatement : @Build.Statement
-	= "GRANT"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
+	= "GRANT"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on)) on fail "Expected permissions the securable has."
 	  & "TO"i & who: Grantees
 	  & option: ("WITH"i & "GRANT"i & "OPTION"i)? & who2: PermissionAs?
 		=> @(Build.Security.Grant(SqlList.Own(what), SqlList.Own(who), on, option is not null, who2))
-	| "DENY"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on))
+	| "DENY"i & what: Permissions & on: PermissionOn? & when @(PermissionCatalogue.Allows(what, on)) on fail "Expected permissions the securable has."
 	  & "TO"i & who: Grantees
 	  & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(Build.Security.Deny(SqlList.Own(what), SqlList.Own(who), on, cascade is not null, who2))
 	| "REVOKE"i & optionFor: ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & on: PermissionOn?
-	  & when @(PermissionCatalogue.Allows(what, on))
+	  & when @(PermissionCatalogue.Allows(what, on)) on fail "Expected permissions the securable has."
 	  & way: ToOrFrom & who: Grantees & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(Build.Security.Revoke(SqlList.Own(what), SqlList.Own(who), on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
 

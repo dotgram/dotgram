@@ -47,7 +47,7 @@ namespace DotGram.Examples.Formats;
 
 	// The set is a method, and the guard is another: one asks about a character, the
 	// other about what they came to.
-	Segment : @string = t: [@IsAllowed]+ & when @(NotReserved(t!)) => @(t)
+	Segment : @string = t: [@IsAllowed]+ & when @(NotReserved(t!)) on fail "Expected a name Windows does not reserve." => @(t)
 
 	Route : @string[] = Segment & ('/' & Segment)* & eof
 

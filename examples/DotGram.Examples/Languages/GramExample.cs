@@ -202,9 +202,10 @@ namespace DotGram.Examples.Languages;
 	// operand: a lone `@(…)` or a lone name is a guard either way.
 	Guard : @GramExpr = "when" & g: GuardBody => @(g)
 
+	// A C# guard may say what its refusal says, as a rule may (§7.5): `on fail "…"` after it.
 	GuardBody : @GramExpr
 		= test: AnyTest => @(test)
-		| value: Value  => @(new GramGuard(value))
+		| value: Value & ("on" & "fail" & fail: String)? => @(new GramGuard(value, fail))
 
 	// `and` binds tighter than `or`, as in C#, and brackets say the rest.
 	AnyTest : @GramExpr
@@ -372,7 +373,7 @@ public partial class GramGrammar
 
 	public sealed record GramConstruct(GramExpr Body, string Value) : GramExpr;
 
-	public sealed record GramGuard(string Value) : GramExpr;
+	public sealed record GramGuard(string Value, string? OnFail = null) : GramExpr;
 
 	/// <summary><c>A is B</c>, or <c>A is not B</c>: a question about the grammar (§3.6).</summary>
 	public sealed record GramCondition(GramExpr Left, bool Negated, GramExpr Right) : GramExpr;

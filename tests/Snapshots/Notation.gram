@@ -23,10 +23,11 @@ List = Word & (Sep & Word)*
 // §3.6: a guard asks C# while the text is read, and a condition asks the grammar while
 // the parser is built. The two stand in one `when`, joined the way C#'s patterns are,
 // and a publication's own `with` is what gives a condition its answer (§5.1).
+// A guard may say what its refusal says, `on fail "…"` after its C# (§7.5).
 Version = "old" | "new"
 
 Small : @int
-	= n: Number & when @(n < 10) => @(n)
+	= n: Number & when @(n < 10) on fail "Expected a number below 10." => @(n)
 	| n: Number & when Version is "old" => @(n)
 	| n: Number & when (Version is not "old" or Version is ("new" | "newer")) and @(n > 0)
 		=> @(n)

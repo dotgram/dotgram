@@ -238,7 +238,7 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 
 	// Forwarded = 1#forwarded-element. An element without a pair is semicolons alone, so a field that kept no
 	// element still had one that was not empty where it holds a semicolon.
-	ForwardedField : @ForwardedElement[] = Ows & elements: ElementList & Ows & when @(elements!.Length > 0 || parserText.IndexOf(';') >= 0) => @(elements)
+	ForwardedField : @ForwardedElement[] = Ows & elements: ElementList & Ows & when @(elements!.Length > 0 || parserText.IndexOf(';') >= 0) on fail "Expected a forwarded element." => @(elements)
 
 	// Atomic: once the list has read as many elements as it can, a later failure (an unclosed
 	// tail after the last one, say) must not give elements back to try again with fewer.
@@ -252,7 +252,7 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 
 	// forwarded-element = [ forwarded-pair ] *( ";" [ forwarded-pair ] ). Each slot is its text, taken
 	// apart beside the rule, and what the pairs mean is one check.
-	Element : @ForwardedElement = pairs: PairList & when @(Rfc7239.IsElement(pairs!)) => @(new ForwardedElement(pairs))
+	Element : @ForwardedElement = pairs: PairList & when @(Rfc7239.IsElement(pairs!)) on fail "Expected each parameter once, with a valid value." => @(new ForwardedElement(pairs))
 
 	// The slots are read to their end and never handed back. A whole field loses nothing by it: what follows
 	// an element is OWS, then a comma or the end, never the `;` a slot begins with. A reading from a position,

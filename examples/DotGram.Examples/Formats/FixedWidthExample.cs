@@ -77,7 +77,7 @@ namespace DotGram.Examples.Formats;
 	// exists. Carried immediately, a construction runs as its alternative is read, and one that
 	// threw here would escape from a line the grammar was about to refuse.
 	Date : @DateOnly = text: ['0'..'9']{8}
-	                   & when @(DateOnly.TryParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+	                   & when @(DateOnly.TryParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _)) on fail "Expected a valid date."
 	                     => @(DateOnly.ParseExact(text, "yyyyMMdd", CultureInfo.InvariantCulture))
 
 	parse Feed

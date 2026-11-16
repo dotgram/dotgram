@@ -347,7 +347,7 @@ DataType : @DataType
 Length : @string = '(' & n: Number & ')' => @(n)
 
 // A length, a precision or a scale: digits, and no more of them than an int holds.
-Number : @string = n: Digits & when @(Nodes.FitsInt(n)) => @(n)
+Number : @string = n: Digits & when @(Nodes.FitsInt(n)) on fail "Expected a number that fits in an int." => @(n)
 
 // §10.1 <interval qualifier>, which is what an INTERVAL type and an interval literal
 // both end with, production for production: a start field is a field other than SECOND

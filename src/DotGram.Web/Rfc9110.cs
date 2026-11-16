@@ -292,7 +292,7 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 	AcceptElement : @MediaRange = range: Range & Ows & ((',' & Ows)+ | ?!any) => @(range)
 
 	Range : @MediaRange
-		= type: Token & '/' & subtype: Token & parameters: Parameters & when @(Rfc9110.IsRange(type!, subtype!, parameters!))
+		= type: Token & '/' & subtype: Token & parameters: Parameters & when @(Rfc9110.IsRange(type!, subtype!, parameters!)) on fail "Expected a valid media range."
 		=> @(Rfc9110.Weighted(type, subtype, parameters))
 
 	parse ContentTypeField as ParseContentType

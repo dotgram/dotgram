@@ -239,7 +239,7 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 
 	// §6: RFC 3986's fragment, whose triplets are UTF-8 and whose text is a pointer.
 	Fragment : @JsonPointer
-		= '#' & text: FragmentText & when @(Rfc6901.FromFragment(text!) is not null)
+		= '#' & text: FragmentText & when @(Rfc6901.FromFragment(text!) is not null) on fail "Expected a JSON pointer as a URI fragment."
 		=> @(Rfc6901.FromFragment(text)!)
 
 	FragmentText = (Unreserved | SubDelims | ':' | '@' | '/' | '?' | '%' & Hexdig & Hexdig)*

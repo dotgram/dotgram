@@ -986,7 +986,6 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
-
 		private sealed class Parser_DotGram
 		{
 			internal readonly ParserArena_DotGram Entries = new ParserArena_DotGram();

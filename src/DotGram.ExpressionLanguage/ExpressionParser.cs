@@ -615,7 +615,7 @@ namespace DotGram.ExpressionLanguage;
 
 	Imports : @string
 		= "using" & head: Identifier & ('.' & part: Identifier)* & ';'
-		  & when @(context.Imports(ExpressionParser.Dotted(head, part), parserSpan))
+		  & when @(context.Imports(ExpressionParser.Dotted(head, part), parserSpan)) on fail "Expected a known namespace."
 		  => @(ExpressionParser.Dotted(head, part))
 
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
@@ -782,7 +782,7 @@ namespace DotGram.ExpressionLanguage;
 		      & args: '<' & first: Type & (',' & rest: Type)* & '>'
 		    | args: '<' & first: Type & (',' & rest: Type)* & '>')?
 		  & when @(!context.Binds(head, parserSpan) &&
-		           (args != null || context.Resolves(ExpressionParser.Dotted(head, part))))
+		           (args != null || context.Resolves(ExpressionParser.Dotted(head, part)))) on fail "Expected a known type."
 		  => @(args is null
 		       ? context.Here(parserSpan).TypeNamed(ExpressionParser.Dotted(head, part))
 		       : context.Here(parserSpan).Generic(
@@ -869,9 +869,9 @@ namespace DotGram.ExpressionLanguage;
 	// a text that ends there wants more: `{ true, x =` may yet go on as `x == 1` or `x => x`.
 	//
 	// An indexer's `[1] =` is one too, since no element begins with a bracket.
-	Assigned = (NameOnly | Indices) & '=' & any & when @(context.Assigns(parserSpan))
+	Assigned = (NameOnly | Indices) & '=' & any & when @(context.Assigns(parserSpan)) on fail "Expected an element, not an assignment, in a collection initializer."
 
-	Written = AssignOperator & any & when @(context.Assigns(parserSpan))
+	Written = AssignOperator & any & when @(context.Assigns(parserSpan)) on fail "Expected an element, not an assignment, in a collection initializer."
 
 	AssignOperator = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
 
@@ -896,7 +896,7 @@ namespace DotGram.ExpressionLanguage;
 	// a guard that refuses has read its word, and a word after an operand is what most texts
 	// that go wrong there have — `a + b  c` would be refused past the `c` rather than at it.
 	// Where a brace does follow, another word is refused past itself, as a misspelled `_` arm is.
-	Change : @Setting[] = ?=(Word & '{') & w: Word & when @(w == "with") & set: Bindings => @(set)
+	Change : @Setting[] = ?=(Word & '{') & w: Word & when @(w == "with") on fail "Expected 'with'." & set: Bindings => @(set)
 
 	// `new(…)` with the type left out, as C# leaves it out where the place it stands in says what
 	// it is: `List<int> list = new();`, `Next = new() { … }`, `M(new(1))`. Built once that place
@@ -994,9 +994,9 @@ namespace DotGram.ExpressionLanguage;
 	// and what tells the two apart is a guard over the word, which is all a contextual
 	// keyword has ever been.
 	Inferred : @Expression
-		= inferred: Word & when @(inferred == "var")
+		= inferred: Word & when @(inferred == "var") on fail "Expected a type."
 		& name: Identifier & '=' & value: Value & ';'
-		& when @(ExpressionParser.Inferable(value) && context.Declare(value.Type, name, parserSpan))
+		& when @(ExpressionParser.Inferable(value) && context.Declare(value.Type, name, parserSpan)) on fail "Expected a new name with a value of a known type."
 		=> @(ExpressionParser.Implied(context.Named(name, parserSpan), value))
 
 	// `var` in the body of a lambda whose parameters say no types, while that body is read
@@ -1008,7 +1008,7 @@ namespace DotGram.ExpressionLanguage;
 	// first guard and `Inferred` reads the declaration. A rule of its own for the reason
 	// `Inferred` is one.
 	InferredUnsettled : @Expression
-		= inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan))
+		= inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan)) on fail "Expected a type."
 		& name: Identifier & '=' & Value & ';'
 		& when @(context.Declare(typeof(object), name, parserSpan))
 		=> @(Expression.Empty())
@@ -1149,9 +1149,9 @@ namespace DotGram.ExpressionLanguage;
 				context.Exit(parserState, parserMarks), context.Again(parserState, parserMarks))))
 
 	ForeachInferred : @Expression
-		= "foreach" & '(' & inferred: Word & when @(inferred == "var")
+		= "foreach" & '(' & inferred: Word & when @(inferred == "var") on fail "Expected a type."
 		& name: Identifier & "in" & source: Expression & ')'
-		& when @(ExpressionParser.Yielded(source) is { } item && context.Declare(item, name, parserSpan))
+		& when @(ExpressionParser.Yielded(source) is { } item && context.Declare(item, name, parserSpan)) on fail "Expected a new name over a sequence of a known item type."
 		& body: Statement
 		& when @(context.Scoped(parserSpan))
 		=> @(context.Block(
@@ -1165,7 +1165,7 @@ namespace DotGram.ExpressionLanguage;
 	// the name stands as an `object` until the body is read again. The loop still records its
 	// scope, since what is declared inside it is looked up by it.
 	ForeachUnsettled : @Expression
-		= "foreach" & '(' & inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan))
+		= "foreach" & '(' & inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan)) on fail "Expected a type."
 		& name: Identifier & "in" & Expression & ')'
 		& when @(context.Declare(typeof(object), name, parserSpan))
 		& Statement
@@ -1206,8 +1206,8 @@ namespace DotGram.ExpressionLanguage;
 	// `_` and `or` are words of a pattern and names anywhere else, so neither is a token the
 	// lexer makes: each is a name read here and held to its spelling. Made tokens, they were
 	// listed among what every expression may begin with.
-	Discard : @string = w: Identifier & when @(w == "_")  => @(w)
-	Or      : @string = w: Identifier & when @(w == "or") => @(w)
+	Discard : @string = w: Identifier & when @(w == "_") on fail "Expected '_'."  => @(w)
+	Or      : @string = w: Identifier & when @(w == "or") on fail "Expected 'or'." => @(w)
 
 	// A bare name that ends the pattern is read as the name before `Untyped` can take it for
 	// a lambda's parameter: `limit => 1` in an arm is a constant and an arrow, not a lambda.
