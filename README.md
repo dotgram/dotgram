@@ -954,6 +954,8 @@ code because such images are specific to a platform and a runtime version.
 Quick Info, navigation, completion, brace matching and folding, for `.gram` files and for
 a grammar written inside a `[Gram]` string.
 
+![A calculator grammar inside a C# Gram attribute in Visual Studio: classified, with its rules lined up](docs/images/visual-studio-calculator.png)
+
 It does the same for the language you generate. A parser host that names its language
 lends that name to `StringSyntax`, and a literal passed to such a parameter is edited as
 that language rather than as text:

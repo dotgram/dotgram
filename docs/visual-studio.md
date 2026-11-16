@@ -3,6 +3,8 @@
 `DotGram.VisualStudio` provides language support for standalone `.gram` files and
 DotGram grammars embedded in C# `GramAttribute` strings.
 
+![A calculator grammar inside a C# Gram attribute in Visual Studio: classified, with its rules lined up](images/visual-studio-calculator.png)
+
 An API that accepts DotGram source text directly can opt a string parameter into the
 same tooling with the standard annotation:
 
