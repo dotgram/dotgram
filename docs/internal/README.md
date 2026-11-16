@@ -63,6 +63,7 @@ dated by the commit that wrote them.
 | Document | |
 | --- | --- |
 | [`development.md`](development.md) | Standing process: build, test, the snapshot baseline, measuring, and the Linux container. |
+| [`architecture.md`](architecture.md) | A map of the code for a new contributor: the pipeline from a `[Gram]` to a `.g.cs` stage by stage, with the folders, types and tests of each, and the steps for a new diagnostic, construct or emission change. |
 | [`implementation.md`](implementation.md) | The engine: how the notation is executed. A plan as much as a description, and the one most likely to lag. |
 | [`visual-studio.md`](../visual-studio.md) | The extension, and the `StringSyntax` annotations. |
 | [`../src/DotGram/Language/README.md`](../../src/DotGram/Language/README.md) | The shared language core the generator and the editors compile: who compiles which part, what it may reference, and the guards and tests that hold that. |

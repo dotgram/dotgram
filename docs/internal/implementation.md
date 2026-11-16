@@ -1,7 +1,8 @@
 # .Gram — the engine
 
 Companion to [`syntax.md`](../syntax.md). That document describes the language, this one
-how the generator executes it. Nothing decided here is a decision about the language: if
+how the generator executes it. Where each part of it lives in the code, and which tests hold
+it, is [`architecture.md`](architecture.md). Nothing decided here is a decision about the language: if
 something below turns out to be inconvenient, this is what changes, not the notation.
 
 Everything below describes the generator as it is. Where a section names something
