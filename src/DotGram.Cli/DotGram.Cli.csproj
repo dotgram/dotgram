@@ -12,6 +12,10 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<RollForward>LatestMajor</RollForward>
 
+		<!-- SPIKE: Native AOT publish. -->
+		<TargetFramework Condition="'$(DotGramCliAot)' == 'true' or '$(DotGramCliNet10)' == 'true'">net10.0</TargetFramework>
+		<PublishAot Condition="'$(DotGramCliAot)' == 'true'">true</PublishAot>
+
 		<!-- NETSDK1138 says net8.0 leaves support (2026-11-10). It is the floor on purpose, above, and
 		     warnings are errors here, so the day the SDK starts saying so must not be the day the tool
 		     stops building. -->

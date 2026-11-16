@@ -115,7 +115,7 @@ static class AnalyzerGenerators
 	}
 
 	/// <summary>The version of <c>Microsoft.CodeAnalysis</c> the DotGram the tool carries was built against: the oldest compiler that loads it.</summary>
-	public static Version DotGramNeeds { get; } = typeof(DotGram.Generation.GramGenerator).Assembly.GetReferencedAssemblies()
+	public static Version DotGramNeeds { get; } = !System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported ? new Version(4, 14, 0, 0) /* SPIKE */ : typeof(DotGram.Generation.GramGenerator).Assembly.GetReferencedAssemblies()
 		.Where(static reference => reference.Name == "Microsoft.CodeAnalysis")
 		.Select(static reference => reference.Version!)
 		.DefaultIfEmpty(new Version(0, 0))
