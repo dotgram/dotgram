@@ -99,14 +99,16 @@ build compiles it there: two projects that each have a `Parser.gram` and a host 
 there gives the grammar its `Lexical` option and the grammars it includes, read as the build reads them, so a rule
 from an included grammar is not reported missing and Go to Definition goes into its file — or, where only a class's
 `[GramSource]` carries it, into a read-only copy under the temporary directory, as in Visual Studio. The projects
-follow the folders: a `.cs` or `.gram` file created, changed or deleted is read again, and a C# file saved has every
+follow the folders: a `.cs` or `.gram` file created, changed or deleted is read again (one created, or a grammar
+opened before it was on disk and then saved, below an evaluated project has that project evaluated again, so that
+its glob can take it in), and a C# file saved has every
 grammar of its project look for its host again (a `global using` may be what binds it); a project file, `.props` or
 `.targets` file changed, or a folder added to or removed from the workspace, has the projects read again — a file
 saved while that runs keeps what it was saved as. A grammar open in the editor is its editor's text, unsaved edits
 included, for every grammar that includes it, until it is closed.
 
 `bin`, `obj`, `node_modules`, folders whose name starts with a dot, and links (symbolic links, junctions) are not
-read. A workspace with more than 2,000 C# files, more than 200,000 files and folders in all, or one that takes longer
+read. A workspace with more than 2,000 C# files (counting those its projects compile from elsewhere), more than 200,000 files and folders in all, or one that takes longer
 than ten seconds to look through, is not read at all — the server says so once in the output panel — and its
 grammars, like a `.gram` file
 opened outside any folder, are read as they stand and quiet about what depends on a host: syntax errors are shown,

@@ -117,6 +117,10 @@ sealed class FolderWorkspace
 	// reading began before them, and what it builds takes them over in place of what it read.
 	Dictionary<string, string?>? _since;
 
+	// The open grammars saved below an evaluated project that did not take them in, evaluated again for
+	// them once: a save after that is not another evaluation.
+	readonly HashSet<string> _evaluatedFor = new(PathComparer);
+
 	IReadOnlyList<string> _folders = [];
 
 	// The projects' folders, the nearest first, each with whether MSBuild said what it holds.
@@ -247,14 +251,20 @@ sealed class FolderWorkspace
 	/// again. A reading past its time leaves no folder read. A file read while the reading runs is what it
 	/// was read as then, not what the reading found before it; one reading runs at a time.
 	/// </summary>
+	/// <param name="folders">
+	/// The folders to read; null for the folders the workspace has when this reading's turn comes, so
+	/// that one asked for before a change of the folders, and run after it, does not undo it.
+	/// </param>
 	/// <param name="stale">
 	/// The projects to evaluate again, by their files; the others keep what MSBuild said of them. Null
 	/// evaluates every project again.
 	/// </param>
-	public void Reload(IReadOnlyList<string> folders, IReadOnlySet<string>? stale = null, TimeSpan? limit = null)
+	public void Reload(IReadOnlyList<string>? folders, IReadOnlySet<string>? stale = null, TimeSpan? limit = null)
 	{
 		lock (_reload)
 		{
+			folders ??= Folders;
+
 			lock (_gate)
 				_since = new Dictionary<string, string?>(Paths);
 
@@ -363,6 +373,19 @@ sealed class FolderWorkspace
 		}
 
 		var evaluations = Evaluate(full, projects, stale, cancellationToken);
+
+		// A project may compile C# from elsewhere, by links: that counts toward the cap as the folders' own.
+		var compiled = new HashSet<string>(sources, Paths);
+
+		foreach (var evaluation in evaluations.Values)
+			compiled.UnionWith(evaluation.Compile);
+
+		if (compiled.Count > MaxSourceFiles)
+		{
+			_log($"DotGram: {compiled.Count} C# files in the workspace's projects, more than {MaxSourceFiles}: grammars are read as they stand, without their hosts.");
+
+			return Scanned.None;
+		}
 		var texts       = new Dictionary<string, string>(Paths);
 		var read        = new List<(string Path, string Text)>();
 
@@ -624,6 +647,13 @@ sealed class FolderWorkspace
 		return null;
 	}
 
+	/// <summary>Whether an evaluated project holds the grammar. Under the lock.</summary>
+	bool HeldByEvaluated(string path)
+	{
+		return _grammars.TryGetValue(path, out var ids) &&
+			ids.Any(id => _owners.Any(owner => owner.Evaluated && owner.Project == id.ProjectId));
+	}
+
 	/// <summary>Whether an evaluated project's folder holds the file, whose glob may take it in.</summary>
 	bool UnderEvaluated(string path, out HashSet<string> projects)
 	{
@@ -684,14 +714,14 @@ sealed class FolderWorkspace
 		// any project: evaluated again.
 		if (path.EndsWith(ProjectExtension, StringComparison.OrdinalIgnoreCase))
 		{
-			Reload(Folders, new HashSet<string>([path], Paths));
+			Reload(null, new HashSet<string>([path], Paths));
 			return;
 		}
 
 		if (path.EndsWith(".props", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".targets", StringComparison.OrdinalIgnoreCase))
 		{
 			if (_evaluate is not null)
-				Reload(Folders);
+				Reload(null);
 
 			return;
 		}
@@ -711,13 +741,27 @@ sealed class FolderWorkspace
 			if (_since is { } since)
 				since[path] = text;
 
-			// An open grammar is its editor's text, whatever its file now says.
+			if (text is null)
+				_evaluatedFor.Remove(path);
+
+			// An open grammar is its editor's text, whatever its file now says. One opened before it was on
+			// disk is in the project its folder gives it; saved below an evaluated project, that project is
+			// evaluated again — once — in case its glob takes the grammar in.
 			if (grammar && _open.ContainsKey(path))
-				return;
+			{
+				if (text is null || HeldByEvaluated(path) || !_evaluatedFor.Add(path) || !UnderEvaluated(path, out var mine))
+					return;
+
+				evaluate = mine;
+			}
 
 			var known = cs ? _sources : _grammars;
 
-			if (known.TryGetValue(path, out var ids))
+			if (evaluate is not null)
+			{
+				// Evaluated again, below.
+			}
+			else if (known.TryGetValue(path, out var ids))
 			{
 				var solution = Workspace.CurrentSolution;
 
@@ -757,7 +801,7 @@ sealed class FolderWorkspace
 		}
 
 		if (evaluate is not null)
-			Reload(Folders, evaluate);
+			Reload(null, evaluate);
 		else
 			Tell(changes);
 	}

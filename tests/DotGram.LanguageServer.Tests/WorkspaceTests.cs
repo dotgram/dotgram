@@ -276,6 +276,114 @@ public sealed class WorkspaceTests : IDisposable
 	}
 
 	/// <summary>
+	/// A project file saved while a folder is being added: its reading of the folders waits for the one
+	/// running and then reads the folders the workspace has, the added one among them.
+	/// </summary>
+	[Fact]
+	public async Task A_project_file_saved_while_a_folder_is_added_keeps_the_folder()
+	{
+		var first   = Directory.CreateDirectory(Path.Combine(_folder, "first")).FullName;
+		var added   = Directory.CreateDirectory(Path.Combine(_folder, "added")).FullName;
+		var project = Path.Combine(first, "First.csproj");
+		var held    = Path.Combine(added, "Held.gram");
+		var reading = new ManualResetEventSlim(false);
+		var release = new ManualResetEventSlim(false);
+
+		File.WriteAllText(project, Project);
+		File.WriteAllText(held, "Word = 'a'\n");
+
+		var workspace = FolderWorkspace.Create(
+			[first],
+			static _ => { },
+			TestContext.Current.CancellationToken,
+			read: file =>
+			{
+				if (file == held)
+				{
+					reading.Set();
+					release.Wait(LspClient.Timeout);
+				}
+
+				return File.ReadAllText(file);
+			});
+
+		var adding = Task.Run(() => workspace.Reload([first, added]), TestContext.Current.CancellationToken);
+
+		Assert.True(reading.Wait(LspClient.Timeout, TestContext.Current.CancellationToken));
+
+		// The save's reading starts while the folder's is still running, and waits for it.
+		var saving = new Thread(() => workspace.FileRead(project, Project));
+
+		saving.Start();
+
+		while ((saving.ThreadState & ThreadState.WaitSleepJoin) == 0)
+			await Task.Delay(5, TestContext.Current.CancellationToken);
+
+		release.Set();
+		await adding;
+		saving.Join(LspClient.Timeout);
+
+		Assert.Equal([first, added], workspace.Folders);
+	}
+
+	/// <summary>
+	/// A grammar opened before it is on disk, below a project MSBuild evaluates, and then saved: the
+	/// project is evaluated again, its glob takes the grammar in, and the grammar finds its host there.
+	/// </summary>
+	[Fact]
+	public async Task A_new_grammar_saved_below_an_evaluated_project_finds_its_host()
+	{
+		var path = Path.Combine(_folder, "Dialect.gram");
+		var uri  = LspClient.Uri(path);
+
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project);
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts(lexical: true));
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), "Word = ['a'..'z']+\n");
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		Assert.True((await client.Server.Folder).Evaluated);
+
+		await client.OpenAsync(uri, Dialect);
+		await client.DiagnosticsAsync(uri, 1);
+
+		File.WriteAllText(path, Dialect);
+		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri, type = Lsp.FileCreated } } });
+
+		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+
+		Assert.True(context.Lexical);
+		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
+	}
+
+	/// <summary>
+	/// A project that compiles more C# from elsewhere than the cap allows, by links: the folders are given
+	/// up as one with that many files of its own is, and said so.
+	/// </summary>
+	[Fact]
+	public void Linked_files_count_toward_the_cap()
+	{
+		var project  = Path.Combine(_folder, "Parsers.csproj");
+		var linked   = Enumerable.Range(0, FolderWorkspace.MaxSourceFiles + 1).Select(index => Path.Combine(Path.GetTempPath(), "elsewhere", $"File{index}.cs")).ToArray();
+		string? said = null;
+
+		File.WriteAllText(project, Project);
+
+		var workspace = FolderWorkspace.Create(
+			[_folder],
+			message => said ??= message,
+			TestContext.Current.CancellationToken,
+			read: static file => file.EndsWith(".csproj", StringComparison.Ordinal) ? File.ReadAllText(file) : "class C {}",
+			evaluate: (projects, _, _) => projects.ToDictionary(
+				static item => item,
+				item => new ProjectEvaluation(item, linked, [], [], []),
+				FolderWorkspace.PathComparer));
+
+		Assert.False(workspace.Hosts);
+		Assert.Contains($"more than {FolderWorkspace.MaxSourceFiles}", said, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A file saved while the folders are read again: the reading began with the older text, and the newer
 	/// one, applied meanwhile, is what the workspace has once the reading is done.
 	/// </summary>
