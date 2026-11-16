@@ -450,6 +450,133 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	/// <summary>
+	/// A call is remembered with every place it ended, its first derivations among them, though
+	/// its last derivation was the one that left no other route behind.
+	/// </summary>
+	/// <remarks>
+	/// <c>Join</c> reads the comment to the end of the line, finds no <c>and</c> after it, and
+	/// gives the comment back character by character; <c>End</c> then calls <c>Comment</c> where
+	/// <c>Join</c> did, and must still be able to read it to the end of the line.
+	/// </remarks>
+	[Fact]
+	public void RememberedCallKeepsEveryPlaceItEnded()
+	{
+		const string grammar = """
+			parse Start
+			Start   = Line & ('\n' & Line)*
+			Line    = Word & (Join & "and " & Word)* & End
+			Join    = ' '* & Comment? & '\n' & ?="and"
+			End     = ' '* & Comment?
+			Comment = '#' & [^ '\n']*
+			Word    = ['a'..'z']+
+			""";
+
+		var (graph, publication) = Compile(grammar);
+
+		Assert.Equal(DslRecognitionStatus.Success, DslRecognitionTrace.Recognize(graph, publication, "a # ok\nb").Status);
+		AgreesWithGeneratedParser(grammar, "a # ok\nb", "a # ok\nand b", "a # ok\nand b # x\nc", "a #\n#", "a # ok\n");
+	}
+
+	/// <summary>
+	/// A site nested as deep as its text makes it is read on the stack an editor gives it: the
+	/// interpreter keeps what is left to do on the heap.
+	/// </summary>
+	[Fact]
+	public void ReadsDeeplyNestedSiteOnSmallStack()
+	{
+		const string grammar = """
+			trivia = ' '*
+			parse Start
+			Start = Expr
+			Expr  = '(' & Expr & ')' | '<' & Expr & '>' | name: (['a'..'z']+)
+			""";
+		const int depth = 2000;
+
+		var (graph, publication) = Compile(grammar);
+		var input  = string.Concat(Enumerable.Repeat("( <", depth)) + " x " + string.Concat(Enumerable.Repeat("> )", depth));
+		var open   = string.Concat(Enumerable.Repeat("( <", depth)) + " x";
+		var result = default(DslRecognitionResult);
+		var failed = default(DslRecognitionResult);
+		var thread = new System.Threading.Thread(
+			() =>
+			{
+				result = DslRecognitionTrace.Recognize(graph, publication, input);
+				failed = DslRecognitionTrace.Recognize(graph, publication, open);
+			},
+			1024 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		Assert.Equal(DslRecognitionStatus.Success, result!.Status);
+		Assert.Equal(2 * depth + 1, result.Extents.Count(static extent => extent.Rule.Name == "Expr" && extent.Capture is null));
+		Assert.Equal(DslRecognitionStatus.Failure, failed!.Status);
+		Assert.Equal(open.Length, failed.FailurePosition);
+		AgreesWithGeneratedParser(grammar, "(<x>)", "( < x > )", "((x)", "(<x)>", "<<<x>>>");
+	}
+
+	/// <summary>
+	/// Text a grammar can divide in exponentially many ways is refused after as many steps as it
+	/// has positions: a repetition reached again at a position, and a call that ends again where
+	/// it ended before, read on as they did, and are not followed twice.
+	/// </summary>
+	[Theory]
+	[InlineData("Start = Item* & 'y'\nItem = 'a' | \"aa\"")]
+	[InlineData("Start = Run & 'y'\nRun = Item & Run | none\nItem = 'a' | \"aa\"")]
+	public void AmbiguousTextIsRefusedWithoutFollowingEveryDivision(string rules)
+	{
+		var (graph, publication) = Compile("parse Start\n" + rules);
+		var input  = new string('a', 200) + "z";
+		var result = default(DslRecognitionResult);
+		var thread = new System.Threading.Thread(() => result = DslRecognitionTrace.Recognize(graph, publication, input));
+
+		thread.IsBackground = true;
+		thread.Start();
+
+		Assert.True(thread.Join(System.TimeSpan.FromSeconds(30)), "the interpreter followed every division of the text");
+		Assert.Equal(DslRecognitionStatus.Failure, result!.Status);
+		Assert.Equal(200, result.FailurePosition);
+	}
+
+	/// <summary>
+	/// Every text up to five characters long over a small alphabet, read by the interpreter and
+	/// by the parser generated from the same grammar: backtracking into calls and repetitions,
+	/// atomic groups, looks both ways, bounded repetitions, word boundaries, ignore-case, trivia.
+	/// </summary>
+	[Theory]
+	[InlineData("ab(). ", """
+		trivia = ' '*
+		parse Start
+		Start = Item+ & End
+		Item  = { 'a' & 'b'? } | '(' & Item* & ')' | "ba" | 'b' & ?!'a'
+		End   = '.' | ?!['a'..'z' | '(' | ')']
+		""")]
+	[InlineData("aAb=. ", """
+		wordboundary = ['a'..'z' | 'A'..'Z']
+		trivia = ' '*
+		parse Start
+		Start = (Pair | Word){1,3} & Tail
+		Pair  = left: Word & '=' & right: Word
+		Word  = "ab"i | 'a' & 'a'? & 'b'?
+		Tail  = '.' | none
+		""")]
+	public void AgreesWithGeneratedParserOnEveryShortInput(string alphabet, string grammar)
+	{
+		var inputs = new System.Collections.Generic.List<string> { "" };
+
+		for (var length = 1; length <= 5; length++)
+			inputs.AddRange(inputs.Where(input => input.Length == length - 1).SelectMany(input => alphabet.Select(c => input + c)).ToArray());
+
+		AgreesWithGeneratedParser(grammar, [.. inputs]);
+
+		var (graph, publication) = Compile(grammar);
+		var accepted = inputs.Count(input => DslRecognitionTrace.Recognize(graph, publication, input).Status == DslRecognitionStatus.Success);
+
+		// Both answers are common enough to say something.
+		Assert.InRange(accepted, 100, inputs.Count - 100);
+	}
+
+	/// <summary>
 	/// What the interpreter answers for each input against what the parser generated
 	/// from the same grammar answers: accepted by both, or refused by both at the same
 	/// position.

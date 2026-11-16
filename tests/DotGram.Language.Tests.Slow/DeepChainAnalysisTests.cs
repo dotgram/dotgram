@@ -53,13 +53,12 @@ public sealed class DeepChainAnalysisTests
 	}
 
 	/// <summary>
-	/// A string at an embedded DSL site read against such a grammar: answered, or said to be one
-	/// the editor cannot read, and the editor still standing.
+	/// A string at an embedded DSL site read against such a grammar: answered, on the stack the
+	/// editor gives it.
 	/// </summary>
 	/// <remarks>
-	/// The site interpreter is recursion over the grammar and the text together, a frame per rule
-	/// it enters, and it stays that: what it gives up on a stack too small is the one site, which
-	/// it reports as unsupported rather than overflowing.
+	/// The site interpreter keeps what is left to do on the heap, so a chain of calls as deep as
+	/// the grammar makes it costs it no stack.
 	/// </remarks>
 	[Fact]
 	public void A_site_read_against_a_long_chain_of_calls_is_answered_on_a_small_stack()
@@ -81,6 +80,6 @@ public sealed class DeepChainAnalysisTests
 		var result = DeepChains.OnSmallStack(() =>
 			DslRecognitionTrace.Recognize(graph, publication, new string('x', DeepChains.Depth + 1)));
 
-		Assert.Contains(result.Status, new[] { DslRecognitionStatus.Success, DslRecognitionStatus.Unsupported });
+		Assert.Equal(DslRecognitionStatus.Success, result.Status);
 	}
 }
