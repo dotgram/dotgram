@@ -507,9 +507,9 @@ BooleanValueExpression : @Towers.Typed = e: Disjunction & when @((Towers.RolesOf
 SearchCondition        : @Towers.Typed = e: BooleanValueExpression => @(e)
 
 // `OR`, `AND` and `NOT` join booleans; a term with none of them is whatever it is.
-Disjunction   : @Towers.Typed = first: Conjunction & rest: OrOperand* & when @(Towers.Connect(first, rest) != 0) on fail "Expected values that can be concatenated." => @(Towers.Connected(first, rest, BinaryOperator.Or))
+Disjunction   : @Towers.Typed = first: Conjunction & rest: OrOperand* & when @(Towers.Connect(first, rest) != 0) on fail "Expected boolean values." => @(Towers.Connected(first, rest, BinaryOperator.Or))
 OrOperand     : @Towers.Typed = "OR"i & e: Conjunction => @(e)
-Conjunction   : @Towers.Typed = first: BooleanFactor & rest: AndOperand* & when @(Towers.Connect(first, rest) != 0) on fail "Expected values that can be concatenated." => @(Towers.Connected(first, rest, BinaryOperator.And))
+Conjunction   : @Towers.Typed = first: BooleanFactor & rest: AndOperand* & when @(Towers.Connect(first, rest) != 0) on fail "Expected boolean values." => @(Towers.Connected(first, rest, BinaryOperator.And))
 AndOperand    : @Towers.Typed = "AND"i & e: BooleanFactor => @(e)
 BooleanFactor : @Towers.Typed = "NOT"i & e: BooleanTest & when @((Towers.RolesOf(e) & Towers.Truth) != 0) on fail "Expected a boolean value." => @(new Towers.Typed(new Expression.Unary(UnaryOperator.Not, e.Node), Towers.Logical | Towers.Truth))
                               | e: BooleanTest => @(e)
