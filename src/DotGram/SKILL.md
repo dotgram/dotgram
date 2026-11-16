@@ -331,11 +331,11 @@ Bare    = List(Number, ',')                     // string: the text it matched
 Written : Number[] = Number & (',' & Number)*   // int[], if Number is `: @int`
 ```
 
-**So is a choice of rules with no `=>`, even under a declared type**: `Field : @string = Quoted
-| Bare` is the text matched, quotes and all, not what `Quoted` built. Capture each alternative:
+**So is a choice of rules with no `=>`, even under a declared type**: `Field : @string = QuotedField
+| BareField` is the text matched, quotes and all, not what `QuotedField` built. Capture each alternative:
 
 ```dotgram
-Field : @string = q: Quoted => @(q) | b: Bare => @(b)
+Field : @string = q: QuotedField => @(q) | b: BareField => @(b)
 ```
 
 ## Namespaces

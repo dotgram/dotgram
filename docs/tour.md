@@ -30,6 +30,7 @@ examples of them, each one short enough to read in a sitting. The notation itsel
 
 ## What a grammar reads, and what comes out
 
+The grammar is known at compile time. The generated parser is ordinary C# in your own
 assembly — there is no parser engine, grammar graph, or runtime library to interpret.
 
 A grammar is read in one of two modes. **Character-level** parsing has no separate tokenizer: rules match characters directly, and bytes are the same mode over bytes. **Lexical** parsing (`Lexical = true`) cuts the grammar in two: a lexer makes tokens and the syntax above it reads them. The input is chosen at the call site, and the generator offers an overload only where it provably works.

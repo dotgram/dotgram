@@ -12,8 +12,8 @@
 
 You write the grammar; the build writes the parser into your own assembly as ordinary C#: typed results from
 named captures, refusals that say what was expected and where, and nothing to deploy. One notation covers a
-six-character colour code, a calculator, feeds written by people, and the SQL standard. On every input in the
-[tables below](#performance) the generated parser beats `Regex` and hand-written parsers of the same language.
+six-character colour code, a calculator, feeds written by people, and the SQL standard. On every accepted input in
+the [tables below](#performance) the generated parser beats `Regex` and hand-written parsers of the same language.
 .Gram is a source generator: the grammar lives in an attribute or a `.gram` file, and the compiler runs it.
 
 **Documentation:** https://dotgram.github.io/dotgram/ — a guide to the language, a guide to the generator, every diagnostic, and the API reference.
@@ -155,15 +155,18 @@ work on those rows and is still faster.
 
 Linux, AMD Ryzen 9 5950X, .NET 10; median of 5 runs, each in a fresh process, on an idle machine; commit
 `c7cd493b0` (v0.3.0), [results](benchmarks/results/stand-2026-11-15-0.3.0.md).
-Every row we measure — every format, refusals, allocations, and the rows where a hand-written parser is still
-ahead — is in [the full results](benchmarks/README.md).
+The tables show accepted inputs. Refusing one can be slower than a compiled `Regex`, which gives up at the first
+wrong character: a malformed URL takes 234 ns against 194 ns, a malformed timestamp 35 ns against 19 ns, while .Gram
+also says where and what was expected. Every row we measure — every format, refusals, allocations, and the rows where
+a hand-written parser is still ahead — is in [the results of v0.3.0](benchmarks/results/stand-2026-11-15-0.3.0.md);
+how they are taken, in [`benchmarks/README.md`](benchmarks/README.md).
 
 ## Big grammars, fast builds, fast starts
 
 <!-- STAND: generation time from the generator gate (G1) on the tag, DotGram.Sql per target framework
      (night 1, c831e00b: net10.0 13,368 ms, netstandard2.0 12,780 ms). -->
-**Build time.** Generating the three SQL grammars of `DotGram.Sql` takes about 13 s per target framework, and a cold
-build pays it every time. Keep a large grammar in a project of its own, so only the projects that change it pay;
+**Build time.** Generating the three SQL grammars of `DotGram.Sql` takes over ten seconds per target framework, most of it
+`TransactSql.gram` (1,139 rules), and a cold build pays it every time. Keep a large grammar in a project of its own, so only the projects that change it pay;
 or generate it once, commit the files, and the build compiles plain C# ([`docs/cli.md`](docs/cli.md): the CI check
 that keeps them current; never the package and the files in one project, CS0102):
 
@@ -179,10 +182,10 @@ dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
 
 <!-- STAND: first call JIT and ReadyToRun, exclusive run on the tag (directional so far: science perf-parsers-1110
      round 1, rows web/url.full, sql/select20, tsql/select-long; 5.9/36.5/70.7 ms JIT, 0.5/6.9/16.8 ms R2R). -->
-**First call.** The first parse in a process waits for the JIT: 6 ms for a URL, 37 ms for a 20-column SQL `SELECT`,
+**First call.** The first parse in a process waits for the JIT: about 6 ms for a URL, 37 ms for a 20-column SQL `SELECT`,
 71 ms for a long T-SQL `SELECT`; the calls after it cost what the tables above show. Publish the application with
 `<PublishReadyToRun>true</PublishReadyToRun>` and the first call drops to 0.5 ms, 6.9 ms and 17 ms. The price is
-size on disk (`DotGram.Sql.dll` grows from 11.4 to 22.6 MB); the packages cannot ship precompiled code, because
+size on disk (`DotGram.Sql.dll` grows from 11.3 to 22.6 MB); the packages cannot ship precompiled code, because
 such images are specific to a platform and a runtime version.
 
 ## More of the language
@@ -207,7 +210,7 @@ Every feature in one list: [the tour](docs/tour.md#what-a-grammar-can-do); what 
 ## Compatibility
 
 <a name="no-runtime-parser-library"></a>Builds with .NET SDK 9.0.300+ (Roslyn 4.14); the generated code is C# 8 for
-any target from `netstandard2.0` up, with no runtime dependencies: everything a parser needs is generated into your
+any target from `netstandard2.0` up, with no runtime library of ours (`netstandard2.0` and `net472` reference `System.Memory`): everything a parser needs is generated into your
 assembly as internal C#. Older targets in full: [`docs/compatibility.md`](docs/compatibility.md).
 
 ## License
