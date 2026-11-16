@@ -161,7 +161,14 @@ static class StandaloneGrammarInheritance
 		// project with what that project would carry; what each answer read is followed.
 		var sources = SolutionIncludedGrammars.For(project);
 
-		foreach (var include in GramIncludes.Walk(host, Watch))
+		// The host's own declarations first: an include written on another part of the class is the class's.
+		foreach (var declaration in host.DeclaringSyntaxReferences)
+			if (solution.GetDocumentId(declaration.SyntaxTree) is { } part)
+				documents.Add(part);
+
+		var rebind = await sources.RebinderAsync(cancellationToken).ConfigureAwait(false);
+
+		foreach (var include in GramIncludes.Walk(host, Watch, rebind))
 			if (await sources.SelectAsync(include, cancellationToken).ConfigureAwait(false) is { Text: { } text } choice)
 				included.Add(new StandaloneIncludedGrammar(include.Name, text, choice.FilePath));
 

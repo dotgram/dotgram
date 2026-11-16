@@ -68,7 +68,11 @@ static class EmbeddedGrammarFinder
 	{
 		var includes = new CompilationIncludedGrammars(model.Compilation, includedFile);
 
-		return Find(model, root, cancellationToken, include => includes.Select(include).Text);
+		return Find(model, root, cancellationToken, type => GramIncludes.Walk(type)
+			.Select(include => (include, includes.Select(include).Text))
+			.Where(static item => item.Text is not null)
+			.Select(static item => new GrammarSplice.Part(item.Text!, item.include.Name, null))
+			.ToArray());
 	}
 
 	/// <summary>
@@ -81,14 +85,17 @@ static class EmbeddedGrammarFinder
 		IncludedGrammarSources includes,
 		CancellationToken cancellationToken)
 	{
-		var texts = new Dictionary<GramInclude, string?>();
+		var parts = new Dictionary<INamedTypeSymbol, IReadOnlyList<GrammarSplice.Part>>(SymbolEqualityComparer.Default);
 
 		foreach (var type in Hosts(model, root, cancellationToken))
-			foreach (var include in GramIncludes.Walk(type, includes.Visited))
-				if (!texts.ContainsKey(include))
-					texts[include] = (await includes.SelectAsync(include, cancellationToken).ConfigureAwait(false)).Text;
+			parts[type] =
+			[
+				.. (await includes.IncludesAsync(type, cancellationToken).ConfigureAwait(false))
+					.Where(static item => item.Choice.Text is not null)
+					.Select(static item => new GrammarSplice.Part(item.Choice.Text!, item.Include.Name, null)),
+			];
 
-		return Find(model, root, cancellationToken, include => texts.TryGetValue(include, out var text) ? text : null);
+		return Find(model, root, cancellationToken, type => parts.TryGetValue(type, out var found) ? found : []);
 	}
 
 	/// <summary>The classes a <c>[Gram]</c> of the document is written on, the attribute known by its symbol however it is spelled.</summary>
@@ -104,12 +111,12 @@ static class EmbeddedGrammarFinder
 				yield return type;
 	}
 
-	/// <param name="includedText">What an include is compiled with; null where nothing.</param>
+	/// <param name="included">What a host's includes are compiled with, in its walk's order.</param>
 	static IReadOnlyList<EmbeddedGrammar> Find(
 		SemanticModel model,
 		SyntaxNode root,
 		CancellationToken cancellationToken,
-		Func<GramInclude, string?> includedText)
+		Func<INamedTypeSymbol, IReadOnlyList<GrammarSplice.Part>> included)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -136,13 +143,13 @@ static class EmbeddedGrammarFinder
 			if (IsFile(own))
 				continue;
 
-			var (included, host) = Host(model, attribute, includedText, cancellationToken);
-			var (analysisText, joinedMap) = included.Count == 0
+			var (parts, host) = Host(model, attribute, included, cancellationToken);
+			var (analysisText, joinedMap) = parts.Count == 0
 				? (own, null)
-				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included);
+				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), parts);
 			var options = new GramAnalysisOptions
 			{
-				Own     = included.Count == 0 ? null : own.Length,
+				Own     = parts.Count == 0 ? null : own.Length,
 				Cuts    = joinedMap is null
 					? null
 					: GrammarSplice.Cuts(analysisText, joinedMap.Segments.Skip(1).Select(static one => (one.Start, one.Length))),
@@ -256,19 +263,15 @@ static class EmbeddedGrammarFinder
 	static (IReadOnlyList<GrammarSplice.Part> Included, GramHostReading? Reading) Host(
 		SemanticModel model,
 		AttributeSyntax attribute,
-		Func<GramInclude, string?> includedText,
+		Func<INamedTypeSymbol, IReadOnlyList<GrammarSplice.Part>> included,
 		CancellationToken cancellationToken)
 	{
 		if (attribute.Parent?.Parent is not TypeDeclarationSyntax declaration ||
 			model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type)
 			return (Array.Empty<GrammarSplice.Part>(), null);
 
-		var included = new List<GrammarSplice.Part>();
-
 		// As the generator compiles each (GramIncludes.Choose), from what the project answers.
-		foreach (var include in GramIncludes.Walk(type))
-			if (includedText(include) is { } text)
-				included.Add(new GrammarSplice.Part(text, include.Name, null));
+		var parts = included(type);
 
 		// The attribute's own options, read as the generator reads them: what a reading does not
 		// say it takes from the class's first one.
@@ -282,7 +285,7 @@ static class EmbeddedGrammarFinder
 				? null
 				: GramHostOptions.Read(firstReading, type, first: null));
 
-		return (included, options is null ? null : GramHostReading.Of(options, type));
+		return (parts, options is null ? null : GramHostReading.Of(options, type));
 	}
 
 	static bool IsFile(string source)

@@ -38,7 +38,9 @@ public sealed class IncludeSelectionTests
 	const string NotExported = "[DotGram.Gram(\"Base.gram\", DefaultAlias = \"B\", ExportGrammar = false)]";
 
 	// What the consumer may reach under B, one rule for each grammar a case offers.
-	static readonly string[] Rules = ["FromLibrary", "FromConsumer", "FromInline", "FromCarried", "C.FromCommon"];
+	// What the consumer may reach for, one rule for each grammar a case offers: under B, and under C, a
+	// grammar B's class includes, which the walk of the consumer's includes reaches too.
+	static readonly string[] Rules = ["B.FromLibrary", "B.FromConsumer", "B.FromInline", "B.FromCarried", "B.C.FromCommon", "C.FromCommon"];
 
 	static readonly CSharpParseOptions ParseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 
@@ -68,7 +70,12 @@ public sealed class IncludeSelectionTests
 		string Class = "Base",
 		string Included = "Library.Base",
 		string? Common = null,
-		(string Path, string Text)[]? CommonFiles = null);
+		(string Path, string Text)[]? CommonFiles = null,
+		string[]? Also = null)
+	{
+		/// <summary>Every rule the consumer reaches: the one under B, and those <see cref="Also"/> names.</summary>
+		public string[] Reaches => [.. Reached is null ? [] : new[] { "B." + Reached }, .. Also ?? []];
+	}
 
 	const string CommonProject = "namespace Shared { [DotGram.Gram(\"Common.gram\", DefaultAlias = \"C\")] public partial class Common { } }";
 
@@ -100,9 +107,11 @@ public sealed class IncludeSelectionTests
 			OneConsumerFile,
 			"C.FromCommon",
 			["GRAM0017"],
-			"[DotGram.Gram(\"Common.gram\", DefaultAlias = \"C\")] public partial class Common { }"),
+			"[DotGram.Gram(\"Common.gram\", DefaultAlias = \"C\")] public partial class Common { }",
+			Also: ["C.FromCommon"]),
 
-		// The same, the grammar it includes in a third project the consumer does not reference.
+		// The same, the grammar it includes in a third project the consumer does not reference: reached
+		// under B, and under C as the walk of the consumer's includes goes on into the library's.
 		["exported empty, including another project's"] = new(
 			Exported + " [DotGram.GramInclude(typeof(Shared.Common))]",
 			[("/Library/Base.gram", "")],
@@ -110,7 +119,8 @@ public sealed class IncludeSelectionTests
 			"C.FromCommon",
 			["GRAM0017"],
 			Common: CommonProject,
-			CommonFiles: [("/Shared/Common.gram", CommonFile)]),
+			CommonFiles: [("/Shared/Common.gram", CommonFile)],
+			Also: ["C.FromCommon"]),
 
 		// A generic class: its grammar is its name's without the type parameters, Base.gram, and the
 		// consumer includes it constructed.
@@ -145,19 +155,19 @@ public sealed class IncludeSelectionTests
 			Generate(
 				"Consumer",
 				consumer,
-				[("/Consumer/Dialect.gram", $"Start = B.{rule}\nparse Start\n"), .. test.ConsumerFiles],
+				[("/Consumer/Dialect.gram", $"Start = {rule}\nparse Start\n"), .. test.ConsumerFiles],
 				[MetadataReference.CreateFromImage(image), .. below],
 				out var diagnostics,
 				out _);
 
 			var reached = !diagnostics.Any(static diagnostic => diagnostic.Id == "GRAM3002");
 
-			Assert.True(reached == (rule == test.Reached), $"The generator {(reached ? "reaches" : "does not reach")} B.{rule}.");
+			Assert.True(reached == test.Reaches.Contains(rule), $"The generator {(reached ? "reaches" : "does not reach")} {rule}.");
 
 			told[rule] = [.. diagnostics.Select(static diagnostic => diagnostic.Id).Where(static id => id.StartsWith("GRAM", StringComparison.Ordinal)).Distinct().Order(StringComparer.Ordinal)];
 
 			// Less the warning every case has: the included grammar's rules the consumer does not reach.
-			if (rule == (test.Reached ?? Rules[0]))
+			if (rule == "B." + (test.Reached ?? "FromLibrary"))
 				Assert.Equal(test.Diagnostics, told[rule].Where(static id => id != "GRAM4018"));
 		}
 
@@ -221,7 +231,7 @@ public sealed class IncludeSelectionTests
 
 		foreach (var rule in Rules)
 		{
-			var shown = GramAnalysisSession.Analyze($"Start = B.{rule}\nparse Start\n", context, suppressContextDiagnostics: false).Document.Diagnostics
+			var shown = GramAnalysisSession.Analyze($"Start = {rule}\nparse Start\n", context, suppressContextDiagnostics: false).Document.Diagnostics
 				.Select(static diagnostic => diagnostic.Id)
 				.Distinct()
 				.Order(StringComparer.Ordinal);
@@ -229,15 +239,23 @@ public sealed class IncludeSelectionTests
 			// What only the build says: the host's file not found (GRAM0003), found twice (GRAM0004), or
 			// a local file that is not the grammar a referenced assembly carries (GRAM0017); and the
 			// carried rules the consumer leaves unreached (GRAM4018), told of the build's whole grammar.
-			Assert.Equal(told[rule].Where(static id => id is not ("GRAM0003" or "GRAM0004" or "GRAM0017" or "GRAM4018")), shown);
+			Assert.True(
+				told[rule].Where(static id => id is not ("GRAM0003" or "GRAM0004" or "GRAM0017" or "GRAM4018")).SequenceEqual(shown),
+				$"For {rule} the generator tells [{string.Join(", ", told[rule])}] and the editor [{string.Join(", ", shown)}].");
 		}
 
 		// A grammar in C#, as Visual Studio reads it.
 		var document = solution.GetDocument(embeddedId)!;
 		var found    = Assert.Single(await EmbeddedAsync(document));
-		var joined   = expected is null ? "Start = B.Word\nparse Start" : GrammarSplice.Join(new("Start = B.Word\nparse Start", null, null), [new(expected, "B", null)]).Text;
+		// Exactly the generator's: B's text, and C's where the walk reaches it, each what its assembly carries.
+		GrammarSplice.Part[] parts =
+		[
+			.. expected is null ? [] : new GrammarSplice.Part[] { new(expected, "B", null) },
+			.. test.Reaches.Contains("C.FromCommon") ? new GrammarSplice.Part[] { new(CommonFile, "C", null) } : [],
+		];
+		var joined = parts.Length == 0 ? "Start = B.Word\nparse Start" : GrammarSplice.Join(new("Start = B.Word\nparse Start", null, null), parts).Text;
 
-		Assert.StartsWith(joined, found.AnalysisText, StringComparison.Ordinal);
+		Assert.Equal(joined, found.AnalysisText);
 	}
 
 	/// <summary>The grammars of a C# document as the embedded session finds them.</summary>

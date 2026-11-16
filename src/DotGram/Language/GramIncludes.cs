@@ -111,7 +111,16 @@ static class GramIncludes
 	/// Told every class the walk passes, with a grammar or without one: what a change to any
 	/// of them can alter.
 	/// </param>
-	public static IReadOnlyList<GramInclude> Walk(INamedTypeSymbol type, Action<INamedTypeSymbol>? visited = null)
+	/// <param name="rebind">
+	/// The class as the compilation that declares it has it, where that is another than the one asked:
+	/// an editor's solution hands a project another project's classes as that project's compilation is
+	/// referenced, and what such a class's attributes name resolves in its own. The generator reads its
+	/// references' metadata and passes none.
+	/// </param>
+	public static IReadOnlyList<GramInclude> Walk(
+		INamedTypeSymbol type,
+		Action<INamedTypeSymbol>? visited = null,
+		Func<INamedTypeSymbol, INamedTypeSymbol>? rebind = null)
 	{
 		var included = new List<GramInclude>();
 		var seen     = new HashSet<string>(StringComparer.Ordinal) { Key(type) };
@@ -126,19 +135,20 @@ static class GramIncludes
 		while (pending.Count > 0)
 		{
 			var (above, called) = pending.Dequeue();
+			var declared = rebind?.Invoke(above) ?? above;
 
 			if (!seen.Add(Key(above)))
 				continue;
 
 			visited?.Invoke(above);
 
-			foreach (var named in Named(above))
+			foreach (var named in Named(declared))
 				pending.Enqueue(named);
 
 			// The one compiled into the base class itself where there are several: a
 			// grammar including another names a class, and what that class publishes
 			// under a scope of its own is that scope's, not the class's.
-			var attribute = Primary(above);
+			var attribute = Primary(declared);
 
 			if (attribute is null)
 				continue;
@@ -155,7 +165,7 @@ static class GramIncludes
 
 				// What the class itself says its grammar is, which travels with the
 				// assembly when the file does not.
-				above
+				declared
 					.GetAttributes()
 					.FirstOrDefault(static candidate =>
 						candidate.AttributeClass?.ToDisplayString() == GramSourceAttribute)

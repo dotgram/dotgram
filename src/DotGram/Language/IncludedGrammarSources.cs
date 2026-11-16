@@ -44,6 +44,27 @@ abstract class IncludedGrammarSources
 	{
 	}
 
+	/// <summary>
+	/// What rebinds a class to the compilation that declares it, for <see cref="GramIncludes.Walk"/>;
+	/// null where every class is already its own compilation's.
+	/// </summary>
+	public virtual Task<Func<INamedTypeSymbol, INamedTypeSymbol>?> RebinderAsync(CancellationToken cancellationToken)
+	{
+		return Task.FromResult<Func<INamedTypeSymbol, INamedTypeSymbol>?>(null);
+	}
+
+	/// <summary>Every include of a host and the text each is compiled with, the host's includes walked as its declaring compilations have them.</summary>
+	public async Task<IReadOnlyList<(GramInclude Include, IncludedGrammarChoice Choice)>> IncludesAsync(INamedTypeSymbol host, CancellationToken cancellationToken)
+	{
+		var rebind = await RebinderAsync(cancellationToken).ConfigureAwait(false);
+		var result = new List<(GramInclude, IncludedGrammarChoice)>();
+
+		foreach (var include in GramIncludes.Walk(host, Visited, rebind))
+			result.Add((include, await SelectAsync(include, cancellationToken).ConfigureAwait(false)));
+
+		return result;
+	}
+
 	/// <summary>The class's own reading of its grammar where it is inline; null where its source names a file.</summary>
 	protected static string? Inline(GramInclude include)
 	{
@@ -171,6 +192,28 @@ sealed class SolutionIncludedGrammars : IncludedGrammarSources
 		return IncludedGrammarChoice.Of(placed, carried, resolved);
 	}
 
+	/// <summary>
+	/// The classes of the projects this one depends on, as each project's own compilation has them: the
+	/// compilations are the ones the project's references are made of, so asking for them builds nothing.
+	/// </summary>
+	public override async Task<Func<INamedTypeSymbol, INamedTypeSymbol>?> RebinderAsync(CancellationToken cancellationToken)
+	{
+		var solution     = _project.Solution;
+		var compilations = new Dictionary<ProjectId, Compilation>();
+
+		foreach (var id in solution.GetProjectDependencyGraph().GetProjectsThatThisProjectTransitivelyDependsOn(_project.Id))
+			if (solution.GetProject(id) is { } project && await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false) is { } compilation)
+				compilations[id] = compilation;
+
+		return type =>
+		{
+			if (Declaring(type) is not { } declared || declared == _project.Id || !compilations.TryGetValue(declared, out var compilation))
+				return type;
+
+			return compilation.Assembly.GetTypeByMetadataName(MetadataName(type.OriginalDefinition)) ?? type;
+		};
+	}
+
 	/// <summary>The project of the solution that declares a class; null where it is only in metadata.</summary>
 	ProjectId? Declaring(INamedTypeSymbol type)
 	{
@@ -247,8 +290,8 @@ sealed class SolutionIncludedGrammars : IncludedGrammarSources
 		var there = new SolutionIncludedGrammars(project, dependencies);
 		var parts = new List<GrammarSplice.Part>();
 
-		foreach (var inner in GramIncludes.Walk(type, there.Visited))
-			if ((await there.SelectAsync(inner, cancellationToken).ConfigureAwait(false)).Text is { } text)
+		foreach (var (inner, choice) in await there.IncludesAsync(type, cancellationToken).ConfigureAwait(false))
+			if (choice.Text is { } text)
 				parts.Add(new GrammarSplice.Part(text, inner.Name, null));
 
 		return parts.Count == 0
