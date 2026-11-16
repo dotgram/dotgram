@@ -1420,6 +1420,12 @@ static partial class CSharpEmitter
 		/// once the mark of the cut, then not at all. By the length of the list and not by a flag, so that a
 		/// tail given back (a call's sets, a replayed reading's) reopens the list as it was.
 		/// </summary>
+		/// <remarks>
+		/// A guard that said no is the weakest thing a refusal can say (<c>Unguarded_DotGram</c>), and it
+		/// never costs a set that names something its place: it is kept once however often it is asked
+		/// here, only while there is room, and gives its place up to a set that names something once
+		/// the list is full.
+		/// </remarks>
 		private static void Tie_DotGram(ref Failure failure, string[] expected)
 		{
 			var more = failure.ExpectedMore;
@@ -1427,10 +1433,38 @@ static partial class CSharpEmitter
 			if (more == null)
 				failure.ExpectedMore = more = Ties_DotGram();
 
+			if (Guarding_DotGram(expected))
+			{
+				if (more.Count < TieCap_DotGram && !ReferenceEquals(failure.Expected, expected) && !more.Contains(expected))
+					more.Add(expected);
+
+				return;
+			}
+
 			if (more.Count < TieCap_DotGram)
+			{
 				more.Add(expected);
-			else if (more.Count == TieCap_DotGram)
+
+				return;
+			}
+
+			for (var at = more.Count - 1; at >= 0; at--)
+				if (Guarding_DotGram(more[at]))
+				{
+					more.RemoveAt(at);
+					more.Add(expected);
+
+					return;
+				}
+
+			if (more.Count == TieCap_DotGram)
 				more.Add(Truncated_DotGram);
+		}
+
+		/// <summary>Whether a set is a guard that said no, which is all such a set holds (Machine.Guarded).</summary>
+		private static bool Guarding_DotGram(string[] set)
+		{
+			return set.Length == 1 && set[0].Length > 0 && set[0][0] == '\u0002';
 		}
 		// <tied>
 

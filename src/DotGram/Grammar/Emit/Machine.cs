@@ -9308,7 +9308,108 @@ sealed partial class Machine
 	/// </remarks>
 	internal static string Guarded(string text)
 	{
-		return "\u0002when @" + string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+		return "\u0002when @" + OneLine(text);
+	}
+
+	/// <summary>
+	/// C# on one line: each run of whitespace between tokens said as one space, and what a string or
+	/// a character literal holds left as it is written — a regular, a verbatim, an interpolated or a
+	/// raw one.
+	/// </summary>
+	/// <remarks>
+	/// Lexical only, as far as a message needs: an interpolated string is read to its closing quote
+	/// with its holes inside it, braces counted, so a literal inside a hole is part of it.
+	/// </remarks>
+	internal static string OneLine(string text)
+	{
+		var said  = new StringBuilder(text.Length);
+		var space = false;
+		var at    = 0;
+
+		while (at < text.Length)
+		{
+			var character = text[at];
+
+			if (char.IsWhiteSpace(character))
+			{
+				space = said.Length > 0;
+				at++;
+
+				continue;
+			}
+
+			if (space)
+			{
+				said.Append(' ');
+				space = false;
+			}
+
+			var end = LiteralEnd(text, at);
+
+			said.Append(text, at, end - at);
+			at = end;
+		}
+
+		return said.ToString();
+	}
+
+	/// <summary>Where the literal that begins at <paramref name="at"/> ends, or the next character where none begins there.</summary>
+	static int LiteralEnd(string text, int at)
+	{
+		var prefix = at;
+
+		while (prefix < text.Length && text[prefix] is '$' or '@')
+			prefix++;
+
+		if (prefix >= text.Length || text[prefix] is not ('"' or '\''))
+			return at + 1;
+
+		var verbatim = text.IndexOf('@', at, prefix - at) >= 0;
+		var holes    = text.IndexOf('$', at, prefix - at) >= 0;
+
+		// A raw string: three quotes or more, closed by as many.
+		if (text[prefix] == '"' && prefix + 2 < text.Length && text[prefix + 1] == '"' && text[prefix + 2] == '"')
+		{
+			var quotes = 0;
+
+			while (prefix + quotes < text.Length && text[prefix + quotes] == '"')
+				quotes++;
+
+			var close = text.IndexOf(new string('"', quotes), prefix + quotes, StringComparison.Ordinal);
+
+			return close < 0 ? text.Length : close + quotes;
+		}
+
+		var quote = text[prefix];
+		var depth = 0;
+
+		for (var i = prefix + 1; i < text.Length; i++)
+		{
+			var one = text[i];
+
+			if (holes && one == '{')
+			{
+				if (i + 1 < text.Length && text[i + 1] == '{' && depth == 0)
+					i++;
+				else
+					depth++;
+			}
+			else if (holes && one == '}' && depth > 0)
+				depth--;
+			else if (depth > 0)
+				continue;
+			else if (!verbatim && one == '\\')
+				i++;
+			else if (one == quote)
+			{
+				if (verbatim && i + 1 < text.Length && text[i + 1] == quote)
+					i++;
+				else
+					return i + 1;
+			}
+		}
+
+		return text.Length;
 	}
 
 	string DeclareExpected(IReadOnlyList<string> display)
@@ -9648,12 +9749,17 @@ sealed partial class Machine
 
 	/// <summary>
 	/// What a guard that said no leaves for <c>Fail:</c> to record: the guard itself, named as
-	/// <see cref="Guarded"/> names it — but inside the trivia what any refusal there leaves, as the
-	/// trivia records only where the input ran out (§7.5).
+	/// <see cref="Guarded"/> names it, and inside the trivia as a terminal there is
+	/// (<see cref="EmitTerminalFailure"/>) — recorded where the input ran out, the sentinel
+	/// elsewhere — as the methods' <c>Refusal</c> records it.
 	/// </summary>
 	string GuardCleared(Node.Guard guard)
 	{
-		return _seamRule ? Cleared() : $"expected = {GuardRefusal(guard)};";
+		var set = GuardRefusal(guard);
+
+		return _seamRule && !_lowering && Sentinel is not null
+			? $"expected = {Recorded("p")} ? {set} : {Sentinel};"
+			: $"expected = {set};";
 	}
 
 	/// <summary>The set a guard that said no is recorded with, declared once per guard text.</summary>

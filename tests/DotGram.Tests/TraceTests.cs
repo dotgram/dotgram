@@ -371,6 +371,27 @@ public sealed class TraceTests(ITestOutputHelper output)
 		Assert.Equal(Read(untraced, "TryParseSum", input), withSink);
 	}
 
+	/// <summary>
+	/// A sink is told a guard that said no by <c>Guard</c>, and never sees how a refusal marks one
+	/// for the message: not in what a refusal names, not in the sets a reading ends with.
+	/// </summary>
+	/// <remarks>
+	/// The mark is a character a grammar cannot write, there for <c>Match.Error</c> to tell a guard
+	/// from what would have fit. Handed on to <c>End</c> as it stood, it reached the log and every
+	/// sink of a host's own as a control character before the guard's C#.
+	/// </remarks>
+	[Fact]
+	public void A_sink_never_sees_how_a_guard_is_marked()
+	{
+		var assembly = Traced("Start = 'a' & when @(false)\nparse Start\n");
+		var log      = Probe<string>(assembly, "Logged", () => Read(assembly, "TryParseStart", "a"));
+		var events   = Probe<string[]>(assembly, "Recorded", () => Read(assembly, "TryParseStart", "a"));
+
+		Assert.DoesNotContain("\u0002", log, StringComparison.Ordinal);
+		Assert.DoesNotContain(events, static one => one.Contains('\u0002', StringComparison.Ordinal));
+		Assert.Contains("refused at 1: when @(false) said no.", log, StringComparison.Ordinal);
+	}
+
 	/// <summary>The log indents what a rule reads under it and says each refusal and guard.</summary>
 	[Fact]
 	public void The_log_shows_rules_entered_and_left()
