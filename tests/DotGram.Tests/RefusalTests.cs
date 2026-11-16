@@ -155,8 +155,67 @@ public sealed class RefusalTests
 			Assert.Equal("when @(t == \"a  b\" || t == \"\\\"  \" || t == @\"a  \"\"  b\" || t[0] == ' ') said no.", error);
 	}
 
+	/// <summary>
+	/// A guard's own <c>on fail</c> is what the refusal says where the guard said no and nothing
+	/// else is named, in every rendering and over tokens, from a string and from a stream, and in
+	/// what a recovery is told — and where a terminal is named there, the terminal is.
+	/// </summary>
+	[Fact]
+	public void A_guards_own_words_are_said_alike_in_every_rendering()
+	{
+		const string Guarded = "when @(Long(value)) on fail \"Expected a longer value.\"";
+
+		var lone   = $"trivia = {{ ' '* }}\nnamespace T {{ trivia = none\nWord = ['a'..'z']+ }}\nStart : @string = '=' & value: T.Word & {Guarded} => @(value)\nparse Start\n";
+		var beside = $"Start : @string = '=' & value: ['a'..'z']+ & {Guarded} => @(value) | '=' & ['a'..'z']+ & '!' => @(\"\")\nparse Start\n";
+
+		const string Members = "static bool Long(string value) { return value.Length > 2; }";
+
+		foreach (var lexical in new[] { false, true })
+			foreach (var (carrier, direct) in new[] { (CarrierKind.Deferred, false), (CarrierKind.Deferred, true), (CarrierKind.Immediate, true) })
+			{
+				var compilation = GramCompiler.Compile(lexical ? lone : lone + "parse Start as Buffered stream\n", new GramCompilerOptions
+				{
+					ClassName = "Grammar", Carrier = carrier, Direct = direct, Lexical = lexical, CSharpScanner = RoslynCSharpScanner.Instance,
+				});
+
+				EmittedCode.Quiet(compilation.Diagnostics);
+
+				var assembly = EmittedCode.Compile(Assert.Single(compilation.Sources).Text, declarationMembers: Members);
+				var match    = EmittedCode.Match(assembly, "Grammar", "TryParseStart", "=ab");
+
+				Assert.Equal((false, 3L, "Expected a longer value."), (match.IsSuccess, match.Position, match.Error));
+
+				if (lexical)
+					continue;
+
+				var buffered = assembly.GetType("Grammar")!
+					.GetMethod("TryBuffered", [typeof(TextReader), typeof(int?), typeof(int?)])!
+					.Invoke(null, [new StringReader("=ab"), null, null])!;
+
+				Assert.Equal("Expected a longer value.", (string?)buffered.GetType().GetProperty("Error")!.GetValue(buffered));
+			}
+
+		foreach (var error in Errors(beside, "=ab", Members))
+			Assert.Equal("Expected '!'.", error);
+
+		// What a recovery is told: the element refused at the guard, its message the guard's words.
+		var recovering = GramCompiler.Compile(
+			$"Line : @string = value: ['a'..'z']+ & {Guarded} & '\\n' => @(value)\n" +
+			"Lines : @string[] = Line* recover '\\n' => @(parserExpected + \" | \" + parserMessage)\nparse Lines\n",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+
+		EmittedCode.Quiet(recovering.Diagnostics);
+
+		var host  = EmittedCode.Compile(Assert.Single(recovering.Sources).Text, declarationMembers: Members).GetType("Grammar")!;
+		var lines = host.GetMethod("ParseLines", [typeof(TextReader)])!.Invoke(null, [new StringReader("abc\nab\nxyz\n")])!;
+
+		Assert.Equal(
+			["abc", "Expected a longer value. | Expected a longer value at 2:3.", "xyz"],
+			((System.Collections.IEnumerable)lines).Cast<string>());
+	}
+
 	/// <summary>What <c>TryParseStart</c> says of <paramref name="input"/> on the engine and on the methods of either carrier.</summary>
-	static IEnumerable<string?> Errors(string grammar, string input)
+	static IEnumerable<string?> Errors(string grammar, string input, string? members = null)
 	{
 		foreach (var (carrier, direct) in new[] { (CarrierKind.Deferred, false), (CarrierKind.Deferred, true), (CarrierKind.Immediate, true) })
 		{
@@ -167,7 +226,7 @@ public sealed class RefusalTests
 
 			EmittedCode.Quiet(compilation.Diagnostics);
 
-			var match = EmittedCode.Match(EmittedCode.Compile(Assert.Single(compilation.Sources).Text), "Grammar", "TryParseStart", input);
+			var match = EmittedCode.Match(EmittedCode.Compile(Assert.Single(compilation.Sources).Text, declarationMembers: members), "Grammar", "TryParseStart", input);
 
 			Assert.False(match.IsSuccess);
 

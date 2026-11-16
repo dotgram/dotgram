@@ -1221,7 +1221,32 @@ sealed class GramParser
 		if (At(TokenKind.OpenParen) || StartsCondition())
 			return new Expr.Condition(ParseAnyTest()) { At = From(start) };
 
-		return new Expr.Guard(ParseValue()) { At = From(start) };
+		var value = ParseValue();
+
+		// `on fail "…"` after the C#: what a refusal says where this guard said no (§7.5). `on` is
+		// an ordinary word, and what may follow a guard is an operator or the end of the body, so
+		// `on` followed by `fail` there is this clause and nothing else.
+		if (!AtKeyword("on") || Next.Kind != TokenKind.Identifier || Next.Value != "fail")
+			return new Expr.Guard(value) { At = From(start) };
+
+		var onFailAt = Current.Position;
+		var failEnd  = Next.Position + Next.Length;
+
+		Take();                                   // `on`
+		Take();                                   // `fail`
+
+		if (!At(TokenKind.String))
+		{
+			Report(
+				ExpectedExpression,
+				"'on fail' after a guard says what a refusal says where the guard said no, which is a " +
+				"string: when @(…) on fail \"Expected a valid date.\".",
+				new Location(onFailAt, failEnd - onFailAt));
+
+			return new Expr.Guard(value) { At = From(start) };
+		}
+
+		return new Expr.Guard(value) { At = From(start), OnFail = Take().Value!, OnFailAt = onFailAt };
 	}
 
 	/// <summary>Whether what follows `when` is a condition rather than a C# guard.</summary>

@@ -9305,10 +9305,15 @@ sealed partial class Machine
 	/// nothing else is does it say that the guard said no. Its C# is written on one line, for a
 	/// message that is one.
 	/// </para>
+	/// <para>
+	/// A guard written with its own <c>on fail "…"</c> is said by those words instead, marked twice:
+	/// the guard's mark, and after it a rule's own words' (<see cref="Spoken"/>), which
+	/// <c>Unguarded_DotGram</c> hands back as the whole answer where only guards stood.
+	/// </para>
 	/// </remarks>
-	internal static string Guarded(string text)
+	internal static string Guarded(Node.Guard guard)
 	{
-		return "\u0002when @" + OneLine(text);
+		return guard.OnFail is { } said ? "\u0002\u0000" + said : "\u0002when @" + OneLine(guard.Text);
 	}
 
 	/// <summary>
@@ -9765,7 +9770,7 @@ sealed partial class Machine
 	/// <summary>The set a guard that said no is recorded with, declared once per guard text.</summary>
 	internal string GuardRefusal(Node.Guard guard)
 	{
-		var name = DeclareExpected([Guarded(guard.Text)]);
+		var name = DeclareExpected([Guarded(guard)]);
 
 		_expectedUsed.Add(name);
 

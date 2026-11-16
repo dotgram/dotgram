@@ -511,7 +511,12 @@ static class GramLanguageService
 			foreach (var declaration in items)
 				switch (declaration)
 				{
-					case Decl.Rule { OnFail: not null } rule:
+					case Decl.Rule rule:
+						Guards(rule.Body);
+
+						if (rule.OnFail is null)
+							break;
+
 						for (var index = 0; index + 2 < tokens.Count; index++)
 							if (tokens[index].Position >= rule.At.Position &&
 								tokens[index + 2].Position < rule.Body.At.Position &&
@@ -530,6 +535,23 @@ static class GramLanguageService
 						Collect(@namespace.Decls);
 						break;
 				}
+		}
+
+		// A guard's own `on fail "…"` (§7.5): the two words where the parser took them, after its C#.
+		void Guards(Expr expression)
+		{
+			if (expression is Expr.Guard { OnFail: not null, OnFailAt: >= 0 and var at })
+				for (var index = 0; index + 1 < tokens.Count; index++)
+					if (tokens[index].Position == at)
+					{
+						result.Add(at);
+						result.Add(tokens[index + 1].Position);
+
+						break;
+					}
+
+			foreach (var child in Dump.Children(expression))
+				Guards(child);
 		}
 	}
 

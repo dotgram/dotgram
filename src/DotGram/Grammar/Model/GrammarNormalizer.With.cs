@@ -706,7 +706,7 @@ sealed partial class GrammarNormalizer
 			Node.Glue                                                               => Node.Glue.Instance,
 			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element(negated, ranges, categories, references),
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal(text) { IgnoreCase = ignoreCase },
-			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at),
+			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at) { OnFail = ((Node.Guard)node).OnFail },
 			Node.External external                                                 => external with { },
 			// Flat again: an operand kept whole so that it could be found (`LowerSequence`) is
 			// spliced back into the sequence around it.

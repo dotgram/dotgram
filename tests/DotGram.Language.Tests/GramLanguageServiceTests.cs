@@ -465,6 +465,29 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesOnFailWordsAfterAGuard()
+	{
+		const string source =
+			"Start : @string = v: 'a' & when @(v == \"a\") on fail \"Expected an a.\" => @(v)\n" +
+			"on = 'o'\n" +
+			"fail = on\n" +
+			"parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.DoesNotContain(document.Diagnostics,
+			diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
+		Assert.Equal(1, classified.Count(item => item is ("on", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("fail", GramSyntaxKind.Keyword)));
+		Assert.Contains(("\"Expected an a.\"", GramSyntaxKind.String), classified);
+		Assert.Contains(("on", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("fail", GramSyntaxKind.Identifier), classified);
+	}
+
+	[Fact]
 	public void ClassifiesAccessWordsOnlyOnPublicationDirectives()
 	{
 		const string source =

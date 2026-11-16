@@ -95,7 +95,9 @@ sealed partial class GrammarNormalizer
 			Expr.Bind(var name, var operand) => LowerBind(expression, name, operand, ns),
 			Expr.Same(var name) => LowerSame(expression, name),
 			Expr.Lookahead(var positive, var operand) => new Node.Lookahead(positive, Lower(operand, ns)),
-			Expr.Guard(var value) => Guarded(NotARule(value)),
+			Expr.Guard(var value) { OnFail: var said } => Guarded(NotARule(value)) is var guard && said is not null
+				? ((Node.Guard)guard) with { OnFail = said }
+				: guard,
 			Expr.Switch(var value, var cases) => new Node.Choice(cases.Select(one => Lower(one.Body, ns)).ToArray())
 			{
 				Selection = new Node.SwitchSelection((Node.Guard)Guarded(value), cases.Select(one => one.Label).ToArray()),
