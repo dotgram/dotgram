@@ -539,7 +539,7 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	/// <summary>
-	/// Every text up to five characters long over a small alphabet, read by the interpreter and
+	/// Every text up to five characters long over a small alphabet (seven over four letters), read by the interpreter and
 	/// by the parser generated from the same grammar: backtracking into calls and repetitions,
 	/// atomic groups, looks both ways, bounded repetitions, word boundaries, ignore-case, trivia.
 	/// </summary>
@@ -574,11 +574,16 @@ public sealed class DslRecognitionTraceTests
 		Run   = 'a' & ?=Run & Run | ['a'..'b']+
 		End   = 'x' | ?!['a'..'z']
 		""")]
+	[InlineData("abc;", """
+		parse Start
+		Start = ('a' & ?=(['a'..'b']* & ';') | 'b' & ?!('a'* & 'c') | 'c' & ?=Rest)+ & ';'?
+		Rest  = ('a' | 'b')* & 'c'
+		""")]
 	public void AgreesWithGeneratedParserOnEveryShortInput(string alphabet, string grammar)
 	{
 		var inputs = new System.Collections.Generic.List<string> { "" };
 
-		for (var length = 1; length <= 5; length++)
+		for (var length = 1; length <= (alphabet.Length <= 4 ? 7 : 5); length++)
 			inputs.AddRange(inputs.Where(input => input.Length == length - 1).SelectMany(input => alphabet.Select(c => input + c)).ToArray());
 
 		AgreesWithGeneratedParser(grammar, [.. inputs]);
@@ -796,6 +801,51 @@ public sealed class DslRecognitionTraceTests
 		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
 		Assert.Equal(1, result.FailurePosition);
 		Assert.DoesNotContain(result.Extents, static extent => extent.Capture == "detail");
+	}
+
+	/// <summary>
+	/// A derivation whose extents are shared more often than any count holds — a rule that calls
+	/// one that reads nothing twice, thirty deep — is answered as one the interpreter cannot lay
+	/// out, not with an overflow.
+	/// </summary>
+	[Theory]
+	[InlineData("a")]
+	[InlineData("ax")]
+	public void DerivationWithMoreExtentsThanCountsHoldIsUnsupported(string input)
+	{
+		var rules = string.Concat(Enumerable.Range(0, 30).Select(static i => $"\nB{i} = B{i + 1} & B{i + 1}"));
+		var (graph, publication) = Compile("parse Start\nStart = 'a' & B0" + rules + "\nB30 = none");
+
+		Assert.Equal(DslRecognitionStatus.Unsupported, DslRecognitionTrace.Recognize(graph, publication, input).Status);
+	}
+
+	/// <summary>
+	/// A look in a repetition that reads to the end of the text: the generated parser reads every
+	/// look to the end, four kilobytes in about 40 ms and sixteen in over half a second on the machine
+	/// this was measured on. The interpreter shares the turns of the repetition inside the look between
+	/// its readings, so after the first each look is answered in a few steps.
+	/// </summary>
+	[Theory]
+	[InlineData("Start = ('a' & ?=('a'* & 'b'))+ & 'b'", "b")]
+	[InlineData("Start = ('a' & ?!('a'* & 'c'))+ & 'b'", "b")]
+	[InlineData("Start = (?=(['a'..'z']* & ';') & ['a'..'z'])+ & ';'", ";")]
+	[InlineData("Start = Item+ & 'b'\nItem = 'a' & ?=Rest\nRest = 'a'* & 'b'", "b")]
+	public void LookToTheEndInEveryTurnIsReadWithinTheBudget(string rules, string tail)
+	{
+		var (graph, publication) = Compile("parse Start\n" + rules);
+
+		foreach (var length in new[] { 2048, 16384 })
+		{
+			var result = DslRecognitionTrace.Recognize(graph, publication, new string('a', length) + tail);
+
+			Assert.Equal(DslRecognitionStatus.Success, result.Status);
+			Assert.True(result.Steps <= 20 * length, $"steps: {result.Steps}");
+		}
+
+		var refused = DslRecognitionTrace.Recognize(graph, publication, new string('a', 16384) + "!");
+
+		Assert.Equal(DslRecognitionStatus.Failure, refused.Status);
+		Assert.True(refused.Steps <= 20 * 16384, $"steps: {refused.Steps}");
 	}
 
 	/// <summary>

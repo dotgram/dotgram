@@ -149,9 +149,9 @@ internal static class DslRecognitionTrace
 		var read    = matcher.Run();
 		var laid    = read ?? matcher.Partial;
 
-		// A derivation holds no more extents than it took steps to read; one that would is no reading
-		// this answers for.
-		if (laid is not null && laid.Total > budget)
+		// A derivation read without sharing holds no more extents than the steps it took; one that holds
+		// far more shares one call's extents many times over, and is no reading this lays out.
+		if (laid is not null && laid.Total > matcher.Steps + 16L * input.Length + 1024)
 			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []) { Steps = matcher.Steps };
 
 		if (read is not null)
@@ -172,7 +172,7 @@ internal static class DslRecognitionTrace
 	static IReadOnlyList<DslRecognitionExtent> Flatten(Trail? head, CancellationToken cancellationToken)
 	{
 		var laid    = 0;
-		var extents = new List<DslRecognitionExtent>(head?.Total ?? 0);
+		var extents = new List<DslRecognitionExtent>((int)Math.Min(head?.Total ?? 0, 1 << 20));
 		var work    = new Stack<(Trail? From, Trail? Stop, Trail? Extent)>();
 
 		work.Push((head, null, null));
@@ -221,16 +221,16 @@ internal static class DslRecognitionTrace
 			Inner  = inner;
 			Stop   = stop;
 
-			var innerCount = (inner?.Count ?? 0) - (stop?.Count ?? 0);
+			var innerCount = Less(inner?.Count ?? 0, stop?.Count ?? 0);
 
 			// Every extent inside this one begins where it does, at or after the end of each read before it.
-			OwnCount = innerCount + (meaningful ? 1 : 0);
-			OwnTotal = (inner?.Total ?? 0) - (stop?.Total ?? 0) + 1;
+			OwnCount = Sum(innerCount, meaningful ? 1 : 0);
+			OwnTotal = Sum(Less(inner?.Total ?? 0, stop?.Total ?? 0), 1);
 			OwnEnd   = Math.Max(meaningful ? extent.Position + extent.Length : -1, innerCount > 0 ? inner!.End : -1);
 
 			Next  = next;
-			Count = (next?.Count ?? 0) + OwnCount;
-			Total = (next?.Total ?? 0) + OwnTotal;
+			Count = Sum(next?.Count ?? 0, OwnCount);
+			Total = Sum(next?.Total ?? 0, OwnTotal);
 			End   = Math.Max(next?.End ?? -1, OwnEnd);
 		}
 
@@ -246,8 +246,8 @@ internal static class DslRecognitionTrace
 			OwnEnd   = cell.OwnEnd;
 
 			Next  = next;
-			Count = (next?.Count ?? 0) + OwnCount;
-			Total = (next?.Total ?? 0) + OwnTotal;
+			Count = Sum(next?.Count ?? 0, OwnCount);
+			Total = Sum(next?.Total ?? 0, OwnTotal);
 			End   = Math.Max(next?.End ?? -1, OwnEnd);
 		}
 
@@ -266,15 +266,15 @@ internal static class DslRecognitionTrace
 			Inner   = inner;
 			Stop    = stop;
 
-			var innerCount = inner.Count - (stop?.Count ?? 0);
+			var innerCount = Less(inner.Count, stop?.Count ?? 0);
 
 			OwnCount = innerCount;
-			OwnTotal = inner.Total - (stop?.Total ?? 0);
+			OwnTotal = Less(inner.Total, stop?.Total ?? 0);
 			OwnEnd   = innerCount > 0 ? inner.End : -1;
 
 			Next  = stop;
-			Count = (stop?.Count ?? 0) + OwnCount;
-			Total = (stop?.Total ?? 0) + OwnTotal;
+			Count = Sum(stop?.Count ?? 0, OwnCount);
+			Total = Sum(stop?.Total ?? 0, OwnTotal);
 			End   = Math.Max(stop?.End ?? -1, OwnEnd);
 		}
 
@@ -290,18 +290,35 @@ internal static class DslRecognitionTrace
 		public Trail?               Stop   { get; }
 		public Trail?               Next   { get; }
 
-		int OwnCount { get; }
-		int OwnTotal { get; }
+		long OwnCount { get; }
+		long OwnTotal { get; }
+
+		/// <summary>
+		/// More extents than any reading lays out: where extents are shared, a derivation can hold
+		/// exponentially many in the steps it took, and the counts stop here rather than wrap.
+		/// </summary>
+		public const long Saturated = 1L << 60;
+
+		static long Sum(long one, long other)
+		{
+			return one >= Saturated || other >= Saturated ? Saturated : Math.Min(one + other, Saturated);
+		}
+
+		/// <summary>What a list holds beyond its tail; a count that saturated stays so.</summary>
+		static long Less(long whole, long tail)
+		{
+			return whole >= Saturated ? Saturated : whole - tail;
+		}
 		int OwnEnd   { get; }
 
 		/// <summary>Extents of rules other than trivia, in the whole list.</summary>
-		public int Count { get; }
+		public long Count { get; }
 
 		/// <summary>Where the furthest of those ends; -1 where there is none.</summary>
 		public int End { get; }
 
 		/// <summary>Every extent in the whole list.</summary>
-		public int Total { get; }
+		public long Total { get; }
 	}
 
 	/// <summary>One call of a rule: where it began, the call it was made from, and the ends its derivations reached.</summary>
@@ -454,6 +471,12 @@ internal static class DslRecognitionTrace
 
 		/// <summary>The atomic group or look <see cref="Point.Node"/> found no derivation of what it holds.</summary>
 		Unanswered,
+
+		/// <summary>
+		/// A shared repetition stopped here with no turn to take: no route, only a mark that the turn
+		/// was on the way, for the look's end to find.
+		/// </summary>
+		Arrived,
 	}
 
 	/// <summary>A route not yet taken, and where everything stood when it branched.</summary>
@@ -465,6 +488,7 @@ internal static class DslRecognitionTrace
 		public Trail?  Head;
 		public Entry   Entry;
 		public int     Looking;
+		public Node?   Look;
 		public Node?   Node;
 		public int     Index;
 		public object? Extra;
@@ -479,17 +503,42 @@ internal static class DslRecognitionTrace
 	/// allowed before the most; past the least of an unbounded repetition, nothing. A repetition turns
 	/// a few times as a rule, so the first two are held without a set.
 	/// </remarks>
-	sealed class Turns
+	/// <remarks>
+	/// A repetition a look reaches on one route only, and nothing else does, turns the same way
+	/// whichever reading of the look reached it: one set of turns serves every reading of the look,
+	/// and also says which turns led to the look's body matching. A look in a repetition that reads
+	/// to the end of the text then costs a few steps after the first, rather than the whole rest.
+	/// </remarks>
+	sealed class Turns(Node? look = null)
 	{
 		long           _first = -1;
 		long           _second = -1;
 		HashSet<long>? _reached;
+		HashSet<long>? _matched;
 
-		public bool Reach(Node.Repeat repeat, int count, int position)
+		/// <summary>The look whose readings share these turns; null for one reading's own.</summary>
+		public Node? Look { get; } = look;
+
+		public static long Key(Node.Repeat repeat, int count, int position)
 		{
 			var state = count < repeat.Min || repeat.Max is not null ? count : repeat.Min;
-			var key   = (long)state << 32 | (uint)position;
 
+			return (long)state << 32 | (uint)position;
+		}
+
+		/// <summary>Whether a turn reached as <paramref name="key"/> says led to the look's body matching.</summary>
+		public bool Matched(long key)
+		{
+			return _matched is not null && _matched.Contains(key);
+		}
+
+		public void Match(long key)
+		{
+			(_matched ??= []).Add(key);
+		}
+
+		public bool Reach(long key)
+		{
 			if (_reached is not null)
 				return _reached.Add(key);
 
@@ -589,6 +638,7 @@ internal static class DslRecognitionTrace
 		readonly Dictionary<RuleSymbol, Opening> _rules = [];
 		readonly Dictionary<Node, Opening[]>     _choices = new(NodeIdentity.Instance);
 		readonly Dictionary<Node, Opening>       _repeats = new(NodeIdentity.Instance);
+		readonly Dictionary<Node, Node?>         _looks   = new(NodeIdentity.Instance);
 
 		Openings(RecognitionGraph graph)
 		{
@@ -632,6 +682,11 @@ internal static class DslRecognitionTrace
 
 			foreach (var body in graph.Bodies.Values.Concat(graph.Trivia.Values))
 				foreach (var node in Nodes(body))
+					if (node is Node.Lookahead look)
+						Own(graph, look);
+
+			foreach (var body in graph.Bodies.Values.Concat(graph.Trivia.Values))
+				foreach (var node in Nodes(body))
 					switch (node)
 					{
 						case Node.Choice { Selection: null } choice when !_choices.ContainsKey(choice):
@@ -657,6 +712,95 @@ internal static class DslRecognitionTrace
 		public Opening? Of(Node.Repeat repeat)
 		{
 			return _repeats.TryGetValue(repeat, out var opening) ? opening : null;
+		}
+
+		/// <summary>The look whose readings may share <paramref name="repeat"/>'s turns, if there is one.</summary>
+		public Node? LookOf(Node.Repeat repeat)
+		{
+			return _looks.TryGetValue(repeat, out var look) ? look : null;
+		}
+
+		/// <summary>
+		/// Finds the repetitions <paramref name="look"/> reaches on one route only — through sequences,
+		/// choices, captures, atomic groups and calls, not through another repetition or look — where
+		/// nothing the look reads can come back to the look itself.
+		/// </summary>
+		/// <remarks>
+		/// What follows such a repetition up to the end of the look is then the same in every reading
+		/// of the look, so whether a turn reached at a position leads to the body matching is the same
+		/// too. A repetition reached on two routes, or by two looks, is shared by none.
+		/// </remarks>
+		void Own(RecognitionGraph graph, Node.Lookahead look)
+		{
+			var rules   = new HashSet<RuleSymbol>();
+			var found   = new List<Node.Repeat>();
+			var pending = new Stack<Node>();
+
+			pending.Push(look.Body);
+
+			while (pending.Count > 0)
+			{
+				var node = pending.Pop();
+
+				switch (node)
+				{
+					case Node.Repeat repeat:
+						found.Add(repeat);
+						break;
+
+					case Node.Call call:
+						// A rule reached twice is two routes to whatever it holds.
+						if (!rules.Add(call.Rule))
+							return;
+
+						if (graph.Bodies.TryGetValue(call.Rule, out var called))
+							pending.Push(called);
+
+						break;
+
+					case Node.Choice { Selection: null } or Node.Sequence or Node.Capture or Node.Construct or Node.Marked or Node.Atomic:
+						foreach (var child in node.Children)
+							pending.Push(child);
+
+						break;
+
+					// Leaves, and what is not walked into: another look, a dispatch, what the host reads.
+					default:
+						break;
+				}
+			}
+
+			// A look its own body can reach again would share its turns with a reading still under way.
+			if (found.Count == 0 || Reaches(graph, look.Body, look))
+				return;
+
+			foreach (var repeat in found)
+				_looks[repeat] = _looks.ContainsKey(repeat) ? null : look;
+		}
+
+		/// <summary>Whether reading <paramref name="from"/> can reach <paramref name="target"/>, through any node and call.</summary>
+		static bool Reaches(RecognitionGraph graph, Node from, Node target)
+		{
+			var rules   = new HashSet<RuleSymbol>();
+			var pending = new Stack<Node>();
+
+			pending.Push(from);
+
+			while (pending.Count > 0)
+			{
+				var node = pending.Pop();
+
+				if (ReferenceEquals(node, target))
+					return true;
+
+				if (node is Node.Call call && rules.Add(call.Rule) && graph.Bodies.TryGetValue(call.Rule, out var called))
+					pending.Push(called);
+
+				foreach (var child in node.Children)
+					pending.Push(child);
+			}
+
+			return false;
 		}
 
 		/// <summary>Every node of a body, without recursion.</summary>
@@ -844,6 +988,7 @@ internal static class DslRecognitionTrace
 
 		// The first answers of atomic groups and looks, by node and position; those read inside a look apart.
 		readonly Dictionary<Node, int>    _nodeNumbers     = new(NodeIdentity.Instance);
+		readonly Dictionary<Node, Turns>  _sharedTurns     = new(NodeIdentity.Instance);
 		readonly Dictionary<long, Answer> _answers         = [];
 		readonly Dictionary<long, Answer> _answersSilently = [];
 		readonly HashSet<string> _expected = new(StringComparer.Ordinal);
@@ -854,6 +999,7 @@ internal static class DslRecognitionTrace
 		Trail?  _head;
 		Entry   _entry;
 		int     _looking;
+		Node?   _look;
 		Node?   _node;
 		bool    _failed;
 		long    _steps;
@@ -876,10 +1022,10 @@ internal static class DslRecognitionTrace
 
 		Trail? _best;
 		int    _bestEnd;
-		int    _bestCount;
+		long   _bestCount;
 		Trail? _candidate;
 		int    _candidateEnd = -1;
-		int    _candidateTotal;
+		long   _candidateTotal;
 
 		public Matcher(
 			RecognitionGraph graph,
@@ -1056,6 +1202,7 @@ internal static class DslRecognitionTrace
 				Head         = _head,
 				Entry        = _entry,
 				Looking      = _looking,
+				Look         = _look,
 				Node         = node,
 				Index        = index,
 				Extra        = extra,
@@ -1069,6 +1216,7 @@ internal static class DslRecognitionTrace
 			_head         = point.Head;
 			_entry        = point.Entry;
 			_looking      = point.Looking;
+			_look         = point.Look;
 		}
 
 		/// <summary>Drops the routes from choice point <paramref name="marker"/> on.</summary>
@@ -1141,6 +1289,11 @@ internal static class DslRecognitionTrace
 
 						continue;
 					}
+
+					case Route.Arrived:
+						Cut(_count - 1);
+
+						continue;
 
 					case Route.Unanswered:
 					{
@@ -1307,11 +1460,17 @@ internal static class DslRecognitionTrace
 					var wide = (WideFrame)frame;
 					var made = (long)_points[frame.A].Extra!;
 
+					// Every turn of a shared repetition still on the way here led to the body matching.
+					for (var index = frame.A + 1; index < _count; index++)
+						if (_points[index] is { Route: Route.Stop or Route.Arrived, Extra: Turns { Look: { } owner } turns } stop && owner == look)
+							turns.Match(Turns.Key((Node.Repeat)stop.Node!, stop.Index, stop.Position));
+
 					// The first derivation of the body answers the look; the others are not wanted.
 					Cut(frame.A);
 					Keep(look, wide.B, made, new Answer(_position, null));
 
 					_looking  = wide.C;
+					_look     = (Node?)wide.Extra;
 					_position = wide.B;
 					_head     = wide.Mark;
 
@@ -1482,10 +1641,22 @@ internal static class DslRecognitionTrace
 				}
 
 				case Node.Repeat repeat:
+				{
+					Turns? turns = null;
+
+					if (!_cyclic && _look is { } look && _openings.LookOf(repeat) == look)
+					{
+						if (!_sharedTurns.TryGetValue(repeat, out turns))
+							_sharedTurns.Add(repeat, turns = new Turns(look));
+					}
 					// A turn that can end in one place only is never reached again by another route.
-					Turn(repeat, 0, repeat.Body is not (Node.Element or Node.Literal or Node.Atomic) ? new Turns() : null);
+					else if (repeat.Body is not (Node.Element or Node.Literal or Node.Atomic))
+						turns = new Turns();
+
+					Turn(repeat, 0, turns);
 
 					return;
+				}
 
 				case Node.Lookahead look:
 					if (!_cyclic && Answered(look) is { } looked)
@@ -1505,12 +1676,14 @@ internal static class DslRecognitionTrace
 					{
 						A    = _count - 1,
 						B    = _position,
-						C    = _looking,
-						Mark = _head,
+						C     = _looking,
+						Mark  = _head,
+						Extra = _look,
 					};
 
 					// A look does not report how far it looked: what fails inside one is no refusal of the text.
 					_looking++;
+					_look = look;
 					_node = look.Body;
 
 					return;
@@ -1713,35 +1886,52 @@ internal static class DslRecognitionTrace
 			var stops = count >= repeat.Min;
 			var turn  = repeat.Max is not { } most || count < most;
 
-			if (turns is not null && !turns.Reach(repeat, count, _position))
+			if (turns is not null)
 			{
-				Fail();
+				var key = Turns.Key(repeat, count, _position);
 
-				return;
-			}
+				// A turn another reading of the look took here led to its body matching: so does this one.
+				if (turns.Look is { } look && turns.Matched(key) && Matched(look))
+					return;
 
-			if (!turn)
-			{
-				if (!stops)
+				if (!turns.Reach(key))
+				{
 					Fail();
 
-				return;
+					return;
+				}
 			}
 
 			// A turn that cannot begin here leaves stopping as the one route, and no choice point.
-			if (_openings.Of(repeat) is { } opening && !Opens(opening, repeat.Body))
+			if (!turn || _openings.Of(repeat) is { } opening && !Opens(opening, repeat.Body))
 			{
 				if (!stops)
 					Fail();
+				else if (turns?.Look is not null)
+					Push(Route.Arrived, repeat, count, turns);
 
 				return;
 			}
 
 			if (stops)
-				Push(Route.Stop);
+				Push(Route.Stop, repeat, count, turns);
 
 			_continuation = new WideFrame(Step.Turn, repeat, _entry, _continuation) { A = _position, B = count + 1, Extra = turns };
 			_node         = repeat.Body;
+		}
+
+		/// <summary>Goes on at the end of <paramref name="look"/>'s body, as if it had just matched; false where that end is not ahead.</summary>
+		bool Matched(Node look)
+		{
+			for (var frame = _continuation; frame is not null; frame = frame.Next)
+				if (frame.Step == Step.LookEnd && frame.Node == look)
+				{
+					_continuation = frame;
+
+					return true;
+				}
+
+			return false;
 		}
 
 		/// <summary>The first alternative of <paramref name="choice"/> from <paramref name="from"/> on that can begin here; the count where none can.</summary>
