@@ -210,10 +210,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 	readonly DslEmbeddedSiteCache           _dslCache = new();
 
 	CancellationTokenSource?          _cancellation;
-
-	// What the last analysis's includes were read from, other projects' grammars and classes among
-	// them: a change to any has the document analysed again.
-	(IReadOnlyCollection<DocumentId> Documents, IReadOnlyCollection<ProjectId> Projects) _dependencies = ([], []);
+	bool                              _closed;
 
 	TVersion?                         _snapshot;
 	TVersion?                         _retrySnapshot;
@@ -318,8 +315,11 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 	}
 
 	/// <summary>
-	/// The solution changed: the document is analysed again where the change is about it or its project,
-	/// or about what its grammars' includes were last read from — a grammar file, a class, of any project.
+	/// The solution changed: the document is analysed again, after the pause an edit waits, where the
+	/// change is to the solution as a whole, or to the document's project or any project it depends on —
+	/// a document, a grammar file, a part of the host, a file added or removed. What the grammars include
+	/// is read from those and nowhere else, so nothing the analysis read can change unseen. An analysis
+	/// under way is cancelled by it, and what it found is not shown (see <see cref="Schedule"/>).
 	/// </summary>
 	public void WorkspaceChanged(WorkspaceChangeEventArgs change)
 	{
@@ -328,40 +328,49 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 
 		var ids = change.NewSolution.GetDocumentIdsWithFilePath(filePath);
 
-		if (!ids.Any())
+		if (ids.IsEmpty)
+			ids = change.OldSolution.GetDocumentIdsWithFilePath(filePath);
+
+		if (ids.IsEmpty)
 			return;
 
-		var own = (change.DocumentId is null || ids.Contains(change.DocumentId)) &&
-			(change.ProjectId is null || ids.Any(id => id.ProjectId == change.ProjectId));
-
-		if (!own && !Depends(change))
+		if (change.ProjectId is { } changed && !ids.Any(id => Depends(change.NewSolution, id.ProjectId, changed) || Depends(change.OldSolution, id.ProjectId, changed)))
 			return;
 
 		Schedule(_host.Current);
 	}
 
-	bool Depends(WorkspaceChangeEventArgs change)
+	/// <summary>The document is closed: what is under way is cancelled, and nothing more is analysed.</summary>
+	public void Close()
 	{
-		(IReadOnlyCollection<DocumentId> Documents, IReadOnlyCollection<ProjectId> Projects) dependencies;
-
 		lock (_gate)
-			dependencies = _dependencies;
-
-		if (change.DocumentId is { } document)
-			return dependencies.Documents.Contains(document) ||
-				(change.Kind is WorkspaceChangeKind.DocumentAdded or WorkspaceChangeKind.DocumentRemoved or
-					WorkspaceChangeKind.AdditionalDocumentAdded or WorkspaceChangeKind.AdditionalDocumentRemoved) &&
-				dependencies.Projects.Contains(document.ProjectId);
-
-		return change.ProjectId is { } project && dependencies.Projects.Contains(project);
+		{
+			_closed = true;
+			_cancellation?.Cancel();
+		}
 	}
 
+	/// <summary>Whether a project is the document's own, or one it depends on in a solution.</summary>
+	static bool Depends(Solution solution, ProjectId project, ProjectId changed)
+	{
+		return project == changed ||
+			solution.GetProjectDependencyGraph().GetProjectsThatThisProjectTransitivelyDependsOn(project).Contains(changed);
+	}
+
+	/// <summary>
+	/// Asks for an analysis, and cancels the one under way: it is a generation older, and since it
+	/// publishes only under the lock this takes, and only while its token is not cancelled, nothing it
+	/// found is shown once this has run.
+	/// </summary>
 	void Schedule(TVersion snapshot)
 	{
 		CancellationToken cancellationToken;
 
 		lock (_gate)
 		{
+			if (_closed)
+				return;
+
 			_cancellation?.Cancel();
 			_cancellation?.Dispose();
 			_cancellation = new CancellationTokenSource();
@@ -420,12 +429,9 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 
 			// What the grammars include, asked of the solution as the generator of this project would,
 			// whatever the attribute is spelled as; nothing is read for a document whose classes include
-			// nothing. What the answers were read from is followed until the next analysis.
-			var includes = SolutionIncludedGrammars.For(document.Project);
-			var analyses = await EmbeddedGrammarService.AnalyzeAsync(model, root, includes, cancellationToken).ConfigureAwait(false);
-
-			lock (_gate)
-				_dependencies = includes.Dependencies.Snapshot();
+			// nothing.
+			var analyses = await EmbeddedGrammarService.AnalyzeAsync(
+				model, root, SolutionIncludedGrammars.For(document.Project), cancellationToken).ConfigureAwait(false);
 			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
 			var dslSites        = await DslEmbeddedSiteAnalysis.AnalyzeAsync(
 				document,

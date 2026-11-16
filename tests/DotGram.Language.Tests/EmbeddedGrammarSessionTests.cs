@@ -247,11 +247,23 @@ public sealed class EmbeddedGrammarSessionTests
 	/// </summary>
 	static (EmbeddedHost Host, ProjectId Library, DocumentId Grammar) WithLibrary(AdhocWorkspace workspace, string source)
 	{
+		return WithLibrary(workspace, source, Library, out _, out _);
+	}
+
+	/// <param name="library">The library's C#.</param>
+	/// <param name="hostProject">The host's project.</param>
+	/// <param name="other">A second C# document of the host's project, empty: Parser.Other.cs.</param>
+	static (EmbeddedHost Host, ProjectId Library, DocumentId Grammar) WithLibrary(
+		AdhocWorkspace workspace, string source, string library, out ProjectId hostProject, out DocumentId other)
+	{
 		var markers  = DotGram.Grammar.GramCompiler.EmitMarkerAttributes();
 		var solution = workspace.CurrentSolution;
-		var library  = ProjectId.CreateNewId("Library");
-		var host     = ProjectId.CreateNewId("Host");
-		var grammar  = DocumentId.CreateNewId(library);
+		var libraryId = ProjectId.CreateNewId("Library");
+		var host      = ProjectId.CreateNewId("Host");
+		var grammar   = DocumentId.CreateNewId(libraryId);
+
+		hostProject = host;
+		other       = DocumentId.CreateNewId(host);
 
 		ProjectInfo Project(ProjectId id, string name)
 		{
@@ -262,18 +274,19 @@ public sealed class EmbeddedGrammarSessionTests
 		}
 
 		solution = solution
-			.AddProject(Project(library, "Library"))
-			.AddDocument(DocumentId.CreateNewId(library), markers.HintName, SourceText.From(markers.Text))
-			.AddDocument(DocumentId.CreateNewId(library), "Base.cs", SourceText.From(Library))
+			.AddProject(Project(libraryId, "Library"))
+			.AddDocument(DocumentId.CreateNewId(libraryId), markers.HintName, SourceText.From(markers.Text))
+			.AddDocument(DocumentId.CreateNewId(libraryId), "Base.cs", SourceText.From(library))
 			.AddAdditionalDocument(grammar, "Base.gram", SourceText.From("Word = 'a'\nFromLibrary = 'l'\n"), filePath: LibraryGrammarPath)
 			.AddProject(Project(host, "Host"))
-			.AddProjectReference(host, new ProjectReference(library))
+			.AddProjectReference(host, new ProjectReference(libraryId))
 			.AddDocument(DocumentId.CreateNewId(host), markers.HintName, SourceText.From(markers.Text))
-			.AddDocument(DocumentId.CreateNewId(host), "Parser.cs", SourceText.From(source), filePath: HostPath);
+			.AddDocument(DocumentId.CreateNewId(host), "Parser.cs", SourceText.From(source), filePath: HostPath)
+			.AddDocument(other, "Parser.Other.cs", SourceText.From(""), filePath: @"P:\Host\Parser.Other.cs");
 
 		Assert.True(workspace.TryApplyChanges(solution));
 
-		return (new EmbeddedHost(workspace, HostPath, source), library, grammar);
+		return (new EmbeddedHost(workspace, HostPath, source), libraryId, grammar);
 	}
 
 	/// <summary>Runs the session's pending analyses to the end: a timer at a time, each told of.</summary>
@@ -345,6 +358,117 @@ public sealed class EmbeddedGrammarSessionTests
 		Assert.Contains(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
 	}
 
+	/// <summary>Applies a change to the workspace and tells the session of it, as the editor does.</summary>
+	static void Apply(AdhocWorkspace workspace, EmbeddedGrammarSession<EmbeddedHost.Version> session, Func<Solution, Solution> change, WorkspaceChangeKind kind, ProjectId project, DocumentId? document)
+	{
+		var before = workspace.CurrentSolution;
+
+		Assert.True(workspace.TryApplyChanges(change(before)));
+
+		session.WorkspaceChanged(new WorkspaceChangeEventArgs(kind, before, workspace.CurrentSolution, project, document));
+	}
+
+	/// <summary>
+	/// An included grammar of another project changes while an analysis is under way, after it has taken
+	/// the solution: that analysis is not what is shown; the one after the change is.
+	/// </summary>
+	[Fact]
+	public void A_change_while_an_analysis_runs_is_not_lost()
+	{
+		using var workspace = new AdhocWorkspace();
+
+		var (host, library, grammar) = WithLibrary(workspace, """
+			[DotGram.Gram("Start = B.FromLibrary\nparse Start")]
+			[DotGram.GramInclude(typeof(Library.Base))]
+			partial class Parser;
+			""");
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+		var once    = 0;
+
+		session.Changed += _ => changed.Release();
+
+		// The first analysis takes the solution; then the library's grammar loses the rule.
+		host.Taken = () =>
+		{
+			if (Interlocked.Exchange(ref once, 1) == 0)
+				Apply(workspace, session, solution => solution.WithAdditionalDocumentText(grammar, SourceText.From("Word = 'a'\n")), WorkspaceChangeKind.AdditionalDocumentChanged, library, grammar);
+		};
+
+		Assert.Contains(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+	}
+
+	/// <summary>
+	/// A class of a library that does not export its grammar is included with the host project's file of
+	/// its name, which is not there at first: when it is added, the document is analysed again.
+	/// </summary>
+	[Fact]
+	public void A_grammar_file_added_to_the_host_project_has_the_document_analysed_again()
+	{
+		using var workspace = new AdhocWorkspace();
+
+		var (host, _, _) = WithLibrary(
+			workspace,
+			"""
+			[DotGram.Gram("Start = B.FromConsumer\nparse Start")]
+			[DotGram.GramInclude(typeof(Library.Base))]
+			partial class Parser;
+			""",
+			"namespace Library { [DotGram.Gram(\"Base.gram\", DefaultAlias = \"B\", ExportGrammar = false)] public partial class Base { } }",
+			out var project,
+			out _);
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		session.Changed += _ => changed.Release();
+
+		Assert.Contains(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+
+		var added = DocumentId.CreateNewId(project);
+
+		Apply(
+			workspace,
+			session,
+			solution => solution.AddAdditionalDocument(added, "Base.gram", SourceText.From("Word = 'a'\nFromConsumer = 'c'\n"), filePath: @"P:\Host\Base.gram"),
+			WorkspaceChangeKind.AdditionalDocumentAdded,
+			project,
+			added);
+
+		Assert.DoesNotContain(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+	}
+
+	/// <summary>
+	/// The host's include written on another part of the class, in another file: taken away there, the
+	/// document is analysed again, and what it took away is told of.
+	/// </summary>
+	[Fact]
+	public void A_change_to_another_part_of_the_host_has_the_document_analysed_again()
+	{
+		using var workspace = new AdhocWorkspace();
+
+		var (host, _, _) = WithLibrary(
+			workspace,
+			"""
+			[DotGram.Gram("Start = B.FromLibrary\nparse Start")]
+			partial class Parser;
+			""",
+			Library,
+			out var project,
+			out var other);
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		Assert.True(workspace.TryApplyChanges(workspace.CurrentSolution.WithDocumentText(other, SourceText.From("[DotGram.GramInclude(typeof(Library.Base))]\npartial class Parser;\n"))));
+
+		session.Changed += _ => changed.Release();
+
+		Assert.DoesNotContain(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+
+		Apply(workspace, session, solution => solution.WithDocumentText(other, SourceText.From("partial class Parser;\n")), WorkspaceChangeKind.DocumentChanged, project, other);
+
+		Assert.Contains(Analysed(host, session, changed).Diagnostics, static diagnostic => diagnostic.Diagnostic.Id == "GRAM3002");
+	}
+
 	const string HostSource = """
 		namespace DotGram
 		{
@@ -385,6 +509,9 @@ public sealed class EmbeddedGrammarSessionTests
 
 		/// <summary>Called as an analysis starts, on whatever thread it runs on.</summary>
 		public Action<Version>? During { get; set; }
+
+		/// <summary>Called once an analysis has taken the solution it reads.</summary>
+		public Action? Taken { get; set; }
 
 		public string? FilePath => filePath;
 
@@ -432,7 +559,11 @@ public sealed class EmbeddedGrammarSessionTests
 
 			During?.Invoke(version);
 
-			return EmbeddedGrammarDocuments.WithText(workspace.CurrentSolution, filePath, version.Text);
+			var document = EmbeddedGrammarDocuments.WithText(workspace.CurrentSolution, filePath, version.Text);
+
+			Taken?.Invoke();
+
+			return document;
 		}
 
 		/// <summary>The editor's main thread, where the session's event is raised; on the caller's thread where null.</summary>
