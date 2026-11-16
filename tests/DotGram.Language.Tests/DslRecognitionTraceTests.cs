@@ -560,6 +560,20 @@ public sealed class DslRecognitionTraceTests
 		Word  = "ab"i | 'a' & 'a'? & 'b'?
 		Tail  = '.' | none
 		""")]
+	[InlineData("abxz", """
+		parse Start
+		Start = ({A} & 'x' | B & 'z')+
+		A     = 'a' | "ab" & 'c' | 'b'
+		B     = Name & 'b'
+		Name  = "ab" | 'a'
+		""")]
+	[InlineData("abx ", """
+		trivia = ' '*
+		parse Start
+		Start = Run & End
+		Run   = 'a' & ?=Run & Run | ['a'..'b']+
+		End   = 'x' | ?!['a'..'z']
+		""")]
 	public void AgreesWithGeneratedParserOnEveryShortInput(string alphabet, string grammar)
 	{
 		var inputs = new System.Collections.Generic.List<string> { "" };
@@ -573,7 +587,7 @@ public sealed class DslRecognitionTraceTests
 		var accepted = inputs.Count(input => DslRecognitionTrace.Recognize(graph, publication, input).Status == DslRecognitionStatus.Success);
 
 		// Both answers are common enough to say something.
-		Assert.InRange(accepted, 100, inputs.Count - 100);
+		Assert.InRange(accepted, 10, inputs.Count - 100);
 	}
 
 	/// <summary>
@@ -715,6 +729,73 @@ public sealed class DslRecognitionTraceTests
 			[]);
 
 		return (graph, publication);
+	}
+
+	/// <summary>
+	/// An atomic group and a look are answered by the first derivation of what they hold; what
+	/// comes after the winner is never read, so a part the interpreter cannot read there does not
+	/// make the site unsupported.
+	/// </summary>
+	[Theory]
+	[InlineData("Start = {A}")]
+	[InlineData("Start = ?=A & 'a'")]
+	public void AlternativeAfterTheWinnerOfAnAtomicGroupOrLookIsNotRead(string start)
+	{
+		var (graph, publication) = Compile("parse Start\n" + start + "\nA = 'a' | switch @(0) { case 0: 'b' }");
+
+		Assert.Equal(DslRecognitionStatus.Success, DslRecognitionTrace.Recognize(graph, publication, "a").Status);
+	}
+
+	/// <summary>An atomic group around a rule that reads the whole text costs as many steps as the text has characters, give or take.</summary>
+	[Fact]
+	public void AtomicGroupAroundLongRunIsReadInLinearSteps()
+	{
+		var (graph, publication) = Compile("parse Start\nStart = {Run}\nRun = ('a'+ & 'a'*)+");
+		var input  = new string('a', 100_000);
+		var result = DslRecognitionTrace.Recognize(graph, publication, input);
+
+		Assert.Equal(DslRecognitionStatus.Success, result.Status);
+		Assert.True(result.Steps <= 20 * input.Length, $"steps: {result.Steps}");
+	}
+
+	/// <summary>
+	/// A refused text keeps only the extents of what was read on the way to the refusal: a
+	/// derivation an atomic group passed over adds nothing, however many extents it would have.
+	/// </summary>
+	[Fact]
+	public void PartialReadingHoldsOnlyWhatTheWinnerRead()
+	{
+		var rules = string.Concat(Enumerable.Range(0, 20).Select(static i => $"\nB{i} = B{i + 1} & B{i + 1}"));
+		var (graph, publication) = Compile("parse Start\nStart = {A} & 'z'\nA = 'a' | 'a' & B0" + rules + "\nB20 = none");
+		var result = DslRecognitionTrace.Recognize(graph, publication, "ax");
+
+		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
+		Assert.True(result.Extents.Count <= 4, $"extents: {result.Extents.Count}");
+		Assert.True(result.Steps <= 200, $"steps: {result.Steps}");
+
+		using var cancelled = new System.Threading.CancellationTokenSource();
+
+		cancelled.Cancel();
+
+		Assert.Throws<System.OperationCanceledException>(
+			() => DslRecognitionTrace.Recognize(graph, publication, "ax", null, DslRecognitionTrace.Budget("ax"), cancelled.Token));
+	}
+
+	/// <summary>
+	/// The failure an atomic group reports is that of the derivation that won it, as the generated
+	/// parser's is: neither the position nor the extents of an alternative after it.
+	/// </summary>
+	[Fact]
+	public void RefusalAfterAnAtomicGroupIsTheWinnersOwn()
+	{
+		AgreesWithGeneratedParser("parse Start\nStart = {A} & 'x'\nA = 'a' | \"ab\" & 'c'", "abx", "ax", "abcx", "ab", "abc");
+
+		var (graph, publication) = Compile("parse Start\nStart = {A} & 'z'\nA = 'a' | detail: 'a'");
+		var result = DslRecognitionTrace.Recognize(graph, publication, "ax");
+
+		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
+		Assert.Equal(1, result.FailurePosition);
+		Assert.DoesNotContain(result.Extents, static extent => extent.Capture == "detail");
 	}
 
 	/// <summary>

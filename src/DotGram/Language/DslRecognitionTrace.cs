@@ -100,7 +100,9 @@ internal sealed class DslDescriptorRecognitionContract : IDslRecognitionContract
 /// reading stops there. A rule's derivations that end where an earlier one of the same call
 /// ended are not followed: what reads after the rule is the same either way, and it failed
 /// already. A call whose every derivation has been tried is remembered by rule and position,
-/// and another call there replays the ends it found instead of reading the rule again. The
+/// and another call there replays the ends it found instead of reading the rule again. An atomic
+/// group and a look, whose answer the language makes final, are remembered by their first answer
+/// at a position, and nothing after the winner is read. The
 /// extents are a list that every route shares the front of, built in one step per extent and
 /// laid out in order once, at the end.
 /// </para>
@@ -141,25 +143,35 @@ internal static class DslRecognitionTrace
 		if (publication.Kind != DotGram.Grammar.Parsing.PublishKind.Parse)
 			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []);
 
-		var matcher = new Matcher(graph, publication, input, contract, budget, cancellationToken);
+		cancellationToken.ThrowIfCancellationRequested();
 
-		if (matcher.Run() is { } successful)
+		var matcher = new Matcher(graph, publication, input, contract, budget, cancellationToken);
+		var read    = matcher.Run();
+		var laid    = read ?? matcher.Partial;
+
+		// A derivation holds no more extents than it took steps to read; one that would is no reading
+		// this answers for.
+		if (laid is not null && laid.Total > budget)
+			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []) { Steps = matcher.Steps };
+
+		if (read is not null)
 			return new DslRecognitionResult(
 				DslRecognitionStatus.Success,
 				input.Length,
-				Flatten(successful),
+				Flatten(read, cancellationToken),
 				[]) { Steps = matcher.Steps };
 
 		return new DslRecognitionResult(
 			matcher.Unsupported ? DslRecognitionStatus.Unsupported : DslRecognitionStatus.Failure,
 			matcher.Furthest,
-			Flatten(matcher.Partial),
+			Flatten(laid, cancellationToken),
 			matcher.Unsupported ? [] : matcher.Expected) { Steps = matcher.Steps };
 	}
 
 	/// <summary>The extents of a derivation, each rule or capture before those inside it, in the order the text has them.</summary>
-	static IReadOnlyList<DslRecognitionExtent> Flatten(Trail? head)
+	static IReadOnlyList<DslRecognitionExtent> Flatten(Trail? head, CancellationToken cancellationToken)
 	{
+		var laid    = 0;
 		var extents = new List<DslRecognitionExtent>(head?.Total ?? 0);
 		var work    = new Stack<(Trail? From, Trail? Stop, Trail? Extent)>();
 
@@ -171,9 +183,14 @@ internal static class DslRecognitionTrace
 
 			if (extent is not null)
 			{
-				extents.Add(extent.Extent);
+				if (!extent.IsGroup)
+					extents.Add(extent.Extent);
+
 				continue;
 			}
+
+			if ((++laid & 0xFFF) == 0)
+				cancellationToken.ThrowIfCancellationRequested();
 
 			// The list runs from the newest extent back: pushed that way, the oldest comes off first,
 			// and each one's own extents right after it.
@@ -220,6 +237,7 @@ internal static class DslRecognitionTrace
 		/// <summary>The same extent, with what it holds, in front of another list: a remembered call replayed.</summary>
 		public Trail(Trail cell, Trail? next)
 		{
+			IsGroup  = cell.IsGroup;
 			Extent   = cell.Extent;
 			Inner    = cell.Inner;
 			Stop     = cell.Stop;
@@ -232,6 +250,36 @@ internal static class DslRecognitionTrace
 			Total = (next?.Total ?? 0) + OwnTotal;
 			End   = Math.Max(next?.End ?? -1, OwnEnd);
 		}
+
+		/// <summary>
+		/// The extents an atomic group read, from <paramref name="inner"/> back to <paramref name="stop"/>,
+		/// held as one cell that is no extent itself.
+		/// </summary>
+		public static Trail Group(Trail inner, Trail? stop)
+		{
+			return new Trail(inner, stop, group: true);
+		}
+
+		Trail(Trail inner, Trail? stop, bool group)
+		{
+			IsGroup = group;
+			Inner   = inner;
+			Stop    = stop;
+
+			var innerCount = inner.Count - (stop?.Count ?? 0);
+
+			OwnCount = innerCount;
+			OwnTotal = inner.Total - (stop?.Total ?? 0);
+			OwnEnd   = innerCount > 0 ? inner.End : -1;
+
+			Next  = stop;
+			Count = (stop?.Count ?? 0) + OwnCount;
+			Total = (stop?.Total ?? 0) + OwnTotal;
+			End   = Math.Max(stop?.End ?? -1, OwnEnd);
+		}
+
+		/// <summary>Whether this holds extents without being one: what an atomic group read.</summary>
+		public bool IsGroup { get; }
 
 		public DslRecognitionExtent Extent { get; }
 
@@ -359,10 +407,6 @@ internal static class DslRecognitionTrace
 		/// <summary>Nothing may follow: an alternative read again only for what it expected.</summary>
 		Halt,
 
-		/// <summary>
-		/// A call read to the end of its derivations has found one: it is kept, and the next is looked for.
-		/// </summary>
-		Collect,
 	}
 
 	/// <summary>One thing left to do, in front of the rest; shared by every route that branched after it was made.</summary>
@@ -408,11 +452,8 @@ internal static class DslRecognitionTrace
 		/// <summary>The next end of a remembered call, <see cref="Point.Index"/>.</summary>
 		Replay,
 
-		/// <summary>
-		/// The call in <see cref="Point.Extra"/>, read to the end of its derivations, has no more: what it
-		/// found is remembered, and read on from where the call was made.
-		/// </summary>
-		Evaluated,
+		/// <summary>The atomic group or look <see cref="Point.Node"/> found no derivation of what it holds.</summary>
+		Unanswered,
 	}
 
 	/// <summary>A route not yet taken, and where everything stood when it branched.</summary>
@@ -424,7 +465,6 @@ internal static class DslRecognitionTrace
 		public Trail?  Head;
 		public Entry   Entry;
 		public int     Looking;
-		public int     Cutting;
 		public Node?   Node;
 		public int     Index;
 		public object? Extra;
@@ -765,6 +805,19 @@ internal static class DslRecognitionTrace
 		}
 	}
 
+	/// <summary>
+	/// What an atomic group or a look answered at a position: where its first derivation ended and
+	/// what it read, or <see cref="None"/>.
+	/// </summary>
+	sealed class Answer(int end, Trail? read)
+	{
+		public static readonly Answer None = new(-1, null);
+
+		/// <summary>-1 where there was no derivation.</summary>
+		public int    End  { get; } = end;
+		public Trail? Read { get; } = read;
+	}
+
 	sealed class Matcher
 	{
 		readonly RecognitionGraph         _graph;
@@ -788,6 +841,11 @@ internal static class DslRecognitionTrace
 		// would be missing from the refusal.
 		readonly Dictionary<long, object> _remembered = [];
 		readonly Dictionary<long, object> _rememberedSilently = [];
+
+		// The first answers of atomic groups and looks, by node and position; those read inside a look apart.
+		readonly Dictionary<Node, int>    _nodeNumbers     = new(NodeIdentity.Instance);
+		readonly Dictionary<long, Answer> _answers         = [];
+		readonly Dictionary<long, Answer> _answersSilently = [];
 		readonly HashSet<string> _expected = new(StringComparer.Ordinal);
 
 		// Where the machine stands.
@@ -799,7 +857,6 @@ internal static class DslRecognitionTrace
 		Node?   _node;
 		bool    _failed;
 		long    _steps;
-		int     _cutting;
 
 		readonly long              _budget;
 		readonly CancellationToken _cancellationToken;
@@ -999,7 +1056,6 @@ internal static class DslRecognitionTrace
 				Head         = _head,
 				Entry        = _entry,
 				Looking      = _looking,
-				Cutting      = _cutting,
 				Node         = node,
 				Index        = index,
 				Extra        = extra,
@@ -1013,7 +1069,6 @@ internal static class DslRecognitionTrace
 			_head         = point.Head;
 			_entry        = point.Entry;
 			_looking      = point.Looking;
-			_cutting      = point.Cutting;
 		}
 
 		/// <summary>Drops the routes from choice point <paramref name="marker"/> on.</summary>
@@ -1060,9 +1115,11 @@ internal static class DslRecognitionTrace
 					case Route.Look:
 					{
 						var look = (Node.Lookahead)point.Node!;
+						var made = (long)point.Extra!;
 
 						Restore(point);
 						Cut(_count - 1);
+						Keep(look, _position, made, DslRecognitionTrace.Answer.None);
 
 						if (!look.IsPositive)
 							return true;
@@ -1085,36 +1142,16 @@ internal static class DslRecognitionTrace
 						continue;
 					}
 
-					case Route.Evaluated:
+					case Route.Unanswered:
 					{
-						var entry = (Entry)point.Extra!;
+						var made = (long)point.Extra!;
+						var node = point.Node!;
 
 						Restore(point);
 						Cut(_count - 1);
+						Keep(node, _position, made, DslRecognitionTrace.Answer.None);
 
-						if (!_cyclic)
-							Remember(entry, entry.Results);
-
-						var results = entry.Results;
-
-						if (results is Trail one)
-						{
-							Replayed(one);
-
-							return true;
-						}
-
-						var many = (Trail[])results;
-
-						if (many.Length == 0)
-							continue;
-
-						if (many.Length > 1)
-							Push(Route.Replay, index: 1, extra: many);
-
-						Replayed(many[0]);
-
-						return true;
+						continue;
 					}
 
 					case Route.Replay:
@@ -1250,23 +1287,31 @@ internal static class DslRecognitionTrace
 					return false;
 
 				case Step.AtomicEnd:
+				{
+					var wide = (WideFrame)frame;
+
 					Cut(frame.A);
 
-					_cutting = ((WideFrame)frame).B;
+					// What the group read is kept as one cell, in front of what was read before it, so that
+					// another reading of the group here puts it in front of its own.
+					var read = _head == wide.Mark ? null : Trail.Group(_head!, wide.Mark);
+
+					Keep(frame.Node!, wide.B, (long)wide.Extra!, new Answer(_position, read));
 
 					return false;
+				}
 
 				case Step.LookEnd:
 				{
 					var look = (Node.Lookahead)frame.Node!;
+					var wide = (WideFrame)frame;
+					var made = (long)_points[frame.A].Extra!;
 
 					// The first derivation of the body answers the look; the others are not wanted.
 					Cut(frame.A);
-
-					var wide = (WideFrame)frame;
+					Keep(look, wide.B, made, new Answer(_position, null));
 
 					_looking  = wide.C;
-					_cutting  = wide.D;
 					_position = wide.B;
 					_head     = wide.Mark;
 
@@ -1300,21 +1345,6 @@ internal static class DslRecognitionTrace
 					Fail();
 
 					return false;
-
-				case Step.Collect:
-				{
-					var entry = frame.Entry;
-
-					entry.Reached(new Trail(
-						new DslRecognitionExtent(_rules[entry.Rule], null, entry.Start, _position - entry.Start),
-						!_isTrivia[entry.Rule],
-						_head,
-						entry.Head,
-						entry.Head));
-					Fail();
-
-					return false;
-				}
 
 				default:
 					throw new InvalidOperationException($"Unknown step {frame.Step}.");
@@ -1417,11 +1447,39 @@ internal static class DslRecognitionTrace
 				}
 
 				case Node.Atomic atomic:
-					_continuation = new WideFrame(Step.AtomicEnd, atomic, _entry, _continuation) { A = _count, B = _cutting };
-					_cutting++;
-					_node         = atomic.Body;
+				{
+					// The first derivation of the group is its answer wherever it is read at this position:
+					// the routes after the winner are never read, here or again.
+					if (!_cyclic && Answered(atomic) is { } answer)
+					{
+						if (answer.End < 0)
+						{
+							Fail();
+
+							return;
+						}
+
+						if (answer.Read is { } read)
+							_head = new Trail(read, _head);
+
+						_position = answer.End;
+
+						return;
+					}
+
+					Push(Route.Unanswered, atomic, extra: _steps);
+
+					_continuation = new WideFrame(Step.AtomicEnd, atomic, _entry, _continuation)
+					{
+						A     = _count - 1,
+						B     = _position,
+						Mark  = _head,
+						Extra = _steps,
+					};
+					_node = atomic.Body;
 
 					return;
+				}
 
 				case Node.Repeat repeat:
 					// A turn that can end in one place only is never reached again by another route.
@@ -1430,20 +1488,29 @@ internal static class DslRecognitionTrace
 					return;
 
 				case Node.Lookahead look:
-					Push(Route.Look, look);
+					if (!_cyclic && Answered(look) is { } looked)
+					{
+						if (looked.End >= 0 != look.IsPositive)
+						{
+							Expect(_position, Said(look), _entry.Rule);
+							Fail();
+						}
+
+						return;
+					}
+
+					Push(Route.Look, look, extra: _steps);
 
 					_continuation = new WideFrame(Step.LookEnd, look, _entry, _continuation)
 					{
 						A    = _count - 1,
 						B    = _position,
 						C    = _looking,
-						D    = _cutting,
 						Mark = _head,
 					};
 
 					// A look does not report how far it looked: what fails inside one is no refusal of the text.
 					_looking++;
-					_cutting++;
 					_node = look.Body;
 
 					return;
@@ -1579,27 +1646,40 @@ internal static class DslRecognitionTrace
 
 			var called = new Entry(rule, _position, _entry, _head, _looking > 0, _steps);
 
-			// Inside an atomic group or a look, the first derivation that gets out drops the routes behind
-			// it, and a call read there as it is elsewhere would be dropped before it had been read to the
-			// end and remembered: another call there would read it again, and a grammar that does so at
-			// every level would take exponentially many steps. Such a call is read on its own, to the end
-			// of its derivations, before what follows it reads on.
-			if (_cutting > 0)
-			{
-				Push(Route.Evaluated, extra: called);
+			Push(Route.Exhausted, extra: called);
 
-				_continuation = new Frame(Step.Collect, null, called, null);
-				_cutting      = 0;
-			}
-			else
-			{
-				Push(Route.Exhausted, extra: called);
+			_continuation = new Frame(Step.RuleEnd, null, called, _continuation);
+			_entry        = called;
+			_node         = body;
+		}
 
-				_continuation = new Frame(Step.RuleEnd, null, called, _continuation);
-			}
+		/// <summary>The first answer of an atomic group or a look at the current position, where one has been found.</summary>
+		Answer? Answered(Node node)
+		{
+			var key = Key(NodeNumber(node), _position);
 
-			_entry = called;
-			_node  = body;
+			return _answers.TryGetValue(key, out var answer) ||
+				_looking > 0 && _answersSilently.TryGetValue(key, out answer)
+					? answer
+					: null;
+		}
+
+		void Keep(Node node, int position, long made, Answer answer)
+		{
+			// Like a call, a group read in a few steps is read again as cheaply as it is replayed.
+			if (_cyclic || _steps - made < Worth)
+				return;
+
+			// A look's body is read silently whatever stands around it: its answer is the same either way.
+			(_looking > 0 && node is not Node.Lookahead ? _answersSilently : _answers)[Key(NodeNumber(node), position)] = answer;
+		}
+
+		int NodeNumber(Node node)
+		{
+			if (!_nodeNumbers.TryGetValue(node, out var number))
+				_nodeNumbers.Add(node, number = _nodeNumbers.Count);
+
+			return number;
 		}
 
 		void Remember(Entry entry, object results)
