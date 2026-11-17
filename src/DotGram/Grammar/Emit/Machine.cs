@@ -2351,6 +2351,16 @@ sealed partial class Machine
 			file.Line();
 		}
 
+		if (CountsRules && _putsOut)
+		{
+			file.Line("#if DOTGRAM_COUNTS");
+			file.Line("// The records a commit looked at for ways back to put out, for a test that counts them;");
+			file.Line("// compiled only under DOTGRAM_COUNTS, which no project defines, and not a supported setting.");
+			file.Line($"internal static long {PassedOver} = 0;");
+			file.Line("#endif");
+			file.Line();
+		}
+
 		using (file.Block(
 			$"static int {name}({InputType} text, int pos, int state, " +
 			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, " +
@@ -5434,17 +5444,7 @@ sealed partial class Machine
 			$"entries[capturedCall].RuleIndex == {_ruleIds[looked]} && " +
 			"entries[capturedCall].Value == seenTo);");
 
-		using (atSuccess.Block("for (var back = entries.Count - 1; back >= lookedAt; back--)"))
-		{
-			atSuccess.Line("var inside = entries[back];");
-			atSuccess.Line(
-				"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
-				"inside.Kind != ParserEntry.Lookahead) continue;");
-			atSuccess.Line(
-				"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
-				"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
-				"inside.Value);");
-		}
+		PutOutWaysBack(atSuccess, "lookedAt", inclusive: true);
 
 		atSuccess.Line("p         = looked.Position;");
 		atSuccess.Line("call      = looked.CallIndex;");
@@ -6986,19 +6986,7 @@ sealed partial class Machine
 		// the entry the call completed into — and closing the gaps would rename them.
 		if (KeepsRecords(body))
 		{
-			_usesDead = true;
-
-			using (atCommit.Block("for (var back = entries.Count - 1; back > atomic; back--)"))
-			{
-				atCommit.Line("var inside = entries[back];");
-				atCommit.Line(
-					"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
-					"inside.Kind != ParserEntry.Lookahead) continue;");
-				atCommit.Line(
-					"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
-					"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
-					"inside.Value);");
-			}
+			PutOutWaysBack(atCommit, "atomic", inclusive: false);
 		}
 		else
 		{
@@ -7016,6 +7004,45 @@ sealed partial class Machine
 
 		return state;
 
+	}
+
+	/// <summary>
+	/// The records a commit looked at while it put out the ways back above its boundary, counted
+	/// where a test asks for it (<see cref="CountsRules"/>, under <c>DOTGRAM_COUNTS</c>).
+	/// </summary>
+	string PassedOver => Tag.Named("PassedOver");
+
+	/// <summary>Whether a commit that puts out the ways back above it was written.</summary>
+	bool _putsOut;
+
+	/// <summary>
+	/// Puts out every way back above <paramref name="floor"/> — above it, or from it on where
+	/// <paramref name="inclusive"/> — as an atomic group that keeps its records does when it
+	/// commits, and a lookahead that hands on a value when it succeeds.
+	/// </summary>
+	void PutOutWaysBack(Writer writer, string floor, bool inclusive)
+	{
+		_usesDead = true;
+		_putsOut  = true;
+
+		using (writer.Block($"for (var back = entries.Count - 1; back {(inclusive ? ">=" : ">")} {floor}; back--)"))
+		{
+			if (CountsRules)
+			{
+				writer.Line("#if DOTGRAM_COUNTS");
+				writer.Line($"{PassedOver}++;");
+				writer.Line("#endif");
+			}
+
+			writer.Line("var inside = entries[back];");
+			writer.Line(
+				"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
+				"inside.Kind != ParserEntry.Lookahead) continue;");
+			writer.Line(
+				"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
+				"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
+				"inside.Value);");
+		}
 	}
 
 	int CompileRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)

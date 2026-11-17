@@ -74,7 +74,7 @@ static partial class CSharpEmitter
 		"MaterializeDirectAsksMarks{v}", "MaterializeDirectArm{v}#",
 		"Reader{v}", "Deep{v}", "Same{v}", "Prefix{v}#", "PrefixNext{v}#", "PrefixDepth{v}#", "PrefixLongest{v}#",
 		"PrefixMembers{v}#", "PrefixExpected{v}#", "PrefixMiss{v}#", "Reach{v}", "Letters{v}", "TokenAt{v}", "Text{v}", "Span{v}",
-		"Offer{v}", "Locate{v}", "Searched{v}",
+		"Offer{v}", "Locate{v}", "Searched{v}", "PassedOver{v}",
 	];
 
 	/// <summary>
