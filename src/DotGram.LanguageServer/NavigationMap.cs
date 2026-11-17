@@ -136,9 +136,10 @@ static class NavigationMap
 				cancellationToken.ThrowIfCancellationRequested();
 
 			var position = found.Positions[index];
+			var spelled  = found.Spans[index];
 
 			if (includeDeclaration || position != found.DefinitionPosition)
-				result.Add(new Location(uri, lines.Range(position, found.Name.Length)));
+				result.Add(new Location(uri, lines.Range(spelled.Start, spelled.Length)));
 		}
 
 		foreach (var reference in found.Elsewhere)

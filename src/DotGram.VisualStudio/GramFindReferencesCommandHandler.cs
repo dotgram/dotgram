@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
@@ -133,16 +133,16 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 
 		var results = new List<FindResult>(found.Positions.Length);
 
-		foreach (var position in found.Positions)
+		foreach (var span in found.Spans)
 		{
-			var line = snapshot.GetLineFromPosition(position);
-			var column = position - line.Start.Position;
+			var line = snapshot.GetLineFromPosition(span.Start);
+			var column = span.Start - line.Start.Position;
 
 			results.Add(new FindResult(
 				line.GetText(),
 				line.LineNumber,
 				column,
-				new Span(column, found.Name.Length)));
+				new Span(column, span.Length)));
 		}
 
 		var window = (IFindResultsWindow2)findResults.StartSearch(
