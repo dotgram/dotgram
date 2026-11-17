@@ -70,12 +70,15 @@ public sealed class AnalysisTests
 	}
 
 	/// <summary>
-	/// An edit to the T-SQL grammar is told about within the session's own analysis time, its pause
-	/// after typing and 200 ms: the server adds no wait of its own. Same process, same machine as the
-	/// analysis, so a busy machine slows both.
+	/// An edit to the T-SQL grammar is told about after the session's analysis and its pause after
+	/// typing, and nothing else: the only wait between the edit and its diagnostics is that pause.
 	/// </summary>
+	/// <remarks>
+	/// The waits are counted on the server's clock rather than the time taken measured, which a busy
+	/// machine stretches; the time is held only to a bound no machine that runs the test misses.
+	/// </remarks>
 	[Fact]
-	public async Task An_edit_is_told_about_within_the_analysis_time()
+	public async Task An_edit_is_told_about_after_its_pause_and_no_other_wait()
 	{
 		var text = File.ReadAllText(TransactSqlPath);
 		const string uri = "untitled:TransactSql.gram";
@@ -84,8 +87,11 @@ public sealed class AnalysisTests
 
 		await client.OpenAsync(uri, text);
 		await client.DiagnosticsAsync(uri, 1);
+		await client.SettleAsync();
 
 		var watch = Stopwatch.StartNew();
+
+		client.Scheduler.Delays.Clear();
 
 		await client.NotifyAsync("textDocument/didChange", new
 		{
@@ -96,67 +102,32 @@ public sealed class AnalysisTests
 
 		var elapsed  = watch.Elapsed;
 		var analysis = client.Server.Document(uri)!.Session.Result!.Timing.Total;
-		var bound    = analysis + TimeSpan.FromMilliseconds(GramAnalysisSession.AnalysisDelayMilliseconds + 200);
 
 		TestContext.Current.TestOutputHelper?.WriteLine(
 			$"keystroke to diagnostics {elapsed.TotalMilliseconds:F0} ms; analysis {analysis.TotalMilliseconds:F0} ms; " +
-			$"pause {GramAnalysisSession.AnalysisDelayMilliseconds} ms; the server's own {(elapsed - analysis).TotalMilliseconds - GramAnalysisSession.AnalysisDelayMilliseconds:F0} ms");
+			$"pause {GramAnalysisSession.AnalysisDelayMilliseconds} ms");
 
-		Assert.True(elapsed <= bound, $"An edit took {elapsed.TotalMilliseconds:F0} ms to be told about; the analysis took {analysis.TotalMilliseconds:F0} ms.");
+		Assert.Equal([GramAnalysisSession.AnalysisDelayMilliseconds], client.Scheduler.Delays);
+		Assert.True(elapsed < analysis + TimeSpan.FromSeconds(30), $"An edit took {elapsed.TotalSeconds:F1} s to be told about; the analysis took {analysis.TotalSeconds:F1} s.");
 	}
 
 	/// <summary>
-	/// A keystroke into the T-SQL grammar, 469 KB, costs the server little more than a keystroke into a
-	/// grammar of one line: an edit reads what it changed, not the whole text.
+	/// A keystroke into the T-SQL grammar, 469 KB, reads what it changed, not the whole text: a thousand
+	/// edits read the text into its lines once — the opened version, which nothing had read yet — and
+	/// copy it never.
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// The server reads a thousand edits that are all in its input before it starts, so that nothing
-	/// it does slows the sender and nothing the sender does slows it; their cost is the run with them
-	/// less the same run without them. The yardstick is one read of T-SQL into its lines, measured
-	/// beside them, so that a busy machine slows all alike: what T-SQL's edits cost more than the
-	/// one-line grammar's is held to 800 such reads, and the one-line grammar's own to 1,000, so that
-	/// a delay every edit pays alike does not hide behind the difference.
-	/// </para>
-	/// <para>
-	/// Measured (Linux here, and CI's Windows runner): T-SQL's edits cost about 150 reads more on a
-	/// quiet machine and up to 420 on a busy one, nearly all of it Roslyn's <c>WithChanges</c>, about
-	/// 50 µs on a text of that size. A version that copied the text on every edit cost 1,100 reads
-	/// more on a quiet machine; one that read it into lines twice per edit, 2,000. The bound is a
-	/// guard against those, not a measurement.
-	/// Whether the session has started on the document when the burst arrives moves the one-line
-	/// grammar's cost by up to 60 µs an edit, which is why the bound is on the difference, not a ratio.
-	/// </para>
+	/// What is counted is the work a version that read every edit's whole text did: one that copied the
+	/// text on every edit made a thousand copies, one that read it into lines twice per edit two
+	/// thousand reads. The counts do not depend on how busy the machine is, as the times this test
+	/// used to compare did.
 	/// </remarks>
 	[Fact]
-	public void A_burst_of_keystrokes_costs_what_it_costs_in_a_small_grammar()
+	public void A_burst_of_keystrokes_reads_only_what_it_changed()
 	{
 		var text  = File.ReadAllText(TransactSqlPath);
-		var large = EditCost(text);
-		var small = EditCost("Start = 'a' // a grammar of one line\nparse Start\n");
-		var read  = Median(() =>
-		{
-			var watch = Stopwatch.StartNew();
-
-			_ = new LineMap(Microsoft.CodeAnalysis.Text.SourceText.From(text));
-			return watch.Elapsed;
-		});
-
-		TestContext.Current.TestOutputHelper?.WriteLine(
-			$"1,000 edits: T-SQL {large.TotalMilliseconds:F0} ms, one line {small.TotalMilliseconds:F0} ms; " +
-			$"one read of T-SQL into lines {read.TotalMilliseconds:F2} ms");
-
-		Assert.True(
-			large - small < read * 800,
-			$"1,000 edits of T-SQL cost {large.TotalMilliseconds:F0} ms, of one line {small.TotalMilliseconds:F0} ms: {(large - small) / read:F0} reads of T-SQL more.");
-		Assert.True(small < read * 1000, $"1,000 edits of one line cost {small.TotalMilliseconds:F0} ms, {small / read:F0} reads of T-SQL.");
-	}
-
-	/// <summary>What a thousand single-character edits at the end of the first line cost the server, the opening less.</summary>
-	static TimeSpan EditCost(string text)
-	{
-		var at      = text.IndexOfAny(['\r', '\n']);
-		var edits   = Enumerable.Range(2, 1000).Select(version => (object)new
+		var at    = text.IndexOfAny(['\r', '\n']);
+		var edits = Enumerable.Range(2, 1000).Select(version => (object)new
 		{
 			jsonrpc = "2.0",
 			method  = "textDocument/didChange",
@@ -165,7 +136,7 @@ public sealed class AnalysisTests
 				textDocument   = new { uri = "untitled:Burst.gram", version },
 				contentChanges = new[] { new { range = new { start = new { line = 0, character = at + version - 2 }, end = new { line = 0, character = at + version - 2 } }, text = " " } },
 			},
-		}).ToArray();
+		});
 		var opening = new object[]
 		{
 			new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { processId = 1, capabilities = new { } } },
@@ -173,21 +144,27 @@ public sealed class AnalysisTests
 			new { jsonrpc = "2.0", method = "textDocument/didOpen", @params = new { textDocument = new { uri = "untitled:Burst.gram", languageId = "gram", version = 1, text } } },
 		};
 
-		var with    = Input(opening.Concat(edits));
-		var without = Input(opening);
+		var work = new ServerWork();
 
-		// Warmed once each, outside what is timed: the edits were all applied, as written.
-		Run(with, out var server);
+		ServerWork.Current = work;
 
-		var edited = server.Document("untitled:Burst.gram");
+		try
+		{
+			Run(Input(opening.Concat(edits)), out var server);
 
-		Assert.NotNull(edited);
-		Assert.Equal(1001, edited.Current.Number);
-		Assert.Equal(text.Insert(at, new string(' ', 1000)), edited.Current.String);
+			var edited = server.Document("untitled:Burst.gram");
 
-		Run(without, out _);
+			Assert.NotNull(edited);
+			Assert.Equal(1001, edited.Current.Number);
+			Assert.Equal(text.Insert(at, new string(' ', 1000)), edited.Current.String);
+		}
+		finally
+		{
+			ServerWork.Current = null;
+		}
 
-		return Median(() => Run(with, out _)) - Median(() => Run(without, out _));
+		Assert.Equal(1, work.LineReads);
+		Assert.Equal(0, work.Copies);
 	}
 
 	static byte[] Input(IEnumerable<object> messages)
@@ -212,11 +189,6 @@ public sealed class AnalysisTests
 		connection.RunAsync(server, TestContext.Current.CancellationToken).GetAwaiter().GetResult();
 
 		return watch.Elapsed;
-	}
-
-	static TimeSpan Median(Func<TimeSpan> measure)
-	{
-		return Enumerable.Range(0, 5).Select(_ => measure()).Order().ElementAt(2);
 	}
 
 	/// <summary>Every grammar of the repository coloured through the protocol exactly as its classifications say, through the legend.</summary>

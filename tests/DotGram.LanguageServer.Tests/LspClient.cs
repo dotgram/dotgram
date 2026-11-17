@@ -447,8 +447,13 @@ sealed class TrackingScheduler : DotGram.Language.IGramScheduler
 
 	public long Now => _clock.ElapsedMilliseconds;
 
+	/// <summary>Every wait asked for, in order: what a test counts instead of timing.</summary>
+	public System.Collections.Concurrent.ConcurrentQueue<int> Delays { get; } = new();
+
 	public async Task DelayAsync(int milliseconds, CancellationToken cancellationToken)
 	{
+		Delays.Enqueue(milliseconds);
+
 		if (milliseconds < 1000)
 		{
 			await Task.Delay(milliseconds, cancellationToken);

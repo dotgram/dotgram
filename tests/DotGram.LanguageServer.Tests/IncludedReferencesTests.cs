@@ -31,7 +31,7 @@ public sealed class IncludedReferencesTests : IDisposable
 	/// mapped onto the client's lines once per grammar, not once per reference.
 	/// </summary>
 	[Fact]
-	public async Task The_references_into_a_large_included_grammar_are_answered_quickly()
+	public async Task The_references_into_a_large_included_grammar_open_it_once_a_request()
 	{
 		const string dialect = "Start = T.TSqlIdentifier\nparse Start\n";
 
@@ -73,14 +73,20 @@ public sealed class IncludedReferencesTests : IDisposable
 
 		var clock = Stopwatch.StartNew();
 
+		asked = store.Asked;
+
 		for (var repeat = 0; repeat < 5; repeat++)
 			await client.RequestAsync("textDocument/references", request);
 
 		var each = clock.Elapsed.TotalMilliseconds / 5;
 
-		// Measured on the T-SQL grammar: 92 ms a request when every reference counted the grammar's lines
-		// again, 2 ms once they are counted once; the bound sits between, for a machine that is busy.
-		Assert.True(each < 30, $"A request took {each:0} ms.");
+		// The work, counted rather than timed: each request opens the included grammar, and counts its
+		// lines, once for all of its references, which the store's being asked once a request shows: a
+		// version that did both for every reference asked it three hundred times a request, and took
+		// 92 ms a request on the T-SQL grammar where once a request takes 2 ms. The time is held only to
+		// a bound no machine that runs the test misses.
+		Assert.Equal(5, store.Asked - asked);
+		Assert.True(each < 5_000, $"A request took {each:0} ms.");
 	}
 
 	/// <summary>A cancelled request maps none of a rule's uses in the document itself, however many there are.</summary>
