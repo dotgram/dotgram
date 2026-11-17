@@ -112,7 +112,15 @@ sealed partial class Machine
 		}
 
 		atAttempt.Line($"reach{id} = p;");
+
+		// Where the turn's mark stands, in the repetition's own entry, whose state nothing else reads:
+		// the end of the turn goes to it, and to the record below it, without searching (TurnMarked).
+		atAttempt.Line("var markedAt = entries.Count;");
 		atAttempt.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atAttempt, asked)}, p, call, atomic, repeat, lookahead, 0));");
+		atAttempt.Line("var marking = entries[repeat];");
+		atAttempt.Line(
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, markedAt, marking.Position, marking.CallIndex, " +
+			"marking.AtomicIndex, marking.RepeatIndex, marking.LookaheadIndex, marking.Value, marking.RuleIndex);");
 		atAttempt.Line($"goto {Label(atAttempt, inner)};");
 
 		atAsked.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
@@ -159,6 +167,25 @@ sealed partial class Machine
 		atRecovered.Line("var recoveryReach = p;");
 		atRecovered.Line("var recoveryTo = p;");
 		atRecovered.Line("var recoveryBoundary = false;");
+		TurnMarked(atRecovered, asked);
+
+		// The pending recovery stands at the mark, put there when the mark's way back was taken, and the
+		// way the search for the synchronization keeps right above it while the synchronization is read.
+		using (atRecovered.Block("if (turnMarked >= 0 && entries[turnMarked].Kind == ParserEntry.PendingRecovery && " +
+			"(turnMarked + 1 == entries.Count || " +
+			$"entries[turnMarked + 1].Kind == ParserEntry.Choice && entries[turnMarked + 1].State == {Mark(Lands, advance)}))"))
+		{
+			CountTurnWalk(atRecovered);
+			atRecovered.Line("recoveryFrom = entries[turnMarked].Position;");
+			atRecovered.Line("recoveryReach = entries[turnMarked].AtomicIndex;");
+
+			using (atRecovered.Block("if (turnMarked + 1 < entries.Count)"))
+			{
+				atRecovered.Line("recoveryTo = entries[turnMarked + 1].Position;");
+				atRecovered.Line("recoveryBoundary = true;");
+			}
+		}
+		atRecovered.Line("else");
 		atRecovered.Line("for (var recoveryAt = entries.Count - 1; recoveryAt > repeat; recoveryAt--)");
 		using (atRecovered.Block(""))
 		{
@@ -202,7 +229,7 @@ sealed partial class Machine
 			atRecovered.Line($"failure.Trace?.Recovered({Tracing.RuleOf(recovery.Rule)}, recoveryFrom, p, recoveryReach);");
 		atRecovered.Line("var recoveredRepeat = entries[repeat];");
 		atRecovered.Line(
-			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, " +
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, recoveredRepeat.State, recoveredRepeat.Position, " +
 			"recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, " +
 			$"recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1{began});");
 		if (stands)
@@ -210,6 +237,7 @@ sealed partial class Machine
 				"entries.Add(new ParserEntry(ParserEntry.TurnDone, 1, p, call, atomic, repeat, lookahead, recoveredRepeat.RuleIndex));");
 		atRecovered.Line($"goto {Label(atRecovered, loop)};");
 
+		TurnMarked(atAfter, asked);
 		DeactivateChoices(atAfter, asked);
 
 		if (again)
@@ -239,7 +267,7 @@ sealed partial class Machine
 			}
 		}
 		atAfter.Line(
-			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, acceptedRepeat.State, acceptedRepeat.Position, " +
 			"acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, " +
 			$"acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1{began});");
 		if (stands)
@@ -265,13 +293,31 @@ sealed partial class Machine
 	/// </remarks>
 	void TurnEnds(Writer writer, int id)
 	{
+		writer.Line("var turnRecordAt = -1;");
+
+		using (writer.Block(
+			"if (turnMarked > repeat + 1 && entries[turnMarked - 1].Kind == ParserEntry.Turn && " +
+			$"entries[turnMarked - 1].State == {id} && entries[turnMarked - 1].RepeatIndex == repeat)"))
+		{
+			CountTurnWalk(writer);
+			writer.Line("turnRecordAt = turnMarked - 1;");
+		}
+
+		writer.Line("else");
+
 		using (writer.Block("for (var turnAt = entries.Count - 1; turnAt > repeat; turnAt--)"))
 		{
 			CountTurnWalk(writer);
 			writer.Line("var ended = entries[turnAt];");
 			writer.Line($"if (ended.Kind != ParserEntry.Turn || ended.State != {id} || ended.RepeatIndex != repeat) continue;");
-			writer.Line($"if (ended.LookaheadIndex >= 0 || ended.AtomicIndex > reach{id}) reach{id} = ended.AtomicIndex;");
+			writer.Line("turnRecordAt = turnAt;");
 			writer.Line("break;");
+		}
+
+		using (writer.Block("if (turnRecordAt >= 0)"))
+		{
+			writer.Line("var ended = entries[turnRecordAt];");
+			writer.Line($"if (ended.LookaheadIndex >= 0 || ended.AtomicIndex > reach{id}) reach{id} = ended.AtomicIndex;");
 		}
 	}
 
@@ -365,17 +411,76 @@ sealed partial class Machine
 	/// <summary>Whether a repetition this machine compiled keeps its turns on the arena (<see cref="Reenters"/>).</summary>
 	public bool KeepsTurns { get; private set; }
 
+	/// <summary>
+	/// Where the turn ending here was marked, as <c>turnMarked</c>: the index its attempt wrote into
+	/// the repetition's entry, where that still holds this turn's mark, and -1 where it does not.
+	/// </summary>
+	/// <remarks>
+	/// The index is written in place, and an in-place write outlives a backtrack: a way back left in
+	/// an earlier turn (a run, which a turn does not put out) takes the reading back into that turn,
+	/// and the index then names a place popped since or filled with something else. Only a mark of
+	/// this reading stands under the state it resumes at, so that is what is asked; where it fails
+	/// the end searches as it always did.
+	/// </remarks>
+	void TurnMarked(Writer writer, int attempt)
+	{
+		writer.Line("var turnMarked = entries[repeat].State;");
+		writer.Line(
+			"if (turnMarked <= repeat || turnMarked >= entries.Count || entries[turnMarked].RepeatIndex != repeat || " +
+			$"entries[turnMarked].State != {Mark(Lands, attempt)} || " +
+			"(entries[turnMarked].Kind != ParserEntry.Choice && entries[turnMarked].Kind != ParserEntry.Dead && " +
+			"entries[turnMarked].Kind != ParserEntry.PendingRecovery))");
+		writer.Then("turnMarked = -1;");
+	}
+
+	/// <summary>Puts out the ways back of the turn ending here, down to and with its mark.</summary>
+	/// <remarks>
+	/// <para>
+	/// With the mark known the walk stops there, and it does not look inside a recovering list read
+	/// within the turn: from a record of such a list (its <c>RepeatIndex</c>, a repetition entry whose
+	/// state holds a mark) it goes straight down to the list's entry. Every turn of that list put out
+	/// its own ways when it ended, so the only way it can still hold is the one it left to read
+	/// another turn when it ended — pushed last, after everything else of the list, and so the first
+	/// of its records the walk comes to, put out before the jump. An ordinary repetition's entry holds
+	/// no mark, and its ways are put out one by one, as before. Searching down to the mark through
+	/// every list nested in the element instead cost the square of the depth: a list nested in itself
+	/// 3,200 deep read in one and a half seconds.
+	/// </para>
+	/// <para>
+	/// Without the mark — a turn read again after a backtrack into it — the walk searches for it.
+	/// </para>
+	/// </remarks>
 	void DeactivateChoices(Writer writer, int attempt)
 	{
+		const string putOut =
+			"entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, " +
+			"choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, " +
+			"choice.Value, choice.RuleIndex);";
+
+		using (writer.Block("if (turnMarked >= 0)"))
+		{
+			using (writer.Block("for (var choiceAt = entries.Count - 1; choiceAt >= turnMarked; choiceAt--)"))
+			{
+				CountTurnWalk(writer);
+				writer.Line("var choice = entries[choiceAt];");
+				writer.Line("if (choice.Kind == ParserEntry.Choice)");
+				writer.Then(putOut);
+				writer.Line("var nested = choice.RepeatIndex;");
+				writer.Line(
+					"if (nested > turnMarked && nested < choiceAt && entries[nested].Kind == ParserEntry.Repeat && " +
+					"entries[nested].State > nested)");
+				writer.Then("choiceAt = nested;");
+			}
+		}
+
+		writer.Line("else");
+
 		using (writer.Block("for (var choiceAt = entries.Count - 1; choiceAt > repeat; choiceAt--)"))
 		{
 			CountTurnWalk(writer);
 			writer.Line("var choice = entries[choiceAt];");
 			writer.Line("if (choice.Kind == ParserEntry.Choice)");
-			writer.Then(
-				"entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, " +
-				"choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, " +
-				"choice.Value, choice.RuleIndex);");
+			writer.Then(putOut);
 			// Earlier turns already committed their choices. The attempt marker remains
 			// as Dead after success, or becomes PendingRecovery when its choice unwinds.
 			// Unlike a cached arena offset, the marker follows rollback and nested loops.
@@ -385,7 +490,6 @@ sealed partial class Machine
 				"choice.Kind == ParserEntry.PendingRecovery)) break;");
 		}
 	}
-
 
 	void ReportRecoveries(Writer file)
 	{
