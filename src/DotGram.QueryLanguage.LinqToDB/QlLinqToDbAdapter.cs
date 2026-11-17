@@ -102,7 +102,7 @@ public sealed class QlLinqToDbAdapter(QlLikeDialect dialect, int maxConcurrency 
 			}
 			catch (Exception e)
 			{
-				throw Translate(e, cancellationToken);
+				throw Translate(e, cancellationToken, timeout.Token);
 			}
 
 			await using (rows.ConfigureAwait(false))
@@ -117,7 +117,7 @@ public sealed class QlLinqToDbAdapter(QlLikeDialect dialect, int maxConcurrency 
 					}
 					catch (Exception e)
 					{
-						throw Translate(e, cancellationToken);
+						throw Translate(e, cancellationToken, timeout.Token);
 					}
 
 					if (!next)
@@ -141,20 +141,23 @@ public sealed class QlLinqToDbAdapter(QlLikeDialect dialect, int maxConcurrency 
 		}
 		catch (OperationCanceledException e)
 		{
-			throw Translate(e, caller);
+			throw Translate(e, caller, timeout);
 		}
 	}
 
-	QlException Translate(Exception e, CancellationToken caller)
+	QlException Translate(Exception e, CancellationToken caller, CancellationToken timeout)
 	{
 		if (e is QlException ql)
 			return ql;
 
 		Log?.Invoke(e);
 
+		// Whatever a cancelled command throws — OperationCanceledException, or the provider's own
+		// exception for "cancelled by user" — the reason is the token that fired.
 		var error = e switch
 		{
-			OperationCanceledException when caller.IsCancellationRequested => new QlError(QlErrorKind.Canceled, "The query was canceled."),
+			_ when caller.IsCancellationRequested                          => new QlError(QlErrorKind.Canceled, "The query was canceled."),
+			_ when timeout.IsCancellationRequested                         => new QlError(QlErrorKind.Timeout,  "The query took too long."),
 			OperationCanceledException                                     => new QlError(QlErrorKind.Timeout,  "The query took too long."),
 			DivideByZeroException                                          => new QlError(QlErrorKind.DivisionByZero, "Division by zero."),
 			OverflowException                                              => new QlError(QlErrorKind.Overflow, "Arithmetic overflow."),

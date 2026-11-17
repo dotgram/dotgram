@@ -157,17 +157,26 @@ static class Translator
 			}
 
 			case BoundNegate negate:
-				return Expression.Negate(Build(negate.Operand, row, holder, adapter));
+			{
+				var operand = Build(negate.Operand, row, holder, adapter);
+
+				return negate.Type is QlType.Int or QlType.Long ? Expression.NegateChecked(operand) : Expression.Negate(operand);
+			}
 
 			case BoundArithmetic arithmetic:
 			{
 				var (left, right) = Lift(Build(arithmetic.Left, row, holder, adapter), Build(arithmetic.Right, row, holder, adapter));
 
+				// Checked for integers: a part that reads no row is computed on the host, where
+				// unchecked arithmetic would wrap silently where the database reports an overflow.
+				// Over the row, linq2db translates checked nodes as it does the others.
+				var integral = arithmetic.Type is QlType.Int or QlType.Long;
+
 				return arithmetic.Operator switch
 				{
-					ArithmeticOperator.Add      => Expression.Add(left, right),
-					ArithmeticOperator.Subtract => Expression.Subtract(left, right),
-					ArithmeticOperator.Multiply => Expression.Multiply(left, right),
+					ArithmeticOperator.Add      => integral ? Expression.AddChecked(left, right)      : Expression.Add(left, right),
+					ArithmeticOperator.Subtract => integral ? Expression.SubtractChecked(left, right) : Expression.Subtract(left, right),
+					ArithmeticOperator.Multiply => integral ? Expression.MultiplyChecked(left, right) : Expression.Multiply(left, right),
 					ArithmeticOperator.Divide   => Expression.Divide(left, right),
 					_                           => Expression.Modulo(left, right),
 				};

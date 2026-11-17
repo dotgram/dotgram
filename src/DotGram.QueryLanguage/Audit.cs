@@ -16,6 +16,7 @@ static class Audit
 	static readonly HashSet<ExpressionType> Arithmetic =
 	[
 		ExpressionType.Add, ExpressionType.Subtract, ExpressionType.Multiply, ExpressionType.Divide, ExpressionType.Modulo,
+		ExpressionType.AddChecked, ExpressionType.SubtractChecked, ExpressionType.MultiplyChecked,
 	];
 
 	static readonly HashSet<ExpressionType> Comparisons =
@@ -121,6 +122,7 @@ static class Audit
 
 						case ExpressionType.Not:
 						case ExpressionType.Negate:
+						case ExpressionType.NegateChecked:
 							break;
 
 						case ExpressionType.Convert:

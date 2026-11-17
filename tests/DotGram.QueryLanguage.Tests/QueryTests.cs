@@ -126,6 +126,35 @@ public sealed class QueryTests
 	}
 
 	[Fact]
+	public async Task OverflowOnTheHostIsAQlError()
+	{
+		using var db = Shop.Sqlite();
+
+		// `@a * @b + 1` reads no row, so linq2db computes it on the host. Built unchecked, 65536 *
+		// 65536 wrapped to 0 and selected the row with id 1; built checked, it is an overflow, as
+		// the same product is in the database.
+		var error = await Refused(() => Shop.Ids(db, "id = @a * @b + 1", new() { ["a"] = 65536, ["b"] = 65536 }));
+
+		Assert.Equal(QlErrorKind.Overflow, error.Kind);
+	}
+
+	[Fact]
+	public void CheckedArithmeticOnTheHostThrows()
+	{
+		using var db = Shop.Sqlite();
+
+		var a = 65536;
+		var b = 65536;
+
+		// The same with checked nodes: linq2db evaluates them as written and throws, which the
+		// adapter would report as an overflow.
+		Assert.Throws<OverflowException>(() => db.GetTable<Order>().Where(o => o.Id == checked(a * b + 1)).ToList());
+
+		// And checked nodes over the row are translated into SQL like unchecked ones.
+		Assert.Equal(new[] { 2 }, db.GetTable<Order>().Where(o => o.TenantId == 1 && checked(o.Id * 2 + o.Id) == 6).Select(o => o.Id).ToArray());
+	}
+
+	[Fact]
 	public async Task DivisionByZeroInSqliteIsNull()
 	{
 		using var db = Shop.Sqlite();
