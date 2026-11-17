@@ -164,7 +164,8 @@ What does not:
   assembly, `Compile<TDelegate>(text, typeof(Program).Assembly)`, or a `ResolutionScope`.
 - **A generic instantiation nothing compiled ahead of time**: compiling to a delegate type other
   than the lambda's own (its tree is an `Expression<…>` of a type nobody wrote), a generic method
-  called with type arguments the application never used, an array built by `new[] { … }`.
+  called with type arguments the application never used, an array of an element type nothing
+  compiled ahead of time.
 - **Members the trimmer removed**, which is most of the base library: `s.Trim()` is refused as a
   method `String` does not have. A type the texts use can be kept whole with a
   `TrimmerRootDescriptor`; that makes its members findable, not its generic instantiations.
