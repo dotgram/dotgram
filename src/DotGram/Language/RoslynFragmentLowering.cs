@@ -52,7 +52,12 @@ static class RoslynFragmentLowering
 		var parsed   = SyntaxFactory.ParseExpression(text, 0, Options, consumeFullText: true);
 		var refusals = new List<Fragment.Unportable>();
 
-		if (parsed.ContainsDiagnostics || parsed.FullSpan.End != text.Length)
+		// What follows the expression's last token on a line of its own belongs to the end of the
+		// text, not to the expression; it may be trivia and nothing else.
+		var end  = parsed.FullSpan.End;
+		var tail = end < text.Length ? SyntaxFactory.ParseLeadingTrivia(text.Substring(end)) : default;
+
+		if (parsed.ContainsDiagnostics || end + tail.FullSpan.Length != text.Length)
 		{
 			var whole = new Fragment.Unportable("Unparsable") { Span = new FragmentSpan(0, text.Length) };
 
@@ -64,15 +69,25 @@ static class RoslynFragmentLowering
 		// The tree has no place for a comment, and a printer that re-spells a fragment drops it;
 		// a comment in a fragment is C#'s.
 		foreach (var trivia in parsed.DescendantTrivia(descendIntoTrivia: true))
-			if (trivia.Kind() is SyntaxKind.SingleLineCommentTrivia or SyntaxKind.MultiLineCommentTrivia or
-				SyntaxKind.SingleLineDocumentationCommentTrivia or SyntaxKind.MultiLineDocumentationCommentTrivia)
-				refusals.Add(new Fragment.Unportable("Comment") { Span = Of(trivia.Span) });
-			else if (trivia.IsDirective || trivia.IsKind(SyntaxKind.DisabledTextTrivia))
-				refusals.Add(new Fragment.Unportable("Directive") { Span = Of(trivia.Span) });
+			Trivia(trivia, 0, refusals);
+
+		foreach (var trivia in tail)
+			Trivia(trivia, end, refusals);
 
 		refusals.Sort(static (left, right) => left.Span.Start.CompareTo(right.Span.Start));
 
 		return new LoweredFragment(text, root, refusals);
+	}
+
+	static void Trivia(SyntaxTrivia trivia, int offset, List<Fragment.Unportable> refusals)
+	{
+		var span = new FragmentSpan(offset + trivia.Span.Start, trivia.Span.Length);
+
+		if (trivia.Kind() is SyntaxKind.SingleLineCommentTrivia or SyntaxKind.MultiLineCommentTrivia or
+			SyntaxKind.SingleLineDocumentationCommentTrivia or SyntaxKind.MultiLineDocumentationCommentTrivia)
+			refusals.Add(new Fragment.Unportable("Comment") { Span = span });
+		else if (trivia.IsDirective || trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+			refusals.Add(new Fragment.Unportable("Directive") { Span = span });
 	}
 
 	static Fragment Lowering(ExpressionSyntax node, List<Fragment.Unportable> refusals)
