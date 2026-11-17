@@ -53,8 +53,14 @@ public sealed class IncludedReferencesTests : IDisposable
 		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
 
 		var store = new CountingStore();
+		var work  = new ServerWork();
+
+		// Counted for the server started now: its work flows from here.
+		ServerWork.Current = work;
 
 		await using var client = await LspClient.StartAsync(new ServerOptions { Store = store }, _folder);
+
+		ServerWork.Current = null;
 
 		await client.OpenAsync(uri, dialect);
 		await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session);
@@ -71,7 +77,10 @@ public sealed class IncludedReferencesTests : IDisposable
 		// The one included grammar is asked where it opens once, for all of its references.
 		Assert.Equal(1, store.Asked - asked);
 
+		await client.SettleAsync();
+
 		var clock = Stopwatch.StartNew();
+		var read  = work.LineReads;
 
 		asked = store.Asked;
 
@@ -80,12 +89,13 @@ public sealed class IncludedReferencesTests : IDisposable
 
 		var each = clock.Elapsed.TotalMilliseconds / 5;
 
-		// The work, counted rather than timed: each request opens the included grammar, and counts its
-		// lines, once for all of its references, which the store's being asked once a request shows: a
-		// version that did both for every reference asked it three hundred times a request, and took
-		// 92 ms a request on the T-SQL grammar where once a request takes 2 ms. The time is held only to
-		// a bound no machine that runs the test misses.
+		// The work, counted rather than timed: each request asks the store where the included grammar
+		// opens once, and reads it into its lines once, for all of its references. A version that did
+		// either for every reference did it three hundred times a request, and took 92 ms a request on
+		// the T-SQL grammar where once a request takes 2 ms. The time is held only to a bound no machine
+		// that runs the test misses.
 		Assert.Equal(5, store.Asked - asked);
+		Assert.Equal(5, work.LineReads - read);
 		Assert.True(each < 5_000, $"A request took {each:0} ms.");
 	}
 
