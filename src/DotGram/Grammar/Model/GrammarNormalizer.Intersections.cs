@@ -291,7 +291,9 @@ sealed partial class GrammarNormalizer
 				$"A `when … is …` in '{rule.Name}' stands inside a group, a repetition or a " +
 				"capture. It is answered while the parser is built, and what is answered there is " +
 				"whether an alternative is in this parser at all — so it belongs beside the " +
-				"operands of one and nowhere else.",
+				"operands of one and nowhere else. To guard an element inside a group or a " +
+				"repetition, move that element into a rule of its own whose alternatives carry " +
+				"the conditions, and call the rule from there.",
 				Where(node));
 
 		return node;
@@ -488,10 +490,29 @@ sealed partial class GrammarNormalizer
 				"`is` asks whether two recognizers have a string in common, and this compiler can " +
 				"answer that only where each side accepts a listable set of strings — a literal, a " +
 				"choice of them, or a rule that is one. The alternative is kept, as though the " +
-				"condition held.",
+				"condition held." + Shadowing(left) + Shadowing(right),
 				new Location(at < 0 ? 0 : at, 0));
 
 		return null;
+	}
+
+	/// <summary>
+	/// What to add to GRAM4021 where a side names a rule that shadows one from outside its
+	/// namespace: the condition was written for the outer one, a version range, and now asks about
+	/// the local rule, which need not be a set that can be listed.
+	/// </summary>
+	static string Shadowing(Node side)
+	{
+		if (side is not Node.Call(var local, _) || local.Namespace?.Outward?.Lookup(local.Name) is not { } outer || outer == local)
+			return "";
+
+		var inside = local.Namespace.Name.Length == 0 ? "the global namespace" : $"namespace '{local.Namespace.Name}'";
+		var beyond = outer.Namespace is { Name.Length: > 0 } ns ? $"namespace '{ns.Name}'" : "an enclosing scope";
+
+		return $" The name '{local.Name}' in this condition no longer means the rule declared in {beyond}, " +
+			$"a range or a domain the condition was written for: the rule '{local.Name}' declared in {inside} " +
+			$"shadows it there and is what is asked about. Rename the local rule, or write the condition outside " +
+			$"that namespace, so that '{local.Name}' means the outer rule again.";
 	}
 
 	/// <summary>One string a side may accept, and the looks it has still to pass.</summary>

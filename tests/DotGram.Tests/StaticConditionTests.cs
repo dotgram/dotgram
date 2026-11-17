@@ -98,6 +98,34 @@ public sealed class StaticConditionTests
 	}
 
 	[Fact]
+	public void A_condition_inside_a_repetition_says_how_to_move_it_out()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			[DotGram.Gram("Dialect = \"A\" | \"B\"\nWord = ('a' | 'b' & when Dialect is \"A\")*\nparse Word")]
+			public static partial class Inside { }
+			""");
+
+		var said = Assert.Single(run.Diagnostics, one => one.Id == "GRAM4020");
+
+		Assert.Contains("move that element into a rule of its own", said.GetMessage(), StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_condition_over_a_rule_that_shadows_its_range_says_what_the_name_now_means()
+	{
+		var run = GeneratorDriverTests.RunGenerator("""
+			[DotGram.Gram("Version = \"V1\" | \"V2\"\nSince2 = \"V2\"\nnamespace Inner\n{\nSince2 = ['a'..'z']+\nWord : @string = t: (Name & \"!\") & when Version is Since2 => @(t)\nName = ['a'..'z']+\n}\nparse Inner.Word")]
+			public static partial class Shadowed { }
+			""");
+
+		var said = Assert.Single(run.Diagnostics, one => one.Id == "GRAM4021");
+
+		Assert.Contains("'Since2' in this condition no longer means", said.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("namespace 'Inner'", said.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains("Rename the local rule", said.GetMessage(), StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void A_word_boundary_is_no_obstacle_to_a_side()
 	{
 		// A keyword in a grammar with a `wordboundary` is the literal between two looks — no
