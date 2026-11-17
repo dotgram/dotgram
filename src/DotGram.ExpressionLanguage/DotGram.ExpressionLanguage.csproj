@@ -64,6 +64,15 @@
 		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
 	</PropertyGroup>
 
+	<!-- Native AOT and trimming: on the framework that has them, the package declares itself safe for both,
+	     which it is in the analyzers' sense. Everything that reflects says so on the entry points an application
+	     calls (RequiresUnreferencedCode, RequiresDynamicCode on ExpressionParser), so the application is warned
+	     where it calls them, at publish time; and the package's own build runs the analyzers, so a reflection
+	     added without saying so fails here. -->
+	<PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
 

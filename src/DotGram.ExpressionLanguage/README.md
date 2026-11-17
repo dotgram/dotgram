@@ -144,6 +144,31 @@ is code from somewhere you do not control.
 If the text comes from a user, the answer is not to inspect it before parsing. It is to run it
 where it can do no harm: a process of its own, with the rights you are willing to lose.
 
+## Native AOT and trimming
+
+**Partly.** The language finds the types and members a text names by reflection, and builds
+its trees with generic instantiations and array types chosen while it reads. Every entry point
+of `ExpressionParser` says so with `[RequiresUnreferencedCode]` and `[RequiresDynamicCode]`, so
+an application published with `PublishTrimmed` or `PublishAot` is warned where it calls one
+(IL2026, IL3050), when it publishes, rather than surprised when it runs.
+
+Under Native AOT what works is what the application kept when it was compiled. Trees are
+interpreted, since `System.Linq.Expressions` cannot compile without dynamic code. A text over
+types and members the application uses anyway reads and runs: operators, locals, blocks,
+loops, `switch`, interpolated strings, the members of its own types.
+
+What does not:
+
+- **The entry points that take no assembly**, `Compile<TDelegate>(text)`, `Parse(text)` and
+  `TryParse(text)`: Native AOT cannot say which assembly called, and they throw. Pass the
+  assembly, `Compile<TDelegate>(text, typeof(Program).Assembly)`, or a `ResolutionScope`.
+- **A generic instantiation nothing compiled ahead of time**: a delegate type other than the
+  lambda's own, a generic method such as `Math.Max` called on a type nobody called it on, an
+  array built by `new[] { … }`.
+- **Members the trimmer removed**, which is most of the base library: `s.Trim()` is refused as a
+  method `String` does not have. A type the texts use can be kept whole with a
+  `TrimmerRootDescriptor`; that makes its members findable, not its generic instantiations.
+
 ## Taking it
 
 ```

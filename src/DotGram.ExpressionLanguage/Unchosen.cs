@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
 namespace DotGram.ExpressionLanguage;
@@ -13,6 +14,8 @@ namespace DotGram.ExpressionLanguage;
 public static partial class ExpressionParser
 {
 	/// <summary>A conditional waiting for the type its branches are to be converted to.</summary>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal sealed class Unchosen : Targetless
 	{
 		public Unchosen(Expression test, Expression then, Expression otherwise)

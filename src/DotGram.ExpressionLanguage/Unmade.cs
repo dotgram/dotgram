@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
 namespace DotGram.ExpressionLanguage;
@@ -20,6 +21,8 @@ public static partial class ExpressionParser
 	/// cannot be made that way — no constructor fits, an interface — is refused once built,
 	/// which is where C# refuses it too. A nullable value type constructs what it holds.
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal sealed class Unmade : Targetless
 	{
 		public Unmade(Expression[] arguments, Setting[]? fields, Element[]? items, ResolutionScope scope)

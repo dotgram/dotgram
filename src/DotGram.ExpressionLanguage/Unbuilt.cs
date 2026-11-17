@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
 namespace DotGram.ExpressionLanguage;
@@ -31,6 +32,8 @@ public static partial class ExpressionParser
 	/// Everything here that would be misled by that asks <see cref="Typed"/> first.
 	/// </para>
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal sealed class Unbuilt : Expression
 	{
 		public Unbuilt(int arity, Func<Type[], LambdaExpression> build)

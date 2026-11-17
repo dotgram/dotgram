@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 
@@ -291,6 +292,10 @@ public sealed class ResolutionScope
 	/// graph names and the process cannot find is a fact about the deployment, and a text that
 	/// does not name anything in it should still read.
 	/// </remarks>
+	// A reference the trimmer removed is such an assembly, passed over like any other the process
+	// cannot load. What the closure is for is read only by the parser, whose every entry point says
+	// what trimming costs it.
+	[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "An assembly reference the trimmer removed is passed over as one that cannot be loaded.")]
 	static Assembly[] Closure(Assembly caller, Assembly[]? also)
 	{
 		var seen  = new HashSet<string>(StringComparer.Ordinal);

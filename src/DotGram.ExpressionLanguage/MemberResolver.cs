@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -32,6 +33,8 @@ public static partial class ExpressionParser
 	/// is recorded while the text is read, and this must see what has been recorded by the
 	/// time it is asked.
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal sealed class MemberResolver
 	{
 		public MemberResolver(

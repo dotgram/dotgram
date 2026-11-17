@@ -8,6 +8,7 @@ BREAKING CHANGES, and what to do
 - The public type ExpressionParser.ParserInput<T> is removed; nothing public took or returned it.
 - ExpressionParser.SourceSpan is no longer public; nothing public took or returned it.
 - ExpressionParser.Scan, the scanner of its lexer, is no longer public: the kind it gave was the grammar's own numbering of its tokens, which changed with the grammar. Migration: none in the package; a caller that cut text into tokens with it has no replacement.
+- Parse, TryParse and Compile carry [RequiresUnreferencedCode] and [RequiresDynamicCode] (the package finds what a text names by reflection and builds generic instantiations at run time), so a project that runs the trim or AOT analyzers - PublishTrimmed, PublishAot, IsAotCompatible - is warned IL2026 and IL3050 where it calls them, which fails its build under warnings as errors. What to do: put the same attributes on the calling method, so its own callers are told; or, where the application keeps what its texts name, suppress the warning there with UnconditionalSuppressMessage.
 
 NEW
 
@@ -18,6 +19,7 @@ NEW
 - new(…) with its type left out, wherever the place it stands in says the type: a declaration, a member or element of an initializer, an argument, a return, a cast, a throw, a ?: typed by its place.
 - T? as System.Nullable<T> in every type position; string? is string; int?? is refused (CS8629). After is and as, a bare ? is read as nullable only where what follows could not begin an expression, as C# reads it.
 - A switch with no natural type converts to object as to any other target.
+- Native AOT and trimming, in part: the package is marked AOT-compatible on net10.0, and under Native AOT a text over what the application kept reads and runs, its tree interpreted. The entry points that take no assembly throw there (pass the assembly or a ResolutionScope), and so does a generic instantiation nothing compiled ahead of time; members the trimmer removed are names the text cannot find. The README's "Native AOT and trimming" has the list.
 
 FASTER
 
@@ -30,6 +32,7 @@ FIXED
 - A dotted name with more parts than any type in reach, generic or not, is refused in time and bytes proportional to its length, where it was quadratic, and worse on names new to the caches: a parameter typed by 800 parts after an unknown root took 59 GB and 143 seconds, a generic one of 1,600 parts 3.2 GB. The first such name in a scope counts how deep the types in reach go, once an assembly; a member chain on a declared name never does. A long member chain on a parameter is read in linear time as well.
 - Generic arguments nested n levels deep, closed or not, allocate in proportion to n, where every level copied the text of the levels inside it (2.6 GB at 6,400 levels).
 - A chain of conditionals whose branches meet in no type, b ? 1 : b ? 1 : … : b, and nests of switches and new() of that kind are typed in linear time, where every level asked the whole nest below it (1.9 seconds for 12,800 levels).
+- Under Native AOT the first type name a text read threw PlatformNotSupportedException, since an assembly's references cannot be listed there; a scope there reaches every assembly the application has, all of which are loaded from its start.
 
 KNOWN ISSUES
 

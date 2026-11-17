@@ -75,6 +75,9 @@ The text names the namespace of anything outside the five default imports
 
 Pass it explicitly whenever texts are parsed in a loop, and always when the call is wrapped
 in a helper that lives in another assembly: the helper's assembly is the one the stack finds.
+Under Native AOT pass it always: there the stack cannot be asked, and the forms that take
+neither throw. What else Native AOT and trimming cost is in the README's "Native AOT and
+trimming".
 
 ## Names
 

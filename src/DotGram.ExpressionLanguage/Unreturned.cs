@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
 namespace DotGram.ExpressionLanguage;
@@ -13,6 +14,8 @@ namespace DotGram.ExpressionLanguage;
 public static partial class ExpressionParser
 {
 	/// <summary>A lambda whose body waits for the return type of the delegate it is converted to.</summary>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal sealed class Unreturned : Targetless
 	{
 		public Unreturned(Targetless body, ParameterExpression[] parameters)

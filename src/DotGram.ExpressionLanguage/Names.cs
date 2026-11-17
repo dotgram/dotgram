@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -194,6 +195,8 @@ public static partial class ExpressionParser
 	/// one place the subscription is made exactly once.
 	/// </para>
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	static class Loaded
 	{
 		static readonly ConcurrentDictionary<(ResolutionScope, string), Type[]> _types = new();

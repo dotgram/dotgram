@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -1668,8 +1669,24 @@ namespace DotGram.ExpressionLanguage;
 #if DOTGRAM_EL_TAPE
 [GramParserVariant("Tape", Carrier = GramCarrier.Deferred)]
 #endif
+// What a text names is looked up by reflection over whatever types the scope reaches, and the tree
+// is built with generic instantiations and array types nobody wrote down: the trimmer cannot see
+// either. Said on the class, so that every entry point warns where an application calls it, at
+// publish time, rather than failing at run time. Under Native AOT what the application kept still
+// works; what it did not keep is a name the text cannot find (README, "Native AOT and trimming").
+[RequiresUnreferencedCode(Trimming)]
+[RequiresDynamicCode(Aot)]
 public static partial class ExpressionParser
 {
+	internal const string Trimming =
+		"The expression language finds the types and members a text names by reflection: under trimming, " +
+		"those the application does not otherwise keep are not found.";
+
+	internal const string Aot =
+		"The expression language builds trees with generic instantiations and array types chosen at run time: " +
+		"under Native AOT, one not compiled ahead of time is not available, and Compile without an assembly " +
+		"cannot find its caller.";
+
 #if DOTGRAM_EL_TAPE
 	// Declared here so that it is internal: a reading for the tests and the yardstick, and
 	// no part of what a scope is given (docs/syntax.md §6.6).
@@ -3777,6 +3794,8 @@ public static partial class ExpressionParser
 	/// reading and is shared on purpose.
 	/// </para>
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal sealed class State
 	{
 		/// <summary>A reading on behalf of whoever calls this.</summary>

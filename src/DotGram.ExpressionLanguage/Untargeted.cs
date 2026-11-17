@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
 namespace DotGram.ExpressionLanguage;
@@ -25,6 +26,8 @@ public static partial class ExpressionParser
 	/// <see cref="Implicitly"/> against whatever they are converted to, and both are refused,
 	/// each in its own words, where nothing ever converts them.
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal abstract class Targetless : Expression
 	{
 		public sealed override ExpressionType NodeType => ExpressionType.Extension;
@@ -121,6 +124,8 @@ public static partial class ExpressionParser
 	/// misled by that asks <see cref="Typed"/> first, exactly as it does for a lambda.
 	/// </para>
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	internal sealed class Untargeted : Targetless
 	{
 		public Untargeted(Expression value, Arm[] arms, Expression left, Expression right)
