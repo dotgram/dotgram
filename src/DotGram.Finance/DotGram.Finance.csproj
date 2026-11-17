@@ -66,6 +66,15 @@
 		<None Include="../../LICENSE" Pack="true" PackagePath="licenses/DotGram/" />
 	</ItemGroup>
 
+	<!-- Native AOT and trimming: on the framework that has them, the package declares itself safe for both. Reading,
+	     building and checking with the checks compiled in reflect on nothing; applying a dictionary at run time does
+	     (its checks are compiled by the expression language), and the methods that apply one say so
+	     (RequiresUnreferencedCode, RequiresDynamicCode), so an application is warned where it calls them, at publish time.
+	     The package's own build runs the analyzers, so a reflection added without saying so fails here. -->
+	<PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 		<PackageReference Include="System.Memory" />
 		<PackageReference Include="Portable.System.DateTimeOnly" />

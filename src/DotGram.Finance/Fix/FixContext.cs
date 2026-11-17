@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -41,6 +42,16 @@ namespace DotGram.Finance.Fix;
 /// </remarks>
 public abstract record FixContext
 {
+	// What applying a dictionary at run time costs under trimming and under Native AOT: said on every
+	// method that applies one, so that an application is told where it calls it, when it publishes.
+	internal const string Trimming =
+		"Applying a dictionary at run time compiles its checks with DotGram.ExpressionLanguage, which finds the message " +
+		"model's types and members by reflection: under trimming, those the application does not otherwise keep are not found.";
+
+	internal const string Aot =
+		"Applying a dictionary at run time makes generic instantiations chosen at run time and compiles expression trees: " +
+		"under Native AOT, an instantiation not compiled ahead of time is not available, and the trees are interpreted.";
+
 	// The version's pairs and types, which the table the reader indexes is built from. Each version's
 	// context answers its own. It is also what closes the hierarchy to this package: a record's copy
 	// constructor cannot be less than protected, so an abstract member nothing outside can implement is
@@ -161,6 +172,8 @@ public abstract record FixContext
 	// A dictionary's checks go over this context's, and the fields it describes that the version does
 	// not are read, from then on, as the types it gives them. A clone of this context, whatever
 	// version's it is.
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	private protected FixContext Loaded(FixDictionary dictionary)
 	{
 		var types = new List<(int Tag, FixValueType Type)>();

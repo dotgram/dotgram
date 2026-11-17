@@ -12,6 +12,7 @@ BREAKING CHANGES, and what to write instead
 - FixDictionaryField takes its tag in its constructor, and applying a dictionary refuses a field stored under a key other than its tag.
 - A null argument throws ArgumentNullException from every Try call; TryParseMessage of a null byte array used to answer false.
 - What only the package's own readers use is no longer public: FixConvert, the FixField.Invalid constructors and FixParser.DefaultMaxRetained. A value is converted by reading its field (ParseFields), as its tag's type; FixParser.DefaultMaxRetained -> Fix44Context.Default.MaxRetained (likewise Fix42Context and Fix50Context).
+- Applying a dictionary at run time - With(FixDictionary), Load and LoadFile of Fix42Context, Fix44Context and Fix50Context - carries [RequiresUnreferencedCode] and [RequiresDynamicCode]: its checks are compiled by DotGram.ExpressionLanguage, by reflection over the message model. A project that runs the trim or AOT analyzers is warned IL2026 and IL3050 where it calls them, which fails its build under warnings as errors: put the same attributes on the calling method, or suppress the warning there with UnconditionalSuppressMessage where the application keeps the model. Reading, building and validating against the checks compiled in reflect on nothing and are not marked.
 
 CHANGED
 
@@ -21,6 +22,7 @@ CHANGED
 - BuildMessage reads a log with padded separators when the context frames a log; TryBuildMessage is public; both take the octets as a ReadOnlyMemory<byte> as well as a string.
 - A stream reads a BeginString of any length and accepts another version's BeginString as a buffer does; Validate reports it.
 - A tag nothing defines keeps its text in FixField.Invalid.RawText, or its octets in RawBytes.
+- The package is marked AOT-compatible on net10.0: reading, building messages and validating with the version's own checks work under Native AOT and trimming with no warning. Applying a dictionary is the part that warns (above).
 
 FASTER
 

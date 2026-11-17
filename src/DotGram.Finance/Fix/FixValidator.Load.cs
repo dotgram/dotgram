@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
@@ -65,6 +66,8 @@ abstract partial class FixValidator
 	/// that compiles its text on its first call and puts the compiled check in its own place, so the
 	/// second call is the check itself.
 	/// </remarks>
+	[RequiresUnreferencedCode(FixContext.Trimming)]
+	[RequiresDynamicCode(FixContext.Aot)]
 	internal FixValidator Load(FixDictionary dictionary, Action<string, string>? emitted = null)
 	{
 		var source  = new Source(dictionary);
@@ -159,7 +162,7 @@ abstract partial class FixValidator
 	}
 
 	/// <summary>The texts a load writes, each for the slot of its name.</summary>
-	sealed class Writing(Emitting? emitting, Type checks)
+	sealed class Writing(Emitting? emitting, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type checks)
 	{
 		int _job;
 
@@ -207,6 +210,12 @@ abstract partial class FixValidator
 	/// place in the checks it belongs to; a context is shared between threads, and two threads that call
 	/// it at once each compile it and keep one, which is harmless.
 	/// </summary>
+	/// <remarks>
+	/// Made only by a load, which says what it costs under trimming and Native AOT; what is said on the
+	/// class is that again, for the compilation it puts off.
+	/// </remarks>
+	[RequiresUnreferencedCode(FixContext.Trimming)]
+	[RequiresDynamicCode(FixContext.Aot)]
 	abstract class Deferred(FixValidator owner, PropertyInfo slot, string text) : IDeferred
 	{
 		Delegate? _compiled;
@@ -236,6 +245,8 @@ abstract partial class FixValidator
 		}
 	}
 
+	[RequiresUnreferencedCode(FixContext.Trimming)]
+	[RequiresDynamicCode(FixContext.Aot)]
 	sealed class Of3<T1, T2, T3>(FixValidator owner, PropertyInfo slot, string text) : Deferred(owner, slot, text)
 	{
 		public void Invoke(T1 a, T2 b, T3 c)
@@ -273,6 +284,8 @@ abstract partial class FixValidator
 		}
 	}
 
+	[RequiresUnreferencedCode(FixContext.Trimming)]
+	[RequiresDynamicCode(FixContext.Aot)]
 	static Delegate Compile(Type delegateType, string text)
 	{
 		var method = typeof(ExpressionParser)
@@ -297,6 +310,7 @@ abstract partial class FixValidator
 	// entries and each entry handed to the entry's slot, whose text is written beside this one.
 	// `subject` is what holds the members, `type` the C# type a group of it nests in, `slot` the
 	// slot name a group of it extends, and `opener` the field an entry opens with.
+	[RequiresUnreferencedCode(FixContext.Trimming)]
 	string Members(Writing writing, string subject, string type, string slot, List<FixDictionaryMember> members, Source source, string? opener)
 	{
 		var body    = new StringBuilder();
@@ -429,6 +443,7 @@ abstract partial class FixValidator
 
 	// The model's type a text names, `FixMessage.NewOrderSingle.NoAllocsGroup` or `IParties`: nested
 	// types are joined by a plus in the runtime's name. Null where the model has none.
+	[RequiresUnreferencedCode(FixContext.Trimming)]
 	Type? Model(string type)
 	{
 		return GetType().Assembly.GetType(GetType().Namespace + "." + type.Replace('.', '+'));
@@ -436,6 +451,7 @@ abstract partial class FixValidator
 
 	// Whether the model's carrier has a member of this name: its own, a base class's or, for an
 	// interface, one it extends. What the expression language would refuse to compile, asked first.
+	[RequiresUnreferencedCode(FixContext.Trimming)]
 	static void Holds(Type? carrier, string type, string name, string what)
 	{
 		if (carrier is null)
@@ -455,6 +471,7 @@ abstract partial class FixValidator
 	}
 
 	/// <summary>Whether the version carries a component of this name as the thing it is, an interface of its own.</summary>
+	[RequiresUnreferencedCode(FixContext.Trimming)]
 	bool Carried(string component)
 	{
 		return GetType().Assembly.GetType(GetType().Namespace + ".I" + component) is not null;

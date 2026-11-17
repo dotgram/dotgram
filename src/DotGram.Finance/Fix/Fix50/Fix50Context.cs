@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace DotGram.Finance.Fix.Fix50;
@@ -123,6 +124,8 @@ public sealed record Fix50Context : FixContext
 	/// <see cref="Prepare"/>.
 	/// </para>
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	public Fix50Context With(FixDictionary dictionary)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
@@ -150,6 +153,8 @@ public sealed record Fix50Context : FixContext
 	/// <exception cref="FormatException">The text is well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or it names what the model does not have.</exception>
 	/// <exception cref="System.Xml.XmlException">The text is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	public Fix50Context Load(string dictionary)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
@@ -166,6 +171,8 @@ public sealed record Fix50Context : FixContext
 	/// <exception cref="FormatException">The text is well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or it names what the model does not have.</exception>
 	/// <exception cref="System.Xml.XmlException">The text is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	public Fix50Context Load(TextReader dictionary)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
@@ -182,6 +189,8 @@ public sealed record Fix50Context : FixContext
 	/// <exception cref="FormatException">The octets are well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or they name what the model does not have.</exception>
 	/// <exception cref="System.Xml.XmlException">The octets are not well-formed XML, or hold a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	public Fix50Context Load(Stream dictionary)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
@@ -200,6 +209,8 @@ public sealed record Fix50Context : FixContext
 	/// has wrong is refused before the correction is read; merged, the correction's description of a
 	/// type is the one applied. <c>Fix50Context.Default.Load([theirs, corrections])</c>.
 	/// </remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	public Fix50Context Load(IEnumerable<string> dictionaries)
 	{
 		if (dictionaries == null) throw new ArgumentNullException(nameof(dictionaries));
@@ -229,6 +240,8 @@ public sealed record Fix50Context : FixContext
 	/// <exception cref="FormatException">The file is well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or it names what the model does not have.</exception>
 	/// <exception cref="System.Xml.XmlException">The file is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
+	[RequiresUnreferencedCode(Trimming)]
+	[RequiresDynamicCode(Aot)]
 	public Fix50Context LoadFile(string fileName)
 	{
 		if (fileName == null) throw new ArgumentNullException(nameof(fileName));
