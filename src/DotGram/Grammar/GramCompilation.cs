@@ -118,16 +118,201 @@ public enum GramSeverity
 }
 
 /// <summary>Options for one compilation.</summary>
+/// <remarks>
+/// Three objects of their own (<see cref="Grammar"/>, <see cref="Target"/> and <see cref="Host"/>), and a
+/// property of this one for each of their properties, so that every caller — the generator, the tool,
+/// the editors and the tests — sets an option where it always has.
+/// </remarks>
 sealed class GramCompilerOptions
+{
+	/// <summary>What is asked about the grammar itself.</summary>
+	public GrammarOptions Grammar { get; } = new();
+
+	/// <summary>What the generated parser is asked to be.</summary>
+	public TargetTuning Target { get; } = new();
+
+	/// <summary>The C# it is generated into.</summary>
+	public CSharpHostShape Host { get; } = new();
+
+	/// <inheritdoc cref="GrammarOptions.FileName"/>
+	public string FileName { get => Grammar.FileName; set => Grammar.FileName = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.ClassName"/>
+	public string ClassName { get => Host.ClassName; set => Host.ClassName = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.Namespace"/>
+	public string? Namespace { get => Host.Namespace; set => Host.Namespace = value; }
+
+	/// <inheritdoc cref="GrammarOptions.LanguageId"/>
+	public string? LanguageId { get => Grammar.LanguageId; set => Grammar.LanguageId = value; }
+
+	/// <inheritdoc cref="GrammarOptions.LanguageSource"/>
+	public string? LanguageSource { get => Grammar.LanguageSource; set => Grammar.LanguageSource = value; }
+
+	/// <inheritdoc cref="GrammarOptions.LanguageClassifications"/>
+	public string? LanguageClassifications { get => Grammar.LanguageClassifications; set => Grammar.LanguageClassifications = value; }
+
+	/// <inheritdoc cref="GrammarOptions.LanguageRecognitionContract"/>
+	public string? LanguageRecognitionContract { get => Grammar.LanguageRecognitionContract; set => Grammar.LanguageRecognitionContract = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.SymbolResolver"/>
+	public ISymbolResolver SymbolResolver { get => Host.SymbolResolver; set => Host.SymbolResolver = value; }
+
+	/// <summary>
+	/// The language the parser is generated in: how the types a grammar names are spelled, and what
+	/// reads the host fragments it hands over. Null makes C#'s of <see cref="SymbolResolver"/> and
+	/// <see cref="CSharpScanner"/>, which is what every caller does today.
+	/// </summary>
+	public ITargetLanguage? Language { get; set; }
+
+	/// <inheritdoc cref="CSharpHostShape.CSharpScanner"/>
+	public ICSharpScanner? CSharpScanner { get => Host.CSharpScanner; set => Host.CSharpScanner = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.LineMap"/>
+	public ILineMap? LineMap { get => Host.LineMap; set => Host.LineMap = value; }
+
+	/// <inheritdoc cref="TargetTuning.PartSize"/>
+	public int? PartSize { get => Target.PartSize; set => Target.PartSize = value; }
+
+	/// <inheritdoc cref="GrammarOptions.Lexical"/>
+	public bool Lexical { get => Grammar.Lexical; set => Grammar.Lexical = value; }
+
+	/// <inheritdoc cref="TargetTuning.PrefixTables"/>
+	public bool PrefixTables { get => Target.PrefixTables; set => Target.PrefixTables = value; }
+
+	/// <inheritdoc cref="TargetTuning.SourceFileSize"/>
+	public int SourceFileSize { get => Target.SourceFileSize; set => Target.SourceFileSize = value; }
+
+	/// <inheritdoc cref="TargetTuning.Direct"/>
+	public bool Direct { get => Target.Direct; set => Target.Direct = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.LocationType"/>
+	public string? LocationType { get => Host.LocationType; set => Host.LocationType = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.LocationTypeIsClass"/>
+	public bool LocationTypeIsClass { get => Host.LocationTypeIsClass; set => Host.LocationTypeIsClass = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.LocatedFacade"/>
+	public string? LocatedFacade { get => Host.LocatedFacade; set => Host.LocatedFacade = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.LocatedFacadeDeclared"/>
+	public bool LocatedFacadeDeclared { get => Host.LocatedFacadeDeclared; set => Host.LocatedFacadeDeclared = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.StaticImports"/>
+	public IReadOnlyList<string> StaticImports { get => Host.StaticImports; set => Host.StaticImports = value; }
+
+	/// <inheritdoc cref="TargetTuning.Portable"/>
+	public bool Portable { get => Target.Portable; set => Target.Portable = value; }
+
+	/// <inheritdoc cref="TargetTuning.Carrier"/>
+	public CarrierKind Carrier { get => Target.Carrier; set => Target.Carrier = value; }
+
+	/// <inheritdoc cref="TargetTuning.ConstructionsMayThrow"/>
+	public bool ConstructionsMayThrow { get => Target.ConstructionsMayThrow; set => Target.ConstructionsMayThrow = value; }
+
+	/// <inheritdoc cref="TargetTuning.ReportCarriers"/>
+	public bool ReportCarriers { get => Target.ReportCarriers; set => Target.ReportCarriers = value; }
+
+	/// <inheritdoc cref="TargetTuning.CountRules"/>
+	public bool CountRules { get => Target.CountRules; set => Target.CountRules = value; }
+
+	/// <inheritdoc cref="TargetTuning.Checks"/>
+	public bool Checks { get => Target.Checks; set => Target.Checks = value; }
+
+	/// <inheritdoc cref="TargetTuning.Steps"/>
+	public bool Steps { get => Target.Steps; set => Target.Steps = value; }
+
+	/// <inheritdoc cref="TargetTuning.Trace"/>
+	public bool Trace { get => Target.Trace; set => Target.Trace = value; }
+
+	/// <inheritdoc cref="GrammarOptions.CollapseForwarders"/>
+	public bool CollapseForwarders { get => Grammar.CollapseForwarders; set => Grammar.CollapseForwarders = value; }
+
+	/// <inheritdoc cref="TargetTuning.MemoiseFailures"/>
+	public bool MemoiseFailures { get => Target.MemoiseFailures; set => Target.MemoiseFailures = value; }
+
+	/// <inheritdoc cref="TargetTuning.MemoiseSuccesses"/>
+	public bool MemoiseSuccesses { get => Target.MemoiseSuccesses; set => Target.MemoiseSuccesses = value; }
+
+	/// <inheritdoc cref="GrammarOptions.AnalyseSharedRecursion"/>
+	public bool AnalyseSharedRecursion { get => Grammar.AnalyseSharedRecursion; set => Grammar.AnalyseSharedRecursion = value; }
+
+	/// <inheritdoc cref="TargetTuning.Utf8Literals"/>
+	public bool Utf8Literals { get => Target.Utf8Literals; set => Target.Utf8Literals = value; }
+
+	/// <inheritdoc cref="GrammarOptions.PositionalFollow"/>
+	public bool PositionalFollow { get => Grammar.PositionalFollow; set => Grammar.PositionalFollow = value; }
+
+	/// <inheritdoc cref="GrammarOptions.PositionalFollowSplit"/>
+	public bool PositionalFollowSplit { get => Grammar.PositionalFollowSplit; set => Grammar.PositionalFollowSplit = value; }
+
+	/// <inheritdoc cref="TargetTuning.ValueStorage"/>
+	public ValueStorageKind ValueStorage { get => Target.ValueStorage; set => Target.ValueStorage = value; }
+
+	/// <inheritdoc cref="TargetTuning.BufferedInput"/>
+	public bool BufferedInput { get => Target.BufferedInput; set => Target.BufferedInput = value; }
+
+	/// <inheritdoc cref="TargetTuning.BufferedBytes"/>
+	public bool BufferedBytes { get => Target.BufferedBytes; set => Target.BufferedBytes = value; }
+
+	/// <inheritdoc cref="TargetTuning.SpanCaptures"/>
+	public bool SpanCaptures { get => Target.SpanCaptures; set => Target.SpanCaptures = value; }
+
+	/// <inheritdoc cref="TargetTuning.MaxRetained"/>
+	public int MaxRetained { get => Target.MaxRetained; set => Target.MaxRetained = value; }
+
+	/// <inheritdoc cref="TargetTuning.BufferSize"/>
+	public int BufferSize { get => Target.BufferSize; set => Target.BufferSize = value; }
+
+	/// <inheritdoc cref="TargetTuning.Stacks"/>
+	public int Stacks { get => Target.Stacks; set => Target.Stacks = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.Suffix"/>
+	public string? Suffix { get => Host.Suffix; set => Host.Suffix = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.SuffixDeclared"/>
+	public bool SuffixDeclared { get => Host.SuffixDeclared; set => Host.SuffixDeclared = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.Readings"/>
+	public IReadOnlyList<string> Readings { get => Host.Readings; set => Host.Readings = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.SpanDeclared"/>
+	public bool SpanDeclared { get => Host.SpanDeclared; set => Host.SpanDeclared = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.SpanDeclaredInReading"/>
+	public bool SpanDeclaredInReading { get => Host.SpanDeclaredInReading; set => Host.SpanDeclaredInReading = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.SharedTypes"/>
+	public bool SharedTypes { get => Host.SharedTypes; set => Host.SharedTypes = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.Inherits"/>
+	public bool Inherits { get => Host.Inherits; set => Host.Inherits = value; }
+
+	/// <inheritdoc cref="GrammarOptions.Own"/>
+	public int? Own { get => Grammar.Own; set => Grammar.Own = value; }
+
+	/// <inheritdoc cref="GrammarOptions.Cuts"/>
+	public IReadOnlyList<int>? Cuts { get => Grammar.Cuts; set => Grammar.Cuts = value; }
+
+	/// <summary>
+	/// Handed the bound grammar once names are resolved, for a caller that asks where each
+	/// name went — the editor, which navigates by it. Null for the generator, which keeps
+	/// nothing of the model past the compile.
+	/// </summary>
+	internal Action<Binding.GrammarModel>? Bound { get; set; }
+}
+
+/// <summary>
+/// What one compilation is asked about the grammar itself: which text, how it is read and analysed.
+/// </summary>
+/// <remarks>
+/// Neutral: none of it depends on the language the parser is generated in or on the code it is
+/// generated into (<see cref="GramCompilerOptions"/>).
+/// </remarks>
+sealed class GrammarOptions
 {
 	/// <summary>Name of the grammar file, used in diagnostics and hint names.</summary>
 	public string FileName { get; set; } = "grammar.gram";
-
-	/// <summary>The partial class the generated members go into (§1).</summary>
-	public string ClassName { get; set; } = "Grammar";
-
-	/// <summary>Its namespace; null for the global one.</summary>
-	public string? Namespace { get; set; }
 
 	/// <summary>Stable generated-language id; null emits no language descriptor.</summary>
 	public string? LanguageId { get; set; }
@@ -142,35 +327,107 @@ sealed class GramCompilerOptions
 	public string? LanguageRecognitionContract { get; set; }
 
 	/// <summary>
-	/// Resolves the C# names a grammar refers to with <c>@</c>. Defaults to a resolver
-	/// that accepts everything, which is right for tests of the grammar side and wrong
-	/// for real generation.
-	/// </summary>
-	public ISymbolResolver SymbolResolver { get; set; } = PermissiveSymbolResolver.Instance;
-
-	/// <summary>
-	/// The language the parser is generated in: how the types a grammar names are spelled, and what
-	/// reads the host fragments it hands over. Null makes C#'s of <see cref="SymbolResolver"/> and
-	/// <see cref="CSharpScanner"/>, which is what every caller does today.
-	/// </summary>
-	public ITargetLanguage? Language { get; set; }
-
-	/// <summary>
-	/// Finds where an inline <c>@(...)</c> expression ends. Null means the grammar may
-	/// not use one — a diagnostic, not a crash.
-	/// </summary>
-	public ICSharpScanner? CSharpScanner { get; set; }
-
-	/// <summary>
-	/// Where the C# a grammar hands over is, for the <c>#line</c> directives of §7.6.
+	/// Whether to read the input as tokens rather than as characters (§4.5's other side).
 	/// </summary>
 	/// <remarks>
-	/// Null emits none, and that is the right answer for a caller with nothing to point
-	/// at — a grammar compiled from a string in a test has no file an editor could open,
-	/// and a directive naming one that does not exist is worse than none.
+	/// A request rather than a setting: a grammar that cannot be cut in two is compiled over
+	/// characters and told why, because the character machine is correct and right there.
+	/// `docs/internal/design/lexical-adt-design.md` carries the design and its measurements.
 	/// </remarks>
-	public ILineMap? LineMap { get; set; }
+	public bool Lexical { get; set; }
 
+	/// <summary>
+	/// Whether a call to a rule that only hands on another rule's value is compiled as the choice
+	/// of what it hands on. On by default and not offered in the attribute; off is for a test that
+	/// holds a trace build's frames of those rules to a parser that calls them as written.
+	/// </summary>
+	/// <remarks>
+	/// The generator sets it off where the compilation defines <c>DOTGRAM_NO_COLLAPSE</c>, and
+	/// nowhere else. Off, the parser is a different one, and not only slower: the order of a
+	/// refusal's expected list can differ.
+	/// </remarks>
+	public bool CollapseForwarders { get; set; } = true;
+
+	/// <summary>
+	/// Whether the shared-recursion analysis runs (GRAM4054, and what <see cref="MemoiseSuccesses"/>
+	/// remembers). On by default; the editor leaves it off, since it costs a second on a grammar of
+	/// a thousand rules on every analysis of the document and the hint is the build's to say.
+	/// </summary>
+	public bool AnalyseSharedRecursion { get; set; } = true;
+
+	/// <summary>
+	/// Whether a <c>parse</c> is compiled knowing that it is also read from a position, where
+	/// anything may follow it, and not only to the end of input. Experimental, and off by default.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A <c>parse</c> has whole forms, which demand the end of input, and positional and window
+	/// forms, which begin where they are told and demand nothing after the rule (§6.3). The rule
+	/// is compiled once for both. Off, it is compiled against the end of input, and a decision
+	/// taken on the strength of that end — a way back not kept because what it would reach could
+	/// not have been followed by the end — can make a positional form miss the rule's first
+	/// reading: <c>Start = (R1 | R1)?</c> with <c>R1 = 'a' &amp; 'k'</c>, read from 0 in
+	/// <c>ab</c>, answers no reading where the rule reads nothing.
+	/// </para>
+	/// <para>
+	/// On, every positional reading is the rule's first reading, and the whole forms lose the
+	/// proofs they rest on: larger readers, and several grammars move from the immediate carrier
+	/// to the tape. The generator sets it where the build sets <c>DotGramPositionalFollow</c>.
+	/// </para>
+	/// </remarks>
+	public bool PositionalFollow { get; set; }
+
+	/// <summary>
+	/// With <see cref="PositionalFollow"/>, whether the positional end is told apart from anything
+	/// where that changes no answer: experimental, off by default, and meaningless without it.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="PositionalFollow"/> says that after a positional reading anything may follow, and
+	/// every proof that rested on the end of input gives way. Some of those proofs ask only whether
+	/// what follows can <em>fail</em> after the construct succeeded — whether a repetition may be
+	/// asked to give a turn back — and from a position, where nothing after the rule is demanded,
+	/// it cannot, unless something that reads nothing and can refuse stands between. Set, those
+	/// proofs are told that, and hold for the whole forms as they did without the switch; every
+	/// other question is answered as <see cref="PositionalFollow"/> answers it. The generator sets
+	/// it where the build sets <c>DotGramPositionalFollow</c> to <c>split</c>.
+	/// </remarks>
+	public bool PositionalFollowSplit { get; set; }
+
+	/// <summary>
+	/// How much of the text is the host's own, where the rest of it was included from
+	/// a base. Null when all of it is, which is every grammar that inherits nothing.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What it decides is publication: a <c>parse</c> written past this point belongs to
+	/// the grammar that was included, and that grammar's own class already published it.
+	/// Publishing it again here would put a second method of the same name on a derived
+	/// class — and it would be the base's rule, not the dialect's reading of it, which
+	/// is the opposite of what a dialect is for. A host takes its base's rules and
+	/// publishes what it means to publish.
+	/// </para>
+	/// <para>
+	/// One number rather than a set of ranges, because the joined text puts the host's
+	/// own grammar first and everything included after it (<see cref="GrammarSplice"/>).
+	/// </para>
+	/// </remarks>
+	public int? Own { get; set; }
+
+	/// <summary>
+	/// Where each included grammar's wrapper and the one after it begin in the joined text
+	/// (<see cref="GrammarSplice.Cuts"/>), so that what one leaves open is not closed by the next.
+	/// Null when there is nothing to cut besides <see cref="Own"/>.
+	/// </summary>
+	public IReadOnlyList<int>? Cuts { get; set; }
+}
+
+/// <summary>
+/// What the generated parser is asked to be: the capabilities it is built with and how it is tuned —
+/// carriers, memoisation, buffered and byte input, its size and its checks.
+/// </summary>
+/// <remarks>Read by the emitter; the grammar's own stages ask none of it (<see cref="GramCompilerOptions"/>).</remarks>
+sealed class TargetTuning
+{
 	/// <summary>
 	/// How large the parts of a divided recognizer should be aimed to be, in the
 	/// generator's own estimate of basic blocks. Null takes the measured default.
@@ -192,16 +449,6 @@ sealed class GramCompilerOptions
 	public int? PartSize { get; set; }
 
 	/// <summary>
-	/// Whether to read the input as tokens rather than as characters (§4.5's other side).
-	/// </summary>
-	/// <remarks>
-	/// A request rather than a setting: a grammar that cannot be cut in two is compiled over
-	/// characters and told why, because the character machine is correct and right there.
-	/// `docs/internal/design/lexical-adt-design.md` carries the design and its measurements.
-	/// </remarks>
-	public bool Lexical { get; set; }
-
-	/// <summary>
 	/// Whether disjoint literal prefixes dispatch through transition tables. On by default and
 	/// not offered in the attribute; off is for a test that holds the tables to the chain of
 	/// alternatives they replace.
@@ -218,46 +465,6 @@ sealed class GramCompilerOptions
 	/// against it, asks for.
 	/// </summary>
 	public bool Direct { get; set; } = true;
-
-	/// <summary>
-	/// An interface whose implementors are told where they were written, by qualified name.
-	/// </summary>
-	/// <remarks>
-	/// What <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> names. A rule whose value is
-	/// assignable to it has its construction handed the span the rule stands on; a rule whose
-	/// value is not, and a grammar that names nothing here, are compiled exactly as before.
-	/// </remarks>
-	public string? LocationType { get; set; }
-
-	/// <summary>
-	/// Whether <see cref="LocationType"/> is a class rather than an interface: a located value is then
-	/// told through the class, which a value may only derive from, and not through an interface it
-	/// may implement explicitly.
-	/// </summary>
-	public bool LocationTypeIsClass { get; set; }
-
-	/// <summary>
-	/// The nested class whose published methods call this parser with locations on, where
-	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
-	/// (<c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
-	/// </summary>
-	public string? LocatedFacade { get; set; }
-
-	/// <summary>Whether the host declares <see cref="LocatedFacade"/> itself.</summary>
-	public bool LocatedFacadeDeclared { get; set; }
-
-	/// <summary>
-	/// The classes whose static members the generated code may name, each as a <c>using static</c>
-	/// names it: rooted, <c>global::App.G</c>, or <c>X::App.G</c> under an extern alias the
-	/// generated file then declares.
-	/// </summary>
-	/// <remarks>
-	/// One per grammar this one is built on. A rule that comes from another grammar goes on
-	/// calling the helpers its author wrote, and those live beside that grammar's own host —
-	/// so the generated file names them with <c>using static</c> rather than requiring the
-	/// including class to derive from something for the sake of what its methods can see.
-	/// </remarks>
-	public IReadOnlyList<string> StaticImports { get; set; } = [];
 
 	/// <summary>
 	/// Whether the generated class carries the grammar it was compiled from, for another
@@ -343,18 +550,6 @@ sealed class GramCompilerOptions
 	public bool Trace { get; set; }
 
 	/// <summary>
-	/// Whether a call to a rule that only hands on another rule's value is compiled as the choice
-	/// of what it hands on. On by default and not offered in the attribute; off is for a test that
-	/// holds a trace build's frames of those rules to a parser that calls them as written.
-	/// </summary>
-	/// <remarks>
-	/// The generator sets it off where the compilation defines <c>DOTGRAM_NO_COLLAPSE</c>, and
-	/// nowhere else. Off, the parser is a different one, and not only slower: the order of a
-	/// refusal's expected list can differ.
-	/// </remarks>
-	public bool CollapseForwarders { get; set; } = true;
-
-	/// <summary>
 	/// Whether a reader over tokens remembers where a rule that can reach itself has failed, and
 	/// answers a second entry there at once. On by default; off is for a test that holds the
 	/// parser with the memo to the parser without it.
@@ -402,13 +597,6 @@ sealed class GramCompilerOptions
 	public bool MemoiseSuccesses { get; set; } = true;
 
 	/// <summary>
-	/// Whether the shared-recursion analysis runs (GRAM4054, and what <see cref="MemoiseSuccesses"/>
-	/// remembers). On by default; the editor leaves it off, since it costs a second on a grammar of
-	/// a thousand rules on every analysis of the document and the hint is the build's to say.
-	/// </summary>
-	public bool AnalyseSharedRecursion { get; set; } = true;
-
-	/// <summary>
 	/// Whether the consumer's C# is 11 or later, so that the code may hold UTF-8 string
 	/// literals. Off by default, which is the C# 8 floor every emitted file is held to.
 	/// </summary>
@@ -419,44 +607,6 @@ sealed class GramCompilerOptions
 	/// The generator sets it from the effective language version of the compilation.
 	/// </remarks>
 	public bool Utf8Literals { get; set; }
-
-	/// <summary>
-	/// Whether a <c>parse</c> is compiled knowing that it is also read from a position, where
-	/// anything may follow it, and not only to the end of input. Experimental, and off by default.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// A <c>parse</c> has whole forms, which demand the end of input, and positional and window
-	/// forms, which begin where they are told and demand nothing after the rule (§6.3). The rule
-	/// is compiled once for both. Off, it is compiled against the end of input, and a decision
-	/// taken on the strength of that end — a way back not kept because what it would reach could
-	/// not have been followed by the end — can make a positional form miss the rule's first
-	/// reading: <c>Start = (R1 | R1)?</c> with <c>R1 = 'a' &amp; 'k'</c>, read from 0 in
-	/// <c>ab</c>, answers no reading where the rule reads nothing.
-	/// </para>
-	/// <para>
-	/// On, every positional reading is the rule's first reading, and the whole forms lose the
-	/// proofs they rest on: larger readers, and several grammars move from the immediate carrier
-	/// to the tape. The generator sets it where the build sets <c>DotGramPositionalFollow</c>.
-	/// </para>
-	/// </remarks>
-	public bool PositionalFollow { get; set; }
-
-	/// <summary>
-	/// With <see cref="PositionalFollow"/>, whether the positional end is told apart from anything
-	/// where that changes no answer: experimental, off by default, and meaningless without it.
-	/// </summary>
-	/// <remarks>
-	/// <see cref="PositionalFollow"/> says that after a positional reading anything may follow, and
-	/// every proof that rested on the end of input gives way. Some of those proofs ask only whether
-	/// what follows can <em>fail</em> after the construct succeeded — whether a repetition may be
-	/// asked to give a turn back — and from a position, where nothing after the rule is demanded,
-	/// it cannot, unless something that reads nothing and can refuse stands between. Set, those
-	/// proofs are told that, and hold for the whole forms as they did without the switch; every
-	/// other question is answered as <see cref="PositionalFollow"/> answers it. The generator sets
-	/// it where the build sets <c>DotGramPositionalFollow</c> to <c>split</c>.
-	/// </remarks>
-	public bool PositionalFollowSplit { get; set; }
 
 	/// <summary>
 	/// Typed value storage for all direct tape readers in this compilation. Other
@@ -493,6 +643,86 @@ sealed class GramCompilerOptions
 	/// instead, which is what it did before it could carry on at all.
 	/// </remarks>
 	public int Stacks { get; set; }
+}
+
+/// <summary>
+/// The shape of the C# the parser is generated into: the class and its readings, what the host
+/// declares itself, what it is asked through, and the interface or class it names for locations.
+/// </summary>
+/// <remarks>
+/// C#'s, and only C#'s: another target has a host of another shape. <see cref="CSharpLanguage"/> is made
+/// of it (<see cref="GramCompilerOptions"/>).
+/// </remarks>
+sealed class CSharpHostShape
+{
+	/// <summary>The partial class the generated members go into (§1).</summary>
+	public string ClassName { get; set; } = "Grammar";
+
+	/// <summary>Its namespace; null for the global one.</summary>
+	public string? Namespace { get; set; }
+
+	/// <summary>
+	/// Resolves the C# names a grammar refers to with <c>@</c>. Defaults to a resolver
+	/// that accepts everything, which is right for tests of the grammar side and wrong
+	/// for real generation.
+	/// </summary>
+	public ISymbolResolver SymbolResolver { get; set; } = PermissiveSymbolResolver.Instance;
+
+	/// <summary>
+	/// Finds where an inline <c>@(...)</c> expression ends. Null means the grammar may
+	/// not use one — a diagnostic, not a crash.
+	/// </summary>
+	public ICSharpScanner? CSharpScanner { get; set; }
+
+	/// <summary>
+	/// Where the C# a grammar hands over is, for the <c>#line</c> directives of §7.6.
+	/// </summary>
+	/// <remarks>
+	/// Null emits none, and that is the right answer for a caller with nothing to point
+	/// at — a grammar compiled from a string in a test has no file an editor could open,
+	/// and a directive naming one that does not exist is worse than none.
+	/// </remarks>
+	public ILineMap? LineMap { get; set; }
+
+	/// <summary>
+	/// An interface whose implementors are told where they were written, by qualified name.
+	/// </summary>
+	/// <remarks>
+	/// What <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> names. A rule whose value is
+	/// assignable to it has its construction handed the span the rule stands on; a rule whose
+	/// value is not, and a grammar that names nothing here, are compiled exactly as before.
+	/// </remarks>
+	public string? LocationType { get; set; }
+
+	/// <summary>
+	/// Whether <see cref="LocationType"/> is a class rather than an interface: a located value is then
+	/// told through the class, which a value may only derive from, and not through an interface it
+	/// may implement explicitly.
+	/// </summary>
+	public bool LocationTypeIsClass { get; set; }
+
+	/// <summary>
+	/// The nested class whose published methods call this parser with locations on, where
+	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
+	/// (<c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
+	/// </summary>
+	public string? LocatedFacade { get; set; }
+
+	/// <summary>Whether the host declares <see cref="LocatedFacade"/> itself.</summary>
+	public bool LocatedFacadeDeclared { get; set; }
+
+	/// <summary>
+	/// The classes whose static members the generated code may name, each as a <c>using static</c>
+	/// names it: rooted, <c>global::App.G</c>, or <c>X::App.G</c> under an extern alias the
+	/// generated file then declares.
+	/// </summary>
+	/// <remarks>
+	/// One per grammar this one is built on. A rule that comes from another grammar goes on
+	/// calling the helpers its author wrote, and those live beside that grammar's own host —
+	/// so the generated file names them with <c>using static</c> rather than requiring the
+	/// including class to derive from something for the sake of what its methods can see.
+	/// </remarks>
+	public IReadOnlyList<string> StaticImports { get; set; } = [];
 
 	/// <summary>
 	/// The nested class this compilation goes into, where the host holds more than one
@@ -594,38 +824,4 @@ sealed class GramCompilerOptions
 	/// </para>
 	/// </remarks>
 	public bool Inherits { get; set; }
-
-	/// <summary>
-	/// How much of the text is the host's own, where the rest of it was included from
-	/// a base. Null when all of it is, which is every grammar that inherits nothing.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// What it decides is publication: a <c>parse</c> written past this point belongs to
-	/// the grammar that was included, and that grammar's own class already published it.
-	/// Publishing it again here would put a second method of the same name on a derived
-	/// class — and it would be the base's rule, not the dialect's reading of it, which
-	/// is the opposite of what a dialect is for. A host takes its base's rules and
-	/// publishes what it means to publish.
-	/// </para>
-	/// <para>
-	/// One number rather than a set of ranges, because the joined text puts the host's
-	/// own grammar first and everything included after it (<see cref="GrammarSplice"/>).
-	/// </para>
-	/// </remarks>
-	public int? Own { get; set; }
-
-	/// <summary>
-	/// Where each included grammar's wrapper and the one after it begin in the joined text
-	/// (<see cref="GrammarSplice.Cuts"/>), so that what one leaves open is not closed by the next.
-	/// Null when there is nothing to cut besides <see cref="Own"/>.
-	/// </summary>
-	public IReadOnlyList<int>? Cuts { get; set; }
-
-	/// <summary>
-	/// Handed the bound grammar once names are resolved, for a caller that asks where each
-	/// name went — the editor, which navigates by it. Null for the generator, which keeps
-	/// nothing of the model past the compile.
-	/// </summary>
-	internal Action<Binding.GrammarModel>? Bound { get; set; }
 }
