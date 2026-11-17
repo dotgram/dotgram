@@ -1651,15 +1651,10 @@ sealed partial class Machine
 				if (Probes)
 					header.Line("this.probes  = 0;");
 
-				// The grammar's limits as they stand when the reading is made, read once: a reading
-				// carried onto another stack takes what is left of them with it (Deep), and nought,
-				// no limit, is as many as an int counts.
+				// Set from the parse's limits once the failure it carries them on is handed over (Rec),
+				// or from the reading it was carried from (Deep).
 				if (Probes)
-				{
-					header.Line("this.stacksLeft = Limits.MaxExtraStacks;");
-					header.Line("if (this.stacksLeft == 0)");
-					header.Then("this.stacksLeft = int.MaxValue;");
-				}
+					header.Line("this.stacksLeft = 0;");
 
 				foreach (var (_, name) in state)
 					header.Line($"this.{name} = {name};");
@@ -1774,6 +1769,18 @@ sealed partial class Machine
 				file.Line($"var reader = new {ReaderStruct}(text{(_readerWays ? ", ways" : "")}{Carrier.ReaderArgument}{WholeArgument});");
 				file.Line();
 				file.Line("reader.failure = failure;");
+
+				// The limits the parse began with, which its first reading takes from the class and
+				// every reading after it finds on the failure: a reading of the same input made again
+				// — for its message, after a guard set other limits — is held to the same ones. Nought,
+				// no limit, is as many as an int counts.
+				if (Probes)
+				{
+					file.Line("reader.failure.Limits ??= Limits;");
+					file.Line("reader.stacksLeft = reader.failure.Limits.MaxExtraStacks;");
+					file.Line("if (reader.stacksLeft == 0)");
+					file.Then("reader.stacksLeft = int.MaxValue;");
+				}
 
 				if (!ends && OpenEnds)
 					file.Line("reader.open = true;");

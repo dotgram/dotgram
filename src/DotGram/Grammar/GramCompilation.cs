@@ -287,6 +287,9 @@ sealed class GramCompilerOptions
 	/// <inheritdoc cref="CSharpHostShape.SpanDeclaredInReading"/>
 	public bool SpanDeclaredInReading { get => Host.SpanDeclaredInReading; set => Host.SpanDeclaredInReading = value; }
 
+	/// <inheritdoc cref="CSharpHostShape.MembersDeclared"/>
+	public IReadOnlyList<string> MembersDeclared { get => Host.MembersDeclared; set => Host.MembersDeclared = value; }
+
 	/// <inheritdoc cref="CSharpHostShape.SharedTypes"/>
 	public bool SharedTypes { get => Host.SharedTypes; set => Host.SharedTypes = value; }
 
@@ -795,6 +798,13 @@ sealed class CSharpHostShape
 	/// (GRAM5018).
 	/// </remarks>
 	public bool SpanDeclaredInReading { get; set; }
+
+	/// <summary>
+	/// The members the author already declares, in the class this reading is compiled into, under a
+	/// name the generated part declares for its callers (<c>Limits</c>, <c>ParserLimits</c>): two of one
+	/// name in one class, refused (GRAM5018).
+	/// </summary>
+	public IReadOnlyList<string> MembersDeclared { get; set; } = [];
 
 	/// <summary>
 	/// Whether the host has several readings, so that the types the host's own C# names — the

@@ -464,7 +464,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
+				failure = new Failure { Limits = failure.Limits, Unasked = true, Doors = failure.Position };
 				end     = RecWhole_DotGram_Element(text, 0, ref failure, parserWhole);
 			}
 
@@ -2083,9 +2083,7 @@ namespace DotGram.Snapshots
 				this.failure = default;
 				this.ways    = ways;
 				this.probes  = 0;
-				this.stacksLeft = Limits.MaxExtraStacks;
-				if (this.stacksLeft == 0)
-					this.stacksLeft = int.MaxValue;
+				this.stacksLeft = 0;
 				this.unbuilt = default!;
 				this.whole   = parserWhole;
 			}
@@ -2691,6 +2689,10 @@ namespace DotGram.Snapshots
 				var reader = new Reader_DotGram_Element(text, ways, parserWhole);
 
 				reader.failure = failure;
+				reader.failure.Limits ??= Limits;
+				reader.stacksLeft = reader.failure.Limits.MaxExtraStacks;
+				if (reader.stacksLeft == 0)
+					reader.stacksLeft = int.MaxValue;
 
 				var end = reader.RecWholeRead_Element(pos);
 
@@ -3226,6 +3228,8 @@ namespace DotGram.Snapshots
 			public bool Unasked;
 
 			public int Doors;
+
+			public ParserLimits? Limits;
 		}
 
 		[global::System.ThreadStatic]

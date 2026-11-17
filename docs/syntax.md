@@ -3018,8 +3018,9 @@ MyParser.Limits = MyParser.Limits.WithMaxExtraStacks(4);
 
 A parse reads `Limits` once, as it begins, and holds to what it read: setting it replaces the
 whole value at once, so a parse already running — on this thread or another, on the stack it
-began on or one it was carried to — keeps the limits it began with, and one begun after the set
-reads the new ones. Nothing is locked, and a parse pays one read of a static field for it.
+began on or one it was carried to, in its first reading of a refused input or the second one
+that writes the message — keeps the limits it began with, and one begun after the set reads the
+new ones. Nothing is locked, and a parse pays one read of a static field for it.
 
 Which value applies, first to last: a call's own `maxRetained`, where a buffered overload is
 given one; then `Limits`; then the attribute's value, which is what `ParserLimits.Default` holds.
@@ -3030,11 +3031,14 @@ program that want different limits for the same grammar share them, and a test t
 them runs apart from the tests that read them. A reading whose locations are asked for per call
 (`UsePerCallLocations`) is the same reading, and reads its host's `Limits`. A class whose
 readings publish nothing declares none. `Limits` and `ParserLimits` are names the class keeps:
-a publication or a rule's type called either is `GRAM5018`.
+a publication or a rule's type called either, a class a reading is compiled into called either,
+and a member `Limits` or `ParserLimits` the author declares in that class are `GRAM5018`.
 
 A library whose grammar classes are internal says so in its own words: the SQL parsers are
 public classes, and `TransactSqlParser.Limits` is theirs; `DotGram.Web` sets every one of its
-grammars at once through `WebParsers.Limits`.
+grammars at once through `WebParsers.Limits`, one setter at a time. Each grammar holds its own
+limits, so change them before parsing: while they change, the grammars of `DotGram.Web` may
+briefly see different values.
 
 ### 6.6 `[GramParserVariant]`, a second reading of the same grammar
 

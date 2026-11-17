@@ -1600,6 +1600,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			Readings       = host.Readings.Items,
 			SpanDeclared   = host.SpanDeclared,
 			SpanDeclaredInReading = host.SpanDeclaredInReading,
+			MembersDeclared = host.MembersDeclared.Items,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
@@ -2010,6 +2011,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		bool    SuffixDeclared = false,
 		bool    SpanDeclared   = false,
 		bool    SpanDeclaredInReading = false,
+		EquatableArray<string> MembersDeclared = default,
 		bool    Repeated       = false,
 		bool    Shared         = false,
 		string? LocationType   = null,
@@ -2235,6 +2237,18 @@ sealed class GramGenerator : IIncrementalGenerator
 			var spanDeclaredInReading = suffixDeclared &&
 				type.GetTypeMembers(suffix!).Any(static reading => reading.GetTypeMembers("SourceSpan").Length > 0);
 
+			// What the author declares in the class the reading goes into under a name the generated part
+			// declares beside it (GramCompilerOptions.MembersDeclared). A reading's class the author did
+			// not declare holds nothing of the author's.
+			var into = suffix is not { Length: > 0 }
+				? type
+				: suffixDeclared ? type.GetTypeMembers(suffix).First() : null;
+			var membersDeclared = into is null
+				? []
+				: CSharpEmitter.LimitsNames
+					.Where(name => into.GetMembers(name).Length > 0)
+					.ToArray();
+
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
 			// The literal as written, kept beside the value it decodes to. A diagnostic
@@ -2333,6 +2347,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				SuffixDeclared: suffixDeclared,
 				SpanDeclared:   spanDeclared,
 				SpanDeclaredInReading: spanDeclaredInReading,
+				MembersDeclared: new EquatableArray<string>([.. membersDeclared]),
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType,
 				Variant:        variant,

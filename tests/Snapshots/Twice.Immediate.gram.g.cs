@@ -36,7 +36,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Unasked = true, Doors = failure.Position };
+					failure = new Failure { Limits = failure.Limits, Unasked = true, Doors = failure.Position };
 					end     = RecWhole_DotGram_Sum(text, 0, ref failure, out recognized, parserWhole);
 				}
 
@@ -98,7 +98,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Unasked = true, Doors = failure.Position };
+					failure = new Failure { Limits = failure.Limits, Unasked = true, Doors = failure.Position };
 					end     = Rec_DotGram_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
@@ -173,7 +173,7 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
-					failure = new Failure { Unasked = true, Doors = failure.Position };
+					failure = new Failure { Limits = failure.Limits, Unasked = true, Doors = failure.Position };
 					end     = Rec_DotGram_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
@@ -279,9 +279,7 @@ namespace DotGram.Snapshots
 					this.failure = default;
 					this.ways    = ways;
 					this.probes  = 0;
-					this.stacksLeft = Limits.MaxExtraStacks;
-					if (this.stacksLeft == 0)
-						this.stacksLeft = int.MaxValue;
+					this.stacksLeft = 0;
 					this.values = values;
 					this.last0 = default!;
 					this.unbuilt = default!;
@@ -1237,6 +1235,10 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram(text, ways, values, parserWhole);
 
 					reader.failure = failure;
+					reader.failure.Limits ??= Limits;
+					reader.stacksLeft = reader.failure.Limits.MaxExtraStacks;
+					if (reader.stacksLeft == 0)
+						reader.stacksLeft = int.MaxValue;
 					if (failure.Unasked) reader.unbuilt = 1;
 
 					var end = reader.RecWholeRead_Sum(pos);
@@ -1271,6 +1273,10 @@ namespace DotGram.Snapshots
 					var reader = new Reader_DotGram(text, ways, values, parserWhole);
 
 					reader.failure = failure;
+					reader.failure.Limits ??= Limits;
+					reader.stacksLeft = reader.failure.Limits.MaxExtraStacks;
+					if (reader.stacksLeft == 0)
+						reader.stacksLeft = int.MaxValue;
 					if (failure.Unasked) reader.unbuilt = 1;
 
 					var end = reader.RecRead_Sum(pos);
@@ -1614,6 +1620,8 @@ namespace DotGram.Snapshots
 				public bool Unasked;
 
 				public int Doors;
+
+				public ParserLimits? Limits;
 			}
 
 			[global::System.ThreadStatic]

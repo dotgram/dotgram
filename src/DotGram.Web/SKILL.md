@@ -43,7 +43,8 @@ what the text said, and be refused when it is malformed.
   someone else wrote, bound its length, and set how many stacks any parser of the package may
   take, once, at start-up: `WebParsers.Limits = WebParsers.Limits.WithMaxExtraStacks(4);`. Past
   it the parse throws `InsufficientExecutionStackException`. A parse reads the limits once, as
-  it begins.
+  it begins. Change them before parsing: while they change, the package's grammars may briefly
+  see different values.
 - **A field is not an element.** Fields that hold a list are read whole with `ParseField`
   (`WebLink`, `CookiePair`, `ForwardedElement`), `ParseAccept` or `StructuredField.ParseList`.
   The same field sent on several lines is one value: join `Forwarded` lines with commas, and

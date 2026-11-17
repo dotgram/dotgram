@@ -8,7 +8,8 @@ namespace DotGram.Web;
 /// <remarks>
 /// Every <c>Parse</c> and <c>TryParse</c> of the package is read by a grammar of its own, and each
 /// grammar holds its own limits. This sets them all at once, so that a program facing text from
-/// someone else says once how far any of them may go.
+/// someone else says once how far any of them may go. Change them before parsing: while they
+/// change, the grammars may briefly see different values.
 /// </remarks>
 public static class WebParsers
 {

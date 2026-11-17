@@ -9,7 +9,7 @@ BREAKING CHANGES, and what to do
 
 NEW
 
-- WebParsers.Limits sets how many extra stacks any parser of the package may take on deep nesting (WebParserLimits.MaxExtraStacks; zero, the default, is no limit), so that JSON nested past it is refused with InsufficientExecutionStackException rather than read for as long as there is memory.
+- WebParsers.Limits sets how many extra stacks any parser of the package may take on deep nesting (WebParserLimits.MaxExtraStacks; zero, the default, is no limit), so that JSON nested past it is refused with InsufficientExecutionStackException rather than read for as long as there is memory. Set it before parsing: while it changes, the package's grammars may briefly see different values.
 - WebLink.ParseStrictField and TryParseStrictField hold a Link field to the ABNF to the letter, and so refuse a registered relation type that is not lowercase (rel=Next), which ParseField takes in any case, as RFC 8288 compares it.
 
 FIXED
