@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -103,32 +104,82 @@ public static class SqlWalker
 	/// The properties of a record that can hold a node, in the order they were declared — a base's
 	/// first, except those it marks <see cref="WalkedLastAttribute"/>, which follow the record's own.
 	/// </summary>
-	static PropertyInfo[] FieldsOf(Type type)
+	/// <remarks>
+	/// <para>
+	/// The type is a node's, and every node's type keeps its public properties where the application
+	/// is trimmed: <see cref="ISqlSpan"/> asks for them for every type that implements it.
+	/// </para>
+	/// <para>
+	/// The order is the base's first, by how far down the hierarchy each property is declared, and
+	/// within one type the order reflection gives, which is the order of declaration. Not by metadata
+	/// token: Native AOT keeps no tokens, and asking for one there throws.
+	/// </para>
+	/// </remarks>
+	static PropertyInfo[] FieldsOf([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type)
 	{
-		return Fields.GetOrAdd(type, static type =>
+		if (Fields.TryGetValue(type, out var known))
+			return known;
+
+		PropertyInfo[] found =
 		[
 			.. from property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
 			   where property.GetIndexParameters().Length == 0 && Holds(property.PropertyType)
-			   orderby property.IsDefined(typeof(WalkedLastAttribute), true) ? 1 : 0, property.MetadataToken
+			   orderby property.IsDefined(typeof(WalkedLastAttribute), true) ? 1 : 0, Depth(property.DeclaringType)
 			   select property,
-		]);
+		];
+
+		return Fields.GetOrAdd(type, found);
+	}
+
+	/// <summary>How many types stand above this one, itself among them: <see cref="object"/> is 1.</summary>
+	static int Depth(Type? type)
+	{
+		var depth = 0;
+
+		for (; type is not null; type = type.BaseType)
+			depth++;
+
+		return depth;
 	}
 
 	// A node, or anything enumerable whose elements can hold one: a SqlList, an array, an
 	// IReadOnlyList — or a list a record may leave out, which is a SqlList<T>? and so a Nullable.
+	//
+	// The element type is read off the list's own type, never off the interfaces it implements: a
+	// trimmed application keeps a type's interfaces only where something asks for them, and
+	// GetInterfaces cannot say what it needs. An enumerable of no shape known here is walked, and
+	// Gather keeps whatever of it is a node: the answer is the same, only found later.
 	static bool Holds(Type type)
 	{
 		type = Nullable.GetUnderlyingType(type) ?? type;
 
-		return typeof(ISqlSpan).IsAssignableFrom(type) ||
-		type != typeof(string) && ElementOf(type) is { } element && Holds(element);
+		if (typeof(ISqlSpan).IsAssignableFrom(type))
+			return true;
+
+		if (type == typeof(string))
+			return false;
+
+		if (ElementOf(type) is { } element)
+			return Holds(element);
+
+		return typeof(System.Collections.IEnumerable).IsAssignableFrom(type);
 	}
 
 	static Type? ElementOf(Type type)
 	{
-		return type.IsArray
-			? type.GetElementType()
-			: (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? type : type.GetInterfaces().FirstOrDefault(static one => one.IsGenericType && one.GetGenericTypeDefinition() == typeof(IEnumerable<>)))?.GetGenericArguments()[0];
+		if (type.IsArray)
+			return type.GetElementType();
+
+		if (!type.IsGenericType)
+			return null;
+
+		var definition = type.GetGenericTypeDefinition();
+
+		return definition == typeof(SqlList<>) || definition == typeof(IEnumerable<>) || definition == typeof(IReadOnlyList<>)
+			|| definition == typeof(IReadOnlyCollection<>) || definition == typeof(IList<>) || definition == typeof(ICollection<>)
+			|| definition == typeof(List<>)
+			? type.GetGenericArguments()[0]
+			: null;
 	}
 
 	static readonly ConcurrentDictionary<Type, PropertyInfo[]> Fields = new();
