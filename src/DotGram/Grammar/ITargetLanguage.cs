@@ -61,6 +61,36 @@ interface ITargetLanguage
 	/// <summary>The spelling of a sequence of <paramref name="element"/>.</summary>
 	string SequenceOf(string element);
 
+	// ── Optional values ───────────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// The type a spelling makes optional by the language's own notation — <c>int</c> of <c>int?</c> —
+	/// or null where the spelling is not written optional.
+	/// </summary>
+	string? OptionalElementOf(string spelling);
+
+	/// <summary>
+	/// Whether a value of a type can be null as it stands, needing neither a wrapper to be made
+	/// optional nor a cast to be held as one: text, object, a sequence, or one of
+	/// <paramref name="references"/>, the spellings the host said are references
+	/// (<see cref="Model.RecognitionGraph.ReferenceTypes"/>). Not knowing is answered no.
+	/// </summary>
+	bool CanBeNull(string spelling, IReadOnlyCollection<string> references);
+
+	/// <summary>
+	/// Whether the host's type of this spelling is a reference, asked the way the generated code binds
+	/// the name: by <paramref name="definition"/>, the spelling's generic definition where the grammar
+	/// wrote it, the first of bare and then each of <paramref name="imports"/> that names a type
+	/// decides; where the grammar did not write it, any spelling that is a reference does.
+	/// </summary>
+	bool IsReferenceAsWritten(string type, string? definition, IReadOnlyList<string> imports);
+
+	/// <summary>
+	/// Whether the host's type of this spelling is the language's optional representation of a value
+	/// type, asked as <see cref="IsReferenceAsWritten"/> asks.
+	/// </summary>
+	bool IsOptionalAsWritten(string type, string? definition, IReadOnlyList<string> imports);
+
 	/// <summary>How the generated code spells a known type.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">
 	/// <see cref="KnownType.None"/> or <see cref="KnownType.Sequence"/>, which have no spelling of their own.

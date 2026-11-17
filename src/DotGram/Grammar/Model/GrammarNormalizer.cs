@@ -457,37 +457,16 @@ sealed partial class GrammarNormalizer
 	void CheckLocatedAreNotNullable(
 		IReadOnlyCollection<RuleSymbol> located, IReadOnlyList<string> imports)
 	{
-		var host = _language;
-
-		// The first spelling that names a type at all decides, the way C# binds the name in the
-		// generated file: a class of the grammar's own called Nullable is what a bare name means,
-		// beside a using of System (as in ReferenceTypes).
-		bool IsNullable(string type, string? definition)
-		{
-			if (!host.HasHost)
-				return false;
-
-			if (definition is null)
-				return host.IsOptional(type) || imports.Any(import => host.IsOptional(import + "." + type));
-
-			if (host.TypeExists(definition))
-				return host.IsOptional(type);
-
-			foreach (var import in imports)
-				if (host.TypeExists(import + "." + definition))
-					return host.IsOptional(import + "." + type);
-
-			return false;
-		}
-
 		foreach (var rule in located)
 		{
 			if (rule.Declaration is not { } declaration || !_types.TryGetValue(rule, out var type))
 				continue;
 
-			// By what the host says the name is: a class of the grammar's own may be called Nullable.
-			if (!type.EndsWith("?", StringComparison.Ordinal) &&
-				!IsNullable(type, declaration.Type is { IsCSharp: true } written ? written.Definition : null))
+			// Optional by the language's own notation, or by what the host says the name is: a class
+			// of the grammar's own may be called Nullable.
+			if (_language.OptionalElementOf(type) is null &&
+				!(_language.HasHost &&
+					_language.IsOptionalAsWritten(type, declaration.Type is { IsCSharp: true } written ? written.Definition : null, imports)))
 				continue;
 
 			Report(
@@ -576,9 +555,9 @@ sealed partial class GrammarNormalizer
 		GrammarNormalizer normalizer, GrammarNamespace root, IReadOnlyList<string> imports)
 	{
 		var references = new HashSet<string>(StringComparer.Ordinal);
-		var host       = normalizer._language;
+		var language   = normalizer._language;
 
-		if (!host.HasHost)
+		if (!language.HasHost)
 			return references;
 
 		var written = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -589,10 +568,10 @@ sealed partial class GrammarNormalizer
 
 		foreach (var type in normalizer._types.Values)
 		{
-			if (normalizer._language.IsSequence(type) || !asked.Add(type))
+			if (language.IsSequence(type) || !asked.Add(type))
 				continue;
 
-			if (IsReference(type))
+			if (language.IsReferenceAsWritten(type, written.TryGetValue(type, out var definition) ? definition : null, imports))
 				references.Add(type);
 		}
 
@@ -616,33 +595,6 @@ sealed partial class GrammarNormalizer
 
 			foreach (var nested in ns.Nested)
 				Written(nested);
-		}
-
-		bool IsReference(string type)
-		{
-			if (!written.TryGetValue(type, out var definition))
-				return AnyIsReference(type);
-
-			if (host.TypeExists(definition))
-				return host.IsReferenceType(type);
-
-			foreach (var import in imports)
-				if (host.TypeExists(import + "." + definition))
-					return host.IsReferenceType(import + "." + type);
-
-			return false;
-		}
-
-		bool AnyIsReference(string type)
-		{
-			if (host.IsReferenceType(type))
-				return true;
-
-			foreach (var import in imports)
-				if (host.IsReferenceType(import + "." + type))
-					return true;
-
-			return false;
 		}
 	}
 
