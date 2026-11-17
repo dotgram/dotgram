@@ -199,6 +199,19 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	void RefuseGrammarValue(Expr value, string where)
 	{
+		// Follows the arguments of calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				RefuseGrammarValue(value, where);
+
+				return true;
+			});
+
+			return;
+		}
+
 		switch (value)
 		{
 			case Expr.CSharp or Expr.Reference or Expr.Literal or Expr.Number:

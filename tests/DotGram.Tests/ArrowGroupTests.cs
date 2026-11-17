@@ -110,6 +110,17 @@ public sealed class ArrowGroupTests
 		Assert.Contains(result.Diagnostics, one => one.Severity == GramSeverity.Error);
 	}
 
+	/// <summary>A group at the bottom of calls nested as deep as the parser reads is found.</summary>
+	[Fact]
+	public void A_group_at_the_bottom_of_nested_calls_is_refused()
+	{
+		const int Depth = 50;
+
+		var result = Compile(Prefix + "R : @int = l: A => " + string.Concat(Enumerable.Repeat("@F(", Depth)) + "(l)" + new string(')', Depth) + "\nparse R");
+
+		Assert.Contains(result.Diagnostics, one => one.Id == "GRAM4065");
+	}
+
 	/// <summary>A group that constructs, and one that only groups, keep their meaning.</summary>
 	[Fact]
 	public void A_constructing_group_still_builds()
