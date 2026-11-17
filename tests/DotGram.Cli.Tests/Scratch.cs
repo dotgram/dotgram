@@ -22,10 +22,34 @@ sealed class Scratch : IDisposable
 
 	public Scratch()
 	{
-		Root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dotgram-cli-tests", Guid.NewGuid().ToString("N").Substring(0, 12));
+		var root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "dotgram-cli-tests", Guid.NewGuid().ToString("N").Substring(0, 12));
 
-		Directory.CreateDirectory(Root);
+		Directory.CreateDirectory(root);
+
+		Root = Real(root);
+
 		File.Copy(System.IO.Path.Combine(Repository.Root, "global.json"), System.IO.Path.Combine(Root, "global.json"));
+	}
+
+	/// <summary>
+	/// The path with every symbolic link in it followed: what a process started in the folder reads as its
+	/// working directory, and what a build writes. On macOS the temporary folder is under /var, a link to
+	/// /private/var, and a path the test wrote one way would meet the other in the tool's output.
+	/// </summary>
+	static string Real(string path)
+	{
+		var full = System.IO.Path.GetFullPath(path);
+		var real = System.IO.Path.GetPathRoot(full)!;
+
+		foreach (var part in full.Substring(real.Length).Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries))
+		{
+			real = System.IO.Path.Combine(real, part);
+
+			if (new DirectoryInfo(real).ResolveLinkTarget(returnFinalTarget: true) is { } target)
+				real = target.FullName;
+		}
+
+		return real;
 	}
 
 	public string Path(params string[] parts)

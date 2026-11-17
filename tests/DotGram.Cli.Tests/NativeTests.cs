@@ -33,7 +33,12 @@ public sealed class NativeTests
 		var run = Tool.Process(Tool.Native, scratch.Root, ["generate", project, "-o", scratch.Path("out")]);
 
 		Assert.Equal(ExitCode.Failure, run.Exit);
-		Assert.True(run.Error.Contains($"dotnet dotgram: error: {Cli.NoProjects(project).Message}", StringComparison.Ordinal), run.ToString());
+		// The message after the path, which the tool writes as it reads it (on Windows, the temporary
+		// folder's long name where the test may have its short one).
+		var message = Cli.NoProjects("").Message;
+
+		Assert.True(run.Error.StartsWith("dotnet dotgram: error: ", StringComparison.Ordinal), run.ToString());
+		Assert.True(run.Error.Contains(message.Substring(message.IndexOf("this native build", StringComparison.Ordinal)), StringComparison.Ordinal), run.ToString());
 		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
 
