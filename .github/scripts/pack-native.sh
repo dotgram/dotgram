@@ -32,8 +32,10 @@ case "$rid" in
   win-*)
     archive="$root/artifacts/$name.zip"
     rm -f "$archive"
-    # Git's bash on the Windows runner: PowerShell reads Windows paths.
-    pwsh -NoProfile -Command "Compress-Archive -Path '$(cygpath -w "$staging")\\*' -DestinationPath '$(cygpath -w "$archive")'"
+    # Git's bash on the Windows runner: PowerShell reads Windows paths, given in the environment so
+    # that no character of a path (a quote, a dollar) is read as PowerShell's.
+    DOTGRAM_STAGING="$(cygpath -w "$staging")" DOTGRAM_ARCHIVE="$(cygpath -w "$archive")" \
+      pwsh -NoProfile -Command 'Compress-Archive -Path (Join-Path $env:DOTGRAM_STAGING "*") -DestinationPath $env:DOTGRAM_ARCHIVE'
     ;;
   *)
     archive="$root/artifacts/$name.tar.gz"

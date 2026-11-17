@@ -121,14 +121,17 @@ static class Tool
 	}
 
 	/// <summary>An executable run in a directory: what it wrote to each stream, and its exit code.</summary>
+	/// <remarks>
+	/// The streams are read in the encoding the process writes them in, which is the default here as
+	/// there: UTF-8 on Linux and macOS, and on Windows the console's code page, which a .NET process
+	/// writes redirected output in, the .NET tool as much as the native one.
+	/// </remarks>
 	public static ToolRun Process(string executable, string currentDirectory, IReadOnlyList<string> arguments)
 	{
 		var start = new ProcessStartInfo(executable)
 		{
 			RedirectStandardOutput = true,
 			RedirectStandardError  = true,
-			StandardOutputEncoding = Encoding.UTF8,
-			StandardErrorEncoding  = Encoding.UTF8,
 			UseShellExecute        = false,
 			WorkingDirectory       = currentDirectory,
 		};

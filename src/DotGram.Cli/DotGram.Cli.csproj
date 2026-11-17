@@ -73,7 +73,12 @@
 		     the value, and LazyInitializer makes one as new T() does, which the native compiler compiles
 		     for each type it is instantiated with.
 		     IL3000: CommonCompiler.GetAssemblyLocation reads Assembly.Location, an empty string in a native
-		     executable, to name the command-line compiler's own file (csc), which the tool does not run. -->
+		     executable, to name the command-line compiler's own file (csc), which the tool does not run.
+		     Both are turned off for the native compiler as a whole because it offers nothing narrower for
+		     another assembly's code: an UnconditionalSuppressMessage has to sit in the assembly that has
+		     the code, and the native compiler reads no attribute file from outside it (ILLink's
+		     link-attributes). This tool's own code is not covered by it: the compilation's analyzers report
+		     both rules there, as errors. -->
 		<IlcArg Include="--nowarn:IL2091" />
 		<IlcArg Include="--nowarn:IL3000" />
 	</ItemGroup>
