@@ -234,7 +234,8 @@ public sealed class SegmentedInputTests
 	public void Only_sequences_are_published()
 	{
 		var type   = Build(Argv).GetType("Grammar")!;
-		var published = type.GetMethods(BindingFlags.Public | BindingFlags.Static).Where(one => one.DeclaringType == type).ToArray();
+		// The forms, not the accessors of the class's limits.
+		var published = type.GetMethods(BindingFlags.Public | BindingFlags.Static).Where(one => one.DeclaringType == type && !one.IsSpecialName).ToArray();
 
 		Assert.NotEmpty(published);
 
