@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The query language's adapter to linq2db: execution, timeout, caps, LIKE in the provider's
+	     dialect, and the translation of what execution throws into QlError. A spike: not packed. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DotGram.QueryLanguage\DotGram.QueryLanguage.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="linq2db" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="DotGram.QueryLanguage.Tests" />
+		<InternalsVisibleTo Include="DotGram.QueryLanguage.Probes" />
+	</ItemGroup>
+
+</Project>

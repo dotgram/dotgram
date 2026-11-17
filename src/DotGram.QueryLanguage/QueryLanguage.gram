@@ -1,0 +1,135 @@
+@using System;
+@using DotGram.QueryLanguage.Syntax;
+
+using Lexical;
+
+// The query language's text: one SELECT over one root. What a name means, whether a value
+// fits where it stands and whether the caller may use a field there is the binder's question;
+// this says only what may be written.
+//
+// The tower is one expression grammar, boolean and arithmetic alike, so that a parenthesis is
+// read once whatever it turns out to hold: written as a search condition over a value
+// expression, `((x = 1))` would be tried as a value first at every level and read again as a
+// condition, quadratic in the depth.
+namespace Lexical
+{
+	trivia = none
+
+	NameStart  = ['A'..'Z' | 'a'..'z' | '_']
+	NamePart   = ['A'..'Z' | 'a'..'z' | '0'..'9' | '_']
+	Word       = NameStart & NamePart*
+	QuotedName = Std.Quoted('"')
+	Number     = Std.Digits & ('.' & Std.Digits)? & ('E'i & ['+' | '-']? & Std.Digits)?
+	String     = Std.Quoted('\'')
+	Parameter  = '@' & Word
+}
+
+wordboundary = NamePart
+
+trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
+
+Query : @QuerySyntax
+	= "SELECT"i & select: Select & "FROM"i & root: Name & alias: Alias?
+	  & where: Where? & order: OrderBy? & limit: Limit? & offset: Offset?
+		=> @(new QuerySyntax(select, root, alias, where, order, limit, offset))
+
+Select : @SelectItemSyntax[] = '*' => @(Array.Empty<SelectItemSyntax>()) | items: SelectItems => @(items)
+
+SelectItems : SelectItem[] = SelectItem & (',' & SelectItem)*
+
+SelectItem : @SelectItemSyntax = column: ColumnRef & alias: Alias? => @(new SelectItemSyntax(column, alias))
+
+Alias : @NameSyntax = "AS"i? & n: Name => @(n)
+
+Where : @ExprSyntax = "WHERE"i & e: Expr => @(e)
+
+OrderBy : @OrderItemSyntax[] = "ORDER"i & "BY"i & items: OrderItems => @(items)
+
+OrderItems : OrderItem[] = OrderItem & (',' & OrderItem)*
+
+OrderItem : @OrderItemSyntax = column: ColumnRef & direction: ("ASC"i | "DESC"i)? => @(new OrderItemSyntax(column, Nodes.Descending(direction)))
+
+Limit  : @ExprSyntax = "LIMIT"i  & v: Primary => @(v)
+Offset : @ExprSyntax = "OFFSET"i & v: Primary => @(v)
+
+// ── Conditions and values ───────────────────────────────────────────────────
+//
+// AND and OR are read as lists, so that the binder decides the shape of the tree: a balanced
+// one, since linq2db's cost depends on it.
+Expr : @ExprSyntax = items: OrItems => @(Nodes.Logical(LogicalOperator.Or, items, parserSpan.Start))
+
+OrItems : AndExpr[] = AndExpr & ("OR"i & AndExpr)*
+
+AndExpr : @ExprSyntax = items: AndItems => @(Nodes.Logical(LogicalOperator.And, items, parserSpan.Start))
+
+AndItems : NotExpr[] = NotExpr & ("AND"i & NotExpr)*
+
+NotExpr : @ExprSyntax
+	= "NOT"i & operand: NotExpr => @(new NotSyntax(operand, parserSpan.Start))
+	| p: Predicate               => @(p)
+
+Predicate : @ExprSyntax = left: Additive & tail: PredicateTail? => @(Nodes.Predicated(left, tail))
+
+PredicateTail : @PredicateTail
+	= op: CompareOperator & right: Additive                     => @(PredicateTail.Compare(Nodes.Comparison(op), right))
+	| "IS"i & negated: "NOT"i? & "NULL"i                        => @(PredicateTail.IsNull(negated is not null))
+	| negated: "NOT"i? & t: NegatableTail                       => @(t.Negate(negated is not null))
+
+NegatableTail : @PredicateTail
+	= "IN"i & '(' & items: ValueList & ')'                      => @(PredicateTail.InList(items))
+	| "IN"i & p: ParameterRef                                   => @(PredicateTail.InParameter(p))
+	| "LIKE"i & pattern: Additive & escape: Escape?             => @(PredicateTail.Like(pattern, escape))
+	| "BETWEEN"i & low: Additive & "AND"i & high: Additive      => @(PredicateTail.Between(low, high))
+
+Escape : @ExprSyntax = "ESCAPE"i & e: Primary => @(e)
+
+ValueList : Additive[] = Additive & (',' & Additive)*
+
+CompareOperator = "<>" | "<=" | ">=" | "!=" | "=" | "<" | ">"
+
+// Left recursive, so that `a - b - c` is `(a - b) - c` as written; the binder counts the
+// operands of such a chain and refuses a long one rather than reassociating it.
+Additive : @ExprSyntax
+	= left: Additive & op: ("+" | "-") & right: Multiplicative => @(Nodes.Arithmetic(left, op, right))
+	| m: Multiplicative                                        => @(m)
+
+Multiplicative : @ExprSyntax
+	= left: Multiplicative & op: ("*" | "/" | "%") & right: Unary => @(Nodes.Arithmetic(left, op, right))
+	| u: Unary                                                    => @(u)
+
+Unary : @ExprSyntax
+	= '-' & operand: Unary => @(new NegateSyntax(operand, parserSpan.Start))
+	| p: Primary           => @(p)
+
+Primary : @ExprSyntax
+	= l: Literal               => @(l)
+	| p: ParameterRef          => @(p)
+	| c: ColumnRef             => @(c)
+	| '(' & e: Expr & ')'      => @(new ParenthesizedSyntax(e, parserSpan.Start))
+
+Literal : @ExprSyntax
+	= t: Number                => @(new LiteralSyntax(LiteralKind.Number,    t, parserSpan.Start))
+	| t: String                => @(new LiteralSyntax(LiteralKind.String,    Nodes.Unquote(t, '\''), parserSpan.Start))
+	| "TRUE"i                  => @(new LiteralSyntax(LiteralKind.True,      "TRUE", parserSpan.Start))
+	| "FALSE"i                 => @(new LiteralSyntax(LiteralKind.False,     "FALSE", parserSpan.Start))
+	| "NULL"i                  => @(new LiteralSyntax(LiteralKind.Null,      "NULL", parserSpan.Start))
+	| "DATE"i & t: String      => @(new LiteralSyntax(LiteralKind.Date,      Nodes.Unquote(t, '\''), parserSpan.Start))
+	| "TIMESTAMP"i & t: String => @(new LiteralSyntax(LiteralKind.Timestamp, Nodes.Unquote(t, '\''), parserSpan.Start))
+
+ParameterRef : @ParameterSyntax = t: Parameter => @(new ParameterSyntax(t.Substring(1), parserSpan.Start))
+
+ColumnRef : @ColumnSyntax
+	= qualifier: Name & '.' & name: Name => @(new ColumnSyntax(qualifier, name))
+	| name: Name                         => @(new ColumnSyntax(null, name))
+
+Name : @NameSyntax
+	= ?!Reserved & t: Word => @(new NameSyntax(t, false, parserSpan.Start))
+	| t: QuotedName        => @(new NameSyntax(Nodes.Unquote(t, '"'), true, parserSpan.Start))
+
+// What a name may not be unquoted. Small, since the language is: a field called `order` is
+// written `"order"`.
+Reserved = ( "SELECT"i | "FROM"i | "WHERE"i | "AND"i | "OR"i | "NOT"i | "IS"i | "NULL"i | "IN"i
+           | "LIKE"i | "ESCAPE"i | "BETWEEN"i | "ORDER"i | "BY"i | "ASC"i | "DESC"i | "LIMIT"i
+           | "OFFSET"i | "AS"i | "TRUE"i | "FALSE"i | "DATE"i | "TIMESTAMP"i )
+
+internal parse Query as ParseQuery

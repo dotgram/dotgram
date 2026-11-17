@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- A spike: one framework. The package targets netstandard2.0 beside net10.0 as
+		     DotGram.ExpressionLanguage does, once its surface is agreed. -->
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+
+		<Description>A closed-world, SQL-like query language for untrusted text, translated into System.Linq.Expressions trees over an exposure model.</Description>
+
+		<!-- Generated files land on disk so a reader can open what the grammar became. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The generator, and nothing else: the parser it writes acquires no runtime dependency. -->
+		<ProjectReference Include="..\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AdditionalFiles Include="QueryLanguage.gram" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The adapter reads the portable LIKE pattern through LikePatterns; a release makes that
+		     surface public rather than lend the internals. -->
+		<InternalsVisibleTo Include="DotGram.QueryLanguage.LinqToDB" />
+		<InternalsVisibleTo Include="DotGram.QueryLanguage.Tests" />
+		<InternalsVisibleTo Include="DotGram.QueryLanguage.Probes" />
+	</ItemGroup>
+
+</Project>
