@@ -1501,8 +1501,8 @@ static class SharedRecursion
 				from = range.To + 1;
 			}
 
-			if (from <= char.MaxValue)
-				complement.Add(new CharRange((char)from, char.MaxValue));
+			if (from <= CharRange.Last)
+				complement.Add(new CharRange((char)from, CharRange.Last));
 
 			var rest = FirstSets.First.Chars(complement);
 

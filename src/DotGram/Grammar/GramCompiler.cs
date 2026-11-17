@@ -93,7 +93,13 @@ static class GramCompiler
 		// One language for the whole compilation: it reads the grammar's host fragments and is asked
 		// about its types, for every stage below.
 		var language = options.Language ?? new CSharpLanguage(options.SymbolResolver, options.CSharpScanner);
-		var parsed   = Read(language, grammarText, options.Own, options.Cuts);
+
+		// Every stage reads a character class and a literal as ranges and runs of UTF-16 code units
+		// (CharRange); a language whose input is made of anything else needs those stages first.
+		if (language.TextUnit != TextUnit.Utf16CodeUnit)
+			throw new NotSupportedException($"A parser over {language.TextUnit} is not generated: every stage reads UTF-16 code units.");
+
+		var parsed = Read(language, grammarText, options.Own, options.Cuts);
 
 		diagnostics.AddRange(parsed.Diagnostics);
 

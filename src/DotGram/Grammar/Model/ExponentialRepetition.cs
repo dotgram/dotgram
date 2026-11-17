@@ -709,7 +709,7 @@ static class ExponentialRepetition
 			if (ranges.Count == 1 && ranges[0].IsSingle)
 				return Quoted(ranges[0].From);
 
-			if (ranges.Count == 1 && ranges[0].From == char.MinValue && ranges[0].To == char.MaxValue)
+			if (ranges.Count == 1 && ranges[0] == CharRange.All)
 				return "any";
 
 			const int most = 3;
@@ -1023,7 +1023,7 @@ static class ExponentialRepetition
 
 			return (Letters[letter].Reads ?? Letters[letter].Begins) is { } reads
 				? refused.Covers(reads)
-				: refused.Covers(FirstSets.First.Chars([new CharRange(char.MinValue, char.MaxValue)]));
+				: refused.Covers(FirstSets.First.Chars([CharRange.All]));
 		}
 
 		/// <summary>One more way to read nothing, counted with the others held to the same look.</summary>
@@ -1124,7 +1124,7 @@ static class ExponentialRepetition
 				}
 
 				case Node.Call({ IsBuiltIn: true, Name: "any" }, _):
-					return FirstSets.First.Chars([new CharRange(char.MinValue, char.MaxValue)]);
+					return FirstSets.First.Chars([CharRange.All]);
 
 				// A rule that is one class, called: what it is, unless it is one of those being read.
 				// Kept once known, for every repetition of the grammar: a rule reached by many paths

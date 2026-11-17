@@ -6,8 +6,23 @@ using DotGram.Grammar.Binding;
 namespace DotGram.Grammar.Model;
 
 /// <summary>An inclusive range of input items.</summary>
+/// <remarks>
+/// An item is a text unit of the language the parser is generated in (<see cref="ITargetLanguage.TextUnit"/>):
+/// a UTF-16 code unit, the only one there is, which is why it is a <see cref="char"/>. Where a stage
+/// needs the whole alphabet or its last unit, it asks <see cref="All"/> and <see cref="Last"/> rather than
+/// writing the bounds of a <see cref="char"/> out again.
+/// </remarks>
 readonly record struct CharRange(char From, char To)
 {
+	/// <summary>The first text unit there is.</summary>
+	public const char First = char.MinValue;
+
+	/// <summary>The last text unit there is.</summary>
+	public const char Last = char.MaxValue;
+
+	/// <summary>Every text unit there is.</summary>
+	public static CharRange All => new(First, Last);
+
 	public bool IsSingle => From == To;
 
 	public override string ToString()

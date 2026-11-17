@@ -22,6 +22,12 @@ namespace DotGram.Grammar;
 /// </remarks>
 interface ITargetLanguage
 {
+	/// <summary>
+	/// What one item of the input a generated parser reads is, and so what a character class and a
+	/// literal are ranges and sequences of (<see cref="Model.CharRange"/>).
+	/// </summary>
+	TextUnit TextUnit { get; }
+
 	/// <summary>Which known type a spelling names, and how; <see cref="KnownType.None"/> for any other.</summary>
 	/// <remarks>
 	/// Exact: a spelling is classified as written, with no import or alias applied. A sequence is
@@ -182,6 +188,13 @@ interface ITargetLanguage
 
 	/// <summary>Whether a type is the language's optional representation of a value type.</summary>
 	bool IsOptional(string type);
+}
+
+/// <summary>What one item of a generated parser's input is (<see cref="ITargetLanguage.TextUnit"/>).</summary>
+enum TextUnit
+{
+	/// <summary>A UTF-16 code unit: a supplementary character is two of them, each read on its own.</summary>
+	Utf16CodeUnit,
 }
 
 /// <summary>How <see cref="ITargetLanguage.SoleName"/> takes a fragment's brackets off, and what it takes for a name.</summary>

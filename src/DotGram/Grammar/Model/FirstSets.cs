@@ -2315,7 +2315,7 @@ static class FirstSets
 		{
 			var start = -1;
 
-			for (var c = 0; c <= char.MaxValue; c++)
+			for (var c = 0; c <= CharRange.Last; c++)
 			{
 				var inside =
 					members.Contains(UnicodeCategories.Of((char)c));
@@ -2330,14 +2330,14 @@ static class FirstSets
 			}
 
 			if (start >= 0)
-				ranges.Add(new CharRange((char)start, char.MaxValue));
+				ranges.Add(new CharRange((char)start, CharRange.Last));
 		}
 		else
 		{
 			// A name this cannot place is not a licence to guess: the whole space is the
 			// honest answer, and it arrives as one known range rather than as "anything"
 			// so that negation still works over it.
-			ranges.Add(new CharRange(char.MinValue, char.MaxValue));
+			ranges.Add(CharRange.All);
 		}
 
 		lock (_categoryRanges)
@@ -2362,8 +2362,8 @@ static class FirstSets
 			next = range.To + 1;
 		}
 
-		if (next <= char.MaxValue)
-			outside.Add(new CharRange((char)next, char.MaxValue));
+		if (next <= CharRange.Last)
+			outside.Add(new CharRange((char)next, CharRange.Last));
 
 		return outside;
 	}

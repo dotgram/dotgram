@@ -267,7 +267,7 @@ static class TriviaOverlap
 	/// </remarks>
 	sealed class Edges
 	{
-		static readonly FirstSets.First Every = FirstSets.First.Chars([new CharRange(char.MinValue, char.MaxValue)]);
+		static readonly FirstSets.First Every = FirstSets.First.Chars([CharRange.All]);
 
 		readonly HashSet<RuleSymbol> _seams;
 		readonly RecognitionGraph    _graph;
