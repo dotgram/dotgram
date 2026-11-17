@@ -230,11 +230,25 @@ public sealed class EmbeddedGrammarSessionTests
 		var host    = Host(workspace, "// [Gram(...)] is what this file will hold.\nclass Parser;\n");
 		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
 
-		for (var step = 0; step < 4 * EmbeddedGrammarSession.RetryCount && host.Scheduler.WaitForTimer(TimeSpan.FromSeconds(2)); step++)
-			host.Scheduler.Advance(EmbeddedGrammarSession.RetryDelayMilliseconds + EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+		// Every analysis and every retry waits on a timer of its own, and a timer is set from whatever
+		// thread the work is on, so each step waits for the next one as long as a slow runner needs.
+		// The last analysis takes the last timer, so a step ends as well when the analyses are all begun.
+		while (true)
+		{
+			Assert.True(
+				SpinWait.SpinUntil(() => host.AnalysedCount > EmbeddedGrammarSession.RetryCount || host.Scheduler.WaitForTimer(TimeSpan.Zero), TimeSpan.FromSeconds(30)),
+				$"analysed {host.AnalysedCount} times, no timer pending");
 
+			if (host.AnalysedCount > EmbeddedGrammarSession.RetryCount)
+				break;
+
+			host.Scheduler.Advance(EmbeddedGrammarSession.RetryDelayMilliseconds + EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+		}
+
+		// The last analysis has begun; it is over when the session shows the document as current.
+		Assert.True(SpinWait.SpinUntil(() => session.View(host.Current).Current, TimeSpan.FromSeconds(30)));
+		Assert.False(host.Scheduler.WaitForTimer(TimeSpan.FromSeconds(1)));
 		Assert.Equal(1 + EmbeddedGrammarSession.RetryCount, host.AnalysedCount);
-		Assert.True(session.View(host.Current).Current);
 	}
 
 	const string Library = "namespace Library { [DotGram.Gram(\"Base.gram\", DefaultAlias = \"B\")] public partial class Base { } }";
