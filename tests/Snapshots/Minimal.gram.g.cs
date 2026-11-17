@@ -4349,7 +4349,10 @@ namespace DotGram.Snapshots
 				{
 					reach = p;
 					reach0 = p;
+					var markedAt = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Choice, 15, p, call, atomic, repeat, lookahead, 0));
+					var marking = entries[repeat];
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, markedAt, marking.Position, marking.CallIndex, marking.AtomicIndex, marking.RepeatIndex, marking.LookaheadIndex, marking.Value, marking.RuleIndex);
 				}
 
 				{
@@ -4461,6 +4464,22 @@ namespace DotGram.Snapshots
 				}
 
 				{
+					var turnMarked = entries[repeat].State;
+					if (turnMarked <= repeat || turnMarked >= entries.Count || entries[turnMarked].RepeatIndex != repeat || entries[turnMarked].State != 15 || (entries[turnMarked].Kind != ParserEntry.Choice && entries[turnMarked].Kind != ParserEntry.Dead && entries[turnMarked].Kind != ParserEntry.PendingRecovery))
+						turnMarked = -1;
+					if (turnMarked >= 0)
+					{
+						for (var choiceAt = entries.Count - 1; choiceAt >= turnMarked; choiceAt--)
+						{
+							var choice = entries[choiceAt];
+							if (choice.Kind == ParserEntry.Choice)
+								entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
+							var nested = choice.RepeatIndex;
+							if (nested > turnMarked && nested < choiceAt && entries[nested].Kind == ParserEntry.Repeat && entries[nested].State > nested)
+								choiceAt = nested;
+						}
+					}
+					else
 					for (var choiceAt = entries.Count - 1; choiceAt > repeat; choiceAt--)
 					{
 						var choice = entries[choiceAt];
@@ -4469,7 +4488,7 @@ namespace DotGram.Snapshots
 						if (choice.RepeatIndex == repeat && choice.State == 15 && (choice.Kind == ParserEntry.Choice || choice.Kind == ParserEntry.Dead || choice.Kind == ParserEntry.PendingRecovery)) break;
 					}
 					var acceptedRepeat = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, acceptedRepeat.State, acceptedRepeat.Position, acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1);
 					goto S4;
 				}
 
@@ -4514,6 +4533,20 @@ namespace DotGram.Snapshots
 					var recoveryReach = p;
 					var recoveryTo = p;
 					var recoveryBoundary = false;
+					var turnMarked = entries[repeat].State;
+					if (turnMarked <= repeat || turnMarked >= entries.Count || entries[turnMarked].RepeatIndex != repeat || entries[turnMarked].State != 15 || (entries[turnMarked].Kind != ParserEntry.Choice && entries[turnMarked].Kind != ParserEntry.Dead && entries[turnMarked].Kind != ParserEntry.PendingRecovery))
+						turnMarked = -1;
+					if (turnMarked >= 0 && entries[turnMarked].Kind == ParserEntry.PendingRecovery && (turnMarked + 1 == entries.Count || entries[turnMarked + 1].Kind == ParserEntry.Choice && entries[turnMarked + 1].State == 20))
+					{
+						recoveryFrom = entries[turnMarked].Position;
+						recoveryReach = entries[turnMarked].AtomicIndex;
+						if (turnMarked + 1 < entries.Count)
+						{
+							recoveryTo = entries[turnMarked + 1].Position;
+							recoveryBoundary = true;
+						}
+					}
+					else
 					for (var recoveryAt = entries.Count - 1; recoveryAt > repeat; recoveryAt--)
 					{
 						var candidate = entries[recoveryAt];
@@ -4529,6 +4562,19 @@ namespace DotGram.Snapshots
 							recoveryBoundary = true;
 						}
 					}
+					if (turnMarked >= 0)
+					{
+						for (var choiceAt = entries.Count - 1; choiceAt >= turnMarked; choiceAt--)
+						{
+							var choice = entries[choiceAt];
+							if (choice.Kind == ParserEntry.Choice)
+								entries[choiceAt] = new ParserEntry(ParserEntry.Dead, choice.State, choice.Position, choice.CallIndex, choice.AtomicIndex, choice.RepeatIndex, choice.LookaheadIndex, choice.Value, choice.RuleIndex);
+							var nested = choice.RepeatIndex;
+							if (nested > turnMarked && nested < choiceAt && entries[nested].Kind == ParserEntry.Repeat && entries[nested].State > nested)
+								choiceAt = nested;
+						}
+					}
+					else
 					for (var choiceAt = entries.Count - 1; choiceAt > repeat; choiceAt--)
 					{
 						var choice = entries[choiceAt];
@@ -4539,7 +4585,7 @@ namespace DotGram.Snapshots
 					(parser.Expectations ??= new global::System.Collections.Generic.Dictionary<int, string[]?>())[entries.Count] = expecting0;
 					entries.Add(new ParserEntry(ParserEntry.Recovery, 0, recoveryFrom, call, recoveryReach, repeat, lookahead, recoveryTo, entries[repeat].Value));
 					var recoveredRepeat = entries[repeat];
-					entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);
+					entries[repeat] = new ParserEntry(ParserEntry.Repeat, recoveredRepeat.State, recoveredRepeat.Position, recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);
 					goto S4;
 				}
 
