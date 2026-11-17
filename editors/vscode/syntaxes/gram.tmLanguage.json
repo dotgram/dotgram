@@ -32,6 +32,9 @@
       "include": "#transitions"
     },
     {
+      "include": "#symbols"
+    },
+    {
       "include": "#operators"
     },
     {
@@ -89,7 +92,7 @@
       "match": "\\b[0-9]+\\b"
     },
     "keywords": {
-      "name": "keyword.control.gram",
+      "name": "keyword.other.gram",
       "match": "\\b(?:using|namespace|parse|find|as|with|when|is|not|and|or|switch|case|default|recover|on|fail|public|internal|private|positional|context|state|stream|bytes|yield)\\b"
     },
     "builtins": {
@@ -105,7 +108,7 @@
       "begin": "(@)(\\()",
       "beginCaptures": {
         "1": {
-          "name": "keyword.control.transition.gram"
+          "name": "keyword.other.transition.gram"
         },
         "2": {
           "name": "punctuation.section.embedded.begin.gram"
@@ -142,11 +145,16 @@
     "transitions": {
       "comment": "@using, and a C# type: @int, @Build.Statement[].",
       "match": "@",
-      "name": "keyword.control.transition.gram"
+      "name": "keyword.other.transition.gram"
+    },
+    "symbols": {
+      "comment": "The symbols of the notation: choice, sequence, the predicates, repetition, ranges. keyword.control, which every default theme colours apart from names and keywords.",
+      "name": "keyword.control.special.gram",
+      "match": "\\.\\.|\\?=|\\?!|[|&~?*+^<>]"
     },
     "operators": {
       "name": "keyword.operator.gram",
-      "match": "=>|\\.\\.|\\?=|\\?!|[=|&~?*+\\-!^:<>]"
+      "match": "=>|[=\\-!:]"
     },
     "punctuation": {
       "name": "punctuation.separator.gram",

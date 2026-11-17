@@ -34,6 +34,50 @@ public sealed class TextMateTests
 		Assert.Equal(GrammarBinder.BuiltIn.Order(StringComparer.Ordinal), Words("builtins"));
 	}
 
+	/// <summary>
+	/// The symbols of the notation — choice, sequence, the predicates, repetition, ranges — are coloured apart
+	/// from names and keywords in every default theme, which colours <c>keyword.control</c> and not
+	/// <c>keyword.operator</c>: the first paint takes every symbol the core classifies as one, and the
+	/// semantic token is mapped to the same scope; an operator such as <c>=</c> stays an operator in both.
+	/// </summary>
+	[Fact]
+	public void The_symbols_of_the_notation_are_painted_apart_from_names()
+	{
+		const string Grammar = "Start = ('a' | 'b')* & ~'c' ?= 'd' ?! 'e' ['a'..'z']+ 'f'? ^ <1> Rest\nRest => 'g' - 'h'\nparse Start\n";
+
+		var symbols   = new Regex("^(?:" + Repository.Value.GetProperty("symbols").GetProperty("match").GetString() + ")$");
+		var operators = new Regex("^(?:" + Repository.Value.GetProperty("operators").GetProperty("match").GetString() + ")$");
+		var scope     = Repository.Value.GetProperty("symbols").GetProperty("name").GetString()!;
+		var mapped    = Manifest.Value.GetProperty("contributes").GetProperty("semanticTokenScopes")[0].GetProperty("scopes")
+			.GetProperty("gramSpecialSymbol")[0].GetString();
+		var document  = GramLanguageService.Analyze(Grammar);
+		var special   = document.Classifications.Where(static item => item.Kind == GramSyntaxKind.SpecialSymbol).ToArray();
+		var plain     = document.Classifications.Where(static item => item.Kind == GramSyntaxKind.Operator).ToArray();
+
+		Assert.True(special.Length >= 10, $"{special.Length} symbols classified");
+		Assert.NotEmpty(plain);
+
+		foreach (var item in special)
+			Assert.Matches(symbols, Grammar.Substring(item.Position, item.Length));
+
+		foreach (var item in plain)
+			Assert.Matches(operators, Grammar.Substring(item.Position, item.Length));
+
+		Assert.StartsWith("keyword.control.", scope, StringComparison.Ordinal);
+		Assert.Equal(scope, mapped);
+
+		// A keyword is not: VS Code paints the standard keyword token as keyword.control unless told
+		// otherwise, so it is mapped to the first paint's scope for keywords.
+		var keywords = Manifest.Value.GetProperty("contributes").GetProperty("semanticTokenScopes")[0].GetProperty("scopes")
+			.GetProperty("keyword")[0].GetString();
+
+		Assert.Equal(Repository.Value.GetProperty("keywords").GetProperty("name").GetString(), keywords);
+		Assert.False(keywords!.StartsWith("keyword.control.", StringComparison.Ordinal), keywords);
+	}
+
+	static readonly Lazy<JsonElement> Manifest = new(static () =>
+		JsonDocument.Parse(File.ReadAllText(Path.Combine(LspClient.SourceRoot(), "editors", "vscode", "package.json"))).RootElement.Clone());
+
 	/// <summary>The words of a rule written <c>\b(?:one|two|…)\b</c>, in order.</summary>
 	static string[] Words(string rule)
 	{

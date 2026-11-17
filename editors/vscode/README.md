@@ -1,8 +1,8 @@
 # .Gram language support
 
-Editing support for [DotGram](https://github.com/dotgram/dotgram) grammars (`.gram` files) in VS Code, from the
-same language core the DotGram source generator and the Visual Studio extension compile: what you see is what the
-build reads.
+Editing support for [DotGram](https://github.com/dotgram/dotgram) grammars in VS Code — `.gram` files and grammars
+written into C# strings — from the same language core the DotGram source generator and the Visual Studio extension
+compile: what you see is what the build reads.
 
 ## What works
 
@@ -16,6 +16,9 @@ build reads.
   referenced assembly carries it — and into the C# host for a C# name.
 - **Find All References**, **highlights**, **Rename** (`F2`) within the file, **folding** and the **outline**.
 - **Snippets** for grammars and their C# hosts.
+- **Grammars in C#** — a `[Gram("""…""")]`'s string, a string passed to a `[StringSyntax("DotGram")]` parameter, a
+  DSL literal: diagnostics on the C# file, colours painted over whatever colours the C# file has (with or without the
+  C# extension), hover, Go to Definition, Find All References, highlights and Rename inside the grammar.
 
 A grammar's host — the C# class whose `[Gram("….gram")]` names the file — is looked for in the workspace folder's
 C# without a build, so its `Lexical` option and the grammars it includes are read as the build reads them. A folder
@@ -23,7 +26,9 @@ with more than 2,000 C# files, and a file outside any folder, are read as they s
 
 ## What does not
 
-- Grammars embedded in C# (`[Gram("""…""")]` in a `.cs` file) are not analysed: this extension reads `.gram` files.
+- Completion, signature help, folding and the outline inside a grammar written in C#.
+- A grammar in C# is painted in the default themes' colours; another theme's are not read (the colours are
+  `dotgram.embedded.*`, which `workbench.colorCustomizations` can set).
 - Diagnostics about the project rather than the grammar (a host that is not `partial`, a grammar that is not an
   additional file) are the build's.
 
