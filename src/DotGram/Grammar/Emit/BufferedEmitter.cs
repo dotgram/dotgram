@@ -361,7 +361,7 @@ static partial class CSharpEmitter
 		var type       = results.QualifiedOf(publication.Rule);
 		var bytes      = machine.BufferedBytes;
 		var parameters = buffered ? ", int? bufferSize = null, int? maxRetained = null" : "";
-		var construct  = buffered ? "(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained)" : "(input)";
+		var construct  = buffered ? "(input, bufferSize ?? DefaultBufferSize, maxRetained ?? Limits.MaxBufferedInputLength)" : "(input)";
 		var forward    = buffered ? ", bufferSize, maxRetained" : "";
 		var value      = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : type ?? (bytes ? "byte[]" : "string");
 		var match      = $"{MatchType}<{value}>";
@@ -443,7 +443,7 @@ static partial class CSharpEmitter
 			{
 				file.Line("if (input == null) throw new global::System.ArgumentNullException(nameof(input));");
 				file.Line("var capacity = bufferSize ?? DefaultBufferSize;");
-				file.Line("var limit = maxRetained ?? DefaultMaxRetained;");
+				file.Line("var limit = maxRetained ?? Limits.MaxBufferedInputLength;");
 				file.Line("if (capacity <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(bufferSize));");
 				file.Line("if (limit <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(maxRetained));");
 				file.Line($"return {iterator}(input{(machine.UsesContext ? ", context" : "")}, capacity, limit{tracedArgument});");

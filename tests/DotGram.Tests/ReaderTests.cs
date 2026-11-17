@@ -260,11 +260,14 @@ public sealed class ReaderTests
 		Assert.Contains("[global::System.ThreadStatic]", written, StringComparison.Ordinal);
 		Assert.Contains("Take();", written, StringComparison.Ordinal);
 
-		// Nothing says how many stacks are enough, so nothing counts them.
-		Assert.DoesNotContain("this.stacks", written, StringComparison.Ordinal);
+		// How many it may take is the grammar's limits as the reading is made, which a caller may change.
+		Assert.Contains("this.stacksLeft = Limits.MaxExtraStacks;", written, StringComparison.Ordinal);
+		Assert.Contains("deep.stacksLeft = this.stacksLeft - 1;", written, StringComparison.Ordinal);
 	}
 
-	/// <summary>And stops where the author said how many stacks were enough.</summary>
+	/// <summary>
+	/// And stops where the limits say, which start as what the author said was enough (LimitsTests runs it).
+	/// </summary>
 	[Fact]
 	public void A_reading_takes_no_more_stacks_than_it_was_allowed()
 	{
@@ -280,8 +283,8 @@ public sealed class ReaderTests
 
 		var written = Assert.Single(result.Sources).Text;
 
-		Assert.Contains("if (this.stacks >= 2)", written, StringComparison.Ordinal);
-		Assert.Contains("deep.stacks = this.stacks + 1;", written, StringComparison.Ordinal);
+		Assert.Contains("new ParserLimits(2147483647, 2)", written, StringComparison.Ordinal);
+		Assert.Contains("if (this.stacksLeft == 0)", written, StringComparison.Ordinal);
 	}
 
 	/// <summary>

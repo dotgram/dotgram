@@ -59,6 +59,7 @@ BREAKING CHANGES, and what to do about each. Regenerate the parser to take any o
 
 NEW
 
+- Limits a program sets while it runs: every generated class has a static Limits property holding an immutable ParserLimits (MaxExtraStacks, MaxBufferedInputLength, Default, WithMaxExtraStacks, WithMaxBufferedInputLength). It starts as what [Gram] wrote, a parse reads it once as it begins, and a buffered call's own maxRetained still wins over it. Limits and ParserLimits are now names the class keeps: a publication or a rule's type called either is GRAM5018. docs/syntax.md section 6.5.
 - The left side of a rebinding may be qualified: X with (Std.Digit = HexDigit), namespace N with (A.B = C). It means the rule the name resolves to, as the unqualified name does where it is in view; it was GRAM2001, "Expected '='". docs/syntax.md section 5.1.
 - Every diagnostic has a title of its own, the "What it says" of docs/diagnostics.md, and a help link to its row of that file at this version's tag.
 - Bindings and back-references: $q: X binds the text X matched, $q matches that text again, X{#q} repeats X by its length - for constructs closed by the text that opened them (Lua long brackets, raw strings, heredocs, Markdown fences). Read over characters, through a reader and a stream; refused over tokens (GRAM4035). docs/syntax.md section 3.5.1; GRAM1011, GRAM2010, GRAM3021, GRAM4032-GRAM4035.

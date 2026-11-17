@@ -164,13 +164,14 @@ static partial class CSharpEmitter
 	/// <summary>
 	/// The public types and members the generated class declares beside what the author published, by
 	/// the names a caller reads them under: the answer a publication gives, the hooks the author may
-	/// implement, and the defaults of a reader that the package's own code reads. A publication takes the name of a method of the class, and
-	/// a method cannot be called what one of these is; nor can a rule's type.
+	/// implement, the defaults of a reader that the package's own code reads, and the limits a caller sets.
+	/// A publication takes the name of a method of the class, and a method cannot be called what one of these
+	/// is; nor can a rule's type.
 	/// </summary>
 	public static readonly string[] PublicNames =
 	[
 		MatchType, OutcomeType, "SourceSpan", "ParserInput", RecoveredMethod, "OnHandingOff", "OnTakingOver",
-		"DefaultBufferSize", "DefaultMaxRetained",
+		"DefaultBufferSize", "DefaultMaxRetained", "Limits", "ParserLimits",
 	];
 
 	/// <summary>

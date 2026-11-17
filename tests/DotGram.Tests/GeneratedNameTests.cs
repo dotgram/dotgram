@@ -37,6 +37,8 @@ public sealed class GeneratedNameTests
 	[InlineData("OnRecovered")]
 	[InlineData("DefaultBufferSize")]
 	[InlineData("DefaultMaxRetained")]
+	[InlineData("Limits")]
+	[InlineData("ParserLimits")]
 	[InlineData("Failure")]
 	[InlineData("ParserEntry")]
 	[InlineData("Probe")]

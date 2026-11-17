@@ -58,6 +58,11 @@ is what to decide before using one, the contract they share, and what is easy to
   text and refuses a tree T-SQL would read as another one.
 - **`SqlWalker.Walk(root, visit)`** hands every node under `root` to `visit`, parent first,
   until `visit` answers false. A check is a pattern match in the lambda.
+- **Nesting is read as deep as the input goes**, on as many extra stacks as it takes. For text
+  someone else wrote, bound its length, and set how many stacks a parse may take, once, at
+  start-up: `TransactSqlParser.Limits = TransactSqlParser.Limits.WithMaxExtraStacks(4);`
+  (each parser has its own; `Located` reads its parser's). Past it the parse throws
+  `InsufficientExecutionStackException`. A parse reads the limits once, as it begins.
 
 ```csharp
 using System.Collections.Generic;

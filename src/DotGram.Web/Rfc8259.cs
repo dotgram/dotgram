@@ -458,7 +458,7 @@ public abstract record JsonValue
 // A text is read as characters: §8.1 says JSON between systems is UTF-8, and decoding it is the
 // caller's. A byte order mark is not whitespace and is refused, which §8.1 allows; a caller who wants
 // it ignored takes it off first. Nesting is as deep as the input goes — the reading moves to a fresh
-// stack where one runs low — and a limit, which §9 allows, is the caller's to set.
+// stack where one runs low — and a limit, which §9 allows, is the caller's to set (WebParsers.Limits).
 //
 // The captures are spans: a string token is handed to Unescaped as the slice of the input it was read
 // from, and the one string built is the value itself. With string captures the token was a string

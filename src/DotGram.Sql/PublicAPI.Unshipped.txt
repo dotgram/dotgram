@@ -1,1 +1,25 @@
 #nullable enable
+static DotGram.Sql.Standard.Sql92Parser.Limits.get -> DotGram.Sql.Standard.Sql92Parser.ParserLimits!
+static DotGram.Sql.Standard.Sql92Parser.Limits.set -> void
+DotGram.Sql.Standard.Sql92Parser.ParserLimits
+static DotGram.Sql.Standard.Sql92Parser.ParserLimits.Default.get -> DotGram.Sql.Standard.Sql92Parser.ParserLimits!
+DotGram.Sql.Standard.Sql92Parser.ParserLimits.MaxBufferedInputLength.get -> int
+DotGram.Sql.Standard.Sql92Parser.ParserLimits.MaxExtraStacks.get -> int
+DotGram.Sql.Standard.Sql92Parser.ParserLimits.WithMaxBufferedInputLength(int value) -> DotGram.Sql.Standard.Sql92Parser.ParserLimits!
+DotGram.Sql.Standard.Sql92Parser.ParserLimits.WithMaxExtraStacks(int value) -> DotGram.Sql.Standard.Sql92Parser.ParserLimits!
+static DotGram.Sql.Standard.SqlStandardParser.Limits.get -> DotGram.Sql.Standard.SqlStandardParser.ParserLimits!
+static DotGram.Sql.Standard.SqlStandardParser.Limits.set -> void
+DotGram.Sql.Standard.SqlStandardParser.ParserLimits
+static DotGram.Sql.Standard.SqlStandardParser.ParserLimits.Default.get -> DotGram.Sql.Standard.SqlStandardParser.ParserLimits!
+DotGram.Sql.Standard.SqlStandardParser.ParserLimits.MaxBufferedInputLength.get -> int
+DotGram.Sql.Standard.SqlStandardParser.ParserLimits.MaxExtraStacks.get -> int
+DotGram.Sql.Standard.SqlStandardParser.ParserLimits.WithMaxBufferedInputLength(int value) -> DotGram.Sql.Standard.SqlStandardParser.ParserLimits!
+DotGram.Sql.Standard.SqlStandardParser.ParserLimits.WithMaxExtraStacks(int value) -> DotGram.Sql.Standard.SqlStandardParser.ParserLimits!
+static DotGram.Sql.TransactSql.TransactSqlParser.Limits.get -> DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits!
+static DotGram.Sql.TransactSql.TransactSqlParser.Limits.set -> void
+DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits
+static DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits.Default.get -> DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits!
+DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits.MaxBufferedInputLength.get -> int
+DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits.MaxExtraStacks.get -> int
+DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits.WithMaxBufferedInputLength(int value) -> DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits!
+DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits.WithMaxExtraStacks(int value) -> DotGram.Sql.TransactSql.TransactSqlParser.ParserLimits!

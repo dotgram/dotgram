@@ -76,12 +76,6 @@ sealed record MachineSettings
 	public CarrierKind Carrier { get; init; } = CarrierKind.Deferred;
 
 	/// <summary>
-	/// How many stacks a parse may take past the one it began on, or nought for as many as there
-	/// is memory for (<see cref="GramCompilerOptions.Stacks"/>).
-	/// </summary>
-	public int Stacks { get; init; }
-
-	/// <summary>
 	/// What each kind stands for, where this machine reads kinds — the one thing that can say
 	/// a refusal in the words the grammar wrote rather than in the numbers the lexer made up.
 	/// </summary>

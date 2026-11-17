@@ -2298,7 +2298,7 @@ whether the result is lazy. The words on the left are written in that order, eac
 
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
-`ParserInput`, `OnRecovered`, `OnHandingOff` or `OnTakingOver`, which the class declares for its callers, nor `Failure`, `ParserEntry`, `DefaultBufferSize` or `DefaultMaxRetained`, which it
+`ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `Limits` or `ParserLimits`, which the class declares for its callers, nor `Failure`, `ParserEntry`, `DefaultBufferSize` or `DefaultMaxRetained`, which it
 declares internal for its own use, nor in a grammar read over tokens `Scan`, which it declares internal for the
 host's own code, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
 which a trace build of the grammar declares (§6.9) — in every build, traced or not, so that a grammar a
@@ -2670,6 +2670,8 @@ the values shown being what applies where the attribute does not say; a `[GramPa
 inherits them and may set its own. The generated class holds them as the read-only
 `DefaultBufferSize` and `DefaultMaxRetained`, internal to the assembly: code beside the grammar
 can read them, a caller in another assembly cannot. Either set to zero or less is `GRAM0009`.
+What a null `maxRetained` takes is the class's `Limits.MaxBufferedInputLength`, which starts as
+`DefaultMaxRetained` and which a program may change while it runs (§6.5, *Limits at run time*).
 
 The byte form uses `Stream` under the same method names. Explicit buffered input
 does not imply a lazy result: `parse` returns its declared result unless `yield`
@@ -2986,6 +2988,50 @@ construction whose value one of them reads answer from their arguments, captures
 or from `context` named as such. One that reads state some other way breaks it, and the memo
 then answers with the failure it remembered.
 
+#### Limits at run time
+
+`MaxExtraStacks` and `MaxBufferedInputLength` are written when the parser is generated; the
+program that uses it may change them while it runs. Every class a reading is compiled into —
+the host, and the class of each `[GramParserVariant]` — declares a static property and the
+immutable value it holds:
+
+```csharp
+public static ParserLimits Limits { get; set; }      // ParserLimits.Default until set; null is refused
+
+public sealed class ParserLimits
+{
+	public static ParserLimits Default { get; }      // the values [Gram] wrote
+	public int MaxBufferedInputLength { get; }       // int.MaxValue is no limit
+	public int MaxExtraStacks { get; }               // 0 is no limit
+	public ParserLimits WithMaxBufferedInputLength(int value);   // zero or less: ArgumentOutOfRangeException
+	public ParserLimits WithMaxExtraStacks(int value);           // negative: ArgumentOutOfRangeException
+}
+```
+
+```csharp
+MyParser.Limits = MyParser.Limits.WithMaxExtraStacks(4);
+```
+
+A parse reads `Limits` once, as it begins, and holds to what it read: setting it replaces the
+whole value at once, so a parse already running — on this thread or another, on the stack it
+began on or one it was carried to — keeps the limits it began with, and one begun after the set
+reads the new ones. Nothing is locked, and a parse pays one read of a static field for it.
+
+Which value applies, first to last: a call's own `maxRetained`, where a buffered overload is
+given one; then `Limits`; then the attribute's value, which is what `ParserLimits.Default` holds.
+`MaxExtraStacks` has no argument of a call.
+
+The setting is the process's, one for each reading of each grammar class: two parts of a
+program that want different limits for the same grammar share them, and a test that changes
+them runs apart from the tests that read them. A reading whose locations are asked for per call
+(`UsePerCallLocations`) is the same reading, and reads its host's `Limits`. A class whose
+readings publish nothing declares none. `Limits` and `ParserLimits` are names the class keeps:
+a publication or a rule's type called either is `GRAM5018`.
+
+A library whose grammar classes are internal says so in its own words: the SQL parsers are
+public classes, and `TransactSqlParser.Limits` is theirs; `DotGram.Web` sets every one of its
+grammars at once through `WebParsers.Limits`.
+
 ### 6.6 `[GramParserVariant]`, a second reading of the same grammar
 
 `[Gram]` is written once: it says *which* grammar, which is a thing a class has one of.
@@ -3174,7 +3220,7 @@ of it fails a build.
 | `DefaultAlias` | the class's own name | `[Gram]` only: the name another grammar includes this one under where its `[GramInclude]` gives no `Alias` (§6.7). |
 | `Name` | none — the host class itself | `[Gram]` only: the nested class the first reading goes into (§6.6). A `[GramParserVariant]` names its class as its one, required argument: `[GramParserVariant("Immediate", …)]`. |
 | `TargetMethodPartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
-| `MaxExtraStacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
+| `MaxExtraStacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on, where the class's `Limits` is not set (§6.5). |
 | `ExportGrammar` | not set: exported when the class and every class around it are public | whether the grammar's text travels on the class, for an include across a project reference (§6.7). Written as `true`, it also marks a grammar that publishes nothing as one for other assemblies to include (`GRAM4059`). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. The lexer's `Scan(text, pos, out kind)` is internal: the kind it answers with is the grammar's own numbering, which changes with the grammar. A host that wants token boundaries writes a method of its own under another name that calls it. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
@@ -3185,7 +3231,7 @@ of it fails a build.
 | `BufferedText` | `false` | adds the buffered character form to parse and find publications (§6.3). |
 | `BufferedBytes` | `false` | adds the buffered byte form, with no text decoding (§6.3). |
 | `UseSpanCaptures` | `false` | hands character captures over as `ReadOnlySpan<char>` rather than `string` (§6.3). |
-| `MaxBufferedInputLength` | `int.MaxValue`, no limit | the most a buffered parse may hold at once, where a call does not say; zero or less is `GRAM0009` (§6.3). |
+| `MaxBufferedInputLength` | `int.MaxValue`, no limit | the most a buffered parse may hold at once, where neither a call nor the class's `Limits` says otherwise; zero or less is `GRAM0009` (§6.3, §6.5). |
 | `InitialBufferSize` | `4096` | the capacity a buffered parse's buffer starts with, where a call does not say; zero or less is `GRAM0009` (§6.3). |
 
 Every option but `Source`, `DefaultAlias`, `Name` and `UsePerCallLocations` may be written on either

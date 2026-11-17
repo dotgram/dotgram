@@ -159,8 +159,8 @@ except where the table says so.
 | `BufferedBytes` | `false` | also publish each parse over a `Stream` and bytes, read through a buffer, with no text decoding. |
 | `UseSpanCaptures` | `false` | hand character captures to C# as `ReadOnlySpan<char>` rather than `string`. |
 | `InitialBufferSize` | `4096` | the capacity a buffered parse starts with, where a call does not say. At least 1 (`GRAM0009`). |
-| `MaxBufferedInputLength` | `int.MaxValue`, no limit | the most input, in characters or bytes, a buffered parse holds at once, where a call does not say; past it the parse throws `IOException`. At least 1 (`GRAM0009`). |
-| `MaxExtraStacks` | `0`, no limit | how many extra stacks one parse may take when input nests deeper than the thread's stack allows; past it the parse throws `InsufficientExecutionStackException`. |
+| `MaxBufferedInputLength` | `int.MaxValue`, no limit | the most input, in characters or bytes, a buffered parse holds at once, where a call does not say; past it the parse throws `IOException`. At least 1 (`GRAM0009`). The default of the class's `Limits`, which a program may change ([below](#limits-a-program-sets)). |
+| `MaxExtraStacks` | `0`, no limit | how many extra stacks one parse may take when input nests deeper than the thread's stack allows; past it the parse throws `InsufficientExecutionStackException`. The default of the class's `Limits`, which a program may change ([below](#limits-a-program-sets)). |
 | `TargetMethodPartSize` | `0`, the measured default | how large the parts of a recognizer too big for one method are aimed to be. A wish: no value fails a build. |
 | `LocationType` | none | an interface (or a class) the grammar's values implement to be told where in the input they were read. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink, for finding out why an input is refused. Changes no answer. |
@@ -226,6 +226,37 @@ public static partial class Numbers;
 ```
 
 *InitialBufferSize = 0 reads no input; it has to be at least 1.*
+
+### Limits a program sets
+
+`MaxExtraStacks` and `MaxBufferedInputLength` are fixed when the parser is generated, but they are
+only where the limits start. The class holds them in a static property, `Limits`, whose value is
+immutable: a program that reads text from someone else sets it once, at start-up, to what it is
+willing to spend.
+
+```csharp example=limits
+using DotGram;
+
+namespace Demo;
+
+[Gram("""
+	Nest = '(' & Nest & ')' | 'x'
+
+	parse Nest
+	""", MaxExtraStacks = 8)]
+public static partial class Brackets;
+```
+
+```text run example=limits
+Brackets.ParserLimits.Default.MaxExtraStacks → 8
+Brackets.Limits.WithMaxExtraStacks(2).MaxExtraStacks → 2
+```
+
+`Brackets.Limits = Brackets.Limits.WithMaxExtraStacks(2)` then holds every parse begun after it to
+two extra stacks. A parse reads `Limits` once, as it begins, so one already running keeps what it
+began with. A buffered call's own `maxRetained` still wins over `Limits.MaxBufferedInputLength`
+for that call. The setting is the process's, one for each grammar class; the full rules are in
+[`syntax.md` §6.5](../../syntax.md#limits-at-run-time).
 
 ### Where a value was read: `LocationType`
 

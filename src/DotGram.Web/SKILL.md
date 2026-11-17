@@ -39,6 +39,11 @@ what the text said, and be refused when it is malformed.
   without exceptions read it with `JsonValue.TryParse` and then `JsonPatch.TryRead`.
 - **A result is a record.** Two that mean the same are equal, and `ToString` writes the form
   the specification generates, not the text you gave it.
+- **Nesting is read as deep as the input goes**, on as many extra stacks as it takes. For text
+  someone else wrote, bound its length, and set how many stacks any parser of the package may
+  take, once, at start-up: `WebParsers.Limits = WebParsers.Limits.WithMaxExtraStacks(4);`. Past
+  it the parse throws `InsufficientExecutionStackException`. A parse reads the limits once, as
+  it begins.
 - **A field is not an element.** Fields that hold a list are read whole with `ParseField`
   (`WebLink`, `CookiePair`, `ForwardedElement`), `ParseAccept` or `StructuredField.ParseList`.
   The same field sent on several lines is one value: join `Forwarded` lines with commas, and
