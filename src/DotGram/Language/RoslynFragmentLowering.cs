@@ -415,9 +415,29 @@ static class RoslynFragmentLowering
 			foreach (var child in node.ChildNodes())
 			{
 				// A type is not a value, and whether one ports is not this tree's question: the
-				// `T` of `(T)x` or `default(T)` adds nothing to the refusal of the cast.
-				if (child is TypeSyntax type && SyntaxFacts.IsInTypeOnlyContext(type))
+				// `T` of `(T)x`, `default(T)` or `new T[] { … }` adds nothing to the refusal of the
+				// form it is written in, nor does the empty size of `[]`.
+				if (child is TypeSyntax type && (SyntaxFacts.IsInTypeOnlyContext(type) || node is ArrayCreationExpressionSyntax))
 					continue;
+
+				if (child is OmittedArraySizeExpressionSyntax)
+					continue;
+
+				// An initializer's `{ … }` and the `A =` of each member it sets are the refused
+				// form's own; the values are lowered, and may be refused on their own.
+				if (child is InitializerExpressionSyntax)
+				{
+					Within(child, refusals);
+
+					continue;
+				}
+
+				if (node is InitializerExpressionSyntax && child is AssignmentExpressionSyntax { Left: IdentifierNameSyntax or ImplicitElementAccessSyntax } member)
+				{
+					Lowering(member.Right, refusals);
+
+					continue;
+				}
 
 				if (child is ExpressionSyntax expression)
 					Lowering(expression, refusals);

@@ -169,12 +169,22 @@ public sealed class FragmentLoweringTests
 		Assert.Equal(["CastExpression", "ConditionalAccessExpression", "SuppressNullableWarningExpression"], forms);
 	}
 
-	[Fact]
-	public void A_type_inside_a_refused_form_adds_nothing()
+	[Theory]
+	[InlineData("(List<int>)x",              "CastExpression")]
+	[InlineData("new int[] { 1, 2 }",        "ArrayCreationExpression")]
+	[InlineData("new int[0]",                "ArrayCreationExpression")]
+	[InlineData("o with { A = 1, B = c }",   "WithExpression")]
+	[InlineData("new Foo(a) { A = 1 }",      "ObjectInitializerExpression")]
+	[InlineData("new Foo(a) { A = x?.B }",   "ObjectInitializerExpression ConditionalAccessExpression")]
+	[InlineData("new[] { a, b! }",           "ImplicitArrayCreationExpression SuppressNullableWarningExpression")]
+	[InlineData("a = b",                     "SimpleAssignmentExpression")]
+	public void What_a_refused_form_is_written_with_adds_nothing_but_its_values_count(string text, string expected)
 	{
-		var forms = RoslynFragmentLowering.Lower("(List<int>)x").Refusals.Select(static one => one.Form).ToArray();
+		// A type, an initializer's braces and the `A =` of the members it sets are the refused
+		// form's own; the values it holds are lowered and refused on their own.
+		var forms = RoslynFragmentLowering.Lower(text).Refusals.Select(static one => one.Form);
 
-		Assert.Equal(["CastExpression"], forms);
+		Assert.Equal(expected, string.Join(" ", forms));
 	}
 
 	[Fact]

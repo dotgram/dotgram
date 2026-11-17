@@ -17,6 +17,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- The census of the shipped grammars' host fragments, which DotGram.Tests reads under the
+		     generator's floor Roslyn: here it is read under the tool's (FragmentLoweringVersionTests). -->
+		<Compile Include="..\DotGram.Tests\Fragments\FragmentCensus.cs" Link="Shared\FragmentCensus.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
 
 		<!-- The tool's Roslyn, not the generator's floor: the two meet in this process. -->
