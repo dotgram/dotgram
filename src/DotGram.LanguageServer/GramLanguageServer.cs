@@ -63,6 +63,8 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	readonly SemaphoreSlim                   _reloading = new(1, 1);
 	readonly WorkspaceUpdates                _updates;
 	bool                                     _refreshSemanticTokens;
+	string?                                  _embeddedDiagnostics;
+	bool                                     _csharpExtension;
 	bool                                     _initialized;
 	int                                      _completionList;
 
@@ -348,22 +350,46 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 			if (!view.Current)
 				return;
 
-			_ = _rpc.NotifyAsync(EmbeddedColors, EmbeddedMap.Colors(document.Uri, version, view), LspJson.Default.EmbeddedColorsParams);
+			_ = _rpc.NotifyAsync(EmbeddedColors, EmbeddedMap.Colors(document, version, view), LspJson.Default.EmbeddedColorsParams);
 
-			var told = document.ToldDiagnostics;
+			var diagnostics = ShowsEmbeddedDiagnostics(document) ? view.Diagnostics : [];
+			var told        = document.ToldDiagnostics;
 
-			if (ReferenceEquals(told, view.Diagnostics) || view.Diagnostics.Count == 0 && (told is null || told.Count == 0))
+			if (ReferenceEquals(told, diagnostics) || diagnostics.Count == 0 && (told is null || told.Count == 0))
 			{
-				document.ToldDiagnostics = view.Diagnostics;
+				document.ToldDiagnostics = diagnostics;
 				return;
 			}
 
-			document.ToldDiagnostics = view.Diagnostics;
+			document.ToldDiagnostics = diagnostics;
 
 			_ = _rpc.NotifyAsync(
 				"textDocument/publishDiagnostics",
-				new PublishDiagnosticsParams(document.Uri, version.Number, EmbeddedMap.Diagnostics(view.Diagnostics, version)),
+				new PublishDiagnosticsParams(document.Uri, version.Number, EmbeddedMap.Diagnostics(diagnostics, version)),
 				LspJson.Default.PublishDiagnosticsParams);
+		}
+	}
+
+	/// <summary>
+	/// Whether a C# document's grammar diagnostics are published: always or never where the client says so;
+	/// otherwise (<c>auto</c>) not where the build shows them already — the client runs the C# extension,
+	/// which runs the project's analyzers, and the project runs the DotGram generator.
+	/// </summary>
+	bool ShowsEmbeddedDiagnostics(OpenCSharp document)
+	{
+		switch (Volatile.Read(ref _embeddedDiagnostics))
+		{
+			case "on":
+				return true;
+
+			case "off":
+				return false;
+
+			default:
+				return !Volatile.Read(ref _csharpExtension) ||
+					document.FilePath is not { } path ||
+					Loaded is not { } loaded ||
+					!loaded.Generates(path);
 		}
 	}
 
@@ -378,8 +404,9 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		if (!EmbeddedMap.InGrammar(view, offset))
 			return RpcReply.Null;
 
+		var roslyn = CSharp(document.FilePath, version);
 		var answer = await GramQuickInfoProvider.EmbeddedAsync(
-			version.String, view, offset, CSharpQuickInfo(document.FilePath), cancellationToken).ConfigureAwait(false);
+			version.String, view, offset, roslyn is null ? _options.CSharpQuickInfo : roslyn.QuickInfoAsync, cancellationToken).ConfigureAwait(false);
 
 		return answer is null ? RpcReply.Null : RpcReply.Ok(HoverMap.Map(answer, offset, version.Lines), LspJson.Default.Hover);
 	}
@@ -393,7 +420,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	{
 		var view   = document.View(version);
 		var offset = version.Lines.Offset(position);
-		var roslyn = CSharp(document.FilePath);
+		var roslyn = CSharp(document.FilePath, version);
 
 		if (!view.Current)
 			return RpcReply.Null;
@@ -418,14 +445,21 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		return location is null ? RpcReply.Null : RpcReply.Ok<Location[]>([location], LspJson.Default.LocationArray);
 	}
 
+	// References and rename in a C# document take the occurrences' spans, which are where the name is
+	// spelled in the C# text: not the name's length after it where an escape spells it (\u0057ord) or
+	// moves it ("" in a verbatim string). A grammar in C# includes nothing it could rename into.
+
 	RpcReply EmbeddedReferences(OpenCSharp document, GramVersion version, Position position, bool includeDeclaration)
 	{
-		var found = GramNavigationProvider.References(document.View(version), version.Lines.Offset(position));
+		var occurrences = GramNavigationProvider.Highlights(document.View(version), version.Lines.Offset(position));
 
-		return found is null
+		return occurrences.Count == 0
 			? RpcReply.Null
 			: RpcReply.Ok(
-				NavigationMap.References(found, includeDeclaration, document.Uri, version.Lines, _store, CancellationToken.None),
+				occurrences
+					.Where(occurrence => includeDeclaration || !occurrence.IsDefinition)
+					.Select(occurrence => new Location(document.Uri, version.Lines.Range(occurrence.Span.Start, occurrence.Span.Length)))
+					.ToArray(),
 				LspJson.Default.LocationArray);
 	}
 
@@ -440,28 +474,34 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	RpcReply EmbeddedPrepareRename(OpenCSharp document, GramVersion version, Position position)
 	{
+		var view   = document.View(version);
 		var offset = version.Lines.Offset(position);
 
-		if (GramNavigationProvider.References(document.View(version), offset) is not { } found)
+		if (GramNavigationProvider.References(view, offset) is not { } found)
 			return RpcReply.Null;
 
-		if (GramRenameProvider.Refusal(found) is { } refusal)
-			return RpcReply.Error(Lsp.RequestFailed, refusal);
+		var at = GramNavigationProvider.Highlights(view, offset).FirstOrDefault(occurrence => occurrence.Span.Start <= offset && offset <= occurrence.Span.End);
 
-		return RpcReply.Ok(RenameMap.Prepare(found, offset, version.Lines), LspJson.Default.PrepareRenameResult);
+		return RpcReply.Ok(new PrepareRenameResult(version.Lines.Range(at.Span.Start, at.Span.Length), found.Name), LspJson.Default.PrepareRenameResult);
 	}
 
 	RpcReply EmbeddedRename(OpenCSharp document, GramVersion version, Position position, string newName)
 	{
-		if (GramNavigationProvider.References(document.View(version), version.Lines.Offset(position)) is not { } found)
+		var view   = document.View(version);
+		var offset = version.Lines.Offset(position);
+
+		if (GramNavigationProvider.References(view, offset) is not { } found)
 			return RpcReply.Null;
 
-		var rename = GramRenameProvider.Rename(found, newName);
+		var edits = found.Name == newName
+			? []
+			: GramNavigationProvider.Highlights(view, offset)
+				.Select(occurrence => new TextEdit(version.Lines.Range(occurrence.Span.Start, occurrence.Span.Length), newName))
+				.ToArray();
 
-		if (rename.Conflicts.Count > 0)
-			return RpcReply.Error(Lsp.RequestFailed, string.Join(" ", rename.Conflicts));
-
-		return RpcReply.Ok(RenameMap.Edit(rename, document.Uri, version.Lines), LspJson.Default.WorkspaceEdit);
+		return RpcReply.Ok(
+			new WorkspaceEdit(new Dictionary<string, IReadOnlyList<TextEdit>>(StringComparer.Ordinal) { [document.Uri] = edits }),
+			LspJson.Default.WorkspaceEdit);
 	}
 
 	/// <summary>The workspace's pending updates; a test's barrier is their <see cref="WorkspaceUpdates.Drained"/>.</summary>
@@ -607,6 +647,8 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	RpcReply Initialize(InitializeParams parameters)
 	{
 		Volatile.Write(ref _refreshSemanticTokens, Flag(parameters.Capabilities, "workspace", "semanticTokens", "refreshSupport"));
+		Volatile.Write(ref _csharpExtension, Flag(parameters.InitializationOptions, "csharpExtension"));
+		Volatile.Write(ref _embeddedDiagnostics, String(parameters.InitializationOptions, "embeddedDiagnostics"));
 
 		var folders = parameters.WorkspaceFolders is { } given ? Paths(given) : Paths([parameters.RootUri]);
 
@@ -823,6 +865,28 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		return new RoslynFeatures(new RoslynGramCompletion(loaded.Workspace, () => filePath));
 	}
 
+	/// <summary>
+	/// The same, of an open C# document as its editor has it: the workspace follows the file as it is saved,
+	/// and a position of the editor's text is a position of that text, not of the file's.
+	/// </summary>
+	RoslynFeatures? CSharp(string? filePath, GramVersion version)
+	{
+		if (!_options.CSharp || Loaded is not { } loaded)
+			return null;
+
+		var workspace = loaded.Workspace;
+
+		return new RoslynFeatures(new RoslynGramCompletion(workspace, () => filePath, () =>
+		{
+			var solution = workspace.CurrentSolution;
+
+			foreach (var id in filePath is null ? [] : solution.GetDocumentIdsWithFilePath(filePath))
+				solution = solution.WithDocumentText(id, version.Text);
+
+			return solution;
+		}));
+	}
+
 	Func<string, int, CancellationToken, Task<RoslynGramQuickInfo?>>? CSharpQuickInfo(OpenGrammar document)
 	{
 		return CSharpQuickInfo(document.FilePath);
@@ -884,6 +948,15 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 			throw new ArgumentException("The request has no parameters.");
 
 		return value.Deserialize(type) ?? throw new ArgumentException("The request's parameters are null.");
+	}
+
+	static string? String(JsonElement? element, string name)
+	{
+		return element is { ValueKind: JsonValueKind.Object } value &&
+			value.TryGetProperty(name, out var found) &&
+			found.ValueKind == JsonValueKind.String
+				? found.GetString()
+				: null;
 	}
 
 	static bool Flag(JsonElement? element, params string[] path)

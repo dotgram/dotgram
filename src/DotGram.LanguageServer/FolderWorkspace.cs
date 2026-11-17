@@ -126,6 +126,9 @@ sealed class FolderWorkspace
 	// The projects' folders, the nearest first, each with whether MSBuild said what it holds.
 	IReadOnlyList<(string Root, ProjectId Project, bool Evaluated)> _owners = [];
 
+	// The projects whose build runs the DotGram generator.
+	IReadOnlySet<ProjectId> _generating = new HashSet<ProjectId>();
+
 	FolderWorkspace(AdhocWorkspace workspace, StringComparer paths, Action<string> log, Func<string, string?> read, Evaluator? evaluate)
 	{
 		Workspace    = workspace;
@@ -528,8 +531,9 @@ sealed class FolderWorkspace
 		var names   = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		var markers = GramCompiler.EmitMarkerAttributes();
 		var claimed = new HashSet<string>(Paths);
+		var generating = new HashSet<ProjectId>();
 
-		ProjectId Add(string root, string name, IReadOnlyList<string> usings, bool evaluated)
+		ProjectId Add(string root, string name, IReadOnlyList<string> usings, bool evaluated, bool generates = false)
 		{
 			var assembly = name;
 
@@ -558,6 +562,9 @@ sealed class FolderWorkspace
 
 			owners.Add((root, id, evaluated));
 
+			if (generates)
+				generating.Add(id);
+
 			return id;
 		}
 
@@ -568,7 +575,7 @@ sealed class FolderWorkspace
 
 			if (scan.Evaluations.TryGetValue(path, out var evaluation))
 			{
-				var id = Add(root, name, evaluation.Usings, evaluated: true);
+				var id = Add(root, name, evaluation.Usings, evaluated: true, evaluation.Generates);
 
 				byFile[path] = id;
 				links.Add((id, evaluation.References));
@@ -590,7 +597,7 @@ sealed class FolderWorkspace
 			else
 			{
 				var file = ProjectFile.Parse(path, text);
-				var id   = Add(root, name, file.Usings, evaluated: false);
+				var id   = Add(root, name, file.Usings, evaluated: false, file.Generates);
 
 				byFile[path] = id;
 				links.Add((id, file.References));
@@ -615,7 +622,8 @@ sealed class FolderWorkspace
 					solution = solution.AddProjectReference(id, new ProjectReference(target));
 
 		// The nearest folder first; of a project file and a folder of the same name, the project file.
-		_owners = [.. owners.OrderByDescending(static owner => owner.Root.Length)];
+		_owners     = [.. owners.OrderByDescending(static owner => owner.Root.Length)];
+		_generating = generating;
 
 		// What MSBuild did not place is placed by its folder.
 		foreach (var path in sources)
@@ -664,6 +672,16 @@ sealed class FolderWorkspace
 				projects.Add(project);
 
 		return projects.Count > 0;
+	}
+
+	/// <summary>
+	/// Whether a C# file is compiled in a project whose build runs the DotGram generator, as the project
+	/// says: MSBuild's items where it was evaluated, its file's where not.
+	/// </summary>
+	public bool Generates(string path)
+	{
+		lock (_gate)
+			return _sources.TryGetValue(path, out var ids) && ids.Any(id => _generating.Contains(id.ProjectId));
 	}
 
 	/// <summary>Whether a file is in one of the folders, and so has its host looked for here.</summary>
@@ -925,7 +943,7 @@ sealed class FolderWorkspace
 	}
 
 	/// <summary>What a project file says that this workspace reads: the projects it references and its global usings.</summary>
-	sealed record ProjectFile(IReadOnlyList<string> References, IReadOnlyList<string> Usings)
+	sealed record ProjectFile(IReadOnlyList<string> References, IReadOnlyList<string> Usings, bool Generates = false)
 	{
 		public static ProjectFile Parse(string path, string text)
 		{
@@ -943,9 +961,13 @@ sealed class FolderWorkspace
 			var folder     = Path.GetDirectoryName(path)!;
 			var references = new List<string>();
 			var usings     = new List<string>();
+			var generates  = false;
 
 			foreach (var element in xml.Descendants())
 			{
+				foreach (var include in Items(element))
+					generates |= ProjectEvaluation.IsGenerator(element.Name.LocalName, include, Metadata(element, "OutputItemType"));
+
 				switch (element.Name.LocalName)
 				{
 					// A reference to a project's assembly; not one to an analyzer, or one that takes only its build order.
@@ -974,7 +996,7 @@ sealed class FolderWorkspace
 				}
 			}
 
-			return new ProjectFile(references, [.. usings.Distinct(StringComparer.Ordinal)]);
+			return new ProjectFile(references, [.. usings.Distinct(StringComparer.Ordinal)], generates);
 		}
 
 		static IEnumerable<string> Items(XElement element)

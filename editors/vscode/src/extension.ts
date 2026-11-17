@@ -41,41 +41,87 @@ export async function activate(context: vscode.ExtensionContext): Promise<DotGra
     const embedded = new EmbeddedColors();
     context.subscriptions.push(embedded);
 
-    const clientOptions: LanguageClientOptions = {
+    // Made again at every start: which documents the server is given depends on the settings.
+    const create = () => {
+        const settings = vscode.workspace.getConfiguration('dotgram');
+
         // A C# document is the server's for its grammars only: it publishes their diagnostics on it, tells
         // their colours, and answers inside them; the rest of the document is the C# extension's.
-        documentSelector: [{ language: 'gram' }, { language: 'csharp', scheme: 'file' }],
-        middleware: middleware(embedded),
-        outputChannel: output,
-        synchronize: {
-            fileEvents: watcher,
-        },
-        // MSBuild runs a project's own code as it evaluates it, so the server evaluates the projects only
-        // in a trusted workspace; in another it reads them by their folders.
-        // Asked again at every start, a restart's after the trust is granted among them.
-        initializationOptions: () => ({ trusted: vscode.workspace.isTrusted }),
+        const documentSelector = settings.get<boolean>('embedded.enabled', true)
+            ? [{ language: 'gram' }, { language: 'csharp', scheme: 'file' }]
+            : [{ language: 'gram' }];
+
+        const clientOptions: LanguageClientOptions = {
+            documentSelector,
+            middleware: middleware(embedded),
+            outputChannel: output,
+            synchronize: {
+                fileEvents: watcher,
+            },
+            // MSBuild runs a project's own code as it evaluates it, so the server evaluates the projects only
+            // in a trusted workspace; in another it reads them by their folders. Whether the C# extension
+            // runs says whether the build's own diagnostics are shown already (dotgram.embedded.diagnostics).
+            initializationOptions: () => ({
+                trusted: vscode.workspace.isTrusted,
+                csharpExtension: vscode.extensions.getExtension('ms-dotnettools.csharp') !== undefined,
+                embeddedDiagnostics: vscode.workspace.getConfiguration('dotgram').get<string>('embedded.diagnostics', 'auto'),
+            }),
+        };
+
+        const created = new LanguageClient('dotgram', '.Gram language server', serverOptions, clientOptions);
+
+        created.onNotification('dotgram/embeddedColors', (params: EmbeddedColorsParams) => embedded.told(params));
+
+        return created;
     };
 
-    client = new LanguageClient('dotgram', '.Gram language server', serverOptions, clientOptions);
-    context.subscriptions.push(client);
+    // Started again with what the server was told forgotten: a new server's openings of the documents
+    // are new ones, numbered from the start. One restart at a time, each after the one before has
+    // started its client: a client still starting cannot be stopped.
+    let restarting = Promise.resolve();
+
+    const restartOnce = async () => {
+        try {
+            embedded.reset();
+
+            if (client) {
+                await client.dispose();
+            }
+
+            client = create();
+            await client.start();
+        } catch (error) {
+            output.appendLine(`The language server could not be started again: ${error}`);
+        }
+    };
+
+    const restart = () => {
+        restarting = restarting.then(restartOnce, restartOnce);
+        return restarting;
+    };
+
+    client = create();
+    context.subscriptions.push({ dispose: () => void client?.dispose() });
 
     // An included grammar that has no file of its own is opened as a read-only copy, as Visual
     // Studio opens it: editing it would change nothing that is compiled.
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(readOnlyCopies));
     readOnlyCopies(vscode.window.activeTextEditor);
 
-    // Trust granted: started again, so that the projects are evaluated.
-    context.subscriptions.push(vscode.workspace.onDidGrantWorkspaceTrust(async () => {
-        if (client) {
-            await client.restart();
-        }
-    }));
-
+    // Trust granted: started again, so that the projects are evaluated; a setting of the grammars in C#
+    // changed: started again with it.
     context.subscriptions.push(
-        client.onNotification('dotgram/embeddedColors', (params: EmbeddedColorsParams) => embedded.told(params)),
+        vscode.workspace.onDidGrantWorkspaceTrust(restart),
+        vscode.workspace.onDidChangeConfiguration(async (change) => {
+            if (change.affectsConfiguration('dotgram.embedded')) {
+                await restart();
+            }
+        }),
     );
 
-    await client.start();
+    // The first start is the first link of the chain: a restart waits for it.
+    restarting = client.start();
+    await restarting;
 
     return { embeddedColors: (uri) => embedded.painted(uri) };
 }

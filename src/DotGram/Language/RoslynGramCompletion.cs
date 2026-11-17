@@ -22,8 +22,17 @@ namespace DotGram.Language;
 /// class declares are in scope. Completion and Quick Info are Roslyn's Features, which this folder does
 /// not reference; an editor asks them through <see cref="Project"/> and <see cref="SyntheticDocument"/>.
 /// </remarks>
-sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath)
+/// <param name="overlay">
+/// The solution asked, where it is not the workspace's own: one with the editor's unsaved text of the
+/// document in it, for an editor whose workspace follows files as they are saved.
+/// </param>
+sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath, Func<Solution>? overlay = null)
 {
+	Solution CurrentSolution()
+	{
+		return overlay is null ? workspace.CurrentSolution : overlay();
+	}
+
 	const string Before = "using System; class __DotGramCompletion { object __Value() { return ";
 	const string After = "; } }";
 
@@ -125,7 +134,7 @@ sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath)
 		if (filePath() is not { } path)
 			return null;
 
-		var solution = workspace.CurrentSolution;
+		var solution = CurrentSolution();
 		var documentId = solution.GetDocumentIdsWithFilePath(path).FirstOrDefault();
 		var document = documentId is null ? null : solution.GetDocument(documentId);
 		if (document is null)
@@ -227,7 +236,7 @@ sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath)
 		if (filePath() is not { } path)
 			return null;
 
-		var solution = workspace.CurrentSolution;
+		var solution = CurrentSolution();
 		var documentId = solution.GetDocumentIdsWithFilePath(path).FirstOrDefault();
 		var document = documentId is null ? null : solution.GetDocument(documentId);
 		if (document is null)
@@ -268,7 +277,7 @@ sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath)
 		if (filePath() is not { } path)
 			return null;
 
-		var solution = workspace.CurrentSolution;
+		var solution = CurrentSolution();
 		var documentId = solution.GetDocumentIdsWithFilePath(path).FirstOrDefault();
 		var document = documentId is null ? null : solution.GetDocument(documentId);
 		if (document is null)
@@ -560,7 +569,7 @@ sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath)
 	{
 		if (filePath() is { } path)
 		{
-			var solution = workspace.CurrentSolution;
+			var solution = CurrentSolution();
 			var id = solution.GetDocumentIdsWithFilePath(path).FirstOrDefault();
 			if (id is not null)
 				return solution.GetProject(id.ProjectId);
@@ -572,7 +581,7 @@ sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath)
 				return additionalProject;
 		}
 
-		return workspace.CurrentSolution.Projects.FirstOrDefault(
+		return CurrentSolution().Projects.FirstOrDefault(
 			static project => project.Language == LanguageNames.CSharp);
 	}
 }

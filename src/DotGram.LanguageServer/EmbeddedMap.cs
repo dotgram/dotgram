@@ -56,7 +56,7 @@ static class EmbeddedMap
 	}
 
 	/// <summary>The colours of one version, and where its grammars are, for the client to paint.</summary>
-	public static EmbeddedColorsParams Colors(string uri, GramVersion version, EmbeddedGrammarView view)
+	public static EmbeddedColorsParams Colors(OpenCSharp document, GramVersion version, EmbeddedGrammarView view)
 	{
 		var lines  = version.Lines;
 		var length = version.Text.Length;
@@ -93,7 +93,7 @@ static class EmbeddedMap
 			data.Add(type);
 		}
 
-		return new EmbeddedColorsParams(uri, version.Number, used, data, Grammars(view, length).Select(span => lines.Range(span.Start, span.Length)).ToArray());
+		return new EmbeddedColorsParams(document.Uri, document.Session, version.Number, used, data, Grammars(view, length).Select(span => lines.Range(span.Start, span.Length)).ToArray());
 	}
 
 	/// <summary>

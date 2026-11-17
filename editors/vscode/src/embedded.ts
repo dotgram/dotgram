@@ -8,6 +8,8 @@ import * as vscode from 'vscode';
 /** What the server tells of one version of a C# document: five numbers to a span, and where the grammars are. */
 export interface EmbeddedColorsParams {
     uri: string;
+    /** Which opening of the document the server tells of: a later opening's is greater, its versions start again. */
+    session: number;
     version: number;
     kinds: string[];
     data: number[];
@@ -15,6 +17,7 @@ export interface EmbeddedColorsParams {
 }
 
 interface Known {
+    session: number;
     version: number;
     spans: Map<string, vscode.Range[]>;
     grammars: vscode.Range[];
@@ -69,12 +72,20 @@ export class EmbeddedColors implements vscode.Disposable {
         );
     }
 
-    /** The server told the colours of a version: kept, and painted where that version is shown. */
+    /**
+     * The server told the colours of a version: kept, and painted where that version is shown. What comes
+     * for a document closed meanwhile is dropped, and so is what an earlier opening of it, or an earlier
+     * version of this opening, told late: a reopened document numbers its versions from the start again.
+     */
     told(params: EmbeddedColorsParams): void {
         const uri = vscode.Uri.parse(params.uri).toString();
         const before = this.known.get(uri);
 
-        if (before && before.version > params.version) {
+        if (!vscode.workspace.textDocuments.some((document) => document.uri.toString() === uri)) {
+            return;
+        }
+
+        if (before && (before.session > params.session || (before.session === params.session && before.version > params.version))) {
             return;
         }
 
@@ -96,7 +107,7 @@ export class EmbeddedColors implements vscode.Disposable {
             (range) => new vscode.Range(range.start.line, range.start.character, range.end.line, range.end.character),
         );
 
-        this.known.set(uri, { version: params.version, spans, grammars });
+        this.known.set(uri, { session: params.session, version: params.version, spans, grammars });
 
         for (const editor of vscode.window.visibleTextEditors) {
             if (editor.document.uri.toString() === uri) {
@@ -138,6 +149,17 @@ export class EmbeddedColors implements vscode.Disposable {
 
         for (const [kind, type] of this.types) {
             editor.setDecorations(type, known.spans.get(kind) ?? []);
+        }
+    }
+
+    /** Everything told is forgotten and its paint taken away: the server that told it is gone. */
+    reset(): void {
+        this.known.clear();
+
+        for (const editor of vscode.window.visibleTextEditors) {
+            for (const type of this.types.values()) {
+                editor.setDecorations(type, []);
+            }
         }
     }
 

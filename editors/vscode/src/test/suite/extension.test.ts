@@ -119,6 +119,25 @@ suite('.Gram extension', () => {
             assert.strictEqual(tokens, undefined, 'nothing gives a C# document semantic tokens');
         }
     });
+
+    test('dotgram.embedded.enabled turned off takes the grammars in C# away, and on brings them back', async () => {
+        const folder = vscode.workspace.workspaceFolders![0].uri.fsPath;
+        const uri = vscode.Uri.file(path.join(folder, 'Embedded.cs'));
+        const settings = vscode.workspace.getConfiguration('dotgram');
+        const ours = () => vscode.languages.getDiagnostics(uri).filter((item) => item.source === 'dotgram');
+
+        await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri));
+        await until(() => (ours().length > 0 ? true : undefined));
+
+        try {
+            await settings.update('embedded.enabled', false, vscode.ConfigurationTarget.Global);
+            await until(() => (ours().length === 0 ? true : undefined));
+        } finally {
+            await settings.update('embedded.enabled', undefined, vscode.ConfigurationTarget.Global);
+        }
+
+        await until(() => (ours().length > 0 ? true : undefined));
+    });
 });
 
 function markdown(hover: vscode.Hover): string {
