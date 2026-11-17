@@ -308,7 +308,23 @@ public sealed class ResolutionScope
 
 			found.Add(one);
 
-			foreach (var name in one.GetReferencedAssemblies())
+			AssemblyName[] names;
+
+			try
+			{
+				names = one.GetReferencedAssemblies();
+			}
+			catch (PlatformNotSupportedException)
+			{
+				// Native AOT keeps no assembly references, and loads nothing: every assembly the application
+				// has is loaded from its start, and those are what the caller can reach.
+				foreach (var loaded in AppDomain.CurrentDomain.GetAssemblies())
+					Consider(loaded);
+
+				continue;
+			}
+
+			foreach (var name in names)
 			{
 				if (seen.Contains(name.FullName))
 					continue;
