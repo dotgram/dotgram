@@ -123,6 +123,24 @@ interface ITargetLanguage
 	/// </summary>
 	string GeneratedTypeName(Binding.RuleSymbol rule);
 
+	// ── Located values ────────────────────────────────────────────────────────────────
+
+	/// <summary>Whether the host asked for values to be told where they were written.</summary>
+	bool LocationsRequested { get; }
+
+	/// <summary>
+	/// Whether it asked for that per call — a reading asks or does not — rather than compiled into
+	/// every reading.
+	/// </summary>
+	bool LocationsPerCall { get; }
+
+	/// <summary>
+	/// Whether a value of this type is one the host asked to be told where it was written, the type
+	/// asked bare and then under each of <paramref name="imports"/>. What it is told through is the
+	/// host's shape, which this language knows and the grammar's stages do not.
+	/// </summary>
+	bool IsLocated(string type, IReadOnlyList<string> imports);
+
 	// ── Optional values ───────────────────────────────────────────────────────────────
 
 	/// <summary>

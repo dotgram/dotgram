@@ -92,7 +92,7 @@ static class GramCompiler
 
 		// One language for the whole compilation: it reads the grammar's host fragments and is asked
 		// about its types, for every stage below.
-		var language = options.Language ?? new CSharpLanguage(options.SymbolResolver, options.CSharpScanner);
+		var language = options.Language ?? new CSharpLanguage(options.SymbolResolver, options.CSharpScanner, options.Host);
 
 		// Every stage reads a character class and a literal as ranges and runs of UTF-16 code units
 		// (CharRange); a language whose input is made of anything else needs those stages first.
@@ -111,11 +111,8 @@ static class GramCompiler
 		options.Bound?.Invoke(model);
 
 		var graph = GrammarNormalizer.Normalize(
-			model, null, null, options.LocationType, options.PositionalFollow,
+			model, null, null, options.PositionalFollow,
 			options.PositionalFollowSplit, options.CollapseForwarders, language);
-
-		if (options.LocatedFacade is { Length: > 0 } facade && options.LocationType is { } located)
-			graph.PerCall = (facade, located, options.LocatedFacadeDeclared);
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than

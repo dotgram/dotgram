@@ -218,7 +218,7 @@ sealed partial class GrammarNormalizer
 	/// </param>
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
-		string? locationType = null, bool positionalFollow = false, bool positionalSplit = false,
+		bool positionalFollow = false, bool positionalSplit = false,
 		bool collapse = true, ITargetLanguage? language = null)
 	{
 		if (model is null)
@@ -374,7 +374,7 @@ sealed partial class GrammarNormalizer
 		normalizer.CheckMarksHaveState();
 		normalizer.CheckSuppliedNamesAreHandedOver();
 
-		var located = Locating(normalizer, locationType, Imports(model.Root));
+		var located = Locating(normalizer, Imports(model.Root));
 
 		// Last, so that every check above said what the author named: a grammar that names `eos`
 		// publishes its forms over text under names of their own, read through those over segments.
@@ -430,7 +430,6 @@ sealed partial class GrammarNormalizer
 			FreeNames  = FreeNames(normalizer._bodies.Values, normalizer._recoveries.Values, language),
 			WhenSound  = normalizer._whenSound,
 			Located    = located,
-			LocationType = located.Count > 0 ? locationType : null,
 			Segmented  = normalizer._segmented,
 
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
@@ -479,52 +478,33 @@ sealed partial class GrammarNormalizer
 		}
 	}
 
-	/// <summary>
-	/// The rules whose value can be told where it was written, and the type that says so.
-	/// </summary>
+	/// <summary>The rules whose value can be told where it was written.</summary>
 	/// <remarks>
 	/// <para>
-	/// A grammar names an interface — <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> — and
-	/// every rule whose value is assignable to it is one of these. The interface is the
-	/// consumer's, and only its shape is the contract: one settable property called
-	/// <c>Span</c>, whose type is what a location is written as.
+	/// Which values those are is the target language's to say (<see cref="ITargetLanguage.IsLocated"/>):
+	/// in C#, the host names an interface — <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> — and every
+	/// rule whose value is assignable to it is one of these.
 	/// </para>
 	/// <para>
-	/// Nothing is asked of a grammar that names nothing, which is most of them: a recognizer
-	/// wants no positions, and a set that stays empty compiles to what it always did.
+	/// Nothing is asked of a grammar whose host asked for no locations, which is most of them: a
+	/// recognizer wants no positions, and a set that stays empty compiles to what it always did.
 	/// </para>
 	/// </remarks>
-	static IReadOnlyCollection<RuleSymbol> Locating(
-		GrammarNormalizer normalizer, string? named, IReadOnlyList<string> imports)
+	static IReadOnlyCollection<RuleSymbol> Locating(GrammarNormalizer normalizer, IReadOnlyList<string> imports)
 	{
-		var host = normalizer._language;
+		var language = normalizer._language;
 
-		if (named is null || !host.HasHost)
+		if (!language.LocationsRequested || !language.HasHost)
 			return [];
 
 		var located = new HashSet<RuleSymbol>();
 
 		foreach (var rule in normalizer._rules)
 			if (!normalizer._publications.Any(publication => publication.YieldRecovery && publication.Rule == rule) &&
-				normalizer._types.TryGetValue(rule, out var type) && Fits(type))
+				normalizer._types.TryGetValue(rule, out var type) && language.IsLocated(type, imports))
 				located.Add(rule);
 
 		return located;
-
-		// Bare first and then under each import, the way C# itself resolves and the way the
-		// questions were asked: a grammar writes `@Statement` beside a `using`, and it is
-		// the qualified spelling that a host compilation can answer about.
-		bool Fits(string type)
-		{
-			if (host.Fits(type, named))
-				return true;
-
-			foreach (var import in imports)
-				if (host.Fits(import + "." + type, named))
-					return true;
-
-			return false;
-		}
 	}
 
 	/// <summary>
