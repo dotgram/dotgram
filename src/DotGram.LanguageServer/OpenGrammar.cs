@@ -72,7 +72,6 @@ sealed class GramVersion
 			if (change.Range is not { } range)
 			{
 				made.Add(new TextChangeRange(new TextSpan(0, lines.Length), change.Text.Length));
-				ServerWork.Copy();
 				text  = SourceText.From(change.Text);
 				lines = new LineMap(text);
 				continue;
@@ -86,6 +85,9 @@ sealed class GramVersion
 			made.Add(new TextChangeRange(TextSpan.FromBounds(start, end), change.Text.Length));
 		}
 
+		// However the text was made, whether it shares the one before is what a test counts.
+		ServerWork.Made(Text, text);
+
 		return new GramVersion(number, text, lines, (Id, made));
 	}
 
@@ -98,8 +100,6 @@ sealed class GramVersion
 		catch (ArgumentOutOfRangeException)
 		{
 			// Roslyn's own failure next to a split line break: the text is made afresh instead.
-			ServerWork.Copy();
-
 			var whole = text.ToString();
 
 			return SourceText.From(string.Concat(whole.AsSpan(0, start), inserted, whole.AsSpan(end)));
