@@ -56,6 +56,8 @@ public sealed class ProjectInputTests
 	/// <summary>Builds the project and generates it with the tool; the two folders are the same.</summary>
 	static ToolRun Same(Scratch scratch, string project, string output = "out", string[]? build = null, params string[] arguments)
 	{
+		Tool.RequireProjects();
+
 		var built = Build.Generated(project, build ?? []);
 		var run   = Tool.Run(scratch.Root, ["generate", project, "-o", scratch.Path(output), "--line-paths", "absolute", .. arguments]);
 
