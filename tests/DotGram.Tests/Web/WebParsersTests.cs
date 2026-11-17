@@ -68,6 +68,82 @@ public sealed class WebParsersTests
 	}
 
 	/// <summary>
+	/// The grammars hold no limits of their own: each answers from the package's one setting, so that what a
+	/// grammar of the package is told directly changes nothing, and no reading can find one grammar set and
+	/// another not yet.
+	/// </summary>
+	[Fact]
+	public void Every_grammar_answers_from_the_one_setting()
+	{
+		try
+		{
+			Rfc8259.Limits = Rfc8259.ParserLimits.Default.WithMaxExtraStacks(7);
+			Assert.Equal(0, Rfc8259.Limits.MaxExtraStacks);
+
+			WebParsers.Limits = WebParsers.Limits.WithMaxExtraStacks(3);
+			Assert.Equal(3, Rfc8259.Limits.MaxExtraStacks);
+			Assert.Equal(3, Rfc5322.Limits.MaxExtraStacks);
+		}
+		finally
+		{
+			Rfc8259.Limits = Rfc8259.ParserLimits.Default;
+			WebParsers.Limits = WebParserLimits.Default;
+		}
+	}
+
+	/// <summary>
+	/// Set over and over while it is read: every reading of the setting finds one set whole, the package's value
+	/// and each grammar's alike.
+	/// </summary>
+	[Fact]
+	public void A_setting_is_read_whole_while_it_is_set()
+	{
+		var stop  = 0;
+		var torn  = 0;
+		var reads = 0;
+
+		var setter = new Thread(() =>
+		{
+			var one   = WebParserLimits.Default.WithMaxExtraStacks(1);
+			var other = WebParserLimits.Default.WithMaxExtraStacks(2);
+
+			while (Volatile.Read(ref stop) == 0)
+			{
+				WebParsers.Limits = one;
+				WebParsers.Limits = other;
+			}
+		});
+
+		setter.Start();
+
+		try
+		{
+			var until = DateTime.UtcNow.AddMilliseconds(300);
+
+			while (DateTime.UtcNow < until)
+			{
+				var seen   = WebParsers.Current;
+				var stacks = seen.Limits.MaxExtraStacks;
+
+				if (seen.Rfc3339Limits.MaxExtraStacks != stacks || seen.Rfc8259Limits.MaxExtraStacks != stacks ||
+					seen.Rfc9651Limits.MaxExtraStacks != stacks)
+					torn++;
+
+				reads++;
+			}
+		}
+		finally
+		{
+			Volatile.Write(ref stop, 1);
+			setter.Join();
+			WebParsers.Limits = WebParserLimits.Default;
+		}
+
+		Assert.True(reads > 0);
+		Assert.Equal(0, torn);
+	}
+
+	/// <summary>
 	/// A negative count is refused where it is made, and null where it is set.
 	/// </summary>
 	[Fact]

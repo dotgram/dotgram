@@ -162,6 +162,18 @@ static partial class CSharpEmitter
 	}
 
 	/// <summary>
+	/// The limits a caller sets (<c>Support.LimitsSupport</c>): what every reading that publishes declares in
+	/// its class, which that class may therefore not be called. The first two it may not declare itself
+	/// either; the hook is the author's to implement.
+	/// </summary>
+	public static readonly string[] LimitsNames = ["Limits", "ParserLimits", LimitsHook];
+
+	/// <summary>
+	/// The partial method the limits ask as they are read, which the author may implement.
+	/// </summary>
+	public const string LimitsHook = "OnReadingLimits";
+
+	/// <summary>
 	/// The public types and members the generated class declares beside what the author published, by
 	/// the names a caller reads them under: the answer a publication gives, the hooks the author may
 	/// implement, the defaults of a reader that the package's own code reads, and the limits a caller sets.
@@ -171,7 +183,7 @@ static partial class CSharpEmitter
 	public static readonly string[] PublicNames =
 	[
 		MatchType, OutcomeType, "SourceSpan", "ParserInput", RecoveredMethod, "OnHandingOff", "OnTakingOver",
-		"DefaultBufferSize", "DefaultMaxRetained", "Limits", "ParserLimits",
+		"DefaultBufferSize", "DefaultMaxRetained", .. LimitsNames,
 	];
 
 	/// <summary>

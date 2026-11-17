@@ -562,6 +562,13 @@ sealed class GramCompilerOptions
 	public bool SpanDeclaredInReading { get; set; }
 
 	/// <summary>
+	/// The members the author already declares, in the class this reading is compiled into, under a
+	/// name the generated part declares for its callers (<c>Limits</c>, <c>ParserLimits</c>): two of one
+	/// name in one class, refused (GRAM5018).
+	/// </summary>
+	public IReadOnlyList<string> MembersDeclared { get; set; } = [];
+
+	/// <summary>
 	/// Whether the host has several readings, so that the types the host's own C# names — the
 	/// span (§7.5), the match (§6.1) and the input a recognizer reads (§7.1) — are not written
 	/// by this compilation but once for every reading, in a file of the host's own, from what

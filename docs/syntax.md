@@ -2298,7 +2298,7 @@ whether the result is lazy. The words on the left are written in that order, eac
 
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
-`ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `Limits` or `ParserLimits`, which the class declares for its callers, nor `Failure`, `ParserEntry`, `DefaultBufferSize` or `DefaultMaxRetained`, which it
+`ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `Limits`, `ParserLimits` or `OnReadingLimits`, which the class declares for its callers, nor `Failure`, `ParserEntry`, `DefaultBufferSize` or `DefaultMaxRetained`, which it
 declares internal for its own use, nor in a grammar read over tokens `Scan`, which it declares internal for the
 host's own code, nor `GramTrace`, `GramRead`, `GramWhy`, `GramTraceLog`, `GramProfile` or `Tracing`,
 which a trace build of the grammar declares (§6.9) — in every build, traced or not, so that a grammar a
@@ -3014,8 +3014,20 @@ MyParser.Limits = MyParser.Limits.WithMaxExtraStacks(4);
 
 A parse reads `Limits` once, as it begins, and holds to what it read: setting it replaces the
 whole value at once, so a parse already running — on this thread or another, on the stack it
-began on or one it was carried to — keeps the limits it began with, and one begun after the set
-reads the new ones. Nothing is locked, and a parse pays one read of a static field for it.
+began on or one it was carried to, in its first reading of a refused input or the second one
+that writes the message — keeps the limits it began with, and one begun after the set reads the
+new ones. Nothing is locked, and a parse pays one read of a static field for it.
+
+The class declares a partial method the getter asks, removed at compile time where the author
+does not implement it:
+
+```csharp
+static partial void OnReadingLimits(ref ParserLimits limits);   // replace limits to answer from a setting of your own
+```
+
+A library with several grammar classes answers all of them from one setting of its own this
+way, published as one reference, so that no parse can find one grammar's limits set and
+another's not yet.
 
 Which value applies, first to last: a call's own `maxRetained`, where a buffered overload is
 given one; then `Limits`; then the attribute's value, which is what `ParserLimits.Default` holds.
@@ -3025,12 +3037,14 @@ The setting is the process's, one for each reading of each grammar class: two pa
 program that want different limits for the same grammar share them, and a test that changes
 them runs apart from the tests that read them. A reading whose locations are asked for per call
 (`UsePerCallLocations`) is the same reading, and reads its host's `Limits`. A class whose
-readings publish nothing declares none. `Limits` and `ParserLimits` are names the class keeps:
-a publication or a rule's type called either is `GRAM5018`.
+readings publish nothing declares none. `Limits`, `ParserLimits` and `OnReadingLimits` are
+names the class keeps: a publication or a rule's type called one of them, a class a reading is
+compiled into called one of them, and a member `Limits` or `ParserLimits` the author declares in
+that class are `GRAM5018`.
 
 A library whose grammar classes are internal says so in its own words: the SQL parsers are
-public classes, and `TransactSqlParser.Limits` is theirs; `DotGram.Web` sets every one of its
-grammars at once through `WebParsers.Limits`.
+public classes, and `TransactSqlParser.Limits` is theirs; every grammar of `DotGram.Web` answers
+from `WebParsers.Limits` through `OnReadingLimits`.
 
 ### 6.6 `[GramParserVariant]`, a second reading of the same grammar
 

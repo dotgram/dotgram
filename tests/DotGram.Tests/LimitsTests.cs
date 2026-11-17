@@ -6,6 +6,7 @@ using System.Threading;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Emit;
 using DotGram.Language;
 
 using Xunit;
@@ -56,6 +57,46 @@ public sealed class LimitsTests
 		var source = string.Join("\n", run.Results.SelectMany(one => one.GeneratedSources).Select(one => one.SourceText.ToString()));
 
 		Assert.Contains("public static ParserLimits Default { get; } = new ParserLimits(16, 3);", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The class a reading is compiled into declares the limits, so it can be called neither of their names: said
+	/// against the grammar, rather than as an error in code the author did not write.
+	/// </summary>
+	[Theory]
+	[InlineData("Limits", null)]
+	[InlineData("ParserLimits", null)]
+	[InlineData("OnReadingLimits", null)]
+	[InlineData("Host", "Limits")]
+	[InlineData("Host", "ParserLimits")]
+	public void A_class_named_like_the_limits_is_refused(string className, string? reading)
+	{
+		var result = GramCompiler.Compile("R = 'a'\nparse R", new GramCompilerOptions
+		{
+			ClassName     = className,
+			Suffix        = reading,
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		Assert.Contains(result.Diagnostics, static one => one.Id == CSharpEmitter.GeneratedNameClash);
+		Assert.Empty(result.Sources);
+	}
+
+	/// <summary>
+	/// Nor may it declare them itself, which the generator asks of the class as the author wrote it; the hook the
+	/// limits ask is the author's to implement.
+	/// </summary>
+	[Theory]
+	[InlineData("public static int Limits;", true)]
+	[InlineData("public sealed class ParserLimits { }", true)]
+	[InlineData("static partial void OnReadingLimits(ref ParserLimits limits) { }", false)]
+	public void A_class_declaring_the_limits_itself_is_refused(string member, bool refused)
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"R = 'a'\\nparse R\")]\npublic static partial class Host\n{\n\t" + member + "\n}");
+		var clash = run.Diagnostics.Any(static one => one.Id == CSharpEmitter.GeneratedNameClash);
+
+		Assert.Equal(refused, clash);
 	}
 
 	/// <summary>
@@ -160,6 +201,53 @@ public sealed class LimitsTests
 	}
 
 	/// <summary>
+	/// A refused input is read twice, quietly and then for its message, and both readings are one parse: limits
+	/// set during the first leave the second alone, and the call answers with the refusal rather than with the
+	/// limits it did not begin with.
+	/// </summary>
+	[Fact]
+	public void The_second_reading_of_a_refused_input_keeps_the_limits_the_parse_began_with()
+	{
+		var host  = Deep();
+		var taken = Handed(host, Nest);
+		var open  = new string('(', Depth) + "a";
+
+		// Read twice where refused, the second time handed what the first began with.
+		Assert.Contains("Limits = failure.Limits", DeepSource(), StringComparison.Ordinal);
+		Assert.True(taken >= 2, $"the nest took {taken} extra stacks");
+		Assert.Equal("Starved", Run(host, open, "Try"));
+
+		// Unlimited as it begins, limited to one stack from the first reading's first hand-off on.
+		Call(host, "SwapOnHandOff");
+		Assert.Equal("Starved", Run(host, open, "Try"));
+		Assert.Equal(1, Get(host, "MaxExtraStacks"));
+
+		// The call begun after the swap reads it.
+		Assert.Equal("deep", Run(host, open, "Try"));
+	}
+
+	/// <summary>
+	/// The author may answer the limits from a setting of their own: what the hook says is what the class's
+	/// <c>Limits</c> reads and what a parse is held to.
+	/// </summary>
+	[Fact]
+	public void The_limits_may_be_answered_by_the_author()
+	{
+		var host = Deep(Answered);
+
+		Assert.Equal(Depth, Run(host, Nest));
+
+		Call(host, "Answer", 1);
+		Assert.Equal(1, Get(host, "MaxExtraStacks"));
+		Assert.Equal("deep", Run(host, Nest));
+
+		// Setting the class's own changes nothing while the hook answers.
+		Call(host, "SetStacks", 0);
+		Assert.Equal(1, Get(host, "MaxExtraStacks"));
+		Assert.Equal("deep", Run(host, Nest));
+	}
+
+	/// <summary>
 	/// Limits set over and over from one thread while others parse: every parse ends as one of the two settings
 	/// says, and none fails any other way.
 	/// </summary>
@@ -256,6 +344,11 @@ public sealed class LimitsTests
 		"\tglobal::System.Threading.Interlocked.Increment(ref Handed);\n" +
 		"\tif (swap) { swap = false; Limits = Limits.WithMaxExtraStacks(1); }\n" +
 		"}\n" +
+		"public static object Try(string text)\n" +
+		"{\n" +
+		"\ttry { return TryParseStart(text).Outcome.ToString(); }\n" +
+		"\tcatch (global::System.InsufficientExecutionStackException) { return \"deep\"; }\n" +
+		"}\n" +
 		"public static object Run(string text)\n" +
 		"{\n" +
 		"\ttry { return ParseStart(text); }\n" +
@@ -283,7 +376,15 @@ public sealed class LimitsTests
 	/// <summary>
 	/// A grammar that recurses, read by methods that take another stack where theirs runs low.
 	/// </summary>
-	static Type Deep()
+	static Type Deep(string more = "")
+	{
+		return EmittedCode.Compile(DeepSource(), declarationMembers: Members + Hook + more).GetType("Grammar")!;
+	}
+
+	/// <summary>
+	/// What <see cref="Deep"/> compiles.
+	/// </summary>
+	static string DeepSource()
 	{
 		var grammar =
 			"trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\n" +
@@ -299,8 +400,16 @@ public sealed class LimitsTests
 
 		EmittedCode.Quiet(result.Diagnostics);
 
-		return EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members + Hook).GetType("Grammar")!;
+		return Assert.Single(result.Sources).Text;
 	}
+
+	/// <summary>
+	/// The author's own setting, which the limits hook answers from once it is set.
+	/// </summary>
+	const string Answered =
+		"static ParserLimits? answer;\n" +
+		"public static void Answer(int most) { answer = ParserLimits.Default.WithMaxExtraStacks(most); }\n" +
+		"static partial void OnReadingLimits(ref ParserLimits limits) { if (answer != null) limits = answer; }\n";
 
 	/// <summary>
 	/// How many extra stacks a parse of the text takes, with nothing limiting them.
@@ -319,7 +428,7 @@ public sealed class LimitsTests
 	/// <summary>
 	/// Reads the text on a thread whose stack runs low early, so that the reading moves.
 	/// </summary>
-	static object? Run(Type host, string text)
+	static object? Run(Type host, string text, string method = "Run")
 	{
 		object? answer = null;
 		Exception? thrown = null;
@@ -328,7 +437,7 @@ public sealed class LimitsTests
 		{
 			try
 			{
-				answer = Call(host, "Run", text);
+				answer = Call(host, method, text);
 			}
 			catch (Exception caught)
 			{

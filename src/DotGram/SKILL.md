@@ -566,8 +566,10 @@ public static partial class Brackets
 A parse reads it once, as it begins, so setting it while other threads parse is safe: a parse
 already running keeps what it began with. A buffered call's own `maxRetained` still wins over
 `Limits.MaxBufferedInputLength`. It is the process's setting, one per grammar class: a test that
-changes it must not run beside tests that parse with that class. Do not name a publication or a
-rule's type `Limits` or `ParserLimits` (`GRAM5018`).
+changes it must not run beside tests that parse with that class. Do not name a publication, a
+rule's type or the class `Limits`, `ParserLimits` or `OnReadingLimits`, nor declare `Limits` or
+`ParserLimits` in it yourself (`GRAM5018`). To answer several grammar classes from one setting of
+your own, implement `static partial void OnReadingLimits(ref ParserLimits limits)` in each.
 
 `[GramParserVariant]` may be written as many times as there are further readings wanted, each
 naming the nested class it goes into:

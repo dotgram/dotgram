@@ -1122,6 +1122,9 @@ static partial class CSharpEmitter
 				// Where what a window holds begins in the input, for the values a streamed reading locates.
 				(Places(graph, overKinds, options.BufferedInput) ? FailureFields.Origin : 0) |
 				(PlacesLines(graph, overKinds, options.BufferedInput) ? FailureFields.OriginLines : 0) |
+				// The limits a parse began with, carried to every reading of it, where a reader may
+				// carry a reading onto another stack (Machine.Reader.cs, Rec).
+				(machines.Exists(static compiled => compiled.Direct && compiled.Machine.Probes) ? FailureFields.Limits : 0) |
 				(tracing is not null ? FailureFields.Trace : 0)));
 			file.Line();
 
@@ -2156,9 +2159,16 @@ static partial class CSharpEmitter
 		// trace build, whose readings are kept as they were.
 		string Again(bool unasked)
 		{
-			return tracing is not null
-				? Fresh(false, unasked)
-				: $"new {FailureType} {{ {(unasked ? "Unasked = true, " : "")}Doors = failure.Position }}";
+			// And handed the limits the first reading began with, where the failure carries them.
+			var limits = probes ? "Limits = failure.Limits, " : "";
+
+			if (tracing is null)
+				return $"new {FailureType} {{ {limits}{(unasked ? "Unasked = true, " : "")}Doors = failure.Position }}";
+
+			if (!probes)
+				return Fresh(false, unasked);
+
+			return $"new {FailureType} {{ Limits = failure.Limits{(unasked ? ", Unasked = true" : "")} }}";
 		}
 
 		// A refusal the call answers with, told to the sink on its way out in a trace build.

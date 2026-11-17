@@ -1162,7 +1162,11 @@ namespace DotGram.Snapshots
 		{
 			get
 			{
-				return global::System.Threading.Volatile.Read(ref limits_DotGram) ?? ParserLimits.Default;
+				var limits = global::System.Threading.Volatile.Read(ref limits_DotGram) ?? ParserLimits.Default;
+
+				OnReadingLimits(ref limits);
+
+				return limits;
 			}
 			set
 			{
@@ -1171,6 +1175,8 @@ namespace DotGram.Snapshots
 		}
 
 		static ParserLimits? limits_DotGram;
+
+		static partial void OnReadingLimits(ref ParserLimits limits);
 
 		/// <summary>
 		/// What a parse of this grammar may take of untrusted input: an immutable value, changed by

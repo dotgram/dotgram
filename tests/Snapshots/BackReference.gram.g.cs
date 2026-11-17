@@ -464,7 +464,7 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
-				failure = new Failure { Unasked = true, Doors = failure.Position };
+				failure = new Failure { Limits = failure.Limits, Unasked = true, Doors = failure.Position };
 				end     = RecWhole_DotGram_Element(text, 0, ref failure, parserWhole);
 			}
 
@@ -2060,9 +2060,7 @@ namespace DotGram.Snapshots
 				this.failure = default;
 				this.ways    = ways;
 				this.probes  = 0;
-				this.stacksLeft = Limits.MaxExtraStacks;
-				if (this.stacksLeft == 0)
-					this.stacksLeft = int.MaxValue;
+				this.stacksLeft = 0;
 				this.unbuilt = default!;
 				this.whole   = parserWhole;
 			}
@@ -2668,6 +2666,10 @@ namespace DotGram.Snapshots
 				var reader = new Reader_DotGram_Element(text, ways, parserWhole);
 
 				reader.failure = failure;
+				reader.failure.Limits ??= Limits;
+				reader.stacksLeft = reader.failure.Limits.MaxExtraStacks;
+				if (reader.stacksLeft == 0)
+					reader.stacksLeft = int.MaxValue;
 
 				var end = reader.RecWholeRead_Element(pos);
 
@@ -3203,6 +3205,8 @@ namespace DotGram.Snapshots
 			public bool Unasked;
 
 			public int Doors;
+
+			public ParserLimits? Limits;
 		}
 
 		[global::System.ThreadStatic]
@@ -3291,7 +3295,11 @@ namespace DotGram.Snapshots
 		{
 			get
 			{
-				return global::System.Threading.Volatile.Read(ref limits_DotGram) ?? ParserLimits.Default;
+				var limits = global::System.Threading.Volatile.Read(ref limits_DotGram) ?? ParserLimits.Default;
+
+				OnReadingLimits(ref limits);
+
+				return limits;
 			}
 			set
 			{
@@ -3300,6 +3308,8 @@ namespace DotGram.Snapshots
 		}
 
 		static ParserLimits? limits_DotGram;
+
+		static partial void OnReadingLimits(ref ParserLimits limits);
 
 		/// <summary>
 		/// What a parse of this grammar may take of untrusted input: an immutable value, changed by

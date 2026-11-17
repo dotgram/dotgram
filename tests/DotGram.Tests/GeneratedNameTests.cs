@@ -39,6 +39,7 @@ public sealed class GeneratedNameTests
 	[InlineData("DefaultMaxRetained")]
 	[InlineData("Limits")]
 	[InlineData("ParserLimits")]
+	[InlineData("OnReadingLimits")]
 	[InlineData("Failure")]
 	[InlineData("ParserEntry")]
 	[InlineData("Probe")]

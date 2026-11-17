@@ -94,6 +94,20 @@ static partial class CSharpEmitter
 			{{restore:Unasked}}
 		""";
 
+	/// <summary>
+	/// The limits a parse began with, carried on its failure from the first reading of the input to
+	/// every reading of it after (the second reading of a refused input among them), so that the
+	/// whole parse is held to one set of limits however often they are set while it runs.
+	/// </summary>
+	const string LimitsField = """
+
+			/// <summary>
+			/// The limits this parse began with: taken from the class's <c>Limits</c> by the first
+			/// reading that needs them, and handed on with the failure to every reading after it.
+			/// </summary>
+			public ParserLimits? Limits;
+		""";
+
 	const string DoorsField = """
 
 			/// <summary>
@@ -597,7 +611,11 @@ static partial class CSharpEmitter
 		{
 			get
 			{
-				return global::System.Threading.Volatile.Read(ref limits_DotGram) ?? ParserLimits.Default;
+				var limits = global::System.Threading.Volatile.Read(ref limits_DotGram) ?? ParserLimits.Default;
+
+				OnReadingLimits(ref limits);
+
+				return limits;
 			}
 			set
 			{
@@ -606,6 +624,13 @@ static partial class CSharpEmitter
 		}
 
 		static ParserLimits? limits_DotGram;
+
+		/// <summary>
+		/// Called each time <see cref="Limits"/> is read, with what it holds: replace <paramref name="limits"/> to
+		/// answer from a setting of the author's own, such as one that holds the limits of several grammars at
+		/// once. Leave it alone and every call to it is removed at compile time.
+		/// </summary>
+		static partial void OnReadingLimits(ref ParserLimits limits);
 
 		/// <summary>
 		/// What a parse of this grammar may take of untrusted input: an immutable value, changed by
@@ -1196,6 +1221,7 @@ static partial class CSharpEmitter
 		Origin          = 1 << 13,
 		OriginLines     = 1 << 14,
 		Seaming         = 1 << 15,
+		Limits          = 1 << 16,
 	}
 
 	/// <summary>
@@ -1254,6 +1280,9 @@ static partial class CSharpEmitter
 			.Replace(
 				"\t{{doors}}" + Lines.Ending,
 				(fields & FailureFields.Doors) != 0 ? Lines.Normalize(DoorsField) + Lines.Ending : "")
+			.Replace(
+				"\t{{limits}}" + Lines.Ending,
+				(fields & FailureFields.Limits) != 0 ? Lines.Normalize(LimitsField) + Lines.Ending : "")
 			.Replace(
 				"\t{{trace}}" + Lines.Ending,
 				(fields & FailureFields.Trace) != 0 ? Lines.Normalize(TraceField) + Lines.Ending : "")
@@ -1392,6 +1421,7 @@ static partial class CSharpEmitter
 			{{quiet}}
 			{{unasked}}
 			{{doors}}
+			{{limits}}
 			{{trace}}
 		}
 		""";

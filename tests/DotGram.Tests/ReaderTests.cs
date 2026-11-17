@@ -260,8 +260,9 @@ public sealed class ReaderTests
 		Assert.Contains("[global::System.ThreadStatic]", written, StringComparison.Ordinal);
 		Assert.Contains("Take();", written, StringComparison.Ordinal);
 
-		// How many it may take is the grammar's limits as the reading is made, which a caller may change.
-		Assert.Contains("this.stacksLeft = Limits.MaxExtraStacks;", written, StringComparison.Ordinal);
+		// How many it may take is the limits the parse began with, carried on its failure to every reading of it.
+		Assert.Contains("reader.failure.Limits ??= Limits;", written, StringComparison.Ordinal);
+		Assert.Contains("reader.stacksLeft = reader.failure.Limits.MaxExtraStacks;", written, StringComparison.Ordinal);
 		Assert.Contains("deep.stacksLeft = this.stacksLeft - 1;", written, StringComparison.Ordinal);
 	}
 
