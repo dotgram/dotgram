@@ -2351,6 +2351,16 @@ sealed partial class Machine
 			file.Line();
 		}
 
+		if (CountsRules && _walksTurns)
+		{
+			file.Line("#if DOTGRAM_COUNTS");
+			file.Line("// The records the end of a recovering turn looked at, for a test that counts them;");
+			file.Line("// compiled only under DOTGRAM_COUNTS, which no project defines, and not a supported setting.");
+			file.Line($"internal static long {TurnWalked} = 0;");
+			file.Line("#endif");
+			file.Line();
+		}
+
 		if (CountsRules && _putsOut)
 		{
 			file.Line("#if DOTGRAM_COUNTS");

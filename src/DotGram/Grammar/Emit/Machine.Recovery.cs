@@ -43,6 +43,8 @@ sealed partial class Machine
 		// or one in the synchronization it looks for, keeps to its own.
 		// Numbered by the place it is compiled at rather than by the plan: a repetition compiled at
 		// two places is two sets of them.
+		_walksTurns = true;
+
 		var id        = _recoveringStates.Count;
 		var again     = Reenters(repeatNode);
 		_recoveringStates.Add((recovery, asked, again));
@@ -160,6 +162,7 @@ sealed partial class Machine
 		atRecovered.Line("for (var recoveryAt = entries.Count - 1; recoveryAt > repeat; recoveryAt--)");
 		using (atRecovered.Block(""))
 		{
+			CountTurnWalk(atRecovered);
 			atRecovered.Line("var candidate = entries[recoveryAt];");
 			// Against the mark and not the number: what the entry holds is what `Resuming`
 			// wrote above, and that is the state under the number it is written with.
@@ -260,10 +263,11 @@ sealed partial class Machine
 	/// so it is found, the latest of this repetition's own reading (its <c>RepeatIndex</c>); a
 	/// reading inside, of the same repetition, has a repetition entry of its own.
 	/// </remarks>
-	static void TurnEnds(Writer writer, int id)
+	void TurnEnds(Writer writer, int id)
 	{
 		using (writer.Block("for (var turnAt = entries.Count - 1; turnAt > repeat; turnAt--)"))
 		{
+			CountTurnWalk(writer);
 			writer.Line("var ended = entries[turnAt];");
 			writer.Line($"if (ended.Kind != ParserEntry.Turn || ended.State != {id} || ended.RepeatIndex != repeat) continue;");
 			writer.Line($"if (ended.LookaheadIndex >= 0 || ended.AtomicIndex > reach{id}) reach{id} = ended.AtomicIndex;");
@@ -338,13 +342,34 @@ sealed partial class Machine
 		return again;
 	}
 
+	/// <summary>
+	/// The records the end of a recovering turn looked at — for its mark, its record and the ways
+	/// back it puts out — counted where a test asks for it (<see cref="CountsRules"/>, under
+	/// <c>DOTGRAM_COUNTS</c>).
+	/// </summary>
+	string TurnWalked => Tag.Named("TurnWalked");
+
+	/// <summary>Whether a recovering repetition was compiled, whose turns' ends <see cref="TurnWalked"/> counts.</summary>
+	bool _walksTurns;
+
+	void CountTurnWalk(Writer writer)
+	{
+		if (!CountsRules)
+			return;
+
+		writer.Line("#if DOTGRAM_COUNTS");
+		writer.Line($"{TurnWalked}++;");
+		writer.Line("#endif");
+	}
+
 	/// <summary>Whether a repetition this machine compiled keeps its turns on the arena (<see cref="Reenters"/>).</summary>
 	public bool KeepsTurns { get; private set; }
 
-	static void DeactivateChoices(Writer writer, int attempt)
+	void DeactivateChoices(Writer writer, int attempt)
 	{
 		using (writer.Block("for (var choiceAt = entries.Count - 1; choiceAt > repeat; choiceAt--)"))
 		{
+			CountTurnWalk(writer);
 			writer.Line("var choice = entries[choiceAt];");
 			writer.Line("if (choice.Kind == ParserEntry.Choice)");
 			writer.Then(
