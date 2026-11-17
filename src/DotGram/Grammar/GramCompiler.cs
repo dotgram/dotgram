@@ -91,8 +91,11 @@ static class GramCompiler
 		//   ITargetLanguage  .Emit      (graph)         -> C#, by CSharpEmitter
 
 		// One language for the whole compilation: it reads the grammar's host fragments and is asked
-		// about its types, for every stage below.
-		var language = options.Language ?? new CSharpLanguage(options.SymbolResolver, options.CSharpScanner, options.Host);
+		// about its types, for every stage below. The shape of the host is the compilation's, from its
+		// options, whichever C# language reads the grammar: a language handed in brings its resolver
+		// and its scanner, never the class, the readings or what values are told their locations through.
+		var language = options.Language is CSharpLanguage given ? given.WithHost(options.Host)
+			: options.Language ?? new CSharpLanguage(options.SymbolResolver, options.CSharpScanner, options.Host);
 
 		// Every stage reads a character class and a literal as ranges and runs of UTF-16 code units
 		// (CharRange); a language whose input is made of anything else needs those stages first.
