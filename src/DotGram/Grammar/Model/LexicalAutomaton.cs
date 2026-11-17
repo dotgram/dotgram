@@ -397,11 +397,11 @@ sealed class LexicalAutomaton
 			var edges  = cuts.ToList();
 
 			for (var i = 0; i + 1 <= edges.Count - 1; i++)
-				if (edges[i] <= char.MaxValue)
-					atoms.Add(new CharRange((char)edges[i], (char)Math.Min(edges[i + 1] - 1, char.MaxValue)));
+				if (edges[i] <= CharRange.Last)
+					atoms.Add(new CharRange((char)edges[i], (char)Math.Min(edges[i + 1] - 1, CharRange.Last)));
 
-			if (edges.Count > 0 && edges[^1] <= char.MaxValue)
-				atoms.Add(new CharRange((char)edges[^1], char.MaxValue));
+			if (edges.Count > 0 && edges[^1] <= CharRange.Last)
+				atoms.Add(new CharRange((char)edges[^1], CharRange.Last));
 
 			return atoms;
 		}

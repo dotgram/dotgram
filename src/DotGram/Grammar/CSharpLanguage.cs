@@ -59,6 +59,9 @@ sealed class CSharpLanguage : ITargetLanguage
 		return scanner is null ? Instance : new CSharpLanguage(scanner: scanner);
 	}
 
+	/// <summary>A <see cref="char"/>, which is what a C# string is made of.</summary>
+	public TextUnit TextUnit => TextUnit.Utf16CodeUnit;
+
 	public KnownType Classify(string spelling, out TypeSpellingForm form)
 	{
 		if (spelling is null)
