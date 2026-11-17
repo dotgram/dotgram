@@ -365,8 +365,11 @@ internal static class DslRecognitionTrace
 		/// <summary>The extents read before the call.</summary>
 		public Trail? Head { get; } = head;
 
-		/// <summary>Whether it was read inside a look, where its failures were not recorded.</summary>
+		/// <summary>Whether it was read where its failures were not recorded: in a look, in the trivia, or at the start of a turn a repetition could do without.</summary>
 		public bool Silent { get; } = silent;
+
+		/// <summary>Whether it was called from the trivia, at any depth, where nothing refused is recorded.</summary>
+		public bool Seam { get; init; }
 
 		/// <summary>How many steps the machine had taken when the call was made.</summary>
 		public long Steps { get; } = steps;
@@ -508,6 +511,7 @@ internal static class DslRecognitionTrace
 		public Trail?  Head;
 		public Entry   Entry;
 		public int     Looking;
+		public int     Quiet;
 		public Node?   Node;
 		public int     Index;
 		public object? Extra;
@@ -900,6 +904,15 @@ internal static class DslRecognitionTrace
 		Trail?  _head;
 		Entry   _entry;
 		int     _looking;
+
+		// Where a turn a repetition could do without began, while it is read: a turn that refuses where
+		// it began refused at the place the reading goes on from, and the generated parser records
+		// nothing of it there. -1 where no such turn is being read.
+		int     _quietAt = -1;
+
+		// A repetition marked recover was reached: where the reading then fails, recovering might not
+		// have, and that is not read here yet.
+		bool    _recovering;
 		Node?   _node;
 		bool    _failed;
 		long    _steps;
@@ -973,6 +986,11 @@ internal static class DslRecognitionTrace
 
 			if (Drive())
 				return _head;
+
+			// The reading failed past a repetition that recovers, which this does not read as the
+			// generated parser does: whether it would have failed is not known here.
+			if (_recovering)
+				Unsupported = true;
 
 			if (!Unsupported)
 				Explain();
@@ -1048,6 +1066,7 @@ internal static class DslRecognitionTrace
 				_position     = position;
 				_entry        = entry;
 				_looking      = 0;
+				_quietAt      = -1;
 				_head         = null;
 				_failed       = false;
 				_node         = node;
@@ -1102,6 +1121,7 @@ internal static class DslRecognitionTrace
 				Head         = _head,
 				Entry        = _entry,
 				Looking      = _looking,
+				Quiet        = _quietAt,
 				Node         = node,
 				Index        = index,
 				Extra        = extra,
@@ -1115,6 +1135,7 @@ internal static class DslRecognitionTrace
 			_head         = point.Head;
 			_entry        = point.Entry;
 			_looking      = point.Looking;
+			_quietAt      = point.Quiet;
 		}
 
 		/// <summary>Drops the routes from choice point <paramref name="marker"/> on.</summary>
@@ -1327,7 +1348,8 @@ internal static class DslRecognitionTrace
 						return false;
 					}
 
-					_entry = frame.Entry;
+					_entry   = frame.Entry;
+					_quietAt = ((WideFrame)frame).C;
 					Turn((Node.Repeat)frame.Node!, ((WideFrame)frame).B, (Turns?)((WideFrame)frame).Extra);
 
 					return false;
@@ -1358,6 +1380,8 @@ internal static class DslRecognitionTrace
 					Keep(look, wide.B, made, new Answer(_position, null));
 
 					_looking  = wide.C;
+					_quietAt  = wide.D;
+					_entry    = frame.Entry;
 					_position = wide.B;
 					_head     = wide.Mark;
 
@@ -1373,6 +1397,9 @@ internal static class DslRecognitionTrace
 				case Step.Accept:
 					if (_position == _input.Length)
 						return true;
+
+					// What stands here is the publication's, not that of the last rule read (the trivia's).
+					_entry = frame.Entry;
 
 					Expect(_position, "end of input", null);
 
@@ -1528,6 +1555,8 @@ internal static class DslRecognitionTrace
 				}
 
 				case Node.Repeat repeat:
+					_recovering |= _graph.Recoveries.ContainsKey(repeat);
+
 					// A turn that can end in one place only is never reached again by another route.
 					Turn(repeat, 0, repeat.Body is not (Node.Element or Node.Literal or Node.Atomic) ? new Turns() : null);
 
@@ -1552,6 +1581,7 @@ internal static class DslRecognitionTrace
 						A    = _count - 1,
 						B    = _position,
 						C    = _looking,
+						D    = _quietAt,
 						Mark = _head,
 					};
 
@@ -1696,7 +1726,8 @@ internal static class DslRecognitionTrace
 				return;
 			}
 
-			var called = new Entry(rule, _position, _entry, _head, _looking > 0, _steps);
+			var seam   = _entry.Seam || _isTrivia[rule];
+			var called = new Entry(rule, _position, _entry, _head, Silenced || seam, _steps) { Seam = seam };
 
 			Push(Route.Exhausted, extra: called);
 
@@ -1711,7 +1742,7 @@ internal static class DslRecognitionTrace
 			var key = Key(NodeNumber(node), _position);
 
 			return _answers.TryGetValue(key, out var answer) ||
-				_looking > 0 && _answersSilently.TryGetValue(key, out answer)
+				Silenced && _answersSilently.TryGetValue(key, out answer)
 					? answer
 					: null;
 		}
@@ -1723,7 +1754,9 @@ internal static class DslRecognitionTrace
 				return;
 
 			// A look's body is read silently whatever stands around it: its answer is the same either way.
-			(_looking > 0 && node is not Node.Lookahead ? _answersSilently : _answers)[Key(NodeNumber(node), position)] = answer;
+			var silent = _looking > 0 || _entry.Seam || position == _quietAt;
+
+			(silent && node is not Node.Lookahead ? _answersSilently : _answers)[Key(NodeNumber(node), position)] = answer;
 		}
 
 		int NodeNumber(Node node)
@@ -1748,7 +1781,7 @@ internal static class DslRecognitionTrace
 			var key = Key(rule, _position);
 
 			return _remembered.TryGetValue(key, out var remembered) ||
-				_looking > 0 && _rememberedSilently.TryGetValue(key, out remembered)
+				Silenced && _rememberedSilently.TryGetValue(key, out remembered)
 					? remembered
 					: null;
 		}
@@ -1780,20 +1813,33 @@ internal static class DslRecognitionTrace
 				return;
 			}
 
+			// A turn the repetition could do without refuses quietly where it begins (_quietAt).
+			var outer = _quietAt;
+
+			if (stops)
+				_quietAt = _position;
+
 			// A turn that cannot begin here leaves stopping as the one route, and no choice point.
 			if (_openings.Of(repeat) is { } opening && !Opens(opening, repeat.Body))
 			{
+				_quietAt = outer;
+
 				if (!stops)
 					Fail();
 
 				return;
 			}
 
+			_quietAt = outer;
+
 			if (stops)
 				Push(Route.Stop);
 
-			_continuation = new WideFrame(Step.Turn, repeat, _entry, _continuation) { A = _position, B = count + 1, Extra = turns };
+			_continuation = new WideFrame(Step.Turn, repeat, _entry, _continuation) { A = _position, B = count + 1, C = outer, Extra = turns };
 			_node         = repeat.Body;
+
+			if (stops)
+				_quietAt = _position;
 		}
 
 		/// <summary>The first alternative of <paramref name="choice"/> from <paramref name="from"/> on that can begin here; the count where none can.</summary>
@@ -1819,7 +1865,7 @@ internal static class DslRecognitionTrace
 				return true;
 
 			// Only where a failure would still be recorded does what the node expected matter.
-			if (_looking == 0 && _position >= Furthest)
+			if (_looking == 0 && _position >= Furthest && _position != _quietAt && !InSeam(_entry.Rule, _position))
 			{
 				// Those the refusal has moved past are dropped now and then, so that the list stays short.
 				if (_passedOver.Count == _passedOverKept)
@@ -1850,10 +1896,24 @@ internal static class DslRecognitionTrace
 			}
 		}
 
+		/// <summary>
+		/// Whether a failure at <paramref name="position"/> in <paramref name="owner"/> is the trivia's,
+		/// which the generated parser records only where the input ran out: elsewhere what is said is
+		/// what the rule after the trivia wanted.
+		/// </summary>
+		bool InSeam(int owner, int position)
+		{
+			return (_isTrivia[owner] || _entry.Seam) && position < _input.Length;
+		}
+
+		/// <summary>Whether failures at the current position go unrecorded, so that what is read here is remembered apart.</summary>
+		bool Silenced => _looking > 0 || _entry.Seam || _position == _quietAt;
+
 		/// <summary>Whether a failure at <paramref name="position"/> in <paramref name="owner"/> would be recorded.</summary>
 		bool Records(int position, int owner)
 		{
-			return _looking == 0 && position >= Furthest && !_isTrivia[owner];
+			// Not where a quiet turn began: a literal that read part of itself there refuses further on.
+			return _looking == 0 && position >= Furthest && !InSeam(owner, position);
 		}
 
 		/// <summary>
@@ -1862,7 +1922,7 @@ internal static class DslRecognitionTrace
 		/// </summary>
 		void Expect(int position, string? expected, int? owner)
 		{
-			if (owner is { } rule && _isTrivia[rule])
+			if (owner is { } rule && InSeam(rule, position) || position == _quietAt)
 				return;
 
 			if (_looking > 0 || position < Furthest)
@@ -1882,7 +1942,7 @@ internal static class DslRecognitionTrace
 		/// <summary>Records a guard that said no at <paramref name="position"/>, in the order guards said it.</summary>
 		void ExpectGuard(int position, Node.Guard guard, int owner)
 		{
-			if (_isTrivia[owner] || _looking > 0 || position < Furthest)
+			if (InSeam(owner, position) || _looking > 0 || position < Furthest || position == _quietAt)
 				return;
 
 			if (position > Furthest)
