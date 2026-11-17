@@ -593,15 +593,58 @@ public sealed class DslRecognitionTraceTests
 		""")]
 	public void AgreesWithGeneratedParserOnEveryShortInput(string alphabet, string grammar)
 	{
+		AgreesOnEveryShortInput(alphabet, grammar, sayings: false);
+	}
+
+	/// <summary>
+	/// The same, for guards that say no: where the refusal stands, and what it says — a guard's
+	/// own words, that the guards said no, or, where anything else is named there, that.
+	/// </summary>
+	[Theory]
+	[InlineData("ab", """
+		parse Start
+		Start = 'a' & when @(No()) on fail "Custom." | 'b'
+		""")]
+	[InlineData("acx", """
+		parse Start
+		Start = 'a' & when @(No()) | 'a' & when @(Nope()) & 'x' | 'c'
+		""")]
+	[InlineData("abc", """
+		parse Start
+		Start = 'a' & (when @(No()) on fail "Never." | 'b') & 'c'*
+		""")]
+	[InlineData("ab", """
+		parse Start
+		Start = 'a' & (when @(No()) on fail "First." | when @(Nope()) on fail "Second." | when @(No())) & 'b'? | 'b'
+		""")]
+	[InlineData("abc", """
+		parse Start
+		Start = 'a' & when @(false) on fail "Constant." | 'b' & when @(true) & 'c'
+		""")]
+	[InlineData("ab", """
+		parse Start
+		Start = (when @(Yes()) & 'a' | 'b' & when @(No()))+
+		""")]
+	[InlineData("ab", """
+		parse Start
+		Start = ?!(when @(No()) on fail "Look.") & 'a'+ & (?=(when @(No()) on fail "Inside.") | 'b')
+		""")]
+	public void SaysWhatTheGeneratedParserSaysWhereGuardsSayNo(string alphabet, string grammar)
+	{
+		AgreesOnEveryShortInput(alphabet, grammar, sayings: true);
+	}
+
+	static void AgreesOnEveryShortInput(string alphabet, string grammar, bool sayings)
+	{
 		var inputs = new System.Collections.Generic.List<string> { "" };
 
 		for (var length = 1; length <= (alphabet.Length <= 2 ? 10 : alphabet.Length <= 4 ? 7 : 5); length++)
 			inputs.AddRange(inputs.Where(input => input.Length == length - 1).SelectMany(input => alphabet.Select(c => input + c)).ToArray());
 
-		AgreesWithGeneratedParser(grammar, [.. inputs]);
+		AgreesWithGeneratedParser(grammar, [.. inputs], sayings);
 
 		var (graph, publication) = Compile(grammar);
-		var accepted = inputs.Count(input => DslRecognitionTrace.Recognize(graph, publication, input).Status == DslRecognitionStatus.Success);
+		var accepted = inputs.Count(input => DslRecognitionTrace.Recognize(graph, publication, input, new Answers()).Status == DslRecognitionStatus.Success);
 
 		// Both answers are common enough to say something.
 		Assert.InRange(accepted, 1, inputs.Count - 100);
@@ -873,25 +916,92 @@ public sealed class DslRecognitionTraceTests
 	/// </summary>
 	static void AgreesWithGeneratedParser(string grammar, params string[] inputs)
 	{
+		AgreesWithGeneratedParser(grammar, inputs, sayings: false);
+	}
+
+	/// <param name="sayings">
+	/// Whether what each refusal says is held to the generated parser's too: the things it names,
+	/// as a set, or the sentence it says where only guards said no. Only for grammars whose refusals
+	/// name literals and classes, which both say alike.
+	/// </param>
+	static void AgreesWithGeneratedParser(string grammar, string[] inputs, bool sayings)
+	{
 		var (graph, publication) = Compile(grammar);
 		var generated = EmittedCode.Compile(
 			DotGram.Grammar.Emit.CSharpEmitter.Emit(
 				graph,
-				new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Deferred, MemoiseFailures = false }));
+				new DotGram.Grammar.GramCompilerOptions { Carrier = DotGram.Grammar.CarrierKind.Deferred, MemoiseFailures = false }),
+			declarationMembers: """
+				static bool Yes()
+				{
+					return true;
+				}
+
+				static bool No()
+				{
+					return false;
+				}
+
+				static bool Nope()
+				{
+					return false;
+				}
+				""");
+		var contract = new Answers();
 
 		foreach (var input in inputs)
 		{
 			var expected = EmittedCode.Match(generated, "Grammar", "Try" + publication.MethodName, input);
-			var actual   = DslRecognitionTrace.Recognize(graph, publication, input);
+			var actual   = DslRecognitionTrace.Recognize(graph, publication, input, contract);
 
 			Assert.True(
 				expected.IsSuccess == (actual.Status == DslRecognitionStatus.Success),
 				$"'{input}': the generated parser {(expected.IsSuccess ? "accepts" : "refuses")} it, the interpreter answers {actual.Status}");
 
-			if (!expected.IsSuccess)
+			if (expected.IsSuccess)
+				continue;
+
+			Assert.True(
+				expected.Position == actual.FailurePosition,
+				$"'{input}': the generated parser refuses at {expected.Position} ({expected.Error}), the interpreter at {actual.FailurePosition} ({string.Join(", ", actual.Expected)})");
+
+			if (!sayings)
+				continue;
+
+			// Where only guards said no, the refusal is a sentence, and both say the same one; where
+			// anything else is named, both name something. What they name is said in two vocabularies
+			// (the generated parser folds characters into one class, and leaves out a turn a repetition
+			// could do without), so it is held to naming something, not to the same names.
+			var sentence = expected.Error is { } error && !error.StartsWith("Expected ", System.StringComparison.Ordinal)
+				? error
+				: null;
+
+			if (sentence is not null)
 				Assert.True(
-					expected.Position == actual.FailurePosition,
-					$"'{input}': the generated parser refuses at {expected.Position} ({expected.Error}), the interpreter at {actual.FailurePosition} ({string.Join(", ", actual.Expected)})");
+					actual.Expected.Count == 0 && sentence == actual.Refusal,
+					$"'{input}': the generated parser says {sentence}, the interpreter {actual.Refusal ?? string.Join(" | ", actual.Expected)}");
+			else
+				Assert.True(
+					actual.Refusal is null && actual.Expected.Count > 0,
+					$"'{input}': the generated parser says {expected.Error}, the interpreter {actual.Refusal ?? "nothing"}");
+		}
+	}
+
+	/// <summary>The tooling contract's answers for the guards the comparison's grammars ask: Yes() holds, No() and Nope() do not.</summary>
+	sealed class Answers : IDslRecognitionContract
+	{
+		public bool TryEvaluateGuard(Node.Guard guard, RuleSymbol owner, int position, out bool accepted)
+		{
+			accepted = guard.Text.Contains("Yes()");
+
+			return accepted || guard.Text.Contains("No()") || guard.Text.Contains("Nope()");
+		}
+
+		public bool TryResolveExternal(Node.External external, RuleSymbol owner, out RuleSymbol rule)
+		{
+			rule = null!;
+
+			return false;
 		}
 	}
 

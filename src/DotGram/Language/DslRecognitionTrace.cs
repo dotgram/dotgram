@@ -34,6 +34,12 @@ internal sealed class DslRecognitionResult(
 	public IReadOnlyList<DslRecognitionExtent> Extents { get; } = extents;
 	public IReadOnlyList<string> Expected { get; } = expected;
 
+	/// <summary>
+	/// What the refusal says where only guards said no at the furthest place and nothing is
+	/// <see cref="Expected"/>: a guard's own words, or that it said no. Null otherwise.
+	/// </summary>
+	public string? Refusal { get; init; }
+
 	/// <summary>How many steps the interpreter took: what its cost is held to, rather than a clock.</summary>
 	public int Steps { get; init; }
 }
@@ -181,7 +187,11 @@ internal static class DslRecognitionTrace
 			matcher.Unsupported ? DslRecognitionStatus.Unsupported : DslRecognitionStatus.Failure,
 			matcher.Furthest,
 			Flatten(laid, cancellationToken),
-			matcher.Unsupported ? [] : matcher.Expected) { Steps = matcher.Steps };
+			matcher.Unsupported ? [] : matcher.Expected)
+		{
+			Steps   = matcher.Steps,
+			Refusal = matcher.Unsupported ? null : matcher.Refusal,
+		};
 	}
 
 	/// <summary>The extents of a derivation, each rule or capture before those inside it, in the order the text has them.</summary>
@@ -880,6 +890,9 @@ internal static class DslRecognitionTrace
 		readonly Dictionary<long, Answer> _answers         = [];
 		readonly Dictionary<long, Answer> _answersSilently = [];
 		readonly HashSet<string> _expected = new(StringComparer.Ordinal);
+
+		// The guards that said no at the furthest place, each as the generated parser records it, in order.
+		readonly List<string> _guards = [];
 
 		// Where the machine stands.
 		int     _position;
@@ -1593,8 +1606,9 @@ internal static class DslRecognitionTrace
 					return;
 
 				case Node.Guard guard:
-					if (_contract is null ||
-						!_contract.TryEvaluateGuard(guard, _rules[_entry.Rule], _position, out var accepted))
+					if (!Constant(guard, out var accepted) &&
+						(_contract is null ||
+						 !_contract.TryEvaluateGuard(guard, _rules[_entry.Rule], _position, out accepted)))
 					{
 						Unreadable();
 
@@ -1602,7 +1616,12 @@ internal static class DslRecognitionTrace
 					}
 
 					if (!accepted)
+					{
+						// The weakest thing a refusal can say, as the generated parser says it: only where
+						// nothing else is named at the furthest place does the refusal say that it said no.
+						ExpectGuard(_position, guard, _entry.Rule);
 						Fail();
+					}
 
 					return;
 
@@ -1853,10 +1872,66 @@ internal static class DslRecognitionTrace
 			{
 				Furthest = position;
 				_expected.Clear();
+				_guards.Clear();
 			}
 
 			if (expected is not null)
 				_expected.Add(expected);
+		}
+
+		/// <summary>Records a guard that said no at <paramref name="position"/>, in the order guards said it.</summary>
+		void ExpectGuard(int position, Node.Guard guard, int owner)
+		{
+			if (_isTrivia[owner] || _looking > 0 || position < Furthest)
+				return;
+
+			if (position > Furthest)
+			{
+				Furthest = position;
+				_expected.Clear();
+				_guards.Clear();
+			}
+
+			var said = DotGram.Grammar.Emit.Machine.Guarded(guard);
+
+			if (!_guards.Contains(said))
+				_guards.Add(said);
+		}
+
+		/// <summary>
+		/// What a refusal says where only guards said no at the furthest place, as the generated
+		/// parser's refusal says it: the words of the first guard that has its own, else each guard's
+		/// C# and that it said no. Null where anything else was named there.
+		/// </summary>
+		public string? Refusal
+		{
+			get
+			{
+				if (_expected.Count > 0 || _guards.Count == 0)
+					return null;
+
+				foreach (var said in _guards)
+					if (said.Length > 1 && said[1] == '\u0000')
+						return said.Substring(2);
+
+				return string.Join(" or ", _guards.Select(static said => said.Substring(1))) + " said no.";
+			}
+		}
+
+		/// <summary>Whether <paramref name="guard"/>'s C# is the constant <c>true</c> or <c>false</c>, and which.</summary>
+		static bool Constant(Node.Guard guard, out bool value)
+		{
+			var text = new string([.. guard.Text.Where(static c => !char.IsWhiteSpace(c))]);
+
+			while (text.StartsWith("@", StringComparison.Ordinal))
+				text = text.Substring(1);
+
+			while (text.Length >= 2 && text[0] == '(' && text[text.Length - 1] == ')')
+				text = text.Substring(1, text.Length - 2);
+
+			value = text == "true";
+
+			return text is "true" or "false";
 		}
 
 		string SaidOf(Node node)
