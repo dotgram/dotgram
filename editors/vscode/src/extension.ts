@@ -1,24 +1,31 @@
-// The .Gram extension: starts the DotGram language server and hands it every .gram document. What
-// the language means is the server's; this file only finds a runtime and the server and connects them.
+// The .Gram extension: starts the DotGram language server and hands it every .gram document, and every
+// C# document for the grammars written into its strings. What the language means is the server's; this
+// file only finds a runtime and the server, connects them, and paints what the server says of C#.
 
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import { EmbeddedColors, EmbeddedColorsParams } from './embedded';
 
 const extensionId = 'dotgram.dotgram';
 const runtimeVersion = '10.0';
 
 let client: LanguageClient | undefined;
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+/** What the extension gives other extensions: the colours it paints, which the smoke test reads. */
+export interface DotGramApi {
+    embeddedColors(uri: string): Record<string, vscode.Range[]>;
+}
+
+export async function activate(context: vscode.ExtensionContext): Promise<DotGramApi | undefined> {
     const output = vscode.window.createOutputChannel('.Gram');
     context.subscriptions.push(output);
 
     const server = await serverCommand(context, output);
     if (!server) {
-        return;
+        return undefined;
     }
 
     const serverOptions: ServerOptions = {
@@ -31,8 +38,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const watcher = vscode.workspace.createFileSystemWatcher('**/*.{cs,gram,csproj,props,targets}');
     context.subscriptions.push(watcher);
 
+    const embedded = new EmbeddedColors();
+    context.subscriptions.push(embedded);
+
     const clientOptions: LanguageClientOptions = {
-        documentSelector: [{ language: 'gram' }],
+        // A C# document is the server's for its grammars only: it publishes their diagnostics on it, tells
+        // their colours, and answers inside them; the rest of the document is the C# extension's.
+        documentSelector: [{ language: 'gram' }, { language: 'csharp', scheme: 'file' }],
+        middleware: middleware(embedded),
         outputChannel: output,
         synchronize: {
             fileEvents: watcher,
@@ -58,7 +71,47 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }
     }));
 
+    context.subscriptions.push(
+        client.onNotification('dotgram/embeddedColors', (params: EmbeddedColorsParams) => embedded.told(params)),
+    );
+
     await client.start();
+
+    return { embeddedColors: (uri) => embedded.painted(uri) };
+}
+
+/**
+ * What the server is asked about a C# document: a position in one of its grammars, and for Go to Definition
+ * also the name of a .gram file in a line that gives one; every other position is the C# extension's alone,
+ * and what is no grammar's — completion, signature help, folding, the outline — is not asked at all.
+ */
+function middleware(embedded: EmbeddedColors): Middleware {
+    const gram = (document: vscode.TextDocument) => document.languageId !== 'csharp';
+    const inGrammar = (document: vscode.TextDocument, position: vscode.Position) =>
+        gram(document) || embedded.inGrammar(document, position);
+
+    return {
+        provideCompletionItem: (document, position, context, token, next) =>
+            gram(document) ? next(document, position, context, token) : undefined,
+        provideSignatureHelp: (document, position, context, token, next) =>
+            gram(document) ? next(document, position, context, token) : undefined,
+        provideFoldingRanges: (document, context, token, next) => (gram(document) ? next(document, context, token) : undefined),
+        provideDocumentSymbols: (document, token, next) => (gram(document) ? next(document, token) : undefined),
+        provideHover: (document, position, token, next) =>
+            inGrammar(document, position) ? next(document, position, token) : undefined,
+        provideDefinition: (document, position, token, next) =>
+            inGrammar(document, position) || /\.gram\s*"/i.test(document.lineAt(position.line).text)
+                ? next(document, position, token)
+                : undefined,
+        provideReferences: (document, position, options, token, next) =>
+            inGrammar(document, position) ? next(document, position, options, token) : undefined,
+        provideDocumentHighlights: (document, position, token, next) =>
+            inGrammar(document, position) ? next(document, position, token) : undefined,
+        prepareRename: (document, position, token, next) =>
+            inGrammar(document, position) ? next(document, position, token) : undefined,
+        provideRenameEdits: (document, position, newName, token, next) =>
+            inGrammar(document, position) ? next(document, position, newName, token) : undefined,
+    };
 }
 
 export async function deactivate(): Promise<void> {

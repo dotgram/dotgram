@@ -1,7 +1,7 @@
 {
   "name": "dotgram",
   "displayName": ".Gram language support",
-  "description": "Colours, diagnostics, completion, Quick Info, navigation, rename, folding and outline for .gram grammars, from the same language core as the DotGram source generator.",
+  "description": "Colours, diagnostics, completion, Quick Info, navigation, rename, folding and outline for .gram grammars, and colours, diagnostics, Quick Info and navigation for grammars written in C# strings, from the same language core as the DotGram source generator.",
   "version": "0.3.0",
   "publisher": "dotgram",
   "license": "MIT",
@@ -40,6 +40,9 @@
   },
   "extensionDependencies": [
     "ms-dotnettools.vscode-dotnet-runtime"
+  ],
+  "activationEvents": [
+    "onLanguage:csharp"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -121,14 +124,199 @@
             "string.quoted.case-insensitive.gram"
           ],
           "gramSpecialSymbol": [
-            "keyword.operator.special.gram"
+            "keyword.control.special.gram"
           ],
           "gramPunctuation": [
             "punctuation.separator.gram"
           ],
           "macro": [
-            "keyword.control.transition.gram"
+            "keyword.other.transition.gram"
+          ],
+          "keyword": [
+            "keyword.other.gram"
           ]
+        }
+      }
+    ],
+    "colors": [
+      {
+        "id": "dotgram.embedded.comment",
+        "description": "In a grammar written in a C# string, a comment.",
+        "defaults": {
+          "dark": "#6A9955",
+          "light": "#008000",
+          "highContrast": "#7CA668",
+          "highContrastLight": "#515151"
+        }
+      },
+      {
+        "id": "dotgram.embedded.keyword",
+        "description": "In a grammar written in a C# string, a keyword, such as parse or using.",
+        "defaults": {
+          "dark": "#569CD6",
+          "light": "#0000FF",
+          "highContrast": "#569CD6",
+          "highContrastLight": "#0F4A85"
+        }
+      },
+      {
+        "id": "dotgram.embedded.variable",
+        "description": "In a grammar written in a C# string, a rule, capture or parameter; in a DSL, a variable or another name.",
+        "defaults": {
+          "dark": "#9CDCFE",
+          "light": "#001080",
+          "highContrast": "#9CDCFE",
+          "highContrastLight": "#001080"
+        }
+      },
+      {
+        "id": "dotgram.embedded.number",
+        "description": "In a grammar written in a C# string, a number.",
+        "defaults": {
+          "dark": "#B5CEA8",
+          "light": "#098658",
+          "highContrast": "#B5CEA8",
+          "highContrastLight": "#096D48"
+        }
+      },
+      {
+        "id": "dotgram.embedded.string",
+        "description": "In a grammar written in a C# string, a literal or a character class.",
+        "defaults": {
+          "dark": "#CE9178",
+          "light": "#A31515",
+          "highContrast": "#CE9178",
+          "highContrastLight": "#0F4A85"
+        }
+      },
+      {
+        "id": "dotgram.embedded.operator",
+        "description": "In a grammar written in a C# string, an operator, such as = or =>.",
+        "defaults": {
+          "dark": "editor.foreground",
+          "light": "editor.foreground",
+          "highContrast": "editor.foreground",
+          "highContrastLight": "editor.foreground"
+        }
+      },
+      {
+        "id": "dotgram.embedded.macro",
+        "description": "In a grammar written in a C# string, the @ before C#.",
+        "defaults": {
+          "dark": "#569CD6",
+          "light": "#0000FF",
+          "highContrast": "#569CD6",
+          "highContrastLight": "#0F4A85"
+        }
+      },
+      {
+        "id": "dotgram.embedded.gramInvalid",
+        "description": "In a grammar written in a C# string, a token the grammar's lexer does not recognize.",
+        "defaults": {
+          "dark": "#F44747",
+          "light": "#CD3131",
+          "highContrast": "#F44747",
+          "highContrastLight": "#B5200D"
+        }
+      },
+      {
+        "id": "dotgram.embedded.gramEmbeddedCode",
+        "description": "In a grammar written in a C# string, C# inside the grammar.",
+        "defaults": {
+          "dark": "editor.foreground",
+          "light": "editor.foreground",
+          "highContrast": "editor.foreground",
+          "highContrastLight": "editor.foreground"
+        }
+      },
+      {
+        "id": "dotgram.embedded.gramCaseInsensitive",
+        "description": "In a grammar written in a C# string, a case-insensitive literal: 'x'i or \"text\"i.",
+        "defaults": {
+          "dark": "#CE9178",
+          "light": "#A31515",
+          "highContrast": "#CE9178",
+          "highContrastLight": "#0F4A85"
+        }
+      },
+      {
+        "id": "dotgram.embedded.gramSpecialSymbol",
+        "description": "In a grammar written in a C# string, a symbol of the notation, such as | & * + .. ?=.",
+        "defaults": {
+          "dark": "#C586C0",
+          "light": "#AF00DB",
+          "highContrast": "#C586C0",
+          "highContrastLight": "#B5200D"
+        }
+      },
+      {
+        "id": "dotgram.embedded.gramPunctuation",
+        "description": "In a grammar written in a C# string, brackets, braces, parentheses and separators.",
+        "defaults": {
+          "dark": "editor.foreground",
+          "light": "editor.foreground",
+          "highContrast": "editor.foreground",
+          "highContrastLight": "editor.foreground"
+        }
+      },
+      {
+        "id": "dotgram.embedded.type",
+        "description": "In a C# string written in a DSL of a [GramLanguage], a type.",
+        "defaults": {
+          "dark": "#4EC9B0",
+          "light": "#267F99",
+          "highContrast": "#4EC9B0",
+          "highContrastLight": "#185E73"
+        }
+      },
+      {
+        "id": "dotgram.embedded.function",
+        "description": "In a C# string written in a DSL of a [GramLanguage], a function or method.",
+        "defaults": {
+          "dark": "#DCDCAA",
+          "light": "#795E26",
+          "highContrast": "#DCDCAA",
+          "highContrastLight": "#5E2CBC"
+        }
+      },
+      {
+        "id": "dotgram.embedded.property",
+        "description": "In a C# string written in a DSL of a [GramLanguage], a property.",
+        "defaults": {
+          "dark": "#9CDCFE",
+          "light": "#001080",
+          "highContrast": "#9CDCFE",
+          "highContrastLight": "#001080"
+        }
+      },
+      {
+        "id": "dotgram.embedded.namespace",
+        "description": "In a C# string written in a DSL of a [GramLanguage], a namespace.",
+        "defaults": {
+          "dark": "#4EC9B0",
+          "light": "#267F99",
+          "highContrast": "#4EC9B0",
+          "highContrastLight": "#185E73"
+        }
+      },
+      {
+        "id": "dotgram.embedded.parameter",
+        "description": "In a C# string written in a DSL of a [GramLanguage], a parameter.",
+        "defaults": {
+          "dark": "#9CDCFE",
+          "light": "#001080",
+          "highContrast": "#9CDCFE",
+          "highContrastLight": "#001080"
+        }
+      },
+      {
+        "id": "dotgram.embedded.label",
+        "description": "In a C# string written in a DSL of a [GramLanguage], a label.",
+        "defaults": {
+          "dark": "editor.foreground",
+          "light": "editor.foreground",
+          "highContrast": "editor.foreground",
+          "highContrastLight": "editor.foreground"
         }
       }
     ],
