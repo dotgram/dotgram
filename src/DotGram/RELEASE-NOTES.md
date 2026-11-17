@@ -115,4 +115,5 @@ KNOWN ISSUES
 
 - Over characters, a repetition that gives a turn back reads the turns before it again from the start each time, so a refused text costs the square of its length (a refused sum of 2,048 quotients in the calculator: about half a second). Bound the size of untrusted input.
 - By default a parse read from a position or a window can refuse, or cut short, the rule's first reading in a few shapes (an optional or a repetition before a negative lookahead, a quoted string with doubled quotes; docs/syntax.md section 6.8). The whole forms are right. The experimental build property DotGramPositionalFollow fixes them at a cost.
+- A group where a value goes, "=> (l & r)", "=> (l)" or "when (l)", is refused, GRAM4065: it passed the generator and wrote C# that does not compile. Write an expression as "@(l + r)", or hand a capture back as "=> l".
 - See the known issues of the release on GitHub, and docs/status.md, for the rest.

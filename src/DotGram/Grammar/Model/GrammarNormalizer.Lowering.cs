@@ -185,8 +185,42 @@ sealed partial class GrammarNormalizer
 	string Valued(Expr value, string where)
 	{
 		RefuseBoundText(value, where);
+		RefuseGrammarValue(value, where);
 
 		return Text(value);
+	}
+
+	/// <summary>
+	/// Reports a piece of grammar written where a value goes: after <c>=&gt;</c> or <c>when</c>, or in
+	/// the arguments of a call there. A value is a name, a call, a literal or a number, or C# after
+	/// <c>@</c>; a group, a sequence, a choice, a repetition and the rest are what a rule reads, and
+	/// have no C# to be handed over (they went across as the compiler's own spelling of the tree,
+	/// CS0246 on a type nobody wrote).
+	/// </summary>
+	void RefuseGrammarValue(Expr value, string where)
+	{
+		switch (value)
+		{
+			case Expr.CSharp or Expr.Reference or Expr.Literal or Expr.Number:
+				return;
+
+			case Expr.Call(_, var arguments):
+				foreach (var argument in arguments)
+					RefuseGrammarValue(argument, where);
+
+				return;
+		}
+
+		// A binding or a reference is told apart by its own diagnostic (RefuseBoundText).
+		if (value is Expr.Bind or Expr.Same || !_said.Add((GrammarAsValue, value.At.Position)))
+			return;
+
+		Report(
+			GrammarAsValue,
+			$"{(value is Expr.Group ? "A parenthesized group" : "An expression of the grammar")} stands {where}. " +
+			"A value there is a name, a call, a literal, or C# after '@': write the parentheses of an " +
+			"expression as `@(…)`, as in `=> @(l + r)`; `(…)` is a group of what a rule reads.",
+			value.At);
 	}
 
 	/// <summary>A condition with every recognizer under it lowered.</summary>

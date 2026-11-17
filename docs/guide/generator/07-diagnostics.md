@@ -264,6 +264,7 @@ reference, and a test fails where the two differ.
 | [`GRAM4062`](../../diagnostics.md#gram4062) | Error | A reference or a length inside its own binding. |
 | [`GRAM4063`](../../diagnostics.md#gram4063) | Error | A binding and its reference on two sides of a constructing group. |
 | [`GRAM4064`](../../diagnostics.md#gram4064) | Error | A binding in a step of a left-recursive rule, or around its leading call to itself. |
+| [`GRAM4065`](../../diagnostics.md#gram4065) | Error | A piece of grammar, a group or an operator, written where a value goes. |
 | [`GRAM5001`](../../diagnostics.md#gram5001) | Info | A publication gets no overload taking a reader, or, in a grammar that names `eos`, reads its segments whole. |
 | [`GRAM5002`](../../diagnostics.md#gram5002) | Info | A repetition can begin with the same input as what follows it. |
 | [`GRAM5003`](../../diagnostics.md#gram5003) | Warning | A generated method is left past the size at which the JIT stops optimizing it. |

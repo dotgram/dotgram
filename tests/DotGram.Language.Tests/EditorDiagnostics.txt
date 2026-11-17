@@ -524,6 +524,10 @@ parse A
 E = E & '+' & $q: T & $q | T
 T = 'a'
 parse E
+=== GRAM4065
+A : @int = ['0'..'9']+ => @int.Parse(parserText)
+R : @int = l: A & r: A => (l & r)
+parse R
 === GRAM5001
 A = 'a' & any* & 'b'
 find A
