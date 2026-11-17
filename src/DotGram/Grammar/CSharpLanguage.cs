@@ -45,8 +45,13 @@ sealed class CSharpLanguage : ITargetLanguage
 
 	/// <param name="resolver">The host; null for none, which answers every question permissively.</param>
 	/// <param name="scanner">Reads the C# a grammar hands over; null where nothing can.</param>
-	public CSharpLanguage(ISymbolResolver? resolver = null, ICSharpScanner? scanner = null)
+	/// <param name="host">
+	/// The shape of the C# the parser is generated into, where a compilation has one: what values
+	/// are told their locations through, among the rest.
+	/// </param>
+	public CSharpLanguage(ISymbolResolver? resolver = null, ICSharpScanner? scanner = null, CSharpHostShape? host = null)
 	{
+		Host       = host ?? new CSharpHostShape();
 		_resolver  = resolver ?? PermissiveSymbolResolver.Instance;
 		_scanner   = scanner;
 		_names     = resolver as ICSharpNames;
@@ -375,6 +380,39 @@ sealed class CSharpLanguage : ITargetLanguage
 	public string GeneratedTypeName(Binding.RuleSymbol rule)
 	{
 		return DotGram.Grammar.Emit.CSharpEmitter.IdentifierOf(rule);
+	}
+
+	/// <summary>The shape of the C# the parser is generated into.</summary>
+	public CSharpHostShape Host { get; }
+
+	/// <summary>The shape of the C# a graph's parser is generated into, read by the emitter: none where its language is not C#'s.</summary>
+	internal static CSharpHostShape HostOf(Model.RecognitionGraph graph)
+	{
+		return (graph.Language as CSharpLanguage)?.Host ?? NoHost;
+	}
+
+	static readonly CSharpHostShape NoHost = new();
+
+	public bool LocationsRequested => Host.LocationType is not null;
+
+	public bool LocationsPerCall => Host.LocatedFacade is { Length: > 0 } && Host.LocationType is not null;
+
+	public bool IsLocated(string type, IReadOnlyList<string> imports)
+	{
+		if (Host.LocationType is not { } named)
+			return false;
+
+		// Bare first and then under each import, the way C# itself resolves and the way the
+		// questions were asked: a grammar writes `@Statement` beside a `using`, and it is
+		// the qualified spelling that a host compilation can answer about.
+		if (Fits(type, named))
+			return true;
+
+		foreach (var import in imports)
+			if (Fits(import + "." + type, named))
+				return true;
+
+		return false;
 	}
 
 	public string? OptionalElementOf(string spelling)

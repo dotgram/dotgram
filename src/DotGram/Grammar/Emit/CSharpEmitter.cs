@@ -728,15 +728,17 @@ static partial class CSharpEmitter
 
 		// Where locations are decided per call, the class's own methods do not ask, and the
 		// nested class named for them holds the same methods asking: one parser, two doors.
-		if (graph.PerCall is { } perCall)
+		if (graph.LocationsPerCall)
 		{
+			var host = CSharpLanguage.HostOf(graph);
+
 			Publish(false);
 
-			using (file.Block(perCall.Declared
-				? $"static partial class {perCall.Facade}"
-				: $"public static partial class {perCall.Facade}"))
+			using (file.Block(host.LocatedFacadeDeclared
+				? $"static partial class {host.LocatedFacade}"
+				: $"public static partial class {host.LocatedFacade}"))
 			{
-				results.Facade = perCall.Facade;
+				results.Facade = host.LocatedFacade;
 
 				Publish(true);
 				PublishOverSegments();
@@ -784,7 +786,7 @@ static partial class CSharpEmitter
 
 			foreach (var factory in FactoriesOf(graph, results, rule))
 			{
-				locates |= factory.Located && graph.PerCall is null && ((Node.Construct)factory.Of).How is Construction.Expression;
+				locates |= factory.Located && !graph.LocationsPerCall && ((Node.Construct)factory.Of).How is Construction.Expression;
 
 				EmitFactory(file, graph, rule, factory, results, options.LineMap, options.SpanCaptures);
 				if (byteRules.Contains(rule))
@@ -804,7 +806,7 @@ static partial class CSharpEmitter
 
 				foreach (var factory in FactoriesOf(lexical.Source, valuing.Results, rule))
 				{
-					locates |= factory.Located && lexical.Source.PerCall is null && ((Node.Construct)factory.Of).How is Construction.Expression;
+					locates |= factory.Located && !lexical.Source.LocationsPerCall && ((Node.Construct)factory.Of).How is Construction.Expression;
 					EmitFactory(file, lexical.Source, rule, factory, valuing.Results, options.LineMap);
 					file.Line();
 				}
@@ -814,7 +816,8 @@ static partial class CSharpEmitter
 		// tells one (EmitFactory): generic and by reference, constrained to the interface, so that the
 		// call goes through the interface — an explicit implementation of it is called as well as a
 		// public one — and a struct is told in place rather than as a boxed copy.
-		if (locates && (graph.LocationType ?? lexical?.Source.LocationType) is { } locationType)
+		if (locates && (graph.Located.Count > 0 || lexical?.Source.Located.Count > 0) &&
+			CSharpLanguage.HostOf(graph).LocationType is { } locationType)
 		{
 			file.Line("/// <summary>A located value told where it was written, through the interface it is located by.</summary>");
 
@@ -1003,7 +1006,7 @@ static partial class CSharpEmitter
 		// a reading that locates and one that does not. The readers stay outside it, so the bulk of
 		// the machine is compiled once and as cheaply as any other class's; the generic one is
 		// entered once a reading, to build what was read.
-		if (graph.PerCall is not null)
+		if (graph.LocationsPerCall)
 		{
 			var genericAt    = file.Length;
 			var genericDepth = file.Depth + 1;
@@ -1044,7 +1047,7 @@ static partial class CSharpEmitter
 			file.Expose(genericAt, genericDepth + 1, called);
 		}
 
-		if (graph.PerCall is not null)
+		if (graph.LocationsPerCall)
 		{
 			file.Line("/// <summary>The argument of a reading that does not say where its values were written.</summary>");
 			using (file.Block($"internal struct {LocatingOff}"))
@@ -1071,7 +1074,7 @@ static partial class CSharpEmitter
 		{
 			file.Write(OutcomeEnum);
 			file.Line();
-			file.Write(MatchStructOf(graph.PerCall is not null));
+			file.Write(MatchStructOf(graph.LocationsPerCall));
 			file.Line();
 		}
 
@@ -1156,7 +1159,7 @@ static partial class CSharpEmitter
 				(spanNeeded ? SharedNeeds.Span : 0) |
 				(spanShown ? SharedNeeds.SpanShown : 0) |
 				(graph.Publications.Count > 0 ? SharedNeeds.Match : 0) |
-				(graph.Publications.Count > 0 && graph.PerCall is not null ? SharedNeeds.ReadingEnd : 0) |
+				(graph.Publications.Count > 0 && graph.LocationsPerCall ? SharedNeeds.ReadingEnd : 0) |
 				(inputNeeded ? SharedNeeds.Input : 0) |
 				(options.Inherits ? SharedNeeds.Hides : 0);
 
@@ -3712,7 +3715,7 @@ file.Line("return spare;");
 				// What a measuring is handed besides the text: whatever that machine asks for — the whole input, the
 				// context and the reading the tokenizer was handed, and, where locations are decided per call, that this
 				// reading does not locate: it builds no value, so there is nothing to offer a location to
-				// (RecognitionGraph.PerCall).
+				// (RecognitionGraph.LocationsPerCall).
 				var measuring = valuing is null ? "" : valuing.Handing("input", "context", "parserReading", "-1");
 
 				// Where a keyword is taken back below, the shorter token found instead may be one
@@ -4643,7 +4646,7 @@ file.Line("return spare;");
 		switch (((Node.Construct)factory.Of).How)
 		{
 			// The author's own C#, written under a `#line` pointing back at it (§7.6).
-			case Construction.Expression when factory.Located && graph.PerCall is null:
+			case Construction.Expression when factory.Located && !graph.LocationsPerCall:
 
 				// Offered the range it was read over, which is a statement and not an
 				// expression. Offered rather than written: a rule may hand back a value another
@@ -5092,7 +5095,7 @@ file.Line("return spare;");
 	/// </remarks>
 	internal static bool TakesSpan(RecognitionGraph graph, Machine.Factory factory)
 	{
-		return factory.Located && graph.PerCall is null || Asks(graph, factory, "parserSpan");
+		return factory.Located && !graph.LocationsPerCall || Asks(graph, factory, "parserSpan");
 	}
 
 	internal static bool Asks(RecognitionGraph graph, Machine.Factory factory, string name)
@@ -6335,7 +6338,7 @@ file.Line("return spare;");
 
 		// Anything supplied is something the token does not say — where it was written among it, for
 		// a value told so per call: the reading again is what offers it the place.
-		if (graph.PerCall is not null && graph.Located.Contains(rule))
+		if (graph.LocationsPerCall && graph.Located.Contains(rule))
 			return null;
 
 		if (WantsText(graph, factory) || Asks(graph, factory, "parserSpan") ||
@@ -6754,7 +6757,7 @@ file.Line("return spare;");
 					reading |= node is Node.Reading;
 				}
 
-		return new ValuingAsks(context, reading, graph.PerCall is not null && graph.Located.Count > 0);
+		return new ValuingAsks(context, reading, graph.LocationsPerCall && graph.Located.Count > 0);
 	}
 
 	/// <summary>The host's call measuring a terminal's rest, moving <c>measured</c> on.</summary>

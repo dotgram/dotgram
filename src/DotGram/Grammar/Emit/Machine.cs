@@ -1781,7 +1781,7 @@ sealed partial class Machine
 	{
 		var helper = new Writer(1);
 
-		if (_offeredInWalk.Count == 0 || _graph.PerCall is null)
+		if (_offeredInWalk.Count == 0 || !_graph.LocationsPerCall)
 			return "";
 
 		var tokens = OverKinds ? ", int[] starts, int[] lengths" : "";
@@ -1811,10 +1811,10 @@ sealed partial class Machine
 	{
 		var helper = new Writer(1);
 
-		if (_offered.Count + _offeredInWalk.Count == 0 || _graph.PerCall is not { } perCall)
+		if (_offered.Count + _offeredInWalk.Count == 0 || !_graph.LocationsPerCall)
 			return "";
 
-		var located = "global::" + perCall.Type;
+		var located = "global::" + CSharpLanguage.HostOf(_graph).LocationType;
 		var tokens  = OverKinds ? ", int[] starts, int[] lengths" : "";
 		var handed  = OverKinds ? ", starts, lengths" : "";
 
@@ -1965,7 +1965,7 @@ sealed partial class Machine
 	/// the call asks (<see cref="RecognitionGraph.PerCall"/>) — which every method that can reach
 	/// one learns from <c>parserLocating</c>, handed on beside the reading.
 	/// </summary>
-	public bool UsesLocating => _graph.PerCall is not null && _graph.Located.Count > 0;
+	public bool UsesLocating => _graph.LocationsPerCall && _graph.Located.Count > 0;
 
 	/// <summary>
 	/// Whether the places this machine tells the host's code — where a located value was read,

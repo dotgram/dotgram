@@ -916,29 +916,18 @@ sealed class RecognitionGraph(
 	/// everything did before there was a syntax tree to ask.
 	/// </remarks>
 	/// <summary>
-	/// The rules whose value can be told where it was written — those assignable to the
-	/// type <c>[Gram(…, LocationType = …)]</c> named.
+	/// The rules whose value can be told where it was written: the values the host asked to be told
+	/// their locations (<see cref="ITargetLanguage.IsLocated"/>).
 	/// </summary>
 	/// <remarks>
 	/// Empty unless a grammar asked, and a grammar that does not ask is compiled exactly as
-	/// it was: a recognizer wants no positions, and most grammars are recognizers.
+	/// it was: a recognizer wants no positions, and most grammars are recognizers. What they are
+	/// told through is the host's shape, and the target language's to know.
 	/// </remarks>
 	public IReadOnlyCollection<RuleSymbol> Located { get; init; } = [];
 
 	/// <summary>
-	/// The interface <see cref="Located"/> are told through, as the host named it; null where no rule is.
-	/// </summary>
-	/// <remarks>
-	/// A value is told through the interface and not through its own type, so that an explicit
-	/// implementation of <c>Locate</c> is called as well as a public one, and a struct is told in place
-	/// rather than as a boxed copy.
-	/// </remarks>
-	public string? LocationType { get; init; }
-
-	/// <summary>
-	/// Where <see cref="Located"/> is decided per call: the nested class whose published
-	/// methods ask for locations, and the interface that is told them. Null where locations
-	/// are compiled in, or not asked for at all.
+	/// Whether locations are decided per call rather than compiled in (<see cref="ITargetLanguage.LocationsPerCall"/>).
 	/// </summary>
 	/// <remarks>
 	/// The constructions are then compiled as an unlocated grammar's are, and every call of
@@ -946,7 +935,7 @@ sealed class RecognitionGraph(
 	/// <c>parserLocating</c> — the position the reading began at, or below nought where the
 	/// call did not ask.
 	/// </remarks>
-	public (string Facade, string Type, bool Declared)? PerCall { get; set; }
+	public bool LocationsPerCall => Language.LocationsPerCall;
 
 	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
 		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
