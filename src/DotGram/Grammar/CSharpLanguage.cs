@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DotGram.Grammar;
 
@@ -104,6 +105,28 @@ sealed class CSharpLanguage : ITargetLanguage
 		return Classify(name, out var form) is var kind && form is TypeSpellingForm.Syntax or TypeSpellingForm.Simple
 			? kind
 			: KnownType.None;
+	}
+
+	/// <summary>
+	/// Whether <paramref name="type"/> may be one that every array is — <c>object</c>, <c>Array</c> and
+	/// the interfaces arrays implement — by its spelling alone: with or without <c>global::</c> and one
+	/// of the namespaces they live in. A generic interface may be one, depending on its argument.
+	/// </summary>
+	internal static bool EveryArrayMayBe(string type)
+	{
+		var name = type.StartsWith("global::", StringComparison.Ordinal) ? type.Substring("global::".Length) : type;
+
+		foreach (var space in new[] { "System.Collections.Generic.", "System.Collections.", "System." })
+			if (name.StartsWith(space, StringComparison.Ordinal))
+			{
+				name = name.Substring(space.Length);
+
+				break;
+			}
+
+		return name.IndexOf('<') >= 0 || name is
+			"object" or "Object" or "Array" or "ICloneable" or "IEnumerable" or "ICollection" or "IList" or
+			"IStructuralComparable" or "IStructuralEquatable";
 	}
 
 	public bool IsGrammarKeyword(string spelling)
@@ -265,6 +288,60 @@ sealed class CSharpLanguage : ITargetLanguage
 		return _names?.UnboundIn(fragment, imports);
 	}
 
+	public string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, DotGram.Grammar.Emit.EmitContext context)
+	{
+		return DotGram.Grammar.Emit.CSharpEmitter.Emit(graph, options, context);
+	}
+
+	public string SourceName(GramCompilerOptions options, int part)
+	{
+		var name = options.Suffix is { Length: > 0 } suffix
+			? $"{options.ClassName}.{suffix}.gram.g.cs"
+			: $"{options.ClassName}.gram.g.cs";
+
+		return part == 0 ? name : name.Replace(".gram.g.cs", $".gram.part-{part:D4}.g.cs");
+	}
+
+	public IReadOnlyList<GramDiagnostic> NameClashes(Model.RecognitionGraph graph, GramCompilerOptions options)
+	{
+		var said = DotGram.Grammar.Emit.CSharpEmitter.NameClashes(
+			graph,
+			ClassOf(options),
+			options.Namespace,
+			DotGram.Grammar.Emit.CSharpEmitter.ClassesOf(options),
+			options.Lexical);
+
+		// A host with several readings has one span, in the host; a part the author declared in the
+		// class of a reading would be a second span of the same name, which the reading reads instead.
+		if (options.SharedTypes && options.SpanDeclaredInReading)
+			said.Add(new GramDiagnostic(
+				DotGram.Grammar.Emit.CSharpEmitter.GeneratedNameClash,
+				$"'SourceSpan' is declared in '{options.Suffix}', the class of a reading of a host that has several: " +
+				"they share one span, written in the host. Declare its part in the host instead (docs/syntax.md §6.2).",
+				0, 0, GramSeverity.Error));
+
+		return said;
+	}
+
+	public DotGram.Grammar.Emit.GramNames NamesOf(Model.RecognitionGraph graph, IReadOnlyList<Model.RecognitionGraph> more, GramCompilerOptions options)
+	{
+		return DotGram.Grammar.Emit.CSharpEmitter.NamesOf(
+			graph, more, ClassOf(options), options.Namespace, DotGram.Grammar.Emit.CSharpEmitter.ClassesOf(options), options.Lexical);
+	}
+
+	public bool ScansSeam(Model.LexicalSplit split)
+	{
+		var seam = DotGram.Grammar.Emit.CSharpEmitter.Seam(split);
+
+		return split.Trivia.Any(rule => seam.Scanner(rule) is not null);
+	}
+
+	/// <summary>The class the publications are written into, as a chain: the host, and the reading nested in it.</summary>
+	static string ClassOf(GramCompilerOptions options)
+	{
+		return options.Suffix is { Length: > 0 } nested ? options.ClassName + "." + nested : options.ClassName;
+	}
+
 	public string RenderFragment(string fragment)
 	{
 		return $"({fragment})";
@@ -297,7 +374,7 @@ sealed class CSharpLanguage : ITargetLanguage
 
 	public string GeneratedTypeName(Binding.RuleSymbol rule)
 	{
-		return Emit.CSharpEmitter.IdentifierOf(rule);
+		return DotGram.Grammar.Emit.CSharpEmitter.IdentifierOf(rule);
 	}
 
 	public string? OptionalElementOf(string spelling)

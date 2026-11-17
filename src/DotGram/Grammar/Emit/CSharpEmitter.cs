@@ -3750,7 +3750,7 @@ file.Line("return spare;");
 							// of is cut short (-1, below), as the rule's own reading would say.
 							file.Line("var measured = end;");
 							file.Line();
-							NestedPair.WriteRest(file, pair, "measured", continued.ToString(System.Globalization.CultureInfo.InvariantCulture), ["measured = -1;", "break;"]);
+							CSharpEmitter.WriteNestedRest(file, pair, "measured", continued.ToString(System.Globalization.CultureInfo.InvariantCulture), ["measured = -1;", "break;"]);
 							file.Line();
 							file.Line("if (measured < 0)");
 							file.Then("kind = -1;");
@@ -3877,7 +3877,7 @@ file.Line("return spare;");
 							{
 								file.Line($"var measured = {from};");
 								file.Line();
-								NestedPair.WriteRest(file, pair, "measured", $"{continued}_{longer}", ["measured = -1;", "break;"]);
+								CSharpEmitter.WriteNestedRest(file, pair, "measured", $"{continued}_{longer}", ["measured = -1;", "break;"]);
 							}
 							else if (MeasuredBy(lexical, continuation.Tail) is { } rule)
 							{

@@ -217,23 +217,7 @@ sealed class PermissiveSymbolResolver : ISymbolResolver
 		if (to is null)
 			throw new ArgumentNullException(nameof(to));
 
-		if (!(from.Length == to.Length + 2 && from.StartsWith(to, StringComparison.Ordinal) &&
-			from.EndsWith("[]", StringComparison.Ordinal)))
-			return true;
-
-		var name = to.StartsWith("global::", StringComparison.Ordinal) ? to.Substring("global::".Length) : to;
-
-		foreach (var space in new[] { "System.Collections.Generic.", "System.Collections.", "System." })
-			if (name.StartsWith(space, StringComparison.Ordinal))
-			{
-				name = name.Substring(space.Length);
-
-				break;
-			}
-
-		return name.IndexOf('<') >= 0 || name is
-			"object" or "Object" or "Array" or "ICloneable" or "IEnumerable" or "ICollection" or "IList" or
-			"IStructuralComparable" or "IStructuralEquatable";
+		return CSharpLanguage.Instance.ElementOf(from) != to || CSharpLanguage.EveryArrayMayBe(to);
 	}
 
 	/// <remarks>

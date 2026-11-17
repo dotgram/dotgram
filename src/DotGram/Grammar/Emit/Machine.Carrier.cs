@@ -1461,7 +1461,7 @@ sealed partial class Machine
 
 		string ValueOfType(string type, string record)
 		{
-			return type == "SourceSpan"
+			return machine._graph.Language.Classify(type, out var form) == KnownType.SourceSpan && form == TypeSpellingForm.Syntax
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
 				: machine.DenseDirectValues
 					? $"values.V{TableName(type)}[values.Starts[{record}]].Value"
