@@ -428,8 +428,8 @@ on why a `when` should not simply write one.
 
 A parse from memory deep enough to run low on stack does not fail: it is carried onto a
 fresh thread with room of its own and continues there, deeper still if that is not
-enough, while the thread that made the call waits (the attribute's `MaxExtraStacks` bounds how
-many). This is a hand-off, not concurrency, but an action, guard or external recognizer
+enough, while the thread that made the call waits (the class's `Limits.MaxExtraStacks`, which starts as
+the attribute's `MaxExtraStacks`, bounds how many). This is a hand-off, not concurrency, but an action, guard or external recognizer
 reached past that point is not running on the thread the call came in on: code that
 depends on which thread it runs on cannot assume it stays the one that started the parse.
 A reader over a `TextReader` or a `Stream` does not do this, and keeps none of the pool

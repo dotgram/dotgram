@@ -1,1 +1,9 @@
 #nullable enable
+static DotGram.ExpressionLanguage.ExpressionParser.Limits.get -> DotGram.ExpressionLanguage.ExpressionParser.ParserLimits!
+static DotGram.ExpressionLanguage.ExpressionParser.Limits.set -> void
+DotGram.ExpressionLanguage.ExpressionParser.ParserLimits
+static DotGram.ExpressionLanguage.ExpressionParser.ParserLimits.Default.get -> DotGram.ExpressionLanguage.ExpressionParser.ParserLimits!
+DotGram.ExpressionLanguage.ExpressionParser.ParserLimits.MaxBufferedInputLength.get -> int
+DotGram.ExpressionLanguage.ExpressionParser.ParserLimits.MaxExtraStacks.get -> int
+DotGram.ExpressionLanguage.ExpressionParser.ParserLimits.WithMaxBufferedInputLength(int value) -> DotGram.ExpressionLanguage.ExpressionParser.ParserLimits!
+DotGram.ExpressionLanguage.ExpressionParser.ParserLimits.WithMaxExtraStacks(int value) -> DotGram.ExpressionLanguage.ExpressionParser.ParserLimits!

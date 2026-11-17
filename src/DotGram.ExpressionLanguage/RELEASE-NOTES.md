@@ -11,6 +11,7 @@ BREAKING CHANGES, and what to do
 
 NEW
 
+- ExpressionParser.Limits sets how many extra stacks a parse may take on deep nesting (ParserLimits.MaxExtraStacks; zero, the default, is no limit).
 - A trailing comma after the last entry of an object, collection or array initializer; empty braces as an object initializer that sets nothing (new List<int> { }, Items = { }); indexers among members (new Dictionary<int, int> { [1] = 2 }), built as a block of assignments in C#'s order.
 - new[] { 1, 2L }, typed by the one type its elements convert to (CS0826 where there is none).
 - x with { Name = value, … } over a record class or a struct (CS8858 for any other type); with stays a name a variable may have.

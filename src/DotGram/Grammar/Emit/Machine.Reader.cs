@@ -1037,13 +1037,12 @@ sealed partial class Machine
 			file.Then("throw new global::System.InsufficientExecutionStackException();");
 			file.Line();
 
-			if (_settings.Stacks > 0)
-			{
-				file.Line("// As many as the author said were enough, and no more.");
-				file.Line($"if (this.stacks >= {_settings.Stacks})");
-				file.Then("throw new global::System.InsufficientExecutionStackException();");
-				file.Line();
-			}
+			// As many as the limits the reading began with allow, and no more: read once, as the
+			// reader was made, so that a swap of the grammar's limits mid-parse changes nothing here.
+			file.Line("// As many as the limits this reading began with allow, and no more.");
+			file.Line("if (this.stacksLeft == 0)");
+			file.Then("throw new global::System.InsufficientExecutionStackException();");
+			file.Line();
 
 			// What the host keeps of the reading outside it, where it asked to be told, before a thread is claimed or
 			// the sink told: a hook that throws leaves none claimed, and nothing waiting for a reading that never comes.
@@ -1070,8 +1069,7 @@ sealed partial class Machine
 
 			file.Line("deep.probes = this.probes;");
 
-			if (_settings.Stacks > 0)
-				file.Line("deep.stacks = this.stacks + 1;");
+			file.Line("deep.stacksLeft = this.stacksLeft - 1;");
 
 			file.Line("deep.pos    = pos;");
 			file.Line("deep.which  = which;");
@@ -1430,9 +1428,7 @@ sealed partial class Machine
 				file.Line($"internal {type} {name} = default!;");
 
 			file.Line("internal int probes;");
-
-			if (_settings.Stacks > 0)
-				file.Line("internal int stacks;");
+			file.Line("internal int stacksLeft;");
 
 			file.Line("internal int pos;");
 			file.Line("internal int which;");
@@ -1469,8 +1465,7 @@ sealed partial class Machine
 
 						file.Line("reader.probes = this.probes;");
 
-						if (_settings.Stacks > 0)
-							file.Line("reader.stacks = this.stacks;");
+						file.Line("reader.stacksLeft = this.stacksLeft;");
 
 						file.Line();
 
@@ -1590,11 +1585,8 @@ sealed partial class Machine
 				header.Line("/// <summary>Entries to a rule that can reach itself, for the stack probe.</summary>");
 				header.Line("internal int probes;");
 
-				if (_settings.Stacks > 0)
-				{
-				header.Line("/// <summary>How many stacks this reading has taken past the one it began on.</summary>");
-					header.Line("internal int stacks;");
-				}
+				header.Line("/// <summary>How many more stacks this reading may take past the one it is on.</summary>");
+				header.Line("internal int stacksLeft;");
 			}
 
 			// Where the reader keeps no tape, a constant stands in for it on the paths that ask
@@ -1659,8 +1651,15 @@ sealed partial class Machine
 				if (Probes)
 					header.Line("this.probes  = 0;");
 
-				if (_settings.Stacks > 0)
-					header.Line("this.stacks  = 0;");
+				// The grammar's limits as they stand when the reading is made, read once: a reading
+				// carried onto another stack takes what is left of them with it (Deep), and nought,
+				// no limit, is as many as an int counts.
+				if (Probes)
+				{
+					header.Line("this.stacksLeft = Limits.MaxExtraStacks;");
+					header.Line("if (this.stacksLeft == 0)");
+					header.Then("this.stacksLeft = int.MaxValue;");
+				}
 
 				foreach (var (_, name) in state)
 					header.Line($"this.{name} = {name};");

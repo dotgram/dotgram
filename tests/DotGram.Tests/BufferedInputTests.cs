@@ -188,7 +188,7 @@ public sealed partial class BufferedInputTests
 	public void The_attribute_sets_the_defaults_the_generated_class_holds()
 	{
 		var run = GeneratorDriverTests.RunGenerator(
-			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedText = true, MaxBufferedInputLength = 16, InitialBufferSize = 8)]\npublic partial class Limits;");
+			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedText = true, MaxBufferedInputLength = 16, InitialBufferSize = 8)]\npublic partial class Defaults;");
 		var source = string.Join("\n", run.Results.SelectMany(one => one.GeneratedSources).Select(one => one.SourceText.ToString()));
 		Assert.Contains("internal const int DefaultMaxRetained = 16;", source, StringComparison.Ordinal);
 		Assert.Contains("internal const int DefaultBufferSize = 8;", source, StringComparison.Ordinal);
@@ -201,7 +201,7 @@ public sealed partial class BufferedInputTests
 	public void A_buffer_option_of_nothing_is_refused_where_it_is_written(string option)
 	{
 		var run = GeneratorDriverTests.RunGenerator(
-			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedText = true, " + option + ")]\npublic partial class Limits;");
+			"[DotGram.Gram(\"Row = 'a'\\nparse Row\", BufferedText = true, " + option + ")]\npublic partial class Defaults;");
 		var diagnostic = Assert.Single(run.Diagnostics, one => one.Id == "GRAM0009");
 		Assert.Contains(option, diagnostic.GetMessage(), StringComparison.Ordinal);
 	}

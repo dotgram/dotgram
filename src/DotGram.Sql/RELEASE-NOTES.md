@@ -22,6 +22,7 @@ BREAKING CHANGES, and what to write instead
 
 NEW
 
+- TransactSqlParser.Limits, SqlStandardParser.Limits and Sql92Parser.Limits set how many extra stacks a parse may take on deep nesting (ParserLimits.MaxExtraStacks; zero, the default, is no limit). TransactSqlParser.Located reads the same limits.
 - SqlScript.Read(text, options) cuts a script into the batches a client tool sends: ScriptProfile.SqlCmd() reads separator lines, GO n, :setvar and , :r through ScriptOptions.ResolveInclude (bounded by ScriptOptions.MaximumIncludes) and reports every other command as a ScriptDirective; ScriptProfile.Ssms() reads separator lines alone. Each ScriptBatch has Count, IsVerbatim and Locate. TransactSqlParser.TryParseSql(ScriptBatch) and its forms read one batch. Held byte for byte to what sqlcmd 18.6 sends the server.
 - SqlList<T>, the list every node holds, made with a collection expression, SqlList.From or ToSqlList(). A list of one element of a reference type holds it without an array.
 - TransactSqlParser.Located is the same parser called with locations on, rather than a second compilation, so the assembly carries one T-SQL parser instead of two.

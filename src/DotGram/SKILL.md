@@ -510,7 +510,7 @@ plain static field has made it global — make any such state thread-safe yourse
 same as you would in any other C# called from more than one thread.
 
 One exception to running on the thread that called: a parse from memory that goes deep
-enough hands the rest of that depth to a fresh thread (`MaxExtraStacks` bounds how many) while the
+enough hands the rest of that depth to a fresh thread (`Limits.MaxExtraStacks` bounds how many) while the
 calling thread waits. An action or guard reached past that point is not on the thread the
 call came from — write nothing in them that assumes it is.
 
@@ -543,6 +543,20 @@ silences both, now and for every reason found later. Name the carrier rather tha
 division, a lookup) can stay immediate with `ConstructionsMayThrow = true`: what one throws is
 held and thrown only where the deferred carrier would have thrown it, so a reading given up or a refused
 parse throws nothing. It costs every construction a little; leave it off where none throws.
+
+`MaxExtraStacks` and `MaxBufferedInputLength` are only where the limits start. Every generated
+class has a static `Limits` holding an immutable `ParserLimits`, which a program facing input it
+did not write sets once, at start-up:
+
+```csharp
+MyParser.Limits = MyParser.Limits.WithMaxExtraStacks(4).WithMaxBufferedInputLength(1 << 20);
+```
+
+A parse reads it once, as it begins, so setting it while other threads parse is safe: a parse
+already running keeps what it began with. A buffered call's own `maxRetained` still wins over
+`Limits.MaxBufferedInputLength`. It is the process's setting, one per grammar class: a test that
+changes it must not run beside tests that parse with that class. Do not name a publication or a
+rule's type `Limits` or `ParserLimits` (`GRAM5018`).
 
 `[GramParserVariant]` may be written as many times as there are further readings wanted, each
 naming the nested class it goes into:

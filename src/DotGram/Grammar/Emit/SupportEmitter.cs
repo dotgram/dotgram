@@ -185,8 +185,10 @@ static class SupportEmitter
 				/// call does not say.
 				/// </summary>
 				/// <remarks>
-				/// A streaming overload's own <c>maxRetained</c> overrides it for that call. Past the
-				/// limit the parse throws <c>IOException</c> naming it. The default is no limit.
+				/// The default of the generated class's <c>Limits.MaxBufferedInputLength</c>, which a
+				/// program may change while it runs; a streaming overload's own <c>maxRetained</c>
+				/// overrides both for that call. Past the limit the parse throws <c>IOException</c>
+				/// naming it. The default is no limit.
 				/// </remarks>
 				public int MaxBufferedInputLength { get; set; } = int.MaxValue;
 
@@ -210,6 +212,9 @@ static class SupportEmitter
 				/// `InsufficientExecutionStackException`, which is what it always did. Zero,
 				/// the default, is no limit; one is a single extra stack; a reading that never
 				/// goes deep takes none whatever this says.
+				///
+				/// It is the default of the generated class's <c>Limits.MaxExtraStacks</c>, which a
+				/// program may change while it runs.
 				/// </remarks>
 				public int MaxExtraStacks { get; set; }
 

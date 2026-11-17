@@ -261,7 +261,8 @@ Notes:
 
 - The caller owns the reader or the stream; the parse does not dispose it, and may read ahead.
 - `bufferSize` and `maxRetained` are optional per call; the defaults are the host's `[Gram(InitialBufferSize = …,
-  MaxBufferedInputLength = …)]`.
+  MaxBufferedInputLength = …)]`, and a null `maxRetained` reads the class's `Limits.MaxBufferedInputLength`,
+  which starts there and which a program may change ([`syntax.md` §6.5](../../syntax.md#limits-at-run-time)).
 - Over bytes, literals compare byte values; Unicode categories, case folding and predicates over
   characters are not available, and captured text reaches C# as `ReadOnlySpan<byte>`.
 - A form the grammar cannot be read in is refused, naming why (`GRAM4026`); where the reader overload is

@@ -89,7 +89,7 @@ the answer is the deferred carrier's. The hold costs every construction a little
 | `BufferedText` | `false` | every `parse` and `find` also reads a `TextReader`, as if it said `stream` |
 | `BufferedBytes` | `false` | every `parse` and `find` also reads bytes, as if it said `stream bytes` |
 | `InitialBufferSize` | `4096` | where a buffered call does not say, the buffer's starting capacity |
-| `MaxBufferedInputLength` | no limit | where a buffered call does not say, the most a buffered parse may hold |
+| `MaxBufferedInputLength` | no limit | where a buffered call does not say, the most a buffered parse may hold; the default of the class's `Limits`, which a program may change |
 
 A buffer size or a retention of zero or less is `GRAM0009`. What the buffered forms are and which rules they
 take is in [publication](08-publication.md#input-from-a-reader-or-a-stream-stream-stream-bytes).
@@ -135,3 +135,5 @@ grammar's text travels on its class (`ExportGrammar`, [`syntax.md` §6.7](../../
 `Trace` and the attributes for tooling
 (`[GramLanguage]`, `[GramClassify]`, …) say how a parser is generated, traced or shown in an editor, and change
 no answer. They are in [`syntax.md` §6.4–§6.9](../../syntax.md#64-targetmethodpartsize-the-one-thing-a-host-may-tune).
+`MaxExtraStacks` and `MaxBufferedInputLength` are where the class's `Limits` start, which a program may change
+while it runs ([`syntax.md` §6.5](../../syntax.md#limits-at-run-time)).

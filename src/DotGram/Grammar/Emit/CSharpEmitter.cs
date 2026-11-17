@@ -371,7 +371,6 @@ static partial class CSharpEmitter
 			Starves          = Streaming(graph, overKinds),
 			OverKinds        = overKinds,
 			Reread           = lexical?.Valued,
-			Stacks           = options.Stacks,
 			Inventory        = lexical?.Inventory,
 			Quiets           = quiets,
 			Places           = Places(graph, overKinds, options.BufferedInput),
@@ -1162,6 +1161,14 @@ static partial class CSharpEmitter
 				(graph.Publications.Count > 0 && graph.LocationsPerCall ? SharedNeeds.ReadingEnd : 0) |
 				(inputNeeded ? SharedNeeds.Input : 0) |
 				(options.Inherits ? SharedNeeds.Hides : 0);
+
+		// The limits a caller may change at run time, one set per reading: what its readers and its buffered
+		// overloads read as a parse begins, defaulting to the [Gram] values written below.
+		if (graph.Publications.Count > 0 || machines.Count > 0)
+		{
+			file.Write(LimitsSupport(options.MaxRetained, options.Stacks));
+			file.Line();
+		}
 
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput))
 		{

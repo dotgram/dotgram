@@ -1,1 +1,8 @@
 #nullable enable
+DotGram.Web.WebParserLimits
+DotGram.Web.WebParserLimits.MaxExtraStacks.get -> int
+DotGram.Web.WebParserLimits.WithMaxExtraStacks(int value) -> DotGram.Web.WebParserLimits!
+DotGram.Web.WebParsers
+static DotGram.Web.WebParserLimits.Default.get -> DotGram.Web.WebParserLimits!
+static DotGram.Web.WebParsers.Limits.get -> DotGram.Web.WebParserLimits!
+static DotGram.Web.WebParsers.Limits.set -> void

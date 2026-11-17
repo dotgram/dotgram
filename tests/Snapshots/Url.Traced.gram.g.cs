@@ -6401,6 +6401,79 @@ namespace DotGram.Snapshots
 				}
 			}
 
+			/// <summary>
+			/// The limits every parse of this grammar holds its input to; <see cref="ParserLimits.Default"/>
+			/// until set.
+			/// </summary>
+			/// <remarks>
+			/// Read once, as a parse begins: setting it swaps the whole value at once, so a parse already
+			/// running keeps the limits it began with and one begun later reads the new ones. A call's own
+			/// <c>maxRetained</c> overrides <see cref="ParserLimits.MaxBufferedInputLength"/> for that call.
+			/// </remarks>
+			/// <exception cref="global::System.ArgumentNullException">Set to <c>null</c>.</exception>
+			public static ParserLimits Limits
+			{
+				get
+				{
+					return global::System.Threading.Volatile.Read(ref limits_DotGram) ?? ParserLimits.Default;
+				}
+				set
+				{
+					global::System.Threading.Volatile.Write(ref limits_DotGram, value ?? throw new global::System.ArgumentNullException(nameof(value)));
+				}
+			}
+
+			static ParserLimits? limits_DotGram;
+
+			/// <summary>
+			/// What a parse of this grammar may take of untrusted input: an immutable value, changed by
+			/// making another with one of the <c>With</c> methods and setting <see cref="Limits"/> to it.
+			/// </summary>
+			public sealed class ParserLimits
+			{
+				/// <summary>The limits the grammar was generated with, which <c>[Gram]</c> wrote.</summary>
+				public static ParserLimits Default { get; } = new ParserLimits(2147483647, 0);
+
+				ParserLimits(int maxBufferedInputLength, int maxExtraStacks)
+				{
+					MaxBufferedInputLength = maxBufferedInputLength;
+					MaxExtraStacks         = maxExtraStacks;
+				}
+
+				/// <summary>
+				/// The most input a buffered parse may hold at once, in characters or bytes, where the call
+				/// passes no <c>maxRetained</c>; past it the parse throws <c>IOException</c>.
+				/// <c>int.MaxValue</c> is no limit.
+				/// </summary>
+				public int MaxBufferedInputLength { get; }
+
+				/// <summary>
+				/// How many stacks one parse may take beyond the one it began on, on deep nesting; past that
+				/// many it throws <c>InsufficientExecutionStackException</c>. Zero is no limit.
+				/// </summary>
+				public int MaxExtraStacks { get; }
+
+				/// <summary>These limits with <see cref="MaxBufferedInputLength"/> changed.</summary>
+				/// <exception cref="global::System.ArgumentOutOfRangeException"><paramref name="value"/> is zero or negative.</exception>
+				public ParserLimits WithMaxBufferedInputLength(int value)
+				{
+					if (value <= 0)
+						throw new global::System.ArgumentOutOfRangeException(nameof(value));
+
+					return new ParserLimits(value, MaxExtraStacks);
+				}
+
+				/// <summary>These limits with <see cref="MaxExtraStacks"/> changed.</summary>
+				/// <exception cref="global::System.ArgumentOutOfRangeException"><paramref name="value"/> is negative.</exception>
+				public ParserLimits WithMaxExtraStacks(int value)
+				{
+					if (value < 0)
+						throw new global::System.ArgumentOutOfRangeException(nameof(value));
+
+					return new ParserLimits(MaxBufferedInputLength, value);
+				}
+			}
+
 			sealed class Window_DotGram
 			{
 				private readonly global::System.IO.TextReader _input;
