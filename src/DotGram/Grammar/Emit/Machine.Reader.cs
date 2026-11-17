@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 using DotGram.Grammar.Binding;
@@ -7001,6 +7002,29 @@ sealed partial class Machine
 		/// <summary>The statement that records a refusal here, whatever stands around it (<see cref="Refusal"/>).</summary>
 		string Record(string expected, bool furthest = true)
 		{
+			// A numbered set is passed as its number, and built only where the refusal is recorded
+			// (ExpectedSets.CallsRefused): most refusals stand behind the furthest one, inside a
+			// look or in a quiet reading, and a parse that succeeds records few of them, so the
+			// table the sets are decoded from is never compiled for it. Not in a trace build, whose
+			// sink is told every refusal with its set.
+			if (machine.Tracing is null && ExpectedSets.TryId(expected, out var id))
+			{
+				var number = id.ToString(CultureInfo.InvariantCulture);
+
+				if (machine.KeepsDoors && furthest)
+				{
+					machine._expectedSets.CallsRefused = true;
+
+					return $"{ExpectedSets.Refused}(ref failure, p, {number});";
+				}
+
+				machine._expectedSets.CallsRefuse = true;
+
+				return machine.Quiets
+					? $"if (!failure.Quiet) {ExpectedSets.Refuse}(ref failure, p, {number});"
+					: $"{ExpectedSets.Refuse}(ref failure, p, {number});";
+			}
+
 			return machine.KeepsDoors && furthest
 				? $"Refused_DotGram(ref failure, p, {expected});"
 				: machine.Quiets

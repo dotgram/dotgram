@@ -35,6 +35,29 @@ sealed class ExpectedSets
 	/// <summary>The accessor a site calls with a set's number, which a refusal passes on as it is.</summary>
 	public const string Accessor = "ExpectedSet_DotGram";
 
+	/// <summary>
+	/// What a site calls to record a refusal of a numbered set where a quiet reading writes down
+	/// how far it got: <c>Refused_DotGram</c> with the set built only where it is recorded.
+	/// </summary>
+	public const string Refused = "RefusedSet_DotGram";
+
+	/// <summary>What a site calls to record a refusal of a numbered set: <c>Refuse_DotGram</c> with the set built only where it is recorded.</summary>
+	public const string Refuse = "RefuseSet_DotGram";
+
+	/// <summary>Whether a site passes a set to <see cref="Refused"/> by its number, so that it is written beside the accessor.</summary>
+	/// <remarks>
+	/// A set built as the argument of a refusal was built whether the refusal recorded it or not:
+	/// inside a look, in a quiet reading and behind the furthest refusal nothing is recorded, and
+	/// those are most of the refusals a parse that succeeds makes. Its first call then compiled the
+	/// decoder and the list of every item the class names, which the parse never read. Passed as a
+	/// number, a set is built where it is recorded and nowhere else; what is recorded is the same
+	/// array as before, so sets are still told apart by reference.
+	/// </remarks>
+	public bool CallsRefused { get; set; }
+
+	/// <summary>Whether a site passes a set to <see cref="Refuse"/> by its number (<see cref="CallsRefused"/>).</summary>
+	public bool CallsRefuse { get; set; }
+
 	/// <summary>Each set's items, escaped for a string literal, in the order the set names them.</summary>
 	readonly List<IReadOnlyList<string>> _sets = [];
 
@@ -137,6 +160,32 @@ sealed class ExpectedSets
 
 		var size = count.ToString(CultureInfo.InvariantCulture);
 		var file = new Writer(0);
+
+		// The refusals by number: what Refuse_DotGram and Refused_DotGram do with a set, asking for
+		// it only where they read it. Neither reads it inside a look, nor behind the furthest
+		// refusal, and Refused_DotGram not in a quiet reading either; there they are given null,
+		// which they read nowhere that the set would have been read.
+		if (CallsRefused || CallsRefuse)
+		{
+			file.Line("// A refusal of a numbered set: the set is built only where the refusal records it, so that a");
+			file.Line("// parse that succeeds, which records next to nothing, never decodes a set.");
+		}
+
+		if (CallsRefused)
+		{
+			using (file.Block($"static void {Refused}(ref Failure failure, int at, int id)"))
+				file.Line($"Refused_DotGram(ref failure, at, failure.Quiet || failure.Looking > 0 || at < failure.Position ? null : {Accessor}(id));");
+
+			file.Line();
+		}
+
+		if (CallsRefuse)
+		{
+			using (file.Block($"static void {Refuse}(ref Failure failure, int at, int id)"))
+				file.Line($"Refuse_DotGram(ref failure, at, failure.Looking > 0 || at < failure.Position ? null : {Accessor}(id));");
+
+			file.Line();
+		}
 
 		file.Line("// The sets a refusal names, by number: built the first time a refusal asks for one, never in the");
 		file.Line("// type's initializer, and then the same array for as long as the process lives, because refusals");
