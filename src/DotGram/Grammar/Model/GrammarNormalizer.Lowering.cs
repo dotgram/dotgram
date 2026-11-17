@@ -363,7 +363,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	internal static string ExternalName(Expr expression, ITargetLanguage language)
 	{
-		return expression is Expr.Reference(_, var name, var types) ? name + TypeArguments(types, language) : expression.ToString();
+		return expression is Expr.Reference(_, var name, var types) ? Referenced(name, types, language) : expression.ToString();
 	}
 
 	/// <summary>The same, in the language this grammar is normalized for.</summary>
@@ -1306,13 +1306,21 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// Values in `=&gt;` and `when` are C# by the time they get here — and are rendered
-	/// as C#, not described.
+	/// Values in `=&gt;` and `when` are host code by the time they get here — rendered by the target
+	/// language, node by node, not described.
 	/// </summary>
 	/// <remarks>
-	/// What comes out is pasted into the generated file and compiled by C#, so a name
-	/// that resolves to nothing is C#'s error to report, on the grammar's line (§7.6).
-	/// The `@` is not part of it: it marks the crossing into C# and does not survive it.
+	/// <para>
+	/// What comes out is pasted into the generated file and compiled there, so a name that resolves
+	/// to nothing is the host compiler's error to report, on the grammar's line (§7.6). The `@` is
+	/// not part of it: it marks the crossing into the host's code and does not survive it.
+	/// </para>
+	/// <para>
+	/// The grammar's own expression is the neutral description already: a fragment, a reference
+	/// with its type arguments, a construction of a generated type, a call, a literal. So it is not
+	/// translated into a second one; each node is handed to the language to write, and every later
+	/// stage goes on reading the text, as it always has.
+	/// </para>
 	/// </remarks>
 	string Text(Expr value)
 	{
@@ -1322,25 +1330,24 @@ sealed partial class GrammarNormalizer
 
 		return value switch
 		{
-			Expr.CSharp(var text) => $"({text})",
-			Expr.Reference(_, var name, var types) => name + TypeArguments(types, _language),
+			Expr.CSharp(var text) => _language.RenderFragment(text),
+			Expr.Reference(_, var name, var types) => Referenced(name, types, _language),
 
 			// §3.7: a rule's name without `@` builds the type the grammar generates for that rule.
 			// It used to go across as written, a call of a type, which C# does not compile (CS1955).
 			Expr.Call(Expr.Reference(false, _, _), var arguments) when _model.Bindings.TryGetValue(value, out var bound) &&
 				bound is RuleSymbol rule =>
-				"new " + Built(rule, value) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
+				_language.RenderConstruction(Built(rule, value), [.. arguments.Select(Text)]),
 
 			Expr.Call(var target, var arguments) =>
-				Text(target) + "(" + string.Join(", ", arguments.Select(Text)) + ")",
+				_language.RenderCall(Text(target), [.. arguments.Select(Text)]),
+
 			// A character literal with no character in it is not something an author can
 			// mean, but it is something a broken file can hold — and this runs on a grammar
 			// the lexer has already reported, because normalization does not stop at the
 			// first diagnostic. Answered rather than thrown on (found by the fuzzer).
-			Expr.Literal(true, var text) => text.Length == 0
-				? "''"
-				: CharRange.Quote(text[0]),
-			Expr.Literal(false, var text) => "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"",
+			Expr.Literal(true, var text) => _language.RenderCharacter(text),
+			Expr.Literal(false, var text) => _language.RenderText(text),
 			_ => value.ToString(),
 		};
 	}
@@ -1365,9 +1372,10 @@ sealed partial class GrammarNormalizer
 	/// <summary>Every construction of a grammar's type: the rule it is written in, the rule it builds, the call.</summary>
 	readonly List<(RuleSymbol Within, RuleSymbol Rule, Expr.Call Call)> _built = [];
 
-	static string TypeArguments(IReadOnlyList<TypeRef> types, ITargetLanguage language)
+	/// <summary>A reference to a host member or type, with the type arguments written after it.</summary>
+	static string Referenced(string name, IReadOnlyList<TypeRef> types, ITargetLanguage language)
 	{
-		return types.Count == 0 ? "" : "<" + string.Join(", ", types.Select(type => TypeName(type, language))) + ">";
+		return language.RenderReference(name, [.. types.Select(type => TypeName(type, language))]);
 	}
 
 	/// <summary>A type as it is written in the target language, which is as the grammar wrote it.</summary>

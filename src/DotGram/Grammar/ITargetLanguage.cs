@@ -61,6 +61,29 @@ interface ITargetLanguage
 	/// <summary>The spelling of a sequence of <paramref name="element"/>.</summary>
 	string SequenceOf(string element);
 
+	// ── Values a grammar writes, rendered as the generated code writes them ───────────
+
+	/// <summary>A host fragment handed over as it stands, as one operand: <c>@(x + 1)</c>.</summary>
+	string RenderFragment(string fragment);
+
+	/// <summary>A host member or type by its name, with the type arguments written after it, rendered already.</summary>
+	string RenderReference(string name, IReadOnlyList<string> typeArguments);
+
+	/// <summary>A value of a type built from arguments, rendered already: what <c>=&gt; Pair(a, b)</c> writes.</summary>
+	string RenderConstruction(string type, IReadOnlyList<string> arguments);
+
+	/// <summary>A call of a target, rendered already, with arguments, rendered already.</summary>
+	string RenderCall(string target, IReadOnlyList<string> arguments);
+
+	/// <summary>
+	/// A character literal of the grammar's, its text as the lexer kept it: one character, or none
+	/// where the file is broken and has been told so.
+	/// </summary>
+	string RenderCharacter(string text);
+
+	/// <summary>A text literal of the grammar's.</summary>
+	string RenderText(string text);
+
 	// ── Names the generated code gives ────────────────────────────────────────────────
 
 	/// <summary>
