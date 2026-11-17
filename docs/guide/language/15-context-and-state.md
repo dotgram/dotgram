@@ -223,3 +223,33 @@ parse Name
 
 A mark in a grammar that declares no `state` has no type to be (`GRAM4029`); a guard is handed no marks
 (`GRAM4053`); and there is one state type (`GRAM3016`).
+
+## Indentation and layout, until the language has a layer for it
+
+The notation has no layout layer yet: no way to say that a block is the lines indented deeper than the
+line before it. Until it has one, there are two techniques, and the first is the one to reach for.
+
+**Parse flat, build the structure after parsing.** Read every line exactly: its indent as text, its
+key, its value. That is a flat list of records, and recognition is all the grammar is asked for. The
+tree is arithmetic over the list: compare each indent with the last one, keeping a stack, in a few lines of C#
+that run once after the parse, outside the grammar, where nothing is backtracked. The
+repository's `YamlExample.cs` (in [`examples/`](https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples/Formats/YamlExample.cs))
+is written this way.
+
+**State bound to a position in the host context, only where recognition itself depends on the
+structure.** Sometimes what a line may be depends on the depth it stands at, so the flat list is not enough.
+Then the depth is kept in the `context` and a `when` guard reads it. The rule that makes this sound:
+
+- **The state must be bound to a position and safely re-writable.** Key it by where it was read (the
+  indent of the line starting at offset N, the depth recorded for that line), so that reading the same
+  place again writes the same thing again. Nothing a parse writes is undone when it backtracks (see
+  *Nothing here is undone* above), and a reading is given up and read again.
+- **A push/pop stack is unsound.** An enclosing alternative can fail after the push and before the
+  pop, or after the pop; the parse then reads on with a stack that no longer says where it is.
+- **`=>` is the wrong place to write it.** On the deferred carrier a construction runs after the parse
+  has finished, too late for anything recognition reads; on the immediate carrier it runs on readings
+  that are then given back, and may run again for the same text (`syntax.md` §3.7). Write it in a
+  `when`, which runs while the text is read, and make the write idempotent.
+
+A grammar that needs more than this is asking for the layout layer; the first technique is also
+the one that keeps working when it arrives.

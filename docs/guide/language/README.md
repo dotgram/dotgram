@@ -22,7 +22,7 @@ generates outside a build is [`cli.md`](../../cli.md).
 | 12 | [Text bindings](12-bindings.md) | `$q: X`, `$q`, `X{#q}` |
 | 13 | [Recovery](13-recovery.md) | `recover`, the names a recovery is handed, `OnRecovered` |
 | 14 | [The seam with C#](14-csharp-seam.md) | predicates, external recognizers, C# in constructions and guards |
-| 15 | [Context and state](15-context-and-state.md) | `context`, `state`, `with state` |
+| 15 | [Context and state](15-context-and-state.md) | `context`, `state`, `with state`, indentation before a layout layer |
 | 16 | [Host options](16-host-options.md) | `Carrier`, buffered input, `[GramParserVariant]`, `[GramInclude]` |
 | 17 | [Quick reference](17-reference.md) | every sign and word on one page |
 

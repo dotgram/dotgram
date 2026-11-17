@@ -882,7 +882,7 @@ without notice.
 
 | | Immediate | Deferred |
 | --- | --- | --- |
-| **Accepted input** | Every construction of the accepted derivation runs at least once, usually once; it runs again where the reading that built it is given back and read again (a choice trying its next alternative over the same operand, a repetition giving a turn back). | Every construction of the accepted derivation runs exactly once, after recognition. A value a `when` or `switch` asks for is built when asked, during recognition, and not built again. |
+| **Accepted input** | Every construction of the accepted derivation runs at least once, usually once; it runs again where the reading that built it is given back and read again (a choice trying its next alternative over the same operand, a repetition giving a turn back). | Every construction of the accepted derivation runs after recognition, once, except where the `TextReader` overload reads an element again (below the table). A value a `when` or `switch` asks for is built when asked, during recognition, and not built again. |
 | **A reading given up** — a rejected alternative, a turn given back | Its constructions have run, and their values are dropped. In a grammar with no `context` and no recovery, at most two attempts for each enclosing loop that gives back. | Nothing runs, but a value a guard asked for on that reading. |
 | **A refused input** | What was read before the refusal has been built; the second reading that says what was expected builds nothing but what a guard names (with a `context` or a recovery it builds again). | Nothing runs, but values guards asked for. |
 | **Under `recover`** | The part of a bad element read before it failed has been built; then the recovery's `=>` runs once for the bad element. | A bad element builds nothing of its own; the recovery's `=>` runs once for it. |
@@ -896,6 +896,13 @@ somewhere or throws should name `Deferred` (or `ConstructionsMayThrow` for one t
 then not count on a number of runs where the reader overload reads an element again, nor on the order of
 siblings. The order a construction is *handed* values in — an element's values before its rule's — is the
 one order promised.
+
+**Nothing is promised about the order of `=>` among siblings, and one repeat is known.** The `TextReader`
+overload re-runs `=>` for the last record of the input, and for any record that ends where a read of the
+reader ends: the result at the boundary is not an answer while the reader may have more, so it is read
+again once more input is in. This holds on every carrier and under `recover` too. A construction that
+counts, logs or writes must not stand where the reader overload can reach it; the `stream` forms build
+each element once (§6.3).
 
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
@@ -957,9 +964,9 @@ when present it wins over the other cases.
 
 A construction's value never needs rollback: one built on a reading the parse gives up is dropped
 with that reading, and nothing the parser keeps is changed by it. How many times its code runs is the
-carrier's, as the table above says: deferred, once for each accepted result it builds (a repeated
-rule builds one per element, and the `TextReader` overload may build one again); carried immediately,
-also for readings given up.
+carrier's, as the table above says: deferred, for each accepted result it builds (a repeated
+rule builds one per element) and, over a `TextReader`, again for the last or a boundary record;
+carried immediately, also for readings given up.
 
 ### 3.8 Operator precedence
 
@@ -2360,7 +2367,8 @@ The first two publications return `FeedNode[]`. The last two return
 `IEnumerable<FeedNode>`; `Nodes(string)` is lazy even with contiguous input.
 `stream` adds a `TextReader` input; `stream bytes` adds a native byte `Stream` input, and
 the same over bytes the caller already holds, `byte[]` and `ReadOnlyMemory<byte>`, read in
-place: no copy and no buffer parameters, since the whole input is there.
+place where the memory is backed by an array: no copy and no buffer parameters, since the whole
+input is there. Memory that is not array-backed is copied once (`input.ToArray()`) by the generated constructor.
 Both forms also keep their string overload. An explicitly buffered publication
 without `yield` materializes its declared result.
 
@@ -2587,7 +2595,8 @@ over a reader too.
 A reader and a string give the same result for constructions without side effects. A construction
 that changes state — the `context` included — may run a different number of times in a streamed
 reading than over a string: a result that reaches the end of what is held is not an answer while the
-reader has more, and is read again. A construction that assigns to, or increments, a member of
+reader has more, and is read again: its `=>` runs again, on every carrier and under `recover` too (§3.7).
+A construction that assigns to, or increments, a member of
 `context` is told as it is written (`GRAM5017`, information; syntactic and best-effort).
 
 The same grammar serves both. `Feed : FeedItem[] = Header & Row* & Trailer & eof`

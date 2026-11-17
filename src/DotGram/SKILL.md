@@ -490,6 +490,11 @@ under warnings-as-errors. A missing key throws out of `TryParse…` (above); the
 `X with state @(1)`, which is how a grammar reads something differently inside a region
 it entered.
 
+Indentation has no layout layer yet. Parse flat (every line's indent as text) and build the tree
+after parsing, as `examples/DotGram.Examples/Formats/YamlExample.cs` does; keep structure in the
+`context` only where recognition depends on it, bound to a position, written from a `when` and safely
+re-writable, never a push/pop stack and never from a `=>`. The guide's page on context and state says why.
+
 ## Threads
 
 A generated parser's static methods may be called from any number of threads at once,
