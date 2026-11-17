@@ -92,8 +92,8 @@ sealed record ToolRun(int Exit, string Output, string Error)
 /// </summary>
 static class Tool
 {
-	/// <summary>The native executable under test, or null where the tool is run in this process.</summary>
-	public static string? Native { get; } = Environment.GetEnvironmentVariable("DOTGRAM_CLI_NATIVE") is { Length: > 0 } path ? System.IO.Path.GetFullPath(path) : null;
+	/// <summary>The native executable under test, or null where the tool is run in this process. A relative path is the repository's.</summary>
+	public static string? Native { get; } = Environment.GetEnvironmentVariable("DOTGRAM_CLI_NATIVE") is { Length: > 0 } path ? System.IO.Path.GetFullPath(path, Repository.Root) : null;
 
 	public static ToolRun Run(string currentDirectory, params string[] arguments)
 	{
@@ -249,6 +249,9 @@ static class Dotnet
 	/// <summary>Restores a project, which the tool needs and never does itself.</summary>
 	public static void Restore(string project)
 	{
+		// Only for the tool to read the project, which the native tool does not: skipped before the work.
+		Tool.RequireProjects();
+
 		Ok(System.IO.Path.GetDirectoryName(project)!, "restore", project, "-nologo");
 	}
 
