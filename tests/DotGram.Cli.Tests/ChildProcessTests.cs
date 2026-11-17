@@ -24,6 +24,8 @@ public sealed class ChildProcessTests
 	[Fact]
 	public async Task Stopping_the_tool_ends_the_build_it_waits_for_and_what_that_started()
 	{
+		Tool.RequireProjects();
+
 		using var scratch = new Scratch();
 
 		scratch.Write("p/A.cs", "class A { }");

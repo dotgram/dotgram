@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
 using Microsoft.CodeAnalysis;
@@ -33,6 +35,18 @@ static class AnalyzerGenerators
 	/// <summary>The assembly the tool carries the generator of.</summary>
 	const string DotGramAssembly = "DotGram";
 
+	/// <summary>Why reading a project needs the .NET tool: what is said of every method that loads a generator.</summary>
+	public const string LoadsAssemblies = "Loads the project's source generators from their assemblies, which a native build of the tool cannot do.";
+
+	/// <summary>Where each generator assembly this process loaded was loaded from, for a message about it.</summary>
+	static readonly ConditionalWeakTable<Assembly, string> Paths = new();
+
+	/// <summary>The file a generator's assembly was loaded from, or its name where the tool did not load it.</summary>
+	public static string PathOf(Assembly assembly)
+	{
+		return Paths.TryGetValue(assembly, out var path) ? path : assembly.FullName ?? "";
+	}
+
 	/// <summary>
 	/// Loads the generators of the given analyzer assemblies, all through one loader that knows every
 	/// directory they are in, as the compiler does: a dependency of one may sit beside another.
@@ -44,6 +58,8 @@ static class AnalyzerGenerators
 	/// only the tool's own Roslyn is the measure.
 	/// </param>
 	/// <exception cref="ToolException">A generator would not load; the message names its assembly.</exception>
+	[RequiresUnreferencedCode(LoadsAssemblies)]
+	[RequiresDynamicCode(LoadsAssemblies)]
 	public static AnalyzerSet Load(IEnumerable<string> assemblies, Version? compiler = null)
 	{
 		var paths      = assemblies.Distinct(StringComparer.Ordinal).ToList();
@@ -115,11 +131,20 @@ static class AnalyzerGenerators
 	}
 
 	/// <summary>The version of <c>Microsoft.CodeAnalysis</c> the DotGram the tool carries was built against: the oldest compiler that loads it.</summary>
-	public static Version DotGramNeeds { get; } = typeof(DotGram.Generation.GramGenerator).Assembly.GetReferencedAssemblies()
-		.Where(static reference => reference.Name == "Microsoft.CodeAnalysis")
-		.Select(static reference => reference.Version!)
-		.DefaultIfEmpty(new Version(0, 0))
-		.Max()!;
+	/// <remarks>
+	/// Written into the tool when it is built, from the version the generator's project references, and
+	/// not read from the generator's references when it runs: the native tool cannot read them. A test
+	/// holds the two to each other.
+	/// </remarks>
+	public static Version DotGramNeeds { get; } = Normalized(Version.Parse(
+		typeof(AnalyzerGenerators).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+			.Single(static attribute => attribute.Key == "DotGramRoslyn").Value!));
+
+	/// <summary>A version with all four parts, as an assembly's version has them: 4.14.0 is 4.14.0.0.</summary>
+	static Version Normalized(Version version)
+	{
+		return new Version(version.Major, version.Minor, Math.Max(version.Build, 0), Math.Max(version.Revision, 0));
+	}
 
 	/// <summary>
 	/// A compiler older than the one DotGram was built against does not load it: the build skips it
@@ -274,6 +299,8 @@ static class AnalyzerGenerators
 	/// or, failing that, from beside another analyzer, and Roslyn's own assemblies from the tool, so
 	/// that the generator meets the compilation it is run on.
 	/// </summary>
+	[RequiresUnreferencedCode(LoadsAssemblies)]
+	[RequiresDynamicCode(LoadsAssemblies)]
 	sealed class Loader(IEnumerable<string> directories) : IAnalyzerAssemblyLoader
 	{
 		readonly string[] _directories = [.. directories];
@@ -287,7 +314,7 @@ static class AnalyzerGenerators
 
 		public Assembly LoadFromPath(string fullPath)
 		{
-			return _loaded.GetOrAdd(fullPath, path => ContextOf(Path.GetDirectoryName(path)!).LoadFromAssemblyPath(path));
+			return _loaded.GetOrAdd(fullPath, path => ContextOf(Path.GetDirectoryName(path)!).Loaded(path));
 		}
 
 		Context ContextOf(string directory)
@@ -295,8 +322,19 @@ static class AnalyzerGenerators
 			return _contexts.GetOrAdd(directory, path => new Context(this, path));
 		}
 
+		[RequiresUnreferencedCode(LoadsAssemblies)]
+		[RequiresDynamicCode(LoadsAssemblies)]
 		sealed class Context(Loader loader, string directory) : AssemblyLoadContext("DotGram.Cli analyzers in " + directory)
 		{
+			public Assembly Loaded(string path)
+			{
+				var assembly = LoadFromAssemblyPath(path);
+
+				Paths.AddOrUpdate(assembly, path);
+
+				return assembly;
+			}
+
 			protected override Assembly? Load(AssemblyName name)
 			{
 				// The tool's own Roslyn and the runtime: one copy of the types a generator implements and
@@ -310,14 +348,14 @@ static class AnalyzerGenerators
 				var beside = Path.Combine(directory, simple + ".dll");
 
 				if (File.Exists(beside))
-					return LoadFromAssemblyPath(beside);
+					return Loaded(beside);
 
 				foreach (var other in loader._directories)
 				{
 					var elsewhere = Path.Combine(other, simple + ".dll");
 
 					if (File.Exists(elsewhere))
-						return loader.ContextOf(other).LoadFromAssemblyPath(elsewhere);
+						return loader.ContextOf(other).Loaded(elsewhere);
 				}
 
 				return null;

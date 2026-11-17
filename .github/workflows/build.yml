@@ -324,6 +324,54 @@ jobs:
           name: vsix
           path: ${{ env.VSIX }}
 
+  # The native executable of DotGram.Cli (docs/cli.md, "Two distributions"), on each platform it ships
+  # for: compiled ahead of time on a runner of that platform, because the native linker is the
+  # platform's own and does not cross to another system, then held to the CLI's tests by running every
+  # test that runs the tool against the executable itself (DOTGRAM_CLI_NATIVE) rather than in the test's
+  # process. The tests of a project skip there: a project is the .NET tool's. The archive a release
+  # attaches is packed and kept as an artifact; publish.yml packs its own for the release of a tag.
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest,    rid: linux-x64 }
+          - { runner: ubuntu-24.04-arm, rid: linux-arm64 }
+          - { runner: windows-latest,   rid: win-x64 }
+          - { runner: windows-11-arm,   rid: win-arm64 }
+          - { runner: macos-15-intel,   rid: osx-x64 }
+          - { runner: macos-latest,     rid: osx-arm64 }
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish the native executable
+        run: dotnet publish src/DotGram.Cli/DotGram.Cli.csproj --configuration Release --runtime ${{ matrix.rid }} -p:DotGramCliNative=true -warnaserror
+
+      - name: The CLI's tests, against the executable
+        shell: bash
+        run: |
+          executable=".build/native/publish/DotGram.Cli/release_${{ matrix.rid }}/dotgram"
+          [[ "${{ matrix.rid }}" == win-* ]] && executable="$executable.exe"
+          "$executable" --version
+          DOTGRAM_CLI_NATIVE="$executable" dotnet test --project tests/DotGram.Cli.Tests/DotGram.Cli.Tests.csproj --configuration Release
+
+      - name: Pack the archive
+        shell: bash
+        run: .github/scripts/pack-native.sh ${{ matrix.rid }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotgram-${{ matrix.rid }}
+          path: artifacts/dotgram-*
+          if-no-files-found: error
+
   # The VS Code extension: the language server published into it framework-dependent, the client
   # bundled, the whole packaged as a .vsix and kept as an artifact (docs/vscode.md). Nothing is
   # published to the Marketplace. The server's tests run in `build` with the solution, and here

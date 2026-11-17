@@ -6,6 +6,9 @@
 # packages are still built, checked and uploaded as artifacts of the run, so a dry run is the
 # same run with the last job left off.
 #
+# The native executables of the tool are built, tested and packed on a runner of each platform
+# (`native`), and for a tag attached to the GitHub release of it (`release-native`).
+#
 # It does not build the Visual Studio extension: that is Windows, and the VSIX goes to the
 # Marketplace by hand from the `windows` job's artifact of the same commit.
 #
@@ -111,7 +114,83 @@ jobs:
           name: nupkg
           path: artifacts/*.nupkg
 
-  # The only job that leaves the machine, and everything about it is a gate.
+  # The native executable of the tool (docs/cli.md, "Two distributions"), built, tested and packed on
+  # each platform it ships for, as build.yml's `native` job does it: here too, because what a release
+  # attaches must be what was checked, as with the packages above. A manual run keeps the archives as
+  # artifacts and attaches nothing.
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest,    rid: linux-x64 }
+          - { runner: ubuntu-24.04-arm, rid: linux-arm64 }
+          - { runner: windows-latest,   rid: win-x64 }
+          - { runner: windows-11-arm,   rid: win-arm64 }
+          - { runner: macos-15-intel,   rid: osx-x64 }
+          - { runner: macos-latest,     rid: osx-arm64 }
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish the native executable
+        run: dotnet publish src/DotGram.Cli/DotGram.Cli.csproj --configuration Release --runtime ${{ matrix.rid }} -p:DotGramCliNative=true -warnaserror
+
+      - name: The CLI's tests, against the executable
+        shell: bash
+        run: |
+          executable=".build/native/publish/DotGram.Cli/release_${{ matrix.rid }}/dotgram"
+          [[ "${{ matrix.rid }}" == win-* ]] && executable="$executable.exe"
+          DOTGRAM_CLI_NATIVE="$executable" dotnet test --project tests/DotGram.Cli.Tests/DotGram.Cli.Tests.csproj --configuration Release
+
+      - name: Pack the archive
+        shell: bash
+        run: .github/scripts/pack-native.sh ${{ matrix.rid }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dotgram-${{ matrix.rid }}
+          path: artifacts/dotgram-*
+          if-no-files-found: error
+
+  # The archives attached to the GitHub release of the tag, once every platform's is built and tested
+  # and the packages have passed their checks. The release is written by hand, as it always has been;
+  # where the tag has none yet, a draft is made to hold the archives, which is published by hand with
+  # its notes. A re-run replaces the archives (--clobber), which are the same commit's.
+  release-native:
+    needs: [pack, native]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment: release
+
+    permissions:
+      contents: write   # to create the draft release and attach the archives to it
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dotgram-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Attach the archives to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -l artifacts
+          gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 ||
+            gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "DotGram ${GITHUB_REF_NAME#v}" --notes "The native executables of DotGram.Cli are attached; the notes are to be written."
+          gh release upload "$GITHUB_REF_NAME" artifacts/dotgram-* --clobber
+
+  # The only job that sends the packages anywhere, and everything about it is a gate.
   #
   # It runs only for a tag. That condition used to share the work with "unless the API key is
   # missing", which was never a decision — the key had simply never been set, and a check that

@@ -5,6 +5,8 @@ using System.Text;
 
 using DotGram.Generation;
 
+using Xunit;
+
 namespace DotGram.Cli.Tests;
 
 /// <summary>A directory of its own for one test, outside the repository, deleted afterwards.</summary>
@@ -84,16 +86,64 @@ sealed record ToolRun(int Exit, string Output, string Error)
 	}
 }
 
-/// <summary>The tool, run in this process.</summary>
+/// <summary>
+/// The tool, run in this process; or the native build of it, an executable, where the environment
+/// variable <c>DOTGRAM_CLI_NATIVE</c> names one: every test that runs the tool then runs that.
+/// </summary>
 static class Tool
 {
+	/// <summary>The native executable under test, or null where the tool is run in this process.</summary>
+	public static string? Native { get; } = Environment.GetEnvironmentVariable("DOTGRAM_CLI_NATIVE") is { Length: > 0 } path ? System.IO.Path.GetFullPath(path) : null;
+
 	public static ToolRun Run(string currentDirectory, params string[] arguments)
 	{
+		if (Native is not null)
+		{
+			// The native tool answers a project that the .NET tool reads it, and a test of one tests the .NET tool.
+			if (arguments.Any(static argument => argument.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)))
+				Assert.Skip("A project is read by the .NET tool, not the native one.");
+
+			return Process(Native, currentDirectory, arguments);
+		}
+
 		var output = new StringWriter();
 		var error  = new StringWriter();
 		var exit   = Cli.Run(arguments, output, error, currentDirectory);
 
 		return new ToolRun(exit, output.ToString(), error.ToString());
+	}
+
+	/// <summary>Skips a test of what only the .NET tool does where the native one is under test.</summary>
+	public static void RequireProjects()
+	{
+		if (Native is not null)
+			Assert.Skip("A project is read by the .NET tool, not the native one.");
+	}
+
+	/// <summary>An executable run in a directory: what it wrote to each stream, and its exit code.</summary>
+	public static ToolRun Process(string executable, string currentDirectory, IReadOnlyList<string> arguments)
+	{
+		var start = new ProcessStartInfo(executable)
+		{
+			RedirectStandardOutput = true,
+			RedirectStandardError  = true,
+			StandardOutputEncoding = Encoding.UTF8,
+			StandardErrorEncoding  = Encoding.UTF8,
+			UseShellExecute        = false,
+			WorkingDirectory       = currentDirectory,
+		};
+
+		foreach (var argument in arguments)
+			start.ArgumentList.Add(argument);
+
+		using var process = System.Diagnostics.Process.Start(start)!;
+
+		var output = process.StandardOutput.ReadToEndAsync();
+		var error  = process.StandardError.ReadToEndAsync();
+
+		process.WaitForExit();
+
+		return new ToolRun(process.ExitCode, output.Result, error.Result);
 	}
 }
 
