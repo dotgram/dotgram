@@ -18,6 +18,8 @@ sealed class LineMap
 
 	public LineMap(SourceText text)
 	{
+		ServerWork.LineRead();
+
 		var starts = new List<int> { 0 };
 		var length = text.Length;
 
