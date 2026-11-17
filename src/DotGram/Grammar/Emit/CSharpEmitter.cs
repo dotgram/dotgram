@@ -5068,12 +5068,7 @@ file.Line("return spare;");
 	/// </summary>
 	internal static bool IsReferenceType(RecognitionGraph graph, string type)
 	{
-		if (type.EndsWith("?", StringComparison.Ordinal))
-			type = type.Substring(0, type.Length - 1);
-
-		return type is "string" or "object" ||
-			type.EndsWith("[]", StringComparison.Ordinal) ||
-			graph.ReferenceTypes.Contains(type);
+		return graph.Language.CanBeNull(type, graph.ReferenceTypes);
 	}
 
 	/// <summary>The same, for a factory whose graph is in hand.</summary>

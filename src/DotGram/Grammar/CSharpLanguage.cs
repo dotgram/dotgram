@@ -265,6 +265,62 @@ sealed class CSharpLanguage : ITargetLanguage
 		return _names?.UnboundIn(fragment, imports);
 	}
 
+	public string? OptionalElementOf(string spelling)
+	{
+		if (spelling is null)
+			throw new ArgumentNullException(nameof(spelling));
+
+		return spelling.EndsWith("?", StringComparison.Ordinal) ? spelling.Substring(0, spelling.Length - 1) : null;
+	}
+
+	public bool CanBeNull(string spelling, IReadOnlyCollection<string> references)
+	{
+		var type = OptionalElementOf(spelling) ?? spelling;
+
+		return type is "string" or "object" || IsSequence(type) || references.Contains(type);
+	}
+
+	public bool IsReferenceAsWritten(string type, string? definition, IReadOnlyList<string> imports)
+	{
+		return AsWritten(type, definition, imports, IsReferenceType);
+	}
+
+	public bool IsOptionalAsWritten(string type, string? definition, IReadOnlyList<string> imports)
+	{
+		return AsWritten(type, definition, imports, IsOptional);
+	}
+
+	/// <summary>
+	/// A question about a type the way C# binds its name in the generated file: the first of the bare
+	/// spelling and each import's that names a type at all decides. A struct nested in the host is
+	/// what a bare <c>Node</c> means there even beside a <c>using</c> of a namespace with a class
+	/// <c>Node</c>, and a class of the grammar's own may be called Nullable. A spelling the grammar did
+	/// not write, whose existence no question foresaw, is answered by whichever spelling says yes.
+	/// </summary>
+	bool AsWritten(string type, string? definition, IReadOnlyList<string> imports, Func<string, bool> ask)
+	{
+		if (definition is null)
+		{
+			if (ask(type))
+				return true;
+
+			foreach (var import in imports)
+				if (ask(import + "." + type))
+					return true;
+
+			return false;
+		}
+
+		if (TypeExists(definition))
+			return ask(type);
+
+		foreach (var import in imports)
+			if (TypeExists(import + "." + definition))
+				return ask(import + "." + type);
+
+		return false;
+	}
+
 	public bool HasHost { get; }
 
 	public bool HostUnseen { get; }

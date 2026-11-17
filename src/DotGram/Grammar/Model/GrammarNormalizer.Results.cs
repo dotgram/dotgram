@@ -765,9 +765,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	bool BuiltIn(string type)
 	{
-		var name = type.EndsWith("?", StringComparison.Ordinal) ? type.Substring(0, type.Length - 1) : type;
-
-		return _language.ClassifyLoosely(name) is >= KnownType.Text and <= KnownType.NUInt;
+		return _language.ClassifyLoosely(_language.OptionalElementOf(type) ?? type) is >= KnownType.Text and <= KnownType.NUInt;
 	}
 
 	/// <summary>
