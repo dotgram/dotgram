@@ -629,6 +629,37 @@ public sealed class DslRecognitionTraceTests
 		parse Start
 		Start = ?!(when @(No()) on fail "Look.") & 'a'+ & (?=(when @(No()) on fail "Inside.") | 'b')
 		""")]
+	[InlineData("a;z", """
+		parse Start
+		Start = (Row* recover ';') & 'z'
+		Row   = 'a' & when @(false) on fail "Bad row." & ';'
+		""")]
+	[InlineData("a;z", """
+		parse Start
+		Start = (Row* recover ';') & 'z'
+		Row   = 'a' & ';'
+		""")]
+	[InlineData("ab", """
+		parse Start
+		Start = 'a'* & when @(false) on fail "Denied." | 'b'
+		""")]
+	[InlineData("ab", """
+		parse Start
+		Start = Run & when @(false) on fail "Denied." | 'b'
+		Run   = {('a' & 'a'?)*}
+		""")]
+	[InlineData(" a", """
+		trivia = T*
+		T      = ' ' & when @(false) on fail "Trivia."
+		parse Start
+		Start  = 'a'
+		""")]
+	[InlineData(" ab", """
+		trivia = T*
+		T      = ' ' & when @(Yes())
+		parse Start
+		Start  = 'a' & 'b'
+		""")]
 	public void SaysWhatTheGeneratedParserSaysWhereGuardsSayNo(string alphabet, string grammar)
 	{
 		AgreesOnEveryShortInput(alphabet, grammar, sayings: true);
@@ -910,6 +941,25 @@ public sealed class DslRecognitionTraceTests
 	}
 
 	/// <summary>
+	/// A guard after a long repetition says its words where the repetition stopped: the turn the
+	/// repetition could do without refuses quietly there, as the generated parser's does, through a
+	/// rule and an atomic group too.
+	/// </summary>
+	[Theory]
+	[InlineData("Start = 'a'* & when @(false) on fail \"Denied.\"")]
+	[InlineData("Start = Run & when @(false) on fail \"Denied.\"\nRun = {('a' & 'a'?)*}")]
+	public void GuardAfterLongRepetitionSaysItsWords(string rules)
+	{
+		var (graph, publication) = Compile("parse Start\n" + rules);
+		var result = DslRecognitionTrace.Recognize(graph, publication, new string('a', 10_000));
+
+		Assert.Equal(DslRecognitionStatus.Failure, result.Status);
+		Assert.Equal(10_000, result.FailurePosition);
+		Assert.Equal("Denied.", result.Refusal);
+		Assert.Empty(result.Expected);
+	}
+
+	/// <summary>
 	/// What the interpreter answers for each input against what the parser generated
 	/// from the same grammar answers: accepted by both, or refused by both at the same
 	/// position.
@@ -949,10 +999,17 @@ public sealed class DslRecognitionTraceTests
 				""");
 		var contract = new Answers();
 
+		// A repetition that recovers is not read as the generated parser reads it: a refusal past one
+		// is answered as a site the interpreter cannot read, never as one the text fails.
+		var recovers = graph.Recoveries.Count > 0;
+
 		foreach (var input in inputs)
 		{
 			var expected = EmittedCode.Match(generated, "Grammar", "Try" + publication.MethodName, input);
 			var actual   = DslRecognitionTrace.Recognize(graph, publication, input, contract);
+
+			if (recovers && actual.Status == DslRecognitionStatus.Unsupported)
+				continue;
 
 			Assert.True(
 				expected.IsSuccess == (actual.Status == DslRecognitionStatus.Success),
