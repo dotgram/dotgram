@@ -163,6 +163,11 @@ sealed class GramCompilerOptions
 	/// reads the host fragments it hands over. Null makes C#'s of <see cref="SymbolResolver"/> and
 	/// <see cref="CSharpScanner"/>, which is what every caller does today.
 	/// </summary>
+	/// <remarks>
+	/// A C# language given here generates into <see cref="Host"/>, whatever shape it was made with:
+	/// the class, its readings and the location type are the compilation's options, and win as they
+	/// always have.
+	/// </remarks>
 	public ITargetLanguage? Language { get; set; }
 
 	/// <inheritdoc cref="CSharpHostShape.CSharpScanner"/>

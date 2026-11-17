@@ -39,9 +39,10 @@ sealed class CSharpLanguage : ITargetLanguage
 	/// <summary>Each known type's keyword, in the order of <see cref="KnownType"/>.</summary>
 	static readonly string?[] Keywords = Keywords0();
 
-	readonly ISymbolResolver _resolver;
-	readonly ICSharpScanner? _scanner;
-	readonly ICSharpNames?   _names;
+	readonly ISymbolResolver? _given;
+	readonly ISymbolResolver  _resolver;
+	readonly ICSharpScanner?  _scanner;
+	readonly ICSharpNames?    _names;
 
 	/// <param name="resolver">The host; null for none, which answers every question permissively.</param>
 	/// <param name="scanner">Reads the C# a grammar hands over; null where nothing can.</param>
@@ -52,6 +53,7 @@ sealed class CSharpLanguage : ITargetLanguage
 	public CSharpLanguage(ISymbolResolver? resolver = null, ICSharpScanner? scanner = null, CSharpHostShape? host = null)
 	{
 		Host       = host ?? new CSharpHostShape();
+		_given     = resolver;
 		_resolver  = resolver ?? PermissiveSymbolResolver.Instance;
 		_scanner   = scanner;
 		_names     = resolver as ICSharpNames;
@@ -384,6 +386,15 @@ sealed class CSharpLanguage : ITargetLanguage
 
 	/// <summary>The shape of the C# the parser is generated into.</summary>
 	public CSharpHostShape Host { get; }
+
+	/// <summary>
+	/// The same language — its resolver and its scanner — generating into another host's shape: a
+	/// compilation's own, which its options say and which every C# language it is given takes.
+	/// </summary>
+	internal CSharpLanguage WithHost(CSharpHostShape host)
+	{
+		return ReferenceEquals(host, Host) ? this : new CSharpLanguage(_given, _scanner, host);
+	}
 
 	/// <summary>The shape of the C# a graph's parser is generated into, read by the emitter: none where its language is not C#'s.</summary>
 	internal static CSharpHostShape HostOf(Model.RecognitionGraph graph)

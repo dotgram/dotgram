@@ -114,4 +114,42 @@ public class TargetLanguageTests
 	{
 		Assert.Equal(expected, CSharpLanguage.Instance.SoleName(fragment, Enum.Parse<SoleNameRule>(rule)));
 	}
+
+	/// <summary>
+	/// A C# language handed in generates into the compilation's own host shape: what values are told
+	/// their locations through, and the class that asks per call, are the options', as with the
+	/// language the compiler makes itself — and so is everything written.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_language_handed_in_takes_the_options_host_shape(bool perCall)
+	{
+		const string grammar = """
+			Pair : @Point = x: Num & ',' & y: Num => @(new Point(x, y))
+			Num : @int = d: ['0'..'9']+ => @(int.Parse(d))
+			parse Pair
+			""";
+
+		GramCompilerOptions Options(ITargetLanguage? language)
+		{
+			return new GramCompilerOptions
+			{
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Language      = language,
+				LocationType  = "ILocated",
+				LocatedFacade = perCall ? "Located" : null,
+			};
+		}
+
+		var made  = GramCompiler.Compile(grammar, Options(null));
+		var given = GramCompiler.Compile(grammar, Options(new CSharpLanguage(PermissiveSymbolResolver.Instance, RoslynCSharpScanner.Instance)));
+
+		Assert.Equal(
+			made.Diagnostics.Select(static one => one.ToString()),
+			given.Diagnostics.Select(static one => one.ToString()));
+		Assert.Equal(made.Sources.Select(static one => one.Text), given.Sources.Select(static one => one.Text));
+		Assert.Contains("ILocated", made.Sources[0].Text, StringComparison.Ordinal);
+		Assert.Equal(perCall, made.Sources[0].Text.Contains("partial class Located", StringComparison.Ordinal));
+	}
 }
