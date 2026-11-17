@@ -265,6 +265,36 @@ sealed class CSharpLanguage : ITargetLanguage
 		return _names?.UnboundIn(fragment, imports);
 	}
 
+	public string RenderFragment(string fragment)
+	{
+		return $"({fragment})";
+	}
+
+	public string RenderReference(string name, IReadOnlyList<string> typeArguments)
+	{
+		return typeArguments.Count == 0 ? name : name + "<" + string.Join(", ", typeArguments) + ">";
+	}
+
+	public string RenderConstruction(string type, IReadOnlyList<string> arguments)
+	{
+		return "new " + type + "(" + string.Join(", ", arguments) + ")";
+	}
+
+	public string RenderCall(string target, IReadOnlyList<string> arguments)
+	{
+		return target + "(" + string.Join(", ", arguments) + ")";
+	}
+
+	public string RenderCharacter(string text)
+	{
+		return text.Length == 0 ? "''" : Model.CharRange.Quote(text[0]);
+	}
+
+	public string RenderText(string text)
+	{
+		return "\"" + text.Replace("\\", @"\\").Replace("\"", "\\\"") + "\"";
+	}
+
 	public string GeneratedTypeName(Binding.RuleSymbol rule)
 	{
 		return Emit.CSharpEmitter.IdentifierOf(rule);
