@@ -8,6 +8,12 @@
 	     this: DotGram.targets, which ships in the package, does not depend on it. -->
 	<PropertyGroup>
 		<ArtifactsPath>$(MSBuildThisFileDirectory).build</ArtifactsPath>
+
+		<!-- The native build of DotGram.Cli (DotGramCliNative, see its project) under a root of its own:
+		     it restores the tool and the generator for another framework and a runtime, and a project's
+		     restore output is not pivoted by either, so in the same folders it would overwrite what the
+		     ordinary build restored. -->
+		<ArtifactsPath Condition="'$(DotGramCliNative)' == 'true'">$(MSBuildThisFileDirectory).build/native</ArtifactsPath>
 	</PropertyGroup>
 
 	<!-- Where the repository is, for a test that reads its sources: written into every test assembly,

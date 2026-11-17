@@ -172,7 +172,7 @@ static class Generator
 		{
 			var type = failed.Generator.GetGeneratorType();
 
-			throw new ToolException($"the generator {type.FullName} in {type.Assembly.Location} failed: {failure.GetType().Name}: {failure.Message}", ExitCode.Failure) { Detail = failure.ToString() };
+			throw new ToolException($"the generator {type.FullName} in {AnalyzerGenerators.PathOf(type.Assembly)} failed: {failure.GetType().Name}: {failure.Message}", ExitCode.Failure) { Detail = failure.ToString() };
 		}
 
 		var otherTrees = results

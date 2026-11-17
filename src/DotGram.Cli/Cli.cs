@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -105,7 +106,11 @@ static class Cli
 		// Each framework's generation starts as its inputs are known, while MSBuild is asked for the
 		// next framework's: a large grammar takes seconds of one core for each, and the frameworks of one
 		// project share nothing while they are generated.
-		var runs = options.Kind == InputKind.Project ? Projects(options) : [Grammar(options)];
+		var runs = options.Kind == InputKind.Grammar
+			? [Grammar(options)]
+			: ReadsProjects
+				? Projects(options)
+				: throw NoProjects(options.Input);
 
 		foreach (var warning in runs.SelectMany(static run => run.Warnings).Distinct(StringComparer.Ordinal))
 			output.WriteLine("warning: " + warning);
@@ -234,6 +239,34 @@ static class Cli
 		}
 	}
 
+	/// <summary>
+	/// Whether this build of the tool reads a project: the .NET tool does, the native one does not. A
+	/// project brings its other source generators, which run beside DotGram's and are loaded from its
+	/// analyzer assemblies as the build loads them, and a native executable cannot load an assembly. The
+	/// native build sets the switch to false, which also leaves the code that reads a project out of it.
+	/// </summary>
+#if NET9_0_OR_GREATER
+	[FeatureSwitchDefinition(ReadsProjectsSwitch)]
+	[FeatureGuard(typeof(RequiresUnreferencedCodeAttribute))]
+	[FeatureGuard(typeof(RequiresDynamicCodeAttribute))]
+	// What a guard of unreferenced code returns cannot be shown from its body (IL4000): there is no
+	// runtime property that says the code is trimmed. It holds by the build: the one build that trims
+	// is the native one, which sets the switch to false, and the property is then false.
+	[UnconditionalSuppressMessage("Trimming", "IL4000", Justification = "The native build, the only trimmed one, sets the switch to false.")]
+#endif
+	internal static bool ReadsProjects => System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported;
+
+	/// <summary>The switch the native build turns <see cref="ReadsProjects"/> off with.</summary>
+	internal const string ReadsProjectsSwitch = "DotGram.Cli.ReadsProjects";
+
+	/// <summary>What the native tool answers a project with: the .NET tool reads it.</summary>
+	internal static ToolException NoProjects(string input)
+	{
+		return ToolException.Failure(
+			$"{input}: this native build of the tool reads a .gram file only. A project's other source generators run beside DotGram's, " +
+			"and a native executable cannot load them. Generate a project with the .NET tool: dotnet tool install DotGram.Cli, then dotnet dotgram generate.");
+	}
+
 	/// <summary>The generator's "no C# type of this name is in view".</summary>
 	const string NotInView = "GRAM3004";
 
@@ -280,6 +313,8 @@ static class Cli
 	}
 
 	/// <summary>The project's frameworks, each asked of MSBuild after the one before, and generated as soon as it is asked.</summary>
+	[RequiresUnreferencedCode(AnalyzerGenerators.LoadsAssemblies)]
+	[RequiresDynamicCode(AnalyzerGenerators.LoadsAssemblies)]
 	static List<Pass> Projects(GenerateOptions options)
 	{
 		if (!File.Exists(options.Input))
@@ -311,6 +346,8 @@ static class Cli
 	}
 
 	/// <summary>One framework of a project: what its build gives the compiler, and the generators among its analyzers.</summary>
+	[RequiresUnreferencedCode(AnalyzerGenerators.LoadsAssemblies)]
+	[RequiresDynamicCode(AnalyzerGenerators.LoadsAssemblies)]
 	static Pass PassFor(CompilerInputs inputs, GenerateOptions options, IReadOnlyList<string> listed)
 	{
 		AnalyzerGenerators.RequireCompilerFor(inputs.CompilerVersion, AnalyzerGenerators.DotGramNeeds, GeneratorVersion);

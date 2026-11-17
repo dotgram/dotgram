@@ -22,6 +22,40 @@ runtime's Unicode tables, and the tool must decide as the build does), and reads
 newer. It generates for a project only where that SDK's compiler can run DotGram (SDK 9.0.300 or newer
 for this version); a `.gram` input needs no SDK compiler. The version of the tool is the version of the DotGram generator it carries; `dotnet dotgram --version` prints both.
 
+### Two distributions
+
+The generator outside the build ships twice, from one source:
+
+| | The .NET tool | The native executable |
+| --- | --- | --- |
+| What it is | the `DotGram.Cli` package on NuGet, run as `dotnet dotgram` | `dotgram` (`dotgram.exe` on Windows), one file per platform, compiled ahead of time |
+| Platforms | wherever .NET 8 or later runs | `linux-x64`, `linux-arm64`, `win-x64`, `win-arm64`, `osx-x64`, `osx-arm64` |
+| Needs | .NET 8 or later; an SDK to read a project | no .NET and no SDK; on Linux, the system's ICU library, as .NET itself |
+| Where from | `dotnet tool install DotGram.Cli` | an archive per platform, attached to the GitHub release of the version |
+| A `.gram` | yes | yes: the same options, output, messages and exit codes |
+| A `.csproj` | yes | no: exit 3, pointing at the .NET tool |
+| Unicode tables (GRAM0007) | the newest .NET runtime installed | those of .NET 10, which it is built with |
+
+A project brings its other source generators, which run beside DotGram's (see [A project](#a-project)), and the
+tool loads them from their assemblies as the build does; a native executable cannot load an assembly, so a
+project is the .NET tool's. Everything else is the same program: `dotgram generate calc.gram -o out --namespace Demo`
+writes what `dotnet dotgram generate` writes, byte for byte, and the messages name `dotnet dotgram` in both.
+
+What the native executable is for is speed: it does not compile Roslyn and the generator each time it starts,
+as the .NET tool does. Generating a small grammar (the calculator of the examples) takes about 0.2 s
+against the .NET tool's 2.4 s; on the largest grammar in the repository (T-SQL, with its 75 source files),
+about a third less than the .NET tool's 28 s. Measured on Linux x64 on a busy machine: directions, not
+benchmarks.
+
+What an identifier may be is the runtime's Unicode tables' to say (GRAM0007). The .NET tool runs on the newest
+runtime installed, as the build's compiler does; the native executable carries the runtime it was built with,
+.NET 10, and keeps its tables. A grammar whose names use a letter that a later Unicode version added can then
+pass a build on a later .NET and be refused by the native executable until it is built again with that .NET.
+Generate such a grammar with the .NET tool.
+
+On macOS, a file downloaded by a browser is quarantined, and Gatekeeper refuses an executable that Apple has
+not notarized; `xattr -d com.apple.quarantine dotgram` lifts it for the file you downloaded.
+
 ## Commands
 
 ```text

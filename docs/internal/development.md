@@ -319,6 +319,39 @@ as an analyzer, found by the script, so a new grammar library is gated without e
 The last lines are a table, one per gate, project and framework; the exit code is 0 only when
 every row passed.
 
+## The native tool
+
+The tool also ships as a native executable per platform, `dotgram`, for a `.gram` input only
+(`docs/cli.md`, "Two distributions"). It is the same project published with one property:
+
+```
+dotnet publish src/DotGram.Cli/DotGram.Cli.csproj -c Release -r linux-x64 -p:DotGramCliNative=true -warnaserror
+DOTGRAM_CLI_NATIVE=.build/native/publish/DotGram.Cli/release_linux-x64/dotgram \
+    dotnet test --project tests/DotGram.Cli.Tests/DotGram.Cli.Tests.csproj -c Release
+```
+
+`DotGramCliNative` builds the tool for net10.0 with `PublishAot`, under `.build/native` rather than
+`.build` (it restores the tool and the generator for another framework and a runtime, and would
+otherwise overwrite what the ordinary build restored), and renames the executable from the
+assembly's name, `dotnet-dotgram`, to `dotgram`. A publish takes a few minutes and is made on the
+platform it is for: the native linker is the platform's own (on Windows, Visual Studio's C++ build
+tools; on macOS, Xcode's). With `DOTGRAM_CLI_NATIVE` set, every test that runs the tool runs that
+executable instead of the tool in the test's process, and the tests of a project skip.
+
+What the native build leaves out is the reading of a project: a project brings its other source
+generators, and an executable compiled ahead of time cannot load an assembly. `Cli.ReadsProjects`
+is a feature switch the native build sets to false, so that the code that loads generators is not
+compiled into it and the trim analysis does not see it; the methods that load one carry
+`RequiresUnreferencedCode` and `RequiresDynamicCode`, which the analyzers of the native build hold
+the rest of the tool to. What the tool read from the generator by reflection when it ran, the
+oldest Roslyn the generator loads into, is written into the tool when it is built
+(`DotGramRoslyn`), and a test holds it to the generator's reference.
+
+CI's `native` job publishes and tests the executable on a runner of each of the six platforms and
+keeps the archives `.github/scripts/pack-native.sh` makes; `publish.yml` does the same for a tag
+and attaches the archives to its GitHub release (`release-native`), creating a draft release where
+the tag has none yet.
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and

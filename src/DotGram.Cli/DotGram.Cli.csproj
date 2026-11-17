@@ -38,6 +38,65 @@
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
+	<!-- The native build: `dotnet publish src/DotGram.Cli -c Release -r <rid> -p:DotGramCliNative=true`
+	     publishes one executable, dotgram (dotgram.exe on Windows), compiled ahead of time for the runtime
+	     identifier given, under .build/native/publish/DotGram.Cli/. It needs neither .NET nor an SDK
+	     where it runs, and does not compile Roslyn and the generator each time it starts, as the .NET
+	     tool does: a small grammar takes a tenth of the time. It reads a .gram and not a project: a
+	     project brings its other source
+	     generators, which only the .NET tool can load (Cli.ReadsProjects). The build is made on the
+	     platform it is for, which is how the native linker is found: CI publishes each runtime on its own
+	     runner. -->
+	<PropertyGroup Condition="'$(DotGramCliNative)' == 'true'">
+		<!-- The runtime of the repository's SDK: the native tool carries the one it is built for. -->
+		<TargetFramework>net10.0</TargetFramework>
+		<PublishAot>true</PublishAot>
+		<PackAsTool>false</PackAsTool>
+		<IsPackable>false</IsPackable>
+
+		<!-- Each trim warning by itself, not one line an assembly: a new one in Roslyn is then named
+		     where it is, and is not hidden behind the ones accepted below. -->
+		<TrimmerSingleWarn>false</TrimmerSingleWarn>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(DotGramCliNative)' == 'true'">
+		<!-- Leaves the reading of a project out of the executable, and the loading of generators with it. -->
+		<RuntimeHostConfigurationOption Include="DotGram.Cli.ReadsProjects" Value="false" Trim="true" />
+
+		<!-- Two warnings the native compiler gives in Roslyn, accepted for the native compiler only. The
+		     analyzers that check this tool's own code for the same rules run in its compilation, before
+		     this, and are not affected. Neither concerns what the tool runs:
+		     IL2091, five times: Roslyn's PooledDelegates and RoslynLazyInitializer pass a type argument
+		     without the annotation that ConditionalWeakTable's CreateValueCallback and
+		     LazyInitializer.EnsureInitialized put on it, which says the type's parameterless constructor
+		     may be called. Roslyn hands ConditionalWeakTable a callback of its own, which is what makes
+		     the value, and LazyInitializer makes one as new T() does, which the native compiler compiles
+		     for each type it is instantiated with.
+		     IL3000: CommonCompiler.GetAssemblyLocation reads Assembly.Location, an empty string in a native
+		     executable, to name the command-line compiler's own file (csc), which the tool does not run. -->
+		<IlcArg Include="--nowarn:IL2091" />
+		<IlcArg Include="--nowarn:IL3000" />
+	</ItemGroup>
+
+	<!-- The executable is dotgram, a command of its own and not one of dotnet's. The assembly keeps its
+	     name, dotnet-dotgram: the native compiler tells assemblies apart by name without case, and
+	     dotgram would be the generator's DotGram. -->
+	<Target Name="DotGramNativeName" AfterTargets="CopyNativeBinary" Condition="'$(DotGramCliNative)' == 'true'">
+		<Move SourceFiles="$(PublishDir)$(TargetName)$(NativeBinaryExt)" DestinationFiles="$(PublishDir)dotgram$(NativeBinaryExt)" />
+	</Target>
+
+	<!-- The oldest Roslyn the generator loads into, which a project's SDK compiler must be at least as
+	     new as: the version the generator's project references, written into the tool when it is built,
+	     because the native tool cannot read it from the generator's references when it runs. -->
+	<Target Name="DotGramRoslynFloor" BeforeTargets="GetAssemblyAttributes">
+		<ItemGroup>
+			<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+				<_Parameter1>DotGramRoslyn</_Parameter1>
+				<_Parameter2>@(PackageVersion->WithMetadataValue('Identity', 'Microsoft.CodeAnalysis.CSharp')->'%(Version)')</_Parameter2>
+			</AssemblyAttribute>
+		</ItemGroup>
+	</Target>
+
 	<ItemGroup>
 		<!-- The generator itself, the same build of it the DotGram package ships: the tool hosts it. And
 		     as an analyzer too, for the one grammar the tool is written with: its own command line. -->
