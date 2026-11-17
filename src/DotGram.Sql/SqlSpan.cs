@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace DotGram.Sql;
@@ -367,7 +368,15 @@ internal interface ISqlLocatable : ISqlSpan
 /// pays nothing: <c>Rfc3986</c> and <c>ExpressionParser</c> are recognizers and want no
 /// positions, which is what <c>docs/ast.md</c> says and stays true where it was right.
 /// </para>
+/// <para>
+/// <b>Every node keeps its public properties under trimming and Native AOT.</b> <see cref="SqlWalker"/>
+/// finds what a node holds from its type's properties, and T-SQL's own rules walk what they read
+/// to decide whether a statement reads: a trimmed application whose nodes had lost them would
+/// walk no further than the root, and refuse statements the same parser reads elsewhere. The
+/// annotation is inherited by every type that implements this one.
+/// </para>
 /// </remarks>
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
 public interface ISqlSpan
 {
 	/// <summary>Where this was written, once a reader has said so.</summary>

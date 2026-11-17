@@ -14,9 +14,15 @@ static partial class Build
 	/// </summary>
 	internal static class Tables
 	{
+		/// <remarks>
+		/// Written out, not found by reflection over the nested records: a trimmed or Native AOT application keeps
+		/// nested types only for code that names them, and asking for all of them keeps every member of each, enums
+		/// and their reflection with them. The test of this inventory holds the list to the records.
+		/// </remarks>
 		public static readonly string[] Owns =
 		[
-			.. typeof(TableReference).GetNestedTypes().Where(static one => one.IsSubclassOf(typeof(TableReference)) && one != typeof(TableReference.Changed)).Select(NameOf),
+			"TableReference.Named", "TableReference.Pivot", "TableReference.Unpivot", "TableReference.Derived",
+			"TableReference.FunctionCall", "TableReference.Parenthesized", "TableReference.OdbcJoin", "TableReference.Joined",
 			"Clause.SystemTime", "Clause.TableSample", "Clause.JsonColumn", "Clause.ColumnDefinition", "Clause.ColumnOption",
 			"Clause.ConstraintDefinition", "Clause.References", "Clause.Connection", "Clause.Dropped", "Clause.Placement",
 			"Clause.Option",

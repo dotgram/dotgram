@@ -14,6 +14,10 @@ static partial class Build
 	/// </summary>
 	internal static class Procedural
 	{
+		/// <remarks>
+		/// The SET expressions written out, as <see cref="Tables.Owns"/> writes its table references and for the same
+		/// reason; the test of this inventory holds the list to the records.
+		/// </remarks>
 		public static readonly string[] Owns =
 		[
 			"Statement.Compound", "Statement.If", "Statement.While", "Statement.TryCatch", "Statement.Declare",
@@ -23,10 +27,16 @@ static partial class Build
 			"Statement.CursorAction", "Statement.Fetch", "Statement.SetStatement", "Statement.SetVariable",
 			"Statement.Use", "Statement.ExecuteAs", "Statement.Revert", "Statement.SetUser", "Statement.LineNumber",
 			"Clause.VariableDeclaration", "Clause.CursorDefinition", "Clause.CursorFor",
-			.. typeof(SetExpression).GetNestedTypes()
-				.SelectMany(static group => group.GetNestedTypes())
-				.Where(static one => one.IsSubclassOf(typeof(SetExpression)) && !one.IsAbstract)
-				.Select(NameOf),
+			"SetExpression.DateAndTime.DateFirst", "SetExpression.DateAndTime.DateFormat",
+			"SetExpression.Locking.DeadlockPriority", "SetExpression.Locking.LockTimeout",
+			"SetExpression.QueryExecution.Switch", "SetExpression.QueryExecution.RowCount", "SetExpression.QueryExecution.TextSize",
+			"SetExpression.QueryExecution.QueryGovernorCostLimit",
+			"SetExpression.IsoSettings.Switch",
+			"SetExpression.Statistics.Switch", "SetExpression.Statistics.Report",
+			"SetExpression.Transactions.Switch", "SetExpression.Transactions.IsolationLevel",
+			"SetExpression.Miscellaneous.Switch", "SetExpression.Miscellaneous.Language", "SetExpression.Miscellaneous.FipsFlagger",
+			"SetExpression.Miscellaneous.ContextInfo", "SetExpression.Miscellaneous.IdentityInsert", "SetExpression.Miscellaneous.Offset",
+			"SetExpression.Miscellaneous.ErrorLevel",
 		];
 
 		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
