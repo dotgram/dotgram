@@ -265,6 +265,11 @@ sealed class CSharpLanguage : ITargetLanguage
 		return _names?.UnboundIn(fragment, imports);
 	}
 
+	public string GeneratedTypeName(Binding.RuleSymbol rule)
+	{
+		return Emit.CSharpEmitter.IdentifierOf(rule);
+	}
+
 	public string? OptionalElementOf(string spelling)
 	{
 		if (spelling is null)

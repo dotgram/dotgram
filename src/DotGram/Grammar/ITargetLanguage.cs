@@ -61,6 +61,15 @@ interface ITargetLanguage
 	/// <summary>The spelling of a sequence of <paramref name="element"/>.</summary>
 	string SequenceOf(string element);
 
+	// ── Names the generated code gives ────────────────────────────────────────────────
+
+	/// <summary>
+	/// The name the generated code gives the type the grammar generates for a rule, made from its
+	/// captures (§4.1 case 3): what a construction <c>Pair(a, b)</c> builds and what a capture of the
+	/// rule holds.
+	/// </summary>
+	string GeneratedTypeName(Binding.RuleSymbol rule);
+
 	// ── Optional values ───────────────────────────────────────────────────────────────
 
 	/// <summary>
