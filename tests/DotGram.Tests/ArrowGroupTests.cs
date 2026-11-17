@@ -100,6 +100,7 @@ public sealed class ArrowGroupTests
 	/// <summary>The same places that take a value on <c>=&gt;</c>: a guard, a mark and a recovery's construction.</summary>
 	[Theory]
 	[InlineData("R : @int = l: A & when (l) => l\nparse R")]
+	[InlineData("R : @int = l: A & when @F((l)) => l\nparse R")]
 	[InlineData("R : @int = l: A & when (l & l) => l\nparse R")]
 	[InlineData("R : @int[] = l: A* recover ['x'] => (l)\nparse R")]
 	[InlineData("R : @int[] = l: A* recover ['x'] => (l & l)\nparse R")]
