@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -198,14 +199,28 @@ static partial class Build
 		};
 	}
 
+	/// <remarks>
+	/// Kept once a type, since the builders ask it of every record they meet: the walk out through the declaring
+	/// types made a string at each step, and under Native AOT each step reads the type's metadata, which made it
+	/// the largest part of reading a FROM clause there.
+	/// </remarks>
 	public static string NameOf(Type type)
 	{
+		if (TypeNames.Of.TryGetValue(type, out var known))
+			return known;
+
 		var name = type.Name;
 
 		for (var outer = type.DeclaringType; outer is not null && outer != typeof(Build); outer = outer.DeclaringType)
 			name = outer.Name + "." + name;
 
-		return name;
+		return TypeNames.Of.GetOrAdd(type, name);
+	}
+
+	/// <summary>The names <see cref="NameOf(Type)"/> has made, in a class of their own so that they are there whichever of this class's static fields asks first.</summary>
+	static class TypeNames
+	{
+		public static readonly ConcurrentDictionary<Type, string> Of = new();
 	}
 
 	/// <summary>
