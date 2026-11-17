@@ -1354,7 +1354,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	string Built(RuleSymbol rule, Expr call)
 	{
-		var name = Emit.CSharpEmitter.IdentifierOf(rule);
+		var name = _language.GeneratedTypeName(rule);
 
 		_namedTypes[name] = rule;
 

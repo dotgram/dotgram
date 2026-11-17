@@ -323,15 +323,15 @@ static partial class CSharpEmitter
 		// whose body runs at the first MoveNext.
 		if (tracing is not null)
 		{
-			using (file.Block($"{AccessOf(publication)} static {returns} {publication.EmittedName}(global::System.IO.TextReader input{takes})"))
-				file.Line($"return {TracedOf(publication.EmittedName)}(input{context}, Tracing_DotGram.Value);");
+			using (file.Block($"{AccessOf(publication)} static {returns} {EmittedNameOf(publication)}(global::System.IO.TextReader input{takes})"))
+				file.Line($"return {TracedOf(EmittedNameOf(publication))}(input{context}, Tracing_DotGram.Value);");
 
 			file.Line();
 		}
 
 		using (file.Block(tracing is null
-			? $"{AccessOf(publication)} static {returns} {publication.EmittedName}(global::System.IO.TextReader input{takes})"
-			: $"static {returns} {TracedOf(publication.EmittedName)}(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
+			? $"{AccessOf(publication)} static {returns} {EmittedNameOf(publication)}(global::System.IO.TextReader input{takes})"
+			: $"static {returns} {TracedOf(EmittedNameOf(publication))}(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
@@ -740,7 +740,7 @@ static partial class CSharpEmitter
 			PublishedAccess(publication),
 			$"global::System.Collections.Generic.IEnumerable<{element}>",
 			publication.MethodName,
-			results.MemberOf(publication.EmittedName),
+			results.MemberOf(EmittedNameOf(publication)),
 			publication.Rule.Name,
 			takes,
 			publication.Joined);

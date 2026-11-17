@@ -139,7 +139,7 @@ sealed partial class GrammarNormalizer
 			!_bodies.TryGetValue(rule, out var body) || !HasCapture(body) || Constructs(body).Any())
 			return null;
 
-		return Emit.CSharpEmitter.IdentifierOf(rule);
+		return _language.GeneratedTypeName(rule);
 	}
 
 	/// <summary>
@@ -162,7 +162,7 @@ sealed partial class GrammarNormalizer
 	{
 		var type = member.Rule is not { } rule ? _language.Spelling(KnownType.Text)
 			: _types.TryGetValue(rule, out var declared) ? declared
-			: HasGeneratedType(rule) ? Emit.CSharpEmitter.IdentifierOf(rule)
+			: HasGeneratedType(rule) ? _language.GeneratedTypeName(rule)
 			: _language.Spelling(KnownType.Text);
 
 		return member.IsSequence ? _language.SequenceOf(type) : type;
@@ -218,7 +218,7 @@ sealed partial class GrammarNormalizer
 		// be a type of the host's, with conversions of its own.
 		bool Generated(string type)
 		{
-			_generatedNames ??= [.. Kept().Where(HasGeneratedType).Select(Emit.CSharpEmitter.IdentifierOf)];
+			_generatedNames ??= [.. Kept().Where(HasGeneratedType).Select(_language.GeneratedTypeName)];
 
 			return _generatedNames.Contains(type);
 		}

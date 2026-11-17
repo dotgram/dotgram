@@ -464,19 +464,11 @@ sealed record Publication(
 	/// <summary>
 	/// Whether the grammar names <c>eos</c>, so that this publication is read over segments: its
 	/// forms over a string, a reader or a window are the parser's own, private and under a name of
-	/// their own (<see cref="EmittedName"/>), and what is published under <see cref="MethodName"/>
+	/// their own (the emitter names them), and what is published under <see cref="MethodName"/>
 	/// takes a sequence of segments and reads it through them (docs/syntax.md §6.3).
 	/// </summary>
 	public bool Joined { get; init; }
 
-	/// <summary>What the methods this publication makes over text are called in the generated class.</summary>
-	/// <remarks>
-	/// Over segments, <c>Own_DotGram_&lt;Name&gt;</c>: a name the generator makes from the publication's
-	/// (CSharpEmitter.Named), which no name a publication may take can be (GRAM1012), and which the
-	/// method name of a publication called <c>Name</c> would otherwise meet (<c>find Word as Read</c>
-	/// beside the reader's own <c>Read</c>).
-	/// </remarks>
-	public string EmittedName => Joined ? Emit.CSharpEmitter.Named("Own", MethodName) : MethodName;
 
 	public override string ToString()
 	{

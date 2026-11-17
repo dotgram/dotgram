@@ -2126,7 +2126,7 @@ static partial class CSharpEmitter
 		// parser is the reading, and nothing about it is chosen while it runs.
 		var numbered = (reading is { } number ? $", {number}" : "") + (locating is null ? "" : ", " + LocatingFloor);
 
-		var method = publication.EmittedName;
+		var method = EmittedNameOf(publication);
 		// What the author called it, which is not always what the rule is called by now: a
 		// publication carrying `with (...)` publishes a clone of the rule, and `Lambda_With1`
 		// is a name that appears nowhere in the grammar and should appear nowhere a reader

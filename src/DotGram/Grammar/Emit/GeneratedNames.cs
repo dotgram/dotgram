@@ -98,6 +98,18 @@ static partial class CSharpEmitter
 	public static readonly string[] Variants =
 		["", "Value", "Seam", "Buf", "BufBytes", "BufMemory", "BufBytesMemory", "At"];
 
+	/// <summary>What the methods a publication makes over text are called in the generated class.</summary>
+	/// <remarks>
+	/// Over segments, <c>Own_DotGram_&lt;Name&gt;</c>: a name the generator makes from the publication's
+	/// (<see cref="Named"/>), which no name a publication may take can be (GRAM1012), and which the
+	/// method name of a publication called <c>Name</c> would otherwise meet (<c>find Word as Read</c>
+	/// beside the reader's own <c>Read</c>).
+	/// </remarks>
+	internal static string EmittedNameOf(Publication publication)
+	{
+		return publication.Joined ? Named("Own", publication.MethodName) : publication.MethodName;
+	}
+
 	/// <summary>A name made from an author's names, in the class the generator writes into.</summary>
 	/// <param name="kind">A kind of <see cref="HostKinds"/>, its variant and numbers written in.</param>
 	/// <param name="identifiers">The author's names it is made from, first the one it is most about.</param>

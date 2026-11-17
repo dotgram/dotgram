@@ -11,7 +11,7 @@ namespace DotGram.Grammar.Emit;
 /// What a grammar that names <c>eos</c> publishes: its forms over a sequence of segments, read as
 /// the segments with the joiner after each (<see cref="GrammarNormalizer.Joiner"/>), through the
 /// forms over text that the rest of the emitter writes for it, private and under names of their
-/// own (<see cref="Publication.EmittedName"/>).
+/// own (<see cref="EmittedNameOf"/>).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -552,7 +552,7 @@ static partial class CSharpEmitter
 	{
 		var access = PublishedAccess(publication);
 		var method = publication.MethodName;
-		var hidden = publication.EmittedName;
+		var hidden = EmittedNameOf(publication);
 		var gives  = takes.Length > 0 ? ", context" : "";
 		var name   = publication.Rule.Declaration?.Name ?? publication.Rule.Name;
 		var reader = "global::System.IO.TextReader";
