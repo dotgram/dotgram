@@ -445,21 +445,17 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		return location is null ? RpcReply.Null : RpcReply.Ok<Location[]>([location], LspJson.Default.LocationArray);
 	}
 
-	// References and rename in a C# document take the occurrences' spans, which are where the name is
-	// spelled in the C# text: not the name's length after it where an escape spells it (\u0057ord) or
-	// moves it ("" in a verbatim string). A grammar in C# includes nothing it could rename into.
+	// The core's references in a C# document carry where each occurrence is spelled in the C# text, which an
+	// escape (\u0057ord) or a "" before it in a verbatim string makes other than the name's length.
 
 	RpcReply EmbeddedReferences(OpenCSharp document, GramVersion version, Position position, bool includeDeclaration)
 	{
-		var occurrences = GramNavigationProvider.Highlights(document.View(version), version.Lines.Offset(position));
+		var found = GramNavigationProvider.References(document.View(version), version.Lines.Offset(position));
 
-		return occurrences.Count == 0
+		return found is null
 			? RpcReply.Null
 			: RpcReply.Ok(
-				occurrences
-					.Where(occurrence => includeDeclaration || !occurrence.IsDefinition)
-					.Select(occurrence => new Location(document.Uri, version.Lines.Range(occurrence.Span.Start, occurrence.Span.Length)))
-					.ToArray(),
+				NavigationMap.References(found, includeDeclaration, document.Uri, version.Lines, _store, CancellationToken.None),
 				LspJson.Default.LocationArray);
 	}
 
@@ -474,34 +470,28 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	RpcReply EmbeddedPrepareRename(OpenCSharp document, GramVersion version, Position position)
 	{
-		var view   = document.View(version);
 		var offset = version.Lines.Offset(position);
 
-		if (GramNavigationProvider.References(view, offset) is not { } found)
+		if (GramNavigationProvider.References(document.View(version), offset) is not { } found)
 			return RpcReply.Null;
 
-		var at = GramNavigationProvider.Highlights(view, offset).FirstOrDefault(occurrence => occurrence.Span.Start <= offset && offset <= occurrence.Span.End);
+		if (GramRenameProvider.Refusal(found) is { } refusal)
+			return RpcReply.Error(Lsp.RequestFailed, refusal);
 
-		return RpcReply.Ok(new PrepareRenameResult(version.Lines.Range(at.Span.Start, at.Span.Length), found.Name), LspJson.Default.PrepareRenameResult);
+		return RpcReply.Ok(RenameMap.Prepare(found, offset, version.Lines), LspJson.Default.PrepareRenameResult);
 	}
 
 	RpcReply EmbeddedRename(OpenCSharp document, GramVersion version, Position position, string newName)
 	{
-		var view   = document.View(version);
-		var offset = version.Lines.Offset(position);
-
-		if (GramNavigationProvider.References(view, offset) is not { } found)
+		if (GramNavigationProvider.References(document.View(version), version.Lines.Offset(position)) is not { } found)
 			return RpcReply.Null;
 
-		var edits = found.Name == newName
-			? []
-			: GramNavigationProvider.Highlights(view, offset)
-				.Select(occurrence => new TextEdit(version.Lines.Range(occurrence.Span.Start, occurrence.Span.Length), newName))
-				.ToArray();
+		var rename = GramRenameProvider.Rename(found, newName);
 
-		return RpcReply.Ok(
-			new WorkspaceEdit(new Dictionary<string, IReadOnlyList<TextEdit>>(StringComparer.Ordinal) { [document.Uri] = edits }),
-			LspJson.Default.WorkspaceEdit);
+		if (rename.Conflicts.Count > 0)
+			return RpcReply.Error(Lsp.RequestFailed, string.Join(" ", rename.Conflicts));
+
+		return RpcReply.Ok(RenameMap.Edit(rename, document.Uri, version.Lines), LspJson.Default.WorkspaceEdit);
 	}
 
 	/// <summary>The workspace's pending updates; a test's barrier is their <see cref="WorkspaceUpdates.Drained"/>.</summary>

@@ -15,9 +15,9 @@ static class RenameMap
 {
 	public static PrepareRenameResult Prepare(GramReferences found, int position, LineMap lines)
 	{
-		var at = found.Positions.FirstOrDefault(start => start <= position && position <= start + found.Name.Length);
+		var at = found.Spans.FirstOrDefault(span => span.Start <= position && position <= span.End);
 
-		return new PrepareRenameResult(lines.Range(at, found.Name.Length), found.Name);
+		return new PrepareRenameResult(lines.Range(at.Start, at.Length), found.Name);
 	}
 
 	public static WorkspaceEdit Edit(GramRename rename, string uri, LineMap lines)

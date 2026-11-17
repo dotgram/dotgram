@@ -49,16 +49,27 @@ readonly record struct GramNavigable(TextSpan Span, GramLocation? Target);
 readonly record struct GramHighlight(TextSpan Span, bool IsDefinition);
 
 /// <summary>A rule, capture or parameter at a position, its definition, and every use of it.</summary>
+/// <param name="lengths">
+/// How long each occurrence is in the document's text, where that is not the name's length: in a C#
+/// string an escape spells a name longer (<c>\u0057ord</c>) than the grammar reads it. Null where every
+/// occurrence is spelled as the name.
+/// </param>
 sealed class GramReferences(
 	string name,
 	int definitionPosition,
 	int[] positions,
 	IReadOnlyList<StandaloneReference>? elsewhere = null,
-	bool definedElsewhere = false)
+	bool definedElsewhere = false,
+	int[]? lengths = null)
 {
 	public string Name { get; } = name;
 	public int DefinitionPosition { get; } = definitionPosition;
 	public int[] Positions { get; } = positions;
+
+	/// <summary>Where each occurrence is spelled in the document's text, in the order of <see cref="Positions"/>.</summary>
+	public IReadOnlyList<TextSpan> Spans { get; } = positions
+		.Select((position, index) => new TextSpan(position, lengths is null ? name.Length : lengths[index]))
+		.ToArray();
 
 	/// <summary>Uses, and the definition, in the grammars the host includes.</summary>
 	public IReadOnlyList<StandaloneReference> Elsewhere { get; } = elsewhere ?? [];
@@ -106,17 +117,21 @@ static class GramNavigationProvider
 		var symbols = view.Symbols;
 		var current = symbols.FirstOrDefault(symbol => symbol.Span.Contains(position));
 
-		return current.Span.Length == 0
-			? null
-			: new GramReferences(
-				current.Name,
-				current.DefinitionSpan.Start,
-				symbols
-					.Where(symbol => symbol.Name == current.Name &&
-						symbol.GrammarSpan == current.GrammarSpan &&
-						symbol.DefinitionSpan == current.DefinitionSpan)
-					.Select(symbol => symbol.Span.Start)
-					.ToArray());
+		if (current.Span.Length == 0)
+			return null;
+
+		// The occurrences' own spans in the C# text: the name's length is the grammar's reading of it.
+		var occurrences = symbols
+			.Where(symbol => symbol.Name == current.Name &&
+				symbol.GrammarSpan == current.GrammarSpan &&
+				symbol.DefinitionSpan == current.DefinitionSpan)
+			.ToArray();
+
+		return new GramReferences(
+			current.Name,
+			current.DefinitionSpan.Start,
+			occurrences.Select(static symbol => symbol.Span.Start).ToArray(),
+			lengths: occurrences.Select(static symbol => symbol.Span.Length).ToArray());
 	}
 
 	/// <summary>
@@ -127,8 +142,8 @@ static class GramNavigationProvider
 	{
 		var references = new List<CSharpFindReference>(found.Positions.Length + found.Elsewhere.Count);
 
-		foreach (var position in found.Positions)
-			references.Add(new CSharpFindReference(filePath, text, position, found.Name.Length));
+		foreach (var span in found.Spans)
+			references.Add(new CSharpFindReference(filePath, text, span.Start, span.Length));
 
 		foreach (var reference in found.Elsewhere)
 			if (store.PathToOpen(reference.Location.Grammar) is { } path)
@@ -414,7 +429,7 @@ static class GramRenameProvider
 			return new GramRename([], []);
 
 		return new GramRename(
-			found.Positions.Select(position => new GramTextEdit(new TextSpan(position, found.Name.Length), replacement)).ToArray(),
+			found.Spans.Select(span => new GramTextEdit(span, replacement)).ToArray(),
 			[]);
 	}
 }
