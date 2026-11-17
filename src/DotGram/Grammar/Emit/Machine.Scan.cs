@@ -1897,7 +1897,7 @@ sealed partial class Machine
 
 			using (code.Block(""))
 			{
-				NestedPair.WriteRest(code, pair, "p", _labels++.ToString(System.Globalization.CultureInfo.InvariantCulture),
+				CSharpEmitter.WriteNestedRest(code, pair, "p", _labels++.ToString(System.Globalization.CultureInfo.InvariantCulture),
 				[
 					"if (text.Length > furthest) furthest = text.Length;",
 					.. recordsRunOut && _lookingAhead == 0 ? (string[])[$"if (mark{mark} > ranOut) ranOut = mark{mark};"] : [],

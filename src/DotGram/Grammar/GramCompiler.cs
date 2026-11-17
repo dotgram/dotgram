@@ -88,7 +88,7 @@ static class GramCompiler
 		//   GramParser       .Parse     (tokens)        -> ParseResult
 		//   GrammarBinder    .Bind      (file, symbols) -> GrammarModel
 		//   GrammarNormalizer.Normalize (model)         -> RecognitionGraph
-		//   CSharpEmitter    .Emit      (graph)         -> C#
+		//   ITargetLanguage  .Emit      (graph)         -> C#, by CSharpEmitter
 
 		// One language for the whole compilation: it reads the grammar's host fragments and is asked
 		// about its types, for every stage below.
@@ -171,21 +171,7 @@ static class GramCompiler
 			diagnostics.AddRange(FirstSets.Check(graph));
 
 			// What the emitter would write twice into the class, which only the author can rename.
-			diagnostics.AddRange(CSharpEmitter.NameClashes(
-				graph,
-				options.Suffix is { Length: > 0 } nested ? options.ClassName + "." + nested : options.ClassName,
-				options.Namespace,
-				CSharpEmitter.ClassesOf(options),
-				options.Lexical));
-
-			// A host with several readings has one span, in the host; a part the author declared in the
-			// class of a reading would be a second span of the same name, which the reading reads instead.
-			if (options.SharedTypes && options.SpanDeclaredInReading)
-				diagnostics.Add(new GramDiagnostic(
-					CSharpEmitter.GeneratedNameClash,
-					$"'SourceSpan' is declared in '{options.Suffix}', the class of a reading of a host that has several: " +
-					"they share one span, written in the host. Declare its part in the host instead (docs/syntax.md §6.2).",
-					0, 0, GramSeverity.Error));
+			diagnostics.AddRange(language.NameClashes(graph, options));
 		}
 
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule
@@ -214,7 +200,7 @@ static class GramCompiler
 				"for it (docs/syntax.md §6.3).",
 				segmented.Position, segmented.Length, GramSeverity.Error));
 
-		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
+		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics, language) : null;
 
 		// Trivia that gives back characters a class beside it also reads: exponential on a refused
 		// input. Over characters only — a grammar cut in two reads its trivia with a scanner, which
@@ -268,14 +254,10 @@ static class GramCompiler
 		};
 
 		if (!HasErrors(diagnostics))
-			sources.Add(new GeneratedSource(
-				options.Suffix is { Length: > 0 } suffix
-					? $"{options.ClassName}.{suffix}.gram.g.cs"
-					: $"{options.ClassName}.gram.g.cs",
-				CSharpEmitter.Emit(lexical?.Syntax ?? graph, options, context)));
+			sources.Add(new GeneratedSource(language.SourceName(options, 0), language.Emit(lexical?.Syntax ?? graph, options, context)));
 
 		for (var part = 0; part < sourceParts.Count; part++)
-			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));
+			sources.Add(new GeneratedSource(language.SourceName(options, part + 1), sourceParts[part]));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics))
 		{
@@ -283,10 +265,8 @@ static class GramCompiler
 			UsesLexical = lexical is not null,
 			SharedNeeds = context.SharedNeeds,
 			Carriers = carriers,
-			Names = sources.Count == 0 ? null : CSharpEmitter.NamesOf(
-				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source],
-				options.Suffix is { Length: > 0 } suffixed ? options.ClassName + "." + suffixed : options.ClassName,
-				options.Namespace, CSharpEmitter.ClassesOf(options), options.Lexical),
+			Names = sources.Count == 0 ? null : language.NamesOf(
+				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source], options),
 		};
 	}
 
@@ -305,7 +285,7 @@ static class GramCompiler
 	/// come out anyway, and nothing the author did is wrong.
 	/// </para>
 	/// </remarks>
-	static LexicalSplit? Cut(RecognitionGraph graph, ICollection<GramDiagnostic> diagnostics)
+	static LexicalSplit? Cut(RecognitionGraph graph, ICollection<GramDiagnostic> diagnostics, ITargetLanguage language)
 	{
 		// A warning and not a remark: `Lexical = true` was asked for, and what comes out
 		// instead is a parser the author did not ask for — one that reads the same grammar
@@ -381,9 +361,7 @@ static class GramCompiler
 		// call, and trivia no scanner can read — a choice whose ways cannot be told apart by
 		// where they begin — was skipped by nothing at all: every space reached the syntax as
 		// input no token reads, and the parser refused what it was written to read.
-		var seam = CSharpEmitter.Seam(split);
-
-		if (!split.Trivia.Any(rule => seam.Scanner(rule) is not null))
+		if (!language.ScansSeam(split))
 		{
 			Say("`trivia` cannot be read by committing to its first reading, and the seam " +
 				"between tokens is skipped by a scanner that does (§4.5). A rule in it that reaches " +

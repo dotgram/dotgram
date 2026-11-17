@@ -61,6 +61,36 @@ interface ITargetLanguage
 	/// <summary>The spelling of a sequence of <paramref name="element"/>.</summary>
 	string SequenceOf(string element);
 
+	// ── The generated code ────────────────────────────────────────────────────────────
+
+	/// <summary>The parser, written for a sound grammar's graph.</summary>
+	/// <remarks>What does not fit one file is handed out through <see cref="DotGram.Grammar.Emit.EmitContext.SourceParts"/>.</remarks>
+	string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, DotGram.Grammar.Emit.EmitContext context);
+
+	/// <summary>
+	/// What the file of the parser is called: <paramref name="part"/> 0 the file itself, and 1 on the
+	/// parts <see cref="Emit"/> handed out beside it.
+	/// </summary>
+	string SourceName(GramCompilerOptions options, int part);
+
+	/// <summary>
+	/// What the generated code would declare twice, or declare where the host already has the name:
+	/// what only the author can rename, said before anything is written.
+	/// </summary>
+	IReadOnlyList<GramDiagnostic> NameClashes(Model.RecognitionGraph graph, GramCompilerOptions options);
+
+	/// <summary>
+	/// The author's names the generated code is written under — for a test that holds the generated
+	/// names apart — over the graph it was written from and the ones a cut grammar was made of.
+	/// </summary>
+	DotGram.Grammar.Emit.GramNames NamesOf(Model.RecognitionGraph graph, IReadOnlyList<Model.RecognitionGraph> more, GramCompilerOptions options);
+
+	/// <summary>
+	/// Whether the seam between the tokens of a grammar cut in two can be skipped by the code this
+	/// language writes for it: some of its trivia read by committing to a first reading.
+	/// </summary>
+	bool ScansSeam(Model.LexicalSplit split);
+
 	// ── Values a grammar writes, rendered as the generated code writes them ───────────
 
 	/// <summary>A host fragment handed over as it stands, as one operand: <c>@(x + 1)</c>.</summary>
