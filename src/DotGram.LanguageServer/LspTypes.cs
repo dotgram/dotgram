@@ -65,7 +65,9 @@ sealed record RenameOptions(bool PrepareProvider);
 
 sealed record SemanticTokensLegend(IReadOnlyList<string> TokenTypes, IReadOnlyList<string> TokenModifiers);
 
-sealed record SemanticTokensOptions(SemanticTokensLegend Legend, bool Full, bool Range);
+sealed record DocumentFilter(string Language);
+
+sealed record SemanticTokensOptions(SemanticTokensLegend Legend, bool Full, bool Range, IReadOnlyList<DocumentFilter>? DocumentSelector = null);
 
 sealed record ServerCapabilities(
 	string PositionEncoding,
@@ -177,6 +179,15 @@ sealed record DocumentSymbolParams(TextDocumentIdentifier TextDocument);
 
 sealed record DocumentSymbol(string Name, int Kind, Range Range, Range SelectionRange, IReadOnlyList<DocumentSymbol> Children);
 
+// The server's own.
+
+/// <summary>
+/// <c>dotgram/embeddedColors</c>: the colours of the grammars in one version of a C# document, five numbers
+/// to a span — its start line and character, its end line and character, and its kind's index in
+/// <paramref name="Kinds"/> — and where the grammars themselves are.
+/// </summary>
+sealed record EmbeddedColorsParams(string Uri, int Version, IReadOnlyList<string> Kinds, IReadOnlyList<int> Data, IReadOnlyList<Range> Grammars);
+
 /// <summary>The numbers the protocol gives its enumerations, where this server sends or reads one.</summary>
 static class Lsp
 {
@@ -254,6 +265,7 @@ static class Lsp
 [JsonSerializable(typeof(FoldingRange[]))]
 [JsonSerializable(typeof(DocumentSymbolParams))]
 [JsonSerializable(typeof(DocumentSymbol[]))]
+[JsonSerializable(typeof(EmbeddedColorsParams))]
 [JsonSerializable(typeof(JsonElement))]
 partial class LspJson : JsonSerializerContext
 {
