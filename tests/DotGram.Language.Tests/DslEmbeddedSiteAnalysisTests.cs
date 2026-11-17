@@ -187,6 +187,25 @@ public sealed class DslEmbeddedSiteAnalysisTests
 				.Select(item => (item.Role, text.ToString(item.Span))));
 	}
 
+	/// <summary>A site a guard refused where nothing else could stand says the guard's own words.</summary>
+	[Fact]
+	public async Task ReportsGuardRefusalInItsOwnWords()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var source = Source("let total").Replace(
+			"Start      = Keyword & ' ' & name: (Identifier)",
+			"Start      = Keyword & when @(false) on fail \"No names here.\" & ' ' & name: (Identifier)");
+		var document = Document(source);
+		var root     = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model    = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		var diagnostic = Assert.Single(result.Diagnostics);
+		Assert.Equal("GRAM6101", diagnostic.Diagnostic.Id);
+		Assert.Equal("No names here. (DotGram language 'dotgram.test.filter')", diagnostic.Diagnostic.Message);
+	}
+
 	[Fact]
 	public async Task ResolvesNamedMethodArgumentThroughItsStringSyntaxParameter()
 	{

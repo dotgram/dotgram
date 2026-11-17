@@ -290,7 +290,9 @@ internal static class DslEmbeddedSiteAnalysis
 				diagnostics.Add(new HostDiagnostic(
 					new GramDiagnostic(
 						RecognitionDiagnostic,
-						FailureMessage(carrier.Id, trace.Expected),
+						trace.Refusal is { } refusal
+							? $"{refusal} (DotGram language '{carrier.Id}')"
+							: FailureMessage(carrier.Id, trace.Expected),
 						0,
 						0,
 						GramSeverity.Error),
