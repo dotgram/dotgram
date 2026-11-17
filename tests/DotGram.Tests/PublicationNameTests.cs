@@ -108,6 +108,7 @@ public sealed class PublicationNameTests
 
 		return [.. assembly.GetType("NameProbe.P")!
 			.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+			.Where(static method => !method.IsSpecialName)
 			.Select(static method => method.Name + "(" + string.Join(
 				", ", method.GetParameters().Select(static parameter => parameter.ParameterType.Name + " " + parameter.Name)) + ")")
 			.OrderBy(static one => one, StringComparer.Ordinal)];

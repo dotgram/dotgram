@@ -546,10 +546,21 @@ parse throws nothing. It costs every construction a little; leave it off where n
 
 `MaxExtraStacks` and `MaxBufferedInputLength` are only where the limits start. Every generated
 class has a static `Limits` holding an immutable `ParserLimits`, which a program facing input it
-did not write sets once, at start-up:
+did not write sets once, at start-up (`Brackets.Limits = …` from outside the class):
 
 ```csharp
-MyParser.Limits = MyParser.Limits.WithMaxExtraStacks(4).WithMaxBufferedInputLength(1 << 20);
+[Gram("""
+	Nest = '(' & Nest & ')' | 'x'
+
+	parse Nest
+	""", MaxExtraStacks = 8)]
+public static partial class Brackets
+{
+	public static void Harden()
+	{
+		Limits = Limits.WithMaxExtraStacks(4).WithMaxBufferedInputLength(1 << 20);
+	}
+}
 ```
 
 A parse reads it once, as it begins, so setting it while other threads parse is safe: a parse
