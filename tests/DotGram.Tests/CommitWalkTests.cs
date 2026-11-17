@@ -127,9 +127,9 @@ public sealed class CommitWalkTests
 	}
 
 	/// <summary>
-	/// Twice the depth, at most a little over twice the records looked at: linear. Before, each
-	/// doubling of the depth looked at four times as many, and a nest of 800 at some three hundred
-	/// thousand records against seven thousand.
+	/// Twice the depth, at most a little over twice the records looked at: linear. Looking at every
+	/// record above the boundary, each doubling looked at four times as many: 2,880,400 records for
+	/// tuples nested 800 deep, which are now 7,196.
 	/// </summary>
 	[Theory]
 	[MemberData(nameof(Counted))]

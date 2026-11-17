@@ -7020,6 +7020,33 @@ sealed partial class Machine
 	/// <paramref name="inclusive"/> — as an atomic group that keeps its records does when it
 	/// commits, and a lookahead that hands on a value when it succeeds.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Each record is looked at once over the whole parse, not once per commit around it. A commit
+	/// nested in another has already put out everything above its own boundary, and the records it
+	/// left say so: a record pushed while an atomic group or a captured lookahead was open carries
+	/// that group's index, and a group opened above the floor has closed by the time the floor
+	/// commits — committed, or taken off the arena with everything it pushed. So from such a record
+	/// the walk goes straight down to the group's boundary. Looking at every record instead cost
+	/// the square of the depth on a value collected in a nest of atomic groups: a type nested ten
+	/// thousand deep read in seconds.
+	/// </para>
+	/// <para>
+	/// A boundary passed over is told how far down the commit that passed it reaches, in its value,
+	/// which nothing else reads on an atomic entry: a commit further out, coming to the same
+	/// boundary from a record deep inside, goes on down to there at once and does not climb the
+	/// nest one boundary at a time. The way is put out before the jump is asked about, so a record
+	/// is never kept alive by what its indexes say. The arena is a stack, so everything below a
+	/// record was there before it and has not been replaced since: a record that still stands
+	/// vouches for what lies below it down to the boundary it names, whatever was popped above it.
+	/// </para>
+	/// <para>
+	/// Only the kinds that carry the open group in those fields are followed: a recovery's records
+	/// keep a position there (<c>Recovery</c>, <c>PendingRecovery</c> and the turn of a recovering
+	/// repetition, numbered after <c>StateEnd</c>), and a kind added later is not followed until it
+	/// is put in the range.
+	/// </para>
+	/// </remarks>
 	void PutOutWaysBack(Writer writer, string floor, bool inclusive)
 	{
 		_usesDead = true;
@@ -7035,13 +7062,43 @@ sealed partial class Machine
 			}
 
 			writer.Line("var inside = entries[back];");
+			writer.Line();
+
+			using (writer.Block(
+				"if (inside.Kind == ParserEntry.Choice || inside.Kind == ParserEntry.Run || " +
+				"inside.Kind == ParserEntry.Lookahead)"))
+			{
+				writer.Line(
+					"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
+					"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
+					"inside.Value);");
+			}
+
+			writer.Line();
+			writer.Line("if (inside.Kind > ParserEntry.Dead && inside.Kind < ParserEntry.Run || inside.Kind > ParserEntry.StateEnd)");
+			writer.Then("continue;");
+			writer.Line();
 			writer.Line(
-				"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
-				"inside.Kind != ParserEntry.Lookahead) continue;");
-			writer.Line(
-				"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
-				"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
-				"inside.Value);");
+				"var within = inside.AtomicIndex > inside.LookaheadIndex ? inside.AtomicIndex : inside.LookaheadIndex;");
+			writer.Line();
+			writer.Line($"if (within <= {floor} || within >= back)");
+			writer.Then("continue;");
+			writer.Line();
+			writer.Line("var passed = entries[within];");
+			writer.Line();
+
+			using (writer.Block("if (passed.Kind == ParserEntry.Atomic)"))
+			{
+				writer.Line(
+					"entries[within] = new ParserEntry(ParserEntry.Atomic, passed.State, passed.Position, " +
+					$"passed.CallIndex, passed.AtomicIndex, passed.RepeatIndex, passed.LookaheadIndex, {floor});");
+				writer.Line();
+				writer.Line($"if (passed.Value > {floor} && passed.Value < within)");
+				writer.Then("within = passed.Value;");
+			}
+
+			writer.Line();
+			writer.Line("back = within;");
 		}
 	}
 

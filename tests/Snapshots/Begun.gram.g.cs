@@ -1781,8 +1781,31 @@ namespace DotGram.Snapshots
 						for (var back = entries.Count - 1; back > atomic; back--)
 						{
 							var inside = entries[back];
-							if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && inside.Kind != ParserEntry.Lookahead) continue;
-							entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, inside.Value);
+
+							if (inside.Kind == ParserEntry.Choice || inside.Kind == ParserEntry.Run || inside.Kind == ParserEntry.Lookahead)
+							{
+								entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, inside.Value);
+							}
+
+							if (inside.Kind > ParserEntry.Dead && inside.Kind < ParserEntry.Run || inside.Kind > ParserEntry.StateEnd)
+								continue;
+
+							var within = inside.AtomicIndex > inside.LookaheadIndex ? inside.AtomicIndex : inside.LookaheadIndex;
+
+							if (within <= atomic || within >= back)
+								continue;
+
+							var passed = entries[within];
+
+							if (passed.Kind == ParserEntry.Atomic)
+							{
+								entries[within] = new ParserEntry(ParserEntry.Atomic, passed.State, passed.Position, passed.CallIndex, passed.AtomicIndex, passed.RepeatIndex, passed.LookaheadIndex, atomic);
+
+								if (passed.Value > atomic && passed.Value < within)
+									within = passed.Value;
+							}
+
+							back = within;
 						}
 						atomic = boundary.AtomicIndex;
 						repeat = boundary.RepeatIndex;
@@ -2792,8 +2815,31 @@ namespace DotGram.Snapshots
 						for (var back = entries.Count - 1; back > atomic; back--)
 						{
 							var inside = entries[back];
-							if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && inside.Kind != ParserEntry.Lookahead) continue;
-							entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, inside.Value);
+
+							if (inside.Kind == ParserEntry.Choice || inside.Kind == ParserEntry.Run || inside.Kind == ParserEntry.Lookahead)
+							{
+								entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, inside.Value);
+							}
+
+							if (inside.Kind > ParserEntry.Dead && inside.Kind < ParserEntry.Run || inside.Kind > ParserEntry.StateEnd)
+								continue;
+
+							var within = inside.AtomicIndex > inside.LookaheadIndex ? inside.AtomicIndex : inside.LookaheadIndex;
+
+							if (within <= atomic || within >= back)
+								continue;
+
+							var passed = entries[within];
+
+							if (passed.Kind == ParserEntry.Atomic)
+							{
+								entries[within] = new ParserEntry(ParserEntry.Atomic, passed.State, passed.Position, passed.CallIndex, passed.AtomicIndex, passed.RepeatIndex, passed.LookaheadIndex, atomic);
+
+								if (passed.Value > atomic && passed.Value < within)
+									within = passed.Value;
+							}
+
+							back = within;
 						}
 						atomic = boundary.AtomicIndex;
 						repeat = boundary.RepeatIndex;
@@ -3038,8 +3084,31 @@ namespace DotGram.Snapshots
 						for (var back = entries.Count - 1; back > atomic; back--)
 						{
 							var inside = entries[back];
-							if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && inside.Kind != ParserEntry.Lookahead) continue;
-							entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, inside.Value);
+
+							if (inside.Kind == ParserEntry.Choice || inside.Kind == ParserEntry.Run || inside.Kind == ParserEntry.Lookahead)
+							{
+								entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, inside.Value);
+							}
+
+							if (inside.Kind > ParserEntry.Dead && inside.Kind < ParserEntry.Run || inside.Kind > ParserEntry.StateEnd)
+								continue;
+
+							var within = inside.AtomicIndex > inside.LookaheadIndex ? inside.AtomicIndex : inside.LookaheadIndex;
+
+							if (within <= atomic || within >= back)
+								continue;
+
+							var passed = entries[within];
+
+							if (passed.Kind == ParserEntry.Atomic)
+							{
+								entries[within] = new ParserEntry(ParserEntry.Atomic, passed.State, passed.Position, passed.CallIndex, passed.AtomicIndex, passed.RepeatIndex, passed.LookaheadIndex, atomic);
+
+								if (passed.Value > atomic && passed.Value < within)
+									within = passed.Value;
+							}
+
+							back = within;
 						}
 						atomic = boundary.AtomicIndex;
 						repeat = boundary.RepeatIndex;
