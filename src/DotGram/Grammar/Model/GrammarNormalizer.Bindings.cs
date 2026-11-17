@@ -48,6 +48,9 @@ sealed partial class GrammarNormalizer
 	/// <summary>A binding in a step of a left-recursive rule, or around its leading call to itself.</summary>
 	public const string BindingInFold = "GRAM4064";
 
+	/// <summary>A piece of grammar, a group or an operator, written where a value goes.</summary>
+	public const string GrammarAsValue = "GRAM4065";
+
 	/// <summary>A binding where this version of the compiler does not support one yet.</summary>
 	public const string BindingNotSupported = "GRAM4034";
 

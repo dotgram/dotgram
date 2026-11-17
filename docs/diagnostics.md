@@ -184,6 +184,7 @@ character the grammar's own position maps to. A grammar inherited from a base cl
 | <a id="gram4062"></a>`GRAM4062` | Error | A reference or a length inside its own binding. | The text is still being bound there. Read it after the binding (§3.5.1). |
 | <a id="gram4063"></a>`GRAM4063` | Error | A binding and its reference on two sides of a constructing group. | A group `( … => … )` builds its value as a rule of its own, and a binding is read only in the rule that bound it. Bind and read on one side (§3.5.1). |
 | <a id="gram4064"></a>`GRAM4064` | Error | A binding in a step of a left-recursive rule, or around its leading call to itself. | The steps are read as a loop of their own, after the base (§4.3). Put the binding and its read in a rule the step calls; for the leading call, in the base or in such a rule (§3.5.1). |
+| <a id="gram4065"></a>`GRAM4065` | Error | A piece of grammar, a group or an operator, written where a value goes. | After `=>`, in a `when`, in a `with state` or in a `recover`'s `=>`, a value is a name, a call, a literal, or C# after `@`. `(l & r)`, `(l)`, `(l | r)` and `(l?)` are what a rule reads, with no C# to hand over: write an expression as `@(…)`, as in `=> @(l + r)`, or `=> l` for a capture handed back whole. |
 
 ## GRAM5xxx — what a grammar gets
 

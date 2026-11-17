@@ -1156,6 +1156,9 @@ Point  : @Point = '(' & x: Number & ',' & y: Number & ')' => @(new Point(x, y))
 Row             = ... & when @(qty > 0 && symbol.Length == 4)
 ```
 
+A bare `( … )` is not a C# expression there, but a group of what a rule reads, and after `=>` or in a
+`when` it is refused (`GRAM4065`): write the expression as `@( … )`.
+
 Besides captures, the names the parser supplies are always in scope inside `=>` and
 `when`: `parserText` (the matched text, when `TIn` is a character) and `parserSpan` (the
 current rule's `SourceSpan`) in both, and §8.2's table says which of the rest a `=>` or a
