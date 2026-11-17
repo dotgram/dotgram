@@ -112,4 +112,10 @@
 		<InternalsVisibleTo Include="DotGram.Sql.Tests" />
 	</ItemGroup>
 
+	<!-- Native AOT and trimming: on the framework that has them, the package says it is safe for both, and its own
+	     build runs the trim and AOT analyzers, so a reflection the trimmer cannot follow fails here and not in a
+	     consumer's publish. The assembly is then marked trimmable, and a trimmed application keeps of it what it uses. -->
+	<PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
 </Project>
