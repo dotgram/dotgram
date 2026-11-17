@@ -14,15 +14,34 @@ namespace DotGram.LanguageServer;
 /// What MSBuild makes of one project: the C# files it compiles, the grammars among its additional
 /// files, the projects whose assemblies it references, and its global usings — after every glob,
 /// <c>Remove</c>, condition and import, <c>Directory.Build.props</c> and a restored package's build
-/// files among them.
+/// files among them — and whether its build runs the DotGram generator.
 /// </summary>
 sealed record ProjectEvaluation(
 	string Project,
 	IReadOnlyList<string> Compile,
 	IReadOnlyList<string> Grammars,
 	IReadOnlyList<string> References,
-	IReadOnlyList<string> Usings)
+	IReadOnlyList<string> Usings,
+	bool Generates = false)
 {
+	/// <summary>
+	/// Whether an item makes a build run the DotGram generator: the package, its analyzer, or the generator's
+	/// project referenced as an analyzer.
+	/// </summary>
+	public static bool IsGenerator(string kind, string identity, string? outputItemType)
+	{
+		return kind switch
+		{
+			"PackageReference" => string.Equals(identity, GeneratorName, StringComparison.OrdinalIgnoreCase),
+			"Analyzer"         => string.Equals(Path.GetFileName(identity), GeneratorName + ".dll", StringComparison.OrdinalIgnoreCase),
+			"ProjectReference" => string.Equals(outputItemType, "Analyzer", StringComparison.OrdinalIgnoreCase) &&
+				string.Equals(Path.GetFileName(identity.Replace('\\', '/')), GeneratorName + ".csproj", StringComparison.OrdinalIgnoreCase),
+			_                  => false,
+		};
+	}
+
+	const string GeneratorName = "DotGram";
+
 	// Injected after Microsoft.Common.targets: a target that runs nothing and returns the items, each with
 	// what it is and which project it is of. Only this target is built — and the project's InitialTargets,
 	// which MSBuild runs before any — so nothing is compiled, restored or written.
@@ -34,6 +53,8 @@ sealed record ProjectEvaluation(
 		      <_DotGramEditorItem Include="@(AdditionalFiles->'%(FullPath)')" DotGramKind="AdditionalFiles" DotGramProject="$(MSBuildProjectFullPath)" />
 		      <_DotGramEditorItem Include="@(ProjectReference->'%(FullPath)')" DotGramKind="ProjectReference" DotGramProject="$(MSBuildProjectFullPath)" />
 		      <_DotGramEditorItem Include="@(Using)" DotGramKind="Using" DotGramProject="$(MSBuildProjectFullPath)" />
+		      <_DotGramEditorItem Include="@(PackageReference)" DotGramKind="PackageReference" DotGramProject="$(MSBuildProjectFullPath)" />
+		      <_DotGramEditorItem Include="@(Analyzer->'%(FullPath)')" DotGramKind="Analyzer" DotGramProject="$(MSBuildProjectFullPath)" />
 		    </ItemGroup>
 		  </Target>
 		</Project>
@@ -94,7 +115,8 @@ sealed record ProjectEvaluation(
 				: Answer(output) ?? throw new InvalidOperationException("MSBuild gave no answer: " + output.Trim());
 
 			var items = json.RootElement.GetProperty("TargetResults").GetProperty("Run").GetProperty("Items");
-			var found = new Dictionary<string, (List<string> Compile, List<string> Grammars, List<string> References, List<string> Usings)>(paths);
+			var found     = new Dictionary<string, (List<string> Compile, List<string> Grammars, List<string> References, List<string> Usings)>(paths);
+			var generates = new HashSet<string>(paths);
 
 			foreach (var item in items.EnumerateArray())
 			{
@@ -107,6 +129,9 @@ sealed record ProjectEvaluation(
 					found[project] = lists = ([], [], [], []);
 
 				var identity = Text(item, "Identity");
+
+				if (ProjectEvaluation.IsGenerator(Text(item, "DotGramKind"), identity, Text(item, "OutputItemType")))
+					generates.Add(project);
 
 				switch (Text(item, "DotGramKind"))
 				{
@@ -138,7 +163,8 @@ sealed record ProjectEvaluation(
 					[.. lists.Compile.Distinct(paths)],
 					[.. lists.Grammars.Distinct(paths)],
 					[.. lists.References.Distinct(paths)],
-					[.. lists.Usings.Distinct(StringComparer.Ordinal)]);
+					[.. lists.Usings.Distinct(StringComparer.Ordinal)],
+					generates.Contains(project));
 
 			return result;
 		}

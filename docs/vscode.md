@@ -75,6 +75,8 @@ a flag and a CI matrix, not a rewrite.
 | `dotgram.server.path` | empty | A server to run instead of the one in the extension: a `DotGram.LanguageServer.dll`, run with `dotnet`, or an executable. |
 | `dotgram.dotnetPath` | empty | The `dotnet` that runs the server; empty asks the .NET Install Tool for .NET 10. |
 | `dotgram.trace.server` | `off` | `messages` or `verbose`: the protocol traced in the **.Gram** output panel. |
+| `dotgram.embedded.enabled` | `true` | Whether the grammars written into C# strings are analysed; off, the server is given no C# document. |
+| `dotgram.embedded.diagnostics` | `auto` | `on`, `off`, or `auto`: a grammar in C# has its diagnostics shown, except where the C# extension is installed and the project runs the DotGram generator, whose build shows them already. |
 
 The two settings that choose a program to run are the machine's: a workspace's `.vscode/settings.json` cannot set
 them, so a folder cloned from somewhere cannot make the extension run a program of its choosing.
@@ -139,17 +141,30 @@ workspace reads its file in (see [A grammar's host without a build](#a-grammars-
 editor's text, so a grammar's host gives its options and what it includes, a grammar of a referenced project
 among them. A C# file outside the workspace folders, or one not saved to disk yet, has nothing analysed.
 
+A C# document that cannot hold a grammar has nothing analysed either, so that the C# a workspace is mostly made
+of costs the server nothing beyond its text: the analysis starts only for a document that names `[Gram`, `Gram(`,
+`GramAttribute`, `StringSyntax` or `GramLanguage`, or whose project, or a project it references, declares a DSL
+with `[GramLanguage]` in a file of its own — and starts later where an edit, or a change of the workspace, makes
+it one of those. Forty ordinary files of a 400-file workspace opened one after another cost the server 0.1 s of
+processor time and 4 MB allocated, where analysing each had cost 11 s and 250 MB. A grammar whose attribute is
+written only through an alias declared in another file (`global using G = DotGram.GramAttribute;`, then `[G("…")]`)
+names none of these, and is analysed from the first edit that does. `dotgram.embedded.enabled` turns all of it off.
+
 What a grammar in C# shows:
 
 - its diagnostics, published on the C# document with the source `dotgram` and their `GRAM` ids, as the build's
   `#pragma`s and severities let them through;
 - its colours, painted over the C# document's (below);
-- hover, Go to Definition, Find All References, highlights and Rename inside it; Go to Definition on the name of a
-  `.gram` file a `[Gram("….gram")]` gives opens that file.
+- hover, Go to Definition, Find All References, highlights and Rename inside it — a name spelled with an escape,
+  `\u0057ord`, renamed where and as it is spelled; Go to Definition on the name of a `.gram` file a
+  `[Gram("….gram")]` gives opens that file, the name as the editor has it, saved or not.
 
 Everywhere else in a C# document the extension answers nothing and asks the server nothing: that is the C#
-extension's. Where the build itself runs the generator — a project that references the DotGram package, open with
-the C# extension or C# Dev Kit — a grammar's diagnostics may be shown twice, once by each.
+extension's. Where the build itself runs the generator — a project that references the DotGram package (or the
+generator's project as an analyzer), open with the C# extension or C# Dev Kit — the build shows a grammar's
+diagnostics, and `dotgram.embedded.diagnostics` set to `auto` leaves them to it rather than show each twice: the
+server reads whether a project runs the generator from what MSBuild evaluated, or from its project file where it
+was read by its folder, and the extension tells it whether the C# extension is installed.
 
 ### How the colours are painted
 
@@ -196,14 +211,16 @@ T-SQL grammar's diagnostics, every repository grammar's semantic tokens against 
 playground recordings the Visual Studio extension's answers were recorded in, asked through the protocol, hosts found
 in a folder, the TextMate grammar's words against the core's vocabulary and its symbols against the core's
 classification, and the grammars in C# documents (`EmbeddedTests`): raw, verbatim and plain strings, an alias of the
-attribute, a `StringSyntax` parameter, a grammar that includes one of a referenced project, edits, and the answers
-inside a grammar and outside it.
+attribute, a `StringSyntax` parameter, a grammar that includes one of a referenced project, edits, the answers
+inside a grammar and outside it, rename of a name an escape spells, Go to Definition on an unsaved file name, the
+documents that are not analysed, the build's diagnostics not shown twice, and readers racing edits.
 
 `npm test` in `editors/vscode`, after a build, installs the packaged `.vsix` into an extensions folder of its own,
 beside the .NET Install Tool, in a downloaded VS Code, and checks that the extension running is that package and
 carries its third-party notices; then it opens `test-fixture/` and waits for a grammar's diagnostics and semantic
 tokens, and for a C# document's grammar's diagnostic, its colours, hover and Go to Definition, and checks that the C#
-document's semantic tokens are not the extension's. VS Code and the .NET Install Tool are pinned: VS Code 1.90.0, the
+document's semantic tokens are not the extension's, and that `dotgram.embedded.enabled` turned off takes the
+grammar's diagnostics away and turned on brings them back. VS Code and the .NET Install Tool are pinned: VS Code 1.90.0, the
 oldest the manifest accepts, and the newest .NET Install Tool it runs (2.3.2); `DOTGRAM_SMOKE_VSCODE` and
 `DOTGRAM_SMOKE_RUNTIME_TOOL` (`ms-dotnettools.vscode-dotnet-runtime@<version>`) choose others for a run, and
 `DOTGRAM_VSIX` another package. `DOTGRAM_SMOKE_CSHARP` (`ms-dotnettools.csharp@<version>`; 2.50.27 is the newest that

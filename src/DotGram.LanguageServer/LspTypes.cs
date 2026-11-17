@@ -184,9 +184,10 @@ sealed record DocumentSymbol(string Name, int Kind, Range Range, Range Selection
 /// <summary>
 /// <c>dotgram/embeddedColors</c>: the colours of the grammars in one version of a C# document, five numbers
 /// to a span — its start line and character, its end line and character, and its kind's index in
-/// <paramref name="Kinds"/> — and where the grammars themselves are.
+/// <paramref name="Kinds"/> — and where the grammars themselves are. <paramref name="Session"/> says which
+/// opening of the document it is of: a later opening's is greater, and its versions start again.
 /// </summary>
-sealed record EmbeddedColorsParams(string Uri, int Version, IReadOnlyList<string> Kinds, IReadOnlyList<int> Data, IReadOnlyList<Range> Grammars);
+sealed record EmbeddedColorsParams(string Uri, long Session, int Version, IReadOnlyList<string> Kinds, IReadOnlyList<int> Data, IReadOnlyList<Range> Grammars);
 
 /// <summary>The numbers the protocol gives its enumerations, where this server sends or reads one.</summary>
 static class Lsp

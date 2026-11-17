@@ -344,6 +344,26 @@
           ],
           "default": "off",
           "description": "Traces the messages between VS Code and the .Gram language server in the output panel."
+        },
+        "dotgram.embedded.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Whether the grammars written into C# strings are analysed: their diagnostics, colours, hover and navigation. Off, the extension gives the server no C# document."
+        },
+        "dotgram.embedded.diagnostics": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "on",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Shown, except where the C# extension is installed and the project runs the DotGram generator, whose build shows them already.",
+            "Always shown.",
+            "Never shown."
+          ],
+          "default": "auto",
+          "markdownDescription": "Whether the diagnostics of a grammar written into a C# string are shown."
         }
       }
     }

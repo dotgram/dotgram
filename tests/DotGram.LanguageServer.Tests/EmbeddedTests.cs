@@ -117,8 +117,11 @@ public sealed class EmbeddedTests : IDisposable
 			Assert.Equal(Json(LspClient.Position(text, missing + "Missing".Length)), Json(diagnostic.GetProperty("range").GetProperty("end")));
 
 			// And the colours, over the grammar's own words only.
-			var colors = Spans(await ColorsAsync(client, uri, 1));
+			var told   = await ColorsAsync(client, uri, 1);
+			var colors = Spans(told);
 			var start  = text.IndexOf("Start", StringComparison.Ordinal);
+
+			Assert.Equal(client.Server.CSharpDocument(uri)!.Session, told.GetProperty("session").GetInt64());
 
 			Assert.Contains((Line(text, start), Column(text, start), "variable"), colors.Select(static span => (span.Line, span.Character, span.Kind)));
 			Assert.Contains("keyword", colors.Select(static span => span.Kind));
@@ -312,6 +315,224 @@ public sealed class EmbeddedTests : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// The session reads the document while it holds its own lock — carrying spans over an edit, keeping
+	/// what a string that stopped being a grammar showed — and the server reads the session while a request
+	/// holds the document: edits that break the attribute and mend it again, with readers all the while,
+	/// finish.
+	/// </summary>
+	[Fact]
+	public async Task Reading_while_a_grammar_is_broken_and_mended_does_not_deadlock()
+	{
+		var (client, uri) = await OpenAsync("Raw.cs", Raw);
+
+		await using (client)
+		{
+			await client.DiagnosticsAsync(uri, 1);
+
+			var document = client.Server.CSharpDocument(uri)!;
+			var at       = new LineMap(Raw).Position(Raw.IndexOf("[Gram(", StringComparison.Ordinal) + "[Gram(".Length);
+			var stop     = DateTime.UtcNow + TimeSpan.FromSeconds(6);
+			var readers  = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+			{
+				while (DateTime.UtcNow < stop)
+					document.View(document.Current);
+			}, TestContext.Current.CancellationToken));
+			var writer = Task.Run(async () =>
+			{
+				var version = 1;
+
+				while (DateTime.UtcNow < stop)
+				{
+					// Broken long enough for its analysis to keep what the grammar showed; mended at once.
+					document.Edit(++version, [new TextDocumentContentChangeEvent(",", new Range(at, at))]);
+					await Task.Delay(1200, TestContext.Current.CancellationToken);
+					document.Edit(++version, [new TextDocumentContentChangeEvent("", new Range(at, new Position(at.Line, at.Character + 1)))]);
+
+					for (var index = 0; index < 50; index++)
+					{
+						document.Edit(++version, [new TextDocumentContentChangeEvent(" ", new Range(at, at))]);
+						document.Edit(++version, [new TextDocumentContentChangeEvent("", new Range(at, new Position(at.Line, at.Character + 1)))]);
+					}
+				}
+			}, TestContext.Current.CancellationToken);
+			var all = Task.WhenAll([.. readers, writer]);
+
+			Assert.Same(all, await Task.WhenAny(all, Task.Delay(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken)));
+		}
+	}
+
+	/// <summary>
+	/// Rename, references and prepare-rename give the spans the name is spelled at in the C# text, which
+	/// are not the name's length where an escape spells it or an escape before it moves it.
+	/// </summary>
+	[Theory]
+	[InlineData("Escaped", "[Gram(\"Start = \\u0057ord & 'x'\\nWord = ['a'..'z']+\\nparse Start\\n\")]", "\\u0057ord")]
+	[InlineData("Verbatim", "[Gram(@\"Start = \"\"x\"\" & Word\nWord = ['a'..'z']+\nparse Start\n\")]", "Word")]
+	[InlineData("Raw", "[Gram(\"\"\"\n\tStart = \"x\" & Word\n\tWord = ['a'..'z']+\n\tparse Start\n\t\"\"\")]", "Word")]
+	public async Task Rename_and_references_follow_the_name_as_it_is_spelled(string form, string attribute, string use)
+	{
+		var text = "using DotGram;\n\nnamespace Parsers;\n\n" + attribute + "\npublic partial class " + form + ";\n";
+
+		var (client, uri) = await OpenAsync(form + ".cs", text);
+
+		await using (client)
+		{
+			await ColorsAsync(client, uri, 1);
+			await client.SettleAsync();
+
+			var definition = text.IndexOf("Word = ", StringComparison.Ordinal);
+			var spelled    = text.IndexOf(use, text.IndexOf("Start", StringComparison.Ordinal), StringComparison.Ordinal);
+
+			var prepared = await client.RequestAsync("textDocument/prepareRename", LspClient.At(uri, text, spelled + 1));
+
+			Assert.Equal(use, Slice(text, prepared.GetProperty("range")));
+
+			var references = await client.RequestAsync("textDocument/references", new
+			{
+				textDocument = new { uri },
+				position     = LspClient.Position(text, definition),
+				context      = new { includeDeclaration = true },
+			});
+
+			Assert.Equal(
+				new[] { use, "Word" }.Order(StringComparer.Ordinal),
+				references.EnumerateArray().Select(item => Slice(text, item.GetProperty("range"))).Order(StringComparer.Ordinal));
+
+			var rename = await client.RequestAsync("textDocument/rename", new
+			{
+				textDocument = new { uri },
+				position     = LspClient.Position(text, definition),
+				newName      = "Letters",
+			});
+
+			var edits = rename.GetProperty("changes").GetProperty(uri).EnumerateArray()
+				.Select(edit => (Start: Offset(text, edit.GetProperty("range").GetProperty("start")), End: Offset(text, edit.GetProperty("range").GetProperty("end")), Text: edit.GetProperty("newText").GetString()!))
+				.OrderByDescending(static edit => edit.Start);
+			var renamed = text;
+
+			foreach (var edit in edits)
+				renamed = renamed[..edit.Start] + edit.Text + renamed[edit.End..];
+
+			Assert.Equal(text.Replace(use, "Letters", StringComparison.Ordinal).Replace("Word = ", "Letters = ", StringComparison.Ordinal), renamed);
+		}
+	}
+
+	/// <summary>Go to Definition on the name of a grammar file reads the name the editor has, saved or not.</summary>
+	[Fact]
+	public async Task Go_to_definition_on_a_grammar_file_name_reads_the_unsaved_text()
+	{
+		const string Hosts = "using DotGram;\n\nnamespace Parsers;\n\n[Gram(\"X.gram\")]\npublic partial class Host;\n";
+
+		File.WriteAllText(Path.Combine(_folder, "X.gram"), "Start = 'x'\nparse Start\n");
+		File.WriteAllText(Path.Combine(_folder, "Y.gram"), "Start = 'y'\nparse Start\n");
+
+		var (client, uri) = await OpenAsync("Hosts.cs", Hosts, new ServerOptions());
+
+		await using (client)
+		{
+			await client.SettleAsync();
+
+			var at = new LineMap(Hosts).Position(Hosts.IndexOf("X.gram", StringComparison.Ordinal));
+
+			await client.NotifyAsync("textDocument/didChange", new
+			{
+				textDocument   = new { uri, version = 2 },
+				contentChanges = new[] { new { range = new { start = new { line = at.Line, character = at.Character }, end = new { line = at.Line, character = at.Character + 1 } }, text = "Y" } },
+			});
+			await client.SettleAsync();
+
+			var target = (await client.RequestAsync("textDocument/definition", new
+			{
+				textDocument = new { uri },
+				position     = new { line = at.Line, character = at.Character + 2 },
+			})).EnumerateArray().Single();
+
+			Assert.Equal(LspClient.Uri(Path.Combine(_folder, "Y.gram")), target.GetProperty("uri").GetString());
+		}
+	}
+
+	/// <summary>
+	/// A C# document that names no grammar, in a project that declares no DSL, has nothing analysed — no
+	/// semantic model is asked for it — until an edit writes a grammar into it.
+	/// </summary>
+	[Fact]
+	public async Task A_document_that_can_hold_no_grammar_is_not_analysed_until_it_can()
+	{
+		const string Plain = "namespace Parsers;\n\npublic static class Plain\n{\n}\n";
+
+		var (client, uri) = await OpenAsync("Plain.cs", Plain);
+
+		await using (client)
+		{
+			await client.SettleAsync();
+
+			var document = client.Server.CSharpDocument(uri)!;
+
+			Assert.False(document.Analysed);
+			Assert.Empty(client.Notifications(GramLanguageServer.EmbeddedColors));
+
+			await client.NotifyAsync("textDocument/didChange", new
+			{
+				textDocument   = new { uri, version = 2 },
+				contentChanges = new[] { new { range = new { start = new { line = 2, character = 0 }, end = new { line = 2, character = 0 } }, text = "[DotGram.Gram(\"Start = 'a' & Missing\\nparse Start\\n\")]\n" } },
+			});
+
+			await client.DiagnosticsAsync(uri, 2);
+
+			Assert.True(document.Analysed);
+		}
+	}
+
+	/// <summary>A document that only calls a DSL's method is analysed where its project declares the DSL.</summary>
+	[Fact]
+	public async Task A_document_in_a_project_that_declares_a_dsl_is_analysed()
+	{
+		File.WriteAllText(Path.Combine(_folder, "Language.cs"), "using DotGram;\n\nnamespace Parsers;\n\n[Gram(\"Start = 'a'\\nparse Start\\n\")]\n[GramLanguage(\"letters\")]\npublic static partial class Letters;\n");
+
+		var (client, uri) = await OpenAsync("Use.cs", "namespace Parsers;\n\npublic static class Use\n{\n}\n");
+
+		await using (client)
+		{
+			await client.SettleAsync();
+
+			Assert.True(client.Server.CSharpDocument(uri)!.Analysed);
+		}
+	}
+
+	/// <summary>
+	/// Where the client runs the C# extension and the project runs the DotGram generator, the build shows a
+	/// grammar's diagnostics, and by default the server does not show them a second time; asked to, it does.
+	/// </summary>
+	[Theory]
+	[InlineData(false, "auto", false)]
+	[InlineData(true, "auto", false)]
+	[InlineData(false, "on", true)]
+	public async Task The_builds_diagnostics_are_not_shown_twice(bool evaluate, string mode, bool shown)
+	{
+		File.WriteAllText(Path.Combine(_folder, "App.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <TargetFramework>net10.0</TargetFramework>\n  </PropertyGroup>\n  <ItemGroup>\n    <PackageReference Include=\"DotGram\" Version=\"0.3.0\" />\n  </ItemGroup>\n</Project>\n");
+
+		var path = Path.Combine(_folder, "Raw.cs");
+		var uri  = LspClient.Uri(path);
+
+		File.WriteAllText(path, Raw);
+
+		await using var client = new LspClient(new ServerOptions { CSharp = false, Evaluate = evaluate })
+		{
+			Options = new { trusted = true, csharpExtension = true, embeddedDiagnostics = mode },
+		};
+
+		await client.InitializeAsync(_folder);
+		await client.OpenCSharpAsync(uri, Raw);
+		await ColorsAsync(client, uri, 1);
+		await client.SettleAsync();
+
+		var published = client.Notifications("textDocument/publishDiagnostics")
+			.Any(parameters => parameters.GetProperty("uri").GetString() == uri && parameters.GetProperty("diagnostics").GetArrayLength() > 0);
+
+		Assert.Equal(shown, published);
+	}
+
 	/// <summary>A span carried over edits as Visual Studio's edge-exclusive tracking carries it.</summary>
 	[Theory]
 	[InlineData(10, 5, 0, 0, "ab", 12, 5)]   // inserted before: moved
@@ -330,14 +551,14 @@ public sealed class EmbeddedTests : IDisposable
 		Assert.Equal(new TextSpan(movedStart, movedLength), OpenCSharp.Translate(new TextSpan(start, length), [second], second.Text.Length));
 	}
 
-	async Task<(LspClient Client, string Uri)> OpenAsync(string name, string text)
+	async Task<(LspClient Client, string Uri)> OpenAsync(string name, string text, ServerOptions? options = null)
 	{
 		var path = Path.Combine(_folder, name);
 
 		File.WriteAllText(path, text);
 
 		var uri    = LspClient.Uri(path);
-		var client = await LspClient.StartAsync(null, _folder);
+		var client = await LspClient.StartAsync(options, _folder);
 
 		await client.OpenCSharpAsync(uri, text);
 
@@ -369,6 +590,18 @@ public sealed class EmbeddedTests : IDisposable
 			result.Add((data[at], data[at + 1], data[at + 2], data[at + 3], kinds[data[at + 4]]));
 
 		return result;
+	}
+
+	static int Offset(string text, JsonElement position)
+	{
+		return new LineMap(text).Offset(new Position(position.GetProperty("line").GetInt32(), position.GetProperty("character").GetInt32()));
+	}
+
+	static string Slice(string text, JsonElement range)
+	{
+		var start = Offset(text, range.GetProperty("start"));
+
+		return text[start..Offset(text, range.GetProperty("end"))];
 	}
 
 	static int Line(string text, int offset)

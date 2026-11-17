@@ -45,5 +45,7 @@ the runtime, which finds an installed one or downloads it; `dotgram.dotnetPath` 
 | `dotgram.server.path` | A language server to run instead of the one the extension carries. |
 | `dotgram.dotnetPath` | The `dotnet` that runs the server. |
 | `dotgram.trace.server` | `messages` or `verbose` traces the protocol in the **.Gram** output panel. |
+| `dotgram.embedded.enabled` | Whether grammars written into C# strings are analysed (on by default). |
+| `dotgram.embedded.diagnostics` | `auto` (default), `on` or `off`: whether their diagnostics are shown; `auto` leaves them to the build where the C# extension runs the DotGram generator. |
 
 Building from source, and troubleshooting: [docs/vscode.md](https://github.com/dotgram/dotgram/blob/main/docs/vscode.md).
