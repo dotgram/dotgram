@@ -177,6 +177,8 @@ public sealed class RecoveringTurnWalkTests
 		{
 			var cut = input.Substring(0, input.LastIndexOf(close[0]));
 
+			// A nest that is not closed is refused, not stepped over: `(x, x` has no list to end.
+			Assert.False(Read(assembly, cut, Form.String).Read);
 			Assert.Equal(Read(assembly, cut, Form.String), Read(assembly, cut, Form.Reader));
 		}
 	}
