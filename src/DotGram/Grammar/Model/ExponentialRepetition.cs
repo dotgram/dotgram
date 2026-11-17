@@ -74,7 +74,8 @@ static class ExponentialRepetition
 	/// <param name="Rule">The rule the repetition is written in, as the author wrote it.</param>
 	/// <param name="Loop">The repetition.</param>
 	/// <param name="Witness">The shortest text it reads in two ways, in the grammar's notation.</param>
-	public sealed record Told(RuleSymbol Rule, Node Loop, string Witness);
+	/// <param name="Walked">Every rule the repetition was found in: the rule itself and each clone a `with` made of it, so that a versioned grammar can say which of its publications read it.</param>
+	public sealed record Told(RuleSymbol Rule, Node Loop, string Witness, List<RuleSymbol> Walked);
 
 	/// <summary>What the analysis found, and how much of the grammar it could not see.</summary>
 	/// <param name="Found">The repetitions told, the innermost of each nest, each once.</param>
@@ -96,16 +97,104 @@ static class ExponentialRepetition
 	{
 		var reported = new List<GramDiagnostic>();
 
+		// A grammar that publishes parsers under different substitutions checks each of them, and
+		// a finding is only useful with the parsers it is in.
+		var versioned = graph.Publications.Any(static one => one.Rebindings.Count > 0);
+
 		foreach (var told in Check(graph, lexical).Found)
 			reported.Add(new GramDiagnostic(
 				GramCompiler.ExponentialRepetitions,
 				$"The repetition '{Spelled(told.Loop)}' in '{told.Rule.Name}' can read {told.Witness} in two ways, so a " +
-				"refused input is read again for every way of cutting it: exponentially many times (docs/syntax.md §3.3).",
+				"refused input is read again for every way of cutting it: exponentially many times (docs/syntax.md §3.3)." +
+				(versioned ? InPublications(graph, told) : ""),
 				told.Rule.Declaration?.At.Position ?? 0,
 				told.Rule.Declaration?.At.Length ?? 0,
 				GramSeverity.Warning));
 
 		return reported;
+	}
+
+	/// <summary>
+	/// The publications whose parsers read a repetition, each with the values its `with` gives, so
+	/// that an ambiguity only some versions have is not left for the author to hunt for.
+	/// </summary>
+	static string InPublications(RecognitionGraph graph, Told told)
+	{
+		var names = new List<string>();
+
+		foreach (var publication in graph.Publications)
+		{
+			var reached = Reached(graph, publication);
+
+			if (!told.Walked.Any(reached.Contains))
+				continue;
+
+			var values = string.Join(", ", publication.OwnRebindings.Select(one => $"{one.Left.Name} = {Value(graph, one.Right)}"));
+
+			names.Add(values.Length == 0 ? $"'{publication.MethodName}'" : $"'{publication.MethodName}' (with {values})");
+		}
+
+		if (names.Count == 0)
+			return "";
+
+		return (names.Count == graph.Publications.Count ? " It is in every publication: " : " It is in the publication" + (names.Count == 1 ? " " : "s ")) +
+			string.Join(", ", names) + ".";
+	}
+
+	/// <summary>
+	/// What a `with` gives a name, as the author wrote it: a rule the author named by its name, and
+	/// one the compiler made for a written-out value, `with (Version = 'A')`, by that value.
+	/// </summary>
+	static string Value(RecognitionGraph graph, RuleSymbol given)
+	{
+		if (given.Name.Contains("_With", StringComparison.Ordinal) && given.Declaration?.Body is Parsing.Expr.Literal(var isChar, var text))
+			return isChar ? $"'{text}'" : $"\"{text}\"";
+
+		return given.Name;
+	}
+
+	/// <summary>
+	/// The rules one publication's parser reads. Parsers that differ only in what their `with`
+	/// substitutes for the rules a `when` asks about share one machine, and an alternative some
+	/// of them keep stands behind a test of their number: what comes after that test is not
+	/// read by a parser the test refuses.
+	/// </summary>
+	static HashSet<RuleSymbol> Reached(RecognitionGraph graph, Publication publication)
+	{
+		var seen    = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		pending.Push(publication.Rule);
+
+		while (pending.Count > 0)
+		{
+			var rule = pending.Pop();
+
+			if (!seen.Add(rule) || !graph.Bodies.TryGetValue(rule, out var body))
+				continue;
+
+			var nodes = new Stack<Node>();
+
+			nodes.Push(body);
+
+			while (nodes.Count > 0)
+			{
+				var node = nodes.Pop();
+
+				if (node is Node.Call(var called, _))
+					pending.Push(called);
+
+				foreach (var child in node.Children)
+				{
+					nodes.Push(child);
+
+					if (node is Node.Sequence && child is Node.Reading(var readings) && publication.Reading < 64 && (readings & (1UL << publication.Reading)) == 0)
+						break;
+				}
+			}
+		}
+
+		return seen;
 	}
 
 	/// <summary>A repetition as the grammar writes it, cut where it is long.</summary>
@@ -141,7 +230,7 @@ static class ExponentialRepetition
 		var unfailing = new Unfailing(over, context);
 		var lifts     = new Lifts(over);
 		var found   = new List<Told>();
-		var said    = new HashSet<(object, string, int)>();
+		var said    = new Dictionary<(object, string, int), Told>();
 		var loops   = 0;
 		var skipped = 0;
 
@@ -204,8 +293,19 @@ static class ExponentialRepetition
 				// marked repetition is a part of its origin of its own, known by where it was lifted
 				// among the parts its parent gave, which a clone gives in the same order.
 				// A clone made by a rebinding carries the declaration it was made from.
-				if (said.Add(((object?)origin.Declaration ?? origin, lifts.Path(rule), occurrences[place.Loop])))
-					found.Add(new Told(origin, place.Loop, witness));
+				var key = ((object?)origin.Declaration ?? origin, lifts.Path(rule), occurrences[place.Loop]);
+
+				if (said.TryGetValue(key, out var again))
+				{
+					again.Walked.Add(rule);
+				}
+				else
+				{
+					var one = new Told(origin, place.Loop, witness, [rule]);
+
+					said[key] = one;
+					found.Add(one);
+				}
 			}
 		}
 

@@ -555,6 +555,23 @@ public sealed class ExponentialRepetitionTests
 		Assert.Contains("in 'Run'", Assert.Single(told).Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A grammar that publishes under different versions says which of them reads the repetition:
+	/// the ambiguity is in the parser of one version and not in the other.
+	/// </summary>
+	[Fact]
+	public void The_warning_names_the_publication_that_reads_the_repetition()
+	{
+		const string grammar = "Version = 'A' | 'B'\nBoth = 'x'\nOld = (Both | Both & Both)+ & ';'\nNew = 'y'+ & ';'\n" +
+			"Start = (when Version is 'A' & Old) | (when Version is 'B' & New)\n" +
+			"parse Start with (Version = 'A') as Early\nparse Start with (Version = 'B') as Late\n";
+
+		var told = Assert.Single(Compiled(grammar), static one => one.Id == GramCompiler.ExponentialRepetitions);
+
+		Assert.Contains("'Early' (with Version = 'A')", told.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain("'Late'", told.Message, StringComparison.Ordinal);
+	}
+
 	/// <summary>Over kinds the warning is said too, in a rule that gives back.</summary>
 	[Fact]
 	public void The_warning_is_said_over_kinds()
