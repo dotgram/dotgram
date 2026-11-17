@@ -55,6 +55,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	readonly ConcurrentDictionary<int, IReadOnlyList<GramCompletionItem>> _completions = new();
 
 	ImmutableDictionary<string, OpenGrammar> _documents = ImmutableDictionary.Create<string, OpenGrammar>(StringComparer.Ordinal);
+	ImmutableDictionary<string, OpenCSharp>  _csharp    = ImmutableDictionary.Create<string, OpenCSharp>(StringComparer.Ordinal);
 	Task<FolderWorkspace>                    _load;
 	IReadOnlyList<string>                    _folders = [];
 	FolderWorkspace.Evaluator?               _evaluate;
@@ -89,6 +90,18 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	{
 		return Volatile.Read(ref _documents).TryGetValue(uri, out var document) ? document : null;
 	}
+
+	/// <summary>An open C# document, whose grammars are analysed; null where there is none by that URI.</summary>
+	public OpenCSharp? CSharpDocument(string uri)
+	{
+		return Volatile.Read(ref _csharp).TryGetValue(uri, out var document) ? document : null;
+	}
+
+	/// <summary>The language a client gives a C# document, which is a document with grammars written in its strings.</summary>
+	public const string CSharpLanguage = "csharp";
+
+	/// <summary>The language a client gives a <c>.gram</c> document.</summary>
+	public const string GramLanguage = "gram";
 
 	// ----- Notifications, in order, on the reading thread.
 
@@ -134,6 +147,13 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	{
 		var item     = parameters.TextDocument;
 		var path     = FileUris.ToPath(item.Uri);
+
+		if (item.LanguageId == CSharpLanguage)
+		{
+			OpenCSharpDocument(item, path);
+			return;
+		}
+
 		var document = new OpenGrammar(item.Uri, path, new GramVersion(item.Version, Microsoft.CodeAnalysis.Text.SourceText.From(item.Text)), this);
 
 		document.Published += Published;
@@ -159,6 +179,12 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	void Change(DidChangeTextDocumentParams parameters)
 	{
+		if (CSharpDocument(parameters.TextDocument.Uri) is { } csharp)
+		{
+			csharp.Edit(parameters.TextDocument.Version, parameters.ContentChanges);
+			return;
+		}
+
 		if (Document(parameters.TextDocument.Uri) is not { } document)
 			return;
 
@@ -171,6 +197,12 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	void Close(DidCloseTextDocumentParams parameters)
 	{
 		var uri = parameters.TextDocument.Uri;
+
+		if (CSharpDocument(uri) is { } csharp)
+		{
+			CloseCSharpDocument(csharp);
+			return;
+		}
 
 		if (Document(uri) is not { } document)
 			return;
@@ -261,6 +293,177 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		return Paths((folders ?? []).Select(static folder => (string?)folder.Uri));
 	}
 
+	// ----- C# documents: the grammars written into their strings.
+
+	/// <summary>
+	/// A C# document was opened: its grammars are analysed once the folders are read, in the project the
+	/// workspace reads its file in; one in no project has nothing analysed.
+	/// </summary>
+	void OpenCSharpDocument(TextDocumentItem item, string? path)
+	{
+		var document = new OpenCSharp(item.Uri, path, new GramVersion(item.Version, Microsoft.CodeAnalysis.Text.SourceText.From(item.Text)), this);
+
+		document.Changed += EmbeddedChanged;
+		ImmutableInterlocked.Update(ref _csharp, static (documents, pair) => documents.SetItem(pair.Uri, pair.Document), (item.Uri, Document: document));
+
+		_options.Scheduler.Run(async () =>
+		{
+			var folder = await Folder.ConfigureAwait(false);
+
+			document.Start(folder);
+		});
+	}
+
+	void CloseCSharpDocument(OpenCSharp document)
+	{
+		ImmutableInterlocked.TryRemove(ref _csharp, document.Uri, out _);
+
+		lock (document.Telling)
+		{
+			document.Close();
+
+			// What was published of its grammars goes with it, as a grammar's does.
+			if (document.ToldDiagnostics is { Count: > 0 })
+				_ = _rpc.NotifyAsync(
+					"textDocument/publishDiagnostics",
+					new PublishDiagnosticsParams(document.Uri, null, []),
+					LspJson.Default.PublishDiagnosticsParams);
+
+			document.ToldDiagnostics = null;
+		}
+	}
+
+	/// <summary>
+	/// What is known of a C# document's grammars changed: the colours are told for the version, and the
+	/// diagnostics where they are a new analysis's — the ones carried over an edit are where they were,
+	/// and the client moves what it shows with the edit itself.
+	/// </summary>
+	/// <remarks>Told under the document's own lock, so that what is told of it arrives in the order it was known.</remarks>
+	void EmbeddedChanged(OpenCSharp document, GramVersion version)
+	{
+		lock (document.Telling)
+		{
+			var view = document.View(version);
+
+			if (!view.Current)
+				return;
+
+			_ = _rpc.NotifyAsync(EmbeddedColors, EmbeddedMap.Colors(document.Uri, version, view), LspJson.Default.EmbeddedColorsParams);
+
+			var told = document.ToldDiagnostics;
+
+			if (ReferenceEquals(told, view.Diagnostics) || view.Diagnostics.Count == 0 && (told is null || told.Count == 0))
+			{
+				document.ToldDiagnostics = view.Diagnostics;
+				return;
+			}
+
+			document.ToldDiagnostics = view.Diagnostics;
+
+			_ = _rpc.NotifyAsync(
+				"textDocument/publishDiagnostics",
+				new PublishDiagnosticsParams(document.Uri, version.Number, EmbeddedMap.Diagnostics(view.Diagnostics, version)),
+				LspJson.Default.PublishDiagnosticsParams);
+		}
+	}
+
+	/// <summary>The notification that carries a C# document's grammar colours to the client.</summary>
+	public const string EmbeddedColors = "dotgram/embeddedColors";
+
+	async Task<RpcReply> EmbeddedHoverAsync(OpenCSharp document, GramVersion version, Position position, CancellationToken cancellationToken)
+	{
+		var view   = document.View(version);
+		var offset = version.Lines.Offset(position);
+
+		if (!EmbeddedMap.InGrammar(view, offset))
+			return RpcReply.Null;
+
+		var answer = await GramQuickInfoProvider.EmbeddedAsync(
+			version.String, view, offset, CSharpQuickInfo(document.FilePath), cancellationToken).ConfigureAwait(false);
+
+		return answer is null ? RpcReply.Null : RpcReply.Ok(HoverMap.Map(answer, offset, version.Lines), LspJson.Default.Hover);
+	}
+
+	/// <summary>
+	/// Go to Definition in a C# document: from a grammar, where the grammar's name or C# goes; from the name
+	/// of a <c>.gram</c> file a <c>[Gram]</c> gives, into that file; from anywhere else nowhere, which is the
+	/// C# extension's to answer.
+	/// </summary>
+	async Task<RpcReply> EmbeddedDefinitionAsync(OpenCSharp document, GramVersion version, Position position, CancellationToken cancellationToken)
+	{
+		var view   = document.View(version);
+		var offset = version.Lines.Offset(position);
+		var roslyn = CSharp(document.FilePath);
+
+		if (!view.Current)
+			return RpcReply.Null;
+
+		GramLocation? target;
+
+		if (EmbeddedMap.InGrammar(view, offset))
+			target = await GramNavigationProvider.DefinitionAsync(
+				version.String, () => document.View(version), offset, roslyn?.Core, cancellationToken).ConfigureAwait(false);
+		else if (roslyn is not null && await roslyn.Core.GrammarFileSourceAsync(offset, cancellationToken).ConfigureAwait(false) is { } file)
+			target = new GramLocation.InFile(file.FilePath, file.Line, file.Column);
+		else
+			return RpcReply.Null;
+
+		var location = target switch
+		{
+			null                           => null,
+			GramLocation.InDocument inside => new Location(document.Uri, EmbeddedMap.Definition(document.View(version), inside.Position, version.Lines)),
+			_                              => await NavigationMap.ElsewhereAsync(target, _store, cancellationToken).ConfigureAwait(false),
+		};
+
+		return location is null ? RpcReply.Null : RpcReply.Ok<Location[]>([location], LspJson.Default.LocationArray);
+	}
+
+	RpcReply EmbeddedReferences(OpenCSharp document, GramVersion version, Position position, bool includeDeclaration)
+	{
+		var found = GramNavigationProvider.References(document.View(version), version.Lines.Offset(position));
+
+		return found is null
+			? RpcReply.Null
+			: RpcReply.Ok(
+				NavigationMap.References(found, includeDeclaration, document.Uri, version.Lines, _store, CancellationToken.None),
+				LspJson.Default.LocationArray);
+	}
+
+	RpcReply EmbeddedHighlights(OpenCSharp document, GramVersion version, Position position)
+	{
+		var highlights = GramNavigationProvider.Highlights(document.View(version), version.Lines.Offset(position));
+
+		return highlights.Count == 0
+			? RpcReply.Null
+			: RpcReply.Ok(NavigationMap.Highlights(highlights, version.Lines), LspJson.Default.DocumentHighlightArray);
+	}
+
+	RpcReply EmbeddedPrepareRename(OpenCSharp document, GramVersion version, Position position)
+	{
+		var offset = version.Lines.Offset(position);
+
+		if (GramNavigationProvider.References(document.View(version), offset) is not { } found)
+			return RpcReply.Null;
+
+		if (GramRenameProvider.Refusal(found) is { } refusal)
+			return RpcReply.Error(Lsp.RequestFailed, refusal);
+
+		return RpcReply.Ok(RenameMap.Prepare(found, offset, version.Lines), LspJson.Default.PrepareRenameResult);
+	}
+
+	RpcReply EmbeddedRename(OpenCSharp document, GramVersion version, Position position, string newName)
+	{
+		if (GramNavigationProvider.References(document.View(version), version.Lines.Offset(position)) is not { } found)
+			return RpcReply.Null;
+
+		var rename = GramRenameProvider.Rename(found, newName);
+
+		if (rename.Conflicts.Count > 0)
+			return RpcReply.Error(Lsp.RequestFailed, string.Join(" ", rename.Conflicts));
+
+		return RpcReply.Ok(RenameMap.Edit(rename, document.Uri, version.Lines), LspJson.Default.WorkspaceEdit);
+	}
+
 	/// <summary>The workspace's pending updates; a test's barrier is their <see cref="WorkspaceUpdates.Drained"/>.</summary>
 	internal WorkspaceUpdates Updates => _updates;
 
@@ -315,6 +518,10 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 			case "textDocument/hover":
 				var hover = Read(parameters, LspJson.Default.TextDocumentPositionParams);
+
+				if (CSharpDocument(hover.TextDocument.Uri) is { } hovered)
+					return OnCSharp(hovered, (version, token) => EmbeddedHoverAsync(hovered, version, hover.Position, token));
+
 				return On(hover.TextDocument, (document, version, token) => HoverAsync(document, version, hover.Position, token));
 
 			case "textDocument/signatureHelp":
@@ -323,23 +530,44 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 			case "textDocument/definition":
 				var definition = Read(parameters, LspJson.Default.TextDocumentPositionParams);
+
+				if (CSharpDocument(definition.TextDocument.Uri) is { } defined)
+					return OnCSharp(defined, (version, token) => EmbeddedDefinitionAsync(defined, version, definition.Position, token));
+
 				return On(definition.TextDocument, (document, version, token) => DefinitionAsync(document, version, definition.Position, token));
 
 			case "textDocument/references":
 				var references = Read(parameters, LspJson.Default.ReferenceParams);
+
+				if (CSharpDocument(references.TextDocument.Uri) is { } referenced)
+					return OnCSharp(referenced, (version, _) => Task.FromResult(
+						EmbeddedReferences(referenced, version, references.Position, references.Context?.IncludeDeclaration ?? true)));
+
 				return On(references.TextDocument, (document, version, token) =>
 					ReferencesAsync(document, version, references.Position, references.Context?.IncludeDeclaration ?? true, token));
 
 			case "textDocument/documentHighlight":
 				var highlight = Read(parameters, LspJson.Default.TextDocumentPositionParams);
+
+				if (CSharpDocument(highlight.TextDocument.Uri) is { } highlighted)
+					return OnCSharp(highlighted, (version, _) => Task.FromResult(EmbeddedHighlights(highlighted, version, highlight.Position)));
+
 				return On(highlight.TextDocument, (document, version, _) => Task.FromResult(Highlights(document, version, highlight.Position)));
 
 			case "textDocument/prepareRename":
 				var prepare = Read(parameters, LspJson.Default.TextDocumentPositionParams);
+
+				if (CSharpDocument(prepare.TextDocument.Uri) is { } prepared)
+					return OnCSharp(prepared, (version, _) => Task.FromResult(EmbeddedPrepareRename(prepared, version, prepare.Position)));
+
 				return On(prepare.TextDocument, (document, version, token) => PrepareRenameAsync(document, version, prepare.Position, token));
 
 			case "textDocument/rename":
 				var rename = Read(parameters, LspJson.Default.RenameParams);
+
+				if (CSharpDocument(rename.TextDocument.Uri) is { } renamed)
+					return OnCSharp(renamed, (version, _) => Task.FromResult(EmbeddedRename(renamed, version, rename.Position, rename.NewName)));
+
 				return On(rename.TextDocument, (document, version, token) => RenameAsync(document, version, rename.Position, rename.NewName, token));
 
 			case "textDocument/foldingRange":
@@ -364,6 +592,16 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		var version = document.Current;
 
 		return token => answer(document, version, token);
+	}
+
+	/// <summary>A request about a C# document, bound to its version as the request was read.</summary>
+	static Func<CancellationToken, Task<RpcReply>> OnCSharp(
+		OpenCSharp document,
+		Func<GramVersion, CancellationToken, Task<RpcReply>> answer)
+	{
+		var version = document.Current;
+
+		return token => answer(version, token);
 	}
 
 	RpcReply Initialize(InitializeParams parameters)
@@ -396,7 +634,13 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 			new RenameOptions(true),
 			true,
 			true,
-			new SemanticTokensOptions(new SemanticTokensLegend(SemanticTokensMap.TokenTypes, SemanticTokensMap.TokenModifiers), true, false),
+			// A grammar's own document only: a C# document's tokens are the C# extension's, and a client lets
+			// one provider colour a document. Its grammars are told as dotgram/embeddedColors instead.
+			new SemanticTokensOptions(
+				new SemanticTokensLegend(SemanticTokensMap.TokenTypes, SemanticTokensMap.TokenModifiers),
+				true,
+				false,
+				[new DocumentFilter(GramLanguage)]),
 			new WorkspaceServerCapabilities(new WorkspaceFoldersServerCapabilities(true, true)));
 
 		return RpcReply.Ok(new InitializeResult(capabilities, new ServerInfo("DotGram", Version)), LspJson.Default.InitializeResult);
@@ -567,18 +811,29 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	RoslynFeatures? CSharp(OpenGrammar document)
 	{
+		return CSharp(document.FilePath);
+	}
+
+	/// <summary>Roslyn's answers about C# in the grammars of a file, asked of the project the workspace reads the file in.</summary>
+	RoslynFeatures? CSharp(string? filePath)
+	{
 		if (!_options.CSharp || Loaded is not { } loaded)
 			return null;
 
-		return new RoslynFeatures(new RoslynGramCompletion(loaded.Workspace, () => document.FilePath));
+		return new RoslynFeatures(new RoslynGramCompletion(loaded.Workspace, () => filePath));
 	}
 
 	Func<string, int, CancellationToken, Task<RoslynGramQuickInfo?>>? CSharpQuickInfo(OpenGrammar document)
 	{
+		return CSharpQuickInfo(document.FilePath);
+	}
+
+	Func<string, int, CancellationToken, Task<RoslynGramQuickInfo?>>? CSharpQuickInfo(string? filePath)
+	{
 		if (!_options.CSharp)
 			return _options.CSharpQuickInfo;
 
-		var roslyn = CSharp(document);
+		var roslyn = CSharp(filePath);
 
 		return roslyn is null ? null : roslyn.QuickInfoAsync;
 	}

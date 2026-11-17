@@ -291,6 +291,20 @@ sealed class LspClient : IAsyncDisposable
 		}
 	}
 
+	/// <summary>Opens a C# document, and returns once the server holds it.</summary>
+	public async Task OpenCSharpAsync(string uri, string text, int version = 1)
+	{
+		await NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = "csharp", version, text } });
+
+		var deadline = DateTime.UtcNow + Timeout;
+
+		while (Server.CSharpDocument(uri) is null)
+		{
+			Assert.True(DateTime.UtcNow < deadline, $"{uri} was not opened in {Timeout}.");
+			await Task.Delay(5);
+		}
+	}
+
 	/// <summary>A position as the protocol has it, of an offset in a text.</summary>
 	public static object Position(string text, int offset)
 	{

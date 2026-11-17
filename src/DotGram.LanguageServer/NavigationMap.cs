@@ -33,6 +33,16 @@ static class NavigationMap
 
 				return new Location(uri, lines.Range(target.Position, definition.Length));
 
+			default:
+				return await ElsewhereAsync(location, store, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	/// <summary>A definition outside the document navigated from: a file, an included grammar, the standard library, C#.</summary>
+	public static async Task<Location?> ElsewhereAsync(GramLocation location, IIncludedGrammarStore store, CancellationToken cancellationToken)
+	{
+		switch (location)
+		{
 			case GramLocation.InFile target:
 				return new Location(FileUri(target.Path), Point(target.Line, target.Column));
 
