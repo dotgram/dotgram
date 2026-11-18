@@ -357,6 +357,7 @@ static partial class CSharpEmitter
 			Replay                = replay,
 			SpanCaptures          = options.SpanCaptures,
 			PrefixTables          = options.PrefixTables,
+			WordTables            = options.WordTables,
 			ExpectedTables        = expectedTables,
 			ExpectedSets          = expectedSets,
 			Tracing               = tracing,

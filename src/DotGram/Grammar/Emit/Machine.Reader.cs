@@ -1952,7 +1952,7 @@ sealed partial class Machine
 	/// Whether the value built so far arrived as an argument, which every part of a folded
 	/// rule but its body does.
 	/// </param>
-	sealed class ReaderWriter(
+	sealed partial class ReaderWriter(
 		Machine machine, RuleSymbol owner, IReadOnlyList<int>? given = null,
 		IReadOnlyList<int>? taken = null, bool handed = false, bool analyzing = false)
 	{
@@ -2577,7 +2577,15 @@ sealed partial class Machine
 						if (i == 0 && _sealsLead)
 							code.Line("var sl = ways.Cursor;");
 
+						// A choice the look after it keeps from going on into a word may be a choice of
+						// words, which its dispatch reads through a table (Machine.Words).
+						_wordLook = i + 1 < parts.Count && parts[i] is Node.Choice { Selection: null } && parts[i + 1] is Node.Lookahead { IsPositive: false } look
+							? look
+							: null;
+
 						Emit(code, parts[i], follows[i], still);
+
+						_wordLook = null;
 
 						// Where the value begins, for a reading that begins where it is told: the entry
 						// reads the trivia at the position it was handed and the rule after it, and this
@@ -3431,6 +3439,11 @@ sealed partial class Machine
 		/// </remarks>
 		void EmitChoice(Writer code, IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
 		{
+			// The look after this choice, where the sequence it stands in has one: this choice's alone.
+			var look = _wordLook;
+
+			_wordLook = null;
+
 			if (alternatives.Count == 1)
 			{
 				Emit(code, alternatives[0], following);
@@ -3458,6 +3471,12 @@ sealed partial class Machine
 				// group stands; with more, each would want its own set, and all are named.
 				var asked = Asked(alternatives, groups);
 
+				// The groups whose alternatives are all words are tried through a table of them, as
+				// they would have been tried one after another (Machine.Words).
+				var widest = Widest(groups);
+				var words  = asked is null && widest < 0 ? PlanWords(alternatives, groups, following, look) : null;
+				var chosen = words is null ? null : $"wg{_calls++}";
+
 				_character = true;
 
 				using (code.Block($"if ({machine.RawPast("p")})"))
@@ -3470,14 +3489,16 @@ sealed partial class Machine
 
 				code.Line($"c = {machine.ReadAt("p")};");
 
+				if (chosen is not null)
+					code.Line($"var {chosen} = -1;");
+
 				// The widest group is the one the jump table exists for: name its characters
 				// and the compiler builds a table spanning them, an indirect branch the
 				// processor guesses at. Where that group is one alternative whose reading
 				// begins with a call, it needs no labels — the call tests the character
 				// itself, and a character no group holds is a character that call refuses.
 				// What is left is a handful of labels the compiler compares in a line.
-				var widest = Widest(groups);
-				var apart  = new PushedApart(this);
+				var apart = new PushedApart(this);
 
 				using (code.Block("switch (c)"))
 				{
@@ -3499,6 +3520,18 @@ sealed partial class Machine
 							}
 
 						code.Line(labels);
+
+						// A group of words is where its words begin in the table.
+						if (words is not null && words.Groups[g] >= 0)
+						{
+							using (code.Indent())
+							{
+								code.Line($"{chosen} = {words.Groups[g].ToString(CultureInfo.InvariantCulture)};");
+								code.Line("break;");
+							}
+
+							continue;
+						}
 
 						using (code.Indent())
 						using (code.Block(""))
@@ -3563,6 +3596,9 @@ sealed partial class Machine
 				}
 
 				apart.Done();
+
+				if (words is not null)
+					EmitWords(code, words, chosen!);
 
 				return;
 			}
@@ -6987,9 +7023,10 @@ sealed partial class Machine
 		/// The statement that records a refusal here, asking first where a reading may be quiet —
 		/// through Refused_DotGram where the quiet reading writes down how far it got (KeepsDoors).
 		/// </summary>
-		string Refusal(string expected, bool furthest = true)
+		/// <param name="at">Where the refusal stands: the position the reading is at, unless told otherwise.</param>
+		string Refusal(string expected, bool furthest = true, string at = "p")
 		{
-			var record = Record(expected, furthest);
+			var record = Record(expected, furthest, at);
 
 			// Inside the trivia, and what it calls, a refusal is recorded only where the input ran
 			// out (§7.5): a turn given back, a look refused, a rule refused there say nothing, and
@@ -7000,7 +7037,7 @@ sealed partial class Machine
 		}
 
 		/// <summary>The statement that records a refusal here, whatever stands around it (<see cref="Refusal"/>).</summary>
-		string Record(string expected, bool furthest = true)
+		string Record(string expected, bool furthest = true, string at = "p")
 		{
 			// A numbered set is passed as its number, and built only where the refusal is recorded
 			// (ExpectedSets.CallsRefused): most refusals stand behind the furthest one, inside a
@@ -7015,21 +7052,21 @@ sealed partial class Machine
 				{
 					machine._expectedSets.CallsRefused = true;
 
-					return $"{ExpectedSets.Refused}(ref failure, p, {number});";
+					return $"{ExpectedSets.Refused}(ref failure, {at}, {number});";
 				}
 
 				machine._expectedSets.CallsRefuse = true;
 
 				return machine.Quiets
-					? $"if (!failure.Quiet) {ExpectedSets.Refuse}(ref failure, p, {number});"
-					: $"{ExpectedSets.Refuse}(ref failure, p, {number});";
+					? $"if (!failure.Quiet) {ExpectedSets.Refuse}(ref failure, {at}, {number});"
+					: $"{ExpectedSets.Refuse}(ref failure, {at}, {number});";
 			}
 
 			return machine.KeepsDoors && furthest
-				? $"Refused_DotGram(ref failure, p, {expected});"
+				? $"Refused_DotGram(ref failure, {at}, {expected});"
 				: machine.Quiets
-				? $"if (!failure.Quiet) {Refusing}(ref failure, p, {expected});"
-				: $"{Refusing}(ref failure, p, {expected});";
+				? $"if (!failure.Quiet) {Refusing}(ref failure, {at}, {expected});"
+				: $"{Refusing}(ref failure, {at}, {expected});";
 		}
 
 		/// <summary>Whether the input ran out where the reading stands: at the end of the text, or inside a literal that marked it (<see cref="Refusal"/>).</summary>

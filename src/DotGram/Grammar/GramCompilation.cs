@@ -185,6 +185,9 @@ sealed class GramCompilerOptions
 	/// <inheritdoc cref="TargetTuning.PrefixTables"/>
 	public bool PrefixTables { get => Target.PrefixTables; set => Target.PrefixTables = value; }
 
+	/// <inheritdoc cref="TargetTuning.WordTables"/>
+	public bool WordTables { get => Target.WordTables; set => Target.WordTables = value; }
+
 	/// <inheritdoc cref="TargetTuning.SourceFileSize"/>
 	public int SourceFileSize { get => Target.SourceFileSize; set => Target.SourceFileSize = value; }
 
@@ -462,6 +465,13 @@ sealed class TargetTuning
 	/// alternatives they replace.
 	/// </summary>
 	public bool PrefixTables { get; set; } = true;
+
+	/// <summary>
+	/// Whether the reader tries a choice of words through a table of them rather than a method a
+	/// word. On by default and not offered in the attribute; off is for a test that holds the table
+	/// to the alternatives it replaces.
+	/// </summary>
+	public bool WordTables { get; set; } = true;
 
 	/// <summary>Separate complete engine/reader groups at this character count; zero (the default) keeps one source file.</summary>
 	public int SourceFileSize { get; set; }
