@@ -30,7 +30,9 @@ namespace DotGram.Tests.Fragments;
 /// <para>
 /// Compiled into DotGram.Tests, under the oldest Roslyn the generator loads into, and into
 /// DotGram.Cli.Tests, under the newest, which the tool carries: the two runs must give the same
-/// table, since the lowering fixes the language version it parses with.
+/// table, since the lowering fixes the language version it parses with. That table is checked in
+/// (<see cref="CommittedPath"/>) and both runs are held to it, so a change to what is portable, and
+/// a difference between the two Roslyns, each show up as a failure and as a diff.
 /// </para>
 /// </remarks>
 static class FragmentCensus
@@ -43,6 +45,47 @@ static class FragmentCensus
 	}
 
 	static IReadOnlyList<Found>? _fragments;
+
+	/// <summary>The environment variable that makes a run write the census instead of comparing with it.</summary>
+	public const string WriteVariable = "DOTGRAM_WRITE_FRAGMENT_CENSUS";
+
+	/// <summary>The census as checked in: what both Roslyns must read the shipped fragments as.</summary>
+	public static string CommittedPath()
+	{
+		return Path.Combine(Root(), "tests", "DotGram.Tests.Slow", "Fragments", "FragmentCensus.md");
+	}
+
+	/// <summary>
+	/// How the census read here differs from the one checked in, or <c>null</c> where it does not:
+	/// the first line that differs, and how to write the file anew.
+	/// </summary>
+	public static string? Disagreement(string table)
+	{
+		var path = CommittedPath();
+
+		if (Environment.GetEnvironmentVariable(WriteVariable) == "1")
+		{
+			File.WriteAllText(path, table.Replace("\n", "\r\n"), new UTF8Encoding(false));
+
+			return null;
+		}
+
+		var committed = File.Exists(path) ? File.ReadAllText(path).Replace("\r\n", "\n") : "";
+		var expected  = committed.Split('\n');
+		var actual    = table.Split('\n');
+
+		for (var i = 0; i < Math.Max(expected.Length, actual.Length); i++)
+		{
+			var was = i < expected.Length ? expected[i] : "<end>";
+			var now = i < actual.Length   ? actual[i]   : "<end>";
+
+			if (was != now)
+				return $"The fragment census read here differs from {path} at line {i + 1}:\n  checked in: {was}\n  read here:  {now}\n" +
+					$"If the change is meant, write the file anew with {WriteVariable}=1 in DotGram.Tests.Slow and commit it.";
+		}
+
+		return null;
+	}
 
 	/// <summary>
 	/// The census as text: one table of fragments per group, one of the forms that block them.

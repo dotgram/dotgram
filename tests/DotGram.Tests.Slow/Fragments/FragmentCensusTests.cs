@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 
 using DotGram.Language;
@@ -10,7 +9,8 @@ namespace DotGram.Tests.Fragments;
 
 /// <summary>
 /// Every fragment the repository ships, read into the fragment tree: C#'s parser reads each one
-/// whole, the standard library's among them, and the census of what is portable is written out.
+/// whole, the standard library's among them, and the census of what is portable is held to the one
+/// checked in.
 /// </summary>
 public sealed class FragmentCensusTests(ITestOutputHelper output)
 {
@@ -61,17 +61,21 @@ public sealed class FragmentCensusTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// The census, written next to the test binaries and to the test's output; it asserts nothing,
-	/// since every edit of a shipped grammar's fragments would change it.
+	/// The census, held to the table checked in beside this file, and the same table DotGram.Cli.Tests
+	/// holds to under the tool's Roslyn: the verdict on every shipped fragment is the one on record,
+	/// under the generator's floor and under the newest alike.
 	/// </summary>
 	[Fact]
-	public void The_census_is_written()
+	public void The_census_is_the_one_checked_in()
 	{
 		var table = FragmentCensus.Table(FragmentCensus.Fragments());
 
-		File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "FragmentCensus.md"), table);
 		output.WriteLine(table);
 
 		Assert.StartsWith("| Grammars |", table, StringComparison.Ordinal);
+
+		var difference = FragmentCensus.Disagreement(table);
+
+		Assert.True(difference is null, difference);
 	}
 }

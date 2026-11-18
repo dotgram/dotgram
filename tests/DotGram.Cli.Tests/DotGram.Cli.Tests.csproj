@@ -17,9 +17,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- The census of the shipped grammars' host fragments, which DotGram.Tests reads under the
+		<!-- The census of the shipped grammars' host fragments, which DotGram.Tests.Slow reads under the
 		     generator's floor Roslyn: here it is read under the tool's (FragmentLoweringVersionTests). -->
-		<Compile Include="..\DotGram.Tests\Fragments\FragmentCensus.cs" Link="Shared\FragmentCensus.cs" />
+		<Compile Include="..\DotGram.Tests.Slow\Fragments\FragmentCensus.cs" Link="Shared\FragmentCensus.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 
 using DotGram.Language;
@@ -16,9 +15,9 @@ namespace DotGram.Cli.Tests;
 /// the oldest the generator loads into: what is portable must not depend on which of them asked.
 /// </summary>
 /// <remarks>
-/// The census is the same code in both projects (FragmentCensus.cs, linked), and each writes its
-/// table next to its binaries, where the two can be compared. Both parse at the language version
-/// the lowering fixes; neither asks its parser's own default.
+/// The census is the same code in both projects (FragmentCensus.cs, linked), and each holds its
+/// table to the one checked in, so that the two are held to each other. Both parse at the language
+/// version the lowering fixes; neither asks its parser's own default.
 /// </remarks>
 public sealed class FragmentLoweringVersionTests(ITestOutputHelper output)
 {
@@ -39,13 +38,14 @@ public sealed class FragmentLoweringVersionTests(ITestOutputHelper output)
 	}
 
 	[Fact]
-	public void The_census_is_written()
+	public void The_census_is_the_one_checked_in()
 	{
 		var table = FragmentCensus.Table(FragmentCensus.Fragments());
 
-		File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "FragmentCensus.md"), table);
 		output.WriteLine(table);
 
-		Assert.StartsWith("| Grammars |", table, StringComparison.Ordinal);
+		var difference = FragmentCensus.Disagreement(table);
+
+		Assert.True(difference is null, difference);
 	}
 }
