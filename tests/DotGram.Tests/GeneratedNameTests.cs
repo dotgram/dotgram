@@ -541,6 +541,7 @@ public sealed class GeneratedNameTests
 	[InlineData("trace", "R = x: 'a'\nparse R as Read stream\nfind R as Find stream", "trace")]
 	[InlineData("unwalked", "R = 'a'\nparse R as RecognizeFurther", "")]
 	[InlineData("unwalked", "R = 'a' | \"ab\"\nparse R as RecognizeRanOut\nfind R as RecognizeAgreeing", "")]
+	[InlineData("words", "R = (\"add\"i | \"alter\"i | \"drop\"i | \"set\"i) & ?!['a'..'z' | 'A'..'Z']\nparse R as RecognizeWord\nfind R as Words0", "")]
 	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "")]
 	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "tape,buffered")]
 	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "Tape")]

@@ -69,6 +69,7 @@ static partial class CSharpEmitter
 		"RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}", "RecognizeUnrecorded{v}",
 		"RecognizeAgreeing{v}", "RecognizeClass{v}#", "RecognizeBits{v}#", "RecognizeBit{v}", "RecognizeGroups{v}#",
 		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#",
+		"RecognizeWord{v}", "Words{v}#",
 		"Materialize{v}", "MaterializePart{v}#", "MaterializeConstruct{v}#Part#", "MaterializeDirect{v}",
 		"MaterializeDirectPart{v}#", "MaterializeDirectReach{v}", "MaterializeDirectReaches{v}#",
 		"MaterializeDirectAsksMarks{v}", "MaterializeDirectArm{v}#",
