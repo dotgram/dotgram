@@ -108,6 +108,9 @@ sealed record MachineSettings
 	/// <summary>Whether a choice may be decided by a table of prefixes (<see cref="GramCompilerOptions.PrefixTables"/>).</summary>
 	public bool PrefixTables { get; init; }
 
+	/// <summary>Whether the reader may try a choice of words through a table of them (<see cref="GramCompilerOptions.WordTables"/>).</summary>
+	public bool WordTables { get; init; }
+
 	/// <summary>The diagnostic lists shared by sibling machines of one parser class; null where there is one machine.</summary>
 	public Dictionary<string, int>? ExpectedTables { get; init; }
 
