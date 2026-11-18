@@ -4513,11 +4513,13 @@ namespace DotGram.Snapshots
 
 		// A refusal of a numbered set: the set is built only where the refusal records it, so that a
 		// parse that succeeds, which records next to nothing, never decodes a set.
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		static void RefusedSet_DotGram(ref Failure failure, int at, int id)
 		{
 			Refused_DotGram(ref failure, at, failure.Quiet || failure.Looking > 0 || at < failure.Position ? null : ExpectedSet_DotGram(id));
 		}
 
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		static void RefuseSet_DotGram(ref Failure failure, int at, int id)
 		{
 			Refuse_DotGram(ref failure, at, failure.Looking > 0 || at < failure.Position ? null : ExpectedSet_DotGram(id));

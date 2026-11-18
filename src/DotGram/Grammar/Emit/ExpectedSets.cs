@@ -164,7 +164,8 @@ sealed class ExpectedSets
 		// The refusals by number: what Refuse_DotGram and Refused_DotGram do with a set, asking for
 		// it only where they read it. Neither reads it inside a look, nor behind the furthest
 		// refusal, and Refused_DotGram not in a quiet reading either; there they are given null,
-		// which they read nowhere that the set would have been read.
+		// which they read nowhere that the set would have been read. Inlined, as Refused_DotGram is: the
+		// T-SQL stand's refusing rows read a few per cent slower through one call more at every site.
 		if (CallsRefused || CallsRefuse)
 		{
 			file.Line("// A refusal of a numbered set: the set is built only where the refusal records it, so that a");
@@ -173,6 +174,7 @@ sealed class ExpectedSets
 
 		if (CallsRefused)
 		{
+			file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 			using (file.Block($"static void {Refused}(ref Failure failure, int at, int id)"))
 				file.Line($"Refused_DotGram(ref failure, at, failure.Quiet || failure.Looking > 0 || at < failure.Position ? null : {Accessor}(id));");
 
@@ -181,6 +183,7 @@ sealed class ExpectedSets
 
 		if (CallsRefuse)
 		{
+			file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 			using (file.Block($"static void {Refuse}(ref Failure failure, int at, int id)"))
 				file.Line($"Refuse_DotGram(ref failure, at, failure.Looking > 0 || at < failure.Position ? null : {Accessor}(id));");
 
