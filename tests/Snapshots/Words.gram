@@ -1,0 +1,32 @@
+// A choice of words, the shape a list of keywords takes, and what the reader makes of it: the
+// switch on the first character, and a group of words as where its words begin in `Words0`,
+// tried by one loop in the order the alternatives name them (Machine.Words). What each word would
+// have refused is RecognizeWord_DotGram's, out of line; the switch and the loop are all a list of
+// any length costs the method that reads it.
+
+Char = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
+
+// `int` begins `intersect` and `into`, and `exec` begins `execute`: those groups are read with a
+// way back, as the alternatives were, and a word after them that does not fit comes back for the
+// longer word. No two of `drop`, `deny` and `dump` begin alike, and that group opens none. `pg_`
+// takes any run of word characters after it, and the group it begins is written as it was.
+
+Keyword = ("int"i | "intersect"i | "into"i | "is"i | "exec"i | "execute"i
+          | "drop"i | "deny"i | "dump"i | "pg_"i & Char* | "kill"i) & ?!Char
+
+Statement = (Keyword & ' ')* & ';'
+
+// A namespace with a word boundary weaves the checks of §4.6 around every word, behind it and
+// after it, and the same table reads them.
+
+namespace Spaced
+{
+	wordboundary = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']
+	trivia       = { ' '* }
+
+	Key  = "select"i | "selected"i | "from"i | "where"i | "with"i
+	List = (Key | { ['0'..'9']+ })+ & '.'
+}
+
+parse Statement
+parse Spaced.List
