@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 
+using DotGram.Grammar;
 using DotGram.Grammar.Fragments;
 
 using Microsoft.CodeAnalysis;
@@ -32,9 +33,10 @@ namespace DotGram.Language;
 /// than that is a parse error under either, and is refused as <c>Unparsable</c> by both.
 /// </para>
 /// <para>
-/// Lowering never fails: whatever C# says that the tree has no form for is an
-/// <see cref="Fragment.Unportable"/> at its place, and a C# build never reads the tree to print a
-/// fragment it can print as written.
+/// Lowering does not fail on text C# reads: whatever C# says that the tree has no form for is an
+/// <see cref="Fragment.Unportable"/> at its place, however deep the fragment goes (the walk moves
+/// to a stack of its own where the one it is on runs low, <see cref="DeepStack"/>), and a C# build
+/// never reads the tree to print a fragment it can print as written.
 /// </para>
 /// </remarks>
 static class RoslynFragmentLowering
@@ -92,6 +94,10 @@ static class RoslynFragmentLowering
 
 	static Fragment Lowering(ExpressionSyntax node, List<Fragment.Unportable> refusals)
 	{
+		// A chain of a thousand terms is a thousand levels, on a stack that on Windows is a megabyte.
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Lowering(node, refusals));
+
 		var span = Of(node.Span);
 
 		switch (node)
