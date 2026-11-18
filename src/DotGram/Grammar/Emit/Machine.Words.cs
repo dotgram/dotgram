@@ -324,7 +324,8 @@ sealed partial class Machine
 
 				offsets[g] = -1;
 
-				if (mode is null)
+				// The word count is stored in one char; a larger group keeps the plain emission.
+				if (mode is null || members.Count > 0xFFFF)
 					continue;
 
 				offsets[g] = table.Length;

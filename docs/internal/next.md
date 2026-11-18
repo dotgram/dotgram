@@ -641,6 +641,16 @@ code either way, was worth 7% on a capture-heavy parse of the URL grammar and no
 all on a grammar a fifth the size. Read that as the standing recommendation this section
 was making, now with a number and with the shape of when it applies.
 
+## Where the word table does not apply
+
+A choice of words is emitted as a table only when every alternative is a plain literal.
+An alternative guarded by `when` (a versioned keyword or a C# guard), an alternative that
+calls a rule, and a `recover` without a factory all keep the plain emission. The T-SQL
+and SQL keyword choices are written exactly that way, so the shipped grammars gain only
+the lazy expected sets from this change; the table pays off in grammars whose keyword
+choices are plain literals. Extending it to guarded alternatives is the next step if the
+T-SQL numbers call for it.
+
 ## First single-machine performance pass
 
 The URL benchmark initially exposed parser-storage allocation rather than automaton
