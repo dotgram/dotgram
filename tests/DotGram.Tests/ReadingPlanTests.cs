@@ -117,6 +117,48 @@ public class ReadingPlanTests
 		Assert.Single(printed.Sources);
 	}
 
+	/// <summary>
+	/// The readers of every snapshot ask the plan whether a choice or a repetition writes a way, and
+	/// the plan has an answer for each place they are printed in: a place it did not decide throws,
+	/// which no snapshot does. Held here by the counts of what was decided and by which proof.
+	/// </summary>
+	[Fact]
+	public void The_plan_decides_every_way_the_snapshot_readers_write()
+	{
+		var proofs = new SortedDictionary<WriteProof, int>();
+
+		foreach (var (_, plan) in Plans(Language))
+			foreach (var machine in plan.Machines)
+				if (machine.Writes is { } writes)
+					foreach (var proof in writes.Proofs())
+						proofs[proof] = proofs.TryGetValue(proof, out var count) ? count + 1 : 1;
+
+		Assert.Equal(ExpectedProofs, string.Join(", ", proofs.Select(static one => $"{one.Key} {one.Value}")));
+	}
+
+	/// <summary>A place the plan did not decide is never decided while printing, and one place is never decided two ways.</summary>
+	[Fact]
+	public void A_write_decision_the_plan_does_not_hold_throws()
+	{
+		var plan    = GramCompiler.Compile("A = '(' & A & ')' | 'x'\nparse A", new GramCompilerOptions { Language = Language }).Plan!;
+		var decided = plan.Machines.First(static one => one.Writes is not null).Writes!;
+		var rule    = new RuleSymbol("A", new GrammarNamespace("", null, isRoot: true), null);
+		var node    = new DotGram.Grammar.Model.Node.Empty();
+		var other   = new WriteDecisions();
+
+		Assert.Throws<InvalidOperationException>(() => decided.Of(rule, node, 0, 0));
+
+		other.Record(rule, node, 0, 1, WriteDecision.Writes);
+		other.Record(rule, node, 0, 1, WriteDecision.Writes);
+
+		Assert.Throws<InvalidOperationException>(() => other.Record(rule, node, 0, 1, WriteDecision.By(WriteProof.Fixed)));
+		Assert.Equal(WriteDecision.Writes, other.Agreed(rule, node, 0));
+
+		other.Record(rule, node, 0, 2, WriteDecision.By(WriteProof.Fixed));
+
+		Assert.Null(other.Agreed(rule, node, 0));
+	}
+
 	/// <summary>Every machine of every snapshot rendering, with its plan, under one key a machine.</summary>
 	static List<(string Key, MachinePlan Plan)> Machines(CSharpLanguage language)
 	{
@@ -331,6 +373,9 @@ public class ReadingPlanTests
 		"no jumps: Words: Recognize_DotGram_Statement: reader (C# as it is targeted here has no jumps)",
 		"no jumps: Words: Recognize_DotGram_Spaced_List: reader (C# as it is targeted here has no jumps)",
 	];
+
+	/// <summary>How many places of the snapshot readers each proof settled, and how many write a way (None).</summary>
+	const string ExpectedProofs = "None 33, LiteralRun 3, Exclusive 46, SettledText 1, Fixed 4, NeverGivesBack 60, NeverGivesBackPast 1";
 
 	static readonly CSharpLanguage Language = new(scanner: RoslynCSharpScanner.Instance);
 

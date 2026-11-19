@@ -89,6 +89,9 @@ sealed class MachinePlan
 
 	/// <summary>Whether its readers defer building after a loop's second give-back, and where they do not; null where it has no readers.</summary>
 	public DeferralPlan? Deferral { get; init; }
+
+	/// <summary>Whether each choice and repetition its readers read writes a way on the tape, and the proof where not; null where it has no readers.</summary>
+	public WriteDecisions? Writes { get; init; }
 }
 
 /// <summary>How a machine's readers carry what they read.</summary>

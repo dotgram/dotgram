@@ -394,8 +394,7 @@ sealed partial class Machine
 			if (door || Closing(members, following) is not null)
 				return null;
 
-			return LiteralRun(members, members.Count - 1, following.Taught.Plain) != members.Count &&
-				!machine.Exclusive(members) && !machine.SettledText(members, following.Taught.Plain);
+			return WritesAWay(members, following);
 		}
 
 		/// <summary>

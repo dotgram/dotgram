@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
+using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar.Emit;
 
@@ -358,6 +359,15 @@ sealed partial class Machine
 	/// </summary>
 	HashSet<string>                                        _expectedUsed;
 
+	/// <summary>The proofs that a choice or a repetition of the readers writes no way (<see cref="WriteProofs"/>).</summary>
+	readonly WriteProofs                                   _proofs;
+
+	/// <summary>
+	/// What the readers decided about writing a way, place by place, as the first pass over the rules
+	/// found it; what the printing pass reads once the machine is planned (<see cref="MachinePlan.Writes"/>).
+	/// </summary>
+	internal WriteDecisions Writes { get; } = new();
+
 	/// <summary>One call per distinct set, so the same list is not numbered twice.</summary>
 	readonly Dictionary<string,string>                     _expectedByItems = new(StringComparer.Ordinal);
 
@@ -528,6 +538,7 @@ sealed partial class Machine
 		_ownsExpectedSets = settings.ExpectedSets is null;
 		_expectedUsed     = _expectedSets.Used;
 		_graph            = graph;
+		_proofs           = new WriteProofs(graph);
 		_results          = results;
 		_rules            = settings.Only ?? graph.Rules;
 		_guardValues      = HasTypedGuards(graph);
