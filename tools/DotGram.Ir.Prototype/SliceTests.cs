@@ -22,6 +22,18 @@ public sealed class SliceTests
 		return [.. Cases.Fixtures.Keys];
 	}
 
+	/// <summary>Every fixture, with each way a TypeScript parser keeps its frames.</summary>
+	public static TheoryData<string, SliceFrames> NamesAndFrames()
+	{
+		var data = new TheoryData<string, SliceFrames>();
+
+		foreach (var name in Cases.Fixtures.Keys)
+			foreach (var frames in Enum.GetValues<SliceFrames>())
+				data.Add(name, frames);
+
+		return data;
+	}
+
 	static (IrProgram Program, List<SliceAnswer> Expected, List<string> GuardAnswers) Expected(Cases.Fixture fixture, IReadOnlyList<string> inputs)
 	{
 		var program  = Reading.Program(fixture.Grammar);
@@ -42,15 +54,15 @@ public sealed class SliceTests
 	}
 
 	[Theory]
-	[MemberData(nameof(Names))]
-	public void TypeScriptReadsAsTheEvaluator(string name)
+	[MemberData(nameof(NamesAndFrames))]
+	public void TypeScriptReadsAsTheEvaluator(string name, SliceFrames frames)
 	{
 		var fixture = Cases.Fixtures[name];
 		var inputs  = Cases.InputsOf(name);
 
 		var (program, expected, answers) = Expected(fixture, inputs);
 
-		Same(inputs, expected, Slices.TypeScript(name, program, fixture.Entry, inputs, guardAnswers: answers));
+		Same(inputs, expected, Slices.TypeScript(name, program, fixture.Entry, inputs, guardAnswers: answers, frames: frames));
 	}
 
 	[Theory]
@@ -84,15 +96,18 @@ public sealed class SliceTests
 		}
 	}
 
-	[Fact]
-	public void JsonOnItsCorpus_TypeScriptReadsAsTheEvaluator()
+	[Theory]
+	[InlineData(SliceFrames.None)]
+	[InlineData(SliceFrames.Recursive)]
+	[InlineData(SliceFrames.All)]
+	public void JsonOnItsCorpus_TypeScriptReadsAsTheEvaluator(SliceFrames frames)
 	{
 		var fixture = Cases.Fixtures["Json"];
 		var inputs  = HostTests.JsonCorpus().Select(static one => one.Text).ToList();
 
 		var (program, expected, answers) = Expected(fixture, inputs);
 
-		Same(inputs, expected, Slices.TypeScript("JsonCorpus", program, fixture.Entry, inputs, guardAnswers: answers));
+		Same(inputs, expected, Slices.TypeScript("JsonCorpus", program, fixture.Entry, inputs, guardAnswers: answers, frames: frames));
 	}
 
 	[Fact]
@@ -111,10 +126,18 @@ public sealed class SliceTests
 	/// the calls made so far and no other reading tried. C has nothing to throw, and what a host
 	/// function that cannot build is to do there is not decided by this slice.
 	/// </summary>
-	[Fact]
-	public void AnExceptionLeavesTheTypeScriptReadingAsItLeavesTheCSharpOne()
+	[Theory]
+	[InlineData(SliceFrames.None)]
+	[InlineData(SliceFrames.Recursive)]
+	[InlineData(SliceFrames.All)]
+	public void AnExceptionLeavesTheTypeScriptReadingAsItLeavesTheCSharpOne(SliceFrames frames)
 	{
-		var answer = Slices.TypeScript("Throws", Reading.Program(Grammars.ActionTiming), "ParseStart", ["xy"], throwOn: "c1(\"xy\")").Single();
+		// Read twice: the frames a thrown reading leaves behind are not the next reading's.
+		var answers = Slices.TypeScript("Throws", Reading.Program(Grammars.ActionTiming), "ParseStart", ["xy", "xy"], throwOn: "c1(\"xy\")", frames: frames);
+		var answer  = answers[0];
+
+		Assert.Equal(2, answers.Count);
+		Assert.Equal(answer.Head, answers[1].Head);
 
 		Assert.Equal("T thrown by c1(\"xy\")", answer.Head);
 		Assert.Equal(["c1(\"xy\")"], answer.Log);
