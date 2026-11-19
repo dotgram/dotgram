@@ -70,6 +70,15 @@ sealed class CSharpLanguage : ITargetLanguage
 	/// <summary>A <see cref="char"/>, which is what a C# string is made of.</summary>
 	public TextUnit TextUnit => TextUnit.Utf16CodeUnit;
 
+	/// <summary>What reads the library's own C#, whatever the author's is read by.</summary>
+	public ITargetLanguage ForLibrary => Library.Reader;
+
+	/// <summary>Made when first asked for, and once.</summary>
+	static class Library
+	{
+		internal static readonly CSharpLanguage Reader = Reading(StandardLibrary.Scanner);
+	}
+
 	public KnownType Classify(string spelling, out TypeSpellingForm form)
 	{
 		if (spelling is null)
@@ -295,7 +304,7 @@ sealed class CSharpLanguage : ITargetLanguage
 		return _names?.UnboundIn(fragment, imports);
 	}
 
-	public string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, DotGram.Grammar.Emit.EmitContext context)
+	public string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, EmitContext context)
 	{
 		return DotGram.Grammar.Emit.CSharpEmitter.Emit(graph, options, context);
 	}
@@ -357,7 +366,7 @@ sealed class CSharpLanguage : ITargetLanguage
 		return said;
 	}
 
-	public DotGram.Grammar.Emit.GramNames NamesOf(Model.RecognitionGraph graph, IReadOnlyList<Model.RecognitionGraph> more, GramCompilerOptions options)
+	public GramNames NamesOf(Model.RecognitionGraph graph, IReadOnlyList<Model.RecognitionGraph> more, GramCompilerOptions options)
 	{
 		return DotGram.Grammar.Emit.CSharpEmitter.NamesOf(
 			graph, more, ClassOf(options), options.Namespace, DotGram.Grammar.Emit.CSharpEmitter.ClassesOf(options), options.Lexical);

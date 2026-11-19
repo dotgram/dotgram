@@ -294,7 +294,10 @@ public sealed class DslRecognitionTraceTests
 			new System.Collections.Generic.Dictionary<RuleSymbol, string>(),
 			[],
 			[],
-			[]);
+			[])
+		{
+			Language = DotGram.Grammar.CSharpLanguage.Instance,
+		};
 		var publication = new Publication(
 			PublishKind.Parse,
 			rule,
@@ -386,7 +389,10 @@ public sealed class DslRecognitionTraceTests
 				new System.Collections.Generic.Dictionary<RuleSymbol, string>(),
 				[],
 				[],
-				[]);
+				[])
+			{
+				Language = DotGram.Grammar.CSharpLanguage.Instance,
+			};
 			var publication = new Publication(
 				PublishKind.Parse,
 				start,
@@ -809,7 +815,10 @@ public sealed class DslRecognitionTraceTests
 			new System.Collections.Generic.Dictionary<RuleSymbol, string>(),
 			[],
 			[],
-			[]);
+			[])
+		{
+			Language = DotGram.Grammar.CSharpLanguage.Instance,
+		};
 		var publication = new Publication(
 			PublishKind.Parse,
 			start,
@@ -1078,7 +1087,10 @@ public sealed class DslRecognitionTraceTests
 			new System.Collections.Generic.Dictionary<RuleSymbol, string>(),
 			[],
 			[],
-			[]);
+			[])
+		{
+			Language = DotGram.Grammar.CSharpLanguage.Instance,
+		};
 		var publication = new Publication(
 			PublishKind.Parse,
 			rule,

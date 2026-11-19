@@ -2,10 +2,10 @@
 
 using DotGram.Grammar.Model;
 
-namespace DotGram.Grammar.Emit;
+namespace DotGram.Grammar;
 
 /// <summary>
-/// What <see cref="CSharpEmitter.Emit"/> is handed beside the options: what the compiler worked
+/// What <see cref="ITargetLanguage.Emit"/> is handed beside the options: what the compiler worked
 /// out about the grammar before emission, and the collections emission adds to.
 /// </summary>
 /// <remarks>

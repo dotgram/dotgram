@@ -44,7 +44,7 @@ readonly record struct ClassificationTarget(
 /// a namespace's included, and is ambiguous where two answer to it; a capture is one written in the rule
 /// itself, not inside a constructing group of it, which keeps its captures to itself.
 /// </remarks>
-static class ClassificationTargets
+static partial class ClassificationTargets
 {
 	public const string Malformed      = "GRAM6001";
 	public const string UnknownRule    = "GRAM6002";
@@ -54,8 +54,9 @@ static class ClassificationTargets
 
 	/// <summary>Each target bound, in the order given.</summary>
 	/// <param name="grammar">The grammar's own text, without what it includes.</param>
-	/// <param name="scanner">What reads the grammar's C# blocks, as it is read anywhere else.</param>
-	public static IReadOnlyList<ClassificationTarget> Bind(string grammar, IReadOnlyList<string> targets, ICSharpScanner? scanner)
+	/// <param name="targets">The targets, each as it was written.</param>
+	/// <param name="language">What reads the grammar's host fragments, as they are read anywhere else.</param>
+	public static IReadOnlyList<ClassificationTarget> BindIn(string grammar, IReadOnlyList<string> targets, ITargetLanguage language)
 	{
 		if (grammar is null)
 			throw new ArgumentNullException(nameof(grammar));
@@ -63,7 +64,10 @@ static class ClassificationTargets
 		if (targets is null)
 			throw new ArgumentNullException(nameof(targets));
 
-		var parsed = GramParser.Parse(GramLexer.Tokenize(grammar, scanner, GramCompiler.CutsOf(null, null), grammar.Length, null));
+		if (language is null)
+			throw new ArgumentNullException(nameof(language));
+
+		var parsed = GramParser.Parse(GramLexer.TokenizeIn(language, grammar, GramCompiler.CutsOf(null, null), grammar.Length, language.ForLibrary));
 		var rules  = new List<Decl.Rule>();
 
 		Collect(parsed.File.Decls, rules);

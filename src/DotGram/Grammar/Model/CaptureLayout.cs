@@ -430,7 +430,7 @@ sealed record Recovery(Node Sync, string? Factory)
 	/// not a spelling inside a string or a comment, and an identifier written with an <c>@</c>
 	/// or a Unicode escape is the name it spells. One that reads nothing where the grammar has none.
 	/// </summary>
-	public ITargetLanguage Language { get; init; } = CSharpLanguage.Instance;
+	public required ITargetLanguage Language { get; init; }
 
 	/// <summary>Where the grammar wrote the <c>recover</c>, for what is said about it.</summary>
 	public Parsing.Location At { get; init; }

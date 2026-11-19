@@ -1,4 +1,4 @@
-# The shared language core
+﻿# The shared language core
 
 This folder and `../Grammar/` are where the DotGram language is understood: how a grammar is tokenized, parsed, bound
 and checked, and — for an editor — classified, navigated and described. The source generator compiles them to write
@@ -44,6 +44,8 @@ tests of this folder have projects of their own.
 ## How this is enforced, and what is not enforced
 
 Two projects compile these folders alone and are referenced by nothing; their output is the build succeeding.
+(A third of the same kind, `src/DotGram.Grammar.Front.Guard`, holds a line inside `Grammar/`: its stages compiled
+without `Grammar/Emit/**` and `Grammar/CSharp/**`, so none of them reaches the language a parser is generated in.)
 `src/DotGram.Grammar.Guard` compiles `Grammar/**` for netstandard2.0, as the generator does, with no reference but
 the polyfills and `System.Memory`, so a Roslyn type there does not build, nor a `using` of this folder or of
 `Generation/**`. (A bare `using Microsoft.CodeAnalysis;` does: the polyfills declare their `EmbeddedAttribute` in that

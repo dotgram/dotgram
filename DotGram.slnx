@@ -61,6 +61,9 @@
 		<Project Path="src/DotGram.Finance/DotGram.Finance.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="src/DotGram.Grammar.Front.Guard/DotGram.Grammar.Front.Guard.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram.Grammar.Guard/DotGram.Grammar.Guard.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>

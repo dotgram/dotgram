@@ -181,6 +181,7 @@ public sealed class GraphIntegrityTests
 			graph.Publications,
 			graph.Diagnostics)
 		{
+			Language = graph.Language,
 			Powers = new Dictionary<Node, int> { [new Node.Literal("elsewhere")] = 1 },
 		};
 

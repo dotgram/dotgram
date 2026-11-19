@@ -26,7 +26,7 @@ namespace DotGram.Grammar.Parsing;
 /// something else.
 /// </para>
 /// </remarks>
-static class GramLexer
+static partial class GramLexer
 {
 	public const string UnterminatedCharacter  = "GRAM1001";
 	public const string UnterminatedString     = "GRAM1002";
@@ -41,62 +41,19 @@ static class GramLexer
 	public const string SigilNeedsName         = "GRAM1011";
 	public const string ReservedName           = "GRAM1012";
 
-	/// <param name="scanner">
-	/// Finds where an inline <c>@(...)</c> ends. Null means the grammar may not use
-	/// one — reported as a diagnostic rather than a crash, since a caller that only
-	/// exercises the grammar side legitimately has no C# lexer to offer.
-	/// </param>
-	public static TokenList Tokenize(string text, ICSharpScanner? scanner = null)
-	{
-		if (text is null)
-			throw new ArgumentNullException(nameof(text));
-
-		return Lex(text, CSharpLanguage.Reading(scanner));
-	}
-
 	/// <summary>
-	/// Reads a text whose tail from <paramref name="splicedAt"/> on was spliced in by the
-	/// compiler — the standard library — and is read with the scanner that comes with it.
+	/// Reads a text whose tail from <paramref name="splicedAt"/> on was spliced in by the compiler —
+	/// the standard library — with the language that reads the host fragments of each part: the
+	/// author's <paramref name="language"/>, and the one the spliced tail was written to be read by.
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// The author's text keeps the author's scanner, and keeps being refused a <c>@(...)</c>
-	/// where none was supplied (GRAM1007): that contract is about their text. The library's
-	/// C# was written to be read by <see cref="StandardLibrary.Scanner"/>, and is, whatever
-	/// the caller brought.
-	/// </para>
-	/// <para>
-	/// The two parts are read as two texts and joined, so that nothing in the author's part — a
+	/// The parts are read as texts of their own and joined, so that nothing in the author's part — a
 	/// comment, a literal, an escape, an inline expression — can run on into the library and be
 	/// closed by what it finds there. An unterminated construct ends, and is reported, at the
 	/// end of the author's own text. The tokens are one list with an end-of-file token between
-	/// the parts, which the parser stops at in the same way.
-	/// </para>
+	/// the parts, which the parser stops at in the same way. <paramref name="cuts"/> are the offsets
+	/// at which each further text of its own begins: the grammars the host included after the author's.
 	/// </remarks>
-	public static TokenList Tokenize(string text, ICSharpScanner? scanner, int splicedAt, ICSharpScanner? spliced)
-	{
-		return Tokenize(text, scanner, null, splicedAt, spliced);
-	}
-
-	/// <summary>
-	/// As above, for a text that also has grammars included by the host after the author's own:
-	/// <paramref name="cuts"/> are the offsets at which each text of its own begins (the end of the
-	/// author's, and of each included body with its wrapper), and every one is read apart from the
-	/// rest.
-	/// </summary>
-	public static TokenList Tokenize(
-		string text, ICSharpScanner? scanner, IReadOnlyList<int>? cuts, int splicedAt, ICSharpScanner? spliced)
-	{
-		if (text is null)
-			throw new ArgumentNullException(nameof(text));
-
-		return TokenizeIn(CSharpLanguage.Reading(scanner), text, cuts, splicedAt, CSharpLanguage.Reading(spliced));
-	}
-
-	/// <summary>
-	/// The same, with the language that reads the host fragments of each part: the author's
-	/// <paramref name="language"/>, and the one the spliced tail was written to be read by.
-	/// </summary>
 	public static TokenList TokenizeIn(
 		ITargetLanguage language, string text, IReadOnlyList<int>? cuts, int splicedAt, ITargetLanguage spliced)
 	{

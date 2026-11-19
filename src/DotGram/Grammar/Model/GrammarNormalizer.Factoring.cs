@@ -478,6 +478,7 @@ sealed partial class GrammarNormalizer
 	{
 		return new(_rules, _bodies, _nullable, _results, _types, [], _publications, _diagnostics)
 		{
+			Language = _language,
 			Folds = _folds,
 			Trivia = _trivia,
 			Recoveries = _recoveries,

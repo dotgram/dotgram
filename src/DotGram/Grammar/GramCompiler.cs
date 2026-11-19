@@ -2,15 +2,14 @@
 using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
-using DotGram.Grammar.Emit;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar;
 
 /// <summary>
-/// Compiles grammar text into C# source. This is the whole grammar half: everything a
-/// caller needs, in one call, with no Roslyn involved.
+/// Compiles grammar text into the source of a parser. This is the whole grammar half: everything
+/// a caller needs, in one call, with no Roslyn involved.
 /// </summary>
 /// <remarks>
 /// The source generator is a shell over this — it reads <c>.gram</c> files out of the
@@ -19,7 +18,7 @@ namespace DotGram.Grammar;
 /// the same method and gets the same answer, which is the point: generated code can be
 /// obtained as a string and inspected as code.
 /// </remarks>
-static class GramCompiler
+static partial class GramCompiler
 {
 	/// <summary>
 	/// Reads one grammar: the first two stages, with the standard library spliced on.
@@ -32,27 +31,18 @@ static class GramCompiler
 	/// method so that whoever reads a grammar ahead of compiling it — the generator, for its
 	/// questions — reads the same text.
 	/// </remarks>
-	public static ParseResult Read(
-		string grammarText, ICSharpScanner? scanner = null, int? own = null, IReadOnlyList<int>? cuts = null)
-	{
-		if (grammarText is null)
-			throw new ArgumentNullException(nameof(grammarText));
-
-		return Read(CSharpLanguage.Reading(scanner), grammarText, own, cuts);
-	}
-
-	/// <summary>The same, with the language that reads the grammar's host fragments.</summary>
-	static ParseResult Read(ITargetLanguage language, string grammarText, int? own, IReadOnlyList<int>? cuts)
+	/// <param name="language">The language that reads the grammar's host fragments.</param>
+	/// <param name="grammarText">Contents of a <c>.gram</c> file.</param>
+	/// <param name="own">Where the author's own text ends in <paramref name="grammarText"/>, where grammars were joined after it.</param>
+	/// <param name="cuts">Where each further text of its own begins.</param>
+	internal static ParseResult Read(ITargetLanguage language, string grammarText, int? own, IReadOnlyList<int>? cuts)
 	{
 		// The author's own text, the grammars the host included after it and the library are
 		// three texts: what one leaves open is not closed by the next.
 		return GramParser.Parse(GramLexer.TokenizeIn(
 			language, StandardLibrary.SplicedOnto(grammarText), CutsOf(own, cuts), grammarText.Length,
-			StandardLibraryLanguage));
+			language.ForLibrary));
 	}
-
-	/// <summary>What reads the library's own C#, whatever the author's is read by.</summary>
-	static readonly ITargetLanguage StandardLibraryLanguage = CSharpLanguage.Reading(StandardLibrary.Scanner);
 
 	/// <summary>Where each text of its own begins in a joined one: the host's own cut, and the given ones.</summary>
 	internal static IReadOnlyList<int>? CutsOf(int? own, IReadOnlyList<int>? cuts)
@@ -68,15 +58,23 @@ static class GramCompiler
 		return all;
 	}
 
-	/// <summary>Compiles one grammar.</summary>
+	/// <summary>Compiles one grammar into a parser written in a given language.</summary>
+	/// <param name="language">
+	/// The one language of the whole compilation: it reads the grammar's host fragments, is asked
+	/// about its types by every stage below, and writes the parser.
+	/// </param>
 	/// <param name="grammarText">Contents of a <c>.gram</c> file.</param>
-	/// <param name="options">Compilation options; defaults are used when null.</param>
-	public static GramCompilation Compile(string grammarText, GramCompilerOptions? options = null)
+	/// <param name="options">Compilation options.</param>
+	internal static GramCompilation Compile(ITargetLanguage language, string grammarText, GramCompilerOptions options)
 	{
+		if (language is null)
+			throw new ArgumentNullException(nameof(language));
+
 		if (grammarText is null)
 			throw new ArgumentNullException(nameof(grammarText));
 
-		options ??= new GramCompilerOptions();
+		if (options is null)
+			throw new ArgumentNullException(nameof(options));
 
 		var sources     = new List<GeneratedSource>();
 		var diagnostics = new List<GramDiagnostic>();
@@ -84,18 +82,11 @@ static class GramCompiler
 		// The pipeline, each stage its own type with its own contract so it can be
 		// exercised and diffed on its own:
 		//
-		//   GramLexer        .Tokenize  (text)          -> TokenList
-		//   GramParser       .Parse     (tokens)        -> ParseResult
-		//   GrammarBinder    .Bind      (file, symbols) -> GrammarModel
-		//   GrammarNormalizer.Normalize (model)         -> RecognitionGraph
-		//   ITargetLanguage  .Emit      (graph)         -> C#, by CSharpEmitter
-
-		// One language for the whole compilation: it reads the grammar's host fragments and is asked
-		// about its types, for every stage below. The shape of the host is the compilation's, from its
-		// options, whichever C# language reads the grammar: a language handed in brings its resolver
-		// and its scanner, never the class, the readings or what values are told their locations through.
-		var language = options.Language is CSharpLanguage given ? given.WithHost(options.Host)
-			: options.Language ?? new CSharpLanguage(options.SymbolResolver, options.CSharpScanner, options.Host);
+		//   GramLexer        .TokenizeIn  (text)        -> TokenList
+		//   GramParser       .Parse       (tokens)      -> ParseResult
+		//   GrammarBinder    .BindIn      (file)        -> GrammarModel
+		//   GrammarNormalizer.NormalizeIn (model)       -> RecognitionGraph
+		//   ITargetLanguage  .Emit      (graph)         -> the parser, by the language's emitter
 
 		// Every stage reads a character class and a literal as ranges and runs of UTF-16 code units
 		// (CharRange); a language whose input is made of anything else needs those stages first.
@@ -108,14 +99,13 @@ static class GramCompiler
 
 		// Past the author's text is what was spliced on: what the host included, and after
 		// that the standard library, which Read put there. Each is a root of its own.
-		var model = GrammarBinder.Bind(
-			parsed.File, null, Math.Min(options.Own ?? int.MaxValue, grammarText.Length), language);
+		var model = GrammarBinder.BindIn(
+			parsed.File, language, Math.Min(options.Own ?? int.MaxValue, grammarText.Length));
 
 		options.Bound?.Invoke(model);
 
-		var graph = GrammarNormalizer.Normalize(
-			model, null, null, options.PositionalFollow,
-			options.PositionalFollowSplit, options.CollapseForwarders, language);
+		var graph = GrammarNormalizer.NormalizeIn(
+			model, language, options.PositionalFollow, options.PositionalFollowSplit, options.CollapseForwarders);
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
@@ -567,16 +557,5 @@ static class GramCompiler
 				return true;
 
 		return false;
-	}
-
-	/// <summary>
-	/// Emits <c>[Gram]</c>, which is the whole of what a compilation gets before any grammar
-	/// in it has been looked at. Always internal, always present, one copy per compilation.
-	/// <c>SourceSpan</c> used to be here beside it and is emitted into each host class
-	/// instead, where it can be public without two assemblies colliding over it.
-	/// </summary>
-	public static GeneratedSource EmitMarkerAttributes()
-	{
-		return new("DotGram.Attributes.g.cs", SupportEmitter.Attributes);
 	}
 }

@@ -1,4 +1,4 @@
-# A map of the code (contributors' guide)
+﻿# A map of the code (contributors' guide)
 
 [`implementation.md`](implementation.md) explains how the engine works and why. This page says
 where each part of it lives: the stages a grammar goes through from a `[Gram]` attribute or a
@@ -14,7 +14,10 @@ lines between them are enforced by build guards:
 - **`Grammar/`** is pure: a function of grammar text that references no Roslyn. What it needs
   to know about C# comes through two seams, `ISymbolResolver` (what a `@Name` or a C# type
   refers to) and `ICSharpScanner` (where an inline `@(...)` ends). `src/DotGram.Grammar.Guard`
-  compiles it alone, so a Roslyn type there does not build. The rules:
+  compiles it alone, so a Roslyn type there does not build. Inside it, the stages that read a
+  grammar ask `ITargetLanguage` about the language the parser is generated in and know none
+  themselves: C# is `Grammar/CSharp/` and `Grammar/Emit/`, and `src/DotGram.Grammar.Front.Guard`
+  compiles the rest without them. The rules:
   [`.claude/rules/grammar-half.md`](../../.claude/rules/grammar-half.md).
 - **`Generation/`** is the Roslyn shell: the incremental generator, its caches, the answers to
   the grammar's questions and the conversion of diagnostics.
