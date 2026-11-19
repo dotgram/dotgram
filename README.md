@@ -135,6 +135,8 @@ The [Visual Studio extension](https://marketplace.visualstudio.com/items?itemNam
 `.gram` files and inside `[Gram]` strings: highlighting, errors as you type, Quick Info, completion, Go To Definition,
 Find All References, Rename, folding. The languages you generate get the same: a string marked
 `[StringSyntax("yourlanguage")]` is highlighted and checked as your language ([`docs/visual-studio.md`](docs/visual-studio.md)).
+In VS Code, [.Gram for VS Code](https://marketplace.visualstudio.com/items?itemName=dotgram.GramForVSCode) does the same for `.gram` files and grammars in C# strings
+([`docs/vscode.md`](docs/vscode.md)).
 
 ## Performance
 

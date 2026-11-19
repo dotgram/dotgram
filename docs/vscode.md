@@ -38,13 +38,22 @@ The script publishes the server into `editors/vscode/server`, installs the clien
 client with esbuild, writes `ThirdPartyNotices.txt` — the licence of every npm package the bundle holds and of every
 NuGet package the server loads, the runtime's where it carries one, each with the notices it ships, and the text of a
 licence a package only names from `scripts/licenses` (SPDX's); a package whose licence text is found nowhere fails
-the build — and packages the whole as `artifacts/dotgram-<version>.vsix` at the repository root with
-`vsce package`. It needs the .NET SDK `global.json` names and Node 22. Nothing is published to the Marketplace.
+the build — and packages the whole as `artifacts/GramForVSCode-<version>.vsix` at the repository root with
+`vsce package`. It needs the .NET SDK `global.json` names and Node 22. The build publishes nothing: the extension on
+the Marketplace is that `.vsix`, uploaded by hand.
 
 CI does the same in the `vscode` job of `.github/workflows/build.yml` and keeps the `.vsix` as the `vscode-vsix`
 artifact. The workflow runs on `main`; a branch is built with `gh workflow run build.yml --ref <branch>`.
 
 ## Installing
+
+From the Marketplace: [.Gram for VS Code](https://marketplace.visualstudio.com/items?itemName=dotgram.GramForVSCode) (`dotgram.GramForVSCode`), or in VS Code:
+
+```bash
+code --install-extension dotgram.GramForVSCode
+```
+
+From a build of this repository:
 
 ```bash
 code --install-extension artifacts/GramForVSCode-0.3.0.vsix
@@ -191,7 +200,6 @@ paints the version again once it has analysed it.
 - Completion, signature help, folding and the outline inside a grammar in C#, which the shared core and Visual Studio
   have: the server does not answer them for C# documents yet.
 - Code actions, formatting and inlay hints, which the Visual Studio extension does not have either.
-- The Marketplace: the extension is built and installed from a `.vsix`.
 
 ## Troubleshooting
 
