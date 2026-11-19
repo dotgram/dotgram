@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Shown on the Marketplace as ".Gram for VS Code" under the id `dotgram.VisualStudioCode`.
+
 ## 0.3.0
 
 - First version: diagnostics, semantic colours, completion, hover, signature help, go to definition (into included
