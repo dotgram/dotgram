@@ -1,11 +1,8 @@
 # Changelog
 
-## 0.3.1
-
-- Shown on the Marketplace as ".Gram for VS Code" under the id `dotgram.VSCode`.
-
 ## 0.3.0
 
+- Shown on the Marketplace as ".Gram for VS Code" under the id `dotgram.VSCode`.
 - First version: diagnostics, semantic colours, completion, hover, signature help, go to definition (into included
   grammars and the C# host), references, highlights, rename, folding, outline and snippets for `.gram` files, from
   the DotGram language server.
