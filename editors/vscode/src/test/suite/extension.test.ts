@@ -12,7 +12,7 @@ import * as vscode from 'vscode';
 
 suite('.Gram extension', () => {
     test('the extension is the installed package, with its notices', () => {
-        const extension = vscode.extensions.getExtension('dotgram.VSCode');
+        const extension = vscode.extensions.getExtension('dotgram.GramForVSCode');
         const installed = process.env.DOTGRAM_SMOKE_EXTENSIONS;
 
         assert.ok(extension, 'the extension is installed');
@@ -72,7 +72,7 @@ suite('.Gram extension', () => {
             'a GRAM diagnostic at the name the grammar does not define',
         );
 
-        const extension = vscode.extensions.getExtension<{ embeddedColors(uri: string): Record<string, vscode.Range[]> }>('dotgram.VSCode')!;
+        const extension = vscode.extensions.getExtension<{ embeddedColors(uri: string): Record<string, vscode.Range[]> }>('dotgram.GramForVSCode')!;
         const api = await extension.activate();
         const painted = await until(() => {
             const colors = api.embeddedColors(uri.toString());

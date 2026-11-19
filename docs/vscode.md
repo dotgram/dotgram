@@ -47,7 +47,7 @@ artifact. The workflow runs on `main`; a branch is built with `gh workflow run b
 ## Installing
 
 ```bash
-code --install-extension artifacts/VSCode-0.3.0.vsix
+code --install-extension artifacts/GramForVSCode-0.3.0.vsix
 ```
 
 The extension depends on the [.NET Install Tool](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.vscode-dotnet-runtime)
