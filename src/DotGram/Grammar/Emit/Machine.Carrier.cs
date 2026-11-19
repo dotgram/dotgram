@@ -517,15 +517,10 @@ sealed partial class Machine
 		};
 	}
 
-	/// <summary>A node without the captures and constructions around it.</summary>
+	/// <summary>A node without the captures and constructions around it (<see cref="WriteProofs.Bare"/>).</summary>
 	static Node Bare(Node node)
 	{
-		return node switch
-		{
-			Node.Capture(_, var body) => Bare(body),
-			Node.Construct(var body, _) => Bare(body),
-			_ => node,
-		};
+		return WriteProofs.Bare(node);
 	}
 
 	/// <summary>Whether a node begins with a part that may read nothing, looking through a few calls.</summary>

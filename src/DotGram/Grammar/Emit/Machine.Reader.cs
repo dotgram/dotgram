@@ -3522,6 +3522,12 @@ sealed partial class Machine
 				return;
 			}
 
+			// Decided for the whole choice whichever way it is read below — tried in order, by a switch
+			// on its first character, past the seam — so that the plan says of every choice the readers
+			// read whether it needs a way, and not only of those tried in order.
+			if (machine.Plan is null)
+				WritesAWay(alternatives, following);
+
 			// Before the switch: a seam in front of every alternative puts its characters in
 			// every first set, and a switch on them reads all the alternatives in one group, in
 			// order, with a way into them.
@@ -4078,8 +4084,7 @@ sealed partial class Machine
 			// `(eol | ?=eof)`, whose lookahead cannot hold where `eol` read a character. And a
 			// run of text the engine's run does not take (SettledText): texts built from, and
 			// texts that ignore case.
-			if (_tape && LiteralRun(alternatives, alternatives.Count - 1, following.Taught.Plain) != alternatives.Count &&
-				!machine.Exclusive(alternatives) && !machine.SettledText(alternatives, following.Taught.Plain))
+			if (_tape && WritesAWay(alternatives, following))
 			{
 				if (analyzing)
 					machine.OpeningChoice(owner, alternatives, following);
@@ -4882,10 +4887,7 @@ sealed partial class Machine
 				// NeverGivesBack asks whether what follows can fail and want a turn back, so it reads
 				// the view (Continuation.Taught). NeverGivesBackPast asks whether what follows the
 				// stop can begin with a character, which a positional stop can: the halves.
-				var settled = max == min ||
-					Determinism.NeverGivesBack(repeat, following.Taught, _graph, machine._seam) ||
-					_stopAfter is var (stopped, stop, beyond) && ReferenceEquals(stopped, repeat) &&
-					Determinism.NeverGivesBackPast(repeat, stop, beyond, _graph);
+				var settled = !WritesAWay(repeat, following);
 
 				// A body that is one character is a run whether it was spelled out or named.
 				// A grammar names its classes far more often than it writes them: `Identifier
@@ -6438,6 +6440,59 @@ sealed partial class Machine
 			code.Line();
 			code.Line($"ways.Seal(s{segment});");
 			code.Line($"p = {took};");
+		}
+
+		/// <summary>
+		/// Whether a choice among <paramref name="alternatives"/> writes a way on the tape
+		/// (<see cref="WriteProofs.Choice"/>): proved by the first pass over the rules, which notes it
+		/// for the plan, and read from the plan by every pass once the machine is planned.
+		/// </summary>
+		bool WritesAWay(IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
+		{
+			var plain   = following.Taught.Plain;
+			var context = WriteContext.Of(plain);
+
+			if (machine.Plan is { } plan)
+				return Planned(plan).Of(owner, alternatives[0], alternatives.Count, context).WritesAWay;
+
+			if (machine.Writes.Held(owner, alternatives[0], alternatives.Count, context) is { } held)
+				return held.WritesAWay;
+
+			var decision = machine._proofs.Choice(alternatives, plain);
+
+			machine.Writes.Record(owner, alternatives[0], alternatives.Count, context, decision);
+
+			return decision.WritesAWay;
+		}
+
+		/// <summary>
+		/// Whether a repetition writes a way on the tape (<see cref="WriteProofs.Repetition"/>), proved
+		/// and read as a choice's is. What it is decided against is what follows it, the rule's trivia,
+		/// and the stop it is read past where the sequence it stands in put one before what follows.
+		/// </summary>
+		bool WritesAWay(Node.Repeat repeat, FollowSets.Continuation following)
+		{
+			(char Stop, FollowSets.Continuation Beyond)? stopped =
+				_stopAfter is var (at, stop, beyond) && ReferenceEquals(at, repeat) ? (stop, beyond) : null;
+
+			var context = WriteContext.Of(following.Taught, machine._seam, stopped);
+
+			if (machine.Plan is { } plan)
+				return Planned(plan).Of(owner, repeat, 0, context).WritesAWay;
+
+			if (machine.Writes.Held(owner, repeat, 0, context) is { } held)
+				return held.WritesAWay;
+
+			var decision = machine._proofs.Repetition(repeat, following.Taught, machine._seam, stopped);
+
+			machine.Writes.Record(owner, repeat, 0, context, decision);
+
+			return decision.WritesAWay;
+		}
+
+		static WriteDecisions Planned(MachinePlan plan)
+		{
+			return plan.Writes ?? throw new InvalidOperationException("A machine planned without readers prints a reader.");
 		}
 
 		/// <summary>
