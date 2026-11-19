@@ -70,6 +70,8 @@ sealed class CSharpLanguage : ITargetLanguage
 	/// <summary>A <see cref="char"/>, which is what a C# string is made of.</summary>
 	public TextUnit TextUnit => TextUnit.Utf16CodeUnit;
 
+	public TargetWording Wording => CSharpWording.Instance;
+
 	/// <summary>What reads the library's own C#, whatever the author's is read by.</summary>
 	public ITargetLanguage ForLibrary => Library.Reader;
 

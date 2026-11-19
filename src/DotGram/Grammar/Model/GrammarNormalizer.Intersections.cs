@@ -144,9 +144,9 @@ sealed partial class GrammarNormalizer
 				else if (one.ToString() != kept.ToString() && _said.Add((ReadingsDisagree, Opened(alternative))))
 					Report(
 						ReadingsDisagree,
-						$"A `when` in '{rule.Name}' leaves different C# behind in different parsers this " +
-						"grammar publishes. They share one machine, and the C# would have to be told which " +
-						"parser it is running in; write the condition so that the C# beside it is the same " +
+						$"A `when` in '{rule.Name}' leaves different {HostLanguage} behind in different parsers this " +
+						$"grammar publishes. They share one machine, and the {HostLanguage} would have to be told which " +
+						$"parser it is running in; write the condition so that the {HostLanguage} beside it is the same " +
 						"wherever it survives.",
 						new Location(Math.Max(0, Opened(alternative)), 0));
 			}

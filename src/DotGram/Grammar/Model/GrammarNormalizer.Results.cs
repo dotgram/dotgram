@@ -95,8 +95,8 @@ sealed partial class GrammarNormalizer
 
 			Report(
 				UnbuiltRuleType,
-				$"'{rule.Name}' declares its type as '{type.Name}', which is neither a C# type " +
-				"nor a rule in view. §4.1 case 3 takes the value of a rule named here; a C# type " +
+				$"'{rule.Name}' declares its type as '{type.Name}', which is neither a {HostLanguage} type " +
+				$"nor a rule in view. §4.1 case 3 takes the value of a rule named here; a {HostLanguage} type " +
 				"is written with '@'.",
 				type.At);
 		}
@@ -267,7 +267,7 @@ sealed partial class GrammarNormalizer
 					$"'{rule.Name}(…)' names a rule, and builds the type the grammar generates for it, which it " +
 					$"generates for a rule that captures and says nothing of its value; '{rule.Name}' " +
 					(_types.TryGetValue(rule, out var declared) ? $"declares its type, '{declared}'." : "captures nothing.") +
-					" A C# type or method is written with '@' (§2).",
+					$" A {HostLanguage} type or method is written with '@' (§2).",
 					call.At);
 
 				continue;
@@ -345,7 +345,7 @@ sealed partial class GrammarNormalizer
 					Report(
 						ConstructionTypeMismatch,
 						$"'{rule.Name}' is declared {type} and hands back '{name}', which holds {from}. Capture what " +
-						"holds the declared type, or build it from the capture in C#.",
+						$"holds the declared type, or build it from the capture in {HostLanguage}.",
 						at >= 0 ? new Location(at, name.Length) : rule.Declaration.At);
 			}
 		}
@@ -402,7 +402,7 @@ sealed partial class GrammarNormalizer
 						_parametersInHostCode.Add(parameter))
 						Report(
 							RecognizerInHostCode,
-							$"C# in '{declaration.Name}' names '{parameter.Name}', a parameter that stands for a piece of " +
+							$"{HostLanguage} in '{declaration.Name}' names '{parameter.Name}', a parameter that stands for a piece of " +
 							"grammar and holds no value. A value is handed by a parameter written with its type, " +
 							$"'{parameter.Name}: @string', and is a literal or a value the caller was handed itself; " +
 							"what the parse produces is captured where the rule is called and handed to a '=>' there " +

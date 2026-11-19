@@ -177,6 +177,9 @@ sealed partial class GrammarBinder
 	/// </remarks>
 	readonly int _own;
 
+	/// <summary>The target language's name, for what is said of a name reached with <c>@</c>.</summary>
+	string HostLanguage => _language.Wording.Name;
+
 	GrammarBinder(ITargetLanguage language, int own)
 	{
 		_language = language;
@@ -906,7 +909,7 @@ sealed partial class GrammarBinder
 			// A generic type is its definition and its arguments, each of which has to exist:
 			// `List<Row>` is asked as `List`1` and as `Row`, never as the spelling.
 			if (!TypeInView(type.Definition, ns))
-				Report(UnknownHostType, $"No C# type named '{type.Name}' is in view here.", type.At);
+				Report(UnknownHostType, $"No {HostLanguage} type named '{type.Name}' is in view here.", type.At);
 
 			foreach (var argument in type.TypeArguments)
 				ResolveType(argument, ns, parameters);
@@ -917,7 +920,7 @@ sealed partial class GrammarBinder
 		if (parameters.ContainsKey(type.Name) || Resolve(ns, type.Name, type.At) is not null)
 			return;
 
-		Report(UndefinedName, $"No rule, parameter or C# type named '{type.Name}'.", type.At);
+		Report(UndefinedName, $"No rule, parameter or {HostLanguage} type named '{type.Name}'.", type.At);
 	}
 
 	/// <summary>
@@ -1125,7 +1128,7 @@ sealed partial class GrammarBinder
 				UndefinedName,
 				$"No rule, parameter or capture named '{reference.Name}'." +
 				(reference.Name.Contains(".")
-					? $" A C# name is reached with '@' — '@{reference.Name}' (docs/syntax.md §2)."
+					? $" A {HostLanguage} name is reached with '@' — '@{reference.Name}' (docs/syntax.md §2)."
 					: ""),
 				at);
 		}

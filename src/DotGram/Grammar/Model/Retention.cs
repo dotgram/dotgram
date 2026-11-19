@@ -220,7 +220,7 @@ static class Retention
 		foreach (var owner in Reachable(graph, root))
 			foreach (var node in NodeWalk.Reading(graph.Bodies[owner], graph))
 				if (node is Node.External(var method))
-					return $"'{owner.Name}' reads through '@{method}', a C# recognizer over a span " +
+					return $"'{owner.Name}' reads through '@{method}', {graph.Language.Wording.RecognizerOverHeldText} " +
 						"(docs/syntax.md §7.1). It is handed whatever is held and cannot be told that " +
 						"more is coming, so it would read the edge of the window as the end of the " +
 						"input.";

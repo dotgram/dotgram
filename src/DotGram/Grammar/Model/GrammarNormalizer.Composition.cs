@@ -255,7 +255,7 @@ sealed partial class GrammarNormalizer
 					Report(
 						SuppliedNameNotHere,
 						$"'{rule.Name}' uses '{name}' in {place} as a method, a type or a variable, and the names the " +
-						"parser supplies are reserved in C# written in a grammar: rename it (docs/syntax.md §8.2).",
+						$"parser supplies are reserved in {HostLanguage} written in a grammar: rename it (docs/syntax.md §8.2).",
 						rule.Declaration.At);
 
 				foreach (var name in Unhanded(text, handed, isGuard && declaresState).Except(misused))
@@ -279,7 +279,7 @@ sealed partial class GrammarNormalizer
 					Report(
 						SuppliedNameNotHere,
 						$"A 'recover' factory uses '{name}' as a method, a type or a variable, and the names the " +
-						"parser supplies are reserved in C# written in a grammar: rename it (docs/syntax.md §8.2).",
+						$"parser supplies are reserved in {HostLanguage} written in a grammar: rename it (docs/syntax.md §8.2).",
 						recovery.At);
 
 				foreach (var name in Unhanded(factory, SuppliedNames.ToRecoveries, flagMarks: true).Except(misused))

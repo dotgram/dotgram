@@ -42,6 +42,12 @@ sealed class TokenList(
 	/// </summary>
 	public string? Text { get; } = text;
 
+	/// <summary>
+	/// How the language that read the host fragments is named: the parser, which is handed tokens
+	/// and no language, says what it has to say of a fragment in these words.
+	/// </summary>
+	public required TargetWording Wording { get; init; }
+
 	public int     Count           => Tokens.Count;
 	public Token   this[int index] => Tokens[index];
 	public bool    HasErrors       => Diagnostics.Count > 0;
