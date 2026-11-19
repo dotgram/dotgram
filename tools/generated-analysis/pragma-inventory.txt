@@ -75,7 +75,15 @@ Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // The caller's 
 Finance	DotGram.ExpressionLanguage.ExpressionParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Finance	DotGram.Finance.Fix.FixGrammar.g.cs	0649
 Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.Located.g.cs	0649
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.Located.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.Located.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.Located.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.Located.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.g.cs	0649
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.g.cs	RS1035 // The caller's cultures, set on the thread that does the caller's work.
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.g.cs	RS1035 // This thread's own cultures, put back before it waits for the next reading.
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	RS1035 // Read only to hand the caller's cultures to the thread the reading moves to; nothing here formats by them.
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	RS1035 // Read only to put this thread's own cultures back afterwards; nothing here formats by them.
