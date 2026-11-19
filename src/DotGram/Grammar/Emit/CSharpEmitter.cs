@@ -5,6 +5,7 @@ using System.Text;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar.Emit;
 
@@ -325,8 +326,8 @@ static partial class CSharpEmitter
 		//
 		// A grammar with nothing published is one machine over everything, which is what a
 		// caller asking only for the recognizers wants.
-		var groups   = Published(graph);
-		var machines = new List<Compiled>();
+		var groups     = Published(graph);
+		var candidates = new List<Candidate>();
 		// Exact ordered diagnostic lists may be shared by sibling machines in this scope.
 		// A single machine needs no shared registry: it looks its sets up in its own.
 		var expectedTables = groups.Count > 1 || options.BufferedInput || options.BufferedBytes ||
@@ -417,15 +418,43 @@ static partial class CSharpEmitter
 			// this one its flat path (docs/internal/next.md, "Future optimization gate") — and of
 			// the rules this machine actually reaches: a recovery, a climb or a streamed
 			// read elsewhere in the grammar is some other machine's business.
-			var lowered = jumps &&
-				group.Publications.Count > 0 &&
-				!RecoversWithin(graph, only) &&
-				!ClimbsWithin(graph, only) &&
-				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
-				group.Publications.All(
-					publication =>
-						made.CanLower(publication.Rule, publication.Kind == PublishKind.Parse) ||
-						made.CanLowerValued(publication.Rule, publication.Kind == PublishKind.Parse));
+			// Each publication's flat form, where all of them have one: the value's own where the
+			// plain one cannot be lowered. Asked in this order once, and kept for the printing.
+			var valued  = new Dictionary<Publication, bool>();
+			var unflat  = Unlowered();
+			var lowered = unflat is null;
+
+			string? Unlowered()
+			{
+				if (!jumps)
+					return $"{graph.Language.Wording.Name} as it is targeted here has no jumps";
+
+				if (group.Publications.Count == 0)
+					return "there is nothing published";
+
+				if (RecoversWithin(graph, only))
+					return "a rule it reaches recovers";
+
+				if (ClimbsWithin(graph, only))
+					return "a rule it reaches climbs";
+
+				if (group.Publications.Any(publication => Streams(graph, publication, overKinds)))
+					return "it is read a window at a time";
+
+				foreach (var publication in group.Publications)
+				{
+					var whole = publication.Kind == PublishKind.Parse;
+
+					if (made.CanLower(publication.Rule, whole))
+						valued[publication] = false;
+					else if (made.CanLowerValued(publication.Rule, whole))
+						valued[publication] = true;
+					else
+						return "a rule it reaches recurses, backtracks or holds a construction back";
+				}
+
+				return null;
+			}
 
 			made.Anchor = group.Publications.Count > 0 ? group.Publications[0].Rule : group.Rule;
 
@@ -436,13 +465,26 @@ static partial class CSharpEmitter
 				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
 				made.CanDirect(group.Publications);
 
-			machines.Add(new Compiled(
-				made, group.Publications, tag.Named("Recognize"), tag, lowered, asMethods));
+			// Said once where the one reason keeps it from both: nothing published, or read a window at a time.
+			var reason = lowered ? null : unflat + (
+				asMethods      ? "" :
+				!directAllowed ? "; and methods are not asked for" :
+				group.Publications.Count == 0 ? (jumps ? "" : "; and there is nothing published") :
+				group.Publications.Any(publication => Streams(graph, publication, overKinds)) ? "" :
+				made.Refusal is var (rule, unread)
+					? $"; and {(rule is null ? "it" : $"'{graph.Origin(rule).Name}'")} cannot be read by methods because {unread}"
+					: "; and it is not read by methods");
+
+			candidates.Add(new Candidate(
+				made, group.Publications, tag.Named("Recognize"), tag, lowered, asMethods, Reason: reason)
+			{
+				FlatValued = lowered ? valued : Unvalued,
+			});
 		}
 
 		// A publication whose rule another machine already reaches is read by that machine,
 		// entered at its own rule, rather than by a second copy of everything it reaches.
-		Joined(graph, machines, overKinds);
+		Joined(graph, candidates, overKinds);
 		// Share substantial overlap only among machines that will carry the same way: the tape's
 		// with the tape's, the immediate carrier's with its own, each judged on the carrier it will
 		// actually have — the tape a refused request falls back to included. A small
@@ -452,18 +494,18 @@ static partial class CSharpEmitter
 		// kept each is among the union's rules too. Machines the immediate carrier will carry are
 		// folded only where it carries the union as well; otherwise they stay apart, since sharing
 		// must not put a machine on the tape that would have carried immediately on its own.
-		var reached   = machines.ToDictionary(compiled => compiled, Rules);
-		var shareable = new Dictionary<Compiled, bool?>();
-		for (var host = 0; host < machines.Count; host++)
+		var reached   = candidates.ToDictionary(compiled => compiled, Rules);
+		var shareable = new Dictionary<Candidate, bool?>();
+		for (var host = 0; host < candidates.Count; host++)
 		{
-			var owner = machines[host];
+			var owner = candidates[host];
 			if (Shareable(owner) is not { } immediately) continue;
 			var union = new HashSet<RuleSymbol>(reached[owner]);
 			var guests = new List<int>();
 			var publications = owner.Publications.ToList();
-			for (var guest = host + 1; guest < machines.Count; guest++)
+			for (var guest = host + 1; guest < candidates.Count; guest++)
 			{
-				var candidate = machines[guest];
+				var candidate = candidates[guest];
 				if (Shareable(candidate) != immediately || candidate.Machine.BuildsDuringRecognition != owner.Machine.BuildsDuringRecognition) continue;
 				var other = reached[candidate];
 				if (union.Count(other.Contains) * 10 < Math.Max(union.Count, other.Count) * 9) continue;
@@ -483,14 +525,14 @@ static partial class CSharpEmitter
 			if (!made.CanDirect(publications)) continue;
 			// Kept only where the union carries as its members do.
 			if (immediately && !made.WillCarryImmediately) continue;
-			machines[host] = owner with { Machine = made, Publications = publications };
+			candidates[host] = owner with { Machine = made, Publications = publications };
 			for (var guest = guests.Count - 1; guest >= 0; guest--)
-				machines.RemoveAt(guests[guest]);
+				candidates.RemoveAt(guests[guest]);
 		}
 
 		// Whether a machine may share, and with which: false among the tape's, true among the
 		// immediate carrier's, null alone.
-		bool? Shareable(Compiled compiled)
+		bool? Shareable(Candidate compiled)
 		{
 			if (shareable.TryGetValue(compiled, out var known))
 				return known;
@@ -498,7 +540,7 @@ static partial class CSharpEmitter
 			return shareable[compiled] = Judged(compiled);
 		}
 
-		bool? Judged(Compiled compiled)
+		bool? Judged(Candidate compiled)
 		{
 			// A reading is passed by each publication at runtime, so different readings
 			// may share the same rule bodies without sharing their selected version.
@@ -515,24 +557,29 @@ static partial class CSharpEmitter
 			// as it did.
 			return compiled.Machine.WillCarryImmediately ? true : null;
 		}
-		HashSet<RuleSymbol> Rules(Compiled compiled)
+		HashSet<RuleSymbol> Rules(Candidate compiled)
 		{
 			return new(compiled.Publications.SelectMany(publication => Reaches(graph, publication.Rule)));
 		}
 
-		foreach (var compiled in machines)
+		foreach (var compiled in candidates)
 			compiled.Machine.CompileRules();
 
-		AddBufferedMachines(graph, results, machines, options, basis, overKinds, diagnostics);
-		AddPositionalMachines(graph, results, machines, woven, directAllowed);
+		AddBufferedMachines(graph, results, candidates, options, basis, overKinds, diagnostics);
+		AddPositionalMachines(graph, results, candidates, woven, directAllowed);
 
 		// A machine the reader refused is the jump machine's, and a target without jumps has none:
-		// said at the publication, with what the reader said of it.
-		if (!jumps && diagnostics is not null)
-			foreach (var compiled in machines)
+		// said at the publication, with what the reader said of it. A refusal of the plan, so that
+		// nothing is printed for it (Planned).
+		var refusals = new List<GramDiagnostic>();
+		var refused  = new Dictionary<Candidate, string>();
+
+		if (!jumps)
+			foreach (var compiled in candidates)
 				if (!compiled.Direct)
 					foreach (var publication in compiled.Publications)
-						diagnostics.Add(new GramDiagnostic(
+					{
+						var said = new GramDiagnostic(
 							TargetCannot,
 							$"'{publication.Rule.Name}' is not read by methods" +
 							(compiled.Machine.Refusal is var (_, why) ? $", because {why}" : "") +
@@ -540,7 +587,15 @@ static partial class CSharpEmitter
 							"publication is not supported for this target.",
 							publication.At.Position,
 							publication.At.Length,
-							GramSeverity.Error));
+							GramSeverity.Error);
+
+						refusals.Add(said);
+
+						if (!refused.ContainsKey(compiled))
+							refused.Add(compiled, said.Message);
+
+						diagnostics?.Add(said);
+					}
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -570,14 +625,22 @@ static partial class CSharpEmitter
 		// agree, or a call into it hands it the wrong arguments (ValuingAsks).
 		// The machine that reads a token again is a jump machine too. No one publication asks for
 		// it, so it is said of the grammar as a whole, at its start.
+		string? valuingRefused = null;
+
 		if (valuing is not null && !jumps)
-			diagnostics?.Add(new GramDiagnostic(
+		{
+			var said = new GramDiagnostic(
 				TargetCannot,
 				$"A terminal's value is built by reading its token again, which is done by jumps, and {graph.Language.Wording.Name} " +
 				"as it is targeted here has none: this grammar is not supported for this target read over tokens.",
 				0,
 				0,
-				GramSeverity.Error));
+				GramSeverity.Error);
+
+			refusals.Add(said);
+			valuingRefused = said.Message;
+			diagnostics?.Add(said);
+		}
 
 		if (valuing is not null && ValuingAsks.Of(valuing) != woven.Valuing)
 			throw new InvalidOperationException(
@@ -630,13 +693,26 @@ static partial class CSharpEmitter
 		// Every machine numbers a value type by where it sits in one list, because the parser
 		// they share holds one table per entry. The union is only knowable once they all
 		// exist, so it is handed back to each of them before a line is rendered.
-		var tables = ValueTables(machines, valuing);
+		var tables = ValueTables(candidates, valuing);
 
-		foreach (var compiled in machines)
+		foreach (var compiled in candidates)
 			compiled.Machine.ShareValueTables(tables);
 
 		valuing?.ShareValueTables(tables);
-		Machine.ShareAdaptiveStores(machines.Where(static compiled => compiled.Direct).Select(static compiled => compiled.Machine), options.ValueStorage);
+		Machine.ShareAdaptiveStores(candidates.Where(static compiled => compiled.Direct).Select(static compiled => compiled.Machine), options.ValueStorage);
+
+		// The plan: what every machine of the file is, read and carried as, decided once and before
+		// a line is printed. What follows prints it and decides none of it again.
+		var (plan, printed) = Planned(candidates, valuing, lexical is not null, refused, valuingRefused, refusals, requested);
+
+		if (context is not null)
+			context.Plan = plan;
+
+		// The printer: everything after this writes the file, from the plan.
+		var machines = printed;
+
+		if (context is not null)
+			context.Printed = true;
 
 		file.Line("// <auto-generated/>");
 
@@ -1312,7 +1388,7 @@ static partial class CSharpEmitter
 		// calls the same one.
 		if (lexical is not null)
 		{
-			file.Write(Lexical(lexical, valuing, utf8, expectedSets));
+			file.Write(Lexical(lexical, valuing, utf8, expectedSets, plan.Machines.Single(static one => one.Name == SeamPlanName)));
 			file.Line();
 		}
 
@@ -1337,7 +1413,7 @@ static partial class CSharpEmitter
 			// The snapshot a give-back takes and restores is the tape's, and it puts the watermarks of
 			// what a guard built back with the log only in a machine whose guards build: each form is
 			// written where some machine of the file uses it.
-			var tape     = machines.FindAll(static compiled => compiled.Direct && !compiled.Machine.CarriesImmediately);
+			var tape     = machines.FindAll(static compiled => compiled.Direct && compiled.Plan.Carrier?.Immediate != true);
 			var builds   = tape.Exists(static compiled => compiled.Machine.BuildsDuringRecognition);
 			var rewinds  = tape.Exists(static compiled => !compiled.Machine.BuildsDuringRecognition);
 			var regioned = Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0);
@@ -1435,7 +1511,7 @@ static partial class CSharpEmitter
 				// carrier the parser has.
 				var given = carrier != CarrierKind.Immediate ||
 					(machines.Exists(static one => one.Direct) &&
-						machines.TrueForAll(static one => !one.Direct || one.Machine.CarriesImmediately));
+						machines.TrueForAll(static one => !one.Direct || one.Plan.Carrier?.Immediate == true));
 
 				carriers.Add($"carrier: {carrier.ToString().ToLowerInvariant()}{(given ? "" : " refused")}, the author's" +
 					Points(graph, null));
@@ -1561,6 +1637,15 @@ static partial class CSharpEmitter
 				sourceParts!.Add(Finished(part, options.Checks, options.Steps));
 			}
 		}
+
+		// What was printed is what was planned: every machine of the plan wrote something, and none
+		// was printed without a plan (Machine.Printing).
+		foreach (var compiled in machines)
+			if (!compiled.Machine.Printed)
+				throw new InvalidOperationException($"The plan holds '{compiled.Plan.Name}', and nothing of it was printed.");
+
+		if (valuing is { Printed: false })
+			throw new InvalidOperationException("The plan holds the machine that reads a token again, and nothing of it was printed.");
 
 		// Last, so that every offset taken in the text above is an offset in the text it was taken in.
 		return Finished(written, options.Checks, options.Steps);
@@ -1799,7 +1884,8 @@ static partial class CSharpEmitter
 				// same `out` parameter the wrapper would otherwise have added.
 				var name = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
 
-				file.Write(machine.CanLower(publication.Rule, whole)
+				// Plain or with its value, as the plan lowered it.
+				file.Write(!compiled.Plan.FlatValued[publication]
 					? machine.RenderFlat(publication.Rule, name, whole)
 					: machine.RenderFlatValued(publication.Rule, name, whole));
 				file.Line();
@@ -3214,7 +3300,7 @@ static partial class CSharpEmitter
 	/// of every other pattern, and it ran for ten minutes without finishing.
 	/// </para>
 	/// </remarks>
-	static string Lexical(LexicalSplit lexical, Machine? valuing, bool utf8Literals, ExpectedSets expectedSets)
+	static string Lexical(LexicalSplit lexical, Machine? valuing, bool utf8Literals, ExpectedSets expectedSets, MachinePlan seamPlan)
 	{
 		var file = new Writer(0);
 
@@ -3243,7 +3329,10 @@ static partial class CSharpEmitter
 		if (lexical.Inventory.Asked.Count > 0)
 			Unworded(file, lexical.Inventory);
 
-		var seam     = Seam(lexical, expectedSets);
+		var seam = Seam(lexical, expectedSets);
+
+		seam.Plan = seamPlan;
+
 		var skipping = lexical.Trivia
 			.Select(rule => (Rule: rule, Name: seam.Scanner(rule)))
 			.FirstOrDefault(one => one.Name is not null);
@@ -4368,7 +4457,7 @@ file.Line("return spare;");
 	/// over such a grammar changed nothing and said nothing.
 	/// </remarks>
 	static string? Unread(
-		Compiled compiled, RecognitionGraph graph, bool overKinds, CarrierKind carrier)
+		Compiled compiled, RecognitionGraph graph, bool overKinds)
 	{
 		return compiled.Direct ? null :
 
@@ -4376,7 +4465,7 @@ file.Line("return spare;");
 		// of one grammar at once — a recovering rule keeps it off the reader and would
 		// also be refused by the carrier — and the one worth saying is the one that names
 		// what to change to get what was asked for.
-		compiled.Machine.WouldRefuse(carrier) ??
+		compiled.Plan.Carrier?.WouldRefuse ??
 
 		(compiled.Flat ? "it needs no arena at all — no recursion, no backtracking and no " +
 				"construction held back — so it is compiled flat, and a carrier carries what a " +
@@ -5550,13 +5639,13 @@ file.Line("return spare;");
 			// subject. A warning, though the parser that comes out is correct: a carrier asked for
 			// by name is one somebody means to measure or rely on.
 			var reader  = machines.Exists(static one => one.Direct);
-			var carried = machines.Exists(static one => one.Direct && one.Machine.CarriesImmediately);
+			var carried = machines.Exists(static one => one.Direct && one.Plan.Carrier?.Immediate == true);
 			var refused = new List<(string Why, List<string> Read)>();
 
 			foreach (var compiled in machines)
 			{
-				var why = compiled.Machine.CarrierRefusal ??
-					(reader ? null : Unread(compiled, graph, overKinds, carrier));
+				var why = compiled.Plan.Carrier?.Refusal ??
+					(reader ? null : Unread(compiled, graph, overKinds));
 
 				if (why is null)
 					continue;
@@ -5704,7 +5793,7 @@ file.Line("return spare;");
 
 		foreach (var one in machines)
 		{
-			if (!one.Direct || !one.Machine.CarriesImmediately)
+			if (!one.Direct || one.Plan.Carrier?.Immediate != true)
 				continue;
 
 			var machine = one.Machine;
@@ -5798,8 +5887,8 @@ file.Line("return spare;");
 	{
 		var direct    = machines.Where(static one => one.Direct).ToList();
 		var gated     = direct.Select(static one => one.Machine.GateReasons).OfType<Machine.Kept>().ToList();
-		var refused   = direct.Where(static one => one.Machine.CarrierRefusal is not null).ToList();
-		var immediate = direct.Exists(static one => one.Machine.CarriesImmediately);
+		var refused   = direct.Where(static one => one.Plan.Carrier?.Refusal is not null).ToList();
+		var immediate = direct.Exists(static one => one.Plan.Carrier?.Immediate == true);
 		var building  = gated.SelectMany(static one => one.Building).Distinct().ToList();
 		var replayed  = gated.SelectMany(static one => one.Replayed).Distinct().ToList();
 		var again     = gated.Where(static one => one.Replayed.Count == 0).SelectMany(static one => one.Again).Distinct().ToList();
@@ -5825,7 +5914,7 @@ file.Line("return spare;");
 				$"direct: {replayed.Count(rule => Own(rule))}; read again: {again.Count}; " +
 				$"refused: {refused.Count}; alone: {alone}") +
 			$"; reasons: {reasons.Named()}; told: {told}" +
-			$"; machines: {direct.Count}; deferred: {direct.Count(static one => !one.Machine.CarriesImmediately)}" +
+			$"; machines: {direct.Count}; deferred: {direct.Count(static one => one.Plan.Carrier?.Immediate != true)}" +
 			Points(graph, replay));
 
 		var points = Commit.Of(graph, replay ?? Replay.Of(graph));
@@ -5834,14 +5923,14 @@ file.Line("return spare;");
 		foreach (var one in direct)
 		{
 			var machine   = one.Machine;
-			var refusal   = machine.CarrierRefusal;
+			var refusal   = one.Plan.Carrier?.Refusal;
 			var held      = machine.GateReasons;
 			var replaying = held?.Replayed.Count ?? 0;
 			var reading   = held is { Replayed.Count: 0 } ? held.Again.Count : 0;
 
 			lines.Add(
 				$"machine {Read(one)}: carrier: " +
-				(machine.CarriesImmediately ? "immediate" : "deferred") +
+				(one.Plan.Carrier?.Immediate == true ? "immediate" : "deferred") +
 				"; gate: " +
 				(replaying > 0 ? "replay" : reading > 0 ? "read again" : refusal is not null ? "refused" : "none") +
 				$"; building: {held?.Building.Count ?? 0}; replayed: {replaying}; " +
@@ -5856,7 +5945,7 @@ file.Line("return spare;");
 			var otherwise = one.Machine.GateReasons;
 
 			lines.Add(
-				$"refused: {one.Machine.CarrierRefusal}; otherwise " +
+				$"refused: {one.Plan.Carrier?.Refusal}; otherwise " +
 				(otherwise is null ? "nothing" :
 					otherwise.Replayed.Count > 0 ? $"replay {otherwise.Replayed.Count}" : $"read again {otherwise.Again.Count}"));
 		}
@@ -6095,19 +6184,135 @@ file.Line("return spare;");
 		public bool PlacesLines { get; init; }
 	}
 
-	/// <summary>One published rule's machine, and the names it is emitted under.</summary>
+	/// <summary>
+	/// One machine as the planning stage weighs it: what it reads and how it would be read, before
+	/// the machines are joined, shared and planned (<see cref="Planned"/>).
+	/// </summary>
 	/// <param name="PositionalOnly">
 	/// Whether the machine reads only the forms of its publications that begin where they are told
 	/// (<see cref="AddPositionalMachines"/>): their whole forms are the flat machine's.
 	/// </param>
-	sealed record Compiled(
+	/// <param name="Reason">Why a cheaper way of reading was not taken (<see cref="MachinePlan.Reason"/>).</param>
+	sealed record Candidate(
 		Machine Machine,
 		IReadOnlyList<Publication> Publications,
 		string Engine,
 		MachineTag Tag,
 		bool Flat,
 		bool Direct = false,
-		bool PositionalOnly = false);
+		bool PositionalOnly = false,
+		string? Reason = null)
+	{
+		/// <summary>Of each publication of a flat machine, whether it is lowered with its value (<see cref="MachinePlan.FlatValued"/>).</summary>
+		public IReadOnlyDictionary<Publication, bool> FlatValued { get; init; } = Unvalued;
+	}
+
+	static readonly IReadOnlyDictionary<Publication, bool> Unvalued = new Dictionary<Publication, bool>();
+
+	/// <summary>
+	/// The plan of a file (<see cref="ReadingPlan"/>), made from the machines the planning stage settled
+	/// on, and those machines as the printer takes them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The readers are settled here (<see cref="Machine.Settle"/>), before anything is printed: where
+	/// they recurse, how they carry and where their loops defer are known only then. The machines are
+	/// the ones the planning stage built, handed on to the printer rather than built again, so that
+	/// nothing is analysed twice.
+	/// </para>
+	/// <para>
+	/// Each machine is told its plan (<see cref="Machine.Plan"/>); from then on what it asks of the
+	/// plan it no longer works out.
+	/// </para>
+	/// </remarks>
+	/// <param name="seamed">
+	/// Whether the file is read over kinds, and so has a lexer whose seam the file scans: a machine of
+	/// its own, made where the lexer is printed (<see cref="Lexical"/>), and planned here with the rest.
+	/// </param>
+	static (ReadingPlan Plan, List<Compiled> Machines) Planned(
+		List<Candidate> candidates, Machine? valuing, bool seamed, Dictionary<Candidate, string> refused,
+		string? valuingRefused, List<GramDiagnostic> refusals, CarrierKind requested)
+	{
+		foreach (var candidate in candidates)
+			if (candidate.Direct)
+				candidate.Machine.SettleAhead(candidate.Publications);
+
+		// What the immediate carrier, asked for by name, would say of a machine with no readers: said
+		// only where no machine of the file has readers (Told).
+		var unread  = requested == CarrierKind.Immediate && !candidates.Exists(static one => one.Direct);
+		var entries = new List<MachinePlan>(candidates.Count + 1);
+		var printed = new List<Compiled>(candidates.Count);
+
+		foreach (var candidate in candidates)
+		{
+			var machine = candidate.Machine;
+			var entry   = new MachinePlan
+			{
+				Name           = candidate.Engine,
+				Publications   = candidate.Publications,
+				Strategy       = candidate.Flat ? ReadingStrategy.Flat : candidate.Direct ? ReadingStrategy.Reader : ReadingStrategy.Jump,
+				Reason         = candidate.Reason,
+				Refusal        = refused.TryGetValue(candidate, out var why) ? why : null,
+				PositionalOnly = candidate.PositionalOnly,
+				FlatValued     = candidate.FlatValued,
+				Carrier        =
+					candidate.Direct ? new CarrierPlan { Requested = requested, Immediate = machine.CarriesImmediately, Refusal = machine.CarrierRefusal } :
+					unread           ? new CarrierPlan { Requested = requested, Immediate = false, WouldRefuse = machine.WouldRefuse(CarrierKind.Immediate) } :
+					null,
+				BackEdges      = candidate.Direct ? machine.SettledBackEdges : null,
+				Deferral       = candidate.Direct ? machine.PlanDeferral() : null,
+			};
+
+			machine.Plan = entry;
+			entries.Add(entry);
+			printed.Add(new Compiled(machine, entry, candidate.Engine, candidate.Tag));
+		}
+
+		if (valuing is not null)
+		{
+			var entry = new MachinePlan
+			{
+				Name         = MachineTag.Value.Named("Recognize"),
+				Publications = [],
+				Strategy     = ReadingStrategy.Jump,
+				Reason       = "it reads a token again for the value of a terminal, which is done by jumps",
+				Refusal      = valuingRefused,
+			};
+
+			valuing.Plan = entry;
+			entries.Add(entry);
+		}
+
+		// The scanners of the seam between tokens are the lexer's, and the lexer is written with jumps
+		// on every target there is so far.
+		if (seamed)
+			entries.Add(new MachinePlan
+			{
+				Name         = SeamPlanName,
+				Publications = [],
+				Strategy     = ReadingStrategy.Jump,
+				Reason       = "it scans the seam between tokens, which the lexer does by jumps",
+			});
+
+		// One entry a machine the file writes, and no entry without one.
+		if (entries.Select(static one => one.Name).Distinct(StringComparer.Ordinal).Count() != entries.Count)
+			throw new InvalidOperationException("Two machines of one plan are written under one name.");
+
+		return (new ReadingPlan(entries, refusals), printed);
+	}
+
+	/// <summary>One machine of the file as it is printed: the machine, the names it is written under, and its plan.</summary>
+	/// <remarks>How it reads is the plan's; nothing that prints it decides that again.</remarks>
+	sealed record Compiled(Machine Machine, MachinePlan Plan, string Engine, MachineTag Tag)
+	{
+		public IReadOnlyList<Publication> Publications => Plan.Publications;
+
+		public bool Flat => Plan.Strategy == ReadingStrategy.Flat;
+
+		public bool Direct => Plan.Strategy == ReadingStrategy.Reader;
+
+		public bool PositionalOnly => Plan.PositionalOnly;
+	}
 
 	/// <summary>
 	/// A second machine for the <c>positional</c> publications of each flat one, which reads them
@@ -6129,7 +6334,7 @@ file.Line("return spare;");
 	/// </para>
 	/// </remarks>
 	static void AddPositionalMachines(
-		RecognitionGraph graph, ResultTypes results, List<Compiled> machines, MachineSettings woven,
+		RecognitionGraph graph, ResultTypes results, List<Candidate> machines, MachineSettings woven,
 		bool directAllowed)
 	{
 		var count = machines.Count;
@@ -6165,8 +6370,14 @@ file.Line("return spare;");
 
 			machine.CompileRules();
 
-			machines.Add(new Compiled(
-				machine, asked, tag.Named("Recognize"), tag, false, direct, PositionalOnly: true));
+			var reason = "it reads the forms of a flat machine's publications that begin where they are told" + (
+				direct         ? "" :
+				!directAllowed ? ", and methods are not asked for" :
+				machine.Refusal is var (_, refused) ? $", and it cannot be read by methods because {refused}" :
+				", and it is not read by methods");
+
+			machines.Add(new Candidate(
+				machine, asked, tag.Named("Recognize"), tag, false, direct, PositionalOnly: true, Reason: reason));
 		}
 	}
 
@@ -6251,7 +6462,7 @@ file.Line("return spare;");
 	/// publications, since what they need is worked out from the publications they serve.
 	/// </para>
 	/// </remarks>
-	static void Joined(RecognitionGraph graph, List<Compiled> machines, bool overKinds)
+	static void Joined(RecognitionGraph graph, List<Candidate> machines, bool overKinds)
 	{
 		for (var joined = true; joined; )
 		{
@@ -6323,7 +6534,7 @@ file.Line("return spare;");
 	/// other's table. Built by taking them in machine order and keeping the first sighting,
 	/// which is the order a single machine produced before there was more than one.
 	/// </remarks>
-	static IReadOnlyList<string> ValueTables(IReadOnlyList<Compiled> machines, Machine? valuing)
+	static IReadOnlyList<string> ValueTables(IReadOnlyList<Candidate> machines, Machine? valuing)
 	{
 		var tables = new List<string>();
 
@@ -6706,6 +6917,9 @@ file.Line("return spare;");
 	/// wrote, and the generator failed on the first grammar whose trivia called a lexeme of
 	/// its own.
 	/// </remarks>
+	/// <summary>The name the seam's machine is planned under (<see cref="Planned"/>).</summary>
+	static string SeamPlanName => MachineTag.Seam.Named("Recognize");
+
 	internal static Machine Seam(LexicalSplit lexical, ExpectedSets? expectedSets = null)
 	{
 		return new(

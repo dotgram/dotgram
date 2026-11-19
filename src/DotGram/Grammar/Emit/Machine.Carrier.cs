@@ -5,6 +5,7 @@ using System.Linq;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar.Emit;
 
@@ -72,31 +73,6 @@ sealed partial class Machine
 	/// </summary>
 	internal bool Replays => Tracing is null && RetryLoops.Exists(static one => one.Defers);
 
-	/// <summary>Where a reader writes a loop that asks for another reading.</summary>
-	internal enum RetrySite
-	{
-		/// <summary>A rule's own way back (<c>Read_X</c> around <c>Read_X_Body</c>).</summary>
-		Rule,
-
-		/// <summary>An entry's reading of the whole input, or from a position.</summary>
-		Entry,
-
-		/// <summary>One alternative of a choice over characters.</summary>
-		Alternative,
-
-		/// <summary>One turn of a repetition.</summary>
-		Turn,
-
-		/// <summary>An atomic group, sealed once it has answered.</summary>
-		Atomic,
-
-		/// <summary>A lookahead's subject, sealed once it has answered.</summary>
-		Lookahead,
-
-		/// <summary>The step of a repetition marked <c>recover</c>.</summary>
-		Yield,
-	}
-
 	/// <summary>
 	/// One loop that asks for another reading, and what was decided about it: whether its attempts
 	/// after a give-back read unbuilt (<see cref="DefersOnGiveBack"/>), or why not, in the words a
@@ -120,15 +96,67 @@ sealed partial class Machine
 	/// the decision is about the grammar and the carrier, and a trace is a way of watching them.
 	/// </summary>
 	/// <param name="noting">Whether to keep the decision: the rendering that writes the readers, and not the first pass over the rules.</param>
+	/// <remarks>
+	/// Worked out here only while the machine is planned, by the first pass over its rules; once it
+	/// is planned the answer is the plan's (<see cref="PlanDeferral"/>), and a loop the plan has no
+	/// answer for throws rather than being decided while the readers are printed.
+	/// </remarks>
 	internal RetryLoop Deferral(RuleSymbol owner, RetrySite site, bool noting)
 	{
-		var loop = new RetryLoop(owner, site, Excluded(owner, site));
+		var excluded = Plan is { } plan
+			? (plan.Deferral ?? throw new InvalidOperationException("A machine planned without readers writes a reader's loop.")).Excluded(owner, site)
+			: Excluded(owner, site);
+
+		var loop = new RetryLoop(owner, site, excluded);
 
 		if (noting)
 			RetryLoops.Add(loop);
 
 		return loop;
 	}
+
+	/// <summary>What the plan decided of this machine, once it is planned; null while it is being planned.</summary>
+	internal MachinePlan? Plan { get; set; }
+
+	/// <summary>Whether anything of this machine was printed (<see cref="Printing"/>).</summary>
+	internal bool Printed { get; private set; }
+
+	/// <summary>Where a rendering of this machine begins: only a machine the plan holds is printed.</summary>
+	void Printing()
+	{
+		if (Plan is null)
+			throw new InvalidOperationException("A machine is printed that the plan does not hold.");
+
+		Printed = true;
+	}
+
+	/// <summary>
+	/// Whether the readers defer building on a give-back and why a loop does not, for every rule they
+	/// read and every kind of loop: the decisions <see cref="Deferral"/> reads once the machine is planned.
+	/// </summary>
+	/// <remarks>Asked once the readers are settled, which is when what they read unasked is known (<see cref="GivingBack"/>).</remarks>
+	internal DeferralPlan PlanDeferral()
+	{
+		if (_settledFor is null)
+			throw new InvalidOperationException("The deferral is planned once the readers are settled.");
+
+		var excluded = new Dictionary<(RuleSymbol Owner, RetrySite Site), string?>();
+
+		foreach (var rule in _directRules)
+			foreach (var site in Sites)
+				excluded[(rule, site)] = Excluded(rule, site);
+
+		return new DeferralPlan(DefersOnGiveBack, excluded);
+	}
+
+	static readonly RetrySite[] Sites =
+	[
+		RetrySite.Rule, RetrySite.Entry, RetrySite.Alternative, RetrySite.Turn,
+		RetrySite.Atomic, RetrySite.Lookahead, RetrySite.Yield,
+	];
+
+	/// <summary>The calls of the settled readers that close a cycle (<see cref="BackEdges"/>).</summary>
+	internal IReadOnlyCollection<(RuleSymbol From, RuleSymbol To)> SettledBackEdges => _backEdges;
 
 	/// <summary>Why a loop does not defer: the grammar has a context.</summary>
 	internal const string ExcludedByContext = "a context: a construction may write what a guard reads";

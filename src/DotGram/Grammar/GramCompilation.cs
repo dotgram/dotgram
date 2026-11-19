@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using DotGram.Grammar.Plan;
+
 namespace DotGram.Grammar;
 
 /// <summary>What a compilation produced: sources to add, and what went wrong.</summary>
@@ -33,6 +35,12 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 	/// this reading reads from the host and so needs written there; nothing otherwise.
 	/// </summary>
 	public SharedNeeds SharedNeeds { get; init; }
+
+	/// <summary>
+	/// What was decided about the file before any of it was printed (<see cref="ReadingPlan"/>), where
+	/// the grammar was sound enough to be planned; null otherwise.
+	/// </summary>
+	public ReadingPlan? Plan { get; init; }
 
 	public bool HasErrors
 	{

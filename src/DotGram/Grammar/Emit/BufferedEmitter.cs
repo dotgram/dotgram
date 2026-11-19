@@ -132,7 +132,7 @@ static partial class CSharpEmitter
 	/// machine is that with the rules it reads and the buffer it reads them over.
 	/// </param>
 	static void AddBufferedMachines(
-		RecognitionGraph graph, ResultTypes results, List<Compiled> machines, GramCompilerOptions options,
+		RecognitionGraph graph, ResultTypes results, List<Candidate> machines, GramCompilerOptions options,
 		MachineSettings basis, bool overKinds, ICollection<GramDiagnostic>? diagnostics)
 	{
 		var requested     = options.BufferedInput;
@@ -144,7 +144,7 @@ static partial class CSharpEmitter
 		if (!requested && !byteRequested && !graph.Publications.Any(one => one.BufferedInput || one.BufferedBytes))
 			return;
 
-		var added = new List<Compiled>();
+		var added = new List<Candidate>();
 
 		foreach (var publication in graph.Publications)
 		for (var form = 0; form < 2; form++)
@@ -211,11 +211,11 @@ static partial class CSharpEmitter
 			// spans, across anything that can fetch (the contract at BufferedText.Fill).
 			// A yield has no string form to follow: it is read by methods where its own machine can
 			// be, the step being one turn of the reader (EmitYieldStep).
-			var readable = (publication.Kind == PublishKind.Parse &&
+			var methods  = publication.Kind == PublishKind.Parse &&
 					machines.Exists(one => one.Direct && one.Publications.Contains(publication)) ||
-				publication.Kind == PublishKind.Yield && options.Direct) &&
-				machine!.CanDirect([publication]) && !machine.CanReleaseBuffered;
-			var direct = readable && !machine!.Probes;
+				publication.Kind == PublishKind.Yield && options.Direct;
+			var readable = methods && machine!.CanDirect([publication]) && !machine.CanReleaseBuffered;
+			var direct   = readable && !machine!.Probes;
 
 			// The one reason a publication read by methods over a string is read by the engine
 			// over a buffer that is a limit of this compiler rather than a choice, said as such.
@@ -226,7 +226,16 @@ static partial class CSharpEmitter
 					"on in another thread with the whole input, which a buffer cannot hand over.",
 					publication.At.Position, publication.At.Length, GramSeverity.Info));
 
-			added.Add(new Compiled(machine!, [publication], tag.Named("Recognize"), tag, false, direct));
+			// Why it is read as it is, for the plan: a buffer is never flat, and what kept the reader off it.
+			var reason = "it reads a buffer, which the flat machine does not" + (
+				direct    ? "" :
+				!methods  ? ", and the publication is not read by methods over a string" :
+				!readable ? machine!.Refusal is var (_, refused)
+					? $", and it cannot be read by methods because {refused}"
+					: ", and the engine lets the buffer go as it reads" :
+				", and a rule it reaches can reach itself, which goes on in another thread with the whole input");
+
+			added.Add(new Candidate(machine!, [publication], tag.Named("Recognize"), tag, false, direct, Reason: reason));
 
 			// Bytes the caller holds whole are read by methods where the string is, even where the
 			// stream is not. What keeps a stream on the engine is what a stream does: an external
@@ -252,7 +261,9 @@ static partial class CSharpEmitter
 				if (memory.CanDirect([publication]) && !memory.Probes)
 				{
 					machine!.MemoryElsewhere = true;
-					added.Add(new Compiled(memory, [publication], memoryTag.Named("Recognize"), memoryTag, false, true));
+					added.Add(new Candidate(
+						memory, [publication], memoryTag.Named("Recognize"), memoryTag, false, true,
+						Reason: "it reads bytes held whole, which the flat machine does not"));
 				}
 			}
 		}
