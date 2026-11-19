@@ -112,9 +112,10 @@ The whole file, tested: [`CalculatorExample.cs`](examples/DotGram.Examples/Expre
 operator: [One grammar, three parsers](docs/tour.md#one-grammar-three-parsers).
 
 **The SQL standard.** The same notation reads [T-SQL in over 1,000 rules](src/DotGram.Sql/TransactSql/TransactSql.gram),
-one parser per SQL Server version from a single grammar, and [ISO SQL:2023](src/DotGram.Sql/Standard/SqlStandard.gram),
-written from the standard's BNF. They ship ready to use in [`DotGram.Sql`](src/DotGram.Sql/README.md), and what they read of
-SQL nobody here wrote is counted in [SQL conformance](docs/sql-conformance.md). More examples: [`examples/`](examples/README.md).
+one parser per SQL Server version from a single grammar, [ISO SQL:2023](src/DotGram.Sql/Standard/SqlStandard.gram),
+written from the standard's BNF, and [PostgreSQL 18](src/DotGram.Sql/PostgreSql/PostgreSql.gram), held to the server's own
+parser. They ship ready to use in [`DotGram.Sql`](src/DotGram.Sql/README.md), and what they read of SQL nobody here wrote is
+counted in [SQL conformance](docs/sql-conformance.md). More examples: [`examples/`](examples/README.md).
 
 **Three ways in.** Your own language or format: a grammar, as above. Records from a `TextReader`, a bad line reported and
 read past: [Feeds](docs/feeds.md). JSON, FIX, SQL, URIs: a [ready-made parser](#ready-made-parsers), and no grammar to write.
@@ -215,7 +216,7 @@ Every feature in one list: [the tour](docs/tour.md#what-a-grammar-can-do); what 
 
 | Package | What it reads | |
 | --- | --- | --- |
-| [`DotGram.Sql`](src/DotGram.Sql/README.md) | T-SQL as SQL Server reads it, ISO SQL:2023 and SQL-92, into one tree, and back to text | [![NuGet](https://img.shields.io/nuget/v/DotGram.Sql?label=)](https://www.nuget.org/packages/DotGram.Sql) |
+| [`DotGram.Sql`](src/DotGram.Sql/README.md) | T-SQL as SQL Server reads it, ISO SQL:2023, SQL-92 and PostgreSQL 18, into one tree, and back to text | [![NuGet](https://img.shields.io/nuget/v/DotGram.Sql?label=)](https://www.nuget.org/packages/DotGram.Sql) |
 | [`DotGram.Web`](src/DotGram.Web/README.md) | JSON, JSON Pointer and Patch, URIs and URI templates, media types, cookies, structured fields, e-mail addresses, timestamps, language tags — each after its RFC | [![NuGet](https://img.shields.io/nuget/v/DotGram.Web?label=)](https://www.nuget.org/packages/DotGram.Web) |
 | [`DotGram.Finance`](src/DotGram.Finance/README.md) | FIX 4.2, 4.4 and 5.0 SP2 tag-value messages, from logs, archives, files and buses | [![NuGet](https://img.shields.io/nuget/v/DotGram.Finance?label=)](https://www.nuget.org/packages/DotGram.Finance) |
 | [`DotGram.ExpressionLanguage`](src/DotGram.ExpressionLanguage/README.md) | a C#-style expression language, straight into `System.Linq.Expressions` | [![NuGet](https://img.shields.io/nuget/v/DotGram.ExpressionLanguage?label=)](https://www.nuget.org/packages/DotGram.ExpressionLanguage) |

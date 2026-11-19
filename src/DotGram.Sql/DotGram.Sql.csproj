@@ -7,9 +7,9 @@
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
 		<RootNamespace>DotGram.Sql</RootNamespace>
 
-		<Description>SQL parsers written in .gram: ISO SQL:2023, SQL-92 and Microsoft's T-SQL, all three building one tree of the standard's own constructs, with T-SQL's beside them.</Description>
+		<Description>SQL parsers written in .gram: ISO SQL:2023, SQL-92, Microsoft's T-SQL and PostgreSQL 18, all four building one tree of the standard's own constructs, with each dialect's own beside them.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>parser;sql;iso-sql;sql-2023;sql-92;tsql;t-sql;sql-server;dotgram</PackageTags>
+		<PackageTags>parser;sql;iso-sql;sql-2023;sql-92;tsql;t-sql;sql-server;postgresql;postgres;dotgram</PackageTags>
 
 		<!-- What a caller reads in the editor. A public member without a comment (CS1591, and CS1573
 		     for a record that documents some of its parameters and not the rest) fails the build, as
