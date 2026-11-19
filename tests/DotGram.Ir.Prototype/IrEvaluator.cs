@@ -149,7 +149,41 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// <summary>How many statements ran: what a replay costs, counted and not timed.</summary>
 	public long Steps { get; private set; }
 
+	/// <summary>Reads the whole input as a publication.</summary>
+	/// <remarks>
+	/// The evaluator is recursive in the tree and in the grammar both, some thirty frames a level
+	/// of nesting in the input, so anything but a short input is read on a thread with a stack of
+	/// its own, large enough for an input nested a hundred thousand deep.
+	/// </remarks>
 	public IrOutcome Parse(string entry, string input)
+	{
+		if (input.Length <= 256)
+			return Read(entry, input);
+
+		IrOutcome? outcome = null;
+
+		System.Runtime.ExceptionServices.ExceptionDispatchInfo? thrown = null;
+
+		var thread = new Thread(() =>
+		{
+			try
+			{
+				outcome = Read(entry, input);
+			}
+			catch (Exception exception)
+			{
+				thrown = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception);
+			}
+		}, 1 << 30);
+
+		thread.Start();
+		thread.Join();
+		thrown?.Throw();
+
+		return outcome!;
+	}
+
+	IrOutcome Read(string entry, string input)
 	{
 		var function = program.Entries[entry];
 
@@ -165,30 +199,6 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return Run(function, out var value)
 			? new IrOutcome(true, _p, value, [])
 			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])]);
-	}
-
-	/// <summary>The same on a stack large enough for an input nested a hundred thousand deep.</summary>
-	public IrOutcome ParseDeep(string entry, string input)
-	{
-		IrOutcome? outcome = null;
-		Exception? thrown  = null;
-
-		var thread = new Thread(() =>
-		{
-			try
-			{
-				outcome = Parse(entry, input);
-			}
-			catch (Exception exception)
-			{
-				thrown = exception;
-			}
-		}, 1 << 30);
-
-		thread.Start();
-		thread.Join();
-
-		return thrown is null ? outcome! : throw new InvalidOperationException("The reading threw.", thrown);
 	}
 
 	bool Run(IrFunction function, out object? value)
