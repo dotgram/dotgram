@@ -71,15 +71,18 @@ public sealed class AllocationTests(ITestOutputHelper output)
 			Assert.InRange(firstBytes, 1, Budget);
 		}
 
+		// The lowering runs on this thread alone, so the bytes this thread allocated round it are
+		// the lowering's. The process-wide count would add whatever the test classes running beside
+		// this one allocate meanwhile, and the budget would fail on their account.
 		static (IrProgram Program, long Bytes, TimeSpan Time) Lowered(RecognitionGraph graph)
 		{
-			var before  = GC.GetTotalAllocatedBytes(true);
+			var before  = GC.GetAllocatedBytesForCurrentThread();
 			var watch   = Stopwatch.StartNew();
 			var program = IrLowering.Lower(graph, null, everyRule: true);
 
 			watch.Stop();
 
-			return (program, GC.GetTotalAllocatedBytes(true) - before, watch.Elapsed);
+			return (program, GC.GetAllocatedBytesForCurrentThread() - before, watch.Elapsed);
 		}
 	}
 }
