@@ -6,6 +6,7 @@ using System.Linq;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar.Emit;
 
@@ -387,10 +388,80 @@ sealed partial class Machine
 		(Carrier as ImmediateCarrier)?.Resettled();
 	}
 
+	/// <summary>
+	/// <see cref="Settle"/>, asked by the planning stage before anything of the file is printed: the
+	/// same pass over the rules, with the sets of items it names left unnumbered until the machine is
+	/// printed (<see cref="NumberPendingSets"/>).
+	/// </summary>
+	/// <remarks>
+	/// The machines of a file share one numbering of the sets, given in the order the sets are first
+	/// asked for, and the pass over the rules asks for a reader's. Printed one machine after another,
+	/// a reader asked for its sets where it was printed: after every machine before it. Settled ahead,
+	/// it would number them before any of those, and every number after would move. So they are held
+	/// until then under numbers no set has, and nothing the pass leaves behind keeps one.
+	/// </remarks>
+	internal void SettleAhead(IReadOnlyList<Publication> publications)
+	{
+		var used = _expectedUsed;
+
+		_pendingSets    = [];
+		_pendingByItems = new(StringComparer.Ordinal);
+		_pendingUsed    = [];
+		_expectedUsed   = _pendingUsed;
+
+		try
+		{
+			Settle(publications);
+		}
+		finally
+		{
+			_expectedUsed = used;
+		}
+	}
+
+	/// <summary>The sets the pass over the rules asked for ahead of printing, in the order it asked; null where nothing is held.</summary>
+	List<(IReadOnlyList<string> Display, string Pending)>? _pendingSets;
+
+	/// <summary>The held sets by their items (<see cref="_pendingSets"/>).</summary>
+	Dictionary<string, string>? _pendingByItems;
+
+	/// <summary>The calls the pass over the rules marked as written, held with the sets.</summary>
+	HashSet<string>? _pendingUsed;
+
+	/// <summary>Where the numbers of held sets begin: above any number a class of sets reaches.</summary>
+	const int PendingNumbers = 1 << 30;
+
+	/// <summary>
+	/// The sets held since the readers were settled ahead, numbered now, in the order the pass asked for
+	/// them, as they would have been had it been asked here.
+	/// </summary>
+	void NumberPendingSets()
+	{
+		if (_pendingSets is not { } pending)
+			return;
+
+		var used = _pendingUsed!;
+
+		_pendingSets    = null;
+		_pendingByItems = null;
+		_pendingUsed    = null;
+
+		var numbered = new Dictionary<string, string>(StringComparer.Ordinal);
+
+		foreach (var (display, call) in pending)
+			numbered[call] = DeclareExpected(display);
+
+		foreach (var call in used)
+			_expectedUsed.Add(numbered.TryGetValue(call, out var real) ? real : call);
+	}
+
 	/// <summary>Every rule of a reading, each as a method, with the entries above them.</summary>
 	public string RenderReader(IReadOnlyList<Publication> publications)
 	{
+		Printing();
+
 		Settle(publications);
+		NumberPendingSets();
 
 		if (_opens is not { } opens)
 			throw new InvalidOperationException("The readers were not settled.");

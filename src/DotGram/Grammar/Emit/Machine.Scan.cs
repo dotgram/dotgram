@@ -552,6 +552,8 @@ sealed partial class Machine
 
 	public string RenderScanners()
 	{
+		Printing();
+
 		var file    = new Writer(0);
 		var reaches = false;
 

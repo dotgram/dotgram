@@ -351,8 +351,12 @@ sealed partial class Machine
 	/// <summary>Whether the sets are this machine's alone, and so written among its <see cref="Extras"/>.</summary>
 	readonly bool                                          _ownsExpectedSets;
 
-	/// <summary>The calls something actually wrote into a state, for every machine of the class.</summary>
-	readonly HashSet<string>                               _expectedUsed;
+	/// <summary>
+	/// The calls something actually wrote into a state, for every machine of the class; while the
+	/// readers are settled ahead of printing, this machine's own until they are numbered
+	/// (<see cref="SettleAhead"/>).
+	/// </summary>
+	HashSet<string>                                        _expectedUsed;
 
 	/// <summary>One call per distinct set, so the same list is not numbered twice.</summary>
 	readonly Dictionary<string,string>                     _expectedByItems = new(StringComparer.Ordinal);
@@ -9522,6 +9526,20 @@ sealed partial class Machine
 		// written out in two alternatives — and each used to get a field of its own.
 		if (_expectedByItems.TryGetValue(items, out var already))
 			return already;
+
+		// Settled ahead of printing: noted, and numbered where the machine is printed.
+		if (_pendingSets is not null)
+		{
+			if (_pendingByItems!.TryGetValue(items, out var noted))
+				return noted;
+
+			var pending = ExpectedSets.Call(PendingNumbers + _pendingSets.Count);
+
+			_pendingSets.Add((display, pending));
+			_pendingByItems[items] = pending;
+
+			return pending;
+		}
 
 		// Numbered by the list this machine looks sets up in, which sibling machines share and
 		// a machine of its own does not: the same items in two lists are two numbers, and so

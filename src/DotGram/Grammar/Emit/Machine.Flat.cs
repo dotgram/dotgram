@@ -27,6 +27,8 @@ sealed partial class Machine
 	/// <summary>The recognizer itself: a plain method, no arena, no dispatch.</summary>
 	public string RenderFlat(RuleSymbol rule, string name, bool whole)
 	{
+		Printing();
+
 		var seed = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
 
 		_roots.       Clear();
@@ -495,6 +497,8 @@ sealed partial class Machine
 	/// </summary>
 	public string RenderFlatValued(RuleSymbol rule, string name, bool whole)
 	{
+		Printing();
+
 		var seed = whole ? FollowSets.Continuation.End : FollowSets.Continuation.All;
 		var type = _results.QualifiedOf(rule);
 

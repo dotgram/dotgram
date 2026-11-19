@@ -255,6 +255,7 @@ static partial class GramCompiler
 			UsesLexical = lexical is not null,
 			SharedNeeds = context.SharedNeeds,
 			Carriers = carriers,
+			Plan = context.Plan,
 			Names = sources.Count == 0 ? null : language.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source], options),
 		};

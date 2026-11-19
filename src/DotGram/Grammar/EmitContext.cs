@@ -1,6 +1,7 @@
 ﻿using System;
 
 using DotGram.Grammar.Model;
+using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar;
 
@@ -52,4 +53,13 @@ sealed class EmitContext
 	/// reading needs, set as the file is written (GramCompilerOptions.SharedTypes).
 	/// </summary>
 	public SharedNeeds SharedNeeds { get; set; }
+
+	/// <summary>What was decided about the file before any of it was printed, set once it is planned.</summary>
+	public ReadingPlan? Plan { get; set; }
+
+	/// <summary>
+	/// Whether the plan was printed: set where the printing begins, and left unset where the plan
+	/// refused what was asked and nothing was written.
+	/// </summary>
+	public bool Printed { get; set; }
 }
