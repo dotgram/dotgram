@@ -66,7 +66,7 @@ public sealed class HostTests : IDisposable
 
 		var session = client.Server.Document(uri)!.Session;
 
-		await ResolvedAsync(session);
+		await ResolvedAsync(client, session);
 
 		// F12 on a C# name in the grammar: the host's method, in the host's file.
 		var raise      = text.IndexOf("Raise(", StringComparison.Ordinal);
@@ -104,7 +104,7 @@ public sealed class HostTests : IDisposable
 
 		await client.OpenAsync(uri, Dialect);
 
-		var result  = await ResolvedAsync(client.Server.Document(uri)!.Session);
+		var result  = await ResolvedAsync(client, client.Server.Document(uri)!.Session);
 		var context = result.Resolution.Context!.Value;
 
 		Assert.True(context.Lexical);
@@ -151,7 +151,7 @@ public sealed class HostTests : IDisposable
 
 		var session = client.Server.Document(uri)!.Session;
 
-		await StateAsync(session, StandaloneGrammarState.NoHost);
+		await StateAsync(client, session, StandaloneGrammarState.NoHost);
 
 		var hosts = Path.Combine(_folder, "Hosts.cs");
 
@@ -159,7 +159,7 @@ public sealed class HostTests : IDisposable
 
 		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(hosts), type = Lsp.FileCreated } } });
 
-		await ResolvedAsync(session);
+		await ResolvedAsync(client, session);
 	}
 
 	[Fact]
@@ -210,7 +210,7 @@ public sealed class HostTests : IDisposable
 		await client.OpenAsync(baseUri, extended);
 		await client.OpenAsync(uri, uses);
 
-		await ResolvedAsync(client.Server.Document(uri)!.Session);
+		await ResolvedAsync(client, client.Server.Document(uri)!.Session);
 		await NoErrorsAsync(client, uri);
 
 		// The file changes on disk, back to what it was; the editor's text stays what B is.
@@ -229,12 +229,11 @@ public sealed class HostTests : IDisposable
 	static async Task NoErrorsAsync(LspClient client, string uri)
 	{
 		var session = client.Server.Document(uri)!.Session;
-		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
 
 		// The host's resolution and the analyses it starts settle; then the last published is the truth.
-		while (DateTime.UtcNow < deadline &&
-			session.Result?.Document.Diagnostics.Any(static diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error) != false)
-			await Task.Delay(50, TestContext.Current.CancellationToken);
+		await client.UntilAsync(
+			() => session.Result?.Document.Diagnostics.Any(static diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error) == false,
+			() => "The grammar still has errors: " + string.Join("; ", session.Result?.Document.Diagnostics.Select(static diagnostic => diagnostic.Message) ?? []));
 
 		Assert.DoesNotContain(
 			session.Result!.Document.Diagnostics,
@@ -265,7 +264,7 @@ public sealed class HostTests : IDisposable
 		await using var client = await LspClient.StartAsync(null, _folder);
 
 		await client.OpenAsync(uri, Dialect);
-		await ResolvedAsync(client.Server.Document(uri)!.Session);
+		await ResolvedAsync(client, client.Server.Document(uri)!.Session);
 	}
 
 	/// <summary>
@@ -312,14 +311,14 @@ public sealed class HostTests : IDisposable
 
 		var session = client.Server.Document(uri)!.Session;
 
-		await StateAsync(session, StandaloneGrammarState.NoHost);
+		await StateAsync(client, session, StandaloneGrammarState.NoHost);
 
 		var hosts = Path.Combine(_folder, "Hosts.cs");
 
 		File.WriteAllText(hosts, Hosts);
 		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(hosts), type = Lsp.FileCreated } } });
 
-		var resolved = await ResolvedAsync(session);
+		var resolved = await ResolvedAsync(client, session);
 
 		await client.SettleAsync();
 
@@ -443,7 +442,7 @@ public sealed class HostTests : IDisposable
 		await using var client = await LspClient.StartAsync(null, _folder);
 
 		await client.OpenAsync(uri, Dialect);
-		await StateAsync(client.Server.Document(uri)!.Session, StandaloneGrammarState.NoHost);
+		await StateAsync(client, client.Server.Document(uri)!.Session, StandaloneGrammarState.NoHost);
 
 		var document = Weak(client, uri);
 
@@ -653,7 +652,7 @@ public sealed class HostTests : IDisposable
 		await using var client = await LspClient.StartAsync(null, _folder);
 
 		await client.OpenAsync(uri, Dialect);
-		await ResolvedAsync(client.Server.Document(uri)!.Session);
+		await ResolvedAsync(client, client.Server.Document(uri)!.Session);
 
 		var definition = await client.RequestAsync("textDocument/definition", LspClient.At(uri, Dialect, Dialect.IndexOf("Word", StringComparison.Ordinal)));
 		var start      = definition.EnumerateArray().Single().GetProperty("range").GetProperty("start");
@@ -686,24 +685,20 @@ public sealed class HostTests : IDisposable
 		Assert.Null(document.Session.Result);
 	}
 
-	internal static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(GramAnalysisSession<GramVersion> session)
+	internal static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(LspClient client, GramAnalysisSession<GramVersion> session)
 	{
-		return await StateAsync(session, StandaloneGrammarState.Resolved);
+		return await StateAsync(client, session, StandaloneGrammarState.Resolved);
 	}
 
-	internal static async Task<GramAnalysisResult<GramVersion>> StateAsync(GramAnalysisSession<GramVersion> session, StandaloneGrammarState state)
+	/// <summary>The session's last published analysis once it was made with its host in a state.</summary>
+	internal static async Task<GramAnalysisResult<GramVersion>> StateAsync(LspClient client, GramAnalysisSession<GramVersion> session, StandaloneGrammarState state)
 	{
-		var deadline = DateTime.UtcNow + LspClient.Timeout;
+		GramAnalysisResult<GramVersion>? found = null;
 
-		while (DateTime.UtcNow < deadline)
-		{
-			if (session.Result is { } result && result.Resolution.State == state)
-				return result;
+		await client.UntilAsync(
+			() => (found = session.Result) is { } result && result.Resolution.State == state,
+			() => $"The host is {session.Resolution.State}, not {state}.");
 
-			await Task.Delay(50, TestContext.Current.CancellationToken);
-		}
-
-		Assert.Fail($"The host is {session.Resolution.State}, not {state}.");
-		return null;
+		return found!;
 	}
 }

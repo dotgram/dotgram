@@ -63,7 +63,7 @@ public sealed class IncludedReferencesTests : IDisposable
 		ServerWork.Current = null;
 
 		await client.OpenAsync(uri, dialect);
-		await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session);
+		await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session);
 
 		var at      = LspClient.Position(dialect, dialect.IndexOf("TSqlIdentifier", StringComparison.Ordinal));
 		var request = new { textDocument = new { uri }, position = at, context = new { includeDeclaration = true } };
