@@ -1,4 +1,4 @@
-# DotGram
+# .Gram for VS Code
 
 Editing support for [DotGram](https://github.com/dotgram/dotgram) grammars in VS Code — `.gram` files and grammars
 written into C# strings — from the same language core the DotGram source generator and the Visual Studio extension
