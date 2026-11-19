@@ -256,6 +256,11 @@ sealed class IrProgram
 
 	public int UnsupportedNodes { get; set; }
 
+	/// <summary>How many choices and repetitions the lowering asked the plan about, and how many of them the plan had no answer for.</summary>
+	public int PlanAsked { get; set; }
+
+	public int PlanMisses { get; set; }
+
 	public Dictionary<string, int> UnsupportedKinds { get; } = new(StringComparer.Ordinal);
 
 	/// <summary>The functions one to a paragraph, a statement to a line.</summary>

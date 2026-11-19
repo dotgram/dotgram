@@ -78,7 +78,9 @@ public sealed class AllocationTests(ITestOutputHelper output)
 		{
 			var before  = GC.GetAllocatedBytesForCurrentThread();
 			var watch   = Stopwatch.StartNew();
-			var program = IrLowering.Lower(graph, null, everyRule: true);
+			// Without the plan, which would be the whole generator run again inside the count: every
+			// choice and repetition is answered by the lowering's own proofs, as a miss of the plan is.
+			var program = IrLowering.Lower(graph, null, everyRule: true, decisions: []);
 
 			watch.Stop();
 
