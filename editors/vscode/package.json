@@ -1,5 +1,5 @@
 {
-  "name": "VisualStudioCode",
+  "name": "VSCode",
   "displayName": ".Gram for VS Code",
   "description": "Colours, diagnostics, completion, Quick Info, navigation, rename, folding and outline for .gram grammars, and colours, diagnostics, Quick Info and navigation for grammars written in C# strings, from the same language core as the DotGram source generator.",
   "version": "0.3.1",

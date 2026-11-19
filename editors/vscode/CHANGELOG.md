@@ -2,7 +2,7 @@
 
 ## 0.3.1
 
-- Shown on the Marketplace as ".Gram for VS Code" under the id `dotgram.VisualStudioCode`.
+- Shown on the Marketplace as ".Gram for VS Code" under the id `dotgram.VSCode`.
 
 ## 0.3.0
 

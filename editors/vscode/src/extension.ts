@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 import { EmbeddedColors, EmbeddedColorsParams } from './embedded';
 
-const extensionId = 'dotgram.VisualStudioCode';
+const extensionId = 'dotgram.VSCode';
 const runtimeVersion = '10.0';
 
 let client: LanguageClient | undefined;
