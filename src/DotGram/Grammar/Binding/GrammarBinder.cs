@@ -20,7 +20,7 @@ sealed class GrammarBinder
 	public const string DuplicateRule                = "GRAM3001";
 	public const string UndefinedName                = "GRAM3002";
 	public const string UnknownNamespace             = "GRAM3003";
-	public const string UnknownCSharp                = "GRAM3004";
+	public const string UnknownHostType              = "GRAM3004";
 	public const string DuplicatePublication         = "GRAM3005";
 	public const string UnknownRebindingTarget       = "GRAM3006";
 	public const string UnknownRebindingReplacement  = "GRAM3007";
@@ -359,9 +359,9 @@ sealed class GrammarBinder
 	{
 		foreach (var import in usings)
 		{
-			if (import.IsCSharp)
+			if (import.IsHost)
 			{
-				ns.ImportCSharp(import.Name);
+				ns.ImportHost(import.Name);
 				continue;
 			}
 
@@ -746,7 +746,7 @@ sealed class GrammarBinder
 	/// </summary>
 	bool IsValueParam(Param parameter)
 	{
-		return parameter.Type is { } kind && (kind.IsCSharp || _language.IsGrammarKeyword(kind.Name));
+		return parameter.Type is { } kind && (kind.IsHost || _language.IsGrammarKeyword(kind.Name));
 	}
 
 	/// <summary>
@@ -897,7 +897,7 @@ sealed class GrammarBinder
 	/// </summary>
 	void ResolveType(TypeRef type, GrammarNamespace ns, Dictionary<string, ParameterSymbol> parameters)
 	{
-		if (type.IsCSharp || IsBuiltInCSharpType(type.Name))
+		if (type.IsHost || IsBuiltInType(type.Name))
 		{
 			// The one type the notation names itself (§4.1 case 4). It is not in the
 			// consumer's compilation to be found, because it is emitted into the host class
@@ -909,7 +909,7 @@ sealed class GrammarBinder
 			// A generic type is its definition and its arguments, each of which has to exist:
 			// `List<Row>` is asked as `List`1` and as `Row`, never as the spelling.
 			if (!TypeInView(type.Definition, ns))
-				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type.At);
+				Report(UnknownHostType, $"No C# type named '{type.Name}' is in view here.", type.At);
 
 			foreach (var argument in type.TypeArguments)
 				ResolveType(argument, ns, parameters);
@@ -940,7 +940,7 @@ sealed class GrammarBinder
 			return true;
 
 		for (var at = ns; at is not null; at = at.Parent)
-			foreach (var import in at.CSharpImports)
+			foreach (var import in at.HostImports)
 				if (_language.TypeExists(import + "." + name))
 					return true;
 
@@ -948,7 +948,7 @@ sealed class GrammarBinder
 	}
 
 	/// <summary>A keyword of the language's that names a type, <c>void</c> among them.</summary>
-	bool IsBuiltInCSharpType(string name)
+	bool IsBuiltInType(string name)
 	{
 		return _language.IsGrammarKeyword(name) ||
 			_language.Classify(name, out var form) == KnownType.Void && form == TypeSpellingForm.Syntax;
@@ -1006,7 +1006,7 @@ sealed class GrammarBinder
 				// What is given up with it is the grammar compiler catching a mistyped
 				// capture in that position; the consumer's C# compiler catches it instead,
 				// which is the same bargain every other `@` in the language already makes.
-				if (csharpValue && target.IsCSharp)
+				if (csharpValue && target.IsHost)
 					return;
 
 				foreach (var argument in arguments)
@@ -1026,7 +1026,7 @@ sealed class GrammarBinder
 
 			// The text inside @(...) is C#, checked by the C# compiler where the
 			// generator puts it. Nothing here can say anything useful about it.
-			case Expr.CSharp:
+			case Expr.HostFragment:
 				return;
 
 			case Expr.Same(var name):
@@ -1079,7 +1079,7 @@ sealed class GrammarBinder
 	{
 		var at = reference.At;
 
-		if (!csharpValue || !reference.IsCSharp)
+		if (!csharpValue || !reference.IsHost)
 			foreach (var typeArgument in reference.TypeArguments)
 				ResolveType(typeArgument, ns, parameters);
 
@@ -1089,7 +1089,7 @@ sealed class GrammarBinder
 				_bindings[bind] = symbol;
 		}
 
-		if (reference.IsCSharp)
+		if (reference.IsHost)
 		{
 			// A `when` or `=>` value is C# owned by the consumer. Preserve it and let
 			// their compiler resolve names, overloads, generic arguments and types.

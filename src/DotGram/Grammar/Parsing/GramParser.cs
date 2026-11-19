@@ -325,7 +325,7 @@ sealed class GramParser
 	Using ParseUsing()
 	{
 		var start    = Current.Position;
-		var isCSharp = TakeIf(TokenKind.At);
+		var isHost   = TakeIf(TokenKind.At);
 
 		Take();                                     // `using`
 
@@ -333,7 +333,7 @@ sealed class GramParser
 
 		Expect(TokenKind.Semicolon);
 
-		return new Using(isCSharp, name, From(start));
+		return new Using(isHost, name, From(start));
 	}
 
 	Decl? ParseDeclaration()
@@ -351,7 +351,7 @@ sealed class GramParser
 
 			Report(
 				UsingAfterDeclaration,
-				$"'{(import.IsCSharp ? "@using" : "using")} {import.Name};' stands before the first declaration of its file " +
+				$"'{(import.IsHost ? "@using" : "using")} {import.Name};' stands before the first declaration of its file " +
 				"or namespace block, with the other imports: move it up.",
 				From(at));
 
@@ -1012,11 +1012,11 @@ sealed class GramParser
 		return new Decl.State(ParseType()) { At = From(start) };
 	}
 
-	/// <param name="withinCSharp">
+	/// <param name="withinHost">
 	/// Whether this is an argument of a C# type, which is C# whether or not it was written
 	/// with an <c>@</c> of its own — and so may be generic in turn.
 	/// </param>
-	TypeRef ParseType(bool withinCSharp = false)
+	TypeRef ParseType(bool withinHost = false)
 	{
 		if (PastNesting())
 		{
@@ -1034,7 +1034,7 @@ sealed class GramParser
 
 		try
 		{
-			return ParseTypeWithin(withinCSharp);
+			return ParseTypeWithin(withinHost);
 		}
 		finally
 		{
@@ -1042,10 +1042,10 @@ sealed class GramParser
 		}
 	}
 
-	TypeRef ParseTypeWithin(bool withinCSharp)
+	TypeRef ParseTypeWithin(bool withinHost)
 	{
 		var start     = Current.Position;
-		var isCSharp  = TakeIf(TokenKind.At) || withinCSharp;
+		var isHost    = TakeIf(TokenKind.At) || withinHost;
 		var name      = ExpectQualifiedName();
 		var arguments = new List<TypeRef>();
 		var sequence  = false;
@@ -1054,13 +1054,13 @@ sealed class GramParser
 		// `@KeyValuePair<string, Row>` names the type `Row`, not a rule. Only for a C# type,
 		// since a rule and a parameter take no arguments. The arguments are spelled into the
 		// name, which is what the generated file is written from.
-		if (isCSharp && TakeIf(TokenKind.Less))
+		if (isHost && TakeIf(TokenKind.Less))
 		{
 			var spelled = new StringBuilder(name).Append('<');
 
 			do
 			{
-				var argument = ParseType(withinCSharp: true);
+				var argument = ParseType(withinHost: true);
 
 				if (arguments.Count > 0)
 					spelled.Append(", ");
@@ -1083,7 +1083,7 @@ sealed class GramParser
 			sequence = true;
 		}
 
-		return new TypeRef(isCSharp, name, sequence, From(start)) { TypeArguments = arguments };
+		return new TypeRef(isHost, name, sequence, From(start)) { TypeArguments = arguments };
 	}
 
 	// ── Expressions ──────────────────────────────────────────────────────────────
@@ -1376,7 +1376,7 @@ sealed class GramParser
 
 		// A C# guard among the conditions. It is a leaf and never a side of `is`: what `is`
 		// asks is which strings two recognizers share, and a C# expression is neither.
-		if (left is Expr.CSharp)
+		if (left is Expr.HostFragment)
 		{
 			if (!AtSuffixKeyword("is"))
 				return new Test.Runs(left);
@@ -1414,7 +1414,7 @@ sealed class GramParser
 
 		ReadPastQuantifierOfSide();
 
-		if (right is Expr.CSharp)
+		if (right is Expr.HostFragment)
 			Report(
 				ExpectedIs,
 				"The right side of `is` is a recognizer and not C#: the question is which strings " +
@@ -1822,7 +1822,7 @@ sealed class GramParser
 
 	Expr ParsePrimary()
 	{
-		if (AtKeyword("switch") && Next.Kind is TokenKind.At or TokenKind.CSharpExpression)
+		if (AtKeyword("switch") && Next.Kind is TokenKind.At or TokenKind.HostExpression)
 			return ParseSwitch();
 
 		var start = Current.Position;
@@ -1858,8 +1858,8 @@ sealed class GramParser
 				return new Expr.Literal(isChar, token.Value!) { At = From(start), IgnoreCase = ignoreCase };
 			}
 
-			case TokenKind.CSharpExpression:
-				return new Expr.CSharp(Take().Value!) { At = From(start) };
+			case TokenKind.HostExpression:
+				return new Expr.HostFragment(Take().Value!) { At = From(start) };
 
 			case TokenKind.OpenBracket:
 				return ParseElementSet();
@@ -2162,7 +2162,7 @@ sealed class GramParser
 	Expr.Reference ParseReference()
 	{
 		var start         = Current.Position;
-		var isCSharp      = TakeIf(TokenKind.At);
+		var isHost        = TakeIf(TokenKind.At);
 		var name          = ExpectQualifiedName();
 		var typeArguments = new List<TypeRef>();
 
@@ -2180,7 +2180,7 @@ sealed class GramParser
 
 			// A rule, a parameter or a capture takes no type arguments, and they used to be read
 			// and dropped without a word: only a C# name is generic.
-			if (!isCSharp)
+			if (!isHost)
 			{
 				Report(
 					TypeArgumentsOnGrammarName,
@@ -2192,7 +2192,7 @@ sealed class GramParser
 			}
 		}
 
-		return new Expr.Reference(isCSharp, name, typeArguments) { At = From(start) };
+		return new Expr.Reference(isHost, name, typeArguments) { At = From(start) };
 	}
 
 	Expr ParseElementSet()

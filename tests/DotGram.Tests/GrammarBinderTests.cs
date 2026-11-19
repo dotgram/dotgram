@@ -464,7 +464,7 @@ public sealed class GrammarBinderTests
 		else
 			Assert.Equal(
 				$"No C# type named '{missing}' is in view here.",
-				Assert.Single(model.Diagnostics, static one => one.Id == GrammarBinder.UnknownCSharp).Message);
+				Assert.Single(model.Diagnostics, static one => one.Id == GrammarBinder.UnknownHostType).Message);
 	}
 
 	/// <summary>Answers no to every type but the ones it is given, and remembers what it was asked.</summary>

@@ -475,12 +475,12 @@ public sealed class GramParserTests
 
 		var type = Assert.Single(result.File.Decls.OfType<Decl.Rule>()).Type!;
 
-		Assert.Equal(("Dictionary<string, Row[]>", true, true), (type.Name, type.IsCSharp, type.IsSequence));
+		Assert.Equal(("Dictionary<string, Row[]>", true, true), (type.Name, type.IsHost, type.IsSequence));
 		Assert.Equal("Dictionary`2", type.Definition);
 		Assert.Collection(
 			type.TypeArguments,
-			first  => Assert.Equal(("string", true, false), (first.Name, first.IsCSharp, first.IsSequence)),
-			second => Assert.Equal(("Row", true, true), (second.Name, second.IsCSharp, second.IsSequence)));
+			first  => Assert.Equal(("string", true, false), (first.Name, first.IsHost, first.IsSequence)),
+			second => Assert.Equal(("Row", true, true), (second.Name, second.IsHost, second.IsSequence)));
 	}
 
 	/// <summary>And nested, where the two closing brackets are two tokens and not a binding power.</summary>

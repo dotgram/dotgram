@@ -430,7 +430,7 @@ static class Questions
 		void Collect(IReadOnlyList<Using> usings, IReadOnlyList<Decl> declarations)
 		{
 			foreach (var import in usings)
-				if (import.IsCSharp && !imports.Contains(import.Name))
+				if (import.IsHost && !imports.Contains(import.Name))
 					imports.Add(import.Name);
 
 			foreach (var declaration in declarations)
@@ -451,17 +451,17 @@ static class Questions
 						// the rule that names a parameter standing for grammar binds to the host's member of
 						// that name where there is one, and fails to compile where there is none (GRAM4058).
 						foreach (var parameter in parameters)
-							if (parameter.Type is not { IsCSharp: true })
+							if (parameter.Type is not { IsHost: true })
 								bindings.Add(parameter.Name);
 
 						// And which names in each piece of the rule's C# that may name one of those bind to
 						// nothing there: the C# compiler's answer, which knows what a lambda or a local in it
 						// declares. Only the pieces whose names include a parameter's are asked about.
-						if (parameters.Any(static parameter => parameter.Type is not { IsCSharp: true }))
+						if (parameters.Any(static parameter => parameter.Type is not { IsHost: true }))
 							foreach (var part in GrammarNormalizer.InValues(body))
-								if (part is Expr.CSharp(var text) &&
+								if (part is Expr.HostFragment(var text) &&
 									RoslynCSharpScanner.Instance.FreeNames(text) is var free &&
-									parameters.Any(parameter => parameter.Type is not { IsCSharp: true } &&
+									parameters.Any(parameter => parameter.Type is not { IsHost: true } &&
 										(free?.Contains(parameter.Name) ?? text.Contains(parameter.Name))))
 								{
 									fragments.Add(text);

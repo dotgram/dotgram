@@ -625,9 +625,9 @@ static partial class CSharpEmitter
 		// one includes, whether or not it has any of its own: they used to be written only
 		// beside those, and a grammar that included another and said no `@using` called the
 		// helpers of the included class by names nothing in its file could see.
-		if (graph.CSharpImports.Count > 0 || options.StaticImports.Count > 0)
+		if (graph.HostImports.Count > 0 || options.StaticImports.Count > 0)
 		{
-			foreach (var import in graph.CSharpImports)
+			foreach (var import in graph.HostImports)
 				file.Line($"using {import};");
 
 			// The host of every grammar this one is built on, so that a rule which came from

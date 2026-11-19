@@ -106,7 +106,7 @@ sealed partial class GrammarNormalizer
 				new Node.Condition(
 					Lowered(test, ns),
 					Parsing.Test.Operands(test) is [var first, ..] ? StartOf(first) : -1),
-			Expr.CSharp(var text) => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
+			Expr.HostFragment(var text) => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
 			Expr.Construct(var pattern, var value) => LowerConstruct(pattern, value, ns),
 			Expr.Bound(var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
 
@@ -214,7 +214,7 @@ sealed partial class GrammarNormalizer
 
 		switch (value)
 		{
-			case Expr.CSharp or Expr.Reference or Expr.Literal or Expr.Number:
+			case Expr.HostFragment or Expr.Reference or Expr.Literal or Expr.Number:
 				return;
 
 			case Expr.Call(_, var arguments):
@@ -271,8 +271,8 @@ sealed partial class GrammarNormalizer
 	{
 		return value switch
 		{
-			Expr.CSharp => value.At.Position + 1,
-			Expr.Call(var target, _) => target.IsCSharp ? value.At.Position + 1 : value.At.Position,
+			Expr.HostFragment => value.At.Position + 1,
+			Expr.Call(var target, _) => target.IsHost ? value.At.Position + 1 : value.At.Position,
 			Expr.Reference(var csharp, _, _) => csharp ? value.At.Position + 1 : value.At.Position,
 			_ => value.At.Position,
 		};
@@ -853,7 +853,7 @@ sealed partial class GrammarNormalizer
 			var parameter = declaration.Params[i];
 			var argument  = arguments[i];
 
-			if (parameter.Type is { } kind && (kind.IsCSharp || IsCSharpKeyword(kind.Name)))
+			if (parameter.Type is { } kind && (kind.IsHost || IsTypeKeyword(kind.Name)))
 			{
 				// A value is a literal, or a value this rule was handed itself. §4.2's
 				// other spelling — a value captured earlier in the parse — is not one: a
@@ -1134,7 +1134,7 @@ sealed partial class GrammarNormalizer
 
 		if (declaration.Type is { } declared)
 		{
-			if (declared.IsCSharp || IsCSharpKeyword(declared.Name))
+			if (declared.IsHost || IsTypeKeyword(declared.Name))
 			{
 				_types[specialized] = TypeName(declared);
 			}
@@ -1379,7 +1379,7 @@ sealed partial class GrammarNormalizer
 
 		return value switch
 		{
-			Expr.CSharp(var text) => _language.RenderFragment(text),
+			Expr.HostFragment(var text) => _language.RenderFragment(text),
 			Expr.Reference(_, var name, var types) => Referenced(name, types, _language),
 
 			// §3.7: a rule's name without `@` builds the type the grammar generates for that rule.

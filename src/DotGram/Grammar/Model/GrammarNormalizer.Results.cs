@@ -46,7 +46,7 @@ sealed partial class GrammarNormalizer
 			if (rule.Declaration?.Type is not { } type)
 				continue;
 
-			if (type.IsCSharp || IsCSharpKeyword(type.Name))
+			if (type.IsHost || IsTypeKeyword(type.Name))
 			{
 				// §4.1 case 4: `: @string` over a rule that builds nothing and captures
 				// nothing says out loud what such a rule says by default — the extent it
@@ -209,7 +209,7 @@ sealed partial class GrammarNormalizer
 		{
 			return _language.ElementOf(type) is { } element
 				? Known(element)
-				: IsCSharpKeyword(type) || Generated(type);
+				: IsTypeKeyword(type) || Generated(type);
 		}
 
 		// Asked once the results are known, which is when the set is made; once, since a grammar of
@@ -245,7 +245,7 @@ sealed partial class GrammarNormalizer
 	{
 		foreach (var rule in _rules)
 		{
-			if (rule.Declaration?.Type is not { IsCSharp: false } written ||
+			if (rule.Declaration?.Type is not { IsHost: false } written ||
 				!_types.TryGetValue(rule, out var type) ||
 				!_namedTypes.TryGetValue(_language.ElementOf(type) ?? type, out var named) ||
 				HasGeneratedType(named))
@@ -372,7 +372,7 @@ sealed partial class GrammarNormalizer
 	/// type of that name would answer. Said once for each parameter as it was written.
 	/// </para>
 	/// </remarks>
-	void CheckRecognizersInCSharp()
+	void CheckRecognizersInHostCode()
 	{
 		if (!_language.ReadsFragments)
 			return;
@@ -385,7 +385,7 @@ sealed partial class GrammarNormalizer
 				continue;
 
 			var recognizers = declaration.Params
-				.Where(parameter => parameter.Type is not { } type || !type.IsCSharp && !IsCSharpKeyword(type.Name))
+				.Where(parameter => parameter.Type is not { } type || !type.IsHost && !IsTypeKeyword(type.Name))
 				.ToList();
 
 			if (recognizers.Count == 0)
@@ -399,9 +399,9 @@ sealed partial class GrammarNormalizer
 			foreach (var (named, at) in Named(declaration.Body, imports))
 				foreach (var parameter in recognizers)
 					if (named(parameter.Name) && !captured.Contains(parameter.Name) && Unbound(parameter.Name) &&
-						_parametersInCSharp.Add(parameter))
+						_parametersInHostCode.Add(parameter))
 						Report(
-							RecognizerInCSharp,
+							RecognizerInHostCode,
 							$"C# in '{declaration.Name}' names '{parameter.Name}', a parameter that stands for a piece of " +
 							"grammar and holds no value. A value is handed by a parameter written with its type, " +
 							$"'{parameter.Name}: @string', and is a literal or a value the caller was handed itself; " +
@@ -435,7 +435,7 @@ sealed partial class GrammarNormalizer
 					// The C#'s names as the C# compiler binds them where the generated code stands, beside the
 					// grammar's @using directives: one that binds to nothing there is the parameter's. Which
 					// names a lambda, a local or a pattern declares, and over what, is the compiler's to say.
-					case Expr.CSharp(var text):
+					case Expr.HostFragment(var text):
 						var unbound = _language.NamesUnboundIn(text, imports);
 
 						yield return (one => unbound?.Contains(one) == true, part.At);
@@ -448,7 +448,7 @@ sealed partial class GrammarNormalizer
 	/// Every part of every value a rule's body writes — a guard's, a construction's, a switch's selector,
 	/// a mark's, a recovery's factory, a guard among a condition's tests, C# written as an operand.
 	/// </summary>
-	/// <remarks>What <see cref="CheckRecognizersInCSharp"/> asks about, and the generator asks the host about ahead of it.</remarks>
+	/// <remarks>What <see cref="CheckRecognizersInHostCode"/> asks about, and the generator asks the host about ahead of it.</remarks>
 	internal static IEnumerable<Expr> InValues(Expr body)
 	{
 		foreach (var expression in Subexpressions(body))
@@ -461,7 +461,7 @@ sealed partial class GrammarNormalizer
 				Expr.Marked(_, var marked)            => [marked],
 				Expr.Recovering(_, _, { } factory)    => [factory],
 				Expr.Condition(var test)              => Parsing.Test.Guards(test),
-				Expr.CSharp                           => [expression],
+				Expr.HostFragment                     => [expression],
 				_                                     => [],
 			};
 
@@ -503,8 +503,8 @@ sealed partial class GrammarNormalizer
 		}
 	}
 
-	/// <summary>The parameters <see cref="CheckRecognizersInCSharp"/> has told of.</summary>
-	readonly HashSet<Param> _parametersInCSharp = [];
+	/// <summary>The parameters <see cref="CheckRecognizersInHostCode"/> has told of.</summary>
+	readonly HashSet<Param> _parametersInHostCode = [];
 
 	/// <summary>
 	/// §4.2's <c>: item</c>: a specialization's result type is its argument's.
@@ -1193,7 +1193,7 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether a type is one a grammar may write by keyword alone, without <c>@</c> (§2).</summary>
-	bool IsCSharpKeyword(string name)
+	bool IsTypeKeyword(string name)
 	{
 		return _language.IsGrammarKeyword(name);
 	}

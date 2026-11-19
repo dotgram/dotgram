@@ -148,7 +148,7 @@ sealed partial class GrammarNormalizer
 	/// C# in a rule — a guard, a switch's selector, a construction, a mark — naming a parameter that
 	/// stands for a piece of grammar rather than a value.
 	/// </summary>
-	public const string RecognizerInCSharp = "GRAM4058";
+	public const string RecognizerInHostCode = "GRAM4058";
 
 	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>; or one used as a method, a type or a variable, where it is reserved.</summary>
 	public const string SuppliedNameNotHere = "GRAM4053";
@@ -333,7 +333,7 @@ sealed partial class GrammarNormalizer
 		// construction hands back can be the type it is declared to give.
 		normalizer.CheckNamedTypes();
 		normalizer.CheckConstructionTypes();
-		normalizer.CheckRecognizersInCSharp();
+		normalizer.CheckRecognizersInHostCode();
 
 		normalizer.Check();
 		normalizer.CheckSegmentedText();
@@ -465,7 +465,7 @@ sealed partial class GrammarNormalizer
 			// of the grammar's own may be called Nullable.
 			if (_language.OptionalElementOf(type) is null &&
 				!(_language.HasHost &&
-					_language.IsOptionalAsWritten(type, declaration.Type is { IsCSharp: true } written ? written.Definition : null, imports)))
+					_language.IsOptionalAsWritten(type, declaration.Type is { IsHost: true } written ? written.Definition : null, imports)))
 				continue;
 
 			Report(
@@ -565,11 +565,11 @@ sealed partial class GrammarNormalizer
 				if (rule.Declaration is not { } declaration)
 					continue;
 
-				if (declaration.Type is { IsCSharp: true } type)
+				if (declaration.Type is { IsHost: true } type)
 					written[type.Name] = type.Definition;
 
 				foreach (var parameter in declaration.Params)
-					if (parameter.Type is { IsCSharp: true } given)
+					if (parameter.Type is { IsHost: true } given)
 						written[given.Name] = given.Definition;
 			}
 
@@ -1313,7 +1313,7 @@ sealed partial class GrammarNormalizer
 	/// <summary>Every <c>@using</c> in the grammar, outermost namespace first.</summary>
 	static IReadOnlyList<string> Imports(GrammarNamespace ns)
 	{
-		var imports = new List<string>(ns.CSharpImports);
+		var imports = new List<string>(ns.HostImports);
 
 		foreach (var nested in ns.Nested)
 			foreach (var import in Imports(nested))

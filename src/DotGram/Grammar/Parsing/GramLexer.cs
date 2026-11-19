@@ -307,11 +307,11 @@ static class GramLexer
 					continue;
 
 				case '@' when position + 1 < text.Length && text[position + 1] == '(':
-					position = ReadCSharpExpression(
+					position = ReadHostExpression(
 						text, position, language, diagnostics, out var expression);
 
 					if (expression is not null)
-						Add(TokenKind.CSharpExpression, start, position - start, expression);
+						Add(TokenKind.HostExpression, start, position - start, expression);
 
 					continue;
 			}
@@ -542,7 +542,7 @@ static class GramLexer
 	/// inside a string, an interpolation or a comment — so it belongs here rather than
 	/// leaving the parser to switch the lexer's mode mid-stream.
 	/// </summary>
-	static int ReadCSharpExpression(
+	static int ReadHostExpression(
 		string                text,
 		int                   position,
 		ITargetLanguage       language,

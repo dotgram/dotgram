@@ -177,7 +177,7 @@ public sealed class GraphIntegrityTests
 			graph.Nullable,
 			graph.Results,
 			graph.Types,
-			graph.CSharpImports,
+			graph.HostImports,
 			graph.Publications,
 			graph.Diagnostics)
 		{

@@ -343,8 +343,8 @@ sealed partial class GrammarNormalizer
 		if (_produces.TryGetValue(rule, out var known))
 			return known;
 
-		if (rule.Declaration?.Type is { IsCSharp: false } declared &&
-			!IsCSharpKeyword(declared.Name) &&
+		if (rule.Declaration?.Type is { IsHost: false } declared &&
+			!IsTypeKeyword(declared.Name) &&
 			!rule.Declaration.Params.Any(one => one.Name == declared.Name) &&
 			rule.Namespace.LookupQualified(declared.Name) is { } produced)
 			return (produced, declared.IsSequence);
@@ -1375,8 +1375,8 @@ sealed partial class GrammarNormalizer
 			// they did not write. Every clone is allocated before any body is cloned, so the
 			// replacement's own clone is already in the map by the time this asks for it.
 			if (!_produces.ContainsKey(clone) &&
-				rule.Declaration?.Type is { IsCSharp: false } declared &&
-				!IsCSharpKeyword(declared.Name) &&
+				rule.Declaration?.Type is { IsHost: false } declared &&
+				!IsTypeKeyword(declared.Name) &&
 				!rule.Declaration.Params.Any(one => one.Name == declared.Name) &&
 				rule.Namespace.LookupQualified(declared.Name) is { } produced)
 			{
@@ -2087,7 +2087,7 @@ sealed partial class GrammarNormalizer
 	string? DeclaredConcrete(RuleSymbol rule)
 	{
 		return rule.Declaration is { Params.Count: > 0, Type: { } declared } &&
-		(declared.IsCSharp || IsCSharpKeyword(declared.Name))
+		(declared.IsHost || IsTypeKeyword(declared.Name))
 			? TypeName(declared)
 			: null;
 	}

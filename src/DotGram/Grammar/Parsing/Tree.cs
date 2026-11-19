@@ -38,9 +38,9 @@ sealed record GrammarFile(IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls
 	}
 }
 
-sealed record Using     (bool IsCSharp, string Name, Location At)                  : ILocated;
+sealed record Using     (bool IsHost, string Name, Location At)                    : ILocated;
 sealed record Param     (string Name, TypeRef? Type, Location At)                  : ILocated;
-sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Location At) : ILocated
+sealed record TypeRef   (bool IsHost, string Name, bool IsSequence, Location At)   : ILocated
 {
 	/// <summary>What a generic C# type was given between its brackets, each a C# type itself.</summary>
 	/// <remarks>
@@ -238,7 +238,7 @@ abstract record Expr : ILocated
 	}
 
 	public sealed record ElementSet(bool IsNegated, IReadOnlyList<Elem> Items) : Expr;
-	public sealed record CSharp    (string Text)                               : Expr;
+	public sealed record HostFragment(string Text)                             : Expr;
 
 	/// <summary>
 	/// A number, which is a value rather than a recognizer.
@@ -250,7 +250,7 @@ abstract record Expr : ILocated
 	/// </remarks>
 	public sealed record Number(int Value) : Expr;
 
-	public sealed record Reference(bool IsCSharp, string Name, IReadOnlyList<TypeRef> TypeArguments) : Expr;
+	public sealed record Reference(bool IsHost, string Name, IReadOnlyList<TypeRef> TypeArguments) : Expr;
 	public sealed record Call     (Reference Target, IReadOnlyList<Expr> Arguments)                  : Expr;
 
 	public sealed record Quantified(
@@ -445,7 +445,7 @@ static class Dump
 
 	public static string Label(Using import)
 	{
-		return $"Using{(import.IsCSharp ? " (C#)" : "")} {Quote(import.Name)}";
+		return $"Using{(import.IsHost ? " (C#)" : "")} {Quote(import.Name)}";
 	}
 
 	public static string Label(Param parameter)
@@ -460,7 +460,7 @@ static class Dump
 
 	public static string Label(TypeRef type)
 	{
-		return $"Type{(type.IsCSharp ? " (C#)" : "")} {Quote(type.Name)}{(type.IsSequence ? "[]" : "")}";
+		return $"Type{(type.IsHost ? " (C#)" : "")} {Quote(type.Name)}{(type.IsSequence ? "[]" : "")}";
 	}
 
 	public static string Label(Expr expression)
@@ -488,8 +488,8 @@ static class Dump
 			Expr.Literal(false, var value) => $"String {Quote(value)}",
 			Expr.ElementSet(true, _) => "ElementSet (negated)",
 			Expr.ElementSet(false, _) => "ElementSet",
-			Expr.CSharp(var text) => $"CSharp {Quote(text)}",
-			Expr.Reference(var isCSharp, var name, _) => $"Reference{(isCSharp ? " (C#)" : "")} {Quote(name)}",
+			Expr.HostFragment(var text) => $"CSharp {Quote(text)}",
+			Expr.Reference(var isHost, var name, _) => $"Reference{(isHost ? " (C#)" : "")} {Quote(name)}",
 			Expr.Call => "Call",
 
 			Expr.Quantified(_, var kind, var min, var minName, var max, var maxName) quantified => kind switch

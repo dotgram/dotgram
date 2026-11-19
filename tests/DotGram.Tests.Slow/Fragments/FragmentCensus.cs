@@ -208,7 +208,7 @@ static class FragmentCensus
 			var group = Group(place);
 
 			foreach (var token in GramLexer.Tokenize(text, RoslynCSharpScanner.Instance).Tokens)
-				if (token.Kind == TokenKind.CSharpExpression)
+				if (token.Kind == TokenKind.HostExpression)
 					result.Add(new Found(group, place, token.Position, token.Value!));
 		}
 
@@ -220,7 +220,7 @@ static class FragmentCensus
 		var spliced = StandardLibrary.SplicedOnto(own);
 
 		foreach (var token in GramLexer.Tokenize(spliced, RoslynCSharpScanner.Instance, own.Length, StandardLibrary.Scanner).Tokens)
-			if (token.Kind == TokenKind.CSharpExpression && token.Position >= own.Length)
+			if (token.Kind == TokenKind.HostExpression && token.Position >= own.Length)
 				result.Add(new Found("Std", "src/DotGram/Grammar/Std.gram", token.Position - own.Length, token.Value!));
 
 		// In an order no file system chooses.

@@ -92,7 +92,7 @@ sealed partial class GrammarNormalizer
 		{
 			var one = pending.Pop();
 
-			if (one is Expr.Reference { IsCSharp: false, Name: "trivia" })
+			if (one is Expr.Reference { IsHost: false, Name: "trivia" })
 				return true;
 
 			foreach (var child in Dump.Children(one))

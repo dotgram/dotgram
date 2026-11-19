@@ -18,7 +18,7 @@ sealed partial class GrammarNormalizer
 		{
 			yield return name;
 			for (var scope = ns; scope is not null; scope = scope.Parent)
-				foreach (var import in scope.CSharpImports)
+				foreach (var import in scope.HostImports)
 					yield return import + "." + name;
 		}
 	}
@@ -35,7 +35,7 @@ sealed partial class GrammarNormalizer
 			// They are sealed objects without user-defined bases or interfaces.
 			var compatible = actual is null ? IsObject(expected) :
 				PublicationFits(_language, actual, expected, publication.DeclaredIn);
-			if (!type.IsCSharp || !compatible)
+			if (!type.IsHost || !compatible)
 				_diagnostics.Add(new GramDiagnostic(PublicationTypeMismatch,
 					$"The result of '{publication.Rule.Name}' ({actual ?? "generated capture record"}) is not assignable to publication type '{expected}'. Use a compatible C# type written as '@T'.",
 					type.At.Position, type.At.Length, GramSeverity.Error));

@@ -1140,7 +1140,7 @@ static class GramLanguageService
 
 		void VisitType(TypeRef type)
 		{
-			if (!type.IsCSharp)
+			if (!type.IsHost)
 				AddReference(type.Name, new Location(type.At.Position, type.Name.Length));
 		}
 
@@ -1156,11 +1156,11 @@ static class GramLanguageService
 
 		void AddExpressionReference(Expr.Reference reference)
 		{
-			if (!reference.IsCSharp)
+			if (!reference.IsHost)
 				AddReference(reference.Name, reference.At);
 		}
 
-		void AddCSharpReferences(Expr.CSharp expression)
+		void AddCSharpReferences(Expr.HostFragment expression)
 		{
 			var syntax = SyntaxFactory.ParseExpression(expression.Text);
 			var offset = expression.At.Position + 2;
@@ -1218,7 +1218,7 @@ static class GramLanguageService
 		{
 			switch (item)
 			{
-				case Expr.CSharp csharp:
+				case Expr.HostFragment csharp:
 					AddCSharpReferences(csharp);
 					break;
 				case Expr.Switch selected:
@@ -1453,7 +1453,7 @@ static class GramLanguageService
 
 		void Add(Expr.Reference reference)
 		{
-			if (!reference.IsCSharp && !result.Contains(reference.Name))
+			if (!reference.IsHost && !result.Contains(reference.Name))
 				result.Add(reference.Name);
 		}
 
@@ -1733,7 +1733,7 @@ static class GramLanguageService
 			TokenKind.CaseInsensitiveCharacter => GramSyntaxKind.CaseInsensitiveCharacter,
 			TokenKind.CaseInsensitiveString => GramSyntaxKind.CaseInsensitiveString,
 			TokenKind.UnicodeCategory => GramSyntaxKind.CharacterClass,
-			TokenKind.CSharpExpression => GramSyntaxKind.EmbeddedCode,
+			TokenKind.HostExpression => GramSyntaxKind.EmbeddedCode,
 			TokenKind.OpenParen or TokenKind.CloseParen => GramSyntaxKind.Punctuation,
 			TokenKind.OpenBracket or TokenKind.CloseBracket => GramSyntaxKind.Punctuation,
 			TokenKind.OpenBrace or TokenKind.CloseBrace => GramSyntaxKind.Punctuation,
