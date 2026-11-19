@@ -1017,8 +1017,9 @@ static partial class Build
 					upper == "TRY_PARSE");
 			}
 
-			// `NEXT VALUE FOR s`: the sequence is the old call's word.
-			if (Words(name) is ["NEXT", "VALUE", "FOR"])
+			// `NEXT VALUE FOR s`: the sequence is the old call's word. The three words are fourteen characters at least, and
+			// a name without VALUE in it is no such call: the text is cut into words only where it may be one.
+			if (name.Length >= 14 && name.IndexOf("VALUE", StringComparison.OrdinalIgnoreCase) >= 0 && Words(name) is ["NEXT", "VALUE", "FOR"])
 			{
 				if (old.Arguments.Length != 0 || old.Word is null)
 					throw BuildGap.Open(old, "inventory Expression.RoutineInvocation (a NEXT VALUE FOR without its sequence)");
@@ -2295,8 +2296,11 @@ static partial class Build
 		/// </summary>
 		static Ast.DataType? Standard(string words, string[] arguments)
 		{
-			var upper = arguments.Select(static one => one.ToUpperInvariant()).ToArray();
+			var upper = arguments.Length == 0 ? arguments : new string[arguments.Length];
 			var valid = true;
+
+			for (var at = 0; at < upper.Length; at++)
+				upper[at] = arguments[at].ToUpperInvariant();
 
 			int? Number(int at)
 			{
