@@ -134,6 +134,12 @@ abstract record IrStmt
 	public sealed record Choice(
 		IReadOnlyList<IrStmt> Alternatives, IReadOnlyList<IReadOnlyList<IrSlot>> Resets, bool Resumable) : IrStmt
 	{
+		/// <summary>
+		/// Where the alternatives begin apart: the one the next input item begins is the only one
+		/// read, and where it begins none the choice says one set of its own and nothing is tried.
+		/// </summary>
+		public IrDispatch? Dispatch { get; init; }
+
 		public override IEnumerable<IrStmt> Children => Alternatives;
 	}
 
@@ -148,6 +154,12 @@ abstract record IrStmt
 	public sealed record Repeat(
 		IrStmt Body, IrExpr Min, IrExpr? Max, IReadOnlyList<IrSlot> Resets, bool Resumable) : IrStmt
 	{
+		/// <summary>
+		/// What a turn past the least must begin with to be tried at all: behind a shut door no
+		/// turn is read and nothing of it is said.
+		/// </summary>
+		public IReadOnlyList<CharRange>? Door { get; init; }
+
 		public override IEnumerable<IrStmt> Children => [Body];
 	}
 
@@ -196,6 +208,9 @@ abstract record IrStmt
 	/// <summary>Something of the graph this sketch does not lower. Counted, never run.</summary>
 	public sealed record Unsupported(string What) : IrStmt;
 }
+
+/// <summary>What each alternative of a choice begins with, and the set said where the input begins none of them.</summary>
+sealed record IrDispatch(IReadOnlyList<IReadOnlyList<CharRange>> Begins, int Otherwise);
 
 /// <summary>
 /// One rule (or one specialization of one) as a function from a position to the position its
