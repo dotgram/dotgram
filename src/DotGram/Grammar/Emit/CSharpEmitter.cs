@@ -251,6 +251,12 @@ static partial class CSharpEmitter
 		"int ", "bool ", "void ",
 	];
 
+	/// <summary>
+	/// A grammar, as it is published, needs what the language it is generated in cannot do
+	/// (<see cref="TargetCapabilities"/>), and there is no other way to read it.
+	/// </summary>
+	public const string TargetCannot = "GRAM5020";
+
 	/// <summary>Writes the C# of one graph: the file the generator adds for a grammar.</summary>
 	/// <param name="options">
 	/// What the grammar's host asked for, read as the compiler reads it: the class and namespace,
@@ -293,6 +299,14 @@ static partial class CSharpEmitter
 
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
+
+		// What the target can do, asked once for the file. Jumps are what the flat machine and the
+		// jump machine are written with; a target without them has neither, and the reader is then
+		// asked about every machine. The lexer's tables are bytes only where both the author asked
+		// and the target can; where it cannot they are text, the other way they have always been
+		// written, and nothing need be said.
+		var jumps = graph.Language.Can.UnstructuredJumps;
+		var utf8  = options.Utf8Literals && graph.Language.Can.ByteStringLiterals;
 
 		var file    = new Writer(0);
 		var scope   = new Stack<IDisposable>();
@@ -403,7 +417,8 @@ static partial class CSharpEmitter
 			// this one its flat path (docs/internal/next.md, "Future optimization gate") — and of
 			// the rules this machine actually reaches: a recovery, a climb or a streamed
 			// read elsewhere in the grammar is some other machine's business.
-			var lowered = group.Publications.Count > 0 &&
+			var lowered = jumps &&
+				group.Publications.Count > 0 &&
 				!RecoversWithin(graph, only) &&
 				!ClimbsWithin(graph, only) &&
 				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
@@ -511,6 +526,22 @@ static partial class CSharpEmitter
 		AddBufferedMachines(graph, results, machines, options, basis, overKinds, diagnostics);
 		AddPositionalMachines(graph, results, machines, woven, directAllowed);
 
+		// A machine the reader refused is the jump machine's, and a target without jumps has none:
+		// said at the publication, with what the reader said of it.
+		if (!jumps && diagnostics is not null)
+			foreach (var compiled in machines)
+				if (!compiled.Direct)
+					foreach (var publication in compiled.Publications)
+						diagnostics.Add(new GramDiagnostic(
+							TargetCannot,
+							$"'{publication.Rule.Name}' is not read by methods" +
+							(compiled.Machine.Refusal is var (_, why) ? $", because {why}" : "") +
+							$", and {graph.Language.Wording.Name} as it is targeted here has no jumps to read it by: this " +
+							"publication is not supported for this target.",
+							publication.At.Position,
+							publication.At.Length,
+							GramSeverity.Error));
+
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
 		// what that rule builds, which is the same code the character parser would have run
@@ -537,6 +568,16 @@ static partial class CSharpEmitter
 
 		// What the syntactic machines were told that machine would ask for, and what it does: the two have to
 		// agree, or a call into it hands it the wrong arguments (ValuingAsks).
+		// The machine that reads a token again is a jump machine too.
+		if (valuing is not null && !jumps)
+			diagnostics?.Add(new GramDiagnostic(
+				TargetCannot,
+				$"A terminal's value is built by reading its token again, which is done by jumps, and {graph.Language.Wording.Name} " +
+				"as it is targeted here has none: this grammar is not supported for this target read over tokens.",
+				0,
+				0,
+				GramSeverity.Error));
+
 		if (valuing is not null && ValuingAsks.Of(valuing) != woven.Valuing)
 			throw new InvalidOperationException(
 				$"The machine that reads tokens again asks for {ValuingAsks.Of(valuing)}, and the syntactic machines were told {woven.Valuing}.");
@@ -1270,7 +1311,7 @@ static partial class CSharpEmitter
 		// calls the same one.
 		if (lexical is not null)
 		{
-			file.Write(Lexical(lexical, valuing, options.Utf8Literals, expectedSets));
+			file.Write(Lexical(lexical, valuing, utf8, expectedSets));
 			file.Line();
 		}
 
@@ -1427,7 +1468,7 @@ static partial class CSharpEmitter
 
 		// The sets every machine's refusals name, last: what a machine writes a call to is known
 		// only once all of them are written, the lexical half's included.
-		if (expectedSets.Render(options.Utf8Literals) is { Length: > 0 } sets)
+		if (expectedSets.Render(utf8) is { Length: > 0 } sets)
 		{
 			file.Line();
 			file.Write(sets);
