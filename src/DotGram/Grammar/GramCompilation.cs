@@ -42,6 +42,9 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 	/// </summary>
 	public ReadingPlan? Plan { get; init; }
 
+	/// <summary>Whether the plan was printed (<see cref="EmitContext.Printed"/>): false where it refused what was asked.</summary>
+	public bool Printed { get; init; }
+
 	public bool HasErrors
 	{
 		get

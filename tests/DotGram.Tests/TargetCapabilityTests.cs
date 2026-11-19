@@ -90,6 +90,10 @@ public class TargetCapabilityTests
 		Assert.Equal(grammar.IndexOf("find Name", StringComparison.Ordinal), told.Position);
 		Assert.Contains("'Name'", told.Message, StringComparison.Ordinal);
 
+		// Refused before it is printed: no parser comes out with jumps in it.
+		Assert.False(result.Printed);
+		Assert.Empty(result.Sources);
+
 		// And C# itself, which has jumps, is told nothing.
 		Assert.DoesNotContain(
 			GramCompiler.Compile(grammar, new GramCompilerOptions { Language = CSharp }).Diagnostics,
@@ -172,6 +176,10 @@ public class TargetCapabilityTests
 
 				Assert.All(errors, static one => Assert.Equal("GRAM5020", one.Id));
 
+				// What is refused is refused before it is printed.
+				if (errors.Length > 0)
+					Assert.Empty(result.Sources);
+
 				var jumping = result.Sources
 					.SelectMany(static source => CSharpSyntaxTree.ParseText(source.Text).GetRoot().DescendantNodes().OfType<GotoStatementSyntax>())
 					.Select(static jump => Enclosing(jump))
@@ -238,7 +246,8 @@ public class TargetCapabilityTests
 			""";
 
 		var options = new GramCompilerOptions { Language = WithoutJumps, Lexical = true };
-		var told    = GramCompiler.Compile(grammar, options).Diagnostics
+		var result  = GramCompiler.Compile(grammar, options);
+		var told    = result.Diagnostics
 			.Where(static one => one.Id == "GRAM5020" && one.Message.Contains("reading its token again", StringComparison.Ordinal))
 			.ToArray();
 
@@ -247,6 +256,10 @@ public class TargetCapabilityTests
 		Assert.Equal(GramSeverity.Error, once.Severity);
 		Assert.Equal(0, once.Position);
 		Assert.Equal(0, once.Length);
+
+		// Refused before it is printed: no parser comes out with jumps in it.
+		Assert.False(result.Printed);
+		Assert.Empty(result.Sources);
 
 		// And C#, which has jumps, reads the same grammar over tokens without a word of it.
 		Assert.DoesNotContain(

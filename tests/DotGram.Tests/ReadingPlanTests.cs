@@ -87,6 +87,36 @@ public class ReadingPlanTests
 		}
 	}
 
+	/// <summary>
+	/// A <c>find</c> is read only by the jump machine: without jumps the plan refuses it, the refusal is
+	/// said as it always was, and the printer is never entered — no parser is written for it.
+	/// </summary>
+	[Fact]
+	public void Without_jumps_a_refused_plan_is_never_printed()
+	{
+		const string grammar = """
+			Name = ['a'..'z']+
+			find Name
+			""";
+
+		var refused = GramCompiler.Compile(grammar, new GramCompilerOptions { Language = WithoutJumps });
+		var told    = Assert.Single(refused.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal("GRAM5020", told.Id);
+		Assert.NotNull(refused.Plan);
+		Assert.True(refused.Plan.Refused);
+		Assert.Equal([told], refused.Plan.Refusals);
+		Assert.False(refused.Printed);
+		Assert.Empty(refused.Sources);
+
+		// And C#, which has jumps, plans the same grammar and prints it.
+		var printed = GramCompiler.Compile(grammar, new GramCompilerOptions { Language = Language });
+
+		Assert.False(printed.Plan!.Refused);
+		Assert.True(printed.Printed);
+		Assert.Single(printed.Sources);
+	}
+
 	/// <summary>Every machine of every snapshot rendering, with its plan, under one key a machine.</summary>
 	static List<(string Key, MachinePlan Plan)> Machines(CSharpLanguage language)
 	{

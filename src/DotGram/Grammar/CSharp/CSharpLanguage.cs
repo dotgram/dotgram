@@ -329,7 +329,7 @@ sealed class CSharpLanguage : ITargetLanguage
 		return _names?.UnboundIn(fragment, imports);
 	}
 
-	public string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, EmitContext context)
+	public string? Emit(Model.RecognitionGraph graph, GramCompilerOptions options, EmitContext context)
 	{
 		return DotGram.Grammar.Emit.CSharpEmitter.Emit(graph, options, context);
 	}
