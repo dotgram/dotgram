@@ -125,6 +125,7 @@
 		     tests and the stand's compile row create one directly. -->
 		<InternalsVisibleTo Include="DotGram.Cli.Tests" />
 		<InternalsVisibleTo Include="DotGram.CompileRow" />
+		<InternalsVisibleTo Include="DotGram.Ir.Prototype" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,0 +1,297 @@
+﻿using System;
+using System.Globalization;
+using System.Text;
+
+using DotGram.Grammar.Model;
+
+namespace DotGram.Ir.Prototype;
+
+/// <summary>
+/// What a slot holds, which is also what may be done to it.
+/// </summary>
+enum IrSlotKind
+{
+	/// <summary>A position in the input. Assigned once in its lifetime.</summary>
+	Position,
+
+	/// <summary>A text read from the input or what a construction built. Assigned once in its lifetime.</summary>
+	Value,
+
+	/// <summary>The values a repetition gathered, in order: added to, and cut back where a turn is undone.</summary>
+	List,
+
+	/// <summary>
+	/// A position a repetition's turns each write again: the ends of a text bound inside a
+	/// repetition. The one kind that is not assigned once.
+	/// </summary>
+	Rebound,
+}
+
+/// <summary>
+/// A named place a function keeps something in. Its lifetime is the <see cref="IrStmt.Scope"/>
+/// that declares it: it holds nothing each time that scope is entered.
+/// </summary>
+sealed class IrSlot(int index, string name, IrSlotKind kind, string? type)
+{
+	public int        Index { get; } = index;
+	public string     Name  { get; } = name;
+	public IrSlotKind Kind  { get; } = kind;
+
+	/// <summary>The host's spelling of what it holds, where the grammar gave one; otherwise null.</summary>
+	public string? Type { get; } = type;
+
+	public override string ToString()
+	{
+		return "s" + Index.ToString(CultureInfo.InvariantCulture) + "_" + Name;
+	}
+}
+
+/// <summary>
+/// A piece of host code the grammar handed over, kept as written and called by number.
+/// </summary>
+/// <param name="Id">Its number: the rank of where it was written in the grammar.</param>
+/// <param name="IsGuard">A <c>when</c>, which answers yes or no; otherwise a construction, which builds a value.</param>
+/// <param name="Text">The host's text, opaque here.</param>
+/// <param name="At">Where it was written in the grammar.</param>
+/// <param name="Parameters">The captures it names, in the order the rule declares them.</param>
+/// <param name="Rule">The rule it was written in.</param>
+sealed record IrFragment(int Id, bool IsGuard, string Text, int At, IReadOnlyList<string> Parameters, string Rule)
+{
+	public string Name => (IsGuard ? "g" : "c") + Id.ToString(CultureInfo.InvariantCulture);
+}
+
+/// <summary>What an assignment or an argument reads.</summary>
+abstract record IrExpr
+{
+	/// <summary>The position the reading stands at.</summary>
+	public sealed record Position : IrExpr
+	{
+		public static readonly Position Instance = new();
+	}
+
+	/// <summary>What a slot holds; nothing where it was never assigned.</summary>
+	public sealed record Slot(IrSlot Of) : IrExpr;
+
+	/// <summary>The input from the position a slot holds to where the reading stands.</summary>
+	public sealed record Text(IrSlot From) : IrExpr;
+
+	/// <summary>The values a list slot gathered, as a sequence; an empty one where nothing was ever added.</summary>
+	public sealed record Items(IrSlot Of) : IrExpr;
+
+	public sealed record Number(int Value) : IrExpr;
+
+	/// <summary>How many input items stand between the positions two slots hold; none where they hold nothing.</summary>
+	public sealed record Length(IrSlot From, IrSlot To) : IrExpr;
+}
+
+/// <summary>
+/// One step of a function. A step either goes on or fails; a failure is taken by the nearest
+/// step around it that says what a failure inside it means, and by the function otherwise.
+/// </summary>
+abstract record IrStmt
+{
+	public virtual IEnumerable<IrStmt> Children => [];
+
+	/// <summary>Steps in order; the first that fails fails the block.</summary>
+	public sealed record Block(IReadOnlyList<IrStmt> Items) : IrStmt
+	{
+		public override IEnumerable<IrStmt> Children => Items;
+	}
+
+	/// <summary>A lifetime: the slots hold nothing each time the body is entered.</summary>
+	public sealed record Scope(IReadOnlyList<IrSlot> Slots, IrStmt Body) : IrStmt
+	{
+		public override IEnumerable<IrStmt> Children => [Body];
+	}
+
+	/// <summary>One input item in (or, negated, outside) a set of ranges.</summary>
+	public sealed record MatchSet(IReadOnlyList<CharRange> Ranges, bool IsNegated, int Expected) : IrStmt;
+
+	/// <summary>A fixed run of input items. A refusal is recorded where the input first disagrees.</summary>
+	public sealed record MatchText(string Text, bool IgnoreCase, int Expected) : IrStmt;
+
+	/// <summary>The input between two positions, read again here.</summary>
+	public sealed record MatchSame(IrSlot From, IrSlot To, int Expected) : IrStmt;
+
+	/// <summary>The end of the input.</summary>
+	public sealed record MatchEnd(int Expected) : IrStmt;
+
+	/// <summary>
+	/// Another function, read from here. Its value goes into <paramref name="Into"/>, or is added
+	/// to it where <paramref name="Appends"/>.
+	/// </summary>
+	public sealed record Call(IrFunction Target, IrSlot? Into, bool Appends) : IrStmt;
+
+	/// <summary>
+	/// The first alternative that reads, each from where the choice began. An alternative that
+	/// fails leaves nothing behind: the position and the slots of <paramref name="Resets"/> for it
+	/// are put back.
+	/// </summary>
+	/// <param name="Resumable">
+	/// Whether the alternatives after the one that read stay open: the choice writes its decision
+	/// on the tape, and a failure after it may ask it for the next one.
+	/// </param>
+	public sealed record Choice(
+		IReadOnlyList<IrStmt> Alternatives, IReadOnlyList<IReadOnlyList<IrSlot>> Resets, bool Resumable) : IrStmt
+	{
+		public override IEnumerable<IrStmt> Children => Alternatives;
+	}
+
+	/// <summary>
+	/// As many turns of the body as read, between two bounds. A turn that fails is undone as an
+	/// alternative is, and a turn that read nothing is the last.
+	/// </summary>
+	/// <param name="Resumable">
+	/// Whether each turn past the least may be given back: every such turn writes a decision on
+	/// the tape, taken or not.
+	/// </param>
+	public sealed record Repeat(
+		IrStmt Body, IrExpr Min, IrExpr? Max, IReadOnlyList<IrSlot> Resets, bool Resumable) : IrStmt
+	{
+		public override IEnumerable<IrStmt> Children => [Body];
+	}
+
+	/// <summary>
+	/// Whether the body reads here, or (not positive) whether it does not. Nothing of it is kept:
+	/// the position is put back, nothing is built inside, no refusal inside is recorded and no
+	/// decision made inside is left on the tape.
+	/// </summary>
+	public sealed record Look(bool IsPositive, IrStmt Body, IReadOnlyList<IrSlot> Resets, int Expected) : IrStmt
+	{
+		public override IEnumerable<IrStmt> Children => [Body];
+	}
+
+	/// <summary>
+	/// The body's first reading, and no other: the decisions made inside are taken off the tape
+	/// once it has read. Before that it is its own replay region.
+	/// </summary>
+	public sealed record Commit(IrStmt Body, IReadOnlyList<IrSlot> Resets) : IrStmt
+	{
+		public override IEnumerable<IrStmt> Children => [Body];
+	}
+
+	/// <summary>
+	/// A replay region: where the body fails and a decision written on the tape since it began
+	/// can still be moved on, the last such decision is, and the body is run again from where it
+	/// began — with the same decisions before that one, read back from the tape.
+	/// </summary>
+	public sealed record Replay(IrStmt Body) : IrStmt
+	{
+		public override IEnumerable<IrStmt> Children => [Body];
+	}
+
+	public sealed record Assign(IrSlot Slot, IrExpr Value) : IrStmt;
+
+	public sealed record Append(IrSlot List, IrExpr Value) : IrStmt;
+
+	/// <summary>A question to the host. No: a refusal is recorded and the step fails.</summary>
+	public sealed record Guard(IrFragment Fragment, IReadOnlyList<IrExpr> Arguments, int Expected) : IrStmt;
+
+	/// <summary>
+	/// The host builds a value. Runs where the reading stands when it is reached, each time it is
+	/// reached, and not at all inside a <see cref="Look"/>.
+	/// </summary>
+	public sealed record Construct(IrFragment Fragment, IReadOnlyList<IrExpr> Arguments, IrSlot Into) : IrStmt;
+
+	/// <summary>Something of the graph this sketch does not lower. Counted, never run.</summary>
+	public sealed record Unsupported(string What) : IrStmt;
+}
+
+/// <summary>
+/// One rule (or one specialization of one) as a function from a position to the position its
+/// reading ends at, or to a failure.
+/// </summary>
+sealed class IrFunction(int index, string name)
+{
+	public int    Index { get; } = index;
+	public string Name  { get; } = name;
+
+	public IrStmt Body { get; set; } = new IrStmt.Block([]);
+
+	/// <summary>The slot whose value is the function's when it has read, or null where its value is the text it read.</summary>
+	public IrSlot? Result { get; set; }
+
+	public int SlotCount { get; set; }
+
+	/// <summary>Whether a reading of it can leave a decision on the tape.</summary>
+	public bool Decides { get; set; }
+
+	/// <summary>Whether everything in its body was lowered.</summary>
+	public bool Complete { get; set; } = true;
+}
+
+/// <summary>A grammar as functions, the host fragments they call and the names of what they expect.</summary>
+sealed class IrProgram
+{
+	public List<IrFunction> Functions { get; } = [];
+	public List<IrFragment> Fragments { get; } = [];
+	public List<string>     Expected  { get; } = [];
+
+	/// <summary>A function per publication, by the publication's method name: the whole input, read as the rule.</summary>
+	public Dictionary<string, IrFunction> Entries { get; } = new(StringComparer.Ordinal);
+
+	/// <summary>How many statements and expressions the functions hold.</summary>
+	public int NodeCount { get; set; }
+
+	/// <summary>How many graph nodes were met, and how many of them had no lowering.</summary>
+	public int GraphNodes { get; set; }
+
+	public int UnsupportedNodes { get; set; }
+
+	public Dictionary<string, int> UnsupportedKinds { get; } = new(StringComparer.Ordinal);
+
+	/// <summary>The functions one to a paragraph, a statement to a line.</summary>
+	public string Dump(bool fragmentTexts = true)
+	{
+		var text = new StringBuilder();
+
+		foreach (var function in Functions)
+		{
+			text.Append(function.Name).Append(function.Decides ? " (decides)" : "").Append(":\n");
+			Write(function.Body, 1);
+		}
+
+		return text.ToString();
+
+		void Write(IrStmt stmt, int depth)
+		{
+			text.Append(' ', depth * 2).Append(stmt.GetType().Name);
+
+			switch (stmt)
+			{
+				case IrStmt.Scope scope:      text.Append(' ').Append(string.Join(" ", scope.Slots)); break;
+				case IrStmt.MatchSet set:     text.Append(' ').Append(Expected[set.Expected]); break;
+				case IrStmt.MatchText lit:    text.Append(' ').Append(Expected[lit.Expected]); break;
+				case IrStmt.MatchSame same:   text.Append(' ').Append(same.From).Append("..").Append(same.To); break;
+				case IrStmt.Call call:        text.Append(' ').Append(call.Target.Name).Append(call.Into is null ? "" : (call.Appends ? " +> " : " -> ") + call.Into); break;
+				case IrStmt.Choice choice:    text.Append(choice.Resumable ? " resumable" : ""); break;
+				case IrStmt.Repeat repeat:    text.Append(' ').Append(Show(repeat.Min)).Append("..").Append(repeat.Max is null ? "*" : Show(repeat.Max)).Append(repeat.Resumable ? " resumable" : ""); break;
+				case IrStmt.Look look:        text.Append(look.IsPositive ? " positive" : " negative"); break;
+				case IrStmt.Assign assign:    text.Append(' ').Append(assign.Slot).Append(" = ").Append(Show(assign.Value)); break;
+				case IrStmt.Append append:    text.Append(' ').Append(append.List).Append(" += ").Append(Show(append.Value)); break;
+				case IrStmt.Guard guard:      text.Append(' ').Append(guard.Fragment.Name).Append('(').Append(string.Join(", ", guard.Arguments.Select(Show))).Append(')').Append(fragmentTexts ? " " + guard.Fragment.Text : ""); break;
+				case IrStmt.Construct build:  text.Append(' ').Append(build.Into).Append(" = ").Append(build.Fragment.Name).Append('(').Append(string.Join(", ", build.Arguments.Select(Show))).Append(')').Append(fragmentTexts ? " " + build.Fragment.Text : ""); break;
+				case IrStmt.Unsupported none: text.Append(' ').Append(none.What); break;
+			}
+
+			text.Append('\n');
+
+			foreach (var child in stmt.Children)
+				Write(child, depth + 1);
+		}
+	}
+
+	public static string Show(IrExpr expr)
+	{
+		return expr switch
+		{
+			IrExpr.Position         => "p",
+			IrExpr.Slot slot        => slot.Of.ToString(),
+			IrExpr.Text text        => "text(" + text.From + "..p)",
+			IrExpr.Items items      => "items(" + items.Of + ")",
+			IrExpr.Number number    => number.Value.ToString(CultureInfo.InvariantCulture),
+			IrExpr.Length length    => "length(" + length.From + ".." + length.To + ")",
+			_                       => throw new ArgumentOutOfRangeException(nameof(expr)),
+		};
+	}
+}
