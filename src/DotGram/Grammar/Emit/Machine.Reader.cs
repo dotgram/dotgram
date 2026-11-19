@@ -6449,8 +6449,7 @@ sealed partial class Machine
 		/// </summary>
 		bool WritesAWay(IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
 		{
-			var plain   = following.Taught.Plain;
-			var context = WriteContext.Of(plain);
+			var context = WriteContext.OfChoice(following.Taught.Plain);
 
 			if (machine.Plan is { } plan)
 				return Planned(plan).Of(owner, alternatives[0], alternatives.Count, context).WritesAWay;
@@ -6458,7 +6457,7 @@ sealed partial class Machine
 			if (machine.Writes.Held(owner, alternatives[0], alternatives.Count, context) is { } held)
 				return held.WritesAWay;
 
-			var decision = machine._proofs.Choice(alternatives, plain);
+			var decision = machine._proofs.Choice(alternatives, following.Taught.Plain);
 
 			machine.Writes.Record(owner, alternatives[0], alternatives.Count, context, decision);
 
@@ -6475,7 +6474,7 @@ sealed partial class Machine
 			(char Stop, FollowSets.Continuation Beyond)? stopped =
 				_stopAfter is var (at, stop, beyond) && ReferenceEquals(at, repeat) ? (stop, beyond) : null;
 
-			var context = WriteContext.Of(following.Taught, machine._seam, stopped);
+			var context = WriteContext.OfRepetition(following.Taught, machine._seam, stopped);
 
 			if (machine.Plan is { } plan)
 				return Planned(plan).Of(owner, repeat, 0, context).WritesAWay;
