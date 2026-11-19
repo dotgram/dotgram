@@ -189,13 +189,13 @@ public sealed class ConditionAndParameterTests
 		var grammar = "Digits = ['0'..'9']+\n" + rules + "\nparse Field";
 		var told    = Assert.Single(Compile(grammar).Diagnostics, static one => one.Severity == GramSeverity.Error);
 
-		Assert.Equal(GrammarNormalizer.RecognizerInCSharp, told.Id);
+		Assert.Equal(GrammarNormalizer.RecognizerInHostCode, told.Id);
 		Assert.Contains("'Value'", told.Message, StringComparison.Ordinal);
 
 		// And the generator, which asks the host ahead of time, says the same.
 		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", grammar));
 
-		Assert.Contains(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		Assert.Contains(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 	}
 
 	/// <summary>
@@ -207,7 +207,7 @@ public sealed class ConditionAndParameterTests
 	{
 		var errors = Errors("Digits = ['0'..'9']+\nInner(n: @int) = 'a'\nValue(x) = x & Inner(@(x.Length))\nField = '=' & Value(Digits)\nparse Field");
 
-		Assert.Contains(GrammarNormalizer.RecognizerInCSharp, errors);
+		Assert.Contains(GrammarNormalizer.RecognizerInHostCode, errors);
 	}
 
 	/// <summary>
@@ -255,15 +255,15 @@ public sealed class ConditionAndParameterTests
 		// The generator asks the same question ahead of time, beside the same directives.
 		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", grammar));
 
-		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 
 		// And without the directive, nothing answers to the name, and it is the parameter.
 		var bare = rule + "\nTest = Use('a')\nparse Test";
 
-		Assert.Contains(Compile(bare).Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		Assert.Contains(Compile(bare).Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 		Assert.Contains(
 			GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host;", ("/proj/Host.gram", bare)).Diagnostics,
-			static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+			static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 	}
 
 	/// <summary>
@@ -281,7 +281,7 @@ public sealed class ConditionAndParameterTests
 
 		if (said)
 		{
-			Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+			Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 		}
 		else
 		{
@@ -320,7 +320,7 @@ public sealed class ConditionAndParameterTests
 		// The generator asks the same of the host ahead of time.
 		var run = GeneratorDriverTests.RunGenerator("[DotGram.Gram] public partial class Host { " + members + " }", ("/proj/Host.gram", grammar));
 
-		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 	}
 
 	/// <summary>
@@ -342,7 +342,7 @@ public sealed class ConditionAndParameterTests
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseTest", "az").IsSuccess);
 
 		// And where the host declares no such name, the same rule is said on the grammar.
-		Assert.Contains(Compile(grammar).Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		Assert.Contains(Compile(grammar).Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 	}
 
 	/// <summary>
@@ -356,7 +356,7 @@ public sealed class ConditionAndParameterTests
 			"Digits = ['0'..'9']+\nValue(x) = x & when @(x != null)\nField = '=' & Value(Digits)\nparse Field",
 			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
 
-		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInCSharp);
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.RecognizerInHostCode);
 	}
 
 	[Theory]

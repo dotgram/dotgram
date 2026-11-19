@@ -56,7 +56,7 @@ static class GramCSharpClassifier
 
 	static void Classify(TypeRef? type, string text, List<GramClassifiedSpan> result)
 	{
-		if (type is not { IsCSharp: true } || !AfterAt(text, type.At, out var start, out var length))
+		if (type is not { IsHost: true } || !AfterAt(text, type.At, out var start, out var length))
 			return;
 
 		var syntax = SyntaxFactory.ParseTypeName(text.Substring(start, length));
@@ -67,7 +67,7 @@ static class GramCSharpClassifier
 	{
 		switch (expression)
 		{
-			case Expr.CSharp(var csharpText):
+			case Expr.HostFragment(var csharpText):
 			{
 				var start  = expression.At.Position + 2;
 				var syntax = SyntaxFactory.ParseExpression(csharpText);
@@ -80,7 +80,7 @@ static class GramCSharpClassifier
 				break;
 			}
 
-			case Expr.Reference { IsCSharp: true } reference
+			case Expr.Reference { IsHost: true } reference
 				when AfterAt(text, reference.At, out var start, out var length):
 			{
 				var syntax = SyntaxFactory.ParseExpression(text.Substring(start, length));

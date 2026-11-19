@@ -381,7 +381,7 @@ static class GramVocabulary
 			if (token.Kind == TokenKind.EndOfFile || token.Position > position)
 				break;
 
-			if (token.Kind == TokenKind.CSharpExpression && token.Position < position && position < token.Position + token.Length)
+			if (token.Kind == TokenKind.HostExpression && token.Position < position && position < token.Position + token.Length)
 				return true;
 
 			if (token.Kind is not (TokenKind.Identifier or TokenKind.Dot) || position > token.Position + token.Length)

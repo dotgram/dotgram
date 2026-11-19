@@ -153,7 +153,7 @@ sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot
 	public IReadOnlyDictionary<string, RuleSymbol> Rules         => _rules;
 	public IReadOnlyList<GrammarNamespace>         Nested        => _nested;
 	public IReadOnlyList<GrammarNamespace>         Imports       => _imports;
-	public IReadOnlyList<string>                   CSharpImports => _csharpImports;
+	public IReadOnlyList<string>                   HostImports => _csharpImports;
 
 	/// <summary>This namespace's own `with (...)` header, resolved, in source order (§5, §7).</summary>
 	public IReadOnlyList<ResolvedRebinding> OwnRebindings => _ownRebindings;
@@ -224,7 +224,7 @@ sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot
 		_imports.Add(other);
 	}
 
-	internal void ImportCSharp(string name)
+	internal void ImportHost(string name)
 	{
 		_csharpImports.Add(name);
 	}
@@ -552,7 +552,7 @@ sealed class GrammarModel(
 		{
 			text.Append('\t', depth).Append("namespace ").AppendEndingWith(ns.ToString());
 
-			foreach (var import in ns.CSharpImports)
+			foreach (var import in ns.HostImports)
 				text.Append('\t', depth + 1).Append("using @").AppendEndingWith(import);
 
 			foreach (var import in ns.Imports)

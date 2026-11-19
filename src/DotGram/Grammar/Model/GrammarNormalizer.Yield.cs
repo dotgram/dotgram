@@ -76,7 +76,7 @@ sealed partial class GrammarNormalizer
 				var type = publication.ResultType ?? new TypeRef(true, collectedType, false, publication.At);
 				if ((_nullable.TryGetValue(element, out var nullable) && nullable) || element.GivesBack)
 					reason = "A yielded element must consume input and must not give back a successful match.";
-				else if (!type.IsCSharp || type.IsSequence)
+				else if (!type.IsHost || type.IsSequence)
 					reason = "The yield element type must be a C# type written as '@T'.";
 				else if (!_types.TryGetValue(element, out var actual) || !_language.Fits(actual, collectedType))
 					reason = $"The result of '{element.Name}' is not an element of the published collection '{_types[root]}'.";

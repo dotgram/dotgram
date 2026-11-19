@@ -593,7 +593,7 @@ sealed class RecognitionGraph(
 	public IReadOnlyCollection<RuleSymbol> NamedTypes { get; init; } = [];
 
 	/// <summary>The grammar's <c>@using</c> directives, which the generated file needs.</summary>
-	public IReadOnlyList<string> CSharpImports { get; } = cSharpImports;
+	public IReadOnlyList<string> HostImports { get; } = cSharpImports;
 
 	/// <summary>
 	/// The <c>trivia</c> each rule sees, where it matches anything at all (§4.5).

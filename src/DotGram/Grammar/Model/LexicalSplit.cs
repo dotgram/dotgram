@@ -275,7 +275,7 @@ sealed class LexicalSplit
 				Kept(graph.Nullable, rules),
 				results,
 				Kept(graph.Types, rules),
-				graph.CSharpImports,
+				graph.HostImports,
 				graph.Publications,
 				graph.Diagnostics)
 			{

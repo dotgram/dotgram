@@ -144,7 +144,7 @@ public sealed class GramLexerTests
 		Assert.Equal(
 			"""
 			Identifier "when"
-			CSharpExpression "qty > 0 && s == \"a)b\""
+			HostExpression "qty > 0 && s == \"a)b\""
 			Ampersand
 			Identifier "rest"
 			""",

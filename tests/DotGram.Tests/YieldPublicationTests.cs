@@ -105,7 +105,7 @@ public sealed class YieldPublicationTests
 		Assert.True(publication.BufferedBytes);
 		Assert.True(publication.Yield);
 		Assert.Equal("BaseNode", publication.ResultType!.Name);
-		Assert.True(publication.ResultType.IsCSharp);
+		Assert.True(publication.ResultType.IsHost);
 	}
 
 	[Theory]
