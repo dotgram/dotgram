@@ -1668,6 +1668,7 @@ public static partial class SqlWriter
 							Each(when.When, one => PutCondition(when, one));
 						else
 							Each(when.When, PutWhenOperand);
+
 						Word("THEN");
 						PutExpression(when.Then);
 					}
@@ -2018,6 +2019,7 @@ public static partial class SqlWriter
 						ExtractField.TimezoneMinute                           => "TIMEZONE_MINUTE",
 						_                           => throw NoText(extract.Field.Value),
 					});
+
 					Word("FROM");
 					PutExpression(extract.Source);
 					Close();
@@ -2380,6 +2382,7 @@ public static partial class SqlWriter
 					}
 					else
 						PutCommon(query.Common, standard: query is not { Output: null, Quotes: null, OnEmpty: null, OnError: null, Wrapper: null or JsonWrapperBehavior.WithArray });
+
 					PutOutput(query.Output);
 
 					if (query.Wrapper is { } wrapper)

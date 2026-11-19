@@ -18,7 +18,6 @@ src/DotGram.Sql/Ast/SqlWriter.TransactSql.Procedural.cs control 1
 src/DotGram.Sql/Ast/SqlWriter.TransactSql.Routines.cs declarations 1
 src/DotGram.Sql/Ast/SqlWriter.TransactSql.Routines.cs short-if-group 1
 src/DotGram.Sql/Ast/SqlWriter.TransactSql.Tables.cs control 1
-src/DotGram.Sql/Ast/SqlWriter.cs control 2
 src/DotGram.Sql/SqlScriptReader.cs declarations 1
 src/DotGram.Sql/TransactSql/Building/Build.Built.cs declarations 1
 src/DotGram.Sql/TransactSql/Building/Build.Queries.cs declarations 17

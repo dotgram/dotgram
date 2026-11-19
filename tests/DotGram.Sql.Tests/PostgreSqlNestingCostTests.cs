@@ -54,6 +54,7 @@ public sealed class PostgreSqlNestingCostTests
 		foreach (var size in new[] { 1 << 10, 1 << 12, 1 << 14, 1 << 16 })
 		{
 			var text = Text(head, unit, tail, size, accepted);
+
 			var (finished, read, allocated) = Read(text, static t => PostgreSqlParser.TryParseExpression(t).IsSuccess);
 
 			Assert.True(
@@ -118,6 +119,7 @@ public sealed class PostgreSqlNestingCostTests
 		foreach (var depth in new[] { 8, 16, 32, 64 })
 		{
 			var text = Nest(head, opener, core, closer, tail, depth);
+
 			var (finished, read, allocated) = Read(text, static t => PostgreSqlParser.TryParseStatement(t).IsSuccess);
 
 			Assert.True(finished, $"{what}: {depth} levels were not read in {Watchdog.TotalSeconds:F0} s, where the depths before allocated {string.Join(", ", bytes.Select(static one => one.ToString("N0")))} bytes.");
@@ -164,6 +166,7 @@ public sealed class PostgreSqlNestingCostTests
 		foreach (var size in new[] { 16, 64, 256, 1024 })
 		{
 			var text = head + string.Concat(Enumerable.Repeat(unit, size)) + tail;
+
 			var (finished, read, allocated) = Read(text, static t => PostgreSqlParser.TryParseStatement(t).IsSuccess);
 
 			Assert.True(finished, $"{what}: {size} items were not read in {Watchdog.TotalSeconds:F0} s, where the sizes before allocated {string.Join(", ", bytes.Select(static one => one.ToString("N0")))} bytes.");
