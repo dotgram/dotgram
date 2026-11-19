@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Ir.Prototype</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
+		     rather than being hosted by VSTest. -->
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<!-- Throw-away evidence, and deliberately outside DotGram.slnx: a sketch of a neutral execution
+	     tree between the recognition graph and the printed parser, an evaluator that holds its
+	     contracts, and printers of it for TypeScript and C. Its tests run node and gcc, which the
+	     build servers do not have, so it is built and run by path; a test that needs a tool that is
+	     absent is skipped. Nothing here ships and nothing else references it. -->
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+		<!-- For the scanner that reads the host fragments of a grammar text normalized in a test. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Twice, as DotGram.Tests does: as an analyzer, so that the fixtures here are compiled into
+		     the C# parsers every other reading is held to, and as a reference, so that the tests read
+		     the generator's own recognition graph. -->
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
+
+		<!-- The shipped JSON and timestamp parsers: the answers the hand-written hosts are held to. -->
+		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The hand-written hosts and drivers in the two other languages, read by the tests as files. -->
+		<None Include="Hosts\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>
