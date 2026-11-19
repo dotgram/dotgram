@@ -28,7 +28,19 @@ sealed class LspClient : IAsyncDisposable
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 	};
 
+	/// <summary>
+	/// How long a wait goes on while the server has nothing to do: what is waited for did not come, and
+	/// nothing that could bring it is running. Also the bound of a test's own gates.
+	/// </summary>
 	public static readonly TimeSpan Timeout = TimeSpan.FromMinutes(2);
+
+	/// <summary>
+	/// How long a wait goes on, at most, while the server works. A busy machine — every test suite at once
+	/// on a few processors — stretches an analysis of the T-SQL grammar past <see cref="Timeout"/>, and
+	/// such a wait says nothing about the server; this bounds only work that never ends. The longest such
+	/// test seen under heavy load took four and a half minutes.
+	/// </summary>
+	public static readonly TimeSpan WorkLimit = TimeSpan.FromMinutes(10);
 
 	readonly AnonymousPipeServerStream _toServer   = new(PipeDirection.Out);
 	readonly AnonymousPipeServerStream _fromServer = new(PipeDirection.In);
@@ -41,6 +53,9 @@ sealed class LspClient : IAsyncDisposable
 	readonly ConcurrentDictionary<int, TaskCompletionSource<JsonElement>> _requests = new();
 	readonly List<(string Method, JsonElement Params)>                    _notifications = [];
 	readonly object                                                         _gate = new();
+
+	// Completed and replaced whenever a message comes in: what a wait wakes on, instead of its next look.
+	TaskCompletionSource _arrived = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 	int _nextId;
 
@@ -62,8 +77,22 @@ sealed class LspClient : IAsyncDisposable
 
 	public GramLanguageServer Server { get; }
 
+	/// <summary>
+	/// Whether the server is working now: an analysis or a search for a host running or due on its
+	/// scheduler, the folders being read, or the workspace's updates being applied. A wait of a second
+	/// or more on its clock — for a host to settle, before a retry — is not work.
+	/// </summary>
+	public bool Working => !Scheduler.Idle || !Server.Folder.IsCompleted || !Server.Updates.Drained.IsCompleted;
+
 	/// <summary>Whether the client says the workspace is trusted, which lets the server evaluate its projects with MSBuild.</summary>
 	public bool Trusted { get; init; } = true;
+
+	/// <summary>
+	/// How long a wait goes on while the server has nothing to do: <see cref="Timeout"/>, or shorter where a
+	/// test asks. Messages on their way between the two sides are not the server's work, and a busy machine
+	/// holds them up for seconds: a test makes it short only around a wait on work it knows of.
+	/// </summary>
+	public TimeSpan Patience { get; set; } = Timeout;
 
 	/// <summary>The whole of what <c>initialize</c> says of the extension's settings, where not only whether the workspace is trusted.</summary>
 	public object? Options { get; init; }
@@ -164,13 +193,10 @@ sealed class LspClient : IAsyncDisposable
 		return AnswerAsync(sent, done.Task, method);
 	}
 
-	static async Task<JsonElement> AnswerAsync(Task sent, Task<JsonElement> answer, string method)
+	async Task<JsonElement> AnswerAsync(Task sent, Task<JsonElement> answer, string method)
 	{
 		await sent;
-
-		var finished = await Task.WhenAny(answer, Task.Delay(Timeout));
-
-		Assert.True(finished == answer, $"{method} was not answered in {Timeout}.");
+		await UntilAsync(() => answer.IsCompleted, () => $"{method} was not answered.");
 
 		return await answer;
 	}
@@ -195,24 +221,87 @@ sealed class LspClient : IAsyncDisposable
 	/// <summary>Waits for a notification that satisfies a condition, counting those already received.</summary>
 	public async Task<JsonElement> WaitForAsync(string method, Func<JsonElement, bool> condition)
 	{
-		var deadline = DateTime.UtcNow + Timeout;
+		JsonElement found = default;
 
-		while (DateTime.UtcNow < deadline)
-		{
-			lock (_gate)
+		await UntilAsync(
+			() =>
 			{
-				foreach (var (name, parameters) in _notifications)
-					if (name == method && condition(parameters))
-						return parameters;
+				lock (_gate)
+				{
+					foreach (var (name, parameters) in _notifications)
+					{
+						if (name == method && condition(parameters))
+						{
+							found = parameters;
+							return true;
+						}
+					}
+				}
 
-				Monitor.Wait(_gate, 50);
-			}
+				return false;
+			},
+			() => $"No {method} came.");
 
-			await Task.Yield();
+		return found;
+	}
+
+	/// <summary>
+	/// Waits until a condition holds, looking again whenever a message comes in and at least every few
+	/// milliseconds. What fails the wait is the time the server had nothing to do while it waited —
+	/// <see cref="Patience"/> of it — not the time taken: a busy machine slows the server's work down,
+	/// and does not lose what it sends. Work that goes on for <see cref="WorkLimit"/> fails it as well.
+	/// </summary>
+	/// <remarks>
+	/// Working is not making progress: work that hangs on the server's scheduler — a deadlock, an await of
+	/// what never completes — keeps the server working, and a wait that needs it fails only at
+	/// <see cref="WorkLimit"/>, saying the scheduler is busy. Progress cannot be told apart from a hang here:
+	/// one analysis of the T-SQL grammar runs for minutes on a busy machine without a step to see.
+	/// </remarks>
+	/// <param name="failure">What did not come, said in the failure with how the server stands.</param>
+	public async Task UntilAsync(Func<bool> condition, Func<string> failure)
+	{
+		var waited = System.Diagnostics.Stopwatch.StartNew();
+		var idle   = TimeSpan.Zero;
+		var last   = TimeSpan.Zero;
+
+		while (true)
+		{
+			// Taken before the look, so that a message that comes after it wakes the wait.
+			Task arrived;
+
+			lock (_gate)
+				arrived = _arrived.Task;
+
+			if (condition())
+				return;
+
+			var now = waited.Elapsed;
+
+			if (!Working)
+				idle += now - last;
+
+			last = now;
+
+			if (idle >= Patience || now >= WorkLimit)
+				Assert.Fail($"{failure()} The server had nothing to do for {idle.TotalSeconds:F1} s of the {now.TotalSeconds:F1} s waited. {Standing()}");
+
+			await Task.WhenAny(arrived, Task.Delay(20));
 		}
+	}
 
-		Assert.Fail($"No {method} came in {Timeout}.");
-		return default;
+	/// <summary>How the server stands, and the last of what it logged: what a failed wait says beside what did not come.</summary>
+	string Standing()
+	{
+		var folder = Server.Folder;
+		var logged = Notifications("window/logMessage")
+			.Select(static item => item.GetProperty("message").GetString())
+			.TakeLast(10)
+			.ToArray();
+
+		return
+			$"Its scheduler is {(Scheduler.Idle ? "idle" : "busy")}, the folders are {(folder.IsCompleted ? "read" : "being read")}, " +
+			$"its updates are {(Server.Updates.Drained.IsCompleted ? "applied" : "being applied")}, {Server.Updates.Reading} watched files are being read. " +
+			(logged.Length == 0 ? "It logged nothing." : "It logged:" + string.Concat(logged.Select(static line => Environment.NewLine + "  " + line)));
 	}
 
 	/// <summary>
@@ -227,30 +316,19 @@ sealed class LspClient : IAsyncDisposable
 	/// </remarks>
 	public async Task SettleAsync()
 	{
-		var deadline = DateTime.UtcNow + Timeout;
-
 		// The incoming side first: a request is bound after every notification sent before it has been
 		// handled, so what those set going has started by the time it is answered.
 		await FenceAsync();
 
 		while (true)
 		{
-			Assert.True(DateTime.UtcNow < deadline, $"The server did not settle in {Timeout}.");
-
-			await Server.Folder.WaitAsync(Timeout);
-			await Server.Updates.Drained.WaitAsync(Timeout);
-
-			if (!Scheduler.Idle || !Server.Updates.Drained.IsCompleted)
-			{
-				await Task.Delay(5);
-				continue;
-			}
+			await UntilAsync(() => !Working, static () => "The server did not settle.");
 
 			// The outgoing side: answered after everything the server told before it. Then once more
 			// nothing may have started meanwhile, or the round goes again.
 			await FenceAsync();
 
-			if (Scheduler.Idle && Server.Updates.Drained.IsCompleted)
+			if (!Working)
 				return;
 		}
 	}
@@ -285,27 +363,14 @@ sealed class LspClient : IAsyncDisposable
 		if (!waitForServer)
 			return;
 
-		var deadline = DateTime.UtcNow + Timeout;
-
-		while (Server.Document(uri) is null)
-		{
-			Assert.True(DateTime.UtcNow < deadline, $"{uri} was not opened in {Timeout}.");
-			await Task.Delay(5);
-		}
+		await UntilAsync(() => Server.Document(uri) is not null, () => $"{uri} was not opened.");
 	}
 
 	/// <summary>Opens a C# document, and returns once the server holds it.</summary>
 	public async Task OpenCSharpAsync(string uri, string text, int version = 1)
 	{
 		await NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = "csharp", version, text } });
-
-		var deadline = DateTime.UtcNow + Timeout;
-
-		while (Server.CSharpDocument(uri) is null)
-		{
-			Assert.True(DateTime.UtcNow < deadline, $"{uri} was not opened in {Timeout}.");
-			await Task.Delay(5);
-		}
+		await UntilAsync(() => Server.CSharpDocument(uri) is not null, () => $"{uri} was not opened.");
 	}
 
 	/// <summary>A position as the protocol has it, of an offset in a text.</summary>
@@ -399,18 +464,22 @@ sealed class LspClient : IAsyncDisposable
 				_ = WriteAsync(new Dictionary<string, object?> { ["jsonrpc"] = "2.0", ["id"] = id, ["result"] = null });
 
 			lock (_gate)
-			{
 				_notifications.Add((method.GetString()!, message.TryGetProperty("params", out var parameters) ? parameters : default));
-				Monitor.PulseAll(_gate);
-			}
-
-			return;
 		}
-
-		if (message.TryGetProperty("id", out var answered) &&
+		else if (message.TryGetProperty("id", out var answered) &&
 			answered.ValueKind == JsonValueKind.Number &&
 			_requests.TryRemove(answered.GetInt32(), out var done))
 			done.TrySetResult(message);
+
+		TaskCompletionSource arrived;
+
+		lock (_gate)
+		{
+			arrived  = _arrived;
+			_arrived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		}
+
+		arrived.TrySetResult();
 	}
 
 	public async ValueTask DisposeAsync()

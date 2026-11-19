@@ -38,7 +38,7 @@ public sealed class AnalysisTests
 		await client.OpenAsync(uri, text);
 
 		var session = client.Server.Document(uri)!.Session;
-		var result  = await ResolvedAsync(session);
+		var result  = await ResolvedAsync(client, session);
 
 		Assert.True(result.Resolution.Context!.Value.Lexical);
 
@@ -293,20 +293,15 @@ public sealed class AnalysisTests
 		return new Position(start.GetProperty("line").GetInt32(), start.GetProperty("character").GetInt32());
 	}
 
-	static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(GramAnalysisSession<GramVersion> session)
+	static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(LspClient client, GramAnalysisSession<GramVersion> session)
 	{
-		var deadline = DateTime.UtcNow + LspClient.Timeout;
+		GramAnalysisResult<GramVersion>? found = null;
 
-		while (DateTime.UtcNow < deadline)
-		{
-			if (session.Result is { Resolution.State: StandaloneGrammarState.Resolved } result)
-				return result;
+		await client.UntilAsync(
+			() => (found = session.Result) is { Resolution.State: StandaloneGrammarState.Resolved },
+			() => $"The host was not found: {session.Resolution.State}.");
 
-			await Task.Delay(50, TestContext.Current.CancellationToken);
-		}
-
-		Assert.Fail($"The host was not found: {session.Resolution.State}.");
-		return null;
+		return found!;
 	}
 
 	static IReadOnlyList<string> Rendered(string text, IReadOnlyList<GramDiagnostic> diagnostics)
