@@ -6,10 +6,19 @@ using Xunit;
 
 namespace DotGram.Ir.Prototype;
 
+/// <summary>The readings of <see cref="RefusalSpikeTests"/>, kept out of the classes that run side by side.</summary>
+[CollectionDefinition(nameof(RefusalSpikeAlone), DisableParallelization = true)]
+public sealed class RefusalSpikeAlone;
+
 /// <summary>
 /// What a refusal says, read both ways: where the evaluator and the generated C# parser put it and
 /// what each names as expected there. Written to a file for reading, and held to nothing yet.
 /// </summary>
+/// <remarks>
+/// Run apart from the other classes: the allocation test counts the bytes of the whole process
+/// while it measures, and these readings would be counted with it.
+/// </remarks>
+[Collection(nameof(RefusalSpikeAlone))]
 public sealed class RefusalSpikeTests
 {
 	static (string[]? First, string[][]? Tied, string? Error, int Position, bool Accepted) Theirs(Type parser, string entry, string input)
@@ -164,5 +173,45 @@ public sealed class RefusalSpikeTests
 			File.WriteAllText(Path.Combine(report, "refusals.tsv"), text.ToString());
 			File.WriteAllText(Path.Combine(report, "refusals-summary.tsv"), "fixture\trefused\tnaive sets equal\tplanned sets equal\n" + summary + "\n");
 		}
+	}
+
+	/// <summary>
+	/// What a refused repetition costs today, counted: every turn given back is a reading of the
+	/// whole body again from its start, in the evaluator and in the generated parser alike.
+	/// </summary>
+	[Fact]
+	public void ARefusedRepetitionIsReadAgainFromItsStart()
+	{
+		var fixture = Cases.Fixtures["Loop"];
+		var lines   = new List<string>();
+		var steps   = new List<long>();
+
+		foreach (var turns in new[] { 250, 500, 1000, 2000, 4000 })
+		{
+			var input = string.Concat(Enumerable.Repeat("a,", turns)) + "!";
+
+			var host      = new RecordingHost();
+			var evaluator = new IrEvaluator(Reading.Program(fixture.Grammar), host);
+			var outcome   = evaluator.Parse(fixture.Entry, input);
+
+			Assert.False(outcome.Accepted);
+
+			var watch = System.Diagnostics.Stopwatch.StartNew();
+			var (theirs, log, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
+
+			watch.Stop();
+
+			Assert.Equal(theirs.Line, outcome.Line);
+
+			steps.Add(evaluator.Steps);
+			lines.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+				$"{turns}\t{evaluator.Steps}\t{evaluator.Ways.Retries}\t{host.Log.Count}\t{log.Count}\t{watch.Elapsed.TotalMilliseconds:F1}"));
+		}
+
+		// Twice the turns is about four times the work.
+		Assert.True(steps[^1] > steps[^2] * 3, string.Join("; ", lines));
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllLines(Path.Combine(report, "refused-loop.tsv"), lines.Prepend("turns\tevaluator steps\tretries\tevaluator host calls\tC# host calls\tC# ms"));
 	}
 }
