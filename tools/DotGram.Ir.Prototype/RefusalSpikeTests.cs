@@ -168,6 +168,9 @@ public sealed class RefusalSpikeTests
 
 		var summary = string.Join("\n", counts.Select(static one => $"{one.Key}\t{one.Value.Refused}\t{one.Value.Naive}\t{one.Value.Planned}"));
 
+		// On JSON every refusal is said as the generated parser says it, set for set in its order.
+		Assert.Equal((183, 183), (counts["Json"].Refused, counts["Json"].Planned));
+
 		if (report is not null)
 		{
 			File.WriteAllText(Path.Combine(report, "refusals.tsv"), text.ToString());
