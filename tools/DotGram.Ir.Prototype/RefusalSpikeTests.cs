@@ -92,50 +92,77 @@ public sealed class RefusalSpikeTests
 		Assert.True(guards > 0);
 	}
 
+	static readonly System.Collections.Concurrent.ConcurrentDictionary<string, IrProgram> _planned = new();
+
+	static IrProgram Planned(string grammar)
+	{
+		return _planned.GetOrAdd(grammar, static text => RefusalPlan.AsTheCSharpReader(IrLowering.Lower(Graphs.Of(text))));
+	}
+
+	/// <summary>What the generated parser kept of a refusal, set by set in its order.</summary>
+	static string Kept(string[]? first, string[][]? tied)
+	{
+		var sets = new List<string>();
+
+		if (first is not null)
+			sets.Add(Canon(first));
+
+		foreach (var one in tied ?? [])
+			sets.Add(Canon(one));
+
+		return string.Join(" ", sets);
+	}
+
 	[Fact]
 	public void WhatEachSaysOfARefusal()
 	{
-		if (Environment.GetEnvironmentVariable("IR_REPORT") is not { } report)
-			return;
+		var report = Environment.GetEnvironmentVariable("IR_REPORT");
+		var text   = new StringBuilder();
+		var counts = new SortedDictionary<string, (int Refused, int Naive, int Planned)>(StringComparer.Ordinal);
 
-		var text  = new StringBuilder();
-		var cases = new List<(string Fixture, string Input)>();
-
-		foreach (var name in Cases.Fixtures.Keys)
-			foreach (var input in Cases.InputsOf(name))
-				cases.Add((name, input));
-
-		foreach (var (_, input) in HostTests.JsonCorpus())
-			cases.Add(("Json", input));
-
-		foreach (var (name, input) in cases)
+		foreach (var (name, input) in Refused())
 		{
 			var fixture = Cases.Fixtures[name];
 			var theirs  = Theirs(fixture.Parser, fixture.Entry, input);
+			var (generated, theirLog, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
+
+			// The facts of the plan change what is said of a refusal and nothing else: the verdict,
+			// the value, the place and the host calls stay those of the generated parser.
+			var host      = new RecordingHost(fixture.Guards);
+			var evaluator = new IrEvaluator(Planned(fixture.Grammar), host);
+			var (planned, _, _) = evaluator.ParseQuietlyFirst(fixture.Entry, input);
+
+			Assert.Equal(generated.Line, planned.Line);
+			Assert.Equal(theirLog, host.Log);
 
 			if (theirs.Accepted)
 				continue;
 
-			var (ours, _, _) = Reading.Evaluated(fixture.Grammar, fixture.Entry, input, fixture.Guards);
+			var (naive, _, _) = Reading.Evaluated(fixture.Grammar, fixture.Entry, input, fixture.Guards);
 
-			var raw = new List<string>();
+			var kept  = Kept(theirs.First, theirs.Tied);
+			var ours  = string.Join(" ", naive.Said.Select(static one => Canon([one])));
+			var plans = string.Join(" ", planned.Said.Select(static one => Canon([one])));
+			var count = counts.GetValueOrDefault(name);
 
-			if (theirs.First is not null)
-				raw.Add("[" + string.Join(" | ", theirs.First) + "]");
-
-			foreach (var tied in theirs.Tied ?? [])
-				raw.Add("[" + string.Join(" | ", tied) + "]");
+			counts[name] = (count.Refused + 1, count.Naive + (ours == kept ? 1 : 0), count.Planned + (plans == kept ? 1 : 0));
 
 			text.Append(name).Append('\t').Append(Twin.Quoted(input.Length > 60 ? input[..60] : input))
-				.Append('\t').Append(theirs.Position).Append('\t').Append(ours.Position)
+				.Append('\t').Append(theirs.Position).Append('\t').Append(planned.Position)
 				.Append('\t').Append(theirs.Error)
-				.Append('\t').Append(string.Join(" ", raw))
-				.Append('\t').Append(string.Join(" | ", ours.Expected))
-				.Append('\t').Append(string.Join(" ", raw.Count == 0 ? [] : (theirs.Tied ?? []).Prepend(theirs.First ?? []).Select(Canon)))
-				.Append('\t').Append(string.Join(" ", ours.Said.Select(static one => Canon([one]))))
+				.Append('\t').Append(kept)
+				.Append('\t').Append(ours)
+				.Append('\t').Append(plans)
+				.Append('\t').Append(plans == kept ? "=" : "differs")
 				.Append('\n');
 		}
 
-		File.WriteAllText(Path.Combine(report, "refusals.tsv"), text.ToString());
+		var summary = string.Join("\n", counts.Select(static one => $"{one.Key}\t{one.Value.Refused}\t{one.Value.Naive}\t{one.Value.Planned}"));
+
+		if (report is not null)
+		{
+			File.WriteAllText(Path.Combine(report, "refusals.tsv"), text.ToString());
+			File.WriteAllText(Path.Combine(report, "refusals-summary.tsv"), "fixture\trefused\tnaive sets equal\tplanned sets equal\n" + summary + "\n");
+		}
 	}
 }
