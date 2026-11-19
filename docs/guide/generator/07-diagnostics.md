@@ -280,6 +280,7 @@ reference, and a test fails where the two differ.
 | [`GRAM5017`](../../diagnostics.md#gram5017) | Info | A construction of a publication read from a reader or lines changes the context. |
 | [`GRAM5018`](../../diagnostics.md#gram5018) | Error | A name would be written twice into the generated class. |
 | [`GRAM5019`](../../diagnostics.md#gram5019) | Warning | A guard that names `context` is read again where a terminal's value is built. |
+| [`GRAM5020`](../../diagnostics.md#gram5020) | Error | A publication needs what the language the parser is generated in cannot do. |
 | [`GRAM6001`](../../diagnostics.md#gram6001) | Warning | A classification target is neither `Rule` nor `Rule.capture`. |
 | [`GRAM6002`](../../diagnostics.md#gram6002) | Warning | The grammar rule a classification target names was not found. |
 | [`GRAM6003`](../../diagnostics.md#gram6003) | Warning | The grammar rule a classification target names is ambiguous. |
