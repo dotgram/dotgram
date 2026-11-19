@@ -217,4 +217,81 @@ public sealed class RefusalSpikeTests
 		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
 			File.WriteAllLines(Path.Combine(report, "refused-loop.tsv"), lines.Prepend("turns\tevaluator steps\tretries\tevaluator host calls\tC# host calls\tC# ms"));
 	}
+
+	/// <summary>
+	/// A repetition read again may go straight to the turn it is asked for. Every answer stays what
+	/// the generated parser gives — the verdict, the value, the place, and what was expected there —
+	/// with the decisions the proofs leave open and with every one of them open; and a refused
+	/// repetition then costs its length, not its square.
+	/// </summary>
+	[Fact]
+	public void ReadAgainFromTheTurn_EveryAnswerStaysAndTheCostIsTheLength()
+	{
+		static string[] Once(IrOutcome outcome)
+		{
+			return [.. outcome.Said.Distinct()];
+		}
+
+		var cases = Refused();
+		long jumps = 0;
+
+		foreach (var name in Cases.Fixtures.Keys)
+			foreach (var input in Cases.InputsOf(name))
+				cases.Add((name, input));
+
+		foreach (var (name, input) in cases.Distinct())
+		{
+			var fixture = Cases.Fixtures[name];
+			var (theirs, _, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
+
+			foreach (var options in new IrLowering.Options?[] { null, new IrLowering.Options(AllResumable: true) })
+			{
+				var program = Reading.Program(fixture.Grammar, options);
+				var whole   = new IrEvaluator(program, new RecordingHost(fixture.Guards)).Parse(fixture.Entry, input);
+				var resumed = new IrEvaluator(program, new RecordingHost(fixture.Guards)) { Resumes = true };
+				var outcome = resumed.Parse(fixture.Entry, input);
+
+				Assert.Equal(theirs.Line, outcome.Line);
+				Assert.Equal(Once(whole), Once(outcome));
+
+				jumps += resumed.Jumps;
+			}
+		}
+
+		Assert.True(jumps > 100, "jumps " + jumps);
+
+		var loop  = Cases.Fixtures["Loop"];
+		var lines = new List<string>();
+		var steps = new List<long>();
+
+		foreach (var turns in new[] { 250, 500, 1000, 2000, 4000, 64000 })
+		{
+			foreach (var end in new[] { "!", "b" })
+			{
+				var input     = string.Concat(Enumerable.Repeat("a,", turns)) + end;
+				var host      = new RecordingHost();
+				var evaluator = new IrEvaluator(Reading.Program(loop.Grammar), host) { Resumes = true };
+				var outcome   = evaluator.Parse(loop.Entry, input);
+
+				if (turns <= 4000)
+				{
+					var (theirs, _, _) = Reading.Generated(loop.Parser, loop.Entry, input);
+
+					Assert.Equal(theirs.Line, outcome.Line);
+				}
+
+				if (end == "!")
+					steps.Add(evaluator.Steps);
+
+				lines.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+					$"{turns}\t{(outcome.Accepted ? "accepted" : "refused")}\t{evaluator.Steps}\t{evaluator.Ways.Retries}\t{evaluator.Jumps}\t{host.Log.Count}"));
+			}
+		}
+
+		// Twice the turns is twice the work, to within a tenth.
+		Assert.InRange(steps[4] / (double)steps[3], 1.9, 2.1);
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllLines(Path.Combine(report, "refused-loop-resumed.tsv"), lines.Prepend("turns\tverdict\tevaluator steps\tretries\tjumps\tevaluator host calls"));
+	}
 }
