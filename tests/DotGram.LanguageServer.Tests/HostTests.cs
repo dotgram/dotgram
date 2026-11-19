@@ -279,7 +279,7 @@ public sealed class HostTests : IDisposable
 
 		var stalled = new ManualResetEventSlim(false);
 		var read    = FolderWorkspace.Load(
-			cancellationToken =>
+			(_, cancellationToken) =>
 			{
 				stalled.Wait(LspClient.Timeout);
 				return FolderWorkspace.Create([_folder], static _ => { }, cancellationToken);

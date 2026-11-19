@@ -285,8 +285,11 @@ sealed record ProjectEvaluation(
 		var output = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
 		var error  = process.StandardError.ReadToEndAsync(CancellationToken.None);
 
+		Exception? unkilled = null;
+
 		using (cancellationToken.Register(() =>
 		{
+			// Run by whatever cancels, a timer among them, where an exception would end the server.
 			try
 			{
 				process.Kill(entireProcessTree: true);
@@ -295,14 +298,29 @@ sealed record ProjectEvaluation(
 			{
 				// It has ended.
 			}
+			catch (Exception exception)
+			{
+				// Not stopped, or not all of its tree: told below, once the wait has let go.
+				unkilled = exception;
+			}
 		}))
 		{
-			process.WaitForExit();
+			// A cancellation ends the wait whether or not the process is gone: one held in I/O on a share that
+			// does not answer outlives its kill.
+			while (!process.WaitForExit(100))
+			{
+				if (cancellationToken.IsCancellationRequested)
+					break;
+			}
 
 			// What it printed, read to the end while a cancellation still kills and stops the wait: a child
 			// it left running may hold the output open after it has exited.
-			Task.WaitAll([output, error], cancellationToken);
+			if (!cancellationToken.IsCancellationRequested)
+				Task.WaitAll([output, error], cancellationToken);
 		}
+
+		if (cancellationToken.IsCancellationRequested && Volatile.Read(ref unkilled) is { } failure)
+			throw new InvalidOperationException($"{program} could not be stopped: {failure.Message}", failure);
 
 		cancellationToken.ThrowIfCancellationRequested();
 

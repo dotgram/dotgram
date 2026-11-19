@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -381,6 +382,128 @@ public sealed class WorkspaceTests : IDisposable
 
 		Assert.False(workspace.Hosts);
 		Assert.Contains($"more than {FolderWorkspace.MaxSourceFiles}", said, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The folders read again while MSBuild takes longer than the reading's whole deadline — as a busy
+	/// machine makes it, every test suite at once on a few processors: the deadline is for a reading
+	/// that stalls, and the evaluation, which has a bound of its own, is not counted in it. The
+	/// projects stay what MSBuild says, and nothing is given up.
+	/// </summary>
+	[Fact]
+	public void A_slow_evaluation_keeps_the_folders()
+	{
+		var grammar = Path.Combine(_folder, "Base.gram");
+		var said    = new ConcurrentQueue<string>();
+		var limit   = TimeSpan.FromMilliseconds(200);
+		var slow    = false;
+
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project);
+		File.WriteAllText(grammar, "Word = ['a'..'z']+\n");
+
+		var workspace = FolderWorkspace.Create(
+			[_folder],
+			said.Enqueue,
+			TestContext.Current.CancellationToken,
+			evaluate: (projects, _, _) =>
+			{
+				if (Volatile.Read(ref slow))
+					Thread.Sleep(limit * 5);
+
+				return projects.ToDictionary(static item => item, item => new ProjectEvaluation(item, [], [grammar], [], []), FolderWorkspace.PathComparer);
+			});
+
+		Volatile.Write(ref slow, true);
+		workspace.Reload(null, limit: limit);
+
+		Assert.Empty(said);
+		Assert.True(workspace.Hosts);
+		Assert.True(workspace.Evaluated);
+		Assert.Contains(workspace.Workspace.CurrentSolution.Projects.SelectMany(static project => project.AdditionalDocuments), document => document.FilePath == grammar);
+	}
+
+	/// <summary>
+	/// An evaluation that never answers is stopped at its own bound, said so, and its projects are read
+	/// by their folders, as where MSBuild fails: the grammars still have their hosts looked for.
+	/// </summary>
+	[Fact]
+	public void An_evaluation_that_never_answers_is_stopped_and_its_projects_read_by_their_folders()
+	{
+		var grammar = Path.Combine(_folder, "Base.gram");
+		var said    = new ConcurrentQueue<string>();
+
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project);
+		File.WriteAllText(grammar, "Word = ['a'..'z']+\n");
+
+		var workspace = FolderWorkspace.Create(
+			[_folder],
+			said.Enqueue,
+			TestContext.Current.CancellationToken,
+			evaluate: static (_, _, cancellationToken) =>
+			{
+				cancellationToken.WaitHandle.WaitOne(LspClient.Timeout);
+				cancellationToken.ThrowIfCancellationRequested();
+
+				throw new InvalidOperationException("The evaluation was not stopped.");
+			},
+			maxEvaluation: TimeSpan.FromMilliseconds(200));
+
+		Assert.Contains(said, static message => message.Contains("MSBuild took longer than", StringComparison.Ordinal));
+		Assert.True(workspace.Hosts);
+		Assert.False(workspace.Evaluated);
+		Assert.Contains(workspace.Workspace.CurrentSolution.Projects.SelectMany(static project => project.AdditionalDocuments), document => document.FilePath == grammar);
+	}
+
+	/// <summary>
+	/// An evaluation that does not end when it is stopped — a process held in I/O on a share that does not
+	/// answer outlives its kill — holds the reading no longer than its deadline and the evaluation's bound
+	/// together: the folders are given up, said so, and read as they stand.
+	/// </summary>
+	[Fact]
+	public void A_reading_whose_evaluation_does_not_end_is_still_given_up()
+	{
+		var said    = new ConcurrentQueue<string>();
+		var entered = new ManualResetEventSlim(false);
+		var release = new ManualResetEventSlim(false);
+		var bound   = TimeSpan.FromMilliseconds(300);
+
+		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project);
+
+		// Read once first, so that what comes before the evaluation — Roslyn's first workspace — is not
+		// what the deadline below runs out on.
+		FolderWorkspace.Create([_folder], static _ => { }, TestContext.Current.CancellationToken).Workspace.Dispose();
+
+		var watch = System.Diagnostics.Stopwatch.StartNew();
+
+		try
+		{
+			var workspace = FolderWorkspace.Load(
+				(clock, cancellationToken) => FolderWorkspace.Create(
+					[_folder],
+					said.Enqueue,
+					cancellationToken,
+					evaluate: (_, _, _) =>
+					{
+						entered.Set();
+						release.Wait(LspClient.Timeout);
+
+						throw new InvalidOperationException("The evaluation was let go.");
+					},
+					maxEvaluation: bound,
+					clock: clock),
+				said.Enqueue,
+				TimeSpan.FromSeconds(1),
+				maxEvaluation: bound);
+
+			Assert.True(entered.IsSet, "The reading was given up before it evaluated.");
+			Assert.True(watch.Elapsed < TimeSpan.FromSeconds(30), $"The reading was let go after {watch.Elapsed.TotalSeconds:F1} s.");
+			Assert.False(workspace.Hosts);
+			Assert.Contains(said, static message => message.Contains("the workspace took longer than", StringComparison.Ordinal));
+		}
+		finally
+		{
+			release.Set();
+		}
 	}
 
 	/// <summary>
