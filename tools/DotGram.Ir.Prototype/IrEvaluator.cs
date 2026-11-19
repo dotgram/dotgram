@@ -273,7 +273,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 	void Refuse(int at, int expected)
 	{
-		if (_quiet > 0)
+		if (_quiet > 0 || expected < 0)
 			return;
 
 		if (_silent)
@@ -399,6 +399,33 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			{
 				var start = _p;
 				var last  = choice.Alternatives.Count - 1;
+
+				if (choice.Dispatch is { } dispatch)
+				{
+					var chosen = -1;
+
+					for (var i = 0; i <= last && chosen < 0; i++)
+						if (_p < _text.Length && Within(dispatch.Begins[i], _text[_p]))
+							chosen = i;
+
+					if (chosen < 0)
+					{
+						Refuse(_p, dispatch.Otherwise);
+
+						return false;
+					}
+
+					var held = Keep(frame, choice.Resets[chosen]);
+
+					if (Exec(choice.Alternatives[chosen], frame))
+						return true;
+
+					_p = start;
+					PutBack(frame, choice.Resets[chosen], held);
+
+					return false;
+				}
+
 				var (way, decision) = choice.Resumable ? Ways.Enter(last) : (-1, 0);
 
 				for (var i = decision; i <= last; i++)
@@ -428,6 +455,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				{
 					var start = _p;
 					var way   = -1;
+
+					if (repeat.Door is { } door && turns >= min && !(_p < _text.Length && Within(door, _text[_p])))
+						break;
 
 					if (repeat.Resumable && turns >= min)
 					{
@@ -591,6 +621,15 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		}
 
 		return inside != set.IsNegated;
+	}
+
+	static bool Within(IReadOnlyList<CharRange> ranges, char unit)
+	{
+		foreach (var range in ranges)
+			if (unit >= range.From && unit <= range.To)
+				return true;
+
+		return false;
 	}
 
 	static bool Same(char one, char other, bool ignoreCase)
