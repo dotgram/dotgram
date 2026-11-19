@@ -76,7 +76,7 @@ public sealed class WorkspaceTests : IDisposable
 
 			await client.OpenAsync(uri, Dialect);
 
-			var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+			var context = (await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 			Assert.Equal(lexical, context.Lexical);
 			Assert.Equal(Path.Combine(_folder, name, "Base.gram"), context.Included.Single().FilePath);
@@ -99,7 +99,7 @@ public sealed class WorkspaceTests : IDisposable
 
 		await client.OpenAsync(uri, Dialect);
 
-		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+		var context = (await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 		Assert.True(context.Lexical);
 		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
@@ -120,7 +120,7 @@ public sealed class WorkspaceTests : IDisposable
 
 		await client.OpenAsync(uri, Dialect);
 
-		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+		var context = (await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 		Assert.True(context.Lexical);
 		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
@@ -150,7 +150,7 @@ public sealed class WorkspaceTests : IDisposable
 
 		await client.OpenAsync(uri, Dialect);
 
-		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+		var context = (await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 		Assert.Equal(Path.Combine(library, "Base.gram"), context.Included.Single().FilePath);
 	}
@@ -178,7 +178,7 @@ public sealed class WorkspaceTests : IDisposable
 
 		await client.OpenAsync(uri, Dialect);
 
-		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+		var context = (await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
 	}
@@ -257,23 +257,19 @@ public sealed class WorkspaceTests : IDisposable
 		await using var client = await LspClient.StartAsync(null, _folder);
 
 		await client.OpenAsync(uri, Dialect);
-		await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session);
+		await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session);
 
 		File.WriteAllText(usings, "// nothing\n");
 		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(usings), type = Lsp.FileChanged } } });
 
-		var deadline = DateTime.UtcNow + LspClient.Timeout;
-
-		while (client.Server.Document(uri)!.Session.Resolution.State == StandaloneGrammarState.Resolved)
-		{
-			Assert.True(DateTime.UtcNow < deadline, "The host is still found without the using.");
-			await Task.Delay(50, TestContext.Current.CancellationToken);
-		}
+		await client.UntilAsync(
+			() => client.Server.Document(uri)!.Session.Resolution.State != StandaloneGrammarState.Resolved,
+			static () => "The host is still found without the using.");
 
 		File.WriteAllText(usings, "global using DotGram;\n");
 		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(usings), type = Lsp.FileChanged } } });
 
-		await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session);
+		await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session);
 	}
 
 	/// <summary>
@@ -351,7 +347,7 @@ public sealed class WorkspaceTests : IDisposable
 		File.WriteAllText(path, Dialect);
 		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri, type = Lsp.FileCreated } } });
 
-		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+		var context = (await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 		Assert.True(context.Lexical);
 		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
@@ -524,7 +520,7 @@ public sealed class WorkspaceTests : IDisposable
 
 		await client.OpenAsync(uri, Dialect);
 
-		var context = (await HostTests.ResolvedAsync(client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
+		var context = (await HostTests.ResolvedAsync(client, client.Server.Document(uri)!.Session)).Resolution.Context!.Value;
 
 		Assert.Equal(["B"], context.Included.Select(static item => item.Name));
 	}
@@ -603,13 +599,9 @@ public sealed class WorkspaceTests : IDisposable
 			},
 		});
 
-		var deadline = DateTime.UtcNow + LspClient.Timeout;
-
-		while (!(client.Server.Document(uri) is { } document && document.Session.Store.IsCopy(path) && document.Session.Result is not null))
-		{
-			Assert.True(DateTime.UtcNow < deadline, "The grammar is still read with the removed folder's host.");
-			await Task.Delay(50, TestContext.Current.CancellationToken);
-		}
+		await client.UntilAsync(
+			() => client.Server.Document(uri) is { } document && document.Session.Store.IsCopy(path) && document.Session.Result is not null,
+			static () => "The grammar is still read with the removed folder's host.");
 
 		var folder = await client.Server.Folder;
 
@@ -622,17 +614,12 @@ public sealed class WorkspaceTests : IDisposable
 	/// <summary>The grammar's session settled with its host found; the document may have been opened again by the server meanwhile.</summary>
 	static async Task<GramAnalysisResult<GramVersion>> ResolvedAsync(LspClient client, string uri)
 	{
-		var deadline = DateTime.UtcNow + LspClient.Timeout;
+		GramAnalysisResult<GramVersion>? found = null;
 
-		while (DateTime.UtcNow < deadline)
-		{
-			if (client.Server.Document(uri)?.Session.Result is { Resolution.State: StandaloneGrammarState.Resolved } result)
-				return result;
+		await client.UntilAsync(
+			() => (found = client.Server.Document(uri)?.Session.Result) is { Resolution.State: StandaloneGrammarState.Resolved },
+			() => $"The host is {client.Server.Document(uri)?.Session.Resolution.State}, not resolved.");
 
-			await Task.Delay(50, TestContext.Current.CancellationToken);
-		}
-
-		Assert.Fail($"The host is {client.Server.Document(uri)?.Session.Resolution.State}, not resolved.");
-		return null;
+		return found!;
 	}
 }
