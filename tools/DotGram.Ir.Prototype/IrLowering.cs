@@ -264,6 +264,13 @@ sealed partial class IrLowering
 		return slot;
 	}
 
+	int Guarding(int expected)
+	{
+		_program.Guarding.Add(expected);
+
+		return expected;
+	}
+
 	int Expect(string label)
 	{
 		if (!_expected.TryGetValue(label, out var index))
@@ -430,7 +437,7 @@ sealed partial class IrLowering
 
 				return fragment is null
 					? Unsupported(node, "a guard the compiler wrote")
-					: new IrStmt.Guard(fragment, Arguments(fragment), Expect(guard.OnFail ?? "when " + fragment.Name));
+					: new IrStmt.Guard(fragment, Arguments(fragment), Guarding(Expect(guard.OnFail ?? "when " + fragment.Name)));
 			}
 
 			case Node.Construct construct:

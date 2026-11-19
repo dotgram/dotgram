@@ -227,6 +227,9 @@ sealed class IrProgram
 	public List<IrFragment> Fragments { get; } = [];
 	public List<string>     Expected  { get; } = [];
 
+	/// <summary>The expected sets that are a guard's: said once at a place however often the guard is asked there.</summary>
+	public HashSet<int> Guarding { get; } = [];
+
 	/// <summary>A function per publication, by the publication's method name: the whole input, read as the rule.</summary>
 	public Dictionary<string, IrFunction> Entries { get; } = new(StringComparer.Ordinal);
 
