@@ -135,7 +135,7 @@ public enum GramSeverity
 
 /// <summary>Options for one compilation.</summary>
 /// <remarks>
-/// Objects of their own — <see cref="Grammar"/>, <see cref="Target"/> and, beside them, the shape of the
+/// Objects of their own — <see cref="Grammar"/>, <see cref="Author"/>, <see cref="Target"/> and, beside them, the shape of the
 /// host the target language is generated into, which is that language's part of this class — and a
 /// property of this one for each of their properties, so that every caller — the generator, the tool,
 /// the editors and the tests — sets an option where it always has.
@@ -145,7 +145,10 @@ sealed partial class GramCompilerOptions
 	/// <summary>What is asked about the grammar itself.</summary>
 	public GrammarOptions Grammar { get; } = new();
 
-	/// <summary>What the generated parser is asked to be.</summary>
+	/// <summary>What the grammar's author asks of the generated parser.</summary>
+	public AuthorOptions Author { get; } = new();
+
+	/// <summary>How the generated parser is tuned.</summary>
 	public TargetTuning Target { get; } = new();
 
 	/// <inheritdoc cref="GrammarOptions.FileName"/>
@@ -193,44 +196,44 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="TargetTuning.Direct"/>
 	public bool Direct { get => Target.Direct; set => Target.Direct = value; }
 
-	/// <inheritdoc cref="TargetTuning.Portable"/>
-	public bool Portable { get => Target.Portable; set => Target.Portable = value; }
+	/// <inheritdoc cref="AuthorOptions.Portable"/>
+	public bool Portable { get => Author.Portable; set => Author.Portable = value; }
 
-	/// <inheritdoc cref="TargetTuning.Carrier"/>
-	public CarrierKind Carrier { get => Target.Carrier; set => Target.Carrier = value; }
+	/// <inheritdoc cref="AuthorOptions.Carrier"/>
+	public CarrierKind Carrier { get => Author.Carrier; set => Author.Carrier = value; }
 
-	/// <inheritdoc cref="TargetTuning.ConstructionsMayThrow"/>
-	public bool ConstructionsMayThrow { get => Target.ConstructionsMayThrow; set => Target.ConstructionsMayThrow = value; }
+	/// <inheritdoc cref="AuthorOptions.ConstructionsMayThrow"/>
+	public bool ConstructionsMayThrow { get => Author.ConstructionsMayThrow; set => Author.ConstructionsMayThrow = value; }
 
-	/// <inheritdoc cref="TargetTuning.ReportCarriers"/>
-	public bool ReportCarriers { get => Target.ReportCarriers; set => Target.ReportCarriers = value; }
+	/// <inheritdoc cref="AuthorOptions.ReportCarriers"/>
+	public bool ReportCarriers { get => Author.ReportCarriers; set => Author.ReportCarriers = value; }
 
-	/// <inheritdoc cref="TargetTuning.CountRules"/>
-	public bool CountRules { get => Target.CountRules; set => Target.CountRules = value; }
+	/// <inheritdoc cref="AuthorOptions.CountRules"/>
+	public bool CountRules { get => Author.CountRules; set => Author.CountRules = value; }
 
-	/// <inheritdoc cref="TargetTuning.Checks"/>
-	public bool Checks { get => Target.Checks; set => Target.Checks = value; }
+	/// <inheritdoc cref="AuthorOptions.Checks"/>
+	public bool Checks { get => Author.Checks; set => Author.Checks = value; }
 
-	/// <inheritdoc cref="TargetTuning.Steps"/>
-	public bool Steps { get => Target.Steps; set => Target.Steps = value; }
+	/// <inheritdoc cref="AuthorOptions.Steps"/>
+	public bool Steps { get => Author.Steps; set => Author.Steps = value; }
 
-	/// <inheritdoc cref="TargetTuning.Trace"/>
-	public bool Trace { get => Target.Trace; set => Target.Trace = value; }
+	/// <inheritdoc cref="AuthorOptions.Trace"/>
+	public bool Trace { get => Author.Trace; set => Author.Trace = value; }
 
 	/// <inheritdoc cref="GrammarOptions.CollapseForwarders"/>
 	public bool CollapseForwarders { get => Grammar.CollapseForwarders; set => Grammar.CollapseForwarders = value; }
 
-	/// <inheritdoc cref="TargetTuning.MemoiseFailures"/>
-	public bool MemoiseFailures { get => Target.MemoiseFailures; set => Target.MemoiseFailures = value; }
+	/// <inheritdoc cref="AuthorOptions.MemoiseFailures"/>
+	public bool MemoiseFailures { get => Author.MemoiseFailures; set => Author.MemoiseFailures = value; }
 
-	/// <inheritdoc cref="TargetTuning.MemoiseSuccesses"/>
-	public bool MemoiseSuccesses { get => Target.MemoiseSuccesses; set => Target.MemoiseSuccesses = value; }
+	/// <inheritdoc cref="AuthorOptions.MemoiseSuccesses"/>
+	public bool MemoiseSuccesses { get => Author.MemoiseSuccesses; set => Author.MemoiseSuccesses = value; }
 
 	/// <inheritdoc cref="GrammarOptions.AnalyseSharedRecursion"/>
 	public bool AnalyseSharedRecursion { get => Grammar.AnalyseSharedRecursion; set => Grammar.AnalyseSharedRecursion = value; }
 
-	/// <inheritdoc cref="TargetTuning.Utf8Literals"/>
-	public bool Utf8Literals { get => Target.Utf8Literals; set => Target.Utf8Literals = value; }
+	/// <inheritdoc cref="AuthorOptions.Utf8Literals"/>
+	public bool Utf8Literals { get => Author.Utf8Literals; set => Author.Utf8Literals = value; }
 
 	/// <inheritdoc cref="GrammarOptions.PositionalFollow"/>
 	public bool PositionalFollow { get => Grammar.PositionalFollow; set => Grammar.PositionalFollow = value; }
@@ -238,26 +241,26 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="GrammarOptions.PositionalFollowSplit"/>
 	public bool PositionalFollowSplit { get => Grammar.PositionalFollowSplit; set => Grammar.PositionalFollowSplit = value; }
 
-	/// <inheritdoc cref="TargetTuning.ValueStorage"/>
-	public ValueStorageKind ValueStorage { get => Target.ValueStorage; set => Target.ValueStorage = value; }
+	/// <inheritdoc cref="AuthorOptions.ValueStorage"/>
+	public ValueStorageKind ValueStorage { get => Author.ValueStorage; set => Author.ValueStorage = value; }
 
-	/// <inheritdoc cref="TargetTuning.BufferedInput"/>
-	public bool BufferedInput { get => Target.BufferedInput; set => Target.BufferedInput = value; }
+	/// <inheritdoc cref="AuthorOptions.BufferedInput"/>
+	public bool BufferedInput { get => Author.BufferedInput; set => Author.BufferedInput = value; }
 
-	/// <inheritdoc cref="TargetTuning.BufferedBytes"/>
-	public bool BufferedBytes { get => Target.BufferedBytes; set => Target.BufferedBytes = value; }
+	/// <inheritdoc cref="AuthorOptions.BufferedBytes"/>
+	public bool BufferedBytes { get => Author.BufferedBytes; set => Author.BufferedBytes = value; }
 
-	/// <inheritdoc cref="TargetTuning.SpanCaptures"/>
-	public bool SpanCaptures { get => Target.SpanCaptures; set => Target.SpanCaptures = value; }
+	/// <inheritdoc cref="AuthorOptions.SpanCaptures"/>
+	public bool SpanCaptures { get => Author.SpanCaptures; set => Author.SpanCaptures = value; }
 
-	/// <inheritdoc cref="TargetTuning.MaxRetained"/>
-	public int MaxRetained { get => Target.MaxRetained; set => Target.MaxRetained = value; }
+	/// <inheritdoc cref="AuthorOptions.MaxRetained"/>
+	public int MaxRetained { get => Author.MaxRetained; set => Author.MaxRetained = value; }
 
-	/// <inheritdoc cref="TargetTuning.BufferSize"/>
-	public int BufferSize { get => Target.BufferSize; set => Target.BufferSize = value; }
+	/// <inheritdoc cref="AuthorOptions.BufferSize"/>
+	public int BufferSize { get => Author.BufferSize; set => Author.BufferSize = value; }
 
-	/// <inheritdoc cref="TargetTuning.Stacks"/>
-	public int Stacks { get => Target.Stacks; set => Target.Stacks = value; }
+	/// <inheritdoc cref="AuthorOptions.Stacks"/>
+	public int Stacks { get => Author.Stacks; set => Author.Stacks = value; }
 
 	/// <inheritdoc cref="GrammarOptions.Own"/>
 	public int? Own { get => Grammar.Own; set => Grammar.Own = value; }
@@ -393,57 +396,17 @@ sealed class GrammarOptions
 }
 
 /// <summary>
-/// What the generated parser is asked to be: the capabilities it is built with and how it is tuned —
-/// carriers, memoisation, buffered and byte input, its size and its checks.
+/// What the grammar's author asks of the generated parser, or declares of the code it is handed:
+/// its carrier and memoisation, the input forms it is offered over, its checks and traces, and what
+/// the author's own constructions may do.
 /// </summary>
-/// <remarks>Read by the emitter; the grammar's own stages ask none of it (<see cref="GramCompilerOptions"/>).</remarks>
-sealed class TargetTuning
+/// <remarks>
+/// Options of a grammar's host — its attribute, its build — read by the emitter, apart from what a target
+/// can do (<see cref="TargetCapabilities"/>) and from the numbers the generator is tuned by
+/// (<see cref="TargetTuning"/>). The grammar's own stages ask none of it (<see cref="GramCompilerOptions"/>).
+/// </remarks>
+sealed class AuthorOptions
 {
-	/// <summary>
-	/// How large the parts of a divided recognizer should be aimed to be, in the
-	/// generator's own estimate of basic blocks. Null takes the measured default.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// A recognizer too large for one method is written in several (§6.3), and how large
-	/// each should be was measured on a synthetic grammar as flat anywhere between sixty
-	/// and two hundred and fifty. Flat, but measured on grammars that are not the
-	/// consumer's — so the number is theirs to change, from <c>DotGramPartSize</c> in
-	/// their build.
-	/// </para>
-	/// <para>
-	/// It is a wish and not a requirement. Every value produces a parser: nought and less
-	/// ask for the finest division there is, anything past the size of the recognizer asks
-	/// for one part, and no number written here can fail a compilation.
-	/// </para>
-	/// </remarks>
-	public int? PartSize { get; set; }
-
-	/// <summary>
-	/// Whether disjoint literal prefixes dispatch through transition tables. On by default and
-	/// not offered in the attribute; off is for a test that holds the tables to the chain of
-	/// alternatives they replace.
-	/// </summary>
-	public bool PrefixTables { get; set; } = true;
-
-	/// <summary>
-	/// Whether the reader tries a choice of words through a table of them rather than a method a
-	/// word. On by default and not offered in the attribute; off is for a test that holds the table
-	/// to the alternatives it replaces.
-	/// </summary>
-	public bool WordTables { get; set; } = true;
-
-	/// <summary>Separate complete engine/reader groups at this character count; zero (the default) keeps one source file.</summary>
-	public int SourceFileSize { get; set; }
-
-	/// <summary>
-	/// Whether a publication that needs none of the automaton may be compiled as methods
-	/// (<c>Machine.Direct.cs</c>). On by default and not offered in the attribute; off keeps
-	/// the engine for every publication, which is what a test of the engine, or a comparison
-	/// against it, asks for.
-	/// </summary>
-	public bool Direct { get; set; } = true;
-
 	/// <summary>
 	/// Whether the generated class carries the grammar it was compiled from, for another
 	/// project to include (<c>[Gram(ExportGrammar = …)]</c>).
@@ -621,4 +584,61 @@ sealed class TargetTuning
 	/// instead, which is what it did before it could carry on at all.
 	/// </remarks>
 	public int Stacks { get; set; }
+}
+
+/// <summary>
+/// How the generated parser is tuned: the numbers the generator divides and tabulates it by, and the
+/// switches the tests turn the cheaper strategies off with.
+/// </summary>
+/// <remarks>
+/// Not what the author asks for (<see cref="AuthorOptions"/>), nor what the target can do
+/// (<see cref="TargetCapabilities"/>): a different number here writes a different parser that reads the
+/// same. Read by the emitter; the grammar's own stages ask none of it (<see cref="GramCompilerOptions"/>).
+/// </remarks>
+sealed class TargetTuning
+{
+	/// <summary>
+	/// How large the parts of a divided recognizer should be aimed to be, in the
+	/// generator's own estimate of basic blocks. Null takes the measured default.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A recognizer too large for one method is written in several (§6.3), and how large
+	/// each should be was measured on a synthetic grammar as flat anywhere between sixty
+	/// and two hundred and fifty. Flat, but measured on grammars that are not the
+	/// consumer's — so the number is theirs to change, from <c>DotGramPartSize</c> in
+	/// their build.
+	/// </para>
+	/// <para>
+	/// It is a wish and not a requirement. Every value produces a parser: nought and less
+	/// ask for the finest division there is, anything past the size of the recognizer asks
+	/// for one part, and no number written here can fail a compilation.
+	/// </para>
+	/// </remarks>
+	public int? PartSize { get; set; }
+
+	/// <summary>
+	/// Whether disjoint literal prefixes dispatch through transition tables. On by default and
+	/// not offered in the attribute; off is for a test that holds the tables to the chain of
+	/// alternatives they replace.
+	/// </summary>
+	public bool PrefixTables { get; set; } = true;
+
+	/// <summary>
+	/// Whether the reader tries a choice of words through a table of them rather than a method a
+	/// word. On by default and not offered in the attribute; off is for a test that holds the table
+	/// to the alternatives it replaces.
+	/// </summary>
+	public bool WordTables { get; set; } = true;
+
+	/// <summary>Separate complete engine/reader groups at this character count; zero (the default) keeps one source file.</summary>
+	public int SourceFileSize { get; set; }
+
+	/// <summary>
+	/// Whether a publication that needs none of the automaton may be compiled as methods
+	/// (<c>Machine.Direct.cs</c>). On by default and not offered in the attribute; off keeps
+	/// the engine for every publication, which is what a test of the engine, or a comparison
+	/// against it, asks for.
+	/// </summary>
+	public bool Direct { get; set; } = true;
 }
