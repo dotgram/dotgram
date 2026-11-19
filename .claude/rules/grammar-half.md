@@ -1,4 +1,4 @@
----
+﻿---
 paths:
   - "src/DotGram/Grammar/**"
 ---
@@ -29,3 +29,12 @@ The split is inside one assembly in the generator, and the build holds it there:
 `src/DotGram.Grammar.Guard` compiles `Grammar/` with no Roslyn and nothing of
 `Language/` or `Generation/` in reach, so a `using` of any of them does not build
 (`src/DotGram/Language/README.md`).
+
+Inside `Grammar/` there is a second line, held the same way. The stages that read a grammar —
+`Parsing/`, `Binding/`, `Model/`, `Fragments/` and the compiler that runs them — know no language
+the parser is generated in: they ask `ITargetLanguage`. What is C# lives in `Grammar/CSharp/`
+(`CSharpLanguage`, the host's shape, the resolver and scanner seams, and the entry points that
+default to C#) and in `Grammar/Emit/`. `src/DotGram.Grammar.Front.Guard` compiles `Grammar/`
+without those two folders, so a call of an emitter or of `CSharpLanguage` from a stage does not
+build. A new entry point that takes a C# resolver or scanner goes into a `*.CSharp.cs` part in
+`Grammar/CSharp/`, beside the language-taking one (`TokenizeIn`, `BindIn`, `NormalizeIn`) it calls.

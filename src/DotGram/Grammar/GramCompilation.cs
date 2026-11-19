@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using DotGram.Grammar.Emit;
-
 namespace DotGram.Grammar;
 
 /// <summary>What a compilation produced: sources to add, and what went wrong.</summary>
@@ -51,6 +49,13 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 
 /// <summary>One file of generated C#.</summary>
 readonly record struct GeneratedSource(string HintName, string Text);
+
+/// <summary>
+/// The author's names a generated class is written under (<see cref="GramCompilation.Names"/>): the
+/// identifiers of the rules and the names of the publications, which the generator's own names are
+/// made from; the methods the publications are written as; and the types of the rules.
+/// </summary>
+sealed record GramNames(IReadOnlyList<string> Identifiers, IReadOnlyList<string> Publications, IReadOnlyList<string> Types);
 
 /// <summary>
 /// The types a host with several readings has written once, in the host, for all of them: what one
@@ -119,11 +124,12 @@ public enum GramSeverity
 
 /// <summary>Options for one compilation.</summary>
 /// <remarks>
-/// Three objects of their own (<see cref="Grammar"/>, <see cref="Target"/> and <see cref="Host"/>), and a
+/// Objects of their own — <see cref="Grammar"/>, <see cref="Target"/> and, beside them, the shape of the
+/// host the target language is generated into, which is that language's part of this class — and a
 /// property of this one for each of their properties, so that every caller — the generator, the tool,
 /// the editors and the tests — sets an option where it always has.
 /// </remarks>
-sealed class GramCompilerOptions
+sealed partial class GramCompilerOptions
 {
 	/// <summary>What is asked about the grammar itself.</summary>
 	public GrammarOptions Grammar { get; } = new();
@@ -131,17 +137,8 @@ sealed class GramCompilerOptions
 	/// <summary>What the generated parser is asked to be.</summary>
 	public TargetTuning Target { get; } = new();
 
-	/// <summary>The C# it is generated into.</summary>
-	public CSharpHostShape Host { get; } = new();
-
 	/// <inheritdoc cref="GrammarOptions.FileName"/>
 	public string FileName { get => Grammar.FileName; set => Grammar.FileName = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.ClassName"/>
-	public string ClassName { get => Host.ClassName; set => Host.ClassName = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.Namespace"/>
-	public string? Namespace { get => Host.Namespace; set => Host.Namespace = value; }
 
 	/// <inheritdoc cref="GrammarOptions.LanguageId"/>
 	public string? LanguageId { get => Grammar.LanguageId; set => Grammar.LanguageId = value; }
@@ -155,26 +152,17 @@ sealed class GramCompilerOptions
 	/// <inheritdoc cref="GrammarOptions.LanguageRecognitionContract"/>
 	public string? LanguageRecognitionContract { get => Grammar.LanguageRecognitionContract; set => Grammar.LanguageRecognitionContract = value; }
 
-	/// <inheritdoc cref="CSharpHostShape.SymbolResolver"/>
-	public ISymbolResolver SymbolResolver { get => Host.SymbolResolver; set => Host.SymbolResolver = value; }
-
 	/// <summary>
 	/// The language the parser is generated in: how the types a grammar names are spelled, and what
-	/// reads the host fragments it hands over. Null makes C#'s of <see cref="SymbolResolver"/> and
-	/// <see cref="CSharpScanner"/>, which is what every caller does today.
+	/// reads the host fragments it hands over. Null leaves the choice to the compiler's caller: C#'s,
+	/// made of the resolver and the scanner the options hold, which is what every caller does today.
 	/// </summary>
 	/// <remarks>
-	/// A C# language given here generates into <see cref="Host"/>, whatever shape it was made with:
-	/// the class, its readings and the location type are the compilation's options, and win as they
-	/// always have.
+	/// A C# language given here generates into the options' host shape, whatever shape it was made
+	/// with: the class, its readings and the location type are the compilation's options, and win as
+	/// they always have.
 	/// </remarks>
 	public ITargetLanguage? Language { get; set; }
-
-	/// <inheritdoc cref="CSharpHostShape.CSharpScanner"/>
-	public ICSharpScanner? CSharpScanner { get => Host.CSharpScanner; set => Host.CSharpScanner = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.LineMap"/>
-	public ILineMap? LineMap { get => Host.LineMap; set => Host.LineMap = value; }
 
 	/// <inheritdoc cref="TargetTuning.PartSize"/>
 	public int? PartSize { get => Target.PartSize; set => Target.PartSize = value; }
@@ -193,21 +181,6 @@ sealed class GramCompilerOptions
 
 	/// <inheritdoc cref="TargetTuning.Direct"/>
 	public bool Direct { get => Target.Direct; set => Target.Direct = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.LocationType"/>
-	public string? LocationType { get => Host.LocationType; set => Host.LocationType = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.LocationTypeIsClass"/>
-	public bool LocationTypeIsClass { get => Host.LocationTypeIsClass; set => Host.LocationTypeIsClass = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.LocatedFacade"/>
-	public string? LocatedFacade { get => Host.LocatedFacade; set => Host.LocatedFacade = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.LocatedFacadeDeclared"/>
-	public bool LocatedFacadeDeclared { get => Host.LocatedFacadeDeclared; set => Host.LocatedFacadeDeclared = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.StaticImports"/>
-	public IReadOnlyList<string> StaticImports { get => Host.StaticImports; set => Host.StaticImports = value; }
 
 	/// <inheritdoc cref="TargetTuning.Portable"/>
 	public bool Portable { get => Target.Portable; set => Target.Portable = value; }
@@ -274,30 +247,6 @@ sealed class GramCompilerOptions
 
 	/// <inheritdoc cref="TargetTuning.Stacks"/>
 	public int Stacks { get => Target.Stacks; set => Target.Stacks = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.Suffix"/>
-	public string? Suffix { get => Host.Suffix; set => Host.Suffix = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.SuffixDeclared"/>
-	public bool SuffixDeclared { get => Host.SuffixDeclared; set => Host.SuffixDeclared = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.Readings"/>
-	public IReadOnlyList<string> Readings { get => Host.Readings; set => Host.Readings = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.SpanDeclared"/>
-	public bool SpanDeclared { get => Host.SpanDeclared; set => Host.SpanDeclared = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.SpanDeclaredInReading"/>
-	public bool SpanDeclaredInReading { get => Host.SpanDeclaredInReading; set => Host.SpanDeclaredInReading = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.MembersDeclared"/>
-	public IReadOnlyList<string> MembersDeclared { get => Host.MembersDeclared; set => Host.MembersDeclared = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.SharedTypes"/>
-	public bool SharedTypes { get => Host.SharedTypes; set => Host.SharedTypes = value; }
-
-	/// <inheritdoc cref="CSharpHostShape.Inherits"/>
-	public bool Inherits { get => Host.Inherits; set => Host.Inherits = value; }
 
 	/// <inheritdoc cref="GrammarOptions.Own"/>
 	public int? Own { get => Grammar.Own; set => Grammar.Own = value; }
@@ -661,192 +610,4 @@ sealed class TargetTuning
 	/// instead, which is what it did before it could carry on at all.
 	/// </remarks>
 	public int Stacks { get; set; }
-}
-
-/// <summary>
-/// The shape of the C# the parser is generated into: the class and its readings, what the host
-/// declares itself, what it is asked through, and the interface or class it names for locations.
-/// </summary>
-/// <remarks>
-/// C#'s, and only C#'s: another target has a host of another shape. <see cref="CSharpLanguage"/> is made
-/// of it (<see cref="GramCompilerOptions"/>).
-/// </remarks>
-sealed class CSharpHostShape
-{
-	/// <summary>The partial class the generated members go into (§1).</summary>
-	public string ClassName { get; set; } = "Grammar";
-
-	/// <summary>Its namespace; null for the global one.</summary>
-	public string? Namespace { get; set; }
-
-	/// <summary>
-	/// Resolves the C# names a grammar refers to with <c>@</c>. Defaults to a resolver
-	/// that accepts everything, which is right for tests of the grammar side and wrong
-	/// for real generation.
-	/// </summary>
-	public ISymbolResolver SymbolResolver { get; set; } = PermissiveSymbolResolver.Instance;
-
-	/// <summary>
-	/// Finds where an inline <c>@(...)</c> expression ends. Null means the grammar may
-	/// not use one — a diagnostic, not a crash.
-	/// </summary>
-	public ICSharpScanner? CSharpScanner { get; set; }
-
-	/// <summary>
-	/// Where the C# a grammar hands over is, for the <c>#line</c> directives of §7.6.
-	/// </summary>
-	/// <remarks>
-	/// Null emits none, and that is the right answer for a caller with nothing to point
-	/// at — a grammar compiled from a string in a test has no file an editor could open,
-	/// and a directive naming one that does not exist is worse than none.
-	/// </remarks>
-	public ILineMap? LineMap { get; set; }
-
-	/// <summary>
-	/// An interface whose implementors are told where they were written, by qualified name.
-	/// </summary>
-	/// <remarks>
-	/// What <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> names. A rule whose value is
-	/// assignable to it has its construction handed the span the rule stands on; a rule whose
-	/// value is not, and a grammar that names nothing here, are compiled exactly as before.
-	/// </remarks>
-	public string? LocationType { get; set; }
-
-	/// <summary>
-	/// Whether <see cref="LocationType"/> is a class rather than an interface: a located value is then
-	/// told through the class, which a value may only derive from, and not through an interface it
-	/// may implement explicitly.
-	/// </summary>
-	public bool LocationTypeIsClass { get; set; }
-
-	/// <summary>
-	/// The nested class whose published methods call this parser with locations on, where
-	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
-	/// (<c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
-	/// </summary>
-	public string? LocatedFacade { get; set; }
-
-	/// <summary>Whether the host declares <see cref="LocatedFacade"/> itself.</summary>
-	public bool LocatedFacadeDeclared { get; set; }
-
-	/// <summary>
-	/// The classes whose static members the generated code may name, each as a <c>using static</c>
-	/// names it: rooted, <c>global::App.G</c>, or <c>X::App.G</c> under an extern alias the
-	/// generated file then declares.
-	/// </summary>
-	/// <remarks>
-	/// One per grammar this one is built on. A rule that comes from another grammar goes on
-	/// calling the helpers its author wrote, and those live beside that grammar's own host —
-	/// so the generated file names them with <c>using static</c> rather than requiring the
-	/// including class to derive from something for the sake of what its methods can see.
-	/// </remarks>
-	public IReadOnlyList<string> StaticImports { get; set; } = [];
-
-	/// <summary>
-	/// The nested class this compilation goes into, where the host holds more than one
-	/// (<c>[Gram(Name = "...")]</c>). Null puts it in the host class itself.
-	/// </summary>
-	/// <remarks>
-	/// A host with two grammars — the same one compiled two ways, usually — cannot put
-	/// both in one scope: a file's support is written once and named for what it is, so a
-	/// second copy of <c>Match&lt;T&gt;</c>, of the failure, of the lexer and of the value
-	/// tables would collide with the first, name for name. A class of its own is a scope
-	/// of its own. What the host declares stays in reach either way: a nested class reads
-	/// the static members of the class around it by their simple names, which is what a
-	/// grammar's <c>=&gt;</c> calls are.
-	/// </remarks>
-	public string? Suffix { get; set; }
-
-	/// <summary>
-	/// Whether the host declares the <see cref="Suffix"/> class itself, and so decides who may
-	/// see it.
-	/// </summary>
-	/// <remarks>
-	/// A nested class written by the author as <c>internal static partial class Immediate { }</c>
-	/// is the author's to make internal, and the generated part then says nothing of its own
-	/// about accessibility. Where the author declares nothing the part is <c>public</c>, which
-	/// is what it has always been — a nested class would otherwise default to private.
-	/// </remarks>
-	public bool SuffixDeclared { get; set; }
-
-	/// <summary>
-	/// The classes nested in the host that its readings are compiled into — every reading's
-	/// <see cref="Suffix"/>, this one's among them — and the class the methods of a per-call
-	/// reading stand in. Empty where the host has one reading.
-	/// </summary>
-	/// <remarks>
-	/// What a member of the host or of a reading may not be called, as the host itself may not:
-	/// a publication named after a reading's class is a method beside a class of one name. And
-	/// what a rule's type is named against, by every reading alike, so that the type of a rule
-	/// is one name in every reading of the host — <c>Url.UrlValue</c> and
-	/// <c>Url.Traced.UrlValue</c>, not <c>Url.Traced.Url</c>, which a reading named against its
-	/// own class alone would leave it.
-	/// </remarks>
-	public IReadOnlyList<string> Readings { get; set; } = [];
-
-	/// <summary>
-	/// Whether the host declares a part of <c>SourceSpan</c> itself, and so says how visible it is.
-	/// </summary>
-	/// <remarks>
-	/// The span is <c>internal</c> unless a public signature the generator writes names it — a
-	/// publication's value, a property of a rule's type. An author whose own public API hands
-	/// one out raises it with <c>public partial struct SourceSpan { }</c> in the host, and the
-	/// part generated beside it then says nothing of its own about accessibility, as a reading's
-	/// class declared by the author does (<see cref="SuffixDeclared"/>).
-	/// </remarks>
-	public bool SpanDeclared { get; set; }
-
-	/// <summary>
-	/// Whether the class of this reading (<see cref="Suffix"/>), declared by the author, declares a
-	/// part of <c>SourceSpan</c>.
-	/// </summary>
-	/// <remarks>
-	/// A host with one reading in a class of its own has the span written where the author declared a
-	/// part of it — in the host, which the reading's class reads it from, or in the reading's class —
-	/// so that there is one span, of the author's accessibility. A host with several readings has one
-	/// span, in the host, and a part declared in a reading's class would be a second: refused
-	/// (GRAM5018).
-	/// </remarks>
-	public bool SpanDeclaredInReading { get; set; }
-
-	/// <summary>
-	/// The members the author already declares, in the class this reading is compiled into, under a
-	/// name the generated part declares for its callers (<c>Limits</c>, <c>ParserLimits</c>): two of one
-	/// name in one class, refused (GRAM5018).
-	/// </summary>
-	public IReadOnlyList<string> MembersDeclared { get; set; } = [];
-
-	/// <summary>
-	/// Whether the host has several readings, so that the types the host's own C# names — the
-	/// span (§7.5), the match (§6.1) and the input a recognizer reads (§7.1) — are not written
-	/// by this compilation but once for every reading, in a file of the host's own, from what
-	/// each reading says it needs (<see cref="GramCompilation.SharedNeeds"/>). False where the
-	/// host has one grammar and they are its own.
-	/// </summary>
-	public bool SharedTypes { get; set; }
-
-	/// <summary>
-	/// Whether the host inherits a grammar from a base class, so that what this
-	/// compilation writes stands beside a parser the base already wrote.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// A dialect is a class that inherits a grammar and publishes its own reading of
-	/// it — T-SQL over standard SQL. Both classes are whole parsers, and the derived
-	/// one names its members what the base named its own: <c>ParseSelect</c> is
-	/// <c>ParseSelect</c> in either. In C# that is hiding, and hiding is exactly what
-	/// a dialect means — <c>TransactSql.ParseSelect</c> reads T-SQL — so the warning
-	/// asking whether it was intended is answered here rather than left to the
-	/// consumer, who did not write the code it is about.
-	/// </para>
-	/// <para>
-	/// The support types are hidden too, and are not shared instead: a base declares
-	/// them only where it publishes something (<see cref="SharedTypes"/>), so a host
-	/// that went without its own would have none at all wherever it inherits a grammar
-	/// that publishes nothing — which is the ordinary shape of a grammar written to be
-	/// inherited. Each class carries its own, and the values they hold — the trees the
-	/// author's own <c>=&gt;</c> builds — are the same types either way.
-	/// </para>
-	/// </remarks>
-	public bool Inherits { get; set; }
 }

@@ -15,7 +15,7 @@ namespace DotGram.Grammar.Binding;
 /// means the same thing wherever it is called, and `trivia` is taken from where a rule
 /// is declared rather than from where it is used.
 /// </remarks>
-sealed class GrammarBinder
+sealed partial class GrammarBinder
 {
 	public const string DuplicateRule                = "GRAM3001";
 	public const string UndefinedName                = "GRAM3002";
@@ -183,21 +183,18 @@ sealed class GrammarBinder
 		_own      = own;
 	}
 
-	/// <param name="symbols">
-	/// The host, for a caller that holds only a C# resolver: C#'s language is made of it. Null
-	/// where <paramref name="language"/> is given.
-	/// </param>
+	/// <param name="file">The grammar as it was parsed.</param>
 	/// <param name="language">The language the parser is generated in, which also answers for the host.</param>
-	public static GrammarModel Bind(
-		GrammarFile file, ISymbolResolver? symbols = null, int? own = null, ITargetLanguage? language = null)
+	/// <param name="own">Where the author's own text ends, where grammars were joined after it.</param>
+	public static GrammarModel BindIn(GrammarFile file, ITargetLanguage language, int? own = null)
 	{
 		if (file is null)
 			throw new ArgumentNullException(nameof(file));
 
-		if (language is not null && symbols is not null)
-			throw new ArgumentException("A language answers for the host itself; pass no resolver beside it.", nameof(symbols));
+		if (language is null)
+			throw new ArgumentNullException(nameof(language));
 
-		var binder   = new GrammarBinder(language ?? new CSharpLanguage(symbols), own ?? int.MaxValue);
+		var binder   = new GrammarBinder(language, own ?? int.MaxValue);
 		var standard = binder.CreateBuiltIn();
 		var global   = new GrammarNamespace("", standard);
 

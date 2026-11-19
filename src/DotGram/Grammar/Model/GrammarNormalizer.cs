@@ -190,14 +190,10 @@ sealed partial class GrammarNormalizer
 		_boundBodies    = BoundBodies;
 	}
 
-	/// <param name="resolver">
-	/// The host, for a caller that holds only a C# resolver: C#'s language is made of it and of
-	/// <paramref name="scanner"/>. Null where <paramref name="language"/> is given.
-	/// </param>
-	/// <param name="scanner">
-	/// Reads each embedded C# expression, for the same caller. Optional, and where it is absent
-	/// the emitter falls back to searching the spelling — which is what it used to do
-	/// always, and what got `@(Log("parserInput"))` counted as asking for the whole input.
+	/// <param name="model">The grammar as it was bound.</param>
+	/// <param name="language">
+	/// The language the parser is generated in, which reads the host fragments and answers for the
+	/// host itself.
 	/// </param>
 	/// <param name="positionalFollow">
 	/// What <see cref="RecognitionGraph.PositionalFollow"/> says: whether a <c>parse</c> is
@@ -211,23 +207,15 @@ sealed partial class GrammarNormalizer
 	/// (<see cref="CollapseTransparent"/>). Always, but for a test that holds a trace build's frames
 	/// of the forwarding rules to a parser that calls them as written.
 	/// </param>
-	/// <param name="language">
-	/// The language the parser is generated in, which reads the host fragments and answers for the
-	/// host itself. Where it is null, C#'s is made of <paramref name="resolver"/> and
-	/// <paramref name="scanner"/>.
-	/// </param>
-	public static RecognitionGraph Normalize(
-		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
-		bool positionalFollow = false, bool positionalSplit = false,
-		bool collapse = true, ITargetLanguage? language = null)
+	public static RecognitionGraph NormalizeIn(
+		GrammarModel model, ITargetLanguage language,
+		bool positionalFollow = false, bool positionalSplit = false, bool collapse = true)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
 
-		if (language is not null && (resolver is not null || scanner is not null))
-			throw new ArgumentException("A language reads its own host fragments and answers for the host; pass neither a resolver nor a scanner beside it.", nameof(language));
-
-		language ??= new CSharpLanguage(resolver, scanner);
+		if (language is null)
+			throw new ArgumentNullException(nameof(language));
 
 		var normalizer = new GrammarNormalizer(model, language)
 		{

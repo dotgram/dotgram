@@ -28,6 +28,12 @@ interface ITargetLanguage
 	/// </summary>
 	TextUnit TextUnit { get; }
 
+	/// <summary>
+	/// The language that reads the standard library's own host fragments, whatever reads the
+	/// author's: the library comes along with every grammar, and is written to be read by this.
+	/// </summary>
+	ITargetLanguage ForLibrary { get; }
+
 	/// <summary>Which known type a spelling names, and how; <see cref="KnownType.None"/> for any other.</summary>
 	/// <remarks>
 	/// Exact: a spelling is classified as written, with no import or alias applied. A sequence is
@@ -64,8 +70,8 @@ interface ITargetLanguage
 	// ── The generated code ────────────────────────────────────────────────────────────
 
 	/// <summary>The parser, written for a sound grammar's graph.</summary>
-	/// <remarks>What does not fit one file is handed out through <see cref="DotGram.Grammar.Emit.EmitContext.SourceParts"/>.</remarks>
-	string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, DotGram.Grammar.Emit.EmitContext context);
+	/// <remarks>What does not fit one file is handed out through <see cref="EmitContext.SourceParts"/>.</remarks>
+	string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, EmitContext context);
 
 	/// <summary>
 	/// What the file of the parser is called: <paramref name="part"/> 0 the file itself, and 1 on the
@@ -83,7 +89,7 @@ interface ITargetLanguage
 	/// The author's names the generated code is written under — for a test that holds the generated
 	/// names apart — over the graph it was written from and the ones a cut grammar was made of.
 	/// </summary>
-	DotGram.Grammar.Emit.GramNames NamesOf(Model.RecognitionGraph graph, IReadOnlyList<Model.RecognitionGraph> more, GramCompilerOptions options);
+	GramNames NamesOf(Model.RecognitionGraph graph, IReadOnlyList<Model.RecognitionGraph> more, GramCompilerOptions options);
 
 	/// <summary>
 	/// Whether the seam between the tokens of a grammar cut in two can be skipped by the code this

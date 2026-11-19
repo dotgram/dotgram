@@ -96,6 +96,9 @@ src/
 		                  others only in the tree (docs/internal/design/sql-parsers.md)
 	DotGram.Grammar.Guard/ Grammar/ compiled alone, with no Roslyn in reach; referenced
 	                      by nothing: building it is the assertion
+	DotGram.Grammar.Front.Guard/ Grammar/ compiled without Grammar/Emit/ and Grammar/CSharp/:
+	                      the stages that read a grammar, with no target language in reach.
+	                      The same kind of guard
 	DotGram.Language.Guard/ Grammar/ and Language/ compiled with Roslyn's Workspaces and
 	                      nothing else: no generator shell, no editor. The same kind of guard
 	DotGram.VisualStudio/ the Visual Studio extension: .Gram language support in the

@@ -474,10 +474,3 @@ readonly record struct MachineTag(string Variant, string? Id)
 		return Named(word, number.ToString(System.Globalization.CultureInfo.InvariantCulture));
 	}
 }
-
-/// <summary>
-/// The author's names a generated class is written under (<see cref="GramCompilation.Names"/>): the
-/// identifiers of the rules and the names of the publications, which the generator's own names are
-/// made from; the methods the publications are written as; and the types of the rules.
-/// </summary>
-sealed record GramNames(IReadOnlyList<string> Identifiers, IReadOnlyList<string> Publications, IReadOnlyList<string> Types);

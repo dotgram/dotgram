@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 using DotGram.Grammar.Model;
-using DotGram.Grammar.Emit;
 
 namespace DotGram.Grammar;
 
@@ -24,7 +23,7 @@ namespace DotGram.Grammar;
 /// lexer is written from — are each set and read inside one step that makes no such call.
 /// </para>
 /// </remarks>
-sealed class Ambient
+sealed partial class Ambient
 {
 	[ThreadStatic]
 	static Ambient? _current;
@@ -43,9 +42,6 @@ sealed class Ambient
 	{
 		_current = ambient;
 	}
-
-	/// <summary>What the file being emitted gathers as it is written; null outside <c>CSharpEmitter.Emit</c>.</summary>
-	public EmissionScope? Emission { get; set; }
 
 	/// <summary>What the question of the first sets being asked has left to spend (<c>FirstSets.Budget</c>).</summary>
 	public int FirstSetsBudget;
