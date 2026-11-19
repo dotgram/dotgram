@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 
+using DotGram.Grammar;
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Emit;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Grammar.Plan;
 
 namespace DotGram.Ir.Prototype;
 
@@ -19,10 +22,13 @@ namespace DotGram.Ir.Prototype;
 /// <see cref="IrStmt.Unsupported"/>, which is counted and never run.
 /// </para>
 /// <para>
-/// Whether a choice or a repetition has to stay open is asked of the generator's own proofs
-/// (<see cref="Determinism"/> over <see cref="FollowSets"/>): where they say a reading is the
-/// only one, nothing is written on the tape. The values are built while reading, as the
-/// generator's immediate carrier builds them.
+/// Whether a choice or a repetition has to stay open is asked of the generator's plan: the
+/// decisions its readers take about writing a way (<see cref="WriteDecisions"/>), found by the
+/// generator's own planning stage over the same graph. Where the plan has no answer for a node — a
+/// rule only a flat machine reads, which has no readers, or a node read in places that disagree —
+/// the lowering asks <see cref="Determinism"/> itself, and counts the miss
+/// (<see cref="IrProgram.PlanMisses"/>). The values are built while reading, as the generator's
+/// immediate carrier builds them.
 /// </para>
 /// </remarks>
 sealed partial class IrLowering
@@ -53,29 +59,88 @@ sealed partial class IrLowering
 	IrSlot?                            _result;
 	bool                               _complete;
 
-	readonly HashSet<Node> _beforeEnd = new(ReferenceEqualityComparer.Instance);
+	/// <summary>The write decisions of every machine of the plan that has readers.</summary>
+	readonly IReadOnlyList<WriteDecisions> _decisions;
 
-	IrLowering(RecognitionGraph graph, Options options)
+	IrLowering(RecognitionGraph graph, Options options, IReadOnlyList<WriteDecisions> decisions)
 	{
-		_graph   = graph;
-		_options = options;
-		_follow  = FollowSets.Of(graph);
+		_graph     = graph;
+		_options   = options;
+		_follow    = FollowSets.Of(graph);
+		_decisions = decisions;
 	}
 
-	/// <summary>The rules the publications reach, lowered.</summary>
+	/// <summary>The rules the publications reach, lowered, asking the generator's plan of the graph.</summary>
 	public static IrProgram Lower(RecognitionGraph graph, Options? options = null)
 	{
-		return Lower(graph, options, everyRule: false);
+		return Lower(graph, options, everyRule: false, Planned(graph));
 	}
 
 	/// <param name="everyRule">Every rule of the graph that has a body, reached or not: what a measurement of the lowering asks.</param>
-	public static IrProgram Lower(RecognitionGraph graph, Options? options, bool everyRule)
+	/// <param name="decisions">What the plan decided about ways on the tape (<see cref="Planned"/>); empty asks every node of the lowering's own proofs.</param>
+	public static IrProgram Lower(RecognitionGraph graph, Options? options, bool everyRule, IReadOnlyList<WriteDecisions> decisions)
 	{
-		var lowering = new IrLowering(graph, options ?? new Options());
+		var lowering = new IrLowering(graph, options ?? new Options(), decisions);
 
 		lowering.Run(everyRule);
 
 		return lowering._program;
+	}
+
+	/// <summary>
+	/// The generator's plan of the graph — its planning stage, run as it runs for a file with no
+	/// options asked — and of it the write decisions of every machine that has readers.
+	/// </summary>
+	public static IReadOnlyList<WriteDecisions> Planned(RecognitionGraph graph)
+	{
+		var context = new EmitContext { Diagnostics = new List<GramDiagnostic>() };
+
+		CSharpEmitter.Emit(graph, new GramCompilerOptions(), context);
+
+		return [.. (context.Plan ?? throw new InvalidOperationException("The generator made no plan of the graph.")).Machines
+			.Select(static machine => machine.Writes)
+			.OfType<WriteDecisions>()];
+	}
+
+	/// <summary>
+	/// What the plan decided about writing a way at a node of the rule being lowered — a repetition,
+	/// or a choice by its first alternative and how many there are — or null where no machine's
+	/// readers decided it there alike; a miss, counted.
+	/// </summary>
+	bool? PlannedWay(Node node, int count)
+	{
+		_program.PlanAsked++;
+
+		// The rule's own reader first, and where it has no answer — a rule the readers write in place
+		// where it is called — any reader that reads the node, where they all agree.
+		var found = Agreed(_rule) ?? Agreed(null);
+
+		if (found is null)
+		{
+			_program.PlanMisses++;
+
+			return null;
+		}
+
+		return found.WritesAWay;
+
+		WriteDecision? Agreed(RuleSymbol? owner)
+		{
+			WriteDecision? agreed = null;
+
+			foreach (var decisions in _decisions)
+			{
+				if (decisions.Agreed(owner, node, count) is not { } decision)
+					continue;
+
+				if (agreed is not null && agreed != decision)
+					return null;
+
+				agreed = decision;
+			}
+
+			return agreed;
+		}
 	}
 
 	void Run(bool everyRule)
@@ -335,14 +400,7 @@ sealed partial class IrLowering
 				var items = new IrStmt[sequence.Nodes.Count];
 
 				for (var i = 0; i < items.Length; i++)
-				{
-					// A repetition the end of the input follows: a turn began on an item, and the
-					// end is not where an item is, so no turn is ever wanted back.
-					if (sequence.Nodes[i] is Node.Repeat run && i + 1 < items.Length && Ends(sequence.Nodes[i + 1]) && !FirstSets.Nullable(run.Body, _graph))
-						_beforeEnd.Add(run);
-
 					items[i] = Lower(sequence.Nodes[i], after[i], assigned);
-				}
 
 				return new IrStmt.Block(items);
 			}
@@ -365,7 +423,8 @@ sealed partial class IrLowering
 				}
 
 				return new IrStmt.Choice(alternatives, resets,
-					_options.AllResumable || !(Exclusive(choice.Nodes) || SettledTexts(choice.Nodes, following) || Proved(() => Determinism.Of(choice, following, _graph, _seam))));
+					_options.AllResumable ||
+					(PlannedWay(choice.Nodes[0], choice.Nodes.Count) ?? !Proved(() => Determinism.Of(choice, following, _graph, _seam))));
 			}
 
 			case Node.Atomic atomic:
@@ -386,7 +445,7 @@ sealed partial class IrLowering
 					repeat.Body, new IrExpr.Number(repeat.Min), repeat.Max is { } max ? new IrExpr.Number(max) : null,
 					Preceding(repeat, following), assigned,
 					_options.AllResumable ||
-					!(repeat.Max == repeat.Min || _beforeEnd.Contains(repeat) || Proved(() => Determinism.NeverGivesBack(repeat, following.Taught, _graph, _seam))));
+					(PlannedWay(repeat, 0) ?? !(repeat.Max == repeat.Min || Proved(() => Determinism.NeverGivesBack(repeat, following.Taught, _graph, _seam)))));
 
 			case Node.Counted counted:
 				return Repeated(
@@ -454,79 +513,6 @@ sealed partial class IrLowering
 			default:
 				return Unsupported(node);
 		}
-	}
-
-	/// <summary>
-	/// Whether at most one of the alternatives can read at any one place: each must read
-	/// something, or be the end of the input, and no two can begin with the same item.
-	/// </summary>
-	/// <remarks>
-	/// The generator answers this inside the code that prints the reader, where a lowering
-	/// cannot ask it; this is the plainest part of that answer, written again.
-	/// </remarks>
-	bool Exclusive(IReadOnlyList<Node> alternatives)
-	{
-		var seen = new List<FirstSets.First?>();
-
-		foreach (var alternative in alternatives)
-		{
-			FirstSets.First? first = null;
-
-			if (!Ends(alternative))
-			{
-				first = FirstSets.Of(alternative, _graph);
-
-				if (first.Anything || FirstSets.Nullable(alternative, _graph))
-					return false;
-			}
-
-			foreach (var other in seen)
-				if (first is null ? other is null : other is not null && first.Overlaps(other))
-					return false;
-
-			seen.Add(first);
-		}
-
-		return true;
-	}
-
-	/// <summary>
-	/// Whether a choice of texts has nothing to come back to: wherever one text begins another,
-	/// the longer stands first and what follows the choice cannot begin with the item the longer
-	/// one goes on with — <c>"\r\n" | '\n' | '\r'</c> before anything but a line feed.
-	/// </summary>
-	static bool SettledTexts(IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
-	{
-		var after = following.Taught.Plain;
-
-		for (var i = 0; i < alternatives.Count; i++)
-		{
-			if (alternatives[i] is not Node.Literal { IgnoreCase: false } one)
-				return false;
-
-			for (var j = 0; j < i; j++)
-			{
-				var earlier = ((Node.Literal)alternatives[j]).Text;
-
-				if (one.Text.StartsWith(earlier, StringComparison.Ordinal) && one.Text.Length > earlier.Length)
-					return false;
-
-				if (earlier.StartsWith(one.Text, StringComparison.Ordinal) && earlier.Length > one.Text.Length &&
-					(after.Anything || after.Overlaps(FirstSets.First.Chars([new CharRange(earlier[one.Text.Length], earlier[one.Text.Length])]))))
-					return false;
-			}
-		}
-
-		return true;
-	}
-
-	/// <summary>Whether a node is the end of the input: a look for no item at all, written in place or called.</summary>
-	bool Ends(Node node)
-	{
-		if (node is Node.Call { Arguments.Count: 0 } call && _graph.Bodies.TryGetValue(call.Rule, out var body))
-			node = body;
-
-		return node is Node.Lookahead { IsPositive: false, Body: Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 } };
 	}
 
 	FollowSets.Continuation Preceding(Node node, FollowSets.Continuation after)
