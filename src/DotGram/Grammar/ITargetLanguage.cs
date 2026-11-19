@@ -34,6 +34,9 @@ interface ITargetLanguage
 	/// </summary>
 	ITargetLanguage ForLibrary { get; }
 
+	/// <summary>How this language is named in what a grammar's author is told.</summary>
+	TargetWording Wording { get; }
+
 	/// <summary>Which known type a spelling names, and how; <see cref="KnownType.None"/> for any other.</summary>
 	/// <remarks>
 	/// Exact: a spelling is classified as written, with no import or alias applied. A sequence is

@@ -6,8 +6,9 @@
 	     it is the assertion that those stages ask the target language (ITargetLanguage) and know no
 	     language themselves: a call of an emitter or of CSharpLanguage there does not build here,
 	     wherever else it would. It proves references and nothing more: a message that names C#
-	     builds here as well as anywhere. netstandard2.0, as the generator compiles it. Referenced
-	     by nothing; its output is the build succeeding. -->
+	     builds here as well as anywhere, and is found by a test that reads these sources
+	     (FrontLayersTests). netstandard2.0, as the generator compiles it. Referenced by nothing;
+	     its output is the build succeeding. -->
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<IsPackable>false</IsPackable>

@@ -181,6 +181,9 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	readonly ITargetLanguage _language;
 
+	/// <summary>The target language's name, for what is said of the code a grammar hands over.</summary>
+	string HostLanguage => _language.Wording.Name;
+
 	GrammarNormalizer(GrammarModel model, ITargetLanguage language)
 	{
 		_model    = model;
@@ -459,7 +462,7 @@ sealed partial class GrammarNormalizer
 			Report(
 				LocatedStruct,
 				$"'{declaration.Name}' builds a '{type}', which is told where it was written (LocationType), and a " +
-				"Nullable cannot be: its value is a copy of the struct, so the location would be written on a copy or " +
+				$"{_language.Wording.OptionalWrapper} cannot be: its value is a copy of the struct, so the location would be written on a copy or " +
 				"not at all. Build the struct itself, make the type a class or a record class, or keep it out of the " +
 				"located rules (docs/syntax.md §6.8).",
 				declaration.At);

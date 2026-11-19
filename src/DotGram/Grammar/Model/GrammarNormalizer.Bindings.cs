@@ -430,8 +430,8 @@ sealed partial class GrammarNormalizer
 
 					Report(
 						MisplacedBinding,
-						$"'{name}' is read as C# in '{rule.Name}', and is the name of a binding, '${name}': a binding is " +
-						$"read again only as a recognizer, '${name}', and is no value the C# of a '=>' or a 'when' is " +
+						$"'{name}' is read as {HostLanguage} in '{rule.Name}', and is the name of a binding, '${name}': a binding is " +
+						$"read again only as a recognizer, '${name}', and is no value the {HostLanguage} of a '=>' or a 'when' is " +
 						$"handed. Capture the text as well, '{name}: (${name}: …)', or give the binding another name " +
 						"(docs/syntax.md §3.5.1).",
 						rule.Declaration.At);

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -37,7 +37,7 @@ sealed partial class GrammarNormalizer
 				PublicationFits(_language, actual, expected, publication.DeclaredIn);
 			if (!type.IsHost || !compatible)
 				_diagnostics.Add(new GramDiagnostic(PublicationTypeMismatch,
-					$"The result of '{publication.Rule.Name}' ({actual ?? "generated capture record"}) is not assignable to publication type '{expected}'. Use a compatible C# type written as '@T'.",
+					$"The result of '{publication.Rule.Name}' ({actual ?? "generated capture record"}) is not assignable to publication type '{expected}'. Use a compatible {HostLanguage} type written as '@T'.",
 					type.At.Position, type.At.Length, GramSeverity.Error));
 		}
 

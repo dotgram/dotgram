@@ -134,6 +134,9 @@ sealed class GramParser
 		_tokens = tokens;
 	}
 
+	/// <summary>The name of the language the host fragments are written in, for what is said of one.</summary>
+	string HostLanguage => _tokens.Wording.Name;
+
 	public static ParseResult Parse(TokenList tokens)
 	{
 		if (tokens is null)
@@ -1383,7 +1386,7 @@ sealed class GramParser
 
 			Report(
 				ExpectedIs,
-				"`is` asks whether two recognizers have a string in common, and a C# expression " +
+				$"`is` asks whether two recognizers have a string in common, and a {HostLanguage} expression " +
 				"is not one. A guard stands among the conditions on its own — " +
 				"`when Version is \"Old\" and @(qty > 0)`.");
 
@@ -1417,7 +1420,7 @@ sealed class GramParser
 		if (right is Expr.HostFragment)
 			Report(
 				ExpectedIs,
-				"The right side of `is` is a recognizer and not C#: the question is which strings " +
+				$"The right side of `is` is a recognizer and not {HostLanguage}: the question is which strings " +
 				"the two have in common.");
 
 		return new Test.Meets(left, right, negated);
@@ -2185,7 +2188,7 @@ sealed class GramParser
 				Report(
 					TypeArgumentsOnGrammarName,
 					$"'{name}' is a name of the grammar — a rule, a parameter or a capture — and takes no type " +
-					$"arguments. Only a C# name is generic, and it is written with '@': '@{name}<…>'.",
+					$"arguments. Only a {HostLanguage} name is generic, and it is written with '@': '@{name}<…>'.",
 					From(open));
 
 				typeArguments.Clear();

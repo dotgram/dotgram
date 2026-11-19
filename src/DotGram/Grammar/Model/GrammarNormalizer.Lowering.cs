@@ -146,7 +146,7 @@ sealed partial class GrammarNormalizer
 	{
 		return new Node.Construct(
 			Lower(pattern, ns),
-			new Construction.Expression(Substituted(Valued(value, "in the value of a '=>', which is C#")), StartOf(value)));
+			new Construction.Expression(Substituted(Valued(value, $"in the value of a '=>', which is {HostLanguage}")), StartOf(value)));
 	}
 
 	// Substituted, because a value parameter is allowed anywhere a value is expected and
@@ -155,7 +155,7 @@ sealed partial class GrammarNormalizer
 	// handed back as it was written.
 	Node Guarded(Expr value)
 	{
-		return new Node.Guard(Substituted(Valued(value, "in a 'when', which is C#")), StartOf(value));
+		return new Node.Guard(Substituted(Valued(value, $"in a 'when', which is {HostLanguage}")), StartOf(value));
 	}
 
 	/// <summary>
@@ -172,7 +172,7 @@ sealed partial class GrammarNormalizer
 			Report(
 				Parsing.GramParser.ExpectedIs,
 				$"'{name}' after `when` is a rule, and a rule is asked about with `is`: `when {name} is \"…\"`. " +
-				"A guard is C#, written with '@': `when @(…)`.",
+				$"A guard is {HostLanguage}, written with '@': `when @(…)`.",
 				value.At);
 
 		return value;
@@ -231,7 +231,7 @@ sealed partial class GrammarNormalizer
 		Report(
 			GrammarAsValue,
 			$"{(value is Expr.Group ? "A parenthesized group" : "An expression of the grammar")} stands {where}. " +
-			"A value there is a name, a call, a literal, or C# after '@': write the parentheses of an " +
+			$"A value there is a name, a call, a literal, or {HostLanguage} after '@': write the parentheses of an " +
 			"expression as `@(…)`, as in `=> @(l + r)`; `(…)` is a group of what a rule reads.",
 			value.At);
 	}
@@ -349,7 +349,7 @@ sealed partial class GrammarNormalizer
 				case ExternalValueResolution.Ambiguous:
 					Report(
 						AmbiguousExternal,
-						$"'{reader.Name}' has more than one '(System.ReadOnlySpan<char>, ref int, out T)' " +
+						$"'{reader.Name}' has more than one '{_language.Wording.ValuedRecognizerParameters}' " +
 						$"overload, with different T. Bare '@{reader.Name}' cannot say which is meant " +
 						"(docs/syntax.md §7.1); give it one such overload, or none.",
 						expression.At);
@@ -366,9 +366,9 @@ sealed partial class GrammarNormalizer
 							Report(
 								UnresolvedExternal,
 								$"'@{reader.Name}' names no method the parser can call. An external recognizer is " +
-								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
-								"with 'out T value' after the position, declared in the class the grammar is attached " +
-								"to, a class around it, or one it derives from. Buffered recognizers use ParserInput<char> " +
+								$"'{_language.Wording.RecognizerDeclaration(reader.Name)}', or the same " +
+								$"with {_language.Wording.RecognizerValueParameter}, declared in the class the grammar is attached " +
+								$"to, a class around it, or one it derives from. Buffered recognizers use {_language.Wording.BufferedInputType} " +
 								"and may also take the grammar context last (docs/syntax.md §7.1).",
 								expression.At);
 
@@ -378,9 +378,9 @@ sealed partial class GrammarNormalizer
 							Report(
 								UnresolvedExternal,
 								$"'{reader.Name}' has no overload the parser can call as an external recognizer: " +
-								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
-								"with 'out T value' after the position, that the class the grammar is attached to can " +
-								"reach. Buffered recognizers use ParserInput<char> and may also take the grammar " +
+								$"'{_language.Wording.RecognizerDeclaration(reader.Name)}', or the same " +
+								$"with {_language.Wording.RecognizerValueParameter}, that the class the grammar is attached to can " +
+								$"reach. Buffered recognizers use {_language.Wording.BufferedInputType} and may also take the grammar " +
 								"context last (docs/syntax.md §7.1).",
 								expression.At);
 
@@ -592,7 +592,7 @@ sealed partial class GrammarNormalizer
 		// to a `partial void` the generated class declares and the consumer may implement.
 		_recoveries[repetition] = new Recovery(
 			Lower(sync, ns),
-			factory is null ? null : Valued(factory, "in the value of a '=>', which is C#"))
+			factory is null ? null : Valued(factory, $"in the value of a '=>', which is {HostLanguage}"))
 		{
 			At       = at.At,
 			Language = _language,
@@ -872,7 +872,7 @@ sealed partial class GrammarNormalizer
 				{
 					Report(
 						UnbuiltCall,
-						$"'{parameter.Name}' is declared as the C# type '{TypeName(kind)}', which " +
+						$"'{parameter.Name}' is declared as the {HostLanguage} type '{TypeName(kind)}', which " +
 						"docs/syntax.md §4.2 makes a value, and a value is a literal or a value this " +
 						"rule was handed itself. Pass one, or drop the type to make it a recognizer.",
 						parameter.At);

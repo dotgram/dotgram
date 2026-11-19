@@ -96,7 +96,7 @@ static partial class GramLexer
 			from = to;
 		}
 
-		return new TokenList(tokens, diagnostics, text);
+		return new TokenList(tokens, diagnostics, text) { Wording = language.Wording };
 	}
 
 	static TokenList Lex(string text, ITargetLanguage language)
@@ -289,7 +289,7 @@ static partial class GramLexer
 
 		tokens.Add(new Token(TokenKind.EndOfFile, text.Length, 0, null));
 
-		return new TokenList(tokens, diagnostics, text);
+		return new TokenList(tokens, diagnostics, text) { Wording = language.Wording };
 	}
 
 	/// <summary>Longest match first, so <c>..</c> never lexes as two dots.</summary>
@@ -514,7 +514,7 @@ static partial class GramLexer
 		{
 			diagnostics.Add(new GramDiagnostic(
 				ExpressionNeedsScanner,
-				"An inline @(...) expression needs a C# scanner, and none was supplied.",
+				$"An inline @(...) expression needs a {language.Wording.Name} scanner, and none was supplied.",
 				position,
 				2,
 				GramSeverity.Error));
