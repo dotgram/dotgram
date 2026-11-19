@@ -189,13 +189,14 @@ static class FragmentCensus
 			"T-SQL"               => 0,
 			"SQL standard"        => 1,
 			"SQL-92"              => 2,
-			"Web"                 => 3,
-			"FIX"                 => 4,
-			"Expression language" => 5,
-			"CLI"                 => 6,
-			"Examples"            => 7,
-			"Std"                 => 8,
-			_                     => 9,
+			"PostgreSQL"          => 3,
+			"Web"                 => 4,
+			"FIX"                 => 5,
+			"Expression language" => 6,
+			"CLI"                 => 7,
+			"Examples"            => 8,
+			"Std"                 => 9,
+			_                     => 10,
 		};
 	}
 
@@ -240,6 +241,9 @@ static class FragmentCensus
 
 		if (place.StartsWith("src/DotGram.Sql/Standard/SqlStandard", StringComparison.Ordinal))
 			return "SQL standard";
+
+		if (place.StartsWith("src/DotGram.Sql/PostgreSql/", StringComparison.Ordinal))
+			return "PostgreSQL";
 
 		if (place.StartsWith("src/DotGram.Web/", StringComparison.Ordinal))
 			return "Web";
