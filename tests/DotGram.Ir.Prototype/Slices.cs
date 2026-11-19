@@ -131,10 +131,24 @@ static class Slices
 		return Path.Combine(AppContext.BaseDirectory, "Hosts", language);
 	}
 
+	/// <summary>Where the printed parsers are left to be read, if anywhere: <c>IR_KEEP</c> names a directory.</summary>
+	static readonly string? Kept = Environment.GetEnvironmentVariable("IR_KEEP");
+
+	static void Discard(string directory)
+	{
+		if (Kept is null)
+			Directory.Delete(directory, recursive: true);
+	}
+
 	/// <summary>A directory of its own for one printed parser, with the language's hand-written files in it.</summary>
 	public static string Workspace(string name, string language)
 	{
-		var directory = Path.Combine(Path.GetTempPath(), "dotgram-ir-slices", name + "-" + language + "-" + Guid.NewGuid().ToString("N")[..8]);
+		var directory = Kept is null
+			? Path.Combine(Path.GetTempPath(), "dotgram-ir-slices", name + "-" + language + "-" + Guid.NewGuid().ToString("N")[..8])
+			: Path.Combine(Kept, name + "-" + language);
+
+		if (Directory.Exists(directory))
+			Directory.Delete(directory, recursive: true);
 
 		Directory.CreateDirectory(directory);
 
@@ -187,9 +201,12 @@ static class Slices
 	/// <summary>The program printed in TypeScript and run by node over the inputs.</summary>
 	/// <param name="host">The host module among the hand-written files.</param>
 	/// <param name="guardAnswers">What each guard answers, a line a call, for the recording host.</param>
+	/// <param name="stackKilobytes">The stack V8 may use, where not its default (about a megabyte).</param>
+	/// <param name="systemStackKilobytes">The stack the process is given, where not the system's default.</param>
 	public static List<SliceAnswer> TypeScript(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
-		string host = "recording.ts", IEnumerable<string>? guardAnswers = null, string? throwOn = null, int? stackKilobytes = null)
+		string host = "recording.ts", IEnumerable<string>? guardAnswers = null, string? throwOn = null,
+		int? stackKilobytes = null, int? systemStackKilobytes = null)
 	{
 		var (node, environment) = Node;
 
@@ -211,7 +228,11 @@ static class Slices
 			if (throwOn is not null)
 				arguments.Add(throwOn);
 
-			var (exit, output, error) = Run("node", arguments, directory, environment);
+			// V8 is told how much stack it may use; how much there is, is the system's to say,
+			// and is raised for the one process through the shell.
+			var (exit, output, error) = systemStackKilobytes is { } system
+				? Run("sh", ["-c", "ulimit -s " + system.ToString(CultureInfo.InvariantCulture) + " && exec \"$@\"", "sh", "node", .. arguments], directory, environment)
+				: Run("node", arguments, directory, environment);
 
 			Assert.True(exit == 0, "node: " + error);
 
@@ -219,12 +240,36 @@ static class Slices
 		}
 		finally
 		{
-			Directory.Delete(directory, recursive: true);
+			Discard(directory);
+		}
+	}
+
+	/// <summary>A script among the hand-written TypeScript files, run over the program printed beside it; what it wrote, by line.</summary>
+	public static List<string> TypeScriptScript(string name, IrProgram program, string script, params string[] more)
+	{
+		var (node, environment) = Node;
+
+		var directory = Workspace(name, "ts");
+
+		try
+		{
+			File.WriteAllText(Path.Combine(directory, "parser.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript));
+
+			var (exit, output, error) = Run("node", [.. node, script, Path.Combine(directory, "parser.ts"), .. more], directory, environment);
+
+			Assert.True(exit == 0, "node: " + error);
+
+			return [.. output.Split('\n', StringSplitOptions.RemoveEmptyEntries)];
+		}
+		finally
+		{
+			Discard(directory);
 		}
 	}
 
 	/// <summary>The program printed in C, compiled by gcc with a host and run over the inputs.</summary>
 	/// <param name="host">The host's source among the hand-written files; the recording host where null.</param>
+	/// <param name="stackMegabytes">The stack of a thread made for the reading, where not the process's own.</param>
 	public static List<SliceAnswer> InC(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
 		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null)
@@ -266,7 +311,7 @@ static class Slices
 		}
 		finally
 		{
-			Directory.Delete(directory, recursive: true);
+			Discard(directory);
 		}
 	}
 
