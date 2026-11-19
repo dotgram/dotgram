@@ -33,9 +33,10 @@ export class Runtime
 	top = 0;
 	valueTop = 0;
 
-	// How many numbers the frames may take before the input is called too deep: the limit is
-	// the caller's to set, and memory is all that stands behind it.
-	frameLimit = 1 << 28;
+	// How many numbers, and how many values, the frames may take before the input is called too
+	// deep. The limit is the caller's to set: memory stands behind it, and the longest array the
+	// language makes (somewhat over a hundred million values in V8).
+	frameLimit = 1 << 26;
 
 	begin(text: string, host: any): void
 	{
@@ -76,8 +77,14 @@ export class Runtime
 		this.top = top;
 		this.valueTop += values;
 
-		while (this.V.length < this.valueTop)
-			this.V.push(undefined);
+		if (this.valueTop > this.V.length)
+		{
+			if (this.valueTop > this.frameLimit)
+				throw new RangeError("The input nests deeper than the frames may.");
+
+			while (this.V.length < this.valueTop)
+				this.V.push(undefined);
+		}
 	}
 
 	refuse(at: number, expected: number): void
