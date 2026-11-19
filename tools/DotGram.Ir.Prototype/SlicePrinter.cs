@@ -12,6 +12,23 @@ enum SliceLanguage
 	C,
 }
 
+/// <summary>Where a printed TypeScript parser keeps a function's frame while the function calls another.</summary>
+public enum SliceFrames
+{
+	/// <summary>On the language's stack: every call is a call of the language.</summary>
+	None,
+
+	/// <summary>
+	/// In the parser's own arrays wherever the call may come back to the caller (the two are on
+	/// one cycle of calls); every other call is a call of the language, and those nest no deeper
+	/// than the grammar has functions.
+	/// </summary>
+	Recursive,
+
+	/// <summary>In the parser's own arrays for every call: the dearest form, printed to be measured.</summary>
+	All,
+}
+
 /// <summary>
 /// An <see cref="IrProgram"/> printed as a parser in TypeScript or in C: throw-away, and one
 /// printer for both, because it prints only what both languages spell alike.
@@ -21,7 +38,16 @@ enum SliceLanguage
 /// A function of the tree is a function of the language, called by plain recursion: the tree
 /// has no suspended call (resumption is replay), so a frame is live only while its call is, and
 /// turning the calls into explicit frames is the ordinary rewriting of recursion into a loop
-/// over a stack — not done here. How deep an input may nest is therefore the language's stack.
+/// over a stack. Without it (<see cref="SliceFrames.None"/>, and C always) how deep an input may
+/// nest is the language's stack.
+/// </para>
+/// <para>
+/// With frames of its own (TypeScript only) a function that takes part in recursion is printed
+/// as a machine: its slots and whatever else lives across a call are in two arrays of the
+/// runtime, one of numbers and one of values, its body is cut into numbered states at every such
+/// call, and a loop calls whichever machine owns the topmost frame. A call writes the state to
+/// come back to, pushes the callee's frame and returns to that loop; the callee's answer comes
+/// back as the argument. Statements that hold no such call are printed as they are without frames.
 /// </para>
 /// <para>
 /// A failure is a <c>break</c> out of a <c>do { } while (false)</c> around whatever answers for
@@ -42,21 +68,69 @@ sealed class SlicePrinter
 
 	readonly Dictionary<string, string> _literals = new(StringComparer.Ordinal);
 
+	readonly SliceFrames _frames;
+
+	// What each function reaches by one call or more, and the functions printed as machines.
+	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach    = [];
+	readonly HashSet<IrFunction>                         _machines = [];
+
+	// The machine being printed: where its slots are, and how much of the two arrays it has taken.
+	// How many numbers and values each machine's frame takes: known once it is printed, and written into the calls of it then.
+	readonly Dictionary<IrFunction, (int Numbers, int Values)> _sizes = [];
+
+	Dictionary<IrSlot, string>? _places;
+	IrFunction?                 _machine;
+
+	int _numbers;
+	int _values;
+	int _states;
+
 	int _indent;
 	int _temp;
 
-	SlicePrinter(IrProgram program, SliceLanguage language)
+	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames)
 	{
 		_program  = program;
 		_language = language;
+		_frames   = language == SliceLanguage.TypeScript ? frames : SliceFrames.None;
+
+		if (_frames == SliceFrames.None)
+			return;
+
+		foreach (var function in program.Functions)
+		{
+			var reached = new HashSet<IrFunction>();
+			var pending = new Stack<IrFunction>(Calls(function.Body));
+
+			while (pending.TryPop(out var next))
+				if (reached.Add(next))
+					foreach (var further in Calls(next.Body))
+						pending.Push(further);
+
+			_reach.Add(function, reached);
+		}
+
+		foreach (var function in program.Functions)
+			if (_frames == SliceFrames.All || _reach[function].Contains(function))
+				_machines.Add(function);
+	}
+
+	static IEnumerable<IrFunction> Calls(IrStmt stmt)
+	{
+		if (stmt is IrStmt.Call call)
+			yield return call.Target;
+
+		foreach (var child in stmt.Children)
+			foreach (var target in Calls(child))
+				yield return target;
 	}
 
 	bool C => _language == SliceLanguage.C;
 
 	/// <summary>The parser's source: one file, which its language's runtime file stands beside.</summary>
-	public static string Print(IrProgram program, SliceLanguage language)
+	public static string Print(IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None)
 	{
-		var printer = new SlicePrinter(program, language);
+		var printer = new SlicePrinter(program, language, frames);
 
 		printer.Run();
 
@@ -144,7 +218,45 @@ sealed class SlicePrinter
 		var body = _text.Length;
 
 		foreach (var function in _program.Functions)
-			Function(function);
+		{
+			if (_machines.Contains(function))
+				Machine(function);
+			else
+				Function(function);
+		}
+
+		foreach (var (function, (numbers, values)) in _sizes)
+		{
+			var index = function.Index.ToString(CultureInfo.InvariantCulture);
+
+			_text.Replace($"@numbers{index}@", numbers.ToString(CultureInfo.InvariantCulture));
+			_text.Replace($"@values{index}@", values.ToString(CultureInfo.InvariantCulture));
+		}
+
+		if (_machines.Count > 0)
+		{
+			// The loop every machine returns to: the topmost frame says whose turn it is, and what
+			// one machine returns is what the next is given - a position to read from, or an answer.
+			Line("const machines: ((P: Runtime, p: number) => number)[] = [" + string.Join(", ", _program.Functions.Select(function => _machines.Contains(function) ? Name(function) + "_m" : "none")) + "];");
+			Line();
+			Line("function none(P: Runtime, p: number): number");
+			Line("{");
+			Line("\tthrow new Error(\"Not a machine.\");");
+			Line("}");
+			Line();
+			Line("function run(P: Runtime, id: number, numbers: number, values: number, p: number): number");
+			Line("{");
+			Line("\tconst base = P.top;");
+			Line();
+			Line("\tP.call(id, numbers, values);");
+			Line();
+			Line("\twhile (P.top > base)");
+			Line("\t\tp = machines[P.I[P.top - 1]](P, p);");
+			Line();
+			Line("\treturn p;");
+			Line("}");
+			Line();
+		}
 
 		// The texts the functions compare the input with, which C wants as arrays before them.
 		if (C && _literals.Count > 0)
@@ -250,9 +362,9 @@ sealed class SlicePrinter
 		return C ? $"P->ways[{way} * 2]" : $"P.ways[{way} * 2]";
 	}
 
-	static string Slot(IrSlot slot)
+	string Slot(IrSlot slot)
 	{
-		return "s" + slot.Index.ToString(CultureInfo.InvariantCulture);
+		return _places is { } places ? places[slot] : "s" + slot.Index.ToString(CultureInfo.InvariantCulture);
 	}
 
 	string Nothing(IrSlot slot)
@@ -346,13 +458,25 @@ sealed class SlicePrinter
 	}
 
 	/// <summary>What the slots a failed alternative may have written held before it, kept in locals.</summary>
-	string[] Keep(IReadOnlyList<IrSlot> slots)
+	/// <param name="inFrame">In the machine's frame, where a call stands between the keeping and the putting back.</param>
+	string[] Keep(IReadOnlyList<IrSlot> slots, bool inFrame = false)
 	{
 		var kept = new string[slots.Count];
 
 		for (var i = 0; i < kept.Length; i++)
 		{
 			var slot = slots[i];
+
+			if (inFrame)
+			{
+				kept[i] = slot.Kind == IrSlotKind.Value ? FrameValue() : FrameNumber();
+
+				Line(slot.Kind == IrSlotKind.List
+					? $"{kept[i]} = {Slot(slot)} === undefined ? -1 : {Slot(slot)}.length;"
+					: $"{kept[i]} = {Slot(slot)};");
+
+				continue;
+			}
 
 			kept[i] = Temp("k");
 
@@ -475,7 +599,12 @@ sealed class SlicePrinter
 
 				Line("{");
 				_indent++;
-				Line(Int(end, C ? $"{Name(call.Target)}(P, p)" : $"{Name(call.Target)}(P, p)"));
+				Line(Int(end, $"{Name(call.Target)}(P, p)"));
+
+				// A machine further down may have outgrown the array of numbers and left another in its place.
+				if (_machine is not null && (_machines.Contains(call.Target) || _reach[call.Target].Overlaps(_machines)))
+					Line("I = P.I;");
+
 				Line($"if ({end} < 0) {fail}");
 				Line($"p = {end};");
 
@@ -764,6 +893,393 @@ sealed class SlicePrinter
 
 		_indent--;
 		Line("}");
+	}
+
+	// ---- Frames of the parser's own ----
+
+	string FrameNumber()
+	{
+		return "I[b + " + (_numbers++).ToString(CultureInfo.InvariantCulture) + "]";
+	}
+
+	string FrameValue()
+	{
+		return "V[v + " + (_values++).ToString(CultureInfo.InvariantCulture) + "]";
+	}
+
+	int State()
+	{
+		return _states++;
+	}
+
+	/// <summary>The state begins here; what stands before it runs on into it.</summary>
+	void Place(int state)
+	{
+		_indent--;
+		Line($"case {state.ToString(CultureInfo.InvariantCulture)}:");
+		_indent++;
+	}
+
+	static string Jump(int state)
+	{
+		return $"{{ st = {state.ToString(CultureInfo.InvariantCulture)}; continue; }}";
+	}
+
+	/// <summary>A failure: the state that answers for it, or the machine's own, which gives its frame back.</summary>
+	static string FailTo(int state)
+	{
+		return state < 0 ? "{ P.top = b; P.valueTop = v; return -1; }" : Jump(state);
+	}
+
+	/// <summary>Whether the statement holds a call that leaves the machine, so that it has to be cut into states.</summary>
+	bool Leaves(IrStmt stmt)
+	{
+		return stmt is IrStmt.Call call && Leaves(call) || stmt.Children.Any(Leaves);
+	}
+
+	bool Leaves(IrStmt.Call call)
+	{
+		return _frames == SliceFrames.All || _reach[call.Target].Contains(_machine!);
+	}
+
+	string Sizes(IrFunction function)
+	{
+		var index = function.Index.ToString(CultureInfo.InvariantCulture);
+
+		return $"@numbers{index}@, @values{index}@";
+	}
+
+	/// <summary>
+	/// A function with a frame of its own. Of the numbers the first is the state to go on from
+	/// and the last says whose frame it is; slots and what is kept across a call lie between.
+	/// </summary>
+	void Machine(IrFunction function)
+	{
+		_temp    = 0;
+		_numbers = 1;
+		_values  = 0;
+		_states  = 1;
+		_machine = function;
+		_places  = [];
+
+		foreach (var slot in Slots(function.Body).Distinct().OrderBy(static slot => slot.Index))
+			_places.Add(slot, slot.Kind is IrSlotKind.Position or IrSlotKind.Rebound ? FrameNumber() : FrameValue());
+
+		var index = function.Index.ToString(CultureInfo.InvariantCulture);
+
+		Line($"function {Name(function)}_m(P: Runtime, p: number): number");
+		Line("{");
+		_indent++;
+		Line("const text = P.text;");
+		Line("const len = P.len;");
+		Line("const V = P.V;");
+		Line($"const b = P.top - @numbers{index}@;");
+		Line($"const v = P.valueTop - @values{index}@;");
+		Line("let I = P.I;");
+		Line("let c = 0;");
+		Line("let st = I[b];");
+
+		foreach (var (slot, place) in _places.OrderBy(static pair => pair.Key.Index))
+			Line($"// {place}: {slot.Name}{(slot.Type is null ? "" : " : " + slot.Type)}");
+
+		Line();
+		Line("for (;;)");
+		Line("{");
+		_indent++;
+		Line("switch (st)");
+		Line("{");
+		_indent += 2;
+		Place(0);
+		Flat(function.Body, -1);
+
+		if (function.Result is { } result)
+			Line($"P.rv = {Slot(result)};");
+
+		Line("void c; void len; void text; void V; void v;");
+		Line("P.top = b;");
+		Line("P.valueTop = v;");
+		Line("return p;");
+		_indent -= 2;
+		Line("}");
+		_indent--;
+		Line("}");
+		_indent--;
+		Line("}");
+		Line();
+
+		// For a caller that is not on a cycle with it: a call of the language, which runs the machines until this one has answered.
+		Line($"function {Name(function)}(P: Runtime, p: number): number");
+		Line("{");
+		Line($"\treturn run(P, {index}, {Sizes(function)}, p);");
+		Line("}");
+		Line();
+
+		_sizes.Add(function, (_numbers + 1, _values));
+
+		_machine = null;
+		_places  = null;
+	}
+
+	/// <summary>
+	/// A statement of a machine. One that holds no call out of the machine is printed as ever,
+	/// its failure a jump; any other is laid out as states, with what has to outlive the call in
+	/// the frame.
+	/// </summary>
+	/// <param name="fail">The state a failure of this statement goes to; the machine's own failure where negative.</param>
+	void Flat(IrStmt stmt, int fail)
+	{
+		if (!Leaves(stmt))
+		{
+			Statement(stmt, FailTo(fail));
+
+			return;
+		}
+
+		switch (stmt)
+		{
+			case IrStmt.Block block:
+				foreach (var item in block.Items)
+					Flat(item, fail);
+
+				break;
+
+			case IrStmt.Scope scope:
+				foreach (var slot in scope.Slots)
+					Line($"{Slot(slot)} = {Nothing(slot)};");
+
+				Flat(scope.Body, fail);
+
+				break;
+
+			case IrStmt.Call call:
+			{
+				var back = State();
+
+				// The callee's answer comes back as p; the position the call was made at is not kept,
+				// because whatever takes a failure puts its own back.
+				Line($"I[b] = {back.ToString(CultureInfo.InvariantCulture)};");
+				Line($"P.call({call.Target.Index.ToString(CultureInfo.InvariantCulture)}, {Sizes(call.Target)});");
+				Line("return p;");
+				Place(back);
+				Line($"if (p < 0) {FailTo(fail)}");
+
+				if (call.Into is { } into)
+				{
+					Line(call.Appends
+						? $"if (P.unbuilt == 0) ({Slot(into)} ??= []).push(P.rv);"
+						: $"if (P.unbuilt == 0) {Slot(into)} = P.rv;");
+				}
+
+				break;
+			}
+
+			case IrStmt.Choice choice:
+			{
+				var start = FrameNumber();
+				var way   = choice.Resumable ? FrameNumber() : "";
+				var done  = State();
+				var last  = choice.Alternatives.Count - 1;
+
+				Line($"{start} = p;");
+
+				if (choice.Resumable)
+					Line($"{way} = {Runtime("enter", last.ToString(CultureInfo.InvariantCulture))};");
+
+				for (var i = 0; i <= last; i++)
+				{
+					var index = i.ToString(CultureInfo.InvariantCulture);
+					var after = State();
+
+					if (choice.Resumable)
+						Line($"if ({Decision(way)} > {index}) {Jump(after)}");
+
+					if (Leaves(choice.Alternatives[i]))
+					{
+						var failed = State();
+						var kept   = Keep(choice.Resets[i], inFrame: true);
+
+						Flat(choice.Alternatives[i], failed);
+						Line(Jump(done));
+						Place(failed);
+						Line($"p = {start};");
+						PutBack(choice.Resets[i], kept);
+
+						if (choice.Resumable && i < last)
+							Line(Runtime("next", $"{way}, {(i + 1).ToString(CultureInfo.InvariantCulture)}") + ";");
+					}
+					else
+					{
+						var read = Temp("ok");
+
+						Line("{");
+						_indent++;
+						Line(Flag(read));
+
+						var kept = Keep(choice.Resets[i]);
+
+						Attempt(choice.Alternatives[i], read);
+						Line($"if ({read}) {Jump(done)}");
+						Line($"p = {start};");
+						PutBack(choice.Resets[i], kept);
+
+						if (choice.Resumable && i < last)
+							Line(Runtime("next", $"{way}, {(i + 1).ToString(CultureInfo.InvariantCulture)}") + ";");
+
+						_indent--;
+						Line("}");
+					}
+
+					Place(after);
+				}
+
+				Line(FailTo(fail));
+				Place(done);
+
+				break;
+			}
+
+			case IrStmt.Repeat repeat:
+			{
+				var turns  = FrameNumber();
+				var least  = FrameNumber();
+				var most   = FrameNumber();
+				var start  = FrameNumber();
+				var way    = repeat.Resumable ? FrameNumber() : "";
+				var again  = State();
+				var failed = State();
+				var done   = State();
+
+				Line($"{turns} = 0;");
+				Line($"{least} = {Expression(repeat.Min)};");
+				Line($"{most} = {(repeat.Max is null ? "2147483647" : Expression(repeat.Max))};");
+				Place(again);
+				Line($"if ({turns} >= {most}) {Jump(done)}");
+				Line($"{start} = p;");
+
+				if (repeat.Resumable)
+				{
+					Line($"{way} = -1;");
+					Line($"if ({turns} >= {least})");
+					Line("{");
+					Line($"\t{way} = {Runtime("enter", "1")};");
+					Line($"\tif ({Decision(way)} == 1) {Jump(done)}");
+					Line("}");
+				}
+
+				var kept = Keep(repeat.Resets, inFrame: true);
+
+				Flat(repeat.Body, failed);
+				Line($"{turns}++;");
+				Line($"if (p == {start}) {Jump(done)}");
+				Line(Jump(again));
+				Place(failed);
+				Line($"p = {start};");
+				PutBack(repeat.Resets, kept);
+
+				if (repeat.Resumable)
+					Line($"if ({way} >= 0) {Runtime("next", way + ", 1")};");
+
+				Place(done);
+				Line($"if ({turns} < {least}) {FailTo(fail)}");
+
+				break;
+			}
+
+			case IrStmt.Look look:
+				FlatSealed(look.Body, look.Resets, fail, look);
+
+				break;
+
+			case IrStmt.Commit commit when !IrLowering.Decides(commit.Body) && commit.Resets.Count == 0:
+				Flat(commit.Body, fail);
+
+				break;
+
+			case IrStmt.Commit commit:
+				FlatSealed(commit.Body, commit.Resets, fail, null);
+
+				break;
+
+			case IrStmt.Replay replay:
+			{
+				var start   = FrameNumber();
+				var segment = FrameNumber();
+				var again   = State();
+				var failed  = State();
+				var done    = State();
+
+				Line($"{start} = p;");
+				Line($"{segment} = P.cursor;");
+				Place(again);
+				Line($"p = {start};");
+				Flat(replay.Body, failed);
+				Line(Jump(done));
+				Place(failed);
+				Line($"if (P.cursor > {segment} && {Runtime("retry", segment)}) {Jump(again)}");
+				Line(FailTo(fail));
+				Place(done);
+
+				break;
+			}
+
+			default:
+				throw new NotSupportedException("The slice does not cut " + stmt.GetType().Name + " into states.");
+		}
+	}
+
+	/// <summary><see cref="Sealed"/>, with a call out of the machine somewhere in the body.</summary>
+	void FlatSealed(IrStmt body, IReadOnlyList<IrSlot> resets, int fail, IrStmt.Look? look)
+	{
+		var start  = FrameNumber();
+		var cursor = FrameNumber();
+		var count  = FrameNumber();
+		var read   = FrameNumber();
+		var again  = State();
+		var failed = State();
+		var done   = State();
+
+		Line($"{start} = p;");
+		Line($"{cursor} = P.cursor;");
+		Line($"{count} = P.count;");
+
+		var kept = Keep(resets, inFrame: true);
+
+		Line($"P.cursor = {count};");
+
+		if (look is not null)
+		{
+			Line("P.quiet++;");
+			Line("P.unbuilt++;");
+		}
+
+		Place(again);
+		Line($"p = {start};");
+		Flat(body, failed);
+		Line($"{read} = 1;");
+		Line(Jump(done));
+		Place(failed);
+		PutBack(resets, kept);
+		Line($"if (P.count > {count} && {Runtime("retry", count)}) {Jump(again)}");
+		Line($"{read} = 0;");
+		Place(done);
+
+		if (look is not null)
+		{
+			Line("P.quiet--;");
+			Line("P.unbuilt--;");
+		}
+
+		Line($"P.count = {count};");
+		Line($"P.cursor = {cursor};");
+
+		if (look is not null)
+		{
+			Line($"p = {start};");
+			PutBack(resets, kept);
+			Line($"if ({read} != {(look.IsPositive ? "1" : "0")}) {{ {Refuse("p", look.Expected)} {FailTo(fail)} }}");
+		}
+		else
+			Line($"if ({read} == 0) {FailTo(fail)}");
 	}
 
 	string Literal(string text)

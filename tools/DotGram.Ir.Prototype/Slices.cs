@@ -206,7 +206,7 @@ static class Slices
 	public static List<SliceAnswer> TypeScript(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
 		string host = "recording.ts", IEnumerable<string>? guardAnswers = null, string? throwOn = null,
-		int? stackKilobytes = null, int? systemStackKilobytes = null)
+		int? stackKilobytes = null, int? systemStackKilobytes = null, SliceFrames frames = SliceFrames.Recursive)
 	{
 		var (node, environment) = Node;
 
@@ -214,7 +214,7 @@ static class Slices
 
 		try
 		{
-			File.WriteAllText(Path.Combine(directory, "parser.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript));
+			File.WriteAllText(Path.Combine(directory, "parser.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames));
 			File.WriteAllLines(Path.Combine(directory, "answers.txt"), guardAnswers ?? []);
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
 
@@ -245,6 +245,7 @@ static class Slices
 	}
 
 	/// <summary>A script among the hand-written TypeScript files, run over the program printed beside it; what it wrote, by line.</summary>
+	/// <remarks>The program is printed three times, a file a way of keeping frames: <c>parser.ts</c> without, <c>parser-recursive.ts</c>, <c>parser-all.ts</c>.</remarks>
 	public static List<string> TypeScriptScript(string name, IrProgram program, string script, params string[] more)
 	{
 		var (node, environment) = Node;
@@ -254,8 +255,10 @@ static class Slices
 		try
 		{
 			File.WriteAllText(Path.Combine(directory, "parser.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript));
+			File.WriteAllText(Path.Combine(directory, "parser-recursive.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, SliceFrames.Recursive));
+			File.WriteAllText(Path.Combine(directory, "parser-all.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, SliceFrames.All));
 
-			var (exit, output, error) = Run("node", [.. node, script, Path.Combine(directory, "parser.ts"), .. more], directory, environment);
+			var (exit, output, error) = Run("node", [.. node, script, directory, .. more], directory, environment);
 
 			Assert.True(exit == 0, "node: " + error);
 

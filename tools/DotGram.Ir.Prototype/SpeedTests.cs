@@ -19,7 +19,7 @@ namespace DotGram.Ir.Prototype;
 /// </remarks>
 public sealed partial class SpeedTests(ITestOutputHelper output)
 {
-	[GeneratedRegex(@"printed parser / the other generator's parser = ([0-9.]+)")]
+	[GeneratedRegex(@"printed parser, [^/]+ / the other generator's parser = ([0-9.]+)")]
 	private static partial Regex Ratio();
 
 	[Fact]
@@ -34,9 +34,10 @@ public sealed partial class SpeedTests(ITestOutputHelper output)
 		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
 			File.WriteAllLines(Path.Combine(report, "speed.txt"), lines);
 
-		Assert.Contains(lines, static line => line.Contains("printed parser, the tree of json.ts", StringComparison.Ordinal));
+		Assert.Contains(lines, static line => line.Contains("the tree of json.ts", StringComparison.Ordinal));
 
-		// More than twice the other parser's time is where this way of reading stops being worth taking further.
+		// More than twice the other parser's time is where this way of reading stops being worth taking
+		// further - wherever the frames are kept.
 		foreach (var line in lines)
 			if (Ratio().Match(line) is { Success: true } match)
 				Assert.InRange(double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture), 0, 2);

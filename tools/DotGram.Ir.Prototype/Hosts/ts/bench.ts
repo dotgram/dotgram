@@ -1,21 +1,27 @@
 // How fast the printed JSON parser reads, beside JSON.parse and, where one is given, beside a
 // parser another generator made of its own JSON grammar.
 //
-//   node bench.ts <parser.ts> [other.mjs]
+//   node bench.ts <directory of the printed parsers> [other.mjs]
 //
-// The printed parser is timed with two hosts: the tree of json.ts, and one that builds what
-// JSON.parse builds - numbers, strings, arrays, plain objects - which is what the others build
-// and so the fair comparison. A document of about two megabytes, read whole; the median of
-// fifteen readings after five that are thrown away.
+// The printed parser comes three times, by where it keeps a function's frame across a call:
+// parser.ts on the language's stack, parser-recursive.ts in arrays of its own for the calls that
+// can come back to their caller, parser-all.ts in those arrays for every call. Each is timed with
+// a host that builds what JSON.parse builds - numbers, strings, arrays, plain objects - which is
+// what the others build and so the fair comparison; the tree of json.ts is timed once, beside.
+// A document of about two megabytes, read whole. The readers take turns: five rounds thrown
+// away, then fifteen (IR_BENCH_ROUNDS) of which the median, the least and the most are given.
 
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { Runtime } from "./runtime.ts";
 import { host as treeHost } from "./json.ts";
 
-const [parserPath, otherPath] = process.argv.slice(2);
+const [directory, otherPath] = process.argv.slice(2);
 
-const parser = await import(pathToFileURL(parserPath).href);
+const plain = await import(pathToFileURL(join(directory, "parser.ts")).href);
+const recursive = await import(pathToFileURL(join(directory, "parser-recursive.ts")).href);
+const all = await import(pathToFileURL(join(directory, "parser-all.ts")).href);
 const other = otherPath ? await import(pathToFileURL(otherPath).href) : undefined;
 
 function unescaped(token: string): string
@@ -99,7 +105,7 @@ const documents: [string, string][] = [
 
 const P = new Runtime();
 
-function ours(host: any): (text: string) => any
+function ours(parser: any, host: any): (text: string) => any
 {
 	return text =>
 	{
@@ -112,49 +118,55 @@ function ours(host: any): (text: string) => any
 	};
 }
 
-function median(read: (text: string) => any, text: string): number
-{
-	for (let i = 0; i < 5; i++)
-		read(text);
+const readers: [string, (text: string) => any][] = [
+	["JSON.parse", JSON.parse],
+	["printed parser, frames on the language's stack", ours(plain, nativeHost)],
+	["printed parser, frames of its own where calls recur", ours(recursive, nativeHost)],
+	["printed parser, frames of its own for every call", ours(all, nativeHost)],
+	["printed parser, frames of its own where calls recur, the tree of json.ts", ours(recursive, treeHost)],
+];
 
-	const times: number[] = [];
+if (other !== undefined)
+	readers.push(["the other generator's parser", other.parse]);
 
-	for (let i = 0; i < 15; i++)
-	{
-		const from = process.hrtime.bigint();
-
-		read(text);
-		times.push(Number(process.hrtime.bigint() - from) / 1e6);
-	}
-
-	times.sort((a, b) => a - b);
-
-	return times[7];
-}
+const rounds = Number(process.env.IR_BENCH_ROUNDS ?? 15);
 
 for (const [name, text] of documents)
 {
 	// What the hosts build is what JSON.parse builds.
-	if (JSON.stringify(ours(nativeHost)(text)) !== JSON.stringify(JSON.parse(text)))
-		throw new Error("The printed parser and JSON.parse disagree.");
+	const expected = JSON.stringify(JSON.parse(text));
 
-	const builtIn = median(JSON.parse, text);
-	const native = median(ours(nativeHost), text);
-	const tree = median(ours(treeHost), text);
+	for (const parser of [plain, recursive, all])
+		if (JSON.stringify(ours(parser, nativeHost)(text)) !== expected)
+			throw new Error("The printed parser and JSON.parse disagree.");
+
+	const times: number[][] = readers.map(() => []);
+
+	for (let round = -5; round < rounds; round++)
+	{
+		for (let turn = 0; turn < readers.length; turn++)
+		{
+			// Whoever read first in the last round reads second in this one.
+			const at = (turn + round + 5) % readers.length;
+			const from = process.hrtime.bigint();
+
+			readers[at][1](text);
+
+			if (round >= 0)
+				times[at].push(Number(process.hrtime.bigint() - from) / 1e6);
+		}
+	}
+
+	for (const list of times)
+		list.sort((a, b) => a - b);
+
+	const median = (at: number) => times[at][times[at].length >> 1];
 	const megabytes = text.length / 1e6;
 
-	const line = (what: string, ms: number) =>
-		console.log(`${name} (${megabytes.toFixed(2)} MB): ${what}: ${ms.toFixed(2)} ms, ${(megabytes / ms * 1000).toFixed(1)} MB/s, ${(ms / builtIn).toFixed(2)} x JSON.parse`);
-
-	line("JSON.parse", builtIn);
-	line("printed parser, values as JSON.parse builds them", native);
-	line("printed parser, the tree of json.ts", tree);
+	for (let at = 0; at < readers.length; at++)
+		console.log(`${name} (${megabytes.toFixed(2)} MB): ${readers[at][0]}: ${median(at).toFixed(2)} ms [${times[at][0].toFixed(2)}-${times[at][times[at].length - 1].toFixed(2)}], ${(megabytes / median(at) * 1000).toFixed(1)} MB/s, ${(median(at) / median(0)).toFixed(2)} x JSON.parse`);
 
 	if (other !== undefined)
-	{
-		const theirs = median(other.parse, text);
-
-		line("the other generator's parser", theirs);
-		console.log(`${name}: printed parser / the other generator's parser = ${(native / theirs).toFixed(2)}`);
-	}
+		for (let at = 1; at < readers.length - 1; at++)
+			console.log(`${name}: ${readers[at][0]} / the other generator's parser = ${(median(at) / median(readers.length - 1)).toFixed(2)}`);
 }

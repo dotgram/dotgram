@@ -9,10 +9,12 @@ using Xunit;
 namespace DotGram.Ir.Prototype;
 
 /// <summary>
-/// How deep an input may nest. The printed parsers call by plain recursion, so the answer is the
-/// stack each language gives them — which this measures, a level being one <c>[</c> of JSON and
-/// four calls — and which the shipped C# parser does not depend on: it reads a hundred thousand
-/// levels by moving to a new stack when one runs low.
+/// How deep an input may nest. Where the printed parsers call by plain recursion, the answer is
+/// the stack each language gives them — which this measures, a level being one <c>[</c> of JSON
+/// and four calls — and which the shipped C# parser does not depend on: it reads a hundred
+/// thousand levels by moving to a new stack when one runs low. The TypeScript parser printed with
+/// frames of its own does not depend on it either: it reads a million levels on node's default
+/// stack.
 /// </summary>
 /// <remarks>
 /// Both languages answer a stack that ran out without dying: TypeScript throws a
@@ -44,7 +46,7 @@ public sealed class DepthTests(ITestOutputHelper output)
 		foreach (var depth in Ladder)
 		{
 			var answer = Slices.TypeScript("Depth", Json, "ParseJson", [Nested(depth)], host: "json.ts",
-				stackKilobytes: stackKilobytes, systemStackKilobytes: systemStackKilobytes).Single();
+				stackKilobytes: stackKilobytes, systemStackKilobytes: systemStackKilobytes, frames: SliceFrames.None).Single();
 
 			if (answer.Head == "T stack")
 				break;
@@ -109,6 +111,50 @@ public sealed class DepthTests(ITestOutputHelper output)
 		Assert.Equal(100_000, raised);
 	}
 
+	/// <summary>
+	/// With frames of its own the TypeScript parser reads every step of the ladder and ten times
+	/// its top on node's default stack, each depth in a process of its own as above, and deep
+	/// objects as well as deep arrays.
+	/// </summary>
+	[Theory]
+	[InlineData(SliceFrames.Recursive)]
+	[InlineData(SliceFrames.All)]
+	public void TypeScriptWithFramesOfItsOwnNestsPastItsStack(SliceFrames frames)
+	{
+		foreach (var depth in (int[])[.. Ladder, 1_000_000])
+		{
+			var answer = Slices.TypeScript("Depth", Json, "ParseJson", [Nested(depth)], host: "json.ts", frames: frames).Single();
+
+			Assert.True(answer.Head == "A " + (depth * 2).ToString(CultureInfo.InvariantCulture) + " " + Nested(depth), $"{frames}: {depth} levels are not read");
+		}
+
+		var members = string.Concat(Enumerable.Repeat("{\"a\":", 100_000)) + "1" + new string('}', 100_000);
+		var objects = Slices.TypeScript("Depth", Json, "ParseJson", [members], host: "json.ts", frames: frames).Single();
+
+		Assert.Equal("A " + members.Length.ToString(CultureInfo.InvariantCulture) + " " + members, objects.Head);
+
+		Report($"TypeScript, frames of its own ({frames}), node's default stack: reads 1000000 levels of arrays and 100000 of objects");
+	}
+
+	/// <summary>The suite's two deepest refusals, refused at their end by the TypeScript parser with frames of its own on node's default stack.</summary>
+	[Theory]
+	[InlineData(SliceFrames.Recursive)]
+	[InlineData(SliceFrames.All)]
+	public void TheDeepestRefusalsOfTheSuiteNeedNoStackWithFramesOfTheParsersOwn(SliceFrames frames)
+	{
+		var directory = Path.Combine(Graphs.Repository, "tests", "DotGram.Tests", "Web", "JsonTestSuite");
+
+		var texts = new[] { "n_structure_100000_opening_arrays.json", "n_structure_open_array_object.json" }
+			.Select(file => File.ReadAllText(Path.Combine(directory, file))).ToList();
+
+		var answers = Slices.TypeScript("DeepRefusals", Json, "ParseJson", texts, host: "json.ts", frames: frames);
+
+		Assert.Equal(2, answers.Count);
+
+		for (var i = 0; i < texts.Count; i++)
+			Assert.StartsWith("R " + texts[i].Length.ToString(CultureInfo.InvariantCulture) + " ", answers[i].Head, StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void CNestsAsDeepAsItsStack()
 	{
@@ -149,7 +195,7 @@ public sealed class DepthTests(ITestOutputHelper output)
 			return;
 
 		var inTypeScript = Slices.TypeScript("DeepRefusals", Json, "ParseJson", texts, host: "json.ts",
-			stackKilobytes: 900_000, systemStackKilobytes: 1_048_576);
+			stackKilobytes: 900_000, systemStackKilobytes: 1_048_576, frames: SliceFrames.None);
 
 		Assert.Equal(inC.Select(static answer => answer.Head), inTypeScript.Select(static answer => answer.Head));
 	}
