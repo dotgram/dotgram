@@ -133,7 +133,8 @@ internal static class Syntax
 	/// <summary>Whether a name of one part is a function whose first argument is a date part.</summary>
 	public static bool IsDatePartFunction(string name)
 	{
-		return DatePartFunctions.Contains(name);
+		// Every one of them is DATE and three to eight more: most calls are told apart before the set is asked.
+		return name.Length is >= 7 and <= 12 && name.StartsWith("DATE", StringComparison.OrdinalIgnoreCase) && DatePartFunctions.Contains(name);
 	}
 
 	static string Unquoted(string name)
@@ -145,6 +146,15 @@ internal static class Syntax
 
 	public static string Compacted(string text)
 	{
+		// An operator is nearly always written without a blank inside it, and is then its own compaction.
+		var blank = 0;
+
+		while (blank < text.Length && !char.IsWhiteSpace(text[blank]))
+			blank++;
+
+		if (blank == text.Length)
+			return text;
+
 		var kept = new char[text.Length];
 		var at   = 0;
 
@@ -220,6 +230,9 @@ internal static class Syntax
 	/// </remarks>
 	static string Run(string words, bool raised)
 	{
+		if (Plain(words, raised, out var lower))
+			return lower ? words.ToUpperInvariant() : words;
+
 		var made  = new System.Text.StringBuilder(words.Length);
 		var until = '\0';
 
@@ -305,6 +318,37 @@ internal static class Syntax
 		}
 
 		return made.ToString().TrimEnd();
+	}
+
+	/// <summary>
+	/// Whether a run is already what <see cref="Run"/> makes of it, but for the case of its letters: printable ASCII with no
+	/// quote, no comment and no blank but one space between two words — which is how nearly every run the grammar hands over
+	/// is written. <paramref name="lower"/> says whether raising it changes a letter.
+	/// </summary>
+	static bool Plain(string words, bool raised, out bool lower)
+	{
+		lower = false;
+
+		for (var at = 0; at < words.Length; at++)
+		{
+			var c = words[at];
+
+			if (c == ' ')
+			{
+				if (at == 0 || at == words.Length - 1 || words[at - 1] == ' ')
+					return false;
+
+				continue;
+			}
+
+			if (c is < '!' or > '~' or '\'' or '"' or '[' || c == '/' && at + 1 < words.Length && words[at + 1] == '*' || c == '-' && at + 1 < words.Length && words[at + 1] == '-')
+				return false;
+
+			if (raised && c is >= 'a' and <= 'z')
+				lower = true;
+		}
+
+		return true;
 	}
 
 	/// <summary>Whether a key is enforced: null where nothing was said, false for <c>NOT ENFORCED</c>.</summary>
