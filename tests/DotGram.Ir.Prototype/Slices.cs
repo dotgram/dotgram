@@ -104,6 +104,7 @@ static class Slices
 			WorkingDirectory       = directory,
 			RedirectStandardOutput = true,
 			RedirectStandardError  = true,
+			StandardOutputEncoding = Encoding.UTF8,
 			UseShellExecute        = false,
 		};
 

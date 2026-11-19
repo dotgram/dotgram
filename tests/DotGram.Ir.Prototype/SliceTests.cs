@@ -66,6 +66,47 @@ public sealed class SliceTests
 	}
 
 	/// <summary>
+	/// The JSON grammar on nst/JSONTestSuite's parsing cases, with the recording host: the
+	/// evaluator against the generated C# parser, and each printed parser against the evaluator.
+	/// </summary>
+	[Fact]
+	public void JsonOnItsCorpus_TheEvaluatorAnswersAsTheGeneratedParser()
+	{
+		var fixture = Cases.Fixtures["Json"];
+
+		foreach (var (name, text) in HostTests.JsonCorpus())
+		{
+			var (ours, ourLog, _)     = Reading.Evaluated(fixture.Grammar, fixture.Entry, text);
+			var (theirs, theirLog, _) = Reading.Generated(fixture.Parser, fixture.Entry, text);
+
+			Assert.True(theirs.Line == ours.Line, $"{name}: the generated parser says {theirs.Line}, the evaluator {ours.Line}");
+			Assert.Equal(theirLog, ourLog);
+		}
+	}
+
+	[Fact]
+	public void JsonOnItsCorpus_TypeScriptReadsAsTheEvaluator()
+	{
+		var fixture = Cases.Fixtures["Json"];
+		var inputs  = HostTests.JsonCorpus().Select(static one => one.Text).ToList();
+
+		var (program, expected, answers) = Expected(fixture, inputs);
+
+		Same(inputs, expected, Slices.TypeScript("JsonCorpus", program, fixture.Entry, inputs, guardAnswers: answers));
+	}
+
+	[Fact]
+	public void JsonOnItsCorpus_CReadsAsTheEvaluator()
+	{
+		var fixture = Cases.Fixtures["Json"];
+		var inputs  = HostTests.JsonCorpus().Select(static one => one.Text).ToList();
+
+		var (program, expected, answers) = Expected(fixture, inputs);
+
+		Same(inputs, expected, Slices.InC("JsonCorpus", program, fixture.Entry, inputs, guardAnswers: answers));
+	}
+
+	/// <summary>
 	/// What a construction throws in TypeScript leaves the reading as it does in C#: at once, with
 	/// the calls made so far and no other reading tried. C has nothing to throw, and what a host
 	/// function that cannot build is to do there is not decided by this slice.
