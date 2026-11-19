@@ -124,6 +124,12 @@ sealed class IrWays
 /// <param name="Expected">What was expected at that position, by name, in order.</param>
 sealed record IrOutcome(bool Accepted, int Position, object? Value, IReadOnlyList<string> Expected)
 {
+	/// <summary>
+	/// What was expected at that position in the order the reading said it, kept the way the
+	/// generated C# parser keeps it: the first set, then every set that tied with it.
+	/// </summary>
+	public IReadOnlyList<string> Said { get; init; } = [];
+
 	/// <summary>The verdict, the position and the value in one line, the way every reading is compared.</summary>
 	public string Line => (Accepted ? "A " : "R ") + Position.ToString(CultureInfo.InvariantCulture) + (Accepted ? " " + Twin.Canon(Value) : "");
 }
@@ -143,6 +149,15 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	int    _refusedAt;
 
 	readonly SortedSet<int> _refused = [];
+
+	// The same refusal as the generated C# parser keeps it (Refuse_DotGram, Tie_DotGram): the
+	// sets in the order they were said, the first apart from those that tied with it.
+	readonly List<int> _said = [];
+
+	// A reading that records nothing but how far it got, and one that builds nothing: the two
+	// readings a refused input is given where the first is made quietly.
+	bool _silent;
+	int  _unasked;
 
 	public IrWays Ways { get; private set; } = new();
 
@@ -183,6 +198,44 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return outcome!;
 	}
 
+	/// <summary>
+	/// Reads the whole input the way a published C# parse does: quietly first, writing down only
+	/// how far it got, and where that reading refuses, a second time for what the refusal says,
+	/// with nothing built.
+	/// </summary>
+	/// <returns>The outcome, and what the quiet reading alone came to.</returns>
+	public (IrOutcome Outcome, IrOutcome Quiet, long QuietSteps) ParseQuietlyFirst(string entry, string input)
+	{
+		_silent = true;
+
+		IrOutcome quiet;
+
+		try
+		{
+			quiet = Parse(entry, input);
+		}
+		finally
+		{
+			_silent = false;
+		}
+
+		var steps = Steps;
+
+		if (quiet.Accepted)
+			return (quiet, quiet, steps);
+
+		_unasked = 1;
+
+		try
+		{
+			return (Parse(entry, input), quiet, steps);
+		}
+		finally
+		{
+			_unasked = 0;
+		}
+	}
+
 	IrOutcome Read(string entry, string input)
 	{
 		var function = program.Entries[entry];
@@ -190,15 +243,19 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_text      = input;
 		_p         = 0;
 		_quiet     = 0;
-		_unbuilt   = 0;
+		_unbuilt   = _unasked;
 		_refusedAt = -1;
 		_refused.Clear();
+		_said.Clear();
 		Ways  = new IrWays();
 		Steps = 0;
 
 		return Run(function, out var value)
 			? new IrOutcome(true, _p, value, [])
-			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])]);
+			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])])
+			{
+				Said = [.. _said.Select(index => program.Expected[index])],
+			};
 	}
 
 	bool Run(IrFunction function, out object? value)
@@ -219,10 +276,27 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (_quiet > 0)
 			return;
 
+		if (_silent)
+		{
+			if (at > _refusedAt)
+				_refusedAt = at;
+
+			return;
+		}
+
 		if (at > _refusedAt)
 		{
 			_refusedAt = at;
 			_refused.Clear();
+			_said.Clear();
+			_said.Add(expected);
+		}
+		else if (at == _refusedAt && _said[0] != expected && !(_said.Count > 1 && _said[^1] == expected))
+		{
+			// A guard's set is said once however often it is asked; any other may come again
+			// after something else has.
+			if (!(program.Guarding.Contains(expected) && _said.Contains(expected)))
+				_said.Add(expected);
 		}
 
 		if (at == _refusedAt)
