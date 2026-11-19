@@ -75,9 +75,12 @@ interface ITargetLanguage
 
 	// ── The generated code ────────────────────────────────────────────────────────────
 
-	/// <summary>The parser, written for a sound grammar's graph.</summary>
+	/// <summary>
+	/// The parser, written for a sound grammar's graph; null where the plan refused what the grammar
+	/// asks of this target, which is then said in <see cref="EmitContext.Diagnostics"/> and not written.
+	/// </summary>
 	/// <remarks>What does not fit one file is handed out through <see cref="EmitContext.SourceParts"/>.</remarks>
-	string Emit(Model.RecognitionGraph graph, GramCompilerOptions options, EmitContext context);
+	string? Emit(Model.RecognitionGraph graph, GramCompilerOptions options, EmitContext context);
 
 	/// <summary>
 	/// What the file of the parser is called: <paramref name="part"/> 0 the file itself, and 1 on the

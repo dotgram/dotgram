@@ -243,8 +243,10 @@ static partial class GramCompiler
 			SharedChoices = shared,
 		};
 
-		if (!HasErrors(diagnostics))
-			sources.Add(new GeneratedSource(language.SourceName(options, 0), language.Emit(lexical?.Syntax ?? graph, options, context)));
+		// Nothing where the plan refused what the grammar asks of the target: that is said, and no
+		// parser is written.
+		if (!HasErrors(diagnostics) && language.Emit(lexical?.Syntax ?? graph, options, context) is { } text)
+			sources.Add(new GeneratedSource(language.SourceName(options, 0), text));
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(language.SourceName(options, part + 1), sourceParts[part]));
@@ -256,6 +258,7 @@ static partial class GramCompiler
 			SharedNeeds = context.SharedNeeds,
 			Carriers = carriers,
 			Plan = context.Plan,
+			Printed = context.Printed,
 			Names = sources.Count == 0 ? null : language.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source], options),
 		};

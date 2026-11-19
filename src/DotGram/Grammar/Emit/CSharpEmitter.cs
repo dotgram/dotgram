@@ -269,7 +269,8 @@ static partial class CSharpEmitter
 	/// What the compiler worked out before emission and what it collects from it; null where
 	/// there is neither (<see cref="EmitContext"/>).
 	/// </param>
-	public static string Emit(RecognitionGraph graph, GramCompilerOptions options, EmitContext? context = null)
+	/// <returns>The file; null where the plan refuses what the grammar asks of the target (<see cref="ReadingPlan.Refused"/>), and nothing is printed.</returns>
+	public static string? Emit(RecognitionGraph graph, GramCompilerOptions options, EmitContext? context = null)
 	{
 		if (options is null)
 			throw new ArgumentNullException(nameof(options));
@@ -707,6 +708,10 @@ static partial class CSharpEmitter
 
 		if (context is not null)
 			context.Plan = plan;
+
+		// What the target cannot read is said, and not printed: no parser comes out for it.
+		if (plan.Refused)
+			return null;
 
 		// The printer: everything after this writes the file, from the plan.
 		var machines = printed;
@@ -6233,9 +6238,14 @@ file.Line("return spare;");
 		List<Candidate> candidates, Machine? valuing, bool seamed, Dictionary<Candidate, string> refused,
 		string? valuingRefused, List<GramDiagnostic> refusals, CarrierKind requested)
 	{
-		foreach (var candidate in candidates)
-			if (candidate.Direct)
-				candidate.Machine.SettleAhead(candidate.Publications);
+		// Not where the plan refuses: nothing is printed for it, and what only printing needs to know
+		// is not worked out.
+		var settled = refusals.Count == 0;
+
+		if (settled)
+			foreach (var candidate in candidates)
+				if (candidate.Direct)
+					candidate.Machine.SettleAhead(candidate.Publications);
 
 		// What the immediate carrier, asked for by name, would say of a machine with no readers: said
 		// only where no machine of the file has readers (Told).
@@ -6256,11 +6266,12 @@ file.Line("return spare;");
 				PositionalOnly = candidate.PositionalOnly,
 				FlatValued     = candidate.FlatValued,
 				Carrier        =
+					!settled         ? null :
 					candidate.Direct ? new CarrierPlan { Requested = requested, Immediate = machine.CarriesImmediately, Refusal = machine.CarrierRefusal } :
 					unread           ? new CarrierPlan { Requested = requested, Immediate = false, WouldRefuse = machine.WouldRefuse(CarrierKind.Immediate) } :
 					null,
-				BackEdges      = candidate.Direct ? machine.SettledBackEdges : null,
-				Deferral       = candidate.Direct ? machine.PlanDeferral() : null,
+				BackEdges      = settled && candidate.Direct ? machine.SettledBackEdges : null,
+				Deferral       = settled && candidate.Direct ? machine.PlanDeferral() : null,
 			};
 
 			machine.Plan = entry;
