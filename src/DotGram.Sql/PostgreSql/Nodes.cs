@@ -2252,7 +2252,13 @@ static partial class Nodes
 		if (first.SetOperations.Count == 0)
 			return first with { SetOperations = SqlList.Own(rest) };
 
-		return first with { SetOperations = [.. first.SetOperations, .. rest] };
+		var operations = first.SetOperations;
+
+		// Appended, not copied: the fold hands every step the list of the one before (SqlList.Appended).
+		foreach (var operation in rest)
+			operations = operations.Appended(operation);
+
+		return first with { SetOperations = operations };
 	}
 
 	/// <summary>A table by name, with ONLY, the inheritance star and its alias.</summary>
