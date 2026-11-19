@@ -169,13 +169,13 @@ sealed class WriteDecisions
 static class WriteContext
 {
 	/// <summary>What a choice is decided against: what can begin after it.</summary>
-	public static long Of(FirstSets.First following)
+	public static long OfChoice(FirstSets.First following)
 	{
 		return Hash(Seed, following);
 	}
 
 	/// <summary>What a repetition is decided against: what follows it, the rule's trivia, and the stop it is read past.</summary>
-	public static long Of(FollowSets.Continuation taught, RuleSymbol? seam, (char Stop, FollowSets.Continuation Beyond)? stopped)
+	public static long OfRepetition(FollowSets.Continuation taught, RuleSymbol? seam, (char Stop, FollowSets.Continuation Beyond)? stopped)
 	{
 		var hash = Hash(Hash(Seed, taught), seam is null ? 0 : seam.GetHashCode());
 

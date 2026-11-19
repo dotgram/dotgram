@@ -374,8 +374,16 @@ public sealed class PositionalFollowTests
 	/// whether what follows can fail after a construct succeeded and then succeed earlier. Whether
 	/// what follows can <em>begin</em> somewhere — the settled optional's entry, a run past its stop
 	/// character (<c>NeverGivesBackPast</c>), the replay of a carrier — is never one of them.
+	/// The plan's write decisions are those proofs composed (<c>WriteProofs.Choice</c> asks
+	/// <c>LiteralRun</c> and <c>SettledText</c>, <c>WriteProofs.Repetition</c> asks <c>NeverGivesBack</c>),
+	/// and the places they are held under are told apart by what those proofs read
+	/// (<c>WriteContext.OfChoice</c>, <c>WriteContext.OfRepetition</c>).
 	/// </summary>
-	static readonly string[] Taught = ["NeverGivesBack", "Possessive", "LiteralRun", "LiteralGroup", "LaterSettled", "SettledText", "Scannable"];
+	static readonly string[] Taught =
+	[
+		"NeverGivesBack", "Possessive", "LiteralRun", "LiteralGroup", "LaterSettled", "SettledText", "Scannable",
+		"Choice", "Repetition", "OfChoice", "OfRepetition",
+	];
 
 	/// <summary>
 	/// Every read of the view is an argument of a call to one of <see cref="Taught"/>, itself or its
