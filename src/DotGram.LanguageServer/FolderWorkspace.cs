@@ -59,8 +59,19 @@ sealed class FolderWorkspace
 	/// <summary>How long the walk takes, at most, before it gives the folders up: the first analysis waits for it.</summary>
 	public static readonly TimeSpan MaxWalk = TimeSpan.FromSeconds(10);
 
-	/// <summary>How long a reading of the folders is waited for, the walk, the evaluation and the reads of its files together.</summary>
+	/// <summary>
+	/// How long a reading of the folders is waited for, the walk and the reads of its files together: what a
+	/// share that does not answer stalls, where nothing but this deadline can end it. MSBuild's evaluation
+	/// is not counted in it: it has <see cref="MaxEvaluation"/> of its own.
+	/// </summary>
 	public static readonly TimeSpan MaxRead = MaxWalk + TimeSpan.FromSeconds(20);
+
+	/// <summary>
+	/// How long MSBuild evaluates a folder's projects, at most, before it is stopped and they are read by
+	/// their folders, as where it fails. It runs in a process of its own, which a busy machine slows
+	/// down as it slows the build; this bounds only an evaluation that never answers.
+	/// </summary>
+	public static readonly TimeSpan MaxEvaluation = TimeSpan.FromMinutes(2);
 
 	// The file system's: Hosts.cs and hosts.cs are two files on Linux, and one on Windows and macOS.
 	static readonly StringComparison PathComparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
@@ -105,6 +116,7 @@ sealed class FolderWorkspace
 	readonly Action<string>                         _log;
 	readonly Func<string, string?>                  _read;
 	readonly Evaluator?                             _evaluate;
+	readonly TimeSpan                               _maxEvaluation;
 
 	// The grammars open in the editor, in the folders or not: their text there, not their file's, is what
 	// they are, until they close — in the folders they are in now, and in any added later.
@@ -129,18 +141,19 @@ sealed class FolderWorkspace
 	// The projects whose build runs the DotGram generator.
 	IReadOnlySet<ProjectId> _generating = new HashSet<ProjectId>();
 
-	FolderWorkspace(AdhocWorkspace workspace, StringComparer paths, Action<string> log, Func<string, string?> read, Evaluator? evaluate)
+	FolderWorkspace(AdhocWorkspace workspace, StringComparer paths, Action<string> log, Func<string, string?> read, Evaluator? evaluate, TimeSpan maxEvaluation)
 	{
-		Workspace    = workspace;
-		Paths        = paths;
-		_comparison  = paths == StringComparer.Ordinal ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-		_sources     = new(paths);
-		_grammars    = new(paths);
-		_open        = new(paths);
-		_evaluations = new(paths);
-		_log         = log;
-		_read        = read;
-		_evaluate    = evaluate;
+		Workspace      = workspace;
+		Paths          = paths;
+		_comparison    = paths == StringComparer.Ordinal ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+		_sources       = new(paths);
+		_grammars      = new(paths);
+		_open          = new(paths);
+		_evaluations   = new(paths);
+		_log           = log;
+		_read          = read;
+		_evaluate      = evaluate;
+		_maxEvaluation = maxEvaluation;
 	}
 
 	/// <summary>How this workspace compares paths: the file system's, or a test's.</summary>
@@ -177,16 +190,17 @@ sealed class FolderWorkspace
 	/// <summary>
 	/// Reads the folders in the background, within a time: past it — an enumeration a network share
 	/// stalls, which no bound inside the walk can see — the folders are given up, said so, and read as
-	/// they stand; what the walk finds later is dropped.
+	/// they stand; what the walk finds later is dropped. The time MSBuild takes to evaluate the projects
+	/// is not counted: it is bounded on its own (<see cref="MaxEvaluation"/>).
 	/// </summary>
 	/// <param name="evaluate">What evaluates the projects; null where none is, as in a workspace the client does not trust.</param>
 	public static FolderWorkspace Load(IReadOnlyList<string> folders, Action<string> log, TimeSpan? limit = null, Evaluator? evaluate = null)
 	{
-		return Load(cancellationToken => Create(folders, log, cancellationToken, evaluate: evaluate), log, limit ?? MaxRead, evaluate);
+		return Load((clock, cancellationToken) => Create(folders, log, cancellationToken, evaluate: evaluate, clock: clock), log, limit ?? MaxRead, evaluate);
 	}
 
 	/// <summary>The same with what reads the folders given: a test's hook.</summary>
-	internal static FolderWorkspace Load(Func<CancellationToken, FolderWorkspace> create, Action<string> log, TimeSpan limit, Evaluator? evaluate = null)
+	internal static FolderWorkspace Load(Func<ReadingClock, CancellationToken, FolderWorkspace> create, Action<string> log, TimeSpan limit, Evaluator? evaluate = null)
 	{
 		if (Within(create, log, limit, out var result))
 			return result!;
@@ -210,6 +224,8 @@ sealed class FolderWorkspace
 	/// <param name="read">What reads a file; null where it cannot be read. A test's hook.</param>
 	/// <param name="paths">How paths compare; the file system's where null. A test's hook.</param>
 	/// <param name="evaluate">What evaluates the projects; null where none is.</param>
+	/// <param name="maxEvaluation">How long MSBuild evaluates a folder's projects, at most, in this reading and every later one; <see cref="MaxEvaluation"/> where null. A test's hook.</param>
+	/// <param name="clock">What a deadline on this reading counts; nothing waits for it where null.</param>
 	public static FolderWorkspace Create(
 		IReadOnlyList<string> folders,
 		Action<string> log,
@@ -218,14 +234,16 @@ sealed class FolderWorkspace
 		TimeSpan? maxWalk = null,
 		Func<string, string?>? read = null,
 		StringComparer? paths = null,
-		Evaluator? evaluate = null)
+		Evaluator? evaluate = null,
+		TimeSpan? maxEvaluation = null,
+		ReadingClock? clock = null)
 	{
 		var workspace = new AdhocWorkspace();
-		var result    = new FolderWorkspace(workspace, paths ?? PathComparer, log, read ?? Read, evaluate);
+		var result    = new FolderWorkspace(workspace, paths ?? PathComparer, log, read ?? Read, evaluate, maxEvaluation ?? MaxEvaluation);
 
 		try
 		{
-			var scan = result.Scan(folders, null, cancellationToken, maxEntries, maxWalk ?? MaxWalk);
+			var scan = result.Scan(folders, null, clock ?? new ReadingClock(), cancellationToken, maxEntries, maxWalk ?? MaxWalk);
 
 			lock (result._gate)
 			{
@@ -275,7 +293,7 @@ sealed class FolderWorkspace
 
 			try
 			{
-				if (!Within(cancellationToken => Scan(folders, stale, cancellationToken, MaxEntries, MaxWalk), _log, limit ?? MaxRead, out scan))
+				if (!Within((clock, cancellationToken) => Scan(folders, stale, clock, cancellationToken, MaxEntries, MaxWalk), _log, limit ?? MaxRead, out scan))
 					scan = Scanned.None;
 			}
 			catch
@@ -306,17 +324,25 @@ sealed class FolderWorkspace
 		}
 	}
 
-	/// <summary>Runs a reading of the folders within a time; past it, says so and lets the reading go.</summary>
-	static bool Within<T>(Func<CancellationToken, T> reading, Action<string> log, TimeSpan limit, out T? result)
+	/// <summary>
+	/// Runs a reading of the folders within a time of its own; past it, says so and lets the reading go.
+	/// While MSBuild evaluates, the reading's clock stands still and the wait goes on: the evaluation has
+	/// its own bound, and a busy machine that slows it down must not cost the workspace its folders.
+	/// </summary>
+	static bool Within<T>(Func<ReadingClock, CancellationToken, T> reading, Action<string> log, TimeSpan limit, out T? result)
 		where T : class
 	{
 		var cancellation = new CancellationTokenSource();
-		var task         = Task.Run(() => reading(cancellation.Token), CancellationToken.None);
+		var clock        = new ReadingClock();
+		var task         = Task.Run(() => reading(clock, cancellation.Token), CancellationToken.None);
 
-		if (task.Wait(limit))
+		for (var left = limit; left > TimeSpan.Zero; left = limit - clock.Elapsed)
 		{
-			result = task.Result;
-			return true;
+			if (task.Wait(left))
+			{
+				result = task.Result;
+				return true;
+			}
 		}
 
 		cancellation.Cancel();
@@ -352,7 +378,7 @@ sealed class FolderWorkspace
 	}
 
 	/// <summary>Walks the folders, evaluates the projects and reads what they hold; nothing where they are past a cap.</summary>
-	Scanned Scan(IReadOnlyList<string> folders, IReadOnlySet<string>? stale, CancellationToken cancellationToken, int maxEntries, TimeSpan maxWalk)
+	Scanned Scan(IReadOnlyList<string> folders, IReadOnlySet<string>? stale, ReadingClock clock, CancellationToken cancellationToken, int maxEntries, TimeSpan maxWalk)
 	{
 		var full     = folders.Select(static folder => Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder))).Distinct(Paths).ToArray();
 		var projects = new List<string>();
@@ -375,7 +401,7 @@ sealed class FolderWorkspace
 			return Scanned.None;
 		}
 
-		var evaluations = Evaluate(full, projects, stale, cancellationToken);
+		var evaluations = Evaluate(full, projects, stale, clock, cancellationToken);
 
 		// A project may compile C# from elsewhere, by links: that counts toward the cap as the folders' own.
 		var compiled = new HashSet<string>(sources, Paths);
@@ -429,6 +455,7 @@ sealed class FolderWorkspace
 		IReadOnlyList<string> folders,
 		IReadOnlyList<string> projects,
 		IReadOnlySet<string>? stale,
+		ReadingClock clock,
 		CancellationToken cancellationToken)
 	{
 		var result = new Dictionary<string, ProjectEvaluation>(Paths);
@@ -458,9 +485,14 @@ sealed class FolderWorkspace
 			if (mine.Length == 0)
 				continue;
 
+			// Bounded on its own, and not counted in the reading's deadline: see MaxEvaluation.
+			using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+			bound.CancelAfter(_maxEvaluation);
+
 			try
 			{
-				foreach (var (project, evaluation) in _evaluate(mine, folder, cancellationToken))
+				foreach (var (project, evaluation) in clock.Excluding(() => _evaluate(mine, folder, bound.Token)))
 					result[project] = evaluation;
 
 				var missed = mine.Where(project => !result.ContainsKey(project)).Select(Path.GetFileName).ToArray();
@@ -471,6 +503,10 @@ sealed class FolderWorkspace
 			catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or JsonException)
 			{
 				_log($"DotGram: MSBuild could not evaluate the projects of {folder}, which are read by their folders instead: {exception.Message}");
+			}
+			catch (OperationCanceledException) when (bound.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+			{
+				_log($"DotGram: MSBuild took longer than {_maxEvaluation.TotalSeconds:0} s to evaluate the projects of {folder}, which are read by their folders instead.");
 			}
 		}
 
@@ -1010,6 +1046,43 @@ sealed class FolderWorkspace
 		{
 			return (string?)element.Attribute(name) ??
 				element.Elements().FirstOrDefault(child => child.Name.LocalName == name)?.Value.Trim();
+		}
+	}
+
+	/// <summary>
+	/// The time a reading of the folders has taken that its deadline counts: everything but MSBuild's
+	/// evaluation, which runs in a process the reading waits on, under a bound of its own.
+	/// </summary>
+	internal sealed class ReadingClock
+	{
+		readonly object    _gate  = new();
+		readonly Stopwatch _watch = Stopwatch.StartNew();
+
+		/// <summary>The time counted so far.</summary>
+		public TimeSpan Elapsed
+		{
+			get
+			{
+				lock (_gate)
+					return _watch.Elapsed;
+			}
+		}
+
+		/// <summary>Runs work the clock does not count, and counts again once it is done.</summary>
+		public T Excluding<T>(Func<T> work)
+		{
+			lock (_gate)
+				_watch.Stop();
+
+			try
+			{
+				return work();
+			}
+			finally
+			{
+				lock (_gate)
+					_watch.Start();
+			}
 		}
 	}
 
