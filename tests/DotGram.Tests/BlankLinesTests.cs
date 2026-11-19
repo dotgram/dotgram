@@ -17,8 +17,8 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// The blank lines between statements of the handwritten C#, held to
-/// <c>docs/coding-conventions.md</c> ("Blank lines between statements") and to a baseline of what the
-/// sources already did otherwise, <c>BlankLinesBaseline.txt</c>.
+/// <c>docs/internal/coding-conventions.md</c> ("Blank lines between statements") and to a baseline
+/// of what the sources already did otherwise, <c>BlankLinesBaseline.txt</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -567,7 +567,7 @@ public sealed class BlankLinesTests(ITestOutputHelper output)
 	{
 		var text = new StringBuilder();
 
-		text.Append("# Breaks of the blank-line rule (docs/coding-conventions.md) the sources had\r\n");
+		text.Append("# Breaks of the blank-line rule (docs/internal/coding-conventions.md) the sources had\r\n");
 		text.Append("# when it was written: `path rule count`.\r\n");
 		text.Append("# BlankLinesTests holds every file to its counts and fails when one goes up or comes down.\r\n");
 		text.Append("# Written by the test, not by hand: DOTGRAM_RECORD_BLANK_LINES_BASELINE=1.\r\n");
