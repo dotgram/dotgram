@@ -25,6 +25,18 @@ export class Runtime
 	cursor = 0;
 	retries = 0;
 
+	// The frames of the functions printed as machines: numbers in one array and values in the
+	// other, a frame of each a call, the topmost last. The last number of a frame says whose it
+	// is and the first where its owner goes on.
+	I = new Int32Array(1024);
+	V: any[] = [];
+	top = 0;
+	valueTop = 0;
+
+	// How many numbers the frames may take before the input is called too deep: the limit is
+	// the caller's to set, and memory is all that stands behind it.
+	frameLimit = 1 << 28;
+
 	begin(text: string, host: any): void
 	{
 		this.text = text;
@@ -38,6 +50,34 @@ export class Runtime
 		this.count = 0;
 		this.cursor = 0;
 		this.retries = 0;
+		this.top = 0;
+		this.valueTop = 0;
+		this.V.length = 0;
+	}
+
+	// A frame for the machine of that number, which begins at its first state.
+	call(id: number, numbers: number, values: number): void
+	{
+		const top = this.top + numbers;
+
+		if (top > this.I.length)
+		{
+			if (top > this.frameLimit)
+				throw new RangeError("The input nests deeper than the frames may.");
+
+			const grown = new Int32Array(Math.max(top, this.I.length * 2));
+
+			grown.set(this.I);
+			this.I = grown;
+		}
+
+		this.I[top - numbers] = 0;
+		this.I[top - 1] = id;
+		this.top = top;
+		this.valueTop += values;
+
+		while (this.V.length < this.valueTop)
+			this.V.push(undefined);
 	}
 
 	refuse(at: number, expected: number): void

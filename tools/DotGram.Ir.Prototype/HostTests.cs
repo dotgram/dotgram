@@ -95,15 +95,18 @@ public sealed class HostTests
 		Assert.DoesNotContain(Json.Functions, static function => function.Decides || !function.Complete);
 	}
 
-	[Fact]
-	public void TypeScriptBuildsTheJsonTheShippedParserBuilds()
+	[Theory]
+	[InlineData(SliceFrames.None)]
+	[InlineData(SliceFrames.Recursive)]
+	[InlineData(SliceFrames.All)]
+	public void TypeScriptBuildsTheJsonTheShippedParserBuilds(SliceFrames frames)
 	{
 		var corpus = JsonCorpus();
 
 		Assert.True(corpus.Count > 250);
 
 		Same([.. corpus.Select(static one => one.Name)], JsonExpected(corpus),
-			Slices.TypeScript("JsonHost", Json, "ParseJson", [.. corpus.Select(static one => one.Text)], host: "json.ts"));
+			Slices.TypeScript("JsonHost", Json, "ParseJson", [.. corpus.Select(static one => one.Text)], host: "json.ts", frames: frames));
 	}
 
 	[Fact]
@@ -182,7 +185,10 @@ public sealed class HostTests
 		Assert.True(corpus.Count > 20);
 
 		Same(corpus, [.. corpus.Select(text => TimestampExpected(entry, text))],
-			Slices.TypeScript("Timestamps", Timestamps, entry, corpus, host: "rfc3339.ts"));
+			Slices.TypeScript("Timestamps", Timestamps, entry, corpus, host: "rfc3339.ts", frames: SliceFrames.None));
+
+		Same(corpus, [.. corpus.Select(text => TimestampExpected(entry, text))],
+			Slices.TypeScript("Timestamps", Timestamps, entry, corpus, host: "rfc3339.ts", frames: SliceFrames.All));
 	}
 
 	[Theory]
