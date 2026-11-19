@@ -459,6 +459,36 @@ public sealed class PostgreSqlWriterTests
 	}
 
 	/// <summary>
+	/// The same refusals reached from text: what PostgreSQL's parser reads into a node or a spelling only it has, the
+	/// standard's writer and T-SQL's refuse rather than write a text another dialect reads as something else.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT a::int FROM t")]
+	[InlineData("SELECT $1 FROM t")]
+	[InlineData("SELECT E'x' FROM t")]
+	[InlineData("SELECT $$x$$ FROM t")]
+	[InlineData("SELECT CAST(a AS int4) FROM t")]
+	[InlineData("SELECT a FROM t WHERE a ILIKE 'x'")]
+	[InlineData("INSERT INTO t VALUES (1) RETURNING a")]
+	[InlineData("SELECT a FROM t FOR UPDATE OF s.t")]
+	public void What_PostgreSQL_read_from_text_the_other_writers_refuse(string text)
+	{
+		var tree = PostgreSqlParser.ParseStatement(text);
+
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(tree));
+		Assert.Throws<ArgumentException>(() => TransactSqlWriter.Write(tree));
+	}
+
+	/// <summary>And the other way: T-SQL's OUTPUT, read from text, is refused by PostgreSQL's writer, which says RETURNING.</summary>
+	[Fact]
+	public void What_TransactSql_read_from_text_PostgreSqls_writer_refuses()
+	{
+		var tree = TransactSql.TransactSqlParser.ParseStatement("DELETE FROM t OUTPUT deleted.a");
+
+		Assert.Throws<ArgumentException>(() => PostgreSqlWriter.Write(tree));
+	}
+
+	/// <summary>
 	/// An item of ON CONFLICT's target that PostgreSQL's index_elem reads bare is written bare; any other expression gets
 	/// the brackets, and the text reads back with them.
 	/// </summary>

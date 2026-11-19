@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 using DotGram.Sql.Ast;
 using DotGram.Sql.PostgreSql;
@@ -1160,6 +1161,27 @@ public sealed class PostgreSqlExpressionTests
 		var postgreSql = PostgreSqlParser.ParseStatement(text);
 
 		Assert.True(standard.Equals(postgreSql), $"{text}:\n  the standard: {SqlWriter.Write(standard)}\n  PostgreSQL:   {PostgreSqlWriter.Write(postgreSql)}\n  {standard}\n  {postgreSql}");
+	}
+
+	/// <summary>
+	/// A first operand that has set operations of its own — an INTERSECT, which binds tighter than the UNION after it —
+	/// gains the operations after it one at a time, every one kept and in order: the standard's reading of the same text,
+	/// the located reading, and the text written back and read again are all one tree.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u UNION SELECT c FROM v", "Intersect, Union")]
+	[InlineData("SELECT a FROM t INTERSECT ALL SELECT b FROM u EXCEPT SELECT c FROM v", "IntersectAll, Except")]
+	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u UNION SELECT c FROM v EXCEPT SELECT d FROM w", "Intersect, Union, Except")]
+	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u INTERSECT SELECT c FROM v UNION SELECT d FROM w EXCEPT ALL SELECT e FROM x UNION SELECT f FROM y UNION SELECT g FROM z UNION SELECT h FROM q", "Intersect, Intersect, Union, ExceptAll, Union, Union, Union")]
+	[InlineData("(SELECT a FROM t UNION SELECT b FROM u) INTERSECT SELECT c FROM v UNION SELECT d FROM w", "Intersect, Union")]
+	public void The_operations_after_a_first_operand_with_its_own_are_all_kept(string text, string operators)
+	{
+		var made     = Holds(text);
+		var standard = SqlStandardParser.ParseStatement(text);
+
+		Assert.True(standard.Equals(made), $"{text}:\n  the standard: {standard}\n  PostgreSQL:   {made}");
+		Assert.Equal(standard.GetHashCode(), made.GetHashCode());
+		Assert.Equal(operators, string.Join(", ", ((Statement.Select)made).Query.SetOperations.Select(static one => one.Operator)));
 	}
 
 	/// <summary>Where the two readings differ by the dialect's meaning, they differ on purpose.</summary>
