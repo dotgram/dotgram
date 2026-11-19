@@ -1181,10 +1181,15 @@ static partial class CSharpEmitter
 	/// earlier, and a window may have let it go. Left out rather than refused, because this form
 	/// is offered beside every <c>find</c> unasked, and the string form reads the same grammar.
 	/// </para>
+	/// <para>
+	/// Nor for a target without jumps: a window is read by the jump machine and by nothing else, so
+	/// the form is not offered there, and the reader is asked about the publication instead.
+	/// </para>
 	/// </remarks>
 	static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds = false)
 	{
-		return !overKinds && publication.Kind != PublishKind.Yield && !graph.ReachesBoundText(publication.Rule) &&
+		return !overKinds && graph.Language.Can.UnstructuredJumps &&
+		publication.Kind != PublishKind.Yield && !graph.ReachesBoundText(publication.Rule) &&
 		(publication.Kind != PublishKind.Parse || publication.ResultType is null) &&
 		(publication.Kind == PublishKind.Find
 			? Retention.Reads(graph, publication.Rule) is null &&

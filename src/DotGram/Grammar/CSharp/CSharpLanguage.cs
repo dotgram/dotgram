@@ -72,6 +72,29 @@ sealed class CSharpLanguage : ITargetLanguage
 
 	public TargetWording Wording => CSharpWording.Instance;
 
+	/// <summary>
+	/// What C# can do. Every answer is yes for the language and the runtimes the generator writes for;
+	/// a test makes a C# that answers one of them otherwise (<see cref="With"/>), so that the fork
+	/// each stands at is read by a second target before there is one.
+	/// </summary>
+	public TargetCapabilities Can { get; private init; } = OfCSharp.Capabilities;
+
+	/// <summary>In a class of its own, so that it is made before the first language is, whatever the order of the fields here.</summary>
+	static class OfCSharp
+	{
+		internal static readonly TargetCapabilities Capabilities = new()
+		{
+			UnstructuredJumps  = true,
+			ByteStringLiterals = true,
+		};
+	}
+
+	/// <summary>The same language — its resolver, its scanner and its host — able to do what <paramref name="can"/> says.</summary>
+	internal CSharpLanguage With(TargetCapabilities can)
+	{
+		return new CSharpLanguage(_given, _scanner, Host) { Can = can };
+	}
+
 	/// <summary>What reads the library's own C#, whatever the author's is read by.</summary>
 	public ITargetLanguage ForLibrary => Library.Reader;
 
@@ -431,7 +454,7 @@ sealed class CSharpLanguage : ITargetLanguage
 	/// </summary>
 	internal CSharpLanguage WithHost(CSharpHostShape host)
 	{
-		return ReferenceEquals(host, Host) ? this : new CSharpLanguage(_given, _scanner, host);
+		return ReferenceEquals(host, Host) ? this : new CSharpLanguage(_given, _scanner, host) { Can = Can };
 	}
 
 	/// <summary>The shape of the C# a graph's parser is generated into, read by the emitter: none where its language is not C#'s.</summary>
