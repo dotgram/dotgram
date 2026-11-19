@@ -73,7 +73,8 @@ is what to decide before using one, the contract they share, and what is easy to
 - **Nesting is read as deep as the input goes**, on as many extra stacks as it takes. For text
   someone else wrote, bound its length, and set how many stacks a parse may take, once, at
   start-up: `TransactSqlParser.Limits = TransactSqlParser.Limits.WithMaxExtraStacks(4);`
-  (each parser has its own; `Located` reads its parser's). Past it the parse throws
+  (each parser has its own; `Located` reads its parser's, except `PostgreSqlParser.Located`, a
+  second compilation of its grammar with `Limits` of its own). Past it the parse throws
   `InsufficientExecutionStackException`. A parse reads the limits once, as it begins.
 
 ```csharp

@@ -26,7 +26,8 @@ grammar names (`=>`, `when`, recognizers of the host) with the caller's rights, 
   `MyParser.Limits = MyParser.Limits.WithMaxExtraStacks(4)`. A parse reads it once, as it begins,
   so setting it while other threads parse is safe, and a call's own `maxRetained` still wins
   ([§6.5](syntax.md#limits-at-run-time)). The packages say so in their own words:
-  `TransactSqlParser.Limits`, `SqlStandardParser.Limits` and `Sql92Parser.Limits` in `DotGram.Sql`,
+  `TransactSqlParser.Limits`, `SqlStandardParser.Limits`, `Sql92Parser.Limits`, `PostgreSqlParser.Limits`
+  and `PostgreSqlParser.Located.Limits` in `DotGram.Sql`,
   `ExpressionParser.Limits`, and `WebParsers.Limits` for every parser of `DotGram.Web`.
 - **What a streamed parse holds is what it cannot yet let go of.** Where the generator gives a reader
   overload, it has proved that the parse needs nothing a window has moved past: in a well-formed feed
