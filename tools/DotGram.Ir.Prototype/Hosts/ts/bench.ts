@@ -98,9 +98,14 @@ for (let i = 0; i < 12000; i++)
 	});
 }
 
+// And one that is all nesting, where a frame of the parser's own costs most: arrays two hundred
+// deep, which every reader here still reads on the language's stack.
+const nested = "[" + new Array(3000).fill("[".repeat(200) + "1" + "]".repeat(200)).join(",") + "]";
+
 const documents: [string, string][] = [
 	["compact", JSON.stringify(rows)],
 	["indented", JSON.stringify(rows, null, 2)],
+	["nested", nested],
 ];
 
 const P = new Runtime();
