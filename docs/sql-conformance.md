@@ -2,8 +2,9 @@
 
 How much SQL that nobody here wrote the T-SQL parser of `DotGram.Sql` reads, held against two
 outside judges: Microsoft's own T-SQL parser, ScriptDom, over its test corpus, and SQL Server
-itself, over every example of the T-SQL reference. Every number below is a count a test or a
-committed report holds, and each section says which.
+itself, over every example of the T-SQL reference; and how much PostgreSQL its PostgreSQL parser
+reads, held against the server's own parser and its regression suite. Every number below is a count
+a test or a committed report holds, and each section says which.
 
 What is measured is syntax. SQL Server is asked under `SET PARSEONLY ON`, which answers whether a
 statement is well formed and resolves no name: a statement read here may still name a table, a
@@ -84,6 +85,36 @@ writer refuses, fails it. The round trip is printed by
   "'LOCAL' is not a recognized join option"); and forms of the newest releases this grammar does not
   read yet (`VECTOR_SEARCH`, `TOP n WITH APPROXIMATE`, `ORDER BY ALL`). The benchmarks' `--corpus`
   groups the query-shaped ones by where the reading stopped.
+
+## PostgreSQL: the server's parser and its regression suite
+
+`PostgreSqlParser` is held against two outside judges of its own.
+
+- **The server's parser.** Every row of `tests/DotGram.Sql.Tests/Scripts/pg-oracle.json` is a text
+  and the verdict PostgreSQL's grammar gave it: libpg_query 18.6, which is the server's `gram.y` and
+  `scan.l` compiled apart from the server, syntax alone; where the live server answers otherwise,
+  the row carries the server's verdict, and the server wins (20 rows). There are 550 rows, 361 read
+  and 189 refused, and the parser answers each as recorded, both ways: what PostgreSQL reads and this
+  refuses is the work list, what this reads and PostgreSQL refuses is a defect. 35 rows are known
+  deviations, each with its reason in the fixture, 32 of them texts PostgreSQL reads that are not
+  read here yet; `PostgreSqlOracleTests` holds every row, and fails a known deviation that is no
+  longer one.
+- **The regression suite.** `tests/Corpus/PostgreSql/sql` is `src/test/regress/sql` of
+  PostgreSQL 18, 233 files, cut into statements as psql cuts them. Of the statements this grammar
+  reads, every one is written back by `PostgreSqlWriter` and read again as the same tree. A schema
+  as pg_dump writes it, `tests/Corpus/PostgreSql/dump`, is counted beside it.
+
+| Corpus | Read | Refused | Read, written back, the same tree |
+| --- | ---: | ---: | ---: |
+| Regression suite | 40,633 | 9,733 | 40,633 |
+| pg_dump of a schema | 83 | 519 | 83 |
+
+`PgCorpusRoundTripTests` (in `DotGram.Tests.Slow`) holds every file to `PgCorpusBaseline.txt`: a file
+may not read fewer statements, nor write back fewer, and none may throw. A statement that uses a psql
+variable is read by nobody and not counted. The refused ones are not broken down by cause in any
+test; among them are the statements this grammar does not read yet (`ALTER`, `CREATE INDEX`,
+views, routines, triggers, `GRANT`), and those are most of the dump: of its statements, 341 are
+`ALTER TABLE` or `ALTER INDEX` and 92 `CREATE INDEX`.
 
 ## The standard's parsers
 

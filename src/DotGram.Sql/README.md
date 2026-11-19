@@ -15,7 +15,7 @@ so nothing here carries a parser runtime, and neither does anything that referen
 ## The dialects
 
 Each dialect is a directory, a namespace and a grammar of its own, and all of them build one tree, the
-standard's own, in `DotGram.Sql.Ast`: the records, and `SqlWriter` and `TransactSqlWriter`, which print them back;
+standard's own, in `DotGram.Sql.Ast`: the records, and `SqlWriter`, `TransactSqlWriter` and `PostgreSqlWriter`, which print them back;
 [`SqlWalker`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWalker.cs), in `DotGram.Sql`, visits them. What each parser publishes is
 under the table.
 
@@ -30,14 +30,15 @@ Each grammar stands alone: `TransactSqlParser` includes no other grammar, and th
 shape of the standard's (a search condition, a row value constructor, a case expression) are written
 out in `TransactSql.gram` beside T-SQL's own.
 
-All three build one tree, the standard's, laid out in
+All four build one tree, the standard's, laid out in
 [`SqlAst.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlAst.cs) in `DotGram.Sql.Ast`, with T-SQL's own
-constructs in the standard's families and beside them, and printed back by
-[`SqlWriter`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlWriter.cs), or by `TransactSqlWriter` as T-SQL
-reads it. Its records are named for the standard's constructs. The writers print key words and date
-parts in capitals, whatever case they were read in: the tree holds what a key word means, not how it
-was spelled. A text two parsers read is the same tree, in the shape
-`SqlStandardParser` gives it. `Sql92Parser`'s `ParseSelect` gives an `Ast.Statement`, `ParseQuery` an `Ast.Query`, and
+and PostgreSQL's constructs in the standard's families and beside them, and printed back by
+[`SqlWriter`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlWriter.cs), by `TransactSqlWriter` as T-SQL
+reads it, or by `PostgreSqlWriter` as PostgreSQL reads it. Its records are named for the standard's
+constructs. The writers print key words and date parts in capitals, whatever case they were read
+in: the tree holds what a key word means, not how it was spelled. A text two parsers read is the
+same tree, in the shape `SqlStandardParser` gives it.
+`Sql92Parser`'s `ParseSelect` gives an `Ast.Statement`, `ParseQuery` an `Ast.Query`, and
 `ParseSearchCondition` and `ParseValueExpression` an `Ast.Expression`.
 
 `SqlStandardParser` reads at six levels: `ParseValue` (the standard's literal, a signed number among
@@ -54,7 +55,7 @@ to T-SQL later. Each has two kinds of `TryParse…`: one giving a `Match<T>` wit
 message and position, and a `bool TryParse…(string input, out T value)` for where only the answer
 is wanted; most entries have both from a position and over a window as well.
 
-All three read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
+All four read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
 syntactic half above it decides each choice by the token in front of it, which is what a parser
 written by hand does. `SqlStandardParser` reads one thing less than the standard does because of
 it: a comment holds others at any depth, but a `/*` inside a comment always opens one.
@@ -162,7 +163,7 @@ against a round trip — parse, print, and compare the two readings — which ca
 answers yes and builds the wrong thing. The counts, and what is left out of them and why, are in
 [SQL conformance](https://dotgram.github.io/dotgram/sql-conformance.html).
 
-All three of these parsers may be called from any number of threads at once; that is the
+All four of these parsers may be called from any number of threads at once; that is the
 generated parser's own contract, not something this package adds
 ([`DotGram`'s README](https://github.com/dotgram/dotgram/blob/main/src/DotGram/README.md#threads)).
 

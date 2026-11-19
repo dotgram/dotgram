@@ -11,8 +11,10 @@ namespace DotGram.Sql.PostgreSql;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It reads at the standard's levels, with <c>SqlStandardParser</c>'s names and the same tree
-/// (<c>DotGram.Sql.Ast</c>): <c>ParseExpression</c> so far. A text two parsers read is the same tree.
+/// It reads at three of the standard's levels, with <c>SqlStandardParser</c>'s names and the same tree
+/// (<c>DotGram.Sql.Ast</c>): <c>ParseExpression</c>, <c>ParseStatement</c> and <c>ParseSql</c>, each with its
+/// <c>TryParse…</c> forms, from a position and in a window of the input as well. A text two parsers read is the
+/// same tree.
 /// </para>
 /// <para>
 /// The rule is the engine's parser's: what gram.y reads, this reads, the refusals its own actions
@@ -22,8 +24,8 @@ namespace DotGram.Sql.PostgreSql;
 /// </remarks>
 // One parser, read through two doors: the methods below, and the same methods in `Located`, which
 // tell every value where it was written. The second door is a second compilation of the grammar
-// for now: a door asked per call, as T-SQL's is, does not yet compile beside a terminal that binds
-// text (the dollar quote). Carried immediately, by name: a
+// for now: a door asked per call, as T-SQL's is, compiles, but does not yet give every node this
+// grammar builds its span. Carried immediately, by name: a
 // node is built the moment its rule has been read, and the factories of `Nodes` build records from
 // what they are given and read no host state, so a derivation given up leaves nothing a later one
 // could read.
