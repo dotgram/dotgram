@@ -1,4 +1,4 @@
-﻿# A map of the code (contributors' guide)
+# A map of the code (contributors' guide)
 
 [`implementation.md`](implementation.md) explains how the engine works and why. This page says
 where each part of it lives: the stages a grammar goes through from a `[Gram]` attribute or a

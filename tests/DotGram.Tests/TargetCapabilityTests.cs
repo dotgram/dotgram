@@ -5,6 +5,10 @@ using System.Linq;
 using DotGram.Grammar;
 using DotGram.Language;
 
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 using Xunit;
 
 namespace DotGram.Tests;
@@ -17,8 +21,8 @@ namespace DotGram.Tests;
 /// <remarks>
 /// Three things are held of a fork that has a second way to write the parser: the other way is taken
 /// (alive), it reads what the first reads (correct), and where there is no other way the grammar is
-/// told at the publication (loud). This proves the fork in the stages every target shares; it says
-/// nothing of how another language's runtime behaves.
+/// told at the publication, or at its start where no one publication asks (loud). This proves the fork
+/// in the stages every target shares; it says nothing of how another language's runtime behaves.
 /// </remarks>
 public class TargetCapabilityTests
 {
@@ -137,6 +141,141 @@ public class TargetCapabilityTests
 		Assert.Equal(
 			[nameof(TargetCapabilities.ByteStringLiterals), nameof(TargetCapabilities.UnstructuredJumps)],
 			Asked(utf8: true).Order(StringComparer.Ordinal));
+	}
+
+	/// <summary>
+	/// What every snapshot grammar, in every rendering it is held in, comes to without jumps: refused
+	/// where it is published, or written with no <c>goto</c>, or with <c>goto</c> left only in what the
+	/// capability does not reach yet — the lexer's scanners and the one machine of a grammar with
+	/// nothing published (<see cref="TargetCapabilities.UnstructuredJumps"/>).
+	/// </summary>
+	/// <remarks>
+	/// It holds the boundary where it is today, so that a decision moved across it is seen in both
+	/// directions: a scanner that stops jumping, or a machine that starts to without being told.
+	/// </remarks>
+	[Fact]
+	public void Without_jumps_every_snapshot_is_refused_or_jumps_only_where_the_capability_does_not_reach()
+	{
+		var outcomes = new List<string>();
+
+		foreach (var name in SnapshotTests.Snapshots.Select(static row => row.Data).Order(StringComparer.Ordinal))
+		{
+			var text = System.IO.File.ReadAllText(System.IO.Path.Combine(SnapshotTests.Directory, name + ".gram"));
+
+			foreach (var (options, _) in SnapshotTests.Renderings(name, text))
+			{
+				options.Language = new CSharpLanguage(options.SymbolResolver, options.CSharpScanner).With(WithoutJumps.Can);
+
+				var result = GramCompiler.Compile(text, options);
+				var errors = result.Diagnostics.Where(static one => one.Severity == GramSeverity.Error).ToArray();
+				var label  = options.Suffix is { Length: > 0 } suffix ? $"{name}.{suffix}" : name;
+
+				Assert.All(errors, static one => Assert.Equal("GRAM5020", one.Id));
+
+				var jumping = result.Sources
+					.SelectMany(static source => CSharpSyntaxTree.ParseText(source.Text).GetRoot().DescendantNodes().OfType<GotoStatementSyntax>())
+					.Select(static jump => Enclosing(jump))
+					.Distinct(StringComparer.Ordinal)
+					.Order(StringComparer.Ordinal)
+					.ToArray();
+
+				outcomes.Add(
+					errors.Length > 0 ? $"{label}: refused" :
+					jumping.Length == 0 ? $"{label}: no jumps" :
+					$"{label}: jumps in {string.Join(", ", jumping)}");
+			}
+		}
+
+		Assert.Equal(
+			[
+				"BackReference: refused",
+				"Begun: refused",
+				"Buffered: refused",
+				// Nothing published: one machine over everything, and the standard library's scanner.
+				"Csv: jumps in Recognize_DotGram, Scan_DotGram_eof",
+				"Feed: refused",
+				// Read over kinds: the lexer's scanners, and the reader's own way out of a remembered rule.
+				"Kept: jumps in Read_A, Scan, ScanSeam_DotGram_trivia",
+				"Lexical: jumps in Scan, ScanSeam_DotGram_trivia",
+				"Lexical.Chained: jumps in Scan, ScanSeam_DotGram_trivia",
+				"Lexical.Utf8: jumps in Scan, ScanSeam_DotGram_trivia",
+				"Located: no jumps",
+				"Minimal: refused",
+				"Notation: refused",
+				"Segmented: no jumps",
+				"Specialized: no jumps",
+				"Split: no jumps",
+				"Tower: no jumps",
+				"Tower.Checked: no jumps",
+				"Twice: no jumps",
+				"Twice.Immediate: no jumps",
+				"Twice.Traced: no jumps",
+				"Url: refused",
+				"Url.Traced: refused",
+				"Url.Stepped: refused",
+				"Words: no jumps",
+			],
+			outcomes);
+	}
+
+	/// <summary>
+	/// A grammar read over tokens whose terminal builds a value: that value is built by reading the
+	/// token again, which is a machine of jumps, and without jumps the grammar is refused as a whole —
+	/// said at the start of the grammar, since no one publication asks for it.
+	/// </summary>
+	[Fact]
+	public void Without_jumps_a_terminal_whose_value_is_read_again_refuses_the_grammar_at_its_start()
+	{
+		const string grammar = """
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Number : @int = digits: ['0'..'9']+ => @(int.Parse(digits))
+			}
+			Start : @int = n: Lexical.Number & eof => @(n)
+			parse Start
+			""";
+
+		var options = new GramCompilerOptions { Language = WithoutJumps, Lexical = true };
+		var told    = GramCompiler.Compile(grammar, options).Diagnostics
+			.Where(static one => one.Id == "GRAM5020" && one.Message.Contains("reading its token again", StringComparison.Ordinal))
+			.ToArray();
+
+		var once = Assert.Single(told);
+
+		Assert.Equal(GramSeverity.Error, once.Severity);
+		Assert.Equal(0, once.Position);
+		Assert.Equal(0, once.Length);
+
+		// And C#, which has jumps, reads the same grammar over tokens without a word of it.
+		Assert.DoesNotContain(
+			GramCompiler.Compile(grammar, new GramCompilerOptions { Language = CSharp, Lexical = true }).Diagnostics,
+			static one => one.Id == "GRAM5020");
+	}
+
+	/// <summary>The member a jump is written in, by name.</summary>
+	static string Enclosing(SyntaxNode jump)
+	{
+		foreach (var node in jump.Ancestors())
+		{
+			switch (node)
+			{
+				case LocalFunctionStatementSyntax local:
+					return local.Identifier.Text;
+
+				case MethodDeclarationSyntax method:
+					return method.Identifier.Text;
+
+				case ConstructorDeclarationSyntax constructor:
+					return constructor.Identifier.Text + "()";
+
+				case BasePropertyDeclarationSyntax property:
+					return property.ToString().Split('{')[0].Trim();
+			}
+		}
+
+		return "?";
 	}
 
 	static (string Text, IReadOnlyList<GramDiagnostic> Diagnostics) Compiled(string grammar, CSharpLanguage language)

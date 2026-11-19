@@ -28,11 +28,33 @@ public sealed class DiagnosticsReferenceTests
 	[Fact]
 	public void Every_identifier_the_compiler_reports_is_documented()
 	{
-		var missing = Reported().Except(Documented()).OrderBy(one => one, StringComparer.Ordinal).ToArray();
+		var missing = Reported()
+			.Except(Documented())
+			.Except(DiagnosticCatalog.Internal)
+			.OrderBy(one => one, StringComparer.Ordinal)
+			.ToArray();
 
 		Assert.True(
 			missing.Length == 0,
 			"Not in docs/diagnostics.md: " + string.Join(", ", missing));
+	}
+
+	/// <summary>
+	/// An identifier no build reports (<see cref="DiagnosticCatalog.Internal"/>) is named by the code, and
+	/// is neither in the reference nor in the catalog: a user is not told of a message nothing shows them.
+	/// </summary>
+	[Fact]
+	public void An_identifier_no_build_reports_is_named_and_not_documented()
+	{
+		var reported   = Reported();
+		var documented = Documented();
+
+		Assert.All(DiagnosticCatalog.Internal, one =>
+		{
+			Assert.Contains(one, reported);
+			Assert.DoesNotContain(one, documented);
+			Assert.False(DiagnosticCatalog.Entries.ContainsKey(one), $"{one} is in the catalog");
+		});
 	}
 
 	/// <summary>No number is reported by both the generator and the extension.</summary>

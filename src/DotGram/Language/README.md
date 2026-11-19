@@ -1,4 +1,4 @@
-﻿# The shared language core
+# The shared language core
 
 This folder and `../Grammar/` are where the DotGram language is understood: how a grammar is tokenized, parsed, bound
 and checked, and — for an editor — classified, navigated and described. The source generator compiles them to write

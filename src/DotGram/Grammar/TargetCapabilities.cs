@@ -29,9 +29,17 @@ sealed class TargetCapabilities
 	/// <summary>
 	/// Whether code may jump to a label anywhere in its method (<c>goto</c>). The two machines that
 	/// are written as states and jumps between them need it: the flat machine and the jump machine.
-	/// A target without it reads everything through the structured reader, which is asked first
-	/// there, and is offered no streamed form, which only the jump machine reads.
+	/// A target without it reads a publication through the structured reader, which is asked first
+	/// there, and is offered no streamed form, which only the jump machine reads; a publication the
+	/// reader refuses, and a terminal's value read again over tokens, are refused for the target.
 	/// </summary>
+	/// <remarks>
+	/// What the fork covers is the machines of publications, and no more yet. Still written with
+	/// <c>goto</c> whatever the answer, and so work for the first target without it: the lexer's
+	/// scanners and seams, the standard library's scanners, the one machine of a grammar with
+	/// nothing published, and the reader's own way out of a remembered rule (its memo).
+	/// <c>TargetCapabilityTests</c> holds where that boundary is, over the snapshots.
+	/// </remarks>
 	public required bool UnstructuredJumps
 	{
 		get

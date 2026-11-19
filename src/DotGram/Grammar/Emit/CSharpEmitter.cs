@@ -568,7 +568,8 @@ static partial class CSharpEmitter
 
 		// What the syntactic machines were told that machine would ask for, and what it does: the two have to
 		// agree, or a call into it hands it the wrong arguments (ValuingAsks).
-		// The machine that reads a token again is a jump machine too.
+		// The machine that reads a token again is a jump machine too. No one publication asks for
+		// it, so it is said of the grammar as a whole, at its start.
 		if (valuing is not null && !jumps)
 			diagnostics?.Add(new GramDiagnostic(
 				TargetCannot,

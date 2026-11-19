@@ -1,4 +1,4 @@
-﻿---
+---
 paths:
   - "src/DotGram/Grammar/**"
 ---

@@ -173,13 +173,26 @@ static class DiagnosticCatalog
 		["GRAM5017"] = new("A construction of a publication read from a reader or lines changes the context", GramSeverity.Info),
 		["GRAM5018"] = new("A name would be written twice into the generated class", GramSeverity.Error),
 		["GRAM5019"] = new("A guard that names context is read again where a terminal's value is built", GramSeverity.Warning),
-		["GRAM5020"] = new("A publication needs what the language the parser is generated in cannot do", GramSeverity.Error),
 		["GRAM6001"] = new("A classification target is neither Rule nor Rule.capture", GramSeverity.Warning),
 		["GRAM6002"] = new("The grammar rule a classification target names was not found", GramSeverity.Warning),
 		["GRAM6003"] = new("The grammar rule a classification target names is ambiguous", GramSeverity.Warning),
 		["GRAM6004"] = new("The capture a classification target names was not found in its rule", GramSeverity.Warning),
 		["GRAM6005"] = new("A classification target is specified more than once", GramSeverity.Warning),
 		["GRAM6101"] = new("The text of an embedded DSL site does not match its language", GramSeverity.Error),
+	};
+
+	/// <summary>
+	/// The identifiers the code names that no build reports: each is reported only by a target made in a
+	/// test, so it is not in the reference and not among <see cref="Entries"/>. The number is held so that
+	/// nothing else takes it, and it goes into both once a build can report it.
+	/// </summary>
+	/// <remarks>
+	/// GRAM5020 is what a target language that cannot do what a publication needs says of it
+	/// (<see cref="TargetCapabilities"/>); C#, the one language a parser is generated in, can do all of it.
+	/// </remarks>
+	public static IReadOnlyCollection<string> Internal { get; } = new HashSet<string>(StringComparer.Ordinal)
+	{
+		"GRAM5020",
 	};
 
 	/// <summary>The identifier's title, or the identifier itself where it is not listed.</summary>
