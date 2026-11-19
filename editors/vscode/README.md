@@ -4,6 +4,10 @@ Editing support for [DotGram](https://github.com/dotgram/dotgram) grammars in VS
 written into C# strings — from the same language core the DotGram source generator and the Visual Studio extension
 compile: what you see is what the build reads.
 
+![A calculator grammar in a .gram file in VS Code, coloured by the language server](images/marketplace-gram.png)
+
+![The same grammar inside a C# Gram attribute, coloured, with a diagnostic under a misspelled rule](images/marketplace-csharp.png)
+
 ## What works
 
 - **Diagnostics** as the generator reports them, with their `GRAM` ids.

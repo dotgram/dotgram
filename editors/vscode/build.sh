@@ -49,4 +49,4 @@ npm run build
 npm run test:notices
 npm run notices
 mkdir -p "$root/artifacts"
-npx vsce package "${target[@]}" --out "$root/artifacts/"
+npx vsce package --baseImagesUrl https://github.com/dotgram/dotgram/raw/HEAD/editors/vscode "${target[@]}" --out "$root/artifacts/"

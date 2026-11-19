@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- The Marketplace page shows screenshots: a `.gram` file and a grammar in a C# string, with colours and a diagnostic.
+
 ## 0.3.0
 
 - Shown on the Marketplace as ".Gram for VS Code" under the id `dotgram.GramForVSCode`.

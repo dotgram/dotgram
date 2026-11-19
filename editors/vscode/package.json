@@ -2,7 +2,7 @@
   "name": "GramForVSCode",
   "displayName": ".Gram for VS Code",
   "description": "Colours, diagnostics, completion, Quick Info, navigation, rename, folding and outline for .gram grammars, and colours, diagnostics, Quick Info and navigation for grammars written in C# strings, from the same language core as the DotGram source generator.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "dotgram",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -376,7 +376,7 @@
     "test:notices": "node --test scripts/notices.test.mjs",
     "compile-tests": "tsc -p . --outDir out",
     "test": "npm run bundle && npm run compile-tests && node ./out/test/runTest.js",
-    "package": "vsce package --out ../../artifacts/"
+    "package": "vsce package --baseImagesUrl https://github.com/dotgram/dotgram/raw/HEAD/editors/vscode --out ../../artifacts/"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"

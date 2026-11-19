@@ -4,7 +4,10 @@
 !server/**
 !syntaxes/**
 !snippets/**
-!images/**
+# The Marketplace page loads its screenshots (images/marketplace-*.png) from the repository: vsce points the
+# README's relative links there, so the package leaves them out.
+!images/icon.png
+!images/gram-file.png
 !language-configuration.json
 !package.json
 !README.md

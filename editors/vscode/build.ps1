@@ -52,7 +52,7 @@ try {
 	Invoke-Checked "npm" @("run", "test:notices")
 	Invoke-Checked "npm" @("run", "notices")
 	New-Item -ItemType Directory -Force (Join-Path $root "artifacts") | Out-Null
-	Invoke-Checked "npx" (@("vsce", "package") + $target + @("--out", (Join-Path $root "artifacts/")))
+	Invoke-Checked "npx" (@("vsce", "package", "--baseImagesUrl", "https://github.com/dotgram/dotgram/raw/HEAD/editors/vscode") + $target + @("--out", (Join-Path $root "artifacts/")))
 }
 finally {
 	Pop-Location

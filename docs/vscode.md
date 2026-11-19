@@ -56,7 +56,7 @@ code --install-extension dotgram.GramForVSCode
 From a build of this repository:
 
 ```bash
-code --install-extension artifacts/GramForVSCode-0.3.0.vsix
+code --install-extension artifacts/GramForVSCode-0.3.1.vsix
 ```
 
 The extension depends on the [.NET Install Tool](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.vscode-dotnet-runtime)
