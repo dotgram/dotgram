@@ -161,6 +161,54 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 	public IrWays Ways { get; private set; } = new();
 
+	/// <summary>
+	/// Whether a repetition read again goes straight to the turn the reading is asked for, rather
+	/// than through every turn before it: each repetition that may give turns back then opens a
+	/// decision of its own that can never be moved, which names this entry of it on the tape, and
+	/// each turn leaves what the repetition held as it began.
+	/// </summary>
+	public bool Resumes { get; init; }
+
+	/// <summary>How many times a repetition read again went straight to a turn.</summary>
+	public long Jumps { get; private set; }
+
+	/// <summary>What a repetition held as one of its turns began.</summary>
+	sealed record Turn(int Way, int Position, int Turns, object?[] Held, int[] Counts);
+
+	/// <summary>One entry of a repetition, named by the decision it opened as it began.</summary>
+	sealed class Loop(int sentinel)
+	{
+		public int        Sentinel { get; } = sentinel;
+		public List<Turn> Turns    { get; } = [];
+	}
+
+	readonly Dictionary<int, Loop>   _loops   = [];
+	readonly List<Loop>              _entered = [];
+	readonly List<(Loop Of, Turn At)> _begun  = [];
+
+	/// <summary>The tape was cut: what was kept of decisions no longer on it goes with them.</summary>
+	void Cut()
+	{
+		if (!Resumes)
+			return;
+
+		var count = Ways.Count;
+
+		while (_begun.Count > 0 && _begun[^1].At.Way >= count)
+		{
+			var (of, _) = _begun[^1];
+
+			of.Turns.RemoveAt(of.Turns.Count - 1);
+			_begun.RemoveAt(_begun.Count - 1);
+		}
+
+		while (_entered.Count > 0 && _entered[^1].Sentinel >= count)
+		{
+			_loops.Remove(_entered[^1].Sentinel);
+			_entered.RemoveAt(_entered.Count - 1);
+		}
+	}
+
 	/// <summary>How many statements ran: what a replay costs, counted and not timed.</summary>
 	public long Steps { get; private set; }
 
@@ -247,8 +295,12 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_refusedAt = -1;
 		_refused.Clear();
 		_said.Clear();
+		_loops.Clear();
+		_entered.Clear();
+		_begun.Clear();
 		Ways  = new IrWays();
 		Steps = 0;
+		Jumps = 0;
 
 		return Run(function, out var value)
 			? new IrOutcome(true, _p, value, [])
@@ -439,7 +491,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					PutBack(frame, choice.Resets[i], kept);
 
 					if (choice.Resumable && i < last)
+					{
 						Ways.Next(way, i + 1);
+						Cut();
+					}
 				}
 
 				return false;
@@ -451,6 +506,42 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var max   = repeat.Max is null ? int.MaxValue : (int)Eval(repeat.Max, frame)!;
 				var turns = 0;
 
+				Loop? loop = null;
+
+				if (Resumes && repeat.Resumable)
+				{
+					var again = Ways.Cursor < Ways.Count;
+					var (sentinel, _) = Ways.Enter(0);
+
+					if (!again)
+					{
+						_loops.Add(sentinel, loop = new Loop(sentinel));
+						_entered.Add(loop);
+					}
+					else if (!_loops.TryGetValue(sentinel, out loop))
+						throw new IrContractViolation("A repetition is read again and nothing was kept of its entry.");
+					else if (loop.Turns.Count > 0)
+					{
+						// Every turn still kept began at a decision still on the tape, and nothing
+						// before the last of them has changed: the reading goes on from where it began.
+						var turn = loop.Turns[^1];
+
+						_p    = turn.Position;
+						turns = turn.Turns;
+
+						for (var i = 0; i < turn.Held.Length; i++)
+						{
+							if (turn.Held[i] is List<object?> items)
+								items.RemoveRange(turn.Counts[i], items.Count - turn.Counts[i]);
+
+							frame[repeat.Resets[i].Index] = turn.Held[i];
+						}
+
+						Ways.Cursor = turn.Way;
+						Jumps++;
+					}
+				}
+
 				while (turns < max)
 				{
 					var start = _p;
@@ -461,7 +552,26 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 					if (repeat.Resumable && turns >= min)
 					{
+						var fresh = Ways.Cursor == Ways.Count;
+
 						(way, var decision) = Ways.Enter(1);
+
+						if (loop is not null && fresh)
+						{
+							var held   = new object?[repeat.Resets.Count];
+							var counts = new int[held.Length];
+
+							for (var i = 0; i < held.Length; i++)
+							{
+								held[i]   = frame[repeat.Resets[i].Index];
+								counts[i] = held[i] is List<object?> items ? items.Count : 0;
+							}
+
+							var turn = new Turn(way, start, turns, held, counts);
+
+							loop.Turns.Add(turn);
+							_begun.Add((loop, turn));
+						}
 
 						if (decision == 1)
 							break;
@@ -475,7 +585,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						PutBack(frame, repeat.Resets, kept);
 
 						if (way >= 0)
+						{
 							Ways.Next(way, 1);
+							Cut();
+						}
 
 						break;
 					}
@@ -541,6 +654,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 					if (!(Ways.Cursor > segment && Ways.Retry(segment)))
 						return false;
+
+					Cut();
 				}
 			}
 
@@ -598,10 +713,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 			if (!(Ways.Count > count && Ways.Retry(count)))
 				break;
+
+			Cut();
 		}
 
 		Ways.Count  = count;
 		Ways.Cursor = cursor;
+		Cut();
 
 		return read;
 	}
