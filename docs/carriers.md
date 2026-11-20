@@ -13,16 +13,16 @@ time is older than the rest was not in the last build, and its rows are that bui
 
 | Read from | Report written |
 | --- | --- |
-| DotGram.Benchmarks | 2026-11-03 19:56 |
-| DotGram.Examples | 2026-11-03 19:53 |
-| DotGram.ExpressionLanguage | 2026-11-03 19:53 |
-| DotGram.ExpressionLanguage.Tape | 2026-11-03 19:53 |
-| DotGram.Finance | 2026-11-03 19:54 |
-| DotGram.Finance.Fix44 | 2026-11-03 19:54 |
-| DotGram.Sql | 2026-11-03 19:54 |
-| DotGram.Sql.Productions | 2026-11-03 19:54 |
-| DotGram.Tests | 2026-11-03 19:56 |
-| DotGram.Web | 2026-11-03 19:53 |
+| DotGram.Benchmarks | 2026-11-20 01:38 |
+| DotGram.Examples | 2026-11-20 01:33 |
+| DotGram.ExpressionLanguage | 2026-11-20 01:33 |
+| DotGram.ExpressionLanguage.Tape | 2026-11-20 01:33 |
+| DotGram.Finance | 2026-11-20 01:33 |
+| DotGram.Finance.Fix44 | 2026-11-20 01:35 |
+| DotGram.Sql | 2026-11-20 01:34 |
+| DotGram.Sql.Productions | 2026-11-20 01:35 |
+| DotGram.Tests | 2026-11-20 01:38 |
+| DotGram.Web | 2026-11-20 01:33 |
 
 **Carrier** is what a grammar left to the generator is read with — `immediate`, or `deferred` where the
 immediate carrier refused a machine — or the author's own choice. **Gate** is what `Deferred` would
@@ -66,12 +66,15 @@ change: a deferred grammar may have a machine that is not.
 | DotGram.Benchmarks.Possession.Open | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Possession.Settled | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Benchmarks.Settlements | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 7/7 |
-| DotGram.Benchmarks.TapeSql |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 12/310 |
-| DotGram.Benchmarks.TapeSqlStandard |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
+| DotGram.Benchmarks.StdNumberCost.New | 5 | 0 | immediate | none | none | none |  |  |  |  |  |  | 16/16 |
+| DotGram.Benchmarks.StdNumberCost.Old | 5 | 0 | immediate | none | none | none |  |  |  |  |  |  | 16/16 |
+| DotGram.Benchmarks.StdNumberCost.Parts | 5 | 0 | immediate | none | none | none |  |  |  |  |  |  | 5/5 |
+| DotGram.Benchmarks.TapeSql |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 12/313 |
+| DotGram.Benchmarks.TapeSqlStandard |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1258/2620 |
 | DotGram.Benchmarks.TinyScalar | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Benchmarks.Urls | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 3 | 0 | 0 | 1/1 |
 | DotGram.Examples.Expressions.ArithmeticTree | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 22/22 |
-| DotGram.Examples.Expressions.Calculator |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 51/51 |
+| DotGram.Examples.Expressions.Calculator |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 57/57 |
 | DotGram.Examples.Expressions.ClampedExample | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 14/14 |
 | DotGram.Examples.Expressions.LocaleNumber | 2 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
 | DotGram.Examples.Feeds.Confirmations | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 14/14 |
@@ -88,6 +91,7 @@ change: a deferred grammar may have a machine that is not.
 | DotGram.Examples.Feeds.StreamingFeedReader | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 9/9 |
 | DotGram.Examples.Formats.Config | 2 | 0 | immediate | read again | read again | GRAM5012 | 3 | 0 | 0 | 4 | 0 | 0 | 8/8 |
 | DotGram.Examples.Formats.Config.Located | 2 | 0 | immediate | read again | read again | GRAM5012 | 3 | 0 | 0 | 4 | 0 | 0 | 8/8 |
+| DotGram.Examples.Formats.CssColor | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Formats.FileNames | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 2 | 0 | 0 | 4/4 |
 | DotGram.Examples.Formats.FixParser | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 9/9 |
 | DotGram.Examples.Formats.FixedWidth | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 22/22 |
@@ -101,7 +105,7 @@ change: a deferred grammar may have a machine that is not.
 | DotGram.Examples.Formats.Netstrings | 1 | 0 | immediate | read again | read again | GRAM5012 | 2 | 0 | 0 | 1 | 0 | 0 | 3/3 |
 | DotGram.Examples.Formats.TypedCsv | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 12/12 |
 | DotGram.Examples.Formats.XmlParser | 1 | 0 | immediate | replay | replay | GRAM5012 | 7 | 6 | 3 | 0 | 0 | 0 | 21/21 |
-| DotGram.Examples.Formats.YamlLite | 1 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 4 | 0 | 0 | 11/11 |
+| DotGram.Examples.Formats.YamlLite | 1 | 0 | immediate | read again | read again | GRAM5012 | 6 | 0 | 0 | 2 | 0 | 0 | 11/11 |
 | DotGram.Examples.Languages.Filter |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 33/33 |
 | DotGram.Examples.Languages.FilterFile | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 4/4 |
 | DotGram.Examples.Languages.Filters | 1 | 0 | immediate | replay | replay | GRAM5012 | 2 | 1 | 1 | 0 | 0 | 0 | 8/8 |
@@ -113,16 +117,18 @@ change: a deferred grammar may have a machine that is not.
 | DotGram.Examples.Languages.SqlDialect | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 3/3 |
 | DotGram.Examples.Languages.SqlReadOnly | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Examples.Languages.TokenizedQuery | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 12/12 |
-| DotGram.ExpressionLanguage.ExpressionParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 23/501 |
-| DotGram.ExpressionLanguage.ExpressionParser.Tape |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 23/501 |
+| DotGram.ExpressionLanguage.ExpressionParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 23/507 |
+| DotGram.ExpressionLanguage.ExpressionParser.Tape |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 23/507 |
 | DotGram.Finance.Fix.Fix44.Fix44Grammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 1830/1830 |
 | DotGram.Finance.Fix.Fix44.FixFieldGrammar | 0 | 0 | nothing to choose | none | none | none |  |  |  |  |  |  | 0/0 |
 | DotGram.Finance.Fix.FixGrammar |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 14/14 |
-| DotGram.Sql.Productions.SqlStandardLocated |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
-| DotGram.Sql.Productions.SqlStandardProductions |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1307/2672 |
-| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/310 |
-| DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1256/2618 |
-| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2351/3124 |
+| DotGram.Sql.PostgreSql.PostgreSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 4/1479 |
+| DotGram.Sql.PostgreSql.PostgreSqlParser.Located |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 4/1479 |
+| DotGram.Sql.Productions.SqlStandardLocated |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1258/2620 |
+| DotGram.Sql.Productions.SqlStandardProductions |  |  | deferred (author) |  |  |  |  |  |  |  |  |  | 1309/2674 |
+| DotGram.Sql.Standard.Sql92Parser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 12/313 |
+| DotGram.Sql.Standard.SqlStandardParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 1258/2620 |
+| DotGram.Sql.TransactSql.TransactSqlParser |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 2353/3142 |
 | DotGram.Tests.Calculators.DecimalCalculator | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 18/18 |
 | DotGram.Tests.Calculators.OneRuleParser | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
 | DotGram.Tests.Calculators.StrengthCalculator | 1 | 0 | immediate | read again | read again | GRAM5012 | 1 | 0 | 0 | 1 | 0 | 0 | 15/15 |
@@ -133,7 +139,7 @@ change: a deferred grammar may have a machine that is not.
 | DotGram.Web.Rfc3339 | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 5/5 |
 | DotGram.Web.Rfc3986 |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 19/19 |
 | DotGram.Web.Rfc5322 | 5 | 0 | immediate | read again | read again | GRAM5012 | 48 | 0 | 0 | 76 | 0 | 0 | 129/129 |
-| DotGram.Web.Rfc5646 | 1 | 0 | immediate | read again | read again | GRAM5012 | 9 | 0 | 0 | 6 | 0 | 0 | 22/22 |
+| DotGram.Web.Rfc5646 | 1 | 0 | immediate | read again | read again | GRAM5012 | 9 | 0 | 0 | 4 | 0 | 0 | 22/22 |
 | DotGram.Web.Rfc6265 |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 29/29 |
 | DotGram.Web.Rfc6266 |  |  | immediate (author) |  |  |  |  |  |  |  |  |  | 5/5 |
 | DotGram.Web.Rfc6570 | 1 | 0 | immediate | none | none | none |  |  |  |  |  |  | 10/10 |
@@ -162,6 +168,21 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Benchmarks.Nesting | ParseExpr | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Benchmarks.Numbers | ParseSum | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Benchmarks.Possession.Open | ParseDoc | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
+| DotGram.Benchmarks.StdNumberCost.New | ParseI | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.New | ParseL | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.New | ParseM | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.New | ParseD | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.New | ParseItems | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
+| DotGram.Benchmarks.StdNumberCost.Old | ParseI | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.Old | ParseL | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.Old | ParseM | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.Old | ParseD | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
+| DotGram.Benchmarks.StdNumberCost.Old | ParseItems | whole | immediate | none | 0 | 0 | 0 | 0 | 5/5 |
+| DotGram.Benchmarks.StdNumberCost.Parts | ParseText | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
+| DotGram.Benchmarks.StdNumberCost.Parts | ParseAtomicOnly | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
+| DotGram.Benchmarks.StdNumberCost.Parts | ParseGuardTrue | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
+| DotGram.Benchmarks.StdNumberCost.Parts | ParseGuardOnCapture | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
+| DotGram.Benchmarks.StdNumberCost.Parts | ParseGuardOnText | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
 | DotGram.Benchmarks.TinyScalar | ParseDepth | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Benchmarks.Urls | ParseUrl | whole | immediate | read again | 2 | 0 | 3 | 0 | 1/1 |
 | DotGram.Examples.Expressions.ArithmeticTree | Read | whole | immediate | none | 0 | 0 | 0 | 0 | 22/22 |
@@ -177,6 +198,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Formats.Config | ParseKeySpan | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
 | DotGram.Examples.Formats.Config.Located | ParseFile | whole | immediate | read again | 3 | 0 | 4 | 0 | 7/7 |
 | DotGram.Examples.Formats.Config.Located | ParseKeySpan | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
+| DotGram.Examples.Formats.CssColor | ParseColor | whole | immediate | none | 0 | 0 | 0 | 0 | 0/0 |
 | DotGram.Examples.Formats.FileNames | ParseRoute, ParseSegment | whole | immediate | read again | 2 | 0 | 2 | 0 | 4/4 |
 | DotGram.Examples.Formats.FixParser | ParseMessage | whole | immediate | none | 0 | 0 | 0 | 0 | 9/9 |
 | DotGram.Examples.Formats.FixedWidth | ParseFeed | whole | immediate | none | 0 | 0 | 0 | 0 | 22/22 |
@@ -187,7 +209,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Examples.Formats.MetricsLine | ParseLine | whole | immediate | read again | 5 | 0 | 3 | 0 | 11/11 |
 | DotGram.Examples.Formats.Netstrings | ParseStream | whole | immediate | read again | 2 | 0 | 1 | 0 | 3/3 |
 | DotGram.Examples.Formats.XmlParser | ParseXml | whole | immediate | replay | 7 | 6 | 0 | 0 | 21/21 |
-| DotGram.Examples.Formats.YamlLite | ParseDoc | whole | immediate | read again | 6 | 0 | 4 | 0 | 11/11 |
+| DotGram.Examples.Formats.YamlLite | ParseDoc | whole | immediate | read again | 6 | 0 | 2 | 0 | 11/11 |
 | DotGram.Examples.Languages.FilterFile | ParseFilter | whole | immediate | none | 0 | 0 | 0 | 0 | 4/4 |
 | DotGram.Examples.Languages.Filters | ParseFilter | whole | immediate | replay | 2 | 1 | 0 | 0 | 8/8 |
 | DotGram.Examples.Languages.GramGrammar | ParseFile | whole | immediate | replay | 35 | 28 | 0 | 0 | 111/111 |
@@ -209,7 +231,7 @@ machine's own, and so are the points: a site belongs to the machine that reads t
 | DotGram.Web.Rfc5322 | ParseStrictMailbox | whole | immediate | read again | 6 | 0 | 14 | 0 | 15/15 |
 | DotGram.Web.Rfc5322 | ParseStrictMailboxList | whole | immediate | read again | 8 | 0 | 15 | 0 | 21/21 |
 | DotGram.Web.Rfc5322 | ParseStrictAddressList | whole | immediate | read again | 13 | 0 | 19 | 0 | 37/37 |
-| DotGram.Web.Rfc5646 | ParseTag | whole | immediate | read again | 9 | 0 | 6 | 0 | 22/22 |
+| DotGram.Web.Rfc5646 | ParseTag | whole | immediate | read again | 9 | 0 | 4 | 0 | 22/22 |
 | DotGram.Web.Rfc6570 | ParseTemplate | whole | immediate | none | 0 | 0 | 0 | 0 | 10/10 |
 | DotGram.Web.Rfc6901 | ParsePointer | whole | immediate | none | 0 | 0 | 0 | 0 | 3/3 |
 | DotGram.Web.Rfc6901 | ParseFragment | whole | immediate | none | 0 | 0 | 0 | 0 | 1/1 |
@@ -234,28 +256,28 @@ or which nothing calls, so that no caller asks it again.
 | choice | every alternative led by what may read nothing | 3 | 6 | 14 | 0 | 1 | YamlLite.Lines: `(item0: Line \| Blank)` |
 | optional | what follows begins alike | 4 | 4 | 8 | 7 | 1 | Urls.Authority: `(user: UserInfo & '@')?` |
 | choice | alternatives begin apart | 1 | 2 | 8 | 0 | 0 | Rfc5322.Qtext: `(['!' \| '#'..'[' \| ']'..'~'] \| Never)` |
-| choice | an alternative that may read nothing | 6 | 6 | 7 | 0 | 0 | Config.Value: `(t: { Rest } & ~ & ?=Next => (t) \| ?!{ Rest } & ~ & ?=Next & ~ & t: St…` |
-| run | what follows begins alike | 5 | 6 | 6 | 0 | 0 | FileNames.Segment: `[IsAllowed]+` |
-| turns | what follows begins alike | 2 | 3 | 4 | 4 | 1 | Netstrings.Stream: `item0: Frame*` |
+| choice | an alternative that may read nothing | 5 | 5 | 6 | 0 | 0 | Config.Value: `(t: { Rest } & ~ & ?=Next => (t) \| ?!{ Rest } & ~ & ?=Next & ~ & t: St…` |
+| run | what follows begins alike | 4 | 5 | 5 | 0 | 0 | FileNames.Segment: `[IsAllowed]+` |
 | turns | the seam leads every alternative of the turn | 3 | 3 | 3 | 3 | 0 | Climbing.Expr: `(trivia & '+' & trivia & r: Expr => (l + r) \| trivia & '-' & trivia & …` |
 | run | follow unknown | 2 | 2 | 2 | 0 | 0 | Config.Rest: `[^ '\n' \| '\r']*` |
 | optional | a turn led by what may read nothing | 1 | 2 | 2 | 0 | 0 | Rfc5322.AngleAddr: `ObsRoute?` |
+| turns | what follows begins alike | 1 | 1 | 1 | 1 | 1 | Netstrings.Stream: `item0: Frame*` |
 | counted | what follows begins alike | 1 | 1 | 1 | 1 | 0 | Rfc5646.LangTag: `extended: ExtLang{0,3}` |
 
 ## DotGram.Benchmarks.CallCost.Called
 
 - machine ParseStart [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
-- memo ParseStart [whole]: remembered 0; not 1: Letter (characters)
+- memo ParseStart [whole]: remembered 0; not 1: Letter (characters); kept 0
 
 ## DotGram.Benchmarks.CallCost.Valued
 
 - machine ParseStart [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 5/5
-- memo ParseStart [whole]: remembered 0; not 1: Letter (characters)
+- memo ParseStart [whole]: remembered 0; not 1: Letter (characters); kept 0
 
 ## DotGram.Benchmarks.Climbing
 
 - machine Climbed [whole]: carrier: immediate; gate: read again; building: 1; replayed: 0; read again: 1; refused: 0; points: 13/13
-- memo Climbed [whole]: remembered 0; not 1: Expr (characters)
+- memo Climbed [whole]: remembered 0; not 1: Expr (characters); kept 0
 - again Expr: opens a way
 - open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & r: Expr => (l + r) | trivia & '-' & trivia & …
 
@@ -274,12 +296,12 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Benchmarks.Levels
 
 - machine Levelled [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 19/19
-- memo Levelled [whole]: remembered 0; not 2: Sum (characters), Unary (characters)
+- memo Levelled [whole]: remembered 0; not 2: Sum (characters), Unary (characters); kept 0
 
 ## DotGram.Benchmarks.Nesting
 
 - machine ParseExpr [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 0/0
-- memo ParseExpr [whole]: remembered 0; not 1: Expr (characters)
+- memo ParseExpr [whole]: remembered 0; not 1: Expr (characters); kept 0
 
 ## DotGram.Benchmarks.Numbers
 
@@ -289,19 +311,43 @@ or which nothing calls, so that no caller asks it again.
 
 - machine ParseDoc [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 0/0
 
+## DotGram.Benchmarks.StdNumberCost.New
+
+- machine ParseI [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseL [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseM [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseD [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseItems [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 5/5
+
+## DotGram.Benchmarks.StdNumberCost.Old
+
+- machine ParseI [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseL [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseM [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseD [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
+- machine ParseItems [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 5/5
+
+## DotGram.Benchmarks.StdNumberCost.Parts
+
+- machine ParseText [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
+- machine ParseAtomicOnly [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
+- machine ParseGuardTrue [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
+- machine ParseGuardOnCapture [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
+- machine ParseGuardOnText [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 1/1
+
 ## DotGram.Benchmarks.TapeSql
 
-- memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0
+- memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0; kept 0
 
 ## DotGram.Benchmarks.TapeSqlStandard
 
-- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
+- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0; kept 0
+- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0; kept 0
 
 ## DotGram.Benchmarks.TinyScalar
 
 - machine ParseDepth [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 3/3
-- memo ParseDepth [whole]: remembered 0; not 1: Depth (characters)
+- memo ParseDepth [whole]: remembered 0; not 1: Depth (characters); kept 0
 
 ## DotGram.Benchmarks.Urls
 
@@ -315,18 +361,18 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Examples.Expressions.ArithmeticTree
 
 - machine Read [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 22/22
-- memo Read [whole]: remembered 0; not 2: Sum (characters), Unary (characters)
+- memo Read [whole]: remembered 0; not 2: Sum (characters), Unary (characters); kept 0
 
 ## DotGram.Examples.Expressions.Calculator
 
-- memo EvaluateInt [whole]: remembered 0; not 1: Expr (characters)
-- memo EvaluateDecimal [whole]: remembered 0; not 1: Expr (characters)
-- memo BuildTree [whole]: remembered 0; not 1: Expr (characters)
+- memo EvaluateInt [whole]: remembered 0; not 1: Expr (characters); kept 0
+- memo EvaluateDecimal [whole]: remembered 0; not 1: Expr (characters); kept 0
+- memo BuildTree [whole]: remembered 0; not 1: Expr (characters); kept 0
 
 ## DotGram.Examples.Expressions.ClampedExample
 
 - machine Read [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 14/14
-- memo Read [whole]: remembered 0; not 1: Sum (characters)
+- memo Read [whole]: remembered 0; not 1: Sum (characters); kept 0
 
 ## DotGram.Examples.Expressions.LocaleNumber
 
@@ -376,6 +422,10 @@ or which nothing calls, so that no caller asks it again.
 - again Value: opens a way
 - open Value: choice; an alternative that may read nothing; open; (t: { Rest } & ~ & ?=Next => (t) | ?!{ Rest } & ~ & ?=Next & ~ & t: St…
 
+## DotGram.Examples.Formats.CssColor
+
+- machine ParseColor [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 0/0
+
 ## DotGram.Examples.Formats.FileNames
 
 - machine ParseRoute, ParseSegment [whole]: carrier: immediate; gate: read again; building: 2; replayed: 0; read again: 2; refused: 0; points: 4/4
@@ -415,7 +465,7 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Examples.Formats.JsonParser
 
 - machine ParseJson [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 30/30
-- memo ParseJson [whole]: remembered 0; not 1: Value (characters)
+- memo ParseJson [whole]: remembered 0; not 1: Value (characters); kept 0
 
 ## DotGram.Examples.Formats.MarkdownParser
 
@@ -438,7 +488,7 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Examples.Formats.XmlParser
 
 - machine ParseXml [whole]: carrier: immediate; gate: replay; building: 7; replayed: 6; read again: 0; refused: 0; points: 21/21
-- memo ParseXml [whole]: remembered 0; not 1: Element (characters)
+- memo ParseXml [whole]: remembered 0; not 1: Element (characters); kept 0
 - replay Attribute: Follows in Element [choice], then '>'
 - replay Content: Follows in Element [choice], then "</"
 - replay Name: Follows in Element [choice], then '>'
@@ -448,18 +498,14 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Formats.YamlLite
 
-- machine ParseDoc [whole]: carrier: immediate; gate: read again; building: 6; replayed: 0; read again: 4; refused: 0; points: 11/11
+- machine ParseDoc [whole]: carrier: immediate; gate: read again; building: 6; replayed: 0; read again: 2; refused: 0; points: 11/11
 - again Doc: through Lines
-- again Line: opens a way
-- open Line: choice; an alternative that may read nothing; open; (Eol | ?=eof)
 - again Lines: opens a way
 - open Lines: choice; every alternative led by what may read nothing; open; (item0: Line | Blank)
-- again Rest: opens a way
-- open Rest: run; what follows begins alike; open; [^ '\n' | '\r']*
 
 ## DotGram.Examples.Languages.Filter
 
-- memo ParseFilter [whole]: remembered 0; not 1: Expr (characters)
+- memo ParseFilter [whole]: remembered 0; not 1: Expr (characters); kept 0
 
 ## DotGram.Examples.Languages.FilterFile
 
@@ -468,13 +514,13 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Examples.Languages.Filters
 
 - machine ParseFilter [whole]: carrier: immediate; gate: replay; building: 2; replayed: 1; read again: 0; refused: 0; points: 8/8
-- memo ParseFilter [whole]: remembered 0; not 1: Test (characters)
+- memo ParseFilter [whole]: remembered 0; not 1: Test (characters); kept 0
 - replay Test: Follows in Test [choice], then ')'
 
 ## DotGram.Examples.Languages.GramGrammar
 
 - machine ParseFile [whole]: carrier: immediate; gate: replay; building: 35; replayed: 28; read again: 0; refused: 0; points: 111/111
-- memo ParseFile [whole]: remembered 0; not 8: Type (characters), Namespace (characters), With (characters), QuantifiedCore (characters), Prefixed (characters), Primary (characters), RefOrCall (characters), AnyTest (characters)
+- memo ParseFile [whole]: remembered 0; not 8: Type (characters), Namespace (characters), With (characters), QuantifiedCore (characters), Prefixed (characters), Primary (characters), RefOrCall (characters), AnyTest (characters); kept 0
 - replay AnyTest: Follows in OneTest [choice], then ')'
 - replay Reference: Follows in PublicationTarget [choice], then ?=':'
 - replay AllTest: under AnyTest
@@ -510,7 +556,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Examples.Languages.Scoped
 
-- memo ParseProgram [whole]: remembered 0; not 1: Expr (characters)
+- memo ParseProgram [whole]: remembered 0; not 1: Expr (characters); kept 0
 
 ## DotGram.Examples.Languages.Selectors
 
@@ -536,52 +582,60 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.ExpressionLanguage.ExpressionParser
 
-- memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
+- memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context); kept 0
 
 ## DotGram.ExpressionLanguage.ExpressionParser.Tape
 
-- memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context)
+- memo ParseLambda, ParseHole, ParseBody [whole]: remembered 0; not 11: Type (context), Body (context), Block (context), Statement (context), IfValue (context), Assignment (context), Conditional (context), Coalesce (context), Binary (context), Unary (context), Bindings (context); kept 0
+
+## DotGram.Sql.PostgreSql.PostgreSqlParser
+
+- memo ParseSql, ParseStatement, ParseExpression [whole]: remembered 12: Stmt, SelectNoParens, SelectTerm, SimpleSelect, AExpr, NotExpr, Arithmetic, ArrayExpr, IsMore, TableRef, GroupItem, DefaultArithmetic; not 0; kept 12: Stmt, SelectNoParens, SelectTerm, SimpleSelect, AExpr, NotExpr, Arithmetic, ArrayExpr, IsMore, TableRef, GroupItem, DefaultArithmetic
+
+## DotGram.Sql.PostgreSql.PostgreSqlParser.Located
+
+- memo ParseSql, ParseStatement, ParseExpression [whole]: remembered 12: Stmt, SelectNoParens, SelectTerm, SimpleSelect, AExpr, NotExpr, Arithmetic, ArrayExpr, IsMore, TableRef, GroupItem, DefaultArithmetic; not 0; kept 12: Stmt, SelectNoParens, SelectTerm, SimpleSelect, AExpr, NotExpr, Arithmetic, ArrayExpr, IsMore, TableRef, GroupItem, DefaultArithmetic
 
 ## DotGram.Sql.Productions.SqlStandardLocated
 
-- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
+- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0; kept 0
+- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0; kept 0
 
 ## DotGram.Sql.Productions.SqlStandardProductions
 
-- memo ParseExpression, ParseValueExpression, ParseDataType, ParseUnsignedLiteral, ParseIdentifierChain, ParseColumnReference, ParseQueryExpression, ParseQuerySpecification, ParseTableReference, ParseInsertStatement, ParseUpdateStatementSearched, ParseDeleteStatementSearched, ParseMergeStatement, ParseSearchCondition, ParseCommonValueExpression, ParseNumericValueExpression, ParseStringValueExpression, ParseCharacterValueExpression, ParseBinaryValueExpression, ParseDatetimeValueExpression, ParseIntervalValueExpression, ParseBooleanValueExpression, ParsePredicate, ParseRowValuePredicand, ParseValueExpressionPrimary [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseSql, ParseStatement, ParseUpdateStatementPositioned, ParseDeleteStatementPositioned, ParseTruncateTableStatement, ParseSQLSchemaStatement, ParseSQLTransactionStatement, ParseSQLConnectionStatement, ParseSQLSessionStatement, ParseSQLDiagnosticsStatement, ParseSQLControlStatement, ParseSQLDataStatement, ParseSQLDynamicStatement, ParseDirectSQLStatement, ParseDirectSQLDataStatement, ParseSQLProcedureStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
+- memo ParseExpression, ParseValueExpression, ParseDataType, ParseUnsignedLiteral, ParseIdentifierChain, ParseColumnReference, ParseQueryExpression, ParseQuerySpecification, ParseTableReference, ParseInsertStatement, ParseUpdateStatementSearched, ParseDeleteStatementSearched, ParseMergeStatement, ParseSearchCondition, ParseCommonValueExpression, ParseNumericValueExpression, ParseStringValueExpression, ParseCharacterValueExpression, ParseBinaryValueExpression, ParseDatetimeValueExpression, ParseIntervalValueExpression, ParseBooleanValueExpression, ParsePredicate, ParseRowValuePredicand, ParseValueExpressionPrimary [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0; kept 0
+- memo ParseSql, ParseStatement, ParseUpdateStatementPositioned, ParseDeleteStatementPositioned, ParseTruncateTableStatement, ParseSQLSchemaStatement, ParseSQLTransactionStatement, ParseSQLConnectionStatement, ParseSQLSessionStatement, ParseSQLDiagnosticsStatement, ParseSQLControlStatement, ParseSQLDataStatement, ParseSQLDynamicStatement, ParseDirectSQLStatement, ParseDirectSQLDataStatement, ParseSQLProcedureStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0; kept 0
 
 ## DotGram.Sql.Standard.Sql92Parser
 
-- memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0
+- memo ParseSelect, ParseQuery, ParseSearchCondition, ParseValueExpression [whole]: remembered 4: QueryExpression, ValueExpression, SearchCondition, TableReference; not 0; kept 2: QueryExpression, ValueExpression
 
 ## DotGram.Sql.Standard.SqlStandardParser
 
-- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0
-- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0
+- memo ParseExpression, ParseDataType, ParseSearchCondition [whole]: remembered 19: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement; not 0; kept 13: ValueExpression, Disjunction, Subquery, QueryExpression, QueryExpressionBody, TableReference, TableFactor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, JSONPathWff, JSONTableColumnsClause, PartitionedJoin
+- memo ParseSql, ParseStatement [whole]: remembered 20: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, DataType, JSONSubscript, JSONPathWff, JSONPathPredicate, RowPattern, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, JSONTablePlan, PartitionedJoin, GroupingElement, SQLExecutableStatement; not 0; kept 13: QueryExpression, ValueNode, Disjunction, PeriodConstructor, DatetimeValueExpression, CommonValueExpression, CommonValueExpressionOrRow, JSONPathWff, QueryExpressionBody, TableReference, TableFactor, JSONTableColumnsClause, PartitionedJoin
 
 ## DotGram.Sql.TransactSql.TransactSqlParser
 
-- memo ParseSyntaxSelect, ParseSyntaxCondition, ParseSyntaxExpression [whole]: remembered 10: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone; not 0
-- memo ParseSyntaxStatement, ParseSyntaxStatement100, ParseSyntaxStatement110, ParseSyntaxStatement120, ParseSyntaxStatement130, ParseSyntaxStatement140, ParseSyntaxStatement150, ParseSyntaxStatement160, ParseSyntaxStatement170, ParseSyntaxSql, ParseSyntaxSql100, ParseSyntaxSql110, ParseSyntaxSql120, ParseSyntaxSql130, ParseSyntaxSql140, ParseSyntaxSql150, ParseSyntaxSql160, ParseSyntaxSql170 [whole]: remembered 20: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone, TSqlInsert, OutputClause, OptionSetting, TryCatchStatement, StatementList, ConditionalStatement, Branch, EventValue, EventPredicate, BackupName; not 0
+- memo ParseSyntaxSelect, ParseSyntaxCondition, ParseSyntaxExpression [whole]: remembered 10: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone; not 0; kept 10: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone
+- memo ParseSyntaxStatement, ParseSyntaxStatement100, ParseSyntaxStatement110, ParseSyntaxStatement120, ParseSyntaxStatement130, ParseSyntaxStatement140, ParseSyntaxStatement150, ParseSyntaxStatement160, ParseSyntaxStatement170, ParseSyntaxSql, ParseSyntaxSql100, ParseSyntaxSql110, ParseSyntaxSql120, ParseSyntaxSql130, ParseSyntaxSql140, ParseSyntaxSql150, ParseSyntaxSql160, ParseSyntaxSql170 [whole]: remembered 20: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone, TSqlInsert, OutputClause, OptionSetting, TryCatchStatement, StatementList, ConditionalStatement, Branch, EventValue, EventPredicate, BackupName; not 0; kept 10: TSqlValueExpression, SearchCondition, TSqlBooleanFactor, TSqlSubquery, TSqlQueryExpression, TSqlTableReference, RowsetArgument, JoinedRight, DatePart, TimeZone
 
 ## DotGram.Tests.Calculators.DecimalCalculator
 
 - machine Evaluate [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 18/18
-- memo Evaluate [whole]: remembered 0; not 2: Sum (characters), Unary (characters)
+- memo Evaluate [whole]: remembered 0; not 2: Sum (characters), Unary (characters); kept 0
 
 ## DotGram.Tests.Calculators.OneRuleParser
 
 - machine Read [whole]: carrier: immediate; gate: read again; building: 1; replayed: 0; read again: 1; refused: 0; points: 15/15
-- memo Read [whole]: remembered 0; not 1: Expr (characters)
+- memo Read [whole]: remembered 0; not 1: Expr (characters); kept 0
 - again Expr: opens a way
 - open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr => (new Add(left, right)) | trivi…
 
 ## DotGram.Tests.Calculators.StrengthCalculator
 
 - machine Evaluate [whole]: carrier: immediate; gate: read again; building: 1; replayed: 0; read again: 1; refused: 0; points: 15/15
-- memo Evaluate [whole]: remembered 0; not 1: Expr (characters)
+- memo Evaluate [whole]: remembered 0; not 1: Expr (characters); kept 0
 - again Expr: opens a way
 - open Expr: turns, captured; the seam leads every alternative of the turn; open; (trivia & '+' & trivia & right: Expr => (left + right) | trivia & '-' …
 
@@ -589,8 +643,8 @@ or which nothing calls, so that no caller asks it again.
 
 - machine EvaluateInt [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 17/17
 - machine EvaluateDouble [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 17/17
-- memo EvaluateInt [whole]: remembered 0; not 2: Sum (characters), Unary (characters)
-- memo EvaluateDouble [whole]: remembered 0; not 2: Sum (characters), Unary (characters)
+- memo EvaluateInt [whole]: remembered 0; not 2: Sum (characters), Unary (characters); kept 0
+- memo EvaluateDouble [whole]: remembered 0; not 2: Sum (characters), Unary (characters); kept 0
 
 ## DotGram.Tests.Extents
 
@@ -607,11 +661,11 @@ or which nothing calls, so that no caller asks it again.
 - machine ParseStrictMailbox [whole]: carrier: immediate; gate: read again; building: 6; replayed: 0; read again: 14; refused: 0; points: 15/15
 - machine ParseStrictMailboxList [whole]: carrier: immediate; gate: read again; building: 8; replayed: 0; read again: 15; refused: 0; points: 21/21
 - machine ParseStrictAddressList [whole]: carrier: immediate; gate: read again; building: 13; replayed: 0; read again: 19; refused: 0; points: 37/37
-- memo ParseAddressList, ParseMailboxList, ParseMailbox, ParseAddrSpec [whole]: remembered 0; not 1: Comment (characters)
-- memo ParseStrictAddrSpec [whole]: remembered 0; not 1: Comment (characters)
-- memo ParseStrictMailbox [whole]: remembered 0; not 1: Comment (characters)
-- memo ParseStrictMailboxList [whole]: remembered 0; not 1: Comment (characters)
-- memo ParseStrictAddressList [whole]: remembered 0; not 1: Comment (characters)
+- memo ParseAddressList, ParseMailboxList, ParseMailbox, ParseAddrSpec [whole]: remembered 0; not 1: Comment (characters); kept 0
+- memo ParseStrictAddrSpec [whole]: remembered 0; not 1: Comment (characters); kept 0
+- memo ParseStrictMailbox [whole]: remembered 0; not 1: Comment (characters); kept 0
+- memo ParseStrictMailboxList [whole]: remembered 0; not 1: Comment (characters); kept 0
+- memo ParseStrictAddressList [whole]: remembered 0; not 1: Comment (characters); kept 0
 - again AddrSpecRule: through Domain
 - again AddrSpecRule: through CurrentLocalPart
 - again AddrSpecRule: through CurrentLocalPart
@@ -744,9 +798,7 @@ or which nothing calls, so that no caller asks it again.
 
 ## DotGram.Web.Rfc5646
 
-- machine ParseTag [whole]: carrier: immediate; gate: read again; building: 9; replayed: 0; read again: 6; refused: 0; points: 22/22
-- again Extension: opens a way
-- open Extension: turns, captured; what follows begins alike; open; subtags: ExtensionSubtag+
+- machine ParseTag [whole]: carrier: immediate; gate: read again; building: 9; replayed: 0; read again: 4; refused: 0; points: 22/22
 - again LangTag: opens a way
 - open LangTag: choice; alternatives begin alike; open; (language: ShortLanguage & extended: ExtLang{0,3} & tail: Tail => (tai…
 - open LangTag: counted, captured; what follows begins alike; open; extended: ExtLang{0,3}
@@ -756,9 +808,6 @@ or which nothing calls, so that no caller asks it again.
 - again Tail: opens a way
 - open Tail: optional, captured; what follows begins alike; open; ('-' & script: Script)?
 - open Tail: optional, captured; what follows begins alike; open; ('-' & region: Region)?
-- open Tail: turns, captured; what follows begins alike; open; variants: Variant*
-- open Tail: turns, captured; what follows begins alike; open; extensions: Extension*
-- again Variant: through VariantText
 - again VariantText: opens a way
 - open VariantText: choice; alternatives begin alike; open; (Alphanum{5,8} | Digit & Alphanum{3})
 
@@ -774,7 +823,7 @@ or which nothing calls, so that no caller asks it again.
 ## DotGram.Web.Rfc8259
 
 - machine ParseJson [whole]: carrier: immediate; gate: none; building: 0; replayed: 0; read again: 0; refused: 0; points: 29/29
-- memo ParseJson [whole]: remembered 0; not 1: Value (characters)
+- memo ParseJson [whole]: remembered 0; not 1: Value (characters); kept 0
 
 ## DotGram.Web.Rfc9110
 
