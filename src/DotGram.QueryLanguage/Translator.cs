@@ -85,7 +85,7 @@ static class Translator
 		for (var i = 0; i < columns.Length; i++)
 			columns[i] = call.Value(query.Output[i], row, query.Final);
 
-		var projection = Expression.Lambda(JsonProjection.Row(query.Output, columns, query.Names, format, formats), row);
+		var projection = Expression.Lambda(JsonProjection.Row(row, query.Output, columns, query.Names, format, formats), row);
 		var final      = Expression.Call(SelectMethod.MakeGenericMethod(row.Type, typeof(string)), chain, Expression.Quote(projection));
 
 		return source.Provider.CreateQuery<string>(final);

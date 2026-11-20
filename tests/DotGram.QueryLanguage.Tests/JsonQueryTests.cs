@@ -233,6 +233,32 @@ public sealed class JsonQueryTests(Databases databases)
 		Assert.All(rows, r => Assert.Equal("[1,\"x\"]", r));
 	}
 
+	/// <summary>Rows whose every column is a literal or a value of the call: the same text for every row, as QueryData gives them.</summary>
+	[Theory]
+	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
+	public void ARowThatReadsNoColumnRuns(string provider)
+	{
+		(string Text, string Row)[] cases =
+		[
+			("from orders where customer != @p select @p as p",                 "[\"x\"]"),
+			("from orders where customer != @p select 'a' as a, 'b' as b",      "[\"a\",\"b\"]"),
+			("from orders where qty != @n select @n * 2 as y",                  "[4]"),
+			("from orders where qty != @n let x = @n + 1 select x",             "[3]"),
+			("from orders where customer != @p select @p as p, 1 as one",       "[\"x\",1]"),
+			("from orders where customer != @p select timestamp '2026-01-01 00:00:00' as t", "[\"2026-01-01T00:00:00.0000000\"]"),
+		];
+
+		foreach (var (text, row) in cases)
+		{
+			var values = new Dictionary<string, object?> { ["p"] = "x", ["n"] = 2 };
+			var rows   = Model.QueryJsonRow(Shop.Of(databases.Get(provider), 1), text, values).ToList();
+
+			Assert.Equal(Model.QueryData(Shop.Of(databases.Get(provider), 1), text, values).ToList().Count, rows.Count);
+			Assert.NotEmpty(rows);
+			Assert.All(rows, r => Assert.Equal(row, r));
+		}
+	}
+
 	[Theory]
 	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
 	public void ARowOfStringsAlone(string provider)

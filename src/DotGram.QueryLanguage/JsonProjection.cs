@@ -19,7 +19,7 @@ static class JsonProjection
 	/// The row of <paramref name="columns"/>, the values of <paramref name="output"/> as the tree reads them.
 	/// <paramref name="formats"/> are the model's, by type.
 	/// </summary>
-	public static Expression Row(BoundExpr[] output, Expression[] columns, string[] names, QlJsonFormat format, IReadOnlyDictionary<Type, Delegate> formats)
+	public static Expression Row(ParameterExpression row, BoundExpr[] output, Expression[] columns, string[] names, QlJsonFormat format, IReadOnlyDictionary<Type, Delegate> formats)
 	{
 		// The formats the row uses, one a formatted column, in column order: one constant beside the anchor, so the
 		// provider reads one value a row however many columns are formatted.
@@ -29,7 +29,7 @@ static class JsonProjection
 			if (formats.TryGetValue(Core(column.Type), out var known))
 				used.Add(known);
 
-		var anchor = Anchor(output, columns);
+		var anchor = Anchor(row, output, columns);
 
 		Expression chain = Expression.Call(
 			StartMethod.MakeGenericMethod(anchor.Type),
@@ -50,10 +50,11 @@ static class JsonProjection
 
 	/// <summary>
 	/// What the row's first call depends on: the first column that reads the row and is of a value type, which a provider
-	/// reads a second time without allocating; a string or another reference only where no column is a value; and a
-	/// constant where no column reads the row, whose text is then the same for every row anyway.
+	/// reads a second time without allocating; a string or another reference only where no column is a value; and the
+	/// row itself where no column reads it. Such a row is always the values of a <c>select</c> of literals and values of
+	/// the call; with a constant there, linq2db reads the whole chain as one value and fails to convert it.
 	/// </summary>
-	static Expression Anchor(BoundExpr[] output, Expression[] columns)
+	static Expression Anchor(ParameterExpression row, BoundExpr[] output, Expression[] columns)
 	{
 		Expression? best = null;
 		var         rank = int.MaxValue;
@@ -73,7 +74,7 @@ static class JsonProjection
 			}
 		}
 
-		return best ?? Expression.Constant(0);
+		return best ?? row;
 	}
 
 	/// <summary>Whether a value reads the row, through the columns it names too: a column computed from a literal does not.</summary>
