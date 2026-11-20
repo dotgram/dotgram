@@ -113,8 +113,9 @@ The nine types of the language — `bool`, `int`, `long`, `decimal`, `double`, `
 `DateTimeOffset`, `Guid`, nullable or not — are printed in JSON as JSON: numbers culture-free,
 `decimal` with the scale the provider read, dates in ISO 8601 (`"O"`), `NaN` and the infinities as
 strings. A member of any other value type (and `byte[]`) is an ordinary field: compared with a parameter of its own
-type, sorted, returned as itself by `QueryData`, and printed in JSON by its `ToString` — which for
-`byte[]` is `"System.Byte[]"`. Give such a type a format, and override a built-in one the same way:
+type, sorted, returned as itself by `QueryData`, and printed in JSON by its invariant `ToString` — which
+for `byte[]` is `"System.Byte[]"` and for `DateOnly` `"01/02/2026"`, not ISO 8601. Give such a type a format,
+and override a built-in one the same way:
 
 ```csharp
 var builder = new QlModelBuilder<AppDb>()
