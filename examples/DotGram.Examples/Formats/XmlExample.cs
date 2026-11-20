@@ -37,8 +37,14 @@ namespace DotGram.Examples.Formats;
 		trivia = none
 
 		NameText = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']*
-		Space    = [' ' | '\t' | '\r' | '\n']*
-		Quoted   = [^ '"' | '\'']*
+
+		// Atomic, both: each stops at a character it cannot take, and what follows it — a name,
+		// `>` or `/>` after a space, the quote after a value — cannot begin any sooner. Given
+		// back, a run would match nothing new and only have what came before it read again.
+		// `NameText` stays as it is: an attribute may begin with no space before it, and in
+		// `<ab="1">` it is giving characters of the name back that finds the attribute.
+		Space    = { [' ' | '\t' | '\r' | '\n']* }
+		Quoted   = { [^ '"' | '\'']* }
 
 		// Atomic: a run of text stops at the `<` that ends it, so the longest reading is the
 		// only right one. Without the braces, `Content*` around it reads an element that never
@@ -57,12 +63,18 @@ namespace DotGram.Examples.Formats;
 
 	// The `when` is what makes a closing tag close *this* element. It sits after both
 	// names are captured, because a guard sees what was taken before it and nothing else.
-	Element : @XmlElement = '<' & name: Name & attributes: Attribute* & Lexical.Space & '>'
+	//
+	// The attributes are atomic: what follows them is a space and then `>` or `/>`, which no
+	// attribute begins with, so one given back could only be tried against them and refused.
+	// The children are not, though nothing after them can use one given back either: braces
+	// here would nest with the elements, and sealing a group walks every way kept inside it,
+	// so a document nested thousands deep would take the square of its depth to read.
+	Element : @XmlElement = '<' & name: Name & { attributes: Attribute* } & Lexical.Space & '>'
 	                      & children: Content*
 	                      & "</" & close: Name & Lexical.Space & '>' & when @(name == close) on fail "Expected the closing tag of the open element."
 	                        => @(new XmlElement(name, attributes, children))
 
-	                      | '<' & name: Name & attributes: Attribute* & Lexical.Space & "/>"
+	                      | '<' & name: Name & { attributes: Attribute* } & Lexical.Space & "/>"
 	                        => @(new XmlElement(name, attributes, []))
 
 	Content : @XmlNode = element: Element => @(element)
