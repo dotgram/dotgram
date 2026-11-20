@@ -59,9 +59,8 @@ public enum QlType
 	Guid = 9,
 
 	/// <summary>
-	/// A CLR type outside the nine above, which <see cref="QlColumnInfo.ClrType"/> or
-	/// <see cref="QlParameterInfo.ClrType"/> names. Such a field is compared, sorted and returned as its own
-	/// type; what the provider makes of it is the provider's.
+	/// A type outside the language: a value of it is taken and returned as it is. Such a field is compared with a
+	/// value of its own type, sorted, and returned as itself; what the provider makes of it is the provider's.
 	/// </summary>
 	Other = 10,
 }
@@ -79,11 +78,10 @@ public enum QlJsonFormat
 /// <summary>One column of what a query returns.</summary>
 public sealed class QlColumnInfo
 {
-	internal QlColumnInfo(string name, QlType type, Type clrType, bool isNullable)
+	internal QlColumnInfo(string name, QlType type, bool isNullable)
 	{
 		Name       = name;
 		Type       = type;
-		ClrType    = clrType;
 		IsNullable = isNullable;
 	}
 
@@ -93,9 +91,6 @@ public sealed class QlColumnInfo
 	/// <summary>The column's type.</summary>
 	public QlType Type { get; }
 
-	/// <summary>The CLR type of its values, without <see cref="Nullable{T}"/>.</summary>
-	public Type ClrType { get; }
-
 	/// <summary>Whether a value may be null.</summary>
 	public bool IsNullable { get; }
 }
@@ -103,11 +98,10 @@ public sealed class QlColumnInfo
 /// <summary>One parameter a query text names, with the type the place it stands in gives it.</summary>
 public sealed class QlParameterInfo
 {
-	internal QlParameterInfo(string name, QlType type, Type clrType, bool isList, bool isNullable)
+	internal QlParameterInfo(string name, QlType type, bool isList, bool isNullable)
 	{
 		Name       = name;
 		Type       = type;
-		ClrType    = clrType;
 		IsList     = isList;
 		IsNullable = isNullable;
 	}
@@ -117,9 +111,6 @@ public sealed class QlParameterInfo
 
 	/// <summary>The type of a value, or of each value of a list.</summary>
 	public QlType Type { get; }
-
-	/// <summary>The CLR type of a value, without <see cref="Nullable{T}"/>.</summary>
-	public Type ClrType { get; }
 
 	/// <summary>Whether the parameter takes a list: <c>x in @values</c>.</summary>
 	public bool IsList { get; }

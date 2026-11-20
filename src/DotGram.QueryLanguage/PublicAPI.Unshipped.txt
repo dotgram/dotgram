@@ -1,6 +1,5 @@
 #nullable enable
 DotGram.QueryLanguage.QlColumnInfo
-DotGram.QueryLanguage.QlColumnInfo.ClrType.get -> System.Type!
 DotGram.QueryLanguage.QlColumnInfo.IsNullable.get -> bool
 DotGram.QueryLanguage.QlColumnInfo.Name.get -> string!
 DotGram.QueryLanguage.QlColumnInfo.Type.get -> DotGram.QueryLanguage.QlType
@@ -65,7 +64,6 @@ DotGram.QueryLanguage.QlOptions.MaxTreeDepth.get -> int
 DotGram.QueryLanguage.QlOptions.MaxTreeDepth.init -> void
 DotGram.QueryLanguage.QlOptions.QlOptions() -> void
 DotGram.QueryLanguage.QlParameterInfo
-DotGram.QueryLanguage.QlParameterInfo.ClrType.get -> System.Type!
 DotGram.QueryLanguage.QlParameterInfo.IsList.get -> bool
 DotGram.QueryLanguage.QlParameterInfo.IsNullable.get -> bool
 DotGram.QueryLanguage.QlParameterInfo.Name.get -> string!

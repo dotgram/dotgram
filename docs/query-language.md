@@ -124,12 +124,12 @@ refused with `QlErrorCode.Parameter`:
 
 A list after `in @list` is any enumerable but a string or a `byte[]`, each item converted the same
 way. `null` is taken where the parameter may be null. `Describe(text).Parameters` gives each
-parameter's type, CLR type, whether it is a list and whether it takes null.
+parameter's type, whether it is a list and whether it takes null.
 
 ## Types outside the language
 
 A member of a type that is not one of the nine — an enum, `DateOnly`, `byte[]`, a NodaTime type —
-is a field like any other, reported as `QlType.Other` with its `ClrType`. It is compared with a
+is a field like any other, reported as `QlType.Other`. It is compared with a
 field or a parameter of the same type (the operators its type has), tested with `in` and
 `is null`, sorted, and taken by `Count`, `Min` and `Max`. `QueryData` returns it as itself.
 Whether the provider can translate what the text does with it is the provider's to say.

@@ -396,16 +396,16 @@ public sealed class BinderTests
 		var info = Describe("from orders where total > @min && qty in @qs && status == @s && day == @d && customer.StartsWith('x') == false || id == 1 skip @skip take @take select id");
 		var parameters = info.Parameters.ToDictionary(p => p.Name);
 
-		Assert.Equal((QlType.Decimal, typeof(decimal),  false, true),  Shape(parameters["min"]));
-		Assert.Equal((QlType.Int,     typeof(int),      true,  false), Shape(parameters["qs"]));
-		Assert.Equal((QlType.String,  typeof(string),   false, true),  Shape(parameters["s"]));
-		Assert.Equal((QlType.Other,   typeof(DateOnly), false, true),  Shape(parameters["d"]));
-		Assert.Equal((QlType.Int,     typeof(int),      false, false), Shape(parameters["skip"]));
+		Assert.Equal((QlType.Decimal, false, true),  Shape(parameters["min"]));
+		Assert.Equal((QlType.Int,     true,  false), Shape(parameters["qs"]));
+		Assert.Equal((QlType.String,  false, true),  Shape(parameters["s"]));
+		Assert.Equal((QlType.Other,   false, true),  Shape(parameters["d"]));
+		Assert.Equal((QlType.Int,     false, false), Shape(parameters["skip"]));
 		Assert.Equal(["min", "qs", "s", "d", "skip", "take"], info.Parameters.Select(p => p.Name));
 
-		static (QlType, Type, bool, bool) Shape(QlParameterInfo parameter)
+		static (QlType, bool, bool) Shape(QlParameterInfo parameter)
 		{
-			return (parameter.Type, parameter.ClrType, parameter.IsList, parameter.IsNullable);
+			return (parameter.Type, parameter.IsList, parameter.IsNullable);
 		}
 	}
 
@@ -544,7 +544,6 @@ public sealed class BinderTests
 	{
 		var info = Describe("from orders where day == @d && day < @d && kind == @k && kind in @ks && day is not null order by kind, day select day, kind, blob");
 
-		Assert.Equal([typeof(DateOnly), typeof(Kind), typeof(byte[])], info.Columns.Select(c => c.ClrType));
 		Assert.All(info.Columns, c => Assert.Equal(QlType.Other, c.Type));
 
 		var error = Refused("from orders where kind < @k select id");

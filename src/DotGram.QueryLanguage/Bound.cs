@@ -35,8 +35,8 @@ sealed class BoundQuery(
 
 	/// <summary>What the text returns and needs, as the host is told it.</summary>
 	public QlQueryInfo Info { get; } = new(
-		[.. output.Select((value, i) => new QlColumnInfo(names[i], value.Type.Type, value.Type.Core, value.Type.Nullable))],
-		[.. parameters.Select(p => new QlParameterInfo(p.Name, p.Type!.Value.Type, p.Type.Value.Core, p.IsList, p.Nullable && !p.IsCount))],
+		[.. output.Select((value, i) => new QlColumnInfo(names[i], value.Type.Type, value.Type.Nullable))],
+		[.. parameters.Select(p => new QlParameterInfo(p.Name, p.Type!.Value.Type, p.IsList, p.Nullable && !p.IsCount))],
 		warnings);
 }
 
