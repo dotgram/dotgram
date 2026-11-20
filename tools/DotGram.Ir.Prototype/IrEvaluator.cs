@@ -9,6 +9,9 @@ namespace DotGram.Ir.Prototype;
 /// <summary>Thrown where a program does what the tree's own rules say it never does.</summary>
 sealed class IrContractViolation(string message) : Exception(message);
 
+/// <summary>Thrown where a reading ran more statements than it was given: what stops a reading that would not end.</summary>
+sealed class IrStepsExceeded(long steps) : Exception("The reading ran more than " + steps.ToString(CultureInfo.InvariantCulture) + " statements.");
+
 /// <summary>The host's side of a program: its fragments, called by number.</summary>
 interface IIrHost
 {
@@ -72,8 +75,13 @@ sealed class IrWays
 	/// <summary>How many times a reading was asked for again.</summary>
 	public int Retries { get; private set; }
 
+	/// <summary>How many decisions were opened or read back.</summary>
+	public long Entered { get; private set; }
+
 	public (int Way, int Decision) Enter(int last)
 	{
+		Entered++;
+
 		if (Cursor < Count)
 		{
 			var replayed = Cursor++;
@@ -211,6 +219,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 	/// <summary>How many statements ran: what a replay costs, counted and not timed.</summary>
 	public long Steps { get; private set; }
+
+	/// <summary>How many statements a reading may run before it is stopped (<see cref="IrStepsExceeded"/>).</summary>
+	public long StepBudget { get; init; } = long.MaxValue;
 
 	/// <summary>Reads the whole input as a publication.</summary>
 	/// <remarks>
@@ -357,7 +368,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 	bool Exec(IrStmt stmt, object?[] frame)
 	{
-		Steps++;
+		if (++Steps > StepBudget)
+			throw new IrStepsExceeded(StepBudget);
 
 		switch (stmt)
 		{

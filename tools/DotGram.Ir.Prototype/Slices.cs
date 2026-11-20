@@ -13,7 +13,15 @@ namespace DotGram.Ir.Prototype;
 /// <c>A</c>, the end and what was built; <c>R</c>, the furthest position and the numbers of what
 /// was expected there; or <c>T</c> and why, where the reading threw or ran out of stack.
 /// </param>
-sealed record SliceAnswer(string Head, List<string> Log);
+sealed record SliceAnswer(string Head, List<string> Log)
+{
+	/// <summary>
+	/// What a parser printed to count said it did, where it was asked: steps (functions entered,
+	/// turns begun), decisions opened or read back, readings asked for again, turns gone straight
+	/// to, host calls.
+	/// </summary>
+	public long[]? Counts { get; init; }
+}
 
 /// <summary>
 /// A program printed in another language, built there and run over a batch of inputs.
@@ -178,19 +186,23 @@ static class Slices
 	{
 		var answers = new List<SliceAnswer>();
 
-		string?      head = null;
-		List<string> log  = [];
+		string?      head   = null;
+		List<string> log    = [];
+		long[]?      counts = null;
 
 		foreach (var line in output.Split('\n'))
 		{
 			if (line == ".")
 			{
-				answers.Add(new SliceAnswer(head ?? "", log));
-				head = null;
-				log  = [];
+				answers.Add(new SliceAnswer(head ?? "", log) { Counts = counts });
+				head   = null;
+				log    = [];
+				counts = null;
 			}
 			else if (line.StartsWith("L ", StringComparison.Ordinal))
 				log.Add(line[2..]);
+			else if (line.StartsWith("K ", StringComparison.Ordinal))
+				counts = [.. line[2..].Split(' ').Select(static one => long.Parse(one, CultureInfo.InvariantCulture))];
 			else if (line.Length > 0)
 				head = line;
 		}
@@ -206,15 +218,18 @@ static class Slices
 	public static List<SliceAnswer> TypeScript(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
 		string host = "recording.ts", IEnumerable<string>? guardAnswers = null, string? throwOn = null,
-		int? stackKilobytes = null, int? systemStackKilobytes = null, SliceFrames frames = SliceFrames.Recursive)
+		int? stackKilobytes = null, int? systemStackKilobytes = null, SliceFrames frames = SliceFrames.Recursive, bool counted = false)
 	{
 		var (node, environment) = Node;
 
 		var directory = Workspace(name, "ts");
 
+		if (counted)
+			environment = new Dictionary<string, string>(environment) { ["IR_COUNTS"] = "1" };
+
 		try
 		{
-			File.WriteAllText(Path.Combine(directory, "parser.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames));
+			File.WriteAllText(Path.Combine(directory, "parser.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, counted));
 			File.WriteAllLines(Path.Combine(directory, "answers.txt"), guardAnswers ?? []);
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
 
@@ -275,14 +290,14 @@ static class Slices
 	/// <param name="stackMegabytes">The stack of a thread made for the reading, where not the process's own.</param>
 	public static List<SliceAnswer> InC(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
-		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null)
+		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null, bool counted = false)
 	{
 		var gcc       = Gcc;
 		var directory = Workspace(name, "c");
 
 		try
 		{
-			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C));
+			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C, counted: counted));
 			File.WriteAllText(Path.Combine(directory, "parser.h"), SlicePrinter.PrintHeaderInC(program));
 			File.WriteAllLines(Path.Combine(directory, "answers.txt"), guardAnswers ?? []);
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
@@ -305,6 +320,9 @@ static class Slices
 
 			if (stackMegabytes is { } stack)
 				environment["IR_STACK_MB"] = stack.ToString(CultureInfo.InvariantCulture);
+
+			if (counted)
+				environment["IR_COUNTS"] = "1";
 
 			var (exit, output, error) = Run(Path.Combine(directory, "slice"), [entry, "batch.bin", "answers.txt"], directory, environment);
 
