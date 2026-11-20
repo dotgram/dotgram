@@ -61,8 +61,8 @@ public sealed class QlModel<TContext>
 	/// <remarks>
 	/// A row is <c>[1,"Ann",12.50]</c> in the order of the columns, or <c>{"id":1,"name":"Ann","total":12.50}</c>. The
 	/// text is written by calls the provider makes as it reads each row, from the values as it reads them, without
-	/// boxing them. <c>Take</c>, <c>Skip</c>, <c>Count</c> and <c>Any</c> may follow; a filter or an order over the text
-	/// cannot be translated and belongs in the query.
+	/// boxing them. <c>Count</c> and <c>Any</c> may follow. Paging belongs in the query (<c>skip</c>, <c>take</c>), and so
+	/// do a filter and an order: over the text they cannot be translated.
 	/// </remarks>
 	/// <param name="context">What the entities' sources are called with.</param>
 	/// <param name="text">The query.</param>
