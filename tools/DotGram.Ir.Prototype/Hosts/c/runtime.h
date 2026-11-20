@@ -216,6 +216,13 @@ static inline int32_t rt_enterCounted(Parser *P, int32_t last)
 	return rt_enter(P, last);
 }
 
+/* What a parser printed to measure the least cost of its kept statements calls where the tape is
+   read back: out of line, and nothing in it but a count, so that the entry is one compare. */
+static __attribute__((noinline)) void rt_slow(Parser *P)
+{
+	P->kJumps++;
+}
+
 /* A sentinel opened where the tape is read for the first time: a decision that can never move. */
 static inline int32_t rt_sentinel(Parser *P)
 {
