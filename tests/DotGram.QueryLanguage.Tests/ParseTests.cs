@@ -255,6 +255,12 @@ public sealed class ParseTests
 	[InlineData("from t where a >",    "Expected a value: a name, a number, a string, a parameter or a bracket.")]
 	[InlineData("from t where a = 1",  "Expected an operator, or the next clause: `where`, `let`, `order by`, `select`, `skip` or `take`.")]
 	[InlineData("from t skip -1",      "Expected a count: a number or a parameter.")]
+	[InlineData("from t where (a == 1",            "Expected an operator or `)`.")]
+	[InlineData("from t where (a && b",            "Expected an operator or `)`.")]
+	[InlineData("from t where a.StartsWith('a'",   "Expected an operator, `,` or `)`.")]
+	[InlineData("from t where a in (1 2)",         "Expected an operator, `,` or `)`.")]
+	[InlineData("from t where a &&",               "Expected a value: a name, a number, a string, a parameter or a bracket.")]
+	[InlineData("from t where a.Trim(",            "Expected a value: a name, a number, a string, a parameter or a bracket.")]
 	[InlineData("from t where a == 'x\ny'", "The string is not closed on its line.")]
 	public void ASyntaxErrorSaysWhatWasExpectedInTheLanguagesWords(string text, string message)
 	{

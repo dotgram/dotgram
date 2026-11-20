@@ -1,4 +1,4 @@
-@using System;
+﻿@using System;
 @using DotGram.QueryLanguage.Syntax;
 
 using Lexical;
@@ -90,7 +90,7 @@ Is      : @int = "is"i      => @(parserSpan.Start)
 Between : @int = "between"i => @(parserSpan.Start)
 
 InTarget : @InTarget
-	= '(' & items: ValueList & ')' => @(new InTarget(items, null))
+	= '(' & items: ValueList & CloseList => @(new InTarget(items, null))
 	| p: ParameterRef              => @(new InTarget(null, p))
 
 ValueList : Additive[] = Additive & (',' & Additive)*
@@ -119,13 +119,13 @@ Postfix : @ExprSyntax
 	= target: Postfix & '.' & name: Name & arguments: Arguments? => @(new MemberExpr(target, name, arguments))
 	| p: Primary                                                 => @(p)
 
-Arguments : @ExprSyntax[] = '(' & ')' => @(Array.Empty<ExprSyntax>()) | '(' & items: ArgumentList & ')' => @(items)
+Arguments : @ExprSyntax[] = '(' & items: ArgumentList? & CloseList => @(items ?? Array.Empty<ExprSyntax>())
 ArgumentList : Expr[]     = Expr & (',' & Expr)*
 
 Primary : @ExprSyntax
 	= l: Literal                  => @(l)
 	| p: ParameterRef             => @(p)
-	| '(' & e: Expr & ')'         => @(new ParenthesizedExpr(e, parserSpan.Start))
+	| '(' & e: Expr & Close       => @(new ParenthesizedExpr(e, parserSpan.Start))
 	| n: Name & tail: NameTail?   => @(Nodes.Named(n, tail))
 
 // After a name, a string makes a typed literal and a bracket a call of one of the language's functions.
@@ -133,6 +133,9 @@ NameTail : @NameTail
 	= s: StringLiteral            => @(new NameTail(s, null, false))
 	| '(' & '*' & ')'             => @(new NameTail(null, null, true))
 	| a: Arguments                => @(new NameTail(null, a, false))
+
+Close     on fail "Expected an operator or `)`." = ')'
+CloseList on fail "Expected an operator, `,` or `)`." = ')'
 
 Literal : @ExprSyntax
 	= t: Number      => @(new LiteralExpr(LiteralKind.Number, t, parserSpan.Start))

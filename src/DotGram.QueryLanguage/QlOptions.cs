@@ -8,8 +8,15 @@ namespace DotGram.QueryLanguage;
 /// translates — work no command timeout covers — and how far into the rows a text may reach.
 /// </summary>
 /// <remarks>
+/// <para>
+/// The bounds on the text — its length, nesting, depth, operands, <c>in</c> lists and columns — are counted on
+/// the text as written, before anything is looked up. <see cref="MaxNodes"/> counts it once more as it expands:
+/// a name counts at every use.
+/// </para>
+/// <para>
 /// The bounds limit cost, not secrecy: what a text may learn is decided by the entity's source and by the
 /// uses of its fields, never by how many rows it can reach.
+/// </para>
 /// </remarks>
 public sealed record QlOptions
 {
@@ -24,8 +31,9 @@ public sealed record QlOptions
 
 	/// <summary>
 	/// Nodes of the query: each clause, operator, name, literal, parameter and member counts one, and so
-	/// does a list after <c>in</c> however long it is. A name of a <c>let</c> or a <c>select</c> column counts at
-	/// every use as the nodes of what it names, so that names cannot hide a large expression. 100 by default.
+	/// does a list after <c>in</c> however long it is. A name counts at every use: the name of a <c>let</c> or a
+	/// <c>select</c> column counts as the nodes of what it names, so that names cannot hide a large expression.
+	/// 100 by default.
 	/// </summary>
 	public int MaxNodes { get; init; } = 100;
 
