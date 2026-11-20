@@ -212,6 +212,20 @@ public sealed class BinderTests
 		Assert.Equal((absent.Code, absent.Position, absent.Message.Replace("nosuch", name)), (error.Code, error.Position, error.Message));
 	}
 
+	/// <summary>A field a `*` before any `select` takes, used later without its right, is a name the `*` never gave.</summary>
+	[Theory]
+	[InlineData("from orders select * where note == 'x' select id")]
+	[InlineData("from orders select * where note + 1 > 2 select id")]
+	[InlineData("from orders select * order by note select id")]
+	public void AStarTakesNoFieldTheRestUsesWithoutItsRight(string text)
+	{
+		var error  = Refused(text);
+		var absent = Refused(text.Replace("note", "nosuch"), Without);
+
+		Assert.Equal((absent.Code, absent.Position, absent.Message.Replace("nosuch", "note")), (error.Code, error.Position, error.Message));
+		Assert.Single(Describe("from orders select * where status == 'x' select note").Columns);
+	}
+
 	[Fact]
 	public void TheErrorSpellsTheNameAsTheTextDoes()
 	{

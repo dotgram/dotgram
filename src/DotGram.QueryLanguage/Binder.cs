@@ -53,7 +53,7 @@ sealed partial class Binder
 	BoundQuery BindQuery(QuerySyntax query)
 	{
 		_qualifier = query.Alias?.Text ?? _entity.Name;
-		_needs     = RightsPlan.Of(query, _qualifier);
+		_needs     = RightsPlan.Of(query, _qualifier, _entity.Fields.Where(f => (f.Use & QlUse.Select) != 0).Select(f => f.Name), out _star);
 
 		if (query.Alias is { } alias && _entity.Find(alias.Text) is { } field)
 			throw Error(QlErrorCode.Syntax, $"`{field.Name}` is a field of `{_entity.Name}`: choose another alias.", alias.Position);
@@ -207,8 +207,10 @@ sealed partial class Binder
 			// of the last one after it.
 			if (_selectAt is null)
 			{
+				// A field the rest of the text uses without its right is left out, so that naming it later fails as a
+				// name the `*` never gave: as a field the model does not have would.
 				foreach (var field in _entity.Fields)
-					if ((field.Use & QlUse.Select) != 0)
+					if ((field.Use & QlUse.Select) != 0 && (!_star.TryGetValue((select, field.Name), out var needs) || (field.Use & needs) == needs))
 						columns.Add(new Column(field.Name, select.Position, new BoundField(field, field.Name, select.Position, null)));
 			}
 			else
@@ -427,6 +429,9 @@ sealed partial class Binder
 
 	/// <summary>The rights each field the text names needs where it stands, known before anything is bound.</summary>
 	Dictionary<NameSyntax, QlUse> _needs = [];
+
+	/// <summary>The rights each field a <c>*</c> before any <c>select</c> takes will need, by that <c>select</c> and the field.</summary>
+	Dictionary<(SelectClause, string), QlUse> _star = [];
 
 	/// <summary>
 	/// Whether <paramref name="field"/> has every right the text needs of it at <paramref name="name"/>. Asked where

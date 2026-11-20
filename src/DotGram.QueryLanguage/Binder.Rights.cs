@@ -31,9 +31,15 @@ static class RightsPlan
 		public Declared? Column { get; } = column;
 	}
 
-	/// <summary>The rights each field occurrence of <paramref name="query"/> needs, by its name in the text.</summary>
-	public static Dictionary<NameSyntax, QlUse> Of(QuerySyntax query, string qualifier)
+	/// <summary>
+	/// The rights each field occurrence of <paramref name="query"/> needs, by its name in the text; and in
+	/// <paramref name="star"/> those each field a <c>*</c> before any <c>select</c> takes needs, by the <c>select</c> and
+	/// the field's name. <paramref name="selectable"/> are the names of the entity's fields with Select, which that
+	/// <c>*</c> takes.
+	/// </summary>
+	public static Dictionary<NameSyntax, QlUse> Of(QuerySyntax query, string qualifier, IEnumerable<string> selectable, out Dictionary<(SelectClause, string), QlUse> star)
 	{
+		var stars    = new List<(SelectClause Select, string Field, Declared Column)>();
 		var fields   = new List<(NameSyntax Name, Place Place)>();
 		var declared = new List<Declared>();
 		var scope    = new Dictionary<string, Declared>(Names.Comparer);
@@ -159,8 +165,20 @@ static class RightsPlan
 					if (select.Items is null)
 					{
 						// `*` after a `select`: the same columns again, each reading the one it copies. Before one, the
-						// fields with Select, which the binder takes by their right.
-						if (selected)
+						// fields with Select, each a column whose needs say whether the binder may take it.
+						if (!selected)
+						{
+							foreach (var field in selectable)
+							{
+								var column = new Declared();
+
+								declared.Add(column);
+								stars.Add((select, field, column));
+								columns[field] = column;
+								last.Add(column);
+							}
+						}
+						else
 						{
 							foreach (var previous in scope)
 							{
@@ -205,6 +223,11 @@ static class RightsPlan
 
 		foreach (var (name, place) in fields)
 			needs[name] = place.Column?.Needs ?? place.Right;
+
+		star = [];
+
+		foreach (var (select, field, column) in stars)
+			star[(select, field)] = column.Needs;
 
 		return needs;
 	}
