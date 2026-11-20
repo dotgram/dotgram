@@ -78,9 +78,11 @@ jobs:
       # loaded, and the parsers without one would install and do nothing. The checks
       # themselves are in a script, because `publish.yml` packs again and must run the
       # same ones over the files it is about to send.
+      # The packages packed here and not published are named, so that publish.yml, which packs only the
+      # published ones, runs the same script without them.
       - name: Check the shape of the packages
         shell: bash
-        run: .github/scripts/check-packages.sh
+        run: .github/scripts/check-packages.sh DotGram.QueryLanguage
 
       # Everything above builds the generator from source and trusts the package to be
       # the same thing. This is the step that does not: a project whose only connection

@@ -7,7 +7,9 @@
 # sends what it packed, so the check has to run over the files that are about to leave. Two
 # copies of fifty lines of shell would answer the same question until the day they did not.
 #
-# Run from the repository root, with the packages already in ./artifacts.
+# Run from the repository root, with the packages already in ./artifacts. The arguments name the
+# packages that are packed and checked but not published — build.yml packs them, publish.yml does not
+# — so that each workflow checks exactly what it packed: `check-packages.sh DotGram.QueryLanguage`.
 
 set -euo pipefail
 
@@ -106,9 +108,17 @@ check_library web         DotGram.Web                "System.Memory" ""
 check_library finance     DotGram.Finance            "System.Memory Portable.System.DateTimeOnly DotGram.ExpressionLanguage" "DotGram.ExpressionLanguage"
 check_library expressions DotGram.ExpressionLanguage "System.Memory" ""
 
-# The query language is packed (not published) with its skill where agents look for one in a package,
-# skills/<name>/SKILL.md, and takes IAsyncEnumerable's polyfill on netstandard2.0 for ToJsonAsync.
-check_library query       DotGram.QueryLanguage      "System.Memory Microsoft.Bcl.AsyncInterfaces" "" skills/dotgram-query-language/SKILL.md
+# The packages packed but not published, as the caller names them. The query language carries its
+# skill where agents look for one in a package, skills/<name>/SKILL.md, and takes IAsyncEnumerable's
+# polyfill on netstandard2.0 for ToJsonAsync.
+for unpublished in "$@"; do
+  case "$unpublished" in
+    DotGram.QueryLanguage)
+      check_library query DotGram.QueryLanguage "System.Memory Microsoft.Bcl.AsyncInterfaces" "" skills/dotgram-query-language/SKILL.md ;;
+    *)
+      echo "check-packages.sh: no check for $unpublished"; exit 2 ;;
+  esac
+done
 
 # DotGram.Finance ships the FIX reference beside the fields and messages it documents, for an
 # agent reading the restored package with no repository to browse; its pack-time link pinning is
