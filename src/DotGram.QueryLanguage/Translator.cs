@@ -70,6 +70,27 @@ static class Translator
 		return source.Provider.CreateQuery<object?[]>(final);
 	}
 
+	/// <summary>
+	/// The rows as JSON text, over <paramref name="source"/>, with the call's coerced <paramref name="values"/>: the same
+	/// chain as <see cref="QueryData"/>, ending in the calls of <see cref="QlJson"/> instead of an array.
+	/// </summary>
+	public static IQueryable<string> QueryJsonRow(BoundQuery query, IQueryable source, object?[] values, QlOptions options, QlJsonFormat format, IReadOnlyDictionary<Type, Delegate> formats)
+	{
+		var call  = new Call(values, query.Parameters);
+		var chain = Chain(query, source.Expression, call, options);
+		var row   = Expression.Parameter(RowType(query.Final, query.Entity), "r");
+
+		var columns = new Expression[query.Output.Length];
+
+		for (var i = 0; i < columns.Length; i++)
+			columns[i] = call.Value(query.Output[i], row, query.Final);
+
+		var projection = Expression.Lambda(JsonProjection.Row(query.Output, columns, query.Names, format, formats), row);
+		var final      = Expression.Call(SelectMethod.MakeGenericMethod(row.Type, typeof(string)), chain, Expression.Quote(projection));
+
+		return source.Provider.CreateQuery<string>(final);
+	}
+
 	/// <summary>The source, each clause as written, and the row bound last.</summary>
 	static Expression Chain(BoundQuery query, Expression source, Call call, QlOptions options)
 	{

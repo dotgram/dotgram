@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,6 +58,12 @@ public sealed class QlModel<TContext>
 	}
 
 	/// <summary>The rows as JSON text, one element a row, written in the provider's reading of the rows.</summary>
+	/// <remarks>
+	/// A row is <c>[1,"Ann",12.50]</c> in the order of the columns, or <c>{"id":1,"name":"Ann","total":12.50}</c>. The
+	/// text is written by calls the provider makes as it reads each row, from the values as it reads them, without
+	/// boxing them. <c>Take</c>, <c>Skip</c>, <c>Count</c> and <c>Any</c> may follow; a filter or an order over the text
+	/// cannot be translated and belongs in the query.
+	/// </remarks>
 	/// <param name="context">What the entities' sources are called with.</param>
 	/// <param name="text">The query.</param>
 	/// <param name="values">The values of the parameters the text names, by name without the <c>@</c>.</param>
@@ -64,19 +71,92 @@ public sealed class QlModel<TContext>
 	/// <exception cref="QlException">The text, or a value, is refused.</exception>
 	public IQueryable<string> QueryJsonRow(TContext context, string text, IReadOnlyDictionary<string, object?>? values = null, QlJsonFormat format = QlJsonFormat.Array)
 	{
-		throw new NotImplementedException();
+		return JsonRows(context, text, values, format, out _);
+	}
+
+	IQueryable<string> JsonRows(TContext context, string text, IReadOnlyDictionary<string, object?>? values, QlJsonFormat format, out BoundQuery bound)
+	{
+		if (format is not (QlJsonFormat.Array or QlJsonFormat.Object))
+			throw new ArgumentOutOfRangeException(nameof(format), format, "A row is an array or an object.");
+
+		bound = Bind(text);
+
+		var arguments = Arguments.Bind(bound, values, Options);
+
+		return Translator.QueryJsonRow(bound, Source(bound.Entity, context), arguments, Options, format, Formats);
 	}
 
 	/// <summary>Runs <see cref="QueryJsonRow"/> and returns the whole result as one JSON document.</summary>
+	/// <remarks>
+	/// The document is <c>{"columns":["id","name"],"rows":[[1,"Ann"],…]}</c> for arrays, <c>[{"id":1,"name":"Ann"},…]</c>
+	/// for objects; with no rows, <c>"rows":[]</c> and <c>[]</c>. The rows are read through the provider's
+	/// <see cref="IAsyncEnumerable{T}"/> where its query is one, and synchronously where not. The whole document is held
+	/// in memory: <see cref="QlOptions.MaxRows"/> bounds the rows, nothing here bounds the size of the values in them.
+	/// A refused text or value fails the returned task, as the provider's errors do.
+	/// </remarks>
 	/// <param name="context">What the entities' sources are called with.</param>
 	/// <param name="text">The query.</param>
 	/// <param name="values">The values of the parameters the text names, by name without the <c>@</c>.</param>
 	/// <param name="format">An array or an object a row.</param>
 	/// <param name="cancellationToken">Stops the reading of rows.</param>
 	/// <exception cref="QlException">The text, or a value, is refused.</exception>
-	public Task<string> ToJsonAsync(TContext context, string text, IReadOnlyDictionary<string, object?>? values = null, QlJsonFormat format = QlJsonFormat.Array, CancellationToken cancellationToken = default)
+	public async Task<string> ToJsonAsync(TContext context, string text, IReadOnlyDictionary<string, object?>? values = null, QlJsonFormat format = QlJsonFormat.Array, CancellationToken cancellationToken = default)
 	{
-		throw new NotImplementedException();
+		cancellationToken.ThrowIfCancellationRequested();
+
+		var rows     = JsonRows(context, text, values, format, out var bound);
+		var document = new StringBuilder();
+
+		if (format == QlJsonFormat.Array)
+		{
+			document.Append("{\"columns\":[");
+
+			for (var i = 0; i < bound.Names.Length; i++)
+			{
+				if (i > 0)
+					document.Append(',');
+
+				document.Append(QlJson.Quote(bound.Names[i]));
+			}
+
+			document.Append("],\"rows\":[");
+		}
+		else
+		{
+			document.Append('[');
+		}
+
+		var first = true;
+
+		// The provider's own reading of the rows where it has one that does not block, its plain one where not.
+		if (rows is IAsyncEnumerable<string> stream)
+		{
+			await foreach (var row in stream.WithCancellation(cancellationToken).ConfigureAwait(false))
+				Add(row);
+		}
+		else
+		{
+			foreach (var row in rows)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+
+				Add(row);
+			}
+		}
+
+		document.Append(format == QlJsonFormat.Array ? "]}" : "]");
+
+		return document.ToString();
+
+		void Add(string row)
+		{
+			if (!first)
+				document.Append(',');
+
+			document.Append(row);
+
+			first = false;
+		}
 	}
 
 	/// <summary>Reads and binds <paramref name="text"/> without values: its columns, its parameters and its warnings.</summary>

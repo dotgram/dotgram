@@ -34,6 +34,8 @@ public sealed class Databases : IDisposable
 
 		_sqlite.CreateTable<Order>();
 		_sqlite.BulkCopy(Shop.Rows());
+		_sqlite.CreateTable<Customer>();
+		_sqlite.BulkCopy(Customer.Rows());
 
 		_server = Environment.GetEnvironmentVariable("DOTGRAM_SQLSERVER");
 
@@ -48,6 +50,10 @@ public sealed class Databases : IDisposable
 		_sqlServer.DropTable<Order>(throwExceptionIfNotExists: false);
 		_sqlServer.CreateTable<Order>();
 		_sqlServer.BulkCopy(new BulkCopyOptions { BulkCopyType = BulkCopyType.MultipleRows }, Shop.Rows());
+
+		_sqlServer.DropTable<Customer>(throwExceptionIfNotExists: false);
+		_sqlServer.CreateTable<Customer>();
+		_sqlServer.BulkCopy(new BulkCopyOptions { BulkCopyType = BulkCopyType.MultipleRows }, Customer.Rows());
 	}
 
 	public static IEnumerable<TheoryDataRow<string>> Providers()
@@ -66,6 +72,36 @@ public sealed class Databases : IDisposable
 			Assert.Skip("DOTGRAM_SQLSERVER does not name a SQL Server.");
 
 		return _sqlServer;
+	}
+
+	/// <summary>
+	/// A connection of its own to <paramref name="provider"/>'s rows, for a test that runs queries in parallel or watches
+	/// a connection's commands: on SQLite a new database in memory with the same rows.
+	/// </summary>
+	public DataConnection Open(string provider, params LinqToDB.Interceptors.IInterceptor[] interceptors)
+	{
+		Get(provider);
+
+		DataConnection db;
+
+		if (provider == "SQLite")
+		{
+			db = new DataConnection(new DataOptions().UseSQLite("Data Source=:memory:"));
+
+			db.CreateTable<Order>();
+			db.BulkCopy(Shop.Rows());
+			db.CreateTable<Customer>();
+			db.BulkCopy(Customer.Rows());
+		}
+		else
+		{
+			db = new DataConnection(new DataOptions().UseSqlServer(_server + ";Initial Catalog=" + Database, SqlServerVersion.v2022));
+		}
+
+		foreach (var interceptor in interceptors)
+			db.AddInterceptor(interceptor);
+
+		return db;
 	}
 
 	public void Dispose()
