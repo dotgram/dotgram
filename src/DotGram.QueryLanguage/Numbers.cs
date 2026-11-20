@@ -235,9 +235,16 @@ static class Evaluator
 		};
 	}
 
+	/// <summary>
+	/// Doubles as the other kinds are computed: a division by zero and a result past the largest double are errors of
+	/// the text, not an infinity or a NaN that the query would carry to the provider, which has no literal for them.
+	/// </summary>
 	static object Doubles(ExpressionType kind, double a, double b)
 	{
-		return kind switch
+		if (kind is ExpressionType.Divide or ExpressionType.Modulo && b == 0)
+			throw new DivideByZeroException();
+
+		var result = kind switch
 		{
 			ExpressionType.Add      => a + b,
 			ExpressionType.Subtract => a - b,
@@ -245,5 +252,10 @@ static class Evaluator
 			ExpressionType.Divide   => a / b,
 			_                       => a % b,
 		};
+
+		if (double.IsInfinity(result) || double.IsNaN(result))
+			throw new OverflowException();
+
+		return result;
 	}
 }

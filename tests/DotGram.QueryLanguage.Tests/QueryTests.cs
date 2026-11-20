@@ -229,6 +229,22 @@ public sealed class QueryTests(Databases databases)
 		Assert.Equal((QlErrorCode.Overflow, (int?)27), (overflow.Code, overflow.Position));
 	}
 
+	/// <summary>Double arithmetic of literals and values is computed as the other kinds are: no infinity and no NaN reaches the provider.</summary>
+	[Theory]
+	[InlineData("from orders where score > 1e308 * 10 select id",       QlErrorCode.Overflow,       32)]
+	[InlineData("from orders where score > -1e308 - 1e308 select id",   QlErrorCode.Overflow,       33)]
+	[InlineData("from orders where score > 1e0 / 0 select id",          QlErrorCode.DivisionByZero, 30)]
+	[InlineData("from orders where score > 0e0 / 0 select id",          QlErrorCode.DivisionByZero, 30)]
+	[InlineData("from orders where score > 1e0 % 0 select id",          QlErrorCode.DivisionByZero, 30)]
+	[InlineData("from orders where score > @d * 1e308 select id",       QlErrorCode.Overflow,       29)]
+	[InlineData("from orders where score > @d / @z select id",          QlErrorCode.DivisionByZero, 29)]
+	public void ADoubleThatIsNotFiniteIsTheTextsError(string text, QlErrorCode code, int position)
+	{
+		var error = Assert.Throws<QlException>(() => Model.QueryData(Shop.InMemory(), text, Rows.Values(new { d = 10.0, z = 0.0 })).ToList()).Error;
+
+		Assert.Equal((code, (int?)position), (error.Code, error.Position));
+	}
+
 	[Theory]
 	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
 	public void ValuesOfOtherTypesConvertWithoutLoss(string provider)
