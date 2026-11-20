@@ -387,6 +387,36 @@ public sealed class BinderTests
 		Assert.All(never.Columns, c => Assert.False(c.IsNullable));
 	}
 
+	// ── The size of a text with its names replaced ──────────────────────────
+
+	/// <summary>`let`s that each name the one before twice: <paramref name="levels"/> of them over <c>qty</c>.</summary>
+	internal static string Doubling(int levels)
+	{
+		var text = new System.Text.StringBuilder("from orders let a0 = qty");
+
+		for (var i = 1; i <= levels; i++)
+			text.Append(System.Globalization.CultureInfo.InvariantCulture, $" let a{i} = a{i - 1} + a{i - 1}");
+
+		return text.Append(System.Globalization.CultureInfo.InvariantCulture, $" select id, a{levels}").ToString();
+	}
+
+	[Fact]
+	public void ANameCountsAtEveryUseAsWhatItNames()
+	{
+		var text  = Doubling(20);
+		var error = Refused(text);
+
+		// a5 is 63 nodes once its names are replaced: the text crosses 100 there.
+		Assert.Equal(QlErrorCode.Limit, error.Code);
+		Assert.Equal(text.IndexOf("let a5", StringComparison.Ordinal), error.Position);
+		Assert.Contains("every use", error.Message, StringComparison.Ordinal);
+
+		Describe(Doubling(4));
+
+		// Through a `select` too, and through `*`.
+		Assert.Equal(QlErrorCode.Limit, Refused("from orders let a = qty + qty + qty + qty + qty + qty + qty select a, a + a as b select a, b, a + b as c select a, b, c, c + c as d select *").Code);
+	}
+
 	// ── Nullable annotations ────────────────────────────────────────────────
 
 	static QlModel<Annotations> Annotated()

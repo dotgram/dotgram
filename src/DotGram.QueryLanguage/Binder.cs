@@ -58,9 +58,19 @@ sealed partial class Binder
 			throw Error(QlErrorCode.Syntax, $"`{field.Name}` is a field of `{_entity.Name}`: choose another alias.", alias.Position);
 
 		var clauses = new List<BoundClause>();
+		var nodes   = 1L;
 
 		foreach (var clause in query.Clauses)
+		{
 			clauses.Add(BindClause(clause));
+
+			// The size of the text with each name counted as what it names, at every use: a chain of `let`s that
+			// each name the one before twice is small to write and doubles at every step once the names are replaced.
+			nodes += clause.Size;
+
+			if (Saturated(nodes + _expansion) > _options.MaxNodes)
+				throw Error(QlErrorCode.Limit, $"The query has more than {_options.MaxNodes} parts, counting each name at every use as what it names.", clause.Position);
+		}
 
 		CheckPaging(query.Clauses);
 
@@ -101,6 +111,14 @@ sealed partial class Binder
 			throw Error(QlErrorCode.Limit, $"`{_entity.Name}` has more than {_options.MaxColumns} fields to return: list them in `select`.", query.Root.Position);
 
 		return ([.. fields.Select(f => (BoundExpr)new BoundField(f, f.Name, query.Root.Position, null))], [.. fields.Select(f => f.Name)]);
+	}
+
+	/// <summary>What naming columns has added to the size of the text so far: each use of a name, its column's size less one.</summary>
+	long _expansion;
+
+	static long Saturated(long value)
+	{
+		return Math.Min(value, int.MaxValue);
 	}
 
 	/// <summary>The columns of the last <c>select</c>, which the result returns where nothing replaces them.</summary>
@@ -163,8 +181,9 @@ sealed partial class Binder
 		if (Find(name) is { } existing)
 			throw Error(QlErrorCode.Syntax, $"`{existing.Name}` is already a name here: call the `let` something else.", let.Name.Position);
 
+		var mark   = _expansion;
 		var value  = BindValue(let.Value, null);
-		var column = new Column(name, let.Name.Position, value);
+		var column = new Column(name, let.Name.Position, value) { Expanded = Saturated(let.Value.Size + _expansion - mark) };
 		var before = _shape;
 
 		CheckSlots([.. before.Columns, column], let.Name.Position);
@@ -194,7 +213,11 @@ sealed partial class Binder
 			else
 			{
 				foreach (var column in _finalColumns!)
-					columns.Add(new Column(column.Name, select.Position, new BoundColumn(column, select.Position)));
+				{
+					columns.Add(new Column(column.Name, select.Position, new BoundColumn(column, select.Position)) { Expanded = column.Expanded });
+
+					_expansion = Saturated(_expansion + column.Expanded);
+				}
 			}
 
 			if (columns.Count == 0)
@@ -219,6 +242,7 @@ sealed partial class Binder
 
 			foreach (var item in select.Items)
 			{
+				var mark  = _expansion;
 				var value = aggregates > 0 ? BindAggregate((CallExpr)item.Value) : BindValue(item.Value, null);
 				var name  = item.Alias?.Text ?? DefaultName(item.Value);
 
@@ -228,7 +252,7 @@ sealed partial class Binder
 				if (!names.Add(name))
 					throw Error(QlErrorCode.Syntax, $"`{name}` names two columns of this `select`: rename one with `as`.", item.Alias?.Position ?? Start(item.Value));
 
-				columns.Add(new Column(name, item.Alias?.Position ?? Start(item.Value), value));
+				columns.Add(new Column(name, item.Alias?.Position ?? Start(item.Value), value) { Expanded = Saturated(item.Value.Size + _expansion - mark) });
 			}
 		}
 
@@ -382,7 +406,11 @@ sealed partial class Binder
 	BoundExpr ResolveName(NameSyntax name)
 	{
 		if (Find(name.Text) is { } column)
+		{
+			_expansion = Saturated(_expansion + column.Expanded - 1);
+
 			return new BoundColumn(column, name.Position);
+		}
 
 		if (_selectAt is { } at)
 			throw Error(QlErrorCode.UnknownName, $"`{name.Text}` is not in the `select` at {at}.", name.Position);

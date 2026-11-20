@@ -70,6 +70,12 @@ sealed class Column(string name, int position, BoundExpr value)
 
 	/// <summary>The rights already checked for it, so that a column read many times is walked once a right.</summary>
 	public QlUse Checked { get; set; }
+
+	/// <summary>
+	/// How many nodes the column's value is with every name in it replaced by what it names: what a name of this
+	/// column costs at each use. Saturates at <see cref="int.MaxValue"/>.
+	/// </summary>
+	public long Expanded { get; set; } = 1;
 }
 
 /// <summary>One parameter of the text, typed by where it stands.</summary>

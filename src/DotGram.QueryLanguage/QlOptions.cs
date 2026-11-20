@@ -24,7 +24,8 @@ public sealed record QlOptions
 
 	/// <summary>
 	/// Nodes of the query: each clause, operator, name, literal, parameter and member counts one, and so
-	/// does a list after <c>in</c> however long it is. 100 by default.
+	/// does a list after <c>in</c> however long it is. A name of a <c>let</c> or a <c>select</c> column counts at
+	/// every use as the nodes of what it names, so that names cannot hide a large expression. 100 by default.
 	/// </summary>
 	public int MaxNodes { get; init; } = 100;
 

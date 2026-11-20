@@ -261,6 +261,31 @@ public sealed class QueryTests(Databases databases)
 		Assert.Contains("AVG(CAST(", average, StringComparison.Ordinal);
 	}
 
+	/// <summary>A chain of `let`s that double: as many as the bound on nodes lets through run, and their SQL is as large as they count.</summary>
+	[Theory]
+	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
+	public void DoublingLetsRunWithinTheBound(string provider)
+	{
+		var lengths = new List<int>();
+
+		for (var levels = 1; levels <= 4; levels++)
+		{
+			var text  = BinderTests.Doubling(levels);
+			var rows  = Run(provider, text + " order by id");
+			var query = Model.QueryData(Shop.Of(databases.Get(provider), 1), text);
+			var sql   = LinqToDB.LinqExtensions.ToSqlQuery(query).Sql;
+
+			Assert.Equal(Mine.Select(o => new object?[] { o.Id, o.Qty << levels }), rows);
+
+			// Each level at most doubles what is read: the provider writes no more than the text counts.
+			Assert.True(sql.Split("Qty").Length - 1 <= 1 << levels, sql);
+
+			lengths.Add(sql.Length);
+		}
+
+		Assert.True(lengths[3] < 4 * lengths[0], string.Join(", ", lengths));
+	}
+
 	[Fact]
 	public void TheTreeRunsInMemoryToo()
 	{
