@@ -271,6 +271,159 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		}
 	}
 
+	/// <summary>
+	/// Which statements keep a record, decided by count: with every repetition and unbounded
+	/// statement kept, how often a replay went past one that each narrower criterion would have
+	/// left out. The one decided — a statement keeps where it decides or a decision can open after
+	/// it in its replay region — leaves out none that is ever gone past, over every fixture, the
+	/// JSON corpus and every ladder, under both lowerings; the narrower one of repetitions with a
+	/// decision of their own leaves out repetitions that are.
+	/// </summary>
+	[Fact]
+	public void TheCriterion_LeavesOutNoStatementAReplayGoesPast()
+	{
+		var cases = new List<(string Fixture, string Input)>();
+
+		foreach (var name in Cases.Fixtures.Keys)
+			foreach (var input in Cases.InputsOf(name))
+				cases.Add((name, input));
+
+		foreach (var (_, input) in HostTests.JsonCorpus())
+			cases.Add(("Json", input));
+
+		foreach (var shape in Ladders.Shapes)
+			cases.Add((shape.Fixture, shape.Input(300)));
+
+		var text   = new StringBuilder("fixture\tlowering\tjumps and skips (wide)\twould have (decided)\twould have (narrowed)\tsentinels wide\tsentinels decided\n");
+		var totals = new long[5];
+
+		foreach (var group in cases.GroupBy(static one => one.Fixture))
+		{
+			var fixture = Cases.Fixtures[group.Key];
+
+			foreach (var options in Lowerings)
+			{
+				var program = Reading.Program(fixture.Grammar, options);
+				var row     = new long[5];
+
+				foreach (var (_, input) in group)
+				{
+					foreach (var measured in new[] { ResumptionCriterion.Decided, ResumptionCriterion.Narrowed })
+					{
+						var wide = new IrEvaluator(program, new Ladders.CountingHost(fixture.Guards)) { Resumes = true, Criterion = ResumptionCriterion.Wide, Measured = measured, StepBudget = 50_000_000 };
+
+						try
+						{
+							wide.Parse(fixture.Entry, input);
+						}
+						catch (IrStepsExceeded)
+						{
+						}
+
+						if (measured == ResumptionCriterion.Decided)
+						{
+							row[0] += wide.Jumps + wide.Skips;
+							row[1] += wide.WouldHaveJumped;
+							row[3] += wide.Sentinels;
+						}
+						else
+							row[2] += wide.WouldHaveJumped;
+					}
+
+					var decided = new IrEvaluator(program, new Ladders.CountingHost(fixture.Guards)) { Resumes = true, StepBudget = 50_000_000 };
+
+					try
+					{
+						decided.Parse(fixture.Entry, input);
+					}
+					catch (IrStepsExceeded)
+					{
+					}
+
+					row[4] += decided.Sentinels;
+				}
+
+				for (var i = 0; i < row.Length; i++)
+					totals[i] += row[i];
+
+				text.Append(group.Key).Append('\t').Append(Named(options)).Append('\t').AppendJoin('\t', row).Append('\n');
+			}
+		}
+
+		text.Append("all\t\t").AppendJoin('\t', totals).Append('\n');
+
+		// What each criterion leaves out, statement by statement, on the proof-based lowering.
+		text.Append("\nleft without a record (proof-based lowering)\nfixture\tcriterion\tstatement\twhy\n");
+
+		foreach (var (name, fixture) in Cases.Fixtures.DistinctBy(static one => one.Value.Grammar))
+		{
+			var program = Reading.Program(fixture.Grammar);
+
+			foreach (var criterion in new[] { ResumptionCriterion.Decided, ResumptionCriterion.Narrowed })
+				foreach (var (stmt, why) in ResumptionSites.Of(program, criterion).Left)
+					text.Append(name).Append('\t').Append(criterion).Append('\t').Append(stmt.GetType().Name).Append('\t').Append(why).Append('\n');
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "criterion.tsv"), text.ToString());
+
+		Assert.True(totals[0] > 100, "jumps and skips " + totals[0]);
+		Assert.Equal(0, totals[1]);
+		Assert.True(totals[2] > 0, "the narrowed criterion left out nothing a replay goes past");
+	}
+
+	/// <summary>
+	/// Turns that write slots and put them back where they fail — captures, bindings rebound every
+	/// turn, two lists, one list rule twice — answer as the generated parser does when a replay goes
+	/// straight to them, because the record holds what the slots held; with the record's slots
+	/// left out on purpose, they answer otherwise. So a repetition that puts its slots back needs no
+	/// exclusion of its own here.
+	/// </summary>
+	[Fact]
+	public void TurnsThatPutTheirSlotsBack_AreHeldByTheRecord()
+	{
+		var wrong = 0;
+		var read  = 0;
+
+		foreach (var name in new[] { "CaptureRollback", "CaptureRollbackChoice", "BindingRollback", "Rebinding", "ListsInSequence", "ListRuleTwice", "Loop", "NestedSettled", "SealedCaptureBefore", "YamlLineBefore" })
+		{
+			var fixture = Cases.Fixtures[name];
+			var inputs  = Cases.InputsOf(name);
+
+			inputs.AddRange(Ladders.Shapes.Where(shape => shape.Fixture == name).Select(static shape => shape.Input(30)));
+
+			foreach (var input in inputs)
+			{
+				var (theirs, _, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
+
+				foreach (var options in Lowerings)
+				{
+					var program = Reading.Program(fixture.Grammar, options);
+
+					Assert.Equal(theirs.Line, new IrEvaluator(program, new RecordingHost(fixture.Guards)) { Resumes = true }.Parse(fixture.Entry, input).Line);
+					read++;
+
+					try
+					{
+						if (new IrEvaluator(program, new RecordingHost(fixture.Guards)) { Resumes = true, IgnoresHeld = true, StepBudget = 5_000_000 }.Parse(fixture.Entry, input).Line != theirs.Line)
+							wrong++;
+					}
+					catch (Exception thrown) when (thrown is IrStepsExceeded or IrContractViolation or InvalidCastException or ArgumentException or NullReferenceException)
+					{
+						wrong++;
+					}
+				}
+			}
+		}
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "held-mutation.txt"), string.Create(CultureInfo.InvariantCulture, $"read {read}, with the record's slots left out wrong {wrong}\n"));
+
+		Assert.True(wrong > 0, "leaving the record's slots out changed nothing");
+	}
+
 	[Fact(Skip = "The calculator reads with binding powers, which the tree does not lower yet; its fold-free twin carries the case.")]
 	public void TheCalculatorItself_ReadsItsReproAsTheGeneratedParser()
 	{
