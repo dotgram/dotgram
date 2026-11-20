@@ -6915,6 +6915,9 @@ file.Line("return spare;");
 		return (inner, Named("RereadFor", IdentifierOf(inner), IdentifierOf(rule)), type, factory.Method, arguments, continuation.Kind);
 	}
 
+	/// <summary>The name the seam's machine is planned under (<see cref="Planned"/>).</summary>
+	static string SeamPlanName => MachineTag.Seam.Named("Recognize");
+
 	/// <summary>
 	/// Every rule the second read compiles: the terminals that build, and what they reach.
 	/// </summary>
@@ -6929,9 +6932,6 @@ file.Line("return spare;");
 	/// wrote, and the generator failed on the first grammar whose trivia called a lexeme of
 	/// its own.
 	/// </remarks>
-	/// <summary>The name the seam's machine is planned under (<see cref="Planned"/>).</summary>
-	static string SeamPlanName => MachineTag.Seam.Named("Recognize");
-
 	internal static Machine Seam(LexicalSplit lexical, ExpectedSets? expectedSets = null)
 	{
 		return new(
