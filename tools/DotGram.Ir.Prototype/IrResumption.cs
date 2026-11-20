@@ -223,6 +223,25 @@ sealed class ResumptionSites
 		return _firsts[function] = Begins(function.Body).First;
 	}
 
+	/// <summary>The ranges in order, those that meet or touch made one.</summary>
+	static List<CharRange> Merged(List<CharRange> ranges)
+	{
+		var merged = new List<CharRange>();
+
+		foreach (var range in ranges.OrderBy(static one => one.From))
+		{
+			if (merged.Count > 0 && range.From <= merged[^1].To + 1)
+			{
+				if (range.To > merged[^1].To)
+					merged[^1] = new CharRange(merged[^1].From, range.To);
+			}
+			else
+				merged.Add(range);
+		}
+
+		return merged;
+	}
+
 	/// <summary>The slots some guard is handed: a reading that builds nothing still fills them.</summary>
 	public HashSet<IrSlot> ReadByGuards { get; } = [];
 
@@ -474,7 +493,7 @@ sealed class ResumptionSites
 			};
 
 			if (door is not null)
-				Doors.Add(stmt, door);
+				Doors.Add(stmt, Merged(door));
 		}
 	}
 

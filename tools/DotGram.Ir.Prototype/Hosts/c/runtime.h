@@ -200,6 +200,12 @@ static inline int32_t rt_enterCounted(Parser *P, int32_t last)
 }
 
 /* The tape was cut: what was kept of places no longer behind it goes. */
+/* A sentinel opened where the tape is read for the first time: a decision that can never move. */
+static inline int32_t rt_sentinel(Parser *P)
+{
+	return rt_enter(P, 0);
+}
+
 static inline void rt_cut(Parser *P)
 {
 	while (P->kCount > 0 && P->kept[P->kCount - 1].key >= P->count)

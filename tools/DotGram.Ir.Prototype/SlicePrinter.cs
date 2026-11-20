@@ -6,6 +6,25 @@ using DotGram.Grammar.Model;
 
 namespace DotGram.Ir.Prototype;
 
+/// <summary>
+/// What of a kept statement's code a parser printed to be measured carries: all of it, or one part
+/// of it alone — the decision it opens, or the code round it with no decision opened. Only the
+/// whole is a parser; the parts read accepted inputs as it does and are timed against it.
+/// </summary>
+enum SliceAblation
+{
+	Whole,
+
+	/// <summary>The sentinel opened, nothing else: what the longer tape costs.</summary>
+	SentinelOnly,
+
+	/// <summary>Every line of the kept code but the sentinel, which is never opened.</summary>
+	WrapperOnly,
+
+	/// <summary>The whole, with every sentinel opened whatever the next item: what the door's test costs.</summary>
+	NoDoors,
+}
+
 enum SliceLanguage
 {
 	TypeScript,
@@ -80,6 +99,8 @@ sealed class SlicePrinter
 
 	IrStmt? _bare;
 
+	readonly SliceAblation _ablation;
+
 	// What each function reaches by one call or more, and the functions printed as machines.
 	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach    = [];
 	readonly HashSet<IrFunction>                         _machines = [];
@@ -98,8 +119,10 @@ sealed class SlicePrinter
 	int _indent;
 	int _temp;
 
-	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames, bool counted, bool resumes, ResumptionCriterion criterion)
+	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames, bool counted, bool resumes, ResumptionCriterion criterion, SliceAblation ablation)
 	{
+		_ablation = ablation;
+
 		_program  = program;
 		_language = language;
 		_frames   = language == SliceLanguage.TypeScript ? frames : SliceFrames.None;
@@ -153,9 +176,9 @@ sealed class SlicePrinter
 	/// <param name="criterion">Which statements keep a record (<see cref="ResumptionSites"/>).</param>
 	public static string Print(
 		IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false, bool resumes = true,
-		ResumptionCriterion criterion = ResumptionCriterion.Decided)
+		ResumptionCriterion criterion = ResumptionCriterion.Decided, SliceAblation ablation = SliceAblation.Whole)
 	{
-		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion);
+		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion, ablation);
 
 		printer.Run();
 
@@ -398,7 +421,21 @@ sealed class SlicePrinter
 	/// <summary>Whether the statement opens a sentinel and keeps a record.</summary>
 	bool Kept(IrStmt stmt)
 	{
-		return _resumes && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt);
+		return _resumes && _ablation != SliceAblation.SentinelOnly && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt);
+	}
+
+	/// <summary>For <see cref="SliceAblation.SentinelOnly"/>: the decision a kept statement opens, and the statement as it is.</summary>
+	bool SentinelAlone(IrStmt stmt)
+	{
+		if (!(_resumes && _ablation == SliceAblation.SentinelOnly && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt)))
+			return false;
+
+		if (_sites.Doors.TryGetValue(stmt, out var door))
+			Line($"if (p < len && (c = {Unit("p")}, {Within(new IrStmt.MatchSet(door, false, 0))})) {Enter("0")};");
+		else
+			Line($"{Enter("0")};");
+
+		return true;
 	}
 
 	/// <summary>The slots a kept statement writes: what a record holds and gives back (the evaluator's own list).</summary>
@@ -515,20 +552,24 @@ sealed class SlicePrinter
 	/// </summary>
 	void Sentinel(IrStmt stmt, string owner, Action<string> taken, bool endOnly)
 	{
-		var again = Temp("again");
-		var h     = Temp("h");
+		var h = Temp("h");
 
 		// Where the next item cannot begin what the statement reads, its work is bounded and it opens nothing.
-		if (_sites.Doors.TryGetValue(stmt, out var door))
+		if (_ablation != SliceAblation.NoDoors && _sites.Doors.TryGetValue(stmt, out var door))
 			Line($"if (p < len && (c = {Unit("p")}, {Within(new IrStmt.MatchSet(door, false, 0))}))");
 
 		Line("{");
 		_indent++;
-		Line(C ? $"bool {again} = P->cursor < P->count;" : $"const {again} = P.cursor < P.count;");
-		Line($"{owner} = {Enter("0")};");
-		Line($"if ({again})");
+
+		if (_ablation == SliceAblation.WrapperOnly)
+			Line($"{owner} = -1;");
+
+		// Read for the first time, a sentinel is opened and nothing else is asked; read back, its
+		// latest record is looked for.
+		Line($"if ({Member("cursor")} < {Member("count")})");
 		Line("{");
 		_indent++;
+		Line($"{owner} = {(_counted ? Enter("0") : (C ? "P->cursor++" : "P.cursor++"))};");
 		Line(Int(h, Runtime("head", owner)));
 		Line($"if ({h} >= 0 && {Runtime("usable", h)}{(endOnly ? $" && ({Field(h, "flags")} & 1) != 0" : "")})");
 		Line("{");
@@ -538,6 +579,10 @@ sealed class SlicePrinter
 		Line("}");
 		_indent--;
 		Line("}");
+
+		if (_ablation != SliceAblation.WrapperOnly)
+			Line($"else {owner} = {(_counted ? Enter("0") : Runtime("sentinel", ""))};");
+
 		_indent--;
 		Line("}");
 	}
@@ -788,6 +833,17 @@ sealed class SlicePrinter
 	/// <param name="fail">What a failure of this statement is, where it stands: a <c>break</c> or a <c>return</c>.</param>
 	void Statement(IrStmt stmt, string fail)
 	{
+		if (SentinelAlone(stmt))
+		{
+			var outer = _bare;
+
+			_bare = stmt;
+			Statement(stmt, fail);
+			_bare = outer;
+
+			return;
+		}
+
 		if (stmt is not IrStmt.Repeat && Kept(stmt))
 		{
 			Site(stmt, fail);
@@ -1437,6 +1493,17 @@ sealed class SlicePrinter
 		if (!Leaves(stmt))
 		{
 			Statement(stmt, FailTo(fail));
+
+			return;
+		}
+
+		if (SentinelAlone(stmt))
+		{
+			var outer = _bare;
+
+			_bare = stmt;
+			Flat(stmt, fail);
+			_bare = outer;
 
 			return;
 		}

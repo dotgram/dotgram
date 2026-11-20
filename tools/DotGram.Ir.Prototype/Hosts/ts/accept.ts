@@ -67,50 +67,56 @@ const rounds = Number(process.env.IR_BENCH_ROUNDS ?? 21);
 
 for (const frames of ["none", "recursive", "all"])
 {
-	const on = reader(await import(pathToFileURL(join(directory, `parser-on-${frames}.ts`)).href));
 	const off = reader(await import(pathToFileURL(join(directory, `parser-off-${frames}.ts`)).href));
 
-	if (on() !== off())
-		throw new Error("The two parsers accept different inputs.");
-
-	// Enough repetitions of the batch for a reading of some milliseconds.
-	let reps = 1;
-
-	for (let from = performance.now(); performance.now() - from < 20; reps++)
-		off();
-
-	const ratios: number[] = [];
-	const times: number[][] = [[], []];
-
-	for (let round = -3; round < rounds; round++)
+	// IR_ACCEPT_VARIANTS names the parsers timed against the one without resumption: "on", the
+	// whole of it, and the parts printed to be measured ("sentinels", "wrapper").
+	for (const variant of (process.env.IR_ACCEPT_VARIANTS ?? "on").split(","))
 	{
-		const pair = round % 2 === 0 ? [on, off] : [off, on];
-		const took: number[] = [];
+		const on = reader(await import(pathToFileURL(join(directory, `parser-${variant}-${frames}.ts`)).href));
 
-		for (const read of pair)
+		if (on() !== off())
+			throw new Error("The two parsers accept different inputs.");
+
+		// Enough repetitions of the batch for a reading of some milliseconds.
+		let reps = 1;
+
+		for (let from = performance.now(); performance.now() - from < 20; reps++)
+			off();
+
+		const ratios: number[] = [];
+		const times: number[][] = [[], []];
+
+		for (let round = -3; round < rounds; round++)
 		{
-			const from = performance.now();
+			const pair = round % 2 === 0 ? [on, off] : [off, on];
+			const took: number[] = [];
 
-			for (let r = 0; r < reps; r++)
-				read();
+			for (const read of pair)
+			{
+				const from = performance.now();
 
-			took.push(performance.now() - from);
+				for (let r = 0; r < reps; r++)
+					read();
+
+				took.push(performance.now() - from);
+			}
+
+			if (round < 0)
+				continue;
+
+			const [timeOn, timeOff] = round % 2 === 0 ? took : [took[1], took[0]];
+
+			times[0].push(timeOn);
+			times[1].push(timeOff);
+			ratios.push(timeOn / timeOff);
 		}
 
-		if (round < 0)
-			continue;
+		ratios.sort((a, b) => a - b);
 
-		const [timeOn, timeOff] = round % 2 === 0 ? took : [took[1], took[0]];
+		for (const list of times)
+			list.sort((a, b) => a - b);
 
-		times[0].push(timeOn);
-		times[1].push(timeOff);
-		ratios.push(timeOn / timeOff);
+		console.log(`${frames}${variant === "on" ? "" : " " + variant}\t${on()}/${inputs.length}\t${(times[0][times[0].length >> 1] / reps).toFixed(4)}\t${(times[1][times[1].length >> 1] / reps).toFixed(4)}\t${ratios[ratios.length >> 1].toFixed(3)}\t${ratios[0].toFixed(3)}-${ratios[ratios.length - 1].toFixed(3)}`);
 	}
-
-	ratios.sort((a, b) => a - b);
-
-	for (const list of times)
-		list.sort((a, b) => a - b);
-
-	console.log(`${frames}\t${on()}/${inputs.length}\t${(times[0][times[0].length >> 1] / reps).toFixed(4)}\t${(times[1][times[1].length >> 1] / reps).toFixed(4)}\t${ratios[ratios.length >> 1].toFixed(3)}\t${ratios[0].toFixed(3)}-${ratios[ratios.length - 1].toFixed(3)}`);
 }

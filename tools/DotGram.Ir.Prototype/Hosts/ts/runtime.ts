@@ -145,17 +145,7 @@ export class Runtime
 			return this.cursor++;
 
 		if (this.count * 2 + 2 > this.ways.length)
-		{
-			const grown = new Int32Array(this.ways.length * 2);
-
-			grown.set(this.ways);
-			this.ways = grown;
-
-			const heads = new Int32Array(this.ways.length);
-
-			heads.set(this.heads);
-			this.heads = heads;
-		}
+			this.grow();
 
 		this.ways[this.count * 2] = 0;
 		this.ways[this.count * 2 + 1] = last;
@@ -163,6 +153,36 @@ export class Runtime
 		this.cursor = this.count;
 
 		return this.count - 1;
+	}
+
+	// A sentinel opened where the tape is read for the first time: a decision that can never move.
+	sentinel(): number
+	{
+		const at = this.count;
+
+		if (at * 2 + 2 > this.ways.length)
+			this.grow();
+
+		this.ways[at * 2] = 0;
+		this.ways[at * 2 + 1] = 0;
+		this.count = at + 1;
+		this.cursor = at + 1;
+
+		return at;
+	}
+
+	// Off the paths that open decisions, so that they stay small.
+	grow(): void
+	{
+		const grown = new Int32Array(this.ways.length * 2);
+
+		grown.set(this.ways);
+		this.ways = grown;
+
+		const heads = new Int32Array(this.ways.length);
+
+		heads.set(this.heads);
+		this.heads = heads;
 	}
 
 	enterCounted(last: number): number
