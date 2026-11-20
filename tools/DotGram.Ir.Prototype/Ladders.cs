@@ -52,6 +52,31 @@ static class Ladders
 		new("(d) deep split, no way back up", "DeepSplitOpen", static n => Times("(", n) + Times("b", n)),
 	];
 
+	/// <summary>
+	/// A host that only counts its calls: what a ladder reads, where writing every call down would
+	/// cost the square of the input in text whatever the reading costs.
+	/// </summary>
+	public sealed class CountingHost(Func<IrFragment, object?[], bool>? guards) : IIrHost
+	{
+		static readonly V Built = new("built");
+
+		public long Calls { get; private set; }
+
+		public object? Construct(IrFragment fragment, object?[] arguments)
+		{
+			Calls++;
+
+			return Built;
+		}
+
+		public bool Guard(IrFragment fragment, object?[] arguments)
+		{
+			Calls++;
+
+			return guards?.Invoke(fragment, arguments) ?? true;
+		}
+	}
+
 	/// <summary>The shape read by the evaluator at every size, until a reading runs past the budget.</summary>
 	public static List<Rung> Evaluated(Shape shape, IrLowering.Options? options, bool resumes, long budget, IReadOnlyList<int>? sizes = null)
 	{
@@ -61,18 +86,18 @@ static class Ladders
 
 		foreach (var turns in sizes ?? Sizes)
 		{
-			var host      = new RecordingHost(fixture.Guards);
+			var host      = new CountingHost(fixture.Guards);
 			var evaluator = new IrEvaluator(program, host) { Resumes = resumes, StepBudget = budget };
 
 			try
 			{
 				var outcome = evaluator.Parse(fixture.Entry, shape.Input(turns));
 
-				rungs.Add(new Rung(turns, evaluator.Steps, evaluator.Ways.Entered, evaluator.Ways.Retries, evaluator.Jumps, host.Log.Count, outcome.Line, false));
+				rungs.Add(new Rung(turns, evaluator.Steps, evaluator.Ways.Entered, evaluator.Ways.Retries, evaluator.Jumps + evaluator.Skips, host.Calls, outcome.Accepted ? "A " + outcome.Position.ToString(CultureInfo.InvariantCulture) : outcome.Line, false));
 			}
 			catch (IrStepsExceeded)
 			{
-				rungs.Add(new Rung(turns, evaluator.Steps, evaluator.Ways.Entered, evaluator.Ways.Retries, evaluator.Jumps, host.Log.Count, "", true));
+				rungs.Add(new Rung(turns, evaluator.Steps, evaluator.Ways.Entered, evaluator.Ways.Retries, evaluator.Jumps + evaluator.Skips, host.Calls, "", true));
 
 				break;
 			}
