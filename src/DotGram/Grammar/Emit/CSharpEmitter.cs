@@ -1431,10 +1431,18 @@ static partial class CSharpEmitter
 			// one move (Machine.KeepsPlaces), and counted in the tape's bound with the rest.
 			var places = machines.Exists(static compiled => compiled.Direct && compiled.Machine.KeepsPlaces);
 
-			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places)
+			// Where a sealed stretch begins, beside the way it ends at, where some reader seals: a
+			// seal or a retry steps over a stretch already spent in one move. Read off what the
+			// readers wrote, all of which is in the file by now, and not flagged where a seal is
+			// emitted: such a flag also went up for grammars whose written readers seal nothing
+			// (RFC 9110, JSON), which would have cost them the pointers for nothing.
+			var seals = file.ToString().Contains("ways.Seal(");
+
+			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places), "sealskip", seals), "nosealskip", !seals)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" + (keeps ? " + ways.Kept.Length + ways.KeptValues.Length * 2L" : "") : "")
 				.Replace("/*PLACESROOM*/", places ? " + ways.Places.Length" : "")
+				.Replace("/*SKIPROOM*/", seals ? " + ways.Skip.Length" : "")
 				// Two integers a way on the tape, and two more beside it where the places are kept.
 				.Replace("/*WAYWIDTH*/2L", places ? "4L" : "2L")
 				// A refusal a recording reading records is told to the sink, where the build traces.

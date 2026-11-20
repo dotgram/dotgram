@@ -7414,7 +7414,7 @@ namespace DotGram.Snapshots
 					if (Items[way * 2] < Items[way * 2 + 1])
 					{
 						Items[way * 2]++;
-						Count  = way + 1;
+						Cut(way + 1);
 						Cursor = segment;
 
 						return true;
@@ -7427,7 +7427,7 @@ namespace DotGram.Snapshots
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
-				Count  = way + 1;
+				Cut(way + 1);
 				Cursor = way + 1;
 			}
 
@@ -7435,8 +7435,14 @@ namespace DotGram.Snapshots
 			{
 				Items[way * 2]     = value;
 				Items[way * 2 + 1] = last;
-				Count  = way + 1;
+				Cut(way + 1);
 				Cursor = way + 1;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Cut(int count)
+			{
+				Count = count;
 			}
 
 			internal void Seal(int segment)
