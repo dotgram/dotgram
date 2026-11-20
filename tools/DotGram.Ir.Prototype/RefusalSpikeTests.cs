@@ -79,7 +79,9 @@ public sealed class RefusalSpikeTests
 			var (theirs, theirLog, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
 
 			Assert.Equal(theirs.Line, outcome.Line);
-			Assert.Equal(theirLog, host.Log);
+
+			if (outcome.Accepted || !fixture.Defers)
+				Assert.Equal(theirLog, host.Log);
 
 			if (outcome.Accepted)
 				continue;
@@ -142,7 +144,9 @@ public sealed class RefusalSpikeTests
 			var (planned, _, _) = evaluator.ParseQuietlyFirst(fixture.Entry, input);
 
 			Assert.Equal(generated.Line, planned.Line);
-			Assert.Equal(theirLog, host.Log);
+
+			if (generated.Accepted || !fixture.Defers)
+				Assert.Equal(theirLog, host.Log);
 
 			if (theirs.Accepted)
 				continue;

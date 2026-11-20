@@ -70,6 +70,9 @@ sealed class SlicePrinter
 
 	readonly SliceFrames _frames;
 
+	// Whether the parser counts what it does (for the ladders, never for a parser that is timed).
+	readonly bool _counted;
+
 	// What each function reaches by one call or more, and the functions printed as machines.
 	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach    = [];
 	readonly HashSet<IrFunction>                         _machines = [];
@@ -88,11 +91,12 @@ sealed class SlicePrinter
 	int _indent;
 	int _temp;
 
-	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames)
+	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames, bool counted)
 	{
 		_program  = program;
 		_language = language;
 		_frames   = language == SliceLanguage.TypeScript ? frames : SliceFrames.None;
+		_counted  = counted;
 
 		if (_frames == SliceFrames.None)
 			return;
@@ -128,9 +132,14 @@ sealed class SlicePrinter
 	bool C => _language == SliceLanguage.C;
 
 	/// <summary>The parser's source: one file, which its language's runtime file stands beside.</summary>
-	public static string Print(IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None)
+	/// <param name="counted">
+	/// Whether the parser counts the functions it enters, the turns it reads and the decisions it
+	/// opens or reads back, into the runtime's counters: what a ladder of refusals reads, and
+	/// never what a timing does.
+	/// </param>
+	public static string Print(IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false)
 	{
-		var printer = new SlicePrinter(program, language, frames);
+		var printer = new SlicePrinter(program, language, frames, counted);
 
 		printer.Run();
 
@@ -357,6 +366,19 @@ sealed class SlicePrinter
 		return C ? $"P->text[{at}]" : $"text.charCodeAt({at})";
 	}
 
+	/// <summary>A decision opened or read back, counted where the parser counts.</summary>
+	string Enter(string last)
+	{
+		return _counted ? Runtime("enterCounted", last) : Runtime("enter", last);
+	}
+
+	/// <summary>What counts one more step, where the parser counts: a function entered, a turn begun.</summary>
+	void Step()
+	{
+		if (_counted)
+			Line(C ? "P->kSteps++;" : "P.kSteps++;");
+	}
+
 	string Decision(string way)
 	{
 		return C ? $"P->ways[{way} * 2]" : $"P.ways[{way} * 2]";
@@ -390,6 +412,7 @@ sealed class SlicePrinter
 
 		Line(C ? "const int32_t len = P->len;" : "const len = P.len;");
 		Line(C ? "uint16_t c = 0;" : "let c = 0;");
+		Step();
 
 		foreach (var slot in Slots(function.Body).Distinct().OrderBy(static slot => slot.Index))
 		{
@@ -634,7 +657,7 @@ sealed class SlicePrinter
 				Line(Flag(read));
 
 				if (choice.Resumable)
-					Line(Int(way, Runtime("enter", last.ToString(CultureInfo.InvariantCulture))));
+					Line(Int(way, Enter(last.ToString(CultureInfo.InvariantCulture))));
 
 				for (var i = 0; i <= last; i++)
 				{
@@ -680,6 +703,10 @@ sealed class SlicePrinter
 				Line(Int(turns, "0"));
 				Line($"while ({turns} < {most})");
 				Line("{");
+
+				if (_counted)
+					Line(C ? "\tP->kSteps++;" : "\tP.kSteps++;");
+
 				Line($"\tif (p >= len) {{ {Refuse("p", set.Expected)} break; }}");
 				Line($"\tc = {Unit("p")};");
 				Line($"\tif (!{Within(set)}) {{ {Refuse("p", set.Expected)} break; }}");
@@ -713,6 +740,7 @@ sealed class SlicePrinter
 				Line($"while ({turns} < {most})");
 				Line("{");
 				_indent++;
+				Step();
 				Line(Int(start, "p"));
 				Line(Flag(read));
 
@@ -721,7 +749,7 @@ sealed class SlicePrinter
 					Line(Int(way, "-1"));
 					Line($"if ({turns} >= {least})");
 					Line("{");
-					Line($"\t{way} = {Runtime("enter", "1")};");
+					Line($"\t{way} = {Enter("1")};");
 					Line($"\tif ({Decision(way)} == 1) break;");
 					Line("}");
 				}
@@ -979,6 +1007,9 @@ sealed class SlicePrinter
 		Line("let c = 0;");
 		Line("let st = I[b];");
 
+		if (_counted)
+			Line("if (st == 0) P.kSteps++;");
+
 		foreach (var (slot, place) in _places.OrderBy(static pair => pair.Key.Index))
 			Line($"// {place}: {slot.Name}{(slot.Type is null ? "" : " : " + slot.Type)}");
 
@@ -1083,7 +1114,7 @@ sealed class SlicePrinter
 				Line($"{start} = p;");
 
 				if (choice.Resumable)
-					Line($"{way} = {Runtime("enter", last.ToString(CultureInfo.InvariantCulture))};");
+					Line($"{way} = {Enter(last.ToString(CultureInfo.InvariantCulture))};");
 
 				for (var i = 0; i <= last; i++)
 				{
@@ -1153,6 +1184,7 @@ sealed class SlicePrinter
 				Line($"{least} = {Expression(repeat.Min)};");
 				Line($"{most} = {(repeat.Max is null ? "2147483647" : Expression(repeat.Max))};");
 				Place(again);
+				Step();
 				Line($"if ({turns} >= {most}) {Jump(done)}");
 				Line($"{start} = p;");
 
@@ -1161,7 +1193,7 @@ sealed class SlicePrinter
 					Line($"{way} = -1;");
 					Line($"if ({turns} >= {least})");
 					Line("{");
-					Line($"\t{way} = {Runtime("enter", "1")};");
+					Line($"\t{way} = {Enter("1")};");
 					Line($"\tif ({Decision(way)} == 1) {Jump(done)}");
 					Line("}");
 				}

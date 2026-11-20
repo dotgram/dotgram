@@ -57,6 +57,11 @@ typedef struct Parser
 	int32_t *ways;
 	int32_t  waysSize, count, cursor, retries;
 
+	/* What a parser printed to count writes: functions entered and turns begun, decisions opened
+	   or read back, turns gone straight to, host calls. A parser printed to be timed never
+	   touches them. */
+	int64_t kSteps, kEntered, kJumps, kHost;
+
 	Chunk *arena;
 } Parser;
 
@@ -110,6 +115,10 @@ static inline void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 	P->count        = 0;
 	P->cursor       = 0;
 	P->retries      = 0;
+	P->kSteps       = 0;
+	P->kEntered     = 0;
+	P->kJumps       = 0;
+	P->kHost        = 0;
 }
 
 static inline void rt_refuse(Parser *P, int32_t at, int32_t expected)
@@ -145,6 +154,13 @@ static inline int32_t rt_enter(Parser *P, int32_t last)
 	P->cursor = P->count;
 
 	return P->count - 1;
+}
+
+static inline int32_t rt_enterCounted(Parser *P, int32_t last)
+{
+	P->kEntered++;
+
+	return rt_enter(P, last);
 }
 
 static inline void rt_next(Parser *P, int32_t way, int32_t value)

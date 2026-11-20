@@ -7,7 +7,13 @@ namespace DotGram.Ir.Prototype;
 /// <summary>The fixtures and the inputs each is read on, for every test that reads them all.</summary>
 static class Cases
 {
-	public sealed record Fixture(string Grammar, Type Parser, string Entry, Func<IrFragment, object?[], bool>? Guards = null);
+	/// <param name="Defers">
+	/// Whether the generated parser reads some of the refused inputs partly unbuilt — a repetition
+	/// gave a way back twice, and it stops building until a reading stands — so that it makes fewer
+	/// host calls on them than an evaluator that builds throughout: their calls are held to the C#
+	/// parser's only where the input is accepted.
+	/// </param>
+	public sealed record Fixture(string Grammar, Type Parser, string Entry, Func<IrFragment, object?[], bool>? Guards = null, bool Defers = false);
 
 	public static readonly Dictionary<string, Fixture> Fixtures = new(StringComparer.Ordinal)
 	{
@@ -26,6 +32,16 @@ static class Cases
 		["Rebinding"]             = new(Grammars.Rebinding,             typeof(RebindingParser),             "ParseStart"),
 		["Look"]                  = new(Grammars.Look,                  typeof(LookParser),                  "ParseStart"),
 		["Csv"]                   = new(Grammars.Csv,                   typeof(CsvParser),                   "ParseFile",  static (_, arguments) => ((string)arguments[0]!).Length <= 16),
+		["ListsInSequence"]       = new(Grammars.ListsInSequence,       typeof(ListsInSequenceParser),       "ParseStart"),
+		["ListRuleTwice"]         = new(Grammars.ListRuleTwice,         typeof(ListRuleTwiceParser),         "ParseStart", Defers: true),
+		["NestedSettled"]         = new(Grammars.NestedSettled,         typeof(NestedSettledParser),         "ParseStart", Defers: true),
+		["Throwing"]              = new(Grammars.Throwing,              typeof(ThrowingParser),              "ParseStart", Defers: true),
+		["GivenBackTwice"]        = new(Grammars.GivenBackTwice,        typeof(GivenBackTwiceParser),        "ParseStart", Defers: true),
+		["Arithmetic"]            = new(Grammars.Arithmetic,            typeof(ArithmeticParser),            "ParseExpr"),
+		["Config"]                = new(Grammars.Config,                typeof(ConfigParser),                "ParseFile"),
+		["SettledBefore"]         = new(Grammars.SettledBefore,         typeof(SettledBeforeParser),         "ParseStart", Defers: true),
+		["SealedBefore"]          = new(Grammars.SealedBefore,          typeof(SealedBeforeParser),          "ParseStart", Defers: true),
+		["CalledBefore"]          = new(Grammars.CalledBefore,          typeof(CalledBeforeParser),          "ParseStart", Defers: true),
 		["Json"]                  = new(Grammars.Json,                  typeof(JsonTwinParser),              "ParseJson"),
 	};
 
@@ -64,6 +80,16 @@ static class Cases
 		Add("Rebinding",             "", "aa", "aabb", "aab", "abab");
 		Add("Look",                  "ab", "abc", "a", "");
 		Add("Csv",                   "", "a,1\n", "a,1\nbb,22\n", "a,1", "a,\n", "abcdefghijklmnopq,1\n", "a,1\nb;2\n", "a,1\r\nb,2\r");
+		Add("ListsInSequence",       "xyyxy", "xyy", "y", "", "xyxy", "xyxyyxyx", "xyyxyz", "xxyxx", "xyxyxyy");
+		Add("ListRuleTwice",         "xyyxy", "xyy", "y", "", "xyxy", "xyxyyxyx", "xyyxyz", "xxyxx", "xyxyxyy");
+		Add("NestedSettled",         "a", "1;a", "12;34;a,b", "12;34;a,b!", ";;;ab", "1;2a", "12;;3;abc,d", "12;34;a,b,c,");
+		Add("Throwing",              "a", "1:a", "1:2:3a,b", "1:2:3a,b!", "1:2:ab,c", "12:a", "1:2:a,b,");
+		Add("GivenBackTwice",        "ab", "abc", "a,b,c,d", "abcde", "abc!", "a,b,c!", "a", "a,b");
+		Add("Arithmetic",            "1", "(1^0^4)^1/", "(1^0^4)^1", "1+2*3^4^5-(6/7)", "1+", "1*2/", "((1)", "2^", "1+2+3+4+", "(1+(2*(3^(4)))");
+		Add("Config",                "", "k=ab;", "k=ab;j=ab;", "k=ab;j=ab;!", "k=ax;", "k=ab;j=a", "k=;", "k=ab;j=ax;i=ab;");
+		Add("SettledBefore",         "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");
+		Add("SealedBefore",          "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");
+		Add("CalledBefore",          "a", "  a", "   a,b,c", "  a,b!", " b,", "   ", "a,b,c,", " a ");
 		Add("Json",                  "1", " [1, 2 ,{\"a\":null}] ", "{}", "[]", "[1,]", "{\"a\" 1}", "tru", "\"\\u12G4\"", "[[[", "01", "1e", "-", "{\"a\":[true,false,{\"b\":\"\\n\"}]}");
 
 		return data;
