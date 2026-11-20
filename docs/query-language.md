@@ -79,7 +79,7 @@ select id, status, net
   | `let <name> = <value>` | adds a named value to the row |
   | `select <value> [as <name>], …` or `select *` | replaces the row with these columns; after it only they can be named |
   | `order by <value> [asc \| desc] [nulls first \| nulls last], …` | sorts; a second `order by` sorts again |
-  | `skip <count>`, `take <count>` | pages; a count is a number or a parameter |
+  | `skip <count>`, `take <count>` | pages, where the query's paging belongs; a count is a number or a parameter |
 
 - **Values**: the entity's fields, by name or after the alias (`o.total`); names of `let`s and
   `select` columns; parameters `@name`; numbers, which take the type of what they meet (`total > 1.5`);
@@ -167,8 +167,9 @@ or `[{…},…]`; with no rows, `"rows":[]` or `[]`.
 
 The JSON is written while the provider reads each row, from the values as it reads them, with no
 boxing and no object between the reader and the text: one string a row. `Count()` and `Any()` may
-follow `QueryJsonRow`; a `Where` or an `OrderBy` over the JSON text cannot be translated and
-throws, and `Distinct` or `Union` compare the columns the provider reads, not the text.
+follow `QueryJsonRow`; paging belongs in the query text (`skip`, `take`). A `Where` or an `OrderBy`
+over the JSON text cannot be translated and throws, and `Distinct` or `Union` compare the columns the
+provider reads, not the text.
 `ToJsonAsync` reads through the provider's `IAsyncEnumerable` where it has one, and holds the whole
 document in memory.
 
