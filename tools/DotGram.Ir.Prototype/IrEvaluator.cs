@@ -201,6 +201,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// </summary>
 	public bool AnyOwner { get; init; }
 
+	/// <summary>
+	/// Whether the reading builds throughout, where the plan says a loop that asks for another
+	/// reading stops building after its second give-back (<see cref="IrStmt.Replay.Defers"/>):
+	/// what a reading is held to where the reading it is compared with does not defer.
+	/// </summary>
+	public bool BuildsThroughout { get; init; }
+
 	/// <summary>How many times a replay went straight to a turn of a repetition.</summary>
 	public long Jumps { get; private set; }
 
@@ -254,6 +261,22 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			throw new IrContractViolation("A sentinel found a record that is not its own.");
 
 		return found;
+	}
+
+	/// <summary>
+	/// Whether a record can stand for what the reading would do: one made while building can, in
+	/// any reading — a reading that builds nothing reads no slot a record restores, but those its
+	/// guards read, which are filled alike; one made unbuilt only in a reading that builds nothing.
+	/// </summary>
+	bool Usable(Kept kept)
+	{
+		return kept.Unbuilt == 0 || _unbuilt > 0;
+	}
+
+	/// <summary>Whether a record of the key can go on the stack without breaking its order.</summary>
+	bool Fits(int key)
+	{
+		return _kept.Count == 0 || _kept[^1].Key <= key;
 	}
 
 	void Record(Kept kept)
@@ -322,7 +345,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			Sentinels++;
 			_heads[sentinel] = -1;
 		}
-		else if (Head(sentinel, stmt) is { IsEnd: true } found && found.Unbuilt == _unbuilt)
+		else if (Head(sentinel, stmt) is { IsEnd: true } found && Usable(found))
 		{
 			_p          = found.Position;
 			Ways.Cursor = found.Key;
@@ -334,7 +357,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 		var read = ExecInner(stmt, frame);
 
-		if (Ways.Cursor < Ways.Count && Head(sentinel, stmt) is null)
+		// Kept once a reading; again only where what was kept was made unbuilt and this reading builds.
+		if (Ways.Cursor < Ways.Count && Head(sentinel, stmt) is var head && (head is null || !Usable(head) && Fits(Ways.Cursor)))
 		{
 			var (held, counts) = Hold(frame, writes);
 
@@ -667,7 +691,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						Sentinels++;
 						_heads[owner] = -1;
 					}
-					else if (Head(owner, repeat) is { } found && found.Unbuilt == _unbuilt)
+					else if (Head(owner, repeat) is { } found && Usable(found))
 					{
 						// Every decision read before the place kept is still on the tape, so the
 						// reading goes on from there: past the whole repetition, or from a turn.
@@ -700,7 +724,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					{
 						var latest = Head(owner, repeat);
 
-						if (latest is null || !latest.IsEnd && latest.Turns < turns)
+						if (latest is null || !latest.IsEnd && latest.Turns < turns || !Usable(latest) && Fits(Ways.Cursor))
 						{
 							var (held, counts) = Hold(frame, repeat.Resets);
 
@@ -740,7 +764,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 				var read = turns >= min;
 
-				if (owner >= 0 && Ways.Cursor < Ways.Count && Head(owner, repeat) is not { IsEnd: true })
+				if (owner >= 0 && Ways.Cursor < Ways.Count && Head(owner, repeat) is var last && (last is not { IsEnd: true } || !Usable(last) && Fits(Ways.Cursor)))
 				{
 					var (held, counts) = Hold(frame, repeat.Resets);
 
@@ -762,7 +786,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 				try
 				{
-					read = Sealed(look.Body, frame, look.Resets, kept);
+					read = Sealed(look.Body, frame, look.Resets, kept, defers: false);
 				}
 				finally
 				{
@@ -785,27 +809,48 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			{
 				var kept = Keep(frame, commit.Resets);
 
-				return Sealed(commit.Body, frame, commit.Resets, kept);
+				return Sealed(commit.Body, frame, commit.Resets, kept, commit.Defers);
 			}
 
 			case IrStmt.Replay replay:
 			{
-				var start   = _p;
-				var segment = Ways.Cursor;
+				var start    = _p;
+				var segment  = Ways.Cursor;
+				var deferral = new Deferral();
 
 				while (true)
 				{
 					_p = start;
 
 					if (Exec(replay.Body, frame))
+					{
+						if (Stood(ref deferral, segment))
+							continue;
+
 						return true;
+					}
 
 					if (!(Ways.Cursor > segment && Ways.Retry(segment)))
+					{
+						Undeferred(deferral);
+
 						return false;
+					}
 
 					Cut();
+
+					if (replay.Defers && !BuildsThroughout)
+						Retried(ref deferral);
 				}
 			}
+
+			// A reading that builds nothing takes no text and no list where only a construction would
+			// read it: a guard decides, and is handed what it reads in any reading.
+			case IrStmt.Assign { Value: IrExpr.Text or IrExpr.Items } assign when _unbuilt > 0 && !BuildsThroughout && !_sites.ReadByGuards.Contains(assign.Slot):
+				return true;
+
+			case IrStmt.Append { Value: IrExpr.Text } append when _unbuilt > 0 && !BuildsThroughout && !_sites.ReadByGuards.Contains(append.List):
+				return true;
 
 			case IrStmt.Assign assign:
 				Set(frame, assign.Slot, Eval(assign.Value, frame));
@@ -840,11 +885,12 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// A body whose decisions are nobody's but its own: they are written past everything on the
 	/// tape, the body is run again over them until it reads or they run out, and then they are gone.
 	/// </summary>
-	bool Sealed(IrStmt body, object?[] frame, IReadOnlyList<IrSlot> resets, object?[] kept)
+	bool Sealed(IrStmt body, object?[] frame, IReadOnlyList<IrSlot> resets, object?[] kept, bool defers)
 	{
-		var start  = _p;
-		var cursor = Ways.Cursor;
-		var count  = Ways.Count;
+		var start    = _p;
+		var cursor   = Ways.Cursor;
+		var count    = Ways.Count;
+		var deferral = new Deferral();
 
 		Ways.Cursor = count;
 
@@ -855,14 +901,28 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			_p = start;
 
 			if (read = Exec(body, frame))
-				break;
+			{
+				if (!Stood(ref deferral, count))
+					break;
+
+				PutBack(frame, resets, kept);
+
+				continue;
+			}
 
 			PutBack(frame, resets, kept);
 
 			if (!(Ways.Count > count && Ways.Retry(count)))
+			{
+				Undeferred(deferral);
+
 				break;
+			}
 
 			Cut();
+
+			if (defers && !BuildsThroughout)
+				Retried(ref deferral);
 		}
 
 		Ways.Count  = count;
@@ -870,6 +930,77 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		Cut();
 
 		return read;
+	}
+
+	/// <summary>
+	/// Where a loop that asks for another reading stands since it gave a way back, as the generated
+	/// parser keeps it: 0 building, as every loop begins; 1 building still, one way given back; 2
+	/// reading unbuilt, the count raised by this loop; 3 reading once more, built, the attempt that
+	/// stood — with what was refused kept from before that reading, to be put back after it.
+	/// </summary>
+	struct Deferral
+	{
+		public int State;
+
+		public int RefusedAt;
+
+		public int[]? Refused;
+		public int[]? Said;
+	}
+
+	/// <summary>A way given back: the first is read building still; the second, where the reading was building, stops building.</summary>
+	void Retried(ref Deferral deferral)
+	{
+		if (deferral.State == 1)
+		{
+			_unbuilt       = 1;
+			deferral.State = 2;
+		}
+		else if (deferral.State == 0 && _unbuilt == 0)
+			deferral.State = 1;
+	}
+
+	/// <summary>
+	/// An attempt stood: where it was read unbuilt, it is to be read once more from the loop's
+	/// start, building, over the decisions it took (true); where that reading has stood, what it
+	/// said of a refusal is taken back, for the attempt it read again had said it already.
+	/// </summary>
+	bool Stood(ref Deferral deferral, int segment)
+	{
+		if (deferral.State == 2)
+		{
+			deferral.RefusedAt = _refusedAt;
+			deferral.Refused   = [.. _refused];
+			deferral.Said      = [.. _said];
+			deferral.State     = 3;
+			_unbuilt           = 0;
+			Ways.Cursor        = segment;
+
+			return true;
+		}
+
+		if (deferral.State == 3)
+			Replayed(deferral);
+
+		return false;
+	}
+
+	/// <summary>A loop that ends without an answer puts back what it raised: the count, or what was refused before the reading once more.</summary>
+	void Undeferred(Deferral deferral)
+	{
+		if (deferral.State == 2)
+			_unbuilt = 0;
+		else if (deferral.State == 3)
+			Replayed(deferral);
+	}
+
+	void Replayed(Deferral deferral)
+	{
+		_refusedAt = deferral.RefusedAt;
+		_refused.Clear();
+		_refused.UnionWith(deferral.Refused!);
+		_said.Clear();
+		_said.AddRange(deferral.Said!);
 	}
 
 	static bool Within(IrStmt.MatchSet set, char unit)

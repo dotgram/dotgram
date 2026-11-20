@@ -62,25 +62,34 @@ sealed partial class IrLowering
 	/// <summary>The write decisions of every machine of the plan that has readers.</summary>
 	readonly IReadOnlyList<WriteDecisions> _decisions;
 
-	IrLowering(RecognitionGraph graph, Options options, IReadOnlyList<WriteDecisions> decisions)
+	/// <summary>Where the readers of every machine of the plan stop building after a second give-back.</summary>
+	readonly IReadOnlyList<DeferralPlan> _deferrals;
+
+	IrLowering(RecognitionGraph graph, Options options, IReadOnlyList<WriteDecisions> decisions, IReadOnlyList<DeferralPlan> deferrals)
 	{
 		_graph     = graph;
 		_options   = options;
 		_follow    = FollowSets.Of(graph);
 		_decisions = decisions;
+		_deferrals = deferrals;
 	}
 
 	/// <summary>The rules the publications reach, lowered, asking the generator's plan of the graph.</summary>
 	public static IrProgram Lower(RecognitionGraph graph, Options? options = null)
 	{
-		return Lower(graph, options, everyRule: false, Planned(graph));
+		var machines = PlannedMachines(graph);
+
+		return Lower(graph, options, everyRule: false,
+			[.. machines.Select(static machine => machine.Writes).OfType<WriteDecisions>()],
+			[.. machines.Select(static machine => machine.Deferral).OfType<DeferralPlan>()]);
 	}
 
 	/// <param name="everyRule">Every rule of the graph that has a body, reached or not: what a measurement of the lowering asks.</param>
 	/// <param name="decisions">What the plan decided about ways on the tape (<see cref="Planned"/>); empty asks every node of the lowering's own proofs.</param>
-	public static IrProgram Lower(RecognitionGraph graph, Options? options, bool everyRule, IReadOnlyList<WriteDecisions> decisions)
+	/// <param name="deferrals">Where the plan's readers stop building after a second give-back; empty, nowhere.</param>
+	public static IrProgram Lower(RecognitionGraph graph, Options? options, bool everyRule, IReadOnlyList<WriteDecisions> decisions, IReadOnlyList<DeferralPlan>? deferrals = null)
 	{
-		var lowering = new IrLowering(graph, options ?? new Options(), decisions);
+		var lowering = new IrLowering(graph, options ?? new Options(), decisions, deferrals ?? []);
 
 		lowering.Run(everyRule);
 
@@ -93,13 +102,55 @@ sealed partial class IrLowering
 	/// </summary>
 	public static IReadOnlyList<WriteDecisions> Planned(RecognitionGraph graph)
 	{
+		return [.. PlannedMachines(graph).Select(static machine => machine.Writes).OfType<WriteDecisions>()];
+	}
+
+	/// <summary>The machines of the generator's plan of the graph.</summary>
+	static IReadOnlyList<MachinePlan> PlannedMachines(RecognitionGraph graph)
+	{
 		var context = new EmitContext { Diagnostics = new List<GramDiagnostic>() };
 
 		CSharpEmitter.Emit(graph, new GramCompilerOptions(), context);
 
-		return [.. (context.Plan ?? throw new InvalidOperationException("The generator made no plan of the graph.")).Machines
-			.Select(static machine => machine.Writes)
-			.OfType<WriteDecisions>()];
+		return [.. (context.Plan ?? throw new InvalidOperationException("The generator made no plan of the graph.")).Machines];
+	}
+
+	/// <summary>
+	/// Whether a loop of a rule that asks for another reading stops building after its second
+	/// give-back, as the readers that read the rule decide it; no where none of them read it or
+	/// where they do not agree, a miss counted (<see cref="IrProgram.DeferralMisses"/>).
+	/// </summary>
+	bool DefersAt(RuleSymbol owner, RetrySite site)
+	{
+		bool? agreed = null;
+
+		foreach (var deferral in _deferrals)
+		{
+			bool answer;
+
+			try
+			{
+				answer = deferral.DefersOnGiveBack && deferral.Excluded(owner, site) is null;
+			}
+			catch (InvalidOperationException)
+			{
+				continue;
+			}
+
+			if (agreed is { } other && other != answer)
+			{
+				_program.DeferralMisses++;
+
+				return false;
+			}
+
+			agreed = answer;
+		}
+
+		if (agreed is null && _deferrals.Count > 0)
+			_program.DeferralMisses++;
+
+		return agreed ?? false;
 	}
 
 	/// <summary>
@@ -194,7 +245,7 @@ sealed partial class IrLowering
 				]
 				: [new IrStmt.Call(read, value, false), new IrStmt.MatchEnd(Expect("end of input"))]));
 
-			entry.Body      = read.Decides ? new IrStmt.Replay(body) : body;
+			entry.Body      = read.Decides ? new IrStmt.Replay(body) { Defers = DefersAt(publication.Rule, RetrySite.Entry) } : body;
 			entry.Result    = value;
 			entry.SlotCount = 2;
 			entry.Decides   = false;
@@ -434,7 +485,7 @@ sealed partial class IrLowering
 
 				assigned.UnionWith(inside);
 
-				return new IrStmt.Commit(body, Resets(inside));
+				return new IrStmt.Commit(body, Resets(inside)) { Defers = DefersAt(_rule, RetrySite.Atomic) };
 			}
 
 			case Node.Repeat repeat when _graph.Recoveries.ContainsKey(repeat):
@@ -717,9 +768,9 @@ sealed partial class IrLowering
 			}
 		}
 
-		foreach (var function in _program.Functions)
+		foreach (var (rule, function) in _functions)
 			if (function.Decides)
-				function.Body = new IrStmt.Replay(function.Body);
+				function.Body = new IrStmt.Replay(function.Body) { Defers = DefersAt(rule, RetrySite.Rule) };
 
 		_program.Fragments.Sort(static (one, other) => one.Id.CompareTo(other.Id));
 	}
