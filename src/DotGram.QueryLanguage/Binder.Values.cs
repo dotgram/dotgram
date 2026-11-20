@@ -467,7 +467,9 @@ sealed partial class Binder
 			if (member.Arguments is not null)
 				throw Error(QlErrorCode.Type, $"`{target.Name.Text}.{member.Name.Text}` is a field, not a call.", member.Name.Position);
 
-			var field = _entity.Find(member.Name.Text) ?? throw Unknown(member.Name.Text, member.Name.Position, target.Name.Text);
+			var field = _entity.Find(member.Name.Text) is { } found && Allowed(found, member.Name)
+				? found
+				: throw Unknown(member.Name.Text, member.Name.Position, target.Name.Text);
 
 			return new BoundField(field, member.Name.Text, member.Name.Position, target.Name.Text);
 		}

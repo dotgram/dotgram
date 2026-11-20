@@ -172,6 +172,31 @@ public sealed class BinderTests
 		Assert.Equal((absent.Code, absent.Position, absent.Message.Replace("nosuch", name)), (error.Code, error.Position, error.Message));
 	}
 
+	/// <summary>
+	/// A field without its right fails where it is named, before any error of type the text also has, exactly as a field
+	/// the model does not have would — including through a `let` whose use comes after the error. (A field used where
+	/// it has its right, `let s = salary where s.Year > 1`, may tell its type: that is not this case.)
+	/// </summary>
+	[Theory]
+	[InlineData("from orders where rank == 'x' select id")]
+	[InlineData("from orders where rank.Length > 1 select id")]
+	[InlineData("from orders order by note + 1 select id")]
+	[InlineData("from orders select rank + 'a' as r")]
+	[InlineData("from orders let s = salary select s.Year as y")]
+	[InlineData("from orders where rank in (1, 'a') select id")]
+	[InlineData("from orders let x = salary where 1 == 'a' select x")]
+	[InlineData("from orders o let x = o.rank + 1 select x, o.id where x == 'a'")]
+	[InlineData("from orders select id, note as n select * order by n.Length")]
+	public void ANoRightIsAnUnknownNameBeforeATypeError(string text)
+	{
+		var name    = new[] { "salary", "note", "rank" }.First(n => text.Contains(n, StringComparison.Ordinal));
+		var error   = Refused(text);
+		var absent  = Refused(text.Replace(name, "nosuch"), Without);
+
+		Assert.Equal(QlErrorCode.UnknownName, error.Code);
+		Assert.Equal((absent.Code, absent.Position, absent.Message.Replace("nosuch", name)), (error.Code, error.Position, error.Message));
+	}
+
 	[Fact]
 	public void TheErrorSpellsTheNameAsTheTextDoes()
 	{

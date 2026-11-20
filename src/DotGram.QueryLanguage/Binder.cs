@@ -53,6 +53,7 @@ sealed partial class Binder
 	BoundQuery BindQuery(QuerySyntax query)
 	{
 		_qualifier = query.Alias?.Text ?? _entity.Name;
+		_needs     = RightsPlan.Of(query, _qualifier);
 
 		if (query.Alias is { } alias && _entity.Find(alias.Text) is { } field)
 			throw Error(QlErrorCode.Syntax, $"`{field.Name}` is a field of `{_entity.Name}`: choose another alias.", alias.Position);
@@ -418,10 +419,22 @@ sealed partial class Binder
 		if (Names.Comparer.Equals(name.Text, _qualifier))
 			throw Error(QlErrorCode.Type, $"`{name.Text}` is the entity: use one of its fields, `{name.Text}.name`.", name.Position);
 
-		if (_entity.Find(name.Text) is { } field)
+		if (_entity.Find(name.Text) is { } field && Allowed(field, name))
 			return new BoundField(field, name.Text, name.Position, null);
 
 		throw Unknown(name.Text, name.Position, null);
+	}
+
+	/// <summary>The rights each field the text names needs where it stands, known before anything is bound.</summary>
+	Dictionary<NameSyntax, QlUse> _needs = [];
+
+	/// <summary>
+	/// Whether <paramref name="field"/> has every right the text needs of it at <paramref name="name"/>. Asked where
+	/// the field is resolved, so that a field without its right fails there, as a field the model lacks would.
+	/// </summary>
+	bool Allowed(ModelField field, NameSyntax name)
+	{
+		return !_needs.TryGetValue(name, out var needs) || (field.Use & needs) == needs;
 	}
 
 	/// <summary>
