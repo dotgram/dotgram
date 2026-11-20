@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -57,6 +57,9 @@ static class RowCap
 		Case("take 2 skip 3 alone (no cap)", Final(Chain.Skip(Chain.Take(Ordered(db), 2), 3)), 0);
 		Case("take @2 skip @3 + Take(MaxRows) (values)", Final(Chain.Take(Chain.Skip(Chain.Take(Ordered(db), two), three), MaxRows)), 0);
 		Case("take 2 skip 3 without order by + Take(MaxRows)", Final(Chain.Take(Chain.Skip(Chain.Take(db.Orders, 2), 3), MaxRows)), 0);
+		Case("take 2 where id > 0 skip 3 + Take(MaxRows)", Final(Chain.Take(Chain.Skip(Chain.Where(Chain.Take(Ordered(db), 2), r => Expression.GreaterThan(Expression.Property(r, nameof(Order.Id)), Expression.Constant(0))), 3), MaxRows)), 0);
+		Case("take 2 order by id desc skip 3 + Take(MaxRows)", Final(Chain.Take(Chain.Skip(Chain.OrderBy(Chain.Take(Ordered(db), 2), r => Expression.Property(r, nameof(Order.Id)), descending: true), 3), MaxRows)), 0);
+		Case("take 2 skip 2 + Take(MaxRows)", Final(Chain.Take(Chain.Skip(Chain.Take(Ordered(db), 2), 2), MaxRows)), 0);
 		Case("take 5 skip 3 + Take(MaxRows)", Final(Chain.Take(Chain.Skip(Chain.Take(Ordered(db), 5), 3), MaxRows)), 2);
 		Case("skip 3 take 1000 + Take(MaxRows)", Final(Chain.Take(Chain.Take(Chain.Skip(Ordered(db), 3), 1000), MaxRows)), MaxRows);
 		Case("take 1000 + Take(MaxRows)", Final(Chain.Take(Chain.Take(Ordered(db), 1000), MaxRows)), MaxRows);
@@ -71,6 +74,10 @@ static class RowCap
 		Case("C#: OrderBy(Id).Take(2).Skip(3).Take(MaxRows)", db.Orders.OrderBy(o => o.Id).Take(2).Skip(3).Take(MaxRows).Select(o => new object?[] { o.Id }), 0);
 		Case("C#: OrderBy(Id).Take(MaxRows).Skip(MaxRows + 5).Take(10)", db.Orders.OrderBy(o => o.Id).Take(MaxRows).Skip(MaxRows + 5).Take(10).Select(o => new object?[] { o.Id }), 0);
 		Case("C#: OrderBy(Id).Take(MaxRows).Skip(10)", db.Orders.OrderBy(o => o.Id).Take(MaxRows).Skip(10).Select(o => new object?[] { o.Id }), MaxRows - 10);
+
+		// A projection between the cap and the host's paging: the library's final Select sits exactly there.
+		Case("C#: Take(MaxRows).Select(new object[]).Skip(10).Take(5)", db.Orders.OrderBy(o => o.Id).Take(MaxRows).Select(o => new object?[] { o.Id }).Skip(10).Take(5), 5);
+		Case("C#: Take(MaxRows).Select(o => new { o.Id }).Skip(48).Take(5)", db.Orders.OrderBy(o => o.Id).Take(MaxRows).Select(o => new { o.Id }).Skip(48).Take(5).Select(x => new object?[] { x.Id }), 2);
 
 		var pagedCapped = Final(Chain.Take(Chain.Skip(Chain.Take(Ordered(db), 2), 3), MaxRows));
 

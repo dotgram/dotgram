@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -54,7 +54,7 @@ static class Shapes
 		{
 			null             => "null",
 			bool b           => b ? "true" : "false",
-			string s         => JsonSerializer.Serialize(s),
+			string s         => "\"" + s + "\"",
 			DateTime d       => "\"" + d.ToString("O", CultureInfo.InvariantCulture) + "\"",
 			DateTimeOffset d => "\"" + d.ToString("O", CultureInfo.InvariantCulture) + "\"",
 			Guid g           => "\"" + g.ToString("D") + "\"",
@@ -69,7 +69,7 @@ static class Shapes
 	{
 		using var document = JsonDocument.Parse(row);
 
-		return document.RootElement.EnumerateArray().Select(e => e.ValueKind == JsonValueKind.String ? JsonSerializer.Serialize(e.GetString()) : e.GetRawText()).ToList();
+		return document.RootElement.EnumerateArray().Select(e => e.ValueKind == JsonValueKind.String ? "\"" + e.GetString() + "\"" : e.GetRawText()).ToList();
 	}
 
 	public static long StringBytes(string s)
@@ -182,7 +182,7 @@ static class JsonChain
 	{
 		Out.Sub("typed reads: the reader calls in linq2db's mapper for the 18 kinds");
 
-		var mappers = new List<string>();
+		var mappers = new List<Expression>();
 
 		var options = Provider.Options()
 			.UseTraceMapperExpression(true)
@@ -192,7 +192,7 @@ static class JsonChain
 				{
 					lock (mappers)
 					{
-						mappers.Add(info.MapperExpression.ToString());
+						mappers.Add(info.MapperExpression);
 					}
 				}
 			});
@@ -212,18 +212,56 @@ static class JsonChain
 			return;
 		}
 
-		var mapper = mappers[^1];
-		var calls  = Regex.Matches(mapper, @"\.(Get\w+|IsDBNull)\(").Select(m => m.Groups[1].Value).GroupBy(c => c).Select(g => $"{g.Key}×{g.Count()}");
+		var calls = new Calls();
 
-		Out.Line("reader calls: " + string.Join(", ", calls));
+		calls.Visit(mappers[^1]);
+
+		var reader = calls.Names.Where(n => n.Contains("Reader", StringComparison.Ordinal) || n.StartsWith("SqliteDataReader", StringComparison.Ordinal) || n.StartsWith("SqlDataReader", StringComparison.Ordinal)).GroupBy(n => n).Select(g => $"{g.Key}×{g.Count()}").ToList();
+		var ours   = calls.Names.Where(n => n.StartsWith("QlJson.", StringComparison.Ordinal)).GroupBy(n => n).Select(g => $"{g.Key}×{g.Count()}").ToList();
+		var other  = calls.Names.Where(n => !n.Contains("Reader", StringComparison.Ordinal) && !n.StartsWith("QlJson.", StringComparison.Ordinal)).GroupBy(n => n).Select(g => $"{g.Key}×{g.Count()}").ToList();
+
+		Out.Line("reader calls: " + string.Join(", ", reader));
+		Out.Line("QlJson calls: " + string.Join(", ", ours));
+		Out.Line("other calls: " + string.Join(", ", other));
+
+		var view = (string)typeof(Expression).GetProperty("DebugView", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(mappers[^1])!;
+
 		Out.Line("```");
-		Out.Line(mapper.Length > 6000 ? mapper[..6000] + " …" : mapper);
+		Out.Line(view.Length > 8000 ? view[..8000] + " …" : view);
 		Out.Line("```");
 
-		var getValue = Regex.Matches(mapper, @"\.GetValue\(").Count;
+		// How the object format's name constants reach the mapper.
+		mappers.Clear();
+		Out.Clear();
 
-		Out.Verdict("typed reads (no GetValue) for the 18 kinds", getValue == 0, $"GetValue×{getValue}; {string.Join(", ", calls)}");
-		Out.Verdict("QlJson (internal) is called by the compiled mapper", mapper.Contains("StartArray", StringComparison.Ordinal) && mapper.Contains("EndArray", StringComparison.Ordinal), "StartArray/EndArray in the mapper", stop: true);
+		((IQueryable<string>)Chain.Select(Shapes.Ordered(db), o => Json.Row(Shapes.P(o, "Id"), Shapes.Columns(o, ["Id", "Customer", "Total"]), asObject: true))).ToList();
+
+		if (mappers.Count > 0)
+		{
+			var objectView = (string)typeof(Expression).GetProperty("DebugView", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(mappers[^1])!;
+
+			Out.Line("mapper of the object format, 3 columns:");
+			Out.Line("```");
+			Out.Line(objectView.Length > 8000 ? objectView[..8000] + " …" : objectView);
+			Out.Line("```");
+		}
+
+		var getValue = calls.Names.Count(n => n.EndsWith(".GetValue", StringComparison.Ordinal));
+
+		Out.Verdict("typed reads (no GetValue) for the 18 kinds", getValue == 0 && reader.Count > 0, $"GetValue×{getValue}; {string.Join(", ", reader)}");
+		Out.Verdict("QlJson (internal) is called by the compiled mapper", ours.Any(o => o.StartsWith("QlJson.StartArray", StringComparison.Ordinal)) && ours.Any(o => o.StartsWith("QlJson.EndArray", StringComparison.Ordinal)), string.Join(", ", ours), stop: true);
+	}
+
+	sealed class Calls : ExpressionVisitor
+	{
+		public readonly List<string> Names = [];
+
+		protected override Expression VisitMethodCall(MethodCallExpression node)
+		{
+			Names.Add(node.Method.DeclaringType!.Name + "." + node.Method.Name);
+
+			return base.VisitMethodCall(node);
+		}
 	}
 
 	/// <summary>Bytes per row a JSON shape allocates beyond its result strings and a typed read of the same columns.</summary>
@@ -470,6 +508,18 @@ static class HostOperators
 		var json  = Shapes.JsonRows(Shapes.Ordered(db), o => Shapes.P(o, "Id"), o => Shapes.Columns(o, ["Id", "Customer", "Status"]));
 		var other = Shapes.JsonRows(Shapes.Ordered(db), o => Shapes.P(o, "Id"), o => Shapes.Columns(o, ["Qty", "Customer", "Status"]));
 		var all   = json.ToList();
+		var all2  = other.ToList();
+
+		Out.Line("SQL of Skip(195), Distinct(), Concat(other):");
+		Out.Sql(json.Skip(195));
+		Out.Sql(json.Distinct());
+		Out.Sql(json.Concat(other));
+		Out.Line("");
+
+		static bool SameBag(IEnumerable<string> a, IEnumerable<string> b)
+		{
+			return a.OrderBy(x => x, StringComparer.Ordinal).SequenceEqual(b.OrderBy(x => x, StringComparer.Ordinal));
+		}
 
 		Out.Line("| operator | result | rows printed |");
 		Out.Line("|---|---|---:|");
@@ -493,7 +543,8 @@ static class HostOperators
 			}
 			else if (result is List<string> rows)
 			{
-				var bad = rows.Where(r => Out.Try(() => Shapes.Elements(r)) != null || Shapes.Elements(r).Count != 3).ToList();
+				// A host projection of its own (s + "!") is the host's text; strip it before checking the row.
+				var bad = rows.Select(r => r.EndsWith('!') ? r[..^1] : r).Where(r => Out.Try(() => Shapes.Elements(r)) != null || Shapes.Elements(r).Count != 3).ToList();
 
 				glued |= bad.Count > 0;
 				shown  = $"{rows.Count} rows: {string.Join(" ", rows.Take(2))}{(bad.Count > 0 ? " — MALFORMED: " + bad[0] : "")}";
@@ -522,15 +573,31 @@ static class HostOperators
 		Case("Count()", () => json.Count(), r => (int)r == all.Count, false);
 		Case("Any()", () => json.Any(), r => (bool)r, false);
 		Case("First()", () => json.First(), r => (string)r == all[0], false);
-		Case("Distinct()", () => json.Distinct().ToList(), r => ((List<string>)r).OrderBy(x => x, StringComparer.Ordinal).SequenceEqual(all.OrderBy(x => x, StringComparer.Ordinal)), true);
+		Case("Distinct()", () => json.Distinct().ToList(), r => SameBag((List<string>)r, all.Distinct()), true);
 		Case("Where(s => s.Contains(\"c1\"))", () => json.Where(s => s.Contains("c1")).ToList(), r => ((List<string>)r).SequenceEqual(all.Where(s => s.Contains("c1"))), true);
 		Case("Where(s => s.Length > 10)", () => json.Where(s => s.Length > 10).ToList(), r => ((List<string>)r).SequenceEqual(all.Where(s => s.Length > 10)), true);
 		Case("OrderBy(s => s)", () => json.OrderBy(s => s).ToList(), r => ((List<string>)r).Count == all.Count, true);
-		Case("Concat(other)", () => json.Concat(other).ToList(), r => ((List<string>)r).Count == all.Count * 2, true);
-		Case("Union(other)", () => json.Union(other).ToList(), r => ((List<string>)r).Count <= all.Count * 2, true);
+		Case("Concat(other)", () => json.Concat(other).ToList(), r => SameBag((List<string>)r, all.Concat(all2)), true);
+		// SQL's UNION compares the selected columns, the anchor among them, not the printed text.
+		Case("Union(other)", () => json.Union(other).ToList(), r => SameBag((List<string>)r, all.Select((x, i) => (i, x)).Union(all2.Select((x, i) => (i, x))).Select(t => t.x)), true);
+		Out.Line($"(Union of the printed text would give {all.Union(all2).Count()} rows: the set key is the SQL columns, anchor included)");
 		Case("GroupBy(s => s).Select(g => g.Key)", () => json.GroupBy(s => s).Select(g => g.Key).ToList(), r => ((List<string>)r).Count == all.Count, true);
-		Case("Select(s => s + \"!\")", () => json.Select(s => s + "!").ToList(), r => ((List<string>)r).Count == all.Count, true);
+		Case("Select(s => s + \"!\")", () => json.Select(s => s + "!").ToList(), r => ((List<string>)r).SequenceEqual(all.Select(s => s + "!")), true);
 		Case("Contains(all[0])", () => json.Contains(all[0]), r => (bool)r, true);
+
+		// With the library's cap (Take(50) before the projection), as QueryJsonRow builds it.
+		var capped    = Shapes.JsonRows(Chain.Take(Shapes.Ordered(db), 50), o => Shapes.P(o, "Id"), o => Shapes.Columns(o, ["Id", "Customer", "Status"]));
+		var cappedAll = all.Take(50).ToList();
+
+		Out.Line("");
+		Out.Line("Over the capped chain (Take(50) before the JSON projection):");
+		Out.Sql(capped.Skip(10).Take(5));
+
+		Case("capped: Skip(10)", () => capped.Skip(10).ToList(), r => ((List<string>)r).SequenceEqual(cappedAll.Skip(10)), true);
+		Case("capped: Skip(10).Take(5)", () => capped.Skip(10).Take(5).ToList(), r => ((List<string>)r).SequenceEqual(cappedAll.Skip(10).Take(5)), true);
+		Case("capped: Skip(48).Take(5)", () => capped.Skip(48).Take(5).ToList(), r => ((List<string>)r).SequenceEqual(cappedAll.Skip(48).Take(5)), true);
+		Case("capped: Take(100)", () => capped.Take(100).ToList(), r => ((List<string>)r).SequenceEqual(cappedAll), true);
+		Case("capped: Count()", () => capped.Count(), r => (int)r == 50, true);
 
 		Out.Verdict("no glued or malformed rows under any host operator", !glued, glued ? "malformed rows seen" : "every returned row is one 3-element JSON array", stop: true);
 
@@ -564,6 +631,11 @@ static class TwoModels
 		Check("object-format names", (db, a) => (IQueryable<string>)Chain.Select(Shapes.Ordered(db), o => Json.Row(Shapes.P(o, "Id"),
 			a ? [("id", Shapes.P(o, "Id")), ("created", Shapes.P(o, "Created"))] : [("ident", Shapes.P(o, "Id")), ("when", Shapes.P(o, "Created"))], asObject: true)),
 			a => a ? "{\"id\":" : "{\"ident\":", stop: true);
+
+		// The probe 11 alternative: all names in one string[] constant beside the root, a new array per call.
+		Check("object-format names once per row (string[] constant)", (db, a) => (IQueryable<string>)Chain.Select(Shapes.Ordered(db), o => Json.ObjectRowWithNamesOnce(Shapes.P(o, "Id"),
+			a ? [("id", Shapes.P(o, "Id")), ("created", Shapes.P(o, "Created"))] : [("ident", Shapes.P(o, "Id")), ("when", Shapes.P(o, "Created"))])),
+			a => a ? "{\"id\":" : "{\"ident\":", stop: false);
 	}
 
 	static bool Check(string what, Func<Db, bool, IQueryable<string>> build, Func<bool, string> mark, bool stop)

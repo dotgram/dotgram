@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -122,14 +121,13 @@ public static class Provider
 
 	static string SqlServerConnection()
 	{
-		var text = File.ReadAllText("/work/secrets/mssql.connection").Trim();
-
-		return text + ";Initial Catalog=" + SqlServerDatabase;
+		return SqlServerMaster() + ";Initial Catalog=" + SqlServerDatabase;
 	}
 
 	static string SqlServerMaster()
 	{
-		return File.ReadAllText("/work/secrets/mssql.connection").Trim();
+		return Environment.GetEnvironmentVariable("DOTGRAM_SQLSERVER")?.Trim().TrimEnd(';')
+			?? throw new InvalidOperationException("DOTGRAM_SQLSERVER is not set: the SQL Server connection string, without a database.");
 	}
 
 	const string SqliteConnection = "Data Source=QlPchain;Mode=Memory;Cache=Shared";

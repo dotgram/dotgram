@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -218,6 +218,77 @@ static class Paging
 		return q.Take(50).Select(o => Out.Row([o.Id])).ToList();
 	}
 
+	/// <summary>The cheapest level to write: take 100000 order by id (alternating direction); translation alone, then execution.</summary>
+	static void Minimal(Db db)
+	{
+		Out.Line("");
+		Out.Line("Minimal level `take 100000 order by id` (direction alternating), then the cap. Translation = ToSqlQuery on a cleared cache, p50 of 3.");
+		Out.Line("");
+		Out.Line("| levels | SQL chars | SELECTs | translation p50, ms | warm run p50, ms | right rows |");
+		Out.Line("|---:|---:|---:|---:|---:|---|");
+
+		IQueryable<object?[]> Build(int levels)
+		{
+			var q = (IQueryable)db.Orders;
+
+			for (var i = 0; i < levels; i++)
+			{
+				q = Chain.Take(q, 100000);
+				q = Chain.OrderBy(q, o => P(o, "Id"), descending: i % 2 == 0);
+			}
+
+			return Chain.Data(Chain.Take(q, 50), o => [P(o, "Id")]);
+		}
+
+		foreach (var levels in new[] { 8, 16, 32, 48, 64 })
+		{
+			var translate = new List<double>();
+			var sql       = "";
+			var watch     = new Stopwatch();
+
+			try
+			{
+				for (var i = 0; i < 3; i++)
+				{
+					Out.Clear();
+					watch.Restart();
+					sql = Out.SqlText(Build(levels));
+					translate.Add(watch.Elapsed.TotalMilliseconds);
+				}
+			}
+			catch (Exception e)
+			{
+				Out.Line($"| {levels} | — | — | {Out.Error(e)} | — | — |");
+
+				continue;
+			}
+
+			var rows  = Out.Rows(Build(levels));
+			var times = new List<double>();
+
+			for (var i = 0; i < 5; i++)
+			{
+				watch.Restart();
+				Out.Rows(Build(levels));
+				times.Add(watch.Elapsed.TotalMilliseconds);
+			}
+
+			translate.Sort();
+			times.Sort();
+
+			IEnumerable<Order> expected = Provider.Generate(Rows);
+
+			for (var i = 0; i < levels; i++)
+			{
+				expected = i % 2 == 0 ? expected.Take(100000).OrderByDescending(o => o.Id) : expected.Take(100000).OrderBy(o => o.Id);
+			}
+
+			var right = rows.SequenceEqual(expected.Take(50).Select(o => Out.Row([o.Id])));
+
+			Out.Line($"| {levels} | {sql.Length} | {Out.Selects(sql)} | {translate[1]:F1} | {times[2]:F1} | {(right ? "yes" : "NO")} |");
+		}
+	}
+
 	public static void Run()
 	{
 		Out.Head($"Paging cost: nested page levels over {Rows} rows");
@@ -284,6 +355,8 @@ static class Paging
 				}
 			}
 		}
+
+		Minimal(db);
 
 		if (warm.TryGetValue((1, true), out var one) && warm.TryGetValue((32, true), out var many))
 		{

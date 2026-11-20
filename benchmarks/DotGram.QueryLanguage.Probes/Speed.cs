@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -112,8 +112,18 @@ static class Speed
 			new("strings 6: QueryData + STJ", DataWithStj(Chain.Data(Source(), o => Strings(o).Select(c => c.Item2)))),
 			new("wide 30: QueryJsonRow Array", JsonRun(Shapes.JsonRows(Source(), o => P(o, "Id"), Wide))),
 			new("wide 30: QueryJsonRow Object", JsonRun(Shapes.JsonRows(Source(), o => P(o, "Id"), Wide, asObject: true))),
+			new("wide 30: QueryJsonRow Object, names by int id", JsonRun((IQueryable<string>)Chain.Select(Source(), o => Core.Json.ObjectRowWithNameIds(P(o, "Id"), Wide(o))))),
+			new("wide 30: QueryJsonRow Object, names once per row", JsonRun((IQueryable<string>)Chain.Select(Source(), o => Core.Json.ObjectRowWithNamesOnce(P(o, "Id"), Wide(o))))),
 			new("wide 30: QueryData + STJ", DataWithStj(Chain.Data(Source(), o => Wide(o).Select(c => c.Item2)))),
 		};
+
+		var byString = Shapes.JsonRows(Source(), o => P(o, "Id"), Wide, asObject: true).ToList();
+		var byId     = ((IQueryable<string>)Chain.Select(Source(), o => Core.Json.ObjectRowWithNameIds(P(o, "Id"), Wide(o)))).ToList();
+
+		var byOnce   = ((IQueryable<string>)Chain.Select(Source(), o => Core.Json.ObjectRowWithNamesOnce(P(o, "Id"), Wide(o)))).ToList();
+
+		Out.Verdict("names by int id print the same text as names by string constant", byString.SequenceEqual(byId), $"{byId.Count} rows");
+		Out.Verdict("names once per row print the same text as names by string constant", byString.SequenceEqual(byOnce), $"{byOnce.Count} rows");
 
 		foreach (var v in variants)
 		{
@@ -160,5 +170,7 @@ static class Speed
 		Out.Cost("QueryJsonRow vs QueryData + STJ (mixed 6)", $"×{P50("mixed 6: QueryJsonRow") / P50("mixed 6: QueryData + STJ"):F2} time");
 		Out.Cost("QueryJsonRow vs QueryData + STJ (strings 6)", $"×{P50("strings 6: QueryJsonRow (string anchor)") / P50("strings 6: QueryData + STJ"):F2} time");
 		Out.Cost("Object vs Array (wide 30)", $"×{P50("wide 30: QueryJsonRow Object") / P50("wide 30: QueryJsonRow Array"):F2} time");
+		Out.Cost("Object with names once per row vs Array (wide 30)", $"×{P50("wide 30: QueryJsonRow Object, names once per row") / P50("wide 30: QueryJsonRow Array"):F2} time");
+		Out.Cost("Object with names by int id vs Array (wide 30)", $"×{P50("wide 30: QueryJsonRow Object, names by int id") / P50("wide 30: QueryJsonRow Array"):F2} time");
 	}
 }

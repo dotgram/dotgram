@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -306,6 +306,38 @@ public static class Json
 		}
 
 		return End(state, asObject);
+	}
+
+	/// <summary>The object format with each name passed as an int id into a static table instead of a string constant.</summary>
+	public static Expression ObjectRowWithNameIds(Expression anchor, IReadOnlyList<(string Name, Expression Value)> columns)
+	{
+		var state = Start(anchor, asObject: true);
+
+		for (var i = 0; i < columns.Count; i++)
+		{
+			QlJson.Names[i] = "\"" + columns[i].Name + "\":";
+
+			state = Expression.Call(Method(nameof(QlJson.NameById), typeof(QlJsonState), typeof(int)), state, Expression.Constant(i));
+			state = Write(state, null, columns[i].Value);
+		}
+
+		return End(state, asObject: true);
+	}
+
+	/// <summary>The object format with all names in one array constant next to the root, read once per row.</summary>
+	public static Expression ObjectRowWithNamesOnce(Expression anchor, IReadOnlyList<(string Name, Expression Value)> columns)
+	{
+		var names = columns.Select(c => "\"" + c.Name + "\":").ToArray();
+		var state = Start(anchor, asObject: true);
+
+		for (var i = 0; i < columns.Count; i++)
+		{
+			state = Write(state, null, columns[i].Value);
+		}
+
+		var set = Expression.Call(Method(nameof(QlJson.SetNames), typeof(string[])), Expression.Constant(names));
+
+		return Expression.Call(Method(nameof(QlJson.EndObjectNamed), typeof(QlJsonState), typeof(QlJsonState)), set, state);
 	}
 
 	/// <summary>Rows started so far, in this process.</summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Threading;
 
@@ -21,6 +21,20 @@ static class QlJson
 
 	[ThreadStatic]
 	static int length;
+
+	/// <summary>Set by <see cref="NameById"/>: the next value is written without a separator of its own.</summary>
+	[ThreadStatic]
+	static bool named;
+
+	/// <summary>The names of the row being written, set once per row by <see cref="SetNames"/> (an experiment of probe 11).</summary>
+	[ThreadStatic]
+	static string[]? rowNames;
+
+	[ThreadStatic]
+	static int nameIndex;
+
+	/// <summary>Object-format names by id: the tree carries an int, not the name's text (an experiment of probe 11).</summary>
+	internal static readonly string?[] Names = new string?[256];
 
 	/// <summary>How many rows were started, across threads: tells whether an operator printed rows at all.</summary>
 	internal static long Starts;
@@ -70,6 +84,18 @@ static class QlJson
 
 	static void Separate(string? name)
 	{
+		if (named)
+		{
+			named = false;
+
+			return;
+		}
+
+		if (rowNames != null && name == null)
+		{
+			name = rowNames[nameIndex++];
+		}
+
 		var last = buffer![length - 1];
 
 		if (last != '[' && last != '{')
@@ -141,6 +167,31 @@ static class QlJson
 	static void Null()
 	{
 		Append("null");
+	}
+
+	/// <summary>Evaluated before the chain (the first argument of <see cref="EndObjectNamed"/>): one constant per row.</summary>
+	public static QlJsonState SetNames(string[] names)
+	{
+		rowNames  = names;
+		nameIndex = 0;
+
+		return default;
+	}
+
+	public static string EndObjectNamed(QlJsonState names, QlJsonState state)
+	{
+		rowNames = null;
+
+		return End('}');
+	}
+
+	public static QlJsonState NameById(QlJsonState state, int name)
+	{
+		Separate(Names[name]);
+
+		named = true;
+
+		return state;
 	}
 
 	// ── start and end: the anchor makes the first link depend on the row ──

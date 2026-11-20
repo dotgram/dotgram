@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<!-- What the query-language library itself would hold for these probes: the row carriers and the JSON
 	     writer, both internal, and the code that builds the trees around them. No reference to linq2db, as

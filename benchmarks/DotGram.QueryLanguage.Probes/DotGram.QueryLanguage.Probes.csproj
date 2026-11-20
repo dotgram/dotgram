@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<!-- Probes of the query-language chain against linq2db, before the library is written: row carriers,
 	     the JSON projection, values, aggregates, paging, the row cap and the tenant policy under linq2db's

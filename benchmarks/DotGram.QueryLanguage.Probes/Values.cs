@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -35,7 +35,7 @@ static class Aggregates
 			var slot = member switch
 			{
 				"Total"    => "Decimal0",
-				"Qty"      => "Int1",
+				"Priority" => "IntN1",
 				"Score"    => "Double0",
 				"Customer" => "String0",
 				"Created"  => "Timestamp0",
@@ -50,7 +50,7 @@ static class Aggregates
 			Chain.Aggregate(g, "Count"),
 			Chain.Aggregate(g, "Count", x => Expression.NotEqual(Field(x, "Status"), Expression.Constant(null, typeof(string)))),
 			Chain.Aggregate(g, "Sum", x => N(Field(x, "Total"))),
-			Chain.Aggregate(g, "Average", x => N(Field(x, "Qty"))),
+			Chain.Aggregate(g, "Average", x => Field(x, "Priority")),
 			Chain.Aggregate(g, "Average", x => N(Field(x, "Score"))),
 			Chain.Aggregate(g, "Min", x => Field(x, "Customer")),
 			Chain.Aggregate(g, "Max", x => N(Field(x, "Created"))),
@@ -66,7 +66,7 @@ static class Aggregates
 			list.Count,
 			list.Count(o => o.Status != null),
 			list.Count == 0 ? null : list.Sum(o => (decimal?)o.Total),   // SQL: SUM of no rows is NULL, as the language says
-			list.Average(o => (int?)o.Qty),
+			list.Average(o => o.Priority),
 			list.Average(o => (double?)o.Score),
 			list.Min(o => o.Customer),
 			list.Max(o => (DateTime?)o.Created),
@@ -142,7 +142,7 @@ static class Aggregates
 			// After a carrier select, into a carrier, then the final projection (with the cap).
 			var scalars = Chain.Select(source, o => Carriers.NewScalars(
 			[
-				("Decimal0", P(o, "Total")), ("Int1", P(o, "Qty")), ("Double0", P(o, "Score")), ("String0", P(o, "Customer")),
+				("Decimal0", P(o, "Total")), ("IntN1", P(o, "Priority")), ("Double0", P(o, "Score")), ("String0", P(o, "Customer")),
 				("Timestamp0", P(o, "Created")), ("String1", P(o, "Status")),
 			]));
 
@@ -169,21 +169,33 @@ static class Aggregates
 			JsonCase($"{label}: aggregates into the JSON chain", json, 1);
 		}
 
-		// Avg over an int column whose mean is not whole: SQL Server's AVG(int) is integer division.
+		// Avg over an int column whose mean is not whole (priority 1, 2 or NULL): SQL Server's AVG(int) is integer division.
 		{
 			var tenant = new StrongBox<int>(1);
 			var query  = (IQueryable<object?[]>)Chain.Select(Chain.GroupAll(Chain.Where(db.Orders, o => Expression.Equal(P(o, "TenantId"), Chain.Value(tenant)))),
-				g => Expression.NewArrayInit(typeof(object), Expression.Convert(Chain.Aggregate(g, "Average", x => N(P(x, "Qty"))), typeof(object))));
+				g => Expression.NewArrayInit(typeof(object), Expression.Convert(Chain.Aggregate(g, "Average", x => P(x, "Priority")), typeof(object))));
 
 			Out.Sub("Avg(int) precision");
 			Out.Sql(query);
 
 			var rows     = Out.Rows(query);
-			var expected = Out.Row([Out.Data.Where(o => o.TenantId == 1).Average(o => (int?)o.Qty)]);
+			var expected = Out.Row([Out.Data.Where(o => o.TenantId == 1).Average(o => o.Priority)]);
 
 			Out.Show(rows);
 			Out.Line("expected: " + expected);
 			Out.Verdict("Avg(int) is the C# mean", rows.Count == 1 && rows[0] == expected, rows.FirstOrDefault() ?? "no row");
+
+			// The same with the value converted to double? before the aggregate, as the translator could write it.
+			var cast = (IQueryable<object?[]>)Chain.Select(Chain.GroupAll(Chain.Where(db.Orders, o => Expression.Equal(P(o, "TenantId"), Chain.Value(tenant)))),
+				g => Expression.NewArrayInit(typeof(object), Expression.Convert(Chain.Aggregate(g, "Average", x => Expression.Convert(P(x, "Priority"), typeof(double?))), typeof(object))));
+
+			Out.Sub("Avg((double?)int)");
+			Out.Sql(cast);
+
+			var castRows = Out.Rows(cast);
+
+			Out.Show(castRows);
+			Out.Verdict("Avg((double?)int) is the C# mean", castRows.Count == 1 && castRows[0] == expected, castRows.FirstOrDefault() ?? "no row");
 		}
 	}
 }

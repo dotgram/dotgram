@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,7 +12,8 @@ using LinqToDB.Internal.Linq;
 
 // `dotnet run -c Release -- <probe|all|drop> [sqlite|mssql]`. Every probe prints its SQL, its rows and one verdict line per
 // claim; `all` runs probes 1-10 and 12 (11 is the timing, run on its own). The SQL Server probes read the connection from
-// /work/secrets/mssql.connection and work in their own database, which `drop` removes.
+// connection string from DOTGRAM_SQLSERVER (server and credentials, no database) and work in a database of their own,
+// which `drop` removes.
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture              = CultureInfo.InvariantCulture;
