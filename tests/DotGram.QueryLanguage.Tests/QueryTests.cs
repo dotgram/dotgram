@@ -241,9 +241,31 @@ public sealed class QueryTests(Databases databases)
 
 	[Theory]
 	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
-	public void AnUnusedLetIsStillACall(string provider)
+	public void WhatNothingReadsIsNotBuilt(string provider)
 	{
-		Assert.Equal(20, Run(provider, "from orders let x = qty * 2 select id").Count);
+		// `salary` may only be filtered on: a value computed from it and never read must not reach the database,
+		// where it would be computed for every row (and here divide by zero for none, but by the database's rules).
+		string[] texts =
+		[
+			"from orders let x = 1 / (salary - 1000) order by id select id",
+			"from orders let a = qty let x = salary * 2 let b = a + 1 order by id select id, b",
+			"from orders select id, salary * 2 as s, qty order by id select id, qty",
+			"from orders where qty > 0 select Count(*) as c, Sum(salary) as s select c",
+		];
+
+		foreach (var text in texts)
+		{
+			var query = Model.QueryData(Shop.Of(databases.Get(provider), 1), text);
+			var sql   = LinqToDB.LinqExtensions.ToSqlQuery(query).Sql;
+
+			Assert.DoesNotContain("Salary", sql, StringComparison.Ordinal);
+			Assert.Contains(Model.Describe(text).Warnings, w => w.Code == QlWarningCode.UnusedName);
+			Assert.NotEmpty(query.ToList());
+		}
+
+		Assert.Equal(Mine.Select(o => new object?[] { o.Id, o.Qty + 1 }), Run(provider, texts[1]));
+		Assert.Equal(Mine.Select(o => new object?[] { o.Id, o.Qty }), Run(provider, texts[2]));
+		Assert.Equal([Mine.Count(o => o.Qty > 0)], Run(provider, texts[3]).First<int>());
 	}
 
 	[Theory]

@@ -134,6 +134,10 @@ static class Translator
 				return Expression.Call(WhereMethod.MakeGenericMethod(before), chain, Expression.Quote(Expression.Lambda(condition, row)));
 			}
 
+			// A `let` nothing reads is not built: what it names is never read, so the provider never sees it.
+			case BoundLet { Column.Used: false } when clause.Before.Kind == clause.After.Kind:
+				return chain;
+
 			case BoundLet or BoundSelect { Aggregate: false }:
 			{
 				var made = Row(entity, clause, row, call);
@@ -196,7 +200,8 @@ static class Translator
 
 	/// <summary>
 	/// The row after a <c>let</c> or a <c>select</c>: the entity and its values in <see cref="QlRow{TE}"/>, or the
-	/// values alone in <see cref="QlScalars"/>. A <c>let</c> carries the values before it over, slot for slot.
+	/// values alone in <see cref="QlScalars"/>. A <c>let</c> carries the values before it over, slot for slot. A
+	/// column nothing reads is left out.
 	/// </summary>
 	static Expression Row(ModelEntity entity, BoundClause clause, ParameterExpression row, Call call)
 	{
@@ -205,6 +210,9 @@ static class Translator
 
 		foreach (var column in after.Columns)
 		{
+			if (!column.Used)
+				continue;
+
 			var value = clause is BoundLet let && let.Column != column
 				? call.Read(column, row, clause.Before)
 				: call.Value(column.Value, row, clause.Before);
@@ -244,14 +252,15 @@ static class Translator
 		var bindings = new List<MemberBinding>();
 
 		foreach (var column in clause.After.Columns)
-			bindings.Add(Bind(clause.After, column, call.Aggregate((BoundAggregate)column.Value, group, element, clause.Before)));
+			if (column.Used)
+				bindings.Add(Bind(clause.After, column, call.Aggregate((BoundAggregate)column.Value, group, element, clause.Before)));
 
 		var made = Expression.MemberInit(Expression.New(typeof(QlScalars)), bindings);
 
 		return Expression.Call(SelectMethod.MakeGenericMethod(group.Type, typeof(QlScalars)), grouped, Expression.Quote(Expression.Lambda(made, group)));
 	}
 
-	/// <summary>Where each column of a row of <paramref name="shape"/> is: its kind's slots in column order.</summary>
+	/// <summary>Where each column of a row of <paramref name="shape"/> is: its kind's slots in column order, among the columns read.</summary>
 	static FieldInfo Slot(Shape shape, Column column)
 	{
 		var index = 0;
@@ -262,7 +271,7 @@ static class Translator
 			if (other == column)
 				return Slots.Field(column.Type, index);
 
-			if (Slots.KindOf(other.Type) == kind)
+			if (other.Used && Slots.KindOf(other.Type) == kind)
 				index++;
 		}
 
