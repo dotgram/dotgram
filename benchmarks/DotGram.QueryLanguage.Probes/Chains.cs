@@ -23,7 +23,7 @@ static class RowCap
 		return Chain.Data(source, r => [Expression.Property(r, nameof(Order.Id))]);
 	}
 
-	static void Case(string what, IQueryable<object?[]> query, int expected)
+	static void Case(string what, IQueryable<object?[]> query, int expected, bool stop = true)
 	{
 		Out.Sub(what);
 		Out.Sql(query);
@@ -35,13 +35,13 @@ static class RowCap
 		if (error != null)
 		{
 			Out.Line(error);
-			Out.Verdict(what, false, error, stop: true);
+			Out.Verdict(what, false, error, stop: stop);
 
 			return;
 		}
 
 		Out.Show(rows!, 3);
-		Out.Verdict(what, rows!.Count == expected, $"{rows.Count} rows, expected {expected}", stop: true);
+		Out.Verdict(what, rows!.Count == expected, $"{rows.Count} rows, expected {expected}", stop: stop);
 	}
 
 	public static void Run()
@@ -78,6 +78,14 @@ static class RowCap
 		// A projection between the cap and the host's paging: the library's final Select sits exactly there.
 		Case("C#: Take(MaxRows).Select(new object[]).Skip(10).Take(5)", db.Orders.OrderBy(o => o.Id).Take(MaxRows).Select(o => new object?[] { o.Id }).Skip(10).Take(5), 5);
 		Case("C#: Take(MaxRows).Select(o => new { o.Id }).Skip(48).Take(5)", db.Orders.OrderBy(o => o.Id).Take(MaxRows).Select(o => new { o.Id }).Skip(48).Take(5).Select(x => new object?[] { x.Id }), 2);
+
+		// For comparison only (not the agreed shape): the cap after the final projection, so that host paging follows a Take.
+		var after = (IQueryable<object?[]>)Chain.Take(Final(Ordered(db)), MaxRows);
+
+		Case("cap after the projection: host Skip(10).Take(5)", after.Skip(10).Take(5), 5, stop: false);
+		Case("cap after the projection: host Skip(48).Take(5)", after.Skip(48).Take(5), 2, stop: false);
+		Case("cap after the projection: host Skip(MaxRows + 5).Take(10)", after.Skip(MaxRows + 5).Take(10), 0, stop: false);
+		Case("cap after the projection: take 2 skip 3 in the text", (IQueryable<object?[]>)Chain.Take(Final(Chain.Skip(Chain.Take(Ordered(db), 2), 3)), MaxRows), 0, stop: false);
 
 		var pagedCapped = Final(Chain.Take(Chain.Skip(Chain.Take(Ordered(db), 2), 3), MaxRows));
 
