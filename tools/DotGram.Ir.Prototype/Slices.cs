@@ -313,6 +313,9 @@ static class Slices
 
 				File.WriteAllText(Path.Combine(directory, $"parser-on-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion));
 				File.WriteAllText(Path.Combine(directory, $"parser-off-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, resumes: false));
+				File.WriteAllText(Path.Combine(directory, $"parser-sentinels-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion, ablation: SliceAblation.SentinelOnly));
+				File.WriteAllText(Path.Combine(directory, $"parser-wrapper-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion, ablation: SliceAblation.WrapperOnly));
+				File.WriteAllText(Path.Combine(directory, $"parser-nodoors-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion, ablation: SliceAblation.NoDoors));
 			}
 
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
