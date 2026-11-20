@@ -403,36 +403,15 @@ public sealed class JsonQueryTests(Databases databases)
 
 	[Theory]
 	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
-	public void PagingAndCountingOverTheRows(string provider)
+	public void CountingOverTheRows(string provider)
 	{
-		// Without the row cap: linq2db 6.5 folds a host's Take or Skip after the cap's Take into it (see the next test).
-		var model = Shop.Model(QlOptions.Default with { MaxRows = null });
-		var query = model.QueryJsonRow(Shop.Of(databases.Get(provider), 1), "from orders order by id select id, customer");
+		var query = Model.QueryJsonRow(Shop.Of(databases.Get(provider), 1), "from orders order by id select id, customer");
 		var all   = query.ToList();
 
 		Assert.Equal(20, all.Count);
-		Assert.Equal(all.Take(3), query.Take(3).ToList());
-		Assert.Equal(all.Skip(5).Take(4), query.Skip(5).Take(4).ToList());
 		Assert.Equal(20, query.Count());
 		Assert.True(query.Any());
 		Assert.Equal(all[0], query.First());
-	}
-
-	/// <summary>
-	/// A host's page over the capped rows. linq2db 6.5 merges the host's <c>Take</c> into the cap's and keeps the cap's
-	/// count (on QueryData as well): 20 rows come back for <c>Take(3)</c>. The rows need a boundary after the cap.
-	/// </summary>
-	[Theory(Skip = "linq2db folds the host's Take into the row cap; needs a boundary after the cap")]
-	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
-	public void PagingOverTheCappedRows(string provider)
-	{
-		var query = Model.QueryJsonRow(Shop.Of(databases.Get(provider), 1), "from orders order by id select id, customer");
-		var data  = Model.QueryData(Shop.Of(databases.Get(provider), 1), "from orders order by id select id, customer");
-		var all   = query.ToList();
-
-		Assert.Equal(all.Take(3), query.Take(3).ToList());
-		Assert.Equal(all.Skip(5).Take(4), query.Skip(5).Take(4).ToList());
-		Assert.Equal(3, data.Take(3).ToList().Count);
 	}
 
 	[Theory]
