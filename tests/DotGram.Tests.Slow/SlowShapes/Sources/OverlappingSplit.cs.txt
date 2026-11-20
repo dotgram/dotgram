@@ -1,0 +1,23 @@
+﻿using System;
+
+using DotGram;
+
+namespace DotGram.Examples.Formats;
+
+// Not an example: a run of one class read by two names in a row, before a character of the same
+// class. The second name has to give characters back for the last one to be read at all, so the
+// split of the run between the two names is tried every way it can be cut, as the regular expression
+// `[a-z]+[a-z]+x` tries it. Kept as the case where what follows a name can begin inside it.
+
+[Gram("""
+	trivia = none
+
+	Word = ['a'..'z']+
+
+	Split : @string = first: Word & second: Word & 'x' & eof => @(first + "|" + second)
+
+	parse Split
+	""")]
+public sealed partial class OverlappingSplit
+{
+}
