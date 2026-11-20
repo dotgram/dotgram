@@ -66,6 +66,15 @@ sealed class IrWays
 {
 	int[] _items = new int[32];
 
+	// When each entry was last written fresh: an entry read at an index is the same one only while this holds.
+	int[] _stamps = new int[16];
+	int   _stamp;
+
+	public int StampAt(int way)
+	{
+		return _stamps[way];
+	}
+
 	public int Count  { get; set; }
 	public int Cursor { get; set; }
 
@@ -94,6 +103,11 @@ sealed class IrWays
 
 		_items[Count * 2]     = 0;
 		_items[Count * 2 + 1] = last;
+
+		if (Count >= _stamps.Length)
+			Array.Resize(ref _stamps, _stamps.Length * 2);
+
+		_stamps[Count] = ++_stamp;
 		Count++;
 		Cursor = Count;
 		Most   = Math.Max(Most, Count);
@@ -230,6 +244,29 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	bool Opens(IrStmt stmt)
 	{
 		return !_sites.Doors.TryGetValue(stmt, out var door) || _p < _text.Length && Within(door, _text[_p]);
+	}
+
+	/// <summary>
+	/// Measured: how many times a sentinel was entered whose (cursor before it, statement, position)
+	/// was the same as that of another sentinel still on the tape — two entries a key of those three
+	/// alone could not tell apart.
+	/// </summary>
+	public long Collisions { get; private set; }
+
+	readonly Dictionary<(int Site, int Cursor, int Position), (int Sentinel, int Stamp)> _byKey = [];
+	readonly Dictionary<IrStmt, int> _siteIds = new(ReferenceEqualityComparer.Instance);
+
+	void Collide(IrStmt stmt, int cursor, int position, int sentinel)
+	{
+		if (!_siteIds.TryGetValue(stmt, out var site))
+			_siteIds.Add(stmt, site = _siteIds.Count);
+
+		var key = (site, cursor, position);
+
+		if (_byKey.TryGetValue(key, out var other) && other.Sentinel != sentinel && other.Sentinel < Ways.Count && Ways.StampAt(other.Sentinel) == other.Stamp)
+			Collisions++;
+
+		_byKey[key] = (sentinel, Ways.StampAt(sentinel));
 	}
 
 	/// <summary>How many times a reading entered a kept statement, a sentinel opened or not.</summary>
@@ -492,9 +529,12 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// </summary>
 	bool Site(IrStmt stmt, object?[] frame)
 	{
-		var again = Ways.Cursor < Ways.Count;
+		var again  = Ways.Cursor < Ways.Count;
+		var before = Ways.Cursor;
 		var (sentinel, _) = Ways.Enter(0);
 		var writes = Writes(stmt);
+
+		Collide(stmt, before, _p, sentinel);
 
 		if (!again)
 			Opened(stmt);
@@ -614,6 +654,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_kept.Clear();
 		_heads.Clear();
 		_cuts.Clear();
+		_byKey.Clear();
 		_sites    = ResumptionSites.Of(program, Criterion);
 		_measured = Measured is { } measured ? ResumptionSites.Of(program, measured) : null;
 
@@ -863,9 +904,12 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 				if (counted && Opens(repeat))
 				{
-					var again = Ways.Cursor < Ways.Count;
+					var again  = Ways.Cursor < Ways.Count;
+					var before = Ways.Cursor;
 
 					(owner, _) = Ways.Enter(0);
+
+					Collide(repeat, before, _p, owner);
 
 					if (!again)
 						Opened(repeat);

@@ -363,6 +363,7 @@ static class Slices
 				("nocalls", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.NoCallSites)),
 				("loops", SlicePrinter.Print(program, SliceLanguage.C, criterion: ResumptionCriterion.Repetitions)),
 				("ceiling", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.Ceiling)),
+				("copy", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.SecondCopy)),
 			};
 
 			foreach (var (variant, source) in variants)
@@ -383,6 +384,22 @@ static class Slices
 				var parts = output.Trim().Split(' ');
 
 				return (int.Parse(parts[0], CultureInfo.InvariantCulture), double.Parse(parts[1], CultureInfo.InvariantCulture));
+			}
+
+			// The size of the machine code of a variant's program, where size can say it.
+			string Text(string variant)
+			{
+				try
+				{
+					var (exit, output, _) = Run("size", ["-A", Path.Combine(directory, "accept-" + variant)], directory);
+					var line = output.Split('\n').FirstOrDefault(static one => one.StartsWith(".text", StringComparison.Ordinal));
+
+					return exit == 0 && line is not null ? line.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1] : "-";
+				}
+				catch (System.ComponentModel.Win32Exception)
+				{
+					return "-";
+				}
 			}
 
 			// Instructions retired by a run of the batch, where perf can count them: deterministic, unlike time.
@@ -437,7 +454,7 @@ static class Slices
 				off.Sort();
 
 				lines.Add(string.Create(CultureInfo.InvariantCulture,
-					$"{variant}\t{count}/{inputs.Count}\t{on[on.Count / 2]:F4}\t{off[off.Count / 2]:F4}\t{ratios[ratios.Count / 2]:F3}\t{ratios[0]:F3}-{ratios[^1]:F3}\t{Instructions(variant)}\t{Instructions("off")}"));
+					$"{variant}\t{count}/{inputs.Count}\t{on[on.Count / 2]:F4}\t{off[off.Count / 2]:F4}\t{ratios[ratios.Count / 2]:F3}\t{ratios[0]:F3}-{ratios[^1]:F3}\t{Instructions(variant)}\t{Instructions("off")}\t{Text(variant)}\t{Text("off")}"));
 			}
 
 			return lines;
