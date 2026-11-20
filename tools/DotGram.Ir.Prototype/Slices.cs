@@ -364,7 +364,20 @@ static class Slices
 				("loops", SlicePrinter.Print(program, SliceLanguage.C, criterion: ResumptionCriterion.Repetitions)),
 				("ceiling", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.Ceiling)),
 				("copy", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.SecondCopy)),
+				("twin", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwin)),
+				("twinbare", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwinBare)),
+				("twinevery", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwinEvery)),
+				("offevery", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, ablation: SliceAblation.ReplayTwinEvery)),
+				("ceilingevery", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.CeilingEvery)),
 			};
+
+			// IR_C_VARIANTS: the variants to time against "off", where not all of them.
+			if (Environment.GetEnvironmentVariable("IR_C_VARIANTS") is { } chosen)
+			{
+				var names = chosen.Split(',');
+
+				variants = [.. variants.Where(variant => variant.Name == "off" || names.Contains(variant.Name))];
+			}
 
 			foreach (var (variant, source) in variants)
 			{
@@ -478,7 +491,10 @@ static class Slices
 
 		try
 		{
-			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C, counted: counted));
+			// IR_C_ABLATION: the parser printed as one of the forms measured (SecondCopy, ReplayTwin), to check what it answers.
+			var ablation = Environment.GetEnvironmentVariable("IR_C_ABLATION") is { } named ? Enum.Parse<SliceAblation>(named) : SliceAblation.Whole;
+
+			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C, counted: counted, ablation: ablation));
 			File.WriteAllText(Path.Combine(directory, "parser.h"), SlicePrinter.PrintHeaderInC(program));
 			File.WriteAllLines(Path.Combine(directory, "answers.txt"), guardAnswers ?? []);
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);

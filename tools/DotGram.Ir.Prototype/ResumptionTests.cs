@@ -764,6 +764,57 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// Counts on accepted inputs, resuming and not: how many calls a reading makes and how many kept
+	/// statements it enters, and what share of each is made where the tape is read back — the share a
+	/// form that reads the tape back in a copy of its own (a twin of each function) reads there.
+	/// </summary>
+	[Fact]
+	public void TheReadingBack_IsCounted()
+	{
+		var text = new StringBuilder("row\tresumes\tcalls per byte\tread back\tcalls into a function that keeps, per byte\tkept entries per byte\tread back\n");
+
+		foreach (var (name, file, entry, inputs) in AcceptedRows.Where(static row => row.File is "Rfc5322.cs" or "Rfc9651.cs" or "Rfc3986.cs"))
+		{
+			var program = Reading.Program(Graphs.WebGrammar(file));
+
+			foreach (var resumes in new[] { false, true })
+			{
+				var calls     = 0L;
+				var callsBack = 0L;
+				var placed    = 0L;
+				var kept      = 0L;
+				var keptBack  = 0L;
+				var bytes     = 0L;
+
+				foreach (var input in inputs)
+				{
+					var evaluator = new IrEvaluator(program, new RecordingHost()) { Resumes = resumes };
+
+					if (!evaluator.Parse(entry, input).Accepted)
+						continue;
+
+					calls     += evaluator.Calls;
+					callsBack += evaluator.CallsBack;
+					placed    += evaluator.CallsWithPlaces;
+					kept      += evaluator.KeptEntries;
+					keptBack  += evaluator.KeptEntriesBack;
+					bytes     += input.Length;
+				}
+
+				Assert.True(bytes > 0);
+
+				text.Append(string.Create(CultureInfo.InvariantCulture,
+					$"{name}\t{resumes}\t{calls / (double)bytes:F3}\t{callsBack / (double)Math.Max(1, calls):P1}\t{placed / (double)bytes:F3}\t{kept / (double)bytes:F3}\t{keptBack / (double)Math.Max(1, kept):P1}\n"));
+			}
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "reading-back.tsv"), text.ToString());
+	}
+
+	/// <summary>
 	/// Counts on accepted inputs, not timings: how many kept statements a reading enters and how many
 	/// sentinels it opens per byte, under the criterion in force and under one that also asks that
 	/// something can fail back after the deciding statement; why each braces site of RFC 5322 is
@@ -1100,6 +1151,29 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	/// and a lookup passes it over by the serial of the cuts. With that check off on purpose, a
 	/// stale record stands for a reading that has changed under it, and answers differ.
 	/// </summary>
+	/// <summary>
+	/// A kept statement entered again, with nothing read, while its earlier entry is still being
+	/// read: the analysis says so of the call that does it, the generated parser reads it so, and
+	/// the IR, which does not lower a recognizer of the host, has no such reading to run.
+	/// </summary>
+	[Fact]
+	public void ARuleEnteredAgainWithNothingRead_IsSaidOfTheStatementThatDoesIt()
+	{
+		var program = Reading.Program(Grammars.ReentersAtOnce, null);
+		var sites   = ResumptionSites.Of(program, ResumptionCriterion.Decided);
+
+		Assert.Equal(["External"], program.UnsupportedKinds.Keys);
+		Assert.Single(sites.ReentersEmpty);
+
+		ReentersAtOnceParser.Asked = 0;
+
+		var (outcome, log, _) = Reading.Generated(typeof(ReentersAtOnceParser), "ParseStart", "xb");
+
+		Assert.True(outcome.Accepted);
+		Assert.Equal(2, ReentersAtOnceParser.Asked);
+		Assert.Equal(["c2(\"x\")", "c1(c2(\"x\"))", "c0(c1(c2(\"x\")))"], log);
+	}
+
 	[Fact]
 	public void RecordsMadeStaleByACut_ArePassedOver()
 	{

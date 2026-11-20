@@ -420,6 +420,24 @@ static class Grammars
 		parse Start
 		""";
 
+	/// <summary>
+	/// A rule entered again at the same place while its earlier entry is still being read. Every
+	/// other way of reaching a rule again before reading anything is left recursion, which the
+	/// generator either folds into a loop or refuses (a guard, a look, an optional or repeated
+	/// prefix before the call alike); a recognizer of the host is taken at its word that it
+	/// moves, and may not. One that does not move answers the same at the same place, so the
+	/// recursion would never end; <see cref="ReentersAtOnceParser.Still"/> stops it by remembering
+	/// that it was asked, which the contract of a recognizer does not allow, to have a reading
+	/// that ends.
+	/// </summary>
+	public const string ReentersAtOnce = """
+		Start : @V = n: Nest & eof          => @(Twin.C(0, n))
+		Nest  : @V = @Still & n: Nest & 'b' => @(Twin.C(1, n))
+		           | t: 'x'+                 => @(Twin.C(2, t))
+
+		parse Start
+		""";
+
 	/// <summary>RFC 8259 as DotGram.Web writes it, every construction a numbered call.</summary>
 	public const string Json = """
 		trivia = none
@@ -498,5 +516,16 @@ static class Grammars
 [Gram(Grammars.XmlNameGivesBack)]                                     static partial class XmlNameGivesBackParser;
 [Gram(Grammars.TurnGivesBack)]                                        static partial class TurnGivesBackParser;
 [Gram(Grammars.StaleRecord, Carrier = GramCarrier.Immediate)]       static partial class StaleRecordParser;
+[Gram(Grammars.ReentersAtOnce)]                                       static partial class ReentersAtOnceParser
+{
+	/// <summary>How many times <see cref="Still"/> was asked; reset before each reading.</summary>
+	[ThreadStatic] internal static int Asked;
+
+	/// <summary>Succeeds without moving the first time it is asked, and fails after.</summary>
+	internal static bool Still(ReadOnlySpan<char> input, ref int pos)
+	{
+		return Asked++ == 0;
+	}
+}
 [Gram(Grammars.DeepSplitOpen)]                                        static partial class DeepSplitOpenParser;
 [Gram(Grammars.Json)]                  static partial class JsonTwinParser;

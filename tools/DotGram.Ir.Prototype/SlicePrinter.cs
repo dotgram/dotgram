@@ -41,6 +41,34 @@ enum SliceAblation
 	/// the first reading's). Not a parser that resumes: what the code and its size cost.
 	/// </summary>
 	SecondCopy,
+
+	/// <summary>
+	/// Each function printed twice (C only): the first reading's copy with no kept statement's code at
+	/// all, and, where the function keeps a statement, one compare of the cursor with the tape's end on
+	/// entry; such an entry where the tape is read back, and every reading again of such a function's
+	/// replay, goes to the twin, which is the whole but opens no sentinel (as <see cref="SecondCopy"/>'s
+	/// copy does not) and calls only twins. Not a parser that resumes: what the code and its size cost.
+	/// </summary>
+	ReplayTwin,
+
+	/// <summary>
+	/// <see cref="ReplayTwin"/> with a twin that keeps nothing either: what sending the reading back
+	/// to a copy of its own costs without what the copy does there.
+	/// </summary>
+	ReplayTwinBare,
+
+	/// <summary>
+	/// <see cref="ReplayTwin"/> where every function's first-reading copy reads its replay once and
+	/// sends any reading again to the twin, whether it keeps a statement or not; printed without
+	/// resumption, the parser without it with every replay's readings again out of line.
+	/// </summary>
+	ReplayTwinEvery,
+
+	/// <summary>
+	/// <see cref="Ceiling"/> with every replay's readings again out of line as <see cref="ReplayTwinEvery"/>
+	/// has them: the ceiling against the parser without resumption printed so.
+	/// </summary>
+	CeilingEvery,
 }
 
 enum SliceLanguage
@@ -120,7 +148,18 @@ sealed class SlicePrinter
 	// Printing the copy a replay reads (SecondCopy): nothing in it is copied again, and no sentinel is opened.
 	bool _inCopy;
 
-	bool NoSentinel => _ablation == SliceAblation.WrapperOnly || _inCopy;
+	bool NoSentinel => _ablation == SliceAblation.WrapperOnly || Unopened;
+
+	// A copy that opens no sentinel and prints its lookup never taken, so that the tape stays the
+	// first reading's: SecondCopy's copy, and ReplayTwin's twin (whose records would be found by a
+	// key with no sentinel of their own, which is not printed).
+	bool Unopened => _inCopy || _twin;
+
+	// Printing a function's first-reading copy (ReplayTwin), which keeps nothing, or its twin, which keeps all.
+	bool _plain;
+	bool _twin;
+
+	IrFunction? _function;
 
 	readonly SliceAblation _ablation;
 
@@ -279,7 +318,12 @@ sealed class SlicePrinter
 			Line();
 
 			foreach (var function in _program.Functions)
+			{
 				Line($"static int32_t {Name(function)}(Parser *P, int32_t p);");
+
+				if (Twinned(function))
+					Line($"static {TwinAttributes} int32_t {Name(function)}_r(Parser *P, int32_t p, int32_t u0);");
+			}
 		}
 		else
 		{
@@ -504,17 +548,17 @@ sealed class SlicePrinter
 	/// <summary>Whether the statement opens a sentinel and keeps a record.</summary>
 	bool Kept(IrStmt stmt)
 	{
-		return _resumes && _ablation is not (SliceAblation.SentinelOnly or SliceAblation.Ceiling) && !(_ablation == SliceAblation.NoCallSites && stmt is IrStmt.Call) &&
+		return _resumes && !_plain && !(_twin && _ablation == SliceAblation.ReplayTwinBare) && _ablation is not (SliceAblation.SentinelOnly or SliceAblation.Ceiling or SliceAblation.CeilingEvery) && !(_ablation == SliceAblation.NoCallSites && stmt is IrStmt.Call) &&
 			!ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt);
 	}
 
 	/// <summary>For <see cref="SliceAblation.SentinelOnly"/>: the decision a kept statement opens, and the statement as it is.</summary>
 	bool SentinelAlone(IrStmt stmt)
 	{
-		if (!(_resumes && _ablation is SliceAblation.SentinelOnly or SliceAblation.Ceiling && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt)))
+		if (!(_resumes && _ablation is SliceAblation.SentinelOnly or SliceAblation.Ceiling or SliceAblation.CeilingEvery && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt)))
 			return false;
 
-		if (_ablation == SliceAblation.Ceiling)
+		if (_ablation is SliceAblation.Ceiling or SliceAblation.CeilingEvery)
 			Line($"if ({Member("cursor")} < {Member("count")}) {Runtime("slow", "")};");
 		else if (_sites.Doors.TryGetValue(stmt, out var door))
 			Line($"if ({DoorTest(door)}) {Enter("0")};");
@@ -653,7 +697,7 @@ sealed class SlicePrinter
 		// Read for the first time, a sentinel is opened and nothing else is asked; read back, its
 		// latest record is looked for. (In the copy a replay reads, the lookup is printed but never
 		// taken: there is no sentinel to read back.)
-		Line(_inCopy ? $"if ({Member("cursor")} < {Member("count")} && {Member("noCutCheck")})" : $"if ({Member("cursor")} < {Member("count")})");
+		Line(Unopened ? $"if ({Member("cursor")} < {Member("count")} && {Member("noCutCheck")})" : $"if ({Member("cursor")} < {Member("count")})");
 		Line("{");
 		_indent++;
 		Line($"{owner} = {(_counted ? Enter("0") : (C ? "P->cursor++" : "P.cursor++"))};");
@@ -778,13 +822,67 @@ sealed class SlicePrinter
 		};
 	}
 
+	/// <summary>
+	/// Whether the function is printed with a twin (<see cref="SliceAblation.ReplayTwin"/>): every one is,
+	/// so that twins call only twins and the first reading's functions only each other, and the first
+	/// reading's calls are what they were without resumption (a twin calling them would make each a
+	/// function called twice, which the compiler stops inlining).
+	/// </summary>
+	bool Twinned(IrFunction function)
+	{
+		return C && _ablation is SliceAblation.ReplayTwin or SliceAblation.ReplayTwinBare or SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery &&
+			(_resumes || _ablation == SliceAblation.ReplayTwinEvery);
+	}
+
+	/// <summary>Whether the function keeps a statement: where its first reading's copy sends a reading back to the twin.</summary>
+	bool Places(IrFunction function)
+	{
+		return _resumes && Keeps(function.Body);
+
+		bool Keeps(IrStmt stmt)
+		{
+			return _sites.Keeps(stmt) || stmt.Children.Any(Keeps);
+		}
+	}
+
+	// A twin is out of line and cold: inlined into the first reading's copy, the whole of it widened
+	// every entry's frame; not cold, its call was laid out among the first reading's code (measured).
+	const string TwinAttributes = "__attribute__((noinline, cold))";
+
 	void Function(IrFunction function)
 	{
-		_temp = 0;
+		if (!Twinned(function))
+		{
+			Copy(function);
 
-		Line(C ? $"static int32_t {Name(function)}(Parser *P, int32_t p)" : $"function {Name(function)}(P: Runtime, p: number): number");
+			return;
+		}
+
+		_plain = true;
+		Copy(function);
+		_plain = false;
+		_twin  = true;
+		Copy(function);
+		_twin  = false;
+	}
+
+	void Copy(IrFunction function)
+	{
+		_temp     = 0;
+		_function = function;
+
+		if (_twin)
+			Line($"static {TwinAttributes} int32_t {Name(function)}_r(Parser *P, int32_t p, int32_t u0)");
+		else
+			Line(C ? $"static int32_t {Name(function)}(Parser *P, int32_t p)" : $"function {Name(function)}(P: Runtime, p: number): number");
+
 		Line("{");
 		_indent++;
+
+		if (_plain && Places(function) && _ablation != SliceAblation.CeilingEvery)
+			Line($"if (P->cursor < P->count) return {Name(function)}_r(P, p, 0);");
+		else if (_twin)
+			Line("(void)u0;");
 
 		if (!C)
 			Line("const text = P.text;");
@@ -1043,7 +1141,7 @@ sealed class SlicePrinter
 
 				Line("{");
 				_indent++;
-				Line(Int(end, $"{Name(call.Target)}(P, p)"));
+				Line(Int(end, _twin ? $"{Name(call.Target)}_r(P, p, 0)" : $"{Name(call.Target)}(P, p)"));
 
 				// A machine further down may have outgrown the array of numbers and left another in its place.
 				if (_machine is not null && (_machines.Contains(call.Target) || _reach[call.Target].Overlaps(_machines)))
@@ -1293,7 +1391,25 @@ sealed class SlicePrinter
 				Line(Flag(read));
 
 				if (replay.Defers)
-					Line(Int(u, "0"));
+					Line(Int(u, _twin ? "u0" : "0"));
+
+				if (_plain && (Places(_function!) || _ablation is SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery))
+				{
+					// One reading; any reading again is the twin's, from where this one began.
+					Line($"p = {start};");
+					Attempt(replay.Body, read);
+					Line($"if (!{read})");
+					Line("{");
+					_indent++;
+					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) {fail}");
+					Line($"return {Name(_function!)}_r(P, {start}, {(replay.Defers ? Runtime("retried", u) : "0")});");
+					_indent--;
+					Line("}");
+					_indent--;
+					Line("}");
+
+					break;
+				}
 
 				Line("for (;;)");
 				Line("{");
