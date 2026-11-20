@@ -71,6 +71,9 @@ static void *run(void *unused)
 			printf("\n");
 		}
 
+		if (getenv("IR_COUNTS") != NULL)
+			printf("K %lld %lld %d %lld %lld\n", (long long)P.kSteps, (long long)P.kEntered, P.retries, (long long)P.kJumps, (long long)P.kHost);
+
 		host_end(&P);
 		printf(".\n");
 		fflush(stdout);

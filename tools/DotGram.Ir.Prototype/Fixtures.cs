@@ -147,6 +147,128 @@ static class Grammars
 		parse File
 		""";
 
+	/// <summary>
+	/// Two lists in sequence: each item opens a way that outlives its turn, so a failure after the
+	/// second list asks the first for another reading. Of two types, which the tree does not see:
+	/// of one, the generated C# parser carries them only deferred.
+	/// </summary>
+	public const string ListsInSequence = """
+		Start : @V = a: X* & 'y' & b: Y* & eof => @(Twin.C(0, a, b))
+		X     : @V = t: ("xy" | "x")           => @(Twin.C(1, t))
+		Y     : @W = t: ("xy" | "x")           => @(Twin.D(2, t))
+
+		parse Start
+		""";
+
+	/// <summary>The same list rule read twice, and a failure after the second that asks the first again.</summary>
+	public const string ListRuleTwice = """
+		Start : @V = a: Body & 'y' & b: Body & eof => @(Twin.C(0, a, b))
+		Body  : @V = items: X*                     => @(Twin.C(1, (object)items))
+		X     : @V = t: ("xy" | "x")               => @(Twin.C(2, t))
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// Repetitions the proofs settle, one inside the other: the inner one's last turn, which
+	/// fails, begins where the outer one's next turn does. A repetition after them gives turns back.
+	/// </summary>
+	public const string NestedSettled = """
+		Start : @V = groups: Group* & rest: Pair* & last: Letter & eof => @(Twin.C(0, groups, rest, last))
+		Group : @V = items: Item* & ';'                                 => @(Twin.C(1, (object)items))
+		Item  : @V = t: Digit                                           => @(Twin.C(2, t))
+		Pair  : @W = t: Letter & ','?                                   => @(Twin.D(3, t))
+		Letter     = ['a'..'z']
+		Digit      = ['0'..'9']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// Constructions that throw: one in a turn that builds and is then given up, one in a turn
+	/// that stands, before and inside a repetition that gives turns back.
+	/// </summary>
+	public const string Throwing = """
+		Start : @V = ps: P* & ls: L* & last: Letter & eof => @(Twin.C(0, ps, ls, last))
+		P     : @V = d: D & ':'                            => @(Twin.C(1, d))
+		D     : @V = t: Digit                              => @(Twin.C(2, t))
+		L     : @W = t: Letter & ','?                      => @(Twin.D(3, t))
+		Letter     = ['a'..'z']
+		Digit      = ['0'..'9']
+
+		parse Start
+		""";
+
+	/// <summary>A repetition that gives a turn back twice and then stands.</summary>
+	public const string GivenBackTwice = """
+		Start : @V = items: Item* & a: Letter & b: Letter & eof => @(Twin.C(0, items, a, b))
+		Item  : @V = t: Letter & ','?                            => @(Twin.C(1, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// A calculator without folds: each level of precedence a repetition over the next, the power
+	/// right-associative by recursion, and parentheses.
+	/// </summary>
+	public const string Arithmetic = """
+		Expr     : @V = first: Term & rest: AddOp*  => @(Twin.C(0, first, rest))
+		AddOp    : @V = op: ['+' | '-'] & t: Term   => @(Twin.C(1, op, t))
+		Term     : @V = first: Power & rest: MulOp* => @(Twin.C(2, first, rest))
+		MulOp    : @V = op: ['*' | '/'] & f: Power  => @(Twin.C(3, op, f))
+		Power    : @V = b: Atom & e: Exponent?      => @(Twin.C(4, b, e))
+		Exponent : @V = '^' & p: Power              => @(Twin.C(5, p))
+		Atom     : @V
+			= '(' & e: Expr & ')'     => @(Twin.C(6, e))
+			| d: ['0'..'9']+          => @(Twin.C(7, d))
+
+		parse Expr
+		""";
+
+	/// <summary>
+	/// A repetition the proofs settle, each of whose turns opens a way that outlives it: a failure
+	/// at the end gives the turns back one by one, each through a way inside a turn.
+	/// </summary>
+	public const string Config = """
+		File  : @V = entries: Entry* & eof                 => @(Twin.C(0, (object)entries))
+		Entry : @V = k: Key & '=' & v: Value & ';'          => @(Twin.C(1, k, v))
+		Value : @V = t: ("ab" | "a" & ['a'..'z']* & 'x')    => @(Twin.C(2, t))
+		Key        = ['a'..'z']+
+
+		parse File
+		""";
+
+	/// <summary>A settled repetition with no way in its turns, before one that gives turns back.</summary>
+	public const string SettledBefore = """
+		Start : @V = xs: A* & bs: B* & last: Letter & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                      => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>The same in braces: whatever the repetition kept of its turns goes with the braces.</summary>
+	public const string SealedBefore = """
+		Start : @V = { xs: A* } & bs: B* & last: Letter & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                    => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                          => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A long call that decides nothing, before a repetition that gives turns back.</summary>
+	public const string CalledBefore = """
+		Start : @V = Pad & bs: B* & last: Letter & eof => @(Twin.C(0, bs, last))
+		Pad        = ' '*
+		B     : @V = t: Letter & ','?                   => @(Twin.C(1, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
 	/// <summary>RFC 8259 as DotGram.Web writes it, every construction a numbered call.</summary>
 	public const string Json = """
 		trivia = none
@@ -204,4 +326,14 @@ static class Grammars
 [Gram(Grammars.Rebinding)]             static partial class RebindingParser;
 [Gram(Grammars.Look)]                  static partial class LookParser;
 [Gram(Grammars.Csv)]                   static partial class CsvParser;
+[Gram(Grammars.ListsInSequence, Carrier = GramCarrier.Immediate)]       static partial class ListsInSequenceParser;
+[Gram(Grammars.ListRuleTwice, Carrier = GramCarrier.Immediate)]         static partial class ListRuleTwiceParser;
+[Gram(Grammars.NestedSettled, Carrier = GramCarrier.Immediate)]         static partial class NestedSettledParser;
+[Gram(Grammars.Throwing, Carrier = GramCarrier.Immediate)]              static partial class ThrowingParser;
+[Gram(Grammars.GivenBackTwice, Carrier = GramCarrier.Immediate)]        static partial class GivenBackTwiceParser;
+[Gram(Grammars.Arithmetic, Carrier = GramCarrier.Immediate)]            static partial class ArithmeticParser;
+[Gram(Grammars.Config, Carrier = GramCarrier.Immediate)]                static partial class ConfigParser;
+[Gram(Grammars.SettledBefore, Carrier = GramCarrier.Immediate)]         static partial class SettledBeforeParser;
+[Gram(Grammars.SealedBefore, Carrier = GramCarrier.Immediate)]          static partial class SealedBeforeParser;
+[Gram(Grammars.CalledBefore, Carrier = GramCarrier.Immediate)]          static partial class CalledBeforeParser;
 [Gram(Grammars.Json)]                  static partial class JsonTwinParser;

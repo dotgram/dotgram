@@ -128,6 +128,8 @@ static void record(char *line)
 
 Val recording_construct(Parser *P, int id, Val *args, int count)
 {
+	P->kHost++;
+
 	Text  text  = call(P, 'c', id, args, count);
 	char *built = rt_alloc(P, text.length + 1);
 
@@ -139,6 +141,8 @@ Val recording_construct(Parser *P, int id, Val *args, int count)
 
 bool recording_guard(Parser *P, int id, Val *args, int count)
 {
+	P->kHost++;
+
 	Text text = call(P, 'g', id, args, count);
 
 	for (int i = 0; i < answer_count; i++)
@@ -192,11 +196,19 @@ void host_render(Parser *P, Val value)
 
 void host_end(Parser *P)
 {
+	/* Where only the counts are asked for, the calls are counted and not written. */
+	static int counting = -1;
+
 	(void)P;
+
+	if (counting < 0)
+		counting = getenv("IR_COUNTS") != NULL;
 
 	for (int i = 0; i < log_count; i++)
 	{
-		printf("L %s\n", log_lines[i]);
+		if (!counting)
+			printf("L %s\n", log_lines[i]);
+
 		free(log_lines[i]);
 	}
 
