@@ -44,7 +44,11 @@ namespace DotGram.Examples.Formats;
 	// §4.1 case 3: the document is what `Lines` produced.
 	Doc : Lines = Lines & eof
 
-	Lines : @YamlLine[] = (Line | Blank)*
+	// Each turn atomic: a line has a key and a blank line has none, so the two never read the same
+	// text, and what one of them read is all it can read. Unbraced, a turn kept the way to the other
+	// alternative open, and a text refused after its last line was read again from its first line
+	// once for each line in it.
+	Lines : @YamlLine[] = ({ Line | Blank })*
 
 	// The indent is captured rather than counted, because counting is the tree's business.
 	// Tabs are refused outright, as YAML refuses them — a file that mixes them is a file
@@ -59,13 +63,19 @@ namespace DotGram.Examples.Formats;
 	// is refused late is read as every way of cutting its line endings in two.
 	Eol = { eol }
 
-	Comment = '#' & [^ '\n' | '\r']*
+	// The runs of a line are atomic too, and none of them changes what a line is: each stops at a
+	// character it cannot take, and what has to come next — a key after the indent, the colon after
+	// the key, the line ending after the value or a comment — cannot start any sooner. Given back,
+	// a run would not let anything else match; it would only have the line read again from its
+	// indent for every character handed back, and a long line refused late would take a time that
+	// grows with the square of its length.
+	Comment = '#' & { [^ '\n' | '\r']* }
 
-	Indent : @string = text: ' '* => @(text)
+	Indent : @string = text: { ' '* } => @(text)
 
-	Key    : @string = text: ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']+ => @(text)
+	Key    : @string = text: { ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']+ } => @(text)
 
-	Rest   : @string = text: [^ '\n' | '\r']* => @(text)
+	Rest   : @string = text: { [^ '\n' | '\r']* } => @(text)
 
 	// Atomic, like the line ending: the blanks after the colon are the separator's and none are the
 	// value's, however the rest of the text is read. Given back, they would be read again as the
