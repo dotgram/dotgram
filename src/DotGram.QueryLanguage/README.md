@@ -112,7 +112,7 @@ The library decides what a text may *name*; everything about *running* it stays 
 The nine types of the language — `bool`, `int`, `long`, `decimal`, `double`, `string`, `DateTime`,
 `DateTimeOffset`, `Guid`, nullable or not — are printed in JSON as JSON: numbers culture-free,
 `decimal` with the scale the provider read, dates in ISO 8601 (`"O"`), `NaN` and the infinities as
-strings. A member of any other type is an ordinary field: compared with a parameter of its own
+strings. A member of any other value type (and `byte[]`) is an ordinary field: compared with a parameter of its own
 type, sorted, returned as itself by `QueryData`, and printed in JSON by its `ToString` — which for
 `byte[]` is `"System.Byte[]"`. Give such a type a format, and override a built-in one the same way:
 

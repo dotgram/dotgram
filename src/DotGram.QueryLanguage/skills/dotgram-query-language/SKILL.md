@@ -40,7 +40,8 @@ QlModel<AppDb> model = builder.Build();
   narrow what it returns. Never rely on the text to filter by tenant.
 - `Entity(db => db.Orders)` without a name takes the member's name and accepts only a bare member
   of the context; anything else needs a name: `Entity("orders", db => …)`.
-- **`Column` exposes one mapped member.** `use` null means `Select | Filter | Sort` and never
+- **`Column` exposes one mapped member** of a value type, `string` or `byte[]`; a navigation or a
+  collection is refused — expose the members of it the text may name. `use` null means `Select | Filter | Sort` and never
   more. Narrow it where a value must not be returned (`QlUse.Filter`) — but `Filter` and `Sort`
   still disclose a value by comparison and order. A field nobody may learn is simply not declared.
 - A field used where its `QlUse` does not allow it is reported exactly as an unknown name: same

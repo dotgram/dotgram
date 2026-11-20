@@ -21,6 +21,9 @@ public sealed class BuildTests
 		public static int Shared { get; set; }
 		public string    WriteOnly { set { } }
 		public Item?     Parent { get; set; }
+		public System.Collections.Generic.List<string> Tags { get; set; } = [];
+		public int[]     Codes  { get; set; } = [];
+		public object?   Meta   { get; set; }
 	}
 
 	public sealed class Db
@@ -78,6 +81,12 @@ public sealed class BuildTests
 
 		Assert.Throws<ArgumentException>(() => entity.Column(i => i.Id + 1));
 		Assert.Throws<ArgumentException>(() => entity.Column(i => i.Parent!.Id));
+
+		// A navigation or a collection is not a field: it would be returned whole.
+		Assert.Contains("not another entity or a collection", Assert.Throws<ArgumentException>(() => entity.Column(i => i.Parent)).Message, StringComparison.Ordinal);
+		Assert.Throws<ArgumentException>(() => entity.Column(i => i.Tags));
+		Assert.Throws<ArgumentException>(() => entity.Column(i => i.Codes));
+		Assert.Throws<ArgumentException>(() => entity.Column(i => i.Meta));
 		Assert.Throws<ArgumentException>(() => entity.Column(i => i[0]));
 		Assert.Throws<ArgumentException>(() => entity.Column(i => Item.Shared));
 		Assert.Throws<ArgumentException>(() => entity.Column(i => (object)i.Id));

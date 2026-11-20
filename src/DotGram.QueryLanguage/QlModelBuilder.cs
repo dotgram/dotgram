@@ -204,7 +204,12 @@ public sealed class QlEntityBuilder<TContext, T>
 #pragma warning disable RS0026
 
 	/// <summary>Exposes a member of <typeparamref name="T"/> under the member's own name.</summary>
-	/// <param name="member">A lambda whose body reads a property or a field of its parameter: <c>o =&gt; o.Total</c>.</param>
+	/// <param name="member">
+	/// A lambda whose body reads a property or a field of its parameter: <c>o =&gt; o.Total</c>. Its type is a value
+	/// type (one of the language's, an enum, <c>DateOnly</c>, a NodaTime value), <see cref="string"/> or a
+	/// <see cref="byte"/> array. Any other reference type — a navigation to another entity, a collection — throws
+	/// <see cref="ArgumentException"/>: a field is one value, and such a member would be returned whole.
+	/// </param>
 	/// <param name="use">
 	/// Where the field may be named; null is <see cref="QlUse.Select"/> | <see cref="QlUse.Filter"/> |
 	/// <see cref="QlUse.Sort"/>, and will never mean more.
@@ -263,7 +268,16 @@ public sealed class QlEntityBuilder<TContext, T>
 		if (member.Body is MemberExpression { Expression: ParameterExpression parameter, Member: var info } && parameter == member.Parameters[0])
 		{
 			if (info is PropertyInfo { CanRead: true, GetMethod.IsStatic: false } or FieldInfo { IsStatic: false })
+			{
+				var type = info is PropertyInfo property ? property.PropertyType : ((FieldInfo)info).FieldType;
+
+				// A field is one value. A navigation to another entity or a collection would reach the result whole,
+				// every member of it, under the one right the field has.
+				if (!type.IsValueType && type != typeof(string) && type != typeof(byte[]))
+					throw new ArgumentException($"`{info.Name}` is a `{ScalarType.ShortName(type)}`: a field is a value, a string or a byte array, not another entity or a collection. Expose the members of it the text may name.", nameof(member));
+
 				return info;
+			}
 		}
 
 		throw new ArgumentException($"`{member}` does not read a member of `{typeof(T).Name}`: a field is a property or a field of the entity, read directly.", nameof(member));

@@ -29,7 +29,7 @@ var model = builder.Build();
 | --- | --- |
 | `Entity(db => db.Orders)` | an entity named after the context member; any other body needs a name |
 | `Entity("orders", db => …)` | an entity under a name; the function is its source, called with the context on every query |
-| `Column(o => o.Total)` / `Column("total", o => o.Total)` | a field: a member the provider maps, under its own name or the one given |
+| `Column(o => o.Total)` / `Column("total", o => o.Total)` | a field: a member the provider maps, under its own name or the one given; a value type, a `string` or a `byte[]` — a navigation or a collection is refused |
 | `Column(…, QlUse.Filter)` | where the field may be named; null means `Select \| Filter \| Sort` |
 | `Format<T>(Func<T, string?>)` | how values of `T` are printed in JSON (below) |
 | `Build(QlOptions?)` | the model, with its bounds |
