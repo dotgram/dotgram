@@ -246,7 +246,67 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// <param name="Key">The cursor at that place: the record is good while the tape is not cut below it.</param>
 	/// <param name="Prev">The owner's record before this one, or -1.</param>
 	sealed record Kept(
-		bool IsEnd, int Owner, IrStmt Site, int Key, int Prev, int Position, int Turns, bool Read, int Unbuilt, object?[] Held, int[] Counts);
+		bool IsEnd, int Owner, IrStmt Site, int Key, int Prev, int Position, int Turns, bool Read, int Unbuilt, object?[] Held, int[] Counts)
+	{
+		/// <summary>How many cuts were remembered before it was made: a cut remembered after it, to or below its key, makes it stale.</summary>
+		public long Serial { get; init; }
+	}
+
+	/// <summary>
+	/// The cuts made while any record is kept, those that matter only: a later cut to a lower or
+	/// equal place takes the place of an earlier one, so that the places rise from the bottom and
+	/// so do the serials. A record is stale once a cut remembered after it went to its key or below.
+	/// </summary>
+	readonly List<(long Serial, int Key)> _cuts = [];
+
+	long _serial;
+
+	/// <summary>
+	/// Wrong on purpose: a record is taken as good whatever was cut after it was made. What the
+	/// test of the cut check runs to show that the check is what keeps a stale record from standing.
+	/// </summary>
+	public bool NoCutCheck { get; init; }
+
+	/// <summary>How many times a lookup passed over a record made stale by a cut below its key.</summary>
+	public long Stale { get; private set; }
+
+	/// <summary>The most records the store held at once, stale ones still in it included.</summary>
+	public int MostStored { get; private set; }
+
+	/// <summary>Whether a cut remembered after the serial went to the key or below.</summary>
+	bool CutAfter(long serial, int key)
+	{
+		if (_cuts.Count == 0)
+			return false;
+
+		var top = _cuts[^1];
+
+		if (top.Serial <= serial)
+			return false;
+
+		if (top.Key <= key)
+			return true;
+
+		// The lowest cut remembered after the serial is the lowest place cut to since then.
+		int low = 0, high = _cuts.Count - 1;
+
+		while (low < high)
+		{
+			var middle = (low + high) / 2;
+
+			if (_cuts[middle].Serial > serial)
+				high = middle;
+			else
+				low = middle + 1;
+		}
+
+		return _cuts[low].Key <= key;
+	}
+
+	bool Good(Kept kept)
+	{
+		return NoCutCheck || kept.Key < Ways.Count && !CutAfter(kept.Serial, kept.Key);
+	}
 
 	readonly List<Kept>           _kept  = [];
 	readonly Dictionary<int, int> _heads = [];
@@ -284,6 +344,22 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			_heads[kept.Owner] = kept.Prev;
 			_kept.RemoveAt(_kept.Count - 1);
 		}
+
+		// A record below the top may be stale by this cut: the cut is remembered while any is kept.
+		if (_kept.Count == 0)
+		{
+			_cuts.Clear();
+
+			return;
+		}
+
+		while (_cuts.Count > 0 && _cuts[^1].Key >= count)
+			_cuts.RemoveAt(_cuts.Count - 1);
+
+		_cuts.Add((++_serial, count));
+
+		if (_cuts.Count > 1 && !(_cuts[^2].Key < _cuts[^1].Key && _cuts[^2].Serial < _cuts[^1].Serial))
+			throw new IrContractViolation("The cuts remembered are out of order.");
 	}
 
 	/// <summary>The latest record of a sentinel's entry, or null.</summary>
@@ -295,12 +371,32 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (!_heads.TryGetValue(sentinel, out var head) || head < 0)
 			return null;
 
-		var found = _kept[head];
+		// The latest good record of the owner: stale ones on the way are passed over, and the
+		// owner's head moves to the first good one (nothing is taken out of the middle of the store).
+		for (var at = head; at >= 0;)
+		{
+			var found = _kept[at];
 
-		if (found.Owner != sentinel || !ReferenceEquals(found.Site, site))
-			throw new IrContractViolation("A sentinel found a record that is not its own.");
+			// A head is never cleared, as in the printed parsers: what it names may be left from an
+			// earlier entry at the same place on the tape, made stale by the cut that took that entry
+			// away. A good record is the entry's own.
+			if (Good(found))
+			{
+				if (found.Owner != sentinel || !ReferenceEquals(found.Site, site))
+					throw new IrContractViolation("A sentinel found a record that is not its own.");
 
-		return found;
+				_heads[sentinel] = at;
+
+				return found;
+			}
+
+			Stale++;
+			at = found.Prev;
+		}
+
+		_heads[sentinel] = -1;
+
+		return null;
 	}
 
 	/// <summary>
@@ -313,36 +409,16 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return kept.Unbuilt == 0 || _unbuilt > 0;
 	}
 
-	/// <summary>Whether a record of the key can go on the stack without breaking its order.</summary>
-	bool Fits(int key)
-	{
-		return _kept.Count == 0 || _kept[^1].Key <= key;
-	}
-
-	/// <summary>
-	/// How many records were not kept because they would have gone below the top of the stack: a
-	/// replay inside a region read and kept places further on before the replay of the region
-	/// round it walked the places before them. Not keeping one costs a later replay reading again
-	/// what it would have gone past; keeping it would leave the stack out of the order its cuts rely on.
-	/// </summary>
-	public long Unfit { get; private set; }
-
 	void Record(Kept kept)
 	{
-		if (!Fits(kept.Key))
-		{
-			Unfit++;
-
-			return;
-		}
-
 		var prev = _heads.TryGetValue(kept.Owner, out var head) ? head : -1;
 
 		Records++;
 
 		_heads[kept.Owner] = _kept.Count;
-		_kept.Add(kept with { Prev = prev });
-		MostKept = Math.Max(MostKept, _kept.Count);
+		_kept.Add(kept with { Prev = prev, Serial = _serial });
+		MostKept   = Math.Max(MostKept, _kept.Count);
+		MostStored = Math.Max(MostStored, _kept.Count);
 	}
 
 	/// <summary>What the slots a statement writes hold now: values, and the length of each list with the list itself.</summary>
@@ -406,10 +482,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		var writes = Writes(stmt);
 
 		if (!again)
-		{
 			Opened(stmt);
-			_heads[sentinel] = -1;
-		}
 		else if (Head(sentinel, stmt) is { IsEnd: true } found && Usable(found))
 		{
 			_p          = found.Position;
@@ -424,7 +497,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		var read = ExecInner(stmt, frame);
 
 		// Kept once a reading; again only where what was kept was made unbuilt and this reading builds.
-		if (Ways.Cursor < Ways.Count && Head(sentinel, stmt) is var head && (head is null || !Usable(head) && Fits(Ways.Cursor)))
+		if (Ways.Cursor < Ways.Count && Head(sentinel, stmt) is var head && (head is null || !Usable(head)))
 		{
 			var (held, counts) = Hold(frame, writes);
 
@@ -525,6 +598,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_said.Clear();
 		_kept.Clear();
 		_heads.Clear();
+		_cuts.Clear();
 		_sites    = ResumptionSites.Of(program, Criterion);
 		_measured = Measured is { } measured ? ResumptionSites.Of(program, measured) : null;
 
@@ -768,10 +842,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					(owner, _) = Ways.Enter(0);
 
 					if (!again)
-					{
 						Opened(repeat);
-						_heads[owner] = -1;
-					}
 					else if (Head(owner, repeat) is { } found && Usable(found))
 					{
 						// Every decision read before the place kept is still on the tape, so the
@@ -807,7 +878,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					{
 						var latest = Head(owner, repeat);
 
-						if (latest is null || !latest.IsEnd && latest.Turns < turns || !Usable(latest) && Fits(Ways.Cursor))
+						if (latest is null || !latest.IsEnd && latest.Turns < turns || !Usable(latest))
 						{
 							var (held, counts) = Hold(frame, repeat.Resets);
 
@@ -859,7 +930,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 				var stood = turns >= min;
 
-				if (owner >= 0 && Ways.Cursor < Ways.Count && Head(owner, repeat) is var last && (last is not { IsEnd: true } || !Usable(last) && Fits(Ways.Cursor)))
+				if (owner >= 0 && Ways.Cursor < Ways.Count && Head(owner, repeat) is var last && (last is not { IsEnd: true } || !Usable(last)))
 				{
 					var (held, counts) = Hold(frame, repeat.Resets);
 

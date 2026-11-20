@@ -218,13 +218,14 @@ static class Slices
 	public static List<SliceAnswer> TypeScript(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
 		string host = "recording.ts", IEnumerable<string>? guardAnswers = null, string? throwOn = null,
-		int? stackKilobytes = null, int? systemStackKilobytes = null, SliceFrames frames = SliceFrames.Recursive, bool counted = false, bool anyOwner = false)
+		int? stackKilobytes = null, int? systemStackKilobytes = null, SliceFrames frames = SliceFrames.Recursive, bool counted = false, bool anyOwner = false,
+		bool noCutCheck = false)
 	{
 		var (node, environment) = Node;
 
 		var directory = Workspace(name, "ts");
 
-		if (counted || anyOwner)
+		if (counted || anyOwner || noCutCheck)
 		{
 			var more = new Dictionary<string, string>(environment);
 
@@ -233,6 +234,9 @@ static class Slices
 
 			if (anyOwner)
 				more["IR_ANY_OWNER"] = "1";
+
+			if (noCutCheck)
+				more["IR_NO_CUT_CHECK"] = "1";
 
 			environment = more;
 		}
@@ -431,7 +435,8 @@ static class Slices
 	/// <param name="stackMegabytes">The stack of a thread made for the reading, where not the process's own.</param>
 	public static List<SliceAnswer> InC(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
-		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null, bool counted = false, bool anyOwner = false)
+		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null, bool counted = false, bool anyOwner = false,
+		bool noCutCheck = false)
 	{
 		var gcc       = Gcc;
 		var directory = Workspace(name, "c");
@@ -467,6 +472,9 @@ static class Slices
 
 			if (anyOwner)
 				environment["IR_ANY_OWNER"] = "1";
+
+			if (noCutCheck)
+				environment["IR_NO_CUT_CHECK"] = "1";
 
 			var (exit, output, error) = Run(Path.Combine(directory, "slice"), [entry, "batch.bin", "answers.txt"], directory, environment);
 

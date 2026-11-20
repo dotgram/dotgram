@@ -404,6 +404,22 @@ static class Grammars
 		parse Start
 		""";
 
+	/// <summary>
+	/// A replay inside <c>G</c> keeps records of its repetition before the replay of <c>Start</c>
+	/// walks the repetition in front of it and keeps records below them; a later decision of the
+	/// choice <c>X</c>, between the two, cuts below the buried records, and the repetition in
+	/// <c>G</c> is entered again at the same place on the tape from another position.
+	/// </summary>
+	public const string StaleRecord = """
+		Start : @V = a: As & x: X & g: G & '!' => @(Twin.C(0, a, x, g))
+		As         = 'a'*
+		X          = "bb" | "b"
+		G     : @V = t: L & 'c'                => @(Twin.C(1, t))
+		L          = ['b' | 'c']*
+
+		parse Start
+		""";
+
 	/// <summary>RFC 8259 as DotGram.Web writes it, every construction a numbered call.</summary>
 	public const string Json = """
 		trivia = none
@@ -481,5 +497,6 @@ static class Grammars
 [Gram(Grammars.DeepSplit)]                                            static partial class DeepSplitParser;
 [Gram(Grammars.XmlNameGivesBack)]                                     static partial class XmlNameGivesBackParser;
 [Gram(Grammars.TurnGivesBack)]                                        static partial class TurnGivesBackParser;
+[Gram(Grammars.StaleRecord, Carrier = GramCarrier.Immediate)]       static partial class StaleRecordParser;
 [Gram(Grammars.DeepSplitOpen)]                                        static partial class DeepSplitOpenParser;
 [Gram(Grammars.Json)]                  static partial class JsonTwinParser;

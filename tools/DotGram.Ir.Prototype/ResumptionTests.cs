@@ -71,6 +71,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		("(a) settled", null), ("(b) sealed", null), ("(c) called", null),
 		("(a') failed turn", null), ("nested braces", null), ("long look", null), ("braces with captures", null),
 		("(e) deciding nest", null), ("back-reference", null), ("yaml line", null),
+		("records below a cut", null), ("config, inner replays", null),
 	];
 
 	/// <summary>
@@ -862,7 +863,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 							var evaluator = new IrEvaluator(program, new RecordingHost(fixture.Guards)) { Resumes = resumes, StepBudget = 20_000_000 };
 
 							line   = evaluator.Parse(fixture.Entry, input).Line;
-							unfit += evaluator.Unfit;
+							unfit += evaluator.Stale;
 						}
 						catch (IrStepsExceeded)
 						{
@@ -883,9 +884,170 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		}
 
 		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
-			File.WriteAllText(Path.Combine(report, "differential.txt"), string.Create(CultureInfo.InvariantCulture, $"read {read}, differing {wrong.Count}, records not kept to keep the stack in order {unfit}\n") + string.Join("\n", wrong) + "\n");
+			File.WriteAllText(Path.Combine(report, "differential.txt"), string.Create(CultureInfo.InvariantCulture, $"read {read}, differing {wrong.Count}, stale records passed over {unfit}\n") + string.Join("\n", wrong) + "\n");
 
 		Assert.True(wrong.Count == 0, string.Join("; ", wrong));
+	}
+
+	/// <summary>
+	/// A replay inside a region keeps records ahead of the replay of the region round it, so a
+	/// record can lie below newer ones when a cut goes below its key: it stays in the store, stale,
+	/// and a lookup passes it over by the serial of the cuts. With that check off on purpose, a
+	/// stale record stands for a reading that has changed under it, and answers differ.
+	/// </summary>
+	[Fact]
+	public void RecordsMadeStaleByACut_ArePassedOver()
+	{
+		var fixture  = Cases.Fixtures[Environment.GetEnvironmentVariable("IR_STALE_FIXTURE") ?? "StaleRecord"];
+		var stale    = 0L;
+		var wrong    = 0;
+		var read     = 0;
+		var inputs   = new List<string> { "k=ax;j=ab;!" };
+		var name     = Environment.GetEnvironmentVariable("IR_STALE_FIXTURE") ?? "StaleRecord";
+		var units    = Cases.InputsOf(name).SelectMany(static input => input).Distinct().ToArray();
+
+		foreach (var input in Cases.InputsOf(name))
+		{
+			for (var i = 0; i <= input.Length; i++)
+			{
+				foreach (var unit in units)
+				{
+					inputs.Add(input.Insert(i, unit.ToString()));
+
+					if (i < input.Length)
+						inputs.Add(input[..i] + unit + input[(i + 1)..]);
+				}
+			}
+		}
+
+		foreach (var input in inputs.Distinct())
+		{
+			var (theirs, _, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
+
+			foreach (var options in Lowerings)
+			{
+				var program = Reading.Program(fixture.Grammar, options);
+				var log     = new RecordingHost();
+				var honest  = new IrEvaluator(program, log) { Resumes = true };
+
+				Assert.Equal(theirs.Line, honest.Parse(fixture.Entry, input).Line);
+				stale += honest.Stale;
+				read++;
+
+				try
+				{
+					var mutated = new RecordingHost();
+
+					// The answer, or the host calls made on the way to it.
+					if (new IrEvaluator(program, mutated) { Resumes = true, NoCutCheck = true, StepBudget = 5_000_000 }.Parse(fixture.Entry, input).Line != theirs.Line ||
+						!mutated.Log.SequenceEqual(log.Log))
+						wrong++;
+				}
+				catch (Exception thrown) when (thrown is IrStepsExceeded or IrContractViolation or InvalidCastException or ArgumentException or NullReferenceException)
+				{
+					wrong++;
+				}
+			}
+		}
+
+		// The printed parsers on the same inputs: with the check, the evaluator's answers and host
+		// calls; without it, somewhere not.
+		var batch    = inputs.Distinct().ToList();
+		var printed  = new int[2];
+
+		foreach (var options in Lowerings)
+		foreach (var noCutCheck in new[] { false, true })
+		{
+			var program0 = Reading.Program(fixture.Grammar, options);
+			var expected = batch.Select(input => Slices.Evaluated(program0, fixture.Entry, input, fixture.Guards)).ToList();
+
+			var runs = new List<Func<List<SliceAnswer>>>
+			{
+				() => Slices.InC("CutCheck", program0, fixture.Entry, batch, noCutCheck: noCutCheck),
+				() => Slices.TypeScript("CutCheck", program0, fixture.Entry, batch, frames: SliceFrames.None, noCutCheck: noCutCheck),
+			};
+
+			for (var r = 0; r < runs.Count; r++)
+			{
+				List<SliceAnswer> actual;
+
+				try
+				{
+					actual = runs[r]();
+				}
+				catch (Exception) when (noCutCheck)
+				{
+					printed[r]++;
+
+					continue;
+				}
+
+				for (var i = 0; i < batch.Count; i++)
+				{
+					var same = actual[i].Head == expected[i].Head && actual[i].Log.SequenceEqual(expected[i].Log);
+
+					if (!noCutCheck)
+						Assert.True(same, $"{(r == 0 ? "C" : "TypeScript")} on {Twin.Quoted(batch[i])}: {actual[i].Head}, the evaluator {expected[i].Head}");
+					else if (!same)
+						printed[r]++;
+				}
+			}
+		}
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "cut-check.txt"), string.Create(CultureInfo.InvariantCulture,
+				$"read {read}, stale records passed over {stale}, wrong without the cut check: evaluator {wrong}, C {printed[0]}, TypeScript {printed[1]}\n"));
+
+		Assert.True(stale > 0, "no record was ever stale below the top: the fixture does not reach a cut below a buried record");
+		Assert.True(wrong > 0 && printed[0] > 0 && printed[1] > 0, $"without the cut check nothing differs somewhere: evaluator {wrong}, C {printed[0]}, TypeScript {printed[1]}");
+	}
+
+	/// <summary>A search, not a test: inputs on which taking stale records changes an answer.</summary>
+	[Fact(Explicit = true)]
+	public void Search_StaleRecordsThatMatter()
+	{
+		var random = new Random(7);
+		var found  = new List<string>();
+
+		foreach (var (name, fixture) in Cases.Fixtures.Where(static one => one.Key != "Json"))
+		{
+			var alphabet = Cases.InputsOf(name).SelectMany(static input => input).Distinct().ToArray();
+
+			if (alphabet.Length == 0)
+				continue;
+
+			for (var n = 0; n < 20000 && found.Count < 40; n++)
+			{
+				var input = new string([.. Enumerable.Range(0, random.Next(2, 16)).Select(_ => alphabet[random.Next(alphabet.Length)])]);
+
+				foreach (var options in Lowerings)
+				{
+					var program = Reading.Program(fixture.Grammar, options);
+					var honest  = new IrEvaluator(program, new RecordingHost(fixture.Guards)) { Resumes = true, StepBudget = 5_000_000 };
+					string good, bad;
+
+					try
+					{
+						good = honest.Parse(fixture.Entry, input).Line;
+
+						if (honest.Stale == 0)
+							continue;
+
+						bad = new IrEvaluator(program, new RecordingHost(fixture.Guards)) { Resumes = true, NoCutCheck = true, StepBudget = 5_000_000 }.Parse(fixture.Entry, input).Line;
+					}
+					catch (Exception thrown)
+					{
+						bad  = "threw " + thrown.GetType().Name;
+						good = "";
+					}
+
+					if (good != bad)
+						found.Add($"{name} {Twin.Quoted(input)} {Named(options)}: {good} / {bad}");
+				}
+			}
+		}
+
+		File.WriteAllLines(Path.Combine(Environment.GetEnvironmentVariable("IR_REPORT")!, "stale-search.txt"), found);
 	}
 
 	/// <summary>The lowered programs of the fixtures, written out to be read.</summary>

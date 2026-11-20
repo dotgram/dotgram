@@ -39,7 +39,8 @@ static void *run(void *unused)
 {
 	Parser   P     = { 0 };
 
-	P.anyOwner = getenv("IR_ANY_OWNER") != NULL;
+	P.anyOwner   = getenv("IR_ANY_OWNER") != NULL;
+	P.noCutCheck = getenv("IR_NO_CUT_CHECK") != NULL;
 
 	int32_t  count = *(int32_t *)batch;
 	uint8_t *at    = batch + 4;
