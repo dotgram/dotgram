@@ -8,9 +8,9 @@
 | FIX | 5 | 5 (100.0 %) | 0 | 0 |
 | Expression language | 358 | 308 (86.0 %) | 98 | 50 |
 | CLI | 4 | 4 (100.0 %) | 2 | 0 |
-| Examples | 265 | 250 (94.3 %) | 99 | 15 |
+| Examples | 266 | 251 (94.4 %) | 100 | 15 |
 | Std | 8 | 0 (0.0 %) | 0 | 8 |
-| All | 4552 | 3827 (84.1 %) | 1032 | 725 |
+| All | 4553 | 3828 (84.1 %) | 1033 | 725 |
 
 | Form | Fragments holding it | Alone | Where |
 | --- | ---: | ---: | --- |
@@ -44,4 +44,4 @@
 | SwitchExpression | 1 | 0 | SQL standard 1 |
 | UnaryMinusExpression | 1 | 1 | Examples 1 |
 
-Verdicts: 62887ccd6e4f61a4
+Verdicts: 643eabb770230973

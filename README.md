@@ -90,13 +90,15 @@ same grammar is published three times — over `int`, over `decimal`, and as a s
 	             | '(' & inner: Expr & ')'              => @(inner)
 	             | value: Value                         => @(value)
 
+	Whole : Value = { e: Expr } => @(e)
+
 	IntNumber     : @int     = d: Std.Digits => @(int.Parse(d))
 	DecimalNumber : @decimal = d: Point      => @(decimal.Parse(d, CultureInfo.InvariantCulture))
 	NodeNumber    : @Node    = d: Point      => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
 
-	parse Expr with (Value = IntNumber)     as EvaluateInt
-	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
-	parse Expr with (Value = NodeNumber)    as BuildTree
+	parse Whole with (Value = IntNumber)     as EvaluateInt
+	parse Whole with (Value = DecimalNumber) as EvaluateDecimal
+	parse Whole with (Value = NodeNumber)    as BuildTree
 	""")]
 public static partial class Calculator { /* Node, Raise and two options: CalculatorExample.cs */ }
 ```

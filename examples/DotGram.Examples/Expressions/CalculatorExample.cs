@@ -41,6 +41,13 @@ namespace DotGram.Examples.Expressions;
 // where every construction waits until the parse has accepted — and at the immediate
 // carrier's speed.
 //
+// What is published is `Whole`, the expression in braces. Every reading of an expression
+// ends where its operators run out, and the first is the one that groups as the strengths
+// say, so no other reading can go on where it stops. Published bare, a text refused after
+// the expression — `1 + 2 )` — was refused only once every other way of grouping what
+// came before it had been tried, which took a time that grew with the square of its length.
+// The braces commit the first reading; nothing else changes, the refusal's message included.
+//
 // `Point` is a lexeme, so its parts are joined with `~`: with `&` trivia may stand inside it
 // and `1 .5` is one number (docs/syntax.md §4.5). Its braces read a number once, the first
 // reading being the only one wanted: nothing after a number begins with a point.
@@ -62,13 +69,15 @@ namespace DotGram.Examples.Expressions;
 	             | '(' & inner: Expr & ')'              => @(inner)
 	             | value: Value                         => @(value)
 
+	Whole : Value = { e: Expr } => @(e)
+
 	IntNumber     : @int     = d: Std.Digits => @(int.Parse(d))
 	DecimalNumber : @decimal = d: Point      => @(decimal.Parse(d, CultureInfo.InvariantCulture))
 	NodeNumber    : @Node    = d: Point      => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
 
-	parse Expr with (Value = IntNumber)     as EvaluateInt
-	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
-	parse Expr with (Value = NodeNumber)    as BuildTree
+	parse Whole with (Value = IntNumber)     as EvaluateInt
+	parse Whole with (Value = DecimalNumber) as EvaluateDecimal
+	parse Whole with (Value = NodeNumber)    as BuildTree
 	""", Carrier = GramCarrier.Immediate, ConstructionsMayThrow = true)]
 public static partial class Calculator
 {

@@ -166,13 +166,15 @@ using DotGram;
 	             | '(' & inner: Expr & ')'              => @(inner)
 	             | value: Value                         => @(value)
 
+	Whole : Value = { e: Expr } => @(e)
+
 	IntNumber     : @int     = d: Std.Digits => @(int.Parse(d))
 	DecimalNumber : @decimal = d: Point      => @(decimal.Parse(d, CultureInfo.InvariantCulture))
 	NodeNumber    : @Node    = d: Point      => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
 
-	parse Expr with (Value = IntNumber)     as EvaluateInt
-	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
-	parse Expr with (Value = NodeNumber)    as BuildTree
+	parse Whole with (Value = IntNumber)     as EvaluateInt
+	parse Whole with (Value = DecimalNumber) as EvaluateDecimal
+	parse Whole with (Value = NodeNumber)    as BuildTree
 	""")]
 public static partial class Calculator
 {
@@ -210,20 +212,24 @@ var tree = Calculator.BuildTree("1 - 2 - 3");
 // case Binary(-, Binary(-, Number(1), Number(2)), Number(3)) :
 ```
 
-The whole language is one rule. `<< n` reads the operand on its right one strength
+The whole arithmetic is one rule. `<< n` reads the operand on its right one strength
 tighter, so the operator groups to the left; `>> n` reads it at `n`, so it groups to the
 right. What separates the three parsers is the publication:
 
 ```text
-parse Expr with (Value = IntNumber)     as EvaluateInt
-parse Expr with (Value = DecimalNumber) as EvaluateDecimal
-parse Expr with (Value = NodeNumber)    as BuildTree
+parse Whole with (Value = IntNumber)     as EvaluateInt
+parse Whole with (Value = DecimalNumber) as EvaluateDecimal
+parse Whole with (Value = NodeNumber)    as BuildTree
 ```
 
 `with` substitutes a rule through the grammar reachable from that publication, and the
 result type follows it: `Expr : Value` means "the type produced by `Value`". The actions
 do not change either — `left + right` is C#, and over `Node` it is the operator declared
 beside the grammar, which builds a node instead of adding anything.
+
+`Whole` is `Expr` in braces: the first reading of an expression is the only one that can be
+the whole text, and committing to it lets a text with something left over, `1 + 2 )`, be
+refused in time linear in its length.
 
 ## Named captures become the result
 

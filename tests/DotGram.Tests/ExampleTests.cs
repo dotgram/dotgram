@@ -237,7 +237,7 @@ public sealed class ExampleTests
 
 	/// <summary>The same rule published over decimal, and over a tree.</summary>
 	/// <remarks>
-	/// One substitution apart: `parse Expr with (Value = …)`. The arithmetic is written
+	/// One substitution apart: `parse Whole with (Value = …)`. The arithmetic is written
 	/// once and its `=&gt;` bodies name no type, so `left + right` is C#'s `+` on whichever
 	/// number arrived — and over `Node` it is the operator that type declares, which builds
 	/// a node instead of adding anything.
