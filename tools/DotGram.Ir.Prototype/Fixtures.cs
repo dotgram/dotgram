@@ -269,6 +269,108 @@ static class Grammars
 		parse Start
 		""";
 
+	/// <summary>
+	/// A settled repetition whose one turn reads a long run and then fails, before a repetition
+	/// that gives turns back: the failed turn lies in every replayed prefix.
+	/// </summary>
+	public const string FailedTurnBefore = """
+		Start : @V = ws: Pair* & bs: B* & last: Letter & eof => @(Twin.C(0, ws, bs, last))
+		Pair  : @V = w: Word & ';'                           => @(Twin.C(1, w))
+		B     : @W = t: Letter & ','?                        => @(Twin.D(2, t))
+		Word       = Letter+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>Braces inside braces, the inner round a long repetition, before a repetition that gives turns back.</summary>
+	public const string NestedSealedBefore = """
+		Start : @V = { '<' & { xs: A* } & '>' } & bs: B* & last: Letter & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                                  => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                        => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A look that reads a long run, before a repetition that gives turns back.</summary>
+	public const string LongLookBefore = """
+		Start : @V = ?=('0'* & 'a') & z: Zeros & bs: B* & last: Letter & eof => @(Twin.C(0, z, bs, last))
+		B     : @W = t: Letter & ','?                                          => @(Twin.D(1, t))
+		Zeros      = '0'*
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>Braces round a long repetition and a long text, both captured, before a repetition that gives turns back.</summary>
+	public const string SealedCaptureBefore = """
+		Start : @V = { xs: A* & t: Word } & ';' & bs: B* & last: Letter & eof => @(Twin.C(0, xs, t, bs, last))
+		A     : @V = t: '0'                                                  => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                        => @(Twin.D(2, t))
+		Word       = Letter+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A recursion that decides at every level, read whole before a repetition that gives turns back.</summary>
+	public const string DecidingNestBefore = """
+		Start : @V = Nest & bs: B* & last: Letter & eof => @(Twin.C(0, bs, last))
+		Nest       = '(' & Nest & ')' | '(' & 'y'
+		B     : @W = t: Letter & ','?                    => @(Twin.D(1, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A long text read again by reference, before a repetition that gives turns back.</summary>
+	public const string SameBefore = """
+		Start : @V = $q: Zeros & '=' & $q & bs: B* & last: Letter & eof => @(Twin.C(0, bs, last))
+		B     : @W = t: Letter & ','?                                    => @(Twin.D(1, t))
+		Zeros      = '0'+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A line as a YAML reader reads it: a long indent and a long key, each a text, before a repetition that gives turns back.</summary>
+	public const string YamlLineBefore = """
+		Start : @V = i: Indent & k: Key & ':' & bs: B* & last: Letter & eof => @(Twin.C(0, i, k, bs, last))
+		B     : @W = t: Letter & ','?                                        => @(Twin.D(1, t))
+		Indent     = ' '*
+		Key        = ['0'..'9']+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// A deep nest whose innermost reading can be split many ways, each of which stands inside:
+	/// a failure at the top asks the innermost again, and every replay goes down the whole nest to it.
+	/// </summary>
+	public const string DeepSplit = """
+		Start = P & '!'
+		P     = '(' & P & ')' | Bs & Cs
+		Bs    = 'b'*
+		Cs    = 'b'*
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// <see cref="DeepSplit"/> with nothing to read on the way back up: what a replay pays to go
+	/// down the nest, apart from what it pays to come back.
+	/// </summary>
+	public const string DeepSplitOpen = """
+		Start = P & '!'
+		P     = '(' & P | Bs & Cs
+		Bs    = 'b'*
+		Cs    = 'b'*
+
+		parse Start
+		""";
+
 	/// <summary>RFC 8259 as DotGram.Web writes it, every construction a numbered call.</summary>
 	public const string Json = """
 		trivia = none
@@ -336,4 +438,13 @@ static class Grammars
 [Gram(Grammars.SettledBefore, Carrier = GramCarrier.Immediate)]         static partial class SettledBeforeParser;
 [Gram(Grammars.SealedBefore, Carrier = GramCarrier.Immediate)]          static partial class SealedBeforeParser;
 [Gram(Grammars.CalledBefore, Carrier = GramCarrier.Immediate)]          static partial class CalledBeforeParser;
+[Gram(Grammars.FailedTurnBefore, Carrier = GramCarrier.Immediate)]    static partial class FailedTurnBeforeParser;
+[Gram(Grammars.NestedSealedBefore, Carrier = GramCarrier.Immediate)]  static partial class NestedSealedBeforeParser;
+[Gram(Grammars.LongLookBefore, Carrier = GramCarrier.Immediate)]      static partial class LongLookBeforeParser;
+[Gram(Grammars.SealedCaptureBefore, Carrier = GramCarrier.Immediate)] static partial class SealedCaptureBeforeParser;
+[Gram(Grammars.DecidingNestBefore, Carrier = GramCarrier.Immediate)]  static partial class DecidingNestBeforeParser;
+[Gram(Grammars.SameBefore, Carrier = GramCarrier.Immediate)]          static partial class SameBeforeParser;
+[Gram(Grammars.YamlLineBefore, Carrier = GramCarrier.Immediate)]      static partial class YamlLineBeforeParser;
+[Gram(Grammars.DeepSplit)]                                            static partial class DeepSplitParser;
+[Gram(Grammars.DeepSplitOpen)]                                        static partial class DeepSplitOpenParser;
 [Gram(Grammars.Json)]                  static partial class JsonTwinParser;
