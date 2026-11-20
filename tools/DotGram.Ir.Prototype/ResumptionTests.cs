@@ -661,6 +661,109 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	];
 
 	/// <summary>
+	/// Measured, before a record is keyed by (cursor, statement, position) without a sentinel: how
+	/// often two sentinels on the tape at once share those three, over every fixture's inputs and
+	/// their one-character edits, the JSON corpus, and the shipped grammars' inputs accepted and
+	/// edited; and what share of the entries into kept statements the statements that may be
+	/// entered again at the same place would keep.
+	/// </summary>
+	[Fact]
+	public void TheKeyAlone_IsMeasured()
+	{
+		static IEnumerable<string> Edited(IEnumerable<string> inputs)
+		{
+			foreach (var input in inputs.Where(static one => one.Length <= 64))
+			{
+				yield return input;
+
+				var units = input.Distinct().ToArray();
+
+				for (var i = 0; i <= input.Length; i++)
+				{
+					foreach (var unit in units)
+					{
+						yield return input.Insert(i, unit.ToString());
+
+						if (i < input.Length)
+							yield return input[..i] + unit + input[(i + 1)..];
+					}
+
+					if (i < input.Length)
+						yield return input.Remove(i, 1);
+				}
+			}
+		}
+
+		var text = new StringBuilder("corpus\tlowering\treadings\tsentinel entries\tcollisions\n");
+
+		void Count(string corpus, IrProgram program, string entry, IEnumerable<string> inputs, Func<IrFragment, object?[], bool>? guards, string lowering)
+		{
+			long readings = 0, collisions = 0, sentinels = 0;
+
+			foreach (var input in inputs.Distinct())
+			{
+				var evaluator = new IrEvaluator(program, new Ladders.CountingHost(guards)) { Resumes = true, StepBudget = 20_000_000 };
+
+				try
+				{
+					evaluator.Parse(entry, input);
+				}
+				catch (Exception thrown) when (thrown is IrStepsExceeded or NotSupportedException)
+				{
+					continue;
+				}
+
+				readings++;
+				collisions += evaluator.Collisions;
+				sentinels  += evaluator.Sentinels;
+			}
+
+			text.Append(corpus).Append('\t').Append(lowering).Append('\t').Append(readings).Append('\t').Append(sentinels).Append('\t').Append(collisions).Append('\n');
+		}
+
+		foreach (var (name, fixture) in Cases.Fixtures)
+			foreach (var options in Lowerings)
+				Count(name, Reading.Program(fixture.Grammar, options), fixture.Entry, name == "Json" ? Cases.InputsOf(name).Concat(HostTests.JsonCorpus().Select(static one => one.Text)) : Edited(Cases.InputsOf(name)), fixture.Guards, Named(options));
+
+		foreach (var (name, file, entry, inputs) in AcceptedRows.Where(static row => row.File is "Rfc5322.cs" or "Rfc9651.cs" or "Rfc3986.cs"))
+			Count(name + " (accepted and edited)", Reading.Program(Graphs.WebGrammar(file)), entry, Edited(inputs), null, "proofs");
+
+		// Statements that may be entered again at the same place, and their share of the entries.
+		text.Append("\nrow\tkept statements\tof them entered again at the same place\tentries\tentries into those\tshare\n");
+
+		foreach (var (name, file, entry, inputs) in AcceptedRows.Where(static row => row.File is "Rfc5322.cs" or "Rfc9651.cs" or "Rfc3986.cs"))
+		{
+			var program = Reading.Program(Graphs.WebGrammar(file));
+			var sites   = ResumptionSites.Of(program);
+			long all = 0, held = 0;
+
+			foreach (var input in inputs)
+			{
+				var evaluator = new IrEvaluator(program, new RecordingHost()) { Resumes = true };
+
+				if (!evaluator.Parse(entry, input).Accepted)
+					continue;
+
+				foreach (var (stmt, count) in evaluator.EntriesBy)
+				{
+					all += count;
+
+					if (sites.ReentersEmpty.Contains(stmt))
+						held += count;
+				}
+			}
+
+			text.Append(name).Append('\t').Append(sites.Sites.Count).Append('\t').Append(sites.ReentersEmpty.Count).Append('\t').Append(all).Append('\t').Append(held).Append('\t')
+				.Append((all == 0 ? 0 : held / (double)all).ToString("P1", CultureInfo.InvariantCulture)).Append('\n');
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "key-alone.tsv"), text.ToString());
+	}
+
+	/// <summary>
 	/// Counts on accepted inputs, not timings: how many kept statements a reading enters and how many
 	/// sentinels it opens per byte, under the criterion in force and under one that also asks that
 	/// something can fail back after the deciding statement; why each braces site of RFC 5322 is

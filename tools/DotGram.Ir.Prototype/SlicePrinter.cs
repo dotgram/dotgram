@@ -33,6 +33,14 @@ enum SliceAblation
 	/// doing nothing (no door, no flag, no sentinel). Not a parser that resumes.
 	/// </summary>
 	Ceiling,
+
+	/// <summary>
+	/// The form a replay mode that owns the whole reading of a kept statement would print: on the
+	/// first reading one compare and the statement as it is; where the tape is read back, a second
+	/// copy with the whole of the kept statement's code (opening no sentinel, so that the tape stays
+	/// the first reading's). Not a parser that resumes: what the code and its size cost.
+	/// </summary>
+	SecondCopy,
 }
 
 enum SliceLanguage
@@ -108,6 +116,11 @@ sealed class SlicePrinter
 	readonly bool            _resumes;
 
 	IrStmt? _bare;
+
+	// Printing the copy a replay reads (SecondCopy): nothing in it is copied again, and no sentinel is opened.
+	bool _inCopy;
+
+	bool NoSentinel => _ablation == SliceAblation.WrapperOnly || _inCopy;
 
 	readonly SliceAblation _ablation;
 
@@ -634,12 +647,13 @@ sealed class SlicePrinter
 		Line("{");
 		_indent++;
 
-		if (_ablation == SliceAblation.WrapperOnly)
+		if (NoSentinel)
 			Line($"{owner} = -1;");
 
 		// Read for the first time, a sentinel is opened and nothing else is asked; read back, its
-		// latest record is looked for.
-		Line($"if ({Member("cursor")} < {Member("count")})");
+		// latest record is looked for. (In the copy a replay reads, the lookup is printed but never
+		// taken: there is no sentinel to read back.)
+		Line(_inCopy ? $"if ({Member("cursor")} < {Member("count")} && {Member("noCutCheck")})" : $"if ({Member("cursor")} < {Member("count")})");
 		Line("{");
 		_indent++;
 		Line($"{owner} = {(_counted ? Enter("0") : (C ? "P->cursor++" : "P.cursor++"))};");
@@ -653,7 +667,7 @@ sealed class SlicePrinter
 		_indent--;
 		Line("}");
 
-		if (_ablation != SliceAblation.WrapperOnly)
+		if (!NoSentinel)
 			Line($"else {owner} = {(_counted ? Enter("0") : Runtime("sentinel", ""))};");
 
 		_indent--;
@@ -906,6 +920,30 @@ sealed class SlicePrinter
 	/// <param name="fail">What a failure of this statement is, where it stands: a <c>break</c> or a <c>return</c>.</param>
 	void Statement(IrStmt stmt, string fail)
 	{
+		if (_ablation == SliceAblation.SecondCopy && !_inCopy && Kept(stmt))
+		{
+			var outer = _bare;
+
+			Line($"if ({Member("cursor")} < {Member("count")})");
+			Line("{");
+			_indent++;
+			_inCopy = true;
+			Statement(stmt, fail);
+			_inCopy = false;
+			_indent--;
+			Line("}");
+			Line("else");
+			Line("{");
+			_indent++;
+			_bare = stmt;
+			Statement(stmt, fail);
+			_bare = outer;
+			_indent--;
+			Line("}");
+
+			return;
+		}
+
 		if (SentinelAlone(stmt))
 		{
 			var outer = _bare;

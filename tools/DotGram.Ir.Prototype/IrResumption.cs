@@ -81,6 +81,80 @@ sealed class ResumptionSites
 	readonly Dictionary<IrStmt, IrFunction> _owners = new(ReferenceEqualityComparer.Instance);
 	readonly Dictionary<IrFunction, bool> _followed = [];
 
+	/// <summary>
+	/// Measured: the kept statements that may be entered again, while an earlier entry of theirs is
+	/// still being read, without the position having moved — through calls made before any input is
+	/// read, back to their own function, and from its start to them with nothing read on the way.
+	/// An over-approximation.
+	/// </summary>
+	public HashSet<IrStmt> ReentersEmpty { get; } = new(ReferenceEqualityComparer.Instance);
+
+
+	/// <summary>The functions a reading of the statement may call before it reads anything.</summary>
+	void LeftCorner(IrStmt stmt, HashSet<IrFunction> into)
+	{
+		switch (stmt)
+		{
+			case IrStmt.Call call:
+				if (into.Add(call.Target))
+					LeftCorner(call.Target.Body, into);
+
+				return;
+
+			case IrStmt.Block block:
+				foreach (var item in block.Items)
+				{
+					LeftCorner(item, into);
+
+					if (Begins(item) is { First: not null, Empty: false })
+						return;
+				}
+
+				return;
+
+			default:
+				foreach (var child in stmt.Children)
+					LeftCorner(child, into);
+
+				return;
+		}
+	}
+
+	/// <summary>Whether the statement may be the first thing its function reads: everything before it on the way down can read nothing.</summary>
+	bool AtStart(IrStmt stmt)
+	{
+		var at = stmt;
+
+		while (_parents.TryGetValue(at, out var parent))
+		{
+			if (parent is IrStmt.Block block)
+			{
+				var index = IndexOf(block.Items, at);
+
+				for (var i = 0; i < index; i++)
+					if (Begins(block.Items[i]) is { First: not null, Empty: false })
+						return false;
+			}
+
+			at = parent;
+		}
+
+		return true;
+	}
+
+	void FindReentries()
+	{
+		foreach (var stmt in _sites.Keys)
+		{
+			var reached = new HashSet<IrFunction>();
+
+			LeftCorner(stmt, reached);
+
+			if (reached.Contains(_owners[stmt]) && AtStart(stmt))
+				ReentersEmpty.Add(stmt);
+		}
+	}
+
 	/// <summary>For every kept statement, the decision that keeps it under <see cref="ResumptionCriterion.Decided"/>, in words.</summary>
 	public Dictionary<IrStmt, string> Kept { get; } = new(ReferenceEqualityComparer.Instance);
 
@@ -136,6 +210,8 @@ sealed class ResumptionSites
 
 		foreach (var entry in program.Entries.Values)
 			Visit(entry, inReplay: false);
+
+		FindReentries();
 	}
 
 	/// <summary>
