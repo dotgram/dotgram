@@ -85,6 +85,7 @@ public sealed class JsonWriterTests
 
 		// The shortest text that reads back where the runtime has it; seventeen digits from the netstandard2.0 build,
 		// which a net8.0 consumer of the package takes.
+
 #if NET10_0_OR_GREATER
 		Assert.Equal("[0.1]", Row(s => QlJson.Double(s, 0.1)));
 #else
