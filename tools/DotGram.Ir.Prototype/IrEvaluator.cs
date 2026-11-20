@@ -278,6 +278,36 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// <summary>Of each entry into a kept repetition: the turns it took and the items it read.</summary>
 	public List<(int Turns, int Read)> LoopEntries { get; } = [];
 
+	/// <summary>Measured, resuming or not: the calls a reading makes, and of them those made where the tape is read back.</summary>
+	public long Calls { get; private set; }
+
+	/// <inheritdoc cref="Calls"/>
+	public long CallsBack { get; private set; }
+
+	/// <summary>Measured: the calls into a function that keeps a statement, the entries a form with a twin a function compares.</summary>
+	public long CallsWithPlaces { get; private set; }
+
+	readonly Dictionary<IrFunction, bool> _places = [];
+
+	bool HasPlaces(IrFunction function)
+	{
+		if (!_places.TryGetValue(function, out var has))
+			_places.Add(function, has = Keeps(function.Body));
+
+		return has;
+
+		bool Keeps(IrStmt stmt)
+		{
+			return _sites.Keeps(stmt) || stmt.Children.Any(Keeps);
+		}
+	}
+
+	/// <summary>Measured, resuming or not: the entries into kept statements, and of them those made where the tape is read back.</summary>
+	public long KeptEntries { get; private set; }
+
+	/// <inheritdoc cref="KeptEntries"/>
+	public long KeptEntriesBack { get; private set; }
+
 	void Entered(IrStmt stmt)
 	{
 		SiteEntries++;
@@ -677,6 +707,14 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	{
 		var frame = new object?[function.SlotCount];
 
+		Calls++;
+
+		if (Ways.Cursor < Ways.Count)
+			CallsBack++;
+
+		if (HasPlaces(function))
+			CallsWithPlaces++;
+
 		Array.Fill(frame, Unset);
 
 		var read = Exec(function.Body, frame);
@@ -722,6 +760,14 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	{
 		if (++Steps > StepBudget)
 			throw new IrStepsExceeded(StepBudget);
+
+		if (_sites.Keeps(stmt))
+		{
+			KeptEntries++;
+
+			if (Ways.Cursor < Ways.Count)
+				KeptEntriesBack++;
+		}
 
 		if (Resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt))
 		{
