@@ -46,8 +46,14 @@ static class RightsPlan
 			switch (node)
 			{
 				case NameExpr name:
+					// A column named in a column passes on what that one needs; named at a place, it needs the place's right.
 					if (scope.TryGetValue(name.Name.Text, out var column))
-						into?.Reads.Add(column);
+					{
+						if (into is not null)
+							into.Reads.Add(column);
+						else
+							column.Needs |= place.Right;
+					}
 					else if (!selected && !Names.Comparer.Equals(name.Name.Text, qualifier))
 						fields.Add((name.Name, place));
 
