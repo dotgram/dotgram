@@ -295,6 +295,40 @@ static class Slices
 		}
 	}
 
+	/// <summary>
+	/// The program printed in TypeScript with and without resumption, in every way of keeping
+	/// frames, timed over accepted inputs by <c>accept.ts</c>: a line a way of keeping frames.
+	/// </summary>
+	public static List<string> AcceptingPath(string name, IrProgram program, string entry, IReadOnlyList<string> inputs, ResumptionCriterion criterion = ResumptionCriterion.Decided)
+	{
+		var (node, environment) = Node;
+
+		var directory = Workspace(name, "ts");
+
+		try
+		{
+			foreach (var frames in Enum.GetValues<SliceFrames>())
+			{
+				var form = frames.ToString().ToLowerInvariant();
+
+				File.WriteAllText(Path.Combine(directory, $"parser-on-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion));
+				File.WriteAllText(Path.Combine(directory, $"parser-off-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, resumes: false));
+			}
+
+			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
+
+			var (exit, output, error) = Run("node", [.. node, "accept.ts", directory, entry, "batch.bin"], directory, environment);
+
+			Assert.True(exit == 0, "node: " + error);
+
+			return [.. output.Split('\n', StringSplitOptions.RemoveEmptyEntries)];
+		}
+		finally
+		{
+			Discard(directory);
+		}
+	}
+
 	/// <summary>The program printed in C, compiled by gcc with a host and run over the inputs.</summary>
 	/// <param name="host">The host's source among the hand-written files; the recording host where null.</param>
 	/// <param name="stackMegabytes">The stack of a thread made for the reading, where not the process's own.</param>

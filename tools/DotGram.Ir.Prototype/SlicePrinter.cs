@@ -98,14 +98,14 @@ sealed class SlicePrinter
 	int _indent;
 	int _temp;
 
-	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames, bool counted)
+	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames, bool counted, bool resumes, ResumptionCriterion criterion)
 	{
 		_program  = program;
 		_language = language;
 		_frames   = language == SliceLanguage.TypeScript ? frames : SliceFrames.None;
 		_counted  = counted;
-		_sites    = ResumptionSites.Of(program);
-		_resumes  = _sites.Sites.Count > 0;
+		_sites    = ResumptionSites.Of(program, criterion);
+		_resumes  = resumes && _sites.Sites.Count > 0;
 
 		if (_frames == SliceFrames.None)
 			return;
@@ -146,9 +146,16 @@ sealed class SlicePrinter
 	/// opens or reads back, into the runtime's counters: what a ladder of refusals reads, and
 	/// never what a timing does.
 	/// </param>
-	public static string Print(IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false)
+	/// <param name="resumes">
+	/// Whether a replay goes straight past what it read before (<see cref="ResumptionSites"/>);
+	/// without, the parser is what it was before it did, which is what the cost of it is measured against.
+	/// </param>
+	/// <param name="criterion">Which statements keep a record (<see cref="ResumptionSites"/>).</param>
+	public static string Print(
+		IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false, bool resumes = true,
+		ResumptionCriterion criterion = ResumptionCriterion.Decided)
 	{
-		var printer = new SlicePrinter(program, language, frames, counted);
+		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion);
 
 		printer.Run();
 
@@ -506,10 +513,14 @@ sealed class SlicePrinter
 	/// and where it is read back, the latest record of its entry taken if it stands for this
 	/// reading — any record of a repetition, only where a statement ended of anything else.
 	/// </summary>
-	void Sentinel(string owner, Action<string> taken, bool endOnly)
+	void Sentinel(IrStmt stmt, string owner, Action<string> taken, bool endOnly)
 	{
 		var again = Temp("again");
 		var h     = Temp("h");
+
+		// Where the next item cannot begin what the statement reads, its work is bounded and it opens nothing.
+		if (_sites.Doors.TryGetValue(stmt, out var door))
+			Line($"if (p < len && (c = {Unit("p")}, {Within(new IrStmt.MatchSet(door, false, 0))}))");
 
 		Line("{");
 		_indent++;
@@ -544,7 +555,7 @@ sealed class SlicePrinter
 		Line(Int(owner, "-1"));
 		Line(Flag(read));
 		Line(Flag(taken));
-		Sentinel(owner, h =>
+		Sentinel(stmt, owner, h =>
 		{
 			Line($"p = {Field(h, "pos")};");
 			Line($"{Member("cursor")} = {Field(h, "key")};");
@@ -579,7 +590,8 @@ sealed class SlicePrinter
 		var failed = State();
 		var writes = Writes(stmt);
 
-		Sentinel(owner, h =>
+		Line($"{owner} = -1;");
+		Sentinel(stmt, owner, h =>
 		{
 			Line($"p = {Field(h, "pos")};");
 			Line($"{Member("cursor")} = {Field(h, "key")};");
@@ -988,7 +1000,7 @@ sealed class SlicePrinter
 				{
 					Line(Flag(done));
 					Line(Int(owner, "-1"));
-					Sentinel(owner, (h) =>
+					Sentinel(repeat, owner, (h) =>
 					{
 						Line($"p = {Field(h, "pos")};");
 						Line($"{turns} = {Field(h, "turns")};");
@@ -1522,7 +1534,8 @@ sealed class SlicePrinter
 
 				if (keeps)
 				{
-					Sentinel(owner, h =>
+					Line($"{owner} = -1;");
+					Sentinel(repeat, owner, h =>
 					{
 						Line($"p = {Field(h, "pos")};");
 						Line($"{turns} = {Field(h, "turns")};");
