@@ -61,7 +61,13 @@ if ([bool]$Script -eq ($Command.Count -gt 0)) { Stop-Run 2 'Give -Script (a Powe
 
 if ($Script) {
 	$Script  = (Resolve-Path $Script).Path
-	$Command = @((Get-Process -Id $PID).Path, '-NoProfile', '-File', $Script) + $Arguments
+	# This process may be the dotnet host when pwsh is installed as a .NET global tool; run the script with
+	# the pwsh on PATH then, and fall back to this process otherwise.
+	$shell = (Get-Command pwsh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+
+	if (-not $shell) { $shell = (Get-Process -Id $PID).Path }
+
+	$Command = @($shell, '-NoProfile', '-File', $Script) + $Arguments
 	$anchor  = Split-Path $Script
 }
 else {
