@@ -261,13 +261,20 @@ static class Coercion
 		return list;
 	}
 
-	/// <summary>What a value weighs against <see cref="QlOptions.MaxParameterBytes"/>: a string as UTF-16, anything else as its size in memory.</summary>
+	/// <summary>
+	/// What a value weighs against <see cref="QlOptions.MaxParameterBytes"/>: a string as UTF-16, a value of the
+	/// language's types as its size in memory, a byte array by its length and a char array as UTF-16, any other array
+	/// as 16 bytes an item, and any other value of a type outside the language as 16 bytes.
+	/// </summary>
 	public static long Bytes(object? value)
 	{
 		return value switch
 		{
 			null                                   => 0,
 			string text                            => 2L * text.Length,
+			byte[] bytes                           => bytes.LongLength,
+			char[] chars                           => 2L * chars.LongLength,
+			Array array                            => 16L * array.LongLength,
 			bool                                   => 1,
 			int                                    => 4,
 			long or double or DateTime             => 8,

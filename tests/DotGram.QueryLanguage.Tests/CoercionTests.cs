@@ -211,6 +211,37 @@ public sealed class CoercionTests
 		Assert.Equal(4, read);
 	}
 
+	sealed class Blobby
+	{
+		public int     Id   { get; set; }
+		public byte[]? Blob { get; set; }
+	}
+
+	sealed class BlobContext
+	{
+		public IQueryable<Blobby> Rows { get; } = new[] { new Blobby { Id = 1, Blob = [1] } }.AsQueryable();
+	}
+
+	/// <summary>A byte array weighs its length against <c>MaxParameterBytes</c>, as a string weighs its characters.</summary>
+	[Fact]
+	public void AByteArrayWeighsItsLength()
+	{
+		var builder = new QlModelBuilder<BlobContext>();
+
+		builder.Entity(c => c.Rows).Column("id", b => b.Id).Column("blob", b => b.Blob);
+
+		var model = builder.Build();
+
+		model.QueryData(new BlobContext(), "from Rows where blob == @b select id", new Dictionary<string, object?> { ["b"] = new byte[model.Options.MaxParameterBytes] });
+
+		var error = Assert.Throws<QlException>(() => model.QueryData(new BlobContext(), "from Rows where blob == @b select id", new Dictionary<string, object?> { ["b"] = new byte[10_000_000] })).Error;
+
+		Assert.Equal(QlErrorCode.Limit, error.Code);
+		Assert.Equal(16 * 1024 + 1, Coercion.Bytes(new byte[16 * 1024 + 1]));
+		Assert.Equal(6, Coercion.Bytes(new[] { 'a', 'b', 'c' }));
+		Assert.Equal(32, Coercion.Bytes(new[] { Kind.New, Kind.Paid }));
+	}
+
 	[Fact]
 	public void ParameterNamesIgnoreCaseAsTheTextsNamesDo()
 	{

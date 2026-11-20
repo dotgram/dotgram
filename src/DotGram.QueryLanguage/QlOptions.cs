@@ -61,7 +61,11 @@ public sealed record QlOptions
 	/// <summary>Characters of one string, a literal or a value. 4 KB by default.</summary>
 	public int MaxStringLength { get; init; } = 4 * 1024;
 
-	/// <summary>Bytes of all the values passed with one query, strings counted as UTF-16. 16 KB by default.</summary>
+	/// <summary>
+	/// Bytes of all the values passed with one query: a string as UTF-16, a byte array by its length, a value of the
+	/// language's types by its size, any other value as 16 bytes and any other array as 16 bytes an item. 16 KB by
+	/// default.
+	/// </summary>
 	public int MaxParameterBytes { get; init; } = 16 * 1024;
 
 	/// <summary>
