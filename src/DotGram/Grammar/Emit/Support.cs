@@ -3443,7 +3443,9 @@ static partial class CSharpEmitter
 				else
 					return new Ways_DotGram();
 				// <sealskip>
-				global::System.Array.Clear(spare.Skip, 0, spare.Count);
+				if (spare.Count > 0)
+					global::System.Array.Clear(spare.Skip, 0, spare.Count);
+
 				// </sealskip>
 				spare.Count = 0;
 				spare.Cursor = 0;
@@ -3556,10 +3558,7 @@ static partial class CSharpEmitter
 				// </nosealskip>
 				// <sealskip>
 				if (Count * 2 + 2 > Items.Length)
-				{
-					global::System.Array.Resize(ref Items, Items.Length * 2);
-					global::System.Array.Resize(ref Skip, Items.Length / 2);
-				}
+					Grow();
 				// </sealskip>
 
 				Items[Count * 2]     = at;
@@ -3693,6 +3692,17 @@ static partial class CSharpEmitter
 			/// it — and <see cref="Cut"/> clears what it cuts.
 			/// </summary>
 			internal int[] Skip = new int[16];
+
+			/// <summary>
+			/// More room for the ways and the pointers beside them, together: out of line, so that
+			/// <see cref="Open(int, int)"/> stays small enough to be inlined where it is called.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Grow()
+			{
+				global::System.Array.Resize(ref Items, Items.Length * 2);
+				global::System.Array.Resize(ref Skip, Items.Length / 2);
+			}
 			// </sealskip>
 			// <places>
 
