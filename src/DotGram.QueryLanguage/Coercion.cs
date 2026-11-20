@@ -238,8 +238,12 @@ static class Coercion
 		return DateTimeOffset.TryParseExact(text, Utc, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out value);
 	}
 
-	/// <summary>The items of a list value, enumerated once; null where the value is not a list (a string and a byte array are not).</summary>
-	public static List<object?>? Items(object value)
+	/// <summary>
+	/// The items of a list value, enumerated once and no further than one item past <paramref name="max"/>, so that a
+	/// long or endless sequence is refused for its length without being read to its end; null where the value is not
+	/// a list (a string and a byte array are not).
+	/// </summary>
+	public static List<object?>? Items(object value, int max)
 	{
 		if (value is string or byte[] || value is not IEnumerable items)
 			return null;
@@ -247,7 +251,12 @@ static class Coercion
 		var list = new List<object?>();
 
 		foreach (var item in items)
+		{
 			list.Add(item);
+
+			if (list.Count > max)
+				break;
+		}
 
 		return list;
 	}

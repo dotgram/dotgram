@@ -25,13 +25,13 @@ static class Arguments
 
 			if (parameter.IsList)
 			{
-				var items = value is null ? null : Coercion.Items(value) ?? throw Error(QlErrorCode.Parameter, $"`@{parameter.Name}` takes a list of {type.Name}.", parameter);
+				var items = value is null ? null : Coercion.Items(value, options.MaxInList) ?? throw Error(QlErrorCode.Parameter, $"`@{parameter.Name}` takes a list of {type.Name}.", parameter);
 
 				if (items is null)
 					throw Error(QlErrorCode.Parameter, $"`@{parameter.Name}` takes a list of {type.Name}, and is null.", parameter);
 
 				if (items.Count > options.MaxInList)
-					throw Error(QlErrorCode.Limit, $"`@{parameter.Name}` has {items.Count} values; at most {options.MaxInList} are taken.", parameter);
+					throw Error(QlErrorCode.Limit, $"`@{parameter.Name}` has more than {options.MaxInList} values; at most {options.MaxInList} are taken.", parameter);
 
 				for (var i = 0; i < items.Count; i++)
 				{

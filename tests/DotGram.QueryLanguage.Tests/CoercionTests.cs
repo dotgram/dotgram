@@ -162,11 +162,11 @@ public sealed class CoercionTests
 	[Fact]
 	public void AListIsAnyEnumerableButAStringOrBytes()
 	{
-		Assert.Equal([1, 2], Coercion.Items(new[] { 1, 2 })!);
-		Assert.Equal([1L], Coercion.Items(new List<long> { 1 })!);
-		Assert.Null(Coercion.Items("ab"));
-		Assert.Null(Coercion.Items(new byte[] { 1 }));
-		Assert.Null(Coercion.Items(1));
+		Assert.Equal([1, 2], Coercion.Items(new[] { 1, 2 }, 100)!);
+		Assert.Equal([1L], Coercion.Items(new List<long> { 1 }, 100)!);
+		Assert.Null(Coercion.Items("ab", 100));
+		Assert.Null(Coercion.Items(new byte[] { 1 }, 100));
+		Assert.Null(Coercion.Items(1, 100));
 	}
 
 	// ── Through a call ──────────────────────────────────────────────────────
@@ -186,6 +186,29 @@ public sealed class CoercionTests
 		_ = Model.QueryData(Shop.InMemory(), "from orders where qty in @q select id", new Dictionary<string, object?> { ["q"] = list });
 
 		Assert.Equal(1, list.Enumerations);
+	}
+
+	/// <summary>A list longer than <c>MaxInList</c> is refused one item past it: an endless sequence is never read to its end.</summary>
+	[Fact]
+	public void AListIsReadNoFurtherThanItsBound()
+	{
+		var read = 0;
+
+		IEnumerable<int> Endless()
+		{
+			while (true)
+			{
+				read++;
+
+				yield return read;
+			}
+		}
+
+		var error = Assert.Throws<QlException>(() => Model.QueryData(Shop.InMemory(), "from orders where qty in @q select id", new Dictionary<string, object?> { ["q"] = Endless() })).Error;
+
+		Assert.Equal(QlErrorCode.Limit, error.Code);
+		Assert.Equal("`@q` has more than 3 values; at most 3 are taken.", error.Message);
+		Assert.Equal(4, read);
 	}
 
 	[Fact]
