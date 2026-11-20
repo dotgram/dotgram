@@ -116,6 +116,9 @@ static class Coercion
 
 	const double TwoTo53 = 9007199254740992d;
 
+	/// <summary>The largest integer every integer below which a double holds exactly: 2^53.</summary>
+	const long Exact = 9007199254740992L;
+
 	static bool ToDecimal(object value, out decimal result)
 	{
 		result = 0;
@@ -185,7 +188,7 @@ static class Coercion
 
 			default:
 				// An integer beyond 2^53 is refused: two different ids would become one value.
-				if (!Integer(value, long.MinValue, long.MaxValue, out var integer) || Math.Abs((double)integer) > TwoTo53)
+				if (!Integer(value, long.MinValue, long.MaxValue, out var integer) || integer > Exact || integer < -Exact)
 					return false;
 
 				result = integer;

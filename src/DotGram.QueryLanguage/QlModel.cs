@@ -39,7 +39,21 @@ public sealed class QlModel<TContext>
 	/// <exception cref="QlException">The text, or a value, is refused.</exception>
 	public IQueryable<object?[]> QueryData(TContext context, string text, IReadOnlyDictionary<string, object?>? values = null)
 	{
-		throw new NotImplementedException();
+		var bound     = Bind(text);
+		var arguments = Arguments.Bind(bound, values, Options);
+
+		return Translator.QueryData(bound, Source(bound.Entity, context), arguments, Options);
+	}
+
+	/// <summary>The rows of an entity for this context: its source, called for every query, so that it sees the context as it is now.</summary>
+	static IQueryable Source(ModelEntity entity, TContext context)
+	{
+		var source = ((Func<TContext, IQueryable>)entity.Source)(context);
+
+		if (source is null || source.ElementType != entity.Type)
+			throw new InvalidOperationException($"The source of `{entity.Name}` returned {(source is null ? "null" : "rows of " + source.ElementType.Name)}.");
+
+		return source;
 	}
 
 	/// <summary>The rows as JSON text, one element a row, written in the provider's reading of the rows.</summary>

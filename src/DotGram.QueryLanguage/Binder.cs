@@ -326,8 +326,9 @@ sealed partial class Binder
 	/// </summary>
 	void CheckPaging(ClauseSyntax[] clauses)
 	{
-		var levels = 0;
-		int? run   = null;
+		var levels  = 0;
+		var skipped = 0L;
+		int? run    = null;
 
 		foreach (var clause in clauses)
 		{
@@ -335,6 +336,16 @@ sealed partial class Binder
 			{
 				case PageClause page:
 					run ??= page.Position;
+
+					// The skips the text writes, counted now; with a parameter's the call counts them again.
+					if (page.Skip && page.Count is LiteralExpr literal)
+					{
+						skipped += int.Parse(literal.Text, CultureInfo.InvariantCulture);
+
+						if (skipped > _options.MaxSkip)
+							throw Error(QlErrorCode.Limit, $"The query skips more than {_options.MaxSkip} rows.", page.Position);
+					}
+
 					break;
 
 				case WhereClause or OrderClause when run is { } start:

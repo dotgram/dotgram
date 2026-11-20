@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -51,7 +52,28 @@ var model = builder.Build(QlOptions.Default with { MaxRows = 10 });
 if (model.Options.MaxRows != 10)
 	throw new Exception("The options were not kept.");
 
-Console.WriteLine($"DotGram.QueryLanguage package smoke: dependencies as declared, a model built ({RuntimeInformation.FrameworkDescription}).");
+// A text described and run, here by LINQ to Objects: the tree is the one a database provider would be handed.
+var info = model.Describe("from Orders where total > @min order by Id desc select Id, total * 2 as twice");
+
+if (string.Join(",", info.Columns.Select(c => $"{c.Name}:{c.Type}")) != "Id:Int,twice:Decimal" || info.Parameters.Single().Name != "min")
+	throw new Exception("The text was described wrongly.");
+
+var rows = model.QueryData(new Shop(), "from Orders where total > @min order by Id desc select Id, total * 2 as twice", new Dictionary<string, object?> { ["min"] = 5 }).ToList();
+
+if (rows.Count != 2 || (int)rows[0][0]! != 2 || (decimal)rows[0][1]! != 40m)
+	throw new Exception("The query returned the wrong rows.");
+
+try
+{
+	model.Describe("from Orders where nosuch > 1");
+
+	throw new Exception("An unknown name was accepted.");
+}
+catch (QlException e) when (e.Error.Code == QlErrorCode.UnknownName && e.Error.Position == 18)
+{
+}
+
+Console.WriteLine($"DotGram.QueryLanguage package smoke: dependencies as declared, a text described and run ({RuntimeInformation.FrameworkDescription}).");
 
 sealed class Order
 {
