@@ -1,0 +1,79 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- The two targets DotGram.ExpressionLanguage has, for its reasons: netstandard2.0 is what
+		     every consumer can read, and net10.0 is what the newest runtime gets without the shims. -->
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+
+		<Description>A closed query language for untrusted text: a query over the entities and fields a host exposes, translated into an IQueryable the host's LINQ provider runs.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>query;query-language;linq;iqueryable;expression-tree;linq2db;dsl;dotgram</PackageTags>
+
+		<!-- Built and packed by CI, and not published: the package goes to NuGet with its next
+		     milestone, when the language has associations. Nothing in the release workflow names it,
+		     and this says why to whoever looks for it there. -->
+
+		<!-- The documentation of what is public, shipped beside the assembly, as DotGram.ExpressionLanguage
+		     has it and for the reason written there. -->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+		<!-- Symbols inside the assembly, and paths normalized on CI only: both as DotGram.Web has them. -->
+		<DebugType>embedded</DebugType>
+		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+		<!-- Generated files land on disk so a reader can open what the grammar became. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The generator, and nothing else: the parser it writes acquires no runtime
+		     dependency (docs/syntax.md §6.1). -->
+		<ProjectReference Include="..\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The public surface, held to PublicAPI.*.txt beside this file, as the other libraries hold
+		     theirs: a type or a member made public, or changed, is a line in a diff and not an accident.
+		     What only one framework has would go in PublicAPI/<framework>/. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+		<AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.*.txt" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(DotGramAnalyzeGenerated)' == 'true'">
+		<!-- The generator's own output, analysed for dead or redundant emitted code
+		     (tools/DotGram.GeneratedAnalyzers), never packed, loaded only under this
+		     property (docs/internal/development.md). -->
+		<ProjectReference Include="../../tools/DotGram.GeneratedAnalyzers/DotGram.GeneratedAnalyzers.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<!-- For the consumer: the generated parser takes `ReadOnlySpan<char>`. -->
+		<PackageReference Include="System.Memory" />
+
+		<!-- IAsyncEnumerable<T>, which the whole-document method enumerates a provider's rows through
+		     without knowing the provider. 8.0.0 is what linq2db 6.5 itself takes on netstandard2.0, so a
+		     host on linq2db gains no package by it. -->
+		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+
+		<!-- For the compilation: types the framework lacks, emitted internal, so nothing
+		     reaches the package. -->
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+	</ItemGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- What the tests read and no caller should: the syntax, the binder and the translator. -->
+		<InternalsVisibleTo Include="DotGram.QueryLanguage.Tests" />
+	</ItemGroup>
+
+</Project>

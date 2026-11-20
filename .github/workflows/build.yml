@@ -70,6 +70,7 @@ jobs:
           dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.QueryLanguage/DotGram.QueryLanguage.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Cli/DotGram.Cli.csproj --no-build --configuration Release --output artifacts
 
       # Each package is the opposite shape of the other, and getting either one wrong
@@ -99,7 +100,7 @@ jobs:
         env:
           NUGET_PACKAGES: ${{ runner.temp }}/dotgram-library-smoke
         run: |
-          for library in Sql Web ExpressionLanguage Finance; do
+          for library in Sql Web ExpressionLanguage Finance QueryLanguage; do
             for framework in net8.0 net10.0; do
               dotnet run --project "tests/DotGram.$library.PackageSmoke/DotGram.$library.PackageSmoke.csproj" --configuration Release --framework "$framework"
             done

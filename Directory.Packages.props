@@ -100,6 +100,10 @@
 		     netstandard2.0 nor .NET Framework carries. -->
 		<PackageVersion Include="System.Memory" Version="4.6.3" />
 
+		<!-- IAsyncEnumerable<T> for DotGram.QueryLanguage, which enumerates a provider's rows through it.
+		     8.0.0 is the version linq2db 6.5 itself takes on netstandard2.0. -->
+		<PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+
 		<!-- Modern types on netstandard2.0 and net472 without a runtime dependency:
 		     Meziantou.Polyfill is a generator and emits them as internal. -->
 		<PackageVersion Include="Meziantou.Polyfill" Version="1.0.165" />

@@ -79,6 +79,9 @@
 		<Project Path="src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="src/DotGram.QueryLanguage/DotGram.QueryLanguage.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram.Sql/DotGram.Sql.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
@@ -132,6 +135,9 @@
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Tests.Slow/DotGram.Tests.Slow.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.QueryLanguage.Tests/DotGram.QueryLanguage.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Sql.Productions/DotGram.Sql.Productions.csproj">

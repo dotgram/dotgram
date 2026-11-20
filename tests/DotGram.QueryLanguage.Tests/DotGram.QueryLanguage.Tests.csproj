@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The query language end to end: the model, the text, the binding, and the queries it builds run by
+	     linq2db over SQLite in memory, and over SQL Server where DOTGRAM_SQLSERVER names a connection.
+	     net8.0 beside net10.0 because a net8.0 consumer takes the library's netstandard2.0 asset: its
+	     shims and its own number formatting are tested only there. -->
+	<PropertyGroup>
+		<TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+		<RootNamespace>DotGram.QueryLanguage.Tests</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
+		     rather than being hosted by VSTest. -->
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="linq2db" />
+		<PackageReference Include="Microsoft.Data.Sqlite" />
+		<PackageReference Include="Microsoft.Data.SqlClient" />
+
+		<!-- SqlClient brings an older one with a known vulnerability; the patched version is named here,
+		     as the benchmarks name it. -->
+		<PackageReference Include="System.Security.Cryptography.Pkcs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\DotGram.QueryLanguage\DotGram.QueryLanguage.csproj" />
+	</ItemGroup>
+
+</Project>

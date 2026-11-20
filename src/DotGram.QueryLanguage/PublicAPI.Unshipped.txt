@@ -1,0 +1,105 @@
+#nullable enable
+DotGram.QueryLanguage.QlColumnInfo
+DotGram.QueryLanguage.QlColumnInfo.ClrType.get -> System.Type!
+DotGram.QueryLanguage.QlColumnInfo.IsNullable.get -> bool
+DotGram.QueryLanguage.QlColumnInfo.Name.get -> string!
+DotGram.QueryLanguage.QlColumnInfo.Type.get -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlEntityBuilder<TContext, T>
+DotGram.QueryLanguage.QlEntityBuilder<TContext, T>.Column<TValue>(string! name, System.Linq.Expressions.Expression<System.Func<T, TValue>!>! member, DotGram.QueryLanguage.QlUse? use = null) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T>!
+DotGram.QueryLanguage.QlEntityBuilder<TContext, T>.Column<TValue>(System.Linq.Expressions.Expression<System.Func<T, TValue>!>! member, DotGram.QueryLanguage.QlUse? use = null) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T>!
+DotGram.QueryLanguage.QlEntityBuilder<TContext, T>.Entity<T2>(string! name, System.Func<TContext, System.Linq.IQueryable<T2>!>! source) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T2>!
+DotGram.QueryLanguage.QlEntityBuilder<TContext, T>.Entity<T2>(System.Linq.Expressions.Expression<System.Func<TContext, System.Linq.IQueryable<T2>!>!>! source) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T2>!
+DotGram.QueryLanguage.QlError
+DotGram.QueryLanguage.QlError.Code.get -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlError.Message.get -> string!
+DotGram.QueryLanguage.QlError.Position.get -> int?
+DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlErrorCode.DivisionByZero = 6 -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlErrorCode.Limit = 4 -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlErrorCode.Overflow = 7 -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlErrorCode.Parameter = 5 -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlErrorCode.Syntax = 1 -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlErrorCode.Type = 3 -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlErrorCode.UnknownName = 2 -> DotGram.QueryLanguage.QlErrorCode
+DotGram.QueryLanguage.QlException
+DotGram.QueryLanguage.QlException.Error.get -> DotGram.QueryLanguage.QlError!
+DotGram.QueryLanguage.QlJsonFormat
+DotGram.QueryLanguage.QlJsonFormat.Array = 0 -> DotGram.QueryLanguage.QlJsonFormat
+DotGram.QueryLanguage.QlJsonFormat.Object = 1 -> DotGram.QueryLanguage.QlJsonFormat
+DotGram.QueryLanguage.QlModel<TContext>
+DotGram.QueryLanguage.QlModel<TContext>.Describe(string! text) -> DotGram.QueryLanguage.QlQueryInfo!
+DotGram.QueryLanguage.QlModel<TContext>.Options.get -> DotGram.QueryLanguage.QlOptions!
+DotGram.QueryLanguage.QlModel<TContext>.QueryData(TContext context, string! text, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? values = null) -> System.Linq.IQueryable<object?[]!>!
+DotGram.QueryLanguage.QlModel<TContext>.QueryJsonRow(TContext context, string! text, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? values = null, DotGram.QueryLanguage.QlJsonFormat format = DotGram.QueryLanguage.QlJsonFormat.Array) -> System.Linq.IQueryable<string!>!
+DotGram.QueryLanguage.QlModel<TContext>.ToJsonAsync(TContext context, string! text, System.Collections.Generic.IReadOnlyDictionary<string!, object?>? values = null, DotGram.QueryLanguage.QlJsonFormat format = DotGram.QueryLanguage.QlJsonFormat.Array, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+DotGram.QueryLanguage.QlModelBuilder<TContext>
+DotGram.QueryLanguage.QlModelBuilder<TContext>.Build(DotGram.QueryLanguage.QlOptions? options = null) -> DotGram.QueryLanguage.QlModel<TContext>!
+DotGram.QueryLanguage.QlModelBuilder<TContext>.Entity<T>(string! name, System.Func<TContext, System.Linq.IQueryable<T>!>! source) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T>!
+DotGram.QueryLanguage.QlModelBuilder<TContext>.Entity<T>(System.Linq.Expressions.Expression<System.Func<TContext, System.Linq.IQueryable<T>!>!>! source) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T>!
+DotGram.QueryLanguage.QlModelBuilder<TContext>.Format<T>(System.Func<T, string?>! format) -> DotGram.QueryLanguage.QlModelBuilder<TContext>!
+DotGram.QueryLanguage.QlModelBuilder<TContext>.QlModelBuilder() -> void
+DotGram.QueryLanguage.QlOptions
+DotGram.QueryLanguage.QlOptions.<Clone>$() -> DotGram.QueryLanguage.QlOptions!
+DotGram.QueryLanguage.QlOptions.Equals(DotGram.QueryLanguage.QlOptions? other) -> bool
+DotGram.QueryLanguage.QlOptions.MaxArithmeticOperands.get -> int
+DotGram.QueryLanguage.QlOptions.MaxArithmeticOperands.init -> void
+DotGram.QueryLanguage.QlOptions.MaxColumns.get -> int
+DotGram.QueryLanguage.QlOptions.MaxColumns.init -> void
+DotGram.QueryLanguage.QlOptions.MaxInList.get -> int
+DotGram.QueryLanguage.QlOptions.MaxInList.init -> void
+DotGram.QueryLanguage.QlOptions.MaxNodes.get -> int
+DotGram.QueryLanguage.QlOptions.MaxNodes.init -> void
+DotGram.QueryLanguage.QlOptions.MaxPagingLevels.get -> int
+DotGram.QueryLanguage.QlOptions.MaxPagingLevels.init -> void
+DotGram.QueryLanguage.QlOptions.MaxParameterBytes.get -> int
+DotGram.QueryLanguage.QlOptions.MaxParameterBytes.init -> void
+DotGram.QueryLanguage.QlOptions.MaxRows.get -> int?
+DotGram.QueryLanguage.QlOptions.MaxRows.init -> void
+DotGram.QueryLanguage.QlOptions.MaxSkip.get -> int
+DotGram.QueryLanguage.QlOptions.MaxSkip.init -> void
+DotGram.QueryLanguage.QlOptions.MaxStringLength.get -> int
+DotGram.QueryLanguage.QlOptions.MaxStringLength.init -> void
+DotGram.QueryLanguage.QlOptions.MaxSyntaxDepth.get -> int
+DotGram.QueryLanguage.QlOptions.MaxSyntaxDepth.init -> void
+DotGram.QueryLanguage.QlOptions.MaxTextLength.get -> int
+DotGram.QueryLanguage.QlOptions.MaxTextLength.init -> void
+DotGram.QueryLanguage.QlOptions.MaxTreeDepth.get -> int
+DotGram.QueryLanguage.QlOptions.MaxTreeDepth.init -> void
+DotGram.QueryLanguage.QlOptions.QlOptions() -> void
+DotGram.QueryLanguage.QlParameterInfo
+DotGram.QueryLanguage.QlParameterInfo.ClrType.get -> System.Type!
+DotGram.QueryLanguage.QlParameterInfo.IsList.get -> bool
+DotGram.QueryLanguage.QlParameterInfo.IsNullable.get -> bool
+DotGram.QueryLanguage.QlParameterInfo.Name.get -> string!
+DotGram.QueryLanguage.QlParameterInfo.Type.get -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlQueryInfo
+DotGram.QueryLanguage.QlQueryInfo.Columns.get -> System.Collections.Generic.IReadOnlyList<DotGram.QueryLanguage.QlColumnInfo!>!
+DotGram.QueryLanguage.QlQueryInfo.Parameters.get -> System.Collections.Generic.IReadOnlyList<DotGram.QueryLanguage.QlParameterInfo!>!
+DotGram.QueryLanguage.QlQueryInfo.Warnings.get -> System.Collections.Generic.IReadOnlyList<DotGram.QueryLanguage.QlWarning!>!
+DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Bool = 1 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Decimal = 4 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Double = 5 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Guid = 9 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Int = 2 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Long = 3 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Other = 10 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.String = 6 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.Timestamp = 7 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlType.TimestampTz = 8 -> DotGram.QueryLanguage.QlType
+DotGram.QueryLanguage.QlUse
+DotGram.QueryLanguage.QlUse.Filter = 2 -> DotGram.QueryLanguage.QlUse
+DotGram.QueryLanguage.QlUse.Select = 1 -> DotGram.QueryLanguage.QlUse
+DotGram.QueryLanguage.QlUse.Sort = 4 -> DotGram.QueryLanguage.QlUse
+DotGram.QueryLanguage.QlWarning
+DotGram.QueryLanguage.QlWarning.Code.get -> DotGram.QueryLanguage.QlWarningCode
+DotGram.QueryLanguage.QlWarning.Message.get -> string!
+DotGram.QueryLanguage.QlWarning.Position.get -> int?
+DotGram.QueryLanguage.QlWarningCode
+DotGram.QueryLanguage.QlWarningCode.UnusedName = 1 -> DotGram.QueryLanguage.QlWarningCode
+override DotGram.QueryLanguage.QlOptions.Equals(object? obj) -> bool
+override DotGram.QueryLanguage.QlOptions.GetHashCode() -> int
+override DotGram.QueryLanguage.QlOptions.ToString() -> string!
+static DotGram.QueryLanguage.QlOptions.Default.get -> DotGram.QueryLanguage.QlOptions!
+static DotGram.QueryLanguage.QlOptions.operator !=(DotGram.QueryLanguage.QlOptions? left, DotGram.QueryLanguage.QlOptions? right) -> bool
+static DotGram.QueryLanguage.QlOptions.operator ==(DotGram.QueryLanguage.QlOptions? left, DotGram.QueryLanguage.QlOptions? right) -> bool
