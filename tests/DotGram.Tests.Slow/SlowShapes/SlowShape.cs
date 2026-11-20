@@ -18,6 +18,20 @@ enum GeneratorItem
 	/// the grammar's own shape is at fault, to be settled by the counts of the intermediate form's slice.
 	/// </summary>
 	ToConfirm,
+
+	/// <summary>
+	/// A run of one class split between a name that ends in it and a second name after it, where what follows the second cannot begin with
+	/// a character of the class: every character the second name gives back is refused at once, and each length of the first is tried with
+	/// each length of the second. The name at such a call settles (it gives nothing back there), and a run read again from inside a run of
+	/// the same class takes the end it already found.
+	/// </summary>
+	LexemeSplit,
+
+	/// <summary>
+	/// The same split where what follows the second name can begin with a character of the class, so that a character given back may be
+	/// the one it needs: the square of the regular expression <c>[a-z]+[a-z]+x</c>, which settling cannot remove.
+	/// </summary>
+	LexemeSplitOverlap,
 }
 
 /// <summary>One input that grows with a size and is refused (or, where <see cref="Accepted"/>, read), of a grammar kept as it was.</summary>
@@ -107,7 +121,7 @@ static class SlowShapes
 		new("Xml", "XmlParser", "TryParseXml", GeneratorItem.ClassA,
 		[
 			new("attributes, then a character that is none", n => "<a" + Repeated(" k=\"v\"", n) + " !", false, 2.0),
-			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 2.0, First: 256, Item: GeneratorItem.ToConfirm),
+			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 2.0, First: 256, Item: GeneratorItem.LexemeSplit),
 			new("children with attributes, the element never closed", n => "<a>" + Repeated("<b k=\"v\"/>", n), false, 2.0, First: 512),
 			new("children with attributes, closed by another name", n => "<a>" + Repeated("<b k=\"v\"/>", n) + "</b>", false, 2.0, First: 512),
 			new("elements nested to a depth, accepted", n => Nest(n), true, 1.0, Linear: true),
@@ -120,7 +134,7 @@ static class SlowShapes
 			new("children with attributes, the element never closed", n => "<a>" + Repeated("<b k=\"v\"/>", n), false, 1.0, Linear: true),
 			new("children with attributes, closed by another name", n => "<a>" + Repeated("<b k=\"v\"/>", n) + "</b>", false, 1.0, Linear: true),
 			new("elements nested to a depth, accepted", n => Nest(n), true, 1.6, First: 8192, ByTime: true),
-			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 2.0, First: 256, Item: GeneratorItem.ToConfirm),
+			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 2.0, First: 256, Item: GeneratorItem.LexemeSplit),
 		]),
 
 		// Filter and Gram as they ship.
@@ -129,6 +143,12 @@ static class SlowShapes
 			new("a chain of ORs, then a character that is none", n => Repeated("a > 1 OR ", n) + "!", false, 2.0),
 			new("a chain of ANDs, then a character that is none", n => Repeated("a > 1 AND ", n) + "!", false, 2.0),
 			new("a list of values, never closed", n => "a IN (" + Repeated("'x', ", n) + "!", false, 2.0),
+		]),
+
+		// Two names over one run, before a character of the same class: written for the case, not taken from an example.
+		new("OverlappingSplit", "OverlappingSplit", "TryParseSplit", GeneratorItem.LexemeSplitOverlap,
+		[
+			new("a run of the class, then a character that is none", n => Run('x', n) + "!", false, 2.0, First: 256),
 		]),
 
 		new("Gram", "GramGrammar", "TryParseFile", GeneratorItem.ClassA,
