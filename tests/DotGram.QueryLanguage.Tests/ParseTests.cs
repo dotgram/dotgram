@@ -167,11 +167,41 @@ public sealed class ParseTests
 	}
 
 	[Fact]
-	public void NotIsLooserThanAComparison()
+	public void NotBindsAsInCSharp()
 	{
-		var not = (UnaryExpr)((WhereClause)Read("from t where !a == b").Clauses[0]).Condition;
+		var right = (BinaryExpr)((WhereClause)Read("from t where a == !b").Clauses[0]).Condition;
 
-		Assert.IsType<BinaryExpr>(not.Operand);
+		Assert.Equal(UnaryOperator.Not, ((UnaryExpr)right.Right).Operator);
+
+		var member = (UnaryExpr)((WhereClause)Read("from t where !name.Contains('a')").Clauses[0]).Condition;
+
+		Assert.IsType<MemberExpr>(member.Operand);
+
+		var and = (LogicalExpr)((WhereClause)Read("from t where !a && b").Clauses[0]).Condition;
+
+		Assert.IsType<UnaryExpr>(and.Items[0]);
+		Assert.IsType<UnaryExpr>(((WhereClause)Read("from t where !(a == b)").Clauses[0]).Condition);
+		Assert.IsType<BinaryExpr>(((WhereClause)Read("from t where (!a) == b").Clauses[0]).Condition);
+	}
+
+	/// <summary>Where C# and SQL's NOT would read a text differently, it is refused at the <c>!</c>.</summary>
+	[Theory]
+	[InlineData("from t where !a == b")]
+	[InlineData("from t where !a != b")]
+	[InlineData("from t where !x > 3")]
+	[InlineData("from t where !flag is null")]
+	[InlineData("from t where !flag is not null")]
+	[InlineData("from t where !a in (1, 2)")]
+	[InlineData("from t where !a not in @list")]
+	[InlineData("from t where !a between 1 and 2")]
+	[InlineData("from t where c && !a == b")]
+	public void NotWithoutBracketsBeforeAComparisonIsRefused(string text)
+	{
+		var error = Refused(text);
+
+		Assert.Equal(QlErrorCode.Syntax, error.Code);
+		Assert.Equal(text.IndexOf('!'), error.Position);
+		Assert.Contains("`!(a == b)` or `(!a) == b`", error.Message, StringComparison.Ordinal);
 	}
 
 	[Fact]

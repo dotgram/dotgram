@@ -65,16 +65,13 @@ Count : @ExprSyntax on fail "Expected a count: a number or a parameter." = t: Nu
 // ── Conditions and values ───────────────────────────────────────────────────
 //
 // One tower for conditions and values alike, so that a parenthesis is read once whatever it holds. `&&` and
-// `||` are read as lists, so that the tree built from them is balanced; `!` is looser than a comparison, as
-// SQL's NOT is: `!a == b` is `!(a == b)`.
+// `||` are read as lists, so that the tree built from them is balanced. `!` binds as in C#, tighter than any
+// operator between two values; where C# and SQL's NOT would read a text differently (`!a == b`), the reader
+// refuses it and asks for brackets.
 Expr     : @ExprSyntax on fail "Expected a value: a name, a number, a string, a parameter or a bracket." = items: OrItems => @(Nodes.Logical(LogicalOperator.Or, items))
 OrItems  : AndExpr[]   = AndExpr & ("||" & AndExpr)*
 AndExpr  : @ExprSyntax = items: AndItems => @(Nodes.Logical(LogicalOperator.And, items))
-AndItems : NotExpr[]   = NotExpr & ("&&" & NotExpr)*
-
-NotExpr : @ExprSyntax
-	= '!' & operand: NotExpr => @(new UnaryExpr(UnaryOperator.Not, operand, parserSpan.Start))
-	| p: Predicate           => @(p)
+AndItems : Predicate[] = Predicate & ("&&" & Predicate)*
 
 Predicate : @ExprSyntax = left: Additive & tail: PredicateTail? => @(Nodes.Predicated(left, tail))
 
@@ -114,6 +111,7 @@ Multiplicative : @ExprSyntax
 
 Unary : @ExprSyntax
 	= '-' & operand: Unary => @(new UnaryExpr(UnaryOperator.Negate, operand, parserSpan.Start))
+	| '!' & operand: Unary => @(new UnaryExpr(UnaryOperator.Not, operand, parserSpan.Start))
 	| p: Postfix           => @(p)
 
 // A member of a value, `name.Length`, `name.StartsWith('a')`, or a field after the alias, `o.total`.

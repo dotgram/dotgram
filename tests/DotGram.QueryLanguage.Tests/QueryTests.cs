@@ -127,6 +127,9 @@ public sealed class QueryTests(Databases databases)
 		Assert.Equal(Mine.Where(o => o.Priority is not null).Select(o => o.Id),      Run(provider, "from orders where priority is not null order by id select id").First<int>());
 		Assert.Equal(Mine.Where(o => o.Flag == true).Select(o => o.Id),              Run(provider, "from orders where flag order by id select id").First<int>());
 		Assert.Equal(Mine.Where(o => !(o.Active && o.Qty > 2)).Select(o => o.Id),    Run(provider, "from orders where !(active && qty > 2) order by id select id").First<int>());
+		Assert.Equal(Mine.Where(o => o.Flag == !o.Active).Select(o => o.Id),         Run(provider, "from orders where flag == !active order by id select id").First<int>());
+		Assert.Equal(Mine.Where(o => !o.Flag == o.Active).Select(o => o.Id),         Run(provider, "from orders where (!flag) == active order by id select id").First<int>());
+		Assert.Equal(Mine.Where(o => !o.Customer.StartsWith("c1", StringComparison.Ordinal)).Select(o => o.Id), Run(provider, "from orders where !customer.StartsWith('c1') order by id select id").First<int>());
 		Assert.Equal(Mine.Where(o => string.CompareOrdinal(o.Customer, "c2") > 0).Select(o => o.Id), Run(provider, "from orders where customer > 'c2' order by id select id").First<int>());
 	}
 
