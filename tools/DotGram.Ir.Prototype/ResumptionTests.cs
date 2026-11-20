@@ -638,6 +638,58 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 			File.WriteAllText(Path.Combine(report, "shipped-sites.tsv"), text.ToString());
 	}
 
+	static readonly string[] Addresses =
+	[
+		"a@b.c", "john.doe@example.com", "\"John Doe\" <john@example.com>", "Mary Smith <mary@x.test>, jdoe@one.test",
+		"A Group:Ed Jones <c@a.test>,joe@where.test,John <jdoe@one.test>;", "Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>",
+		"<boss@nil.test>, \"Giant; \\\"Big\\\" Box\" <sysservices@example.net>", "jdoe@[192.168.0.1]",
+	];
+
+	/// <summary>The rows the accepting path is measured on: a shipped grammar, a publication of it, inputs it accepts.</summary>
+	static readonly (string Name, string File, string Entry, string[] Inputs)[] AcceptedRows =
+	[
+			("Rfc5322 address lists", "Rfc5322.cs", "ParseAddressList", [.. Addresses, string.Join(", ", Enumerable.Repeat("Mary Smith <mary@x.test>", 40))]),
+			("Rfc5322 short addr-spec", "Rfc5322.cs", "ParseAddrSpec", ["a@b", "x@y.z", "first.last@sub.example.com", "jdoe@one.test"]),
+			("Rfc9651 list", "Rfc9651.cs", "ParseList", ["a, b;c=1, (x y);z", "1, 2.5, \"s\", ?1, :aGVsbG8=:", "(a b c);d=1, e"]),
+			("Rfc9651 dictionary", "Rfc9651.cs", "ParseDictionary", ["a=1, b, c=(1 2)", "x=?0;y=1, z=\"t\""]),
+			("Rfc6265 cookies", "Rfc6265.cs", "ParseCookies", ["a=b; c=d; e=\"f\"", "SID=31d4d96e407aad42; lang=en-US"]),
+			("Rfc7239 forwarded", "Rfc7239.cs", "ParseForwarded", ["for=192.0.2.43, for=198.51.100.17;by=203.0.113.60;proto=http;host=example.com", "for=\"[2001:db8:cafe::17]:4711\""]),
+			("Rfc8288 links", "Rfc8288.cs", "ParseLinks", ["<https://example.com/a>; rel=\"next\", <https://example.com/b>; rel=prev; title=\"x\""]),
+			("Rfc3986 references", "Rfc3986.cs", "ParseReference", ["http://user@example.com:8080/a/b/c?q=1&r=2#frag", "../x/y", "mailto:a@b.c"]),
+			("Rfc5646 tags", "Rfc5646.cs", "ParseTag", ["en-US", "zh-Hant-TW", "sr-Latn-RS", "de-CH-1901"]),
+	];
+
+	/// <summary>
+	/// The same rows in C: each parser printed with its sentinels, alone, the code round them alone,
+	/// and without doors, compiled by gcc, timed in turns against the parser without resumption.
+	/// </summary>
+	[Fact]
+	public void TheAcceptingPathInC_IsMeasuredByGrammar()
+	{
+		var text = new StringBuilder("row\tvariant\taccepted\tms on\tms off\ton / off (median)\trange\n");
+
+		foreach (var (name, file, entry, inputs) in AcceptedRows)
+		{
+			var program = Reading.Program(Graphs.WebGrammar(file));
+			var batch   = Enumerable.Repeat(inputs, 20).SelectMany(static one => one).ToList();
+
+			try
+			{
+				foreach (var line in Slices.AcceptingPathInC("AcceptC-" + file, program, entry, batch))
+					text.Append(name).Append('\t').Append(line).Append('\n');
+			}
+			catch (NotSupportedException unprinted)
+			{
+				text.Append(name).Append("\tnot printed: ").Append(unprinted.Message).Append('\n');
+			}
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "accepting-path-c.tsv"), text.ToString());
+	}
+
 	/// <summary>
 	/// What resuming costs an accepted input, by grammar: the sentinels the evaluator opens per
 	/// byte, and the printed TypeScript parser with its sentinels against the same parser without,
@@ -647,29 +699,9 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	[Fact]
 	public void TheAcceptingPath_IsMeasuredByGrammar()
 	{
-		var addresses = new[]
-		{
-			"a@b.c", "john.doe@example.com", "\"John Doe\" <john@example.com>", "Mary Smith <mary@x.test>, jdoe@one.test",
-			"A Group:Ed Jones <c@a.test>,joe@where.test,John <jdoe@one.test>;", "Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>",
-			"<boss@nil.test>, \"Giant; \\\"Big\\\" Box\" <sysservices@example.net>", "jdoe@[192.168.0.1]",
-		};
-
-		var rows = new (string Name, string File, string Entry, string[] Inputs)[]
-		{
-			("Rfc5322 address lists", "Rfc5322.cs", "ParseAddressList", [.. addresses, string.Join(", ", Enumerable.Repeat("Mary Smith <mary@x.test>", 40))]),
-			("Rfc5322 short addr-spec", "Rfc5322.cs", "ParseAddrSpec", ["a@b", "x@y.z", "first.last@sub.example.com", "jdoe@one.test"]),
-			("Rfc9651 list", "Rfc9651.cs", "ParseList", ["a, b;c=1, (x y);z", "1, 2.5, \"s\", ?1, :aGVsbG8=:", "(a b c);d=1, e"]),
-			("Rfc9651 dictionary", "Rfc9651.cs", "ParseDictionary", ["a=1, b, c=(1 2)", "x=?0;y=1, z=\"t\""]),
-			("Rfc6265 cookies", "Rfc6265.cs", "ParseCookies", ["a=b; c=d; e=\"f\"", "SID=31d4d96e407aad42; lang=en-US"]),
-			("Rfc7239 forwarded", "Rfc7239.cs", "ParseForwarded", ["for=192.0.2.43, for=198.51.100.17;by=203.0.113.60;proto=http;host=example.com", "for=\"[2001:db8:cafe::17]:4711\""]),
-			("Rfc8288 links", "Rfc8288.cs", "ParseLinks", ["<https://example.com/a>; rel=\"next\", <https://example.com/b>; rel=prev; title=\"x\""]),
-			("Rfc3986 references", "Rfc3986.cs", "ParseReference", ["http://user@example.com:8080/a/b/c?q=1&r=2#frag", "../x/y", "mailto:a@b.c"]),
-			("Rfc5646 tags", "Rfc5646.cs", "ParseTag", ["en-US", "zh-Hant-TW", "sr-Latn-RS", "de-CH-1901"]),
-		};
-
 		var text = new StringBuilder("row\taccepted by the evaluator\tsentinels per byte\tkept\tframes\taccepted\tms on\tms off\ton / off (median)\trange\n");
 
-		foreach (var (name, file, entry, inputs) in rows)
+		foreach (var (name, file, entry, inputs) in AcceptedRows)
 		{
 			var program   = Reading.Program(Graphs.WebGrammar(file));
 			var accepted  = 0;

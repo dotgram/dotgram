@@ -316,6 +316,7 @@ static class Slices
 				File.WriteAllText(Path.Combine(directory, $"parser-sentinels-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion, ablation: SliceAblation.SentinelOnly));
 				File.WriteAllText(Path.Combine(directory, $"parser-wrapper-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion, ablation: SliceAblation.WrapperOnly));
 				File.WriteAllText(Path.Combine(directory, $"parser-nodoors-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion, ablation: SliceAblation.NoDoors));
+				File.WriteAllText(Path.Combine(directory, $"parser-nocalls-{form}.ts"), SlicePrinter.Print(program, SliceLanguage.TypeScript, frames, criterion: criterion, ablation: SliceAblation.NoCallSites));
 			}
 
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
@@ -325,6 +326,99 @@ static class Slices
 			Assert.True(exit == 0, "node: " + error);
 
 			return [.. output.Split('\n', StringSplitOptions.RemoveEmptyEntries)];
+		}
+		finally
+		{
+			Discard(directory);
+		}
+	}
+
+	/// <summary>
+	/// The program printed in C with resumption (whole, sentinels alone, the code round them alone,
+	/// without doors) and without, each compiled on its own with a host that builds nothing, run in
+	/// turns over the batch by <c>accept.c</c>: a line a variant, the median of the ratios to the parser without.
+	/// </summary>
+	public static List<string> AcceptingPathInC(string name, IrProgram program, string entry, IReadOnlyList<string> inputs)
+	{
+		var gcc       = Gcc;
+		var directory = Workspace(name, "c");
+
+		try
+		{
+			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
+			File.WriteAllText(Path.Combine(directory, "parser.h"), SlicePrinter.PrintHeaderInC(program));
+			File.WriteAllText(Path.Combine(directory, "fragments.c"), SlicePrinter.PrintNullHostInC(program));
+
+			var variants = new (string Name, string Source)[]
+			{
+				("off", SlicePrinter.Print(program, SliceLanguage.C, resumes: false)),
+				("on", SlicePrinter.Print(program, SliceLanguage.C)),
+				("sentinels", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.SentinelOnly)),
+				("wrapper", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.WrapperOnly)),
+				("nodoors", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.NoDoors)),
+				("nocalls", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.NoCallSites)),
+				("loops", SlicePrinter.Print(program, SliceLanguage.C, criterion: ResumptionCriterion.Repetitions)),
+			};
+
+			foreach (var (variant, source) in variants)
+			{
+				File.WriteAllText(Path.Combine(directory, $"parser-{variant}.c"), source);
+
+				var (built, _, complaints) = Run(gcc, ["-std=gnu11", "-O2", "-D_GNU_SOURCE", "-o", "accept-" + variant, "accept.c", $"parser-{variant}.c", "fragments.c"], directory);
+
+				Assert.True(built == 0, "gcc: " + complaints);
+			}
+
+			(int Accepted, double Milliseconds) Read(string variant, long reps)
+			{
+				var (exit, output, error) = Run(Path.Combine(directory, "accept-" + variant), [entry, "batch.bin", reps.ToString(CultureInfo.InvariantCulture)], directory);
+
+				Assert.True(exit == 0, "accept: " + error);
+
+				var parts = output.Trim().Split(' ');
+
+				return (int.Parse(parts[0], CultureInfo.InvariantCulture), double.Parse(parts[1], CultureInfo.InvariantCulture));
+			}
+
+			// Enough repetitions of the batch for a reading of some fifty milliseconds.
+			long repetitions = 1;
+
+			while (Read("off", repetitions).Milliseconds < 50)
+				repetitions *= 2;
+
+			var rounds = int.Parse(Environment.GetEnvironmentVariable("IR_BENCH_ROUNDS") ?? "15", CultureInfo.InvariantCulture);
+			var lines  = new List<string>();
+
+			foreach (var (variant, _) in variants.Skip(1))
+			{
+				var ratios = new List<double>();
+				var on     = new List<double>();
+				var off    = new List<double>();
+				var count  = 0;
+
+				for (var round = 0; round < rounds; round++)
+				{
+					var first  = round % 2 == 0 ? variant : "off";
+					var second = round % 2 == 0 ? "off" : variant;
+					var a      = Read(first, repetitions);
+					var b      = Read(second, repetitions);
+					var (timeOn, timeOff) = round % 2 == 0 ? (a.Milliseconds, b.Milliseconds) : (b.Milliseconds, a.Milliseconds);
+
+					count = round % 2 == 0 ? a.Accepted : b.Accepted;
+					on.Add(timeOn / repetitions);
+					off.Add(timeOff / repetitions);
+					ratios.Add(timeOn / timeOff);
+				}
+
+				ratios.Sort();
+				on.Sort();
+				off.Sort();
+
+				lines.Add(string.Create(CultureInfo.InvariantCulture,
+					$"{variant}\t{count}/{inputs.Count}\t{on[on.Count / 2]:F4}\t{off[off.Count / 2]:F4}\t{ratios[ratios.Count / 2]:F3}\t{ratios[0]:F3}-{ratios[^1]:F3}"));
+			}
+
+			return lines;
 		}
 		finally
 		{

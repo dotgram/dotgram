@@ -23,6 +23,9 @@ enum SliceAblation
 
 	/// <summary>The whole, with every sentinel opened whatever the next item: what the door's test costs.</summary>
 	NoDoors,
+
+	/// <summary>The whole but the calls, printed bare: the most that moving a call's code into the function called can save.</summary>
+	NoCallSites,
 }
 
 enum SliceLanguage
@@ -212,6 +215,22 @@ sealed class SlicePrinter
 		return text.ToString();
 	}
 
+	/// <summary>A host in C that builds nothing and whose every guard says yes: what a timing of the reading alone is run with.</summary>
+	public static string PrintNullHostInC(IrProgram program)
+	{
+		var text = new StringBuilder("#include \"runtime.h\"\n#include \"parser.h\"\n\n");
+
+		foreach (var fragment in program.Fragments)
+		{
+			var parameters = string.Concat(fragment.Parameters.Select(static (_, index) => ", Val a" + index.ToString(CultureInfo.InvariantCulture)));
+
+			text.Append(fragment.IsGuard ? "bool" : "Val").Append(" host_").Append(fragment.Name).Append("(Parser *P").Append(parameters).Append(")\n{\n\t(void)P;\n\n");
+			text.Append("\treturn ").Append(fragment.IsGuard ? "true" : "VAL_NONE").Append(";\n}\n\n");
+		}
+
+		return text.ToString();
+	}
+
 	/// <summary>What the C parser declares to its host and its driver.</summary>
 	public static string PrintHeaderInC(IrProgram program)
 	{
@@ -317,6 +336,17 @@ sealed class SlicePrinter
 			_text.Insert(body, tables.Append('\n').ToString());
 		}
 
+		// The doors' tables, before the functions too (TypeScript reads them only once a parse runs).
+		if (_doorTables.Count > 0)
+		{
+			var tables = new StringBuilder();
+
+			foreach (var (bits, name) in _doorTables)
+				tables.Append(C ? $"static const uint32_t {name}[4] = {{ {bits.Replace(",", "u, ", StringComparison.Ordinal)}u }};\n" : $"const {name} = new Int32Array([{bits.Replace(",", " | 0, ", StringComparison.Ordinal)} | 0]);\n");
+
+			_text.Insert(body, tables.Append('\n').ToString());
+		}
+
 		if (C)
 		{
 			Line("int32_t parse(Parser *P, const char *entry)");
@@ -418,10 +448,44 @@ sealed class SlicePrinter
 			Line(C ? "P->kSteps++;" : "P.kSteps++;");
 	}
 
+	// The doors' tables: the items below 128 a door lets through, a bit an item, by the ranges' spelling.
+	readonly Dictionary<string, string> _doorTables = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// Whether the next item can begin what a kept statement reads: below 128 one bit of a table,
+	/// above it the ranges there are, compared one by one (rare in the inputs that pay for this).
+	/// </summary>
+	string DoorTest(IReadOnlyList<CharRange> door)
+	{
+		var bits = new uint[4];
+		var high = new List<CharRange>();
+
+		foreach (var range in door)
+		{
+			for (int unit = range.From; unit <= Math.Min((int)range.To, 127); unit++)
+				bits[unit >> 5] |= 1u << (unit & 31);
+
+			if (range.To >= 128)
+				high.Add(new CharRange((char)Math.Max(128, (int)range.From), range.To));
+		}
+
+		var spelled = string.Join(",", bits.Select(static word => word.ToString(CultureInfo.InvariantCulture)));
+
+		if (!_doorTables.TryGetValue(spelled, out var table))
+			_doorTables.Add(spelled, table = "D" + _doorTables.Count.ToString(CultureInfo.InvariantCulture));
+
+		var above = high.Count == 0 ? (C ? "0" : "false") : Within(new IrStmt.MatchSet(high, false, 0));
+
+		return C
+			? $"p < len && (c = {Unit("p")}, c < 128 ? ({table}[c >> 5] >> (c & 31)) & 1u : {above})"
+			: $"p < len && (c = {Unit("p")}, c < 128 ? (({table}[c >> 5] >> (c & 31)) & 1) !== 0 : {above})";
+	}
+
 	/// <summary>Whether the statement opens a sentinel and keeps a record.</summary>
 	bool Kept(IrStmt stmt)
 	{
-		return _resumes && _ablation != SliceAblation.SentinelOnly && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt);
+		return _resumes && _ablation != SliceAblation.SentinelOnly && !(_ablation == SliceAblation.NoCallSites && stmt is IrStmt.Call) &&
+			!ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt);
 	}
 
 	/// <summary>For <see cref="SliceAblation.SentinelOnly"/>: the decision a kept statement opens, and the statement as it is.</summary>
@@ -431,7 +495,7 @@ sealed class SlicePrinter
 			return false;
 
 		if (_sites.Doors.TryGetValue(stmt, out var door))
-			Line($"if (p < len && (c = {Unit("p")}, {Within(new IrStmt.MatchSet(door, false, 0))})) {Enter("0")};");
+			Line($"if ({DoorTest(door)}) {Enter("0")};");
 		else
 			Line($"{Enter("0")};");
 
@@ -524,7 +588,7 @@ sealed class SlicePrinter
 	{
 		var r = Temp("kr");
 
-		Line($"if ({owner} >= 0 && {Member("cursor")} < {Member("count")})");
+		Line($"if ({Member("cursor")} < {Member("count")} && {owner} >= 0)");
 		Line("{");
 		_indent++;
 		Line(Int(r, Runtime("keep", $"{owner}, {(end ? "true" : "false")}, {position}, {turns}, {read}, {slots.Count.ToString(CultureInfo.InvariantCulture)}")));
@@ -556,7 +620,7 @@ sealed class SlicePrinter
 
 		// Where the next item cannot begin what the statement reads, its work is bounded and it opens nothing.
 		if (_ablation != SliceAblation.NoDoors && _sites.Doors.TryGetValue(stmt, out var door))
-			Line($"if (p < len && (c = {Unit("p")}, {Within(new IrStmt.MatchSet(door, false, 0))}))");
+			Line($"if ({DoorTest(door)})");
 
 		Line("{");
 		_indent++;
@@ -1063,7 +1127,6 @@ sealed class SlicePrinter
 
 				var kept   = Kept(repeat);
 				var owner  = Temp("o");
-				var done   = Temp("skip");
 
 				Line("{");
 				_indent++;
@@ -1073,7 +1136,6 @@ sealed class SlicePrinter
 
 				if (kept)
 				{
-					Line(Flag(done));
 					Line(Int(owner, "-1"));
 					Sentinel(repeat, owner, (h) =>
 					{
@@ -1081,12 +1143,12 @@ sealed class SlicePrinter
 						Line($"{turns} = {Field(h, "turns")};");
 						Line($"{Member("cursor")} = {Field(h, "key")};");
 						Give(repeat.Resets, h);
-						Line($"if (({Field(h, "flags")} & 1) != 0) {done} = true;");
+						Line($"if (({Field(h, "flags")} & 1) != 0) {most} = {turns};");
 						Jumped();
 					}, endOnly: false);
 				}
 
-				Line(kept ? $"while (!{done} && {turns} < {most})" : $"while ({turns} < {most})");
+				Line($"while ({turns} < {most})");
 				Line("{");
 				_indent++;
 				Step();
