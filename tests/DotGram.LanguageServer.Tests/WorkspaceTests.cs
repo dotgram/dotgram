@@ -391,11 +391,15 @@ public sealed class WorkspaceTests : IDisposable
 	{
 		var grammar = Path.Combine(_folder, "Base.gram");
 		var said    = new ConcurrentQueue<string>();
-		var limit   = TimeSpan.FromMilliseconds(200);
+		var limit   = TimeSpan.FromSeconds(1);
 		var slow    = false;
 
 		File.WriteAllText(Path.Combine(_folder, "Parsers.csproj"), Project);
 		File.WriteAllText(grammar, "Word = ['a'..'z']+\n");
+
+		// Read once first, so that what comes before the evaluation — Roslyn's first workspace — is not
+		// what the deadline below runs out on.
+		FolderWorkspace.Create([_folder], static _ => { }, TestContext.Current.CancellationToken).Workspace.Dispose();
 
 		var workspace = FolderWorkspace.Create(
 			[_folder],
