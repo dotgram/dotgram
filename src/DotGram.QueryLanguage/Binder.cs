@@ -73,7 +73,7 @@ sealed partial class Binder
 				throw Error(QlErrorCode.Limit, $"The query has more than {_options.MaxNodes} parts, counting each name at every use as what it names.", clause.Position);
 		}
 
-		CheckPaging(query.Clauses);
+		CheckSkips(query.Clauses);
 
 		var (output, names) = Output(query);
 
@@ -347,42 +347,19 @@ sealed partial class Binder
 		}
 	}
 
-	/// <summary>
-	/// Levels of paging: runs of <c>skip</c> and <c>take</c> — with only <c>let</c> and <c>select</c> between them —
-	/// that a <c>where</c> or an <c>order by</c> follows. Each is a query nested in another at the provider.
-	/// </summary>
-	void CheckPaging(ClauseSyntax[] clauses)
+	/// <summary>The skips the text writes, counted now against <see cref="QlOptions.MaxSkip"/>; with a parameter's the call counts them again.</summary>
+	void CheckSkips(ClauseSyntax[] clauses)
 	{
-		var levels  = 0;
 		var skipped = 0L;
-		int? run    = null;
 
 		foreach (var clause in clauses)
 		{
-			switch (clause)
+			if (clause is PageClause { Skip: true, Count: LiteralExpr literal } page)
 			{
-				case PageClause page:
-					run ??= page.Position;
+				skipped += int.Parse(literal.Text, CultureInfo.InvariantCulture);
 
-					// The skips the text writes, counted now; with a parameter's the call counts them again.
-					if (page.Skip && page.Count is LiteralExpr literal)
-					{
-						skipped += int.Parse(literal.Text, CultureInfo.InvariantCulture);
-
-						if (skipped > _options.MaxSkip)
-							throw Error(QlErrorCode.Limit, $"The query skips more than {_options.MaxSkip} rows.", page.Position);
-					}
-
-					break;
-
-				case WhereClause or OrderClause when run is { } start:
-					levels++;
-					run = null;
-
-					if (levels > _options.MaxPagingLevels)
-						throw Error(QlErrorCode.Limit, $"The query pages more than {_options.MaxPagingLevels} times before a `where` or an `order by`.", start);
-
-					break;
+				if (skipped > _options.MaxSkip)
+					throw Error(QlErrorCode.Limit, $"The query skips more than {_options.MaxSkip} rows.", page.Position);
 			}
 		}
 	}

@@ -49,8 +49,6 @@ DotGram.QueryLanguage.QlOptions.MaxInList.get -> int
 DotGram.QueryLanguage.QlOptions.MaxInList.init -> void
 DotGram.QueryLanguage.QlOptions.MaxNodes.get -> int
 DotGram.QueryLanguage.QlOptions.MaxNodes.init -> void
-DotGram.QueryLanguage.QlOptions.MaxPagingLevels.get -> int
-DotGram.QueryLanguage.QlOptions.MaxPagingLevels.init -> void
 DotGram.QueryLanguage.QlOptions.MaxParameterBytes.get -> int
 DotGram.QueryLanguage.QlOptions.MaxParameterBytes.init -> void
 DotGram.QueryLanguage.QlOptions.MaxRows.get -> int?

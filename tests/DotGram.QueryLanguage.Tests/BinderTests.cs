@@ -597,18 +597,6 @@ public sealed class BinderTests
 	// ── Bounds the binding knows ────────────────────────────────────────────
 
 	[Fact]
-	public void PagingLevelsAreBounded()
-	{
-		var model = Shop.Model(QlOptions.Default with { MaxPagingLevels = 2 });
-
-		model.Describe("from orders take 10 where qty > 1 skip 1 take 5 order by id take 3 skip 1 select id");
-
-		var error = Assert.Throws<QlException>(() => model.Describe("from orders take 10 where qty > 1 skip 1 select id take 5 order by id take 3 where id > 1")).Error;
-
-		Assert.Equal((QlErrorCode.Limit, (int?)70), (error.Code, error.Position));
-	}
-
-	[Fact]
 	public void ACountIsAnInt()
 	{
 		Fails("from orders take 2147483648", QlErrorCode.Limit, 17);

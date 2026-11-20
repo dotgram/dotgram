@@ -192,7 +192,6 @@ names.
 | `MaxSkip` | 10000 | rows all the `skip`s of a text pass over together |
 | `MaxStringLength` | 4096 | characters of one string, literal or value |
 | `MaxParameterBytes` | 16384 | bytes of all the values of one call |
-| `MaxPagingLevels` | 4 | pages a `where` or an `order by` follows, each a nested query |
 
 The bounds limit the size of what reaches the provider, not the time the database takes: the
 command timeout and cancellation are the host's.

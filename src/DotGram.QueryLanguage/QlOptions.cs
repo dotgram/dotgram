@@ -67,11 +67,4 @@ public sealed record QlOptions
 	/// default.
 	/// </summary>
 	public int MaxParameterBytes { get; init; } = 16 * 1024;
-
-	/// <summary>
-	/// Levels of paging: runs of <c>skip</c> and <c>take</c> that a <c>where</c> or an <c>order by</c>
-	/// follows, each of which the provider reads as a query nested in another, sorting what it reads. 4 by
-	/// default.
-	/// </summary>
-	public int MaxPagingLevels { get; init; } = 4;
 }

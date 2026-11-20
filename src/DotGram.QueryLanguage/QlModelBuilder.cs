@@ -162,7 +162,6 @@ public sealed class QlModelBuilder<TContext>
 		Positive(options.MaxColumns,            nameof(options.MaxColumns));
 		Positive(options.MaxStringLength,       nameof(options.MaxStringLength));
 		Positive(options.MaxParameterBytes,     nameof(options.MaxParameterBytes));
-		Positive(options.MaxPagingLevels,       nameof(options.MaxPagingLevels));
 
 		if (options.MaxRows is { } rows)
 			Positive(rows, nameof(options.MaxRows));

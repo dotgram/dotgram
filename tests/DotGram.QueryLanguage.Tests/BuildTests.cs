@@ -228,7 +228,6 @@ public sealed class BuildTests
 	[InlineData(nameof(QlOptions.MaxRows))]
 	[InlineData(nameof(QlOptions.MaxStringLength))]
 	[InlineData(nameof(QlOptions.MaxParameterBytes))]
-	[InlineData(nameof(QlOptions.MaxPagingLevels))]
 	public void ABoundThatIsNotPositiveIsRefused(string bound)
 	{
 		var options = typeof(QlOptions).GetProperty(bound)!;
@@ -245,10 +244,9 @@ public sealed class BuildTests
 		var options = QlOptions.Default;
 
 		Assert.Equal(
-			(8192, 64, 100, 32, 8, 100, 32, (int?)1000, 10_000, 4096, 16384, 4),
+			(8192, 64, 100, 32, 8, 100, 32, (int?)1000, 10_000, 4096, 16384),
 			(options.MaxTextLength, options.MaxSyntaxDepth, options.MaxNodes, options.MaxTreeDepth, options.MaxArithmeticOperands,
-				options.MaxInList, options.MaxColumns, options.MaxRows, options.MaxSkip, options.MaxStringLength, options.MaxParameterBytes,
-				options.MaxPagingLevels));
+				options.MaxInList, options.MaxColumns, options.MaxRows, options.MaxSkip, options.MaxStringLength, options.MaxParameterBytes));
 
 		Assert.Null(new QlModelBuilder<Db>().Build(options with { MaxRows = null }).Options.MaxRows);
 		Assert.Throws<ArgumentException>(() => new QlModelBuilder<Db>().Build(options with { MaxSkip = -1 }));
