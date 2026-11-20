@@ -923,7 +923,26 @@ sealed class SlicePrinter
 
 					var kept = Keep(choice.Resets[i]);
 
-					Attempt(choice.Alternatives[i], read);
+					if (choice.Resumable && i < last)
+					{
+						// The alternative is read again with each of its own decisions that can still
+						// move before the choice moves on: its next alternative comes after them.
+						var mark = Temp("m");
+
+						Line(Int(mark, Member("cursor")));
+						Line("for (;;)");
+						Line("{");
+						_indent++;
+						Attempt(choice.Alternatives[i], read);
+						Line($"if ({read} || !({Member("cursor")} > {mark} && {Runtime("retry", mark)})) break;");
+						Line($"p = {start};");
+						PutBack(choice.Resets[i], kept);
+						_indent--;
+						Line("}");
+					}
+					else
+						Attempt(choice.Alternatives[i], read);
+
 					Line($"if (!{read})");
 					Line("{");
 					_indent++;
@@ -1033,7 +1052,25 @@ sealed class SlicePrinter
 
 				var held = Keep(repeat.Resets);
 
-				Attempt(repeat.Body, read);
+				if (repeat.Resumable)
+				{
+					// A turn that fails is read again with each of its own decisions that can still
+					// move before the repetition gives it up: its own decision comes before them.
+					var mark = Temp("m");
+
+					Line(Int(mark, Member("cursor")));
+					Line("for (;;)");
+					Line("{");
+					_indent++;
+					Attempt(repeat.Body, read);
+					Line($"if ({read} || !({way} >= 0 && {Member("cursor")} > {mark} && {Runtime("retry", mark)})) break;");
+					Line($"p = {start};");
+					PutBack(repeat.Resets, held);
+					_indent--;
+					Line("}");
+				}
+				else
+					Attempt(repeat.Body, read);
 				Line($"if (!{read})");
 				Line("{");
 				_indent++;
@@ -1473,6 +1510,15 @@ sealed class SlicePrinter
 					{
 						var failed = State();
 						var kept   = Keep(choice.Resets[i], inFrame: true);
+						var retry  = choice.Resumable && i < last;
+						var mark   = retry ? FrameNumber() : "";
+						var begin  = retry ? State() : -1;
+
+						if (retry)
+						{
+							Line($"{mark} = P.cursor;");
+							Place(begin);
+						}
 
 						Flat(choice.Alternatives[i], failed);
 						Line(Jump(done));
@@ -1480,8 +1526,11 @@ sealed class SlicePrinter
 						Line($"p = {start};");
 						PutBack(choice.Resets[i], kept);
 
-						if (choice.Resumable && i < last)
+						if (retry)
+						{
+							Line($"if (P.cursor > {mark} && {Runtime("retry", mark)}) {Jump(begin)}");
 							Line(Runtime("next", $"{way}, {(i + 1).ToString(CultureInfo.InvariantCulture)}") + ";");
+						}
 					}
 					else
 					{
@@ -1493,7 +1542,24 @@ sealed class SlicePrinter
 
 						var kept = Keep(choice.Resets[i]);
 
-						Attempt(choice.Alternatives[i], read);
+						if (choice.Resumable && i < last)
+						{
+							var mark = Temp("m");
+
+							Line(Int(mark, "P.cursor"));
+							Line("for (;;)");
+							Line("{");
+							_indent++;
+							Attempt(choice.Alternatives[i], read);
+							Line($"if ({read} || !(P.cursor > {mark} && {Runtime("retry", mark)})) break;");
+							Line($"p = {start};");
+							PutBack(choice.Resets[i], kept);
+							_indent--;
+							Line("}");
+						}
+						else
+							Attempt(choice.Alternatives[i], read);
+
 						Line($"if ({read}) {Jump(done)}");
 						Line($"p = {start};");
 						PutBack(choice.Resets[i], kept);
@@ -1564,7 +1630,15 @@ sealed class SlicePrinter
 					Line("}");
 				}
 
-				var kept = Keep(repeat.Resets, inFrame: true);
+				var kept  = Keep(repeat.Resets, inFrame: true);
+				var mark  = repeat.Resumable ? FrameNumber() : "";
+				var begin = repeat.Resumable ? State() : -1;
+
+				if (repeat.Resumable)
+				{
+					Line($"{mark} = P.cursor;");
+					Place(begin);
+				}
 
 				Flat(repeat.Body, failed);
 				Line($"{turns}++;");
@@ -1575,7 +1649,10 @@ sealed class SlicePrinter
 				PutBack(repeat.Resets, kept);
 
 				if (repeat.Resumable)
+				{
+					Line($"if ({way} >= 0 && P.cursor > {mark} && {Runtime("retry", mark)}) {Jump(begin)}");
 					Line($"if ({way} >= 0) {Runtime("next", way + ", 1")};");
+				}
 
 				Place(done);
 

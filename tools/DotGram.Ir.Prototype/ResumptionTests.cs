@@ -676,6 +676,11 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 			var sentinels = 0L;
 			var bytes     = 0L;
 			var by        = new Dictionary<string, long>(StringComparer.Ordinal);
+			var records   = 0L;
+			var retries   = 0L;
+			var jumps     = 0L;
+			var entered   = 0L;
+			var steps     = 0L;
 
 			// Not every shipped grammar is read whole by the tree: some lower in part.
 			try
@@ -689,6 +694,11 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 						accepted++;
 						sentinels += evaluator.Sentinels;
 						bytes     += input.Length;
+						records   += evaluator.Records;
+						retries   += evaluator.Ways.Retries;
+						jumps     += evaluator.Jumps + evaluator.Skips;
+						entered   += evaluator.Ways.Entered;
+						steps     += evaluator.Steps;
 
 						foreach (var (kind, count) in evaluator.SentinelsBy)
 							by[kind] = by.GetValueOrDefault(kind) + count;
@@ -701,6 +711,10 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 
 				continue;
 			}
+
+			if (bytes > 0)
+				text.Append(name).Append("\tper byte: ").Append(string.Create(CultureInfo.InvariantCulture,
+					$"sentinels {sentinels / (double)bytes:F3}, records {records / (double)bytes:F3}, retries {retries / (double)bytes:F3}, jumps and skips {jumps / (double)bytes:F3}, decisions entered {entered / (double)bytes:F3}, statements {steps / (double)bytes:F1}")).Append('\n');
 
 			foreach (var (kind, count) in by.OrderByDescending(static one => one.Value))
 				text.Append(name).Append("\tsentinels at\t").Append(kind).Append('\t').Append(count).Append('\n');
@@ -731,6 +745,115 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 
 		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
 			File.WriteAllText(Path.Combine(report, "accepting-path.tsv"), text.ToString());
+	}
+
+	/// <summary>
+	/// Inputs no one wrote: for every fixture, strings drawn from the characters of its own inputs
+	/// and every input with one character inserted, dropped or changed — read by the evaluator with
+	/// and without resumption, under both lowerings, and held to the generated parser's verdict and
+	/// position. The hand-written inputs alone never failed inside an alternative or a turn after a
+	/// decision opened in it, which is how a reading that dropped those decisions went unseen.
+	/// </summary>
+	[Fact]
+	public void InputsNoOneWrote_AnswerAsTheGeneratedParser()
+	{
+		var random = new Random(20261120);
+		var unfit  = 0L;
+		var read   = 0;
+		var wrong  = new List<string>();
+
+		foreach (var (name, fixture) in Cases.Fixtures)
+		{
+			var inputs   = Cases.InputsOf(name);
+			var alphabet = inputs.SelectMany(static input => input).Distinct().ToArray();
+
+			if (alphabet.Length == 0)
+				continue;
+
+			var tried = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var input in inputs.Where(static input => input.Length <= 64))
+			{
+				for (var i = 0; i <= input.Length; i++)
+				{
+					foreach (var unit in alphabet)
+						tried.Add(input.Insert(i, unit.ToString()));
+
+					if (i < input.Length)
+					{
+						tried.Add(input.Remove(i, 1));
+
+						foreach (var unit in alphabet)
+							tried.Add(input[..i] + unit + input[(i + 1)..]);
+					}
+				}
+			}
+
+			for (var n = 0; n < (name == "Json" ? 200 : 400); n++)
+				tried.Add(new string([.. Enumerable.Range(0, random.Next(0, 13)).Select(_ => alphabet[random.Next(alphabet.Length)])]));
+
+			var batch = tried.Take(name == "Json" ? 1500 : 4000).ToList();
+
+			// The printed parsers on the same inputs, held to the evaluator with resumption: answers and host calls.
+			var program0 = Reading.Program(fixture.Grammar);
+			var expected = batch.Select(input => Slices.Evaluated(program0, fixture.Entry, input, fixture.Guards)).ToList();
+			var answers  = expected.SelectMany(static answer => answer.Log).Where(static call => call.StartsWith('g')).Distinct().ToList();
+
+			foreach (var (where, actual) in new[]
+			{
+				("C", Slices.InC("Differential-" + name, program0, fixture.Entry, batch, guardAnswers: answers)),
+				("TypeScript", Slices.TypeScript("Differential-" + name, program0, fixture.Entry, batch, guardAnswers: answers, frames: SliceFrames.None)),
+			})
+			{
+				for (var i = 0; i < batch.Count; i++)
+				{
+					read++;
+
+					if ((actual[i].Head != expected[i].Head || !actual[i].Log.SequenceEqual(expected[i].Log)) && wrong.Count < 20)
+						wrong.Add($"{name} {Twin.Quoted(batch[i])} ({where}): {actual[i].Head}, the evaluator {expected[i].Head}");
+				}
+			}
+
+			foreach (var input in batch)
+			{
+				var (theirs, _, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
+
+				foreach (var options in Lowerings)
+				{
+					foreach (var resumes in new[] { false, true })
+					{
+						var program = Reading.Program(fixture.Grammar, options);
+						string line;
+
+						try
+						{
+							var evaluator = new IrEvaluator(program, new RecordingHost(fixture.Guards)) { Resumes = resumes, StepBudget = 20_000_000 };
+
+							line   = evaluator.Parse(fixture.Entry, input).Line;
+							unfit += evaluator.Unfit;
+						}
+						catch (IrStepsExceeded)
+						{
+							continue;
+						}
+						catch (IrContractViolation broken)
+						{
+							line = "broken: " + broken.Message;
+						}
+
+						read++;
+
+						if (line != theirs.Line && wrong.Count < 20)
+							wrong.Add($"{name} {Twin.Quoted(input)} ({Named(options)}, {(resumes ? "resuming" : "replaying")}): {line}, the generated parser {theirs.Line}");
+					}
+				}
+			}
+		}
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "differential.txt"), string.Create(CultureInfo.InvariantCulture, $"read {read}, differing {wrong.Count}, records not kept to keep the stack in order {unfit}\n") + string.Join("\n", wrong) + "\n");
+
+		Assert.True(wrong.Count == 0, string.Join("; ", wrong));
 	}
 
 	/// <summary>The lowered programs of the fixtures, written out to be read.</summary>
