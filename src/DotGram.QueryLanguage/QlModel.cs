@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -68,7 +69,36 @@ public sealed class QlModel<TContext>
 	/// <exception cref="QlException">The text is refused.</exception>
 	public QlQueryInfo Describe(string text)
 	{
-		throw new NotImplementedException();
+		return Bind(text).Info;
+	}
+
+	/// <summary>
+	/// How many bound texts are kept. The key is a text somebody sent, so the cache is bounded: past the bound it is
+	/// cleared whole, as the expression language's caches of what a text asked are, and the next calls bind again.
+	/// What is kept is the text's binding alone — never a context, a value or a provider's query.
+	/// </summary>
+	internal const int CacheSize = 1024;
+
+	readonly ConcurrentDictionary<string, BoundQuery> _bound = new(StringComparer.Ordinal);
+
+	internal int CacheCount => _bound.Count;
+
+	/// <summary>The text read and bound, from the cache where it was bound before.</summary>
+	internal BoundQuery Bind(string text)
+	{
+		if (text is null)
+			throw new ArgumentNullException(nameof(text));
+
+		if (_bound.TryGetValue(text, out var bound))
+			return bound;
+
+		bound = Binder.Bind(Reader.Read(text, Options), Entities, Options);
+
+		// Asked only on a miss: Count takes every lock of the dictionary.
+		if (_bound.Count >= CacheSize)
+			_bound.Clear();
+
+		return _bound.GetOrAdd(text, bound);
 	}
 }
 

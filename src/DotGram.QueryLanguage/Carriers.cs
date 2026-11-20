@@ -1,0 +1,656 @@
+﻿using System;
+using System.Globalization;
+using System.Reflection;
+
+namespace DotGram.QueryLanguage;
+
+// The rows between the clauses of a query. A `let` or a `select` makes a new row, and a row is one of two classes
+// the library declares — never a type made for a text — so that the types a process holds do not grow with the
+// texts it is sent: a text's columns are laid out in fixed slots, 32 of each kind of value, and a value of a type
+// outside the language rides in an object slot and is converted back where it is read.
+
+/// <summary>
+/// The values of a row: after a <c>select</c> the row itself, after a <c>let</c> over the entity the values beside
+/// it. Slots are fields, written and read only by the trees the translator builds.
+/// </summary>
+// CS0649: the slots are assigned only inside expression trees the provider compiles or translates (a member
+// initializer), which the compiler cannot see; a slot no text uses is the point of a fixed layout.
+#pragma warning disable CS0649
+sealed class QlScalars
+{
+	public bool Bool0;
+	public bool Bool1;
+	public bool Bool2;
+	public bool Bool3;
+	public bool Bool4;
+	public bool Bool5;
+	public bool Bool6;
+	public bool Bool7;
+	public bool Bool8;
+	public bool Bool9;
+	public bool Bool10;
+	public bool Bool11;
+	public bool Bool12;
+	public bool Bool13;
+	public bool Bool14;
+	public bool Bool15;
+	public bool Bool16;
+	public bool Bool17;
+	public bool Bool18;
+	public bool Bool19;
+	public bool Bool20;
+	public bool Bool21;
+	public bool Bool22;
+	public bool Bool23;
+	public bool Bool24;
+	public bool Bool25;
+	public bool Bool26;
+	public bool Bool27;
+	public bool Bool28;
+	public bool Bool29;
+	public bool Bool30;
+	public bool Bool31;
+
+	public bool? BoolN0;
+	public bool? BoolN1;
+	public bool? BoolN2;
+	public bool? BoolN3;
+	public bool? BoolN4;
+	public bool? BoolN5;
+	public bool? BoolN6;
+	public bool? BoolN7;
+	public bool? BoolN8;
+	public bool? BoolN9;
+	public bool? BoolN10;
+	public bool? BoolN11;
+	public bool? BoolN12;
+	public bool? BoolN13;
+	public bool? BoolN14;
+	public bool? BoolN15;
+	public bool? BoolN16;
+	public bool? BoolN17;
+	public bool? BoolN18;
+	public bool? BoolN19;
+	public bool? BoolN20;
+	public bool? BoolN21;
+	public bool? BoolN22;
+	public bool? BoolN23;
+	public bool? BoolN24;
+	public bool? BoolN25;
+	public bool? BoolN26;
+	public bool? BoolN27;
+	public bool? BoolN28;
+	public bool? BoolN29;
+	public bool? BoolN30;
+	public bool? BoolN31;
+
+	public int Int0;
+	public int Int1;
+	public int Int2;
+	public int Int3;
+	public int Int4;
+	public int Int5;
+	public int Int6;
+	public int Int7;
+	public int Int8;
+	public int Int9;
+	public int Int10;
+	public int Int11;
+	public int Int12;
+	public int Int13;
+	public int Int14;
+	public int Int15;
+	public int Int16;
+	public int Int17;
+	public int Int18;
+	public int Int19;
+	public int Int20;
+	public int Int21;
+	public int Int22;
+	public int Int23;
+	public int Int24;
+	public int Int25;
+	public int Int26;
+	public int Int27;
+	public int Int28;
+	public int Int29;
+	public int Int30;
+	public int Int31;
+
+	public int? IntN0;
+	public int? IntN1;
+	public int? IntN2;
+	public int? IntN3;
+	public int? IntN4;
+	public int? IntN5;
+	public int? IntN6;
+	public int? IntN7;
+	public int? IntN8;
+	public int? IntN9;
+	public int? IntN10;
+	public int? IntN11;
+	public int? IntN12;
+	public int? IntN13;
+	public int? IntN14;
+	public int? IntN15;
+	public int? IntN16;
+	public int? IntN17;
+	public int? IntN18;
+	public int? IntN19;
+	public int? IntN20;
+	public int? IntN21;
+	public int? IntN22;
+	public int? IntN23;
+	public int? IntN24;
+	public int? IntN25;
+	public int? IntN26;
+	public int? IntN27;
+	public int? IntN28;
+	public int? IntN29;
+	public int? IntN30;
+	public int? IntN31;
+
+	public long Long0;
+	public long Long1;
+	public long Long2;
+	public long Long3;
+	public long Long4;
+	public long Long5;
+	public long Long6;
+	public long Long7;
+	public long Long8;
+	public long Long9;
+	public long Long10;
+	public long Long11;
+	public long Long12;
+	public long Long13;
+	public long Long14;
+	public long Long15;
+	public long Long16;
+	public long Long17;
+	public long Long18;
+	public long Long19;
+	public long Long20;
+	public long Long21;
+	public long Long22;
+	public long Long23;
+	public long Long24;
+	public long Long25;
+	public long Long26;
+	public long Long27;
+	public long Long28;
+	public long Long29;
+	public long Long30;
+	public long Long31;
+
+	public long? LongN0;
+	public long? LongN1;
+	public long? LongN2;
+	public long? LongN3;
+	public long? LongN4;
+	public long? LongN5;
+	public long? LongN6;
+	public long? LongN7;
+	public long? LongN8;
+	public long? LongN9;
+	public long? LongN10;
+	public long? LongN11;
+	public long? LongN12;
+	public long? LongN13;
+	public long? LongN14;
+	public long? LongN15;
+	public long? LongN16;
+	public long? LongN17;
+	public long? LongN18;
+	public long? LongN19;
+	public long? LongN20;
+	public long? LongN21;
+	public long? LongN22;
+	public long? LongN23;
+	public long? LongN24;
+	public long? LongN25;
+	public long? LongN26;
+	public long? LongN27;
+	public long? LongN28;
+	public long? LongN29;
+	public long? LongN30;
+	public long? LongN31;
+
+	public decimal Decimal0;
+	public decimal Decimal1;
+	public decimal Decimal2;
+	public decimal Decimal3;
+	public decimal Decimal4;
+	public decimal Decimal5;
+	public decimal Decimal6;
+	public decimal Decimal7;
+	public decimal Decimal8;
+	public decimal Decimal9;
+	public decimal Decimal10;
+	public decimal Decimal11;
+	public decimal Decimal12;
+	public decimal Decimal13;
+	public decimal Decimal14;
+	public decimal Decimal15;
+	public decimal Decimal16;
+	public decimal Decimal17;
+	public decimal Decimal18;
+	public decimal Decimal19;
+	public decimal Decimal20;
+	public decimal Decimal21;
+	public decimal Decimal22;
+	public decimal Decimal23;
+	public decimal Decimal24;
+	public decimal Decimal25;
+	public decimal Decimal26;
+	public decimal Decimal27;
+	public decimal Decimal28;
+	public decimal Decimal29;
+	public decimal Decimal30;
+	public decimal Decimal31;
+
+	public decimal? DecimalN0;
+	public decimal? DecimalN1;
+	public decimal? DecimalN2;
+	public decimal? DecimalN3;
+	public decimal? DecimalN4;
+	public decimal? DecimalN5;
+	public decimal? DecimalN6;
+	public decimal? DecimalN7;
+	public decimal? DecimalN8;
+	public decimal? DecimalN9;
+	public decimal? DecimalN10;
+	public decimal? DecimalN11;
+	public decimal? DecimalN12;
+	public decimal? DecimalN13;
+	public decimal? DecimalN14;
+	public decimal? DecimalN15;
+	public decimal? DecimalN16;
+	public decimal? DecimalN17;
+	public decimal? DecimalN18;
+	public decimal? DecimalN19;
+	public decimal? DecimalN20;
+	public decimal? DecimalN21;
+	public decimal? DecimalN22;
+	public decimal? DecimalN23;
+	public decimal? DecimalN24;
+	public decimal? DecimalN25;
+	public decimal? DecimalN26;
+	public decimal? DecimalN27;
+	public decimal? DecimalN28;
+	public decimal? DecimalN29;
+	public decimal? DecimalN30;
+	public decimal? DecimalN31;
+
+	public double Double0;
+	public double Double1;
+	public double Double2;
+	public double Double3;
+	public double Double4;
+	public double Double5;
+	public double Double6;
+	public double Double7;
+	public double Double8;
+	public double Double9;
+	public double Double10;
+	public double Double11;
+	public double Double12;
+	public double Double13;
+	public double Double14;
+	public double Double15;
+	public double Double16;
+	public double Double17;
+	public double Double18;
+	public double Double19;
+	public double Double20;
+	public double Double21;
+	public double Double22;
+	public double Double23;
+	public double Double24;
+	public double Double25;
+	public double Double26;
+	public double Double27;
+	public double Double28;
+	public double Double29;
+	public double Double30;
+	public double Double31;
+
+	public double? DoubleN0;
+	public double? DoubleN1;
+	public double? DoubleN2;
+	public double? DoubleN3;
+	public double? DoubleN4;
+	public double? DoubleN5;
+	public double? DoubleN6;
+	public double? DoubleN7;
+	public double? DoubleN8;
+	public double? DoubleN9;
+	public double? DoubleN10;
+	public double? DoubleN11;
+	public double? DoubleN12;
+	public double? DoubleN13;
+	public double? DoubleN14;
+	public double? DoubleN15;
+	public double? DoubleN16;
+	public double? DoubleN17;
+	public double? DoubleN18;
+	public double? DoubleN19;
+	public double? DoubleN20;
+	public double? DoubleN21;
+	public double? DoubleN22;
+	public double? DoubleN23;
+	public double? DoubleN24;
+	public double? DoubleN25;
+	public double? DoubleN26;
+	public double? DoubleN27;
+	public double? DoubleN28;
+	public double? DoubleN29;
+	public double? DoubleN30;
+	public double? DoubleN31;
+
+	public string? String0;
+	public string? String1;
+	public string? String2;
+	public string? String3;
+	public string? String4;
+	public string? String5;
+	public string? String6;
+	public string? String7;
+	public string? String8;
+	public string? String9;
+	public string? String10;
+	public string? String11;
+	public string? String12;
+	public string? String13;
+	public string? String14;
+	public string? String15;
+	public string? String16;
+	public string? String17;
+	public string? String18;
+	public string? String19;
+	public string? String20;
+	public string? String21;
+	public string? String22;
+	public string? String23;
+	public string? String24;
+	public string? String25;
+	public string? String26;
+	public string? String27;
+	public string? String28;
+	public string? String29;
+	public string? String30;
+	public string? String31;
+
+	public DateTime Timestamp0;
+	public DateTime Timestamp1;
+	public DateTime Timestamp2;
+	public DateTime Timestamp3;
+	public DateTime Timestamp4;
+	public DateTime Timestamp5;
+	public DateTime Timestamp6;
+	public DateTime Timestamp7;
+	public DateTime Timestamp8;
+	public DateTime Timestamp9;
+	public DateTime Timestamp10;
+	public DateTime Timestamp11;
+	public DateTime Timestamp12;
+	public DateTime Timestamp13;
+	public DateTime Timestamp14;
+	public DateTime Timestamp15;
+	public DateTime Timestamp16;
+	public DateTime Timestamp17;
+	public DateTime Timestamp18;
+	public DateTime Timestamp19;
+	public DateTime Timestamp20;
+	public DateTime Timestamp21;
+	public DateTime Timestamp22;
+	public DateTime Timestamp23;
+	public DateTime Timestamp24;
+	public DateTime Timestamp25;
+	public DateTime Timestamp26;
+	public DateTime Timestamp27;
+	public DateTime Timestamp28;
+	public DateTime Timestamp29;
+	public DateTime Timestamp30;
+	public DateTime Timestamp31;
+
+	public DateTime? TimestampN0;
+	public DateTime? TimestampN1;
+	public DateTime? TimestampN2;
+	public DateTime? TimestampN3;
+	public DateTime? TimestampN4;
+	public DateTime? TimestampN5;
+	public DateTime? TimestampN6;
+	public DateTime? TimestampN7;
+	public DateTime? TimestampN8;
+	public DateTime? TimestampN9;
+	public DateTime? TimestampN10;
+	public DateTime? TimestampN11;
+	public DateTime? TimestampN12;
+	public DateTime? TimestampN13;
+	public DateTime? TimestampN14;
+	public DateTime? TimestampN15;
+	public DateTime? TimestampN16;
+	public DateTime? TimestampN17;
+	public DateTime? TimestampN18;
+	public DateTime? TimestampN19;
+	public DateTime? TimestampN20;
+	public DateTime? TimestampN21;
+	public DateTime? TimestampN22;
+	public DateTime? TimestampN23;
+	public DateTime? TimestampN24;
+	public DateTime? TimestampN25;
+	public DateTime? TimestampN26;
+	public DateTime? TimestampN27;
+	public DateTime? TimestampN28;
+	public DateTime? TimestampN29;
+	public DateTime? TimestampN30;
+	public DateTime? TimestampN31;
+
+	public DateTimeOffset TimestampTz0;
+	public DateTimeOffset TimestampTz1;
+	public DateTimeOffset TimestampTz2;
+	public DateTimeOffset TimestampTz3;
+	public DateTimeOffset TimestampTz4;
+	public DateTimeOffset TimestampTz5;
+	public DateTimeOffset TimestampTz6;
+	public DateTimeOffset TimestampTz7;
+	public DateTimeOffset TimestampTz8;
+	public DateTimeOffset TimestampTz9;
+	public DateTimeOffset TimestampTz10;
+	public DateTimeOffset TimestampTz11;
+	public DateTimeOffset TimestampTz12;
+	public DateTimeOffset TimestampTz13;
+	public DateTimeOffset TimestampTz14;
+	public DateTimeOffset TimestampTz15;
+	public DateTimeOffset TimestampTz16;
+	public DateTimeOffset TimestampTz17;
+	public DateTimeOffset TimestampTz18;
+	public DateTimeOffset TimestampTz19;
+	public DateTimeOffset TimestampTz20;
+	public DateTimeOffset TimestampTz21;
+	public DateTimeOffset TimestampTz22;
+	public DateTimeOffset TimestampTz23;
+	public DateTimeOffset TimestampTz24;
+	public DateTimeOffset TimestampTz25;
+	public DateTimeOffset TimestampTz26;
+	public DateTimeOffset TimestampTz27;
+	public DateTimeOffset TimestampTz28;
+	public DateTimeOffset TimestampTz29;
+	public DateTimeOffset TimestampTz30;
+	public DateTimeOffset TimestampTz31;
+
+	public DateTimeOffset? TimestampTzN0;
+	public DateTimeOffset? TimestampTzN1;
+	public DateTimeOffset? TimestampTzN2;
+	public DateTimeOffset? TimestampTzN3;
+	public DateTimeOffset? TimestampTzN4;
+	public DateTimeOffset? TimestampTzN5;
+	public DateTimeOffset? TimestampTzN6;
+	public DateTimeOffset? TimestampTzN7;
+	public DateTimeOffset? TimestampTzN8;
+	public DateTimeOffset? TimestampTzN9;
+	public DateTimeOffset? TimestampTzN10;
+	public DateTimeOffset? TimestampTzN11;
+	public DateTimeOffset? TimestampTzN12;
+	public DateTimeOffset? TimestampTzN13;
+	public DateTimeOffset? TimestampTzN14;
+	public DateTimeOffset? TimestampTzN15;
+	public DateTimeOffset? TimestampTzN16;
+	public DateTimeOffset? TimestampTzN17;
+	public DateTimeOffset? TimestampTzN18;
+	public DateTimeOffset? TimestampTzN19;
+	public DateTimeOffset? TimestampTzN20;
+	public DateTimeOffset? TimestampTzN21;
+	public DateTimeOffset? TimestampTzN22;
+	public DateTimeOffset? TimestampTzN23;
+	public DateTimeOffset? TimestampTzN24;
+	public DateTimeOffset? TimestampTzN25;
+	public DateTimeOffset? TimestampTzN26;
+	public DateTimeOffset? TimestampTzN27;
+	public DateTimeOffset? TimestampTzN28;
+	public DateTimeOffset? TimestampTzN29;
+	public DateTimeOffset? TimestampTzN30;
+	public DateTimeOffset? TimestampTzN31;
+
+	public Guid Guid0;
+	public Guid Guid1;
+	public Guid Guid2;
+	public Guid Guid3;
+	public Guid Guid4;
+	public Guid Guid5;
+	public Guid Guid6;
+	public Guid Guid7;
+	public Guid Guid8;
+	public Guid Guid9;
+	public Guid Guid10;
+	public Guid Guid11;
+	public Guid Guid12;
+	public Guid Guid13;
+	public Guid Guid14;
+	public Guid Guid15;
+	public Guid Guid16;
+	public Guid Guid17;
+	public Guid Guid18;
+	public Guid Guid19;
+	public Guid Guid20;
+	public Guid Guid21;
+	public Guid Guid22;
+	public Guid Guid23;
+	public Guid Guid24;
+	public Guid Guid25;
+	public Guid Guid26;
+	public Guid Guid27;
+	public Guid Guid28;
+	public Guid Guid29;
+	public Guid Guid30;
+	public Guid Guid31;
+
+	public Guid? GuidN0;
+	public Guid? GuidN1;
+	public Guid? GuidN2;
+	public Guid? GuidN3;
+	public Guid? GuidN4;
+	public Guid? GuidN5;
+	public Guid? GuidN6;
+	public Guid? GuidN7;
+	public Guid? GuidN8;
+	public Guid? GuidN9;
+	public Guid? GuidN10;
+	public Guid? GuidN11;
+	public Guid? GuidN12;
+	public Guid? GuidN13;
+	public Guid? GuidN14;
+	public Guid? GuidN15;
+	public Guid? GuidN16;
+	public Guid? GuidN17;
+	public Guid? GuidN18;
+	public Guid? GuidN19;
+	public Guid? GuidN20;
+	public Guid? GuidN21;
+	public Guid? GuidN22;
+	public Guid? GuidN23;
+	public Guid? GuidN24;
+	public Guid? GuidN25;
+	public Guid? GuidN26;
+	public Guid? GuidN27;
+	public Guid? GuidN28;
+	public Guid? GuidN29;
+	public Guid? GuidN30;
+	public Guid? GuidN31;
+
+	public object? Other0;
+	public object? Other1;
+	public object? Other2;
+	public object? Other3;
+	public object? Other4;
+	public object? Other5;
+	public object? Other6;
+	public object? Other7;
+	public object? Other8;
+	public object? Other9;
+	public object? Other10;
+	public object? Other11;
+	public object? Other12;
+	public object? Other13;
+	public object? Other14;
+	public object? Other15;
+	public object? Other16;
+	public object? Other17;
+	public object? Other18;
+	public object? Other19;
+	public object? Other20;
+	public object? Other21;
+	public object? Other22;
+	public object? Other23;
+	public object? Other24;
+	public object? Other25;
+	public object? Other26;
+	public object? Other27;
+	public object? Other28;
+	public object? Other29;
+	public object? Other30;
+	public object? Other31;
+}
+
+/// <summary>A row that still holds the entity: after a <c>let</c> over it, before the first <c>select</c>.</summary>
+sealed class QlRow<TE>
+{
+	public TE E = default!;
+
+	public QlScalars S = null!;
+}
+#pragma warning restore CS0649
+
+/// <summary>Where a value of a type goes in <see cref="QlScalars"/>.</summary>
+static class Slots
+{
+	/// <summary>Slots of one kind; a row that needs more is refused.</summary>
+	public const int PerKind = 32;
+
+	/// <summary>The kind of slot a value of <paramref name="type"/> takes: <c>Int</c>, <c>IntN</c>, <c>String</c>, <c>Other</c>.</summary>
+	public static string KindOf(ScalarType type)
+	{
+		var kind = type.Type switch
+		{
+			QlType.Bool        => "Bool",
+			QlType.Int         => "Int",
+			QlType.Long        => "Long",
+			QlType.Decimal     => "Decimal",
+			QlType.Double      => "Double",
+			QlType.String      => "String",
+			QlType.Timestamp   => "Timestamp",
+			QlType.TimestampTz => "TimestampTz",
+			QlType.Guid        => "Guid",
+			_                  => "Other",
+		};
+
+		return type.Nullable && type.Type is not (QlType.String or QlType.Other) ? kind + "N" : kind;
+	}
+
+	/// <summary>The slot <paramref name="index"/> of the kind <paramref name="type"/> takes.</summary>
+	public static FieldInfo Field(ScalarType type, int index)
+	{
+		return typeof(QlScalars).GetField(KindOf(type) + index.ToString(CultureInfo.InvariantCulture))!;
+	}
+}
