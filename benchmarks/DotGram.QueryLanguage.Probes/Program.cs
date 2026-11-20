@@ -32,6 +32,7 @@ if (probe == "drop")
 Dictionary<string, Action> probes = new()
 {
 	["1"]  = RowCap.Run,
+	["1b"] = RowCapBarrier.Run,
 	["2"]  = Chains.Run,
 	["3"]  = Aggregates.Run,
 	["4"]  = Values.Run,
@@ -47,7 +48,7 @@ Dictionary<string, Action> probes = new()
 
 if (probe != "all" && !probes.ContainsKey(probe))
 {
-	Console.WriteLine("usage: <1..12|all|drop> [sqlite|mssql]");
+	Console.WriteLine("usage: <1..12|1b|all|drop> [sqlite|mssql]");
 
 	return 2;
 }
