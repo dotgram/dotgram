@@ -25,6 +25,12 @@ export class Runtime
 	cursor = 0;
 	retries = 0;
 
+	// What a parser printed to count writes: functions entered and turns begun, decisions opened
+	// or read back, turns gone straight to. A parser printed to be timed never touches them.
+	kSteps = 0;
+	kEntered = 0;
+	kJumps = 0;
+
 	// The frames of the functions printed as machines: numbers in one array and values in the
 	// other, a frame of each a call, the topmost last. The last number of a frame says whose it
 	// is and the first where its owner goes on.
@@ -51,6 +57,9 @@ export class Runtime
 		this.count = 0;
 		this.cursor = 0;
 		this.retries = 0;
+		this.kSteps = 0;
+		this.kEntered = 0;
+		this.kJumps = 0;
 		this.top = 0;
 		this.valueTop = 0;
 		this.V.length = 0;
@@ -118,6 +127,13 @@ export class Runtime
 		this.cursor = this.count;
 
 		return this.count - 1;
+	}
+
+	enterCounted(last: number): number
+	{
+		this.kEntered++;
+
+		return this.enter(last);
 	}
 
 	next(way: number, value: number): void

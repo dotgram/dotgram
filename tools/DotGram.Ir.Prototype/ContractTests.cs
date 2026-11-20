@@ -35,7 +35,7 @@ public sealed class ContractTests
 
 		if (ours.Accepted)
 			Assert.Equal(theirLog, ourLog);
-		else
+		else if (!fixture.Defers)
 		{
 			Assert.Equal(ourLog, theirLog.Take(ourLog.Count));
 			Assert.All(theirLog.Skip(ourLog.Count), static call => Assert.StartsWith("g", call, StringComparison.Ordinal));

@@ -34,6 +34,7 @@ const batch = readFileSync(batchPath);
 const count = batch.readInt32LE(0);
 const out: string[] = [];
 const P = new Runtime();
+const counting = process.env.IR_COUNTS !== undefined;
 
 let at = 4;
 
@@ -74,8 +75,14 @@ for (let i = 0; i < count; i++)
 		out.push("T " + (thrown instanceof RangeError ? "stack" : String((thrown as Error).message)));
 	}
 
-	for (const call of takeLog())
-		out.push("L " + call);
+	const calls = takeLog();
+
+	// Where only the counts are asked for, the calls are counted and not written.
+	if (counting)
+		out.push("K " + P.kSteps + " " + P.kEntered + " " + P.retries + " " + P.kJumps + " " + calls.length);
+	else
+		for (const call of calls)
+			out.push("L " + call);
 
 	out.push(".");
 }
