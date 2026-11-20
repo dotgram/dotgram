@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- What the query-language library itself would hold for these probes: the row carriers and the JSON
+	     writer, both internal, and the code that builds the trees around them. No reference to linq2db, as
+	     in the library: the probes in the parent folder hand the trees to linq2db, which lives in another
+	     assembly and has to reach the internal types through the compiled expressions alone. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+</Project>

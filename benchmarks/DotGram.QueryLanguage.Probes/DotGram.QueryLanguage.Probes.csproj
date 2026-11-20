@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- Probes of the query-language chain against linq2db, before the library is written: row carriers,
+	     the JSON projection, values, aggregates, paging, the row cap and the tenant policy under linq2db's
+	     query cache. Run by hand (see README.md); not part of the solution and never shipped.
+	     `-p:Linq2DbVersion=6.5.0` runs them against another linq2db. -->
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<ServerGarbageCollection>false</ServerGarbageCollection>
+		<Linq2DbVersion Condition="'$(Linq2DbVersion)' == ''">6.6.0</Linq2DbVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="Core/**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="Core/DotGram.QueryLanguage.Probes.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="linq2db" VersionOverride="$(Linq2DbVersion)" />
+		<PackageReference Include="Microsoft.Data.Sqlite" />
+		<PackageReference Include="Microsoft.Data.SqlClient" />
+		<PackageReference Include="System.Security.Cryptography.Pkcs" />
+	</ItemGroup>
+
+</Project>
