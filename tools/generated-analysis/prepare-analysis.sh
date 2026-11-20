@@ -40,6 +40,7 @@ declare -A SRC_DIRS=(
 	[Web]="$ROOT/src/DotGram.Web"
 	[Finance]="$ROOT/src/DotGram.Finance"
 	[ExpressionLanguage]="$ROOT/src/DotGram.ExpressionLanguage"
+	[QueryLanguage]="$ROOT/src/DotGram.QueryLanguage"
 	[Examples]="$ROOT/examples/DotGram.Examples"
 )
 SRC_ROOT=${SRC_DIRS[$PKG]}

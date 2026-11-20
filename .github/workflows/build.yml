@@ -239,7 +239,7 @@ jobs:
             check tools/generated-analysis/counts.txt \
             /tmp/generated-analysis/sarif/Sql.sarif /tmp/generated-analysis/sarif/Web.sarif \
             /tmp/generated-analysis/sarif/Finance.sarif /tmp/generated-analysis/sarif/ExpressionLanguage.sarif \
-            /tmp/generated-analysis/sarif/Examples.sarif
+            /tmp/generated-analysis/sarif/QueryLanguage.sarif /tmp/generated-analysis/sarif/Examples.sarif
 
       - uses: actions/upload-artifact@v4
         if: always()

@@ -23,6 +23,12 @@ Finance	IDE0060	56
 Finance	IDE0051	154
 Finance	IDE0052	0
 Finance	IDE0004	10
+QueryLanguage	IDE0035	0
+QueryLanguage	IDE0059	116
+QueryLanguage	IDE0060	32
+QueryLanguage	IDE0051	12
+QueryLanguage	IDE0052	4
+QueryLanguage	IDE0004	3
 Sql	IDE0035	0
 Sql	IDE0059	11260
 Sql	IDE0060	5966

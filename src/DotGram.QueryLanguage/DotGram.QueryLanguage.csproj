@@ -34,6 +34,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<AdditionalFiles Include="QueryLanguage.gram" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- The public surface, held to PublicAPI.*.txt beside this file, as the other libraries hold
 		     theirs: a type or a member made public, or changed, is a line in a diff and not an accident.
 		     What only one framework has would go in PublicAPI/<framework>/. -->

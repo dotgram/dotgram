@@ -4,7 +4,7 @@
 # (src/DotGram) races if built concurrently in one worktree by more than one of these. Also
 # builds with -warnaserror -p:DotGramAnalyzeGenerated=true, so this same rebuild validates our
 # own in-build analyzer (tools/DotGram.GeneratedAnalyzers' DGA001/DGA003/DGA004) too: there is
-# no separate "ordinary build with the property on" step, since these five projects are the
+# no separate "ordinary build with the property on" step, since these six projects are the
 # only ones that reference the analyzer at all, and this script was already rebuilding them.
 #
 # Usage: emit.sh <repository-root> <scratch-emit-dir>
@@ -24,10 +24,11 @@ declare -A PROJECTS=(
 	[Web]="src/DotGram.Web/DotGram.Web.csproj"
 	[Finance]="src/DotGram.Finance/DotGram.Finance.csproj"
 	[ExpressionLanguage]="src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj"
+	[QueryLanguage]="src/DotGram.QueryLanguage/DotGram.QueryLanguage.csproj"
 	[Examples]="examples/DotGram.Examples/DotGram.Examples.csproj"
 )
 
-for pkg in Sql Web Finance ExpressionLanguage Examples; do
+for pkg in Sql Web Finance ExpressionLanguage QueryLanguage Examples; do
 	proj="$ROOT/${PROJECTS[$pkg]}"
 	out="$SCRATCH/$pkg/gen"
 	echo "== emit: $pkg ($proj) =="

@@ -1,0 +1,155 @@
+@using System;
+@using DotGram.QueryLanguage.Syntax;
+
+using Lexical;
+
+// The query language's text: `from` an entity, then clauses in any order and any number. What a name
+// means, whether a value fits where it stands and whether the text may use a field there is the binder's
+// question; this says only what may be written.
+//
+// The words of the language are words only where a name cannot stand — after a finished expression, after
+// the entity, first in a clause — so a field may be called `order`, `select` or `desc`. Only `null`, `true`
+// and `false` are reserved, being literals where a name could stand.
+//
+// Read over tokens: a choice is decided by the token in front of it, and a rule that failed at a token is
+// not read there again, so a nest of brackets costs its depth once.
+namespace Lexical
+{
+	trivia = none
+
+	NameStart = ['A'..'Z' | 'a'..'z' | '_']
+	NamePart  = ['A'..'Z' | 'a'..'z' | '0'..'9' | '_']
+	Word      = NameStart & NamePart*
+	Number    = Std.Digits & ('.' & Std.Digits)? & (['e' | 'E'] & ['+' | '-']? & Std.Digits)?
+	Parameter = '@' & Word
+
+	// Either quote, as in JavaScript. A backslash takes the character after it whatever it is, and the
+	// binder says which escapes are the language's: that way `'C:\temp'` is refused for its `\t`, where it
+	// is, rather than as a string that never ended.
+	SingleQuoted = '\'' & ('\\' & [^ '\r' | '\n'] | [^ '\'' | '\\' | '\r' | '\n'])* & '\''
+	DoubleQuoted = '"'  & ('\\' & [^ '\r' | '\n'] | [^ '"'  | '\\' | '\r' | '\n'])* & '"'
+}
+
+wordboundary = Lexical.NamePart
+
+trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
+
+Query : @QuerySyntax
+	= "from"i & root: Name & alias: Alias? & clauses: Clause* & eof => @(new QuerySyntax(root, alias, clauses))
+
+// An alias without `as` cannot be a word that starts a clause: `from orders order by id` sorts.
+Alias : @NameSyntax = "as"i & n: Name => @(n) | ?!ClauseWord & n: Name => @(n)
+
+ClauseWord = "where"i | "let"i | "order"i | "select"i | "skip"i | "take"i
+
+Clause : @ClauseSyntax on fail "Expected an operator, or the next clause: `where`, `let`, `order by`, `select`, `skip` or `take`."
+	= "where"i  & e: Expr                  => @(new WhereClause(e, parserSpan.Start))
+	| "let"i    & n: Name & '=' & e: Expr  => @(new LetClause(n, e, parserSpan.Start))
+	| "order"i  & "by"i & keys: OrderItems  => @(new OrderClause(keys, parserSpan.Start))
+	| "select"i & items: SelectBody        => @(new SelectClause(items, parserSpan.Start))
+	| "skip"i   & c: Count                 => @(new PageClause(true, c, parserSpan.Start))
+	| "take"i   & c: Count                 => @(new PageClause(false, c, parserSpan.Start))
+
+SelectBody : @SelectItemSyntax[] = '*' => @(null!) | items: SelectItems => @(items)
+SelectItems : SelectItem[]       = SelectItem & (',' & SelectItem)*
+SelectItem  : @SelectItemSyntax  = e: Expr & alias: As? => @(new SelectItemSyntax(e, alias))
+As          : @NameSyntax        = "as"i & n: Name => @(n)
+
+OrderItems : OrderItem[]        = OrderItem & (',' & OrderItem)*
+OrderItem  : @OrderItemSyntax   = e: Expr & d: Direction? & n: Nulls? => @(new OrderItemSyntax(e, d == true, n))
+Direction  : @bool              = "asc"i => @(false) | "desc"i => @(true)
+Nulls      : @bool              = "nulls"i & "first"i => @(true) | "nulls"i & "last"i => @(false)
+
+Count : @ExprSyntax on fail "Expected a count: a number or a parameter." = t: Number => @(new LiteralExpr(LiteralKind.Number, t, parserSpan.Start)) | p: ParameterRef => @(p)
+
+// ── Conditions and values ───────────────────────────────────────────────────
+//
+// One tower for conditions and values alike, so that a parenthesis is read once whatever it holds. `&&` and
+// `||` are read as lists, so that the tree built from them is balanced; `!` is looser than a comparison, as
+// SQL's NOT is: `!a == b` is `!(a == b)`.
+Expr     : @ExprSyntax on fail "Expected a value: a name, a number, a string, a parameter or a bracket." = items: OrItems => @(Nodes.Logical(LogicalOperator.Or, items))
+OrItems  : AndExpr[]   = AndExpr & ("||" & AndExpr)*
+AndExpr  : @ExprSyntax = items: AndItems => @(Nodes.Logical(LogicalOperator.And, items))
+AndItems : NotExpr[]   = NotExpr & ("&&" & NotExpr)*
+
+NotExpr : @ExprSyntax
+	= '!' & operand: NotExpr => @(new UnaryExpr(UnaryOperator.Not, operand, parserSpan.Start))
+	| p: Predicate           => @(p)
+
+Predicate : @ExprSyntax = left: Additive & tail: PredicateTail? => @(Nodes.Predicated(left, tail))
+
+PredicateTail : @PredicateTail
+	= op: CompareOp & right: Additive                => @(PredicateTail.Compare(op, right))
+	| at: Is & negated: "not"i? & "null"i            => @(PredicateTail.IsNull(negated is not null, at))
+	| negated: "not"i? & tail: NegatableTail         => @(tail(negated is not null))
+
+NegatableTail : @Func<bool, PredicateTail>
+	= at: In & target: InTarget                      => @(n => PredicateTail.In(n, target, at))
+	| at: Between & low: Additive & "and"i & high: Additive
+		=> @(n => PredicateTail.Between(n, low, high, at))
+
+In      : @int = "in"i      => @(parserSpan.Start)
+Is      : @int = "is"i      => @(parserSpan.Start)
+Between : @int = "between"i => @(parserSpan.Start)
+
+InTarget : @InTarget
+	= '(' & items: ValueList & ')' => @(new InTarget(items, null))
+	| p: ParameterRef              => @(new InTarget(null, p))
+
+ValueList : Additive[] = Additive & (',' & Additive)*
+
+CompareOp : @Token = t: ("==" | "!=" | "<=" | ">=" | "<" | ">") => @(new Token(t, parserSpan.Start))
+AddOp     : @Token = t: ("+" | "-")                             => @(new Token(t, parserSpan.Start))
+MulOp     : @Token = t: ("*" | "/" | "%")                       => @(new Token(t, parserSpan.Start))
+
+// Left recursive, so that `a - b - c` is `(a - b) - c` as written; the binder counts the operands of such
+// an expression and refuses a long one rather than reassociating it.
+Additive : @ExprSyntax on fail "Expected a value: a name, a number, a string, a parameter or a bracket."
+	= left: Additive & op: AddOp & right: Multiplicative => @(new BinaryExpr(left, op, right))
+	| m: Multiplicative                                  => @(m)
+
+Multiplicative : @ExprSyntax
+	= left: Multiplicative & op: MulOp & right: Unary => @(new BinaryExpr(left, op, right))
+	| u: Unary                                        => @(u)
+
+Unary : @ExprSyntax
+	= '-' & operand: Unary => @(new UnaryExpr(UnaryOperator.Negate, operand, parserSpan.Start))
+	| p: Postfix           => @(p)
+
+// A member of a value, `name.Length`, `name.StartsWith('a')`, or a field after the alias, `o.total`.
+Postfix : @ExprSyntax
+	= target: Postfix & '.' & name: Name & arguments: Arguments? => @(new MemberExpr(target, name, arguments))
+	| p: Primary                                                 => @(p)
+
+Arguments : @ExprSyntax[] = '(' & ')' => @(Array.Empty<ExprSyntax>()) | '(' & items: ArgumentList & ')' => @(items)
+ArgumentList : Expr[]     = Expr & (',' & Expr)*
+
+Primary : @ExprSyntax
+	= l: Literal                  => @(l)
+	| p: ParameterRef             => @(p)
+	| '(' & e: Expr & ')'         => @(new ParenthesizedExpr(e, parserSpan.Start))
+	| n: Name & tail: NameTail?   => @(Nodes.Named(n, tail))
+
+// After a name, a string makes a typed literal and a bracket a call of one of the language's functions.
+NameTail : @NameTail
+	= s: StringLiteral            => @(new NameTail(s, null, false))
+	| '(' & '*' & ')'             => @(new NameTail(null, null, true))
+	| a: Arguments                => @(new NameTail(null, a, false))
+
+Literal : @ExprSyntax
+	= t: Number      => @(new LiteralExpr(LiteralKind.Number, t, parserSpan.Start))
+	| s: StringLiteral => @(s)
+	| "true"i        => @(new LiteralExpr(LiteralKind.True,  "true",  parserSpan.Start))
+	| "false"i       => @(new LiteralExpr(LiteralKind.False, "false", parserSpan.Start))
+	| "null"i        => @(new LiteralExpr(LiteralKind.Null,  "null",  parserSpan.Start))
+
+StringLiteral : @LiteralExpr = t: (SingleQuoted | DoubleQuoted) => @(new LiteralExpr(LiteralKind.String, t, parserSpan.Start))
+
+ParameterRef : @ParameterExpr = t: Parameter => @(new ParameterExpr(t.Substring(1), parserSpan.Start))
+
+Name : @NameSyntax on fail "Expected a name." = ?!Reserved & t: Word => @(new NameSyntax(t, parserSpan.Start))
+
+// What a name may never be: the literals, which stand where a name could.
+Reserved = "null"i | "true"i | "false"i
+
+internal parse Query as ParseQuery

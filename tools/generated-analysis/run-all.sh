@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The whole measurement, one command: emit.sh, then prepare-analysis.sh + analyze.sh for each
-# of the five packages (Finance's own extra reference on DotGram.ExpressionLanguage included),
+# of the six packages (Finance's own extra reference on DotGram.ExpressionLanguage included),
 # producing a SARIF per package under <scratch-dir>/sarif/. The CI workflow
 # (.github/workflows/build.yml's generated-analysis job) calls this same script, so a local
 # run and CI measure identically -- the per-package loop used to be duplicated inline in the
@@ -31,10 +31,11 @@ declare -A PREFIX=(
 	[Web]=DotGram.Web
 	[Finance]=DotGram.Finance
 	[ExpressionLanguage]=DotGram.ExpressionLanguage
+	[QueryLanguage]=DotGram.QueryLanguage
 	[Examples]=DotGram.Examples
 )
 
-for pkg in Sql Web Finance ExpressionLanguage Examples; do
+for pkg in Sql Web Finance ExpressionLanguage QueryLanguage Examples; do
 	extra=()
 	if [ "$pkg" = "Finance" ]; then
 		# DotGram.Finance's Fix/FixValidator.Load.cs calls DotGram.ExpressionLanguage for real
@@ -49,4 +50,4 @@ for pkg in Sql Web Finance ExpressionLanguage Examples; do
 	"$HERE/analyze.sh" "$pkg" "$SCRATCH/analysis/$pkg" "$SCRATCH/sarif/$pkg.sarif"
 done
 
-echo "run-all: five SARIF(s) ready under $SCRATCH/sarif/"
+echo "run-all: six SARIF(s) ready under $SCRATCH/sarif/"
