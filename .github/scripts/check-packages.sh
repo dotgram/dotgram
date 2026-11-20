@@ -48,6 +48,7 @@ check_analyzer generator DotGram
 # What nuget.org shows before anyone reads a word, and what no later version can
 # change for this one: the icon, where the project lives, and what to search for.
 check_face() {
+  local skill="${2:-SKILL.md}"
   test -f "$1/icon.png"                             || { echo "$1: icon missing";       exit 1; }
   grep -q '<icon>icon.png</icon>'       "$1"/*.nuspec || { echo "$1: no <icon>";         exit 1; }
   grep -q '<projectUrl>'                "$1"/*.nuspec || { echo "$1: no <projectUrl>";   exit 1; }
@@ -56,7 +57,7 @@ check_face() {
 
   # The packed pages link to this version's tag: a link to main would change under a package that
   # cannot, and the pack is what rewrites them, so the packed copies are what to look at.
-  if grep -nE '/(blob|tree)/main/' "$1/README.md" "$1/SKILL.md"; then echo "$1: a packed page links to main"; exit 1; fi
+  if grep -nE '/(blob|tree)/main/' "$1/README.md" "$1/$skill"; then echo "$1: a packed page links to main"; exit 1; fi
 }
 check_face generator
 
@@ -79,15 +80,15 @@ deps_of() {
 }
 
 check_library() {
-  local dir="$1" id="$2" standard="$3" newest="$4"
+  local dir="$1" id="$2" standard="$3" newest="$4" skill="${5:-SKILL.md}"
   unzip -o -q "$id".[0-9]*.nupkg -d "$dir"
   for tfm in netstandard2.0 net10.0; do
     test -f "$dir/lib/$tfm/$id.dll" || { echo "$id: $tfm assembly missing"; exit 1; }
   done
   test -f "$dir/README.md" || { echo "$id: readme missing"; exit 1; }
-  test -f "$dir/SKILL.md"  || { echo "$id: skill missing";  exit 1; }
+  test -f "$dir/$skill"    || { echo "$id: skill missing at $skill";  exit 1; }
   if [ -d "$dir/analyzers" ]; then echo "$id carries the generator:"; find "$dir/analyzers" -type f; exit 1; fi
-  check_face "$dir"
+  check_face "$dir" "$skill"
   check_pages "$dir" "$id"
 
   local want got
@@ -104,6 +105,10 @@ check_library sql         DotGram.Sql                "System.Memory" ""
 check_library web         DotGram.Web                "System.Memory" ""
 check_library finance     DotGram.Finance            "System.Memory Portable.System.DateTimeOnly DotGram.ExpressionLanguage" "DotGram.ExpressionLanguage"
 check_library expressions DotGram.ExpressionLanguage "System.Memory" ""
+
+# The query language is packed (not published) with its skill where agents look for one in a package,
+# skills/<name>/SKILL.md, and takes IAsyncEnumerable's polyfill on netstandard2.0 for ToJsonAsync.
+check_library query       DotGram.QueryLanguage      "System.Memory Microsoft.Bcl.AsyncInterfaces" "" skills/dotgram-query-language/SKILL.md
 
 # DotGram.Finance ships the FIX reference beside the fields and messages it documents, for an
 # agent reading the restored package with no repository to browse; its pack-time link pinning is

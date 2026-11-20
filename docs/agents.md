@@ -8,7 +8,8 @@ to hand one to an agent, and how to check what the agent wrote.
 
 ## Where the skills are
 
-Each package carries its skill at the root of the package, beside its `README.md`. After a restore
+Each package carries its skill at the root of the package, beside its `README.md` — the query
+language, in `skills/<name>/SKILL.md`, where agents look for skills in a package. After a restore
 it is in the NuGet package folder (`~/.nuget/packages` on Linux and macOS,
 `%UserProfile%\.nuget\packages` on Windows, unless `NUGET_PACKAGES` says otherwise), under the
 package id in lower case and the version:
@@ -21,6 +22,7 @@ package id in lower case and the version:
 | `DotGram.Web` | the web formats (JSON, URIs, media types, …) | `dotgram.web/<version>/SKILL.md` | [`src/DotGram.Web/SKILL.md`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Web/SKILL.md) |
 | `DotGram.Finance` | FIX messages | `dotgram.finance/<version>/SKILL.md` | [`src/DotGram.Finance/SKILL.md`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Finance/SKILL.md) |
 | `DotGram.ExpressionLanguage` | the C#-style expression language | `dotgram.expressionlanguage/<version>/SKILL.md` | [`src/DotGram.ExpressionLanguage/SKILL.md`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/SKILL.md) |
+| `DotGram.QueryLanguage` (not yet published) | queries in untrusted text over the host's data | `dotgram.querylanguage/<version>/skills/dotgram-query-language/SKILL.md` | [`src/DotGram.QueryLanguage/skills/dotgram-query-language/SKILL.md`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.QueryLanguage/skills/dotgram-query-language/SKILL.md) |
 
 The skill in the package folder is the one for the version the project uses; the repository's is
 for the next one. Each file opens with a short `name` and `description` header, and the rest is

@@ -8,7 +8,8 @@
             ".build/bin/DotGram.Sql/release_net10.0/DotGram.Sql.dll",
             ".build/bin/DotGram.Web/release_net10.0/DotGram.Web.dll",
             ".build/bin/DotGram.Finance/release_net10.0/DotGram.Finance.dll",
-            ".build/bin/DotGram.ExpressionLanguage/release_net10.0/DotGram.ExpressionLanguage.dll"
+            ".build/bin/DotGram.ExpressionLanguage/release_net10.0/DotGram.ExpressionLanguage.dll",
+            ".build/bin/DotGram.QueryLanguage/release_net10.0/DotGram.QueryLanguage.dll"
           ]
         }
       ],

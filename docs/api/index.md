@@ -10,3 +10,4 @@ emitted into your own compilation. The libraries below are packages of their own
 | `DotGram.Web` | Parsers and checks for the formats of the web. |
 | `DotGram.Finance` | FIX: the wire read into typed fields, and the messages built over them. |
 | `DotGram.ExpressionLanguage` | The C#-style expression language. |
+| `DotGram.QueryLanguage` | A query language for untrusted text, translated into the host's `IQueryable` ([the language](../query-language.md)). Not yet published. |

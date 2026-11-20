@@ -33,6 +33,8 @@
       href: feeds.md
     - name: Untrusted input
       href: untrusted-input.md
+    - name: Query language
+      href: query-language.md
     - name: Compatibility
       href: compatibility.md
 - name: API

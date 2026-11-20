@@ -73,6 +73,10 @@
 
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
+
+		<!-- The skill, where agents look for one in a package: skills/<name>/SKILL.md, its name the folder's.
+		     The README points to it for an agent reading the restored package. -->
+		<None Include="skills/dotgram-query-language/SKILL.md" Pack="true" PackagePath="skills/dotgram-query-language/" />
 	</ItemGroup>
 
 	<ItemGroup>
