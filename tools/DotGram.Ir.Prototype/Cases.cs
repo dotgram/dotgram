@@ -7,13 +7,7 @@ namespace DotGram.Ir.Prototype;
 /// <summary>The fixtures and the inputs each is read on, for every test that reads them all.</summary>
 static class Cases
 {
-	/// <param name="Defers">
-	/// Whether the generated parser reads some of the refused inputs partly unbuilt — a repetition
-	/// gave a way back twice, and it stops building until a reading stands — so that it makes fewer
-	/// host calls on them than an evaluator that builds throughout: their calls are held to the C#
-	/// parser's only where the input is accepted.
-	/// </param>
-	public sealed record Fixture(string Grammar, Type Parser, string Entry, Func<IrFragment, object?[], bool>? Guards = null, bool Defers = false);
+	public sealed record Fixture(string Grammar, Type Parser, string Entry, Func<IrFragment, object?[], bool>? Guards = null);
 
 	public static readonly Dictionary<string, Fixture> Fixtures = new(StringComparer.Ordinal)
 	{
@@ -33,22 +27,22 @@ static class Cases
 		["Look"]                  = new(Grammars.Look,                  typeof(LookParser),                  "ParseStart"),
 		["Csv"]                   = new(Grammars.Csv,                   typeof(CsvParser),                   "ParseFile",  static (_, arguments) => ((string)arguments[0]!).Length <= 16),
 		["ListsInSequence"]       = new(Grammars.ListsInSequence,       typeof(ListsInSequenceParser),       "ParseStart"),
-		["ListRuleTwice"]         = new(Grammars.ListRuleTwice,         typeof(ListRuleTwiceParser),         "ParseStart", Defers: true),
-		["NestedSettled"]         = new(Grammars.NestedSettled,         typeof(NestedSettledParser),         "ParseStart", Defers: true),
-		["Throwing"]              = new(Grammars.Throwing,              typeof(ThrowingParser),              "ParseStart", Defers: true),
-		["GivenBackTwice"]        = new(Grammars.GivenBackTwice,        typeof(GivenBackTwiceParser),        "ParseStart", Defers: true),
+		["ListRuleTwice"]         = new(Grammars.ListRuleTwice,         typeof(ListRuleTwiceParser),         "ParseStart"),
+		["NestedSettled"]         = new(Grammars.NestedSettled,         typeof(NestedSettledParser),         "ParseStart"),
+		["Throwing"]              = new(Grammars.Throwing,              typeof(ThrowingParser),              "ParseStart"),
+		["GivenBackTwice"]        = new(Grammars.GivenBackTwice,        typeof(GivenBackTwiceParser),        "ParseStart"),
 		["Arithmetic"]            = new(Grammars.Arithmetic,            typeof(ArithmeticParser),            "ParseExpr"),
 		["Config"]                = new(Grammars.Config,                typeof(ConfigParser),                "ParseFile"),
-		["SettledBefore"]         = new(Grammars.SettledBefore,         typeof(SettledBeforeParser),         "ParseStart", Defers: true),
-		["SealedBefore"]          = new(Grammars.SealedBefore,          typeof(SealedBeforeParser),          "ParseStart", Defers: true),
-		["CalledBefore"]          = new(Grammars.CalledBefore,          typeof(CalledBeforeParser),          "ParseStart", Defers: true),
-		["FailedTurnBefore"]      = new(Grammars.FailedTurnBefore,      typeof(FailedTurnBeforeParser),      "ParseStart", Defers: true),
-		["NestedSealedBefore"]    = new(Grammars.NestedSealedBefore,    typeof(NestedSealedBeforeParser),    "ParseStart", Defers: true),
-		["LongLookBefore"]        = new(Grammars.LongLookBefore,        typeof(LongLookBeforeParser),        "ParseStart", Defers: true),
-		["SealedCaptureBefore"]   = new(Grammars.SealedCaptureBefore,   typeof(SealedCaptureBeforeParser),   "ParseStart", Defers: true),
-		["DecidingNestBefore"]    = new(Grammars.DecidingNestBefore,    typeof(DecidingNestBeforeParser),    "ParseStart", Defers: true),
-		["SameBefore"]            = new(Grammars.SameBefore,            typeof(SameBeforeParser),            "ParseStart", Defers: true),
-		["YamlLineBefore"]        = new(Grammars.YamlLineBefore,        typeof(YamlLineBeforeParser),        "ParseStart", Defers: true),
+		["SettledBefore"]         = new(Grammars.SettledBefore,         typeof(SettledBeforeParser),         "ParseStart"),
+		["SealedBefore"]          = new(Grammars.SealedBefore,          typeof(SealedBeforeParser),          "ParseStart"),
+		["CalledBefore"]          = new(Grammars.CalledBefore,          typeof(CalledBeforeParser),          "ParseStart"),
+		["FailedTurnBefore"]      = new(Grammars.FailedTurnBefore,      typeof(FailedTurnBeforeParser),      "ParseStart"),
+		["NestedSealedBefore"]    = new(Grammars.NestedSealedBefore,    typeof(NestedSealedBeforeParser),    "ParseStart"),
+		["LongLookBefore"]        = new(Grammars.LongLookBefore,        typeof(LongLookBeforeParser),        "ParseStart"),
+		["SealedCaptureBefore"]   = new(Grammars.SealedCaptureBefore,   typeof(SealedCaptureBeforeParser),   "ParseStart"),
+		["DecidingNestBefore"]    = new(Grammars.DecidingNestBefore,    typeof(DecidingNestBeforeParser),    "ParseStart"),
+		["SameBefore"]            = new(Grammars.SameBefore,            typeof(SameBeforeParser),            "ParseStart"),
+		["YamlLineBefore"]        = new(Grammars.YamlLineBefore,        typeof(YamlLineBeforeParser),        "ParseStart"),
 		["DeepSplit"]             = new(Grammars.DeepSplit,             typeof(DeepSplitParser),             "ParseStart"),
 		["DeepSplitOpen"]         = new(Grammars.DeepSplitOpen,         typeof(DeepSplitOpenParser),         "ParseStart"),
 		["Json"]                  = new(Grammars.Json,                  typeof(JsonTwinParser),              "ParseJson"),

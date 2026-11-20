@@ -65,9 +65,15 @@ sealed class ResumptionSites
 		foreach (var function in program.Functions)
 			FindLongTexts(function.Body);
 
+		foreach (var function in program.Functions)
+			FindGuardArguments(function.Body);
+
 		foreach (var entry in program.Entries.Values)
 			Visit(entry, inReplay: false);
 	}
+
+	/// <summary>The slots some guard is handed: a reading that builds nothing still fills them.</summary>
+	public HashSet<IrSlot> ReadByGuards { get; } = [];
 
 	/// <summary>What is kept of a program, worked out once.</summary>
 	public static ResumptionSites Of(IrProgram program)
@@ -239,6 +245,23 @@ sealed class ResumptionSites
 		}
 
 		return null;
+	}
+
+	void FindGuardArguments(IrStmt stmt)
+	{
+		if (stmt is IrStmt.Guard guard)
+		{
+			foreach (var argument in guard.Arguments)
+			{
+				if (argument is IrExpr.Slot slot)
+					ReadByGuards.Add(slot.Of);
+				else if (argument is IrExpr.Items items)
+					ReadByGuards.Add(items.Of);
+			}
+		}
+
+		foreach (var child in stmt.Children)
+			FindGuardArguments(child);
 	}
 
 	/// <summary>The slots a capture fills with the text of a body that reads unbounded input.</summary>

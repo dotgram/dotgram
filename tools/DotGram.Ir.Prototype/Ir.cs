@@ -179,6 +179,9 @@ abstract record IrStmt
 	/// </summary>
 	public sealed record Commit(IrStmt Body, IReadOnlyList<IrSlot> Resets) : IrStmt
 	{
+		/// <summary>Whether its own reading again stops building after the second decision it gives back (<see cref="Replay.Defers"/>).</summary>
+		public bool Defers { get; init; }
+
 		public override IEnumerable<IrStmt> Children => [Body];
 	}
 
@@ -189,6 +192,15 @@ abstract record IrStmt
 	/// </summary>
 	public sealed record Replay(IrStmt Body) : IrStmt
 	{
+		/// <summary>
+		/// Whether, once it has given a decision back twice, the region reads on without building —
+		/// and where a reading then stands, reads it once more to build it, with what that reading
+		/// says of a refusal taken back: so a refused list builds its first two attempts and no more.
+		/// What the plan decided for the region's rule and the kind of its loop, as the generated
+		/// parser decides it.
+		/// </summary>
+		public bool Defers { get; init; }
+
 		public override IEnumerable<IrStmt> Children => [Body];
 	}
 
@@ -260,6 +272,9 @@ sealed class IrProgram
 	public int PlanAsked { get; set; }
 
 	public int PlanMisses { get; set; }
+
+	/// <summary>How many loops that ask for another reading the plan had no single answer for, whether they stop building: those build throughout.</summary>
+	public int DeferralMisses { get; set; }
 
 	public Dictionary<string, int> UnsupportedKinds { get; } = new(StringComparer.Ordinal);
 

@@ -339,8 +339,9 @@ static class Slices
 	/// <summary>What the evaluator says of an input, in the words the drivers use.</summary>
 	public static SliceAnswer Evaluated(IrProgram program, string entry, string input, Func<IrFragment, object?[], bool>? guards)
 	{
+		// The printed parsers do not defer building yet.
 		var host    = new RecordingHost(guards);
-		var outcome = new IrEvaluator(program, host).Parse(entry, input);
+		var outcome = new IrEvaluator(program, host) { BuildsThroughout = true }.Parse(entry, input);
 
 		var head = outcome.Accepted
 			? outcome.Line

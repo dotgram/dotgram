@@ -111,6 +111,11 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 
 				if (held && (whole.Count < sizes.Length || ratios.Item1 is < 1.9 or > 2.1 || ratios.Item2 is < 1.9 or > 2.1))
 					failed.Add(string.Create(CultureInfo.InvariantCulture, $"{shape.Name} ({Named(options)}): {ratios.Item2:F2} {ratios.Item1:F2}, {whole.Count} rungs"));
+
+				// And the host is called as often as the input is long, not as often as it is read again.
+				if (held && whole.Count == sizes.Length && whole[^3].HostCalls > 0 &&
+					(whole[^1].HostCalls > 2.1 * whole[^2].HostCalls || whole[^2].HostCalls > 2.1 * whole[^3].HostCalls))
+					failed.Add(string.Create(CultureInfo.InvariantCulture, $"{shape.Name} ({Named(options)}): host calls {whole[^3].HostCalls} {whole[^2].HostCalls} {whole[^1].HostCalls}"));
 			}
 
 			// The answers at the sizes the generated parser reads quickly.
@@ -203,6 +208,67 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 			File.WriteAllText(Path.Combine(report, "owner-mutation.txt"), string.Create(CultureInfo.InvariantCulture, $"read {read}, with any owner wrong or unending {wrong}\n"));
 
 		Assert.True(wrong > 0, "taking any owner's record changed nothing: the fixtures do not reach the collision");
+	}
+
+	/// <summary>
+	/// A construction that throws leaves the reading as it leaves the generated parser's — the same
+	/// exception, or none where that parser built nothing there — whether it is built in a turn
+	/// that is then given up or in one that stands, with a replay that goes straight to its turns
+	/// and with every decision open.
+	/// </summary>
+	[Fact]
+	public void AConstructionThatThrows_ThrowsWhereTheGeneratedParserThrows()
+	{
+		var fixture = Cases.Fixtures["Throwing"];
+		var checkedCount = 0;
+		var thrown  = 0;
+
+		foreach (var input in Cases.InputsOf("Throwing").Append("1:2:3:4a,b,c,d!").Append("1:2:3:4a,b,c,d"))
+		{
+			// Every call a reading that builds throughout makes: the generated parser, which stops
+			// building after a second give-back, makes only some of them.
+			var everything = new RecordingHost();
+
+			new IrEvaluator(Reading.Program(fixture.Grammar), everything) { BuildsThroughout = true }.Parse(fixture.Entry, input);
+
+			var calls = everything.Log.Distinct().ToList();
+
+			foreach (var call in calls)
+			{
+				var theirs = Outcome(() => Reading.Generated(fixture.Parser, fixture.Entry, input, call).Outcome);
+
+				foreach (var options in Lowerings)
+				{
+					var program = Reading.Program(fixture.Grammar, options);
+					var ours    = Outcome(() => new IrEvaluator(program, new RecordingHost(throwOn: call)) { Resumes = true }.Parse(fixture.Entry, input));
+
+					Assert.True(theirs == ours, $"{Twin.Quoted(input)} throwing at {call}: the generated parser {theirs}, the evaluator {ours}");
+					checkedCount++;
+
+					if (ours.StartsWith("T ", StringComparison.Ordinal))
+						thrown++;
+				}
+			}
+		}
+
+		output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"checked {checkedCount}, thrown {thrown}"));
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "throwing.txt"), string.Create(CultureInfo.InvariantCulture, $"checked {checkedCount}, thrown {thrown}\n"));
+
+		Assert.True(thrown > 0);
+
+		static string Outcome(Func<IrOutcome> read)
+		{
+			try
+			{
+				return read().Line;
+			}
+			catch (TwinException exception)
+			{
+				return "T " + exception.Message;
+			}
+		}
 	}
 
 	[Fact(Skip = "The calculator reads with binding powers, which the tree does not lower yet; its fold-free twin carries the case.")]
