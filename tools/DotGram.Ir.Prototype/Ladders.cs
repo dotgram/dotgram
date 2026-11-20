@@ -21,7 +21,11 @@ static class Ladders
 	public sealed record Shape(string Name, string Fixture, Func<int, string> Input);
 
 	/// <summary>What one reading of one size cost; <see cref="Over"/> where it ran past its budget and was stopped.</summary>
-	public sealed record Rung(int Turns, long Steps, long Entered, long Retries, long Jumps, long HostCalls, string Line, bool Over);
+	public sealed record Rung(int Turns, long Steps, long Entered, long Retries, long Jumps, long HostCalls, string Line, bool Over)
+	{
+		/// <summary>The most records the evaluator's store held at once, stale ones included; 0 where not counted.</summary>
+		public long Stored { get; init; }
+	}
 
 	public static readonly int[] Sizes = [1000, 2000, 4000, 8000, 16000, 32000, 64000];
 
@@ -50,6 +54,8 @@ static class Ladders
 		new("(d) control: shallow",   "DeepSplit",           static n => "(" + Times("b", n) + ")"),
 		new("(d) control: deep, two", "DeepSplit",           static n => Times("(", n) + "bb" + Times(")", n)),
 		new("(d) deep split, no way back up", "DeepSplitOpen", static n => Times("(", n) + Times("b", n)),
+		new("records below a cut",    "StaleRecord",         static n => Times("a", n) + Times("b", n) + "c"),
+		new("config, inner replays",  "Config",              static n => Times("k=ax;", n) + "!"),
 	];
 
 	/// <summary>
@@ -93,7 +99,10 @@ static class Ladders
 			{
 				var outcome = evaluator.Parse(fixture.Entry, shape.Input(turns));
 
-				rungs.Add(new Rung(turns, evaluator.Steps, evaluator.Ways.Entered, evaluator.Ways.Retries, evaluator.Jumps + evaluator.Skips, host.Calls, outcome.Accepted ? "A " + outcome.Position.ToString(CultureInfo.InvariantCulture) : outcome.Line, false));
+				rungs.Add(new Rung(turns, evaluator.Steps, evaluator.Ways.Entered, evaluator.Ways.Retries, evaluator.Jumps + evaluator.Skips, host.Calls, outcome.Accepted ? "A " + outcome.Position.ToString(CultureInfo.InvariantCulture) : outcome.Line, false)
+				{
+					Stored = evaluator.MostStored,
+				});
 			}
 			catch (IrStepsExceeded)
 			{
@@ -187,12 +196,12 @@ static class Ladders
 
 	public static string Table(string title, IReadOnlyList<Rung> rungs)
 	{
-		var lines = new List<string> { "# " + title, "turns\tsteps\tentered\tretries\tjumps\thost calls\tanswer" };
+		var lines = new List<string> { "# " + title, "turns\tsteps\tentered\tretries\tjumps\thost calls\tstore peak\tanswer" };
 
 		foreach (var rung in rungs)
 		{
 			lines.Add(string.Create(CultureInfo.InvariantCulture,
-				$"{rung.Turns}\t{(rung.Over ? ">" : "")}{rung.Steps}\t{rung.Entered}\t{rung.Retries}\t{rung.Jumps}\t{rung.HostCalls}\t{(rung.Over ? "over budget" : rung.Line)}"));
+				$"{rung.Turns}\t{(rung.Over ? ">" : "")}{rung.Steps}\t{rung.Entered}\t{rung.Retries}\t{rung.Jumps}\t{rung.HostCalls}\t{rung.Stored}\t{(rung.Over ? "over budget" : rung.Line)}"));
 		}
 
 		return string.Join("\n", lines) + "\n";

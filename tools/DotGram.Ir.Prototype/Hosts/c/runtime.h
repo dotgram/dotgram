@@ -41,8 +41,14 @@ typedef struct Chunk
    2 it read, 4 it was made unbuilt. Base is where its slots' values begin in kv. */
 typedef struct Kept
 {
-	int32_t key, owner, prev, pos, turns, flags, base;
+	int32_t key, owner, prev, pos, turns, flags, base, serial;
 } Kept;
+
+/* A cut remembered while any record is kept: the place cut to, and its serial. */
+typedef struct Cut
+{
+	int32_t key, serial;
+} Cut;
 
 /* What was refused before an attempt that stood was read once more to be built. */
 typedef struct KeptRefusal
@@ -89,6 +95,15 @@ typedef struct Parser
 
 	/* Wrong on purpose: a head is taken without asking whose it is (the test of the owner check). */
 	bool anyOwner;
+
+	/* The cuts made while any record is kept, those that matter: a later cut to a lower or equal
+	   place takes the place of an earlier one, so places and serials rise from the bottom. A record
+	   is stale once a cut remembered after it went to its key or below. */
+	Cut    *cuts;
+	int32_t cutsSize, cutTop, serial;
+
+	/* Wrong on purpose: a record is taken whatever was cut after it (the test of the cut check). */
+	bool noCutCheck;
 
 	KeptRefusal *refusals;
 	int32_t      refusalsSize, refusalsCount;
@@ -152,6 +167,8 @@ static inline void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 	P->kJumps       = 0;
 	P->kHost        = 0;
 	P->kCount       = 0;
+	P->cutTop       = 0;
+	P->serial       = 0;
 	P->kvTop        = 0;
 	P->refusalsCount = 0;
 }
@@ -199,13 +216,14 @@ static inline int32_t rt_enterCounted(Parser *P, int32_t last)
 	return rt_enter(P, last);
 }
 
-/* The tape was cut: what was kept of places no longer behind it goes. */
 /* A sentinel opened where the tape is read for the first time: a decision that can never move. */
 static inline int32_t rt_sentinel(Parser *P)
 {
 	return rt_enter(P, 0);
 }
 
+/* The tape was cut: what was kept of places no longer behind it goes, and the cut is remembered
+   for the records below the top it makes stale. */
 static inline void rt_cut(Parser *P)
 {
 	while (P->kCount > 0 && P->kept[P->kCount - 1].key >= P->count)
@@ -215,6 +233,50 @@ static inline void rt_cut(Parser *P)
 		P->heads[last->owner] = last->prev;
 		P->kvTop              = last->base;
 	}
+
+	if (P->kCount == 0)
+	{
+		P->cutTop = 0;
+
+		return;
+	}
+
+	while (P->cutTop > 0 && P->cuts[P->cutTop - 1].key >= P->count)
+		P->cutTop--;
+
+	if (P->cutTop == P->cutsSize)
+	{
+		P->cutsSize = P->cutsSize == 0 ? 64 : P->cutsSize * 2;
+		P->cuts     = realloc(P->cuts, sizeof(Cut) * (size_t)P->cutsSize);
+	}
+
+	P->cuts[P->cutTop++] = (Cut){ P->count, ++P->serial };
+}
+
+/* Whether a cut remembered after the serial went to the key or below. */
+static inline bool rt_cut_after(Parser *P, int32_t serial, int32_t key)
+{
+	int32_t top = P->cutTop - 1;
+
+	if (top < 0 || P->cuts[top].serial <= serial)
+		return false;
+
+	if (P->cuts[top].key <= key)
+		return true;
+
+	int32_t low = 0, high = top;
+
+	while (low < high)
+	{
+		int32_t middle = (low + high) / 2;
+
+		if (P->cuts[middle].serial > serial)
+			high = middle;
+		else
+			low = middle + 1;
+	}
+
+	return P->cuts[low].key <= key;
 }
 
 static inline void rt_next(Parser *P, int32_t way, int32_t value)
@@ -227,12 +289,25 @@ static inline void rt_next(Parser *P, int32_t way, int32_t value)
 		rt_cut(P);
 }
 
-/* The latest record of a sentinel's entry, or -1. */
+/* The latest good record of a sentinel's entry, or -1: a head left from an earlier entry or
+   reading names another owner; stale records on the way are passed over and the head moves on. */
 static inline int32_t rt_head(Parser *P, int32_t sentinel)
 {
 	int32_t h = P->heads[sentinel];
 
-	return h >= 0 && h < P->kCount && (P->anyOwner || P->kept[h].owner == sentinel) ? h : -1;
+	while (h >= 0 && h < P->kCount && (P->anyOwner || P->kept[h].owner == sentinel))
+	{
+		if (P->noCutCheck || (P->kept[h].key < P->count && !rt_cut_after(P, P->kept[h].serial, P->kept[h].key)))
+		{
+			P->heads[sentinel] = h;
+
+			return h;
+		}
+
+		h = P->kept[h].prev;
+	}
+
+	return -1;
 }
 
 /* Whether a record can stand for what the reading would do: one made while building, always; one
@@ -247,15 +322,10 @@ static inline bool rt_usable(Parser *P, int32_t h)
    builds. The index, whose n slots the caller fills, or -1. */
 static inline int32_t rt_keep(Parser *P, int32_t owner, bool end, int32_t p, int32_t turns, bool read, int32_t n)
 {
-	int32_t key  = P->cursor;
-	int32_t h    = rt_head(P, owner);
-	bool    fits = P->kCount == 0 || P->kept[P->kCount - 1].key <= key;
+	int32_t key = P->cursor;
+	int32_t h   = rt_head(P, owner);
 
-	if (h >= 0 && !(end ? (P->kept[h].flags & 1) == 0 : (P->kept[h].flags & 1) == 0 && P->kept[h].turns < turns) && !(!rt_usable(P, h) && fits))
-		return -1;
-
-	/* Below the top of the stack it would break the order cuts rely on: not kept (the evaluator's Unfit). */
-	if (!fits)
+	if (h >= 0 && !(end ? (P->kept[h].flags & 1) == 0 : (P->kept[h].flags & 1) == 0 && P->kept[h].turns < turns) && rt_usable(P, h))
 		return -1;
 
 	if (P->kCount == P->keptSize)
@@ -272,7 +342,7 @@ static inline int32_t rt_keep(Parser *P, int32_t owner, bool end, int32_t p, int
 
 	int32_t i = P->kCount++;
 
-	P->kept[i] = (Kept){ key, owner, h, p, turns, (end ? 1 : 0) | (read ? 2 : 0) | (P->unbuilt > 0 ? 4 : 0), P->kvTop };
+	P->kept[i] = (Kept){ key, owner, h, p, turns, (end ? 1 : 0) | (read ? 2 : 0) | (P->unbuilt > 0 ? 4 : 0), P->kvTop, P->serial };
 	P->kvTop  += n;
 	P->heads[owner] = i;
 

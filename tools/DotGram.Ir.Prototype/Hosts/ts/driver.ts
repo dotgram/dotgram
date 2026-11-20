@@ -37,6 +37,7 @@ const P = new Runtime();
 const counting = process.env.IR_COUNTS !== undefined;
 
 P.anyOwner = process.env.IR_ANY_OWNER !== undefined;
+P.noCutCheck = process.env.IR_NO_CUT_CHECK !== undefined;
 
 let at = 4;
 

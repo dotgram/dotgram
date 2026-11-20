@@ -45,7 +45,19 @@ export class Runtime
 	kTurns = new Int32Array(64);
 	kFlags = new Int32Array(64);
 	kBase = new Int32Array(64);
+	kSerial = new Int32Array(64);
 	kCount = 0;
+
+	// The cuts made while any record is kept, those that matter: a later cut to a lower or equal
+	// place takes the place of an earlier one, so the places and the serials rise from the bottom.
+	// A record is stale once a cut remembered after it (by serial) went to its key or below.
+	cutKey = new Int32Array(64);
+	cutSerial = new Int32Array(64);
+	cutTop = 0;
+	serial = 0;
+
+	// Wrong on purpose: a record is taken whatever was cut after it (the test of the cut check).
+	noCutCheck = false;
 
 	// What the slots a kept statement writes held: two entries a slot (a value, or a list and its length).
 	kv: any[] = [];
@@ -90,6 +102,8 @@ export class Runtime
 		this.kJumps = 0;
 		this.kCount = 0;
 		this.kvTop = 0;
+		this.cutTop = 0;
+		this.serial = 0;
 		this.keptRefusals.length = 0;
 		this.top = 0;
 		this.valueTop = 0;
@@ -212,14 +226,80 @@ export class Runtime
 			this.heads[this.kOwner[i]] = this.kPrev[i];
 			this.kvTop = this.kBase[i];
 		}
+
+		// A record below the top may be stale by this cut: the cut is remembered while any is kept.
+		if (this.kCount === 0)
+		{
+			this.cutTop = 0;
+
+			return;
+		}
+
+		while (this.cutTop > 0 && this.cutKey[this.cutTop - 1] >= this.count)
+			this.cutTop--;
+
+		if (this.cutTop === this.cutKey.length)
+		{
+			const keys = new Int32Array(this.cutTop * 2);
+			const serials = new Int32Array(this.cutTop * 2);
+
+			keys.set(this.cutKey);
+			serials.set(this.cutSerial);
+			this.cutKey = keys;
+			this.cutSerial = serials;
+		}
+
+		this.cutKey[this.cutTop] = this.count;
+		this.cutSerial[this.cutTop] = ++this.serial;
+		this.cutTop++;
 	}
 
-	// The latest record of a sentinel's entry, or -1.
+	// Whether a cut remembered after the serial went to the key or below.
+	cutAfter(serial: number, key: number): boolean
+	{
+		const top = this.cutTop - 1;
+
+		if (top < 0 || this.cutSerial[top] <= serial)
+			return false;
+
+		if (this.cutKey[top] <= key)
+			return true;
+
+		let low = 0;
+		let high = top;
+
+		while (low < high)
+		{
+			const middle = (low + high) >> 1;
+
+			if (this.cutSerial[middle] > serial)
+				high = middle;
+			else
+				low = middle + 1;
+		}
+
+		return this.cutKey[low] <= key;
+	}
+
+	// The latest good record of a sentinel's entry, or -1: a head left from an earlier entry or
+	// reading names another owner; stale records on the way are passed over and the head moves on.
 	head(sentinel: number): number
 	{
-		const h = this.heads[sentinel];
+		let h = this.heads[sentinel];
 
-		return h >= 0 && h < this.kCount && (this.anyOwner || this.kOwner[h] === sentinel) ? h : -1;
+		while (h >= 0 && h < this.kCount && (this.anyOwner || this.kOwner[h] === sentinel))
+		{
+			if (this.noCutCheck || this.kKey[h] < this.count && !this.cutAfter(this.kSerial[h], this.kKey[h]))
+			{
+				this.heads[sentinel] = h;
+
+				return h;
+			}
+
+			h = this.kPrev[h];
+		}
+
+		return -1;
 	}
 
 	// Whether a record can stand for what the reading would do: one made while building, always;
@@ -236,20 +316,15 @@ export class Runtime
 	{
 		const key = this.cursor;
 		const h = this.head(owner);
-		const fits = this.kCount === 0 || this.kKey[this.kCount - 1] <= key;
 
-		if (h >= 0 && !(end ? (this.kFlags[h] & 1) === 0 : (this.kFlags[h] & 1) === 0 && this.kTurns[h] < turns) && !(!this.usable(h) && fits))
-			return -1;
-
-		// Below the top of the stack it would break the order cuts rely on: not kept (the evaluator's Unfit).
-		if (!fits)
+		if (h >= 0 && !(end ? (this.kFlags[h] & 1) === 0 : (this.kFlags[h] & 1) === 0 && this.kTurns[h] < turns) && this.usable(h))
 			return -1;
 
 		if (this.kCount === this.kKey.length)
 		{
 			const size = this.kCount * 2;
 
-			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase"] as const)
+			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase", "kSerial"] as const)
 			{
 				const grown = new Int32Array(size);
 
@@ -267,6 +342,7 @@ export class Runtime
 		this.kTurns[i] = turns;
 		this.kFlags[i] = (end ? 1 : 0) | (read ? 2 : 0) | (this.unbuilt > 0 ? 4 : 0);
 		this.kBase[i] = this.kvTop;
+		this.kSerial[i] = this.serial;
 		this.kvTop += n * 2;
 
 		while (this.kv.length < this.kvTop)
@@ -295,7 +371,7 @@ export class Runtime
 
 		if (this.kKey.length > bound)
 		{
-			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase"] as const)
+			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase", "kSerial"] as const)
 				this[name] = new Int32Array(64);
 		}
 
