@@ -193,10 +193,11 @@ static class FragmentCensus
 			"Web"                 => 4,
 			"FIX"                 => 5,
 			"Expression language" => 6,
-			"CLI"                 => 7,
-			"Examples"            => 8,
-			"Std"                 => 9,
-			_                     => 10,
+			"Query language"      => 7,
+			"CLI"                 => 8,
+			"Examples"            => 9,
+			"Std"                 => 10,
+			_                     => 11,
 		};
 	}
 
@@ -253,6 +254,9 @@ static class FragmentCensus
 
 		if (place.StartsWith("src/DotGram.ExpressionLanguage/", StringComparison.Ordinal))
 			return "Expression language";
+
+		if (place.StartsWith("src/DotGram.QueryLanguage/", StringComparison.Ordinal))
+			return "Query language";
 
 		if (place.StartsWith("src/DotGram.Cli/", StringComparison.Ordinal))
 			return "CLI";

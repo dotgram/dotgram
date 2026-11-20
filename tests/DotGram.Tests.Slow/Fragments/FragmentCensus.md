@@ -7,21 +7,22 @@
 | Web | 171 | 137 (80.1 %) | 63 | 34 |
 | FIX | 5 | 5 (100.0 %) | 0 | 0 |
 | Expression language | 358 | 308 (86.0 %) | 98 | 50 |
+| Query language | 63 | 59 (93.7 %) | 18 | 4 |
 | CLI | 4 | 4 (100.0 %) | 2 | 0 |
 | Examples | 266 | 251 (94.4 %) | 100 | 15 |
 | Std | 8 | 0 (0.0 %) | 0 | 8 |
-| All | 4553 | 3828 (84.1 %) | 1033 | 725 |
+| All | 4616 | 3887 (84.2 %) | 1051 | 729 |
 
 | Form | Fragments holding it | Alone | Where |
 | --- | ---: | ---: | --- |
 | CollectionExpression | 164 | 135 | T-SQL 70, SQL standard 53, SQL-92 7, PostgreSQL 26, Web 2, Expression language 3, Examples 3 |
 | ObjectInitializerExpression | 162 | 134 | T-SQL 3, SQL standard 116, SQL-92 6, PostgreSQL 37 |
-| SuppressNullableWarningExpression | 94 | 75 | T-SQL 21, SQL standard 35, SQL-92 9, PostgreSQL 7, Web 16, Expression language 3, Examples 3 |
+| SuppressNullableWarningExpression | 95 | 76 | T-SQL 21, SQL standard 35, SQL-92 9, PostgreSQL 7, Web 16, Expression language 3, Query language 1, Examples 3 |
 | WithExpression | 72 | 62 | T-SQL 35, SQL standard 26, SQL-92 2, PostgreSQL 1, Web 6, Expression language 2 |
 | BitwiseOrExpression | 54 | 25 | SQL standard 49, PostgreSQL 5 |
 | NamedArgument | 42 | 36 | T-SQL 21, SQL standard 7, Web 2, Expression language 12 |
 | BitwiseAndExpression | 33 | 25 | SQL standard 33 |
-| GenericName | 25 | 24 | T-SQL 8, SQL standard 9, PostgreSQL 1, Web 7 |
+| GenericName | 26 | 25 | T-SQL 8, SQL standard 9, PostgreSQL 1, Web 7, Query language 1 |
 | CastExpression | 24 | 15 | T-SQL 7, SQL standard 2, PostgreSQL 12, Expression language 2, Examples 1 |
 | ConditionalAccessExpression | 23 | 12 | T-SQL 19, SQL standard 4 |
 | ArrayCreationExpression | 22 | 20 | T-SQL 22 |
@@ -38,10 +39,11 @@
 | DefaultLiteralExpression | 2 | 2 | SQL standard 2 |
 | DivideExpression | 2 | 1 | Examples 2 |
 | MultiplyExpression | 2 | 2 | Examples 2 |
+| SimpleLambdaExpression | 2 | 2 | Query language 2 |
 | ConstantPattern | 1 | 0 | T-SQL 1 |
 | DefaultExpression | 1 | 0 | T-SQL 1 |
 | NumericSuffix | 1 | 0 | Examples 1 |
 | SwitchExpression | 1 | 0 | SQL standard 1 |
 | UnaryMinusExpression | 1 | 1 | Examples 1 |
 
-Verdicts: 643eabb770230973
+Verdicts: dbc61eacea018273

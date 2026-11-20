@@ -18,8 +18,11 @@ namespace DotGram.QueryLanguage.Tests;
 /// </summary>
 public sealed class Databases : IDisposable
 {
-	/// <summary>The database SQL Server tests make for themselves and drop when they are done.</summary>
-	const string Database = "QlM0Tests";
+	/// <summary>
+	/// The database SQL Server tests make for themselves and drop when they are done: one a process, since a solution's
+	/// test run starts the net10.0 and the net8.0 hosts at once.
+	/// </summary>
+	static readonly string Database = "QlTests" + Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
 	readonly DataConnection  _sqlite;
 	readonly DataConnection? _sqlServer;
