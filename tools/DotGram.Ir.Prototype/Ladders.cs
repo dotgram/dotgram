@@ -39,6 +39,17 @@ static class Ladders
 		new("(a) settled",     "SettledBefore", static n => Times("0", n) + Times("a,", n) + "!"),
 		new("(b) sealed",      "SealedBefore",  static n => Times("0", n) + Times("a,", n) + "!"),
 		new("(c) called",      "CalledBefore",  static n => Times(" ", n) + Times("a,", n) + "!"),
+		new("(a') failed turn",       "FailedTurnBefore",    static n => Times("a", n) + "!"),
+		new("nested braces",          "NestedSealedBefore",  static n => "<" + Times("0", n) + ">" + Times("a,", n) + "!"),
+		new("long look",              "LongLookBefore",      static n => Times("0", n) + Times("a,", n) + "!"),
+		new("braces with captures",   "SealedCaptureBefore", static n => Times("0", n) + Times("x", n) + ";" + Times("a,", n) + "!"),
+		new("(e) deciding nest",      "DecidingNestBefore",  static n => Times("(", n) + "y" + Times(")", n - 1) + Times("a,", n) + "!"),
+		new("back-reference",         "SameBefore",          static n => Times("0", n) + "=" + Times("0", n) + Times("a,", n) + "!"),
+		new("yaml line",              "YamlLineBefore",      static n => Times(" ", n) + Times("1", n) + ":" + Times("a,", n) + "!"),
+		new("(d) deep split",         "DeepSplit",           static n => Times("(", n) + Times("b", n) + Times(")", n)),
+		new("(d) control: shallow",   "DeepSplit",           static n => "(" + Times("b", n) + ")"),
+		new("(d) control: deep, two", "DeepSplit",           static n => Times("(", n) + "bb" + Times(")", n)),
+		new("(d) deep split, no way back up", "DeepSplitOpen", static n => Times("(", n) + Times("b", n)),
 	];
 
 	/// <summary>The shape read by the evaluator at every size, until a reading runs past the budget.</summary>
@@ -81,15 +92,27 @@ static class Ladders
 		{
 			var input = shape.Input(turns);
 
-			// Once to warm, once timed.
-			Twin.Record(() => method.Invoke(null, [input]));
-
 			object? match = null;
 
-			var watch = Stopwatch.StartNew();
-			var log   = Twin.Record(() => match = method.Invoke(null, [input]));
+			var watch = new Stopwatch();
 
-			watch.Stop();
+			List<string> log;
+
+			try
+			{
+				// Once to warm, once timed.
+				Twin.Record(() => method.Invoke(null, [input]));
+
+				watch.Start();
+				log = Twin.Record(() => match = method.Invoke(null, [input]));
+				watch.Stop();
+			}
+			catch (TargetInvocationException thrown)
+			{
+				rungs.Add((turns, watch.Elapsed.TotalMilliseconds, 0, "T " + thrown.InnerException?.GetType().Name));
+
+				break;
+			}
 
 			var type     = match!.GetType();
 			var accepted = (bool)type.GetProperty("IsSuccess")!.GetValue(match)!;
