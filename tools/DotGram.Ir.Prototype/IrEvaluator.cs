@@ -214,6 +214,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// <summary>How many times a replay went straight past a statement it had read before.</summary>
 	public long Skips { get; private set; }
 
+	/// <summary>The most records a reading kept at once.</summary>
+	public int MostKept { get; private set; }
+
 	/// <summary>How many sentinels a reading opened, read back ones apart: what a reading pays for being resumable.</summary>
 	public long Sentinels { get; private set; }
 
@@ -304,6 +307,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 		_heads[kept.Owner] = _kept.Count;
 		_kept.Add(kept with { Prev = prev });
+		MostKept = Math.Max(MostKept, _kept.Count);
 	}
 
 	/// <summary>What the slots a statement writes hold now: values, and the length of each list with the list itself.</summary>

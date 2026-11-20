@@ -36,6 +36,8 @@ const out: string[] = [];
 const P = new Runtime();
 const counting = process.env.IR_COUNTS !== undefined;
 
+P.anyOwner = process.env.IR_ANY_OWNER !== undefined;
+
 let at = 4;
 
 for (let i = 0; i < count; i++)
@@ -78,8 +80,12 @@ for (let i = 0; i < count; i++)
 	const calls = takeLog();
 
 	// Where only the counts are asked for, the calls are counted and not written.
+	const peak = P.held();
+
+	P.release(4096);
+
 	if (counting)
-		out.push("K " + P.kSteps + " " + P.kEntered + " " + P.retries + " " + P.kJumps + " " + calls.length);
+		out.push("K " + P.kSteps + " " + P.kEntered + " " + P.retries + " " + P.kJumps + " " + calls.length + " " + peak + " " + P.held());
 	else
 		for (const call of calls)
 			out.push("L " + call);
