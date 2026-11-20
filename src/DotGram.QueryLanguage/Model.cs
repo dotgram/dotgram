@@ -33,7 +33,13 @@ sealed class ModelField
 		Member = member;
 		Use    = use;
 		Order  = order;
-		Value  = ScalarType.Of(member is PropertyInfo property ? property.PropertyType : ((FieldInfo)member).FieldType);
+
+		var type = member is PropertyInfo property ? property.PropertyType : ((FieldInfo)member).FieldType;
+
+		Value = ScalarType.Of(type);
+
+		if (!type.IsValueType)
+			Value = Value.WithNullable(Nullability.MayBeNull(member));
 	}
 
 	public string     Name   { get; }
@@ -74,7 +80,7 @@ readonly struct ScalarType(QlType type, Type core, bool nullable)
 
 	public static ScalarType Of(QlType type, bool nullable)
 	{
-		return new ScalarType(type, ClrOf(type), nullable || type == QlType.String);
+		return new ScalarType(type, ClrOf(type), nullable);
 	}
 
 	static QlType TypeOf(Type core)
@@ -137,6 +143,53 @@ readonly struct ScalarType(QlType type, Type core, bool nullable)
 		var tick = name.IndexOf('`');
 
 		return (tick < 0 ? name : name.Substring(0, tick)) + "<" + string.Join(", ", type.GetGenericArguments().Select(ShortName)) + ">";
+	}
+}
+
+/// <summary>
+/// Whether a member of a reference type may be null, as the host's nullable annotations say. The compiler writes
+/// them as attributes it declares in each assembly, so they are read by name, the same way on every framework: the
+/// member's own <c>NullableAttribute</c>, else the <c>NullableContextAttribute</c> of the nearest type around it.
+/// A member without annotations, or one they leave oblivious, may be null.
+/// </summary>
+static class Nullability
+{
+	const string NullableAttribute        = "System.Runtime.CompilerServices.NullableAttribute";
+	const string NullableContextAttribute = "System.Runtime.CompilerServices.NullableContextAttribute";
+
+	/// <summary>The annotation that says a value is never null.</summary>
+	const byte NotNull = 1;
+
+	public static bool MayBeNull(MemberInfo member)
+	{
+		if (Flag(member, NullableAttribute) is { } own)
+			return own != NotNull;
+
+		for (var type = member.DeclaringType; type is not null; type = type.DeclaringType)
+			if (Flag(type, NullableContextAttribute) is { } context)
+				return context != NotNull;
+
+		return true;
+	}
+
+	/// <summary>The annotation of the value itself: the attribute's byte, or the first of its bytes, which is the outer type's.</summary>
+	static byte? Flag(MemberInfo member, string attribute)
+	{
+		foreach (var data in member.GetCustomAttributesData())
+		{
+			if (data.AttributeType.FullName != attribute || data.ConstructorArguments.Count != 1)
+				continue;
+
+			var argument = data.ConstructorArguments[0];
+
+			if (argument.Value is byte flag)
+				return flag;
+
+			if (argument.Value is System.Collections.Generic.IReadOnlyCollection<CustomAttributeTypedArgument> { Count: > 0 } flags && flags.First().Value is byte first)
+				return first;
+		}
+
+		return null;
 	}
 }
 

@@ -380,6 +380,55 @@ public sealed class BinderTests
 		Assert.Equal(
 			[(QlType.Int, true), (QlType.String, true), (QlType.Int, false), (QlType.Int, true), (QlType.Timestamp, false), (QlType.Bool, false)],
 			info.Columns.Select(c => (c.Type, c.IsNullable)));
+
+		// A string the host declares never null gives a length never null, and so do its upper case and its literal.
+		var never = Describe("from orders select customer.Length as l, customer.ToUpper() as u, note, 'x' as x");
+
+		Assert.All(never.Columns, c => Assert.False(c.IsNullable));
+	}
+
+	// ── Nullable annotations ────────────────────────────────────────────────
+
+	static QlModel<Annotations> Annotated()
+	{
+		var builder = new QlModelBuilder<Annotations>();
+
+		builder.Entity(a => a.Annotated).Column(x => x.Name).Column(x => x.Code).Column(x => x.Comment).Column(x => x.Field).Column(x => x.Optional).Column(x => x.Bytes);
+		builder.Entity(a => a.Inner).Column(x => x.Name);
+		builder.Entity(a => a.Mostly).Column(x => x.A).Column(x => x.Name);
+		builder.Entity(a => a.Oblivious).Column(x => x.Name).Column(x => x.Field);
+
+		return builder.Build();
+	}
+
+	[Theory]
+	[InlineData("Annotated", "false false true false true false")]
+	[InlineData("Inner",     "false")]
+	[InlineData("Mostly",    "true false")]
+	[InlineData("Oblivious", "true true")]
+	public void AStringMayBeNullWhereTheHostSaysOrSaysNothing(string entity, string nullable)
+	{
+		var columns = Annotated().Describe("from " + entity).Columns;
+
+		Assert.Equal(nullable, string.Join(" ", columns.Select(c => c.IsNullable ? "true" : "false")));
+	}
+
+	/// <summary>
+	/// A list's items have the nullability of what they are compared with, so a list for a string never null holds no
+	/// null. A comparison takes a null whatever the field, as C# compares any value with null.
+	/// </summary>
+	[Fact]
+	public void AListForAStringNeverNullHoldsNoNull()
+	{
+		var info = Describe("from orders where customer in @cs || status in @ss || customer == @c select id");
+
+		Assert.Equal([false, true, true], info.Parameters.Select(p => p.IsNullable));
+
+		var error = Assert.Throws<QlException>(() => Model.QueryData(Shop.InMemory(), "from orders where customer in @cs select id", new System.Collections.Generic.Dictionary<string, object?> { ["cs"] = new[] { "c1", null } })).Error;
+
+		Assert.Equal(QlErrorCode.Parameter, error.Code);
+		Assert.NotEmpty(Model.QueryData(Shop.InMemory(), "from orders where status in @ss select id", new System.Collections.Generic.Dictionary<string, object?> { ["ss"] = new[] { "paid", null } }).ToList());
+		Assert.Empty(Model.QueryData(Shop.InMemory(), "from orders where customer == @c select id", new System.Collections.Generic.Dictionary<string, object?> { ["c"] = null }).ToList());
 	}
 
 	[Theory]
