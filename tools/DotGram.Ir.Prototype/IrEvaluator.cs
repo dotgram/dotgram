@@ -214,6 +214,24 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// <summary>How many times a replay went straight past a statement it had read before.</summary>
 	public long Skips { get; private set; }
 
+	/// <summary>Of the sentinels a reading opened, how many at each kind of statement and why it keeps a record.</summary>
+	public Dictionary<string, long> SentinelsBy { get; } = new(StringComparer.Ordinal);
+
+	void Opened(IrStmt stmt)
+	{
+		Sentinels++;
+
+		var kind = stmt.GetType().Name + ": " + _sites.Sites[stmt];
+
+		SentinelsBy[kind] = SentinelsBy.GetValueOrDefault(kind) + 1;
+	}
+
+	/// <summary>Whether a kept statement opens its sentinel here: where the next item can begin what it reads (<see cref="ResumptionSites.Doors"/>).</summary>
+	bool Opens(IrStmt stmt)
+	{
+		return !_sites.Doors.TryGetValue(stmt, out var door) || _p < _text.Length && Within(door, _text[_p]);
+	}
+
 	/// <summary>The most records a reading kept at once.</summary>
 	public int MostKept { get; private set; }
 
@@ -372,7 +390,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 		if (!again)
 		{
-			Sentinels++;
+			Opened(stmt);
 			_heads[sentinel] = -1;
 		}
 		else if (Head(sentinel, stmt) is { IsEnd: true } found && Usable(found))
@@ -558,7 +576,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (++Steps > StepBudget)
 			throw new IrStepsExceeded(StepBudget);
 
-		if (Resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt))
+		if (Resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt) && Opens(stmt))
 			return Site(stmt, frame);
 
 		return ExecInner(stmt, frame);
@@ -714,7 +732,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var turns = 0;
 				var owner = -1;
 
-				if (Resumes && _sites.Keeps(repeat))
+				if (Resumes && _sites.Keeps(repeat) && Opens(repeat))
 				{
 					var again = Ways.Cursor < Ways.Count;
 
@@ -722,7 +740,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 					if (!again)
 					{
-						Sentinels++;
+						Opened(repeat);
 						_heads[owner] = -1;
 					}
 					else if (Head(owner, repeat) is { } found && Usable(found))

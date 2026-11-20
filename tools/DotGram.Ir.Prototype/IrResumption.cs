@@ -1,36 +1,10 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
+using DotGram.Grammar.Model;
+
 namespace DotGram.Ir.Prototype;
 
-/// <summary>
-/// Which statements of a program a resuming reading keeps a record of, and why: the places where
-/// a replay would otherwise read again, in full, work it already did before the decision it was
-/// asked to change.
-/// </summary>
-/// <remarks>
-/// <para>
-/// A replay runs its region again from the start, and everything before the decision it moved is
-/// read over the same text, the same decisions and the same slots as the reading before it. Two
-/// kinds of statement keep what that reading came to, behind a decision of their own that can
-/// never be moved and names the statement's entry on the tape (its sentinel): every repetition
-/// (where each of its turns began, and where it ended), and every other statement whose work is
-/// not bounded by the grammar once repetitions go straight to their turns (where it ended). A
-/// replay that reads such a sentinel back takes what was kept and goes on from there.
-/// </para>
-/// <para>
-/// What is unbounded is computed, not listed: a call into a function that can reach itself; a
-/// text read again by reference; a guard handed a text read over unbounded input, or a list; and
-/// a look or braces whose body holds any of these or any repetition — because everything decided
-/// inside braces is taken off the tape where they end, and a replay reads them again from nothing.
-/// A call into a function that holds only repetitions needs nothing of its own: they keep their own.
-/// </para>
-/// <para>
-/// Only a statement a replay can reach is kept: one inside a replay region, or inside a function
-/// called from one, or inside braces or a look whose body decides — there the braces' own reading
-/// again is the replay. Inside braces or a look that decide nothing, nothing kept would outlive them.
-/// </para>
-/// </remarks>
 /// <summary>Which of the statements a replay can reach keep a record.</summary>
 enum ResumptionCriterion
 {
@@ -45,6 +19,12 @@ enum ResumptionCriterion
 	Wide,
 
 	/// <summary>
+	/// <see cref="Decided"/> for repetitions only: braces, looks, recursions and texts read by
+	/// reference are read again by every replay. What the cost of keeping those is measured against.
+	/// </summary>
+	Repetitions,
+
+	/// <summary>
 	/// A repetition only where a decision can open inside its turns and outlive them; other
 	/// statements as <see cref="Wide"/>. Measured, not used: a repetition with no decision of its
 	/// own is read again by every replay of a decision after it.
@@ -52,6 +32,36 @@ enum ResumptionCriterion
 	Narrowed,
 }
 
+/// <summary>
+/// Which statements of a program a resuming reading keeps a record of, and why: the places where
+/// a replay would otherwise read again, in full, work it already did before the decision it was
+/// asked to change.
+/// </summary>
+/// <remarks>
+/// <para>
+/// A replay runs its region again from the start, and everything before the decision it moved is
+/// read over the same text, the same decisions and the same slots as the reading before it. Two
+/// kinds of statement keep what that reading came to, behind a decision of their own that can
+/// never be moved and names the statement's entry on the tape (its sentinel): every repetition of
+/// unbounded turns (where each of its turns began, and where it ended), and every other statement
+/// whose own work is unbounded (where it ended). A replay that reads such a sentinel back takes
+/// what was kept and goes on from there.
+/// </para>
+/// <para>
+/// What is unbounded is computed, not listed: a call into a function that can reach itself; a
+/// text read again by reference; a guard handed a text read over unbounded input, or a list; and
+/// a look or braces whose body holds any of these or any repetition — because everything decided
+/// inside braces is taken off the tape where they end, and a replay reads them again from nothing.
+/// Whatever is unbounded inside anything else is kept where it stands, so that a call into a
+/// function that cannot reach itself, or a repetition of a bounded number of turns, costs a replay
+/// no more than the grammar is long, and needs nothing of its own.
+/// </para>
+/// <para>
+/// Only a statement a replay can reach is kept: one inside a replay region, or inside a function
+/// called from one, or inside braces or a look whose body decides — there the braces' own reading
+/// again is the replay. Inside braces or a look that decide nothing, nothing kept would outlive them.
+/// </para>
+/// </remarks>
 sealed class ResumptionSites
 {
 	static readonly ConditionalWeakTable<IrProgram, Dictionary<ResumptionCriterion, ResumptionSites>> _known = [];
@@ -71,7 +81,6 @@ sealed class ResumptionSites
 
 	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach = [];
 
-	readonly Dictionary<IrFunction, string?> _residual = [];
 	readonly Dictionary<IrFunction, string?> _raw      = [];
 
 	// Slots that hold a text read over input of no bound.
@@ -112,6 +121,106 @@ sealed class ResumptionSites
 
 		foreach (var entry in program.Entries.Values)
 			Visit(entry, inReplay: false);
+	}
+
+	/// <summary>
+	/// For a kept statement that reads input only from items it can begin with, those items: where
+	/// the next item is none of them, the statement reads nothing (or fails at once), its work is
+	/// bounded, and no sentinel is opened — the same answer on every replay, which reads the same
+	/// item there. Absent where any item can begin it, or the beginning cannot be told.
+	/// </summary>
+	public Dictionary<IrStmt, IReadOnlyList<CharRange>> Doors { get; } = new(ReferenceEqualityComparer.Instance);
+
+	readonly Dictionary<IrFunction, List<CharRange>?> _firsts = [];
+
+	/// <summary>
+	/// The items a statement's reading can begin with, and whether it can read none; null where it
+	/// cannot be told (a negated set, a reference, a look, what this sketch does not read).
+	/// </summary>
+	(List<CharRange>? First, bool Empty) Begins(IrStmt stmt)
+	{
+		switch (stmt)
+		{
+			case IrStmt.MatchSet { IsNegated: false } set:
+				return ([.. set.Ranges], false);
+
+			case IrStmt.MatchText { IgnoreCase: false, Text.Length: > 0 } text:
+				return ([new CharRange(text.Text[0], text.Text[0])], false);
+
+			case IrStmt.MatchEnd or IrStmt.Assign or IrStmt.Append or IrStmt.Construct or IrStmt.Guard:
+				return ([], true);
+
+			case IrStmt.Call call:
+				return (FirstOf(call.Target), Nullable(call.Target.Body));
+
+			case IrStmt.Block block:
+			{
+				var first = new List<CharRange>();
+
+				foreach (var item in block.Items)
+				{
+					var (one, empty) = Begins(item);
+
+					if (one is null)
+						return (null, false);
+
+					first.AddRange(one);
+
+					if (!empty)
+						return (first, false);
+				}
+
+				return (first, true);
+			}
+
+			case IrStmt.Choice choice:
+			{
+				var first = new List<CharRange>();
+				var empty = false;
+
+				foreach (var alternative in choice.Alternatives)
+				{
+					var (one, none) = Begins(alternative);
+
+					if (one is null)
+						return (null, false);
+
+					first.AddRange(one);
+					empty |= none;
+				}
+
+				return (first, empty);
+			}
+
+			case IrStmt.Repeat repeat:
+			{
+				var (one, empty) = Begins(repeat.Body);
+
+				return (one, empty || repeat.Min is not IrExpr.Number { Value: > 0 });
+			}
+
+			case IrStmt.Scope or IrStmt.Replay or IrStmt.Commit:
+				return Begins(stmt.Children.Single());
+
+			default:
+				return (null, false);
+		}
+	}
+
+	bool Nullable(IrStmt stmt)
+	{
+		return Begins(stmt) is { First: not null, Empty: true };
+	}
+
+	List<CharRange>? FirstOf(IrFunction function)
+	{
+		if (_firsts.TryGetValue(function, out var known))
+			return known;
+
+		// A function met again on the way to its own beginning cannot be told.
+		_firsts[function] = null;
+
+		return _firsts[function] = Begins(function.Body).First;
 	}
 
 	/// <summary>The slots some guard is handed: a reading that builds nothing still fills them.</summary>
@@ -328,12 +437,16 @@ sealed class ResumptionSites
 		if (!inReplay || _sites.ContainsKey(stmt))
 			return;
 
-		// A repetition of a bounded number of turns is bounded work unless its body is not.
+		// What is unbounded inside anything else is kept where it stands, and goes straight past
+		// there: a repetition of a bounded number of turns, and a call into a function that cannot
+		// reach itself, cost no more on a replay than the grammar is long.
 		var why = stmt switch
 		{
-			IrStmt.Repeat { Max: IrExpr.Number } bounded => Residual(bounded.Body) is { } inside ? "a bounded repetition over " + inside : null,
-			IrStmt.Repeat => "a repetition",
-			IrStmt.Call or IrStmt.Look or IrStmt.Commit or IrStmt.MatchSame or IrStmt.Guard => Residual(stmt),
+			IrStmt.Repeat { Max: not IrExpr.Number } => "a repetition",
+			IrStmt.Call call when Recursive(call.Target) => "a call into a recursion",
+			IrStmt.Look or IrStmt.Commit => Raw(stmt.Children.Single()) is { } inside ? "braces or a look over " + inside : null,
+			IrStmt.MatchSame => "a text read again by reference",
+			IrStmt.Guard guard => LongArgument(guard.Arguments),
 			_ => null,
 		};
 
@@ -341,53 +454,28 @@ sealed class ResumptionSites
 			return;
 
 		var left = NamesParser(stmt, []) ? "it reads what the parser supplies, which no record holds"
-			: _criterion == ResumptionCriterion.Decided && !IrLowering.Decides(stmt) && !DecidesAfter(stmt) ? "nothing after it can decide"
+			: _criterion == ResumptionCriterion.Repetitions && stmt is not IrStmt.Repeat ? "only repetitions are kept"
+			: _criterion is ResumptionCriterion.Decided or ResumptionCriterion.Repetitions && !IrLowering.Decides(stmt) && !DecidesAfter(stmt) ? "nothing after it can decide"
 			: _criterion == ResumptionCriterion.Narrowed && stmt is IrStmt.Repeat repeat && !IrLowering.Decides(repeat.Body) && !repeat.Resumable ? "no decision of its own outlives a turn"
 			: null;
 
 		if (left is not null)
 			Left.Add(stmt, why + ": " + left);
 		else
-			_sites.Add(stmt, why);
-	}
-
-	/// <summary>Why a statement's work is unbounded once repetitions go straight to their turns, or null where it is not.</summary>
-	string? Residual(IrStmt stmt)
-	{
-		switch (stmt)
 		{
-			case IrStmt.MatchSame:
-				return "a text read again by reference";
+			_sites.Add(stmt, why);
 
-			case IrStmt.Guard guard:
-				return LongArgument(guard.Arguments);
+			// A guard's or a reference's work does not hang on the next item.
+			var door = stmt switch
+			{
+				IrStmt.Repeat turns => Begins(turns.Body).First,
+				IrStmt.Look or IrStmt.Guard or IrStmt.MatchSame => null,
+				_ => Begins(stmt).First,
+			};
 
-			case IrStmt.Call call:
-				return Recursive(call.Target) ? "a call into a recursion" : Residual(call.Target);
-
-			case IrStmt.Look or IrStmt.Commit:
-				return Raw(stmt.Children.Single()) is { } inside ? "braces or a look over " + inside : null;
-
-			case IrStmt.Repeat repeat:
-				return Residual(repeat.Body);
-
-			default:
-				foreach (var child in stmt.Children)
-					if (Residual(child) is { } why)
-						return why;
-
-				return null;
+			if (door is not null)
+				Doors.Add(stmt, door);
 		}
-	}
-
-	string? Residual(IrFunction function)
-	{
-		if (_residual.TryGetValue(function, out var known))
-			return known;
-
-		_residual[function] = null;
-
-		return _residual[function] = Residual(function.Body) is { } why ? "a call that reads " + why : null;
 	}
 
 	/// <summary>Why a statement's work is unbounded when it is read from nothing, repetitions included; null where it is bounded.</summary>

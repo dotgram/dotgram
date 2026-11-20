@@ -613,6 +613,126 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		}
 	}
 
+	/// <summary>The shipped grammars the accepting path is measured on (the HTTP one aside: its rules decide only in the tree).</summary>
+	static readonly string[] WebFiles = ["Rfc3339.cs", "Rfc3986.cs", "Rfc5322.cs", "Rfc5646.cs", "Rfc6265.cs", "Rfc6266.cs", "Rfc6570.cs", "Rfc6901.cs", "Rfc7239.cs", "Rfc8259.cs", "Rfc8288.cs", "Rfc9651.cs"];
+
+	/// <summary>What each shipped grammar keeps: its publications, whether the tree reads all of each, and the statements kept, by why.</summary>
+	[Fact]
+	public void TheShippedGrammars_KeepWhatTheyKeep()
+	{
+		var text = new StringBuilder("grammar\tentries (complete)\tdeciding functions\tkept\tby kind\n");
+
+		foreach (var file in WebFiles)
+		{
+			var program = Reading.Program(Graphs.WebGrammar(file));
+			var sites   = ResumptionSites.Of(program);
+			var entries = string.Join(" ", program.Entries.Select(static one => one.Key + (one.Value.Complete ? "" : "*")));
+			var kinds   = string.Join(", ", sites.Sites.GroupBy(static one => one.Key.GetType().Name + ": " + one.Value).Select(static one => one.Count() + " " + one.Key));
+
+			text.Append(file).Append('\t').Append(entries).Append('\t').Append(program.Functions.Count(static one => one.Decides)).Append('\t').Append(sites.Sites.Count).Append('\t').Append(kinds).Append('\n');
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "shipped-sites.tsv"), text.ToString());
+	}
+
+	/// <summary>
+	/// What resuming costs an accepted input, by grammar: the sentinels the evaluator opens per
+	/// byte, and the printed TypeScript parser with its sentinels against the same parser without,
+	/// in every way of keeping frames — a direction on a shared machine, written down for the gate
+	/// and held to nothing here.
+	/// </summary>
+	[Fact]
+	public void TheAcceptingPath_IsMeasuredByGrammar()
+	{
+		var addresses = new[]
+		{
+			"a@b.c", "john.doe@example.com", "\"John Doe\" <john@example.com>", "Mary Smith <mary@x.test>, jdoe@one.test",
+			"A Group:Ed Jones <c@a.test>,joe@where.test,John <jdoe@one.test>;", "Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>",
+			"<boss@nil.test>, \"Giant; \\\"Big\\\" Box\" <sysservices@example.net>", "jdoe@[192.168.0.1]",
+		};
+
+		var rows = new (string Name, string File, string Entry, string[] Inputs)[]
+		{
+			("Rfc5322 address lists", "Rfc5322.cs", "ParseAddressList", [.. addresses, string.Join(", ", Enumerable.Repeat("Mary Smith <mary@x.test>", 40))]),
+			("Rfc5322 short addr-spec", "Rfc5322.cs", "ParseAddrSpec", ["a@b", "x@y.z", "first.last@sub.example.com", "jdoe@one.test"]),
+			("Rfc9651 list", "Rfc9651.cs", "ParseList", ["a, b;c=1, (x y);z", "1, 2.5, \"s\", ?1, :aGVsbG8=:", "(a b c);d=1, e"]),
+			("Rfc9651 dictionary", "Rfc9651.cs", "ParseDictionary", ["a=1, b, c=(1 2)", "x=?0;y=1, z=\"t\""]),
+			("Rfc6265 cookies", "Rfc6265.cs", "ParseCookies", ["a=b; c=d; e=\"f\"", "SID=31d4d96e407aad42; lang=en-US"]),
+			("Rfc7239 forwarded", "Rfc7239.cs", "ParseForwarded", ["for=192.0.2.43, for=198.51.100.17;by=203.0.113.60;proto=http;host=example.com", "for=\"[2001:db8:cafe::17]:4711\""]),
+			("Rfc8288 links", "Rfc8288.cs", "ParseLinks", ["<https://example.com/a>; rel=\"next\", <https://example.com/b>; rel=prev; title=\"x\""]),
+			("Rfc3986 references", "Rfc3986.cs", "ParseReference", ["http://user@example.com:8080/a/b/c?q=1&r=2#frag", "../x/y", "mailto:a@b.c"]),
+			("Rfc5646 tags", "Rfc5646.cs", "ParseTag", ["en-US", "zh-Hant-TW", "sr-Latn-RS", "de-CH-1901"]),
+		};
+
+		var text = new StringBuilder("row\taccepted by the evaluator\tsentinels per byte\tkept\tframes\taccepted\tms on\tms off\ton / off (median)\trange\n");
+
+		foreach (var (name, file, entry, inputs) in rows)
+		{
+			var program   = Reading.Program(Graphs.WebGrammar(file));
+			var accepted  = 0;
+			var sentinels = 0L;
+			var bytes     = 0L;
+			var by        = new Dictionary<string, long>(StringComparer.Ordinal);
+
+			// Not every shipped grammar is read whole by the tree: some lower in part.
+			try
+			{
+				foreach (var input in inputs)
+				{
+					var evaluator = new IrEvaluator(program, new RecordingHost()) { Resumes = true };
+
+					if (evaluator.Parse(entry, input).Accepted)
+					{
+						accepted++;
+						sentinels += evaluator.Sentinels;
+						bytes     += input.Length;
+
+						foreach (var (kind, count) in evaluator.SentinelsBy)
+							by[kind] = by.GetValueOrDefault(kind) + count;
+					}
+				}
+			}
+			catch (NotSupportedException unread)
+			{
+				text.Append(name).Append("\tnot read: ").Append(unread.Message).Append('\n');
+
+				continue;
+			}
+
+			foreach (var (kind, count) in by.OrderByDescending(static one => one.Value))
+				text.Append(name).Append("\tsentinels at\t").Append(kind).Append('\t').Append(count).Append('\n');
+
+			var batch = Enumerable.Repeat(inputs, 20).SelectMany(static one => one).ToList();
+
+			List<string> lines;
+
+			// Not every shipped grammar prints: the slice prints no text that ignores case.
+			try
+			{
+				lines = [.. Slices.AcceptingPath("Accept-" + file, program, entry, batch).Select(static line => "all kept\t" + line),
+					.. Slices.AcceptingPath("Accept-" + file, program, entry, batch, ResumptionCriterion.Repetitions).Select(static line => "repetitions only\t" + line)];
+			}
+			catch (NotSupportedException unprinted)
+			{
+				lines = ["not printed: " + unprinted.Message];
+			}
+
+			foreach (var line in lines)
+			{
+				text.Append(name).Append('\t').Append(accepted).Append('/').Append(inputs.Length).Append('\t')
+					.Append((bytes == 0 ? 0 : sentinels / (double)bytes).ToString("F3", CultureInfo.InvariantCulture)).Append('\t').Append(line).Append('\n');
+			}
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "accepting-path.tsv"), text.ToString());
+	}
+
 	/// <summary>The lowered programs of the fixtures, written out to be read.</summary>
 	[Fact]
 	public void Programs_AreWrittenOut()
