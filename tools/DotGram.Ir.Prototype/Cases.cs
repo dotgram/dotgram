@@ -45,6 +45,8 @@ static class Cases
 		["YamlLineBefore"]        = new(Grammars.YamlLineBefore,        typeof(YamlLineBeforeParser),        "ParseStart"),
 		["DeepSplit"]             = new(Grammars.DeepSplit,             typeof(DeepSplitParser),             "ParseStart"),
 		["DeepSplitOpen"]         = new(Grammars.DeepSplitOpen,         typeof(DeepSplitOpenParser),         "ParseStart"),
+		["XmlNameGivesBack"]      = new(Grammars.XmlNameGivesBack,      typeof(XmlNameGivesBackParser),      "ParseXml"),
+		["TurnGivesBack"]         = new(Grammars.TurnGivesBack,         typeof(TurnGivesBackParser),         "ParseStart"),
 		["Json"]                  = new(Grammars.Json,                  typeof(JsonTwinParser),              "ParseJson"),
 	};
 
@@ -102,6 +104,8 @@ static class Cases
 		Add("YamlLineBefore",        "1:a", "  12:a", "   123:a,b,c", "  1:a,b!", " :a", "1:", "1:a,b,c,", "  a:b");
 		Add("DeepSplit",             "!", "b!", "(bb)!", "((bbb))!", "((bbb))", "(b))!", "((b)!", "bbbb");
 		Add("DeepSplitOpen",         "!", "b!", "(bb!", "((bbb!", "((bbb", "(b)!", "((b", "bbbb");
+		Add("XmlNameGivesBack",      "<ab=\"1\"></a>", "<ab=\"1\">", "<ab=\"1\"></ab>", "<a b=\"1\">", "<ab=\"1\"/>", "<a></a>", "<a x=\"1\" y='2'><b>text</b></a>", "<abc=\"1\"d='2'></a>", "<a><bc='x'/></a>");
+		Add("TurnGivesBack",         "abc", "acabc", "abcac", "ab", "acab", "abcab", "a", "abcabd");
 		Add("Json",                  "1", " [1, 2 ,{\"a\":null}] ", "{}", "[]", "[1,]", "{\"a\" 1}", "tru", "\"\\u12G4\"", "[[[", "01", "1e", "-", "{\"a\":[true,false,{\"b\":\"\\n\"}]}");
 
 		return data;

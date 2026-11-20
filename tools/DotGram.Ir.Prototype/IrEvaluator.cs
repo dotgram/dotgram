@@ -232,6 +232,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return !_sites.Doors.TryGetValue(stmt, out var door) || _p < _text.Length && Within(door, _text[_p]);
 	}
 
+	/// <summary>How many records a reading kept, in all.</summary>
+	public long Records { get; private set; }
+
 	/// <summary>The most records a reading kept at once.</summary>
 	public int MostKept { get; private set; }
 
@@ -316,12 +319,26 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return _kept.Count == 0 || _kept[^1].Key <= key;
 	}
 
+	/// <summary>
+	/// How many records were not kept because they would have gone below the top of the stack: a
+	/// replay inside a region read and kept places further on before the replay of the region
+	/// round it walked the places before them. Not keeping one costs a later replay reading again
+	/// what it would have gone past; keeping it would leave the stack out of the order its cuts rely on.
+	/// </summary>
+	public long Unfit { get; private set; }
+
 	void Record(Kept kept)
 	{
-		if (_kept.Count > 0 && _kept[^1].Key > kept.Key)
-			throw new IrContractViolation("A record was kept below the top of the stack: its key " + kept.Key.ToString(CultureInfo.InvariantCulture) + ", the top's " + _kept[^1].Key.ToString(CultureInfo.InvariantCulture) + ".");
+		if (!Fits(kept.Key))
+		{
+			Unfit++;
+
+			return;
+		}
 
 		var prev = _heads.TryGetValue(kept.Owner, out var head) ? head : -1;
+
+		Records++;
 
 		_heads[kept.Owner] = _kept.Count;
 		_kept.Add(kept with { Prev = prev });
@@ -708,12 +725,24 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				for (var i = decision; i <= last; i++)
 				{
 					var kept = Keep(frame, choice.Resets[i]);
+					var mark = Ways.Cursor;
 
-					if (Exec(choice.Alternatives[i], frame))
-						return true;
+					while (true)
+					{
+						if (Exec(choice.Alternatives[i], frame))
+							return true;
 
-					_p = start;
-					PutBack(frame, choice.Resets[i], kept);
+						_p = start;
+						PutBack(frame, choice.Resets[i], kept);
+
+						// Before the choice moves on and drops what the alternative decided, the
+						// alternative is read again with each of its own decisions that can still
+						// move: the next alternative is the choice's own next decision, after them.
+						if (!(choice.Resumable && i < last && Ways.Cursor > mark && Ways.Retry(mark)))
+							break;
+
+						Cut();
+					}
 
 					if (choice.Resumable && i < last)
 					{
@@ -795,8 +824,20 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					}
 
 					var kept = Keep(frame, repeat.Resets);
+					var mark = Ways.Cursor;
+					var read = Exec(repeat.Body, frame);
 
-					if (!Exec(repeat.Body, frame))
+					// A turn that fails is read again with each of its own decisions that can still
+					// move before the repetition gives the turn up: its own decision comes before them.
+					while (!read && way >= 0 && Ways.Cursor > mark && Ways.Retry(mark))
+					{
+						Cut();
+						_p = start;
+						PutBack(frame, repeat.Resets, kept);
+						read = Exec(repeat.Body, frame);
+					}
+
+					if (!read)
 					{
 						_p = start;
 						PutBack(frame, repeat.Resets, kept);
@@ -816,16 +857,16 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						break;
 				}
 
-				var read = turns >= min;
+				var stood = turns >= min;
 
 				if (owner >= 0 && Ways.Cursor < Ways.Count && Head(owner, repeat) is var last && (last is not { IsEnd: true } || !Usable(last) && Fits(Ways.Cursor)))
 				{
 					var (held, counts) = Hold(frame, repeat.Resets);
 
-					Record(new Kept(true, owner, repeat, Ways.Cursor, -1, _p, turns, read, _unbuilt, held, counts));
+					Record(new Kept(true, owner, repeat, Ways.Cursor, -1, _p, turns, stood, _unbuilt, held, counts));
 				}
 
-				return read;
+				return stood;
 			}
 
 			case IrStmt.Look look:

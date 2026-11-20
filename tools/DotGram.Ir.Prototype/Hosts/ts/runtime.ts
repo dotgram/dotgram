@@ -221,8 +221,9 @@ export class Runtime
 		if (h >= 0 && !(end ? (this.kFlags[h] & 1) === 0 : (this.kFlags[h] & 1) === 0 && this.kTurns[h] < turns) && !(!this.usable(h) && fits))
 			return -1;
 
+		// Below the top of the stack it would break the order cuts rely on: not kept (the evaluator's Unfit).
 		if (!fits)
-			throw new Error("A record was kept below the top of the stack.");
+			return -1;
 
 		if (this.kCount === this.kKey.length)
 		{

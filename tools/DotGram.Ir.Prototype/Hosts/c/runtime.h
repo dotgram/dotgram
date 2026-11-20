@@ -248,8 +248,9 @@ static inline int32_t rt_keep(Parser *P, int32_t owner, bool end, int32_t p, int
 	if (h >= 0 && !(end ? (P->kept[h].flags & 1) == 0 : (P->kept[h].flags & 1) == 0 && P->kept[h].turns < turns) && !(!rt_usable(P, h) && fits))
 		return -1;
 
+	/* Below the top of the stack it would break the order cuts rely on: not kept (the evaluator's Unfit). */
 	if (!fits)
-		abort();
+		return -1;
 
 	if (P->kCount == P->keptSize)
 	{

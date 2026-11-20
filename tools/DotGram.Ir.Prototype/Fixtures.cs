@@ -371,6 +371,39 @@ static class Grammars
 		parse Start
 		""";
 
+	/// <summary>
+	/// The XML subset as the example read it before its runs were made atomic: the name of an
+	/// element gives characters back to an attribute written against it (<c>&lt;ab="1"&gt;</c> is
+	/// <c>a</c> with the attribute <c>b</c>), inside the first of two alternatives that begin alike.
+	/// </summary>
+	public const string XmlNameGivesBack = """
+		trivia = none
+
+		Xml     = Element & eof
+		Element = '<' & $name: Name & Attribute* & Space & '>' & Content* & "</" & $name & Space & '>'
+		        | '<' & Name & Attribute* & Space & "/>"
+		Content = Element | Chars
+		Chars   = { [^ '<']+ }
+		Attribute = Space & Name & '=' & Value
+		Value   = '"' & Quoted & '"' | '\'' & Quoted & '\''
+		Name    = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']*
+		Space   = [' ' | '\t' | '\r' | '\n']*
+		Quoted  = [^ '"' | '\'']*
+
+		parse Xml
+		""";
+
+	/// <summary>
+	/// A turn that fails after a choice inside it took its first alternative, where the second
+	/// would have let the turn read: the turn's own decision is moved only once the choice's is spent.
+	/// </summary>
+	public const string TurnGivesBack = """
+		Start = (("a" | "ab") & 'c')* & Y? & eof
+		Y     = "ab"
+
+		parse Start
+		""";
+
 	/// <summary>RFC 8259 as DotGram.Web writes it, every construction a numbered call.</summary>
 	public const string Json = """
 		trivia = none
@@ -446,5 +479,7 @@ static class Grammars
 [Gram(Grammars.SameBefore, Carrier = GramCarrier.Immediate)]          static partial class SameBeforeParser;
 [Gram(Grammars.YamlLineBefore, Carrier = GramCarrier.Immediate)]      static partial class YamlLineBeforeParser;
 [Gram(Grammars.DeepSplit)]                                            static partial class DeepSplitParser;
+[Gram(Grammars.XmlNameGivesBack)]                                     static partial class XmlNameGivesBackParser;
+[Gram(Grammars.TurnGivesBack)]                                        static partial class TurnGivesBackParser;
 [Gram(Grammars.DeepSplitOpen)]                                        static partial class DeepSplitOpenParser;
 [Gram(Grammars.Json)]                  static partial class JsonTwinParser;
