@@ -1680,7 +1680,12 @@ sealed partial class Machine
 				header.Line("// DOTGRAM_COUNTS, which no project defines, and not a supported setting.");
 
 				foreach (var rule in _directRules)
+				{
 					header.Line($"internal static long {EnteredOf(rule)};");
+
+					if (_scanning.Contains(rule))
+						header.Line($"internal static long {ScannedOf(rule)};");
+				}
 
 				header.Line("#endif");
 				header.Line();
@@ -5382,6 +5387,8 @@ sealed partial class Machine
 				}
 
 				code.Line("p++;");
+
+				machine.CountScanned(code, owner);
 
 				if (replays)
 				{

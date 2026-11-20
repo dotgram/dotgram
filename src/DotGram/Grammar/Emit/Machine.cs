@@ -2376,6 +2376,16 @@ sealed partial class Machine
 			file.Line();
 		}
 
+		if (CountsRules && _scansRuns)
+		{
+			file.Line("#if DOTGRAM_COUNTS");
+			file.Line("// The characters the runs stepped over, for a test that counts them; compiled only under");
+			file.Line("// DOTGRAM_COUNTS, which no project defines, and not a supported setting.");
+			file.Line($"internal static long {Scanned} = 0;");
+			file.Line("#endif");
+			file.Line();
+		}
+
 		if (CountsRules && _putsOut)
 		{
 			file.Line("#if DOTGRAM_COUNTS");
@@ -5339,7 +5349,8 @@ sealed partial class Machine
 		var least = min is CountBound.Items { Count: 0 } ? null : CountBoundRead(writer, min, "leastAt");
 		var most  = max is null ? null : least is not null && SameCountBound(min, max) ? least : CountBoundRead(writer, max, "mostAt");
 
-		_usesRuns = true;
+		_usesRuns  = true;
+		_scansRuns = true;
 
 		writer.Line("var runStart = p;");
 
@@ -5369,6 +5380,8 @@ sealed partial class Machine
 			}
 
 			writer.Line("p++;");
+
+			CountScanned(writer, Scanned);
 		}
 
 		var floor = least is null ? "runStart" : "runStart + runLeast";
@@ -6435,7 +6448,8 @@ sealed partial class Machine
 
 		var state = Reserve(out var writer);
 
-		_usesRuns = true;
+		_usesRuns  = true;
+		_scansRuns = true;
 
 		writer.Line("var runStart = p;");
 
@@ -6473,6 +6487,8 @@ sealed partial class Machine
 			}
 
 			writer.Line("p++;");
+
+			CountScanned(writer, Scanned);
 		}
 
 		var retry = min > 0 && GuardedCharacterTest(repeatNode.Body) != null ? CompileRepeat(repeatNode, next, following) : (int?)null;

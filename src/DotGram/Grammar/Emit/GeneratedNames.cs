@@ -75,7 +75,7 @@ static partial class CSharpEmitter
 		"MaterializeDirectAsksMarks{v}", "MaterializeDirectArm{v}#",
 		"Reader{v}", "Deep{v}", "Same{v}", "Prefix{v}#", "PrefixNext{v}#", "PrefixDepth{v}#", "PrefixLongest{v}#",
 		"PrefixMembers{v}#", "PrefixExpected{v}#", "PrefixMiss{v}#", "Reach{v}", "Letters{v}", "TokenAt{v}", "Text{v}", "Span{v}",
-		"Offer{v}", "Locate{v}", "Searched{v}", "PassedOver{v}", "TurnWalked{v}",
+		"Offer{v}", "Locate{v}", "Searched{v}", "PassedOver{v}", "TurnWalked{v}", "Scanned{v}",
 	];
 
 	/// <summary>
@@ -87,7 +87,7 @@ static partial class CSharpEmitter
 	public static readonly string[] NestedKinds =
 	[
 		"Read", "ReadBody", "ReadPart#", "ReadBroken", "ReadBroken#", "RecRead", "RecReadBody", "RecWholeRead",
-		"RecWholeReadBody", "CountEntered",
+		"RecWholeReadBody", "CountEntered", "CountScanned",
 	];
 
 	/// <summary>
