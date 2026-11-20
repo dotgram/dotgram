@@ -31,9 +31,41 @@ namespace DotGram.Ir.Prototype;
 /// again is the replay. Inside braces or a look that decide nothing, nothing kept would outlive them.
 /// </para>
 /// </remarks>
+/// <summary>Which of the statements a replay can reach keep a record.</summary>
+enum ResumptionCriterion
+{
+	/// <summary>
+	/// The one decided: a statement keeps where it decides itself, or where something after it,
+	/// before its replay region ends, can decide — for only a decision moved at or after a
+	/// statement makes a replay read it again.
+	/// </summary>
+	Decided,
+
+	/// <summary>Every repetition and every unbounded statement a replay can reach.</summary>
+	Wide,
+
+	/// <summary>
+	/// A repetition only where a decision can open inside its turns and outlive them; other
+	/// statements as <see cref="Wide"/>. Measured, not used: a repetition with no decision of its
+	/// own is read again by every replay of a decision after it.
+	/// </summary>
+	Narrowed,
+}
+
 sealed class ResumptionSites
 {
-	static readonly ConditionalWeakTable<IrProgram, ResumptionSites> _known = [];
+	static readonly ConditionalWeakTable<IrProgram, Dictionary<ResumptionCriterion, ResumptionSites>> _known = [];
+
+	readonly ResumptionCriterion _criterion;
+
+	// The statement each statement of a function's body stands in, and the calls of each function.
+	readonly Dictionary<IrStmt, IrStmt> _parents = new(ReferenceEqualityComparer.Instance);
+	readonly Dictionary<IrFunction, List<IrStmt.Call>> _callers = [];
+	readonly Dictionary<IrStmt, IrFunction> _owners = new(ReferenceEqualityComparer.Instance);
+	readonly Dictionary<IrFunction, bool> _followed = [];
+
+	/// <summary>Every statement a replay can reach that the criterion leaves without a record, and why.</summary>
+	public Dictionary<IrStmt, string> Left { get; } = new(ReferenceEqualityComparer.Instance);
 
 	readonly Dictionary<IrStmt, string> _sites = new(ReferenceEqualityComparer.Instance);
 
@@ -47,8 +79,18 @@ sealed class ResumptionSites
 
 	readonly HashSet<(IrFunction, bool)> _visited = [];
 
-	ResumptionSites(IrProgram program)
+	ResumptionSites(IrProgram program, ResumptionCriterion criterion)
 	{
+		_criterion = criterion;
+
+		foreach (var function in program.Functions)
+		{
+			_callers.TryAdd(function, []);
+			Index(function, function.Body, null);
+		}
+
+		FindFollowed();
+
 		foreach (var function in program.Functions)
 		{
 			var reached = new HashSet<IrFunction>();
@@ -75,10 +117,146 @@ sealed class ResumptionSites
 	/// <summary>The slots some guard is handed: a reading that builds nothing still fills them.</summary>
 	public HashSet<IrSlot> ReadByGuards { get; } = [];
 
-	/// <summary>What is kept of a program, worked out once.</summary>
-	public static ResumptionSites Of(IrProgram program)
+	/// <summary>What is kept of a program under a criterion, worked out once.</summary>
+	public static ResumptionSites Of(IrProgram program, ResumptionCriterion criterion = ResumptionCriterion.Decided)
 	{
-		return _known.GetValue(program, static one => new ResumptionSites(one));
+		var known = _known.GetValue(program, static _ => []);
+
+		lock (known)
+		{
+			if (!known.TryGetValue(criterion, out var sites))
+				known.Add(criterion, sites = new ResumptionSites(program, criterion));
+
+			return sites;
+		}
+	}
+
+	void Index(IrFunction function, IrStmt stmt, IrStmt? parent)
+	{
+		_owners[stmt] = function;
+
+		if (parent is not null)
+			_parents[stmt] = parent;
+
+		if (stmt is IrStmt.Call call)
+		{
+			_callers.TryAdd(call.Target, []);
+			_callers[call.Target].Add(call);
+		}
+
+		foreach (var child in stmt.Children)
+			Index(function, child, stmt);
+	}
+
+	/// <summary>
+	/// Whether a decision can open after the statement and before the end of the replay region it
+	/// is read in: in what follows it in its sequence, in a later turn of a repetition round it,
+	/// and, past the end of its function, after any call of the function. Braces and looks end the
+	/// search: what is decided inside them is taken off the tape where they end.
+	/// </summary>
+	bool DecidesAfter(IrStmt stmt)
+	{
+		return Within(stmt) switch
+		{
+			true  => true,
+			false => false,
+			null  => _followed[_owners[stmt]],
+		};
+	}
+
+	/// <summary><see cref="DecidesAfter"/> inside the statement's own function: null where the search reaches the function's end.</summary>
+	bool? Within(IrStmt stmt)
+	{
+		var at = stmt;
+
+		while (_parents.TryGetValue(at, out var parent))
+		{
+			switch (parent)
+			{
+				case IrStmt.Block block:
+				{
+					var index = IndexOf(block.Items, at);
+
+					for (var i = index + 1; i < block.Items.Count; i++)
+						if (IrLowering.Decides(block.Items[i]))
+							return true;
+
+					break;
+				}
+
+				case IrStmt.Repeat repeat when IrLowering.Decides(repeat):
+					return true;
+
+				case IrStmt.Look or IrStmt.Commit:
+					return false;
+			}
+
+			at = parent;
+		}
+
+		return null;
+	}
+
+	static int IndexOf(IReadOnlyList<IrStmt> items, IrStmt item)
+	{
+		for (var i = 0; i < items.Count; i++)
+			if (ReferenceEquals(items[i], item))
+				return i;
+
+		return -1;
+	}
+
+	/// <summary>
+	/// Of every function, whether a decision can open after some call of it before that call's
+	/// replay region ends: the least answer that holds through every call, worked out by rounds.
+	/// </summary>
+	void FindFollowed()
+	{
+		foreach (var function in _callers.Keys)
+			_followed[function] = false;
+
+		var changed = true;
+
+		while (changed)
+		{
+			changed = false;
+
+			foreach (var (function, calls) in _callers)
+			{
+				if (_followed[function])
+					continue;
+
+				foreach (var call in calls)
+				{
+					if (Within(call) ?? _followed[_owners[call]])
+					{
+						_followed[function] = true;
+						changed             = true;
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	/// <summary>Whether a statement's closure reaches a fragment that names what the parser supplies.</summary>
+	static bool NamesParser(IrStmt stmt, HashSet<IrFunction> seen)
+	{
+		switch (stmt)
+		{
+			case IrStmt.Guard { Fragment.NamesParser: true } or IrStmt.Construct { Fragment.NamesParser: true }:
+				return true;
+
+			case IrStmt.Call call when seen.Add(call.Target) && NamesParser(call.Target.Body, seen):
+				return true;
+		}
+
+		foreach (var child in stmt.Children)
+			if (NamesParser(child, seen))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>Every statement kept, with why: a repetition, or what makes the statement's work unbounded.</summary>
@@ -157,7 +335,17 @@ sealed class ResumptionSites
 			_ => null,
 		};
 
-		if (why is not null)
+		if (why is null || Left.ContainsKey(stmt))
+			return;
+
+		var left = NamesParser(stmt, []) ? "it reads what the parser supplies, which no record holds"
+			: _criterion == ResumptionCriterion.Decided && !IrLowering.Decides(stmt) && !DecidesAfter(stmt) ? "nothing after it can decide"
+			: _criterion == ResumptionCriterion.Narrowed && stmt is IrStmt.Repeat repeat && !IrLowering.Decides(repeat.Body) && !repeat.Resumable ? "no decision of its own outlives a turn"
+			: null;
+
+		if (left is not null)
+			Left.Add(stmt, why + ": " + left);
+		else
 			_sites.Add(stmt, why);
 	}
 

@@ -57,6 +57,12 @@ sealed class IrSlot(int index, string name, IrSlotKind kind, string? type)
 /// <param name="Rule">The rule it was written in.</param>
 sealed record IrFragment(int Id, bool IsGuard, string Text, int At, IReadOnlyList<string> Parameters, string Rule)
 {
+	/// <summary>
+	/// Whether the text names what the parser supplies — its context or its own state — which no
+	/// record of a reading holds: what reads it is read again on every replay, never gone past.
+	/// </summary>
+	public bool NamesParser { get; init; }
+
 	public string Name => (IsGuard ? "g" : "c") + Id.ToString(CultureInfo.InvariantCulture);
 }
 

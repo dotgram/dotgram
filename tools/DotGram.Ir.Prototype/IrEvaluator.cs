@@ -227,7 +227,23 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	readonly List<Kept>           _kept  = [];
 	readonly Dictionary<int, int> _heads = [];
 
-	ResumptionSites _sites = null!;
+	ResumptionSites  _sites    = null!;
+	ResumptionSites? _measured;
+
+	/// <summary>Which statements keep a record (<see cref="ResumptionSites"/>).</summary>
+	public ResumptionCriterion Criterion { get; init; }
+
+	/// <summary>A criterion the reading is measured against: <see cref="WouldHaveJumped"/> counts where it would have left a record out.</summary>
+	public ResumptionCriterion? Measured { get; init; }
+
+	/// <summary>How many times a replay went straight to a turn or past a statement that <see cref="Measured"/> would have left without a record.</summary>
+	public long WouldHaveJumped { get; private set; }
+
+	void Took(IrStmt site)
+	{
+		if (_measured is not null && !_measured.Keeps(site))
+			WouldHaveJumped++;
+	}
 
 	/// <summary>The tape was cut: what was kept of places no longer behind it goes.</summary>
 	void Cut()
@@ -305,8 +321,18 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return (held, counts);
 	}
 
-	static void Restore(object?[] frame, IReadOnlyList<IrSlot> slots, Kept kept)
+	/// <summary>
+	/// Wrong on purpose: going straight to a turn or past a statement leaves the slots as the
+	/// replay found them rather than as they were kept. What the test of the turns that write and
+	/// put back their slots runs to show that the record is what holds them.
+	/// </summary>
+	public bool IgnoresHeld { get; init; }
+
+	void Restore(object?[] frame, IReadOnlyList<IrSlot> slots, Kept kept)
 	{
+		if (IgnoresHeld)
+			return;
+
 		// As many as both have: a record of another statement's (taken only where the owner check is off on purpose) may hold others.
 		for (var i = 0; i < Math.Min(kept.Held.Length, slots.Count); i++)
 		{
@@ -351,6 +377,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			Ways.Cursor = found.Key;
 			Restore(frame, writes, found);
 			Skips++;
+			Took(stmt);
 
 			return found.Read;
 		}
@@ -459,7 +486,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_said.Clear();
 		_kept.Clear();
 		_heads.Clear();
-		_sites    = ResumptionSites.Of(program);
+		_sites    = ResumptionSites.Of(program, Criterion);
+		_measured = Measured is { } measured ? ResumptionSites.Of(program, measured) : null;
+
+		WouldHaveJumped = 0;
 		Ways      = new IrWays();
 		Steps     = 0;
 		Jumps     = 0;
@@ -699,6 +729,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						turns       = found.Turns;
 						Ways.Cursor = found.Key;
 						Restore(frame, repeat.Resets, found);
+
+						Took(repeat);
 
 						if (found.IsEnd)
 						{

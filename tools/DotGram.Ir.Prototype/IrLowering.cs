@@ -736,10 +736,12 @@ sealed partial class IrLowering
 			? members.Where(member => names.Contains(member.Name)).Select(static member => member.Name).ToList()
 			: [];
 
-		if (names.Any(static name => name.StartsWith("parser", StringComparison.Ordinal) || name == "context"))
+		var namesParser = names.Any(static name => name.StartsWith("parser", StringComparison.Ordinal) || name == "context");
+
+		if (namesParser)
 			Tally("a fragment that names what the parser supplies");
 
-		var fragment = new IrFragment(id, isGuard, text, at, parameters, _rule.Name);
+		var fragment = new IrFragment(id, isGuard, text, at, parameters, _rule.Name) { NamesParser = namesParser };
 
 		_program.Fragments.Add(fragment);
 
