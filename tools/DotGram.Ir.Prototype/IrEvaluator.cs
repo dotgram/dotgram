@@ -232,6 +232,21 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return !_sites.Doors.TryGetValue(stmt, out var door) || _p < _text.Length && Within(door, _text[_p]);
 	}
 
+	/// <summary>How many times a reading entered a kept statement, a sentinel opened or not.</summary>
+	public long SiteEntries { get; private set; }
+
+	/// <summary>Of the entries into kept statements, how many at each statement.</summary>
+	public Dictionary<IrStmt, long> EntriesBy { get; } = new(ReferenceEqualityComparer.Instance);
+
+	/// <summary>Of each entry into a kept repetition: the turns it took and the items it read.</summary>
+	public List<(int Turns, int Read)> LoopEntries { get; } = [];
+
+	void Entered(IrStmt stmt)
+	{
+		SiteEntries++;
+		EntriesBy[stmt] = EntriesBy.GetValueOrDefault(stmt) + 1;
+	}
+
 	/// <summary>How many records a reading kept, in all.</summary>
 	public long Records { get; private set; }
 
@@ -667,8 +682,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (++Steps > StepBudget)
 			throw new IrStepsExceeded(StepBudget);
 
-		if (Resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt) && Opens(stmt))
-			return Site(stmt, frame);
+		if (Resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt))
+		{
+			Entered(stmt);
+
+			if (Opens(stmt))
+				return Site(stmt, frame);
+		}
 
 		return ExecInner(stmt, frame);
 	}
@@ -835,7 +855,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var turns = 0;
 				var owner = -1;
 
-				if (Resumes && _sites.Keeps(repeat) && Opens(repeat))
+				var counted = Resumes && _sites.Keeps(repeat);
+				var entry   = _p;
+
+				if (counted)
+					Entered(repeat);
+
+				if (counted && Opens(repeat))
 				{
 					var again = Ways.Cursor < Ways.Count;
 
@@ -929,6 +955,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				}
 
 				var stood = turns >= min;
+
+				if (counted)
+					LoopEntries.Add((turns, _p - entry));
 
 				if (owner >= 0 && Ways.Cursor < Ways.Count && Head(owner, repeat) is var last && (last is not { IsEnd: true } || !Usable(last)))
 				{

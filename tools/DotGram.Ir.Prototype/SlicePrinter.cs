@@ -26,6 +26,13 @@ enum SliceAblation
 
 	/// <summary>The whole but the calls, printed bare: the most that moving a call's code into the function called can save.</summary>
 	NoCallSites,
+
+	/// <summary>
+	/// The least any design with the same kept statements can cost a reading read for the first
+	/// time: every entry one compare of the cursor with the tape's end, the rest out of line and
+	/// doing nothing (no door, no flag, no sentinel). Not a parser that resumes.
+	/// </summary>
+	Ceiling,
 }
 
 enum SliceLanguage
@@ -484,17 +491,19 @@ sealed class SlicePrinter
 	/// <summary>Whether the statement opens a sentinel and keeps a record.</summary>
 	bool Kept(IrStmt stmt)
 	{
-		return _resumes && _ablation != SliceAblation.SentinelOnly && !(_ablation == SliceAblation.NoCallSites && stmt is IrStmt.Call) &&
+		return _resumes && _ablation is not (SliceAblation.SentinelOnly or SliceAblation.Ceiling) && !(_ablation == SliceAblation.NoCallSites && stmt is IrStmt.Call) &&
 			!ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt);
 	}
 
 	/// <summary>For <see cref="SliceAblation.SentinelOnly"/>: the decision a kept statement opens, and the statement as it is.</summary>
 	bool SentinelAlone(IrStmt stmt)
 	{
-		if (!(_resumes && _ablation == SliceAblation.SentinelOnly && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt)))
+		if (!(_resumes && _ablation is SliceAblation.SentinelOnly or SliceAblation.Ceiling && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt)))
 			return false;
 
-		if (_sites.Doors.TryGetValue(stmt, out var door))
+		if (_ablation == SliceAblation.Ceiling)
+			Line($"if ({Member("cursor")} < {Member("count")}) {Runtime("slow", "")};");
+		else if (_sites.Doors.TryGetValue(stmt, out var door))
 			Line($"if ({DoorTest(door)}) {Enter("0")};");
 		else
 			Line($"{Enter("0")};");

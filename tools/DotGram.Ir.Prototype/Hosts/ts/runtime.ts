@@ -169,6 +169,13 @@ export class Runtime
 		return this.count - 1;
 	}
 
+	// What a parser printed to measure the least cost of its kept statements calls where the tape
+	// is read back: nothing in it but a count, so that the entry is one compare.
+	slow(): void
+	{
+		this.kJumps++;
+	}
+
 	// A sentinel opened where the tape is read for the first time: a decision that can never move.
 	sentinel(): number
 	{

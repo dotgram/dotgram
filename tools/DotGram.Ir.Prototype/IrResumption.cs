@@ -30,6 +30,13 @@ enum ResumptionCriterion
 	/// own is read again by every replay of a decision after it.
 	/// </summary>
 	Narrowed,
+
+	/// <summary>
+	/// Measured, not used: <see cref="Decided"/>, and moreover only where after some decision that
+	/// keeps the statement (itself, or one after it) something can fail back to that decision
+	/// before braces, a look or the end of the input seal it.
+	/// </summary>
+	FailsBack,
 }
 
 /// <summary>
@@ -74,6 +81,12 @@ sealed class ResumptionSites
 	readonly Dictionary<IrStmt, IrFunction> _owners = new(ReferenceEqualityComparer.Instance);
 	readonly Dictionary<IrFunction, bool> _followed = [];
 
+	/// <summary>For every kept statement, the decision that keeps it under <see cref="ResumptionCriterion.Decided"/>, in words.</summary>
+	public Dictionary<IrStmt, string> Kept { get; } = new(ReferenceEqualityComparer.Instance);
+
+	readonly Dictionary<IrFunction, bool> _failFollowed = [];
+	readonly Dictionary<IrFunction, bool> _keptByCallers = [];
+
 	/// <summary>Every statement a replay can reach that the criterion leaves without a record, and why.</summary>
 	public Dictionary<IrStmt, string> Left { get; } = new(ReferenceEqualityComparer.Instance);
 
@@ -99,6 +112,8 @@ sealed class ResumptionSites
 		}
 
 		FindFollowed();
+		FindFailFollowed();
+		FindKeptByCallers();
 
 		foreach (var function in program.Functions)
 		{
@@ -368,6 +383,179 @@ sealed class ResumptionSites
 		}
 	}
 
+	/// <summary>The first decision after the statement inside its function, the enclosing deciding repetition counted; null where none before its end, and the reason in words.</summary>
+	(IrStmt? Decider, bool Sealed, string Where) FirstDecider(IrStmt stmt)
+	{
+		var at = stmt;
+
+		while (_parents.TryGetValue(at, out var parent))
+		{
+			switch (parent)
+			{
+				case IrStmt.Block block:
+				{
+					var index = IndexOf(block.Items, at);
+
+					for (var i = index + 1; i < block.Items.Count; i++)
+						if (IrLowering.Decides(block.Items[i]))
+							return (block.Items[i], false, "a later " + Spell(block.Items[i]) + " in " + _owners[stmt].Name);
+
+					break;
+				}
+
+				case IrStmt.Repeat repeat when IrLowering.Decides(repeat):
+					return (repeat, false, "a later turn of a deciding repetition in " + _owners[stmt].Name);
+
+				case IrStmt.Look or IrStmt.Commit:
+					return (null, true, "");
+			}
+
+			at = parent;
+		}
+
+		return (null, false, "");
+	}
+
+	static string Spell(IrStmt stmt)
+	{
+		return stmt is IrStmt.Call call ? "call of " + call.Target.Name : stmt.GetType().Name.ToLowerInvariant();
+	}
+
+	/// <summary>Whether the statement can fail: what reads input or asks; not what only assigns or builds, nor a repetition that may take no turn.</summary>
+	static bool Failable(IrStmt stmt)
+	{
+		return stmt switch
+		{
+			IrStmt.Assign or IrStmt.Append or IrStmt.Construct => false,
+			IrStmt.Block block => block.Items.Any(Failable),
+			IrStmt.Scope or IrStmt.Replay or IrStmt.Commit => Failable(stmt.Children.Single()),
+			IrStmt.Choice choice => choice.Alternatives.All(Failable),
+			IrStmt.Repeat repeat => repeat.Min is not IrExpr.Number { Value: 0 } && Failable(repeat.Body),
+			_ => true,
+		};
+	}
+
+	/// <summary>Whether something after the statement inside its function can fail before braces or a look seal it; null where the search reaches the function's end.</summary>
+	bool? FailsWithin(IrStmt stmt)
+	{
+		var at = stmt;
+
+		while (_parents.TryGetValue(at, out var parent))
+		{
+			switch (parent)
+			{
+				case IrStmt.Block block:
+				{
+					var index = IndexOf(block.Items, at);
+
+					for (var i = index + 1; i < block.Items.Count; i++)
+						if (Failable(block.Items[i]))
+							return true;
+
+					break;
+				}
+
+				case IrStmt.Look or IrStmt.Commit:
+					return false;
+			}
+
+			at = parent;
+		}
+
+		return null;
+	}
+
+	bool FailsAfter(IrStmt stmt)
+	{
+		return FailsWithin(stmt) ?? _failFollowed[_owners[stmt]];
+	}
+
+	/// <summary>Of every function, whether something can fail after some call of it before a seal: the least answer, by rounds.</summary>
+	void FindFailFollowed()
+	{
+		foreach (var function in _callers.Keys)
+			_failFollowed[function] = false;
+
+		for (var changed = true; changed;)
+		{
+			changed = false;
+
+			foreach (var (function, calls) in _callers)
+			{
+				if (!_failFollowed[function] && calls.Any(call => FailsWithin(call) ?? _failFollowed[_owners[call]]))
+				{
+					_failFollowed[function] = true;
+					changed                 = true;
+				}
+			}
+		}
+	}
+
+	/// <summary>Of every function, whether after some call of it a decision comes that something after can fail back to: the least answer, by rounds.</summary>
+	void FindKeptByCallers()
+	{
+		foreach (var function in _callers.Keys)
+			_keptByCallers[function] = false;
+
+		for (var changed = true; changed;)
+		{
+			changed = false;
+
+			foreach (var (function, calls) in _callers)
+			{
+				if (_keptByCallers[function])
+					continue;
+
+				foreach (var call in calls)
+				{
+					var (decider, sealedOff, _) = FirstDecider(call);
+
+					if (decider is not null ? FailsAfter(decider) : !sealedOff && _keptByCallers[_owners[call]])
+					{
+						_keptByCallers[function] = true;
+						changed                  = true;
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	/// <summary>Whether, under <see cref="ResumptionCriterion.FailsBack"/>, a decision that keeps the statement has something after it that can fail back.</summary>
+	bool FailsBack(IrStmt stmt)
+	{
+		if (IrLowering.Decides(stmt) && FailsAfter(stmt))
+			return true;
+
+		var (decider, sealedOff, _) = FirstDecider(stmt);
+
+		return decider is not null ? FailsAfter(decider) : !sealedOff && _keptByCallers[_owners[stmt]];
+	}
+
+	/// <summary>The decision that keeps a statement under <see cref="ResumptionCriterion.Decided"/>, in words.</summary>
+	string Justified(IrStmt stmt)
+	{
+		if (IrLowering.Decides(stmt))
+			return "it decides itself";
+
+		var (decider, _, where) = FirstDecider(stmt);
+
+		if (decider is not null)
+			return where;
+
+		// Past the function's end: the first caller whose continuation decides.
+		foreach (var call in _callers[_owners[stmt]])
+		{
+			var (after, _, said) = FirstDecider(call);
+
+			if (after is not null)
+				return "after a call from " + _owners[call].Name + ": " + said;
+		}
+
+		return "after a call, further up";
+	}
+
 	/// <summary>Whether a statement's closure reaches a fragment that names what the parser supplies.</summary>
 	static bool NamesParser(IrStmt stmt, HashSet<IrFunction> seen)
 	{
@@ -476,6 +664,7 @@ sealed class ResumptionSites
 			: _criterion == ResumptionCriterion.Repetitions && stmt is not IrStmt.Repeat ? "only repetitions are kept"
 			: _criterion is ResumptionCriterion.Decided or ResumptionCriterion.Repetitions && !IrLowering.Decides(stmt) && !DecidesAfter(stmt) ? "nothing after it can decide"
 			: _criterion == ResumptionCriterion.Narrowed && stmt is IrStmt.Repeat repeat && !IrLowering.Decides(repeat.Body) && !repeat.Resumable ? "no decision of its own outlives a turn"
+			: _criterion == ResumptionCriterion.FailsBack && (!IrLowering.Decides(stmt) && !DecidesAfter(stmt) || !FailsBack(stmt)) ? "nothing can fail back to a decision that keeps it"
 			: null;
 
 		if (left is not null)
@@ -483,6 +672,7 @@ sealed class ResumptionSites
 		else
 		{
 			_sites.Add(stmt, why);
+			Kept[stmt] = Justified(stmt);
 
 			// A guard's or a reference's work does not hang on the next item.
 			var door = stmt switch

@@ -661,6 +661,108 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	];
 
 	/// <summary>
+	/// Counts on accepted inputs, not timings: how many kept statements a reading enters and how many
+	/// sentinels it opens per byte, under the criterion in force and under one that also asks that
+	/// something can fail back after the deciding statement; why each braces site of RFC 5322 is
+	/// kept; and how many turns and items each entry into a kept repetition reads.
+	/// </summary>
+	[Fact]
+	public void TheAcceptingPath_IsCounted()
+	{
+		var text  = new StringBuilder("row\tcriterion\tkept statements\tentries per byte\tsentinels per byte\n");
+		var whys  = new StringBuilder("row\tstatement\tkept because\tentries\n");
+		var loops = new StringBuilder("row\tturns 0\t1\t2\t3\t4-7\t8-15\t16+\t| items read 0\t1\t2-3\t4-7\t8-15\t16+\t| entries\n");
+
+		foreach (var (name, file, entry, inputs) in AcceptedRows.Where(static row => row.File is "Rfc5322.cs" or "Rfc9651.cs" or "Rfc3986.cs"))
+		{
+			var program = Reading.Program(Graphs.WebGrammar(file));
+
+			foreach (var criterion in new[] { ResumptionCriterion.Decided, ResumptionCriterion.FailsBack })
+			{
+				var entries   = 0L;
+				var sentinels = 0L;
+				var bytes     = 0L;
+				var by        = new Dictionary<IrStmt, long>(ReferenceEqualityComparer.Instance);
+				var turns     = new List<(int Turns, int Read)>();
+
+				foreach (var input in inputs)
+				{
+					var evaluator = new IrEvaluator(program, new RecordingHost()) { Resumes = true, Criterion = criterion };
+
+					if (!evaluator.Parse(entry, input).Accepted)
+						continue;
+
+					entries   += evaluator.SiteEntries;
+					sentinels += evaluator.Sentinels;
+					bytes     += input.Length;
+					turns.AddRange(evaluator.LoopEntries);
+
+					foreach (var (stmt, count) in evaluator.EntriesBy)
+						by[stmt] = by.GetValueOrDefault(stmt) + count;
+				}
+
+				var sites = ResumptionSites.Of(program, criterion);
+
+				text.Append(name).Append('\t').Append(criterion).Append('\t').Append(sites.Sites.Count).Append('\t')
+					.Append((entries / (double)bytes).ToString("F3", CultureInfo.InvariantCulture)).Append('\t')
+					.Append((sentinels / (double)bytes).ToString("F3", CultureInfo.InvariantCulture)).Append('\n');
+
+				if (criterion != ResumptionCriterion.Decided)
+					continue;
+
+				var decided = ResumptionSites.Of(program);
+
+				foreach (var group in by.GroupBy(one => one.Key.GetType().Name + " in " + Owner(program, one.Key) + "\t" + decided.Kept.GetValueOrDefault(one.Key, "?")).OrderByDescending(static one => one.Sum(static pair => pair.Value)).Take(12))
+					whys.Append(name).Append('\t').Append(group.Key).Append('\t').Append(group.Sum(static pair => pair.Value)).Append('\n');
+
+				int Bucket(int value, int[] edges)
+				{
+					var at = 0;
+
+					while (at < edges.Length && value >= edges[at])
+						at++;
+
+					return at;
+				}
+
+				int[] turnEdges = [1, 2, 3, 4, 8, 16];
+				int[] readEdges = [1, 2, 4, 8, 16];
+				var byTurns = new int[turnEdges.Length + 1];
+				var byRead  = new int[readEdges.Length + 1];
+
+				foreach (var (count, read) in turns)
+				{
+					byTurns[Bucket(count, turnEdges)]++;
+					byRead[Bucket(read, readEdges)]++;
+				}
+
+				loops.Append(name).Append('\t').AppendJoin('\t', byTurns).Append("\t|\t").AppendJoin('\t', byRead).Append("\t|\t").Append(turns.Count).Append('\n');
+			}
+		}
+
+		var all = text + "\n" + whys + "\n" + loops;
+
+		output.WriteLine(all);
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "accepting-counts.tsv"), all);
+
+		static string Owner(IrProgram program, IrStmt stmt)
+		{
+			foreach (var function in program.Functions)
+				if (Contains(function.Body, stmt))
+					return function.Name;
+
+			return "?";
+		}
+
+		static bool Contains(IrStmt within, IrStmt stmt)
+		{
+			return ReferenceEquals(within, stmt) || within.Children.Any(child => Contains(child, stmt));
+		}
+	}
+
+	/// <summary>
 	/// The same rows in C: each parser printed with its sentinels, alone, the code round them alone,
 	/// and without doors, compiled by gcc, timed in turns against the parser without resumption.
 	/// </summary>
