@@ -429,6 +429,190 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	{
 	}
 
+	/// <summary>
+	/// The printed parsers resume as the evaluator does: every ladder costs its length in
+	/// TypeScript with each way of keeping frames and in C, by the parsers' own counters, and the
+	/// host is called as often as the input is long.
+	/// </summary>
+	[Fact]
+	public void EveryPrintedLadderCostsItsLength()
+	{
+		int[] sizes = [16000, 32000, 64000];
+
+		var text   = new StringBuilder();
+		var failed = new List<string>();
+		var only   = Environment.GetEnvironmentVariable("LADDER");
+
+		foreach (var (name, options) in Linear.Where(one => only is null || one.Shape == only))
+		{
+			var shape = Ladders.Shapes.Single(one => one.Name == name);
+
+			foreach (var frames in new SliceFrames?[] { SliceFrames.None, SliceFrames.Recursive, SliceFrames.All, null })
+			{
+				var rungs = Ladders.Printed(shape, options, frames, sizes);
+				var where = frames is { } kept ? "TypeScript " + kept : "C";
+
+				text.Append(Ladders.Table($"{shape.Name}, {where}, {Named(options)}", rungs));
+
+				var steps = (rungs[2].Steps / (double)rungs[1].Steps, rungs[1].Steps / (double)rungs[0].Steps);
+
+				if (steps.Item1 is < 1.9 or > 2.1 || steps.Item2 is < 1.9 or > 2.1)
+					failed.Add(string.Create(CultureInfo.InvariantCulture, $"{shape.Name} {where}: steps {rungs[0].Steps} {rungs[1].Steps} {rungs[2].Steps}"));
+
+				if (rungs[0].HostCalls > 0 && (rungs[2].HostCalls > 2.1 * rungs[1].HostCalls || rungs[1].HostCalls > 2.1 * rungs[0].HostCalls))
+					failed.Add(string.Create(CultureInfo.InvariantCulture, $"{shape.Name} {where}: host calls {rungs[0].HostCalls} {rungs[1].HostCalls} {rungs[2].HostCalls}"));
+			}
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "ladders-printed.tsv"), text.ToString());
+
+		Assert.True(failed.Count == 0, string.Join("; ", failed));
+	}
+
+	/// <summary>
+	/// In the printed parsers the head of each entry's records is kept beside the tape and never
+	/// cleared, and a record names its owner: a head left from an earlier owner or reading is told
+	/// apart by that. Without the comparison (on purpose) a sentinel takes another entry's record,
+	/// and the answer or the host calls differ from the evaluator's somewhere among the nested and
+	/// calculator fixtures.
+	/// </summary>
+	[Fact]
+	public void PrintedParsers_TellTheirOwnRecordsApart()
+	{
+		var differs = new int[2];
+
+		foreach (var name in new[] { "NestedSettled", "Arithmetic" })
+		{
+			var fixture = Cases.Fixtures[name];
+			var inputs  = Cases.InputsOf(name);
+
+			inputs.AddRange(Ladders.Shapes.Where(shape => shape.Fixture == name).Select(static shape => shape.Input(40)));
+
+			if (name == "Arithmetic")
+				inputs.AddRange(["(1^0^4)^1/", "((1^0^4)^1/2)^1/"]);
+
+			foreach (var options in Lowerings)
+			{
+				var program  = Reading.Program(fixture.Grammar, options);
+				var expected = inputs.Select(input => Slices.Evaluated(program, fixture.Entry, input, fixture.Guards)).ToList();
+
+				foreach (var anyOwner in new[] { false, true })
+				{
+					var runs = new List<Func<List<SliceAnswer>>>
+					{
+						() => Slices.InC(name + "-owner", program, fixture.Entry, inputs, anyOwner: anyOwner),
+						() => Slices.TypeScript(name + "-owner", program, fixture.Entry, inputs, frames: SliceFrames.None, anyOwner: anyOwner),
+					};
+
+					for (var r = 0; r < runs.Count; r++)
+					{
+						var run = runs[r];
+
+						List<SliceAnswer> actual;
+
+						// Taking another entry's record may break the order of the stack, which the C
+						// parser stops on: that is an answer that differs too.
+						try
+						{
+							actual = run();
+						}
+						catch (Exception) when (anyOwner)
+						{
+							differs[r]++;
+
+							continue;
+						}
+
+						for (var i = 0; i < inputs.Count; i++)
+						{
+							var same = i < actual.Count && actual[i].Head == expected[i].Head && actual[i].Log.SequenceEqual(expected[i].Log);
+
+							if (!anyOwner)
+								Assert.True(same, $"{name} on {Twin.Quoted(inputs[i])}");
+							else if (!same)
+								differs[r]++;
+						}
+					}
+				}
+			}
+		}
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "owner-mutation-printed.txt"), string.Create(CultureInfo.InvariantCulture, $"without the owner comparison, differing answers or runs: C {differs[0]}, TypeScript {differs[1]}\n"));
+
+		Assert.True(differs[0] > 0 && differs[1] > 0, "without the owner comparison nothing differs in C or in TypeScript: the fixtures do not reach a head of another owner");
+	}
+
+	/// <summary>
+	/// What a refusal of 64,000 turns leaves held: the records at most at once in the evaluator,
+	/// and in the printed parsers the bytes of the tape and the records at their largest and after
+	/// the reading, when storage grown past 4,096 entries goes back to its first size.
+	/// </summary>
+	[Fact]
+	public void ALongRefusal_LeavesItsStorageBehindOnlyUpToTheBound()
+	{
+		var text = new StringBuilder("shape\truntime\tmost records (evaluator) / bytes at most\tbytes after\n");
+
+		foreach (var name in new[] { "loop", "settled config", "nested settled", "(b) sealed", "(e) deciding nest" })
+		{
+			var shape   = Ladders.Shapes.Single(one => one.Name == name);
+			var fixture = Cases.Fixtures[shape.Fixture];
+			var program = Reading.Program(fixture.Grammar);
+			var input   = shape.Input(64000);
+
+			var evaluator = new IrEvaluator(program, new Ladders.CountingHost(fixture.Guards)) { Resumes = true };
+
+			evaluator.Parse(fixture.Entry, input);
+			text.Append(name).Append("\tevaluator\t").Append(evaluator.MostKept).Append("\t-\n");
+
+			foreach (var frames in new SliceFrames?[] { SliceFrames.None, null })
+			{
+				var answer = frames is { } kept
+					? Slices.TypeScript("Held-" + shape.Fixture, program, fixture.Entry, [input], frames: kept, counted: true, stackKilobytes: 1_000_000, systemStackKilobytes: 2_000_000)[0]
+					: Slices.InC("Held-" + shape.Fixture, program, fixture.Entry, [input], counted: true, stackMegabytes: 2048)[0];
+
+				var counts = answer.Counts!;
+
+				text.Append(name).Append('\t').Append(frames is null ? "C" : "TypeScript").Append('\t').Append(counts[5]).Append('\t').Append(counts[6]).Append('\n');
+
+				Assert.True(counts[6] <= 4096 * 64, $"{name}: {counts[6]} bytes held after the reading");
+			}
+		}
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "retention.tsv"), text.ToString());
+	}
+
+	/// <summary>
+	/// A grammar that decides nothing pays nothing for resumption: JSON keeps no statement, and its
+	/// printed parsers, in every form, hold none of the code that opens sentinels, keeps records or
+	/// stops building — they are the parsers they were.
+	/// </summary>
+	[Fact]
+	public void AGrammarThatDecidesNothing_PrintsNothingOfResumption()
+	{
+		foreach (var program in new[] { Reading.Program(Graphs.WebGrammar("Rfc8259.cs")), Reading.Program(Grammars.Json) })
+		{
+			Assert.Empty(ResumptionSites.Of(program).Sites);
+
+			var printed = Enum.GetValues<SliceFrames>().Select(frames => SlicePrinter.Print(program, SliceLanguage.TypeScript, frames)).Append(SlicePrinter.Print(program, SliceLanguage.C));
+
+			foreach (var text in printed)
+			{
+				foreach (var token in new[] { "keep(", "head(", "stood(", "retried(", "undeferred(", "cut(" })
+					Assert.DoesNotContain(token, text, StringComparison.Ordinal);
+
+				// Nor a list taken whole only where the reading builds.
+				Assert.DoesNotMatch(@"unbuilt == 0\) \S+ = (val_items|\()", text);
+			}
+		}
+	}
+
 	/// <summary>The lowered programs of the fixtures, written out to be read.</summary>
 	[Fact]
 	public void Programs_AreWrittenOut()

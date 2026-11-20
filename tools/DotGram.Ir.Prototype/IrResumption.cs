@@ -328,8 +328,10 @@ sealed class ResumptionSites
 		if (!inReplay || _sites.ContainsKey(stmt))
 			return;
 
+		// A repetition of a bounded number of turns is bounded work unless its body is not.
 		var why = stmt switch
 		{
+			IrStmt.Repeat { Max: IrExpr.Number } bounded => Residual(bounded.Body) is { } inside ? "a bounded repetition over " + inside : null,
 			IrStmt.Repeat => "a repetition",
 			IrStmt.Call or IrStmt.Look or IrStmt.Commit or IrStmt.MatchSame or IrStmt.Guard => Residual(stmt),
 			_ => null,

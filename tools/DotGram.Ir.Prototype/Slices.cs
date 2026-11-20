@@ -218,14 +218,24 @@ static class Slices
 	public static List<SliceAnswer> TypeScript(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
 		string host = "recording.ts", IEnumerable<string>? guardAnswers = null, string? throwOn = null,
-		int? stackKilobytes = null, int? systemStackKilobytes = null, SliceFrames frames = SliceFrames.Recursive, bool counted = false)
+		int? stackKilobytes = null, int? systemStackKilobytes = null, SliceFrames frames = SliceFrames.Recursive, bool counted = false, bool anyOwner = false)
 	{
 		var (node, environment) = Node;
 
 		var directory = Workspace(name, "ts");
 
-		if (counted)
-			environment = new Dictionary<string, string>(environment) { ["IR_COUNTS"] = "1" };
+		if (counted || anyOwner)
+		{
+			var more = new Dictionary<string, string>(environment);
+
+			if (counted)
+				more["IR_COUNTS"] = "1";
+
+			if (anyOwner)
+				more["IR_ANY_OWNER"] = "1";
+
+			environment = more;
+		}
 
 		try
 		{
@@ -290,7 +300,7 @@ static class Slices
 	/// <param name="stackMegabytes">The stack of a thread made for the reading, where not the process's own.</param>
 	public static List<SliceAnswer> InC(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
-		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null, bool counted = false)
+		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null, bool counted = false, bool anyOwner = false)
 	{
 		var gcc       = Gcc;
 		var directory = Workspace(name, "c");
@@ -324,6 +334,9 @@ static class Slices
 			if (counted)
 				environment["IR_COUNTS"] = "1";
 
+			if (anyOwner)
+				environment["IR_ANY_OWNER"] = "1";
+
 			var (exit, output, error) = Run(Path.Combine(directory, "slice"), [entry, "batch.bin", "answers.txt"], directory, environment);
 
 			Assert.True(exit == 0, "the C parser: exit " + exit.ToString(CultureInfo.InvariantCulture) + " " + error);
@@ -339,9 +352,8 @@ static class Slices
 	/// <summary>What the evaluator says of an input, in the words the drivers use.</summary>
 	public static SliceAnswer Evaluated(IrProgram program, string entry, string input, Func<IrFragment, object?[], bool>? guards)
 	{
-		// The printed parsers do not defer building yet.
 		var host    = new RecordingHost(guards);
-		var outcome = new IrEvaluator(program, host) { BuildsThroughout = true }.Parse(entry, input);
+		var outcome = new IrEvaluator(program, host) { Resumes = true }.Parse(entry, input);
 
 		var head = outcome.Accepted
 			? outcome.Line

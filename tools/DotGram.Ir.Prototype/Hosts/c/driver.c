@@ -38,6 +38,9 @@ static void overflowed(int signal)
 static void *run(void *unused)
 {
 	Parser   P     = { 0 };
+
+	P.anyOwner = getenv("IR_ANY_OWNER") != NULL;
+
 	int32_t  count = *(int32_t *)batch;
 	uint8_t *at    = batch + 4;
 
@@ -71,8 +74,12 @@ static void *run(void *unused)
 			printf("\n");
 		}
 
+		long long peak = (long long)rt_held(&P);
+
+		rt_release(&P, 4096);
+
 		if (getenv("IR_COUNTS") != NULL)
-			printf("K %lld %lld %d %lld %lld\n", (long long)P.kSteps, (long long)P.kEntered, P.retries, (long long)P.kJumps, (long long)P.kHost);
+			printf("K %lld %lld %d %lld %lld %lld %lld\n", (long long)P.kSteps, (long long)P.kEntered, P.retries, (long long)P.kJumps, (long long)P.kHost, peak, (long long)rt_held(&P));
 
 		host_end(&P);
 		printf(".\n");

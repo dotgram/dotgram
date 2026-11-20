@@ -164,9 +164,10 @@ static class Ladders
 		var inputs  = turns.Select(shape.Input).ToList();
 		var name    = "Ladder-" + shape.Fixture + (options is null ? "" : "-open");
 
+		// Stacks for the deepest nest a ladder reads, sixty-four thousand levels.
 		var answers = frames is { } kept
-			? Slices.TypeScript(name, program, fixture.Entry, inputs, frames: kept, counted: true)
-			: Slices.InC(name, program, fixture.Entry, inputs, counted: true);
+			? Slices.TypeScript(name, program, fixture.Entry, inputs, frames: kept, counted: true, stackKilobytes: 1_000_000, systemStackKilobytes: 2_000_000)
+			: Slices.InC(name, program, fixture.Entry, inputs, counted: true, stackMegabytes: 2048);
 
 		return [.. answers.Select((answer, i) =>
 		{
