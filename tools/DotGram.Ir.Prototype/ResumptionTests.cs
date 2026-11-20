@@ -33,7 +33,10 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	{
 		var text = new StringBuilder();
 
-		foreach (var shape in Ladders.Shapes)
+		// LADDER=<shape name> narrows the run to one shape.
+		var only = Environment.GetEnvironmentVariable("LADDER");
+
+		foreach (var shape in Ladders.Shapes.Where(shape => only is null || shape.Name == only))
 		{
 			foreach (var options in Lowerings)
 				text.Append(Ladders.Table($"{shape.Name}, evaluator without resumption, {Named(options)}", Ladders.Evaluated(shape, options, resumes: false, budget: 30_000_000, Small)));

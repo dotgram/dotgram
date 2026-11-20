@@ -42,6 +42,15 @@ static class Cases
 		["SettledBefore"]         = new(Grammars.SettledBefore,         typeof(SettledBeforeParser),         "ParseStart", Defers: true),
 		["SealedBefore"]          = new(Grammars.SealedBefore,          typeof(SealedBeforeParser),          "ParseStart", Defers: true),
 		["CalledBefore"]          = new(Grammars.CalledBefore,          typeof(CalledBeforeParser),          "ParseStart", Defers: true),
+		["FailedTurnBefore"]      = new(Grammars.FailedTurnBefore,      typeof(FailedTurnBeforeParser),      "ParseStart", Defers: true),
+		["NestedSealedBefore"]    = new(Grammars.NestedSealedBefore,    typeof(NestedSealedBeforeParser),    "ParseStart", Defers: true),
+		["LongLookBefore"]        = new(Grammars.LongLookBefore,        typeof(LongLookBeforeParser),        "ParseStart", Defers: true),
+		["SealedCaptureBefore"]   = new(Grammars.SealedCaptureBefore,   typeof(SealedCaptureBeforeParser),   "ParseStart", Defers: true),
+		["DecidingNestBefore"]    = new(Grammars.DecidingNestBefore,    typeof(DecidingNestBeforeParser),    "ParseStart", Defers: true),
+		["SameBefore"]            = new(Grammars.SameBefore,            typeof(SameBeforeParser),            "ParseStart", Defers: true),
+		["YamlLineBefore"]        = new(Grammars.YamlLineBefore,        typeof(YamlLineBeforeParser),        "ParseStart", Defers: true),
+		["DeepSplit"]             = new(Grammars.DeepSplit,             typeof(DeepSplitParser),             "ParseStart"),
+		["DeepSplitOpen"]         = new(Grammars.DeepSplitOpen,         typeof(DeepSplitOpenParser),         "ParseStart"),
 		["Json"]                  = new(Grammars.Json,                  typeof(JsonTwinParser),              "ParseJson"),
 	};
 
@@ -90,6 +99,15 @@ static class Cases
 		Add("SettledBefore",         "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");
 		Add("SealedBefore",          "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");
 		Add("CalledBefore",          "a", "  a", "   a,b,c", "  a,b!", " b,", "   ", "a,b,c,", " a ");
+		Add("FailedTurnBefore",      "a", "ab;a", "ab;cd;a,b", "abc", "abc!", "ab;a,b,c!", "a,b,", ";a");
+		Add("NestedSealedBefore",    "<>a", "<00>a", "<000>a,b,c", "<00>a,b!", "<0b,", "<00", "<>a,b,c,", "00a");
+		Add("LongLookBefore",        "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");
+		Add("SealedCaptureBefore",   "a;a", "00ab;a", "000x;a,b,c", "00a;a,b!", "0;b,", "000", "x;a,b,c,", "0a0;a");
+		Add("DecidingNestBefore",    "(ya", "((y)a", "(((y))a,b,c", "((y)a,b!", "(y)a", "((y", "(ya,b,c,", "y");
+		Add("SameBefore",            "0=0a", "00=00a", "000=000a,b,c", "00=00a,b!", "0=00a", "00=0a", "0=0a,b,c,", "=a");
+		Add("YamlLineBefore",        "1:a", "  12:a", "   123:a,b,c", "  1:a,b!", " :a", "1:", "1:a,b,c,", "  a:b");
+		Add("DeepSplit",             "!", "b!", "(bb)!", "((bbb))!", "((bbb))", "(b))!", "((b)!", "bbbb");
+		Add("DeepSplitOpen",         "!", "b!", "(bb!", "((bbb!", "((bbb", "(b)!", "((b", "bbbb");
 		Add("Json",                  "1", " [1, 2 ,{\"a\":null}] ", "{}", "[]", "[1,]", "{\"a\" 1}", "tru", "\"\\u12G4\"", "[[[", "01", "1e", "-", "{\"a\":[true,false,{\"b\":\"\\n\"}]}");
 
 		return data;
