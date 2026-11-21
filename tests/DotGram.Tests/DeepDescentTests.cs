@@ -351,6 +351,69 @@ public sealed class DeepDescentTests
 			$"{string.Join(", ", entries)} rule entries at 250, 500, 1000 and 2000 levels.");
 	}
 
+	/// <summary>
+	/// What the reader does on the nests, counted, with the memo and without it: written to the file
+	/// <c>DOTGRAM_DEEP_DESCENT_COUNTS</c> names, for a measurement and not a gate; without it, nothing.
+	/// </summary>
+	[Fact]
+	public void The_nests_are_counted_where_asked()
+	{
+		var file = Environment.GetEnvironmentVariable("DOTGRAM_DEEP_DESCENT_COUNTS");
+
+		if (string.IsNullOrEmpty(file))
+			return;
+
+		var rows = new (string Name, string Grammar, Func<int, string> Text)[]
+		{
+			("Sealed",  Sealed, d => new string('(', d) + new string('b', d) + string.Concat(Enumerable.Repeat("aa)", d))),
+			("Open(b)", Open,   d => new string('(', d) + "b"),
+			("Open()",  Open,   d => new string('(', d)),
+			("Open",    Open,   d => new string('(', d) + new string('b', d)),
+			("Vary",    Vary,   d => new string('(', d) + new string('b', d) + new string(')', d)),
+			("Split",   Split,  d => new string('(', d) + new string('b', d) + new string(')', d)),
+			("Prefix",  Prefix, d => string.Concat(Enumerable.Repeat("(a", d)) + new string('b', d) + new string(')', d)),
+		};
+
+		var lines = new List<string>();
+
+		foreach (var (name, grammar, text) in rows)
+		{
+			foreach (var dooms in new[] { false, true })
+			{
+				var parser = Compiled(grammar, dooms, counts: true);
+				var fields = parser.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public)
+					.SelectMany(static type => type.GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+					.Where(static field => field.FieldType == typeof(long) && field.Name.StartsWith("Count", StringComparison.Ordinal))
+					.ToList();
+
+				foreach (var depth in new[] { 2000, 4000, 8000 })
+				{
+					var input = text(depth);
+
+					Answer(parser, input);
+
+					foreach (var field in fields)
+						field.SetValue(null, 0L);
+
+					var before = GC.GetTotalAllocatedBytes(true);
+
+					Answer(parser, input);
+
+					var allocated = GC.GetTotalAllocatedBytes(true) - before;
+					var entered   = fields.Where(static field => field.Name.StartsWith("CountEntered_", StringComparison.Ordinal)).Sum(static field => (long)field.GetValue(null)!);
+					var counted   = fields
+						.Where(static field => !field.Name.StartsWith("CountEntered_", StringComparison.Ordinal))
+						.GroupBy(static field => field.Name)
+						.Select(static group => $"{group.Key}={group.Sum(static field => (long)field.GetValue(null)!)}");
+
+					lines.Add($"{name}\t{(dooms ? "on" : "off")}\t{depth}\tentered={entered}\tallocated={allocated}\t{string.Join("\t", counted)}");
+				}
+			}
+		}
+
+		System.IO.File.WriteAllLines(file, lines);
+	}
+
 	/// <summary>Rule entries of one reading, from a fresh zero; the reading refuses.</summary>
 	static long Entries(Type parser, string input)
 	{

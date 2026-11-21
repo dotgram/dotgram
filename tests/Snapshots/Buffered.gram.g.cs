@@ -3864,6 +3864,12 @@ namespace DotGram.Snapshots
 
 			internal static long CountMarkSteps = 0;
 
+			internal static long CountRetries = 0;
+
+			internal static long CountRetrySteps = 0;
+
+			internal static long CountRetrySkips = 0;
+
 			#endif
 			internal int[] Refs = new int[48];
 
@@ -4017,8 +4023,16 @@ namespace DotGram.Snapshots
 
 			internal bool Retry(int segment)
 			{
+				#if DOTGRAM_COUNTS
+				CountRetries++;
+				#endif
+
 				for (var way = Cursor - 1; way >= segment; way--)
 				{
+					#if DOTGRAM_COUNTS
+					CountRetrySteps++;
+					#endif
+
 					if (Items[way * 2] < Items[way * 2 + 1])
 					{
 						Items[way * 2]++;

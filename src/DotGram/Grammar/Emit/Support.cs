@@ -3353,6 +3353,15 @@ static partial class CSharpEmitter
 			/// <summary>Standing marks the walk read, summed over every walk.</summary>
 			internal static long CountMarkSteps = 0;
 
+			/// <summary>Retries asked for, whether or not they found a way.</summary>
+			internal static long CountRetries = 0;
+
+			/// <summary>Ways a retry looked at on its walk down to an open one, summed over every retry.</summary>
+			internal static long CountRetrySteps = 0;
+
+			/// <summary>Sealed stretches a retry stepped over in one move, summed over every retry.</summary>
+			internal static long CountRetrySkips = 0;
+
 			#endif
 			/// <summary>
 			/// Captures collected while a rule runs and gathered into its record at the end:
@@ -3585,12 +3594,24 @@ static partial class CSharpEmitter
 			/// </remarks>
 			internal bool Retry(int segment)
 			{
+				#if DOTGRAM_COUNTS
+				CountRetries++;
+				#endif
+
 				for (var way = Cursor - 1; way >= segment; way--)
 				{
+					#if DOTGRAM_COUNTS
+					CountRetrySteps++;
+					#endif
+
 					// <sealskip>
 					// A sealed stretch ends here: every way in it is spent, so it is stepped over whole.
 					if (Skip[way] > 0)
 					{
+						#if DOTGRAM_COUNTS
+						CountRetrySkips++;
+						#endif
+
 						way = Skip[way] - 1;
 
 						continue;
@@ -3842,6 +3863,23 @@ static partial class CSharpEmitter
 			/// <summary>Searches of the index.</summary>
 			internal static long CountDoomSearches = 0;
 
+			/// <summary>Returns written into the journal.</summary>
+			internal static long CountJournalWritten = 0;
+
+			/// <summary>Journal entries a retry read.</summary>
+			internal static long CountJournalParsed = 0;
+
+			/// <summary>Records made.</summary>
+			internal static long CountDoomRecords = 0;
+
+			/// <summary>The most answers any one record held.</summary>
+			internal static long CountDoomKeysMax = 0;
+
+			/// <summary>Frames that asked whether their answer was lost, and how many were told it was.</summary>
+			internal static long CountDoomAsked = 0;
+
+			internal static long CountDoomHits = 0;
+
 			#endif
 
 			/// <summary>A frame answered with ways open inside it: what it answered, for a retry to find.</summary>
@@ -3854,6 +3892,10 @@ static partial class CSharpEmitter
 				}
 
 				var b = BackCount * 4;
+
+				#if DOTGRAM_COUNTS
+				CountJournalWritten++;
+				#endif
 
 				Back[b]     = s;
 				Back[b + 1] = Cursor;
@@ -3870,6 +3912,10 @@ static partial class CSharpEmitter
 			/// </summary>
 			internal bool Doomed(int s, int site, int pos, long args, long key)
 			{
+				#if DOTGRAM_COUNTS
+				CountDoomAsked++;
+				#endif
+
 				if (s > DoomTop)
 					return false;
 
@@ -3883,7 +3929,13 @@ static partial class CSharpEmitter
 				for (var k = 0; k < keys; k++)
 				{
 					if (DoomLongs[record * 9 + 1 + k] == key)
+					{
+						#if DOTGRAM_COUNTS
+						CountDoomHits++;
+						#endif
+
 						return true;
+					}
 				}
 
 				return false;
@@ -3943,6 +3995,11 @@ static partial class CSharpEmitter
 				{
 					DoomLongs[record * 9 + 1 + keys] = key;
 					DoomInts[record * 6 + 4]         = keys + 1;
+
+					#if DOTGRAM_COUNTS
+					if (keys + 1 > CountDoomKeysMax)
+						CountDoomKeysMax = keys + 1;
+					#endif
 				}
 			}
 
@@ -3982,6 +4039,10 @@ static partial class CSharpEmitter
 				DoomLongs[record * 9] = args;
 				DoomAt[s] = record + 1;
 				DoomLive++;
+
+				#if DOTGRAM_COUNTS
+				CountDoomRecords++;
+				#endif
 
 				if (s > DoomTop)
 					DoomTop = s;
@@ -4056,6 +4117,10 @@ static partial class CSharpEmitter
 			/// </summary>
 			void Doomed(int r)
 			{
+				#if DOTGRAM_COUNTS
+				CountJournalParsed += BackCount;
+				#endif
+
 				for (var i = BackCount - 1; i >= 0; i--)
 				{
 					var b = i * 4;

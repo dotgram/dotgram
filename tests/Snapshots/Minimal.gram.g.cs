@@ -7269,6 +7269,12 @@ namespace DotGram.Snapshots
 
 			internal static long CountMarkSteps = 0;
 
+			internal static long CountRetries = 0;
+
+			internal static long CountRetrySteps = 0;
+
+			internal static long CountRetrySkips = 0;
+
 			#endif
 			internal int[] Refs = new int[48];
 
@@ -7423,8 +7429,16 @@ namespace DotGram.Snapshots
 
 			internal bool Retry(int segment)
 			{
+				#if DOTGRAM_COUNTS
+				CountRetries++;
+				#endif
+
 				for (var way = Cursor - 1; way >= segment; way--)
 				{
+					#if DOTGRAM_COUNTS
+					CountRetrySteps++;
+					#endif
+
 					if (Items[way * 2] < Items[way * 2 + 1])
 					{
 						if (BackCount > 0)
@@ -7522,6 +7536,18 @@ namespace DotGram.Snapshots
 
 			internal static long CountDoomSearches = 0;
 
+			internal static long CountJournalWritten = 0;
+
+			internal static long CountJournalParsed = 0;
+
+			internal static long CountDoomRecords = 0;
+
+			internal static long CountDoomKeysMax = 0;
+
+			internal static long CountDoomAsked = 0;
+
+			internal static long CountDoomHits = 0;
+
 			#endif
 
 			internal void Returned(int s, int site, int pos, long args, long key)
@@ -7534,6 +7560,10 @@ namespace DotGram.Snapshots
 
 				var b = BackCount * 4;
 
+				#if DOTGRAM_COUNTS
+				CountJournalWritten++;
+				#endif
+
 				Back[b]     = s;
 				Back[b + 1] = Cursor;
 				Back[b + 2] = site;
@@ -7545,6 +7575,10 @@ namespace DotGram.Snapshots
 
 			internal bool Doomed(int s, int site, int pos, long args, long key)
 			{
+				#if DOTGRAM_COUNTS
+				CountDoomAsked++;
+				#endif
+
 				if (s > DoomTop)
 					return false;
 
@@ -7558,7 +7592,13 @@ namespace DotGram.Snapshots
 				for (var k = 0; k < keys; k++)
 				{
 					if (DoomLongs[record * 9 + 1 + k] == key)
+					{
+						#if DOTGRAM_COUNTS
+						CountDoomHits++;
+						#endif
+
 						return true;
+					}
 				}
 
 				return false;
@@ -7617,6 +7657,11 @@ namespace DotGram.Snapshots
 				{
 					DoomLongs[record * 9 + 1 + keys] = key;
 					DoomInts[record * 6 + 4]         = keys + 1;
+
+					#if DOTGRAM_COUNTS
+					if (keys + 1 > CountDoomKeysMax)
+						CountDoomKeysMax = keys + 1;
+					#endif
 				}
 			}
 
@@ -7656,6 +7701,10 @@ namespace DotGram.Snapshots
 				DoomLongs[record * 9] = args;
 				DoomAt[s] = record + 1;
 				DoomLive++;
+
+				#if DOTGRAM_COUNTS
+				CountDoomRecords++;
+				#endif
 
 				if (s > DoomTop)
 					DoomTop = s;
@@ -7725,6 +7774,10 @@ namespace DotGram.Snapshots
 
 			void Doomed(int r)
 			{
+				#if DOTGRAM_COUNTS
+				CountJournalParsed += BackCount;
+				#endif
+
 				for (var i = BackCount - 1; i >= 0; i--)
 				{
 					var b = i * 4;
