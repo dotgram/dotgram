@@ -12,6 +12,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Built with RT_ALWAYS_INLINE (a measurement), every function here is inlined wherever it is
+   called: the compiler then cannot take one out of line because a copy of the code that reads the
+   tape back calls it too. */
+#ifdef RT_ALWAYS_INLINE
+#define RT_INLINE static inline __attribute__((always_inline))
+#else
+#define RT_INLINE static inline
+#endif
+
 enum { V_NONE, V_TEXT, V_LIST, V_HOST };
 
 struct List;
@@ -92,6 +101,14 @@ typedef struct Parser
 	Val     *kv;
 	int32_t  kvSize, kvTop;
 	int32_t *heads;
+	int32_t  headsSize;
+
+	/* Places with no slot of their own on the tape: an entry is named by its key (place, cursor,
+	   position), each key a number that stands where a sentinel's slot stands for the heads. */
+	int32_t *keyTable;
+	int32_t  keyMask;
+	int32_t *keys;
+	int32_t  keyCount, keysSize;
 
 	/* Wrong on purpose: a head is taken without asking whose it is (the test of the owner check). */
 	bool anyOwner;
@@ -113,7 +130,7 @@ typedef struct Parser
 
 #define VAL_NONE ((Val){ V_NONE, 0, 0, NULL })
 
-static inline void *rt_alloc(Parser *P, size_t size)
+RT_INLINE void *rt_alloc(Parser *P, size_t size)
 {
 	size = (size + 15) & ~(size_t)15;
 
@@ -135,7 +152,7 @@ static inline void *rt_alloc(Parser *P, size_t size)
 	return at;
 }
 
-static inline void rt_begin(Parser *P, const uint16_t *text, int32_t len)
+RT_INLINE void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 {
 	while (P->arena != NULL)
 	{
@@ -150,6 +167,7 @@ static inline void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 		P->waysSize = 64;
 		P->ways     = malloc(sizeof(int32_t) * 64);
 		P->heads    = malloc(sizeof(int32_t) * 64);
+		P->headsSize = 64;
 	}
 
 	P->text         = text;
@@ -171,9 +189,15 @@ static inline void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 	P->serial       = 0;
 	P->kvTop        = 0;
 	P->refusalsCount = 0;
+
+	if (P->keyCount > 0)
+	{
+		memset(P->keyTable, 0xff, sizeof(int32_t) * (size_t)(P->keyMask + 1));
+		P->keyCount = 0;
+	}
 }
 
-static inline void rt_refuse(Parser *P, int32_t at, int32_t expected)
+RT_INLINE void rt_refuse(Parser *P, int32_t at, int32_t expected)
 {
 	if (at > P->refusedAt)
 	{
@@ -189,7 +213,7 @@ static inline void rt_refuse(Parser *P, int32_t at, int32_t expected)
 		P->refused[P->refusedCount++] = expected;
 }
 
-static inline int32_t rt_enter(Parser *P, int32_t last)
+RT_INLINE int32_t rt_enter(Parser *P, int32_t last)
 {
 	if (P->cursor < P->count)
 		return P->cursor++;
@@ -198,7 +222,11 @@ static inline int32_t rt_enter(Parser *P, int32_t last)
 	{
 		P->waysSize *= 2;
 		P->ways      = realloc(P->ways, sizeof(int32_t) * (size_t)P->waysSize);
-		P->heads     = realloc(P->heads, sizeof(int32_t) * (size_t)P->waysSize);
+		if (P->waysSize > P->headsSize)
+		{
+			P->headsSize = P->waysSize;
+			P->heads     = realloc(P->heads, sizeof(int32_t) * (size_t)P->headsSize);
+		}
 	}
 
 	P->ways[P->count * 2]     = 0;
@@ -209,7 +237,7 @@ static inline int32_t rt_enter(Parser *P, int32_t last)
 	return P->count - 1;
 }
 
-static inline int32_t rt_enterCounted(Parser *P, int32_t last)
+RT_INLINE int32_t rt_enterCounted(Parser *P, int32_t last)
 {
 	P->kEntered++;
 
@@ -223,15 +251,79 @@ static __attribute__((noinline)) void rt_slow(Parser *P)
 	P->kJumps++;
 }
 
+/* The number of an entry into a place with no slot on the tape, where the tape is read back: the
+   same place entered at the same cursor and position is the same entry, and finds its records. */
+RT_INLINE int32_t rt_key(Parser *P, int32_t place, int32_t cursor, int32_t pos)
+{
+	if (P->keyTable == NULL || (P->keyCount + 1) * 2 > P->keyMask + 1)
+	{
+		int32_t size = P->keyTable == NULL ? 256 : (P->keyMask + 1) * 2;
+
+		free(P->keyTable);
+		P->keyTable = malloc(sizeof(int32_t) * (size_t)size);
+		P->keyMask  = size - 1;
+		memset(P->keyTable, 0xff, sizeof(int32_t) * (size_t)size);
+
+		for (int32_t id = 0; id < P->keyCount; id++)
+		{
+			uint32_t again = ((uint32_t)P->keys[id * 3] * 0x9E3779B1u) ^ ((uint32_t)P->keys[id * 3 + 1] * 0x85EBCA77u) ^ ((uint32_t)P->keys[id * 3 + 2] * 0xC2B2AE3Du);
+
+			again ^= again >> 15;
+
+			while (P->keyTable[again & (uint32_t)P->keyMask] >= 0)
+				again++;
+
+			P->keyTable[again & (uint32_t)P->keyMask] = id;
+		}
+	}
+
+	uint32_t h = ((uint32_t)place * 0x9E3779B1u) ^ ((uint32_t)cursor * 0x85EBCA77u) ^ ((uint32_t)pos * 0xC2B2AE3Du);
+
+	h ^= h >> 15;
+
+	for (;; h++)
+	{
+		int32_t id = P->keyTable[h & (uint32_t)P->keyMask];
+
+		if (id < 0)
+		{
+			id = P->keyCount++;
+
+			if (P->keyCount * 3 > P->keysSize)
+			{
+				P->keysSize = P->keysSize == 0 ? 192 : P->keysSize * 2;
+				P->keys     = realloc(P->keys, sizeof(int32_t) * (size_t)P->keysSize);
+			}
+
+			if (P->keyCount > P->headsSize)
+			{
+				P->headsSize *= 2;
+				P->heads      = realloc(P->heads, sizeof(int32_t) * (size_t)P->headsSize);
+			}
+
+			P->keys[id * 3]     = place;
+			P->keys[id * 3 + 1] = cursor;
+			P->keys[id * 3 + 2] = pos;
+			P->heads[id]        = -1;
+			P->keyTable[h & (uint32_t)P->keyMask] = id;
+
+			return id;
+		}
+
+		if (P->keys[id * 3] == place && P->keys[id * 3 + 1] == cursor && P->keys[id * 3 + 2] == pos)
+			return id;
+	}
+}
+
 /* A sentinel opened where the tape is read for the first time: a decision that can never move. */
-static inline int32_t rt_sentinel(Parser *P)
+RT_INLINE int32_t rt_sentinel(Parser *P)
 {
 	return rt_enter(P, 0);
 }
 
 /* The tape was cut: what was kept of places no longer behind it goes, and the cut is remembered
    for the records below the top it makes stale. */
-static inline void rt_cut(Parser *P)
+RT_INLINE void rt_cut(Parser *P)
 {
 	while (P->kCount > 0 && P->kept[P->kCount - 1].key >= P->count)
 	{
@@ -261,7 +353,7 @@ static inline void rt_cut(Parser *P)
 }
 
 /* Whether a cut remembered after the serial went to the key or below. */
-static inline bool rt_cut_after(Parser *P, int32_t serial, int32_t key)
+RT_INLINE bool rt_cut_after(Parser *P, int32_t serial, int32_t key)
 {
 	int32_t top = P->cutTop - 1;
 
@@ -286,7 +378,7 @@ static inline bool rt_cut_after(Parser *P, int32_t serial, int32_t key)
 	return P->cuts[low].key <= key;
 }
 
-static inline void rt_next(Parser *P, int32_t way, int32_t value)
+RT_INLINE void rt_next(Parser *P, int32_t way, int32_t value)
 {
 	P->ways[way * 2] = value;
 	P->count         = way + 1;
@@ -298,7 +390,7 @@ static inline void rt_next(Parser *P, int32_t way, int32_t value)
 
 /* The latest good record of a sentinel's entry, or -1: a head left from an earlier entry or
    reading names another owner; stale records on the way are passed over and the head moves on. */
-static inline int32_t rt_head(Parser *P, int32_t sentinel)
+RT_INLINE int32_t rt_head(Parser *P, int32_t sentinel)
 {
 	int32_t h = P->heads[sentinel];
 
@@ -319,7 +411,7 @@ static inline int32_t rt_head(Parser *P, int32_t sentinel)
 
 /* Whether a record can stand for what the reading would do: one made while building, always; one
    made unbuilt, only in a reading that builds nothing. */
-static inline bool rt_usable(Parser *P, int32_t h)
+RT_INLINE bool rt_usable(Parser *P, int32_t h)
 {
 	return (P->kept[h].flags & 4) == 0 || P->unbuilt > 0;
 }
@@ -327,7 +419,7 @@ static inline bool rt_usable(Parser *P, int32_t h)
 /* A record of where a turn began (end false) or a statement ended, at the cursor, where one is
    wanted: none of the owner yet, a later turn than its last, or one made unbuilt where this reading
    builds. The index, whose n slots the caller fills, or -1. */
-static inline int32_t rt_keep(Parser *P, int32_t owner, bool end, int32_t p, int32_t turns, bool read, int32_t n)
+RT_INLINE int32_t rt_keep(Parser *P, int32_t owner, bool end, int32_t p, int32_t turns, bool read, int32_t n)
 {
 	int32_t key = P->cursor;
 	int32_t h   = rt_head(P, owner);
@@ -357,20 +449,32 @@ static inline int32_t rt_keep(Parser *P, int32_t owner, bool end, int32_t p, int
 }
 
 /* What the tape and the records hold on to, in bytes, as allocated. */
-static inline int64_t rt_held(Parser *P)
+RT_INLINE int64_t rt_held(Parser *P)
 {
 	return (int64_t)P->waysSize * 4 + (int64_t)P->waysSize * 4 + (int64_t)P->keptSize * (int64_t)sizeof(Kept) + (int64_t)P->kvSize * (int64_t)sizeof(Val);
 }
 
 /* After a reading: storage grown past the bound (in entries of the tape) goes back to its first
    size, so that one long refusal does not keep its arrays for every reading after it. */
-static inline void rt_release(Parser *P, int32_t bound)
+RT_INLINE void rt_release(Parser *P, int32_t bound)
 {
 	if (P->waysSize > bound * 2)
 	{
 		P->waysSize = 64;
 		P->ways     = realloc(P->ways, sizeof(int32_t) * 64);
 		P->heads    = realloc(P->heads, sizeof(int32_t) * 64);
+		P->headsSize = 64;
+	}
+
+	if (P->keysSize > bound * 3)
+	{
+		P->keysSize = 0;
+		P->keyMask  = 0;
+		P->keyCount = 0;
+		free(P->keys);
+		free(P->keyTable);
+		P->keys     = NULL;
+		P->keyTable = NULL;
 	}
 
 	if (P->keptSize > bound)
@@ -387,7 +491,7 @@ static inline void rt_release(Parser *P, int32_t bound)
 }
 
 /* A way given back: the first is read building still; the second, where the reading was building, stops building. */
-static inline int32_t rt_retried(Parser *P, int32_t u)
+RT_INLINE int32_t rt_retried(Parser *P, int32_t u)
 {
 	if (u == 1)
 	{
@@ -399,7 +503,7 @@ static inline int32_t rt_retried(Parser *P, int32_t u)
 	return u == 0 && P->unbuilt == 0 ? 1 : u;
 }
 
-static inline void rt_replayed(Parser *P)
+RT_INLINE void rt_replayed(Parser *P)
 {
 	KeptRefusal *kept = &P->refusals[--P->refusalsCount];
 
@@ -410,7 +514,7 @@ static inline void rt_replayed(Parser *P)
 
 /* An attempt stood after the loop stopped building: it is read once more, built, from the loop's
    start (3); or that reading stood, and what it said of a refusal is taken back (0). */
-static inline int32_t rt_stood(Parser *P, int32_t u, int32_t segment)
+RT_INLINE int32_t rt_stood(Parser *P, int32_t u, int32_t segment)
 {
 	if (u == 2)
 	{
@@ -437,7 +541,7 @@ static inline int32_t rt_stood(Parser *P, int32_t u, int32_t segment)
 }
 
 /* A loop that ends without an answer puts back what it raised. */
-static inline void rt_undeferred(Parser *P, int32_t u)
+RT_INLINE void rt_undeferred(Parser *P, int32_t u)
 {
 	if (u == 2)
 		P->unbuilt = 0;
@@ -445,7 +549,7 @@ static inline void rt_undeferred(Parser *P, int32_t u)
 		rt_replayed(P);
 }
 
-static inline bool rt_retry(Parser *P, int32_t segment)
+RT_INLINE bool rt_retry(Parser *P, int32_t segment)
 {
 	for (int32_t way = P->cursor - 1; way >= segment; way--)
 	{
@@ -466,13 +570,13 @@ static inline bool rt_retry(Parser *P, int32_t segment)
 	return false;
 }
 
-static inline bool rt_starts(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
+RT_INLINE bool rt_starts(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
 {
 	return at + length <= P->len && memcmp(P->text + at, literal, sizeof(uint16_t) * (size_t)length) == 0;
 }
 
 /* How far the input agrees with a text it does not go on to match. */
-static inline int32_t rt_agree(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
+RT_INLINE int32_t rt_agree(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
 {
 	int32_t agreed = 0;
 
@@ -482,22 +586,22 @@ static inline int32_t rt_agree(Parser *P, int32_t at, const uint16_t *literal, i
 	return agreed;
 }
 
-static inline bool rt_same(Parser *P, int32_t from, int32_t at, int32_t length)
+RT_INLINE bool rt_same(Parser *P, int32_t from, int32_t at, int32_t length)
 {
 	return memcmp(P->text + from, P->text + at, sizeof(uint16_t) * (size_t)length) == 0;
 }
 
-static inline Val val_text(int32_t from, int32_t to)
+RT_INLINE Val val_text(int32_t from, int32_t to)
 {
 	return (Val){ V_TEXT, from, to, NULL };
 }
 
-static inline Val val_host(void *built)
+RT_INLINE Val val_host(void *built)
 {
 	return (Val){ V_HOST, 0, 0, built };
 }
 
-static inline List *list_add(Parser *P, List *list, Val value)
+RT_INLINE List *list_add(Parser *P, List *list, Val value)
 {
 	if (list == NULL)
 	{
@@ -522,7 +626,7 @@ static inline List *list_add(Parser *P, List *list, Val value)
 }
 
 /* The values a list holds now, as a sequence that no later turn changes. */
-static inline Val val_items(Parser *P, List *list)
+RT_INLINE Val val_items(Parser *P, List *list)
 {
 	List *copy = rt_alloc(P, sizeof(List));
 

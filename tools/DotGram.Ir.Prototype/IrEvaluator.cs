@@ -397,7 +397,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	ResumptionSites? _measured;
 
 	/// <summary>Which statements keep a record (<see cref="ResumptionSites"/>).</summary>
-	public ResumptionCriterion Criterion { get; init; }
+	public ResumptionCriterion Criterion { get; init; } = ResumptionCriterion.FailsBack;
 
 	/// <summary>A criterion the reading is measured against: <see cref="WouldHaveJumped"/> counts where it would have left a record out.</summary>
 	public ResumptionCriterion? Measured { get; init; }
@@ -405,10 +405,42 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// <summary>How many times a replay went straight to a turn or past a statement that <see cref="Measured"/> would have left without a record.</summary>
 	public long WouldHaveJumped { get; private set; }
 
+	/// <summary>
+	/// Of <see cref="WouldHaveJumped"/>, the records taken where the reading again is a retry's (a
+	/// replay, braces, an alternative or a turn read again over a decision moved): a statement
+	/// <see cref="Measured"/> leaves out that such a reading would read again in full.
+	/// </summary>
+	public long WouldHaveReRead { get; private set; }
+
+	/// <summary>
+	/// Of <see cref="WouldHaveJumped"/>, the records taken where the reading again is a deferred
+	/// attempt read once more, built, over the decisions it took (<see cref="Stood"/>).
+	/// </summary>
+	public long ReReadByStood { get; private set; }
+
+	/// <summary>How many times an attempt that stood was read once more; at most once an entry into its loop.</summary>
+	public long StoodReReads { get; private set; }
+
+	// Of every loop that reads its body again, innermost last: 0 on its first reading, 1 read again
+	// after a retry, 2 read again after an attempt stood.
+	readonly List<int> _readings = [];
+
 	void Took(IrStmt site)
 	{
-		if (_measured is not null && !_measured.Keeps(site))
-			WouldHaveJumped++;
+		if (_measured is null || _measured.Keeps(site))
+			return;
+
+		WouldHaveJumped++;
+
+		var cause = 0;
+
+		for (var i = _readings.Count - 1; i >= 0 && cause == 0; i--)
+			cause = _readings[i];
+
+		if (cause == 2)
+			ReReadByStood++;
+		else
+			WouldHaveReRead++;
 	}
 
 	/// <summary>The tape was cut: what was kept of places no longer behind it goes.</summary>
@@ -685,6 +717,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_heads.Clear();
 		_cuts.Clear();
 		_byKey.Clear();
+		_readings.Clear();
 		_sites    = ResumptionSites.Of(program, Criterion);
 		_measured = Measured is { } measured ? ResumptionSites.Of(program, measured) : null;
 
@@ -908,10 +941,16 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					var kept = Keep(frame, choice.Resets[i]);
 					var mark = Ways.Cursor;
 
+					_readings.Add(0);
+
 					while (true)
 					{
 						if (Exec(choice.Alternatives[i], frame))
+						{
+							_readings.RemoveAt(_readings.Count - 1);
+
 							return true;
+						}
 
 						_p = start;
 						PutBack(frame, choice.Resets[i], kept);
@@ -923,7 +962,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 							break;
 
 						Cut();
+						_readings[^1] = 1;
 					}
+
+					_readings.RemoveAt(_readings.Count - 1);
 
 					if (choice.Resumable && i < last)
 					{
@@ -1012,6 +1054,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 					var kept = Keep(frame, repeat.Resets);
 					var mark = Ways.Cursor;
+
+					_readings.Add(0);
+
 					var read = Exec(repeat.Body, frame);
 
 					// A turn that fails is read again with each of its own decisions that can still
@@ -1021,8 +1066,11 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						Cut();
 						_p = start;
 						PutBack(frame, repeat.Resets, kept);
+						_readings[^1] = 1;
 						read = Exec(repeat.Body, frame);
 					}
+
+					_readings.RemoveAt(_readings.Count - 1);
 
 					if (!read)
 					{
@@ -1103,6 +1151,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var segment  = Ways.Cursor;
 				var deferral = new Deferral();
 
+				_readings.Add(0);
+
 				while (true)
 				{
 					_p = start;
@@ -1110,7 +1160,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					if (Exec(replay.Body, frame))
 					{
 						if (Stood(ref deferral, segment))
+						{
+							_readings[^1] = 2;
+
 							continue;
+						}
+
+						_readings.RemoveAt(_readings.Count - 1);
 
 						return true;
 					}
@@ -1118,11 +1174,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					if (!(Ways.Cursor > segment && Ways.Retry(segment)))
 					{
 						Undeferred(deferral);
+						_readings.RemoveAt(_readings.Count - 1);
 
 						return false;
 					}
 
 					Cut();
+					_readings[^1] = 1;
 
 					if (replay.Defers && !BuildsThroughout)
 						Retried(ref deferral);
@@ -1181,6 +1239,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 		bool read;
 
+		_readings.Add(0);
+
 		while (true)
 		{
 			_p = start;
@@ -1191,6 +1251,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					break;
 
 				PutBack(frame, resets, kept);
+				_readings[^1] = 2;
 
 				continue;
 			}
@@ -1205,11 +1266,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			}
 
 			Cut();
+			_readings[^1] = 1;
 
 			if (defers && !BuildsThroughout)
 				Retried(ref deferral);
 		}
 
+		_readings.RemoveAt(_readings.Count - 1);
 		Ways.Count  = count;
 		Ways.Cursor = cursor;
 		Cut();
@@ -1254,6 +1317,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	{
 		if (deferral.State == 2)
 		{
+			StoodReReads++;
 			deferral.RefusedAt = _refusedAt;
 			deferral.Refused   = [.. _refused];
 			deferral.Said      = [.. _said];

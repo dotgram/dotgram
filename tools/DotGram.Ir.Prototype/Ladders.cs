@@ -56,6 +56,12 @@ static class Ladders
 		new("(d) deep split, no way back up", "DeepSplitOpen", static n => Times("(", n) + Times("b", n)),
 		new("records below a cut",    "StaleRecord",         static n => Times("a", n) + Times("b", n) + "c"),
 		new("config, inner replays",  "Config",              static n => Times("k=ax;", n) + "!"),
+		new("fails inside the decider",    "FailsInsideDecider",   static n => Times("0", n) + "q" + Times("a,", n) + "!"),
+		new("fails in the caller",         "FailsInCaller",        static n => Times("0", n) + Times("a,", n) + "!"),
+		new("last in braces",              "LastInBraces",         static n => Times("0", n) + Times("a,", n) + "!"),
+		new("fails round a cycle",         "FailsRoundACycle",     static n => Times("0", n) + Times("a,", n) + "!"),
+		new("look after the decision",     "LookAfterDecider",     static n => Times("0", n) + Times("a,", n) + "!"),
+		new("stood in a recursion",        "StoodInRecursion",     static n => Times("(", n) + "x" + Times(")abc0y", n)),
 	];
 
 	/// <summary>
@@ -84,7 +90,8 @@ static class Ladders
 	}
 
 	/// <summary>The shape read by the evaluator at every size, until a reading runs past the budget.</summary>
-	public static List<Rung> Evaluated(Shape shape, IrLowering.Options? options, bool resumes, long budget, IReadOnlyList<int>? sizes = null)
+	public static List<Rung> Evaluated(
+		Shape shape, IrLowering.Options? options, bool resumes, long budget, IReadOnlyList<int>? sizes = null, ResumptionCriterion? criterion = null)
 	{
 		var fixture = Cases.Fixtures[shape.Fixture];
 		var program = Reading.Program(fixture.Grammar, options);
@@ -93,7 +100,9 @@ static class Ladders
 		foreach (var turns in sizes ?? Sizes)
 		{
 			var host      = new CountingHost(fixture.Guards);
-			var evaluator = new IrEvaluator(program, host) { Resumes = resumes, StepBudget = budget };
+			var evaluator = criterion is { } chosen
+				? new IrEvaluator(program, host) { Resumes = resumes, StepBudget = budget, Criterion = chosen }
+				: new IrEvaluator(program, host) { Resumes = resumes, StepBudget = budget };
 
 			try
 			{

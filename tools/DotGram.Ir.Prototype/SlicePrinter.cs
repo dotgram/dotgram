@@ -69,6 +69,14 @@ enum SliceAblation
 	/// has them: the ceiling against the parser without resumption printed so.
 	/// </summary>
 	CeilingEvery,
+
+	/// <summary>
+	/// <see cref="ReplayTwinEvery"/> whose twin resumes, with places that have no slot of their own
+	/// on the tape: where the tape is read back, an entry into a place is named by its key (the
+	/// place, the cursor and the position) and its records are found by the key, kept and judged
+	/// stale as a sentinel's are. A parser that resumes.
+	/// </summary>
+	ReplayTwinKeyed,
 }
 
 enum SliceLanguage
@@ -148,12 +156,18 @@ sealed class SlicePrinter
 	// Printing the copy a replay reads (SecondCopy): nothing in it is copied again, and no sentinel is opened.
 	bool _inCopy;
 
-	bool NoSentinel => _ablation == SliceAblation.WrapperOnly || Unopened;
+	bool NoSentinel => _ablation == SliceAblation.WrapperOnly || Unopened || Keyed;
 
 	// A copy that opens no sentinel and prints its lookup never taken, so that the tape stays the
 	// first reading's: SecondCopy's copy, and ReplayTwin's twin (whose records would be found by a
 	// key with no sentinel of their own, which is not printed).
-	bool Unopened => _inCopy || _twin;
+	bool Unopened => _inCopy || _twin && !Keyed;
+
+	// Printing ReplayTwinKeyed's twin: an entry is named by its key, and opens nothing on the tape.
+	bool Keyed => _twin && _ablation == SliceAblation.ReplayTwinKeyed;
+
+	// The number each place is keyed by.
+	readonly Dictionary<IrStmt, int> _placeIds = new(ReferenceEqualityComparer.Instance);
 
 	// Printing a function's first-reading copy (ReplayTwin), which keeps nothing, or its twin, which keeps all.
 	bool _plain;
@@ -238,7 +252,7 @@ sealed class SlicePrinter
 	/// <param name="criterion">Which statements keep a record (<see cref="ResumptionSites"/>).</param>
 	public static string Print(
 		IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false, bool resumes = true,
-		ResumptionCriterion criterion = ResumptionCriterion.Decided, SliceAblation ablation = SliceAblation.Whole)
+		ResumptionCriterion criterion = ResumptionCriterion.FailsBack, SliceAblation ablation = SliceAblation.Whole)
 	{
 		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion, ablation);
 
@@ -700,7 +714,17 @@ sealed class SlicePrinter
 		Line(Unopened ? $"if ({Member("cursor")} < {Member("count")} && {Member("noCutCheck")})" : $"if ({Member("cursor")} < {Member("count")})");
 		Line("{");
 		_indent++;
-		Line($"{owner} = {(_counted ? Enter("0") : (C ? "P->cursor++" : "P.cursor++"))};");
+
+		if (Keyed)
+		{
+			if (!_placeIds.TryGetValue(stmt, out var place))
+				_placeIds.Add(stmt, place = _placeIds.Count);
+
+			Line($"{owner} = rt_key(P, {place.ToString(CultureInfo.InvariantCulture)}, P->cursor, p);");
+		}
+		else
+			Line($"{owner} = {(_counted ? Enter("0") : (C ? "P->cursor++" : "P.cursor++"))};");
+
 		Line(Int(h, Runtime("head", owner)));
 		Line($"if ({h} >= 0 && {Runtime("usable", h)}{(endOnly ? $" && ({Field(h, "flags")} & 1) != 0" : "")})");
 		Line("{");
@@ -830,7 +854,7 @@ sealed class SlicePrinter
 	/// </summary>
 	bool Twinned(IrFunction function)
 	{
-		return C && _ablation is SliceAblation.ReplayTwin or SliceAblation.ReplayTwinBare or SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery &&
+		return C && _ablation is SliceAblation.ReplayTwin or SliceAblation.ReplayTwinBare or SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery or SliceAblation.ReplayTwinKeyed &&
 			(_resumes || _ablation == SliceAblation.ReplayTwinEvery);
 	}
 
@@ -1393,7 +1417,7 @@ sealed class SlicePrinter
 				if (replay.Defers)
 					Line(Int(u, _twin ? "u0" : "0"));
 
-				if (_plain && (Places(_function!) || _ablation is SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery))
+				if (_plain && (Places(_function!) || _ablation is SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery or SliceAblation.ReplayTwinKeyed))
 				{
 					// One reading; any reading again is the twin's, from where this one began.
 					Line($"p = {start};");
@@ -1530,11 +1554,12 @@ sealed class SlicePrinter
 
 		if (defers)
 		{
+			// An attempt that stood unbuilt is read once more, built; any other that read ends the loop.
 			Line($"if ({read})");
 			Line("{");
 			_indent++;
 			Line($"if ({u} > 1) {u} = {Runtime("stood", $"{u}, {count}")};");
-			Line($"if ({u} == 0) break;");
+			Line($"if ({u} < 2) break;");
 			Line($"{read} = false;");
 			PutBack(resets, kept);
 			Line("continue;");
