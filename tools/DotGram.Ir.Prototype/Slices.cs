@@ -303,7 +303,7 @@ static class Slices
 	/// The program printed in TypeScript with and without resumption, in every way of keeping
 	/// frames, timed over accepted inputs by <c>accept.ts</c>: a line a way of keeping frames.
 	/// </summary>
-	public static List<string> AcceptingPath(string name, IrProgram program, string entry, IReadOnlyList<string> inputs, ResumptionCriterion criterion = ResumptionCriterion.Decided)
+	public static List<string> AcceptingPath(string name, IrProgram program, string entry, IReadOnlyList<string> inputs, ResumptionCriterion criterion = ResumptionCriterion.FailsBack)
 	{
 		var (node, environment) = Node;
 
@@ -369,6 +369,7 @@ static class Slices
 				("twinevery", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwinEvery)),
 				("offevery", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, ablation: SliceAblation.ReplayTwinEvery)),
 				("ceilingevery", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.CeilingEvery)),
+				("twinkeyed", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwinKeyed)),
 			};
 
 			// IR_C_VARIANTS: the variants to time against "off", where not all of them.
@@ -383,7 +384,10 @@ static class Slices
 			{
 				File.WriteAllText(Path.Combine(directory, $"parser-{variant}.c"), source);
 
-				var (built, _, complaints) = Run(gcc, ["-std=gnu11", "-O2", "-D_GNU_SOURCE", "-o", "accept-" + variant, "accept.c", $"parser-{variant}.c", "fragments.c"], directory);
+				// IR_C_ALWAYS_INLINE: every variant with the runtime's functions inlined wherever they are called.
+				List<string> flags = Environment.GetEnvironmentVariable("IR_C_ALWAYS_INLINE") == "1" ? ["-DRT_ALWAYS_INLINE"] : [];
+
+				var (built, _, complaints) = Run(gcc, ["-std=gnu11", "-O2", "-D_GNU_SOURCE", .. flags, "-o", "accept-" + variant, "accept.c", $"parser-{variant}.c", "fragments.c"], directory);
 
 				Assert.True(built == 0, "gcc: " + complaints);
 			}

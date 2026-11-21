@@ -9,9 +9,9 @@ namespace DotGram.Ir.Prototype;
 enum ResumptionCriterion
 {
 	/// <summary>
-	/// The one decided: a statement keeps where it decides itself, or where something after it,
-	/// before its replay region ends, can decide — for only a decision moved at or after a
-	/// statement makes a replay read it again.
+	/// A statement keeps where it decides itself, or where something after it, before its replay
+	/// region ends, can decide — for only a decision moved at or after a statement makes a replay
+	/// read it again. The set before <see cref="FailsBack"/> narrowed it, kept to be measured against.
 	/// </summary>
 	Decided,
 
@@ -32,11 +32,24 @@ enum ResumptionCriterion
 	Narrowed,
 
 	/// <summary>
-	/// Measured, not used: <see cref="Decided"/>, and moreover only where after some decision that
-	/// keeps the statement (itself, or one after it) something can fail back to that decision
-	/// before braces, a look or the end of the input seal it.
+	/// The one in force: <see cref="Decided"/>, and moreover only where something can fail back to a decision that
+	/// keeps the statement (itself, or the first after it) before braces, a look or the end of the
+	/// input seal it: after that decision, or inside it after a decision of its own that it does
+	/// not take back itself. Only such a failure makes a replay read the statement again.
 	/// </summary>
 	FailsBack,
+
+	/// <summary>A mutation of <see cref="FailsBack"/>, for the tests: something can always fail back. Keeps what <see cref="Decided"/> keeps.</summary>
+	FailsBackAlways,
+
+	/// <summary>A mutation of <see cref="FailsBack"/>, for the tests: nothing can ever fail. Leaves out statements a replay reads again.</summary>
+	FailsBackNever,
+
+	/// <summary>
+	/// A mutation of <see cref="FailsBack"/>, for the tests: only what comes after the deciding
+	/// statement is asked, not what fails inside it after a decision of its own.
+	/// </summary>
+	FailsBackOutsideOnly,
 }
 
 /// <summary>
@@ -337,7 +350,7 @@ sealed class ResumptionSites
 	public HashSet<IrSlot> ReadByGuards { get; } = [];
 
 	/// <summary>What is kept of a program under a criterion, worked out once.</summary>
-	public static ResumptionSites Of(IrProgram program, ResumptionCriterion criterion = ResumptionCriterion.Decided)
+	public static ResumptionSites Of(IrProgram program, ResumptionCriterion criterion = ResumptionCriterion.FailsBack)
 	{
 		var known = _known.GetValue(program, static _ => []);
 
@@ -497,18 +510,76 @@ sealed class ResumptionSites
 		return stmt is IrStmt.Call call ? "call of " + call.Target.Name : stmt.GetType().Name.ToLowerInvariant();
 	}
 
-	/// <summary>Whether the statement can fail: what reads input or asks; not what only assigns or builds, nor a repetition that may take no turn.</summary>
-	static bool Failable(IrStmt stmt)
+	/// <summary>
+	/// Whether the statement can fail: what reads input or asks; not what only assigns or builds, nor
+	/// a repetition that may take no turn, nor a choice tried in order with an alternative that cannot.
+	/// A choice told by its first item tries one alternative, and fails where the item begins none.
+	/// </summary>
+	/// <remarks>
+	/// An over-approximation everywhere but in the two answers of no: a statement that only assigns
+	/// or builds cannot fail (the host's throwing is no failure), a repetition of fewest nought
+	/// stops before a turn that fails, and an ordered choice with an alternative that cannot fail
+	/// ends there at the latest. Everything else that reads, asks, calls or looks is taken to fail.
+	/// </remarks>
+	bool Failable(IrStmt stmt)
 	{
+		if (_criterion == ResumptionCriterion.FailsBackNever)
+			return false;
+
 		return stmt switch
 		{
 			IrStmt.Assign or IrStmt.Append or IrStmt.Construct => false,
 			IrStmt.Block block => block.Items.Any(Failable),
 			IrStmt.Scope or IrStmt.Replay or IrStmt.Commit => Failable(stmt.Children.Single()),
+			IrStmt.Choice { Dispatch: not null } => true,
 			IrStmt.Choice choice => choice.Alternatives.All(Failable),
 			IrStmt.Repeat repeat => repeat.Min is not IrExpr.Number { Value: 0 } && Failable(repeat.Body),
 			_ => true,
 		};
+	}
+
+	/// <summary>
+	/// Whether a reading of the statement can fail inside it after a decision it opened inside, and
+	/// leave that decision on the tape for a retry from outside: a decision followed in a sequence
+	/// inside it by something that can fail, or a repetition whose first two turns or more, which
+	/// have no decision of their own to fail to, decide and can fail. Not inside a call, whose
+	/// replay retries its own decisions until none can move, nor inside braces or a look.
+	/// </summary>
+	/// <remarks>
+	/// An over-approximation: a failure after a decision inside an alternative of a choice that
+	/// reads it again over its own decisions, or inside a turn that has a decision of its own, is
+	/// taken back where it happens and never reaches a retry from outside — those are counted too.
+	/// </remarks>
+	bool LeavesInside(IrStmt stmt)
+	{
+		if (_criterion is ResumptionCriterion.FailsBackNever or ResumptionCriterion.FailsBackOutsideOnly)
+			return false;
+
+		switch (stmt)
+		{
+			case IrStmt.Call or IrStmt.Look or IrStmt.Commit:
+				return false;
+
+			case IrStmt.Block block:
+			{
+				var decided = false;
+
+				foreach (var item in block.Items)
+				{
+					if (decided && Failable(item) || LeavesInside(item))
+						return true;
+
+					decided |= IrLowering.Decides(item);
+				}
+
+				return false;
+			}
+
+			case IrStmt.Repeat repeat when repeat.Min is not IrExpr.Number { Value: < 2 } && IrLowering.Decides(repeat.Body) && Failable(repeat.Body):
+				return true;
+		}
+
+		return stmt.Children.Any(LeavesInside);
 	}
 
 	/// <summary>Whether something after the statement inside its function can fail before braces or a look seal it; null where the search reaches the function's end.</summary>
@@ -586,7 +657,7 @@ sealed class ResumptionSites
 				{
 					var (decider, sealedOff, _) = FirstDecider(call);
 
-					if (decider is not null ? FailsAfter(decider) : !sealedOff && _keptByCallers[_owners[call]])
+					if (decider is not null ? FailsAfter(decider) || LeavesInside(decider) : !sealedOff && _keptByCallers[_owners[call]])
 					{
 						_keptByCallers[function] = true;
 						changed                  = true;
@@ -601,12 +672,15 @@ sealed class ResumptionSites
 	/// <summary>Whether, under <see cref="ResumptionCriterion.FailsBack"/>, a decision that keeps the statement has something after it that can fail back.</summary>
 	bool FailsBack(IrStmt stmt)
 	{
-		if (IrLowering.Decides(stmt) && FailsAfter(stmt))
+		if (_criterion == ResumptionCriterion.FailsBackAlways)
+			return true;
+
+		if (IrLowering.Decides(stmt) && (FailsAfter(stmt) || LeavesInside(stmt)))
 			return true;
 
 		var (decider, sealedOff, _) = FirstDecider(stmt);
 
-		return decider is not null ? FailsAfter(decider) : !sealedOff && _keptByCallers[_owners[stmt]];
+		return decider is not null ? FailsAfter(decider) || LeavesInside(decider) : !sealedOff && _keptByCallers[_owners[stmt]];
 	}
 
 	/// <summary>The decision that keeps a statement under <see cref="ResumptionCriterion.Decided"/>, in words.</summary>
@@ -740,7 +814,8 @@ sealed class ResumptionSites
 			: _criterion == ResumptionCriterion.Repetitions && stmt is not IrStmt.Repeat ? "only repetitions are kept"
 			: _criterion is ResumptionCriterion.Decided or ResumptionCriterion.Repetitions && !IrLowering.Decides(stmt) && !DecidesAfter(stmt) ? "nothing after it can decide"
 			: _criterion == ResumptionCriterion.Narrowed && stmt is IrStmt.Repeat repeat && !IrLowering.Decides(repeat.Body) && !repeat.Resumable ? "no decision of its own outlives a turn"
-			: _criterion == ResumptionCriterion.FailsBack && (!IrLowering.Decides(stmt) && !DecidesAfter(stmt) || !FailsBack(stmt)) ? "nothing can fail back to a decision that keeps it"
+			: _criterion is ResumptionCriterion.FailsBack or ResumptionCriterion.FailsBackAlways or ResumptionCriterion.FailsBackNever or ResumptionCriterion.FailsBackOutsideOnly &&
+				(!IrLowering.Decides(stmt) && !DecidesAfter(stmt) || !FailsBack(stmt)) ? "nothing can fail back to a decision that keeps it"
 			: null;
 
 		if (left is not null)

@@ -48,6 +48,12 @@ static class Cases
 		["XmlNameGivesBack"]      = new(Grammars.XmlNameGivesBack,      typeof(XmlNameGivesBackParser),      "ParseXml"),
 		["TurnGivesBack"]         = new(Grammars.TurnGivesBack,         typeof(TurnGivesBackParser),         "ParseStart"),
 		["StaleRecord"]           = new(Grammars.StaleRecord,           typeof(StaleRecordParser),           "ParseStart"),
+		["FailsInsideDecider"]    = new(Grammars.FailsInsideDecider,    typeof(FailsInsideDeciderParser),    "ParseStart"),
+		["FailsInCaller"]         = new(Grammars.FailsInCaller,         typeof(FailsInCallerParser),         "ParseStart"),
+		["LastInBraces"]          = new(Grammars.LastInBraces,          typeof(LastInBracesParser),          "ParseStart"),
+		["FailsRoundACycle"]      = new(Grammars.FailsRoundACycle,      typeof(FailsRoundACycleParser),      "ParseStart"),
+		["LookAfterDecider"]      = new(Grammars.LookAfterDecider,      typeof(LookAfterDeciderParser),      "ParseStart"),
+		["StoodInRecursion"]      = new(Grammars.StoodInRecursion,      typeof(StoodInRecursionParser),      "ParseStart"),
 		["Json"]                  = new(Grammars.Json,                  typeof(JsonTwinParser),              "ParseJson"),
 	};
 
@@ -108,6 +114,12 @@ static class Cases
 		Add("XmlNameGivesBack",      "<ab=\"1\"></a>", "<ab=\"1\">", "<ab=\"1\"></ab>", "<a b=\"1\">", "<ab=\"1\"/>", "<a></a>", "<a x=\"1\" y='2'><b>text</b></a>", "<abc=\"1\"d='2'></a>", "<a><bc='x'/></a>");
 		Add("TurnGivesBack",         "abc", "acabc", "abcac", "ab", "acab", "abcab", "a", "abcabd");
 		Add("StaleRecord",           "abbc!", "aaabbbbc", "aaabbbbc!", "abcbc", "aabbcbcbc", "aaabbbcbbcb!", "abbbbbbbc", "bc!");
+		Add("FailsInsideDecider",    "z", "00z", "qab", "00qa,b,c", "000qa,b,!", "0qa,", "q", "00", "0z0");
+		Add("FailsInCaller",         "a", "00ab", "000a,b,c", "00a,b,!", "0a,", "0", "a,b", "!");
+		Add("LastInBraces",          "a", "00a", "000a,b,c", "00a,b,!", "0a,b;c", "0", "a,b;", "0a;!");
+		Add("FailsRoundACycle",      "a", "00ab", "0(0a,b,)c", "00a,b,!", "(a,)", "((0a))b", "0(", "a,b,");
+		Add("LookAfterDecider",      "a!", "00a,b!", "000a,b,c!", "00a,b,!", "0a,", "a", "0!", "a,b!x");
+		Add("StoodInRecursion",      "x", "(x)ab", "(x)abc0y", "((x)abc0y)a,b,c00yy;", "(x)a", "((x)ab", "(x)ab0y;y", "(x)");
 		Add("Json",                  "1", " [1, 2 ,{\"a\":null}] ", "{}", "[]", "[1,]", "{\"a\" 1}", "tru", "\"\\u12G4\"", "[[[", "01", "1e", "-", "{\"a\":[true,false,{\"b\":\"\\n\"}]}");
 
 		return data;

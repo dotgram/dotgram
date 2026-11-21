@@ -72,6 +72,8 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		("(a') failed turn", null), ("nested braces", null), ("long look", null), ("braces with captures", null),
 		("(e) deciding nest", null), ("back-reference", null), ("yaml line", null),
 		("records below a cut", null), ("config, inner replays", null),
+		("fails inside the decider", null), ("fails in the caller", null), ("last in braces", null),
+		("fails round a cycle", null), ("look after the decision", null), ("stood in a recursion", null),
 	];
 
 	/// <summary>
@@ -444,7 +446,9 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		var failed = new List<string>();
 		var only   = Environment.GetEnvironmentVariable("LADDER");
 
-		foreach (var (name, options) in Linear.Where(one => only is null || one.Shape == only))
+		// A recursion 64,000 deep holding a list in every frame is past what node's heap holds; its
+		// ladder is the evaluator's alone.
+		foreach (var (name, options) in Linear.Where(one => (only is null || one.Shape == only) && one.Shape != "stood in a recursion"))
 		{
 			var shape = Ladders.Shapes.Single(one => one.Name == name);
 
@@ -670,30 +674,6 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	[Fact]
 	public void TheKeyAlone_IsMeasured()
 	{
-		static IEnumerable<string> Edited(IEnumerable<string> inputs)
-		{
-			foreach (var input in inputs.Where(static one => one.Length <= 64))
-			{
-				yield return input;
-
-				var units = input.Distinct().ToArray();
-
-				for (var i = 0; i <= input.Length; i++)
-				{
-					foreach (var unit in units)
-					{
-						yield return input.Insert(i, unit.ToString());
-
-						if (i < input.Length)
-							yield return input[..i] + unit + input[(i + 1)..];
-					}
-
-					if (i < input.Length)
-						yield return input.Remove(i, 1);
-				}
-			}
-		}
-
 		var text = new StringBuilder("corpus\tlowering\treadings\tsentinel entries\tcollisions\n");
 
 		void Count(string corpus, IrProgram program, string entry, IEnumerable<string> inputs, Func<IrFragment, object?[], bool>? guards, string lowering)
@@ -948,6 +928,39 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// The C bench of <see cref="TheAcceptingPathInC_IsMeasuredByGrammar"/> over inputs most of
+	/// which are refused, where the tape is read back: the shipped grammars' suites of refused
+	/// inputs, and accepted inputs with one character changed. What a twin's replay costs.
+	/// </summary>
+	[Fact(Explicit = true)]
+	public void TheRefusingPathInC_IsMeasuredByGrammar()
+	{
+		var text    = new StringBuilder("row\tvariant\taccepted\tms on\tms off\ton / off (median)\trange\tinstructions on\tinstructions off\t.text on\t.text off\n");
+		var rfc5322 = Reading.Program(Graphs.WebGrammar("Rfc5322.cs"));
+		var rfc9651 = Reading.Program(Graphs.WebGrammar("Rfc9651.cs"));
+		var rfc3986 = Reading.Program(Graphs.WebGrammar("Rfc3986.cs"));
+
+		var rows = new (string Name, IrProgram Program, string Entry, List<string> Inputs)[]
+		{
+			("Rfc5322 addr-spec, isemail", rfc5322, "ParseAddrSpec", [.. IsEmailAddresses().Distinct()]),
+			("Rfc5322 address lists, isemail", rfc5322, "ParseAddressList", [.. IsEmailAddresses().Distinct()]),
+			("Rfc5322 address lists, edited", rfc5322, "ParseAddressList", [.. Edited(Addresses).Distinct()]),
+			("Rfc9651 list, structured-field suite", rfc9651, "ParseList", [.. StructuredFields("list").Distinct()]),
+			("Rfc9651 dictionary, structured-field suite", rfc9651, "ParseDictionary", [.. StructuredFields("dictionary").Distinct()]),
+			("Rfc3986 references, edited", rfc3986, "ParseReference", [.. Edited(AcceptedRows.Single(static row => row.File == "Rfc3986.cs").Inputs).Distinct()]),
+		};
+
+		foreach (var (name, program, entry, inputs) in rows)
+			foreach (var line in Slices.AcceptingPathInC("RefuseC-" + name.Replace(' ', '-').Replace(',', '-'), program, entry, inputs))
+				text.Append(name).Append('\t').Append(line).Append('\n');
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "refusing-path-c.tsv"), text.ToString());
+	}
+
+	/// <summary>
 	/// What resuming costs an accepted input, by grammar: the sentinels the evaluator opens per
 	/// byte, and the printed TypeScript parser with its sentinels against the same parser without,
 	/// in every way of keeping frames — a direction on a shared machine, written down for the gate
@@ -1049,6 +1062,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		var random = new Random(20261120);
 		var unfit  = 0L;
 		var read   = 0;
+		var reReadLeft = 0L;
 		var wrong  = new List<string>();
 
 		foreach (var (name, fixture) in Cases.Fixtures)
@@ -1132,6 +1146,24 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 
 						read++;
 
+						// And the places the narrowing leaves out are never read again (as decided, measured against it).
+						if (resumes && options is null)
+						{
+							var decided = new IrEvaluator(program, new RecordingHost(fixture.Guards))
+							{
+								Resumes = true, Criterion = ResumptionCriterion.Decided, Measured = ResumptionCriterion.FailsBack, StepBudget = 20_000_000,
+							};
+
+							try
+							{
+								decided.Parse(fixture.Entry, input);
+								reReadLeft += decided.WouldHaveReRead;
+							}
+							catch (Exception thrown) when (thrown is IrStepsExceeded or IrContractViolation)
+							{
+							}
+						}
+
 						if (line != theirs.Line && wrong.Count < 20)
 							wrong.Add($"{name} {Twin.Quoted(input)} ({Named(options)}, {(resumes ? "resuming" : "replaying")}): {line}, the generated parser {theirs.Line}");
 					}
@@ -1140,17 +1172,13 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		}
 
 		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
-			File.WriteAllText(Path.Combine(report, "differential.txt"), string.Create(CultureInfo.InvariantCulture, $"read {read}, differing {wrong.Count}, stale records passed over {unfit}\n") + string.Join("\n", wrong) + "\n");
+			File.WriteAllText(Path.Combine(report, "differential.txt"), string.Create(CultureInfo.InvariantCulture,
+				$"read {read}, differing {wrong.Count}, stale records passed over {unfit}, places left out and read again {reReadLeft}\n") + string.Join("\n", wrong) + "\n");
 
 		Assert.True(wrong.Count == 0, string.Join("; ", wrong));
+		Assert.Equal(0, reReadLeft);
 	}
 
-	/// <summary>
-	/// A replay inside a region keeps records ahead of the replay of the region round it, so a
-	/// record can lie below newer ones when a cut goes below its key: it stays in the store, stale,
-	/// and a lookup passes it over by the serial of the cuts. With that check off on purpose, a
-	/// stale record stands for a reading that has changed under it, and answers differ.
-	/// </summary>
 	/// <summary>
 	/// A kept statement entered again, with nothing read, while its earlier entry is still being
 	/// read: the analysis says so of the call that does it, the generated parser reads it so, and
@@ -1174,6 +1202,282 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 		Assert.Equal(["c2(\"x\")", "c1(c2(\"x\"))", "c0(c1(c2(\"x\")))"], log);
 	}
 
+	/// <summary>
+	/// What a resuming reading asks of the host: on every fixture's inputs and their one-character
+	/// insertions, the calls of the same reading without resumption in their order, less some — and
+	/// only constructions, those of a statement a replay jumps past, whose kept values it restores
+	/// instead. The answers are the same; a host sees fewer speculative constructions.
+	/// </summary>
+	[Fact]
+	public void AResumingReading_LeavesOutOnlyConstructionsOfWhatItJumpsPast()
+	{
+		var shortened = new Dictionary<string, int>(StringComparer.Ordinal);
+		var skipped   = 0;
+
+		foreach (var (name, fixture) in Cases.Fixtures)
+		{
+			var program = Reading.Program(fixture.Grammar);
+			var inputs  = Cases.InputsOf(name);
+			var units   = inputs.SelectMany(static input => input).Distinct().ToArray();
+			var tried   = new HashSet<string>(inputs, StringComparer.Ordinal);
+
+			foreach (var input in inputs.Where(static input => input.Length <= 64))
+				for (var i = 0; i <= input.Length; i++)
+					foreach (var unit in units)
+						tried.Add(input.Insert(i, unit.ToString()));
+
+			foreach (var input in tried)
+			{
+				var off = new RecordingHost(fixture.Guards);
+				var on  = new RecordingHost(fixture.Guards);
+
+				IrOutcome without;
+				IrOutcome with;
+
+				try
+				{
+					without = new IrEvaluator(program, off) { Resumes = false, StepBudget = 10_000_000 }.Parse(fixture.Entry, input);
+				}
+				catch (Exception thrown) when (thrown is TwinException or IrStepsExceeded)
+				{
+					continue;
+				}
+
+				with = new IrEvaluator(program, on) { Resumes = true }.Parse(fixture.Entry, input);
+
+				Assert.Equal(without.Line, with.Line);
+
+				// The resuming log is the other with calls left out, and every one left out builds.
+				var at = 0;
+
+				foreach (var call in off.Log)
+				{
+					if (at < on.Log.Count && on.Log[at] == call)
+						at++;
+					else
+					{
+						Assert.True(call.StartsWith('c'), $"{name} {Twin.Quoted(input)}: a resuming reading left out {call}");
+						skipped++;
+					}
+				}
+
+				Assert.True(at == on.Log.Count, $"{name} {Twin.Quoted(input)}: a resuming reading asked what the other did not");
+
+				if (on.Log.Count < off.Log.Count)
+					shortened[name] = shortened.GetValueOrDefault(name) + 1;
+			}
+		}
+
+		output.WriteLine($"constructions left out: {skipped}; readings with fewer: {string.Join(", ", shortened.Select(static pair => pair.Key + " " + pair.Value))}");
+
+		Assert.True(shortened.ContainsKey("GivenBackTwice"));
+	}
+
+	/// <summary>Every input with one character inserted, changed or dropped, of inputs no longer than 64.</summary>
+	static IEnumerable<string> Edited(IEnumerable<string> inputs)
+	{
+		foreach (var input in inputs.Where(static one => one.Length <= 64))
+		{
+			yield return input;
+
+			var units = input.Distinct().ToArray();
+
+			for (var i = 0; i <= input.Length; i++)
+			{
+				foreach (var unit in units)
+				{
+					yield return input.Insert(i, unit.ToString());
+
+					if (i < input.Length)
+						yield return input[..i] + unit + input[(i + 1)..];
+				}
+
+				if (i < input.Length)
+					yield return input.Remove(i, 1);
+			}
+		}
+	}
+
+	/// <summary>The addresses of the isemail suite, most of them refused; its control characters written as their symbols, put back.</summary>
+	static IEnumerable<string> IsEmailAddresses()
+	{
+		var file = Path.Combine(Graphs.Repository, "tests", "DotGram.Tests", "Web", "IsEmail", "tests.xml");
+
+		foreach (var address in System.Xml.Linq.XDocument.Load(file).Descendants("address"))
+			yield return new string([.. address.Value.Select(static unit => unit is >= '\u2400' and <= '\u241F' ? (char)(unit - 0x2400) : unit)]);
+	}
+
+	/// <summary>The fields of the structured-field suite of one type, its several lines joined as a field's are, refused ones among them.</summary>
+	static IEnumerable<string> StructuredFields(string type)
+	{
+		var directory = Path.Combine(Graphs.Repository, "tests", "DotGram.Tests", "Web", "StructuredFields");
+
+		foreach (var file in Directory.GetFiles(directory, "*.json"))
+		{
+			using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(file));
+
+			foreach (var test in document.RootElement.EnumerateArray())
+			{
+				if (test.TryGetProperty("header_type", out var kind) && kind.GetString() == type && test.TryGetProperty("raw", out var raw))
+					yield return string.Join(", ", raw.EnumerateArray().Select(static line => line.GetString()));
+			}
+		}
+	}
+
+	/// <summary>
+	/// What narrowing the places to those after whose decision something can fail back leaves out
+	/// is never read again: read with the places as decided, a record is never taken at a statement
+	/// the narrowed set leaves out where the reading again is a retry's; where it is a deferred
+	/// attempt read once more, built, it is counted. Over every fixture's inputs and their edits under
+	/// both lowerings, the JSON corpus, every ladder, and the shipped grammars' accepted inputs, their
+	/// edits and the suites of refused ones.
+	/// </summary>
+	[Fact]
+	public void TheNarrowedPlaces_AreNeverReadAgain()
+	{
+		var text  = new StringBuilder("corpus\tlowering\treadings\tjumps\tleft out and read again (retry)\tleft out and read again (stood)\tstood readings\tsteps narrowed / as decided\tmost steps over, per byte\n");
+		var wrong = new List<string>();
+
+		void Count(string corpus, IrProgram program, string entry, IEnumerable<string> inputs, Func<IrFragment, object?[], bool>? guards, string lowering)
+		{
+			long readings = 0, jumps = 0, reRead = 0, byStood = 0, stood = 0, decidedSteps = 0, narrowedSteps = 0;
+			var over = 0.0;
+
+			foreach (var input in inputs.Distinct())
+			{
+				var evaluator = new IrEvaluator(program, new Ladders.CountingHost(guards))
+				{
+					Resumes = true, Criterion = ResumptionCriterion.Decided, Measured = ResumptionCriterion.FailsBack, StepBudget = 50_000_000,
+				};
+
+				try
+				{
+					evaluator.Parse(entry, input);
+				}
+				catch (Exception thrown) when (thrown is IrStepsExceeded or NotSupportedException or TwinException)
+				{
+					continue;
+				}
+
+				// The same reading with the places narrowed: no more statements than as decided, but for
+				// the entries into the places it no longer keeps, each read once more at most.
+				var narrowed = new IrEvaluator(program, new Ladders.CountingHost(guards)) { Resumes = true, StepBudget = 50_000_000 };
+
+				try
+				{
+					narrowed.Parse(entry, input);
+				}
+				catch (Exception thrown) when (thrown is IrStepsExceeded or NotSupportedException or TwinException)
+				{
+					continue;
+				}
+
+				decidedSteps  += evaluator.Steps;
+				narrowedSteps += narrowed.Steps;
+				over           = Math.Max(over, (narrowed.Steps - evaluator.Steps) / (double)Math.Max(1, input.Length));
+
+				readings++;
+				jumps   += evaluator.Jumps + evaluator.Skips;
+				reRead  += evaluator.WouldHaveReRead;
+				byStood += evaluator.ReReadByStood;
+				stood   += evaluator.StoodReReads;
+
+				if (evaluator.WouldHaveReRead > 0 && wrong.Count < 20)
+					wrong.Add($"{corpus} ({lowering}) {Twin.Quoted(input.Length > 80 ? input[..80] + "…" : input)}: {evaluator.WouldHaveReRead}");
+			}
+
+			text.Append(string.Create(CultureInfo.InvariantCulture,
+				$"{corpus}\t{lowering}\t{readings}\t{jumps}\t{reRead}\t{byStood}\t{stood}\t{narrowedSteps / (double)Math.Max(1, decidedSteps):F4}\t{over:F2}\n"));
+		}
+
+		foreach (var (name, fixture) in Cases.Fixtures)
+			foreach (var options in Lowerings)
+				Count(name, Reading.Program(fixture.Grammar, options), fixture.Entry, name == "Json" ? Cases.InputsOf(name).Concat(HostTests.JsonCorpus().Select(static one => one.Text)) : Edited(Cases.InputsOf(name)), fixture.Guards, Named(options));
+
+		foreach (var shape in Ladders.Shapes)
+		{
+			var fixture = Cases.Fixtures[shape.Fixture];
+
+			Count("ladder: " + shape.Name, Reading.Program(fixture.Grammar), fixture.Entry, new[] { 1, 2, 3, 5, 8, 13, 64, 1000 }.Select(shape.Input), fixture.Guards, "proofs");
+		}
+
+		foreach (var (name, file, entry, inputs) in AcceptedRows.Where(static row => row.File is "Rfc5322.cs" or "Rfc9651.cs" or "Rfc3986.cs"))
+			Count(name + " (accepted and edited)", Reading.Program(Graphs.WebGrammar(file)), entry, Edited(inputs), null, "proofs");
+
+		var rfc5322 = Reading.Program(Graphs.WebGrammar("Rfc5322.cs"));
+		var rfc9651 = Reading.Program(Graphs.WebGrammar("Rfc9651.cs"));
+
+		Count("Rfc5322 addr-spec, isemail", rfc5322, "ParseAddrSpec", IsEmailAddresses(), null, "proofs");
+		Count("Rfc5322 address lists, isemail", rfc5322, "ParseAddressList", IsEmailAddresses(), null, "proofs");
+		Count("Rfc9651 list, structured-field suite", rfc9651, "ParseList", StructuredFields("list"), null, "proofs");
+		Count("Rfc9651 dictionary, structured-field suite", rfc9651, "ParseDictionary", StructuredFields("dictionary"), null, "proofs");
+
+		output.WriteLine(text.ToString());
+
+		if (Environment.GetEnvironmentVariable("IR_REPORT") is { } report)
+			File.WriteAllText(Path.Combine(report, "narrowed-oracle.tsv"), text.ToString());
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// The narrowing's mutations: taken to have something fail back always, it keeps what the
+	/// places as decided keep, statement for statement, on every fixture and shipped grammar; taken
+	/// to have nothing fail ever, or nothing fail inside the deciding statement, a replay reads again
+	/// what it left out, and the ladders that need those places cost the square of their length.
+	/// </summary>
+	[Fact]
+	public void TheNarrowingsMutations_AreSeen()
+	{
+		var programs = Cases.Fixtures.Values.Select(static fixture => Reading.Program(fixture.Grammar))
+			.Concat(new[] { "Rfc5322.cs", "Rfc9651.cs", "Rfc3986.cs" }.Select(static file => Reading.Program(Graphs.WebGrammar(file))));
+
+		foreach (var program in programs)
+		{
+			var decided = ResumptionSites.Of(program, ResumptionCriterion.Decided);
+			var always  = ResumptionSites.Of(program, ResumptionCriterion.FailsBackAlways);
+
+			Assert.Equal(decided.Sites.Keys.ToHashSet(ReferenceEqualityComparer.Instance), always.Sites.Keys.ToHashSet(ReferenceEqualityComparer.Instance));
+		}
+
+		long ReadAgain(string fixtureName, string input, ResumptionCriterion mutation)
+		{
+			var fixture   = Cases.Fixtures[fixtureName];
+			var evaluator = new IrEvaluator(Reading.Program(fixture.Grammar), new Ladders.CountingHost(fixture.Guards))
+			{
+				Resumes = true, Criterion = ResumptionCriterion.Decided, Measured = mutation,
+			};
+
+			evaluator.Parse(fixture.Entry, input);
+
+			return evaluator.WouldHaveReRead;
+		}
+
+		foreach (var shape in Ladders.Shapes.Where(static shape => shape.Name is "(a) settled" or "fails inside the decider" or "fails in the caller" or "fails round a cycle" or "look after the decision" or "stood in a recursion"))
+		{
+			Assert.True(ReadAgain(shape.Fixture, shape.Input(100), ResumptionCriterion.FailsBackNever) > 0, shape.Name + ": nothing failing should leave out what is read again");
+			Assert.Equal(0, ReadAgain(shape.Fixture, shape.Input(100), ResumptionCriterion.FailsBack));
+		}
+
+		var inside = Ladders.Shapes.Single(static shape => shape.Name == "fails inside the decider");
+
+		Assert.True(ReadAgain(inside.Fixture, inside.Input(100), ResumptionCriterion.FailsBackOutsideOnly) > 0);
+		Assert.Equal(0, ReadAgain(inside.Fixture, inside.Input(100), ResumptionCriterion.FailsBack));
+
+		foreach (var (name, mutation) in new[] { ("(a) settled", ResumptionCriterion.FailsBackNever), ("fails inside the decider", ResumptionCriterion.FailsBackOutsideOnly) })
+		{
+			var rungs = Ladders.Evaluated(Ladders.Shapes.Single(shape => shape.Name == name), null, true, 400_000_000, [1000, 2000, 4000], mutation);
+
+			Assert.True(rungs[^1].Steps > 3.5 * rungs[^2].Steps, $"{name}: {string.Join(" ", rungs.Select(static rung => rung.Steps))}");
+		}
+	}
+
+	/// <summary>
+	/// A replay inside a region keeps records ahead of the replay of the region round it, so a
+	/// record can lie below newer ones when a cut goes below its key: it stays in the store, stale,
+	/// and a lookup passes it over by the serial of the cuts. With that check off on purpose, a
+	/// stale record stands for a reading that has changed under it, and answers differ.
+	/// </summary>
 	[Fact]
 	public void RecordsMadeStaleByACut_ArePassedOver()
 	{

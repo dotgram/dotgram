@@ -421,6 +421,87 @@ static class Grammars
 		""";
 
 	/// <summary>
+	/// In braces, a long repetition, then a choice told by its first item whose alternative gives
+	/// turns back and can fail after them: the failure is inside the statement that decides, and a
+	/// retry of the braces moves a turn of it and reads the repetition before it again.
+	/// </summary>
+	public const string FailsInsideDecider = """
+		Start : @V = { xs: A* & ('q' & bs: B* & last: Letter & eof | 'z') } => @(Twin.C(0, xs, bs))
+		A     : @V = t: '0'                                                => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                      => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>The decision in a rule called in braces, and what fails after it in the caller, past the end of the rule's replay.</summary>
+	public const string FailsInCaller = """
+		Start : @V = { n: Inner & last: Letter & eof } => @(Twin.C(0, n, last))
+		Inner : @V = xs: A* & bs: B*                   => @(Twin.C(1, xs, bs))
+		A     : @V = t: '0'                            => @(Twin.C(2, t))
+		B     : @W = t: Letter & ','?                  => @(Twin.D(3, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// In braces, a decision with nothing after it that can fail, only a repetition that may take no
+	/// turn: nothing fails back to it, and the repetition before it, kept as decided, keeps nothing.
+	/// </summary>
+	public const string LastInBraces = """
+		Start : @V = { xs: A* & bs: B* & C* } & last: Letter & eof     => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                            => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                  => @(Twin.D(2, t))
+		C          = Letter & ';'
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>The decision in a rule of a mutual recursion, and what fails after it only in the callers, round the cycle.</summary>
+	public const string FailsRoundACycle = """
+		Start : @V = { p: P & last: Letter & eof } => @(Twin.C(0, p, last))
+		P     : @V = xs: A* & q: Q                 => @(Twin.C(1, xs, q))
+		Q     : @V = bs: B*                        => @(Twin.C(2, (object)bs))
+		           | '(' & p: P & ')'              => @(Twin.C(3, p))
+		A     : @V = t: '0'                        => @(Twin.C(4, t))
+		B     : @W = t: Letter & ','?              => @(Twin.D(5, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A look after the decision, in braces: its failure moves the decision.</summary>
+	public const string LookAfterDecider = """
+		Start : @V = { xs: A* & bs: B* & ?=(Letter & '!') } & last: Letter & '!' & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                                            => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                                  => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// An attempt read unbuilt that stands, read once more built, at every depth of a recursion: each
+	/// level gives two turns back after the recursive call, and ends in braces whose repetition stands
+	/// before a decision nothing can fail back to.
+	/// </summary>
+	public const string StoodInRecursion = """
+		Start : @V = n: Nest & eof                                                                      => @(Twin.C(0, n))
+		Nest  : @V = '(' & n: Nest & ')' & items: Item* & a: Letter & b: Letter & { A* & Y* & Z* }      => @(Twin.C(1, items, a, b))
+		           | 'x'                                                                                => @(Twin.C(2))
+		Item  : @V = t: Letter & ','?                                                                   => @(Twin.C(3, t))
+		A          = '0'
+		Y          = 'y'
+		Z          = 'y' & ';'
+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
 	/// A rule entered again at the same place while its earlier entry is still being read. Every
 	/// other way of reaching a rule again before reading anything is left recursion, which the
 	/// generator either folds into a loop or refuses (a guard, a look, an optional or repeated
@@ -527,5 +608,11 @@ static class Grammars
 		return Asked++ == 0;
 	}
 }
+[Gram(Grammars.FailsInsideDecider, Carrier = GramCarrier.Immediate)]   static partial class FailsInsideDeciderParser;
+[Gram(Grammars.FailsInCaller, Carrier = GramCarrier.Immediate)]        static partial class FailsInCallerParser;
+[Gram(Grammars.LastInBraces, Carrier = GramCarrier.Immediate)]         static partial class LastInBracesParser;
+[Gram(Grammars.FailsRoundACycle, Carrier = GramCarrier.Immediate)]     static partial class FailsRoundACycleParser;
+[Gram(Grammars.LookAfterDecider, Carrier = GramCarrier.Immediate)]     static partial class LookAfterDeciderParser;
+[Gram(Grammars.StoodInRecursion, Carrier = GramCarrier.Immediate)]     static partial class StoodInRecursionParser;
 [Gram(Grammars.DeepSplitOpen)]                                        static partial class DeepSplitOpenParser;
 [Gram(Grammars.Json)]                  static partial class JsonTwinParser;
