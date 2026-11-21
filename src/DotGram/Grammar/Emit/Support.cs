@@ -3614,7 +3614,10 @@ static partial class CSharpEmitter
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
-				Cut(way + 1);
+
+				if (way + 1 < Count)
+					Drop(way + 1);
+
 				Cursor = way + 1;
 			}
 
@@ -3626,7 +3629,10 @@ static partial class CSharpEmitter
 			{
 				Items[way * 2]     = value;
 				Items[way * 2 + 1] = last;
-				Cut(way + 1);
+
+				if (way + 1 < Count)
+					Drop(way + 1);
+
 				Cursor = way + 1;
 			}
 
@@ -3638,11 +3644,22 @@ static partial class CSharpEmitter
 			internal void Cut(int count)
 			{
 				// <sealskip>
-				for (var way = count; way < Count; way++)
-					Skip[way] = 0;
+				if (count < Count)
+					Unskip(count);
 
 				// </sealskip>
 				Count = count;
+			}
+
+			/// <summary>
+			/// <see cref="Cut"/> out of line, for <see cref="Next(int, int)"/>: a repetition calls that as it
+			/// leaves, at every turn, and drops nothing there, so the call stays small enough to be inlined
+			/// and the cut is paid only where there is something to cut.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Drop(int count)
+			{
+				Cut(count);
 			}
 
 			/// <summary>Spends every way decided since the segment, keeping its decision.</summary>
@@ -3702,6 +3719,18 @@ static partial class CSharpEmitter
 			{
 				global::System.Array.Resize(ref Items, Items.Length * 2);
 				global::System.Array.Resize(ref Skip, Items.Length / 2);
+			}
+
+			/// <summary>
+			/// Clears the pointers of the ways a cut drops: out of line, so that <see cref="Next(int, int)"/>,
+			/// which a repetition calls as it leaves at every turn and which cuts nothing there, keeps the
+			/// size it had before the pointers and stays inlined.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Unskip(int count)
+			{
+				for (var way = count; way < Count; way++)
+					Skip[way] = 0;
 			}
 			// </sealskip>
 			// <places>
