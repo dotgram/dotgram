@@ -2760,6 +2760,26 @@ static class FirstSets
 		return standing;
 	}
 
+	/// <summary>Whether a recognizer of the host is called anywhere, and so whether anything may stand still through one.</summary>
+	internal static bool HostsMayStand(RecognitionGraph graph)
+	{
+		return !ReferenceEquals(_standing.GetValue(graph, static graph => StandingRules(graph)), NoRecognizers);
+	}
+
+	/// <summary>
+	/// Whether a node may match nothing once a recognizer of the host may: the nullability
+	/// <see cref="StandsStill"/> asks of a turn, asked of any part (<see cref="Reentry"/>).
+	/// </summary>
+	internal static bool MayStandStill(Node node, RecognitionGraph graph)
+	{
+		var standing = _standing.GetValue(graph, static graph => StandingRules(graph));
+
+		if (ReferenceEquals(standing, NoRecognizers))
+			return Nullable(node, graph);
+
+		return Nullable(node, standing.Contains, graph, null, hosts: true);
+	}
+
 	static readonly HashSet<RuleSymbol> NoRecognizers = [];
 
 	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _standing = new();
