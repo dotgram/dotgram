@@ -395,9 +395,10 @@ static partial class CSharpEmitter
 			Valuing          = ValuingAsksOf(lexical),
 
 			// Over tokens only, which the machine asks itself (Machine.Memo.cs).
-			MemoisesFailures  = options.MemoiseFailures,
-			MemoisesSuccesses = options.MemoiseSuccesses,
-			SharedChoices     = sharedChoices,
+			MemoisesFailures   = options.MemoiseFailures,
+			MemoisesSuccesses  = options.MemoiseSuccesses,
+			DoomsContinuations = options.DoomContinuations,
+			SharedChoices      = sharedChoices,
 		};
 
 		foreach (var group in groups)
@@ -1436,9 +1437,13 @@ static partial class CSharpEmitter
 			// readers wrote, all of which is in the file by now, and not flagged where a seal is
 			// emitted: such a flag also went up for grammars whose written readers seal nothing
 			// (RFC 9110, JSON), which would have cost them the pointers for nothing.
-			var seals = file.ToString().Contains("ways.Seal(");
+			var emitted = file.ToString();
+			var seals   = emitted.Contains("ways.Seal(");
 
-			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places), "sealskip", seals), "nosealskip", !seals)
+			// The memo of lost answers, where some reader has a place or clears one (Machine.Doom.cs).
+			var dooms = emitted.Contains("ways.Returned(") || emitted.Contains("ways.ClearDoom(");
+
+			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places), "sealskip", seals), "nosealskip", !seals), "doom", dooms)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" + (keeps ? " + ways.Kept.Length + ways.KeptValues.Length * 2L" : "") : "")
 				.Replace("/*PLACESROOM*/", places ? " + ways.Places.Length" : "")

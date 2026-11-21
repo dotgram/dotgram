@@ -172,6 +172,9 @@ sealed record MachineSettings
 	/// <summary>Whether the reader may remember where its rules succeeded (<see cref="GramCompilerOptions.MemoiseSuccesses"/>).</summary>
 	public bool MemoisesSuccesses { get; init; }
 
+	/// <summary>Whether a frame may turn an answer that is lost at once (<see cref="GramCompilerOptions.DoomContinuations"/>).</summary>
+	public bool DoomsContinuations { get; init; }
+
 	/// <summary>
 	/// The choices the shared-recursion analysis found in the grammar (<see cref="SharedRecursion"/>);
 	/// null where the analysis was not run.

@@ -827,6 +827,11 @@ sealed partial class Machine
 	{
 		var defers = Deferral(owner, entry ? RetrySite.Entry : RetrySite.Rule, noting: true).Defers && Tracing is null;
 
+		// A place answers through the tape's memo of lost answers (Machine.Doom.cs): the frame is
+		// known by its site, where it was entered and its strength, and its answer is the position.
+		var place = !entry && !seal && IsDoomPlace(owner);
+		var asked = place ? $"s, {DoomSite(owner)}, pos, {(strength.Length > 0 ? "power" : "0")}, q" : "";
+
 		file.Line(summary);
 
 		using (file.Block($"public int {name}(int pos{strength})"))
@@ -854,7 +859,19 @@ sealed partial class Machine
 				file.Line();
 				if (defers)
 				{
-					Stood(file, "q", "", restore, seal ? ["ways.Seal(s);", "", "return q;"] : ["return q;"]);
+					Stood(
+						file, "q", "", restore, seal ? ["ways.Seal(s);", "", "return q;"] : ["return q;"],
+						place ? code => DoomedAnswer(code, asked, restore, "unbuilt != 0 && ", deferring: true) : null,
+						place ? code => Answered(code, asked) : null);
+				}
+				else if (place)
+				{
+					using (file.Block("if (q >= 0)"))
+					{
+						DoomedAnswer(file, asked, restore, "", deferring: false);
+						Answered(file, asked);
+						file.Line("return q;");
+					}
 				}
 				else if (seal)
 				{
@@ -883,7 +900,7 @@ sealed partial class Machine
 				if (defers)
 				{
 					using (file.Block("if (ways.Cursor > s && ways.Retry(s))"))
-						Retried(file, "");
+						Retried(file, "", Dooms);
 
 					file.Line();
 					Undeferred(file, "");
@@ -940,10 +957,16 @@ sealed partial class Machine
 	/// both, so that the replay cannot put back less than a retry does.
 	/// </param>
 	/// <param name="answer">What ends the loop with the attempt: a return, a break; a seal before either where the loop seals.</param>
-	static void Stood(Writer code, string took, string suffix, IReadOnlyList<string> restore, IReadOnlyList<string> answer)
+	/// <param name="doomed">Where the loop is a place: what it does first with an answer that is lost (<see cref="DoomedAnswer"/>).</param>
+	/// <param name="answered">Where the loop is a place: what it does last with an answer it gives (<see cref="Answered"/>).</param>
+	static void Stood(
+		Writer code, string took, string suffix, IReadOnlyList<string> restore, IReadOnlyList<string> answer,
+		Action<Writer>? doomed = null, Action<Writer>? answered = null)
 	{
 		using (code.Block($"if ({took} >= 0)"))
 		{
+			doomed?.Invoke(code);
+
 			using (code.Block($"if (u{suffix} > 1)"))
 			{
 				code.Line($"u{suffix} = Stood_DotGram(u{suffix}, s{suffix});");
@@ -968,14 +991,63 @@ sealed partial class Machine
 			}
 
 			code.Line();
+			answered?.Invoke(code);
 			foreach (var line in answer)
 				code.Line(line);
 		}
 	}
 
-	/// <summary>What a loop does once a way has been flipped: moves where it stands (<c>Retried_DotGram</c>) and reads the next attempt.</summary>
-	static void Retried(Writer code, string suffix)
+	/// <summary>
+	/// An answer everything after which has already failed, with the tape before the frame as it is:
+	/// put back what the attempt wrote, as a failure does, and turn the frame's own ways again; or,
+	/// where none is left, fail. Asked only where some answer has been lost (<c>DoomLive</c>), and on
+	/// a carrier that defers its constructions only where nothing is being built.
+	/// </summary>
+	static void DoomedAnswer(Writer code, string asked, IReadOnlyList<string> restore, string building, bool deferring)
 	{
+		using (code.Block($"if (ways.DoomLive != 0 && {building}ways.Doomed({asked}))"))
+		{
+			foreach (var line in restore)
+				code.Line(line);
+
+			if (restore.Count > 0)
+				code.Line();
+
+			code.Line("if (ways.Retry(s))");
+			code.Then("continue;");
+			code.Line();
+
+			if (deferring)
+				Undeferred(code, "");
+
+			code.Line("return -1;");
+		}
+
+		code.Line();
+	}
+
+	/// <summary>An answer given with ways open inside the frame: written down, for a retry that takes one of them.</summary>
+	static void Answered(Writer code, string asked)
+	{
+		code.Line("if (ways.Cursor > s)");
+		code.Then($"ways.Returned({asked});");
+		code.Line();
+	}
+
+	/// <summary>What a loop does once a way has been flipped: moves where it stands (<c>Retried_DotGram</c>) and reads the next attempt.</summary>
+	/// <param name="clears">
+	/// Whether the grammar has places: a loop that stops building here clears the answers lost inside
+	/// it, since those were lost to readings that built (Machine.Doom.cs).
+	/// </param>
+	static void Retried(Writer code, string suffix, bool clears = false)
+	{
+		if (clears)
+		{
+			code.Line($"if (u{suffix} == 1)");
+			code.Then($"ways.ClearDoom(s{suffix});");
+			code.Line();
+		}
+
 		code.Line($"u{suffix} = Retried_DotGram(u{suffix});");
 		code.Line();
 		code.Line("continue;");
@@ -6552,12 +6624,12 @@ sealed partial class Machine
 		}
 
 		/// <summary>The way flipped and the part asked again — where the loop defers, moving where it stands first (<see cref="Machine.Retried"/>).</summary>
-		static void Retried(Writer code, int segment, bool defers)
+		void Retried(Writer code, int segment, bool defers)
 		{
 			if (defers)
 			{
 				using (code.Block($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))"))
-					Machine.Retried(code, segment.ToString());
+					Machine.Retried(code, segment.ToString(), machine.Dooms);
 
 				code.Line();
 				Undeferred(code, segment.ToString());

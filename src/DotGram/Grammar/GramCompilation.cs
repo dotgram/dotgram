@@ -229,6 +229,9 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="AuthorOptions.MemoiseSuccesses"/>
 	public bool MemoiseSuccesses { get => Author.MemoiseSuccesses; set => Author.MemoiseSuccesses = value; }
 
+	/// <inheritdoc cref="AuthorOptions.DoomContinuations"/>
+	public bool DoomContinuations { get => Author.DoomContinuations; set => Author.DoomContinuations = value; }
+
 	/// <inheritdoc cref="GrammarOptions.AnalyseSharedRecursion"/>
 	public bool AnalyseSharedRecursion { get => Grammar.AnalyseSharedRecursion; set => Grammar.AnalyseSharedRecursion = value; }
 
@@ -536,6 +539,14 @@ sealed class AuthorOptions
 	/// </para>
 	/// </remarks>
 	public bool MemoiseSuccesses { get; set; } = true;
+
+	/// <summary>
+	/// Whether a recursive rule that answers with ways open inside it is told when everything after
+	/// that answer has failed, and turns its own ways again instead of answering the same (the
+	/// tape's memo of lost answers, Machine.Doom.cs). On by default; off is for a test that holds the
+	/// parser with it to the parser without it, which must answer alike in everything but time.
+	/// </summary>
+	public bool DoomContinuations { get; set; } = true;
 
 	/// <summary>
 	/// Whether the consumer's C# is 11 or later, so that the code may hold UTF-8 string

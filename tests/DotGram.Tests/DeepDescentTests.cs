@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 using DotGram.Generation;
@@ -145,6 +146,27 @@ public sealed class DeepDescentTests
 		parse Start
 		""";
 
+	/// <summary>A chain of tail calls with the split at the bottom: every level is entered where no way of its own stands.</summary>
+	public const string Tail = """
+		Start = P & '!'
+		P     = '(' & P | 'x' & Xs & Ys
+		Xs    = 'a'*
+		Ys    = 'a'*
+		parse Start
+		""";
+
+	/// <summary>
+	/// <see cref="Tail"/> closed again on the way up: every level begins where the one above it does,
+	/// so a memo that finds a frame by walking everything begun there walks the whole nest.
+	/// </summary>
+	public const string Closed = """
+		Start = P & '!'
+		P     = '(' & P & ')' | 'x' & Xs & Ys
+		Xs    = 'a'*
+		Ys    = 'a'*
+		parse Start
+		""";
+
 	public const string Recover = """
 		Start : @int[] = Element* recover ';' & eof
 		Element : @int = P & '!' & ';' => @(1)
@@ -166,6 +188,8 @@ public sealed class DeepDescentTests
 		["Prefix"]    = Prefix,
 		["Sealed"]    = Sealed,
 		["Recover"]   = Recover,
+		["Tail"]      = Tail,
+		["Closed"]    = Closed,
 	};
 
 	[Theory]
@@ -195,6 +219,153 @@ public sealed class DeepDescentTests
 		Assert.Equal(answer, Answer(Compiled(_grammars[grammar]), input));
 	}
 
+	/// <summary>
+	/// The reader that turns a lost answer at once answers every input as the one without it does:
+	/// the outcome, the position, the message, the value and what a construction threw.
+	/// </summary>
+	[Theory]
+	[InlineData("Split",     "()b!",   1)]
+	[InlineData("Open",      "()b!",   0)]
+	[InlineData("Vary",      "()b!",   1)]
+	[InlineData("Built",     "()b!12", 2)]
+	[InlineData("BuiltZero", "()b!12", 2)]
+	[InlineData("Stood",     "()a!",   1)]
+	[InlineData("Guard",     "()b!",   1)]
+	[InlineData("Prefix",    "()ab!",  1)]
+	[InlineData("Sealed",    "()ab!",  1)]
+	[InlineData("Recover",   "()b!;",  1)]
+	[InlineData("Tail",      "(xa!",   0)]
+	[InlineData("Closed",    "()xa!",  1)]
+	public void The_memo_of_lost_answers_answers_as_the_reader_without_it(string grammar, string alphabet, int closing)
+	{
+		var with    = Compiled(_grammars[grammar]);
+		var without = Compiled(_grammars[grammar], dooms: false);
+		var random  = new Random(20261120);
+
+		for (var i = 0; i < 3000; i++)
+		{
+			var input = Input(random, alphabet, closing, i);
+
+			Assert.True(Answer(without, input) == Answer(with, input), $"'{input}': {Answer(without, input)} without the memo, {Answer(with, input)} with it.");
+		}
+	}
+
+	/// <summary>
+	/// A random input: a few characters of the alphabet, and three times in four a nest of up to twelve
+	/// levels around a run, with something inserted, a closing taken out, and something after.
+	/// </summary>
+	static string Input(Random seeded, string alphabet, int closing, int index)
+	{
+		var random = new Random(seeded.Next() ^ index);
+		var noise  = new System.Text.StringBuilder();
+
+		for (var k = random.Next(0, 16); k > 0; k--)
+			noise.Append(alphabet[random.Next(alphabet.Length)]);
+
+		if (index % 4 == 0)
+			return noise.ToString();
+
+		var open  = new System.Text.StringBuilder();
+		var close = new System.Text.StringBuilder();
+		var digit = alphabet.Contains('1', StringComparison.Ordinal);
+
+		for (var level = random.Next(0, 13); level > 0; level--)
+		{
+			var tag = digit ? (random.Next(5) == 0 ? "2" : "1") : "";
+
+			open.Append(tag).Append('(');
+
+			if (closing > 0)
+				close.Insert(0, ")" + (digit ? (random.Next(5) == 0 ? "2" : "1") : ""));
+		}
+
+		var run = alphabet.Contains('x', StringComparison.Ordinal) ? "x" : "";
+
+		run += new string(alphabet.Contains('a', StringComparison.Ordinal) && !alphabet.Contains('b', StringComparison.Ordinal) ? 'a' : 'b', random.Next(0, 13));
+
+		if (random.Next(3) == 0)
+			run += noise;
+
+		var closed = close.ToString();
+
+		if (closed.Length > 0 && random.Next(4) == 0)
+			closed = closed.Remove(random.Next(closed.Length), 1);
+
+		var tail = random.Next(4) switch
+		{
+			0 => "",
+			1 => "!",
+			2 => noise.ToString(),
+			_ => "!" + noise,
+		};
+
+		return open + run + closed + tail + (alphabet.Contains(';', StringComparison.Ordinal) && random.Next(2) == 0 ? ";" : "");
+	}
+
+	/// <summary>Which rules are places: the ones nothing after them can see into, and no others.</summary>
+	[Theory]
+	[InlineData("Split",   true)]
+	[InlineData("Built",   true)]
+	[InlineData("Stood",   true)]
+	[InlineData("Closed",  true)]
+	[InlineData("Guard",   false)]
+	[InlineData("Recover", false)]
+	public void A_rule_is_a_place_where_nothing_after_it_can_see_into_it(string grammar, bool place)
+	{
+		Assert.Equal(place, Source(_grammars[grammar], dooms: true, counts: false).Contains("ways.Returned(", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// The closed nest is read in time linear in its depth, counted in rule entries at four depths a
+	/// doubling apart; and the memo finds a frame in a constant number of steps however many frames
+	/// begin where it does, counted in the slots its index looks at against the searches.
+	/// </summary>
+	[Fact]
+	public void A_closed_nest_split_at_the_bottom_costs_its_depth()
+	{
+		var parser  = Compiled(Closed, dooms: true, counts: true);
+		var ways    = parser.GetNestedType("Ways_DotGram", BindingFlags.NonPublic)!;
+		var probes  = ways.GetField("CountDoomProbes", BindingFlags.NonPublic | BindingFlags.Static)!;
+		var asked   = ways.GetField("CountDoomSearches", BindingFlags.NonPublic | BindingFlags.Static)!;
+		var entries = new List<long>();
+
+		foreach (var depth in new[] { 250, 500, 1000, 2000 })
+		{
+			probes.SetValue(null, 0L);
+			asked.SetValue(null, 0L);
+
+			var text = new string('(', depth) + "x" + new string('a', depth) + new string(')', depth);
+
+			entries.Add(Entries(parser, text));
+
+			Assert.True(
+				(long)probes.GetValue(null)! <= 4 * (long)asked.GetValue(null)! + 16,
+				$"{probes.GetValue(null)} slots looked at for {asked.GetValue(null)} searches at {depth} levels.");
+		}
+
+		Assert.True(
+			entries[3] - entries[2] <= 2.2 * (entries[2] - entries[1]) && entries[2] - entries[1] <= 2.2 * (entries[1] - entries[0]),
+			$"{string.Join(", ", entries)} rule entries at 250, 500, 1000 and 2000 levels.");
+	}
+
+	/// <summary>Rule entries of one reading, from a fresh zero; the reading refuses.</summary>
+	static long Entries(Type parser, string input)
+	{
+		var counters = parser.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public)
+			.SelectMany(static type => type.GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+			.Where(static field => field.Name.StartsWith("CountEntered_", StringComparison.Ordinal))
+			.ToList();
+
+		Assert.NotEmpty(counters);
+
+		foreach (var counter in counters)
+			counter.SetValue(null, 0L);
+
+		Assert.StartsWith("refused", Answer(parser, input), StringComparison.Ordinal);
+
+		return counters.Sum(static counter => (long)counter.GetValue(null)!);
+	}
+
 	/// <summary>What one reading answers, in a line: the value or the span, the refusal, or what was thrown.</summary>
 	static string Answer(Type parser, string input)
 	{
@@ -218,26 +389,36 @@ public sealed class DeepDescentTests
 		}
 	}
 
-	static readonly Dictionary<string, Type> _compiled = [];
+	static readonly Dictionary<(string, bool, bool), Type> _compiled = [];
 
-	static Type Compiled(string grammar)
+	static Type Compiled(string grammar, bool dooms = true, bool counts = false)
 	{
 		lock (_compiled)
 		{
-			if (!_compiled.TryGetValue(grammar, out var parser))
+			if (!_compiled.TryGetValue((grammar, dooms, counts), out var parser))
 			{
-				var result = GramCompiler.Compile(grammar, new GramCompilerOptions
-				{
-					CSharpScanner = RoslynCSharpScanner.Instance,
-					Carrier       = CarrierKind.Immediate,
-				});
+				var source = Source(grammar, dooms, counts);
 
-				EmittedCode.Quiet(result.Diagnostics);
-
-				_compiled[grammar] = parser = EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: Members).GetType("Grammar")!;
+				_compiled[(grammar, dooms, counts)] = parser = EmittedCode.Compile(
+					source, declarationMembers: Members, symbols: counts ? ["DOTGRAM_COUNTS"] : null).GetType("Grammar")!;
 			}
 
 			return parser;
 		}
+	}
+
+	static string Source(string grammar, bool dooms, bool counts)
+	{
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			CSharpScanner     = RoslynCSharpScanner.Instance,
+			Carrier           = CarrierKind.Immediate,
+			DoomContinuations = dooms,
+			CountRules        = counts,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		return Assert.Single(result.Sources).Text;
 	}
 }

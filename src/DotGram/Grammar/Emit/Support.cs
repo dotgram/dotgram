@@ -3447,6 +3447,9 @@ static partial class CSharpEmitter
 					global::System.Array.Clear(spare.Skip, 0, spare.Count);
 
 				// </sealskip>
+				// <doom>
+				spare.DoomReset();
+				// </doom>
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.LogCount  = 0;
@@ -3596,6 +3599,11 @@ static partial class CSharpEmitter
 					// </sealskip>
 					if (Items[way * 2] < Items[way * 2 + 1])
 					{
+						// <doom>
+						if (BackCount > 0)
+							Doomed(way);
+
+						// </doom>
 						Items[way * 2]++;
 						Cut(way + 1);
 						Cursor = segment;
@@ -3648,6 +3656,14 @@ static partial class CSharpEmitter
 					Unskip(count);
 
 				// </sealskip>
+				// <doom>
+				while (BackCount > 0 && Back[(BackCount - 1) * 4] >= count)
+					BackCount--;
+
+				if (DoomTop >= count)
+					ClearDoom(count);
+
+				// </doom>
 				Count = count;
 			}
 
@@ -3668,6 +3684,14 @@ static partial class CSharpEmitter
 			{
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
+
+				// <doom>
+				while (BackCount > 0 && Back[(BackCount - 1) * 4] >= segment)
+					BackCount--;
+
+				if (DoomTop >= segment)
+					ClearDoom(segment);
+				// </doom>
 			}
 			// </nosealskip>
 			// <sealskip>
@@ -3700,6 +3724,14 @@ static partial class CSharpEmitter
 
 				if (Cursor > segment)
 					Skip[Cursor - 1] = segment + 1;
+
+				// <doom>
+				while (BackCount > 0 && Back[(BackCount - 1) * 4] >= segment)
+					BackCount--;
+
+				if (DoomTop >= segment)
+					ClearDoom(segment);
+				// </doom>
 			}
 
 			/// <summary>
@@ -3733,6 +3765,355 @@ static partial class CSharpEmitter
 					Skip[way] = 0;
 			}
 			// </sealskip>
+			// <doom>
+
+			/// <summary>
+			/// Returns of the frames that can be told their continuation is lost, in the order they
+			/// returned: four integers each — where the frame's ways began, where they ended, which
+			/// place it is, where it was entered — and beside them the int arguments it was entered
+			/// with and what it answered.
+			/// </summary>
+			/// <remarks>
+			/// <para>
+			/// <b>What this is for.</b> A recursive rule that answers with ways still open inside it
+			/// hands its caller one reading among several. When everything after that answer fails,
+			/// the latest open way is inside the frame, and the retry that takes it goes down the whole
+			/// nest again, comes back up with the next reading, and fails again above: a nest d deep
+			/// split k ways inside cost d times k. If the next reading answers what the last one did,
+			/// with the tape before the frame unchanged, what follows can only fail again, so the frame
+			/// asks itself again instead of answering (<see cref="Doomed(int, int, int, long, long)"/>).
+			/// </para>
+			/// <para>
+			/// A retry that takes a way inside a returned frame reads this journal once: every frame
+			/// whose ways hold the one taken has its answer written into its record, and the rest are
+			/// dropped. Every entry is read once and every record is cleared once, so the cost is
+			/// amortised against the returns that wrote them.
+			/// </para>
+			/// </remarks>
+			internal int[] Back = new int[64];
+
+			/// <summary>The arguments and the answer of each entry in <see cref="Back"/>, two longs an entry.</summary>
+			internal long[] BackKeys = new long[32];
+
+			/// <summary>How many entries the journal holds.</summary>
+			internal int BackCount;
+
+			/// <summary>By where a frame's ways begin: the first record there, plus one; zero where none is.</summary>
+			internal int[] DoomAt = new int[16];
+
+			/// <summary>How many records are live.</summary>
+			internal int DoomLive;
+
+			/// <summary>The highest way a live record begins at, or -1.</summary>
+			internal int DoomTop = -1;
+
+			/// <summary>Six integers a record: the place, the entry, where its ways begin, the next record there, how many answers it holds.</summary>
+			internal int[] DoomInts = new int[6 * 8];
+
+			/// <summary>Nine longs a record: the arguments, then up to <see cref="DoomKeys"/> answers.</summary>
+			internal long[] DoomLongs = new long[9 * 8];
+
+			/// <summary>How many records have ever been made, the free ones among them.</summary>
+			internal int DoomUsed;
+
+			/// <summary>The first free record, or -1; the free ones are chained through their next field.</summary>
+			internal int DoomFree = -1;
+
+			/// <summary>
+			/// Where to find a record by what owns it: open addressing over the records, each slot the
+			/// record plus one. Without it a record was found by walking every record that begins at the
+			/// same way, and a chain of calls that opens no way of its own puts every level there: a
+			/// nest d deep cost d to find each of its d records.
+			/// </summary>
+			internal int[] DoomIndex = new int[16];
+
+			/// <summary>
+			/// How many answers a record keeps. The first ones are kept; one past them is not written,
+			/// and for it the frame answers as if nothing were recorded — which is never wrong, only
+			/// slower.
+			/// </summary>
+			const int DoomKeys = 8;
+
+			#if DOTGRAM_COUNTS
+
+			/// <summary>Slots the index looked at, summed over every search; for a test that holds it to the searches.</summary>
+			internal static long CountDoomProbes = 0;
+
+			/// <summary>Searches of the index.</summary>
+			internal static long CountDoomSearches = 0;
+
+			#endif
+
+			/// <summary>A frame answered with ways open inside it: what it answered, for a retry to find.</summary>
+			internal void Returned(int s, int site, int pos, long args, long key)
+			{
+				if (BackCount * 4 + 4 > Back.Length)
+				{
+					global::System.Array.Resize(ref Back, Back.Length * 2);
+					global::System.Array.Resize(ref BackKeys, BackKeys.Length * 2);
+				}
+
+				var b = BackCount * 4;
+
+				Back[b]     = s;
+				Back[b + 1] = Cursor;
+				Back[b + 2] = site;
+				Back[b + 3] = pos;
+				BackKeys[BackCount * 2]     = args;
+				BackKeys[BackCount * 2 + 1] = key;
+				BackCount++;
+			}
+
+			/// <summary>
+			/// Whether what follows this answer of this frame, with the tape before it as it is, has
+			/// already failed every way it had.
+			/// </summary>
+			internal bool Doomed(int s, int site, int pos, long args, long key)
+			{
+				if (s > DoomTop)
+					return false;
+
+				var record = Find(s, site, pos, args);
+
+				if (record < 0)
+					return false;
+
+				var keys = DoomInts[record * 6 + 4];
+
+				for (var k = 0; k < keys; k++)
+				{
+					if (DoomLongs[record * 9 + 1 + k] == key)
+						return true;
+				}
+
+				return false;
+			}
+
+			static int DoomHash(int s, int site, int pos, long args)
+			{
+				unchecked
+				{
+					var h = (uint)s * 0x9E3779B1u ^ (uint)pos * 0x85EBCA77u ^ (uint)site * 0xC2B2AE3Du ^ (uint)args ^ (uint)(args >> 32) * 0x27D4EB2Fu;
+
+					return (int)(h ^ h >> 15);
+				}
+			}
+
+			int Find(int s, int site, int pos, long args)
+			{
+				var mask = DoomIndex.Length - 1;
+
+				#if DOTGRAM_COUNTS
+				CountDoomSearches++;
+				#endif
+
+				for (var slot = DoomHash(s, site, pos, args) & mask; DoomIndex[slot] != 0; slot = slot + 1 & mask)
+				{
+					#if DOTGRAM_COUNTS
+					CountDoomProbes++;
+					#endif
+
+					var record = DoomIndex[slot] - 1;
+					var at     = record * 6;
+
+					if (DoomInts[at + 2] == s && DoomInts[at + 1] == pos && DoomInts[at] == site && DoomLongs[record * 9] == args)
+						return record;
+				}
+
+				return -1;
+			}
+
+			/// <summary>Writes an answer into the record of a frame whose ways hold the one a retry took.</summary>
+			void Doom(int s, int site, int pos, long args, long key)
+			{
+				var record = Find(s, site, pos, args);
+
+				if (record < 0)
+					record = NewRecord(s, site, pos, args);
+
+				var keys = DoomInts[record * 6 + 4];
+
+				for (var k = 0; k < keys; k++)
+				{
+					if (DoomLongs[record * 9 + 1 + k] == key)
+						return;
+				}
+
+				if (keys < DoomKeys)
+				{
+					DoomLongs[record * 9 + 1 + keys] = key;
+					DoomInts[record * 6 + 4]         = keys + 1;
+				}
+			}
+
+			int NewRecord(int s, int site, int pos, long args)
+			{
+				if (DoomAt.Length <= s)
+					global::System.Array.Resize(ref DoomAt, global::System.Math.Max(s + 1, DoomAt.Length * 2));
+
+				if ((DoomLive + 1) * 2 > DoomIndex.Length)
+					Reindex(DoomIndex.Length * 2);
+
+				int record;
+
+				if (DoomFree >= 0)
+				{
+					record   = DoomFree;
+					DoomFree = DoomInts[record * 6 + 3];
+				}
+				else
+				{
+					if (DoomUsed * 6 + 6 > DoomInts.Length)
+					{
+						global::System.Array.Resize(ref DoomInts, DoomInts.Length * 2);
+						global::System.Array.Resize(ref DoomLongs, DoomLongs.Length * 2);
+					}
+
+					record = DoomUsed++;
+				}
+
+				var at = record * 6;
+
+				DoomInts[at]     = site;
+				DoomInts[at + 1] = pos;
+				DoomInts[at + 2] = s;
+				DoomInts[at + 3] = DoomAt[s] - 1;
+				DoomInts[at + 4] = 0;
+				DoomLongs[record * 9] = args;
+				DoomAt[s] = record + 1;
+				DoomLive++;
+
+				if (s > DoomTop)
+					DoomTop = s;
+
+				Index(record);
+
+				return record;
+			}
+
+			void Index(int record)
+			{
+				var at   = record * 6;
+				var mask = DoomIndex.Length - 1;
+				var slot = DoomHash(DoomInts[at + 2], DoomInts[at], DoomInts[at + 1], DoomLongs[record * 9]) & mask;
+
+				while (DoomIndex[slot] != 0)
+					slot = slot + 1 & mask;
+
+				DoomIndex[slot] = record + 1;
+			}
+
+			void Reindex(int size)
+			{
+				DoomIndex = new int[size];
+
+				for (var s = 0; s <= DoomTop; s++)
+				{
+					for (var record = DoomAt[s] - 1; record >= 0; record = DoomInts[record * 6 + 3])
+						Index(record);
+				}
+			}
+
+			/// <summary>Takes a record out of the index, moving back the ones its slot had pushed along.</summary>
+			void Unindex(int record)
+			{
+				var at   = record * 6;
+				var mask = DoomIndex.Length - 1;
+				var slot = DoomHash(DoomInts[at + 2], DoomInts[at], DoomInts[at + 1], DoomLongs[record * 9]) & mask;
+
+				while (DoomIndex[slot] != record + 1)
+					slot = slot + 1 & mask;
+
+				var next = slot;
+
+				while (true)
+				{
+					next = next + 1 & mask;
+
+					if (DoomIndex[next] == 0)
+						break;
+
+					var other = DoomIndex[next] - 1;
+					var oat   = other * 6;
+					var home  = DoomHash(DoomInts[oat + 2], DoomInts[oat], DoomInts[oat + 1], DoomLongs[other * 9]) & mask;
+
+					// Moved back only where its home is not between the hole and where it sits.
+					var between = slot <= next ? slot < home && home <= next : slot < home || home <= next;
+
+					if (!between)
+					{
+						DoomIndex[slot] = DoomIndex[next];
+						slot = next;
+					}
+				}
+
+				DoomIndex[slot] = 0;
+			}
+
+			/// <summary>
+			/// A retry took way <paramref name="r"/>: every returned frame whose ways hold it has had
+			/// everything after its answer fail, and the journal is read out.
+			/// </summary>
+			void Doomed(int r)
+			{
+				for (var i = BackCount - 1; i >= 0; i--)
+				{
+					var b = i * 4;
+
+					if (Back[b] <= r && r < Back[b + 1])
+						Doom(Back[b], Back[b + 2], Back[b + 3], BackKeys[i * 2], BackKeys[i * 2 + 1]);
+				}
+
+				BackCount = 0;
+			}
+
+			/// <summary>
+			/// Drops the records of frames whose ways begin at or past <paramref name="from"/>: the tape
+			/// before them is no longer what it was when they were written.
+			/// </summary>
+			internal void ClearDoom(int from)
+			{
+				if (DoomLive == 0 || DoomTop < from)
+					return;
+
+				for (var s = DoomTop; s >= from; s--)
+				{
+					for (var record = DoomAt[s] - 1; record >= 0;)
+					{
+						var next = DoomInts[record * 6 + 3];
+
+						Unindex(record);
+						DoomInts[record * 6 + 3] = DoomFree;
+						DoomFree = record;
+						DoomLive--;
+						record = next;
+					}
+
+					DoomAt[s] = 0;
+				}
+
+				DoomTop = from - 1;
+
+				while (DoomTop >= 0 && DoomAt[DoomTop] == 0)
+					DoomTop--;
+			}
+
+			/// <summary>Nothing of an earlier reading: the tape is handed to a new one.</summary>
+			internal void DoomReset()
+			{
+				BackCount = 0;
+
+				if (DoomLive != 0)
+					ClearDoom(0);
+
+				DoomUsed = 0;
+				DoomFree = -1;
+				DoomTop  = -1;
+
+				if (DoomIndex.Length > 16)
+					DoomIndex = new int[16];
+			}
+			// </doom>
 			// <places>
 
 			/// <summary>
