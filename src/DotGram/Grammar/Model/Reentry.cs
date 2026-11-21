@@ -142,8 +142,15 @@ static class Reentry
 
 	static Facts Of(RecognitionGraph graph)
 	{
-		return _facts.GetValue(graph, static graph => Work(graph));
+		return _facts.GetValue(graph, static graph => Unchecked ? None : Work(graph));
 	}
+
+	/// <summary>
+	/// For a test that weighs the check against its absence: marks nothing in the graphs worked out on this
+	/// thread while it is set. Not a setting: a parser compiled with it may go round for ever.
+	/// </summary>
+	[ThreadStatic]
+	internal static bool Unchecked;
 
 	static Facts Work(RecognitionGraph graph)
 	{
