@@ -65,7 +65,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	static readonly IrLowering.Options AllOpen = new(AllResumable: true);
 
 	/// <summary>The shapes held to their length, and the lowering each is held under; the rest are written down only.</summary>
-	static readonly (string Shape, IrLowering.Options? Options)[] Linear =
+	internal static readonly (string Shape, IrLowering.Options? Options)[] Linear =
 	[
 		("loop", null), ("settled config", null), ("nested settled", null), ("arithmetic", AllOpen),
 		("(a) settled", null), ("(b) sealed", null), ("(c) called", null),
@@ -948,7 +948,13 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 			("Rfc9651 list, structured-field suite", rfc9651, "ParseList", [.. StructuredFields("list").Distinct()]),
 			("Rfc9651 dictionary, structured-field suite", rfc9651, "ParseDictionary", [.. StructuredFields("dictionary").Distinct()]),
 			("Rfc3986 references, edited", rfc3986, "ParseReference", [.. Edited(AcceptedRows.Single(static row => row.File == "Rfc3986.cs").Inputs).Distinct()]),
+			("Rfc9651 list, accepted and edited", rfc9651, "ParseList", [.. Edited(AcceptedRows.Single(static row => row.Name == "Rfc9651 list").Inputs).Distinct()]),
+			("Rfc9651 dictionary, accepted and edited", rfc9651, "ParseDictionary", [.. Edited(AcceptedRows.Single(static row => row.Name == "Rfc9651 dictionary").Inputs).Distinct()]),
 		};
+
+		// IR_REFUSING_ROWS: the rows to read, by the start of their names, where not all of them.
+		if (Environment.GetEnvironmentVariable("IR_REFUSING_ROWS") is { } chosen)
+			rows = [.. rows.Where(row => chosen.Split(',').Any(start => row.Name.StartsWith(start, StringComparison.Ordinal)))];
 
 		foreach (var (name, program, entry, inputs) in rows)
 			foreach (var line in Slices.AcceptingPathInC("RefuseC-" + name.Replace(' ', '-').Replace(',', '-'), program, entry, inputs))

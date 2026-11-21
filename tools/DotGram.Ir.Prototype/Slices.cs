@@ -353,6 +353,11 @@ static class Slices
 			File.WriteAllText(Path.Combine(directory, "parser.h"), SlicePrinter.PrintHeaderInC(program));
 			File.WriteAllText(Path.Combine(directory, "fragments.c"), SlicePrinter.PrintNullHostInC(program));
 
+			// A parser that restarts by budget is two translation units: the first reading and the resuming set.
+			var resuming = SlicePrinter.PrintResumingSet(program);
+
+			File.WriteAllText(Path.Combine(directory, "resume.c"), resuming);
+
 			var variants = new (string Name, string Source)[]
 			{
 				("off", SlicePrinter.Print(program, SliceLanguage.C, resumes: false)),
@@ -373,6 +378,13 @@ static class Slices
 				("twinkeyedsplit", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwinKeyedSplit)),
 				("offhot", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, hotRuntime: true)),
 				("offeveryhot", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, ablation: SliceAblation.ReplayTwinEvery, hotRuntime: true)),
+				("resumingalone", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ResumingSetAlone)),
+				("restart", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget)),
+				("restarthot", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, hotRuntime: true)),
+				("restart2", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, budget: 2)),
+				("restart8", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, budget: 8)),
+				("restarthot2", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, hotRuntime: true, budget: 2)),
+				("restarthot8", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, hotRuntime: true, budget: 8)),
 			};
 
 			// IR_C_VARIANTS: the variants to time against "off", where not all of them.
@@ -390,12 +402,14 @@ static class Slices
 				// IR_C_ALWAYS_INLINE: every variant with the runtime's functions inlined wherever they are called.
 				List<string> flags = Environment.GetEnvironmentVariable("IR_C_ALWAYS_INLINE") == "1" ? ["-DRT_ALWAYS_INLINE"] : [];
 
-				var (built, _, complaints) = Run(gcc, ["-std=gnu11", "-O2", "-D_GNU_SOURCE", .. flags, "-o", "accept-" + variant, "accept.c", $"parser-{variant}.c", "fragments.c"], directory);
+				List<string> more = variant.StartsWith("restart", StringComparison.Ordinal) ? ["resume.c"] : [];
+
+				var (built, _, complaints) = Run(gcc, ["-std=gnu11", "-O2", "-D_GNU_SOURCE", .. flags, "-o", "accept-" + variant, "accept.c", $"parser-{variant}.c", .. more, "fragments.c"], directory);
 
 				Assert.True(built == 0, "gcc: " + complaints);
 			}
 
-			(int Accepted, double Milliseconds) Read(string variant, long reps)
+			(int Accepted, double Milliseconds, int Restarts) Read(string variant, long reps)
 			{
 				var (exit, output, error) = Run(Path.Combine(directory, "accept-" + variant), [entry, "batch.bin", reps.ToString(CultureInfo.InvariantCulture)], directory);
 
@@ -403,7 +417,7 @@ static class Slices
 
 				var parts = output.Trim().Split(' ');
 
-				return (int.Parse(parts[0], CultureInfo.InvariantCulture), double.Parse(parts[1], CultureInfo.InvariantCulture));
+				return (int.Parse(parts[0], CultureInfo.InvariantCulture), double.Parse(parts[1], CultureInfo.InvariantCulture), int.Parse(parts[2], CultureInfo.InvariantCulture));
 			}
 
 			// The size of the machine code of a variant's program, where size can say it.
@@ -474,7 +488,7 @@ static class Slices
 				off.Sort();
 
 				lines.Add(string.Create(CultureInfo.InvariantCulture,
-					$"{variant}\t{count}/{inputs.Count}\t{on[on.Count / 2]:F4}\t{off[off.Count / 2]:F4}\t{ratios[ratios.Count / 2]:F3}\t{ratios[0]:F3}-{ratios[^1]:F3}\t{Instructions(variant)}\t{Instructions("off")}\t{Text(variant)}\t{Text("off")}"));
+					$"{variant}\t{count}/{inputs.Count}\t{on[on.Count / 2]:F4}\t{off[off.Count / 2]:F4}\t{ratios[ratios.Count / 2]:F3}\t{ratios[0]:F3}-{ratios[^1]:F3}\t{Instructions(variant)}\t{Instructions("off")}\t{Text(variant)}\t{Text("off")}\t{Read(variant, 1).Restarts}"));
 			}
 
 			return lines;
@@ -491,22 +505,27 @@ static class Slices
 	public static List<SliceAnswer> InC(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
 		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null, bool counted = false, bool anyOwner = false,
-		bool noCutCheck = false)
+		bool noCutCheck = false, SliceAblation? ablation = null, int? budget = null)
 	{
 		var gcc       = Gcc;
 		var directory = Workspace(name, "c");
 
 		try
 		{
-			// IR_C_ABLATION: the parser printed as one of the forms measured (SecondCopy, ReplayTwin), to check what it answers.
-			var ablation = Environment.GetEnvironmentVariable("IR_C_ABLATION") is { } named ? Enum.Parse<SliceAblation>(named) : SliceAblation.Whole;
+			var form = ablation ?? Ablation;
 
-			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C, counted: counted, ablation: ablation));
+			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C, counted: counted, ablation: form, budget: budget ?? Budget));
 			File.WriteAllText(Path.Combine(directory, "parser.h"), SlicePrinter.PrintHeaderInC(program));
 			File.WriteAllLines(Path.Combine(directory, "answers.txt"), guardAnswers ?? []);
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
 
 			List<string> sources = ["driver.c", "parser.c"];
+
+			if (form == SliceAblation.RestartByBudget)
+			{
+				File.WriteAllText(Path.Combine(directory, "resume.c"), SlicePrinter.PrintResumingSet(program, counted));
+				sources.Add("resume.c");
+			}
 
 			if (host is null)
 			{
@@ -546,11 +565,61 @@ static class Slices
 		}
 	}
 
-	/// <summary>What the evaluator says of an input, in the words the drivers use.</summary>
+	/// <summary>
+	/// <c>IR_C_ABLATION</c>: the form the C parser is printed in where a test does not name one
+	/// (SecondCopy, ReplayTwin, …), to check what it answers; <c>IR_C_BUDGET</c>, the budget of
+	/// <see cref="SliceAblation.RestartByBudget"/> (4 where not given).
+	/// </summary>
+	public static SliceAblation Ablation =>
+		Environment.GetEnvironmentVariable("IR_C_ABLATION") is { } named ? Enum.Parse<SliceAblation>(named) : SliceAblation.Whole;
+
+	public static int Budget =>
+		Environment.GetEnvironmentVariable("IR_C_BUDGET") is { } budget ? int.Parse(budget, CultureInfo.InvariantCulture) : 4;
+
+	/// <summary>How many readings the evaluator gave up under restart by budget in <see cref="Evaluated"/>, since the process began.</summary>
+	public static long EvaluatedRestarts;
+
+	/// <summary>
+	/// What the evaluator says of an input, in the words the drivers use. Where the C parser is
+	/// printed to restart by budget, the host calls are those of the evaluator restarting by the same
+	/// budget, and its answer is held to the evaluator's without restart, resuming and not.
+	/// </summary>
 	public static SliceAnswer Evaluated(IrProgram program, string entry, string input, Func<IrFragment, object?[], bool>? guards)
 	{
+		if (Ablation == SliceAblation.RestartByBudget)
+			return EvaluatedRestarting(program, entry, input, guards, Budget);
+
 		var host    = new RecordingHost(guards);
 		var outcome = new IrEvaluator(program, host) { Resumes = true }.Parse(entry, input);
+
+		var head = outcome.Accepted
+			? outcome.Line
+			: "R " + outcome.Position.ToString(CultureInfo.InvariantCulture) + " " +
+				string.Join(",", outcome.Expected.Select(label => program.Expected.IndexOf(label)).Order().Select(static index => index.ToString(CultureInfo.InvariantCulture)));
+
+		return new SliceAnswer(head, host.Log);
+	}
+
+	/// <summary>
+	/// <see cref="Evaluated"/> restarting by budget: the answer, the value and the refusal checked
+	/// against the evaluator without restart in both modes (an assertion), the host calls those of
+	/// the reading that restarts.
+	/// </summary>
+	public static SliceAnswer EvaluatedRestarting(IrProgram program, string entry, string input, Func<IrFragment, object?[], bool>? guards, int budget)
+	{
+		var host       = new RecordingHost(guards);
+		var evaluator  = new IrEvaluator(program, host) { RestartBudget = budget };
+		var outcome    = evaluator.Parse(entry, input);
+		var resuming   = new IrEvaluator(program, new RecordingHost(guards)) { Resumes = true }.Parse(entry, input);
+		var nonresumed = new IrEvaluator(program, new RecordingHost(guards)).Parse(entry, input);
+
+		foreach (var other in new[] { resuming, nonresumed })
+		{
+			Assert.True(other.Line == outcome.Line && other.Expected.SequenceEqual(outcome.Expected),
+				$"On {Twin.Quoted(input)}: restarting by budget {budget} reads {outcome.Line}, without restart {other.Line}");
+		}
+
+		Interlocked.Add(ref EvaluatedRestarts, evaluator.Restarts);
 
 		var head = outcome.Accepted
 			? outcome.Line
