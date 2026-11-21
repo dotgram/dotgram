@@ -80,7 +80,9 @@ static void *run(void *unused)
 		rt_release(&P, 4096);
 
 		if (getenv("IR_COUNTS") != NULL)
-			printf("K %lld %lld %d %lld %lld %lld %lld\n", (long long)P.kSteps, (long long)P.kEntered, P.retries, (long long)P.kJumps, (long long)P.kHost, peak, (long long)rt_held(&P));
+			printf("K %lld %lld %d %lld %lld %lld %lld %d\n", (long long)P.kSteps, (long long)P.kEntered, P.retries, (long long)P.kJumps, (long long)P.kHost, peak, (long long)rt_held(&P), P.restarts);
+
+		P.restarts = 0;
 
 		host_end(&P);
 		printf(".\n");

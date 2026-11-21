@@ -5,7 +5,8 @@
 
      accept <entry> <batch> <repetitions>
 
-   Prints the number of inputs accepted and the milliseconds of the repetitions, one line. */
+   Prints the number of inputs accepted, the milliseconds of the repetitions and the readings given
+   up in one pass (a parser that restarts by budget), one line. */
 
 #include <stdio.h>
 #include <time.h>
@@ -66,7 +67,8 @@ int main(int argc, char **argv)
 
 	clock_gettime(CLOCK_MONOTONIC, &to);
 
-	printf("%d %.4f\n", accepted, (double)(to.tv_sec - from.tv_sec) * 1e3 + (double)(to.tv_nsec - from.tv_nsec) / 1e6);
+	/* And the readings a parser that restarts by budget gave up, in one pass of the batch. */
+	printf("%d %.4f %d\n", accepted, (double)(to.tv_sec - from.tv_sec) * 1e3 + (double)(to.tv_nsec - from.tv_nsec) / 1e6, reps > 0 ? (int)(P.restarts / reps) : 0);
 
 	return 0;
 }

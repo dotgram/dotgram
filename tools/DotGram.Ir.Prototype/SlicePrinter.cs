@@ -85,6 +85,24 @@ enum SliceAblation
 	/// copies are inlined there always, and the twins call cold instances of their own. A parser that resumes.
 	/// </summary>
 	ReplayTwinKeyedSplit,
+
+	/// <summary>
+	/// The twins of <see cref="ReplayTwinKeyed"/> alone (C only), entered at the top for the whole
+	/// input: no first-reading copy is printed. The resuming set a parser that restarts by budget reads
+	/// again with, and what it costs on its own. A parser that resumes.
+	/// </summary>
+	ResumingSetAlone,
+
+	/// <summary>
+	/// Restart by budget (C only): the first reading is <see cref="ReplayTwinEvery"/> printed without
+	/// resumption, with a counter on every reading again of a region (a replay, braces, a look, a
+	/// choice's alternative, a turn, and an attempt that stood read once more): each charges what it
+	/// reads again, at least one, and past the budget (a constant times the furthest position
+	/// inspected, plus one) the reading is given up and the input read again from the start by
+	/// <see cref="ResumingSetAlone"/>'s twins, printed apart (<see cref="SlicePrinter.PrintResumingSet"/>)
+	/// into a translation unit of their own. A parser that resumes where it has to.
+	/// </summary>
+	RestartByBudget,
 }
 
 enum SliceLanguage
@@ -191,10 +209,20 @@ sealed class SlicePrinter
 	// spend gcc's growth budget and leave the helpers out of line in the first-reading code too).
 	bool _hotRuntime;
 
+	// ResumingSetAlone: the twins alone, entered at the top, under the entry's name given.
+	bool   _entersTwins;
+	string _parseName = "parse";
+
+	// RestartByBudget: the counter on every reading again, the furthest refusal inside looks too,
+	// and the budget's constant.
+	bool _budget;
+	int  _budgetTimes;
+
 	// The helpers gcc's inliner report names as left out of line in first-reading code (with what
 	// they call that it also leaves out, and the two whose late inlining printed other code than
-	// inlining them always), each with a cold instance in runtime.h under RT_SPLIT.
-	static readonly Regex HotHelpers = new(@"\b(rt_enter|rt_next|rt_cut|rt_retry|rt_refuse|rt_stood|rt_undeferred|rt_replayed|rt_starts|rt_agree|list_add|val_items)\(", RegexOptions.CultureInvariant);
+	// inlining them always), each with a cold instance in runtime.h under RT_SPLIT. RT_REFUSE, the
+	// refusal of a parser that restarts by budget, is a macro over one of them.
+	static readonly Regex HotHelpers = new(@"\b(RT_REFUSE|rt_enter|rt_next|rt_cut|rt_retry|rt_refuse|rt_stood|rt_undeferred|rt_replayed|rt_starts|rt_agree|list_add|val_items)\(", RegexOptions.CultureInvariant);
 
 	// What each function reaches by one call or more, and the functions printed as machines.
 	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach    = [];
@@ -272,7 +300,8 @@ sealed class SlicePrinter
 	/// <param name="hotRuntime">C only, a measurement: print over the split runtime (<c>RT_SPLIT</c> in runtime.h).</param>
 	public static string Print(
 		IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false, bool resumes = true,
-		ResumptionCriterion criterion = ResumptionCriterion.FailsBack, SliceAblation ablation = SliceAblation.Whole, bool hotRuntime = false)
+		ResumptionCriterion criterion = ResumptionCriterion.FailsBack, SliceAblation ablation = SliceAblation.Whole, bool hotRuntime = false,
+		int budget = 4, string parseName = "parse")
 	{
 		// The split is a way of printing the runtime's calls, not a form of its own: the keyed twin printed over it.
 		if (ablation == SliceAblation.ReplayTwinKeyedSplit)
@@ -281,14 +310,56 @@ sealed class SlicePrinter
 			hotRuntime = true;
 		}
 
+		var entersTwins = ablation == SliceAblation.ResumingSetAlone;
+		var restarts    = ablation == SliceAblation.RestartByBudget;
+
+		if ((entersTwins || restarts) && language != SliceLanguage.C)
+			throw new NotSupportedException("Only the C slice prints " + ablation + ".");
+
+		if (entersTwins)
+			ablation = SliceAblation.ReplayTwinKeyed;
+
+		if (restarts)
+		{
+			// Read from the top again, a lazy publication would hand over again what it handed over
+			// already: restart is for a publication of the whole input, which is all the tree lowers.
+			foreach (var (entry, function) in program.Entries)
+			{
+				if (!ReadsToTheEnd(function.Body))
+					throw new NotSupportedException("A parser that restarts by budget reads only publications of the whole input; " + entry + " is not one.");
+			}
+
+			ablation = SliceAblation.ReplayTwinEvery;
+			resumes  = false;
+		}
+
 		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion, ablation)
 		{
-			_hotRuntime = hotRuntime && language == SliceLanguage.C,
+			_hotRuntime  = hotRuntime && language == SliceLanguage.C,
+			_entersTwins = entersTwins,
+			_parseName   = parseName,
+			_budget      = restarts,
+			_budgetTimes = budget,
 		};
 
 		printer.Run();
 
 		return printer._text.ToString();
+	}
+
+	/// <summary>
+	/// The resuming set of a parser that restarts by budget: <see cref="SliceAblation.ResumingSetAlone"/>
+	/// under the entry <c>parse_resuming</c>, a translation unit of its own (its functions are static).
+	/// </summary>
+	public static string PrintResumingSet(IrProgram program, bool counted = false)
+	{
+		return Print(program, SliceLanguage.C, counted: counted, ablation: SliceAblation.ResumingSetAlone, parseName: "parse_resuming");
+	}
+
+	// Whether an entry reads to the end of the input itself (the tree's publications all do).
+	static bool ReadsToTheEnd(IrStmt stmt)
+	{
+		return stmt is IrStmt.MatchEnd || stmt is not IrStmt.Call && stmt.Children.Any(ReadsToTheEnd);
 	}
 
 	/// <summary>
@@ -361,13 +432,34 @@ sealed class SlicePrinter
 			if (_hotRuntime)
 				Line("#define RT_SPLIT");
 
+			if (_budget)
+			{
+				Line("#define RT_RESTART");
+				Line("#ifndef RT_BUDGET");
+				Line($"#define RT_BUDGET {_budgetTimes.ToString(CultureInfo.InvariantCulture)}");
+				Line("#endif");
+			}
+
 			Line("#include \"runtime.h\"");
 			Line("#include \"parser.h\"");
 			Line();
 
+			if (_budget)
+			{
+				Line("int32_t parse_resuming(Parser *P, const char *entry);");
+				Line();
+			}
+
+			if (_parseName != "parse")
+			{
+				Line($"int32_t {_parseName}(Parser *P, const char *entry);");
+				Line();
+			}
+
 			foreach (var function in _program.Functions)
 			{
-				Line($"static int32_t {Name(function)}(Parser *P, int32_t p);");
+				if (!(_entersTwins && Twinned(function)))
+					Line($"static int32_t {Name(function)}(Parser *P, int32_t p);");
 
 				if (Twinned(function))
 					Line($"static {TwinAttributes} int32_t {Name(function)}_r(Parser *P, int32_t p, int32_t u0);");
@@ -461,11 +553,40 @@ sealed class SlicePrinter
 
 		if (C)
 		{
-			Line("int32_t parse(Parser *P, const char *entry)");
+			if (_budget)
+			{
+				// The first reading, until it has read again more than the budget: then from the start,
+				// resuming. The entry that can be gone back to is a function of its own, so that the
+				// first reading's own entry is printed and inlined as the parser without restart has it.
+				Line("static __attribute__((noinline)) int32_t parse_first(Parser *P, const char *entry);");
+				Line();
+				Line($"int32_t {_parseName}(Parser *P, const char *entry)");
+				Line("{");
+				Line("\tvoid *back[5];");
+				Line();
+				Line("\tP->reread  = 0;");
+				Line("\tP->far     = -1;");
+				Line("\tP->restart = back;");
+				Line();
+				Line("\tif (__builtin_setjmp(back) != 0)");
+				Line("\t{");
+				Line("\t\trt_restarted(P);");
+				Line();
+				Line("\t\treturn parse_resuming(P, entry);");
+				Line("\t}");
+				Line();
+				Line("\treturn parse_first(P, entry);");
+				Line("}");
+				Line();
+				Line("static __attribute__((noinline)) int32_t parse_first(Parser *P, const char *entry)");
+			}
+			else
+				Line($"int32_t {_parseName}(Parser *P, const char *entry)");
+
 			Line("{");
 
 			foreach (var (entry, function) in _program.Entries)
-				Line($"\tif (strcmp(entry, \"{entry}\") == 0) return {Name(function)}(P, 0);");
+				Line($"\tif (strcmp(entry, \"{entry}\") == 0) return {Name(function)}{(_entersTwins && Twinned(function) ? "_r(P, 0, 0)" : "(P, 0)")};");
 
 			Line("\treturn -2;");
 			Line("}");
@@ -916,9 +1037,13 @@ sealed class SlicePrinter
 			return;
 		}
 
-		_plain = true;
-		Copy(function);
-		_plain = false;
+		if (!_entersTwins)
+		{
+			_plain = true;
+			Copy(function);
+			_plain = false;
+		}
+
 		_twin  = true;
 
 		var start = _text.Length;
@@ -996,6 +1121,11 @@ sealed class SlicePrinter
 
 	string Refuse(string at, int expected)
 	{
+		// Restart by budget: a refusal inside a look says nothing, but the position it inspected is
+		// the furthest the reading has reached, where it is further than any before.
+		if (_budget)
+			return $"RT_REFUSE(P, {at}, {expected.ToString(CultureInfo.InvariantCulture)});";
+
 		return $"if ({Member("quiet")} == 0 && {at} >= {Member("refusedAt")}) {Runtime("refuse", at + ", " + expected.ToString(CultureInfo.InvariantCulture))};";
 	}
 
@@ -1269,6 +1399,7 @@ sealed class SlicePrinter
 						_indent++;
 						Attempt(choice.Alternatives[i], read);
 						Line($"if ({read} || !({Member("cursor")} > {mark} && {Runtime("retry", mark)})) break;");
+						Charge(start);
 						Line($"p = {start};");
 						PutBack(choice.Resets[i], kept);
 						_indent--;
@@ -1396,6 +1527,7 @@ sealed class SlicePrinter
 					_indent++;
 					Attempt(repeat.Body, read);
 					Line($"if ({read} || !({way} >= 0 && {Member("cursor")} > {mark} && {Runtime("retry", mark)})) break;");
+					Charge(start);
 					Line($"p = {start};");
 					PutBack(repeat.Resets, held);
 					_indent--;
@@ -1471,6 +1603,7 @@ sealed class SlicePrinter
 					Line("{");
 					_indent++;
 					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) {fail}");
+					Charge(start);
 					Line($"return {Name(_function!)}_r(P, {start}, {(replay.Defers ? Runtime("retried", u) : "0")});");
 					_indent--;
 					Line("}");
@@ -1492,16 +1625,18 @@ sealed class SlicePrinter
 					// unbuilt is read once more, built; the second way given back stops building.
 					Line($"if ({read})");
 					Line("{");
-					Line($"\tif ({u} > 1) {{ {u} = {Runtime("stood", $"{u}, {segment}")}; if ({u} > 0) {{ {read} = false; continue; }} }}");
+					Line($"\tif ({u} > 1) {{ {u} = {Runtime("stood", $"{u}, {segment}")}; if ({u} > 0) {{ {(_budget ? $"RT_CHARGE(P, {start}); " : "")}{read} = false; continue; }} }}");
 					Line("\tbreak;");
 					Line("}");
 					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
+					Charge(start);
 					Line($"{u} = {Runtime("retried", u)};");
 				}
 				else
 				{
 					Line($"if ({read}) break;");
 					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) break;");
+					Charge(start);
 				}
 
 				_indent--;
@@ -1607,11 +1742,13 @@ sealed class SlicePrinter
 			Line($"if ({u} < 2) break;");
 			Line($"{read} = false;");
 			PutBack(resets, kept);
+			Charge(start);
 			Line("continue;");
 			_indent--;
 			Line("}");
 			PutBack(resets, kept);
 			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
+			Charge(start);
 			Line($"{u} = {Runtime("retried", u)};");
 		}
 		else
@@ -1619,6 +1756,7 @@ sealed class SlicePrinter
 			Line($"if ({read}) break;");
 			PutBack(resets, kept);
 			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)})) break;");
+			Charge(start);
 		}
 
 		_indent--;
@@ -1647,6 +1785,13 @@ sealed class SlicePrinter
 
 		_indent--;
 		Line("}");
+	}
+
+	/// <summary>Restart by budget: a region read again from <paramref name="start"/>, charged.</summary>
+	void Charge(string start)
+	{
+		if (_budget)
+			Line($"RT_CHARGE(P, {start});");
 	}
 
 	// ---- Frames of the parser's own ----

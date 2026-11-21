@@ -136,6 +136,14 @@ typedef struct Parser
 	int32_t      refusalsSize, refusalsCount;
 
 	Chunk *arena;
+
+	/* Restart by budget (a measurement, printed by a parser that asks for it): what the first
+	   reading has read again, the furthest position it has inspected (inside looks too), the
+	   readings that were given up and read again from the start by the resuming set, and where the
+	   reading goes back to when it gives up. At the end, so that no other field moves. */
+	int64_t reread;
+	int32_t far, restarts;
+	void   *restart;
 } Parser;
 
 #define VAL_NONE ((Val){ V_NONE, 0, 0, NULL })
@@ -650,10 +658,94 @@ RT_HOT Val val_items(Parser *P, List *list)
 	return (Val){ V_LIST, 0, 0, copy };
 }
 
+#ifdef RT_RESTART
+#ifndef RT_BUDGET
+#define RT_BUDGET 4
+#endif
+
+/* A reading again of a region of the first reading, from start: what it costs is charged, at least
+   one, and past RT_BUDGET times what the reading has inspected the reading is given up. The
+   furthest position is the most of every refusal outside looks (refusedAt) and inside them (far). */
+static __attribute__((noinline, cold, unused)) void rt_charge(Parser *P, int32_t start)
+{
+	int32_t far = P->far > P->refusedAt ? P->far : P->refusedAt;
+
+	if (far < start)
+		far = start;
+
+	P->far     = far;
+	P->reread += far - start > 1 ? far - start : 1;
+
+	if (P->reread > (int64_t)RT_BUDGET * (far + 1))
+		__builtin_longjmp((void **)P->restart, 1);
+}
+
+/* The first reading given up: the tape, the records and the refusal as a reading begins, for the
+   resuming set to read the input again from the start. What was built stays in the arena. */
+static __attribute__((noinline, cold, unused)) void rt_restarted(Parser *P)
+{
+	P->rv            = VAL_NONE;
+	P->quiet         = 0;
+	P->unbuilt       = 0;
+	P->refusedAt     = -1;
+	P->refusedCount  = 0;
+	P->count         = 0;
+	P->cursor        = 0;
+	P->kCount        = 0;
+	P->cutTop        = 0;
+	P->serial        = 0;
+	P->kvTop         = 0;
+	P->refusalsCount = 0;
+	P->restarts++;
+
+	if (P->keyCount > 0)
+	{
+		memset(P->keyTable, 0xff, sizeof(int32_t) * (size_t)(P->keyMask + 1));
+		P->keyCount = 0;
+	}
+}
+
+/* RT_NO_COUNTER (a measurement): the first reading printed with no counter at all, to be held to the
+   parser without it; RT_NO_CHARGE and RT_NO_REACH leave out one half each. */
+#if defined(RT_NO_COUNTER) || defined(RT_NO_CHARGE)
+#define RT_CHARGE(P, start)
+#else
+#define RT_CHARGE(P, start) rt_charge(P, start)
+#endif
+
+/* A refusal: outside a look as ever; inside one it says nothing, but the position it inspected is
+   the furthest the reading has reached, where it is further than any before. The test of the look
+   moves into the helper, so that the code of a refusal is one compare, as it was two. */
+RT_INLINE void rt_refuse_far(Parser *P, int32_t at, int32_t expected)
+{
+	if (P->quiet != 0)
+	{
+		if (at > P->far)
+			P->far = at;
+
+		return;
+	}
+
+	rt_refuse(P, at, expected);
+}
+
+/* The twins over the split runtime call cold instances (RT_REFUSE_cold), as the parser without restart has them. */
+#if defined(RT_NO_COUNTER) || defined(RT_NO_REACH)
+#define RT_REFUSE(P, at, expected) if ((P)->quiet == 0 && (at) >= (P)->refusedAt) rt_refuse(P, at, expected)
+#define RT_REFUSE_cold(P, at, expected) if ((P)->quiet == 0 && (at) >= (P)->refusedAt) rt_refuse_cold(P, at, expected)
+#else
+#define RT_REFUSE(P, at, expected) if ((at) >= (P)->refusedAt) rt_refuse_far(P, at, expected)
+#define RT_REFUSE_cold(P, at, expected) if ((at) >= (P)->refusedAt) rt_refuse_far_cold(P, at, expected)
+#endif
+#endif
+
 #ifdef RT_SPLIT
 #define RT_COLD static __attribute__((noinline, cold, unused))
 
 RT_COLD void rt_refuse_cold(Parser *P, int32_t at, int32_t expected) { rt_refuse(P, at, expected); }
+#ifdef RT_RESTART
+RT_COLD void rt_refuse_far_cold(Parser *P, int32_t at, int32_t expected) { rt_refuse_far(P, at, expected); }
+#endif
 RT_COLD int32_t rt_enter_cold(Parser *P, int32_t last) { return rt_enter(P, last); }
 RT_COLD void rt_cut_cold(Parser *P) { rt_cut(P); }
 RT_COLD void rt_next_cold(Parser *P, int32_t way, int32_t value) { rt_next(P, way, value); }

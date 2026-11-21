@@ -206,7 +206,64 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// below the top is a broken promise and stops the reading (<see cref="IrContractViolation"/>).
 	/// </para>
 	/// </remarks>
-	public bool Resumes { get; init; }
+	public bool Resumes { get => _resumes; init => _resumes = _configured = value; }
+
+	bool _resumes;
+	bool _configured;
+
+	/// <summary>
+	/// Restart by budget, where above nought: a reading that does not resume charges every reading
+	/// again of a region (a replay, braces, a look, a choice's alternative, a turn, an attempt that
+	/// stood read once more) with what it reads again — the furthest position inspected less where the
+	/// region began, at least one — and once the charges pass this many times the furthest position
+	/// inspected (inside looks too) plus one, it is given up and the input read again from the start,
+	/// resuming. What the printed C parser of <see cref="SliceAblation.RestartByBudget"/> does, so that
+	/// its host calls are these.
+	/// </summary>
+	public int RestartBudget { get; init; }
+
+	/// <summary>
+	/// The budget of a refusal's second reading (<see cref="ParseQuietlyFirst"/>), where not
+	/// <see cref="RestartBudget"/>'s: a test's way to make that reading give up where the first did not.
+	/// </summary>
+	public int? SecondReadingBudget { get; init; }
+
+	/// <summary>How many readings were given up and read again from the start, resuming (<see cref="RestartBudget"/>).</summary>
+	public int Restarts { get; private set; }
+
+	/// <summary>The statements run before the last reading given up was (<see cref="Steps"/> counts them too).</summary>
+	public long StepsGivenUp { get; private set; }
+
+	/// <summary>What the reading under way has been charged, and the furthest position it has inspected.</summary>
+	public long ReRead => _reread;
+
+	public int Furthest => _far;
+
+	/// <summary>The furthest position inspected when the last reading given up was.</summary>
+	public int FurthestAtRestart { get; private set; }
+
+	long _reread;
+	int  _far = -1;
+	int  _budget;
+	bool _startResuming;
+	bool _second;
+
+	sealed class RestartReading : Exception;
+
+	/// <summary>A region read again from <paramref name="start"/>: charged, and the reading given up past the budget.</summary>
+	void Charge(int start)
+	{
+		if (_budget == 0 || _resumes)
+			return;
+
+		if (_far < start)
+			_far = start;
+
+		_reread += Math.Max(1, _far - start);
+
+		if (_reread > (long)_budget * (_far + 1))
+			throw new RestartReading();
+	}
 
 	/// <summary>
 	/// Wrong on purpose: a sentinel takes the latest record of any owner kept past it, as a store
@@ -446,7 +503,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// <summary>The tape was cut: what was kept of places no longer behind it goes.</summary>
 	void Cut()
 	{
-		if (!Resumes)
+		if (!_resumes)
 			return;
 
 		var count = Ways.Count;
@@ -690,7 +747,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (quiet.Accepted)
 			return (quiet, quiet, steps);
 
-		_unasked = 1;
+		// The second reading has a budget of its own; where the quiet reading gave up, it resumes from the start.
+		_unasked       = 1;
+		_second        = true;
+		_startResuming = Restarts > 0;
 
 		try
 		{
@@ -698,7 +758,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		}
 		finally
 		{
-			_unasked = 0;
+			_unasked       = 0;
+			_second        = false;
+			_startResuming = false;
 		}
 	}
 
@@ -706,6 +768,57 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	{
 		var function = program.Entries[entry];
 
+		_resumes = _configured || _startResuming;
+		_budget  = _second && SecondReadingBudget is { } second ? second : RestartBudget;
+		_reread  = 0;
+		_far     = -1;
+
+		if (!_second)
+		{
+			Restarts     = 0;
+			StepsGivenUp = 0;
+		}
+
+		Begin(input);
+
+		WouldHaveJumped = 0;
+		Ways      = new IrWays();
+		Steps     = 0;
+		Jumps     = 0;
+		Skips     = 0;
+		Sentinels = 0;
+
+		bool   read;
+		object? value;
+
+		try
+		{
+			read = Run(function, out value);
+		}
+		catch (RestartReading)
+		{
+			// Given up: read again from the start, resuming; the host has seen what the reading given up called.
+			Restarts++;
+			StepsGivenUp      = Steps;
+			FurthestAtRestart = _far;
+			_resumes     = true;
+
+			Begin(input);
+			Ways = new IrWays();
+
+			read = Run(function, out value);
+		}
+
+		return read
+			? new IrOutcome(true, _p, value, [])
+			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])])
+			{
+				Said = [.. _said.Select(index => program.Expected[index])],
+			};
+	}
+
+	void Begin(string input)
+	{
 		_text      = input;
 		_p         = 0;
 		_quiet     = 0;
@@ -720,20 +833,6 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_readings.Clear();
 		_sites    = ResumptionSites.Of(program, Criterion);
 		_measured = Measured is { } measured ? ResumptionSites.Of(program, measured) : null;
-
-		WouldHaveJumped = 0;
-		Ways      = new IrWays();
-		Steps     = 0;
-		Jumps     = 0;
-		Skips     = 0;
-		Sentinels = 0;
-
-		return Run(function, out var value)
-			? new IrOutcome(true, _p, value, [])
-			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])])
-			{
-				Said = [.. _said.Select(index => program.Expected[index])],
-			};
 	}
 
 	bool Run(IrFunction function, out object? value)
@@ -759,6 +858,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 	void Refuse(int at, int expected)
 	{
+		// The furthest position inspected, for restart by budget: every refusal is one, inside looks too.
+		if (at > _far)
+			_far = at;
+
 		if (_quiet > 0 || expected < 0)
 			return;
 
@@ -802,7 +905,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				KeptEntriesBack++;
 		}
 
-		if (Resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt))
+		if (_resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt))
 		{
 			Entered(stmt);
 
@@ -963,6 +1066,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 						Cut();
 						_readings[^1] = 1;
+						Charge(start);
 					}
 
 					_readings.RemoveAt(_readings.Count - 1);
@@ -984,7 +1088,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var turns = 0;
 				var owner = -1;
 
-				var counted = Resumes && _sites.Keeps(repeat);
+				var counted = _resumes && _sites.Keeps(repeat);
 				var entry   = _p;
 
 				if (counted)
@@ -1064,6 +1168,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					while (!read && way >= 0 && Ways.Cursor > mark && Ways.Retry(mark))
 					{
 						Cut();
+						Charge(start);
 						_p = start;
 						PutBack(frame, repeat.Resets, kept);
 						_readings[^1] = 1;
@@ -1162,6 +1267,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						if (Stood(ref deferral, segment))
 						{
 							_readings[^1] = 2;
+							Charge(start);
 
 							continue;
 						}
@@ -1181,6 +1287,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 					Cut();
 					_readings[^1] = 1;
+					Charge(start);
 
 					if (replay.Defers && !BuildsThroughout)
 						Retried(ref deferral);
@@ -1252,6 +1359,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 				PutBack(frame, resets, kept);
 				_readings[^1] = 2;
+				Charge(start);
 
 				continue;
 			}
@@ -1267,6 +1375,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 			Cut();
 			_readings[^1] = 1;
+			Charge(start);
 
 			if (defers && !BuildsThroughout)
 				Retried(ref deferral);
