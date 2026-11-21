@@ -912,7 +912,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 
 			try
 			{
-				foreach (var line in Slices.AcceptingPathInC("AcceptC-" + file, program, entry, batch))
+				foreach (var line in Slices.AcceptingPathInC("AcceptC-" + name.Replace(' ', '-'), program, entry, batch))
 					text.Append(name).Append('\t').Append(line).Append('\n');
 			}
 			catch (NotSupportedException unprinted)

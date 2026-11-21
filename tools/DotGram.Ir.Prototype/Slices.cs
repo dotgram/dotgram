@@ -374,7 +374,8 @@ static class Slices
 	/// without doors) and without, each compiled on its own with a host that builds nothing, run in
 	/// turns over the batch by <c>accept.c</c>: a line a variant, the median of the ratios to the parser without.
 	/// </summary>
-	public static List<string> AcceptingPathInC(string name, IrProgram program, string entry, IReadOnlyList<string> inputs)
+	/// <param name="buildOnly">Build the variants and stop (with <c>IR_KEEP</c>, to be timed elsewhere): an input the parser without resumption reads in its square is not timed here.</param>
+	public static List<string> AcceptingPathInC(string name, IrProgram program, string entry, IReadOnlyList<string> inputs, bool buildOnly = false)
 	{
 		var gcc       = Gcc;
 		var directory = Workspace(name, "c");
@@ -439,6 +440,9 @@ static class Slices
 
 				Assert.True(built == 0, "gcc: " + complaints);
 			}
+
+			if (buildOnly)
+				return [.. variants.Select(static variant => variant.Name)];
 
 			(int Accepted, double Milliseconds, int Restarts) Read(string variant, long reps)
 			{

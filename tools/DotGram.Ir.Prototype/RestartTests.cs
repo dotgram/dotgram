@@ -324,6 +324,22 @@ public sealed class RestartTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// The adversarial ladder for the closing timing, printed and built in C with a host that builds
+	/// nothing: the restarting parser, today's resuming one, and the resuming set alone, cold and hot,
+	/// over one refused input of 64,000 turns. Needs <c>IR_KEEP</c>, where the builds are left to be timed.
+	/// </summary>
+	[Fact(Explicit = true)]
+	public void TheClosingLadder_IsBuiltInC()
+	{
+		var shape   = Ladders.Shapes.Single(static one => one.Name == "fails inside the decider");
+		var fixture = Cases.Fixtures[shape.Fixture];
+		var program = Reading.Program(fixture.Grammar);
+
+		foreach (var line in Slices.AcceptingPathInC("Ladder-" + shape.Fixture, program, fixture.Entry, [shape.Input(64000)], buildOnly: true))
+			output.WriteLine(line);
+	}
+
+	/// <summary>
 	/// The inputs of the Web corpora a reading restarts on at budgets 4 and 8, each with what the
 	/// reading without resumption and the resuming one cost (statements), so that a restart can be
 	/// told a real reading again from an over-charge.
