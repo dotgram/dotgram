@@ -3016,7 +3016,10 @@ namespace DotGram.Snapshots
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
-				Cut(way + 1);
+
+				if (way + 1 < Count)
+					Drop(way + 1);
+
 				Cursor = way + 1;
 			}
 
@@ -3024,7 +3027,10 @@ namespace DotGram.Snapshots
 			{
 				Items[way * 2]     = value;
 				Items[way * 2 + 1] = last;
-				Cut(way + 1);
+
+				if (way + 1 < Count)
+					Drop(way + 1);
+
 				Cursor = way + 1;
 			}
 
@@ -3032,6 +3038,12 @@ namespace DotGram.Snapshots
 			internal void Cut(int count)
 			{
 				Count = count;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Drop(int count)
+			{
+				Cut(count);
 			}
 
 			internal void Seal(int segment)
