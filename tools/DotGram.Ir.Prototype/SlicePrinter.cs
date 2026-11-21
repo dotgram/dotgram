@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Model;
 
@@ -77,6 +78,13 @@ enum SliceAblation
 	/// stale as a sentinel's are. A parser that resumes.
 	/// </summary>
 	ReplayTwinKeyed,
+
+	/// <summary>
+	/// <see cref="ReplayTwinKeyed"/> printed over a split runtime (see <c>hotRuntime</c> of
+	/// <see cref="SlicePrinter.Print"/>): the helpers gcc leaves out of line in the first-reading
+	/// copies are inlined there always, and the twins call cold instances of their own. A parser that resumes.
+	/// </summary>
+	ReplayTwinKeyedSplit,
 }
 
 enum SliceLanguage
@@ -177,6 +185,17 @@ sealed class SlicePrinter
 
 	readonly SliceAblation _ablation;
 
+	// Printed over the split runtime (C, a measurement): the runtime's hot helpers are inlined always
+	// wherever they are called, and a twin calls their cold instances instead, so that no out-of-line
+	// copy of a helper is shared by the first reading and the twins (whose many calls otherwise
+	// spend gcc's growth budget and leave the helpers out of line in the first-reading code too).
+	bool _hotRuntime;
+
+	// The helpers gcc's inliner report names as left out of line in first-reading code (with what
+	// they call that it also leaves out, and the two whose late inlining printed other code than
+	// inlining them always), each with a cold instance in runtime.h under RT_SPLIT.
+	static readonly Regex HotHelpers = new(@"\b(rt_enter|rt_next|rt_cut|rt_retry|rt_refuse|rt_stood|rt_undeferred|rt_replayed|rt_starts|rt_agree|list_add|val_items)\(", RegexOptions.CultureInvariant);
+
 	// What each function reaches by one call or more, and the functions printed as machines.
 	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach    = [];
 	readonly HashSet<IrFunction>                         _machines = [];
@@ -250,11 +269,22 @@ sealed class SlicePrinter
 	/// without, the parser is what it was before it did, which is what the cost of it is measured against.
 	/// </param>
 	/// <param name="criterion">Which statements keep a record (<see cref="ResumptionSites"/>).</param>
+	/// <param name="hotRuntime">C only, a measurement: print over the split runtime (<c>RT_SPLIT</c> in runtime.h).</param>
 	public static string Print(
 		IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false, bool resumes = true,
-		ResumptionCriterion criterion = ResumptionCriterion.FailsBack, SliceAblation ablation = SliceAblation.Whole)
+		ResumptionCriterion criterion = ResumptionCriterion.FailsBack, SliceAblation ablation = SliceAblation.Whole, bool hotRuntime = false)
 	{
-		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion, ablation);
+		// The split is a way of printing the runtime's calls, not a form of its own: the keyed twin printed over it.
+		if (ablation == SliceAblation.ReplayTwinKeyedSplit)
+		{
+			ablation   = SliceAblation.ReplayTwinKeyed;
+			hotRuntime = true;
+		}
+
+		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion, ablation)
+		{
+			_hotRuntime = hotRuntime && language == SliceLanguage.C,
+		};
 
 		printer.Run();
 
@@ -327,6 +357,10 @@ sealed class SlicePrinter
 		if (C)
 		{
 			Line("#include <string.h>");
+
+			if (_hotRuntime)
+				Line("#define RT_SPLIT");
+
 			Line("#include \"runtime.h\"");
 			Line("#include \"parser.h\"");
 			Line();
@@ -886,8 +920,19 @@ sealed class SlicePrinter
 		Copy(function);
 		_plain = false;
 		_twin  = true;
+
+		var start = _text.Length;
+
 		Copy(function);
-		_twin  = false;
+		_twin = false;
+
+		if (_hotRuntime)
+		{
+			var twin = HotHelpers.Replace(_text.ToString(start, _text.Length - start), "$1_cold(");
+
+			_text.Length = start;
+			_text.Append(twin);
+		}
 	}
 
 	void Copy(IrFunction function)
