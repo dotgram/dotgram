@@ -836,29 +836,19 @@ sealed partial class Machine
 	{
 		var defers = Deferral(owner, entry ? RetrySite.Entry : RetrySite.Rule, noting: true).Defers && Tracing is null;
 
-		// A rule that may be entered again where it stands is entered through its check, the stack probed
-		// there, and the way back is a method of its own under it (Machine.Reentry.cs).
-		var checks = !entry && Reentrant.ContainsKey(owner);
-
-		if (checks)
-		{
-			RenderReentryCheck(file, owner, name, strength, deepens is not null);
-
-			name    = CSharpEmitter.Inner("Reentering", CSharpEmitter.IdentifierOf(owner));
-			deepens = null;
-		}
+		// A rule that may be entered again where it stands is checked here, after the probe, and its record put
+		// back wherever the loop answers (Machine.Reentry.cs).
+		IReadOnlyList<string> leaving = entry ? [] : Leaving(owner);
 
 		file.Line(summary);
-
-		if (checks)
-			file.Line(
-				"[global::System.Runtime.CompilerServices.MethodImpl(" +
-				"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
 		using (file.Block($"public int {name}(int pos{strength})"))
 		{
 			if (deepens is not null)
 				Probe(file, deepens);
+
+			if (leaving.Count > 0)
+				Entering(file, owner);
 
 			file.Line("var s  = ways.Cursor;");
 			if (defers)
@@ -880,7 +870,7 @@ sealed partial class Machine
 				file.Line();
 				if (defers)
 				{
-					Stood(file, "q", "", restore, seal ? ["ways.Seal(s);", "", "return q;"] : ["return q;"]);
+					Stood(file, "q", "", restore, seal ? ["ways.Seal(s);", "", .. leaving, "return q;"] : [.. leaving, "return q;"]);
 				}
 				else if (seal)
 				{
@@ -888,6 +878,20 @@ sealed partial class Machine
 					{
 						file.Line("ways.Seal(s);");
 						file.Line();
+
+						foreach (var line in leaving)
+							file.Line(line);
+
+						file.Line("return q;");
+					}
+				}
+				else if (leaving.Count > 0)
+				{
+					using (file.Block("if (q >= 0)"))
+					{
+						foreach (var line in leaving)
+							file.Line(line);
+
 						file.Line("return q;");
 					}
 				}
@@ -921,6 +925,10 @@ sealed partial class Machine
 				}
 
 				file.Line();
+
+				foreach (var line in leaving)
+					file.Line(line);
+
 				file.Line("return -1;");
 			}
 		}
