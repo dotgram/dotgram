@@ -36,6 +36,12 @@ public sealed class ProtocolTests
 			Assert.True(server.GetProperty(provider).GetBoolean(), provider);
 
 		Assert.True(server.GetProperty("completionProvider").GetProperty("resolveProvider").GetBoolean());
+
+		// The dot alone: a client asks on a name's characters by itself, and never on whitespace, where a
+		// list would take the next Tab for its first item.
+		Assert.Equal(
+			["."],
+			server.GetProperty("completionProvider").GetProperty("triggerCharacters").EnumerateArray().Select(static item => item.GetString()!));
 		Assert.True(server.GetProperty("renameProvider").GetProperty("prepareProvider").GetBoolean());
 		Assert.True(server.GetProperty("semanticTokensProvider").GetProperty("full").GetBoolean());
 		Assert.Equal(

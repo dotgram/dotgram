@@ -657,7 +657,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		var capabilities = new ServerCapabilities(
 			"utf-16",
 			new TextDocumentSyncOptions(true, Lsp.SyncIncremental),
-			new CompletionOptions(["."], true),
+			new CompletionOptions(GramCompletionProvider.TriggerCharacters, true),
 			true,
 			new SignatureHelpOptions(["(", ","], [")"]),
 			true,
