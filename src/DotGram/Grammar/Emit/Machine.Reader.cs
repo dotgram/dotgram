@@ -491,7 +491,16 @@ sealed partial class Machine
 
 				var reader = new ReaderWriter(this, rule);
 				var tape   = opens.Contains(rule);
-				var inner  = tape ? CSharpEmitter.Inner("ReadBody", CSharpEmitter.IdentifierOf(rule)) : ReaderOf(rule);
+
+				// A rule that may be entered again where it stands is entered through its check, and read by a
+				// method of its own under it (Machine.Reentry.cs); a rule with a way back has its check there.
+				var checks = !tape && Reentrant.ContainsKey(rule);
+
+				if (checks)
+					RenderReentryCheck(file, rule, ReaderOf(rule), DirectStrength(rule), Deepens(rule));
+
+				var inner  = tape ? CSharpEmitter.Inner("ReadBody", CSharpEmitter.IdentifierOf(rule)) :
+					checks ? CSharpEmitter.Inner("Reentering", CSharpEmitter.IdentifierOf(rule)) : ReaderOf(rule);
 
 				if (tape)
 					RenderWayBack(
@@ -517,7 +526,7 @@ sealed partial class Machine
 				// calls rather than anything cleverer: `Name` reaches `Identifier` reaches a class,
 				// with a seam between each, and every one of those was two calls where it needed
 				// one.
-				if (tape || Trivial(rule))
+				if (tape || checks || Trivial(rule))
 					file.Line(
 						"[global::System.Runtime.CompilerServices.MethodImpl(" +
 						"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
@@ -545,14 +554,13 @@ sealed partial class Machine
 					slot = -1;
 
 				using (file.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
-				using (tape ? null : Reentering(file, rule))
 				{
 					if (slot >= 0)
 						MemoAsked(file, rule, slot, body!);
 
 					// The rule the way back into itself goes through, so the probe stands here and
 					// not at the call: one line a rule instead of one at every place that calls it.
-					if (!tape && Deepens(rule))
+					if (!tape && !checks && Deepens(rule))
 						Probe(file, rule);
 
 					// After the probe: a reading carried onto a stack of its own enters the rule
@@ -798,21 +806,7 @@ sealed partial class Machine
 		var power = _graph.Climbing.ContainsKey(rule) ? ", power" : ", 0";
 
 		file.Line($"if ((probes++ & {Interval - 1}) == 0 && !EnoughStack_DotGram())");
-
-		// A marked rule's record is put back first: the other stack enters the rule again.
-		if (Reentrant.ContainsKey(rule))
-		{
-			using (file.Block(""))
-			{
-				Unentered(file, rule);
-				file.Line($"return Deepen_DotGram(pos, {DeepOf(rule)}{power});");
-			}
-		}
-		else
-		{
-			file.Then($"return Deepen_DotGram(pos, {DeepOf(rule)}{power});");
-		}
-
+		file.Then($"return Deepen_DotGram(pos, {DeepOf(rule)}{power});");
 		file.Line();
 	}
 
@@ -842,10 +836,26 @@ sealed partial class Machine
 	{
 		var defers = Deferral(owner, entry ? RetrySite.Entry : RetrySite.Rule, noting: true).Defers && Tracing is null;
 
+		// A rule that may be entered again where it stands is entered through its check, the stack probed
+		// there, and the way back is a method of its own under it (Machine.Reentry.cs).
+		var checks = !entry && Reentrant.ContainsKey(owner);
+
+		if (checks)
+		{
+			RenderReentryCheck(file, owner, name, strength, deepens is not null);
+
+			name    = CSharpEmitter.Inner("Reentering", CSharpEmitter.IdentifierOf(owner));
+			deepens = null;
+		}
+
 		file.Line(summary);
 
+		if (checks)
+			file.Line(
+				"[global::System.Runtime.CompilerServices.MethodImpl(" +
+				"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+
 		using (file.Block($"public int {name}(int pos{strength})"))
-		using (entry ? null : Reentering(file, owner))
 		{
 			if (deepens is not null)
 				Probe(file, deepens);

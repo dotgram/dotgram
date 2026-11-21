@@ -90,7 +90,7 @@ static partial class CSharpEmitter
 	public static readonly string[] NestedKinds =
 	[
 		"Read", "ReadBody", "ReadPart#", "ReadBroken", "ReadBroken#", "RecRead", "RecReadBody", "RecWholeRead",
-		"RecWholeReadBody", "CountEntered", "Reentered",
+		"RecWholeReadBody", "CountEntered", "Reentered", "Reentering",
 	];
 
 	/// <summary>

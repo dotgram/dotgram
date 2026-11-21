@@ -72,75 +72,84 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// The check at a marked rule's entry, and the record of the entry, with the body that follows put inside a
-	/// <c>try</c> whose <c>finally</c> puts the record back; nothing where the rule is not marked.
+	/// A marked rule's entry: the stack probed where the rule can deepen it, the check, the record of the entry,
+	/// the rule read by the method under it (<paramref name="name"/> stays the rule's, so that every call and the
+	/// stack it is carried onto enter through here), and the record put back.
 	/// </summary>
-	IDisposable? Reentering(Writer file, RuleSymbol rule)
+	/// <remarks>
+	/// <para>
+	/// The probe first: a reading carried onto a stack of its own enters the rule again there, through this
+	/// check, and finds the record as it was before this entry. The check before anything the rule remembers
+	/// is asked.
+	/// </para>
+	/// <para>
+	/// Put back where the rule answers and not where an exception leaves it: nothing inside a reading catches
+	/// what leaves a rule and reads on — the reading ends, its reader with it, and a reading carried onto
+	/// another stack hands the exception back to be thrown again. A <c>try</c> around the rule cost the
+	/// recursion a fifth of its time.
+	/// </para>
+	/// </remarks>
+	void RenderReentryCheck(Writer file, RuleSymbol rule, string name, string strength, bool deepens)
 	{
-		if (!Reentrant.TryGetValue(rule, out var which))
-			return null;
+		var which    = Reentrant[rule];
+		var keys     = Reentry.Keys(_graph, rule);
+		var standing = $"standing{which}";
+		var alike    = $"standingAlike{which}";
+		var refused  = CSharpEmitter.Inner("Reentered", CSharpEmitter.IdentifierOf(rule));
+		var body     = CSharpEmitter.Inner("Reentering", CSharpEmitter.IdentifierOf(rule));
 
-		var keys      = Reentry.Keys(_graph, rule);
-		var standing  = $"standing{which}";
-		var alike     = $"standingAlike{which}";
-		var refused   = CSharpEmitter.Inner("Reentered", CSharpEmitter.IdentifierOf(rule));
+		file.Line($"/// <summary><c>{rule.Name}</c>, entered where it does not already stand (docs/syntax.md §7.2).</summary>");
 
-		file.Line($"var reentry = {standing};");
-
-		if (keys == 1)
+		using (file.Block($"public int {name}(int pos{strength})"))
 		{
-			file.Line();
-			file.Line("if (reentry == pos + 1)");
-			file.Then($"{refused}(pos);");
-			file.Line();
-			file.Line($"{standing} = pos + 1;");
-		}
-		else
-		{
-			file.Line($"var reentryAlike = {alike};");
-			file.Line();
+			if (deepens)
+				Probe(file, rule);
 
-			using (file.Block("if (reentry == pos + 1)"))
+			file.Line($"var reentry = {standing};");
+
+			if (keys == 1)
 			{
-				file.Line($"if (reentryAlike == {keys.ToString(CultureInfo.InvariantCulture)})");
+				file.Line();
+				file.Line("if (reentry == pos + 1)");
 				file.Then($"{refused}(pos);");
 				file.Line();
-				file.Line($"{alike} = reentryAlike + 1;");
-			}
-
-			file.Line("else");
-
-			using (file.Block(""))
-			{
 				file.Line($"{standing} = pos + 1;");
-				file.Line($"{alike} = 1;");
 			}
+			else
+			{
+				file.Line($"var reentryAlike = {alike};");
+				file.Line();
+
+				using (file.Block("if (reentry == pos + 1)"))
+				{
+					file.Line($"if (reentryAlike == {keys.ToString(CultureInfo.InvariantCulture)})");
+					file.Then($"{refused}(pos);");
+					file.Line();
+					file.Line($"{alike} = reentryAlike + 1;");
+				}
+
+				file.Line("else");
+
+				using (file.Block(""))
+				{
+					file.Line($"{standing} = pos + 1;");
+					file.Line($"{alike} = 1;");
+				}
+			}
+
+			file.Line();
+			file.Line($"var read = {body}(pos{(strength.Length > 0 ? ", power" : "")});");
+			file.Line();
+			file.Line($"{standing} = reentry;");
+
+			if (keys > 1)
+				file.Line($"{alike} = reentryAlike;");
+
+			file.Line();
+			file.Line("return read;");
 		}
 
 		file.Line();
-
-		var tried = file.Block("try");
-
-		return new Closing(() =>
-		{
-			tried.Dispose();
-			file.Line("finally");
-
-			using (file.Block(""))
-				Unentered(file, rule);
-		});
-	}
-
-	/// <summary>What puts a marked rule's record back as it was before its entry: where it leaves, and before it is carried onto another stack, which enters it again there.</summary>
-	void Unentered(Writer file, RuleSymbol rule)
-	{
-		if (!Reentrant.TryGetValue(rule, out var which))
-			return;
-
-		file.Line($"standing{which} = reentry;");
-
-		if (Reentry.Keys(_graph, rule) > 1)
-			file.Line($"standingAlike{which} = reentryAlike;");
 	}
 
 	/// <summary>
@@ -273,15 +282,6 @@ sealed partial class Machine
 
 			file.Line();
 			file.Line($"throw new {ReenteredType}(pos, \"\\u0000A rule came back to itself without reading anything.\");");
-		}
-	}
-
-	/// <summary>An action run where a <c>using</c> ends.</summary>
-	sealed class Closing(Action close) : IDisposable
-	{
-		public void Dispose()
-		{
-			close();
 		}
 	}
 }
