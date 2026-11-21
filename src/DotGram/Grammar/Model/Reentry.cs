@@ -48,9 +48,11 @@ static class Reentry
 		/// <summary>What the refusal of a parse that came back says; where, the refusal's position says.</summary>
 		public string Said()
 		{
-			var through = Through.Select(static name => $"'{name}'").Concat(Recognizers.Select(static name => "@" + name));
+			string[] through = [.. Through.Select(static name => $"'{name}'"), .. Recognizers.Select(static name => "@" + name)];
 
-			return $"Rule '{Rule}' came back to itself through {Joined([.. through])} without reading anything.";
+			return through.Length == 0
+				? $"Rule '{Rule}' came back to itself without reading anything."
+				: $"Rule '{Rule}' came back to itself through {Joined(through)} without reading anything.";
 		}
 	}
 
@@ -165,7 +167,7 @@ static class Reentry
 		{
 			var at       = (closing.Declaration ?? graph.Origin(closing).Declaration)?.At;
 			var through  = cycle.Through.Count == 0 ? "" : $" through {Joined([.. cycle.Through.Select(static name => $"'{name}'")])}";
-			var standing = Joined([.. cycle.Recognizers.Select(static name => "@" + name)]);
+			var standing = cycle.Recognizers.Count == 0 ? "a recognizer of the host" : Joined([.. cycle.Recognizers.Select(static name => "@" + name)]);
 
 			told.Add(new GramDiagnostic(
 				Reenters,
@@ -236,13 +238,16 @@ static class Reentry
 			if (members.Count == 0)
 				continue;
 
+			// The way back is looked for through the whole component, which reaches itself through every rule of it.
+			var around = new HashSet<RuleSymbol>(component);
+
 			foreach (var rule in members)
-				facts.Marked[rule] = Around(rule, members, standing, graph).Cycle;
+				facts.Marked[rule] = Around(rule, around, standing, graph).Cycle;
 
 			// Told once, from the rule written first, on the rule whose call closes the cycle.
 			var first = members.OrderBy(rule => order[rule]).First();
 
-			var (cycle, closing) = Around(first, members, standing, graph);
+			var (cycle, closing) = Around(first, around, standing, graph);
 
 			facts.Told.Add((closing, cycle));
 		}
