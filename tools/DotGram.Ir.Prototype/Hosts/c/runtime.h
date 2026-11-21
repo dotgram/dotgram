@@ -738,8 +738,9 @@ static __attribute__((noinline)) void rt_shortened(Parser *P, List *list, int32_
 	list->cuts[list->cutsTop++] = (Cut){ count, ++P->shortened };
 }
 
-/* A list put back to a length it held: shortened where it holds more. */
-RT_HOT void rt_shorten(Parser *P, List *list, int32_t count)
+/* A list put back to a length it held: shortened where it holds more. Always written in place: a
+   test and a call, which no inlining decision of the compiler's should move between the copies. */
+static inline __attribute__((always_inline)) void rt_shorten(Parser *P, List *list, int32_t count)
 {
 	if (list->count > count)
 		rt_shortened(P, list, count);
