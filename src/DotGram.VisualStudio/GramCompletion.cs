@@ -74,15 +74,17 @@ sealed class EmbeddedGramCompletionSourceProvider : IAsyncCompletionSourceProvid
 }
 
 /// <summary>
-/// What typing does to a session the DotGram sources opened: a name's character narrows the list, and
-/// any other closes it without committing; Tab and Enter after a name typed in full commit it and still
-/// indent and break the line.
+/// What typing does to a session the DotGram sources answer for: a name's character narrows the list,
+/// and any other closes it without committing; Tab and Enter after a name typed in full leave it as it
+/// is and still indent and break the line, and Tab after `.` with nothing chosen yet indents.
 /// </summary>
 /// <remarks>
 /// Without a commit manager of its own, a session of the <c>.gram</c> content type had no character that
 /// ended it: opened on a name, it stayed open past every space and colon, and the next Tab replaced
 /// all that was typed since with the selected item. In a C# document the same manager is asked about
-/// Roslyn's sessions too, and leaves to Roslyn's every session the DotGram sources took no part in.
+/// Roslyn's sessions too, and leaves to Roslyn every session at a place the DotGram sources do not
+/// answer for. Whose the place is, is asked of the view's sources on the UI thread when the character
+/// is typed, never of what a source's items, computed in the background, may not have recorded yet.
 /// </remarks>
 [Export(typeof(IAsyncCompletionCommitManagerProvider))]
 [Name("DotGram completion commit")]
@@ -92,14 +94,15 @@ sealed class GramCompletionCommitManagerProvider : IAsyncCompletionCommitManager
 {
 	public IAsyncCompletionCommitManager GetOrCreate(ITextView textView)
 	{
-		return GramCompletionCommitManager.Instance;
+		return EditorGuard.Run<IAsyncCompletionCommitManager>(
+			"Completion commit manager",
+			null!,
+			() => textView.Properties.GetOrCreateSingletonProperty(() => new GramCompletionCommitManager(textView)));
 	}
 }
 
-sealed class GramCompletionCommitManager : IAsyncCompletionCommitManager2
+sealed class GramCompletionCommitManager(ITextView view) : IAsyncCompletionCommitManager2
 {
-	public static GramCompletionCommitManager Instance { get; } = new();
-
 	public IEnumerable<char> PotentialCommitCharacters => [];
 
 	public void Initialize(IAsyncCompletionSession session)
@@ -112,10 +115,13 @@ sealed class GramCompletionCommitManager : IAsyncCompletionCommitManager2
 		char typedChar,
 		CancellationToken token)
 	{
-		if (!GramCompletionSourceBase.Opened(session) || GramCompletionProvider.KeepsOpenOnTyping(typedChar))
-			return CompletionContinuation.Continue;
-
-		return CompletionContinuation.Dismiss;
+		return EditorGuard.Run(
+			"Completion typed character",
+			CompletionContinuation.Continue,
+			() => GramCompletionProvider.KeepsOpenOnTyping(typedChar) || !Participates(location)
+				? CompletionContinuation.Continue
+				: CompletionContinuation.Dismiss,
+			token);
 	}
 
 	public bool ShouldCommitCompletion(
@@ -134,13 +140,35 @@ sealed class GramCompletionCommitManager : IAsyncCompletionCommitManager2
 		char typedChar,
 		CancellationToken token)
 	{
-		// A name typed in full is committed as it is, and the key goes on to do what it does without a list.
-		if (item.Source is GramCompletionSourceBase &&
-			typedChar is '\t' or '\n' &&
-			string.Equals(session.ApplicableToSpan.GetText(buffer.CurrentSnapshot), item.InsertText, StringComparison.Ordinal))
-			return new CommitResult(false, CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers);
+		return EditorGuard.Run("Completion commit", CommitResult.Unhandled, () => Commit(session, item, typedChar, token), token);
+	}
+
+	static CommitResult Commit(IAsyncCompletionSession session, CompletionItem item, char typedChar, CancellationToken token)
+	{
+		if (item.Source is not GramCompletionSourceBase || typedChar is not ('\t' or '\n'))
+			return CommitResult.Unhandled;
+
+		var span  = session.ApplicableToSpan;
+		var typed = span.GetText(span.TextBuffer.CurrentSnapshot);
+
+		// The text stays as typed, and the key goes on to do what it does without a list: after a name
+		// typed in full, and for Tab where a dot opened the list and nothing is chosen in it yet.
+		if (GramCompletionSourceBase.TypedInFull(item, typed) ||
+			typedChar == '\t' && typed.Length == 0 &&
+			session is IAsyncCompletionSessionOperations { InitialTrigger.Reason: CompletionTriggerReason.Insertion } &&
+			session.GetComputedItems(token).UsesSoftSelection)
+			return new CommitResult(true, CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers);
 
 		return CommitResult.Unhandled;
+	}
+
+	/// <summary>Whether one of the view's DotGram sources answers for the place.</summary>
+	bool Participates(SnapshotPoint location)
+	{
+		return view.Properties.TryGetProperty(typeof(GramCompletionSource), out GramCompletionSource standalone) &&
+				standalone.Participates(location) ||
+			view.Properties.TryGetProperty(typeof(EmbeddedGramCompletionSource), out EmbeddedGramCompletionSource embedded) &&
+				embedded.Participates(location);
 	}
 }
 
@@ -152,12 +180,22 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 {
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);
 
-	static readonly object OpenedKey = new();
+	static readonly object TypedInFullKey = new();
 
-	/// <summary>Whether a DotGram source took part in the session.</summary>
-	public static bool Opened(IAsyncCompletionSession session)
+	/// <summary>Whether what is typed is the item's name in full, as the item matches it: by case or not.</summary>
+	public static bool TypedInFull(CompletionItem item, string typed)
 	{
-		return session.Properties.ContainsProperty(OpenedKey);
+		return item.Properties.TryGetProperty(TypedInFullKey, out GramCompletionItem source) &&
+			string.Equals(
+				typed,
+				source.FilterText ?? source.Label,
+				source.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+	}
+
+	/// <summary>Whether this source answers for completion at the place.</summary>
+	public bool Participates(SnapshotPoint point)
+	{
+		return point.Snapshot.TextBuffer == buffer && Provider(point.Snapshot).Participates(point.Position);
 	}
 
 	public CompletionStartData InitializeCompletion(
@@ -182,14 +220,7 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 		return EditorGuard.RunAsync(
 			"Completion",
 			CompletionContext.Empty,
-			() =>
-			{
-				// The session is null where a test asks for items outside one.
-				if (session is not null)
-					session.Properties[OpenedKey] = true;
-
-				return ContextAsync(triggerLocation, applicableToSpan, token);
-			},
+			() => ContextAsync(triggerLocation, applicableToSpan, token),
 			token);
 	}
 
@@ -280,7 +311,7 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 
 	CompletionItem Item(GramCompletionItem item)
 	{
-		return item.Plain
+		var result = item.Plain
 			? new CompletionItem(item.Label, this)
 			: new CompletionItem(
 				item.Label,
@@ -292,6 +323,10 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 				item.SortText ?? item.Label,
 				item.FilterText ?? item.Label,
 				ImmutableArray<ImageElement>.Empty);
+
+		result.Properties.AddProperty(TypedInFullKey, item);
+
+		return result;
 	}
 }
 

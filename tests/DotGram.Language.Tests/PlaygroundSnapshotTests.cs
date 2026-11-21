@@ -465,7 +465,7 @@ public sealed class PlaygroundSnapshotTests
 			: value.Replace("\\", "\\\\").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
 	}
 
-	static string SourceRoot()
+	internal static string SourceRoot()
 	{
 		var declared = typeof(PlaygroundSnapshotTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
 			.FirstOrDefault(static one => one.Key == "DotGramSourceRoot")?.Value;

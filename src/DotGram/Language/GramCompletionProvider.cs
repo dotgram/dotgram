@@ -18,6 +18,7 @@ namespace DotGram.Language;
 /// <param name="SortText">What the list sorts by; the label where null.</param>
 /// <param name="FilterText">What typing filters by; the label where null.</param>
 /// <param name="FromCSharp">Whether Roslyn offered the item, for the C# around a grammar.</param>
+/// <param name="IgnoreCase">Whether the item matches what is typed without regard to case: a DSL's <c>"…"i</c> literal.</param>
 sealed record GramCompletionItem(
 	string Label,
 	string Description,
@@ -25,7 +26,8 @@ sealed record GramCompletionItem(
 	string Suffix = "",
 	string? SortText = null,
 	string? FilterText = null,
-	bool FromCSharp = false)
+	bool FromCSharp = false,
+	bool IgnoreCase = false)
 {
 	/// <summary>An item that is its label in every respect, which an editor makes with nothing but the label.</summary>
 	public bool Plain => InsertText is null;
@@ -54,7 +56,30 @@ abstract class GramCompletionProvider
 		if (!IsApplicable(position))
 			return null;
 
+		// A comment or a literal of the grammar names nothing: no list there, not even on asking.
+		if (GrammarAt(Text(length, at), position) is { } grammar && GramVocabulary.InCommentOrLiteral(grammar.Text, grammar.Position))
+			return null;
+
 		return WordSpan(length, at, position);
+	}
+
+	/// <summary>
+	/// Whether completion at the position is this provider's to give: an editor asks it of an open
+	/// list, to know whether what is typed there is for this provider to judge.
+	/// </summary>
+	public bool Participates(int position)
+	{
+		return IsApplicable(position);
+	}
+
+	static string Text(int length, Func<int, char> at)
+	{
+		var characters = new char[length];
+
+		for (var index = 0; index < length; index++)
+			characters[index] = at(index);
+
+		return new string(characters);
 	}
 
 	/// <summary>
@@ -245,7 +270,8 @@ abstract class GramCompletionProvider
 			suggestion.Insertion,
 			"",
 			suggestion.Insertion,
-			suggestion.Insertion);
+			suggestion.Insertion,
+			IgnoreCase: suggestion.IgnoreCase);
 	}
 
 	protected readonly struct RuleCompletion(string description, string signature, int parameterCount, bool isLocal = false)
@@ -394,7 +420,7 @@ sealed class EmbeddedGramCompletionProvider(EmbeddedGrammarView view) : GramComp
 	}
 }
 
-internal readonly record struct DslLiteralCompletion(string Display, string Insertion);
+internal readonly record struct DslLiteralCompletion(string Display, string Insertion, bool IgnoreCase = false);
 
 internal static class DslLiteralCompletionParser
 {
@@ -416,11 +442,12 @@ internal static class DslLiteralCompletionParser
 
 	public static DslLiteralCompletion? Parse(string expected)
 	{
-		var literal = expected.EndsWith("i", StringComparison.Ordinal)
+		var ignoreCase = expected.EndsWith("i", StringComparison.Ordinal);
+		var literal    = ignoreCase
 			? expected.Substring(0, expected.Length - 1)
 			: expected;
 		if (literal.Length >= 2 && literal[0] == '"' && literal[literal.Length - 1] == '"')
-			return new DslLiteralCompletion(expected, literal.Substring(1, literal.Length - 2));
+			return new DslLiteralCompletion(expected, literal.Substring(1, literal.Length - 2), ignoreCase);
 		if (literal.Length < 3 || literal[0] != '\'' || literal[literal.Length - 1] != '\'')
 			return null;
 
@@ -435,6 +462,6 @@ internal static class DslLiteralCompletionParser
 			_ when body.Length == 1 => body,
 			_ => null,
 		};
-		return insertion is null ? null : new DslLiteralCompletion(expected, insertion);
+		return insertion is null ? null : new DslLiteralCompletion(expected, insertion, ignoreCase);
 	}
 }

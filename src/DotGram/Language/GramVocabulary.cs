@@ -356,6 +356,80 @@ static class GramVocabulary
 	}
 
 	/// <summary>
+	/// Whether <paramref name="position"/> of a grammar is in a comment or in a character or string
+	/// literal, its <c>i</c> marker included: text that names nothing, where completion has nothing to
+	/// offer. A literal or block comment still being typed, which the lexer found no end for, runs to the
+	/// end of the text; the place just after a literal's closing quote is not in it.
+	/// </summary>
+	/// <remarks>
+	/// Asked of the grammar's own lexer, so that a quote or a slash inside C# or inside another literal
+	/// cannot be taken for the start of one. A comment is no token: it is found in the gap between the
+	/// tokens around the position, which holds nothing else but whitespace.
+	/// </remarks>
+	public static bool InCommentOrLiteral(string grammar, int position, ICSharpScanner? scanner = null)
+	{
+		var tokens = GramLexer.Tokenize(grammar, scanner ?? RoslynCSharpScanner.Instance);
+		var gap    = 0;
+
+		foreach (var token in tokens.Tokens)
+		{
+			if (position <= token.Position)
+				return InComment(grammar, gap, position);
+
+			var end = token.Position + token.Length;
+
+			if (position <= end && token.Kind is TokenKind.Character or TokenKind.String or
+				TokenKind.CaseInsensitiveCharacter or TokenKind.CaseInsensitiveString)
+				return position < end || !Closed(grammar, token);
+
+			gap = Math.Max(gap, end);
+		}
+
+		return InComment(grammar, gap, Math.Min(position, grammar.Length));
+	}
+
+	/// <summary>Whether a literal ends in its closing quote, rather than in an <c>i</c> or unterminated.</summary>
+	static bool Closed(string grammar, Token literal)
+	{
+		var last = literal.Position + literal.Length - 1;
+
+		return last > literal.Position && grammar[last] == grammar[literal.Position];
+	}
+
+	/// <summary>Whether a position of a stretch holding only whitespace and comments is inside a comment.</summary>
+	static bool InComment(string text, int start, int position)
+	{
+		var index = start;
+
+		while (index < position)
+		{
+			if (text[index] == '/' && index + 1 < text.Length && text[index + 1] == '/')
+			{
+				while (index < position && text[index] is not ('\n' or '\r'))
+					index++;
+
+				if (index == position)
+					return true;
+			}
+			else if (text[index] == '/' && index + 1 < text.Length && text[index + 1] == '*')
+			{
+				var close = text.IndexOf("*/", index + 2, StringComparison.Ordinal);
+
+				if (close < 0 || position < close + 2)
+					return true;
+
+				index = close + 2;
+			}
+			else
+			{
+				index++;
+			}
+		}
+
+		return false;
+	}
+
+	/// <summary>
 	/// Whether <paramref name="position"/> of a grammar is in C# rather than in the grammar's own
 	/// text: inside an <c>@(…)</c>, or in the name of an <c>@Name</c> or <c>@Name.Member</c>.
 	/// </summary>
