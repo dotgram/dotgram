@@ -3494,14 +3494,14 @@ static partial class CSharpEmitter
 				// pool's largest kept array is 2^20 elements, the very number this bound is
 				// written in, so it would decline exactly these arrays and "pool it" would mean
 				// "drop it" in more words.
-				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*/ > 1048576)
+				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*//*SKIPROOM*/ > 1048576)
 				{
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(_large)).SetTarget(_large);
 
 					// The same question the ordinary slot asks below: is the room far larger than the
 					// use. The bound decides which slot holds the tape, not whether to keep it.
-					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*/
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*//*SKIPROOM*/
 						> 4L * (ways.Count * /*WAYWIDTH*/2L + ways.LogCount + ways.RefsCount/*MEMOUSED*/)))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
@@ -3524,7 +3524,7 @@ static partial class CSharpEmitter
 				// release's counts are the same quantity twice. Four times and not twice because a
 				// table grows to at least double: one doubling is the slack a steady workload leaves,
 				// and two is a workload that has shrunk.
-				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*/
+				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*//*SKIPROOM*/
 					> 4L * (ways.Count * /*WAYWIDTH*/2L + ways.LogCount + ways.RefsCount/*MEMOUSED*/)))
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
@@ -3547,11 +3547,20 @@ static partial class CSharpEmitter
 			/// <summary>Opens a way at the end of the tape, in force at <paramref name="at"/>.</summary>
 			internal int Open(int at, int last)
 			{
+				// <nosealskip>
 				if (Count * 2 + 2 > Items.Length)
 					global::System.Array.Resize(ref Items, Items.Length * 2);
+				// </nosealskip>
+				// <sealskip>
+				if (Count * 2 + 2 > Items.Length)
+					Grow();
+				// </sealskip>
 
 				Items[Count * 2]     = at;
 				Items[Count * 2 + 1] = last;
+				// <sealskip>
+				Skip[Count] = 0;
+				// </sealskip>
 				Count++;
 				Cursor = Count;
 
@@ -3573,6 +3582,16 @@ static partial class CSharpEmitter
 			{
 				for (var way = Cursor - 1; way >= segment; way--)
 				{
+					// <sealskip>
+					// A sealed stretch ends here: every way in it is spent, so it is stepped over whole.
+					if (Skip[way] > 0)
+					{
+						way = Skip[way] - 1;
+
+						continue;
+					}
+
+					// </sealskip>
 					if (Items[way * 2] < Items[way * 2 + 1])
 					{
 						Items[way * 2]++;
@@ -3610,11 +3629,81 @@ static partial class CSharpEmitter
 			}
 
 			/// <summary>Spends every way decided since the segment, keeping its decision.</summary>
+			// <nosealskip>
 			internal void Seal(int segment)
 			{
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
 			}
+			// </nosealskip>
+			// <sealskip>
+			/// <remarks>
+			/// Walked from the end down, stepping over each stretch an earlier seal inside this one
+			/// already spent, and leaving a pointer at its own last way for the seals and the retries
+			/// around it to step over it in one move. Without it a seal walked again every way the
+			/// seals nested inside it had spent, and a sealed group in a recursion read d deep cost
+			/// the square of d: 4.5 seconds at 131,072 levels of a two-rule control grammar, against
+			/// 3.6 milliseconds with the pointers.
+			/// </remarks>
+			internal void Seal(int segment)
+			{
+				var way = Cursor - 1;
+
+				while (way >= segment)
+				{
+					#if DOTGRAM_COUNTS
+					CountSealSteps++;
+					#endif
+
+					var from = Skip[way];
+
+					if (from > 0)
+					{
+						way = from - 2;
+
+						continue;
+					}
+
+					Items[way * 2 + 1] = Items[way * 2];
+					way--;
+				}
+
+				if (Cursor > segment)
+					Skip[Cursor - 1] = segment + 1;
+			}
+
+			/// <summary>
+			/// Beside each way, where the sealed stretch that ends at it begins, plus one; zero where no
+			/// seal ends there. Every way in such a stretch is spent, and no retry and no move to a next
+			/// alternative touches a spent way, so a pointer stays true until the tape is cut back below
+			/// it. It is cleared where a way is opened at its place again rather than where the tape is
+			/// cut: the cut is in the moves that are written at every turn of a repetition, and anything
+			/// more there stopped the JIT inlining them into the readers that make them.
+			/// </summary>
+			internal int[] Skip = new int[16];
+
+			#if DOTGRAM_COUNTS
+
+			/// <summary>
+			/// Ways the seals looked at, summed over every seal, for a test that holds them to the input
+			/// rather than to its square. <b>Compiled only under <c>DOTGRAM_COUNTS</c>.</b>
+			/// </summary>
+			internal static long CountSealSteps = 0;
+
+			#endif
+
+			/// <summary>
+			/// More room for the ways and the pointers beside them, together: out of line, so that
+			/// <see cref="Open(int, int)"/> stays small enough to be inlined where it is called.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+			void Grow()
+			{
+				global::System.Array.Resize(ref Items, Items.Length * 2);
+				global::System.Array.Resize(ref Skip, Items.Length / 2);
+			}
+
+			// </sealskip>
 			// <places>
 
 			/// <summary>
