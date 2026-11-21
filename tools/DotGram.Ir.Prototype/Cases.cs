@@ -57,6 +57,10 @@ static class Cases
 		["StoodInRecursion"]      = new(Grammars.StoodInRecursion,      typeof(StoodInRecursionParser),      "ParseStart"),
 		["GivesBackInTurn"]       = new(GiveBackGrammars.GivesBackInTurn, typeof(GivesBackInTurnParser),   "ParseStart"),
 		["GivesBackPastStop"]     = new(GiveBackGrammars.GivesBackPastStop, typeof(GivesBackPastStopParser), "ParseStart"),
+		["GivesBackInTurnBuilt"]  = new(GiveBackGrammars.GivesBackInTurnBuilt, typeof(GivesBackInTurnBuiltParser), "ParseStart"),
+		["GivesBackPastStopBuilt"] = new(GiveBackGrammars.GivesBackPastStopBuilt, typeof(GivesBackPastStopBuiltParser), "ParseStart"),
+		["TurnDefers"]            = new(GiveBackGrammars.TurnDefers, typeof(TurnDefersParser), "ParseStart"),
+		["LastAlternativeGivesBack"] = new(GiveBackGrammars.LastAlternativeGivesBack, typeof(LastAlternativeGivesBackParser), "ParseStart"),
 		["Json"]                  = new(Grammars.Json,                  typeof(JsonTwinParser),              "ParseJson"),
 	};
 
@@ -126,6 +130,10 @@ static class Cases
 		Add("StoodInRecursion",      "x", "(x)ab", "(x)abc0y", "((x)abc0y)a,b,c00yy;", "(x)a", "((x)ab", "(x)ab0y;y", "(x)");
 		Add("GivesBackInTurn",       "00a,b;c;", "a;", "ab;", "a,b;", "a,b,;", "0a,b;c,d;e;", "00a,b;c", "a;;", "");
 		Add("GivesBackPastStop",     "0\"a,b;\"", "\"\"", "00\"ab;\"", "\"a,b,c;\"\"\"d,e;\"", "\"a,;\"", "\"\"\"\"", "0\"a,b;", "\"\"\"", "\"a;\"", "a");
+		Add("GivesBackInTurnBuilt", "00a,b;c;", "a;", "ab;", "a,b;", "a,b,;", "0a,b;c,d;e;", "00a,b;c", "a;;", "");
+		Add("GivesBackPastStopBuilt",     "0\"a,b;\"", "\"\"", "00\"ab;\"", "\"a,b,c;\"\"\"d,e;\"", "\"a,;\"", "\"\"\"\"", "0\"a,b;", "\"\"\"", "\"a;\"", "a");
+		Add("TurnDefers",            "0a,b,c,d;", "0a,b,cd;", "0abcd;ef;", "a,b;", "0a,b,c,d,e;f,g,h;", "0a;", "00a,b,c,d,e,f!", "ab;", "0a,b,c,d,e;f");
+		Add("LastAlternativeGivesBack", "0a,b,c!", "0a,b,cd!", "0a,b,c;", "0abc!", "0a!", "a,b!", "0a,b,c,d!x", "00a,b,c,d,e!", "ab;");
 		Add("Json",                  "1", " [1, 2 ,{\"a\":null}] ", "{}", "[]", "[1,]", "{\"a\" 1}", "tru", "\"\\u12G4\"", "[[[", "01", "1e", "-", "{\"a\":[true,false,{\"b\":\"\\n\"}]}");
 
 		return data;

@@ -146,6 +146,17 @@ abstract record IrStmt
 		/// </summary>
 		public IrDispatch? Dispatch { get; init; }
 
+		/// <summary>
+		/// Whether an alternative that fails is read again in place with each of its own decisions that
+		/// can still move before the choice moves on — the last alternative too, before the choice
+		/// fails: what the generated reader does around every alternative that writes a way. Only of a
+		/// choice that is <paramref name="Resumable"/>; the reader reads a closed one once through.
+		/// </summary>
+		public bool Retries { get; init; }
+
+		/// <summary>Whether that reading again stops building after the second decision it gives back (<see cref="Replay.Defers"/>).</summary>
+		public bool Defers { get; init; }
+
 		public override IEnumerable<IrStmt> Children => Alternatives;
 	}
 
@@ -165,6 +176,17 @@ abstract record IrStmt
 		/// turn is read and nothing of it is said.
 		/// </summary>
 		public IReadOnlyList<CharRange>? Door { get; init; }
+
+		/// <summary>
+		/// Whether a turn that fails is read again in place with each of its own decisions that can still
+		/// move before it is given up — every turn, below the fewest too, and whether or not the
+		/// repetition is <paramref name="Resumable"/>: what the generated reader does around every turn
+		/// that writes a way, whatever it decided about the repetition's own.
+		/// </summary>
+		public bool Retries { get; init; }
+
+		/// <summary>Whether that reading again stops building after the second decision it gives back (<see cref="Replay.Defers"/>).</summary>
+		public bool Defers { get; init; }
 
 		public override IEnumerable<IrStmt> Children => [Body];
 	}
@@ -285,6 +307,9 @@ sealed class IrProgram
 	/// before it is given up, and the tree has no such reading but the repetition's own way.
 	/// </summary>
 	public int Reopened { get; set; }
+
+	/// <summary>How many turns and alternatives are read again in place over their own decisions (<see cref="IrStmt.Repeat.Retries"/>, <see cref="IrStmt.Choice.Retries"/>).</summary>
+	public int Retrying { get; set; }
 
 	/// <summary>How many loops that ask for another reading the plan had no single answer for, whether they stop building: those build throughout.</summary>
 	public int DeferralMisses { get; set; }

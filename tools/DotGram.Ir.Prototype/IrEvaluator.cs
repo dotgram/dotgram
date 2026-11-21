@@ -1136,8 +1136,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 				for (var i = decision; i <= last; i++)
 				{
-					var kept = Keep(frame, choice.Resets[i]);
-					var mark = Ways.Cursor;
+					var kept     = Keep(frame, choice.Resets[i]);
+					var mark     = Ways.Cursor;
+					var retries  = choice.Resumable && (i < last || choice.Retries);
+					var deferral = new Deferral();
 
 					_readings.Add(0);
 
@@ -1145,6 +1147,15 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					{
 						if (Exec(choice.Alternatives[i], frame))
 						{
+							if (choice.Defers && Stood(ref deferral, mark))
+							{
+								_p = start;
+								PutBack(frame, choice.Resets[i], kept);
+								_readings[^1] = 2;
+
+								continue;
+							}
+
 							_readings.RemoveAt(_readings.Count - 1);
 
 							return true;
@@ -1156,12 +1167,21 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						// Before the choice moves on and drops what the alternative decided, the
 						// alternative is read again with each of its own decisions that can still
 						// move: the next alternative is the choice's own next decision, after them.
-						if (!(choice.Resumable && i < last && Ways.Cursor > mark && Ways.Retry(mark)))
+						// The last is read so too where the choice retries its parts, before it fails.
+						if (!(retries && Ways.Cursor > mark && Ways.Retry(mark)))
+						{
+							if (choice.Defers)
+								Undeferred(deferral);
+
 							break;
+						}
 
 						Cut();
 						_readings[^1] = 1;
 						Charge(start);
+
+						if (choice.Defers && !BuildsThroughout)
+							Retried(ref deferral);
 					}
 
 					_readings.RemoveAt(_readings.Count - 1);
@@ -1251,8 +1271,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 							break;
 					}
 
-					var kept = Keep(frame, repeat.Resets);
-					var mark = Ways.Cursor;
+					var kept     = Keep(frame, repeat.Resets);
+					var mark     = Ways.Cursor;
+					var retries  = way >= 0 || repeat.Retries;
+					var deferral = new Deferral();
 
 					_readings.Add(0);
 
@@ -1260,13 +1282,41 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 					// A turn that fails is read again with each of its own decisions that can still
 					// move before the repetition gives the turn up: its own decision comes before them.
-					while (!read && way >= 0 && Ways.Cursor > mark && Ways.Retry(mark))
+					// Where the repetition retries its turns, every turn is, below the fewest too.
+					while (true)
 					{
+						if (read)
+						{
+							if (repeat.Defers && Stood(ref deferral, mark))
+							{
+								_p = start;
+								PutBack(frame, repeat.Resets, kept);
+								_readings[^1] = 2;
+								read = Exec(repeat.Body, frame);
+
+								continue;
+							}
+
+							break;
+						}
+
+						if (!(retries && Ways.Cursor > mark && Ways.Retry(mark)))
+						{
+							if (repeat.Defers)
+								Undeferred(deferral);
+
+							break;
+						}
+
 						Cut();
 						Charge(start);
 						_p = start;
 						PutBack(frame, repeat.Resets, kept);
 						_readings[^1] = 1;
+
+						if (repeat.Defers && !BuildsThroughout)
+							Retried(ref deferral);
+
 						read = Exec(repeat.Body, frame);
 					}
 
