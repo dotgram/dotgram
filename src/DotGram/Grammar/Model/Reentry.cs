@@ -45,14 +45,12 @@ static class Reentry
 	/// </summary>
 	public sealed record Cycle(string Rule, IReadOnlyList<string> Through, IReadOnlyList<string> Recognizers)
 	{
-		/// <summary>What the refusal of a parse that came back says before the position, and after it.</summary>
-		public (string Before, string After) Said()
+		/// <summary>What the refusal of a parse that came back says; where, the refusal's position says.</summary>
+		public string Said()
 		{
 			var through = Through.Select(static name => $"'{name}'").Concat(Recognizers.Select(static name => "@" + name));
 
-			return (
-				$"Rule '{Rule}' came back to itself at position ",
-				$" without reading anything, through {Joined([.. through])}.");
+			return $"Rule '{Rule}' came back to itself through {Joined([.. through])} without reading anything.";
 		}
 	}
 
@@ -85,6 +83,25 @@ static class Reentry
 		var facts = Of(graph);
 
 		return [.. graph.Rules.Where(facts.Marked.ContainsKey)];
+	}
+
+	/// <summary>
+	/// How many entries of a rule at one position can differ in what they are asked: one, or for a rule read
+	/// at a strength (§4.3.1), one for every strength the grammar asks anything at, and nought, which a
+	/// reading begins at.
+	/// </summary>
+	/// <remarks>
+	/// More than the strengths this rule is entered at, where the grammar asks others of other rules; never
+	/// fewer, which is what the check counts on (<c>Machine.Reentry.cs</c>).
+	/// </remarks>
+	public static int Keys(RecognitionGraph graph, RuleSymbol rule)
+	{
+		if (!graph.Climbing.ContainsKey(rule))
+			return 1;
+
+		var strengths = new HashSet<int>(graph.Powers.Values) { 0 };
+
+		return strengths.Count;
 	}
 
 	/// <summary>How a marked rule comes back to itself, for the refusal its check says.</summary>

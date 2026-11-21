@@ -68,7 +68,7 @@ static partial class CSharpEmitter
 		"Recognize{v}", "RecognizeDispatch{v}", "RecognizePart{v}#", "RecognizeGuard{v}#", "RecognizeGuardKey{v}#",
 		"RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}", "RecognizeUnrecorded{v}",
 		"RecognizeAgreeing{v}", "RecognizeClass{v}#", "RecognizeBits{v}#", "RecognizeBit{v}", "RecognizeGroups{v}#",
-		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#",
+		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#", "RecognizeReenters{v}", "RecognizeReentered{v}",
 		"RecognizeWord{v}", "Words{v}#",
 		"Materialize{v}", "MaterializePart{v}#", "MaterializeConstruct{v}#Part#", "MaterializeDirect{v}",
 		"MaterializeDirectPart{v}#", "MaterializeDirectReach{v}", "MaterializeDirectReaches{v}#",
@@ -76,6 +76,9 @@ static partial class CSharpEmitter
 		"Reader{v}", "Deep{v}", "Same{v}", "Prefix{v}#", "PrefixNext{v}#", "PrefixDepth{v}#", "PrefixLongest{v}#",
 		"PrefixMembers{v}#", "PrefixExpected{v}#", "PrefixMiss{v}#", "Reach{v}", "Letters{v}", "TokenAt{v}", "Text{v}", "Span{v}",
 		"Offer{v}", "Locate{v}", "Searched{v}", "PassedOver{v}", "TurnWalked{v}",
+
+		// A rule entered again where it stands through a recognizer that did not move: what refuses the parse.
+		"Reentered",
 	];
 
 	/// <summary>
@@ -87,7 +90,7 @@ static partial class CSharpEmitter
 	public static readonly string[] NestedKinds =
 	[
 		"Read", "ReadBody", "ReadPart#", "ReadBroken", "ReadBroken#", "RecRead", "RecReadBody", "RecWholeRead",
-		"RecWholeReadBody", "CountEntered",
+		"RecWholeReadBody", "CountEntered", "Reentered",
 	];
 
 	/// <summary>

@@ -141,6 +141,16 @@ static partial class CSharpEmitter
 
 				file.Line();
 
+				// A start refused for a rule entered again where it stood is no start that failed, and wants
+				// no more input: the grammar cannot be read there, which a search has no refusal to say
+				// with, and more text could only move a recognizer that did not (Machine.Reentry.cs).
+				if (text.Reenters)
+				{
+					file.Line("if (end < 0 && failure.Reentered)");
+					file.Then($"throw new global::System.InvalidOperationException({Machine.ReenteredType}.Said(failure.Expected, window.Offset + failure.Position));");
+					file.Line();
+				}
+
 				// Reaching the end of what is held is not the same as reaching the end of the
 				// input, and only the reader knows which one it was.
 				using (file.Block(
@@ -306,6 +316,20 @@ static partial class CSharpEmitter
 		// A probe asks the engine itself, and says the same.
 		var locating = locates ? ", -1" : "";
 
+		// A part refused for a rule entered again where it stood refuses the parse, whatever recovers
+		// around it, and wants no more input: more text could only move a recognizer that did not
+		// (Machine.Reentry.cs).
+		var reenters = Reentry.Any(graph);
+
+		void Reentered(string end, string failure)
+		{
+			if (!reenters)
+				return;
+
+			file.Line($"if ({end} < 0 && {failure}.Reentered)");
+			file.Then($"throw new global::System.FormatException({Machine.ReenteredType}.Said({failure}.Expected, window.Offset + {failure}.Position));");
+		}
+
 		var element = graph.Types[publication.Rule];
 
 		element = element.Substring(0, element.Length - "[]".Length);
@@ -401,6 +425,8 @@ static partial class CSharpEmitter
 							$"(window.Span(), start, ref seamFailure{i}{context}{locating});");
 						file.Line();
 
+						Reentered($"seamEnd{i}", $"seamFailure{i}");
+
 						using (file.Block(
 							$"if (((seamEnd{i} < 0 ? seamFailure{i}.Position : seamEnd{i}) >= window.Length || " +
 							$"seamFailure{i}.Starved) && !window.Ended)"))
@@ -435,6 +461,8 @@ static partial class CSharpEmitter
 							file.Line($"continuationFailure{i} = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 							file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i}{context});");
 							file.Line();
+
+							Reentered($"continuationEnd{i}", $"continuationFailure{i}");
 
 							using (file.Block(
 								$"if (((continuationEnd{i} < 0 ? continuationFailure{i}.Position : continuationEnd{i}) " +
@@ -522,6 +550,8 @@ static partial class CSharpEmitter
 					file.Line($"triviaEnd{tag} = {recognizer}(window.Span(), start, {hands});");
 					file.Line();
 
+					Reentered($"triviaEnd{tag}", $"triviaFailure{tag}");
+
 					using (file.Block(
 						$"if (((triviaEnd{tag} < 0 ? triviaFailure{tag}.Position : triviaEnd{tag}) >= window.Length || " +
 						$"triviaFailure{tag}.Starved) && !window.Ended)"))
@@ -579,6 +609,8 @@ static partial class CSharpEmitter
 
 					// The same provisional rule `find` reads by: what ran into the end of the
 					// window is not an answer while the reader has more.
+					Reentered($"end{i}", $"failure{i}");
+
 					using (file.Block(
 						$"if (((end{i} < 0 ? failure{i}.Position : end{i}) >= window.Length || " +
 						$"failure{i}.Starved) && !window.Ended)"))
