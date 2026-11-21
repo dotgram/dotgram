@@ -37,6 +37,7 @@ static class Cases
 		["SealedBefore"]          = new(Grammars.SealedBefore,          typeof(SealedBeforeParser),          "ParseStart"),
 		["CalledBefore"]          = new(Grammars.CalledBefore,          typeof(CalledBeforeParser),          "ParseStart"),
 		["FailedTurnBefore"]      = new(Grammars.FailedTurnBefore,      typeof(FailedTurnBeforeParser),      "ParseStart"),
+		["FailedLookInRetry"]     = new(Grammars.FailedLookInRetry,     typeof(FailedLookInRetryParser),     "ParseStart"),
 		["NestedSealedBefore"]    = new(Grammars.NestedSealedBefore,    typeof(NestedSealedBeforeParser),    "ParseStart"),
 		["LongLookBefore"]        = new(Grammars.LongLookBefore,        typeof(LongLookBeforeParser),        "ParseStart"),
 		["SealedCaptureBefore"]   = new(Grammars.SealedCaptureBefore,   typeof(SealedCaptureBeforeParser),   "ParseStart"),
@@ -102,6 +103,7 @@ static class Cases
 		Add("SettledBefore",         "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");
 		Add("SealedBefore",          "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");
 		Add("CalledBefore",          "a", "  a", "   a,b,c", "  a,b!", " b,", "   ", "a,b,c,", " a ");
+		Add("FailedLookInRetry",     "!", "x!", "xxx!", "xxz!", "xx", "xzx!", "!x");
 		Add("FailedTurnBefore",      "a", "ab;a", "ab;cd;a,b", "abc", "abc!", "ab;a,b,c!", "a,b,", ";a");
 		Add("NestedSealedBefore",    "<>a", "<00>a", "<000>a,b,c", "<00>a,b!", "<0b,", "<00", "<>a,b,c,", "00a");
 		Add("LongLookBefore",        "a", "00a", "000a,b,c", "00a,b!", "0b,", "000", "a,b,c,", "0a0");

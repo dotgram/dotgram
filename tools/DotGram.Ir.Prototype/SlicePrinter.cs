@@ -218,11 +218,17 @@ sealed class SlicePrinter
 	bool _budget;
 	int  _budgetTimes;
 
+	// RestartByBudget: how far each look reads, and how many looks without a bound the statement being
+	// printed stands in (their refusals raise the reach themselves); NoLookClause, the reach left out.
+	LookReach? _looks;
+	int        _unboundedLooks;
+	bool       _noLookClause;
+
 	// The helpers gcc's inliner report names as left out of line in first-reading code (with what
 	// they call that it also leaves out, and the two whose late inlining printed other code than
-	// inlining them always), each with a cold instance in runtime.h under RT_SPLIT. RT_REFUSE, the
+	// inlining them always), each with a cold instance in runtime.h under RT_SPLIT. RT_REFUSE_FAR, a
 	// refusal of a parser that restarts by budget, is a macro over one of them.
-	static readonly Regex HotHelpers = new(@"\b(RT_REFUSE|rt_enter|rt_next|rt_cut|rt_retry|rt_refuse|rt_stood|rt_undeferred|rt_replayed|rt_starts|rt_agree|list_add|val_items)\(", RegexOptions.CultureInvariant);
+	static readonly Regex HotHelpers = new(@"\b(RT_REFUSE_FAR|rt_enter|rt_next|rt_cut|rt_retry|rt_refuse|rt_stood|rt_undeferred|rt_replayed|rt_starts|rt_agree|list_add|val_items)\(", RegexOptions.CultureInvariant);
 
 	// What each function reaches by one call or more, and the functions printed as machines.
 	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach    = [];
@@ -301,7 +307,7 @@ sealed class SlicePrinter
 	public static string Print(
 		IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false, bool resumes = true,
 		ResumptionCriterion criterion = ResumptionCriterion.FailsBack, SliceAblation ablation = SliceAblation.Whole, bool hotRuntime = false,
-		int budget = 4, string parseName = "parse")
+		int budget = 8, string parseName = "parse", bool noLookClause = false, bool hotTwins = false)
 	{
 		// The split is a way of printing the runtime's calls, not a form of its own: the keyed twin printed over it.
 		if (ablation == SliceAblation.ReplayTwinKeyedSplit)
@@ -340,6 +346,9 @@ sealed class SlicePrinter
 			_parseName   = parseName,
 			_budget      = restarts,
 			_budgetTimes = budget,
+			_looks       = restarts ? new LookReach(program) : null,
+			_noLookClause = noLookClause,
+			_hotTwins    = hotTwins && entersTwins,
 		};
 
 		printer.Run();
@@ -351,9 +360,9 @@ sealed class SlicePrinter
 	/// The resuming set of a parser that restarts by budget: <see cref="SliceAblation.ResumingSetAlone"/>
 	/// under the entry <c>parse_resuming</c>, a translation unit of its own (its functions are static).
 	/// </summary>
-	public static string PrintResumingSet(IrProgram program, bool counted = false)
+	public static string PrintResumingSet(IrProgram program, bool counted = false, bool hotTwins = false)
 	{
-		return Print(program, SliceLanguage.C, counted: counted, ablation: SliceAblation.ResumingSetAlone, parseName: "parse_resuming");
+		return Print(program, SliceLanguage.C, counted: counted, ablation: SliceAblation.ResumingSetAlone, parseName: "parse_resuming", hotTwins: hotTwins);
 	}
 
 	// Whether an entry reads to the end of the input itself (the tree's publications all do).
@@ -553,40 +562,16 @@ sealed class SlicePrinter
 
 		if (C)
 		{
-			if (_budget)
-			{
-				// The first reading, until it has read again more than the budget: then from the start,
-				// resuming. The entry that can be gone back to is a function of its own, so that the
-				// first reading's own entry is printed and inlined as the parser without restart has it.
-				Line("static __attribute__((noinline)) int32_t parse_first(Parser *P, const char *entry);");
-				Line();
-				Line($"int32_t {_parseName}(Parser *P, const char *entry)");
-				Line("{");
-				Line("\tvoid *back[5];");
-				Line();
-				Line("\tP->reread  = 0;");
-				Line("\tP->far     = -1;");
-				Line("\tP->restart = back;");
-				Line();
-				Line("\tif (__builtin_setjmp(back) != 0)");
-				Line("\t{");
-				Line("\t\trt_restarted(P);");
-				Line();
-				Line("\t\treturn parse_resuming(P, entry);");
-				Line("\t}");
-				Line();
-				Line("\treturn parse_first(P, entry);");
-				Line("}");
-				Line();
-				Line("static __attribute__((noinline)) int32_t parse_first(Parser *P, const char *entry)");
-			}
-			else
-				Line($"int32_t {_parseName}(Parser *P, const char *entry)");
-
+			Line($"int32_t {_parseName}(Parser *P, const char *entry)");
 			Line("{");
 
+			// Restart by budget: the first reading, and one test after it whether it was given up (rt_first).
 			foreach (var (entry, function) in _program.Entries)
-				Line($"\tif (strcmp(entry, \"{entry}\") == 0) return {Name(function)}{(_entersTwins && Twinned(function) ? "_r(P, 0, 0)" : "(P, 0)")};");
+			{
+				var read = Name(function) + (_entersTwins && Twinned(function) ? "_r(P, 0, 0)" : "(P, 0)");
+
+				Line($"\tif (strcmp(entry, \"{entry}\") == 0) return {(_budget ? $"rt_first(P, {read}, entry)" : read)};");
+			}
 
 			Line("\treturn -2;");
 			Line("}");
@@ -1026,7 +1011,10 @@ sealed class SlicePrinter
 
 	// A twin is out of line and cold: inlined into the first reading's copy, the whole of it widened
 	// every entry's frame; not cold, its call was laid out among the first reading's code (measured).
-	const string TwinAttributes = "__attribute__((noinline, cold))";
+	// The resuming set alone, printed for speed in a unit of its own (hotTwins): nothing to keep out of line.
+	string TwinAttributes => _hotTwins ? "" : "__attribute__((noinline, cold))";
+
+	bool _hotTwins;
 
 	void Function(IrFunction function)
 	{
@@ -1123,8 +1111,8 @@ sealed class SlicePrinter
 	{
 		// Restart by budget: a refusal inside a look says nothing, but the position it inspected is
 		// the furthest the reading has reached, where it is further than any before.
-		if (_budget)
-			return $"RT_REFUSE(P, {at}, {expected.ToString(CultureInfo.InvariantCulture)});";
+		if (_budget && !_noLookClause && (_unboundedLooks > 0 || _looks!.Reached.Contains(_function!)))
+			return $"RT_REFUSE_FAR(P, {at}, {expected.ToString(CultureInfo.InvariantCulture)});";
 
 		return $"if ({Member("quiet")} == 0 && {at} >= {Member("refusedAt")}) {Runtime("refuse", at + ", " + expected.ToString(CultureInfo.InvariantCulture))};";
 	}
@@ -1398,8 +1386,7 @@ sealed class SlicePrinter
 						Line("{");
 						_indent++;
 						Attempt(choice.Alternatives[i], read);
-						Line($"if ({read} || !({Member("cursor")} > {mark} && {Runtime("retry", mark)})) break;");
-						Charge(start);
+						Line($"if ({read} || !({Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) break;");
 						Line($"p = {start};");
 						PutBack(choice.Resets[i], kept);
 						_indent--;
@@ -1526,8 +1513,7 @@ sealed class SlicePrinter
 					Line("{");
 					_indent++;
 					Attempt(repeat.Body, read);
-					Line($"if ({read} || !({way} >= 0 && {Member("cursor")} > {mark} && {Runtime("retry", mark)})) break;");
-					Charge(start);
+					Line($"if ({read} || !({way} >= 0 && {Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) break;");
 					Line($"p = {start};");
 					PutBack(repeat.Resets, held);
 					_indent--;
@@ -1602,8 +1588,7 @@ sealed class SlicePrinter
 					Line($"if (!{read})");
 					Line("{");
 					_indent++;
-					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) {fail}");
-					Charge(start);
+					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)}{Charged(start)})) {fail}");
 					Line($"return {Name(_function!)}_r(P, {start}, {(replay.Defers ? Runtime("retried", u) : "0")});");
 					_indent--;
 					Line("}");
@@ -1625,18 +1610,16 @@ sealed class SlicePrinter
 					// unbuilt is read once more, built; the second way given back stops building.
 					Line($"if ({read})");
 					Line("{");
-					Line($"\tif ({u} > 1) {{ {u} = {Runtime("stood", $"{u}, {segment}")}; if ({u} > 0) {{ {(_budget ? $"RT_CHARGE(P, {start}); " : "")}{read} = false; continue; }} }}");
+					Line($"\tif ({u} > 1) {{ {u} = {Runtime("stood", $"{u}, {segment}")}; if ({u} > 0{Charged(start)}) {{ {read} = false; continue; }} }}");
 					Line("\tbreak;");
 					Line("}");
-					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
-					Charge(start);
+					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)}{Charged(start)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
 					Line($"{u} = {Runtime("retried", u)};");
 				}
 				else
 				{
 					Line($"if ({read}) break;");
-					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) break;");
-					Charge(start);
+					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)}{Charged(start)})) break;");
 				}
 
 				_indent--;
@@ -1726,11 +1709,21 @@ sealed class SlicePrinter
 			Line($"{Member("unbuilt")}++;");
 		}
 
+		// Restart by budget: a look without a bound to its reach has its refusals raise the reach themselves.
+		var unbounded = _budget && !_noLookClause && look is not null && _looks!.Unbounded.Contains(look);
+
 		Line("for (;;)");
 		Line("{");
 		_indent++;
 		Line($"p = {start};");
+
+		if (unbounded)
+			_unboundedLooks++;
+
 		Attempt(body, read);
+
+		if (unbounded)
+			_unboundedLooks--;
 
 		if (defers)
 		{
@@ -1739,24 +1732,21 @@ sealed class SlicePrinter
 			Line("{");
 			_indent++;
 			Line($"if ({u} > 1) {u} = {Runtime("stood", $"{u}, {count}")};");
-			Line($"if ({u} < 2) break;");
+			Line($"if ({u} < 2{(_budget ? $" RT_OR_NOT_CHARGE(P, {start})" : "")}) break;");
 			Line($"{read} = false;");
 			PutBack(resets, kept);
-			Charge(start);
 			Line("continue;");
 			_indent--;
 			Line("}");
 			PutBack(resets, kept);
-			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
-			Charge(start);
+			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)}{Charged(start)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
 			Line($"{u} = {Runtime("retried", u)};");
 		}
 		else
 		{
 			Line($"if ({read}) break;");
 			PutBack(resets, kept);
-			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)})) break;");
-			Charge(start);
+			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)}{Charged(start)})) break;");
 		}
 
 		_indent--;
@@ -1766,6 +1756,10 @@ sealed class SlicePrinter
 		{
 			Line($"{Member("quiet")}--;");
 			Line($"{Member("unbuilt")}--;");
+
+			// Restart by budget: where a look's reach is bounded, its end raises the charge's position to it.
+			if (_budget && !_noLookClause && _looks!.Of(look.Body) is { } reach)
+				Line($"RT_LOOK(P, {start}, {reach.ToString(CultureInfo.InvariantCulture)})");
 		}
 
 		Line($"{Member("count")} = {count};");
@@ -1787,11 +1781,13 @@ sealed class SlicePrinter
 		Line("}");
 	}
 
-	/// <summary>Restart by budget: a region read again from <paramref name="start"/>, charged.</summary>
-	void Charge(string start)
+	/// <summary>
+	/// Restart by budget: a region read again from <paramref name="start"/>, charged in the edge's own
+	/// test of whether a retry was found — a reading given up declines it, as if none had been.
+	/// </summary>
+	string Charged(string start)
 	{
-		if (_budget)
-			Line($"RT_CHARGE(P, {start});");
+		return _budget ? $" RT_AND_CHARGE(P, {start})" : "";
 	}
 
 	// ---- Frames of the parser's own ----
