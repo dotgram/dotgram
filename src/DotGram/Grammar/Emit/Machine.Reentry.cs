@@ -32,7 +32,7 @@ sealed partial class Machine
 {
 	Dictionary<RuleSymbol, int>? _reentrant;
 
-	/// <summary>The marked rules this machine reads by methods, numbered for the fields that hold where each stands.</summary>
+	/// <summary>The marked rules this machine reads, numbered for the fields that hold where each stands and for the engine's marks of them.</summary>
 	Dictionary<RuleSymbol, int> Reentrant
 	{
 		get

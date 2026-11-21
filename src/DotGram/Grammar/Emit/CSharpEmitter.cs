@@ -2254,11 +2254,9 @@ static partial class CSharpEmitter
 		var reading     = compiled.Machine.UsesReading ? publication.Reading : (int?)null;
 		var tag         = compiled.Tag;
 		var quietFirst  = ReadsQuietlyFirst(graph);
-
 		// A reading refused for a rule entered again where it stood is refused whole: it is read no second
 		// time for its message, which is fixed, and it never wants more input (Machine.Reentry.cs).
 		var reenters    = Reentry.Any(graph);
-		var unreentered = reenters ? "!failure.Reentered && " : "";
 		var rewinds     = compiled.Machine.UsesContext && graph.ContextRewinds;
 		// Whether a reading that begins where it is told writes down where the value began:
 		// over characters it reads the trivia at the position and says where it ended.
@@ -3091,7 +3089,7 @@ static partial class CSharpEmitter
 					// under way, and the end of the text is where more is wanted.
 					if (overKinds)
 					{
-						using (file.Block($"if ({unreentered}tokens.Cut && failure.Position >= count - 1)"))
+						using (file.Block("if (tokens.Cut && failure.Position >= count - 1)"))
 						{
 							if (!kept) file.Line("Recycle_DotGram(tokens);");
 							file.Line();
