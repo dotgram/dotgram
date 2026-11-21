@@ -91,6 +91,10 @@ public sealed class ReentryTests
 		// word), and the engine enters it and comes back. Both refuse; only one of them reaches the check.
 		("notahead",  "T = ?!'y' & @Still & T & 'b' | 'x'",      "x|y"),
 		("inahead",   "T = ?=(@Still & T) & 'x' | 'y'",          "|x|y"),
+
+		// A rule with no way back into it, dispatched by its lookaheads: checked by a method in front of it.
+		("dispatched", "T = ?='.' & @Still & T | ?!'.' & 'x'",   "|x|.x"),
+		("dispatchedd", "T = ?='.' & @Dot & T | ?!'.' & 'x'",    "|x|.x|..x"),
 	];
 
 	public static TheoryData<string, string, string> Rows()
@@ -157,6 +161,8 @@ public sealed class ReentryTests
 	[InlineData("notahead", "y",     "no@0 NoMatch")]
 	[InlineData("notahead", "x",     "no@0 NoMatch " + NestSaid)]
 	[InlineData("inahead",  "y",     "ok@1")]
+	[InlineData("dispatched", ".x",  "no@0 NoMatch " + NestSaid)]
+	[InlineData("dispatchedd", "..x", "ok@3")]
 	[InlineData("inahead",  "x",     "no@0 NoMatch " + NestSaid)]
 	public void The_answers_are_the_rule_s(string name, string input, string expected)
 	{
@@ -164,6 +170,31 @@ public sealed class ReentryTests
 
 		foreach (var direct in Environment.GetEnvironmentVariable("REENTRY_DIRECT") is null ? new[] { true, false } : new[] { true })
 			Assert.Equal(expected, Answer(Build(grammar, SpanHost, direct, tape: false, buffered: false), input, typeof(string)));
+	}
+
+	/// <summary>
+	/// The check is printed in both shapes a rule read by methods takes: in the method that reads the rule again
+	/// where it has a way back into it, and in a method in front of it where it has none.
+	/// </summary>
+	[Fact]
+	public void Both_shapes_of_the_reader_are_checked()
+	{
+		static string Source(string grammar)
+		{
+			return GramCompiler.Compile(grammar + "\nparse T", new GramCompilerOptions
+			{
+				ClassName      = "Probe",
+				SymbolResolver = PermissiveSymbolResolver.Instance,
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+			}).Sources[0].Text;
+		}
+
+		var tape       = Source(Nest);
+		var dispatched = Source(Table.Single(static row => row.Name == "dispatched").Grammar);
+
+		Assert.Contains("standing0 = reentry;", tape, StringComparison.Ordinal);
+		Assert.DoesNotContain("Reentering_T", tape, StringComparison.Ordinal);
+		Assert.Contains("var read = Reentering_T(pos);", dispatched, StringComparison.Ordinal);
 	}
 
 	/// <summary>A search hands over what it found before the start the grammar cannot be read at, and then throws, in every form it is read in.</summary>
