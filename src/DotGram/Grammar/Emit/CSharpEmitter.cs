@@ -1440,8 +1440,10 @@ static partial class CSharpEmitter
 			var emitted = file.ToString();
 			var seals   = emitted.Contains("ways.Seal(");
 
-			// The memo of lost answers, where some reader has a place or clears one (Machine.Doom.cs).
-			var dooms = emitted.Contains("ways.Returned(") || emitted.Contains("ways.ClearDoom(");
+			// The memo of lost answers, where some reader may have a place or clear one (Machine.Doom.cs).
+			// Asked of the machines and not read off the file: a split file writes its readers into parts
+			// of their own, which this text does not hold.
+			var dooms = machines.Exists(static compiled => compiled.Direct && compiled.Machine.Dooms);
 
 			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places), "sealskip", seals), "nosealskip", !seals), "doom", dooms)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
