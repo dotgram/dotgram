@@ -434,6 +434,14 @@ static class Slices
 				// IR_C_ALWAYS_INLINE: every variant with the runtime's functions inlined wherever they are called.
 				List<string> flags = Environment.GetEnvironmentVariable("IR_C_ALWAYS_INLINE") == "1" ? ["-DRT_ALWAYS_INLINE"] : [];
 
+				// Every variant is built with a unit growth limit none of them reaches. At gcc's default the
+				// Rfc5322 units reach it, and the inliner then stops at a point that depends on the unit's size:
+				// a parser that restarts by budget, whose first reading is otherwise the same code as "offevery",
+				// inlined into two of its functions otherwise than "offevery". Above the limit every variant inlines
+				// as much as it would without one (400 and 1000 give the same code), so the variants compare
+				// function for function.
+				flags.AddRange(["--param", "inline-unit-growth=400"]);
+
 				List<string> more = variant.StartsWith("restart", StringComparison.Ordinal) ? ["resume.c"] : [];
 
 				var (built, _, complaints) = Run(gcc, ["-std=gnu11", "-O2", "-D_GNU_SOURCE", .. flags, "-o", "accept-" + variant, "accept.c", $"parser-{variant}.c", .. more, "fragments.c"], directory);
