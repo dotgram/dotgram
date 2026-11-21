@@ -192,8 +192,14 @@ static class Reentry
 	/// For a test that weighs the check against its absence: marks nothing in the graphs worked out on this
 	/// thread while it is set. Not a setting: a parser compiled with it may go round for ever.
 	/// </summary>
+	internal static bool Unchecked
+	{
+		get { return _unchecked; }
+		set { _unchecked = value; }
+	}
+
 	[ThreadStatic]
-	internal static bool Unchecked;
+	static bool _unchecked;
 
 	static Facts Work(RecognitionGraph graph)
 	{
@@ -235,6 +241,7 @@ static class Reentry
 
 			// Told once, from the rule written first, on the rule whose call closes the cycle.
 			var first = members.OrderBy(rule => order[rule]).First();
+
 			var (cycle, closing) = Around(first, members, standing, graph);
 
 			facts.Told.Add((closing, cycle));

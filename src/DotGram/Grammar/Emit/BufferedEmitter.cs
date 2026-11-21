@@ -497,6 +497,7 @@ static partial class CSharpEmitter
 				{
 					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
 					Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands})", false, "start", "trace");
+
 					// An element refused for a rule entered again where it stood says so (Machine.Reentry.cs).
 					if (Reentry.Any(graph))
 						file.Line($"if (end < 0 && failure.Reentered) throw new global::System.FormatException({Machine.ReenteredType}.Said(failure.Expected, failure.Position));");
