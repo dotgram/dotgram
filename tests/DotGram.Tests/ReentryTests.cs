@@ -545,6 +545,68 @@ public sealed class ReentryTests
 		return (string)parser.GetType("Probe")!.GetMethod("Explained")!.Invoke(null, [input])!;
 	}
 
+	/// <summary>
+	/// A pass that copies a rule for the site it is read at — a run settled for what follows it — copies no rule
+	/// that reads a marked one: the copy would be read past the check. The parse is refused as the rule itself is.
+	/// </summary>
+	[Fact]
+	public void A_rule_that_reads_a_marked_one_is_not_copied()
+	{
+		const string Grammar = "T = Name & '='\nName = @Pfx & Name | ['a'..'z']+";
+
+		var graph = ExponentialRepetitionTests.Graph(Grammar + "\nparse T", lexical: false, out _);
+		var name  = graph.Rules.Single(static rule => rule.Name == "Name");
+
+		Assert.True(Reentry.Marked(graph, name));
+		Assert.False(Reentry.MayCopy(graph, name));
+		Assert.False(Reentry.MayCopy(graph, graph.Rules.Single(static rule => rule.Name == "T")));
+		Assert.Single(graph.Rules, rule => ReferenceEquals(graph.Origin(rule), name) || rule.Declaration?.Name == "Name");
+
+		const string Moves = "static bool Pfx(System.ReadOnlySpan<char> input, ref int p) { if (p < input.Length && input[p] == '.') p++; return true; }";
+
+		foreach (var direct in new[] { true, false })
+		{
+			var parser = Build(Grammar, SpanHost + Moves, direct, tape: false, buffered: false);
+
+			Assert.Equal("no@1 NoMatch Rule 'Name' came back to itself through @Pfx without reading anything.", Answer(parser, ".ab=", typeof(string)));
+			Assert.Equal("no@0 NoMatch Rule 'Name' came back to itself through @Pfx without reading anything.", Answer(parser, "ab=", typeof(string)));
+		}
+	}
+
+	/// <summary>
+	/// What a rule begins with settles on every marked grammar: a recognizer begins with anything, so what is
+	/// read after it is never asked, and a cycle through one is no ring of rules leading with each other (GRAM4057).
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Rows))]
+	public void What_a_marked_rule_begins_with_settles(string name, string grammar, string inputs)
+	{
+		_ = inputs;
+
+		var graph = ExponentialRepetitionTests.Graph(grammar + "\nparse T", lexical: false, out _);
+
+		Assert.True(Reentry.Any(graph), name);
+		Assert.Null(FirstSets.Unsettled(graph));
+	}
+
+	/// <summary>A cycle through a rule made out of a nested recovery is found on the rule as made, and told once.</summary>
+	[Fact]
+	public void A_cycle_through_a_lifted_rule_is_told()
+	{
+		const string Grammar = "T = ((@Still & T & 'b' | 'x')* recover ',' & ';')* recover ';' & eof";
+
+		var graph = ExponentialRepetitionTests.Graph(Grammar + "\nparse T", lexical: false, out _);
+
+		Assert.Contains(graph.Rules, rule => graph.Lifted.ContainsKey(rule) && Reentry.Marked(graph, rule));
+		Assert.Single(Reported(Grammar), static one => one.Id == Reentry.Reenters);
+
+		foreach (var direct in new[] { true, false })
+			Assert.StartsWith(
+				"no@0 NoMatch Rule 'T' came back to itself through @Still",
+				Answer(Build(Grammar, SpanHost, direct, tape: false, buffered: false), "x;", typeof(string)),
+				StringComparison.Ordinal);
+	}
+
 	/// <summary>The build says so once a cycle, as Information, on the rule that closes it; and nothing of a grammar without one.</summary>
 	[Theory]
 	[InlineData(Nest, "'T' can come back to itself without reading anything where @Still succeeds")]
