@@ -82,6 +82,10 @@ static void *run(void *unused)
 		if (getenv("IR_COUNTS") != NULL)
 			printf("K %lld %lld %d %lld %lld %lld %lld %d\n", (long long)P.kSteps, (long long)P.kEntered, P.retries, (long long)P.kJumps, (long long)P.kHost, peak, (long long)rt_held(&P), P.restarts);
 
+		/* A reading restarted by budget: the host calls made after it was given up, before the publication knew. */
+		if (P.restarts > 0)
+			printf("C %lld\n", (long long)P.callsAfterTrip);
+
 		P.restarts = 0;
 
 		host_end(&P);

@@ -35,7 +35,12 @@ public sealed class RestartTests(ITestOutputHelper output)
 			if (name != "stood in a recursion")
 				yield return (Ladders.Shapes.Single(one => one.Name == name), options);
 		}
+
+		yield return (Ladders.Shapes.Single(static one => one.Name == FailedLook), null);
 	}
+
+	// The ladder whose every reading again is a long failed look: charged by the look's reach alone.
+	const string FailedLook = "failed look in every retry";
 
 	static string Head(IrProgram program, IrOutcome outcome)
 	{
@@ -219,7 +224,7 @@ public sealed class RestartTests(ITestOutputHelper output)
 	[Fact(Explicit = true)]
 	public void RestartByBudget_ReadsEveryFixtureAsTheEvaluator()
 	{
-		var text = new StringBuilder("budget\tfixture\treadings\trestarted\n");
+		var text = new StringBuilder("budget\tfixture\treadings\trestarted\tcalls after the trip (most)\n");
 
 		foreach (var budget in new[] { 2, 8 })
 		{
@@ -237,6 +242,7 @@ public sealed class RestartTests(ITestOutputHelper output)
 				var program  = Reading.Program(fixture.Grammar);
 				var expected = new List<SliceAnswer>();
 				var restarts = 0;
+				var most     = 0L;
 
 				foreach (var input in inputs)
 				{
@@ -255,11 +261,18 @@ public sealed class RestartTests(ITestOutputHelper output)
 				for (var i = 0; i < expected.Count; i++)
 				{
 					Assert.True(expected[i].Head == actual[i].Head, $"{name}, budget {budget}, on {Twin.Quoted(inputs[i])}: expected {expected[i].Head}, read {actual[i].Head}");
-					Assert.True(expected[i].Log.SequenceEqual(actual[i].Log), $"{name}, budget {budget}, on {Twin.Quoted(inputs[i])}: the host calls differ");
+					Assert.True(SliceAnswer.SameCalls(expected[i], actual[i]), $"{name}, budget {budget}, on {Twin.Quoted(inputs[i])}: the host calls differ");
+
+					// What the poisoned reading does after the trip reads forward: no more host calls than the input is long.
+					if (actual[i].Restart is { } after)
+					{
+						Assert.True(after <= inputs[i].Length + 1, $"{name}, budget {budget}, on {Twin.Quoted(inputs[i])}: {after} host calls after the trip");
+						most = Math.Max(most, after);
+					}
 				}
 
 				total += restarts;
-				text.Append(string.Create(CultureInfo.InvariantCulture, $"{budget}\t{name}\t{inputs.Count}\t{restarts}\n"));
+				text.Append(string.Create(CultureInfo.InvariantCulture, $"{budget}\t{name}\t{inputs.Count}\t{restarts}\t{most}\n"));
 			}
 
 			text.Append(string.Create(CultureInfo.InvariantCulture, $"{budget}\tall\t\t{total}\n"));
@@ -267,6 +280,105 @@ public sealed class RestartTests(ITestOutputHelper output)
 
 		output.WriteLine(text.ToString());
 		Report("r2-fixtures.tsv", text.ToString());
+	}
+
+	/// <summary>
+	/// The ladder whose every reading again is a long failed look, with restart and with the look's
+	/// reach left out of the charge on purpose: the first reads it in its length, the second does not
+	/// trip (each reading again is charged one) and reads it in its square.
+	/// </summary>
+	[Fact(Explicit = true)]
+	public void AFailedLookInEveryRetry_IsChargedByItsReach()
+	{
+		var shape   = Ladders.Shapes.Single(static one => one.Name == FailedLook);
+		var fixture = Cases.Fixtures[shape.Fixture];
+		var program = Reading.Program(fixture.Grammar);
+		int[] sizes = [2000, 4000, 8000];
+		var inputs  = sizes.Select(shape.Input).ToList();
+		var text    = new StringBuilder("form\tturns\tsteps\trestarts\tevaluator restarts\n");
+		var ratios  = new Dictionary<bool, double>();
+
+		foreach (var without in new[] { false, true })
+		{
+			var read = Slices.InC("FailedLook-" + (without ? "without" : "with"), program, fixture.Entry, inputs, counted: true, stackMegabytes: 2048,
+				ablation: SliceAblation.RestartByBudget, budget: 8, noLookClause: without);
+
+			for (var i = 0; i < inputs.Count; i++)
+			{
+				var evaluator = new IrEvaluator(program, new Ladders.CountingHost(fixture.Guards)) { RestartBudget = 8, NoLookClause = without, StepBudget = 4_000_000_000 };
+
+				evaluator.Parse(fixture.Entry, inputs[i]);
+				text.Append(string.Create(CultureInfo.InvariantCulture, $"{(without ? "without the look's reach" : "with")}\t{sizes[i]}\t{read[i].Counts![0]}\t{read[i].Counts![7]}\t{evaluator.Restarts}\n"));
+
+				Assert.Equal(evaluator.Restarts, read[i].Counts![7]);
+			}
+
+			ratios[without] = read[2].Counts![0] / (double)read[1].Counts![0];
+		}
+
+		output.WriteLine(text.ToString());
+		Report("r2-failed-look.tsv", text.ToString());
+
+		Assert.InRange(ratios[false], 1.9, 2.1);
+		Assert.InRange(ratios[true], 3.6, 4.4);
+	}
+
+	/// <summary>
+	/// The inputs of the Web corpora a reading restarts on at budgets 4 and 8, each with what the
+	/// reading without resumption and the resuming one cost (statements), so that a restart can be
+	/// told a real reading again from an over-charge.
+	/// </summary>
+	[Fact(Explicit = true)]
+	public void WhoRestarts_OnTheWebCorpora()
+	{
+		var text    = new StringBuilder("corpus\tbudget\tinput\tlength\tsteps without resumption\tsteps resuming\tratio\tsteps with restart\n");
+		var rfc9651 = Reading.Program(Graphs.WebGrammar("Rfc9651.cs"));
+		var rfc3986 = Reading.Program(Graphs.WebGrammar("Rfc3986.cs"));
+		var rfc5322 = Reading.Program(Graphs.WebGrammar("Rfc5322.cs"));
+
+		var corpora = new (string Name, IrProgram Program, string Entry, IEnumerable<string> Inputs)[]
+		{
+			("Rfc9651 list, structured-field suite", rfc9651, "ParseList", ResumptionTests.StructuredFields("list")),
+			("Rfc9651 dictionary, structured-field suite", rfc9651, "ParseDictionary", ResumptionTests.StructuredFields("dictionary")),
+			("Rfc9651 list, accepted and edited", rfc9651, "ParseList", ResumptionTests.Edited(ResumptionTests.AcceptedRows.Single(static row => row.Name == "Rfc9651 list").Inputs)),
+			("Rfc9651 dictionary, accepted and edited", rfc9651, "ParseDictionary", ResumptionTests.Edited(ResumptionTests.AcceptedRows.Single(static row => row.Name == "Rfc9651 dictionary").Inputs)),
+			("Rfc3986 references, accepted and edited", rfc3986, "ParseReference", ResumptionTests.Edited(ResumptionTests.AcceptedRows.Single(static row => row.File == "Rfc3986.cs").Inputs)),
+			("Rfc5322 address lists, edited", rfc5322, "ParseAddressList", ResumptionTests.Edited(ResumptionTests.Addresses)),
+		};
+
+		foreach (var (name, program, entry, inputs) in corpora)
+		{
+			foreach (var budget in new[] { 4, 8 })
+			{
+				var count = 0;
+
+				foreach (var input in inputs.Distinct())
+				{
+					var restarting = new IrEvaluator(program, new RecordingHost()) { RestartBudget = budget };
+
+					restarting.Parse(entry, input);
+
+					if (restarting.Restarts == 0)
+						continue;
+
+					count++;
+
+					var without  = new IrEvaluator(program, new RecordingHost());
+					var resuming = new IrEvaluator(program, new RecordingHost()) { Resumes = true };
+
+					without.Parse(entry, input);
+					resuming.Parse(entry, input);
+
+					text.Append(string.Create(CultureInfo.InvariantCulture,
+						$"{name}\t{budget}\t{Twin.Quoted(input)}\t{input.Length}\t{without.Steps}\t{resuming.Steps}\t{without.Steps / (double)resuming.Steps:F2}\t{restarting.Steps}\n"));
+				}
+
+				text.Append(string.Create(CultureInfo.InvariantCulture, $"{name}\t{budget}\t(restarted)\t{count}\n"));
+			}
+		}
+
+		output.WriteLine(text.ToString());
+		Report("r4-who-restarts.tsv", text.ToString());
 	}
 
 	/// <summary>

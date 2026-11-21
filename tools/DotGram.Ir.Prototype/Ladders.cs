@@ -62,6 +62,7 @@ static class Ladders
 		new("fails round a cycle",         "FailsRoundACycle",     static n => Times("0", n) + Times("a,", n) + "!"),
 		new("look after the decision",     "LookAfterDecider",     static n => Times("0", n) + Times("a,", n) + "!"),
 		new("stood in a recursion",        "StoodInRecursion",     static n => Times("(", n) + "x" + Times(")abc0y", n)),
+		new("failed look in every retry",  "FailedLookInRetry",    static n => Times("x", n) + "?"),
 	];
 
 	/// <summary>

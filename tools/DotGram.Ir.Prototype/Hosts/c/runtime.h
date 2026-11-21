@@ -138,12 +138,15 @@ typedef struct Parser
 	Chunk *arena;
 
 	/* Restart by budget (a measurement, printed by a parser that asks for it): what the first
-	   reading has read again, the furthest position it has inspected (inside looks too), the
-	   readings that were given up and read again from the start by the resuming set, and where the
-	   reading goes back to when it gives up. At the end, so that no other field moves. */
+	   reading has read again; how far its looks have reached; the readings given up and read again
+	   from the start by the resuming set; whether the reading under way has been given up (tripped)
+	   and the input's length it was given (len is poisoned to nought then); the host calls made
+	   between the trip and the publication's test; the last refusal position a charge saw. At the
+	   end, so that no other field moves. */
 	int64_t reread;
 	int32_t far, restarts;
-	void   *restart;
+	int32_t tripped, fullLen, lastRefusedAt;
+	int64_t tripHost, callsAfterTrip;
 } Parser;
 
 #define VAL_NONE ((Val){ V_NONE, 0, 0, NULL })
@@ -207,6 +210,11 @@ RT_INLINE void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 	P->serial       = 0;
 	P->kvTop        = 0;
 	P->refusalsCount = 0;
+	P->reread        = 0;
+	P->far           = -1;
+	P->tripped       = 0;
+	P->fullLen       = len;
+	P->lastRefusedAt = -1;
 
 	if (P->keyCount > 0)
 	{
@@ -659,43 +667,74 @@ RT_HOT Val val_items(Parser *P, List *list)
 }
 
 #ifdef RT_RESTART
+#include <stdio.h>
+
 #ifndef RT_BUDGET
-#define RT_BUDGET 4
+#define RT_BUDGET 8
 #endif
 
-/* A reading again of a region of the first reading, from start: what it costs is charged, at least
-   one, and past RT_BUDGET times what the reading has inspected the reading is given up. The
-   furthest position is the most of every refusal outside looks (refusedAt) and inside them (far). */
-static __attribute__((noinline, cold, unused)) void rt_charge(Parser *P, int32_t start)
+int32_t parse_resuming(Parser *P, const char *entry);
+
+/* What a charge is broken by: a promise of the reading, said and the process ended. */
+static __attribute__((noinline, cold, noreturn, unused)) void rt_broken(const char *what)
 {
-	int32_t far = P->far > P->refusedAt ? P->far : P->refusedAt;
-
-	if (far < start)
-		far = start;
-
-	P->far     = far;
-	P->reread += far - start > 1 ? far - start : 1;
-
-	if (P->reread > (int64_t)RT_BUDGET * (far + 1))
-		__builtin_longjmp((void **)P->restart, 1);
+	fprintf(stderr, "restart by budget: %s\n", what);
+	abort();
 }
 
-/* The first reading given up: the tape, the records and the refusal as a reading begins, for the
-   resuming set to read the input again from the start. What was built stays in the arena. */
+/* A reading again of a region of the first reading, from start, where its retry was found: what it
+   reads again is charged, at least one, from start to the furthest position the reading has refused
+   at aloud or a look of it has reached. Past RT_BUDGET times the input's length plus one the reading
+   is given up: poisoned, so that every inspection after fails at once (the length is nought, while
+   what was captured still cuts the input itself) and every reading again declines. The answer is
+   whether the retry goes ahead. */
+static __attribute__((noinline, cold, unused)) bool rt_charge(Parser *P, int32_t start)
+{
+	if (P->tripped)
+		return false;
+
+	if (P->refusedAt < P->lastRefusedAt)
+		rt_broken("the furthest refusal moved back");
+
+	P->lastRefusedAt = P->refusedAt;
+
+	int32_t pos = P->far > P->refusedAt ? P->far : P->refusedAt;
+
+	P->reread += pos - start > 1 ? pos - start : 1;
+
+	if (P->reread <= (int64_t)RT_BUDGET * (P->fullLen + 1))
+		return true;
+
+	P->tripped  = 1;
+	P->tripHost = P->kHost;
+	P->len      = 0;
+
+	return false;
+}
+
+/* The first reading given up: the tape, the records, the refusal and the counter as a reading
+   begins, for the resuming set to read the input again from the start. What was built stays in the
+   arena. Every table of the first reading is then empty, which is asserted. */
 static __attribute__((noinline, cold, unused)) void rt_restarted(Parser *P)
 {
-	P->rv            = VAL_NONE;
-	P->quiet         = 0;
-	P->unbuilt       = 0;
-	P->refusedAt     = -1;
-	P->refusedCount  = 0;
-	P->count         = 0;
-	P->cursor        = 0;
-	P->kCount        = 0;
-	P->cutTop        = 0;
-	P->serial        = 0;
-	P->kvTop         = 0;
-	P->refusalsCount = 0;
+	P->callsAfterTrip = P->kHost - P->tripHost;
+	P->len            = P->fullLen;
+	P->tripped        = 0;
+	P->rv             = VAL_NONE;
+	P->quiet          = 0;
+	P->unbuilt        = 0;
+	P->refusedAt      = -1;
+	P->refusedCount   = 0;
+	P->count          = 0;
+	P->cursor         = 0;
+	P->kCount         = 0;
+	P->cutTop         = 0;
+	P->serial         = 0;
+	P->kvTop          = 0;
+	P->refusalsCount  = 0;
+	P->far            = -1;
+	P->reread         = 0;
+	P->lastRefusedAt  = -1;
 	P->restarts++;
 
 	if (P->keyCount > 0)
@@ -703,49 +742,54 @@ static __attribute__((noinline, cold, unused)) void rt_restarted(Parser *P)
 		memset(P->keyTable, 0xff, sizeof(int32_t) * (size_t)(P->keyMask + 1));
 		P->keyCount = 0;
 	}
+
+	if (P->kCount != 0 || P->cutTop != 0 || P->kvTop != 0 || P->keyCount != 0 || P->refusalsCount != 0 || P->refusedAt != -1 ||
+		P->refusedCount != 0 || P->far != -1 || P->reread != 0 || P->count != 0)
+		rt_broken("a table of the first reading is not empty after the restart");
+}
+
+/* The publication's one test after the first reading: given up, nothing of it leaves - the input is
+   read again from the start by the resuming set. */
+RT_INLINE int32_t rt_first(Parser *P, int32_t read, const char *entry)
+{
+	if (P->tripped)
+	{
+		rt_restarted(P);
+
+		return parse_resuming(P, entry);
+	}
+
+	return read;
 }
 
 /* RT_NO_COUNTER (a measurement): the first reading printed with no counter at all, to be held to the
-   parser without it; RT_NO_CHARGE and RT_NO_REACH leave out one half each. */
-#if defined(RT_NO_COUNTER) || defined(RT_NO_CHARGE)
-#define RT_CHARGE(P, start)
+   parser without it, character for character after preprocessing: no charge on an edge, a look's end raises nothing, and a
+   refusal in a function an unbounded look reaches is the ordinary one. */
+#ifdef RT_NO_COUNTER
+#define RT_AND_CHARGE(P, start)
+#define RT_OR_NOT_CHARGE(P, start)
+#define RT_LOOK(P, start, reach)
+#define RT_REFUSE_FAR(P, at, expected) if ((P)->quiet == 0 && (at) >= (P)->refusedAt) rt_refuse(P, at, expected)
+#define RT_REFUSE_FAR_cold(P, at, expected) if ((P)->quiet == 0 && (at) >= (P)->refusedAt) rt_refuse_cold(P, at, expected)
 #else
-#define RT_CHARGE(P, start) rt_charge(P, start)
+#define RT_AND_CHARGE(P, start) && rt_charge(P, start)
+#define RT_OR_NOT_CHARGE(P, start) || !rt_charge(P, start)
+#define RT_LOOK(P, start, reach) if ((start) + (reach) > (P)->far) (P)->far = (start) + (reach);
+#define RT_REFUSE_FAR(P, at, expected) if ((P)->quiet == 0) { if ((at) >= (P)->refusedAt) rt_refuse(P, at, expected); } else if ((at) > (P)->far) rt_far(P, at)
+#define RT_REFUSE_FAR_cold(P, at, expected) if ((P)->quiet == 0) { if ((at) >= (P)->refusedAt) rt_refuse_cold(P, at, expected); } else if ((at) > (P)->far) rt_far(P, at)
 #endif
 
-/* A refusal: outside a look as ever; inside one it says nothing, but the position it inspected is
-   the furthest the reading has reached, where it is further than any before. The test of the look
-   moves into the helper, so that the code of a refusal is one compare, as it was two. */
-RT_INLINE void rt_refuse_far(Parser *P, int32_t at, int32_t expected)
+/* A refusal inside a look whose reach is unbounded: the furthest that look has read. */
+static __attribute__((noinline, cold, unused)) void rt_far(Parser *P, int32_t at)
 {
-	if (P->quiet != 0)
-	{
-		if (at > P->far)
-			P->far = at;
-
-		return;
-	}
-
-	rt_refuse(P, at, expected);
+	P->far = at;
 }
-
-/* The twins over the split runtime call cold instances (RT_REFUSE_cold), as the parser without restart has them. */
-#if defined(RT_NO_COUNTER) || defined(RT_NO_REACH)
-#define RT_REFUSE(P, at, expected) if ((P)->quiet == 0 && (at) >= (P)->refusedAt) rt_refuse(P, at, expected)
-#define RT_REFUSE_cold(P, at, expected) if ((P)->quiet == 0 && (at) >= (P)->refusedAt) rt_refuse_cold(P, at, expected)
-#else
-#define RT_REFUSE(P, at, expected) if ((at) >= (P)->refusedAt) rt_refuse_far(P, at, expected)
-#define RT_REFUSE_cold(P, at, expected) if ((at) >= (P)->refusedAt) rt_refuse_far_cold(P, at, expected)
-#endif
 #endif
 
 #ifdef RT_SPLIT
 #define RT_COLD static __attribute__((noinline, cold, unused))
 
 RT_COLD void rt_refuse_cold(Parser *P, int32_t at, int32_t expected) { rt_refuse(P, at, expected); }
-#ifdef RT_RESTART
-RT_COLD void rt_refuse_far_cold(Parser *P, int32_t at, int32_t expected) { rt_refuse_far(P, at, expected); }
-#endif
 RT_COLD int32_t rt_enter_cold(Parser *P, int32_t last) { return rt_enter(P, last); }
 RT_COLD void rt_cut_cold(Parser *P) { rt_cut(P); }
 RT_COLD void rt_next_cold(Parser *P, int32_t way, int32_t value) { rt_next(P, way, value); }

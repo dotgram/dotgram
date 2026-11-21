@@ -64,6 +64,6 @@ public sealed class PlanTests(ITestOutputHelper output)
 	/// The choices and repetitions of the fixtures, and those the plan has no reader's answer for: a
 	/// grammar the C# generator reads by its flat machine has no readers, and so no such decisions.
 	/// </summary>
-	const int Asked  = 157;
+	const int Asked  = 158;
 	const int Missed = 2;
 }

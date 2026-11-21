@@ -256,14 +256,35 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (_budget == 0 || _resumes)
 			return;
 
-		if (_far < start)
-			_far = start;
+		if (_refusedAt < _lastRefusedAt)
+			throw new IrContractViolation("Restart by budget: the furthest refusal moved back.");
 
-		_reread += Math.Max(1, _far - start);
+		_lastRefusedAt = _refusedAt;
 
-		if (_reread > (long)_budget * (_far + 1))
+		var position = Math.Max(_refusedAt, _far);
+
+		_reread += Math.Max(1, position - start);
+
+		if (_reread > (long)_budget * (_text.Length + 1))
 			throw new RestartReading();
 	}
+
+	int _lastRefusedAt = -1;
+
+	// How far each look reads (restart by budget), the function being read, and how many looks without
+	// a bound to their reach the reading stands in.
+	LookReach?  _reach;
+	IrFunction? _current;
+	int         _unboundedLooks;
+
+	/// <summary>
+	/// Restart by budget without the looks' reach (wrong on purpose): a reading again whose work is a
+	/// long failed look is charged as if it had read nothing, which a ladder of such looks shows.
+	/// </summary>
+	public bool NoLookClause { get; init; }
+
+	/// <summary>Called as a reading is given up, before it is read again: where a test marks the host's calls so far.</summary>
+	public Action? Restarting { get; init; }
 
 	/// <summary>
 	/// Wrong on purpose: a sentinel takes the latest record of any owner kept past it, as a store
@@ -773,6 +794,11 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_reread  = 0;
 		_far     = -1;
 
+		_lastRefusedAt  = -1;
+		_unboundedLooks = 0;
+		_current        = null;
+		_reach        ??= new LookReach(program);
+
 		if (!_second)
 		{
 			Restarts     = 0;
@@ -799,6 +825,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		{
 			// Given up: read again from the start, resuming; the host has seen what the reading given up called.
 			Restarts++;
+			Restarting?.Invoke();
 			StepsGivenUp      = Steps;
 			FurthestAtRestart = _far;
 			_resumes     = true;
@@ -838,7 +865,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	bool Run(IrFunction function, out object? value)
 	{
 		var frame = new object?[function.SlotCount];
+		var outer = _current;
 
+		_current = function;
 		Calls++;
 
 		if (Ways.Cursor < Ways.Count)
@@ -851,15 +880,16 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 		var read = Exec(function.Body, frame);
 
-		value = read && function.Result is { } result && frame[result.Index] != Unset ? frame[result.Index] : null;
+		_current = outer;
+		value    = read && function.Result is { } result && frame[result.Index] != Unset ? frame[result.Index] : null;
 
 		return read;
 	}
 
 	void Refuse(int at, int expected)
 	{
-		// The furthest position inspected, for restart by budget: every refusal is one, inside looks too.
-		if (at > _far)
+		// Restart by budget: inside a look without a bound to its reach, a refusal raises the reach.
+		if (_quiet > 0 && at > _far && _budget > 0 && !_resumes && !NoLookClause && (_unboundedLooks > 0 || _reach!.Reached.Contains(_current!)))
 			_far = at;
 
 		if (_quiet > 0 || expected < 0)
@@ -1217,8 +1247,13 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var start = _p;
 				var kept  = Keep(frame, look.Resets);
 
+				var unbounded = _reach!.Unbounded.Contains(look);
+
 				_quiet++;
 				_unbuilt++;
+
+				if (unbounded)
+					_unboundedLooks++;
 
 				bool read;
 
@@ -1230,7 +1265,14 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				{
 					_quiet--;
 					_unbuilt--;
+
+					if (unbounded)
+						_unboundedLooks--;
 				}
+
+				// Restart by budget: a look with a bound to its reach raises the charge's position to it as it ends.
+				if (_budget > 0 && !_resumes && !NoLookClause && !unbounded && _reach.Of(look.Body) is { } reach && start + reach > _far)
+					_far = start + reach;
 
 				_p = start;
 				PutBack(frame, look.Resets, kept);

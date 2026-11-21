@@ -273,6 +273,18 @@ static class Grammars
 	/// A settled repetition whose one turn reads a long run and then fails, before a repetition
 	/// that gives turns back: the failed turn lies in every replayed prefix.
 	/// </summary>
+	/// <summary>
+	/// A negative look whose body reads a long run and gives its turns back one by one, every
+	/// attempt read again from the look's start: what a reading again costs inside a look, where
+	/// nothing is refused aloud, so that only the look's own reach says how far it read.
+	/// </summary>
+	public const string FailedLookInRetry = """
+		Start : @V = ?!(Xs & 'x' & 'z') & t: Xs & '!' & eof => @(Twin.C(0, t))
+		Xs         = 'x'*
+
+		parse Start
+		""";
+
 	public const string FailedTurnBefore = """
 		Start : @V = ws: Pair* & bs: B* & last: Letter & eof => @(Twin.C(0, ws, bs, last))
 		Pair  : @V = w: Word & ';'                           => @(Twin.C(1, w))
@@ -587,6 +599,7 @@ static class Grammars
 [Gram(Grammars.SealedBefore, Carrier = GramCarrier.Immediate)]          static partial class SealedBeforeParser;
 [Gram(Grammars.CalledBefore, Carrier = GramCarrier.Immediate)]          static partial class CalledBeforeParser;
 [Gram(Grammars.FailedTurnBefore, Carrier = GramCarrier.Immediate)]    static partial class FailedTurnBeforeParser;
+[Gram(Grammars.FailedLookInRetry, Carrier = GramCarrier.Immediate)]   static partial class FailedLookInRetryParser;
 [Gram(Grammars.NestedSealedBefore, Carrier = GramCarrier.Immediate)]  static partial class NestedSealedBeforeParser;
 [Gram(Grammars.LongLookBefore, Carrier = GramCarrier.Immediate)]      static partial class LongLookBeforeParser;
 [Gram(Grammars.SealedCaptureBefore, Carrier = GramCarrier.Immediate)] static partial class SealedCaptureBeforeParser;

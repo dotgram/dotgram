@@ -643,7 +643,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 			File.WriteAllText(Path.Combine(report, "shipped-sites.tsv"), text.ToString());
 	}
 
-	static readonly string[] Addresses =
+	internal static readonly string[] Addresses =
 	[
 		"a@b.c", "john.doe@example.com", "\"John Doe\" <john@example.com>", "Mary Smith <mary@x.test>, jdoe@one.test",
 		"A Group:Ed Jones <c@a.test>,joe@where.test,John <jdoe@one.test>;", "Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>",
@@ -651,7 +651,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	];
 
 	/// <summary>The rows the accepting path is measured on: a shipped grammar, a publication of it, inputs it accepts.</summary>
-	static readonly (string Name, string File, string Entry, string[] Inputs)[] AcceptedRows =
+	internal static readonly (string Name, string File, string Entry, string[] Inputs)[] AcceptedRows =
 	[
 			("Rfc5322 address lists", "Rfc5322.cs", "ParseAddressList", [.. Addresses, string.Join(", ", Enumerable.Repeat("Mary Smith <mary@x.test>", 40))]),
 			("Rfc5322 short addr-spec", "Rfc5322.cs", "ParseAddrSpec", ["a@b", "x@y.z", "first.last@sub.example.com", "jdoe@one.test"]),
@@ -1280,7 +1280,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	}
 
 	/// <summary>Every input with one character inserted, changed or dropped, of inputs no longer than 64.</summary>
-	static IEnumerable<string> Edited(IEnumerable<string> inputs)
+	internal static IEnumerable<string> Edited(IEnumerable<string> inputs)
 	{
 		foreach (var input in inputs.Where(static one => one.Length <= 64))
 		{
@@ -1314,7 +1314,7 @@ public sealed class ResumptionTests(ITestOutputHelper output)
 	}
 
 	/// <summary>The fields of the structured-field suite of one type, its several lines joined as a field's are, refused ones among them.</summary>
-	static IEnumerable<string> StructuredFields(string type)
+	internal static IEnumerable<string> StructuredFields(string type)
 	{
 		var directory = Path.Combine(Graphs.Repository, "tests", "DotGram.Tests", "Web", "StructuredFields");
 

@@ -21,6 +21,34 @@ sealed record SliceAnswer(string Head, List<string> Log)
 	/// to, host calls.
 	/// </summary>
 	public long[]? Counts { get; init; }
+
+	/// <summary>
+	/// A reading restarted by budget: in the evaluator's answer, how many host calls the reading given
+	/// up had made when it was given up; in a printed parser's, how many it made after (the poison's
+	/// forward work, which the evaluator does not model). Null where nothing restarted.
+	/// </summary>
+	public long? Restart { get; init; }
+
+	/// <summary>
+	/// Whether a printed parser's host calls are the evaluator's: the same, or where both restarted,
+	/// the evaluator's calls up to the restart, the printed parser's calls after the trip, then the
+	/// evaluator's resuming calls.
+	/// </summary>
+	public static bool SameCalls(SliceAnswer expected, SliceAnswer actual)
+	{
+		if (expected.Restart is not { } at)
+			return actual.Restart is null && expected.Log.SequenceEqual(actual.Log);
+
+		if (actual.Restart is not { } after)
+			return false;
+
+		var k = (int)at;
+		var m = (int)after;
+
+		return actual.Log.Count == expected.Log.Count + m &&
+			actual.Log.Take(k).SequenceEqual(expected.Log.Take(k)) &&
+			actual.Log.Skip(k + m).SequenceEqual(expected.Log.Skip(k));
+	}
 }
 
 /// <summary>
@@ -189,16 +217,20 @@ static class Slices
 		string?      head   = null;
 		List<string> log    = [];
 		long[]?      counts = null;
+		long?        after  = null;
 
 		foreach (var line in output.Split('\n'))
 		{
 			if (line == ".")
 			{
-				answers.Add(new SliceAnswer(head ?? "", log) { Counts = counts });
+				answers.Add(new SliceAnswer(head ?? "", log) { Counts = counts, Restart = after });
 				head   = null;
 				log    = [];
 				counts = null;
+				after  = null;
 			}
+			else if (line.StartsWith("C ", StringComparison.Ordinal))
+				after = long.Parse(line[2..], CultureInfo.InvariantCulture);
 			else if (line.StartsWith("L ", StringComparison.Ordinal))
 				log.Add(line[2..]);
 			else if (line.StartsWith("K ", StringComparison.Ordinal))
@@ -379,12 +411,11 @@ static class Slices
 				("offhot", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, hotRuntime: true)),
 				("offeveryhot", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, ablation: SliceAblation.ReplayTwinEvery, hotRuntime: true)),
 				("resumingalone", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ResumingSetAlone)),
+				("resumingalonehot", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ResumingSetAlone, hotTwins: true)),
 				("restart", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget)),
 				("restarthot", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, hotRuntime: true)),
-				("restart2", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, budget: 2)),
-				("restart8", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, budget: 8)),
-				("restarthot2", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, hotRuntime: true, budget: 2)),
-				("restarthot8", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, hotRuntime: true, budget: 8)),
+				("restart4", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, budget: 4)),
+				("restarthot4", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.RestartByBudget, hotRuntime: true, budget: 4)),
 			};
 
 			// IR_C_VARIANTS: the variants to time against "off", where not all of them.
@@ -505,7 +536,7 @@ static class Slices
 	public static List<SliceAnswer> InC(
 		string name, IrProgram program, string entry, IReadOnlyList<string> inputs,
 		string? host = null, IEnumerable<string>? guardAnswers = null, int? stackMegabytes = null, bool counted = false, bool anyOwner = false,
-		bool noCutCheck = false, SliceAblation? ablation = null, int? budget = null)
+		bool noCutCheck = false, SliceAblation? ablation = null, int? budget = null, bool noLookClause = false)
 	{
 		var gcc       = Gcc;
 		var directory = Workspace(name, "c");
@@ -514,7 +545,7 @@ static class Slices
 		{
 			var form = ablation ?? Ablation;
 
-			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C, counted: counted, ablation: form, budget: budget ?? Budget));
+			File.WriteAllText(Path.Combine(directory, "parser.c"), SlicePrinter.Print(program, SliceLanguage.C, counted: counted, ablation: form, budget: budget ?? Budget, noLookClause: noLookClause));
 			File.WriteAllText(Path.Combine(directory, "parser.h"), SlicePrinter.PrintHeaderInC(program));
 			File.WriteAllLines(Path.Combine(directory, "answers.txt"), guardAnswers ?? []);
 			WriteBatch(Path.Combine(directory, "batch.bin"), inputs);
@@ -568,13 +599,13 @@ static class Slices
 	/// <summary>
 	/// <c>IR_C_ABLATION</c>: the form the C parser is printed in where a test does not name one
 	/// (SecondCopy, ReplayTwin, …), to check what it answers; <c>IR_C_BUDGET</c>, the budget of
-	/// <see cref="SliceAblation.RestartByBudget"/> (4 where not given).
+	/// <see cref="SliceAblation.RestartByBudget"/> (8 where not given).
 	/// </summary>
 	public static SliceAblation Ablation =>
 		Environment.GetEnvironmentVariable("IR_C_ABLATION") is { } named ? Enum.Parse<SliceAblation>(named) : SliceAblation.Whole;
 
 	public static int Budget =>
-		Environment.GetEnvironmentVariable("IR_C_BUDGET") is { } budget ? int.Parse(budget, CultureInfo.InvariantCulture) : 4;
+		Environment.GetEnvironmentVariable("IR_C_BUDGET") is { } budget ? int.Parse(budget, CultureInfo.InvariantCulture) : 8;
 
 	/// <summary>How many readings the evaluator gave up under restart by budget in <see cref="Evaluated"/>, since the process began.</summary>
 	public static long EvaluatedRestarts;
@@ -605,10 +636,12 @@ static class Slices
 	/// against the evaluator without restart in both modes (an assertion), the host calls those of
 	/// the reading that restarts.
 	/// </summary>
-	public static SliceAnswer EvaluatedRestarting(IrProgram program, string entry, string input, Func<IrFragment, object?[], bool>? guards, int budget)
+	public static SliceAnswer EvaluatedRestarting(IrProgram program, string entry, string input, Func<IrFragment, object?[], bool>? guards, int budget, bool noLookClause = false)
 	{
+		long? restart = null;
+
 		var host       = new RecordingHost(guards);
-		var evaluator  = new IrEvaluator(program, host) { RestartBudget = budget };
+		var evaluator  = new IrEvaluator(program, host) { RestartBudget = budget, NoLookClause = noLookClause, Restarting = () => restart = host.Log.Count };
 		var outcome    = evaluator.Parse(entry, input);
 		var resuming   = new IrEvaluator(program, new RecordingHost(guards)) { Resumes = true }.Parse(entry, input);
 		var nonresumed = new IrEvaluator(program, new RecordingHost(guards)).Parse(entry, input);
@@ -626,6 +659,6 @@ static class Slices
 			: "R " + outcome.Position.ToString(CultureInfo.InvariantCulture) + " " +
 				string.Join(",", outcome.Expected.Select(label => program.Expected.IndexOf(label)).Order().Select(static index => index.ToString(CultureInfo.InvariantCulture)));
 
-		return new SliceAnswer(head, host.Log);
+		return new SliceAnswer(head, host.Log) { Restart = restart };
 	}
 }
