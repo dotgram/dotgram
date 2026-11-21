@@ -370,6 +370,9 @@ static class Slices
 				("offevery", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, ablation: SliceAblation.ReplayTwinEvery)),
 				("ceilingevery", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.CeilingEvery)),
 				("twinkeyed", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwinKeyed)),
+				("twinkeyedsplit", SlicePrinter.Print(program, SliceLanguage.C, ablation: SliceAblation.ReplayTwinKeyedSplit)),
+				("offhot", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, hotRuntime: true)),
+				("offeveryhot", SlicePrinter.Print(program, SliceLanguage.C, resumes: false, ablation: SliceAblation.ReplayTwinEvery, hotRuntime: true)),
 			};
 
 			// IR_C_VARIANTS: the variants to time against "off", where not all of them.

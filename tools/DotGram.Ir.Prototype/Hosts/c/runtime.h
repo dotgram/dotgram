@@ -21,6 +21,16 @@
 #define RT_INLINE static inline
 #endif
 
+/* Built with RT_SPLIT (a measurement, printed by a parser that asks for it), the helpers marked
+   RT_HOT - those gcc leaves out of line in the code of a first reading once copies that read the
+   tape back call them too - are inlined wherever they are called, and those copies call the cold
+   instances at the end of this file instead: no out-of-line helper is shared by the two. */
+#if defined(RT_SPLIT) && !defined(RT_ALWAYS_INLINE)
+#define RT_HOT static inline __attribute__((always_inline))
+#else
+#define RT_HOT RT_INLINE
+#endif
+
 enum { V_NONE, V_TEXT, V_LIST, V_HOST };
 
 struct List;
@@ -130,7 +140,7 @@ typedef struct Parser
 
 #define VAL_NONE ((Val){ V_NONE, 0, 0, NULL })
 
-RT_INLINE void *rt_alloc(Parser *P, size_t size)
+RT_HOT void *rt_alloc(Parser *P, size_t size)
 {
 	size = (size + 15) & ~(size_t)15;
 
@@ -197,7 +207,7 @@ RT_INLINE void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 	}
 }
 
-RT_INLINE void rt_refuse(Parser *P, int32_t at, int32_t expected)
+RT_HOT void rt_refuse(Parser *P, int32_t at, int32_t expected)
 {
 	if (at > P->refusedAt)
 	{
@@ -213,7 +223,7 @@ RT_INLINE void rt_refuse(Parser *P, int32_t at, int32_t expected)
 		P->refused[P->refusedCount++] = expected;
 }
 
-RT_INLINE int32_t rt_enter(Parser *P, int32_t last)
+RT_HOT int32_t rt_enter(Parser *P, int32_t last)
 {
 	if (P->cursor < P->count)
 		return P->cursor++;
@@ -323,7 +333,7 @@ RT_INLINE int32_t rt_sentinel(Parser *P)
 
 /* The tape was cut: what was kept of places no longer behind it goes, and the cut is remembered
    for the records below the top it makes stale. */
-RT_INLINE void rt_cut(Parser *P)
+RT_HOT void rt_cut(Parser *P)
 {
 	while (P->kCount > 0 && P->kept[P->kCount - 1].key >= P->count)
 	{
@@ -378,7 +388,7 @@ RT_INLINE bool rt_cut_after(Parser *P, int32_t serial, int32_t key)
 	return P->cuts[low].key <= key;
 }
 
-RT_INLINE void rt_next(Parser *P, int32_t way, int32_t value)
+RT_HOT void rt_next(Parser *P, int32_t way, int32_t value)
 {
 	P->ways[way * 2] = value;
 	P->count         = way + 1;
@@ -503,7 +513,7 @@ RT_INLINE int32_t rt_retried(Parser *P, int32_t u)
 	return u == 0 && P->unbuilt == 0 ? 1 : u;
 }
 
-RT_INLINE void rt_replayed(Parser *P)
+RT_HOT void rt_replayed(Parser *P)
 {
 	KeptRefusal *kept = &P->refusals[--P->refusalsCount];
 
@@ -514,7 +524,7 @@ RT_INLINE void rt_replayed(Parser *P)
 
 /* An attempt stood after the loop stopped building: it is read once more, built, from the loop's
    start (3); or that reading stood, and what it said of a refusal is taken back (0). */
-RT_INLINE int32_t rt_stood(Parser *P, int32_t u, int32_t segment)
+RT_HOT int32_t rt_stood(Parser *P, int32_t u, int32_t segment)
 {
 	if (u == 2)
 	{
@@ -541,7 +551,7 @@ RT_INLINE int32_t rt_stood(Parser *P, int32_t u, int32_t segment)
 }
 
 /* A loop that ends without an answer puts back what it raised. */
-RT_INLINE void rt_undeferred(Parser *P, int32_t u)
+RT_HOT void rt_undeferred(Parser *P, int32_t u)
 {
 	if (u == 2)
 		P->unbuilt = 0;
@@ -549,7 +559,7 @@ RT_INLINE void rt_undeferred(Parser *P, int32_t u)
 		rt_replayed(P);
 }
 
-RT_INLINE bool rt_retry(Parser *P, int32_t segment)
+RT_HOT bool rt_retry(Parser *P, int32_t segment)
 {
 	for (int32_t way = P->cursor - 1; way >= segment; way--)
 	{
@@ -570,13 +580,13 @@ RT_INLINE bool rt_retry(Parser *P, int32_t segment)
 	return false;
 }
 
-RT_INLINE bool rt_starts(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
+RT_HOT bool rt_starts(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
 {
 	return at + length <= P->len && memcmp(P->text + at, literal, sizeof(uint16_t) * (size_t)length) == 0;
 }
 
 /* How far the input agrees with a text it does not go on to match. */
-RT_INLINE int32_t rt_agree(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
+RT_HOT int32_t rt_agree(Parser *P, int32_t at, const uint16_t *literal, int32_t length)
 {
 	int32_t agreed = 0;
 
@@ -601,7 +611,7 @@ RT_INLINE Val val_host(void *built)
 	return (Val){ V_HOST, 0, 0, built };
 }
 
-RT_INLINE List *list_add(Parser *P, List *list, Val value)
+RT_HOT List *list_add(Parser *P, List *list, Val value)
 {
 	if (list == NULL)
 	{
@@ -626,7 +636,7 @@ RT_INLINE List *list_add(Parser *P, List *list, Val value)
 }
 
 /* The values a list holds now, as a sequence that no later turn changes. */
-RT_INLINE Val val_items(Parser *P, List *list)
+RT_HOT Val val_items(Parser *P, List *list)
 {
 	List *copy = rt_alloc(P, sizeof(List));
 
@@ -639,6 +649,23 @@ RT_INLINE Val val_items(Parser *P, List *list)
 
 	return (Val){ V_LIST, 0, 0, copy };
 }
+
+#ifdef RT_SPLIT
+#define RT_COLD static __attribute__((noinline, cold, unused))
+
+RT_COLD void rt_refuse_cold(Parser *P, int32_t at, int32_t expected) { rt_refuse(P, at, expected); }
+RT_COLD int32_t rt_enter_cold(Parser *P, int32_t last) { return rt_enter(P, last); }
+RT_COLD void rt_cut_cold(Parser *P) { rt_cut(P); }
+RT_COLD void rt_next_cold(Parser *P, int32_t way, int32_t value) { rt_next(P, way, value); }
+RT_COLD void rt_replayed_cold(Parser *P) { rt_replayed(P); }
+RT_COLD int32_t rt_stood_cold(Parser *P, int32_t u, int32_t segment) { return rt_stood(P, u, segment); }
+RT_COLD void rt_undeferred_cold(Parser *P, int32_t u) { rt_undeferred(P, u); }
+RT_COLD bool rt_retry_cold(Parser *P, int32_t segment) { return rt_retry(P, segment); }
+RT_COLD List *list_add_cold(Parser *P, List *list, Val value) { return list_add(P, list, value); }
+RT_COLD Val val_items_cold(Parser *P, List *list) { return val_items(P, list); }
+RT_COLD bool rt_starts_cold(Parser *P, int32_t at, const uint16_t *literal, int32_t length) { return rt_starts(P, at, literal, length); }
+RT_COLD int32_t rt_agree_cold(Parser *P, int32_t at, const uint16_t *literal, int32_t length) { return rt_agree(P, at, literal, length); }
+#endif
 
 /* What a host gives the driver, beside the functions the parser calls. */
 void host_begin(Parser *P, const char *answers, const char *throwOn);
