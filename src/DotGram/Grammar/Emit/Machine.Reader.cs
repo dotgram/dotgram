@@ -545,6 +545,7 @@ sealed partial class Machine
 					slot = -1;
 
 				using (file.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
+				using (tape ? null : Reentering(file, rule))
 				{
 					if (slot >= 0)
 						MemoAsked(file, rule, slot, body!);
@@ -797,7 +798,21 @@ sealed partial class Machine
 		var power = _graph.Climbing.ContainsKey(rule) ? ", power" : ", 0";
 
 		file.Line($"if ((probes++ & {Interval - 1}) == 0 && !EnoughStack_DotGram())");
-		file.Then($"return Deepen_DotGram(pos, {DeepOf(rule)}{power});");
+
+		// A marked rule's record is put back first: the other stack enters the rule again.
+		if (Reentrant.ContainsKey(rule))
+		{
+			using (file.Block(""))
+			{
+				Unentered(file, rule);
+				file.Line($"return Deepen_DotGram(pos, {DeepOf(rule)}{power});");
+			}
+		}
+		else
+		{
+			file.Then($"return Deepen_DotGram(pos, {DeepOf(rule)}{power});");
+		}
+
 		file.Line();
 	}
 
@@ -830,6 +845,7 @@ sealed partial class Machine
 		file.Line(summary);
 
 		using (file.Block($"public int {name}(int pos{strength})"))
+		using (entry ? null : Reentering(file, owner))
 		{
 			if (deepens is not null)
 				Probe(file, deepens);
@@ -1623,7 +1639,7 @@ sealed partial class Machine
 	{
 		var header    = new Writer(0);
 		var state     = Carrier.ReaderState.ToList();
-		var registers = Carrier.ReaderRegisters.ToList();
+		var registers = Carrier.ReaderRegisters.Concat(ReentryRegisters()).ToList();
 		var cuts      = _graph.Segmented && file.Contains("ref segmentEnd", 0);
 
 		header.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
@@ -1747,6 +1763,8 @@ sealed partial class Machine
 			if (Probes)
 				RenderDeepening(header, state, registers);
 
+			RenderReentryThrows(header);
+
 			if (Tracing is not null)
 				header.Write(Lines.Normalize(CSharpEmitter.TraceReaderMethods));
 
@@ -1865,7 +1883,9 @@ sealed partial class Machine
 					file.Line("if (failure.Unasked) reader.unbuilt = 1;");
 
 				file.Line();
-				file.Line($"var end = reader.{CSharpEmitter.Inner(ends ? "RecWholeRead" : "RecRead", CSharpEmitter.IdentifierOf(rule))}(pos{asked});");
+				RenderReentryCaught(
+					file, $"reader.{CSharpEmitter.Inner(ends ? "RecWholeRead" : "RecRead", CSharpEmitter.IdentifierOf(rule))}(pos{asked})",
+					"end", "reader.failure");
 				file.Line();
 				file.Line("failure = reader.failure;");
 				file.Line();
