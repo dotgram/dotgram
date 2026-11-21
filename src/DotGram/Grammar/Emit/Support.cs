@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -3684,8 +3684,8 @@ static partial class CSharpEmitter
 			{
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
-
 				// <doom>
+
 				while (BackCount > 0 && Back[(BackCount - 1) * 4] >= segment)
 					BackCount--;
 
@@ -3724,8 +3724,8 @@ static partial class CSharpEmitter
 
 				if (Cursor > segment)
 					Skip[Cursor - 1] = segment + 1;
-
 				// <doom>
+
 				while (BackCount > 0 && Back[(BackCount - 1) * 4] >= segment)
 					BackCount--;
 
