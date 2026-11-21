@@ -173,6 +173,7 @@ static class DiagnosticCatalog
 		["GRAM5017"] = new("A construction of a publication read from a reader or lines changes the context", GramSeverity.Info),
 		["GRAM5018"] = new("A name would be written twice into the generated class", GramSeverity.Error),
 		["GRAM5019"] = new("A guard that names context is read again where a terminal's value is built", GramSeverity.Warning),
+		["GRAM5021"] = new("A rule can come back to itself without reading anything, through a recognizer of the host that may succeed without moving", GramSeverity.Info),
 		["GRAM6001"] = new("A classification target is neither Rule nor Rule.capture", GramSeverity.Warning),
 		["GRAM6002"] = new("The grammar rule a classification target names was not found", GramSeverity.Warning),
 		["GRAM6003"] = new("The grammar rule a classification target names is ambiguous", GramSeverity.Warning),
