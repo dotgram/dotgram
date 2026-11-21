@@ -279,6 +279,13 @@ sealed class IrProgram
 
 	public int PlanMisses { get; set; }
 
+	/// <summary>
+	/// How many repetitions the plan left without a way that the lowering opened all the same: a turn
+	/// past the fewest that can fail after a decision of its own is read again with that decision moved
+	/// before it is given up, and the tree has no such reading but the repetition's own way.
+	/// </summary>
+	public int Reopened { get; set; }
+
 	/// <summary>How many loops that ask for another reading the plan had no single answer for, whether they stop building: those build throughout.</summary>
 	public int DeferralMisses { get; set; }
 

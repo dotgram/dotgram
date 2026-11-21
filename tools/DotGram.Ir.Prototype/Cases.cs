@@ -54,6 +54,7 @@ static class Cases
 		["FailsRoundACycle"]      = new(Grammars.FailsRoundACycle,      typeof(FailsRoundACycleParser),      "ParseStart"),
 		["LookAfterDecider"]      = new(Grammars.LookAfterDecider,      typeof(LookAfterDeciderParser),      "ParseStart"),
 		["StoodInRecursion"]      = new(Grammars.StoodInRecursion,      typeof(StoodInRecursionParser),      "ParseStart"),
+		["GivesBackInTurn"]       = new(GiveBackGrammars.GivesBackInTurn, typeof(GivesBackInTurnParser),   "ParseStart"),
 		["Json"]                  = new(Grammars.Json,                  typeof(JsonTwinParser),              "ParseJson"),
 	};
 
@@ -120,6 +121,7 @@ static class Cases
 		Add("FailsRoundACycle",      "a", "00ab", "0(0a,b,)c", "00a,b,!", "(a,)", "((0a))b", "0(", "a,b,");
 		Add("LookAfterDecider",      "a!", "00a,b!", "000a,b,c!", "00a,b,!", "0a,", "a", "0!", "a,b!x");
 		Add("StoodInRecursion",      "x", "(x)ab", "(x)abc0y", "((x)abc0y)a,b,c00yy;", "(x)a", "((x)ab", "(x)ab0y;y", "(x)");
+		Add("GivesBackInTurn",       "00a,b;c;", "a;", "ab;", "a,b;", "a,b,;", "0a,b;c,d;e;", "00a,b;c", "a;;", "");
 		Add("Json",                  "1", " [1, 2 ,{\"a\":null}] ", "{}", "[]", "[1,]", "{\"a\" 1}", "tru", "\"\\u12G4\"", "[[[", "01", "1e", "-", "{\"a\":[true,false,{\"b\":\"\\n\"}]}");
 
 		return data;

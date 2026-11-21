@@ -770,11 +770,82 @@ sealed partial class IrLowering
 			}
 		}
 
+		// Opening a repetition whose turn decides already makes no function decide that did not.
+		foreach (var function in _functions.Values)
+			function.Body = Reopen(function.Body);
+
 		foreach (var (rule, function) in _functions)
 			if (function.Decides)
 				function.Body = new IrStmt.Replay(function.Body) { Defers = DefersAt(rule, RetrySite.Rule) };
 
 		_program.Fragments.Sort(static (one, other) => one.Id.CompareTo(other.Id));
+	}
+
+	/// <summary>
+	/// The repetitions the plan left without a way whose turns can fail after a decision of their own,
+	/// opened (<see cref="IrProgram.Reopened"/>).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// That the plan writes no way for a repetition says only that nothing after it wants a turn back.
+	/// The generated reader still reads every turn in a loop of its own: a turn that fails is read again
+	/// with each decision made inside it moved before the repetition gives the turn up and stops
+	/// (<c>RetrySite.Turn</c>). The tree has that reading of a turn only as part of the repetition's own
+	/// way: a turn past the fewest of a repetition that is not resumable is given up as it first failed,
+	/// and the shorter reading inside it is never asked for — <c>(B* &amp; Letter &amp; ';')+</c> with
+	/// <c>B = Letter &amp; ','?</c> refuses <c>a,b;c;</c>, whose second turn needs <c>B*</c> to give the
+	/// <c>c</c> back.
+	/// </para>
+	/// <para>
+	/// So the closed decision is not lowered where it would drop that reading: where a turn past the
+	/// fewest can be read at all (the bounds differ) and its body decides. Opened, the repetition also
+	/// offers to give its turns back, which the proof says no failure after it ever takes: what it
+	/// changes is the cost and not the answer. A turn below the fewest needs no loop of its own: its
+	/// failure is the repetition's, and the replay around it moves the decision inside.
+	/// </para>
+	/// </remarks>
+	IrStmt Reopen(IrStmt stmt)
+	{
+		switch (stmt)
+		{
+			case IrStmt.Block block:
+				return block with { Items = [.. block.Items.Select(Reopen)] };
+
+			case IrStmt.Scope scope:
+				return scope with { Body = Reopen(scope.Body) };
+
+			case IrStmt.Choice choice:
+				return choice with { Alternatives = [.. choice.Alternatives.Select(Reopen)] };
+
+			case IrStmt.Repeat repeat:
+			{
+				var body    = Reopen(repeat.Body);
+				var reopens = !repeat.Resumable && !Bounded(repeat) && Decides(body);
+
+				if (reopens)
+					_program.Reopened++;
+
+				return repeat with { Body = body, Resumable = repeat.Resumable || reopens };
+			}
+
+			case IrStmt.Look look:
+				return look with { Body = Reopen(look.Body) };
+
+			case IrStmt.Commit commit:
+				return commit with { Body = Reopen(commit.Body) };
+
+			case IrStmt.Replay replay:
+				return replay with { Body = Reopen(replay.Body) };
+
+			default:
+				return stmt;
+		}
+
+		// Every turn it may take it must: none is past the fewest.
+		static bool Bounded(IrStmt.Repeat repeat)
+		{
+			return repeat.Min is IrExpr.Number min && repeat.Max is IrExpr.Number max && min.Value == max.Value;
+		}
 	}
 
 	/// <summary>Whether a step can leave a decision on the tape. What a look or braces hold never does.</summary>
