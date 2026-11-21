@@ -242,7 +242,10 @@ public sealed class DeepDescentTests
 		var without = Compiled(_grammars[grammar], dooms: false);
 		var random  = new Random(20261120);
 
-		for (var i = 0; i < 3000; i++)
+		// Three thousand inputs a grammar by default; a longer run sets DOTGRAM_DEEP_DESCENT_SAMPLES.
+		var samples = int.TryParse(Environment.GetEnvironmentVariable("DOTGRAM_DEEP_DESCENT_SAMPLES"), out var asked) ? asked : 3000;
+
+		for (var i = 0; i < samples; i++)
 		{
 			var input = Input(random, alphabet, closing, i);
 
