@@ -38,7 +38,12 @@ sealed partial class IrLowering
 	/// A failed alternative or turn puts no slot back. Wrong on purpose: what the tests of the
 	/// rollback contract run to show that the resets are what holds it.
 	/// </param>
-	public sealed record Options(bool AllResumable = false, bool OmitResets = false);
+	/// <param name="ClosesDecidingTurns">
+	/// A repetition the plan writes no way for stays closed even where its turn decides
+	/// (<see cref="Reopen"/>). Wrong on purpose: what shows that opening it is what reads a turn
+	/// that gives back inside.
+	/// </param>
+	public sealed record Options(bool AllResumable = false, bool OmitResets = false, bool ClosesDecidingTurns = false);
 
 	readonly RecognitionGraph _graph;
 	readonly Options          _options;
@@ -771,8 +776,9 @@ sealed partial class IrLowering
 		}
 
 		// Opening a repetition whose turn decides already makes no function decide that did not.
-		foreach (var function in _functions.Values)
-			function.Body = Reopen(function.Body);
+		if (!_options.ClosesDecidingTurns)
+			foreach (var function in _functions.Values)
+				function.Body = Reopen(function.Body);
 
 		foreach (var (rule, function) in _functions)
 			if (function.Decides)
@@ -782,8 +788,8 @@ sealed partial class IrLowering
 	}
 
 	/// <summary>
-	/// The repetitions the plan left without a way whose turns can fail after a decision of their own,
-	/// opened (<see cref="IrProgram.Reopened"/>).
+	/// The repetitions the plan left without a way whose turns can fail after a decision made inside
+	/// them, opened (<see cref="IrProgram.Reopened"/>).
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -798,10 +804,11 @@ sealed partial class IrLowering
 	/// </para>
 	/// <para>
 	/// So the closed decision is not lowered where it would drop that reading: where a turn past the
-	/// fewest can be read at all (the bounds differ) and its body decides. Opened, the repetition also
-	/// offers to give its turns back, which the proof says no failure after it ever takes: what it
-	/// changes is the cost and not the answer. A turn below the fewest needs no loop of its own: its
-	/// failure is the repetition's, and the replay around it moves the decision inside.
+	/// fewest can be read at all (the bounds differ) and can fail after a decision it leaves on the
+	/// tape (<see cref="FailsAfterDeciding"/>). Opened, the repetition also offers to give its turns
+	/// back, which the proof says no failure after it ever takes: what it changes is the cost and not
+	/// the answer. A turn below the fewest needs no loop of its own for the answer: its failure is the
+	/// repetition's, and the replay around it moves the decision inside.
 	/// </para>
 	/// </remarks>
 	IrStmt Reopen(IrStmt stmt)
@@ -820,7 +827,7 @@ sealed partial class IrLowering
 			case IrStmt.Repeat repeat:
 			{
 				var body    = Reopen(repeat.Body);
-				var reopens = !repeat.Resumable && !Bounded(repeat) && Decides(body);
+				var reopens = !repeat.Resumable && !Bounded(repeat) && FailsAfterDeciding(body);
 
 				if (reopens)
 					_program.Reopened++;
@@ -846,6 +853,59 @@ sealed partial class IrLowering
 		{
 			return repeat.Min is IrExpr.Number min && repeat.Max is IrExpr.Number max && min.Value == max.Value;
 		}
+	}
+
+	/// <summary>
+	/// Whether a reading of the statement can fail inside it after a decision made inside it that is
+	/// still on the tape: a decision followed in a sequence by something that can fail, or a repetition
+	/// whose turns below the fewest, two or more, decide and can fail. A call decides where its rule
+	/// does, and what fails inside it its own replay takes back; so does what braces or a look hold.
+	/// </summary>
+	static bool FailsAfterDeciding(IrStmt stmt)
+	{
+		switch (stmt)
+		{
+			case IrStmt.Call or IrStmt.Look or IrStmt.Commit:
+				return false;
+
+			case IrStmt.Block block:
+			{
+				var decided = false;
+
+				foreach (var item in block.Items)
+				{
+					if (decided && Failable(item) || FailsAfterDeciding(item))
+						return true;
+
+					decided |= Decides(item);
+				}
+
+				return false;
+			}
+
+			case IrStmt.Repeat repeat when repeat.Min is not IrExpr.Number { Value: < 2 } && Decides(repeat.Body) && Failable(repeat.Body):
+				return true;
+		}
+
+		return stmt.Children.Any(FailsAfterDeciding);
+	}
+
+	/// <summary>
+	/// Whether a statement can fail: all can but what only assigns or builds, a repetition that may
+	/// take no turn, and a choice tried in order with an alternative that cannot.
+	/// </summary>
+	static bool Failable(IrStmt stmt)
+	{
+		return stmt switch
+		{
+			IrStmt.Assign or IrStmt.Append or IrStmt.Construct => false,
+			IrStmt.Block block => block.Items.Any(Failable),
+			IrStmt.Scope or IrStmt.Replay or IrStmt.Commit => Failable(stmt.Children.Single()),
+			IrStmt.Choice { Dispatch: not null } => true,
+			IrStmt.Choice choice => choice.Alternatives.All(Failable),
+			IrStmt.Repeat repeat => repeat.Min is not IrExpr.Number { Value: 0 } && Failable(repeat.Body),
+			_ => true,
+		};
 	}
 
 	/// <summary>Whether a step can leave a decision on the tape. What a look or braces hold never does.</summary>

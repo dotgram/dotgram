@@ -332,6 +332,71 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	{
 		/// <summary>How many cuts were remembered before it was made: a cut remembered after it, to or below its key, makes it stale.</summary>
 		public long Serial { get; init; }
+
+		/// <summary>How many lists had been shortened before it was made (<see cref="Gathered"/>).</summary>
+		public long Shortened { get; init; }
+	}
+
+	/// <summary>
+	/// A list a slot gathers, and the lengths it was shortened to: a record holds the list itself and
+	/// how long it was, so it stands for what the list held only while the list was never shortened
+	/// below that length after it was made — once it was, the items it held are gone, or are others
+	/// added since.
+	/// </summary>
+	/// <remarks>
+	/// Kept as the tape's cuts are (<see cref="_cuts"/>): a later shortening to a length no longer than
+	/// an earlier one's takes its place, so the lengths rise from the bottom and so do the serials.
+	/// </remarks>
+	sealed class Gathered : List<object?>
+	{
+		public readonly List<(long Serial, int Length)> Cuts = [];
+	}
+
+	long _shortened;
+
+	/// <summary>A list shortened to <paramref name="length"/>, the shortening remembered where it took anything away.</summary>
+	void Shorten(List<object?> items, int length)
+	{
+		if (items.Count <= length)
+			return;
+
+		items.RemoveRange(length, items.Count - length);
+
+		if (items is not Gathered gathered)
+			return;
+
+		while (gathered.Cuts.Count > 0 && gathered.Cuts[^1].Length >= length)
+			gathered.Cuts.RemoveAt(gathered.Cuts.Count - 1);
+
+		gathered.Cuts.Add((++_shortened, length));
+	}
+
+	/// <summary>Whether every list a record holds still holds, at its front, what it held when the record was made.</summary>
+	bool ListsHold(Kept kept)
+	{
+		for (var i = 0; i < kept.Held.Length; i++)
+		{
+			if (kept.Held[i] is not Gathered { Cuts: var cuts } || cuts.Count == 0 || cuts[^1].Serial <= kept.Shortened)
+				continue;
+
+			// The shortest the list was cut to since the record is the first cut remembered after it.
+			int low = 0, high = cuts.Count - 1;
+
+			while (low < high)
+			{
+				var middle = (low + high) / 2;
+
+				if (cuts[middle].Serial > kept.Shortened)
+					high = middle;
+				else
+					low = middle + 1;
+			}
+
+			if (cuts[low].Length < kept.Counts[i])
+				return false;
+		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -387,7 +452,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 	bool Good(Kept kept)
 	{
-		return NoCutCheck || kept.Key < Ways.Count && !CutAfter(kept.Serial, kept.Key);
+		return NoCutCheck || kept.Key < Ways.Count && !CutAfter(kept.Serial, kept.Key) && ListsHold(kept);
 	}
 
 	readonly List<Kept>           _kept  = [];
@@ -530,7 +595,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		Records++;
 
 		_heads[kept.Owner] = _kept.Count;
-		_kept.Add(kept with { Prev = prev, Serial = _serial });
+		_kept.Add(kept with { Prev = prev, Serial = _serial, Shortened = _shortened });
 		MostKept   = Math.Max(MostKept, _kept.Count);
 		MostStored = Math.Max(MostStored, _kept.Count);
 	}
@@ -566,7 +631,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		for (var i = 0; i < Math.Min(kept.Held.Length, slots.Count); i++)
 		{
 			if (kept.Held[i] is List<object?> items)
-				items.RemoveRange(kept.Counts[i], items.Count - kept.Counts[i]);
+				Shorten(items, kept.Counts[i]);
 
 			frame[slots[i].Index] = kept.Held[i];
 		}
@@ -1395,7 +1460,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	static void Add(object?[] frame, IrSlot list, object? value)
 	{
 		if (frame[list.Index] is not List<object?> items)
-			frame[list.Index] = items = [];
+			frame[list.Index] = items = new Gathered();
 
 		items.Add(value);
 	}
@@ -1414,12 +1479,12 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return kept;
 	}
 
-	static void PutBack(object?[] frame, IReadOnlyList<IrSlot> slots, object?[] kept)
+	void PutBack(object?[] frame, IReadOnlyList<IrSlot> slots, object?[] kept)
 	{
 		for (var i = 0; i < kept.Length; i++)
 		{
 			if (frame[slots[i].Index] is List<object?> items && kept[i] is int count)
-				items.RemoveRange(count, items.Count - count);
+				Shorten(items, count);
 			else
 				frame[slots[i].Index] = kept[i];
 		}
