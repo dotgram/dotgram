@@ -192,6 +192,11 @@ static partial class GramCompiler
 
 		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics, language) : null;
 
+		// A rule that can come back to itself through a recognizer that does not move, said of the
+		// graph that is emitted: over kinds a recognizer inside a token reads at least the token.
+		if (!HasErrors(diagnostics))
+			diagnostics.AddRange(Reentry.Check(lexical?.Syntax ?? graph));
+
 		// Trivia that gives back characters a class beside it also reads: exponential on a refused
 		// input. Over characters only — a grammar cut in two reads its trivia with a scanner, which
 		// never gives back what it took.
