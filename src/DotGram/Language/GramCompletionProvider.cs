@@ -57,6 +57,63 @@ abstract class GramCompletionProvider
 		return WordSpan(length, at, position);
 	}
 
+	/// <summary>
+	/// The characters other than a name's whose typing opens completion: the dot after which
+	/// <c>Std.</c> lists the standard library and C# lists members.
+	/// </summary>
+	public static IReadOnlyList<string> TriggerCharacters { get; } = ["."];
+
+	/// <summary>
+	/// Whether typing a character opens completion, before <see cref="Start(int, Func{int, char}, int)"/>
+	/// is asked where: a trigger character does, and a name's character does where it begins or continues
+	/// a name. Whitespace, a line break, a tab and any other punctuation do not, and neither does a digit
+	/// that begins a number: completion that opened there would take the next Tab or Enter for itself.
+	/// </summary>
+	/// <param name="length">The document's length.</param>
+	/// <param name="at">The document's character at an index.</param>
+	/// <param name="position">The caret, just after the typed character.</param>
+	/// <param name="typed">The character typed.</param>
+	public static bool OpensOnTyping(int length, Func<int, char> at, int position, char typed)
+	{
+		foreach (var trigger in TriggerCharacters)
+			if (trigger.Length == 1 && trigger[0] == typed)
+				return true;
+
+		return IsNameCharacter(typed) && InName(length, at, position);
+	}
+
+	/// <summary>
+	/// Whether deleting a character opens completion: only where the caret is left inside a name, so
+	/// that the list narrowed by what remains of it comes back; never at whitespace or punctuation.
+	/// </summary>
+	/// <param name="length">The document's length.</param>
+	/// <param name="at">The document's character at an index.</param>
+	/// <param name="position">The caret, after the deletion.</param>
+	public static bool OpensOnDeletion(int length, Func<int, char> at, int position)
+	{
+		return InName(length, at, position);
+	}
+
+	/// <summary>
+	/// Whether a character typed while completion is open keeps it open: a name's character, which
+	/// narrows the list. Anything else ends the name being completed, and closes the list without
+	/// committing its item: a list kept open past a space would take the next Tab for its item and
+	/// replace all that was typed since it opened.
+	/// </summary>
+	/// <param name="typed">The character typed.</param>
+	public static bool KeepsOpenOnTyping(char typed)
+	{
+		return IsNameCharacter(typed);
+	}
+
+	/// <summary>Whether the position touches a name: a run of a name's characters that a digit does not begin.</summary>
+	static bool InName(int length, Func<int, char> at, int position)
+	{
+		var word = WordSpan(length, at, position);
+
+		return word.Length > 0 && !char.IsDigit(at(word.Start));
+	}
+
 	/// <summary>The items at a position.</summary>
 	/// <param name="text">The document.</param>
 	/// <param name="position">Where completion was asked for.</param>

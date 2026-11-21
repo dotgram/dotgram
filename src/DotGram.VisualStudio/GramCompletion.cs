@@ -74,12 +74,91 @@ sealed class EmbeddedGramCompletionSourceProvider : IAsyncCompletionSourceProvid
 }
 
 /// <summary>
+/// What typing does to a session the DotGram sources opened: a name's character narrows the list, and
+/// any other closes it without committing; Tab and Enter after a name typed in full commit it and still
+/// indent and break the line.
+/// </summary>
+/// <remarks>
+/// Without a commit manager of its own, a session of the <c>.gram</c> content type had no character that
+/// ended it: opened on a name, it stayed open past every space and colon, and the next Tab replaced
+/// all that was typed since with the selected item. In a C# document the same manager is asked about
+/// Roslyn's sessions too, and leaves to Roslyn's every session the DotGram sources took no part in.
+/// </remarks>
+[Export(typeof(IAsyncCompletionCommitManagerProvider))]
+[Name("DotGram completion commit")]
+[ContentType(GramContentType.Name)]
+[ContentType("CSharp")]
+sealed class GramCompletionCommitManagerProvider : IAsyncCompletionCommitManagerProvider
+{
+	public IAsyncCompletionCommitManager GetOrCreate(ITextView textView)
+	{
+		return GramCompletionCommitManager.Instance;
+	}
+}
+
+sealed class GramCompletionCommitManager : IAsyncCompletionCommitManager2
+{
+	public static GramCompletionCommitManager Instance { get; } = new();
+
+	public IEnumerable<char> PotentialCommitCharacters => [];
+
+	public void Initialize(IAsyncCompletionSession session)
+	{
+	}
+
+	public CompletionContinuation HandleTypedChar(
+		IAsyncCompletionSession session,
+		SnapshotPoint location,
+		char typedChar,
+		CancellationToken token)
+	{
+		if (!GramCompletionSourceBase.Opened(session) || GramCompletionProvider.KeepsOpenOnTyping(typedChar))
+			return CompletionContinuation.Continue;
+
+		return CompletionContinuation.Dismiss;
+	}
+
+	public bool ShouldCommitCompletion(
+		IAsyncCompletionSession session,
+		SnapshotPoint location,
+		char typedChar,
+		CancellationToken token)
+	{
+		return false;
+	}
+
+	public CommitResult TryCommit(
+		IAsyncCompletionSession session,
+		ITextBuffer buffer,
+		CompletionItem item,
+		char typedChar,
+		CancellationToken token)
+	{
+		// A name typed in full is committed as it is, and the key goes on to do what it does without a list.
+		if (item.Source is GramCompletionSourceBase &&
+			typedChar is '\t' or '\n' &&
+			string.Equals(session.ApplicableToSpan.GetText(buffer.CurrentSnapshot), item.InsertText, StringComparison.Ordinal))
+			return new CommitResult(false, CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers);
+
+		return CommitResult.Unhandled;
+	}
+}
+
+/// <summary>
 /// Visual Studio's completion source over the shared completion provider: the provider says what to
 /// offer, this maps it to Visual Studio's items and answers their descriptions.
 /// </summary>
 abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures roslyn) : IAsyncCompletionSource
 {
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);
+
+	static readonly object OpenedKey = new();
+
+	/// <summary>Whether a DotGram source took part in the session.</summary>
+	public static bool Opened(IAsyncCompletionSession session)
+	{
+		return session.Properties.ContainsProperty(OpenedKey);
+	}
 
 	public CompletionStartData InitializeCompletion(
 		CompletionTrigger trigger,
@@ -89,7 +168,7 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 		return EditorGuard.Run(
 			"Completion start",
 			CompletionStartData.DoesNotParticipateInCompletion,
-			() => Start(triggerLocation),
+			() => Start(trigger, triggerLocation),
 			token);
 	}
 
@@ -103,7 +182,14 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 		return EditorGuard.RunAsync(
 			"Completion",
 			CompletionContext.Empty,
-			() => ContextAsync(triggerLocation, applicableToSpan, token),
+			() =>
+			{
+				// The session is null where a test asks for items outside one.
+				if (session is not null)
+					session.Properties[OpenedKey] = true;
+
+				return ContextAsync(triggerLocation, applicableToSpan, token);
+			},
 			token);
 	}
 
@@ -115,17 +201,44 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 		return EditorGuard.Run("Completion description", Task.FromResult<object>(""), () => DescriptionAsync(item), token);
 	}
 
-	CompletionStartData Start(SnapshotPoint triggerLocation)
+	CompletionStartData Start(CompletionTrigger trigger, SnapshotPoint triggerLocation)
 	{
 		var snapshot = triggerLocation.Snapshot;
 
 		if (snapshot.TextBuffer != buffer ||
+			!Opens(trigger, snapshot, triggerLocation.Position) ||
 			Provider(snapshot).Start(snapshot.Length, index => snapshot[index], triggerLocation.Position) is not { } span)
 			return CompletionStartData.DoesNotParticipateInCompletion;
 
 		return new CompletionStartData(
 			CompletionParticipation.ProvidesItems,
 			new SnapshotSpan(snapshot, span.Start, span.Length));
+	}
+
+	/// <summary>
+	/// Whether what the editor did opens a session: asking for completion always does; typing and
+	/// deleting only where the shared provider says, so that whitespace, a line break or a tab never
+	/// opens a list that the next Tab or Enter would commit from.
+	/// </summary>
+	static bool Opens(CompletionTrigger trigger, ITextSnapshot snapshot, int position)
+	{
+		switch (trigger.Reason)
+		{
+			case CompletionTriggerReason.Invoke:
+			case CompletionTriggerReason.InvokeAndCommitIfUnique:
+			case CompletionTriggerReason.InvokeMatchingType:
+				return true;
+
+			case CompletionTriggerReason.Insertion:
+				return GramCompletionProvider.OpensOnTyping(snapshot.Length, index => snapshot[index], position, trigger.Character);
+
+			case CompletionTriggerReason.Backspace:
+			case CompletionTriggerReason.Deletion:
+				return GramCompletionProvider.OpensOnDeletion(snapshot.Length, index => snapshot[index], position);
+
+			default:
+				return false;
+		}
 	}
 
 	async Task<CompletionContext> ContextAsync(
@@ -146,7 +259,12 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 		foreach (var item in items)
 			_descriptions[item.Label] = item.Description;
 
-		return new CompletionContext(items.Select(Item).ToImmutableArray());
+		// Where nothing is typed yet, after `.` or where completion was asked for between words, the
+		// first item is only proposed: Enter, a space or a commit character type as they would.
+		return new CompletionContext(
+			items.Select(Item).ToImmutableArray(),
+			null,
+			applicableToSpan.Length == 0 ? InitialSelectionHint.SoftSelection : InitialSelectionHint.RegularSelection);
 	}
 
 	Task<object> DescriptionAsync(CompletionItem item)

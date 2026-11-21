@@ -57,12 +57,146 @@ public sealed class PlaygroundAdapterTests
 	[Fact]
 	public void The_adapters_answer_as_the_extension_did()
 	{
+		OnEditorThread(Run);
+	}
+
+	/// <summary>
+	/// The completion source opens a session where the user asked for one or typed a name's character
+	/// or the dot, and not where whitespace, a line break or the tab that indents a line was typed: a
+	/// list opened there would take the next Tab for its first item. Where it opens with nothing to
+	/// replace, the first item is only proposed; once open, it closes on the first character that is no
+	/// name's, rather than growing over all that is typed after.
+	/// </summary>
+	[Fact]
+	public void Completion_opens_and_stays_open_only_on_names()
+	{
+		OnEditorThread(static () =>
+		{
+			var text     = "Number : int = '1' => 1\nSum : int =\n   left: Sum & '+' & right: Number => @(left + right)\n   | n: Number => n\n\t";
+			var buffer   = new FakeBuffer(text);
+			var snapshot = buffer.CurrentSnapshot;
+			var analysis = GramBufferAnalysis.For(buffer);
+			_ = Analysed(analysis, snapshot);
+
+			using var workspace = new AdhocWorkspace();
+			var roslyn     = new RoslynGramFeatures(new RoslynGramCompletion(workspace, static () => null), null!);
+			var completion = new GramCompletionSource(buffer, analysis, roslyn);
+
+			CompletionStartData Typed(int position, char typed)
+			{
+				return completion.InitializeCompletion(
+					new CompletionTrigger(CompletionTriggerReason.Insertion, snapshot, typed),
+					new SnapshotPoint(snapshot, position),
+					CancellationToken.None);
+			}
+
+			var lineStart = text.IndexOf("   left", StringComparison.Ordinal);
+			var arrow     = text.IndexOf("=> @(", StringComparison.Ordinal);
+
+			// Enter after the rule's head, the indent of the next line, the space before `=>` and `=>` itself.
+			Assert.Equal(CompletionParticipation.DoesNotProvideItems, Typed(lineStart, '\n').Participation);
+			Assert.Equal(CompletionParticipation.DoesNotProvideItems, Typed(text.Length, '\t').Participation);
+			Assert.Equal(CompletionParticipation.DoesNotProvideItems, Typed(lineStart + 3, ' ').Participation);
+			Assert.Equal(CompletionParticipation.DoesNotProvideItems, Typed(arrow + 1, '=').Participation);
+			Assert.Equal(CompletionParticipation.DoesNotProvideItems, Typed(arrow + 2, '>').Participation);
+
+			// A name's first character opens a session over it, which then commits as usual.
+			var typed = Typed(lineStart + 4, 'l');
+
+			Assert.Equal(CompletionParticipation.ProvidesItems, typed.Participation);
+			Assert.Equal(new Span(lineStart + 3, 4), typed.ApplicableToSpan.Span);
+			Assert.Equal(InitialSelectionHint.RegularSelection, Context(typed).SelectionHint);
+
+			// Open, it narrows on a name's characters and closes on anything else, without committing; a
+			// session the sources took no part in, such as Roslyn's in a C# document, is left alone.
+			var commit  = GramCompletionCommitManager.Instance;
+			var session = new Mock<IAsyncCompletionSession>();
+			var caret   = new SnapshotPoint(snapshot, lineStart + 7);
+
+			session.Setup(static item => item.Properties).Returns(new PropertyCollection());
+			session.Setup(item => item.ApplicableToSpan).Returns(new FakeTrackingSpan(snapshot, typed.ApplicableToSpan.Span));
+
+			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session.Object, caret, ' ', CancellationToken.None));
+
+			_ = completion.GetCompletionContextAsync(
+				session.Object,
+				new CompletionTrigger(CompletionTriggerReason.Insertion, snapshot, 'l'),
+				new SnapshotPoint(snapshot, lineStart + 4),
+				typed.ApplicableToSpan,
+				CancellationToken.None).GetAwaiter().GetResult();
+
+			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session.Object, caret, 'x', CancellationToken.None));
+			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session.Object, caret, '2', CancellationToken.None));
+
+			foreach (var ending in " :&'(.=|")
+				Assert.Equal(CompletionContinuation.Dismiss, commit.HandleTypedChar(session.Object, caret, ending, CancellationToken.None));
+
+			// Tab and Enter after a name typed in full commit it and go on to indent and break the line;
+			// after part of a name they commit the item alone.
+			var full = commit.TryCommit(session.Object, buffer, new CompletionItem("left", completion), '\t', CancellationToken.None);
+
+			Assert.False(full.IsHandled);
+			Assert.Equal(CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers, full.Behavior);
+			Assert.Equal(
+				CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers,
+				commit.TryCommit(session.Object, buffer, new CompletionItem("left", completion), '\n', CancellationToken.None).Behavior);
+			Assert.Equal(
+				CommitBehavior.None,
+				commit.TryCommit(session.Object, buffer, new CompletionItem("leftover", completion), '\t', CancellationToken.None).Behavior);
+
+			// Backspace leaves the caret in a name, or at whitespace.
+			Assert.Equal(
+				CompletionParticipation.ProvidesItems,
+				completion.InitializeCompletion(
+					new CompletionTrigger(CompletionTriggerReason.Backspace, snapshot),
+					new SnapshotPoint(snapshot, lineStart + 5),
+					CancellationToken.None).Participation);
+			Assert.Equal(
+				CompletionParticipation.DoesNotProvideItems,
+				completion.InitializeCompletion(
+					new CompletionTrigger(CompletionTriggerReason.Backspace, snapshot),
+					new SnapshotPoint(snapshot, text.Length),
+					CancellationToken.None).Participation);
+
+			// Ctrl+Space at the indent asks, and is answered with the first item only proposed.
+			var invoked = completion.InitializeCompletion(
+				new CompletionTrigger(CompletionTriggerReason.Invoke, snapshot),
+				new SnapshotPoint(snapshot, text.Length),
+				CancellationToken.None);
+
+			Assert.Equal(CompletionParticipation.ProvidesItems, invoked.Participation);
+			Assert.Equal(0, invoked.ApplicableToSpan.Length);
+
+			var context = Context(invoked);
+
+			Assert.NotEmpty(context.ItemList);
+			Assert.Equal(InitialSelectionHint.SoftSelection, context.SelectionHint);
+
+			CompletionContext Context(CompletionStartData start)
+			{
+				return completion.GetCompletionContextAsync(
+					null!,
+					new CompletionTrigger(CompletionTriggerReason.Invoke, snapshot),
+					start.ApplicableToSpan.Start,
+					start.ApplicableToSpan,
+					CancellationToken.None).GetAwaiter().GetResult();
+			}
+		});
+	}
+
+	/// <summary>
+	/// Runs the body on a thread of its own made Visual Studio's main thread, with a WPF dispatcher for
+	/// Quick Info's panels, as the extension's sources run there.
+	/// </summary>
+	static void OnEditorThread(Action body)
+	{
 		ExceptionDispatchInfo? failure = null;
 		var thread = new Thread(() =>
 		{
 			try
 			{
-				Run();
+				EditorThread();
+				body();
 			}
 			catch (Exception exception)
 			{
@@ -76,7 +210,7 @@ public sealed class PlaygroundAdapterTests
 		failure?.Throw();
 	}
 
-	static void Run()
+	static void EditorThread()
 	{
 		SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
 
@@ -91,7 +225,10 @@ public sealed class PlaygroundAdapterTests
 #pragma warning disable VSSDK005 // Outside Visual Studio there is no singleton to take; this one stands in for it.
 		context.SetValue(null, new Microsoft.VisualStudio.Threading.JoinableTaskContext());
 #pragma warning restore VSSDK005
+	}
 
+	static void Run()
+	{
 		var root      = SourceRootDirectory();
 		var grammars  = Path.Combine(root, "tests", "DotGram.VisualStudio.Tests", "Playground");
 		var baselines = Path.Combine(root, "tests", "DotGram.Language.Tests", "Playground");
