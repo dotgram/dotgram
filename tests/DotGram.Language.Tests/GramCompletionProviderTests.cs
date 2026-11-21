@@ -134,6 +134,22 @@ public sealed class GramCompletionProviderTests
 		Assert.NotNull(provider.Start(text, name));
 	}
 
+	/// <summary>
+	/// A capture is offered as a construction names it, up to the caret just after the rule's last
+	/// character: `=> n` typed at the end of a rule finds `n`, which Enter then leaves as typed, rather
+	/// than the first name `n` begins.
+	/// </summary>
+	[Fact]
+	public async Task A_capture_is_offered_at_the_end_of_its_rule()
+	{
+		const string text = "Number : int = '1' => 1\nSum : int =\n\tleft: Sum & '+' & right: Number\t=> @(left + right)\n\t| n: Number\t=> n";
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
+		var start    = Assert.IsType<TextSpan>(provider.Start(text, text.Length));
+		var items    = await provider.ItemsAsync(text, text.Length, start, null, TestContext.Current.CancellationToken);
+
+		Assert.Contains(items, static item => item.Label == "n");
+	}
+
 	/// <summary>A DSL's case-insensitive literal is offered as matching what is typed in any case.</summary>
 	[Fact]
 	public void A_case_insensitive_DSL_literal_says_so()

@@ -342,7 +342,8 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 		foreach (var symbol in document.Symbols
 			.Where(symbol => symbol.Kind != GramSymbolKind.Rule &&
 				symbol.IsDefinition &&
-				symbol.ScopeStart <= position && position < symbol.ScopeEnd)
+				// The end too: the caret just after a rule's last name, as it types its construction.
+				symbol.ScopeStart <= position && position <= symbol.ScopeEnd)
 			.GroupBy(symbol => symbol.Name, StringComparer.Ordinal))
 		{
 			var local = symbol.OrderBy(static item => item.Kind).First();
@@ -409,7 +410,7 @@ sealed class EmbeddedGramCompletionProvider(EmbeddedGrammarView view) : GramComp
 			.Where(symbol => symbol.Kind != GramSymbolKind.Rule &&
 				symbol.IsDefinition &&
 				symbol.GrammarSpan.Contains(position) &&
-				symbol.ScopeSpan.Contains(position))
+				symbol.ScopeSpan.Start <= position && position <= symbol.ScopeSpan.End)
 			.GroupBy(symbol => symbol.Name, StringComparer.Ordinal))
 		{
 			var local = symbol.OrderBy(static item => item.Kind).First();
