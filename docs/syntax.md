@@ -835,7 +835,7 @@ a rule whose own guard asks for its value so far. With a context or a recovery, 
 rule, nothing is left unbuilt: the second reading builds again, and every way back taken builds
 what stood before it again, as often as the input gives ways back — for a long refused list,
 memory quadratic in its length, which `GRAM5016` warns of. How many times a construction runs
-for a reading given up is not promised either way: the generator may share an operand two
+for a reading given up, and whether a value built for it is used again or built anew, is not promised either way: the generator may share an operand two
 alternatives begin with, or read a rule once where it can prove the reading is the same, and
 then builds it once where the grammar as written would have built it twice. A construction that only builds
 does not mind. One that
@@ -885,8 +885,8 @@ without notice.
 
 | | Immediate | Deferred |
 | --- | --- | --- |
-| **Accepted input** | Every construction of the accepted derivation runs at least once, usually once; it runs again where the reading that built it is given back and read again (a choice trying its next alternative over the same operand, a repetition giving a turn back). | Every construction of the accepted derivation runs after recognition, once, except where the `TextReader` overload reads an element again (below the table). A value a `when` or `switch` asks for is built when asked, during recognition, and not built again. |
-| **A reading given up** — a rejected alternative, a turn given back | Its constructions have run, and their values are dropped. In a grammar with no `context` and no recovery, at most two attempts for each enclosing loop that gives back. | Nothing runs, but a value a guard asked for on that reading. |
+| **Accepted input** | Every construction of the accepted derivation runs at least once. Where the same text is read again (a choice trying its next alternative over the same operand, a repetition giving a turn back) it may run again, or a value already built over that text may be used; no number of runs is promised. | Every construction of the accepted derivation runs after recognition, once, except where the `TextReader` overload reads an element again (below the table). A value a `when` or `switch` asks for is built when asked, during recognition, and not built again. |
+| **A reading given up** — a rejected alternative, a turn given back | Its constructions have run; their values are dropped, or may be used where the same text is read again. In a grammar with no `context` and no recovery, at most two attempts for each enclosing loop that gives back, not counting a restart (below the table). | Nothing runs, but a value a guard asked for on that reading. |
 | **A refused input** | What was read before the refusal has been built; the second reading that says what was expected builds nothing but what a guard names (with a `context` or a recovery it builds again). | Nothing runs, but values guards asked for. |
 | **Under `recover`** | The part of a bad element read before it failed has been built; then the recovery's `=>` runs once for the bad element. | A bad element builds nothing of its own; the recovery's `=>` runs once for it. |
 | **Order** | A construction runs after every construction whose value it is handed: an element before its rule's `=>`. Among siblings, currently in input order. | The same rule for values handed. Among siblings, currently: in input order, but a value a guard asked for is built first (`a: A & b: B & c: C & when @(c > 0)` builds `C`, `A`, `B`), and a machine read by the shared automaton rather than by methods can build guarded siblings right to left; a recovering list read whole may build its bad elements before its good ones. The values come back in input order in every case. |
@@ -894,10 +894,12 @@ without notice.
 | **The `TextReader` overload of a plain `parse`** (not `stream`) | Carried deferred. | An element read up to the end of what the window holds is read again once more input is in, and its constructions run again: currently the last element of every input, and any element ending where a read ends (§6.3). The `stream` forms build each element once. |
 | **An exception** | Escapes the publication wherever the construction ran — on a reading given up too, and from a `Try` method as well — unless `ConstructionsMayThrow = true`, which holds it and throws it only where the deferred carrier would. | Escapes only from a construction of the accepted derivation, or from a value a guard asked for. Nothing is caught on either carrier (§8.2); from a lazy result it is thrown by `MoveNext`, after the elements already handed over. |
 
+**On the immediate carrier, neither the number of runs nor instance identity is promised** (the deferred carrier still builds the reading kept, once). A value in the result may be the instance a construction built in an earlier attempt over the same text, and a construction may run again for text it has already been run over. Where the table or the text above gives a bound or says that a reading builds again (`context`, a recovery, a rule whose own guard asks for its value so far), that text stands as written. A parse may read part or all of its input again, and the constructions of what it reads again may run again; the table counts attempts within one such reading.
+
 So a construction that only builds may be written for either carrier. One that counts, logs, writes
 somewhere or throws should name `Deferred` (or `ConstructionsMayThrow` for one that only throws), and even
 then not count on a number of runs where the reader overload reads an element again, nor on the order of
-siblings. The order a construction is *handed* values in — an element's values before its rule's — is the
+siblings. On the immediate carrier it may run more than once and its value may be one built in an earlier attempt. The order a construction is *handed* values in — an element's values before its rule's — is the
 one order promised.
 
 **Nothing is promised about the order of `=>` among siblings, and one repeat is known.** The `TextReader`

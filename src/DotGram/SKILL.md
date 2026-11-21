@@ -531,7 +531,7 @@ call came from — write nothing in them that assumes it is.
 
 `Carrier` left unset (`GramCarrier.Auto`) is `Immediate`: every construction runs where its
 alternative is read, also for readings the parse then gives up and for the prefix of a refused
-input. A part of the grammar that carrier cannot carry is compiled deferred. Where `Deferred`
+input, and no number of runs or identity of the built values is promised. A part of the grammar that carrier cannot carry is compiled deferred. Where `Deferred`
 would be safer the build warns, `GRAM5016`: constructions share `context` with a `when`, a
 `switch` selector or a recognizer (what is accepted and what is built can differ), or a refused
 input can rebuild a list on every turn given back. `GRAM5012`, information, names the other

@@ -357,7 +357,7 @@ The construction owes the rule a value of its declared type, so it has to say wh
 By default a construction runs **as its alternative is read** (the immediate carrier): its value is
 there for whatever reads it next. Over characters an alternative may be read and then given up, so a
 construction may run for a reading the parse does not keep. One that only builds cannot tell; one that
-counts, logs or throws can. The host chooses otherwise:
+counts, logs or throws can. With this carrier, neither how many times a construction runs nor which instance of its value ends up in the result is promised. The host chooses otherwise:
 
 | `[Gram(…)]` | Constructions run |
 | --- | --- |
