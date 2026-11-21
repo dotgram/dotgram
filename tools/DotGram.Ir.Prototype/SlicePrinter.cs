@@ -788,7 +788,7 @@ sealed class SlicePrinter
 			{
 				Line(slots[i].Kind switch
 				{
-					IrSlotKind.List  => $"{slot} = (List *)P->kv[{b} + {at}].ptr; if ({slot} != NULL) {slot}->count = P->kv[{b} + {at}].from;",
+					IrSlotKind.List  => $"{slot} = (List *)P->kv[{b} + {at}].ptr; if ({slot} != NULL) rt_shorten(P, {slot}, P->kv[{b} + {at}].from);",
 					IrSlotKind.Value => $"{slot} = P->kv[{b} + {at}];",
 					_                => $"{slot} = P->kv[{b} + {at}].from;",
 				});
@@ -798,7 +798,7 @@ sealed class SlicePrinter
 				Line($"{slot} = P.kv[{b} + {(i * 2).ToString(CultureInfo.InvariantCulture)}];");
 
 				if (slots[i].Kind == IrSlotKind.List)
-					Line($"if ({slot} !== undefined) {slot}.length = P.kv[{b} + {(i * 2 + 1).ToString(CultureInfo.InvariantCulture)}];");
+					Line($"if ({slot} !== undefined) P.shorten({slot}, P.kv[{b} + {(i * 2 + 1).ToString(CultureInfo.InvariantCulture)}]);");
 			}
 		}
 	}
@@ -1185,7 +1185,7 @@ sealed class SlicePrinter
 			var slot = slots[i];
 
 			Line(slot.Kind == IrSlotKind.List
-				? C ? $"if ({kept[i]} < 0) {Slot(slot)} = NULL; else {Slot(slot)}->count = {kept[i]};" : $"if ({kept[i]} < 0) {Slot(slot)} = undefined; else {Slot(slot)}!.length = {kept[i]};"
+				? C ? $"if ({kept[i]} < 0) {Slot(slot)} = NULL; else rt_shorten(P, {Slot(slot)}, {kept[i]});" : $"if ({kept[i]} < 0) {Slot(slot)} = undefined; else P.shorten({Slot(slot)}!, {kept[i]});"
 				: $"{Slot(slot)} = {kept[i]};");
 		}
 	}

@@ -185,6 +185,44 @@ public sealed class GiveBackTests(ITestOutputHelper output)
 		Assert.True(calls.ContainsKey("reopened instead"), "opening the repetitions instead calls the host as the generated parser does");
 	}
 
+	/// <summary>
+	/// The printed parsers, C and TypeScript, on every member of <see cref="GiveBackFamily"/> carried
+	/// immediately and every input up to five characters: answers and host calls the resuming
+	/// evaluator's, as the differential holds them on the fixtures.
+	/// </summary>
+	[Fact(Explicit = true)]
+	public void ThePrintedParsers_ReadTheFamilyAsTheEvaluator()
+	{
+		var inputs = Enumerated("0a,;", 5);
+		var wrong  = new List<string>();
+		var read   = 0;
+
+		foreach (var member in GiveBackFamily.Members.Where(static one => one.Name.EndsWith("Immediate", StringComparison.Ordinal)))
+		{
+			var program  = Reading.Program(member.Grammar);
+			var expected = inputs.Select(input => Slices.Evaluated(program, "ParseStart", input, null)).ToList();
+
+			foreach (var (where, actual) in new[]
+			{
+				("C", Slices.InC("Family-" + member.Name, program, "ParseStart", inputs)),
+				("TypeScript", Slices.TypeScript("Family-" + member.Name, program, "ParseStart", inputs, frames: SliceFrames.None)),
+			})
+			{
+				for (var i = 0; i < inputs.Count; i++)
+				{
+					read++;
+
+					if ((actual[i].Head != expected[i].Head || !actual[i].Log.SequenceEqual(expected[i].Log)) && wrong.Count < 20)
+						wrong.Add($"{member.Name} {Twin.Quoted(inputs[i])} ({where}): {actual[i].Head}, the evaluator {expected[i].Head}");
+				}
+			}
+		}
+
+		output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"read {read}, differing {wrong.Count}"));
+
+		Assert.True(wrong.Count == 0, string.Join("; ", wrong));
+	}
+
 	static string Line(string corpus, long inputs, long read, long over, int wrong)
 	{
 		return string.Create(CultureInfo.InvariantCulture, $"{corpus}: {inputs} inputs, {read} readings, {over} over budget, differing so far {wrong}\n");
