@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -86,6 +87,60 @@ public sealed class GramCompletionProviderTests
 	public void Open_completion_stays_open_only_while_a_name_is_typed(char typed, bool keeps)
 	{
 		Assert.Equal(keeps, GramCompletionProvider.KeepsOpenOnTyping(typed));
+	}
+
+	/// <summary>
+	/// A comment or a literal names nothing: completion opens there neither on typing nor on asking, and
+	/// a name beside one is completed as anywhere else. The caret is where `|` stands.
+	/// </summary>
+	[Theory]
+	[InlineData("// TODO fix|", false)]
+	[InlineData("A : int = 'a' => 1 // fi|", false)]
+	[InlineData("/* fix| */ A : int = 'a' => 1", false)]
+	[InlineData("/* fix */ A| : int = 'a' => 1", true)]
+	[InlineData("/* unterminated fix|", false)]
+	[InlineData("A : int = 'x|' => 1", false)]
+	[InlineData("A : int = \"select|\" => 1", false)]
+	[InlineData("A : int = \"select\"i| => 1", false)]
+	[InlineData("A : int = 'unterminated|", false)]
+	[InlineData("A : int = 'a' B|", true)]
+	[InlineData("A : int = 'a'| B", true)]
+	[InlineData("A : int = 'a' => 1\nB : int = A|", true)]
+	[InlineData("A : int = 'a' => @(\"in C# x|\")", true)]
+	public void Completion_does_not_open_in_a_comment_or_a_literal(string marked, bool opens)
+	{
+		var position = marked.IndexOf('|');
+		var text     = marked.Remove(position, 1);
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
+
+		Assert.Equal(opens, provider.Start(text, position) is not null);
+	}
+
+	/// <summary>The same inside a grammar embedded in C#: its comments and literals, not the C# string around it.</summary>
+	[Fact]
+	public async Task Completion_does_not_open_in_a_comment_or_a_literal_of_an_embedded_grammar()
+	{
+		var folder   = Path.Combine(PlaygroundSnapshotTests.SourceRoot(), "tests", "DotGram.VisualStudio.Tests", "Playground");
+		var text     = File.ReadAllText(Path.Combine(folder, PlaygroundEmbedded.FileName));
+		var view     = await PlaygroundEmbedded.ViewAsync(text, folder, TestContext.Current.CancellationToken);
+		var provider = new EmbeddedGramCompletionProvider(view);
+
+		var comment = text.IndexOf("// Hover Sum", StringComparison.Ordinal) + "// Hover Su".Length;
+		var literal = text.IndexOf("['0'..'9']+", StringComparison.Ordinal) + "['0".Length;
+		var name    = text.IndexOf("& right: Product", StringComparison.Ordinal) + "& right: Prod".Length;
+
+		Assert.Null(provider.Start(text, comment));
+		Assert.Null(provider.Start(text, literal));
+		Assert.NotNull(provider.Start(text, name));
+	}
+
+	/// <summary>A DSL's case-insensitive literal is offered as matching what is typed in any case.</summary>
+	[Fact]
+	public void A_case_insensitive_DSL_literal_says_so()
+	{
+		Assert.True(DslLiteralCompletionParser.Parse("\"select\"i")!.Value.IgnoreCase);
+		Assert.False(DslLiteralCompletionParser.Parse("\"select\"")!.Value.IgnoreCase);
+		Assert.False(DslLiteralCompletionParser.Parse("'i'")!.Value.IgnoreCase);
 	}
 
 	/// <summary>Deleting opens completion where the caret is left inside a name, and nowhere else.</summary>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -72,7 +73,7 @@ public sealed class PlaygroundAdapterTests
 	{
 		OnEditorThread(static () =>
 		{
-			var text     = "Number : int = '1' => 1\nSum : int =\n   left: Sum & '+' & right: Number => @(left + right)\n   | n: Number => n\n\t";
+			var text     = "Number : int = '1' => 1\nDigits(n) = ['0'..'9']{n}\nSum : int =\n   left: Sum & '+' & right: Number => @(left + right)\n   | n: Number => n\n\t";
 			var buffer   = new FakeBuffer(text);
 			var snapshot = buffer.CurrentSnapshot;
 			var analysis = GramBufferAnalysis.For(buffer);
@@ -108,42 +109,81 @@ public sealed class PlaygroundAdapterTests
 			Assert.Equal(new Span(lineStart + 3, 4), typed.ApplicableToSpan.Span);
 			Assert.Equal(InitialSelectionHint.RegularSelection, Context(typed).SelectionHint);
 
-			// Open, it narrows on a name's characters and closes on anything else, without committing; a
-			// session the sources took no part in, such as Roslyn's in a C# document, is left alone.
-			var commit  = GramCompletionCommitManager.Instance;
-			var session = new Mock<IAsyncCompletionSession>();
-			var caret   = new SnapshotPoint(snapshot, lineStart + 7);
+			// Open, it narrows on a name's characters and closes on anything else, without committing. Whose
+			// the place is, is known before any item is computed: nothing here has asked for the items yet.
+			var properties = new PropertyCollection();
+			var view       = new Mock<ITextView>();
+			var commit     = new GramCompletionCommitManager(view.Object);
+			var caret      = new SnapshotPoint(snapshot, lineStart + 7);
+			var session    = Session(typed.ApplicableToSpan.Span, soft: false);
 
-			session.Setup(static item => item.Properties).Returns(new PropertyCollection());
-			session.Setup(item => item.ApplicableToSpan).Returns(new FakeTrackingSpan(snapshot, typed.ApplicableToSpan.Span));
+			view.Setup(item => item.Properties).Returns(properties);
 
-			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session.Object, caret, ' ', CancellationToken.None));
+			// A view with none of the DotGram sources, a C# one where Roslyn's session is open: left alone.
+			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session, caret, ' ', CancellationToken.None));
 
-			_ = completion.GetCompletionContextAsync(
-				session.Object,
-				new CompletionTrigger(CompletionTriggerReason.Insertion, snapshot, 'l'),
-				new SnapshotPoint(snapshot, lineStart + 4),
-				typed.ApplicableToSpan,
-				CancellationToken.None).GetAwaiter().GetResult();
+			properties.AddProperty(typeof(GramCompletionSource), completion);
 
-			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session.Object, caret, 'x', CancellationToken.None));
-			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session.Object, caret, '2', CancellationToken.None));
+			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session, caret, 'x', CancellationToken.None));
+			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(session, caret, '2', CancellationToken.None));
 
 			foreach (var ending in " :&'(.=|")
-				Assert.Equal(CompletionContinuation.Dismiss, commit.HandleTypedChar(session.Object, caret, ending, CancellationToken.None));
+				Assert.Equal(CompletionContinuation.Dismiss, commit.HandleTypedChar(session, caret, ending, CancellationToken.None));
 
-			// Tab and Enter after a name typed in full commit it and go on to indent and break the line;
-			// after part of a name they commit the item alone.
-			var full = commit.TryCommit(session.Object, buffer, new CompletionItem("left", completion), '\t', CancellationToken.None);
+			// Tab and Enter after a name typed in full leave it as it is and go on to indent and break the
+			// line, a rule with parameters too, which would otherwise gain its `(`; after part of a name
+			// they commit the item.
+			var items  = Context(typed).ItemList;
+			var number = items.Single(static item => item.DisplayText == "Number");
+			var digits = items.Single(static item => item.DisplayText == "Digits");
 
-			Assert.False(full.IsHandled);
-			Assert.Equal(CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers, full.Behavior);
-			Assert.Equal(
-				CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers,
-				commit.TryCommit(session.Object, buffer, new CompletionItem("left", completion), '\n', CancellationToken.None).Behavior);
-			Assert.Equal(
-				CommitBehavior.None,
-				commit.TryCommit(session.Object, buffer, new CompletionItem("leftover", completion), '\t', CancellationToken.None).Behavior);
+			Assert.Equal("Digits(", digits.InsertText);
+
+			foreach (var key in "\t\n")
+			{
+				var full = commit.TryCommit(Session(Word("Number"), soft: false), buffer, number, key, CancellationToken.None);
+
+				Assert.True(full.IsHandled);
+				Assert.Equal(CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers, full.Behavior);
+				Assert.Equal(
+					CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers,
+					commit.TryCommit(Session(Word("Digits"), soft: false), buffer, digits, key, CancellationToken.None).Behavior);
+			}
+
+			Assert.Equal(CommitResult.Unhandled, commit.TryCommit(Session(new Span(Word("Number").Start, 3), soft: false), buffer, number, '\t', CancellationToken.None));
+
+			// Roslyn's own items, in a session the DotGram source shares with it, are Roslyn's to commit.
+			var roslynItem = new CompletionItem("Number", new Mock<IAsyncCompletionSource>().Object);
+
+			Assert.Equal(CommitResult.Unhandled, commit.TryCommit(Session(Word("Number"), soft: false), buffer, roslynItem, '\t', CancellationToken.None));
+			Assert.Equal(CompletionContinuation.Dismiss, commit.HandleTypedChar(session, caret, ' ', CancellationToken.None));
+
+			// Tab after `.`, with nothing typed and the first item only proposed, indents; asked for with
+			// Ctrl+Space, or once an item is chosen, it commits.
+			var dot = new Span(text.Length, 0);
+
+			Assert.Equal(CommitBehavior.RaiseFurtherReturnKeyAndTabKeyCommandHandlers, commit.TryCommit(Session(dot, soft: true), buffer, number, '\t', CancellationToken.None).Behavior);
+			Assert.Equal(CommitResult.Unhandled, commit.TryCommit(Session(dot, soft: false), buffer, number, '\t', CancellationToken.None));
+			Assert.Equal(CommitResult.Unhandled, commit.TryCommit(Session(dot, soft: true, CompletionTriggerReason.Invoke), buffer, number, '\t', CancellationToken.None));
+
+			Span Word(string word)
+			{
+				return new Span(text.IndexOf(word, StringComparison.Ordinal), word.Length);
+			}
+
+			IAsyncCompletionSession Session(Span applicable, bool soft, CompletionTriggerReason reason = CompletionTriggerReason.Insertion)
+			{
+				var mock = new Mock<IAsyncCompletionSessionOperations>();
+
+				mock.As<IAsyncCompletionSession>().Setup(item => item.ApplicableToSpan).Returns(new FakeTrackingSpan(snapshot, applicable));
+				mock.As<IAsyncCompletionSession>().Setup(item => item.Properties).Returns(new PropertyCollection());
+				mock.As<IAsyncCompletionSession>()
+					.Setup(item => item.GetComputedItems(It.IsAny<CancellationToken>()))
+					.Returns(new ComputedCompletionItems(ImmutableArray<CompletionItem>.Empty, null, null, false, soft));
+				mock.Setup(item => item.InitialTrigger).Returns(new CompletionTrigger(reason, snapshot, '.'));
+
+				return mock.Object;
+			}
 
 			// Backspace leaves the caret in a name, or at whitespace.
 			Assert.Equal(
