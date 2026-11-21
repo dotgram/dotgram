@@ -1431,6 +1431,13 @@ Three things are rejected when the grammar is built:
   changes none of that: `E = E & '+' & E & when @(…)` is refused the same. Write the
   operands at the next level down, or say what you mean with §4.3.1.
 
+A recognizer of the host is taken at its word that it consumes, so a rule that reaches itself
+only past one, `Nest = @Still & n: Nest & 'b' | 'x'+`, is none of these and compiles; but a
+recognizer may succeed without moving (§7.2), and where it does there the rule comes back to
+itself without having read anything. That is the same left recursion, found while parsing: the
+parse is refused there, with a message naming the rule and the recognizer (`GRAM5021` says
+which rules can do it).
+
 #### 4.3.1 Binding powers, when levels are not enough
 
 An alternative may state its own strength instead:
@@ -2360,7 +2367,9 @@ and the two forms cost the same (§7.7). An accepted input is one reading in eve
 `find` is a sequence and needs no companion for "all of them" or "the first one":
 `First()`, `Where()`, `Take()` are LINQ's job and it would be strange to reinvent
 three of them. It yields occurrences as it finds them, so a document with a million
-matches costs one at a time rather than an array of a million.
+matches costs one at a time rather than an array of a million. A start where a rule comes back
+to itself without reading anything (§7.2) is not one where nothing was found: after the
+occurrences before it, `MoveNext` throws `InvalidOperationException` with the refusal's message.
 
 A rule whose value is a sequence — `Feed : FeedItem[]` — is published with `parse`
 like any other, and what comes back is that sequence. Reading a feed is not a third
@@ -3856,7 +3865,17 @@ ordinary C# rules.
   its fewest are read and counted however far each moved, as the repetition written out turn by
   turn would read them (§3.3: `xs: V{3}` holds three values); past the fewest, a turn that ends
   where it began is not taken, and the repetition ends before it. So `(@M){3,}` over an `M` that
-  does not move reads `M` three times, and `(@M)*` none.
+  does not move reads `M` three times, and `(@M)*` none. In a recursion it is the other half of the
+  same rule: a rule that comes back to itself where it already stands, through a recognizer that
+  did not move — `Frames = @ReadFrame & Frames | eof` where `ReadFrame` read nothing — would come
+  back the same way for ever, since the recognizer will not move on the next entry either. The parse
+  is refused there instead, as `NoMatch` at that position, with a message naming the rule and the
+  recognizer; a `yield` throws it from `MoveNext` and a `find` throws `InvalidOperationException`
+  (§6). A `recover` does not step over it: it says the grammar cannot be read there, not that an
+  element was bad. The repetition, `Frames = @ReadFrame* & eof`, is the spelling that needs no such
+  check. **A recursion that relies on `context` changing between two entries at one position is
+  refused there too:** what is compared is the rule and the position (and the strength it is read
+  at, §4.3.1), not the context, so write the progress into the input position, not the context.
 - An external recognizer and a `when` guard execute during recognition. Ordered choice
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects
