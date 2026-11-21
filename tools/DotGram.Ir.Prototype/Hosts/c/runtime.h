@@ -43,10 +43,15 @@ typedef struct Val
 	void   *ptr;
 } Val;
 
+/* A list a slot gathers, and the lengths it was shortened to (as the tape's cuts are kept: lengths
+   and serials rise from the bottom): a record holding the list and its length stands for what it
+   held only while it was never shortened below that length after the record was made. */
 typedef struct List
 {
 	int32_t count, capacity;
 	Val    *items;
+	struct Cut *cuts;
+	int32_t cutsTop, cutsSize;
 } List;
 
 typedef struct Chunk
@@ -60,7 +65,7 @@ typedef struct Chunk
    2 it read, 4 it was made unbuilt. Base is where its slots' values begin in kv. */
 typedef struct Kept
 {
-	int32_t key, owner, prev, pos, turns, flags, base, serial;
+	int32_t key, owner, prev, pos, turns, flags, base, serial, shortened;
 } Kept;
 
 /* A cut remembered while any record is kept: the place cut to, and its serial. */
@@ -128,6 +133,10 @@ typedef struct Parser
 	   is stale once a cut remembered after it went to its key or below. */
 	Cut    *cuts;
 	int32_t cutsSize, cutTop, serial;
+
+	/* How many times a list was shortened (List): a record is stale once a list it holds was
+	   shortened below what it held after it was made. */
+	int32_t shortened;
 
 	/* Wrong on purpose: a record is taken whatever was cut after it (the test of the cut check). */
 	bool noCutCheck;
@@ -208,6 +217,7 @@ RT_INLINE void rt_begin(Parser *P, const uint16_t *text, int32_t len)
 	P->kCount       = 0;
 	P->cutTop       = 0;
 	P->serial       = 0;
+	P->shortened    = 0;
 	P->kvTop        = 0;
 	P->refusalsCount = 0;
 	P->reread        = 0;
@@ -414,6 +424,38 @@ RT_HOT void rt_next(Parser *P, int32_t way, int32_t value)
 		rt_cut(P);
 }
 
+/* Whether every list a record holds still holds, at its front, what it held when the record was made. */
+static __attribute__((noinline)) bool rt_lists_hold(Parser *P, int32_t h)
+{
+	int32_t end = h + 1 < P->kCount ? P->kept[h + 1].base : P->kvTop;
+
+	for (int32_t i = P->kept[h].base; i < end; i++)
+	{
+		List *list = P->kv[i].kind == V_LIST ? (List *)P->kv[i].ptr : NULL;
+
+		if (list == NULL || list->cutsTop == 0 || list->cuts[list->cutsTop - 1].serial <= P->kept[h].shortened)
+			continue;
+
+		/* The shortest it was cut to since the record is the first cut remembered after it. */
+		int32_t low = 0, high = list->cutsTop - 1;
+
+		while (low < high)
+		{
+			int32_t middle = (low + high) / 2;
+
+			if (list->cuts[middle].serial > P->kept[h].shortened)
+				high = middle;
+			else
+				low = middle + 1;
+		}
+
+		if (list->cuts[low].key < P->kv[i].from)
+			return false;
+	}
+
+	return true;
+}
+
 /* The latest good record of a sentinel's entry, or -1: a head left from an earlier entry or
    reading names another owner; stale records on the way are passed over and the head moves on. */
 RT_INLINE int32_t rt_head(Parser *P, int32_t sentinel)
@@ -422,7 +464,8 @@ RT_INLINE int32_t rt_head(Parser *P, int32_t sentinel)
 
 	while (h >= 0 && h < P->kCount && (P->anyOwner || P->kept[h].owner == sentinel))
 	{
-		if (P->noCutCheck || (P->kept[h].key < P->count && !rt_cut_after(P, P->kept[h].serial, P->kept[h].key)))
+		if (P->noCutCheck || (P->kept[h].key < P->count && !rt_cut_after(P, P->kept[h].serial, P->kept[h].key) &&
+			(P->kept[h].shortened == P->shortened || rt_lists_hold(P, h))))
 		{
 			P->heads[sentinel] = h;
 
@@ -467,7 +510,7 @@ RT_INLINE int32_t rt_keep(Parser *P, int32_t owner, bool end, int32_t p, int32_t
 
 	int32_t i = P->kCount++;
 
-	P->kept[i] = (Kept){ key, owner, h, p, turns, (end ? 1 : 0) | (read ? 2 : 0) | (P->unbuilt > 0 ? 4 : 0), P->kvTop, P->serial };
+	P->kept[i] = (Kept){ key, owner, h, p, turns, (end ? 1 : 0) | (read ? 2 : 0) | (P->unbuilt > 0 ? 4 : 0), P->kvTop, P->serial, P->shortened };
 	P->kvTop  += n;
 	P->heads[owner] = i;
 
@@ -635,6 +678,9 @@ RT_HOT List *list_add(Parser *P, List *list, Val value)
 		list->count    = 0;
 		list->capacity = 4;
 		list->items    = rt_alloc(P, sizeof(Val) * 4);
+		list->cuts     = NULL;
+		list->cutsTop  = 0;
+		list->cutsSize = 0;
 	}
 
 	if (list->count == list->capacity)
@@ -658,12 +704,45 @@ RT_HOT Val val_items(Parser *P, List *list)
 
 	copy->count    = list == NULL ? 0 : list->count;
 	copy->capacity = copy->count;
+	copy->cuts     = NULL;
+	copy->cutsTop  = 0;
+	copy->cutsSize = 0;
 	copy->items    = copy->count == 0 ? NULL : rt_alloc(P, sizeof(Val) * (size_t)copy->count);
 
 	if (copy->count > 0)
 		memcpy(copy->items, list->items, sizeof(Val) * (size_t)copy->count);
 
 	return (Val){ V_LIST, 0, 0, copy };
+}
+
+/* A list that held more, shortened, and the shortening remembered (List). */
+static __attribute__((noinline)) void rt_shortened(Parser *P, List *list, int32_t count)
+{
+	list->count = count;
+
+	while (list->cutsTop > 0 && list->cuts[list->cutsTop - 1].key >= count)
+		list->cutsTop--;
+
+	if (list->cutsTop == list->cutsSize)
+	{
+		int32_t size  = list->cutsSize == 0 ? 4 : list->cutsSize * 2;
+		Cut    *grown = rt_alloc(P, sizeof(Cut) * (size_t)size);
+
+		if (list->cutsTop > 0)
+			memcpy(grown, list->cuts, sizeof(Cut) * (size_t)list->cutsTop);
+
+		list->cuts     = grown;
+		list->cutsSize = size;
+	}
+
+	list->cuts[list->cutsTop++] = (Cut){ count, ++P->shortened };
+}
+
+/* A list put back to a length it held: shortened where it holds more. */
+RT_HOT void rt_shorten(Parser *P, List *list, int32_t count)
+{
+	if (list->count > count)
+		rt_shortened(P, list, count);
 }
 
 #ifdef RT_RESTART
@@ -730,6 +809,7 @@ static __attribute__((noinline, cold, unused)) void rt_restarted(Parser *P)
 	P->kCount         = 0;
 	P->cutTop         = 0;
 	P->serial         = 0;
+	P->shortened      = 0;
 	P->kvTop          = 0;
 	P->refusalsCount  = 0;
 	P->far            = -1;

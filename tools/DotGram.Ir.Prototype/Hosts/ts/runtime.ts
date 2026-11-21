@@ -46,7 +46,12 @@ export class Runtime
 	kFlags = new Int32Array(64);
 	kBase = new Int32Array(64);
 	kSerial = new Int32Array(64);
+	kShortened = new Int32Array(64);
 	kCount = 0;
+
+	// How many times a list was shortened (shorten): a record is stale once a list it holds was
+	// shortened below what it held after it was made.
+	shortened = 0;
 
 	// The cuts made while any record is kept, those that matter: a later cut to a lower or equal
 	// place takes the place of an earlier one, so the places and the serials rise from the bottom.
@@ -104,6 +109,7 @@ export class Runtime
 		this.kvTop = 0;
 		this.cutTop = 0;
 		this.serial = 0;
+		this.shortened = 0;
 		this.keptRefusals.length = 0;
 		this.top = 0;
 		this.valueTop = 0;
@@ -296,7 +302,8 @@ export class Runtime
 
 		while (h >= 0 && h < this.kCount && (this.anyOwner || this.kOwner[h] === sentinel))
 		{
-			if (this.noCutCheck || this.kKey[h] < this.count && !this.cutAfter(this.kSerial[h], this.kKey[h]))
+			if (this.noCutCheck || this.kKey[h] < this.count && !this.cutAfter(this.kSerial[h], this.kKey[h]) &&
+				(this.kShortened[h] === this.shortened || this.listsHold(h)))
 			{
 				this.heads[sentinel] = h;
 
@@ -307,6 +314,56 @@ export class Runtime
 		}
 
 		return -1;
+	}
+
+	// A list put back to a length it held: shortened where it holds more, and the shortening
+	// remembered on the list as the tape's cuts are (lengths and serials rise from the bottom).
+	shorten(list: any[], length: number): void
+	{
+		if (list.length <= length)
+			return;
+
+		list.length = length;
+
+		const cuts: [number, number][] = ((list as any).cuts ??= []);
+
+		while (cuts.length > 0 && cuts[cuts.length - 1][0] >= length)
+			cuts.pop();
+
+		cuts.push([length, ++this.shortened]);
+	}
+
+	// Whether every list a record holds still holds, at its front, what it held when it was made.
+	listsHold(h: number): boolean
+	{
+		const end = h + 1 < this.kCount ? this.kBase[h + 1] : this.kvTop;
+		const made = this.kShortened[h];
+
+		for (let i = this.kBase[h]; i < end; i += 2)
+		{
+			const cuts: [number, number][] | undefined = Array.isArray(this.kv[i]) ? (this.kv[i] as any).cuts : undefined;
+
+			if (cuts === undefined || cuts.length === 0 || cuts[cuts.length - 1][1] <= made)
+				continue;
+
+			// The shortest it was cut to since the record is the first cut remembered after it.
+			let low = 0, high = cuts.length - 1;
+
+			while (low < high)
+			{
+				const middle = (low + high) >> 1;
+
+				if (cuts[middle][1] > made)
+					high = middle;
+				else
+					low = middle + 1;
+			}
+
+			if (cuts[low][0] < this.kv[i + 1])
+				return false;
+		}
+
+		return true;
 	}
 
 	// Whether a record can stand for what the reading would do: one made while building, always;
@@ -331,7 +388,7 @@ export class Runtime
 		{
 			const size = this.kCount * 2;
 
-			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase", "kSerial"] as const)
+			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase", "kSerial", "kShortened"] as const)
 			{
 				const grown = new Int32Array(size);
 
@@ -350,6 +407,7 @@ export class Runtime
 		this.kFlags[i] = (end ? 1 : 0) | (read ? 2 : 0) | (this.unbuilt > 0 ? 4 : 0);
 		this.kBase[i] = this.kvTop;
 		this.kSerial[i] = this.serial;
+		this.kShortened[i] = this.shortened;
 		this.kvTop += n * 2;
 
 		while (this.kv.length < this.kvTop)
@@ -378,7 +436,7 @@ export class Runtime
 
 		if (this.kKey.length > bound)
 		{
-			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase", "kSerial"] as const)
+			for (const name of ["kKey", "kOwner", "kPrev", "kPos", "kTurns", "kFlags", "kBase", "kSerial", "kShortened"] as const)
 				this[name] = new Int32Array(64);
 		}
 
