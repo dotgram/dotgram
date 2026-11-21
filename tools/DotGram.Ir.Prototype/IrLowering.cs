@@ -38,12 +38,18 @@ sealed partial class IrLowering
 	/// A failed alternative or turn puts no slot back. Wrong on purpose: what the tests of the
 	/// rollback contract run to show that the resets are what holds it.
 	/// </param>
-	/// <param name="ClosesDecidingTurns">
-	/// A repetition the plan writes no way for stays closed even where its turn decides
-	/// (<see cref="Reopen"/>). Wrong on purpose: what shows that opening it is what reads a turn
-	/// that gives back inside.
+	/// <param name="KeepsPartsWhole">
+	/// No turn and no alternative is read again in place (<see cref="Retrying"/>): a turn is read
+	/// again over its own decisions only past the fewest of a repetition that writes a way, an
+	/// alternative only if it is not the last. Wrong on purpose: what a closed repetition whose turn
+	/// gives back inside answers otherwise with.
 	/// </param>
-	public sealed record Options(bool AllResumable = false, bool OmitResets = false, bool ClosesDecidingTurns = false);
+	/// <param name="ReopensInstead">
+	/// With <paramref name="KeepsPartsWhole"/>, a repetition the plan closes is opened where its turn can
+	/// fail after a decision of its own (<see cref="Reopen"/>): the answers are right, the ways and the
+	/// host calls are not the generated reader's.
+	/// </param>
+	public sealed record Options(bool AllResumable = false, bool OmitResets = false, bool KeepsPartsWhole = false, bool ReopensInstead = false);
 
 	readonly RecognitionGraph _graph;
 	readonly Options          _options;
@@ -775,8 +781,12 @@ sealed partial class IrLowering
 			}
 		}
 
-		// Opening a repetition whose turn decides already makes no function decide that did not.
-		if (!_options.ClosesDecidingTurns)
+		// Neither reading a part again in place nor opening a repetition whose turn decides already makes
+		// a function decide that did not.
+		if (!_options.KeepsPartsWhole)
+			foreach (var (rule, function) in _functions)
+				function.Body = Retrying(function.Body, rule);
+		else if (_options.ReopensInstead)
 			foreach (var function in _functions.Values)
 				function.Body = Reopen(function.Body);
 
@@ -788,8 +798,69 @@ sealed partial class IrLowering
 	}
 
 	/// <summary>
+	/// Every turn and every alternative of an open choice that can leave a decision on the tape, read
+	/// again in place over its own decisions before it is given up (<see cref="IrStmt.Repeat.Retries"/>,
+	/// <see cref="IrStmt.Choice.Retries"/>), and stopping building as the plan's readers do at that kind
+	/// of loop (<see cref="DefersAt"/>); counted (<see cref="IrProgram.Retrying"/>).
+	/// </summary>
+	/// <remarks>
+	/// The generated reader writes such a loop round every turn that writes a way, whatever it decided
+	/// about the repetition's own way and below the fewest too, and round every alternative that writes
+	/// one of a choice it reads with a way, the last too (<c>RetrySite.Turn</c>, <c>RetrySite.Alternative</c>).
+	/// A closed decision of the plan says only that nothing after the node wants it back: the turn's own
+	/// shorter readings are still asked for, here as there, and the replay around is not what asks them.
+	/// </remarks>
+	IrStmt Retrying(IrStmt stmt, RuleSymbol rule)
+	{
+		switch (stmt)
+		{
+			case IrStmt.Block block:
+				return block with { Items = [.. block.Items.Select(item => Retrying(item, rule))] };
+
+			case IrStmt.Scope scope:
+				return scope with { Body = Retrying(scope.Body, rule) };
+
+			case IrStmt.Choice choice:
+			{
+				var alternatives = choice.Alternatives.Select(alternative => Retrying(alternative, rule)).ToList();
+
+				if (!choice.Resumable || !alternatives.Any(Decides))
+					return choice with { Alternatives = alternatives };
+
+				_program.Retrying++;
+
+				return choice with { Alternatives = alternatives, Retries = true, Defers = DefersAt(rule, RetrySite.Alternative) };
+			}
+
+			case IrStmt.Repeat repeat:
+			{
+				var body = Retrying(repeat.Body, rule);
+
+				if (!Decides(body))
+					return repeat with { Body = body };
+
+				_program.Retrying++;
+
+				return repeat with { Body = body, Retries = true, Defers = DefersAt(rule, RetrySite.Turn) };
+			}
+
+			case IrStmt.Look look:
+				return look with { Body = Retrying(look.Body, rule) };
+
+			case IrStmt.Commit commit:
+				return commit with { Body = Retrying(commit.Body, rule) };
+
+			case IrStmt.Replay replay:
+				return replay with { Body = Retrying(replay.Body, rule) };
+
+			default:
+				return stmt;
+		}
+	}
+
+	/// <summary>
 	/// The repetitions the plan left without a way whose turns can fail after a decision made inside
-	/// them, opened (<see cref="IrProgram.Reopened"/>).
+	/// them, opened (<see cref="IrProgram.Reopened"/>): what <see cref="Options.ReopensInstead"/> lowers.
 	/// </summary>
 	/// <remarks>
 	/// <para>

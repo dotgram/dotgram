@@ -64,9 +64,38 @@ static class GiveBackGrammars
 
 		parse Start
 		""";
+
+	/// <summary>
+	/// A turn that gives back two items or more: the second given back stops building where the plan's
+	/// readers stop at a turn's loop, and the attempt that stands is read once more, built.
+	/// </summary>
+	public const string TurnDefers = """
+		Start : @V = { xs: A* & (bs: B* & Letter & Letter & ';')+ } & eof => @(Twin.C(0, xs, bs))
+		A     : @V = t: '0'                                              => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                    => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// The last alternative of a choice read with a way gives back inside itself: read again in place
+	/// before the choice fails, as the generated reader reads every alternative, and building again
+	/// only until its second give-back.
+	/// </summary>
+	public const string LastAlternativeGivesBack = """
+		Start : @V = { xs: A* & (bs: B* & Letter & Letter & ';' | bs: B* & Letter & Letter & '!') } & eof => @(Twin.C(0, xs, bs))
+		A     : @V = t: '0'                                                                             => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                                                   => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
 }
 
 [Gram(GiveBackGrammars.GivesBackInTurn, Carrier = GramCarrier.Immediate)]        static partial class GivesBackInTurnParser;
 [Gram(GiveBackGrammars.GivesBackInTurnBuilt, Carrier = GramCarrier.Immediate)]   static partial class GivesBackInTurnBuiltParser;
 [Gram(GiveBackGrammars.GivesBackPastStop, Carrier = GramCarrier.Immediate)]      static partial class GivesBackPastStopParser;
 [Gram(GiveBackGrammars.GivesBackPastStopBuilt, Carrier = GramCarrier.Immediate)] static partial class GivesBackPastStopBuiltParser;
+[Gram(GiveBackGrammars.TurnDefers, Carrier = GramCarrier.Immediate)]               static partial class TurnDefersParser;
+[Gram(GiveBackGrammars.LastAlternativeGivesBack, Carrier = GramCarrier.Immediate)] static partial class LastAlternativeGivesBackParser;

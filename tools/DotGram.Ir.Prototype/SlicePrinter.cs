@@ -1190,6 +1190,51 @@ sealed class SlicePrinter
 		}
 	}
 
+	/// <summary>
+	/// A part read again in place over its own decisions until it reads or none can move: a turn or an
+	/// alternative, from <paramref name="start"/>, with what it writes put back before each attempt
+	/// after the first. Where it <paramref name="defers"/>, the second decision given back stops
+	/// building, and an attempt that stood unbuilt is read once more, built (<see cref="IrStmt.Replay.Defers"/>).
+	/// </summary>
+	/// <param name="guard">What must hold besides for a retry to be asked for: the repetition's own way taken.</param>
+	void InPlace(IrStmt part, string read, string start, IReadOnlyList<IrSlot> resets, string[] kept, string guard, bool defers)
+	{
+		var mark = Temp("m");
+		var u    = defers ? Temp("u") : "";
+
+		Line(Int(mark, Member("cursor")));
+
+		if (defers)
+			Line(Int(u, "0"));
+
+		Line("for (;;)");
+		Line("{");
+		_indent++;
+		Attempt(part, read);
+
+		if (defers)
+		{
+			Line($"if ({read})");
+			Line("{");
+			Line($"\tif ({u} > 1) {{ {u} = {Runtime("stood", $"{u}, {mark}")}; if ({u} > 0{Charged(start)}) {{ {read} = false; p = {start};");
+			_indent += 2;
+			PutBack(resets, kept);
+			_indent -= 2;
+			Line("\t\tcontinue; } }");
+			Line("\tbreak;");
+			Line("}");
+			Line($"if (!({guard}{Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
+			Line($"{u} = {Runtime("retried", u)};");
+		}
+		else
+			Line($"if ({read} || !({guard}{Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) break;");
+
+		Line($"p = {start};");
+		PutBack(resets, kept);
+		_indent--;
+		Line("}");
+	}
+
 	/// <summary>A body that answers for its own failures: run once, with a flag that says whether it read.</summary>
 	void Attempt(IrStmt body, string flag)
 	{
@@ -1375,23 +1420,11 @@ sealed class SlicePrinter
 
 					var kept = Keep(choice.Resets[i]);
 
-					if (choice.Resumable && i < last)
-					{
-						// The alternative is read again with each of its own decisions that can still
-						// move before the choice moves on: its next alternative comes after them.
-						var mark = Temp("m");
-
-						Line(Int(mark, Member("cursor")));
-						Line("for (;;)");
-						Line("{");
-						_indent++;
-						Attempt(choice.Alternatives[i], read);
-						Line($"if ({read} || !({Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) break;");
-						Line($"p = {start};");
-						PutBack(choice.Resets[i], kept);
-						_indent--;
-						Line("}");
-					}
+					// The alternative is read again with each of its own decisions that can still move
+					// before the choice moves on: its next alternative comes after them. The last too,
+					// where the choice retries its parts and the alternative can decide.
+					if (choice.Resumable && (i < last || choice.Retries && IrLowering.Decides(choice.Alternatives[i])))
+						InPlace(choice.Alternatives[i], read, start, choice.Resets[i], kept, "", choice.Defers);
 					else
 						Attempt(choice.Alternatives[i], read);
 
@@ -1502,23 +1535,11 @@ sealed class SlicePrinter
 
 				var held = Keep(repeat.Resets);
 
-				if (repeat.Resumable)
-				{
-					// A turn that fails is read again with each of its own decisions that can still
-					// move before the repetition gives it up: its own decision comes before them.
-					var mark = Temp("m");
-
-					Line(Int(mark, Member("cursor")));
-					Line("for (;;)");
-					Line("{");
-					_indent++;
-					Attempt(repeat.Body, read);
-					Line($"if ({read} || !({way} >= 0 && {Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) break;");
-					Line($"p = {start};");
-					PutBack(repeat.Resets, held);
-					_indent--;
-					Line("}");
-				}
+				// A turn that fails is read again with each of its own decisions that can still move
+				// before the repetition gives it up: its own decision comes before them. Every turn,
+				// below the fewest too, where the repetition retries its turns.
+				if (repeat.Resumable || repeat.Retries)
+					InPlace(repeat.Body, read, start, repeat.Resets, held, repeat.Retries ? "" : $"{way} >= 0 && ", repeat.Defers);
 				else
 					Attempt(repeat.Body, read);
 				Line($"if (!{read})");
@@ -2009,31 +2030,41 @@ sealed class SlicePrinter
 					if (choice.Resumable)
 						Line($"if ({Decision(way)} > {index}) {Jump(after)}");
 
+					var retries = choice.Resumable && (i < last || choice.Retries && IrLowering.Decides(choice.Alternatives[i]));
+
 					if (Leaves(choice.Alternatives[i]))
 					{
 						var failed = State();
 						var kept   = Keep(choice.Resets[i], inFrame: true);
-						var retry  = choice.Resumable && i < last;
-						var mark   = retry ? FrameNumber() : "";
-						var begin  = retry ? State() : -1;
+						var mark   = retries ? FrameNumber() : "";
+						var begin  = retries ? State() : -1;
+						var u      = retries && choice.Defers ? FrameNumber() : "";
 
-						if (retry)
+						if (retries)
 						{
 							Line($"{mark} = P.cursor;");
+
+							if (u.Length > 0)
+								Line($"{u} = 0;");
+
 							Place(begin);
 						}
 
 						Flat(choice.Alternatives[i], failed);
+
+						if (u.Length > 0)
+							FlatStood(u, mark, start, choice.Resets[i], kept, begin);
+
 						Line(Jump(done));
 						Place(failed);
 						Line($"p = {start};");
 						PutBack(choice.Resets[i], kept);
 
-						if (retry)
-						{
-							Line($"if (P.cursor > {mark} && {Runtime("retry", mark)}) {Jump(begin)}");
+						if (retries)
+							FlatRetried(u, mark, "", begin);
+
+						if (choice.Resumable && i < last)
 							Line(Runtime("next", $"{way}, {(i + 1).ToString(CultureInfo.InvariantCulture)}") + ";");
-						}
 					}
 					else
 					{
@@ -2045,21 +2076,8 @@ sealed class SlicePrinter
 
 						var kept = Keep(choice.Resets[i]);
 
-						if (choice.Resumable && i < last)
-						{
-							var mark = Temp("m");
-
-							Line(Int(mark, "P.cursor"));
-							Line("for (;;)");
-							Line("{");
-							_indent++;
-							Attempt(choice.Alternatives[i], read);
-							Line($"if ({read} || !(P.cursor > {mark} && {Runtime("retry", mark)})) break;");
-							Line($"p = {start};");
-							PutBack(choice.Resets[i], kept);
-							_indent--;
-							Line("}");
-						}
+						if (retries)
+							InPlace(choice.Alternatives[i], read, start, choice.Resets[i], kept, "", choice.Defers);
 						else
 							Attempt(choice.Alternatives[i], read);
 
@@ -2133,17 +2151,27 @@ sealed class SlicePrinter
 					Line("}");
 				}
 
+				var loops = repeat.Resumable || repeat.Retries;
 				var kept  = Keep(repeat.Resets, inFrame: true);
-				var mark  = repeat.Resumable ? FrameNumber() : "";
-				var begin = repeat.Resumable ? State() : -1;
+				var mark  = loops ? FrameNumber() : "";
+				var begin = loops ? State() : -1;
+				var u     = repeat.Defers ? FrameNumber() : "";
 
-				if (repeat.Resumable)
+				if (loops)
 				{
 					Line($"{mark} = P.cursor;");
+
+					if (u.Length > 0)
+						Line($"{u} = 0;");
+
 					Place(begin);
 				}
 
 				Flat(repeat.Body, failed);
+
+				if (u.Length > 0)
+					FlatStood(u, mark, start, repeat.Resets, kept, begin);
+
 				Line($"{turns}++;");
 				Line($"if (p == {start}) {Jump(done)}");
 				Line(Jump(again));
@@ -2151,11 +2179,11 @@ sealed class SlicePrinter
 				Line($"p = {start};");
 				PutBack(repeat.Resets, kept);
 
+				if (loops)
+					FlatRetried(u, mark, repeat.Retries ? "" : $"{way} >= 0 && ", begin);
+
 				if (repeat.Resumable)
-				{
-					Line($"if ({way} >= 0 && P.cursor > {mark} && {Runtime("retry", mark)}) {Jump(begin)}");
 					Line($"if ({way} >= 0) {Runtime("next", way + ", 1")};");
-				}
 
 				Place(done);
 
@@ -2225,6 +2253,30 @@ sealed class SlicePrinter
 			default:
 				throw new NotSupportedException("The slice does not cut " + stmt.GetType().Name + " into states.");
 		}
+	}
+
+	/// <summary>A part read in place that read: where it was read unbuilt, read once more from its start, built (<see cref="InPlace"/>).</summary>
+	void FlatStood(string u, string mark, string start, IReadOnlyList<IrSlot> resets, string[] kept, int begin)
+	{
+		Line($"if ({u} > 1) {{ {u} = P.stood({u}, {mark}); if ({u} > 0) {{ p = {start};");
+		_indent++;
+		PutBack(resets, kept);
+		_indent--;
+		Line($"\t{Jump(begin)} }} }}");
+	}
+
+	/// <summary>A part read in place that failed, put back already: read again where a decision of its own can move (<see cref="InPlace"/>).</summary>
+	void FlatRetried(string u, string mark, string guard, int begin)
+	{
+		if (u.Length == 0)
+		{
+			Line($"if ({guard}P.cursor > {mark} && {Runtime("retry", mark)}) {Jump(begin)}");
+
+			return;
+		}
+
+		Line($"if ({guard}P.cursor > {mark} && {Runtime("retry", mark)}) {{ {u} = P.retried({u}); {Jump(begin)} }}");
+		Line($"if ({u} > 1) P.undeferred({u});");
 	}
 
 	/// <summary><see cref="Sealed"/>, with a call out of the machine somewhere in the body.</summary>

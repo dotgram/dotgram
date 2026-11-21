@@ -16,13 +16,16 @@ public sealed class GiveBackTests(ITestOutputHelper output)
 {
 	static readonly IrLowering.Options AllOpen = new(AllResumable: true);
 
-	/// <summary>The repetitions left closed where their turns decide: wrong on purpose.</summary>
-	static readonly IrLowering.Options Closed = new(ClosesDecidingTurns: true);
+	/// <summary>No part read again in place: wrong on purpose.</summary>
+	static readonly IrLowering.Options Closed = new(KeepsPartsWhole: true);
+
+	/// <summary>No part read again in place, and a repetition whose turn gives back inside opened instead: right answers, other host calls.</summary>
+	static readonly IrLowering.Options Reopened = new(KeepsPartsWhole: true, ReopensInstead: true);
 
 	/// <summary>
 	/// <c>00a,b;c;</c>: the second turn of <c>(B* &amp; Letter &amp; ';')+</c> has <c>B*</c> give the
-	/// <c>c</c> back. Accepted as the generated parser accepts it, with its host calls; refused with
-	/// the repetition left closed, since the braces have sealed before <c>eof</c> fails.
+	/// <c>c</c> back. Accepted as the generated parser accepts it, with its host calls, the turn read
+	/// again in place; refused with no part read so, since the braces have sealed before <c>eof</c> fails.
 	/// </summary>
 	[Fact]
 	public void ATurnPastTheFewest_GivesBackInsideItself()
@@ -37,58 +40,87 @@ public sealed class GiveBackTests(ITestOutputHelper output)
 		Assert.Equal(theirs.Line, ours.Line);
 		Assert.Equal(theirLog, ourLog);
 		Assert.False(closed.Accepted);
-		Assert.Equal(1, Reading.Program(fixture.Grammar).Reopened);
+		Assert.Equal(1, Reading.Program(fixture.Grammar).Retrying);
 	}
 
 	/// <summary>
-	/// <c>0"a,b;"</c>, the same past a one-character stop, each <c>A</c> built: left closed, the turn
-	/// given up is read again by the replay of the whole rule, which answers alike and builds <c>A*</c>
-	/// once more; opened, the turn is read again alone, and the host is called as the generated parser
-	/// calls it.
+	/// <c>0"a,b;"</c>, the same past a one-character stop, each <c>A</c> built: read in place, the host
+	/// is called as the generated parser calls it; with no part read so, the turn given up is read again
+	/// by the replay of the whole rule, which answers alike and builds <c>A*</c> once more.
 	/// </summary>
 	[Fact]
 	public void ATurnPastAStop_GivesBackInsideItself()
 	{
-		const string input = "0\"a,b;\"";
+		var fixture = Cases.Fixtures["GivesBackPastStopBuilt"];
 
-		var grammar = GiveBackGrammars.GivesBackPastStopBuilt;
-
-		var (theirs, theirLog, _)  = Reading.Generated(typeof(GivesBackPastStopBuiltParser), "ParseStart", input);
-		var (ours, ourLog, _)      = Reading.Evaluated(grammar, "ParseStart", input);
-		var (closed, closedLog, _) = Reading.Evaluated(grammar, "ParseStart", input, options: Closed);
+		var (theirs, theirLog, _)  = Reading.Generated(fixture.Parser, fixture.Entry, "0\"a,b;\"");
+		var (ours, ourLog, _)      = Reading.Evaluated(fixture.Grammar, fixture.Entry, "0\"a,b;\"");
+		var (closed, closedLog, _) = Reading.Evaluated(fixture.Grammar, fixture.Entry, "0\"a,b;\"", options: Closed);
 
 		Assert.True(theirs.Accepted);
 		Assert.Equal(theirs.Line, ours.Line);
 		Assert.Equal(theirs.Line, closed.Line);
 		Assert.Equal(theirLog, ourLog);
 		Assert.Equal(["c1(\"0\")", "c1(\"0\")"], closedLog.Where(static call => call.StartsWith("c1", StringComparison.Ordinal)));
-		Assert.Equal(1, Reading.Program(grammar).Reopened);
+		Assert.Equal(1, Reading.Program(fixture.Grammar).Retrying);
 	}
 
 	/// <summary>
-	/// What the tree does not yet read as the generated parser does, said as it is: a turn below the
-	/// fewest that fails after a decision of its own is read again by the replay around the
-	/// repetition, not alone. The answer is the same; the host is called for what that replay reads
-	/// before the repetition once more. The generated reader reads every turn in a loop of its own,
-	/// below the fewest too, and the tree has such a loop only past the fewest of a repetition that
-	/// writes a way: the first turn of <c>+</c> on <c>00a,b;c;</c> builds <c>A*</c> twice.
+	/// A turn below the fewest that fails after a decision of its own is read again in place, as the
+	/// generated reader reads every turn: the first turn of <c>+</c> on <c>00a,b;c;</c> builds
+	/// <c>A*</c> once. Opening the repetition instead (what the lowering did before parts were read in
+	/// place) answers alike and reads the first turn again by the replay around it, building <c>A*</c> twice.
 	/// </summary>
 	[Fact]
-	public void ATurnBelowTheFewest_IsReadAgainByTheReplayAroundIt()
+	public void ATurnBelowTheFewest_IsReadAgainInPlace()
 	{
-		const string input = "00a,b;c;";
+		var fixture = Cases.Fixtures["GivesBackInTurnBuilt"];
 
-		var grammar = GiveBackGrammars.GivesBackInTurnBuilt;
+		var (theirs, theirLog, _) = Reading.Generated(fixture.Parser, fixture.Entry, "00a,b;c;");
 
-		var (theirs, theirLog, _) = Reading.Generated(typeof(GivesBackInTurnBuiltParser), "ParseStart", input);
+		Assert.Equal(["c1(\"0\")", "c1(\"0\")", "c0([c1(\"0\"),c1(\"0\")])"], theirLog);
 
 		foreach (var options in new[] { null, AllOpen })
 		{
-			var (ours, ourLog, _) = Reading.Evaluated(grammar, "ParseStart", input, options: options);
+			var (ours, ourLog, _) = Reading.Evaluated(fixture.Grammar, fixture.Entry, "00a,b;c;", options: options);
 
 			Assert.Equal(theirs.Line, ours.Line);
-			Assert.Equal(["c1(\"0\")", "c1(\"0\")", "c0([c1(\"0\"),c1(\"0\")])"], theirLog);
-			Assert.Equal(["c1(\"0\")", "c1(\"0\")", "c1(\"0\")", "c1(\"0\")", "c0([c1(\"0\"),c1(\"0\")])"], ourLog);
+			Assert.Equal(theirLog, ourLog);
+		}
+
+		var (reopened, reopenedLog, _) = Reading.Evaluated(fixture.Grammar, fixture.Entry, "00a,b;c;", options: Reopened);
+
+		Assert.Equal(theirs.Line, reopened.Line);
+		Assert.Equal(["c1(\"0\")", "c1(\"0\")", "c1(\"0\")", "c1(\"0\")", "c0([c1(\"0\"),c1(\"0\")])"], reopenedLog);
+	}
+
+	/// <summary>
+	/// A turn and the last alternative of a choice read with a way, each giving back two items or more:
+	/// read again in place, they stop building at the second give-back where the plan's readers do at
+	/// that kind of loop, and read the attempt that stands once more, built — the host called as the
+	/// generated parser calls it on every input (<see cref="ContractTests.TheEvaluatorAnswersAsTheGeneratedParser"/>).
+	/// </summary>
+	[Theory]
+	[InlineData("TurnDefers", "0a,b,cd;")]
+	[InlineData("LastAlternativeGivesBack", "0a,b,cd!")]
+	public void APartReadInPlace_StopsBuildingAsTheReaderDoes(string name, string input)
+	{
+		var fixture = Cases.Fixtures[name];
+		var program = Reading.Program(fixture.Grammar);
+		var parts   = program.Functions.SelectMany(static function => Walk(function.Body)).ToList();
+
+		Assert.Contains(parts, static part => part is IrStmt.Repeat { Retries: true, Defers: true } or IrStmt.Choice { Retries: true, Defers: true });
+
+		var (theirs, theirLog, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
+		var (ours, ourLog, evaluator) = Reading.Evaluated(fixture.Grammar, fixture.Entry, input);
+
+		Assert.Equal(theirs.Line, ours.Line);
+		Assert.Equal(ourLog, theirLog.Take(ourLog.Count));
+		Assert.True(evaluator.StoodReReads > 0, "no attempt stood unbuilt");
+
+		static IEnumerable<IrStmt> Walk(IrStmt stmt)
+		{
+			return stmt.Children.SelectMany(Walk).Prepend(stmt);
 		}
 	}
 
@@ -138,7 +170,7 @@ public sealed class GiveBackTests(ITestOutputHelper output)
 			report.Append(string.Create(CultureInfo.InvariantCulture, $"  {name}: {count}\n"));
 
 		foreach (var (named, count) in calls.OrderBy(static one => one.Key, StringComparer.Ordinal))
-			report.Append(string.Create(CultureInfo.InvariantCulture, $"accepted, carried immediately, host called otherwise than by the generated parser ({named}): {count}\n"));
+			report.Append(string.Create(CultureInfo.InvariantCulture, $"carried immediately, host called otherwise than by the generated parser ({named}): {count}\n"));
 
 		foreach (var one in wrong.Take(20))
 			report.Append(one).Append('\n');
@@ -150,6 +182,7 @@ public sealed class GiveBackTests(ITestOutputHelper output)
 
 		Assert.True(wrong.IsEmpty, string.Join("; ", wrong.Take(20)));
 		Assert.NotEmpty(closedBy);
+		Assert.True(calls.ContainsKey("reopened instead"), "opening the repetitions instead calls the host as the generated parser does");
 	}
 
 	static string Line(string corpus, long inputs, long read, long over, int wrong)
@@ -192,16 +225,25 @@ public sealed class GiveBackTests(ITestOutputHelper output)
 		{
 			var (theirs, theirLog, _) = Reading.Generated(fixture.Parser, fixture.Entry, input);
 
-			if (calls is not null && theirs.Accepted)
+			if (calls is not null)
 			{
-				foreach (var (named, options) in new[] { ("proofs", (IrLowering.Options?)null), ("all open", AllOpen), ("closed on purpose", Closed) })
+				foreach (var (named, options) in new[] { ("proofs", (IrLowering.Options?)null), ("all open", AllOpen), ("closed on purpose", Closed), ("reopened instead", Reopened) })
 				{
-					var host = new RecordingHost(fixture.Guards);
+					var host    = new RecordingHost(fixture.Guards);
+					var outcome = new IrEvaluator(Reading.Program(fixture.Grammar, options), host).Parse(fixture.Entry, input);
 
-					new IrEvaluator(Reading.Program(fixture.Grammar, options), host).Parse(fixture.Entry, input);
+					// As the contract test holds them: a refused input the generated parser reads once more, asking guards only.
+					var alike = outcome.Accepted == theirs.Accepted && (theirs.Accepted
+						? host.Log.SequenceEqual(theirLog)
+						: theirLog.Take(host.Log.Count).SequenceEqual(host.Log) && theirLog.Skip(host.Log.Count).All(static call => call.StartsWith('g')));
 
-					if (!host.Log.SequenceEqual(theirLog))
+					if (!alike)
+					{
 						calls.AddOrUpdate(named, 1, static (_, count) => count + 1);
+
+						if (options is null && wrong.Count < 100)
+							wrong.Enqueue($"{corpus} {Twin.Quoted(input)} ({named}): host [{string.Join(" ", host.Log)}], the generated parser [{string.Join(" ", theirLog)}]");
+					}
 				}
 			}
 
