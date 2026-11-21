@@ -82,7 +82,7 @@ src/DotGram/Grammar/Emit/Machine.PrefixTables.cs declarations 4
 src/DotGram/Grammar/Emit/Machine.PrefixTables.cs short-if-group 3
 src/DotGram/Grammar/Emit/Machine.Reader.cs control 39
 src/DotGram/Grammar/Emit/Machine.Reader.cs declarations 13
-src/DotGram/Grammar/Emit/Machine.Reader.cs short-if-group 18
+src/DotGram/Grammar/Emit/Machine.Reader.cs short-if-group 19
 src/DotGram/Grammar/Emit/Machine.Recovery.cs control 12
 src/DotGram/Grammar/Emit/Machine.Recovery.cs declarations 2
 src/DotGram/Grammar/Emit/Machine.Recovery.cs short-if-group 5

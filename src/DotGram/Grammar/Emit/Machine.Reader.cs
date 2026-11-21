@@ -5566,11 +5566,7 @@ sealed partial class Machine
 				{
 					// Committed: what it opened on the tape can never be asked for again.
 					if (ways)
-					{
-						code.Line($"ways.Cut({mark});");
-						code.Line($"ways.Cursor = {mark};");
-					}
-
+						code.Line($"ways.Count = ways.Cursor = {mark};");
 					code.Line($"p = {taken};");
 					code.Line($"{turn}++;");
 					code.Line("continue;");
@@ -5585,10 +5581,7 @@ sealed partial class Machine
 				using (code.Block(""))
 				{
 					if (ways)
-					{
-						code.Line($"ways.Cut({began});");
-						code.Line($"ways.Cursor = {began};");
-					}
+						code.Line($"ways.Count = ways.Cursor = {began};");
 
 					if (stood is not null)
 						code.Line($"failure.Stood = {stood}; failure.Tied = {stood}t;");
@@ -5628,10 +5621,7 @@ sealed partial class Machine
 			Attempt(code, body, inside, ways ? mark : null, succeeded: (code, taken) =>
 			{
 				if (ways)
-				{
-					code.Line($"ways.Cut({mark});");
-					code.Line($"ways.Cursor = {mark};");
-				}
+					code.Line($"ways.Count = ways.Cursor = {mark};");
 
 				code.Line($"p = {taken};");
 			}, failed: code =>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -3442,11 +3442,6 @@ static partial class CSharpEmitter
 				}
 				else
 					return new Ways_DotGram();
-				// <sealskip>
-				if (spare.Count > 0)
-					global::System.Array.Clear(spare.Skip, 0, spare.Count);
-
-				// </sealskip>
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.LogCount  = 0;
@@ -3563,6 +3558,9 @@ static partial class CSharpEmitter
 
 				Items[Count * 2]     = at;
 				Items[Count * 2 + 1] = last;
+				// <sealskip>
+				Skip[Count] = 0;
+				// </sealskip>
 				Count++;
 				Cursor = Count;
 
@@ -3597,7 +3595,7 @@ static partial class CSharpEmitter
 					if (Items[way * 2] < Items[way * 2 + 1])
 					{
 						Items[way * 2]++;
-						Cut(way + 1);
+						Count  = way + 1;
 						Cursor = segment;
 
 						return true;
@@ -3614,10 +3612,7 @@ static partial class CSharpEmitter
 			internal void Next(int way, int value)
 			{
 				Items[way * 2] = value;
-
-				if (way + 1 < Count)
-					Drop(way + 1);
-
+				Count  = way + 1;
 				Cursor = way + 1;
 			}
 
@@ -3629,37 +3624,8 @@ static partial class CSharpEmitter
 			{
 				Items[way * 2]     = value;
 				Items[way * 2 + 1] = last;
-
-				if (way + 1 < Count)
-					Drop(way + 1);
-
+				Count  = way + 1;
 				Cursor = way + 1;
-			}
-
-			/// <summary>
-			/// Drops every way from <paramref name="count"/> on: the one place the tape is cut back, so
-			/// that what is kept beside each way goes with it.
-			/// </summary>
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			internal void Cut(int count)
-			{
-				// <sealskip>
-				if (count < Count)
-					Unskip(count);
-
-				// </sealskip>
-				Count = count;
-			}
-
-			/// <summary>
-			/// <see cref="Cut"/> out of line, for <see cref="Next(int, int)"/>: a repetition calls that as it
-			/// leaves, at every turn, and drops nothing there, so the call stays small enough to be inlined
-			/// and the cut is paid only where there is something to cut.
-			/// </summary>
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-			void Drop(int count)
-			{
-				Cut(count);
 			}
 
 			/// <summary>Spends every way decided since the segment, keeping its decision.</summary>
@@ -3685,6 +3651,10 @@ static partial class CSharpEmitter
 
 				while (way >= segment)
 				{
+					#if DOTGRAM_COUNTS
+					CountSealSteps++;
+					#endif
+
 					var from = Skip[way];
 
 					if (from > 0)
@@ -3706,9 +3676,21 @@ static partial class CSharpEmitter
 			/// Beside each way, where the sealed stretch that ends at it begins, plus one; zero where no
 			/// seal ends there. Every way in such a stretch is spent, and no retry and no move to a next
 			/// alternative touches a spent way, so a pointer stays true until the tape is cut back below
-			/// it — and <see cref="Cut"/> clears what it cuts.
+			/// it. It is cleared where a way is opened at its place again rather than where the tape is
+			/// cut: the cut is in the moves that are written at every turn of a repetition, and anything
+			/// more there stopped the JIT inlining them into the readers that make them.
 			/// </summary>
 			internal int[] Skip = new int[16];
+
+			#if DOTGRAM_COUNTS
+
+			/// <summary>
+			/// Ways the seals looked at, summed over every seal, for a test that holds them to the input
+			/// rather than to its square. <b>Compiled only under <c>DOTGRAM_COUNTS</c>.</b>
+			/// </summary>
+			internal static long CountSealSteps = 0;
+
+			#endif
 
 			/// <summary>
 			/// More room for the ways and the pointers beside them, together: out of line, so that
@@ -3721,17 +3703,6 @@ static partial class CSharpEmitter
 				global::System.Array.Resize(ref Skip, Items.Length / 2);
 			}
 
-			/// <summary>
-			/// Clears the pointers of the ways a cut drops: out of line, so that <see cref="Next(int, int)"/>,
-			/// which a repetition calls as it leaves at every turn and which cuts nothing there, keeps the
-			/// size it had before the pointers and stays inlined.
-			/// </summary>
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-			void Unskip(int count)
-			{
-				for (var way = count; way < Count; way++)
-					Skip[way] = 0;
-			}
 			// </sealskip>
 			// <places>
 

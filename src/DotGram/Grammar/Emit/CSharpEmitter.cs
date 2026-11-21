@@ -1433,10 +1433,12 @@ static partial class CSharpEmitter
 
 			// Where a sealed stretch begins, beside the way it ends at, where some reader seals: a
 			// seal or a retry steps over a stretch already spent in one move. Read off what the
-			// readers wrote, all of which is in the file by now, and not flagged where a seal is
-			// emitted: such a flag also went up for grammars whose written readers seal nothing
-			// (RFC 9110, JSON), which would have cost them the pointers for nothing.
-			var seals = file.ToString().Contains("ways.Seal(");
+			// readers wrote — this file and the parts a split file has moved its methods into, all of
+			// which are written by now — and not flagged where a seal is emitted: such a flag also went
+			// up for grammars whose written readers seal nothing (RFC 9110, JSON), which would have
+			// cost them the pointers for nothing.
+			var seals = file.ToString().Contains("ways.Seal(")
+				|| separated.Exists(static part => part.Contains("ways.Seal("));
 
 			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places), "sealskip", seals), "nosealskip", !seals)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
