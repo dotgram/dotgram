@@ -72,31 +72,20 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// A marked rule's entry: the stack probed where the rule can deepen it, the check, the record of the entry,
-	/// the rule read by the method under it (<paramref name="name"/> stays the rule's, so that every call and the
-	/// stack it is carried onto enter through here), and the record put back.
+	/// A marked rule's entry for a body written elsewhere: a method in front of the rule, under the rule's own name
+	/// (<paramref name="name"/>), so that every call and the stack it is carried onto enter through it. The stack is
+	/// probed there where the rule can deepen it, the entry checked and recorded, the rule read by the method under
+	/// it, and the record put back.
 	/// </summary>
 	/// <remarks>
-	/// <para>
-	/// The probe first: a reading carried onto a stack of its own enters the rule again there, through this
-	/// check, and finds the record as it was before this entry. The check before anything the rule remembers
-	/// is asked.
-	/// </para>
-	/// <para>
-	/// Put back where the rule answers and not where an exception leaves it: nothing inside a reading catches
-	/// what leaves a rule and reads on — the reading ends, its reader with it, and a reading carried onto
-	/// another stack hands the exception back to be thrown again. A <c>try</c> around the rule cost the
-	/// recursion a fifth of its time.
-	/// </para>
+	/// For a rule read by a method of its own, whose body says where it answers in places only its writer knows.
+	/// A rule with a way back into it has the check in that method, put back at each of the few places it answers
+	/// (<see cref="Entering"/>, <see cref="Leaving"/>): a method in front of it was one more call a level, which the
+	/// recursion paid a tenth of its time for.
 	/// </remarks>
 	void RenderReentryCheck(Writer file, RuleSymbol rule, string name, string strength, bool deepens)
 	{
-		var which    = Reentrant[rule];
-		var keys     = Reentry.Keys(_graph, rule);
-		var standing = $"standing{which}";
-		var alike    = $"standingAlike{which}";
-		var refused  = CSharpEmitter.Inner("Reentered", CSharpEmitter.IdentifierOf(rule));
-		var body     = CSharpEmitter.Inner("Reentering", CSharpEmitter.IdentifierOf(rule));
+		var body = CSharpEmitter.Inner("Reentering", CSharpEmitter.IdentifierOf(rule));
 
 		file.Line($"/// <summary><c>{rule.Name}</c>, entered where it does not already stand (docs/syntax.md §7.2).</summary>");
 
@@ -105,51 +94,83 @@ sealed partial class Machine
 			if (deepens)
 				Probe(file, rule);
 
-			file.Line($"var reentry = {standing};");
-
-			if (keys == 1)
-			{
-				file.Line();
-				file.Line("if (reentry == pos + 1)");
-				file.Then($"{refused}(pos);");
-				file.Line();
-				file.Line($"{standing} = pos + 1;");
-			}
-			else
-			{
-				file.Line($"var reentryAlike = {alike};");
-				file.Line();
-
-				using (file.Block("if (reentry == pos + 1)"))
-				{
-					file.Line($"if (reentryAlike == {keys.ToString(CultureInfo.InvariantCulture)})");
-					file.Then($"{refused}(pos);");
-					file.Line();
-					file.Line($"{alike} = reentryAlike + 1;");
-				}
-
-				file.Line("else");
-
-				using (file.Block(""))
-				{
-					file.Line($"{standing} = pos + 1;");
-					file.Line($"{alike} = 1;");
-				}
-			}
-
-			file.Line();
+			Entering(file, rule);
 			file.Line($"var read = {body}(pos{(strength.Length > 0 ? ", power" : "")});");
 			file.Line();
-			file.Line($"{standing} = reentry;");
 
-			if (keys > 1)
-				file.Line($"{alike} = reentryAlike;");
+			foreach (var line in Leaving(rule))
+				file.Line(line);
 
 			file.Line();
 			file.Line("return read;");
 		}
 
 		file.Line();
+	}
+
+	/// <summary>
+	/// The check at a marked rule's entry, and the record of the entry: after the stack is probed, since a reading
+	/// carried onto a stack of its own enters the rule again there and has to find the record as it was before this
+	/// entry; before anything the rule remembers is asked.
+	/// </summary>
+	/// <remarks>
+	/// The record is put back where the rule answers (<see cref="Leaving"/>) and not where an exception leaves it:
+	/// nothing inside a reading catches what leaves a rule and reads on — the reading ends, its reader with it, and a
+	/// reading carried onto another stack hands the exception back to be thrown again. A <c>try</c> around the rule
+	/// cost the recursion a fifth of its time.
+	/// </remarks>
+	void Entering(Writer file, RuleSymbol rule)
+	{
+		var which    = Reentrant[rule];
+		var keys     = Reentry.Keys(_graph, rule);
+		var standing = $"standing{which}";
+		var alike    = $"standingAlike{which}";
+		var refused  = CSharpEmitter.Inner("Reentered", CSharpEmitter.IdentifierOf(rule));
+
+		file.Line($"var reentry = {standing};");
+
+		if (keys == 1)
+		{
+			file.Line();
+			file.Line("if (reentry == pos + 1)");
+			file.Then($"{refused}(pos);");
+			file.Line();
+			file.Line($"{standing} = pos + 1;");
+		}
+		else
+		{
+			file.Line($"var reentryAlike = {alike};");
+			file.Line();
+
+			using (file.Block("if (reentry == pos + 1)"))
+			{
+				file.Line($"if (reentryAlike == {keys.ToString(CultureInfo.InvariantCulture)})");
+				file.Then($"{refused}(pos);");
+				file.Line();
+				file.Line($"{alike} = reentryAlike + 1;");
+			}
+
+			file.Line("else");
+
+			using (file.Block(""))
+			{
+				file.Line($"{standing} = pos + 1;");
+				file.Line($"{alike} = 1;");
+			}
+		}
+
+		file.Line();
+	}
+
+	/// <summary>What puts a marked rule's record back as it was before its entry, where the rule answers; nothing for any other rule.</summary>
+	IReadOnlyList<string> Leaving(RuleSymbol rule)
+	{
+		if (!Reentrant.TryGetValue(rule, out var which))
+			return [];
+
+		return Reentry.Keys(_graph, rule) > 1
+			? [$"standing{which} = reentry;", $"standingAlike{which} = reentryAlike;"]
+			: [$"standing{which} = reentry;"];
 	}
 
 	/// <summary>
