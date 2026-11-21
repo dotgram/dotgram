@@ -41,6 +41,81 @@ public sealed class GramCompletionProviderTests
 	}
 
 	/// <summary>
+	/// Typing opens completion on a name's characters and the dot, never on whitespace: a list opened by
+	/// a line break or the tab that indents the next line would take the next Tab for its first item.
+	/// </summary>
+	[Theory]
+	[InlineData("Sum : int =\n", '\n', false)]
+	[InlineData("Sum : int =\n\t", '\t', false)]
+	[InlineData("Sum : int =\n   ", ' ', false)]
+	[InlineData("Sum : int =\n   left: Sum ", ' ', false)]
+	[InlineData("Sum : int =\n   left: Sum &", '&', false)]
+	[InlineData("Sum : int =\n   left:", ':', false)]
+	[InlineData("Sum : int =\n   | n: Number                =", '=', false)]
+	[InlineData("Sum : int =\n   | n: Number                =>", '>', false)]
+	[InlineData("A : int = 'a' => 1", '1', false)]
+	[InlineData("A : int = 'a' => 12", '2', false)]
+	[InlineData("Sum : int =\n   l", 'l', true)]
+	[InlineData("Sum : int =\n   left: S", 'S', true)]
+	[InlineData("Sum : int =\n   _", '_', true)]
+	[InlineData("A : int = Rule2", '2', true)]
+	[InlineData("A : int = Std.", '.', true)]
+	public void Typing_opens_completion_only_on_a_name_or_a_trigger(string text, char typed, bool opens)
+	{
+		text = text.Replace("\n", Environment.NewLine);
+
+		Assert.Equal(opens, GramCompletionProvider.OpensOnTyping(text.Length, index => text[index], text.Length, typed));
+	}
+
+	/// <summary>
+	/// Open completion stays open while a name is typed and closes on whatever ends it, so that it never
+	/// grows over a space, a colon or `=>` and hands the next Tab its first item.
+	/// </summary>
+	[Theory]
+	[InlineData('a', true)]
+	[InlineData('Z', true)]
+	[InlineData('_', true)]
+	[InlineData('7', true)]
+	[InlineData(' ', false)]
+	[InlineData('\t', false)]
+	[InlineData(':', false)]
+	[InlineData('&', false)]
+	[InlineData('=', false)]
+	[InlineData('.', false)]
+	[InlineData('(', false)]
+	public void Open_completion_stays_open_only_while_a_name_is_typed(char typed, bool keeps)
+	{
+		Assert.Equal(keeps, GramCompletionProvider.KeepsOpenOnTyping(typed));
+	}
+
+	/// <summary>Deleting opens completion where the caret is left inside a name, and nowhere else.</summary>
+	[Theory]
+	[InlineData("Sum : int =\n   lef", true)]
+	[InlineData("Sum : int =\n   ", false)]
+	[InlineData("Sum : int =\n", false)]
+	[InlineData("Sum : int = a &", false)]
+	[InlineData("A : int = 'a' => 1", false)]
+	public void Deleting_opens_completion_only_inside_a_name(string text, bool opens)
+	{
+		text = text.Replace("\n", Environment.NewLine);
+
+		Assert.Equal(opens, GramCompletionProvider.OpensOnDeletion(text.Length, index => text[index], text.Length));
+	}
+
+	/// <summary>
+	/// Asked for between words, completion still answers, with nothing to replace: where it opens is the
+	/// editor's to decide by what the user did, not the provider's.
+	/// </summary>
+	[Fact]
+	public void Asked_for_at_the_start_of_a_line_completion_replaces_nothing()
+	{
+		var text = "Sum : int =" + Environment.NewLine + "   ";
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
+
+		Assert.Equal(new TextSpan(text.Length, 0), provider.Start(text, text.Length));
+	}
+
+	/// <summary>
 	/// Go To Definition on a C# name asks what it binds to and nothing more: the search of the project
 	/// for every declaration of the name is made only if what it binds to cannot be gone to.
 	/// </summary>
