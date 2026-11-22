@@ -246,6 +246,10 @@ The lexemes every grammar writes are a grammar of their own, `Std`, which every 
 full, `Std.Integer`, or opened with `using Std;`. Each rule is spelled with no trivia inside it; the
 calling grammar spaces around the call as it does around anything else.
 
+**The number rules read no sign.** `Std.Integer` reads `42` but not `-42`: whether `-` belongs to the
+number or is an operator in front of it is the calling grammar's question. Write `'-'? & Std.Integer` and
+build the sign in a `=>`.
+
 | Rule | Reads | Gives | Example |
 | --- | --- | --- | --- |
 | `Std.Digit`, `Std.HexDigit`, `Std.Letter` | one digit, hex digit, letter (`\p{L}`) | text | `7`, `f`, `ж` |
@@ -277,8 +281,8 @@ ParseAssign("x = 21; -- doubled") → "x=42"
 ParseAssign("_n1=0;") → "_n1=0"
 ```
 
-The numbers are unsigned and read in the invariant culture; a number too large for its type throws, as
-`int.Parse` does. Every rule, with its edge cases, is in [the standard library](09-std.md).
+The numbers are read in the invariant culture; a number too large for its type throws, as `int.Parse`
+does. Every rule, with its edge cases, is in [the standard library](09-std.md).
 
 ## Built-in rules and supplied names at a glance
 
