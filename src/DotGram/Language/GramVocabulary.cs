@@ -394,20 +394,30 @@ static class GramVocabulary
 	/// <para>
 	/// A line inside a C# raw or verbatim string, which may span lines inside an <c>@(…)</c>, starts in
 	/// neither, and its own reading can be wrong: the place found is trusted only where the text from
-	/// it to the position reads with no such string, none before it within the search either, no literal cut short by a line's end, no stray
-	/// <c>*/</c>, and from a marker that shares a character with no other (<c>/*/</c>, <c>*/*</c>,
-	/// <c>*//</c>), which reads one way from inside a comment and another from outside. Otherwise, and where the search
-	/// meets <see cref="CommentSearchLength"/> characters with nothing found — a block comment longer
-	/// than that may surround the position — the place is <paramref name="fallback"/>'s: an editor's
-	/// analysis of a recent version knows its comments and strings, and is wrong only about what was
-	/// typed since, far from the position.
+	/// it to the position reads with no such string, none before it within the search either, no
+	/// literal cut short by a line's end and no stray <c>*/</c>, and where the marker shares a
+	/// character with no other (<c>/*/</c>, <c>*/*</c>, <c>*//</c>), which reads one way from inside a
+	/// comment and another from outside. Otherwise, and where the search meets
+	/// <see cref="CommentSearchLength"/> characters with nothing found — a block comment longer than
+	/// that may surround the position — the place is <paramref name="fallback"/>'s: an editor's
+	/// analysis of a recent version knows its comments and strings. It is told the <c>/*</c> found and
+	/// not trusted, if any, so that one typed since the analysis, which the analysis cannot know of, is
+	/// read as opening a comment: where the text cannot tell, the answer is the one that keeps the list
+	/// closed.
+	/// </para>
+	/// <para>
+	/// Texts no grammar holds — <c>"""</c> outside an <c>@(…)</c>, a <c>/*/</c> — can be read here
+	/// otherwise than the grammar's lexer reads them, which the analysis follows.
 	/// </para>
 	/// </remarks>
 	/// <param name="length">The grammar's length.</param>
 	/// <param name="at">The grammar's character at an index.</param>
 	/// <param name="position">The caret.</param>
-	/// <param name="fallback">Where to read from for the start of the position's line, by other means; null to read from the start.</param>
-	public static int ReadFrom(int length, Func<int, char> at, int position, Func<int, int>? fallback = null)
+	/// <param name="fallback">
+	/// Where to read from for the start of the position's line, by other means, told the index of the
+	/// <c>/*</c> found and not trusted, or -1; null to read from the start.
+	/// </param>
+	public static int ReadFrom(int length, Func<int, char> at, int position, Func<int, int, int>? fallback = null)
 	{
 		var lineStart = LineStart(at, position);
 		var index     = lineStart - 1;
@@ -447,14 +457,17 @@ static class GramVocabulary
 					if (clear && MultiLineStringBetween(at, limit, index))
 						clear = false;
 
-					return clear ? from : fallback?.Invoke(lineStart) ?? 0;
+					if (clear)
+						return from;
+
+					return fallback?.Invoke(lineStart, at(index - 1) == '/' && from <= index - 1 ? index - 1 : -1) ?? 0;
 				}
 			}
 
 			index--;
 		}
 
-		return limit == 0 ? 0 : fallback?.Invoke(lineStart) ?? 0;
+		return limit == 0 ? 0 : fallback?.Invoke(lineStart, -1) ?? 0;
 	}
 
 	/// <summary>How many <c>*/</c> stand in the stretch.</summary>
