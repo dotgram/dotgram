@@ -269,7 +269,10 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 			}
 		}
 
-		Schedule(snapshot);
+		// A version the buffer has moved past is not analysed: that would cancel the analysis of the
+		// current one, and its result would never be published.
+		if (Equals(snapshot, _host.Current))
+			Schedule(snapshot);
 
 		return EmbeddedGrammarView.None;
 	}

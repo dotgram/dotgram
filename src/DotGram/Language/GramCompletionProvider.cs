@@ -57,7 +57,7 @@ abstract class GramCompletionProvider
 			return null;
 
 		// A comment or a literal of the grammar names nothing: no list there, not even on asking.
-		if (GrammarAt(Text(length, at), position) is { } grammar && GramVocabulary.InCommentOrLiteral(grammar.Text, grammar.Position))
+		if (InCommentOrLiteral(length, at, position))
 			return null;
 
 		return WordSpan(length, at, position);
@@ -72,15 +72,8 @@ abstract class GramCompletionProvider
 		return IsApplicable(position);
 	}
 
-	static string Text(int length, Func<int, char> at)
-	{
-		var characters = new char[length];
-
-		for (var index = 0; index < length; index++)
-			characters[index] = at(index);
-
-		return new string(characters);
-	}
+	/// <summary>Whether the position is in a comment or a literal of the grammar it stands in.</summary>
+	protected abstract bool InCommentOrLiteral(int length, Func<int, char> at, int position);
 
 	/// <summary>
 	/// The characters other than a name's whose typing opens completion: the dot after which
@@ -320,6 +313,42 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 		return true;
 	}
 
+	protected override bool InCommentOrLiteral(int length, Func<int, char> at, int position)
+	{
+		return GramVocabulary.InCommentOrLiteral(length, at, position, LineStartsInComment);
+	}
+
+	/// <summary>
+	/// Whether a comment the analysis classified runs across the start of a line: the last span that
+	/// starts before it, the classifications being in the order of the text and a comment holding none.
+	/// </summary>
+	bool LineStartsInComment(int lineStart)
+	{
+		var classifications = document.Classifications;
+		var low             = 0;
+		var high            = classifications.Count - 1;
+		var last            = -1;
+
+		while (low <= high)
+		{
+			var middle = low + (high - low) / 2;
+
+			if (classifications[middle].Position < lineStart)
+			{
+				last = middle;
+				low  = middle + 1;
+			}
+			else
+			{
+				high = middle - 1;
+			}
+		}
+
+		return last >= 0 &&
+			classifications[last].Kind == GramSyntaxKind.Comment &&
+			lineStart < classifications[last].Position + classifications[last].Length;
+	}
+
 	protected override (string Text, int Position)? GrammarAt(string text, int position)
 	{
 		return GrammarPosition.Standalone(text, position);
@@ -369,6 +398,31 @@ sealed class EmbeddedGramCompletionProvider(EmbeddedGrammarView view) : GramComp
 		return view.Current
 			? GrammarPosition.Embedded(text, position, view.Classifications)
 			: null;
+	}
+
+	/// <summary>Read in the grammar's own text, the C# string it stands in decoded; only that string is copied.</summary>
+	protected override bool InCommentOrLiteral(int length, Func<int, char> at, int position)
+	{
+		if (!view.Current)
+			return false;
+
+		foreach (var item in view.Classifications)
+		{
+			var span = item.GrammarSpan;
+
+			if (position < span.Start || position > span.End)
+				continue;
+
+			var characters = new char[span.Length];
+
+			for (var index = 0; index < span.Length; index++)
+				characters[index] = at(span.Start + index);
+
+			return CSharpStringMap.TryDecode(new string(characters), position - span.Start, out var grammar, out var inGrammar) &&
+				GramVocabulary.InCommentOrLiteral(grammar.Length, index => grammar[index], inGrammar);
+		}
+
+		return false;
 	}
 
 	protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(int position)
