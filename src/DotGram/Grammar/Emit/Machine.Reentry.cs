@@ -65,9 +65,7 @@ sealed partial class Machine
 		foreach (var pair in Reentrant.OrderBy(static pair => pair.Value))
 		{
 			yield return ("int", $"standing{pair.Value}");
-
-			if (Reentry.Keys(_graph, pair.Key) > 1)
-				yield return ("int", $"standingAlike{pair.Value}");
+			yield return ("int", $"standingAlike{pair.Value}");
 		}
 	}
 
@@ -122,41 +120,27 @@ sealed partial class Machine
 	void Entering(Writer file, RuleSymbol rule)
 	{
 		var which    = Reentrant[rule];
-		var keys     = Reentry.Keys(_graph, rule);
 		var standing = $"standing{which}";
 		var alike    = $"standingAlike{which}";
-		var refused  = CSharpEmitter.Inner("Reentered", CSharpEmitter.IdentifierOf(rule));
 
-		file.Line($"var reentry = {standing};");
+		file.Line($"var reentry      = {standing};");
+		file.Line($"var reentryAlike = {alike};");
+		file.Line();
 
-		if (keys == 1)
+		using (file.Block("if (reentry == pos + 1)"))
 		{
+			file.Line($"if ({Lacks("pos", Left(rule, "reentryAlike"))})");
+			file.Then(Reentry.Aborts ? $"{CSharpEmitter.Inner("Reentered", CSharpEmitter.IdentifierOf(rule))}(pos);" : "return -1;");
 			file.Line();
-			file.Line("if (reentry == pos + 1)");
-			file.Then($"{refused}(pos);");
-			file.Line();
-			file.Line($"{standing} = pos + 1;");
+			file.Line($"{alike} = reentryAlike + 1;");
 		}
-		else
+
+		file.Line("else");
+
+		using (file.Block(""))
 		{
-			file.Line($"var reentryAlike = {alike};");
-			file.Line();
-
-			using (file.Block("if (reentry == pos + 1)"))
-			{
-				file.Line($"if (reentryAlike == {keys.ToString(CultureInfo.InvariantCulture)})");
-				file.Then($"{refused}(pos);");
-				file.Line();
-				file.Line($"{alike} = reentryAlike + 1;");
-			}
-
-			file.Line("else");
-
-			using (file.Block(""))
-			{
-				file.Line($"{standing} = pos + 1;");
-				file.Line($"{alike} = 1;");
-			}
+			file.Line($"{standing} = pos + 1;");
+			file.Line($"{alike} = 1;");
 		}
 
 		file.Line();
@@ -168,9 +152,29 @@ sealed partial class Machine
 		if (!Reentrant.TryGetValue(rule, out var which))
 			return [];
 
-		return Reentry.Keys(_graph, rule) > 1
-			? [$"standing{which} = reentry;", $"standingAlike{which} = reentryAlike;"]
-			: [$"standing{which} = reentry;"];
+		return [$"standing{which} = reentry;", $"standingAlike{which} = reentryAlike;"];
+	}
+
+	/// <summary>
+	/// How much input has to be left past the position for one more live entry of a rule there, given how many
+	/// stand there: the bound is the input left plus two entries a key (Reentry.Keys keys a position), one more than
+	/// a chain of entries that each read something can reach, which a lookahead between two of them makes room for.
+	/// </summary>
+	string Left(RuleSymbol rule, string alike)
+	{
+		var keys = Reentry.Keys(_graph, rule);
+
+		return keys == 1 ? $"{alike} - 1" : $"({alike} - {keys.ToString(CultureInfo.InvariantCulture)}) / {keys.ToString(CultureInfo.InvariantCulture)}";
+	}
+
+	/// <summary>
+	/// Whether fewer than <paramref name="count"/> items are left past <paramref name="position"/>: over a span its
+	/// length says; over a buffer the source is read on to find out, so that a bound short of what has not come
+	/// yet is never taken for the end (the reading holds its input from there while it stands).
+	/// </summary>
+	string Lacks(string position, string count)
+	{
+		return BufferedInput ? $"!text.Ensure({position}, {count})" : $"text.Length - {position} < {count}";
 	}
 
 	/// <summary>
@@ -249,12 +253,14 @@ sealed partial class Machine
 		if (!Reentrant.TryGetValue(rule, out var which))
 			return;
 
-		var keys = Reentry.Keys(_graph, rule).ToString(CultureInfo.InvariantCulture);
-		var root = $"reentryRoot == {Mark(Lands, _entries[rule])}";
+		var root  = $"reentryRoot == {Mark(Lands, _entries[rule])}";
+		var alike = $"{Tag.Named("RecognizeReenters")}(entries, call, p, {root}, {EngineRuleIndex(rule).ToString(CultureInfo.InvariantCulture)})";
+		var left  = $"global::System.Math.Max(0, {Left(rule, alike)})";
 
 		writer.Line(
-			$"if ({Tag.Named("RecognizeReenters")}(entries, call, p, {root}, {EngineRuleIndex(rule).ToString(CultureInfo.InvariantCulture)}, {keys}))");
-		writer.Then($"{Tag.Named("RecognizeReentered")}(p, {which.ToString(CultureInfo.InvariantCulture)});");
+			Reentry.Aborts
+				? $"if ({Lacks("p", left)}) {Tag.Named("RecognizeReentered")}(p, {which.ToString(CultureInfo.InvariantCulture)});"
+				: $"if ({Lacks("p", left)}) {{ {Cleared()} goto {Label(writer, _fail)}; }}");
 	}
 
 	/// <summary>The walk <see cref="EngineReentering"/> asks, and what refuses the reading where it found the rule.</summary>
@@ -264,10 +270,10 @@ sealed partial class Machine
 			return;
 
 		file.Line();
-		file.Line("/// <summary>Whether a call of a marked rule at a position comes back to where the rule already stands (docs/syntax.md §7.2).</summary>");
+		file.Line("/// <summary>How many live entries of a marked rule stand at a position, up the calls being read (docs/syntax.md §7.2).</summary>");
 
 		using (file.Block(
-			$"static bool {Tag.Named("RecognizeReenters")}(ParserArena_DotGram entries, int call, int p, bool root, int rule, int keys)"))
+			$"static int {Tag.Named("RecognizeReenters")}(ParserArena_DotGram entries, int call, int p, bool root, int rule)"))
 		{
 			file.Line("var alike = 0;");
 			file.Line();
@@ -277,14 +283,14 @@ sealed partial class Machine
 				file.Line("var entry = entries[up];");
 				file.Line();
 				file.Line("if (entry.Position != p)");
-				file.Then("return false;");
+				file.Then("break;");
 				file.Line();
-				file.Line("if ((up == 0 ? root : entry.RuleIndex == rule) && ++alike == keys)");
-				file.Then("return true;");
+				file.Line("if (up == 0 ? root : entry.RuleIndex == rule)");
+				file.Then("alike++;");
 			}
 
 			file.Line();
-			file.Line("return false;");
+			file.Line("return alike;");
 		}
 
 		file.Line();
