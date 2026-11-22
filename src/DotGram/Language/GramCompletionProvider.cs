@@ -323,7 +323,7 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 			length,
 			at,
 			position,
-			GramVocabulary.ReadFrom(length, at, position, lineStart => Classified(length, at, lineStart)));
+			GramVocabulary.ReadFrom(length, at, position, (lineStart, opener) => Classified(length, at, lineStart, opener)));
 	}
 
 	/// <summary>
@@ -333,7 +333,34 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 	/// there is none, or the comment's <c>/*</c> is gone. The classifications are in the order of the
 	/// text, so the token is found by a binary search.
 	/// </summary>
-	int Classified(int length, Func<int, char> at, int lineStart)
+	/// <remarks>
+	/// A <c>/*</c> before that place which no classified span covers — no comment, literal or C# string
+	/// — is one the analysis has not seen, typed since: it is read from, as opening a comment, so that
+	/// what the analysis does not know keeps the list closed rather than open.
+	/// </remarks>
+	int Classified(int length, Func<int, char> at, int lineStart, int opener)
+	{
+		var classifications = document.Classifications;
+		var last            = LastBefore(lineStart);
+
+		if (last < 0)
+			return 0;
+
+		var place = Anchor(length, at, classifications[last], lineStart);
+
+		if (opener >= 0 && opener < place)
+		{
+			var covering = LastBefore(opener + 1);
+
+			if (covering < 0 || opener >= classifications[covering].Position + classifications[covering].Length)
+				return opener;
+		}
+
+		return place;
+	}
+
+	/// <summary>The index of the last classified span that starts before the position; -1 where none does.</summary>
+	int LastBefore(int position)
 	{
 		var classifications = document.Classifications;
 		var low             = 0;
@@ -344,7 +371,7 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 		{
 			var middle = low + (high - low) / 2;
 
-			if (classifications[middle].Position < lineStart)
+			if (classifications[middle].Position < position)
 			{
 				last = middle;
 				low  = middle + 1;
@@ -355,11 +382,13 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 			}
 		}
 
-		if (last < 0)
-			return 0;
+		return last;
+	}
 
-		var token = classifications[last];
-		var end   = token.Position + token.Length;
+	/// <summary>Where reading may start for a line, given the last span classified before it.</summary>
+	static int Anchor(int length, Func<int, char> at, GramClassifiedSpan token, int lineStart)
+	{
+		var end = token.Position + token.Length;
 
 		if (end <= lineStart)
 			return end;

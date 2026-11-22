@@ -255,6 +255,26 @@ public sealed class GramCompletionProviderTests
 	}
 
 	/// <summary>
+	/// A <c>/*</c> typed since the last analysis, where the text alone cannot be trusted (a C# verbatim
+	/// or raw string above it), keeps the list closed below it: the analysis, which has not seen it, is
+	/// not asked where reading may start past it. The analysis is of the text with the <c>/*</c> blanked,
+	/// as an editor's analysis carried through the edit is.
+	/// </summary>
+	[Theory]
+	[InlineData("X : string = 'x' => @(@\"p\")\n", "/*\nA : int = 'a' => 1\nB| : int = 'b' => 1\n")]
+	[InlineData("X : string = 'x' => @(F(\"\"\"p\"\"\"))\n", "/*\nA : int = 'a' => 1\nB| : int = 'b' => 1\n")]
+	[InlineData("A : int = 'x*/' => 1\n", "/*\nA : int = 'a' => 1\nB| : int = 'b' => 1\n")]
+	public void A_comment_opened_since_the_analysis_keeps_the_list_closed(string before, string marked)
+	{
+		var position = before.Length + marked.IndexOf('|');
+		var text     = before + marked.Remove(marked.IndexOf('|'), 1);
+		var stale    = before + marked.Remove(marked.IndexOf('|'), 1).Replace("/*", "  ");
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(stale));
+
+		Assert.Null(provider.Start(text, position));
+	}
+
+	/// <summary>
 	/// Where to read from, found by searching back, gives at every place the answer reading from the
 	/// start of the text gives: over texts made at random of comment markers, quotes, line breaks,
 	/// escapes, the <c>i</c> marker, rules and, in half of them, C#'s raw and verbatim strings.
