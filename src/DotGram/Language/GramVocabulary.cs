@@ -357,76 +357,100 @@ static class GramVocabulary
 
 	/// <summary>
 	/// Whether <paramref name="position"/> of a grammar is in a comment or in a character or string
-	/// literal, its <c>i</c> marker included: text that names nothing, where completion has nothing to
-	/// offer. A literal or block comment still being typed, which the lexer found no end for, runs to the
-	/// end of the text; the place just after a literal's closing quote is not in it.
+	/// literal, its <c>i</c> marker included, the C# strings and comments of an <c>@(…)</c> too: text
+	/// that names nothing, where completion has nothing to offer. A literal or a block comment still
+	/// being typed runs to the position; the place just after a literal's closing quote is not in it.
 	/// </summary>
 	/// <remarks>
-	/// Asked of the grammar's own lexer, so that a quote or a slash inside C# or inside another literal
-	/// cannot be taken for the start of one. A comment is no token: it is found in the gap between the
-	/// tokens around the position, which holds nothing else but whitespace.
+	/// Asked on every keystroke that could open completion, so it reads only the position's own line,
+	/// from its start: a literal does not span lines, nor does a line comment. A block comment that
+	/// does is told by <paramref name="lineStartsInComment"/>, from what the last analysis classified;
+	/// without it, a line is taken to start outside one.
 	/// </remarks>
-	public static bool InCommentOrLiteral(string grammar, int position, ICSharpScanner? scanner = null)
+	/// <param name="length">The grammar's length.</param>
+	/// <param name="at">The grammar's character at an index.</param>
+	/// <param name="position">The caret.</param>
+	/// <param name="lineStartsInComment">Whether the line that starts at an index starts inside a block comment.</param>
+	public static bool InCommentOrLiteral(int length, Func<int, char> at, int position, Func<int, bool>? lineStartsInComment = null)
 	{
-		var tokens = GramLexer.Tokenize(grammar, scanner ?? RoslynCSharpScanner.Instance);
-		var gap    = 0;
+		var index = position;
 
-		foreach (var token in tokens.Tokens)
+		while (index > 0 && at(index - 1) is not ('\n' or '\r'))
+			index--;
+
+		if (lineStartsInComment?.Invoke(index) == true)
 		{
-			if (position <= token.Position)
-				return InComment(grammar, gap, position);
+			index = BlockCommentEnd(at, index, position);
 
-			var end = token.Position + token.Length;
-
-			if (position <= end && token.Kind is TokenKind.Character or TokenKind.String or
-				TokenKind.CaseInsensitiveCharacter or TokenKind.CaseInsensitiveString)
-				return position < end || !Closed(grammar, token);
-
-			gap = Math.Max(gap, end);
+			if (index < 0)
+				return true;
 		}
-
-		return InComment(grammar, gap, Math.Min(position, grammar.Length));
-	}
-
-	/// <summary>Whether a literal ends in its closing quote, rather than in an <c>i</c> or unterminated.</summary>
-	static bool Closed(string grammar, Token literal)
-	{
-		var last = literal.Position + literal.Length - 1;
-
-		return last > literal.Position && grammar[last] == grammar[literal.Position];
-	}
-
-	/// <summary>Whether a position of a stretch holding only whitespace and comments is inside a comment.</summary>
-	static bool InComment(string text, int start, int position)
-	{
-		var index = start;
 
 		while (index < position)
 		{
-			if (text[index] == '/' && index + 1 < text.Length && text[index + 1] == '/')
-			{
-				while (index < position && text[index] is not ('\n' or '\r'))
-					index++;
+			var character = at(index);
+			var next      = index + 1 < length ? at(index + 1) : '\0';
 
-				if (index == position)
-					return true;
-			}
-			else if (text[index] == '/' && index + 1 < text.Length && text[index + 1] == '*')
-			{
-				var close = text.IndexOf("*/", index + 2, StringComparison.Ordinal);
+			if (character == '/' && next == '/')
+				return true;
 
-				if (close < 0 || position < close + 2)
+			if (character == '/' && next == '*')
+			{
+				index = BlockCommentEnd(at, index + 2, position);
+
+				if (index < 0)
 					return true;
 
-				index = close + 2;
+				continue;
 			}
-			else
+
+			if (character is '\'' or '"')
 			{
-				index++;
+				var close = LiteralEnd(at, index, position);
+
+				// Still open at the position, or the position in the case-insensitive marker after it.
+				if (close < 0 || close + 2 == position && at(close + 1) == 'i')
+					return true;
+
+				index = close + 1;
+				continue;
 			}
+
+			index++;
 		}
 
 		return false;
+	}
+
+	/// <summary>Where a block comment's <c>*/</c> ends, at or before the position; -1 where it does not.</summary>
+	static int BlockCommentEnd(Func<int, char> at, int from, int position)
+	{
+		for (var index = from; index + 1 < position; index++)
+			if (at(index) == '*' && at(index + 1) == '/')
+				return index + 2;
+
+		return -1;
+	}
+
+	/// <summary>The index of a literal's closing quote, before the position; -1 where it is still open there.</summary>
+	static int LiteralEnd(Func<int, char> at, int open, int position)
+	{
+		var quote = at(open);
+		var index = open + 1;
+
+		while (index < position)
+		{
+			var character = at(index);
+
+			if (character == '\\')
+				index += 2;
+			else if (character == quote)
+				return index;
+			else
+				index++;
+		}
+
+		return -1;
 	}
 
 	/// <summary>

@@ -226,6 +226,48 @@ public sealed class PlaygroundAdapterTests
 	}
 
 	/// <summary>
+	/// In a C# document, a space typed after a name inside an embedded grammar closes the DotGram list,
+	/// although the editor tells the place in the version before the space, which the embedded analysis
+	/// has already left for the buffer's current one; a place in the C# around it is left to Roslyn.
+	/// </summary>
+	[Fact]
+	public void A_character_typed_in_an_embedded_grammar_is_judged_in_the_buffers_current_version()
+	{
+		OnEditorThread(static () =>
+		{
+			var folder = Path.Combine(SourceRootDirectory(), "tests", "DotGram.VisualStudio.Tests", "Playground");
+			var text   = File.ReadAllText(Path.Combine(folder, "VisualStudioToolingPlayground.cs"));
+			var buffer = new FakeBuffer(text, "CSharp");
+			var before = buffer.CurrentSnapshot;
+
+			using var workspace = PlaygroundWorkspace(text, folder);
+			var (analysis, session) = EmbeddedAnalysis(buffer, workspace);
+			using var empty = new AdhocWorkspace();
+			var roslyn     = new RoslynGramFeatures(new RoslynGramCompletion(empty, static () => null), null!);
+			var completion = new EmbeddedGramCompletionSource(buffer, analysis, roslyn);
+			var properties = new PropertyCollection();
+			var view       = new Mock<ITextView>();
+			var commit     = new GramCompletionCommitManager(view.Object);
+			var list       = new Mock<IAsyncCompletionSession>().Object;
+
+			view.Setup(item => item.Properties).Returns(properties);
+			properties.AddProperty(typeof(EmbeddedGramCompletionSource), completion);
+
+			var name   = text.IndexOf("& right: Product", StringComparison.Ordinal) + "& right: Product".Length;
+			var csharp = text.IndexOf("namespace ", StringComparison.Ordinal) + "namespace".Length;
+
+			// The space is in the buffer, and the analysis has followed it, before the manager is asked.
+			var after = buffer.Edit(name, " ");
+
+			session.Edited(before, after);
+
+			Assert.False(analysis.View(before).Current);
+			Assert.Equal(CompletionContinuation.Dismiss, commit.HandleTypedChar(list, new SnapshotPoint(before, name), ' ', CancellationToken.None));
+			Assert.Equal(CompletionContinuation.Continue, commit.HandleTypedChar(list, new SnapshotPoint(before, csharp), ' ', CancellationToken.None));
+		});
+	}
+
+	/// <summary>
 	/// Runs the body on a thread of its own made Visual Studio's main thread, with a WPF dispatcher for
 	/// Quick Info's panels, as the extension's sources run there.
 	/// </summary>
@@ -295,19 +337,15 @@ public sealed class PlaygroundAdapterTests
 	}
 
 	/// <summary>
-	/// The extension's embedded adapters over the real embedded-grammar session, its host a workspace
-	/// with the playground's C# beside its .gram files and the DotGram attributes declared as source, as
-	/// the recording had it; nothing reaches Roslyn's Features.
+	/// The extension's embedded analysis of a buffer over the real embedded-grammar session, its host a
+	/// workspace with the playground's C# beside its .gram files; returned once both of its analyses ran.
 	/// </summary>
-	static string RecordEmbedded(string text, string root, IReadOnlyList<string> completionMarkers)
+	static (EmbeddedGrammarBufferAnalysis Analysis, EmbeddedGrammarSession<ITextSnapshot> Session) EmbeddedAnalysis(FakeBuffer buffer, Workspace workspace)
 	{
-		var buffer    = new FakeBuffer(text, "CSharp");
-		var snapshot  = buffer.CurrentSnapshot;
 		var documents = new Mock<ITextDocumentFactoryService>();
 		ITextDocument? none = null;
 		documents.Setup(service => service.TryGetTextDocument(It.IsAny<ITextBuffer>(), out none)).Returns(false);
 
-		using var workspace = PlaygroundWorkspace(text, root);
 		var host     = new EmbeddedHost(buffer, workspace);
 		var analysis = (EmbeddedGrammarBufferAnalysis)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(EmbeddedGrammarBufferAnalysis));
 		void Set(string field, object? value)
@@ -322,16 +360,38 @@ public sealed class PlaygroundAdapterTests
 		using var analysed = new ManualResetEventSlim();
 		var embeddedSession = new EmbeddedGrammarSession<ITextSnapshot>(host);
 
-		embeddedSession.Changed += version =>
+		void Changed(ITextSnapshot version)
 		{
 			if (embeddedSession.View(version).Symbols.Count > 0)
 				analysed.Set();
-		};
+		}
+
+		embeddedSession.Changed += Changed;
 		Set("_session", embeddedSession);
 		buffer.Properties.AddProperty(typeof(EmbeddedGrammarBufferAnalysis), analysis);
 
 		Assert.True(analysed.Wait(TimeSpan.FromSeconds(60)));
 
+		embeddedSession.Changed -= Changed;
+
+		return (analysis, embeddedSession);
+	}
+
+	/// <summary>
+	/// The extension's embedded adapters over the real embedded-grammar session, its host a workspace
+	/// with the playground's C# beside its .gram files and the DotGram attributes declared as source, as
+	/// the recording had it; nothing reaches Roslyn's Features.
+	/// </summary>
+	static string RecordEmbedded(string text, string root, IReadOnlyList<string> completionMarkers)
+	{
+		var buffer    = new FakeBuffer(text, "CSharp");
+		var snapshot  = buffer.CurrentSnapshot;
+		var documents = new Mock<ITextDocumentFactoryService>();
+		ITextDocument? none = null;
+		documents.Setup(service => service.TryGetTextDocument(It.IsAny<ITextBuffer>(), out none)).Returns(false);
+
+		using var workspace = PlaygroundWorkspace(text, root);
+		var (analysis, _) = EmbeddedAnalysis(buffer, workspace);
 		var view   = analysis.View(snapshot);
 		var result = new StringBuilder();
 
@@ -990,13 +1050,35 @@ public sealed class PlaygroundAdapterTests
 	{
 		public FakeBuffer(string text, string contentType = GramContentType.Name)
 		{
-			CurrentSnapshot = new FakeSnapshot(this, text);
+			CurrentSnapshot = new FakeSnapshot(this, text, 0);
 			ContentType     = Content(contentType);
 		}
 
 		public PropertyCollection Properties { get; } = new();
 		public IContentType ContentType { get; }
-		public ITextSnapshot CurrentSnapshot { get; }
+		public ITextSnapshot CurrentSnapshot { get; private set; }
+
+		/// <summary>Inserts text, as typing does: a new current version the old one tracks its points into.</summary>
+		public ITextSnapshot Edit(int position, string inserted)
+		{
+			var before = (FakeSnapshot)CurrentSnapshot;
+			var after  = new FakeSnapshot(this, before.GetText().Insert(position, inserted), before.Version.VersionNumber + 1);
+			var change = new Mock<ITextChange>();
+			var changes = new Mock<INormalizedTextChangeCollection>();
+
+			change.Setup(static item => item.OldPosition).Returns(position);
+			change.Setup(static item => item.OldEnd).Returns(position);
+			change.Setup(static item => item.NewPosition).Returns(position);
+			change.Setup(static item => item.NewEnd).Returns(position + inserted.Length);
+			change.Setup(static item => item.NewLength).Returns(inserted.Length);
+			change.Setup(static item => item.Delta).Returns(inserted.Length);
+			changes.Setup(static item => item.Count).Returns(1);
+			changes.Setup(static item => item[0]).Returns(change.Object);
+			before.Track(after.Version, changes.Object);
+			CurrentSnapshot = after;
+
+			return after;
+		}
 		public bool EditInProgress => false;
 
 		public event EventHandler<SnapshotSpanEventArgs>? ReadOnlyRegionsChanged { add { } remove { } }
@@ -1032,11 +1114,30 @@ public sealed class PlaygroundAdapterTests
 		return type.Object;
 	}
 
-	sealed class FakeSnapshot(ITextBuffer buffer, string text) : ITextSnapshot
+	sealed class FakeSnapshot : ITextSnapshot
 	{
-		public ITextBuffer TextBuffer { get; } = buffer;
+		public ITextBuffer TextBuffer { get; }
 		public IContentType ContentType => TextBuffer.ContentType;
-		public ITextVersion Version { get; } = new Mock<ITextVersion>().Object;
+		readonly Mock<ITextVersion> _version = new();
+		readonly string text;
+
+		public FakeSnapshot(ITextBuffer buffer, string text, int versionNumber)
+		{
+			TextBuffer = buffer;
+			this.text  = text;
+			_version.Setup(item => item.TextBuffer).Returns(buffer);
+			_version.Setup(item => item.Length).Returns(text.Length);
+			_version.Setup(item => item.VersionNumber).Returns(versionNumber);
+		}
+
+		public ITextVersion Version => _version.Object;
+
+		/// <summary>The edit that made the next version, for points tracked forward into it.</summary>
+		public void Track(ITextVersion next, INormalizedTextChangeCollection changes)
+		{
+			_version.Setup(static item => item.Next).Returns(next);
+			_version.Setup(static item => item.Changes).Returns(changes);
+		}
 		public int Length => text.Length;
 		public int LineCount => throw new NotSupportedException();
 		public char this[int position] => text[position];

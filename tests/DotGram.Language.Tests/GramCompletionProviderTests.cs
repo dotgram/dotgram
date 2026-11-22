@@ -106,7 +106,12 @@ public sealed class GramCompletionProviderTests
 	[InlineData("A : int = 'a' B|", true)]
 	[InlineData("A : int = 'a'| B", true)]
 	[InlineData("A : int = 'a' => 1\nB : int = A|", true)]
-	[InlineData("A : int = 'a' => @(\"in C# x|\")", true)]
+	[InlineData("A : int = 'a' => @(\"in C# x|\")", false)]
+	[InlineData("A : int = 'a' => @(x) // C# comment|", false)]
+	[InlineData("A : int = 'a' => @(Foo(x|))", true)]
+	[InlineData("/* a block\nthat goes on fix| */\nA : int = 'a' => 1", false)]
+	[InlineData("/* a block\nthat ends */ A|", true)]
+	[InlineData("A : int = '\\'' B|", true)]
 	public void Completion_does_not_open_in_a_comment_or_a_literal(string marked, bool opens)
 	{
 		var position = marked.IndexOf('|');

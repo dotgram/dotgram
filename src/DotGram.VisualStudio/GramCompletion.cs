@@ -163,8 +163,16 @@ sealed class GramCompletionCommitManager(ITextView view) : IAsyncCompletionCommi
 	}
 
 	/// <summary>Whether one of the view's DotGram sources answers for the place.</summary>
+	/// <remarks>
+	/// The editor tells the place in the version before the character was typed, which the analyses
+	/// have already left for the buffer's current one: asked of the old version they know nothing, and
+	/// would start analysing it again. The place is asked of the current version, where it stands
+	/// before the typed character.
+	/// </remarks>
 	bool Participates(SnapshotPoint location)
 	{
+		location = location.TranslateTo(location.Snapshot.TextBuffer.CurrentSnapshot, PointTrackingMode.Negative);
+
 		return view.Properties.TryGetProperty(typeof(GramCompletionSource), out GramCompletionSource standalone) &&
 				standalone.Participates(location) ||
 			view.Properties.TryGetProperty(typeof(EmbeddedGramCompletionSource), out EmbeddedGramCompletionSource embedded) &&

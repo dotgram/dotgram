@@ -50,6 +50,26 @@ public sealed class GramAnalysisSessionTests
 	}
 
 	/// <summary>
+	/// A question about a version the document has moved past is answered with nothing, and does not
+	/// start that version's analysis in place of the current one's.
+	/// </summary>
+	[Fact]
+	public void Asking_about_a_superseded_version_leaves_the_current_analysis_alone()
+	{
+		var host    = new FakeHost("A = 'a'");
+		var session = host.Session();
+		var first   = host.Edit(session, "A = 'b'");
+		var last    = host.Edit(session, "A = 'c'");
+
+		Assert.Empty(session.Document(first).Classifications);
+
+		host.Scheduler.Advance(GramAnalysisSession.AnalysisDelayMilliseconds);
+
+		Assert.Equal(["A = 'c'"], host.Analysed.Select(static item => item.Text));
+		Assert.Same(last, session.Result?.Version);
+	}
+
+	/// <summary>
 	/// What an analysis published is told about on the editor's main thread, where its taggers and
 	/// its dropdown bar may be touched: the host raises the event there, not the session after
 	/// awaiting the host, whose switch of thread would not carry over.

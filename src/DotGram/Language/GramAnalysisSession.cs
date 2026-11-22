@@ -470,7 +470,11 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				return _document;
 		}
 
-		ScheduleAnalysis(snapshot, immediate: true);
+		// A version the buffer has moved past is not analysed: that would cancel the analysis of the
+		// current one, and its result would never be published.
+		if (Equals(snapshot, _host.Current))
+			ScheduleAnalysis(snapshot, immediate: true);
+
 		return EmptyDocument;
 	}
 

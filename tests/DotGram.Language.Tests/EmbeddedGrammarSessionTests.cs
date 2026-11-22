@@ -188,6 +188,34 @@ public sealed class EmbeddedGrammarSessionTests
 		Assert.True(session.View(last).Current);
 	}
 
+	/// <summary>
+	/// A question about a version the document has moved past — an editor's, about the place before the
+	/// character just typed — is answered with nothing, and does not start that version's analysis in
+	/// place of the current one's, which would then never be published.
+	/// </summary>
+	[Fact]
+	public void Asking_about_a_superseded_version_leaves_the_current_analysis_alone()
+	{
+		using var workspace = new AdhocWorkspace();
+		var host    = Host(workspace);
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		session.Changed += _ => changed.Release();
+
+		var first = host.Current;
+		var next  = host.Edit(HostSource + " ");
+
+		session.Edited(first, next);
+
+		Assert.False(session.View(first).Current);
+
+		host.Scheduler.Advance(EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+		Assert.True(changed.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+		Assert.Equal([next], host.Analysed);
+		Assert.True(session.View(next).Current);
+	}
+
 	/// <summary>An analysis of a version the document has moved past while it ran is not published.</summary>
 	[Fact]
 	public void A_result_for_a_superseded_version_is_dropped()
