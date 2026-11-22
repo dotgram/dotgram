@@ -313,40 +313,10 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 		return true;
 	}
 
+	/// <summary>Read from the current text alone, whatever the last analysis knows of it.</summary>
 	protected override bool InCommentOrLiteral(int length, Func<int, char> at, int position)
 	{
-		return GramVocabulary.InCommentOrLiteral(length, at, position, LineStartsInComment);
-	}
-
-	/// <summary>
-	/// Whether a comment the analysis classified runs across the start of a line: the last span that
-	/// starts before it, the classifications being in the order of the text and a comment holding none.
-	/// </summary>
-	bool LineStartsInComment(int lineStart)
-	{
-		var classifications = document.Classifications;
-		var low             = 0;
-		var high            = classifications.Count - 1;
-		var last            = -1;
-
-		while (low <= high)
-		{
-			var middle = low + (high - low) / 2;
-
-			if (classifications[middle].Position < lineStart)
-			{
-				last = middle;
-				low  = middle + 1;
-			}
-			else
-			{
-				high = middle - 1;
-			}
-		}
-
-		return last >= 0 &&
-			classifications[last].Kind == GramSyntaxKind.Comment &&
-			lineStart < classifications[last].Position + classifications[last].Length;
+		return GramVocabulary.InCommentOrLiteral(length, at, position, GramVocabulary.ReadFrom(length, at, position));
 	}
 
 	protected override (string Text, int Position)? GrammarAt(string text, int position)
@@ -400,29 +370,15 @@ sealed class EmbeddedGramCompletionProvider(EmbeddedGrammarView view) : GramComp
 			: null;
 	}
 
-	/// <summary>Read in the grammar's own text, the C# string it stands in decoded; only that string is copied.</summary>
+	/// <summary>
+	/// Read in the grammar's own text, the C# string it stands in decoded, from its start: a block
+	/// comment over lines is seen whatever the analysis knows. Only that string is copied.
+	/// </summary>
 	protected override bool InCommentOrLiteral(int length, Func<int, char> at, int position)
 	{
-		if (!view.Current)
-			return false;
-
-		foreach (var item in view.Classifications)
-		{
-			var span = item.GrammarSpan;
-
-			if (position < span.Start || position > span.End)
-				continue;
-
-			var characters = new char[span.Length];
-
-			for (var index = 0; index < span.Length; index++)
-				characters[index] = at(span.Start + index);
-
-			return CSharpStringMap.TryDecode(new string(characters), position - span.Start, out var grammar, out var inGrammar) &&
-				GramVocabulary.InCommentOrLiteral(grammar.Length, index => grammar[index], inGrammar);
-		}
-
-		return false;
+		return view.Current &&
+			GrammarPosition.Embedded(at, position, view.Classifications) is { } grammar &&
+			GramVocabulary.InCommentOrLiteral(grammar.Text.Length, index => grammar.Text[index], grammar.Position);
 	}
 
 	protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(int position)
