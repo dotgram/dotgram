@@ -153,7 +153,7 @@ Value(tag) = switch @(Kind(tag)) {
 	default: ['0'..'9']+
 }
 
-Field = tag: ['0'..'9'] & '=' & Value(tag)
+Field = '=' & Value(['0'..'9'])
 
 parse Field
 ```

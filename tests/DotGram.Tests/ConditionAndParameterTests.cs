@@ -174,7 +174,7 @@ public sealed class ConditionAndParameterTests
 	/// and before a dot, as in <c>item.Length</c>.
 	/// </summary>
 	[Theory]
-	[InlineData("Value(tag) = switch @(Kind(tag)) { case 0: Digits default: none }\nField = tag: Digits & '=' & Value(tag)")]
+	[InlineData("Value(tag) = switch @(Kind(tag)) { case 0: Digits default: none }\nField = tag: Digits & '=' & Value(Digits)")]
 	[InlineData("Value(x) = x & when @(x != null)\nField = '=' & Value(Digits)")]
 	[InlineData("Value(x) : @int = x & 'z' => @(Count(x))\nField : @int = '=' & v: Value(Digits) => @(v)")]
 	[InlineData("Value(x) = x & when (@(x != null))\nField = '=' & Value(Digits)")]
@@ -362,7 +362,7 @@ public sealed class ConditionAndParameterTests
 	[Theory]
 	[InlineData("Value(x) : @int = x: Digits & 'z' => @(x.Length)\nField : @int = '=' & v: Value(Digits) => @(v)")]
 	[InlineData("Value(n: @int) = 'a' & when @(n > 0)\nField = '=' & Value(1)")]
-	[InlineData("Value(x) = x & 'z'\nField = tag: Digits & '=' & Value(tag)")]
+	[InlineData("Value(x) = x & 'z'\nField : @string = tag: Digits & '=' & Value(Digits) => @(tag)")]
 	public void While_a_capture_or_a_value_parameter_is_read_as_before(string rules)
 	{
 		Assert.Empty(Errors("Digits = ['0'..'9']+\n" + rules + "\nparse Field"));
