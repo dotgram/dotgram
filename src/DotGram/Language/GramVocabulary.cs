@@ -380,41 +380,108 @@ static class GramVocabulary
 	/// <summary>
 	/// Where to read from to tell whether a position is in a comment or a literal: after the nearest
 	/// <c>*/</c> before the position's line that stands in text or closes a comment, or at the start of
-	/// the line of the nearest <c>/*</c> that opens one; the start of the text where there is neither.
+	/// the line of the nearest <c>/*</c> that opens one; where neither can be trusted, what
+	/// <paramref name="fallback"/> says, or the start of the text.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The text is searched backwards from the position's line, so that only what lies between it and
 	/// the last comment is read, and a <c>/*</c> or <c>*/</c> inside a literal or a line comment, which
-	/// opens and closes nothing, is told by reading its own line. A line is read as starting outside a
-	/// comment, which a comment's last line, starting inside it, is not: a <c>*/</c> there that does not
-	/// stand in a literal is taken to close it. The search goes back <see cref="CommentSearchLength"/>
-	/// characters at most, to the start of a line there: a block comment longer than that, around the
-	/// position, is not seen, which keeps a keystroke's cost bounded in a grammar with no block comments.
+	/// opens and closes nothing, is told by reading its own line, as starting outside every comment and
+	/// literal. A comment's last line starts inside it, so a <c>*/</c> there that does not stand in a
+	/// literal is taken to close it.
+	/// </para>
+	/// <para>
+	/// A line inside a C# raw or verbatim string, which may span lines inside an <c>@(…)</c>, starts in
+	/// neither, and its own reading can be wrong: the place found is trusted only where the text from
+	/// it to the position reads with no such string, none before it within the search either, no literal cut short by a line's end, no stray
+	/// <c>*/</c>, and from a marker that shares a character with no other (<c>/*/</c>, <c>*/*</c>,
+	/// <c>*//</c>), which reads one way from inside a comment and another from outside. Otherwise, and where the search
+	/// meets <see cref="CommentSearchLength"/> characters with nothing found — a block comment longer
+	/// than that may surround the position — the place is <paramref name="fallback"/>'s: an editor's
+	/// analysis of a recent version knows its comments and strings, and is wrong only about what was
+	/// typed since, far from the position.
+	/// </para>
 	/// </remarks>
 	/// <param name="length">The grammar's length.</param>
 	/// <param name="at">The grammar's character at an index.</param>
 	/// <param name="position">The caret.</param>
-	public static int ReadFrom(int length, Func<int, char> at, int position)
+	/// <param name="fallback">Where to read from for the start of the position's line, by other means; null to read from the start.</param>
+	public static int ReadFrom(int length, Func<int, char> at, int position, Func<int, int>? fallback = null)
 	{
-		var index = LineStart(at, position) - 1;
-		var limit = Math.Max(0, index - CommentSearchLength);
+		var lineStart = LineStart(at, position);
+		var index     = lineStart - 1;
+		var limit     = Math.Max(0, index - CommentSearchLength);
 
 		while (index > limit)
 		{
 			if (at(index) == '*')
 			{
-				if (at(index - 1) == '/' && Read(length, at, LineStart(at, index - 1), index - 1) == TextPlace.Text)
-					return LineStart(at, index - 1);
+				var from = -1;
 
-				if (index + 1 < length && at(index + 1) == '/' &&
+				if (at(index - 1) == '/' && Read(length, at, LineStart(at, index - 1), index - 1) == TextPlace.Text)
+					from = LineStart(at, index - 1);
+				else if (index + 1 < length && at(index + 1) == '/' &&
 					Read(length, at, LineStart(at, index), index) is TextPlace.Text or TextPlace.BlockComment)
-					return index + 2;
+					from = index + 2;
+
+				if (from >= 0)
+				{
+					// A marker that shares a character with another (`/*/`, `*/*`, `*//`) reads one way
+					// from inside a comment and another from outside: its own line cannot tell which.
+					var clear = !(at(index - 1) == '/' && index + 1 < length && at(index + 1) == '/') &&
+						!(index > 1 && at(index - 1) == '/' && at(index - 2) == '*') &&
+						!(index + 2 < length && at(index + 1) == '/' && at(index + 2) is '/' or '*');
+
+					var closed = 0;
+
+					if (clear)
+						Read(length, at, from, position, ref clear, ref closed);
+
+					// A `*/` the reading did not take as a comment's end, in a literal or a line comment,
+					// would be one if the reading had started inside a comment.
+					if (clear && Closers(at, from, position) != closed)
+						clear = false;
+
+					// A C# raw or verbatim string still open at the marker, from before it, holds it.
+					if (clear && MultiLineStringBetween(at, limit, index))
+						clear = false;
+
+					return clear ? from : fallback?.Invoke(lineStart) ?? 0;
+				}
 			}
 
 			index--;
 		}
 
-		return limit == 0 ? 0 : LineStart(at, limit);
+		return limit == 0 ? 0 : fallback?.Invoke(lineStart) ?? 0;
+	}
+
+	/// <summary>How many <c>*/</c> stand in the stretch.</summary>
+	static int Closers(Func<int, char> at, int from, int to)
+	{
+		var count = 0;
+
+		for (var index = from; index + 1 < to; index++)
+		{
+			if (at(index) == '*' && at(index + 1) == '/')
+			{
+				count++;
+				index++;
+			}
+		}
+
+		return count;
+	}
+
+	/// <summary>Whether a C# raw (<c>"""</c>) or verbatim (<c>@"</c>) string, which may span lines, starts or ends in the stretch.</summary>
+	static bool MultiLineStringBetween(Func<int, char> at, int from, int to)
+	{
+		for (var index = from + 1; index < to; index++)
+			if (at(index) == '"' && (at(index - 1) == '@' || index + 1 < to && at(index - 1) == '"' && at(index + 1) == '"'))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>How far back <see cref="ReadFrom"/> looks for the comment a position may be in.</summary>
@@ -441,6 +508,20 @@ static class GramVocabulary
 	/// <summary>What the position is in, the text read from a place outside every comment and literal.</summary>
 	static TextPlace Read(int length, Func<int, char> at, int from, int position)
 	{
+		var clear  = true;
+		var closed = 0;
+
+		return Read(length, at, from, position, ref clear, ref closed);
+	}
+
+	/// <summary>
+	/// The same, and whether the reading is clear: <paramref name="clear"/> is cleared where it met a
+	/// C# raw or verbatim string, a literal cut short by a line's end or a <c>*/</c> outside a comment,
+	/// any of which tells that the place read from may not have been outside every string; and
+	/// <paramref name="closed"/> counts the block comments it read to their end.
+	/// </summary>
+	static TextPlace Read(int length, Func<int, char> at, int from, int position, ref bool clear, ref int closed)
+	{
 		var index = from;
 
 		while (index < position)
@@ -466,12 +547,21 @@ static class GramVocabulary
 				if (index < 0)
 					return TextPlace.BlockComment;
 
+				closed++;
 				continue;
 			}
+
+			if (character == '*' && next == '/')
+				clear = false;
 
 			if (character is '\'' or '"')
 			{
 				var close = LiteralEnd(length, at, index, position);
+
+				if (character == '"' && (index + 2 < length && at(index + 1) == '"' && at(index + 2) == '"' ||
+					index > 0 && at(index - 1) is '@' or '$') ||
+					close >= 0 && at(close) != character)
+					clear = false;
 
 				// Still open at the position, or the position in the case-insensitive marker after it.
 				if (close < 0 || close + 2 == position && at(close + 1) == 'i')
@@ -536,6 +626,10 @@ static class GramVocabulary
 			else if (character is '\n' or '\r')
 			{
 				return index - 1;
+			}
+			else if (character == '\\' && index + 1 < position && at(index + 1) is '\n' or '\r')
+			{
+				return index;
 			}
 			else if (character == '\\')
 			{
