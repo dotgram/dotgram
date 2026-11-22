@@ -954,30 +954,57 @@ sealed partial class GrammarBinder
 			_language.Classify(name, out var form) == KnownType.Void && form == TypeSpellingForm.Syntax;
 	}
 
+	/// <param name="csharpValue">
+	/// Whether the expression is C# the consumer owns: a <c>=&gt;</c>'s, a <c>when</c>'s or a
+	/// <c>switch</c>'s value, where a <c>@</c> name is not looked at.
+	/// </param>
+	/// <param name="inValue">
+	/// Whether the expression is a value at all, which those are and a <c>with state</c>'s mark and a
+	/// recovery's factory are too: the one place a capture is read. Anywhere else a name stands for a
+	/// recognizer, and a capture spelled like a rule is no shadow over it: <c>hour: hour</c> reads the
+	/// rule <c>hour</c> (docs/syntax.md §3.5).
+	/// </param>
 	void ResolveExpression(
 		Expr expression,
 		GrammarNamespace ns,
 		Dictionary<string, ParameterSymbol> parameters,
-		bool csharpValue = false)
+		bool csharpValue = false,
+		bool inValue     = false)
 	{
 		switch (expression)
 		{
 			case Expr.Reference reference:
-				ResolveReference(reference, reference, ns, parameters, csharpValue);
+				ResolveReference(reference, reference, ns, parameters, csharpValue, inValue);
 				return;
 
 			case Expr.Construct(var pattern, var value):
 				ResolveExpression(pattern, ns, parameters);
-				ResolveExpression(value, ns, parameters, csharpValue: true);
+				ResolveExpression(value, ns, parameters, csharpValue: true, inValue: true);
 				return;
 
 			case Expr.Switch(var selected, var cases):
-				ResolveExpression(selected, ns, parameters, csharpValue: true);
+				ResolveExpression(selected, ns, parameters, csharpValue: true, inValue: true);
 				foreach (var branch in cases) ResolveExpression(branch.Body, ns, parameters);
 				return;
 
 			case Expr.Guard(var guarded):
-				ResolveExpression(guarded, ns, parameters, csharpValue: true);
+				ResolveExpression(guarded, ns, parameters, csharpValue: true, inValue: true);
+				return;
+
+			// Values the grammar still reads as its own, as it always did: a name in them is a
+			// capture or one the parser supplies, and a `@` call's arguments are looked at.
+			case Expr.Marked(var operand, var mark):
+				ResolveExpression(operand, ns, parameters);
+				ResolveExpression(mark, ns, parameters, inValue: true);
+				return;
+
+			case Expr.Recovering(var body, var sync, var factory):
+				ResolveExpression(body, ns, parameters);
+				ResolveExpression(sync, ns, parameters);
+
+				if (factory is not null)
+					ResolveExpression(factory, ns, parameters, inValue: true);
+
 				return;
 
 			// Every operand of a condition is a recognizer and none is C#: the question is
@@ -988,12 +1015,12 @@ sealed partial class GrammarBinder
 
 				// And the C# among them, which resolves the way a `when @(…)` on its own does.
 				foreach (var guard in Parsing.Test.Guards(test))
-					ResolveExpression(guard, ns, parameters, csharpValue: true);
+					ResolveExpression(guard, ns, parameters, csharpValue: true, inValue: true);
 
 				return;
 
 			case Expr.Call(var target, var arguments):
-				ResolveReference(target, expression, ns, parameters, csharpValue);
+				ResolveReference(target, expression, ns, parameters, csharpValue, inValue);
 
 				// Under an `@` in a `=>` or a `when`, nothing is looked at again. The two
 				// ways of writing the same construction — `=> @Hold(x)` and
@@ -1010,7 +1037,7 @@ sealed partial class GrammarBinder
 					return;
 
 				foreach (var argument in arguments)
-					ResolveExpression(argument, ns, parameters, csharpValue);
+					ResolveExpression(argument, ns, parameters, csharpValue, inValue);
 
 				return;
 
@@ -1040,7 +1067,7 @@ sealed partial class GrammarBinder
 				if (quantified.MaxLength is { } high && high != quantified.MinLength)
 					ResolveBound(high.Name, '#', high.At, ns);
 
-				ResolveExpression(quantified.Operand, ns, parameters, csharpValue);
+				ResolveExpression(quantified.Operand, ns, parameters, csharpValue, inValue);
 				return;
 
 			case Expr.With(var operand, var rebindings):
@@ -1062,12 +1089,12 @@ sealed partial class GrammarBinder
 				_withBindings[expression]     = ChainResolve(EmptyBindings, own);
 				_withOwnRebindings[expression] = own;
 
-				ResolveExpression(operand, ns, parameters, csharpValue);
+				ResolveExpression(operand, ns, parameters, csharpValue, inValue);
 				return;
 		}
 
 		foreach (var child in Dump.Children(expression))
-			ResolveExpression(child, ns, parameters, csharpValue);
+			ResolveExpression(child, ns, parameters, csharpValue, inValue);
 	}
 
 	void ResolveReference(
@@ -1075,7 +1102,8 @@ sealed partial class GrammarBinder
 		Expr?                               bind,
 		GrammarNamespace                    ns,
 		Dictionary<string, ParameterSymbol> parameters,
-		bool                                csharpValue = false)
+		bool                                csharpValue = false,
+		bool                                inValue     = false)
 	{
 		var at = reference.At;
 
@@ -1109,8 +1137,10 @@ sealed partial class GrammarBinder
 
 		// A capture of the rule being resolved, or one of the names §7.3 supplies. What
 		// they are is settled at emission, where they become the parameters of the method
-		// a `=>` becomes; here it is enough that they are not undefined.
-		if (_captures.Contains(reference.Name))
+		// a `=>` becomes; here it is enough that they are not undefined. Only in a value:
+		// where a recognizer goes a capture means nothing, and a rule of its name is the
+		// rule. It used to shadow the rule there too, so `hour: hour` called nothing.
+		if (inValue && _captures.Contains(reference.Name))
 			return;
 
 		if (Resolve(ns, reference.Name, at) is { } rule)
@@ -1129,7 +1159,10 @@ sealed partial class GrammarBinder
 				$"No rule, parameter or capture named '{reference.Name}'." +
 				(reference.Name.Contains(".")
 					? $" A {HostLanguage} name is reached with '@' — '@{reference.Name}' (docs/syntax.md §2)."
-					: ""),
+					: _captures.Contains(reference.Name) && !SuppliedNames.All.Contains(reference.Name)
+						? $" '{reference.Name}' is a capture here, and a capture is a value: it is read after " +
+							"'=>' or 'when', and where a recognizer goes a name is a rule's (docs/syntax.md §3.5)."
+						: ""),
 				at);
 		}
 	}

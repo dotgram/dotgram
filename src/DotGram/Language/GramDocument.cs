@@ -961,6 +961,10 @@ static class GramLanguageService
 		Dictionary<string, int>? captures   = null;
 		Location? localScope = null;
 
+		// Whether what is being visited is a value, where a name may be a capture; where a
+		// recognizer goes it is a rule's or a parameter's, as the binder reads it.
+		var inValue = false;
+
 		VisitDeclarations(declarations);
 		result.Sort(static (left, right) => left.Position.CompareTo(right.Position));
 
@@ -1148,7 +1152,7 @@ static class GramLanguageService
 		{
 			if (parameters is not null && parameters.TryGetValue(name, out var parameter))
 				AddOccurrence(name, at, parameter, false, GramSymbolKind.Parameter);
-			else if (captures is not null && captures.TryGetValue(name, out var capture))
+			else if (inValue && captures is not null && captures.TryGetValue(name, out var capture))
 				AddOccurrence(name, at, capture, false, GramSymbolKind.Capture);
 			else
 				AddRule(name, at, false);
@@ -1222,7 +1226,7 @@ static class GramLanguageService
 					AddCSharpReferences(csharp);
 					break;
 				case Expr.Switch selected:
-					Visit(selected.Value);
+					VisitValue(selected.Value);
 					foreach (var branch in selected.Cases) Visit(branch.Body);
 					break;
 				case Expr.Choice choice:
@@ -1236,7 +1240,7 @@ static class GramLanguageService
 					break;
 				case Expr.Construct construct:
 					Visit(construct.Pattern);
-					Visit(construct.Value);
+					VisitValue(construct.Value);
 					break;
 				case Expr.Bound bound:
 					Visit(bound.Body);
@@ -1244,14 +1248,14 @@ static class GramLanguageService
 				case Expr.Recovering recovering:
 					Visit(recovering.Body);
 					Visit(recovering.Sync);
-					if (recovering.Factory is not null) Visit(recovering.Factory);
+					if (recovering.Factory is not null) VisitValue(recovering.Factory);
 					break;
 				case Expr.Guard guard:
-					Visit(guard.Value);
+					VisitValue(guard.Value);
 					break;
 				case Expr.Condition condition:
 					foreach (var operand in Test.Operands(condition.Test)) Visit(operand);
-					foreach (var guard in Test.Guards(condition.Test)) Visit(guard);
+					foreach (var guard in Test.Guards(condition.Test)) VisitValue(guard);
 					break;
 				case Expr.Capture capture:
 					Visit(capture.Operand);
@@ -1302,9 +1306,18 @@ static class GramLanguageService
 					break;
 				case Expr.Marked marked:
 					Visit(marked.Operand);
-					Visit(marked.Value);
+					VisitValue(marked.Value);
 					break;
 			}
+		}
+
+		void VisitValue(Expr value)
+		{
+			var outer = inValue;
+
+			inValue = true;
+			Visit(value);
+			inValue = outer;
 		}
 
 		void AddCount(string? name, Location within)

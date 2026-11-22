@@ -4334,7 +4334,14 @@ file.Line("return spare;");
 
 			using (file.Block($"internal {name}({string.Join(", ", parameters)})"))
 				foreach (var member in members)
-					file.Line($"{ResultTypes.PropertyOf(member, name)} = {ResultTypes.ParameterOf(member)};");
+				{
+					var property  = ResultTypes.PropertyOf(member, name);
+					var parameter = ResultTypes.ParameterOf(member);
+
+					// A capture written with a capital, `Hour: Hour`, is a parameter spelled as its
+					// property, and `Hour = Hour` would assign the parameter to itself.
+					file.Line($"{(property == parameter ? "this." : "")}{property} = {parameter};");
+				}
 
 			foreach (var member in members)
 			{

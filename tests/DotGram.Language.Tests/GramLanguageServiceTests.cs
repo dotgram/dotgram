@@ -656,7 +656,10 @@ public sealed class GramLanguageServiceTests
 		Assert.Equal(2, otherCount.Length);
 		Assert.All(otherCount, symbol => Assert.Equal(GramSymbolKind.Parameter, symbol.Kind));
 		Assert.Equal(3, symbols.Count(symbol => symbol.Name == "value" && symbol.Kind == GramSymbolKind.Parameter));
-		Assert.Equal(3, symbols.Count(symbol => symbol.Name == "item" && symbol.Kind == GramSymbolKind.Capture));
+
+		// The definition and the C# argument. The `item` after `&` stands where a recognizer goes, where a
+		// capture's name is no capture, and no rule is called `item`.
+		Assert.Equal(2, symbols.Count(symbol => symbol.Name == "item" && symbol.Kind == GramSymbolKind.Capture));
 
 		var localQuickInfo = GramLanguageService.Analyze(source).Classifications
 			.Where(span => span.SymbolKind is GramSymbolKind.Parameter or GramSymbolKind.Capture)
@@ -774,6 +777,46 @@ public sealed class GramLanguageServiceTests
 		Assert.Equal(
 			2,
 			document.Classifications.Count(span => span.Kind == GramSyntaxKind.Binding));
+	}
+
+	/// <summary>
+	/// A capture spelled like a rule is the capture only where a value goes: where a recognizer goes,
+	/// in a sequence, a call's argument or a <c>when … is</c>, the name is the rule's, as the generator
+	/// reads it.
+	/// </summary>
+	[Fact]
+	public void ACaptureNamedLikeARuleLeavesTheRuleItsReferences()
+	{
+		const string source =
+			"Start : @string = 'T' & hour: hour & ',' & p: Pair(hour) & Version: Name & when Version is \"Old\" & " +
+			"when @(hour.Length < 3) => @(hour + p + Version)\n" +
+			"Pair(item) = item & '-' & item\n" +
+			"hour = ['0'..'9']+\n" +
+			"Version = \"Old\" | \"New\"\n" +
+			"Name = ['a'..'z']+\n" +
+			"parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+
+		Assert.DoesNotContain(document.Diagnostics, static diagnostic => diagnostic.Id is "GRAM4018" or "GRAM3002" or "GRAM4021");
+
+		foreach (var (use, name) in new[] { ("hour: hour", "hour"), ("Pair(hour)", "hour"), ("when Version", "Version") })
+		{
+			var at     = source.IndexOf(use, StringComparison.Ordinal) + use.LastIndexOf(name, StringComparison.Ordinal);
+			var symbol = Assert.Single(document.Symbols, candidate => candidate.Position == at);
+
+			Assert.Equal(GramSymbolKind.Rule, symbol.Kind);
+			Assert.Equal(source.IndexOf("\n" + name + " =", StringComparison.Ordinal) + 1, symbol.DefinitionPosition);
+		}
+
+		foreach (var (use, name) in new[] { ("@(hour.", "hour"), ("@(hour +", "hour"), ("+ Version)", "Version") })
+		{
+			var at     = source.IndexOf(use, StringComparison.Ordinal) + use.IndexOf(name, StringComparison.Ordinal);
+			var symbol = Assert.Single(document.Symbols, candidate => candidate.Position == at);
+
+			Assert.Equal(GramSymbolKind.Capture, symbol.Kind);
+			Assert.Equal(source.IndexOf(name + ":", StringComparison.Ordinal), symbol.DefinitionPosition);
+		}
 	}
 
 	[Fact]
