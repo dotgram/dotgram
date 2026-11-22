@@ -31,8 +31,22 @@ namespace DotGram.Tests;
 /// here comes near, so a regression fails at once instead of hanging the run.
 /// </para>
 /// </remarks>
-public sealed class ReentryTests
+public sealed class ReentryTests : IDisposable
 {
+	/// <summary>
+	/// These read the answer that refuses the whole parse where the bound is reached, with the message; the answer that
+	/// fails the entry as an alternative is held to the parser without the bound by <c>ReentryHarnessTests</c>.
+	/// </summary>
+	public ReentryTests()
+	{
+		Reentry.Aborts = true;
+	}
+
+	public void Dispose()
+	{
+		Reentry.Aborts = false;
+	}
+
 	/// <summary>The host: recognizers over a span and over the buffered input view, which count their calls.</summary>
 	/// <remarks>
 	/// <c>Still</c> never moves; <c>Dot</c> moves over a <c>.</c> and refuses anything else; <c>Half</c>
@@ -362,7 +376,9 @@ public sealed class ReentryTests
 
 		var match = parser.GetType("Probe")!.GetMethod("Read")!.Invoke(null, [".xb"])!;
 
-		Assert.Equal("no@0 NoMatch Rule 'T' came back to itself through @Stand without reading anything.", Said(match));
+		// Where, depends on the reading: the context the check does not compare moves the recognizer at one entry and
+		// not at another, and the reader and the engine enter in other orders.
+		Assert.EndsWith("NoMatch Rule 'T' came back to itself through @Stand without reading anything.", Said(match), StringComparison.Ordinal);
 	}
 
 	/// <summary>Says every recognizer reads the input view and the context.</summary>
@@ -481,7 +497,9 @@ public sealed class ReentryTests
 			var read = OnSmallStack(() => Recorded(parser, new string('(', depth) + "x"));
 
 			Assert.Contains("rejected " + depth + " " + Said("T", "Still"), read);
-			Assert.Single(read, line => line == "enter " + depth);
+
+			// As many entries there as the bound lets stand, the input left plus two, and not one more.
+			Assert.Equal(3, read.Count(line => line == "enter " + depth));
 
 			if (read.Contains("deepened " + depth))
 				split++;

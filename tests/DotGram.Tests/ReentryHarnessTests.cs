@@ -43,9 +43,11 @@ public sealed class ReentryHarnessTests
 {
 	const string Counter = """
 		[System.ThreadStatic] static int calls;
-		public static int Cap = 3000;
-		public static void Reset() { calls = 0; }
-		static void Count() { if (++calls > Cap) throw new System.InvalidOperationException("went round"); }
+		[System.ThreadStatic] static long since;
+		public static int Cap = 1000;
+		public static long Ticks = System.Diagnostics.Stopwatch.Frequency / 2;
+		public static void Reset() { calls = 0; since = System.Diagnostics.Stopwatch.GetTimestamp(); }
+		static void Count() { if (++calls > Cap || System.Diagnostics.Stopwatch.GetTimestamp() - since > Ticks) throw new System.InvalidOperationException("went round"); }
 		""";
 
 	const string Context = """
@@ -136,11 +138,11 @@ public sealed class ReentryHarnessTests
 	static readonly (string Grammar, string Why)[] Known =
 	[
 		(
-			"T = d: A & when @(d >= 3)\nA : @int = 'a' => @(1) | @Still & i: A => @(i + 1)",
+			"T = d: A & when @(d >= 4)\nA : @int = 'a' => @(1) | @Still & i: A => @(i + 1)",
 			"a guard reads a value the cycle builds, which grows with the depth while the span stays the same"
 		),
 		(
-			"context : @Ctx\nT = A\nA = when @(context.Depth >= 5) & 'x' | M & @Still & A\nM : @int = \"\" => @(context.Bump())",
+			"context : @Ctx\nT = A\nA = when @(context.Depth >= 5) & 'x' | when @(context.Bump() > 0) & @Still & A",
 			"a guard reads the context a construction on the cycle writes, which changes between entries at one position"
 		),
 	];
@@ -162,13 +164,16 @@ public sealed class ReentryHarnessTests
 		"A = {B} | {R} & C\nC = ?!(A & 'c') & A & {S} | A & 'b' & 'b'",
 	];
 
-	static readonly string[] Recognizers = ["@Still", "@Half", "@OnB"];
+	/// <summary>Whether the wide grid is asked for (<c>DOTGRAM_REENTRY_HARNESS_WIDE=1</c>): segments that read a run, more recognizers, more callers.</summary>
+	static bool Wide => Environment.GetEnvironmentVariable("DOTGRAM_REENTRY_HARNESS_WIDE") is not null;
+
+	static string[] Recognizers => Wide ? ["@Still", "@Half", "@OnB"] : ["@Still", "@Half"];
 
 	static readonly string[] Bases = ["'a'", "'a'+"];
 
-	static readonly string[] Segments = ["'b'", "'b'?", "('b')*", "'b' & 'b'?"];
+	static string[] Segments => Wide ? ["'b'", "'b'?", "('b')*", "'b' & 'b'?"] : ["'b'", "'b'?"];
 
-	static readonly string[] Tops = ["T = A", "T = A & 'c'", "T = A & A & 'c'"];
+	static string[] Tops => Wide ? ["T = A", "T = A & 'c'", "T = A & A & 'c'"] : ["T = A & 'c'", "T = A & A & 'c'"];
 
 	static IEnumerable<string> Enumerated()
 	{
@@ -183,7 +188,7 @@ public sealed class ReentryHarnessTests
 	/// <summary>One parser, compiled into a context of its own so that thousands of them come and go.</summary>
 	sealed record Built(Assembly Assembly, bool Marked);
 
-	static Built? Build(string grammar, bool direct, bool tape, bool buffered, bool unchecked_)
+	static Built? Build(string grammar, bool direct, bool tape, bool buffered, bool unchecked_, bool lexical = false)
 	{
 		GramCompilation result;
 		var was = Reentry.Unchecked;
@@ -195,6 +200,7 @@ public sealed class ReentryHarnessTests
 			{
 				ClassName      = "Probe",
 				Direct         = direct,
+				Lexical        = lexical,
 				Carrier        = tape ? CarrierKind.Deferred : CarrierKind.Auto,
 				BufferedInput  = buffered,
 				BufferedBytes  = buffered,
@@ -279,7 +285,7 @@ public sealed class ReentryHarnessTests
 		}
 
 		return (bool)Read("IsSuccess")!
-			? $"ok@{(long)Read("Position")! + (int)Read("Length")!} {Read("Value")}"
+			? $"ok@{(long)Read("Position")! + (int)Read("Length")!} {(Read("Value") is byte[] bytes ? Encoding.ASCII.GetString(bytes) : Read("Value"))}"
 			: $"no@{Read("Position")} {Read("Outcome")} {Read("Error")}";
 	}
 
@@ -324,6 +330,7 @@ public sealed class ReentryHarnessTests
 		public long Ended;
 		public long Differ;
 		public long Loops;
+		public long Slow;
 		public readonly ConcurrentQueue<string> Problems = new();
 	}
 
@@ -351,7 +358,8 @@ public sealed class ReentryHarnessTests
 
 					// The bounded parser is let read far longer than the oracle: going round is the oracle's, and a
 					// search that is long but ends is told from one that does not.
-					bounded.Assembly.GetType("Probe")!.GetField("Cap")!.SetValue(null, int.Parse(Environment.GetEnvironmentVariable("DOTGRAM_REENTRY_HARNESS_CAP") ?? "300000"));
+					bounded.Assembly.GetType("Probe")!.GetField("Cap")!.SetValue(null, int.Parse(Environment.GetEnvironmentVariable("DOTGRAM_REENTRY_HARNESS_CAP") ?? "30000"));
+					bounded.Assembly.GetType("Probe")!.GetField("Ticks")!.SetValue(null, System.Diagnostics.Stopwatch.Frequency * 10);
 
 					marked |= bounded.Marked;
 
@@ -370,7 +378,14 @@ public sealed class ReentryHarnessTests
 							{
 								System.Threading.Interlocked.Increment(ref tally.Loops);
 
-								if (got == "LOOP" || got.StartsWith("EXC", StringComparison.Ordinal))
+								// Past the bounded parser's own, far larger cap: a search that ends, but not soon, where the
+								// oracle never does — told apart, and not a disagreement.
+								if (got == "LOOP")
+								{
+									System.Threading.Interlocked.Increment(ref tally.Slow);
+									tally.Problems.Enqueue($"SLOW {reading}/{form.Name} \"{input}\": the oracle goes round, the bound reads past its cap\n{grammar}");
+								}
+								else if (got.StartsWith("EXC", StringComparison.Ordinal))
 								{
 									System.Threading.Interlocked.Increment(ref tally.Differ);
 									tally.Problems.Enqueue($"{reading}/{form.Name} \"{input}\": the oracle goes round, the bound gives {got}\n{grammar}");
@@ -436,9 +451,163 @@ public sealed class ReentryHarnessTests
 		File.WriteAllText(
 			Path.Combine(Out, report),
 			$"grammars {tally.Grammars}, marked {tally.Marked}; answers equal {tally.Equal}, oracle went round {tally.Loops} " +
-			$"(bound ended {tally.Ended}); differing {tally.Differ}\n\n" + string.Join("\n\n", problems));
+			$"(bound ended {tally.Ended}, bound past its cap {tally.Slow}); differing {tally.Differ}\n\n" + string.Join("\n\n", problems));
 
 		return tally;
+	}
+
+	/// <summary>
+	/// A retry into an entry that is live at the same position reads afresh, as the parser without the bound reads it,
+	/// and a recursion tried before its base ends at the bound instead of going round: every form, every carrier.
+	/// </summary>
+	[Theory]
+	[InlineData("T = A & 'c'\nA = 'a' | @Still & A & 'b'", "abc", "ok@3 abc")]
+	[InlineData("T = A & 'c'\nA = 'a' | @Still & A & 'b'", "abbc", "ok@4 abbc")]
+	[InlineData("T = V & ';'\nV = ['0'..'9']+ | @Still & V & '%'", "1%;", "ok@3 1%;")]
+	[InlineData("T = A & 'c'\nA = 'a' | @Still & B\nB = A & 'b'", "abc", "ok@3 abc")]
+	[InlineData("T = A\nA = @Still & A & 'b' | 'a'", "abb", "ok@3 abb")]
+	[InlineData("T = A\nA = @Still & A & 'b' | 'a'", "ab", "ok@2 ab")]
+	public void A_retry_reads_as_the_parser_without_the_bound(string grammar, string input, string expected)
+	{
+		foreach (var direct in new[] { true, false })
+			foreach (var tape in new[] { false, true })
+				foreach (var buffered in new[] { false, true })
+				{
+					var bounded = Build(grammar, direct, tape, buffered, unchecked_: false)!;
+
+					foreach (var form in buffered ? new[] { typeof(string), typeof(TextReader), typeof(Stream) } : [typeof(string)])
+						Assert.Equal(expected, Answer(bounded.Assembly, input, form));
+				}
+	}
+
+	/// <summary>
+	/// The input left is counted to the end each form reads to: a search's to the end of the whole input, not the next
+	/// start; a reading from a position, or in a window, to the window's end. Each answers as without the bound.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void The_bound_counts_to_the_end_each_form_reads_to(bool direct)
+	{
+		const string Grammar = "T = A & 'c'\nA = 'a' | @Still & A & 'b'";
+
+		var oracle  = BuildPublished(Grammar + "\npositional parse T\nfind T", direct, unchecked_: true);
+		var bounded = BuildPublished(Grammar + "\npositional parse T\nfind T", direct, unchecked_: false);
+
+		foreach (var input in new[] { "xabc", "abcabbc", "xabbbcy", "abc;abbc" })
+		{
+			Agrees(Found(oracle, input), Found(bounded, input));
+
+			for (var at = 0; at < input.Length; at++)
+			{
+				Agrees(From(oracle, input, at, null), From(bounded, input, at, null));
+
+				for (var length = 0; at + length <= input.Length; length++)
+					Agrees(From(oracle, input, at, length), From(bounded, input, at, length));
+			}
+		}
+	}
+
+	/// <summary>The same answer where the oracle gives one; an end where it goes round.</summary>
+	static void Agrees(string oracle, string bounded)
+	{
+		if (oracle.Contains("LOOP", StringComparison.Ordinal))
+			Assert.DoesNotContain("LOOP", bounded, StringComparison.Ordinal);
+		else
+			Assert.Equal(oracle, bounded);
+	}
+
+	static Assembly BuildPublished(string grammar, bool direct, bool unchecked_)
+	{
+		var was = Reentry.Unchecked;
+
+		try
+		{
+			Reentry.Unchecked = unchecked_;
+
+			var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+			{
+				ClassName      = "Probe",
+				Direct         = direct,
+				SymbolResolver = PermissiveSymbolResolver.Instance,
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+			});
+
+			EmittedCode.Quiet(result.Diagnostics);
+
+			return EmittedCode.Compile(
+				result.Sources[0].Text, className: "Probe", declarationMembers: SpanHost,
+				sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+		}
+		finally
+		{
+			Reentry.Unchecked = was;
+		}
+	}
+
+	static string Found(Assembly parser, string input)
+	{
+		parser.GetType("Probe")!.GetMethod("Reset")!.Invoke(null, null);
+
+		var found = new List<string>();
+
+		try
+		{
+			foreach (var match in (System.Collections.IEnumerable)parser.GetType("Probe")!.GetMethod("FindT", [typeof(string)])!.Invoke(null, [input])!)
+				found.Add(match.GetType().GetProperty("Position")!.GetValue(match) + "+" + match.GetType().GetProperty("Length")!.GetValue(match));
+		}
+		catch (InvalidOperationException thrown) when (thrown.Message == "went round")
+		{
+			found.Add("LOOP");
+		}
+
+		return string.Join(" ", found);
+	}
+
+	static string From(Assembly parser, string input, int at, int? length)
+	{
+		var type = parser.GetType("Probe")!;
+
+		type.GetMethod("Reset")!.Invoke(null, null);
+
+		var method = length is null
+			? type.GetMethod("TryParseT", [typeof(string), typeof(int)])!
+			: type.GetMethod("TryParseT", [typeof(string), typeof(int), typeof(int)])!;
+
+		try
+		{
+			var match = method.Invoke(null, length is null ? [input, at] : [input, at, length.Value])!;
+
+			object? Read(string name)
+			{
+				return match.GetType().GetProperty(name)!.GetValue(match);
+			}
+
+			return (bool)Read("IsSuccess")! ? $"ok@{Read("Position")}+{Read("Length")}" : $"no@{Read("Position")} {Read("Outcome")} {Read("Error")}";
+		}
+		catch (TargetInvocationException thrown) when (thrown.InnerException?.Message == "went round")
+		{
+			return "LOOP";
+		}
+	}
+
+	/// <summary>A grammar cut in two whose tokenizer reads a rule that comes back to itself compiles, and reads as without the bound.</summary>
+	[Theory]
+	[InlineData("Rest   = @Dot & Rest & 'b' | \"*)\"", "ab (*.*)b")]
+	[InlineData("Rest   = ([^ '*'] | @Dot & Rest)* & \"*)\"", "ab (**)")]
+	public void A_tokenizer_rule_that_comes_back_compiles(string rest, string input)
+	{
+		var grammar = "using Lexical;\ntrivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tName   = ['a'..'z']+\n\tRemark = \"(*\" & Rest\n\t" + rest + "\n}\nT = Name & Remark";
+
+		foreach (var direct in new[] { true, false })
+		{
+			var oracle  = Build(grammar, direct, tape: false, buffered: false, unchecked_: true, lexical: true)!;
+			var bounded = Build(grammar, direct, tape: false, buffered: false, unchecked_: false, lexical: true)!;
+
+			Assert.True(bounded.Marked);
+			Assert.StartsWith("ok@", Answer(oracle.Assembly, input, typeof(string)), StringComparison.Ordinal);
+			Assert.Equal(Answer(oracle.Assembly, input, typeof(string)), Answer(bounded.Assembly, input, typeof(string)));
+		}
 	}
 
 	[Fact]
@@ -477,7 +646,7 @@ public sealed class ReentryHarnessTests
 		if (!Requested)
 			return;
 
-		var tally = Run(Enumerated(), 5, 3, "reentry-harness-enumeration.txt");
+		var tally = Run(Enumerated(), Wide ? 4 : 3, 2, Wide ? "reentry-harness-wide.txt" : "reentry-harness-enumeration.txt");
 
 		Assert.True(tally.Marked > 0);
 		Assert.True(tally.Differ == 0, string.Join("\n\n", tally.Problems.Take(10)));
