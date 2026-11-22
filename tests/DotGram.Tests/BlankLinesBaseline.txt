@@ -353,4 +353,4 @@ tests/DotGram.Tests/YieldRecoveryTests.cs control 2
 tests/DotGram.Tests/YieldRecoveryTests.cs declarations 10
 tests/DotGram.VisualStudio.Tests/EditorGuardTests.cs declarations 9
 tests/DotGram.VisualStudio.Tests/PlaygroundAdapterTests.cs control 3
-tests/DotGram.VisualStudio.Tests/PlaygroundAdapterTests.cs declarations 19
+tests/DotGram.VisualStudio.Tests/PlaygroundAdapterTests.cs declarations 18
