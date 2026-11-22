@@ -241,7 +241,9 @@ public sealed class PlaygroundAdapterTests
 			var before = buffer.CurrentSnapshot;
 
 			using var workspace = PlaygroundWorkspace(text, folder);
+
 			var (analysis, session) = EmbeddedAnalysis(buffer, workspace);
+
 			using var empty = new AdhocWorkspace();
 			var roslyn     = new RoslynGramFeatures(new RoslynGramCompletion(empty, static () => null), null!);
 			var completion = new EmbeddedGramCompletionSource(buffer, analysis, roslyn);
@@ -344,6 +346,7 @@ public sealed class PlaygroundAdapterTests
 	{
 		var documents = new Mock<ITextDocumentFactoryService>();
 		ITextDocument? none = null;
+
 		documents.Setup(service => service.TryGetTextDocument(It.IsAny<ITextBuffer>(), out none)).Returns(false);
 
 		var host     = new EmbeddedHost(buffer, workspace);
@@ -388,10 +391,13 @@ public sealed class PlaygroundAdapterTests
 		var snapshot  = buffer.CurrentSnapshot;
 		var documents = new Mock<ITextDocumentFactoryService>();
 		ITextDocument? none = null;
+
 		documents.Setup(service => service.TryGetTextDocument(It.IsAny<ITextBuffer>(), out none)).Returns(false);
 
 		using var workspace = PlaygroundWorkspace(text, root);
+
 		var (analysis, _) = EmbeddedAnalysis(buffer, workspace);
+
 		var view   = analysis.View(snapshot);
 		var result = new StringBuilder();
 
