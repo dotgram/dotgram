@@ -313,10 +313,63 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 		return true;
 	}
 
-	/// <summary>Read from the current text alone, whatever the last analysis knows of it.</summary>
+	/// <summary>
+	/// Read from the current text, from a place found in it; where the text cannot tell, from where the
+	/// last analysis says a line starts outside every comment and literal.
+	/// </summary>
 	protected override bool InCommentOrLiteral(int length, Func<int, char> at, int position)
 	{
-		return GramVocabulary.InCommentOrLiteral(length, at, position, GramVocabulary.ReadFrom(length, at, position));
+		return GramVocabulary.InCommentOrLiteral(
+			length,
+			at,
+			position,
+			GramVocabulary.ReadFrom(length, at, position, lineStart => Classified(length, at, lineStart)));
+	}
+
+	/// <summary>
+	/// Where the analysis says reading may start for a line: the last token it classified before the
+	/// line, at its start where it runs on into the line (a block comment whose <c>/*</c> is still
+	/// there, a C# string over lines) and after its end where it does not; the start of the text where
+	/// there is none, or the comment's <c>/*</c> is gone. The classifications are in the order of the
+	/// text, so the token is found by a binary search.
+	/// </summary>
+	int Classified(int length, Func<int, char> at, int lineStart)
+	{
+		var classifications = document.Classifications;
+		var low             = 0;
+		var high            = classifications.Count - 1;
+		var last            = -1;
+
+		while (low <= high)
+		{
+			var middle = low + (high - low) / 2;
+
+			if (classifications[middle].Position < lineStart)
+			{
+				last = middle;
+				low  = middle + 1;
+			}
+			else
+			{
+				high = middle - 1;
+			}
+		}
+
+		if (last < 0)
+			return 0;
+
+		var token = classifications[last];
+		var end   = token.Position + token.Length;
+
+		if (end <= lineStart)
+			return end;
+
+		if (token.Kind != GramSyntaxKind.Comment)
+			return token.Position;
+
+		return token.Position + 1 < length && at(token.Position) == '/' && at(token.Position + 1) == '*'
+			? token.Position
+			: 0;
 	}
 
 	protected override (string Text, int Position)? GrammarAt(string text, int position)

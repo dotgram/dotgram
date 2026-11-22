@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -212,6 +213,88 @@ public sealed class GramCompletionProviderTests
 		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
 
 		Assert.Equal(opens, provider.Start(text, position) is not null);
+	}
+
+	/// <summary>
+	/// A <c>/*</c> or <c>*/</c> inside a C# raw or verbatim string over lines, in an <c>@(…)</c>, is no
+	/// comment: the name after the string, and the rules below it, are completed. The caret is where `|`
+	/// stands.
+	/// </summary>
+	[Theory]
+	[InlineData("A : int = 'a' => @(Sql(\"\"\"\n    SELECT /* hint */ x FROM t\n    \"\"\", y|))\nB : int = 'b' => 1\n")]
+	[InlineData("A : int = 'a' => @(Sql(\"\"\"\n    SELECT /* hint */ x FROM t\n    \"\"\", y))\nB : int = C|\n")]
+	[InlineData("A : int = 'a' => @(Sql(@\"\n    SELECT /* hint\n    \", y))\nB : int = C|\n")]
+	[InlineData("A : int = 'a' => @(Sql(\"\"\"\n    SELECT /* hint\n    \"\"\", y))\nB : int = C|\n")]
+	public void A_comment_marker_in_a_csharp_string_over_lines_opens_no_comment(string marked)
+	{
+		var position = marked.IndexOf('|');
+		var text     = marked.Remove(position, 1);
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
+
+		Assert.NotNull(provider.Start(text, position));
+	}
+
+	/// <summary>
+	/// A block comment longer than the text searched back for one keeps completion closed to its end:
+	/// beyond the search, the analysis says where the comment began.
+	/// </summary>
+	[Fact]
+	public void Completion_does_not_open_in_a_block_comment_longer_than_the_search()
+	{
+		var body = new StringBuilder("A : int = 'a' => 1\n/* commented out\n");
+
+		while (body.Length < GramVocabulary.CommentSearchLength + 2000)
+			body.Append("Rule : int = 'r' Other => 1\n");
+
+		var marked   = body + "Ru|le : int = 'r' => 1\n*/\nB : int = 'b' => 1\n";
+		var position = marked.IndexOf('|');
+		var text     = marked.Remove(position, 1);
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
+
+		Assert.Null(provider.Start(text, position));
+	}
+
+	/// <summary>
+	/// Where to read from, found by searching back, gives at every place the answer reading from the
+	/// start of the text gives: over texts made at random of comment markers, quotes, line breaks,
+	/// escapes, the <c>i</c> marker, rules and, in half of them, C#'s raw and verbatim strings.
+	/// </summary>
+	[Theory]
+	[InlineData(false, 1)]
+	[InlineData(false, 2)]
+	[InlineData(true, 3)]
+	[InlineData(true, 4)]
+	public void Reading_from_the_place_found_agrees_with_reading_from_the_start(bool csharpStrings, int seed)
+	{
+		string[] grammar = ["/*", "*/", "//", "'", "\"", "\n", "\r\n", "a", " ", "\\", "*", "/", "i", "A : int = 'x' => 1\n"];
+		string[] csharp  = ["@\"", "\"\"\"", "$@\"", "\"\""];
+		var pieces       = csharpStrings ? [.. grammar, .. csharp] : grammar;
+		var random       = new Random(seed);
+		var report       = new StringBuilder();
+
+		for (var sample = 0; sample < 4000 && report.Length < 3000; sample++)
+		{
+			var builder = new StringBuilder();
+			var count   = random.Next(1, 30);
+
+			for (var index = 0; index < count; index++)
+				builder.Append(pieces[random.Next(pieces.Length)]);
+
+			var text = builder.ToString();
+
+			for (var position = 0; position <= text.Length; position++)
+			{
+				var whole = GramVocabulary.InCommentOrLiteral(text.Length, index => text[index], position);
+				var from  = GramVocabulary.ReadFrom(text.Length, index => text[index], position);
+				var found = GramVocabulary.InCommentOrLiteral(text.Length, index => text[index], position, from);
+
+				if (whole != found)
+					report.AppendLine($"from the start {whole}, from {from} {found}: " +
+						(text[..position] + "|" + text[position..]).Replace("\r", "\\r").Replace("\n", "\\n"));
+			}
+		}
+
+		Assert.True(report.Length == 0, report.ToString());
 	}
 
 	/// <summary>
