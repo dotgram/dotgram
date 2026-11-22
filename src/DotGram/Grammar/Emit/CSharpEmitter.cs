@@ -1254,10 +1254,10 @@ static partial class CSharpEmitter
 				(machines.Exists(static compiled => compiled.Direct && compiled.Machine.Probes) ? FailureFields.Limits : 0) |
 				(tracing is not null ? FailureFields.Trace : 0) |
 				// Whether a reading was refused for a rule entered again where it stood (Machine.Reentry.cs).
-				(Reentry.Any(graph) ? FailureFields.Reentered : 0)));
+				(Reenters(graph, lexical) ? FailureFields.Reentered : 0)));
 			file.Line();
 
-			if (Reentry.Any(graph))
+			if (Reenters(graph, lexical))
 			{
 				file.Write(ReenteredSupport(moreField, tracing is not null));
 				file.Line();
@@ -3196,6 +3196,15 @@ static partial class CSharpEmitter
 				}
 			}
 		}
+	}
+
+	/// <summary>
+	/// Whether a rule of the file may be entered again where it stands (Machine.Reentry.cs): of the graph the
+	/// publications read, or, in a grammar cut in two, of the characters the tokenizer reads its terminals over.
+	/// </summary>
+	static bool Reenters(RecognitionGraph graph, LexicalSplit? lexical)
+	{
+		return Reentry.Any(graph) || lexical is not null && Reentry.Any(lexical.Source);
 	}
 
 	/// <summary>How many runs of kinds the lexer tests for by comparison before it takes a table.</summary>

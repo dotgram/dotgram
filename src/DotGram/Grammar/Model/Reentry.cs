@@ -203,6 +203,19 @@ static class Reentry
 	[ThreadStatic]
 	static bool _unchecked;
 
+	/// <summary>
+	/// For a test that weighs the two answers at the bound: on this thread, a rule entered past its bound refuses the
+	/// whole parse with the message of <see cref="Cycle.Said"/> rather than failing as an alternative does.
+	/// </summary>
+	internal static bool Aborts
+	{
+		get { return _aborts; }
+		set { _aborts = value; }
+	}
+
+	[ThreadStatic]
+	static bool _aborts;
+
 	static Facts Work(RecognitionGraph graph)
 	{
 		if (!FirstSets.HostsMayStand(graph))
