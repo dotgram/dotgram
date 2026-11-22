@@ -72,6 +72,13 @@ static class GrammarPosition
 	public static (string Text, int Position)? Embedded(
 		string text, int position, IReadOnlyList<HostClassification> classifications)
 	{
+		return Embedded(index => text[index], position, classifications);
+	}
+
+	/// <summary>The same, read character by character: only the C# string the position is in is copied.</summary>
+	public static (string Text, int Position)? Embedded(
+		Func<int, char> at, int position, IReadOnlyList<HostClassification> classifications)
+	{
 		foreach (var item in classifications)
 		{
 			var span = item.GrammarSpan;
@@ -79,8 +86,13 @@ static class GrammarPosition
 			if (position < span.Start || position > span.End)
 				continue;
 
-			return CSharpStringMap.TryDecode(text.Substring(span.Start, span.Length), position - span.Start, out var grammar, out var at)
-				? (grammar, at)
+			var literal = new char[span.Length];
+
+			for (var index = 0; index < span.Length; index++)
+				literal[index] = at(span.Start + index);
+
+			return CSharpStringMap.TryDecode(new string(literal), position - span.Start, out var grammar, out var inGrammar)
+				? (grammar, inGrammar)
 				: null;
 		}
 

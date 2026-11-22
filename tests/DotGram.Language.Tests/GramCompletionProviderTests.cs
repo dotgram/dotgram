@@ -139,6 +139,81 @@ public sealed class GramCompletionProviderTests
 		Assert.NotNull(provider.Start(text, name));
 	}
 
+	/// <summary>A block comment over lines of an embedded grammar keeps completion closed on every line of it.</summary>
+	[Fact]
+	public async Task Completion_does_not_open_on_a_later_line_of_a_block_comment_in_an_embedded_grammar()
+	{
+		var folder   = Path.Combine(PlaygroundSnapshotTests.SourceRoot(), "tests", "DotGram.VisualStudio.Tests", "Playground");
+		var original = File.ReadAllText(Path.Combine(folder, PlaygroundEmbedded.FileName));
+		var newLine  = original.Contains("\r\n") ? "\r\n" : "\n";
+		var anchor   = "trivia = [' ' | '\\t']*" + newLine;
+		var at       = original.IndexOf(anchor, StringComparison.Ordinal);
+
+		Assert.True(at >= 0);
+
+		var text     = original.Insert(at + anchor.Length, newLine + "\t/* a block" + newLine + "\tthat goes on fix */" + newLine);
+		var view     = await PlaygroundEmbedded.ViewAsync(text, folder, TestContext.Current.CancellationToken);
+		var provider = new EmbeddedGramCompletionProvider(view);
+
+		Assert.Null(provider.Start(text, text.IndexOf("a block", StringComparison.Ordinal) + "a blo".Length));
+		Assert.Null(provider.Start(text, text.IndexOf("goes on fix", StringComparison.Ordinal) + "goes on fi".Length));
+	}
+
+	/// <summary>
+	/// Whether the caret is in a comment or a literal is read from the current text, not from what the
+	/// last analysis classified: a block comment opened since it, or before any, keeps the list closed
+	/// on its later lines, and one whose <c>/*</c> was deleted since no longer does.
+	/// </summary>
+	[Theory]
+	[InlineData("", "/* a block\nthat goes on fix| */\nA : int = 'a' => 1", false)]
+	[InlineData("A : int = 'a' => 1\nB : int = 'b' => 1\n", "A : int = 'a' => 1\n/* B : int = 'b'\nfix| */ => 1\n", false)]
+	[InlineData("/* a block\nthat goes on fix */\nA : int = 'a' => 1", "   a block\nthat goes on fix| */\nA : int = 'a' => 1", true)]
+	public void Completion_reads_the_current_text_not_the_last_analysis(string analysed, string marked, bool opens)
+	{
+		var position = marked.IndexOf('|');
+		var text     = marked.Remove(position, 1);
+		var document = analysed.Length == 0 ? GramAnalysisSession.EmptyDocument : GramLanguageService.Analyze(analysed);
+		var provider = new StandaloneGramCompletionProvider(document);
+
+		Assert.Equal(opens, provider.Start(text, position) is not null);
+	}
+
+	/// <summary>
+	/// C#'s strings inside <c>@(…)</c> are read as C# reads them, verbatim and raw ones too, so that a name
+	/// after one is completed; and the grammar's own literals and comments as before, at the edges of a
+	/// line, of the text and of an <c>i</c> marker. The caret is where `|` stands.
+	/// </summary>
+	[Theory]
+	[InlineData("A : int = 'a' => @(Path(@\"C:\\\", x|))", true)]
+	[InlineData("A : int = 'a' => @(Path($@\"{d}\\\", x|))", true)]
+	[InlineData("A : int = 'a' => @(F(\"\"\"a\"b\"\"\", x|))", true)]
+	[InlineData("A : int = 'a' => @(F(\"\"\"a\"b|", false)]
+	[InlineData("A : int = 'a' => @(F(@\"a\"\"b|", false)]
+	[InlineData("A : int = 'a' => @(F(@\"over\nlines\", x|))", true)]
+	[InlineData("A : int = 'a' => @(F('\"', x|))", true)]
+	[InlineData("A : int = 'a' => @(F(\"\\\\\", x|))", true)]
+	[InlineData("A : int = 'a' => @(F($\"{(a ? \"x\" : \"y\")}\", x|))", true)]
+	[InlineData("A : int = 'a' => @(F(\"a\" /* \" */, x|))", true)]
+	[InlineData("A : int = 'a'\r\n  B|", true)]
+	[InlineData("A : int = 'a' //x\r\nB|", true)]
+	[InlineData("A : int = '\\\\' B|", true)]
+	[InlineData("A : int = \"a\\\"b\" B|", true)]
+	[InlineData("A : int = 'a'i| B", false)]
+	[InlineData("A : int = 'a'ix| B", true)]
+	[InlineData("|", true)]
+	[InlineData("/**/A|", true)]
+	[InlineData("/*/ A|", false)]
+	[InlineData("A : int = \"a\"\nB|", true)]
+	[InlineData("A : int = 'a\nB|", true)]
+	public void Completion_reads_strings_and_comments_as_their_language_does(string marked, bool opens)
+	{
+		var position = marked.IndexOf('|');
+		var text     = marked.Remove(position, 1);
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
+
+		Assert.Equal(opens, provider.Start(text, position) is not null);
+	}
+
 	/// <summary>
 	/// A capture is offered as a construction names it, up to the caret just after the rule's last
 	/// character: `=> n` typed at the end of a rule finds `n`, which Enter then leaves as typed, rather

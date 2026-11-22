@@ -357,34 +357,91 @@ static class GramVocabulary
 
 	/// <summary>
 	/// Whether <paramref name="position"/> of a grammar is in a comment or in a character or string
-	/// literal, its <c>i</c> marker included, the C# strings and comments of an <c>@(…)</c> too: text
-	/// that names nothing, where completion has nothing to offer. A literal or a block comment still
-	/// being typed runs to the position; the place just after a literal's closing quote is not in it.
+	/// literal, its <c>i</c> marker included, the C# strings and comments of an <c>@(…)</c> too —
+	/// verbatim and raw ones as C# reads them: text that names nothing, where completion has nothing
+	/// to offer. A literal or a block comment still being typed runs to the position, a literal of the
+	/// grammar or a regular C# one to the end of its line; the place just after a literal's closing
+	/// quote is not in it.
 	/// </summary>
 	/// <remarks>
-	/// Asked on every keystroke that could open completion, so it reads only the position's own line,
-	/// from its start: a literal does not span lines, nor does a line comment. A block comment that
-	/// does is told by <paramref name="lineStartsInComment"/>, from what the last analysis classified;
-	/// without it, a line is taken to start outside one.
+	/// Asked on every keystroke that could open completion, so the text is read from
+	/// <paramref name="from"/>, a place the caller knows to be outside every comment and literal — the
+	/// start of the text, or the end of a token an analysis classified — and not from the start.
 	/// </remarks>
 	/// <param name="length">The grammar's length.</param>
 	/// <param name="at">The grammar's character at an index.</param>
 	/// <param name="position">The caret.</param>
-	/// <param name="lineStartsInComment">Whether the line that starts at an index starts inside a block comment.</param>
-	public static bool InCommentOrLiteral(int length, Func<int, char> at, int position, Func<int, bool>? lineStartsInComment = null)
+	/// <param name="from">Where to read from: outside every comment and literal, at or before the caret.</param>
+	public static bool InCommentOrLiteral(int length, Func<int, char> at, int position, int from = 0)
 	{
-		var index = position;
+		return Read(length, at, from, position) != TextPlace.Text;
+	}
 
-		while (index > 0 && at(index - 1) is not ('\n' or '\r'))
-			index--;
+	/// <summary>
+	/// Where to read from to tell whether a position is in a comment or a literal: after the nearest
+	/// <c>*/</c> before the position's line that stands in text or closes a comment, or at the start of
+	/// the line of the nearest <c>/*</c> that opens one; the start of the text where there is neither.
+	/// </summary>
+	/// <remarks>
+	/// The text is searched backwards from the position's line, so that only what lies between it and
+	/// the last comment is read, and a <c>/*</c> or <c>*/</c> inside a literal or a line comment, which
+	/// opens and closes nothing, is told by reading its own line. A line is read as starting outside a
+	/// comment, which a comment's last line, starting inside it, is not: a <c>*/</c> there that does not
+	/// stand in a literal is taken to close it. The search goes back <see cref="CommentSearchLength"/>
+	/// characters at most, to the start of a line there: a block comment longer than that, around the
+	/// position, is not seen, which keeps a keystroke's cost bounded in a grammar with no block comments.
+	/// </remarks>
+	/// <param name="length">The grammar's length.</param>
+	/// <param name="at">The grammar's character at an index.</param>
+	/// <param name="position">The caret.</param>
+	public static int ReadFrom(int length, Func<int, char> at, int position)
+	{
+		var index = LineStart(at, position) - 1;
+		var limit = Math.Max(0, index - CommentSearchLength);
 
-		if (lineStartsInComment?.Invoke(index) == true)
+		while (index > limit)
 		{
-			index = BlockCommentEnd(at, index, position);
+			if (at(index) == '*')
+			{
+				if (at(index - 1) == '/' && Read(length, at, LineStart(at, index - 1), index - 1) == TextPlace.Text)
+					return LineStart(at, index - 1);
 
-			if (index < 0)
-				return true;
+				if (index + 1 < length && at(index + 1) == '/' &&
+					Read(length, at, LineStart(at, index), index) is TextPlace.Text or TextPlace.BlockComment)
+					return index + 2;
+			}
+
+			index--;
 		}
+
+		return limit == 0 ? 0 : LineStart(at, limit);
+	}
+
+	/// <summary>How far back <see cref="ReadFrom"/> looks for the comment a position may be in.</summary>
+	public const int CommentSearchLength = 16 * 1024;
+
+	static int LineStart(Func<int, char> at, int position)
+	{
+		var start = position;
+
+		while (start > 0 && at(start - 1) is not ('\n' or '\r'))
+			start--;
+
+		return start;
+	}
+
+	enum TextPlace
+	{
+		Text,
+		LineComment,
+		BlockComment,
+		Literal,
+	}
+
+	/// <summary>What the position is in, the text read from a place outside every comment and literal.</summary>
+	static TextPlace Read(int length, Func<int, char> at, int from, int position)
+	{
+		var index = from;
 
 		while (index < position)
 		{
@@ -392,25 +449,33 @@ static class GramVocabulary
 			var next      = index + 1 < length ? at(index + 1) : '\0';
 
 			if (character == '/' && next == '/')
-				return true;
+			{
+				while (index < position && at(index) is not ('\n' or '\r'))
+					index++;
+
+				if (index == position)
+					return TextPlace.LineComment;
+
+				continue;
+			}
 
 			if (character == '/' && next == '*')
 			{
 				index = BlockCommentEnd(at, index + 2, position);
 
 				if (index < 0)
-					return true;
+					return TextPlace.BlockComment;
 
 				continue;
 			}
 
 			if (character is '\'' or '"')
 			{
-				var close = LiteralEnd(at, index, position);
+				var close = LiteralEnd(length, at, index, position);
 
 				// Still open at the position, or the position in the case-insensitive marker after it.
 				if (close < 0 || close + 2 == position && at(close + 1) == 'i')
-					return true;
+					return TextPlace.Literal;
 
 				index = close + 1;
 				continue;
@@ -419,7 +484,7 @@ static class GramVocabulary
 			index++;
 		}
 
-		return false;
+		return TextPlace.Text;
 	}
 
 	/// <summary>Where a block comment's <c>*/</c> ends, at or before the position; -1 where it does not.</summary>
@@ -432,22 +497,74 @@ static class GramVocabulary
 		return -1;
 	}
 
-	/// <summary>The index of a literal's closing quote, before the position; -1 where it is still open there.</summary>
-	static int LiteralEnd(Func<int, char> at, int open, int position)
+	/// <summary>
+	/// The index of a literal's last character before the position: its closing quote, or the last
+	/// character of a line a regular literal did not close on; -1 where it is still open at the position.
+	/// </summary>
+	/// <remarks>
+	/// A C# raw string (three quotes or more) closes on as many quotes and a verbatim one (<c>@"</c>)
+	/// on a quote not doubled; neither knows escapes, and both may span lines.
+	/// </remarks>
+	static int LiteralEnd(int length, Func<int, char> at, int open, int position)
 	{
 		var quote = at(open);
+		var run   = 0;
+
+		while (quote == '"' && open + run < length && at(open + run) == '"')
+			run++;
+
+		if (quote == '"' && run >= 3)
+			return RawStringEnd(at, open + run, run, position);
+
+		var verbatim = quote == '"' &&
+			(open > 0 && at(open - 1) == '@' || open > 1 && at(open - 1) == '$' && at(open - 2) == '@');
 		var index = open + 1;
 
 		while (index < position)
 		{
 			var character = at(index);
 
-			if (character == '\\')
+			if (verbatim)
+			{
+				if (character == '"' && index + 1 < length && at(index + 1) == '"')
+					index += 2;
+				else if (character == '"')
+					return index;
+				else
+					index++;
+			}
+			else if (character is '\n' or '\r')
+			{
+				return index - 1;
+			}
+			else if (character == '\\')
+			{
 				index += 2;
+			}
 			else if (character == quote)
+			{
 				return index;
+			}
 			else
+			{
 				index++;
+			}
+		}
+
+		return -1;
+	}
+
+	/// <summary>The index of the last quote closing a raw string, before the position; -1 where it is open there.</summary>
+	static int RawStringEnd(Func<int, char> at, int from, int quotes, int position)
+	{
+		var run = 0;
+
+		for (var index = from; index < position; index++)
+		{
+			run = at(index) == '"' ? run + 1 : 0;
+
+			if (run == quotes)
+				return index;
 		}
 
 		return -1;
