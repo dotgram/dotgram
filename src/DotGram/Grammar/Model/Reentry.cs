@@ -145,7 +145,7 @@ static class Reentry
 	/// <remarks>
 	/// For a pass that settles a run for the site it is read at, by a copy of the rule that reads it (none is
 	/// written yet): a copy made after this fact was worked out is not marked, so the recursion through it
-	/// would go unchecked, or be checked as another rule's and refused one entry later than the rule it was
+	/// would go unchecked, or be checked as another rule's and cut one entry later than the rule it was
 	/// copied from. Such a rule is left as it is, and read as it is; the run it settles is only faster.
 	/// </remarks>
 	public static bool MayCopy(RecognitionGraph graph, RuleSymbol rule)
@@ -181,7 +181,7 @@ static class Reentry
 		return true;
 	}
 
-	/// <summary>How a marked rule comes back to itself, for the refusal its check says.</summary>
+	/// <summary>How a marked rule comes back to itself, for what its check says where a reading passes its ceiling.</summary>
 	public static Cycle CycleOf(RecognitionGraph graph, RuleSymbol rule)
 	{
 		return Of(graph).Marked[rule];
