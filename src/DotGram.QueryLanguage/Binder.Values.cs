@@ -430,11 +430,11 @@ sealed partial class Binder
 
 	/// <summary>
 	/// <c>x like p</c>, as the host's LIKE: the language reads nothing in the pattern. The left is a string of the rows,
-	/// so that the database computes it; the right is any string.
+	/// so that the database computes it; the right is any string. A model without a LIKE refuses it after its operands,
+	/// so that a field named there without its right is reported as it is anywhere else.
 	/// </summary>
 	BoundExpr BindLike(LikeExpr like)
 	{
-		var hook = _like ?? throw Error(QlErrorCode.Type, "`like` is not available in this model: the host has not declared what it means.", like.Position);
 		var text = ScalarType.Of(QlType.String, true);
 
 		if (IsUntyped(like.Operand) || like.Operand is LiteralExpr or TypedLiteralExpr)
@@ -452,6 +452,8 @@ sealed partial class Binder
 
 		if (pattern.Type.Type != QlType.String)
 			throw Error(QlErrorCode.Type, $"The pattern of `like` is a string, and this is a {pattern.Type.Name}.", like.Pattern.Position);
+
+		var hook = _like ?? throw Error(QlErrorCode.Type, "`like` is not available in this model: the host has not declared what it means.", like.Position);
 
 		return new BoundLike(Convert(operand, text), Convert(pattern, text), like.Negated, hook, like.Position);
 	}

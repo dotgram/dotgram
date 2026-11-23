@@ -217,6 +217,20 @@ public sealed class BuildTests
 		Assert.Equal(3, builder.Build().Formats.Count);
 	}
 
+	[Fact]
+	public void LikeIsDeclaredOnce()
+	{
+		var builder = new QlModelBuilder<Db>();
+
+		Assert.Throws<ArgumentNullException>(() => builder.Like(null!));
+
+		builder.Like((s, p) => s == p);
+
+		Assert.Throws<ArgumentException>(() => builder.Like((s, p) => s != p));
+		Assert.NotNull(builder.Build().Like);
+		Assert.Null(new QlModelBuilder<Db>().Build().Like);
+	}
+
 	[Theory]
 	[InlineData(nameof(QlOptions.MaxTextLength))]
 	[InlineData(nameof(QlOptions.MaxSyntaxDepth))]

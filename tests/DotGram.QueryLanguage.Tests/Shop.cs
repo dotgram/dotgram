@@ -56,10 +56,13 @@ public sealed class Shop(IQueryable<Order> orders, int tenant)
 		return new Shop(Rows().AsQueryable(), tenant);
 	}
 
-	/// <summary>The model the tests use: each right missing somewhere, and fields outside the language's types.</summary>
-	public static QlModel<Shop> Model(QlOptions? options = null, bool salary = true)
+	/// <summary>The model the tests use: each right missing somewhere, fields outside the language's types, and linq2db's LIKE.</summary>
+	public static QlModel<Shop> Model(QlOptions? options = null, bool salary = true, bool like = true)
 	{
 		var builder = new QlModelBuilder<Shop>();
+
+		if (like)
+			builder.Like((s, p) => Sql.Like(s, p, '\\'));
 		var orders  = builder.Entity("orders", s => s.AllOrders.Where(o => o.TenantId == s.Tenant));
 
 		orders

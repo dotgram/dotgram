@@ -160,6 +160,9 @@ public sealed class BinderTests
 	[InlineData("from orders where note in ('a', 'b') select id")]
 	[InlineData("from orders where rank between 1 and 2 select id")]
 	[InlineData("from orders where note is null select id")]
+	[InlineData("from orders where note like 'a%' select id")]
+	[InlineData("from orders where status like note select id")]
+	[InlineData("from orders where customer not like note select id")]
 	public void ANoRightIsAnUnknownName(string text)
 	{
 		var name   = new[] { "salary", "note", "status", "rank", "blob" }.First(n => text.Contains(n, StringComparison.Ordinal));
@@ -202,6 +205,8 @@ public sealed class BinderTests
 	[InlineData("from orders o let x = o.rank + 1 select x, o.id where x == 'a'")]
 	[InlineData("from orders select id, note as n select * order by n.Length")]
 	[InlineData("from orders let r = rank let q = r * 2 where q == 'a' select id")]
+	[InlineData("from orders where note like 1 select id")]
+	[InlineData("from orders where rank like 'a' select id")]
 	public void ANoRightIsAnUnknownNameBeforeATypeError(string text)
 	{
 		var name    = new[] { "salary", "note", "rank" }.First(n => text.Contains(n, StringComparison.Ordinal));
