@@ -499,17 +499,18 @@ public sealed class ReentryHarnessTests
 
 	/// <summary>
 	/// The input left is counted to the end each form reads to: a search's to the end of the whole input, not the next
-	/// start; a reading from a position, or in a window, to the window's end. Each answers as without the bound.
+	/// start; a reading from a position, or in a window, to the window's end. Each answers as without the bound, and so
+	/// does a cycle cut at once, read from a position and searched for.
 	/// </summary>
 	[Theory]
-	[InlineData(true)]
-	[InlineData(false)]
-	public void The_bound_counts_to_the_end_each_form_reads_to(bool direct)
+	[InlineData(true, "T = A & 'c'\nA = 'a' | @Still & A & 'b'")]
+	[InlineData(false, "T = A & 'c'\nA = 'a' | @Still & A & 'b'")]
+	[InlineData(true, "T = A & 'c'\nA = 'a' & A | @Still & A | 'b'")]
+	[InlineData(false, "T = A & 'c'\nA = 'a' & A | @Still & A | 'b'")]
+	public void The_bound_counts_to_the_end_each_form_reads_to(bool direct, string grammar)
 	{
-		const string Grammar = "T = A & 'c'\nA = 'a' | @Still & A & 'b'";
-
-		var oracle  = BuildPublished(Grammar + "\npositional parse T\nfind T", direct, unchecked_: true);
-		var bounded = BuildPublished(Grammar + "\npositional parse T\nfind T", direct, unchecked_: false);
+		var oracle  = BuildPublished(grammar + "\npositional parse T\nfind T", direct, unchecked_: true);
+		var bounded = BuildPublished(grammar + "\npositional parse T\nfind T", direct, unchecked_: false);
 
 		foreach (var input in new[] { "xabc", "abcabbc", "xabbbcy", "abc;abbc" })
 		{

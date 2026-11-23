@@ -208,10 +208,10 @@ static class Reentry
 			var cut = facts.Tail.Contains(closing)
 				? "An entry of it where one already stands, with nothing read after the call back, would only repeat that " +
 					"one, and fails as an alternative does instead of going round for ever."
-				: "Entries of it at one position are let stand while fewer of them stand there than input is left, and " +
-					"one more fails as an alternative does instead of going round for ever; a reading in which they come " +
-					"back more than 4·n² times (n the input's length, and at least 2²⁴) throws InvalidOperationException " +
-					"rather than taking time that grows exponentially with the input.";
+				: "Entries of it at one position are let stand while there are no more of them than items of input left " +
+					"past it, plus two, and one more fails as an alternative does instead of going round for ever; a " +
+					"reading in which they come back more than 4·n² times (n the input's length, and at least 2²⁴) " +
+					"throws InvalidOperationException rather than taking time that grows exponentially with the input.";
 
 			told.Add(new GramDiagnostic(
 				Reenters,
