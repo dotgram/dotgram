@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 DotGram.QueryLanguage.QlColumnInfo
 DotGram.QueryLanguage.QlColumnInfo.IsNullable.get -> bool
 DotGram.QueryLanguage.QlColumnInfo.Name.get -> string!

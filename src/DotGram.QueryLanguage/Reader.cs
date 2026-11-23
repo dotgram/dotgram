@@ -174,8 +174,8 @@ static class Reader
 	}
 
 	/// <summary>
-	/// Refuses <c>!x</c> without brackets on the left of a comparison, <c>is</c>, <c>in</c>, <c>between</c> or <c>like</c>. C# reads
-	/// <c>!a == b</c> as <c>(!a) == b</c> and SQL's NOT as <c>!(a == b)</c>; the two differ where a value is null
+	/// Refuses <c>!x</c> without brackets on the left of a comparison, <c>is</c>, <c>in</c>, <c>between</c> or <c>like</c>.
+	/// C# reads <c>!a == b</c> as <c>(!a) == b</c> and SQL's NOT as <c>!(a == b)</c>; the two differ where a value is null
 	/// (<c>!flag is null</c> is never true one way and always the other), so whoever wrote it says which.
 	/// </summary>
 	static void CheckNot(ExprSyntax node)
