@@ -211,7 +211,7 @@ static class Reentry
 				: "Entries of it at one position are let stand while there are no more of them than items of input left " +
 					"past it, plus two, and one more fails as an alternative does instead of going round for ever; a " +
 					"reading in which they come back more than 4·n² times (n the input's length, and at least 2²⁴) " +
-					"throws InvalidOperationException rather than taking time that grows exponentially with the input.";
+					"throws, naming the rule and where, rather than taking time that grows exponentially with the input.";
 
 			told.Add(new GramDiagnostic(
 				Reenters,
@@ -348,7 +348,7 @@ static class Reentry
 		var reached  = Reaching(around, graph, inward: false);
 
 		foreach (var rule in reached)
-			if (graph.Bodies.TryGetValue(rule, out var body) && NodeWalk.Reading(body, graph).Any(node => Emit.Machine.NamesContext(graph, node)))
+			if (graph.Bodies.TryGetValue(rule, out var body) && NodeWalk.Reading(body, graph).Any(node => NamesContext(node, graph)))
 				return false;
 
 		foreach (var rule in reaching)
@@ -464,14 +464,10 @@ static class Reentry
 		var all    = NodeWalk.Reading(body, graph).ToList();
 		var guards = new List<string>();
 
+		// A switch's selector is a guard among the choice's children.
 		foreach (var node in all)
-		{
 			if (node is Node.Guard(var text))
 				guards.Add(text);
-
-			if (node is Node.Choice { Selection: { } selection })
-				guards.Add(selection.Selector.Text);
-		}
 
 		if (guards.Count == 0)
 			return false;
@@ -488,7 +484,30 @@ static class Reentry
 		foreach (var rule in reaching)
 			names.Add(NameOf(rule, graph));
 
-		return guards.Any(text => names.Any(name => Emit.CSharpEmitter.Uses(graph, text, name)));
+		return guards.Any(text => names.Any(name => Names(text, name, graph)));
+	}
+
+	/// <summary>Whether a node names the grammar's context: a <c>when</c>, a <c>=&gt;</c> or a recognizer that is handed it.</summary>
+	static bool NamesContext(Node node, RecognitionGraph graph)
+	{
+		return graph.Context is not null && node switch
+		{
+			Node.External { UsesContext: true }                                  => true,
+			Node.Guard { Text: var text }                                        => Names(text, "context", graph),
+			Node.Construct { How: Construction.Expression { Text: var text } }   => Names(text, "context", graph),
+			_                                                                    => false,
+		};
+	}
+
+	/// <summary>
+	/// Whether C# names an identifier: what the scanner found free in it where the graph has a scanner's answer, and the
+	/// spelling as a whole word where it has none.
+	/// </summary>
+	static bool Names(string text, string name, RecognitionGraph graph)
+	{
+		return graph.FreeNames.TryGetValue(text, out var free)
+			? free.Contains(name)
+			: graph.Language.Spells(text, name, NameSearch.Word);
 	}
 
 	/// <summary>The shortest way from a rule back to itself among the members of its cycle, and the rule that closes it.</summary>
