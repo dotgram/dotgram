@@ -20,9 +20,10 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// The bound on a rule that comes back to itself through a recognizer that does not move, held to the parser without
-/// it: wherever that parser answers, the bounded one answers the same — verdict, position and message — in every
-/// reading form; where it goes round for ever, the bounded one ends.
+/// The check on a rule that comes back to itself through a recognizer that does not move — cut at once where nothing
+/// is read after the call back, counted against the input left elsewhere — held to the parser without it: wherever
+/// that parser answers, the checked one answers the same — verdict, position and message — in every reading form;
+/// where it goes round for ever, the checked one ends.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -128,6 +129,16 @@ public sealed class ReentryHarnessTests
 
 		// Two recursive alternatives: the search is exponential in the input left, accepted or not.
 		"T = A & 'c'\nA = 'a' | @Still & A & 'b' | @Still & A & 'd'",
+
+		// Nothing read after the call back, cut at once: by itself, mutual, moving at some positions, as the second
+		// alternative, given back into by the caller, behind a lookahead, and a list with what follows it optional.
+		"T = @Still & T | 'a' & T | eof",
+		"T = @Still & U | 'a'\nU = @Still & T | 'b' & T",
+		"T = @Half & T | eof",
+		"T = 'a' & T | @Still & T | 'b'",
+		"T = S & 'c'\nS = @Still & S | 'a' | 'a' & 'b'",
+		"T = ?!'b' & @Still & T | 'a' & T | 'b'",
+		"T = S & eof\nS = @Still & S | 'a' & ('+' & S)?",
 	];
 
 	/// <summary>
@@ -162,6 +173,12 @@ public sealed class ReentryHarnessTests
 		"A = ?!({R} & A & 'b' & 'b') & {B} | {R} & A & {S}",
 		"A = {B} | {R} & C & {S}\nC = ?='a' & A | ?!'a' & A",
 		"A = {B} | {R} & C\nC = ?!(A & 'c') & A & {S} | A & 'b' & 'b'",
+
+		// Nothing read after the call back.
+		"A = {B} & {S} | {R} & A",
+		"A = {R} & A | {B} & {S}",
+		"A = {B} | {R} & C\nC = {S} & A | A",
+		"A = {B} & ({S} & A)? | {R} & A",
 	];
 
 	/// <summary>Whether the wide grid is asked for (<c>DOTGRAM_REENTRY_HARNESS_WIDE=1</c>): segments that read a run, more recognizers, more callers.</summary>
