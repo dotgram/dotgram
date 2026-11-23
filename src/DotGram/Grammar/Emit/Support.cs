@@ -123,72 +123,6 @@ static partial class CSharpEmitter
 			{{restore:Doors}}
 		""";
 
-	/// <summary>
-	/// What carries a refused re-entry from the check at a marked rule's entry to the entry of the reading
-	/// (Machine.Reentry.cs): thrown there, so that nothing between the two writes anything down on the way
-	/// out — no memo, no refusal, no expected set — and caught there, where it is written on the failure as
-	/// the refusal it is.
-	/// </summary>
-	/// <param name="more">Whether the failure carries the sets that tied, which the refusal empties.</param>
-	/// <param name="traced">Whether the failure carries a trace, whose open rules are left as the exception leaves them.</param>
-	internal static string ReenteredSupport(bool more, bool traced)
-	{
-		return Lines.Normalize(ReenteredClass)
-			.Replace("\t\t{{more}}" + Lines.Ending, more ? "\t\tfailure.ExpectedMore?.Clear();" + Lines.Ending : "")
-			.Replace("\t\t{{trace}}" + Lines.Ending, traced ? "\t\tfailure.Trace?.Unwind();" + Lines.Ending : "");
-	}
-
-	const string ReenteredClass = """
-		/// <summary>
-		/// A rule entered again where it already stood, through a recognizer of the host that did not move
-		/// (docs/syntax.md §7.2): thrown by the check at the rule's entry, and caught by the reading it left,
-		/// which is refused there. Never seen outside the class.
-		/// </summary>
-		private sealed class Reentered_DotGram : global::System.Exception
-		{
-			readonly int position;
-			readonly string said;
-
-			internal Reentered_DotGram(int position, string said)
-				: base(said.Substring(1))
-			{
-				this.position = position;
-				this.said     = said;
-			}
-
-			/// <summary>The refusal, written on the reading's failure: where the rule came back, saying so and nothing else.</summary>
-			internal int Refuse(ref Failure failure)
-			{
-				failure.Position  = this.position;
-				failure.Expected  = new[] { this.said };
-				{{more}}
-				{{trace}}
-				failure.Reentered = true;
-
-				return -1;
-			}
-
-			/// <summary>What such a refusal says where it can only be thrown, a search or a sequence: where it was refused, too.</summary>
-			internal static string Said(string[]? expected, long position)
-			{
-				var said = expected![0];
-
-				return said.Substring(1, said.Length - 2) + " at " + position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".";
-			}
-		}
-		""";
-
-	/// <summary>
-	/// Whether a reading was refused for a rule entered again where it already stood, through a recognizer
-	/// of the host that did not move (Machine.Reentry.cs): a refusal, never one for want of input, and one
-	/// the reading made again for its message would only repeat.
-	/// </summary>
-	const string ReenteredField = """
-
-			/// <summary>Whether a rule came back to itself without reading anything, which refused the reading.</summary>
-			public bool Reentered;
-		""";
-
 	const string StarvedField = """
 
 			/// <summary>Whether the match stopped because the input did, not because it did not match.</summary>
@@ -1277,7 +1211,6 @@ static partial class CSharpEmitter
 		OriginLines     = 1 << 14,
 		Seaming         = 1 << 15,
 		Limits          = 1 << 16,
-		Reentered       = 1 << 17,
 	}
 
 	/// <summary>
@@ -1342,9 +1275,6 @@ static partial class CSharpEmitter
 			.Replace(
 				"\t{{trace}}" + Lines.Ending,
 				(fields & FailureFields.Trace) != 0 ? Lines.Normalize(TraceField) + Lines.Ending : "")
-			.Replace(
-				"\t{{reentered}}" + Lines.Ending,
-				(fields & FailureFields.Reentered) != 0 ? Lines.Normalize(ReenteredField) + Lines.Ending : "")
 			// Whether each of these fields needs its suppression is not known here: the field is
 			// emitted where the capability is present, and the suppression is needed where nothing
 			// assigns it, which only the sites that write the assignments know. So a mark goes in,
@@ -1482,7 +1412,6 @@ static partial class CSharpEmitter
 			{{doors}}
 			{{limits}}
 			{{trace}}
-			{{reentered}}
 		}
 		""";
 

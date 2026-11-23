@@ -1252,16 +1252,8 @@ static partial class CSharpEmitter
 				// The limits a parse began with, carried to every reading of it, where a reader may
 				// carry a reading onto another stack (Machine.Reader.cs, Rec).
 				(machines.Exists(static compiled => compiled.Direct && compiled.Machine.Probes) ? FailureFields.Limits : 0) |
-				(tracing is not null ? FailureFields.Trace : 0) |
-				// Whether a reading was refused for a rule entered again where it stood (Machine.Reentry.cs).
-				(Reenters(graph, lexical) ? FailureFields.Reentered : 0)));
+				(tracing is not null ? FailureFields.Trace : 0)));
 			file.Line();
-
-			if (Reenters(graph, lexical))
-			{
-				file.Write(ReenteredSupport(moreField, tracing is not null));
-				file.Line();
-			}
 
 			// The thread's list for a reading's ties, where some machine writes ties at all.
 			if (moreField)
@@ -2254,9 +2246,6 @@ static partial class CSharpEmitter
 		var reading     = compiled.Machine.UsesReading ? publication.Reading : (int?)null;
 		var tag         = compiled.Tag;
 		var quietFirst  = ReadsQuietlyFirst(graph);
-		// A reading refused for a rule entered again where it stood is refused whole: it is read no second
-		// time for its message, which is fixed, and it never wants more input (Machine.Reentry.cs).
-		var reenters    = Reentry.Any(graph);
 		var rewinds     = compiled.Machine.UsesContext && graph.ContextRewinds;
 		// Whether a reading that begins where it is told writes down where the value began:
 		// over characters it reads the trivia at the position and says where it ended.
@@ -2498,7 +2487,6 @@ static partial class CSharpEmitter
 			Tracing     = tracing,
 			Places      = places,
 			PlacesLines = lines,
-			Reenters    = reenters,
 		};
 
 		if (publication.Kind == PublishKind.Yield)
@@ -3042,7 +3030,7 @@ static partial class CSharpEmitter
 				// nothing the first did depended on what it did not record (Q7.2).
 				if (quietFirst)
 				{
-					using (file.Block(reenters ? "if (end < 0 && !failure.Reentered)" : "if (end < 0)"))
+					using (file.Block("if (end < 0)"))
 					{
 						if (rewinds)
 							file.Line("context.Rollback(mark);");
@@ -3115,9 +3103,7 @@ static partial class CSharpEmitter
 					// input went, and both answers are literals, so choosing costs a branch
 					// and no allocation at all. The same test says which outcome this is
 					// (§7.5), which is why the two are read off one comparison.
-					file.Line(reenters
-						? "var starved = !failure.Reentered && (failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length);"
-						: "var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;");
+					file.Line("var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;");
 					file.Line();
 					file.Line("var otherwise = starved");
 					file.Then("? \"Expected more input.\"");
@@ -3196,15 +3182,6 @@ static partial class CSharpEmitter
 				}
 			}
 		}
-	}
-
-	/// <summary>
-	/// Whether a rule of the file may be entered again where it stands (Machine.Reentry.cs): of the graph the
-	/// publications read, or, in a grammar cut in two, of the characters the tokenizer reads its terminals over.
-	/// </summary>
-	static bool Reenters(RecognitionGraph graph, LexicalSplit? lexical)
-	{
-		return Reentry.Any(graph) || lexical is not null && Reentry.Any(lexical.Source);
 	}
 
 	/// <summary>How many runs of kinds the lexer tests for by comparison before it takes a table.</summary>
@@ -4308,15 +4285,6 @@ file.Line("return spare;");
 				}
 
 				file.Line();
-
-				// A start refused for a rule entered again where it stood is no start that failed: the
-				// grammar cannot be read there, and a search has no refusal to say it with (Machine.Reentry.cs).
-				if (text.Reenters)
-				{
-					file.Line("if (end < 0 && failure.Reentered)");
-					file.Then($"throw new global::System.InvalidOperationException({Machine.ReenteredType}.Said(failure.Expected, failure.Position));");
-					file.Line();
-				}
 
 				using (file.Block("if (end < 0)"))
 				{
@@ -6236,9 +6204,6 @@ file.Line("return spare;");
 
 		/// <summary>And the lines before it (<see cref="PlacesLines"/>).</summary>
 		public bool PlacesLines { get; init; }
-
-		/// <summary>Whether a reading may be refused for a rule entered again where it stood (Machine.Reentry.cs).</summary>
-		public bool Reenters { get; init; }
 	}
 
 	/// <summary>

@@ -497,11 +497,6 @@ static partial class CSharpEmitter
 				{
 					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
 					Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands})", false, "start", "trace");
-
-					// An element refused for a rule entered again where it stood says so (Machine.Reentry.cs).
-					if (Reentry.Any(graph))
-						file.Line($"if (end < 0 && failure.Reentered) throw new global::System.FormatException({Machine.ReenteredType}.Said(failure.Expected, failure.Position));");
-
 					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
 					file.Line(publication.YieldBatch ? "foreach (var item in value) yield return item;" : "yield return value;");
 					file.Line("start = end;");
@@ -538,11 +533,6 @@ static partial class CSharpEmitter
 					file.Line($"var failure = new {FailureType}();");
 					Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, start{hands})", true, "start", "trace");
 
-					// A start refused for a rule entered again where it stood is no start that failed: the grammar
-					// cannot be read there, and a search has no refusal to say it with (Machine.Reentry.cs).
-					if (Reentry.Any(graph))
-						file.Line($"if (end < 0 && failure.Reentered) throw new global::System.InvalidOperationException({Machine.ReenteredType}.Said(failure.Expected, failure.Position));");
-
 					using (file.Block("if (end >= 0)"))
 						file.Line($"yield return {match}.Success({(type is null ? bytes ? "text.Slice(start, end - start).ToArray()" : "text.Slice(start, end - start).ToString()" : "value")}, start, end - start);");
 
@@ -572,12 +562,9 @@ static partial class CSharpEmitter
 				// the end of what was read held input, so it is not where more was wanted. Said so for
 				// every stream read by a recovering reader, the entry being written before the machine
 				// has chosen its carrier; where nothing was let go the two say the same.
-				// A reading refused for a rule entered again where it stood never wants more input (Machine.Reentry.cs).
-				var starving = machine.ReadsRecovery && !machine.InPlace
-					? "failure.OutOfInput == failure.Position + 1 || failure.Position >= text.End && !text.Peek(failure.Position, out _)"
-					: "failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _)";
-
-				file.Line(Reentry.Any(graph) ? $"var starved = !failure.Reentered && ({starving});" : $"var starved = {starving};");
+				file.Line(machine.ReadsRecovery && !machine.InPlace
+					? "var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.End && !text.Peek(failure.Position, out _);"
+					: "var starved = failure.OutOfInput == failure.Position + 1 || !text.Peek(failure.Position, out _);");
 				var failed = $"{match}.Failed(starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
 					// Named, as the string form names it: the two forms of one publication answer
 					// alike or the difference is one we have said out loud (BufferedInputTests).

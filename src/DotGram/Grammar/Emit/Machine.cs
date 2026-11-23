@@ -2423,9 +2423,8 @@ sealed partial class Machine
 			{
 				file.Line("var entries = parser.Entries;");
 
-				// Where the reading began, which says whether its root entry reads a marked rule (Machine.Reentry.cs).
-				if (EngineComesBack)
-					file.Line("var reentryRoot = state;");
+				// What the check at a marked rule's calls keeps (Machine.Reentry.cs).
+				RenderEngineReentryLocals(file);
 
 				file.Line("var p       = pos;");
 				file.Line("var call    = -1;");
@@ -3074,15 +3073,6 @@ sealed partial class Machine
 					}
 				}
 
-			}
-
-			// A marked rule entered again where it stood refuses the reading (Machine.Reentry.cs).
-			if (EngineComesBack)
-			{
-				file.Line($"catch ({ReenteredType} reentered)");
-
-				using (file.Block(""))
-					file.Line("return reentered.Refuse(ref failure);");
 			}
 
 			file.Line("finally");

@@ -24,9 +24,11 @@ namespace DotGram.Grammar.Model;
 /// </para>
 /// <para>
 /// A rule marked here is still compiled, and the grammar still built; what it gets is a check at
-/// its entry, which refuses the parse where the rule is entered again at a position it already
-/// stands at, with the same arguments (the reader and the engine print it from this fact, and the
-/// diagnostic says it from the same). Every other rule is written as it always was.
+/// its entry, which cuts an entry at a position the rule already stands at, with the same
+/// arguments: at once where nothing is read after the call back (<see cref="Tail"/>), and past the
+/// input left otherwise, with a ceiling on how many entries come back in one reading (the reader
+/// and the engine print it from this fact, and the diagnostic says it from the same). Every other
+/// rule is written as it always was.
 /// </para>
 /// <para>
 /// Worked out once a graph, on the graph as it is emitted: after every pass that makes or rewrites
@@ -45,14 +47,17 @@ static class Reentry
 	/// </summary>
 	public sealed record Cycle(string Rule, IReadOnlyList<string> Through, IReadOnlyList<string> Recognizers)
 	{
-		/// <summary>What the refusal of a parse that came back says; where, the refusal's position says.</summary>
-		public string Said()
+		/// <summary>
+		/// What a reading that reached its ceiling on the entries that came back says, before and after the position it
+		/// stood at.
+		/// </summary>
+		public (string Before, string After) TooCostly()
 		{
 			string[] through = [.. Through.Select(static name => $"'{name}'"), .. Recognizers.Select(static name => "@" + name)];
 
-			return through.Length == 0
-				? $"Rule '{Rule}' came back to itself without reading anything."
-				: $"Rule '{Rule}' came back to itself through {Joined(through)} without reading anything.";
+			var way = through.Length == 0 ? "" : $" through {Joined(through)}";
+
+			return ($"Rule '{Rule}' came back to itself{way} without reading anything too many times at ", "; the input is too costly for this grammar.");
 		}
 	}
 
@@ -61,6 +66,8 @@ static class Reentry
 		public readonly Dictionary<RuleSymbol, Cycle> Marked = [];
 
 		public readonly List<(RuleSymbol Closing, Cycle Cycle)> Told = [];
+
+		public readonly HashSet<RuleSymbol> Tail = [];
 	}
 
 	static readonly Facts None = new();
@@ -71,6 +78,31 @@ static class Reentry
 	public static bool Marked(RecognitionGraph graph, RuleSymbol rule)
 	{
 		return Of(graph).Marked.ContainsKey(rule);
+	}
+
+	/// <summary>
+	/// Whether a marked rule comes back to itself only where nothing is left to read after the call back: an entry of it
+	/// at the position of a live entry of it is then read exactly as that one was, and fails at once (see the remarks).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Such a rule's cycle passes on what follows it unchanged: every call around it, in the rules as they are emitted,
+	/// is the last thing its alternative reads — not inside a lookahead, a repetition that may turn again, a <c>{ }</c>, a
+	/// binding of the text, or a rule read at a strength, whose operators are read after the call. So an entry at the
+	/// position of a live entry of the same rule has the same rule, position and continuation as that one, and reads what
+	/// it read, step for step, to the same entry again: without the check it never comes back, and failing it as an
+	/// alternative changes no answer a parse without the check gives.
+	/// </para>
+	/// <para>
+	/// Not so where what is read depends on more than the text and the position: a <c>when</c> or a <c>switch</c> that
+	/// reads a value the cycle builds, which grows with the depth, or a hook on the cycle that reads or writes the
+	/// <c>context</c>. Such a rule, like one with something left to read after the call back, has its live entries at a
+	/// position counted against the input left (<c>Machine.Reentry.cs</c>).
+	/// </para>
+	/// </remarks>
+	public static bool Tail(RecognitionGraph graph, RuleSymbol rule)
+	{
+		return Of(graph).Tail.Contains(rule);
 	}
 
 	/// <summary>Whether any rule of the graph is marked: where none is, nothing of the check is written.</summary>
@@ -163,20 +195,30 @@ static class Reentry
 	{
 		var told = new List<GramDiagnostic>();
 
-		foreach (var (closing, cycle) in Of(graph).Told)
+		var facts = Of(graph);
+
+		foreach (var (closing, cycle) in facts.Told)
 		{
 			var at       = (closing.Declaration ?? graph.Origin(closing).Declaration)?.At;
 			var through  = cycle.Through.Count == 0 ? "" : $" through {Joined([.. cycle.Through.Select(static name => $"'{name}'")])}";
 			var standing = cycle.Recognizers.Count == 0 ? "a recognizer of the host" : Joined([.. cycle.Recognizers.Select(static name => "@" + name)]);
 
+			// Where nothing is read after the call back, an entry where one already stands is cut at once; elsewhere a
+			// parse may need several there, one for each thing pending, and they are counted.
+			var cut = facts.Tail.Contains(closing)
+				? "An entry of it where one already stands, with nothing read after the call back, would only repeat that " +
+					"one, and fails as an alternative does instead of going round for ever."
+				: "Entries of it at one position are let stand while fewer of them stand there than input is left, and " +
+					"one more fails as an alternative does instead of going round for ever; a reading in which they come " +
+					"back more than 4·n² times (n the input's length, and at least 2²⁴) throws InvalidOperationException " +
+					"rather than taking time that grows exponentially with the input.";
+
 			told.Add(new GramDiagnostic(
 				Reenters,
 				$"'{cycle.Rule}' can come back to itself{through} without reading anything where {standing} " +
-				$"succeeds without moving, which a recognizer may do (docs/syntax.md §7.2). A parse where it does " +
-				"not move there is refused with a message saying so, rather than going round for ever; so is one " +
-				"that relies on 'context' changing between two entries at one position. Written as a repetition — " +
-				"'Frames = @ReadFrame* & eof' for 'Frames = @ReadFrame & Frames | eof' — the rule needs no such " +
-				"check.",
+				$"succeeds without moving, which a recognizer may do (docs/syntax.md §7.2). {cut} Written as a " +
+				"repetition — 'Frames = @ReadFrame* & eof' for 'Frames = @ReadFrame & Frames | eof' — the rule needs " +
+				"no such check.",
 				at?.Position ?? 0,
 				at?.Length ?? 0,
 				GramSeverity.Info));
@@ -204,17 +246,30 @@ static class Reentry
 	static bool _unchecked;
 
 	/// <summary>
-	/// For a test that weighs the two answers at the bound: on this thread, a rule entered past its bound refuses the
-	/// whole parse with the message of <see cref="Cycle.Said"/> rather than failing as an alternative does.
+	/// For a test that weighs the exact check against the count: on this thread, every marked rule is counted as one with
+	/// something left to read after the call back (<see cref="Tail"/> answers no).
 	/// </summary>
-	internal static bool Aborts
+	internal static bool Untailed
 	{
-		get { return _aborts; }
-		set { _aborts = value; }
+		get { return _untailed; }
+		set { _untailed = value; }
 	}
 
 	[ThreadStatic]
-	static bool _aborts;
+	static bool _untailed;
+
+	/// <summary>
+	/// For a test that reaches the ceiling on the entries that come back in one reading without reading millions of them:
+	/// on this thread, the parsers compiled while it is set throw past this many, whatever the input's length.
+	/// </summary>
+	internal static long? Ceiling
+	{
+		get { return _ceiling; }
+		set { _ceiling = value; }
+	}
+
+	[ThreadStatic]
+	static long? _ceiling;
 
 	static Facts Work(RecognitionGraph graph)
 	{
@@ -257,6 +312,9 @@ static class Reentry
 			foreach (var rule in members)
 				facts.Marked[rule] = Around(rule, around, standing, graph).Cycle;
 
+			if (!Untailed && Passes(around, graph))
+				facts.Tail.UnionWith(members);
+
 			// Told once, from the rule written first, on the rule whose call closes the cycle.
 			var first = members.OrderBy(rule => order[rule]).First();
 
@@ -268,6 +326,169 @@ static class Reentry
 		facts.Told.Sort((one, other) => order[one.Closing].CompareTo(order[other.Closing]));
 
 		return facts;
+	}
+
+	/// <summary>
+	/// Whether a cycle passes on what follows it unchanged, and reads nothing but the text and the position on the way
+	/// (<see cref="Tail"/>): the rules of a component, each call among them that may be reached without moving the last
+	/// thing read, none of them read at a strength, no value built around it read by a guard, and no context.
+	/// </summary>
+	static bool Passes(HashSet<RuleSymbol> around, RecognitionGraph graph)
+	{
+		// A rule read at a strength reads its operators after the call it climbs from.
+		if (around.Any(graph.Climbing.ContainsKey))
+			return false;
+
+		foreach (var rule in around)
+			if (graph.Bodies.TryGetValue(rule, out var body) && !Last(body, around, graph))
+				return false;
+
+		// What the cycle reads and what reads its values: every rule that reaches it, and every rule it reaches.
+		var reaching = Reaching(around, graph, inward: true);
+		var reached  = Reaching(around, graph, inward: false);
+
+		foreach (var rule in reached)
+			if (graph.Bodies.TryGetValue(rule, out var body) && NodeWalk.Reading(body, graph).Any(node => Emit.Machine.NamesContext(graph, node)))
+				return false;
+
+		foreach (var rule in reaching)
+			if (graph.Bodies.TryGetValue(rule, out var body) && GuardsRead(body, reaching, graph))
+				return false;
+
+		return true;
+	}
+
+	/// <summary>
+	/// Whether every call of a body into the component that may be reached without moving is the last thing its
+	/// alternative reads: the walk of <see cref="LeftCalls"/>, told at each part whether anything is read after it.
+	/// </summary>
+	static bool Last(Node body, HashSet<RuleSymbol> around, RecognitionGraph graph)
+	{
+		var pending = new Stack<(Node Node, bool Last)>();
+
+		pending.Push((body, true));
+
+		while (pending.Count > 0)
+		{
+			var (node, last) = pending.Pop();
+
+			switch (node)
+			{
+				case Node.Call(var callee, _):
+					if (!last && around.Contains(callee))
+						return false;
+
+					break;
+
+				case Node.Sequence(var nodes):
+					for (var i = 0; i < nodes.Count; i++)
+					{
+						pending.Push((nodes[i], last && i == nodes.Count - 1));
+
+						if (!FirstSets.MayStandStill(nodes[i], graph))
+							break;
+					}
+
+					break;
+
+				case Node.Choice(var nodes):
+					foreach (var child in nodes)
+						pending.Push((child, last));
+
+					break;
+
+				// An option reads nothing after its one turn; a repetition that may turn again reads its next turn.
+				case Node.Repeat(var repeated, _, var most):
+				{
+					var recovers = graph.Recoveries.TryGetValue(node, out var recovery);
+
+					pending.Push((repeated, last && most == 1 && !recovers));
+
+					if (recovers)
+						pending.Push((recovery!.Sync, false));
+
+					break;
+				}
+
+				// What builds a value or marks the extent reads nothing; a guard on a value is asked of the whole grammar.
+				case Node.Capture  (_, var captured):    pending.Push((captured, last)); break;
+				case Node.Construct(var built, _):       pending.Push((built, last));    break;
+				case Node.Marked   (var marked, _):      pending.Push((marked, last));   break;
+
+				// A lookahead goes back to where it began, a { } commits to what it read, a binding is read again later.
+				case Node.Bind     (_, var bound, _):    pending.Push((bound, false));   break;
+				case Node.Counted  (var counted, _, _):  pending.Push((counted, false)); break;
+				case Node.Atomic   (var atomic):         pending.Push((atomic, false));  break;
+				case Node.Lookahead(_, var ahead):       pending.Push((ahead, false));   break;
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>The rules of a component and every rule that calls into it (<paramref name="inward"/>), or that it calls.</summary>
+	static HashSet<RuleSymbol> Reaching(HashSet<RuleSymbol> around, RecognitionGraph graph, bool inward)
+	{
+		var calls = new Dictionary<RuleSymbol, List<RuleSymbol>>();
+
+		foreach (var pair in graph.Bodies)
+			foreach (var node in NodeWalk.Reading(pair.Value, graph))
+				if (node is Node.Call(var callee, _))
+				{
+					var (from, to) = inward ? (callee, pair.Key) : (pair.Key, callee);
+
+					if (!calls.TryGetValue(from, out var next))
+						calls[from] = next = [];
+
+					next.Add(to);
+				}
+
+		var found   = new HashSet<RuleSymbol>(around);
+		var pending = new Stack<RuleSymbol>(around);
+
+		while (pending.Count > 0)
+			if (calls.TryGetValue(pending.Pop(), out var next))
+				foreach (var one in next)
+					if (found.Add(one))
+						pending.Push(one);
+
+		return found;
+	}
+
+	/// <summary>
+	/// Whether a <c>when</c> or a <c>switch</c> of a body reads a capture of something that reads the cycle, or names
+	/// such a rule: a value that grows with how deep the cycle went.
+	/// </summary>
+	static bool GuardsRead(Node body, HashSet<RuleSymbol> reaching, RecognitionGraph graph)
+	{
+		var all    = NodeWalk.Reading(body, graph).ToList();
+		var guards = new List<string>();
+
+		foreach (var node in all)
+		{
+			if (node is Node.Guard(var text))
+				guards.Add(text);
+
+			if (node is Node.Choice { Selection: { } selection })
+				guards.Add(selection.Selector.Text);
+		}
+
+		if (guards.Count == 0)
+			return false;
+
+		var names = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var node in all)
+			if (node is Node.Capture(var name, var captured) &&
+				NodeWalk.Reading(captured, graph).Any(inner => inner is Node.Call(var callee, _) && reaching.Contains(callee)))
+			{
+				names.Add(name);
+			}
+
+		foreach (var rule in reaching)
+			names.Add(NameOf(rule, graph));
+
+		return guards.Any(text => names.Any(name => Emit.CSharpEmitter.Uses(graph, text, name)));
 	}
 
 	/// <summary>The shortest way from a rule back to itself among the members of its cycle, and the rule that closes it.</summary>

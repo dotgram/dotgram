@@ -26,10 +26,6 @@ static partial class CSharpEmitter
 			: "\"Invalid element at offset \" + failure.Position.ToString() + \".\"";
 		var none   = publication.Joined ? "line 1, column 1" : "offset 0";
 
-		// An element refused for a rule entered again where it stood says so (Machine.Reentry.cs).
-		if (text.Reenters)
-			failed = $"(end < 0 && failure.Reentered ? {Machine.ReenteredType}.Said(failure.Expected, failure.Position) : {failed})";
-
 		file.Line("/// <summary>Lazily parses consecutive elements; malformed input throws during enumeration.</summary>");
 
 		if (tracing is not null)

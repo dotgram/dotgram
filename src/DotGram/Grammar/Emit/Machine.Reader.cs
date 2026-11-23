@@ -1901,9 +1901,7 @@ sealed partial class Machine
 					file.Line("if (failure.Unasked) reader.unbuilt = 1;");
 
 				file.Line();
-				RenderReentryCaught(
-					file, $"reader.{CSharpEmitter.Inner(ends ? "RecWholeRead" : "RecRead", CSharpEmitter.IdentifierOf(rule))}(pos{asked})",
-					"end", "reader.failure");
+				file.Line($"var end = reader.{CSharpEmitter.Inner(ends ? "RecWholeRead" : "RecRead", CSharpEmitter.IdentifierOf(rule))}(pos{asked});");
 				file.Line();
 				file.Line("failure = reader.failure;");
 				file.Line();

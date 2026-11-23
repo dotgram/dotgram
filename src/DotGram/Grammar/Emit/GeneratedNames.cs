@@ -76,9 +76,6 @@ static partial class CSharpEmitter
 		"Reader{v}", "Deep{v}", "Same{v}", "Prefix{v}#", "PrefixNext{v}#", "PrefixDepth{v}#", "PrefixLongest{v}#",
 		"PrefixMembers{v}#", "PrefixExpected{v}#", "PrefixMiss{v}#", "Reach{v}", "Letters{v}", "TokenAt{v}", "Text{v}", "Span{v}",
 		"Offer{v}", "Locate{v}", "Searched{v}", "PassedOver{v}", "TurnWalked{v}",
-
-		// A rule entered again where it stands through a recognizer that did not move: what refuses the parse.
-		"Reentered",
 	];
 
 	/// <summary>
