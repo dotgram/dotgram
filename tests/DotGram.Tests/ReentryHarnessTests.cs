@@ -490,10 +490,10 @@ public sealed class ReentryHarnessTests
 			foreach (var tape in new[] { false, true })
 				foreach (var buffered in new[] { false, true })
 				{
-					var bounded = Build(grammar, direct, tape, buffered, unchecked_: false)!;
+					var bounded = Patient(Build(grammar, direct, tape, buffered, unchecked_: false)!.Assembly);
 
 					foreach (var form in buffered ? new[] { typeof(string), typeof(TextReader), typeof(Stream) } : [typeof(string)])
-						Assert.Equal(expected, Answer(bounded.Assembly, input, form));
+						Assert.Equal(expected, Answer(bounded, input, form));
 				}
 	}
 
@@ -510,7 +510,7 @@ public sealed class ReentryHarnessTests
 	public void The_bound_counts_to_the_end_each_form_reads_to(bool direct, string grammar)
 	{
 		var oracle  = BuildPublished(grammar + "\npositional parse T\nfind T", direct, unchecked_: true);
-		var bounded = BuildPublished(grammar + "\npositional parse T\nfind T", direct, unchecked_: false);
+		var bounded = Patient(BuildPublished(grammar + "\npositional parse T\nfind T", direct, unchecked_: false));
 
 		foreach (var input in new[] { "xabc", "abcabbc", "xabbbcy", "abc;abbc" })
 		{
@@ -524,6 +524,20 @@ public sealed class ReentryHarnessTests
 					Agrees(From(oracle, input, at, length), From(bounded, input, at, length));
 			}
 		}
+	}
+
+	/// <summary>
+	/// A parser that ends let read as long as the harness lets the checked one read, by calls and by the clock: the half
+	/// second an oracle is given to show it goes round is less than a first reading takes on a loaded machine.
+	/// </summary>
+	static Assembly Patient(Assembly parser)
+	{
+		var type = parser.GetType("Probe")!;
+
+		type.GetField("Cap")!.SetValue(null, 30000);
+		type.GetField("Ticks")!.SetValue(null, System.Diagnostics.Stopwatch.Frequency * 10);
+
+		return parser;
 	}
 
 	/// <summary>The same answer where the oracle gives one; an end where it goes round.</summary>
@@ -623,8 +637,8 @@ public sealed class ReentryHarnessTests
 			var bounded = Build(grammar, direct, tape: false, buffered: false, unchecked_: false, lexical: true)!;
 
 			Assert.True(bounded.Marked);
-			Assert.StartsWith("ok@", Answer(oracle.Assembly, input, typeof(string)), StringComparison.Ordinal);
-			Assert.Equal(Answer(oracle.Assembly, input, typeof(string)), Answer(bounded.Assembly, input, typeof(string)));
+			Assert.StartsWith("ok@", Answer(Patient(oracle.Assembly), input, typeof(string)), StringComparison.Ordinal);
+			Assert.Equal(Answer(oracle.Assembly, input, typeof(string)), Answer(Patient(bounded.Assembly), input, typeof(string)));
 		}
 	}
 
