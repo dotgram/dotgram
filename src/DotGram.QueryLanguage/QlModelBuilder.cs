@@ -24,6 +24,8 @@ public sealed class QlModelBuilder<TContext>
 	readonly List<EntityDeclaration>  _entities = [];
 	readonly Dictionary<Type, Delegate> _formats  = [];
 
+	Expression<Func<string?, string?, bool>>? _like;
+
 	/// <summary>
 	/// Exposes the rows of the context member <paramref name="source"/> names, <c>db =&gt; db.Orders</c>,
 	/// under that member's name, <c>Orders</c>.
@@ -112,6 +114,31 @@ public sealed class QlModelBuilder<TContext>
 		return this;
 	}
 
+	/// <summary>
+	/// Declares what <c>x like p</c> means: the body of <paramref name="like"/> with its two parameters replaced by
+	/// the two strings — the provider's own LIKE, <c>(s, p) =&gt; Sql.Like(s, p, '\\')</c> for linq2db,
+	/// <c>(s, p) =&gt; EF.Functions.Like(s, p, "\\")</c> for EF Core. The language reads nothing in the pattern: its
+	/// wildcards, its escape, case and collation are the provider's and the database's. <c>x not like p</c> is the
+	/// body under <see cref="Expression.Not(Expression)"/>. A model without it refuses <c>like</c>.
+	/// </summary>
+	/// <remarks>
+	/// A pattern's wildcards are live wherever it comes from, a parameter too. To find text a user typed, as text,
+	/// the query says <c>x.Contains(@q)</c>, whose value the provider escapes; <c>like</c> is for a pattern written as one.
+	/// </remarks>
+	/// <exception cref="ArgumentException">The model already has one.</exception>
+	public QlModelBuilder<TContext> Like(Expression<Func<string?, string?, bool>> like)
+	{
+		if (like is null)
+			throw new ArgumentNullException(nameof(like));
+
+		if (_like is not null)
+			throw new ArgumentException("The model already says what `like` means.", nameof(like));
+
+		_like = like;
+
+		return this;
+	}
+
 	/// <summary>Freezes the declarations into a model.</summary>
 	/// <param name="options">The bounds of every query; <see cref="QlOptions.Default"/> when null.</param>
 	/// <exception cref="ArgumentException">
@@ -148,7 +175,7 @@ public sealed class QlModelBuilder<TContext>
 			entities.Add(declaration.Name, new ModelEntity(declaration.Name, declaration.Type, declaration.Source, [.. declaration.Fields]));
 		}
 
-		return new QlModel<TContext>(entities, new Dictionary<Type, Delegate>(_formats), options);
+		return new QlModel<TContext>(entities, new Dictionary<Type, Delegate>(_formats), _like, options);
 	}
 
 	static void Check(QlOptions options)

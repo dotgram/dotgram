@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,15 +21,19 @@ namespace DotGram.QueryLanguage;
 /// </remarks>
 public sealed class QlModel<TContext>
 {
-	internal QlModel(Dictionary<string, ModelEntity> entities, Dictionary<Type, Delegate> formats, QlOptions options)
+	internal QlModel(Dictionary<string, ModelEntity> entities, Dictionary<Type, Delegate> formats, LambdaExpression? like, QlOptions options)
 	{
 		Entities = entities;
 		Formats  = formats;
+		Like     = like;
 		Options  = options;
 	}
 
 	internal Dictionary<string, ModelEntity> Entities { get; }
 	internal Dictionary<Type, Delegate>      Formats  { get; }
+
+	/// <summary>What <c>like</c> means, as the host declared it; null where it did not.</summary>
+	internal LambdaExpression? Like { get; }
 
 	/// <summary>The bounds every query of this model is held to.</summary>
 	public QlOptions Options { get; }
@@ -186,7 +191,7 @@ public sealed class QlModel<TContext>
 		if (_bound.TryGetValue(text, out var bound))
 			return bound;
 
-		bound = Binder.Bind(Reader.Read(text, Options), Entities, Options);
+		bound = Binder.Bind(Reader.Read(text, Options), Entities, Like, Options);
 
 		// Asked only on a miss: Count takes every lock of the dictionary.
 		if (_bound.Count >= CacheSize)

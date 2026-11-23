@@ -241,6 +241,17 @@ sealed class BoundIn(BoundExpr operand, BoundExpr[]? items, BoundParameter? list
 	public override bool ReadsRow => Operand.ReadsRow;
 }
 
+/// <summary><c>x like p</c>: the host's LIKE, its lambda's parameters to be replaced by the two strings.</summary>
+sealed class BoundLike(BoundExpr operand, BoundExpr pattern, bool negated, LambdaExpression like, int position) : BoundExpr(ScalarType.Of(QlType.Bool, false), position)
+{
+	public BoundExpr        Operand { get; } = operand;
+	public BoundExpr        Pattern { get; } = pattern;
+	public bool             Negated { get; } = negated;
+	public LambdaExpression Like    { get; } = like;
+
+	public override bool ReadsRow => true;
+}
+
 /// <summary>A member of the closed table: <c>name.Length</c>, <c>name.StartsWith(p)</c>, <c>created.Year</c>.</summary>
 sealed class BoundMember(BoundExpr target, MemberInfo member, BoundExpr[] arguments, ScalarType type, int position) : BoundExpr(type, position)
 {
@@ -296,6 +307,11 @@ static class Reads
 				foreach (var item in @in.Items ?? [])
 					yield return item;
 
+				break;
+
+			case BoundLike like:
+				yield return like.Operand;
+				yield return like.Pattern;
 				break;
 
 			case BoundMember member:

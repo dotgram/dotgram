@@ -84,10 +84,12 @@ NegatableTail : @Func<bool, PredicateTail>
 	= at: In & target: InTarget                      => @(n => PredicateTail.In(n, target, at))
 	| at: Between & low: Additive & "and"i & high: Additive
 		=> @(n => PredicateTail.Between(n, low, high, at))
+	| at: Like & pattern: Additive                   => @(n => PredicateTail.Like(n, pattern, at))
 
 In      : @int = "in"i      => @(parserSpan.Start)
 Is      : @int = "is"i      => @(parserSpan.Start)
 Between : @int = "between"i => @(parserSpan.Start)
+Like    : @int = "like"i    => @(parserSpan.Start)
 
 InTarget : @InTarget
 	= '(' & items: ValueList & CloseList => @(new InTarget(items, null))

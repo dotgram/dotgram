@@ -350,6 +350,25 @@ sealed class BetweenExpr : ExprSyntax
 	public ExprSyntax High    { get; }
 }
 
+/// <summary><c>x like p</c>: the pattern is the host's LIKE's, and the language reads nothing in it.</summary>
+sealed class LikeExpr : ExprSyntax
+{
+	public LikeExpr(ExprSyntax operand, bool negated, ExprSyntax pattern, int position)
+		: base(position)
+	{
+		Operand   = operand;
+		Negated   = negated;
+		Pattern   = pattern;
+		Depth     = DepthOf(operand, pattern);
+		TreeDepth = TreeDepthOf(operand, pattern);
+		Size      = SizeOf(operand, pattern);
+	}
+
+	public ExprSyntax Operand { get; }
+	public bool       Negated { get; }
+	public ExprSyntax Pattern { get; }
+}
+
 /// <summary>What may follow the left operand of a predicate, read before it is known to be one.</summary>
 sealed class PredicateTail
 {
@@ -378,6 +397,11 @@ sealed class PredicateTail
 	public static PredicateTail Between(bool negated, ExprSyntax low, ExprSyntax high, int position)
 	{
 		return new PredicateTail(left => new BetweenExpr(left, negated, low, high, position));
+	}
+
+	public static PredicateTail Like(bool negated, ExprSyntax pattern, int position)
+	{
+		return new PredicateTail(left => new LikeExpr(left, negated, pattern, position));
 	}
 
 	public ExprSyntax Apply(ExprSyntax left)

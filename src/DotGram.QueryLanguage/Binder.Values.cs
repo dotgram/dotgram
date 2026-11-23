@@ -67,6 +67,9 @@ sealed partial class Binder
 			case BetweenExpr between:
 				return BindBetween(between);
 
+			case LikeExpr like:
+				return BindLike(like);
+
 			default:
 				throw new InvalidOperationException(syntax.GetType().Name);
 		}
@@ -423,6 +426,34 @@ sealed partial class Binder
 		var both    = new BoundBinary(ExpressionType.AndAlso, low, high, ScalarType.Of(QlType.Bool, false), between.Position);
 
 		return between.Negated ? new BoundUnary(ExpressionType.Not, both, both.Type, between.Position) : both;
+	}
+
+	/// <summary>
+	/// <c>x like p</c>, as the host's LIKE: the language reads nothing in the pattern. The left is a string of the rows,
+	/// so that the database computes it; the right is any string.
+	/// </summary>
+	BoundExpr BindLike(LikeExpr like)
+	{
+		var hook = _like ?? throw Error(QlErrorCode.Type, "`like` is not available in this model: the host has not declared what it means.", like.Position);
+		var text = ScalarType.Of(QlType.String, true);
+
+		if (IsUntyped(like.Operand) || like.Operand is LiteralExpr or TypedLiteralExpr)
+			throw Error(QlErrorCode.Type, "`like` matches a value of the rows: write the field on its left, `name like @pattern`.", like.Position);
+
+		var operand = BindValue(like.Operand, text);
+
+		if (operand.Type.Type != QlType.String)
+			throw Error(QlErrorCode.Type, $"`like` matches strings, and this is a {operand.Type.Name}.", like.Position);
+
+		if (!operand.ReadsRow)
+			throw Error(QlErrorCode.Type, "`like` matches a value of the rows: write the field on its left, `name like @pattern`.", like.Position);
+
+		var pattern = BindValue(like.Pattern, text);
+
+		if (pattern.Type.Type != QlType.String)
+			throw Error(QlErrorCode.Type, $"The pattern of `like` is a string, and this is a {pattern.Type.Name}.", like.Pattern.Position);
+
+		return new BoundLike(Convert(operand, text), Convert(pattern, text), like.Negated, hook, like.Position);
 	}
 
 	/// <summary>A value as another type: <c>int</c> to <c>long</c>, <c>decimal</c> or <c>double</c>, <c>T</c> to <c>T?</c>.</summary>

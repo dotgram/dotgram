@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 DotGram.QueryLanguage.QlColumnInfo
 DotGram.QueryLanguage.QlColumnInfo.IsNullable.get -> bool
 DotGram.QueryLanguage.QlColumnInfo.Name.get -> string!
@@ -36,6 +36,7 @@ DotGram.QueryLanguage.QlModelBuilder<TContext>.Build(DotGram.QueryLanguage.QlOpt
 DotGram.QueryLanguage.QlModelBuilder<TContext>.Entity<T>(string! name, System.Func<TContext, System.Linq.IQueryable<T>!>! source) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T>!
 DotGram.QueryLanguage.QlModelBuilder<TContext>.Entity<T>(System.Linq.Expressions.Expression<System.Func<TContext, System.Linq.IQueryable<T>!>!>! source) -> DotGram.QueryLanguage.QlEntityBuilder<TContext, T>!
 DotGram.QueryLanguage.QlModelBuilder<TContext>.Format<T>(System.Func<T, string?>! format) -> DotGram.QueryLanguage.QlModelBuilder<TContext>!
+DotGram.QueryLanguage.QlModelBuilder<TContext>.Like(System.Linq.Expressions.Expression<System.Func<string?, string?, bool>!>! like) -> DotGram.QueryLanguage.QlModelBuilder<TContext>!
 DotGram.QueryLanguage.QlModelBuilder<TContext>.QlModelBuilder() -> void
 DotGram.QueryLanguage.QlOptions
 DotGram.QueryLanguage.QlOptions.<Clone>$() -> DotGram.QueryLanguage.QlOptions!

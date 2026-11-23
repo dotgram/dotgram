@@ -385,12 +385,29 @@ static class Translator
 					return Expression.Call(ContainsMethod.MakeGenericMethod(operand.Type), list, operand);
 				}
 
+				case BoundLike like:
+				{
+					var match = Substitute(like.Like, Value(like.Operand, row, shape), Value(like.Pattern, row, shape));
+
+					return like.Negated ? Expression.Not(match) : match;
+				}
+
 				case BoundMember member:
 					return Member(member, row, shape);
 
 				default:
 					throw new InvalidOperationException(value.GetType().Name);
 			}
+		}
+
+		/// <summary>
+		/// The body of the host's <paramref name="lambda"/> with its parameters replaced by <paramref name="first"/> and
+		/// <paramref name="second"/>: the tree the host would have written by hand, not an <see cref="Expression.Invoke(Expression, Expression[])"/>
+		/// that a provider may or may not unfold.
+		/// </summary>
+		static Expression Substitute(LambdaExpression lambda, Expression first, Expression second)
+		{
+			return new Replacer(lambda.Parameters[0], first, lambda.Parameters[1], second).Visit(lambda.Body);
 		}
 
 		Expression Member(BoundMember member, ParameterExpression row, Shape shape)
@@ -450,6 +467,21 @@ static class Translator
 					return Expression.Call(method.MakeGenericMethod(element, type), group, selector);
 				}
 			}
+		}
+	}
+
+	/// <summary>Replaces two parameters of a lambda's body, and nothing else.</summary>
+	sealed class Replacer(ParameterExpression first, Expression firstValue, ParameterExpression second, Expression secondValue) : ExpressionVisitor
+	{
+		protected override Expression VisitParameter(ParameterExpression node)
+		{
+			if (node == first)
+				return firstValue;
+
+			if (node == second)
+				return secondValue;
+
+			return node;
 		}
 	}
 

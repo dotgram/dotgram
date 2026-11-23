@@ -165,11 +165,16 @@ static class Reader
 					Walk(item, options);
 
 				break;
+
+			case LikeExpr like:
+				Walk(like.Operand, options);
+				Walk(like.Pattern, options);
+				break;
 		}
 	}
 
 	/// <summary>
-	/// Refuses <c>!x</c> without brackets on the left of a comparison, <c>is</c>, <c>in</c> or <c>between</c>. C# reads
+	/// Refuses <c>!x</c> without brackets on the left of a comparison, <c>is</c>, <c>in</c>, <c>between</c> or <c>like</c>. C# reads
 	/// <c>!a == b</c> as <c>(!a) == b</c> and SQL's NOT as <c>!(a == b)</c>; the two differ where a value is null
 	/// (<c>!flag is null</c> is never true one way and always the other), so whoever wrote it says which.
 	/// </summary>
@@ -181,6 +186,7 @@ static class Reader
 			IsNullExpr isNull                         => isNull.Operand,
 			InExpr @in                                => @in.Operand,
 			BetweenExpr between                       => between.Operand,
+			LikeExpr like                             => like.Operand,
 			_                                         => null,
 		};
 
@@ -282,6 +288,11 @@ static class Reader
 				foreach (var item in @in.Items ?? [])
 					yield return item;
 
+				break;
+
+			case LikeExpr like:
+				yield return like.Operand;
+				yield return like.Pattern;
 				break;
 		}
 	}

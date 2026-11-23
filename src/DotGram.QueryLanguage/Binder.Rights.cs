@@ -112,6 +112,11 @@ static class RightsPlan
 					Walk(between.High,    place, into);
 					return;
 
+				case LikeExpr like:
+					Walk(like.Operand, place, into);
+					Walk(like.Pattern, place, into);
+					return;
+
 				case InExpr @in:
 					Walk(@in.Operand, place, into);
 

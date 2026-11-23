@@ -15,14 +15,16 @@ namespace DotGram.QueryLanguage;
 /// </summary>
 sealed partial class Binder
 {
-	Binder(ModelEntity entity, QlOptions options)
+	Binder(ModelEntity entity, LambdaExpression? like, QlOptions options)
 	{
 		_entity  = entity;
+		_like    = like;
 		_options = options;
 		_shape   = new Shape(ShapeKind.Entity, []);
 	}
 
 	readonly ModelEntity                    _entity;
+	readonly LambdaExpression?              _like;
 	readonly QlOptions                      _options;
 	readonly Dictionary<string, Parameter>  _parameters = new(Names.Comparer);
 	readonly List<Parameter>                _order      = [];
@@ -37,12 +39,17 @@ sealed partial class Binder
 	/// <summary>Where the last <c>select</c> stands, and so whether the entity's fields are still in scope.</summary>
 	int? _selectAt;
 
-	public static BoundQuery Bind(QuerySyntax query, IReadOnlyDictionary<string, ModelEntity> entities, QlOptions options)
+	/// <summary>Binds <paramref name="query"/> to its entity in <paramref name="entities"/>, held to <paramref name="options"/>.</summary>
+	/// <param name="query">The text as read.</param>
+	/// <param name="entities">The model's entities by name.</param>
+	/// <param name="like">The host's LIKE, <c>(s, p) =&gt; …</c>; null where the model declares none and <c>like</c> is refused.</param>
+	/// <param name="options">The bounds of the query.</param>
+	public static BoundQuery Bind(QuerySyntax query, IReadOnlyDictionary<string, ModelEntity> entities, LambdaExpression? like, QlOptions options)
 	{
 		if (!entities.TryGetValue(query.Root.Text, out var entity))
 			throw new QlException(QlErrorCode.UnknownName, $"Unknown entity `{query.Root.Text}`.", query.Root.Position);
 
-		return new Binder(entity, options).BindQuery(query);
+		return new Binder(entity, like, options).BindQuery(query);
 	}
 
 	static QlException Error(QlErrorCode code, string message, int position)
@@ -294,6 +301,7 @@ sealed partial class Binder
 			IsNullExpr isNull     => Start(isNull.Operand),
 			InExpr @in            => Start(@in.Operand),
 			BetweenExpr between   => Start(between.Operand),
+			LikeExpr like         => Start(like.Operand),
 			_                     => value.Position,
 		};
 	}
