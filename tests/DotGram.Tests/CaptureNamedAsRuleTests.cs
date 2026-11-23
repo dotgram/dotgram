@@ -178,6 +178,24 @@ public sealed class CaptureNamedAsRuleTests
 		var found  = Assert.Single(result.Diagnostics, static one => one.Id == GrammarBinder.UndefinedName);
 
 		Assert.Contains("'a' is a capture", found.Message, StringComparison.Ordinal);
+		Assert.Contains("write '$a'", found.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain("read after", found.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Where what a capture is handed to says so in a message of its own — a parameter typed with a C#
+	/// type, which takes a value (§4.2), an element set — that message is the one said, and only once.
+	/// </summary>
+	[Theory]
+	[InlineData("Start = c: Digits & Value(c)\nValue(n: @int) = 'a' & when @(n > 0)\nDigits = ['0'..'9']+", "GRAM4013")]
+	[InlineData("Start = c: Digits & Value(c)\nValue(n: int) = 'a'{n}\nDigits = ['0'..'9']+", "GRAM4013")]
+	[InlineData("Start = a: 'x' & [a]", "GRAM4005")]
+	public void A_capture_where_a_value_or_a_set_goes_is_told_once(string grammar, string id)
+	{
+		var result = Compile(grammar + "\nparse Start");
+		var errors = result.Diagnostics.Where(static one => one.Severity == GramSeverity.Error).Select(static one => one.Id);
+
+		Assert.Equal([id], errors);
 	}
 
 	/// <summary>

@@ -333,6 +333,38 @@ public sealed class GramCompletionProviderTests
 		Assert.Contains(items, static item => item.Label == "n");
 	}
 
+	/// <summary>
+	/// A capture is offered where a value goes and not where a recognizer does, where its name is the rule's
+	/// as the compiler reads it: there a capture spelled like a rule does not hide the rule's entry. The
+	/// caret is where `|` stands.
+	/// </summary>
+	[Theory]
+	[InlineData("hour = ['0'..'9']+\nStart : @string = hour: hour & '-' & hou|", "hour", "hour = ['0'..'9']+")]
+	[InlineData("hour = ['0'..'9']+\nStart : @string = item: hour & '-' & ite|", "item", null)]
+	[InlineData("hour = ['0'..'9']+\nStart : @string = item: hour & Pair(ite|)\nPair(x) = x", "item", null)]
+	[InlineData("hour = ['0'..'9']+\nStart : @string = hour: hour => hou|", "hour", "hour: DotGram capture")]
+	[InlineData("hour = ['0'..'9']+\nStart : @string = item: hour => ite|", "item", "item: DotGram capture")]
+	[InlineData("hour = ['0'..'9']+\nStart : @string = item: hour & when ite|", "item", "item: DotGram capture")]
+	[InlineData("hour = ['0'..'9']+\nStart = item: hour => Start(ite|)", "item", "item: DotGram capture")]
+	public async Task A_capture_is_offered_only_where_a_value_goes(string marked, string name, string? described)
+	{
+		var position = marked.IndexOf('|');
+		var text     = marked.Remove(position, 1);
+		var provider = new StandaloneGramCompletionProvider(GramLanguageService.Analyze(text));
+		var start    = Assert.IsType<TextSpan>(provider.Start(text, position));
+		var items    = await provider.ItemsAsync(text, position, start, null, TestContext.Current.CancellationToken);
+		var offered  = items.Where(item => item.Label == name).ToArray();
+
+		if (described is null)
+		{
+			Assert.Empty(offered);
+		}
+		else
+		{
+			Assert.Equal(described, Assert.Single(offered).Description);
+		}
+	}
+
 	/// <summary>A DSL's case-insensitive literal is offered as matching what is typed in any case.</summary>
 	[Fact]
 	public void A_case_insensitive_DSL_literal_says_so()

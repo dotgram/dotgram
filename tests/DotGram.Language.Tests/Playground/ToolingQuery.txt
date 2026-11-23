@@ -10,7 +10,6 @@ completion 4:24 applicable=4:24+5
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
-  field | insert=field | suffix= | sort=field | filter=field | field: DotGram capture
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Identifier | insert=Identifier | suffix= | sort=Identifier | filter=Identifier | Identifier = ['a'..'z']+
   internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
@@ -49,7 +48,6 @@ completion 4:37 applicable=4:32+10
   eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
   eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
   fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type, or after a guard's C#: what a refusal of the rule, or of the guard, says
-  field | insert=field | suffix= | sort=field | filter=field | field: DotGram capture
   find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
   Identifier | insert=Identifier | suffix= | sort=Identifier | filter=Identifier | Identifier = ['a'..'z']+
   internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends

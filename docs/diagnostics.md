@@ -98,7 +98,7 @@ character the grammar's own position maps to. A grammar inherited from a base cl
 | Id | Severity | What it says | What to do |
 | --- | --- | --- | --- |
 | <a id="gram3001"></a>`GRAM3001` | Error | A rule of this name is already defined in this namespace. | Rename one, or put one in a nested namespace to shadow the other. |
-| <a id="gram3002"></a>`GRAM3002` | Error | No rule of that name. | |
+| <a id="gram3002"></a>`GRAM3002` | Error | No rule of that name. | Where the name is a capture of the rule, it stands where a recognizer goes: a capture is read only in a value, after `=>`, in a guard or as a `switch` selector (§3.5). |
 | <a id="gram3003"></a>`GRAM3003` | Error | No namespace of that name is in view. | |
 | <a id="gram3004"></a>`GRAM3004` | Error | No C# type of that name is in view. | The type is looked up the way C# would look it up beside the `using` directives the grammar declares. |
 | <a id="gram3005"></a>`GRAM3005` | Error | Two publications would generate the same method. | Give one another name with `as`. |

@@ -173,7 +173,7 @@ abstract class GramCompletionProvider
 
 			var action = GramVocabulary.ActionAt(at.Text, at.Position, out _);
 			var local  = action is GramAction.Construction or GramAction.Guard
-				? Definitions(text, position)
+				? Definitions(text, position, captures: true)
 					.Where(static pair => pair.Value.IsLocal)
 					.Select(static pair => (pair.Key, pair.Value.Description))
 				: [];
@@ -193,7 +193,13 @@ abstract class GramCompletionProvider
 			qualified.Text, qualified.Position - (position - applicable.Start)))
 			return StandardCompletions();
 
-		var definitions = Definitions(text, position);
+		// A capture is a value and is offered where one goes, after a `=>` or a `when` written without `@`.
+		// Where a recognizer goes its name is the rule's, as the binder reads it, and a capture of that
+		// name does not hide the rule's entry.
+		var values = grammar is { } place && (
+			GramVocabulary.ActionAt(place.Text, place.Position, out _) is GramAction.Construction or GramAction.Guard ||
+			AfterValueWord(place.Text, place.Position - (position - applicable.Start)));
+		var definitions = Definitions(text, position, captures: values);
 		var words = grammar is { } arguments && GramVocabulary.InCallArguments(arguments.Text, arguments.Position)
 			? GramVocabulary.CompletionWords.Concat(GramVocabulary.SuppliedAt(arguments.Text, arguments.Position))
 			: GramVocabulary.CompletionWords;
@@ -248,7 +254,27 @@ abstract class GramCompletionProvider
 
 	protected abstract bool IsApplicable(int position);
 
-	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(string text, int position);
+	/// <summary>The rules, and the parameters and captures in scope, by name.</summary>
+	/// <param name="captures">Whether the rule's captures are among them: only where a value goes.</param>
+	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(string text, int position, bool captures);
+
+	/// <summary>
+	/// Whether what stands before <paramref name="start"/> is a <c>=&gt;</c> or a <c>when</c>: a value
+	/// begun there, which the grammar cannot be read as yet while nothing of it is typed.
+	/// </summary>
+	static bool AfterValueWord(string grammar, int start)
+	{
+		var end = Math.Min(start, grammar.Length);
+
+		while (end > 0 && char.IsWhiteSpace(grammar[end - 1]))
+			end--;
+
+		if (end >= 2 && grammar[end - 2] == '=' && grammar[end - 1] == '>')
+			return true;
+
+		return end >= 4 && string.CompareOrdinal(grammar, end - 4, "when", 0, 4) == 0 &&
+			(end == 4 || !IsNameCharacter(grammar[end - 5]));
+	}
 
 	protected virtual IReadOnlyList<DslLiteralCompletion> DslCompletions(int position)
 	{
@@ -406,7 +432,7 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 		return GrammarPosition.Standalone(text, position);
 	}
 
-	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(string text, int position)
+	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(string text, int position, bool captures)
 	{
 		var definitions = document.Classifications
 			.Where(static item => item.SymbolKind == GramSymbolKind.Rule &&
@@ -422,6 +448,7 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 
 		foreach (var symbol in document.Symbols
 			.Where(symbol => symbol.Kind != GramSymbolKind.Rule &&
+				(captures || symbol.Kind != GramSymbolKind.Capture) &&
 				symbol.IsDefinition &&
 				// The end too: the caret just after a rule's last name, as it types its construction.
 				symbol.ScopeStart <= position && position <= symbol.ScopeEnd)
@@ -478,7 +505,7 @@ sealed class EmbeddedGramCompletionProvider(EmbeddedGrammarView view) : GramComp
 		.ToArray();
 	}
 
-	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(string text, int position)
+	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(string text, int position, bool captures)
 	{
 		if (!view.Current)
 			return new Dictionary<string, RuleCompletion>();
@@ -500,6 +527,7 @@ sealed class EmbeddedGramCompletionProvider(EmbeddedGrammarView view) : GramComp
 
 		foreach (var symbol in view.Symbols
 			.Where(symbol => symbol.Kind != GramSymbolKind.Rule &&
+				(captures || symbol.Kind != GramSymbolKind.Capture) &&
 				symbol.IsDefinition &&
 				symbol.GrammarSpan.Contains(position) &&
 				symbol.ScopeSpan.Start <= position && position <= symbol.ScopeSpan.End)

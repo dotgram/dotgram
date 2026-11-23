@@ -463,12 +463,14 @@ because a rule name and a capture name are the grammar's own and nothing there i
 reserved. Written without the `@` inside the `=>`, it is a C# syntax error against that
 line of the grammar, which is what it is.
 
-**A capture's name is read only where a value goes**: after `=>`, in a guard, as a `switch`'s
-selector, after `with state` and in a `recover` factory. Where a recognizer goes — an operand, a
-call's argument, a side of `when … is …` — the same spelling is the rule's, so a capture may be named
-after the rule it reads: `hour: hour & ':' & minute: minute => @(hour + minute)` reads the rules
-`hour` and `minute` and hands their text to the `=>` under the same names. A capture's name where a
-recognizer goes, with no rule of that name, names nothing (`GRAM3002`).
+**A capture's name is read only where a value goes**: after `=>`, in a guard and as a `switch`'s
+selector (a mark after `with state` names no capture, §7.8, and a `recover` factory is handed only
+the names of §8.2). Where a recognizer goes — an operand, a side of `when … is …`, a call's argument
+outside a value — the same spelling is the rule's, so a capture may be named after the rule it reads:
+`hour: hour & ':' & minute: minute => @(hour + minute)` reads the rules `hour` and `minute` and hands
+their text to the `=>` under the same names. A capture's name where a recognizer goes, with no rule
+of that name, names nothing (`GRAM3002`); to match the text it captured again, bind it as well and
+write `$q` (§3.5.1).
 
 **`$q: X` is not a capture.** It binds the text `X` matched so that `$q` can match it again
 (§3.5.1); it adds no member to the rule's type and no name to a `=>` or a `when`. A name

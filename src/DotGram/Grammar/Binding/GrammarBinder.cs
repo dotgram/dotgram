@@ -959,10 +959,12 @@ sealed partial class GrammarBinder
 	/// <c>switch</c>'s value, where a <c>@</c> name is not looked at.
 	/// </param>
 	/// <param name="inValue">
-	/// Whether the expression is a value at all, which those are and a <c>with state</c>'s mark and a
-	/// recovery's factory are too: the one place a capture is read. Anywhere else a name stands for a
-	/// recognizer, and a capture spelled like a rule is no shadow over it: <c>hour: hour</c> reads the
-	/// rule <c>hour</c> (docs/syntax.md §3.5).
+	/// Whether the expression is a value at all: those, where a capture is read, and a <c>with state</c>'s
+	/// mark and a recovery's factory, where a name is still looked for among the captures and the supplied
+	/// names so that what they may name is told later in their own terms (a mark names no capture,
+	/// GRAM4030; a factory is handed the supplied names). Anywhere else a name stands for a recognizer,
+	/// and a capture spelled like a rule is no shadow over it: <c>hour: hour</c> reads the rule
+	/// <c>hour</c> (docs/syntax.md §3.5).
 	/// </param>
 	void ResolveExpression(
 		Expr expression,
@@ -991,8 +993,8 @@ sealed partial class GrammarBinder
 				ResolveExpression(guarded, ns, parameters, csharpValue: true, inValue: true);
 				return;
 
-			// Values the grammar still reads as its own, as it always did: a name in them is a
-			// capture or one the parser supplies, and a `@` call's arguments are looked at.
+			// Values the grammar still reads as its own, as it always did: a name in them is looked
+			// for among the captures and the supplied names, and a `@` call's arguments are looked at.
 			case Expr.Marked(var operand, var mark):
 				ResolveExpression(operand, ns, parameters);
 				ResolveExpression(mark, ns, parameters, inValue: true);
@@ -1036,18 +1038,35 @@ sealed partial class GrammarBinder
 				if (csharpValue && target.IsHost)
 					return;
 
-				foreach (var argument in arguments)
-					ResolveExpression(argument, ns, parameters, csharpValue, inValue);
+				var declared = inValue || !_bindings.TryGetValue(expression, out var called)
+					? null
+					: (called as RuleSymbol)?.Declaration?.Params;
+
+				for (var i = 0; i < arguments.Count; i++)
+				{
+					// A parameter typed with a C# type takes a value, and a capture handed to one is told
+					// where the call is specialized, in the words of §4.2 (GRAM4013): the argument is no
+					// recognizer, and saying so here as well would be a second message about one mistake.
+					if (declared is not null && i < declared.Count && declared[i].Type is { } kind &&
+						(kind.IsHost || IsBuiltInType(kind.Name)) && arguments[i] is Expr.Reference reference)
+					{
+						ResolveReference(reference, reference, ns, parameters, reportCapture: false);
+						continue;
+					}
+
+					ResolveExpression(arguments[i], ns, parameters, csharpValue, inValue);
+				}
 
 				return;
 
 			case Expr.ElementSet(_, var items):
 
 				// Bound to the reference itself, not dropped: normalization has to merge
-				// what it names into the set, and for that it needs to know what it is.
+				// what it names into the set, and for that it needs to know what it is. A
+				// capture named there is told by it (GRAM4005), once.
 				foreach (var item in items)
 					if (item is Elem.Ref(var reference))
-						ResolveReference(reference, bind: reference, ns, parameters);
+						ResolveReference(reference, bind: reference, ns, parameters, reportCapture: false);
 
 				return;
 
@@ -1102,8 +1121,9 @@ sealed partial class GrammarBinder
 		Expr?                               bind,
 		GrammarNamespace                    ns,
 		Dictionary<string, ParameterSymbol> parameters,
-		bool                                csharpValue = false,
-		bool                                inValue     = false)
+		bool                                csharpValue   = false,
+		bool                                inValue       = false,
+		bool                                reportCapture = true)
 	{
 		var at = reference.At;
 
@@ -1143,11 +1163,16 @@ sealed partial class GrammarBinder
 		if (inValue && _captures.Contains(reference.Name))
 			return;
 
+		// A capture where a recognizer goes names nothing. Where what it stands in tells that in a
+		// message of its own — a value parameter's argument (GRAM4013), an element set (GRAM4005) —
+		// it is left to that message.
+		var captured = _captures.Contains(reference.Name) && !SuppliedNames.All.Contains(reference.Name);
+
 		if (Resolve(ns, reference.Name, at) is { } rule)
 		{
 			Bind(rule);
 		}
-		else
+		else if (reportCapture || !captured)
 		{
 			// A dotted name is a C# one nine times in ten — `CultureInfo.InvariantCulture`
 			// written where the grammar expects one of its own. The fix is the one character
@@ -1159,9 +1184,11 @@ sealed partial class GrammarBinder
 				$"No rule, parameter or capture named '{reference.Name}'." +
 				(reference.Name.Contains(".")
 					? $" A {HostLanguage} name is reached with '@' — '@{reference.Name}' (docs/syntax.md §2)."
-					: _captures.Contains(reference.Name) && !SuppliedNames.All.Contains(reference.Name)
-						? $" '{reference.Name}' is a capture here, and a capture is a value: it is read after " +
-							"'=>' or 'when', and where a recognizer goes a name is a rule's (docs/syntax.md §3.5)."
+					: captured
+						? $" '{reference.Name}' is a capture here, and a capture is a value: an operand, a side of " +
+							"'is' and a call's argument outside a value take a recognizer, where a name is a rule's " +
+							"(docs/syntax.md §3.5). To match the text it captured again, bind it as well with " +
+							$"'{reference.Name}: (${reference.Name}: …)' and write '${reference.Name}' (§3.5.1)."
 						: ""),
 				at);
 		}
