@@ -63,7 +63,8 @@ public sealed class Shop(IQueryable<Order> orders, int tenant)
 
 		if (like)
 			builder.Like((s, p) => Sql.Like(s, p, '\\'));
-		var orders  = builder.Entity("orders", s => s.AllOrders.Where(o => o.TenantId == s.Tenant));
+
+		var orders = builder.Entity("orders", s => s.AllOrders.Where(o => o.TenantId == s.Tenant));
 
 		orders
 			.Column("id",       o => o.Id)
