@@ -32,6 +32,7 @@ var model = builder.Build();
 | `Column(o => o.Total)` / `Column("total", o => o.Total)` | a field: a member the provider maps, under its own name or the one given; a value type, a `string` or a `byte[]` — a navigation or a collection is refused |
 | `Column(…, QlUse.Filter)` | where the field may be named; null means `Select \| Filter \| Sort` |
 | `Format<T>(Func<T, string?>)` | how values of `T` are printed in JSON (below) |
+| `Like((s, p) => …)` | what `x like p` means: the provider's own LIKE (below); without it `like` is refused |
 | `Build(QlOptions?)` | the model, with its bounds |
 
 **`QlUse`** says where a field may be named: `Select` in what a query returns, `Filter` in a value
@@ -87,8 +88,8 @@ select id, status, net
   `timestamp '2026-01-01 10:00:00'` and `timestamptz '2026-01-01 10:00:00+02:00'`.
 - **Operators**, at C#'s precedence: `*` `/` `%`, `+` `-`, the comparisons `==` `!=` `<` `<=` `>`
   `>=`, `&&`, `||`, and the unary `!` and `-`. `x [not] in (a, b)` (of literals and parameters), `x [not] in @list`,
-  `x [not] between a and b`, `x is [not] null`. `!` binds as in C#, tighter than any binary
-  operator; where C# and SQL's `NOT` would read a text differently — `!a == b`, `!flag is null` —
+  `x [not] between a and b`, `x is [not] null`, `x [not] like p` (below). `!` binds as in C#,
+  tighter than any binary operator; where C# and SQL's `NOT` would read a text differently — `!a == b`, `!flag is null` —
   the text is refused and asks for `!(a == b)` or `(!a) == b`.
 - **Members**: `Length`, `Contains(s)`, `StartsWith(s)`, `EndsWith(s)`, `ToUpper()`, `ToLower()`,
   `Trim()` of a string; `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`, `Date` of a timestamp.
@@ -103,6 +104,37 @@ select id, status, net
   Comments are `--` to the end of the line and `/* … */`.
 - A name declared and never used is reported in `Describe(text).Warnings` (`UnusedName`) and is
   not built into the query.
+
+### `like`
+
+`title like @pattern`, `title not like 'War%'` match a string of the rows against a pattern, at the
+level of a comparison: `a like p && b > 1` is `(a like p) && (b > 1)`, and `a like p like q` is not a
+text. The left is a string the rows give — a field, a `let`, a member of one; the pattern is any
+string, a literal, a parameter or another field.
+
+The language has no LIKE of its own. The host says what `like` means, once, with its provider's own:
+
+```csharp
+builder.Like((s, p) => Sql.Like(s, p, '\\'));               // linq2db
+builder.Like((s, p) => EF.Functions.Like(s, p, "\\"));      // EF Core
+```
+
+and `x like p` becomes that lambda's body with `x` and `p` in place of its parameters (`not like`, the
+body under `!`). The wildcards (`%`, `_`, and SQL Server's `[…]`), the escape character, case,
+accents and collation, and what a null does under `not like`, are the provider's and the database's;
+the language reads nothing in the pattern. A model without `Like` refuses the operator with
+`QlErrorCode.Type`. A pattern is a string like any other: `MaxStringLength` bounds its length, and
+nothing bounds the wildcards in it: a leading `%` reads every row, as `Contains` does.
+
+The escape is the one the host's lambda names. A backslash is the usual one — without an `ESCAPE` SQLite
+has no way to match a literal `%` — and is written doubled inside the language's strings
+(`status like '100\\%'`), as it is in any of them; in a parameter's value it is written once.
+
+**Do not pass raw user text as a pattern.** A pattern's wildcards are live wherever it comes from, a
+parameter's value too: a user who types `%` or `_` gets every row, and a leading `%` makes the
+database read them all. To find text a user typed, as text, write `title.Contains(@q)` (or
+`StartsWith`, `EndsWith`), whose value the provider escapes. `like` is for patterns written as
+patterns.
 
 ## Values
 
@@ -219,6 +251,10 @@ a format — is the provider's or the host's own exception.
   with a computed one in its own way, and loses the offset of a `DateTimeOffset`.
 - A row of strings only is written over a second read of its first string, which costs a string a
   row; any column of a value type avoids it.
+- **`like`** is the provider's LIKE as the host's lambda calls it. Under linq2db, `not like` adds no
+  `IS NULL`: a null is in neither `x like p` nor `x not like p`, where `x != 'a'` holds for it. SQL
+  Server reads `[…]` in a pattern as a class of characters and SQLite as the characters themselves;
+  SQLite ignores the case of ASCII letters only; whether `é` matches `e` is the collation's.
 - `x in @list` is written by linq2db as a list of literals: one cached query, but a new SQL text,
   and a new plan in the database, for each set of values.
 - Only linq2db is tested. A provider that evaluates closed parts of a projection ahead of the rows

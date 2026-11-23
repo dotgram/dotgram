@@ -90,6 +90,23 @@ static object? Loose(JsonElement value)
 }
 ```
 
+## Patterns
+
+`like` and `not like` are the database's own LIKE, which the host names once:
+
+```csharp
+builder.Like((s, p) => Sql.Like(s, p, '\\'));   // linq2db; EF Core: EF.Functions.Like(s, p, "\\")
+```
+
+```text
+from orders where status like @pattern && status not like 'test%'
+```
+
+The language reads nothing in the pattern: wildcards, the escape, case and collation are the
+database's. A model without `Like` refuses the operator. **Do not pass raw user text as a pattern**:
+its `%` and `_` are wildcards there. To find what a user typed, as text, write `status.Contains(@q)`,
+which the provider escapes.
+
 ## What the host still owns
 
 The library decides what a text may *name*; everything about *running* it stays with the host.

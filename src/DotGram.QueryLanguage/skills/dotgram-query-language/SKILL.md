@@ -48,6 +48,9 @@ QlModel<AppDb> model = builder.Build();
   code, message and position. Do not "improve" that error on the host side.
 - Names are matched ignoring case, and must be `[A-Za-z_][A-Za-z0-9_]*`; `null`, `true` and `false`
   are not names. Conflicts and bad members throw `ArgumentException` from `Build` or the call.
+- `builder.Like((s, p) => Sql.Like(s, p, '\\'))` (linq2db; EF Core `EF.Functions.Like(s, p, "\\")`)
+  says what `x like p` means: that body with the two strings in place of `s` and `p`. Without it
+  the model refuses `like`. Pattern, wildcards, escape, case and collation are the database's.
 - `QlOptions` (passed to `Build`) bounds texts. Leave the defaults unless there is a reason; set
   `MaxRows` to what one response may carry.
 
@@ -114,8 +117,8 @@ catch (QlException e)          // the text or a value: the client's error
   in any order; each is applied where it is written. `select` replaces the row: after it, only its
   columns can be named.
 - C# operators: `==` `!=` `<` `<=` `>` `>=` `&&` `||` `!` `+` `-` `*` `/` `%`; and `in (…)`, `in @list`,
-  `between … and …`, `is [not] null`, each with `not`. Write `!(a == b)` or `(!a) == b`: `!a == b`
-  without brackets is refused.
+  `between … and …`, `is [not] null`, `like` (the host's LIKE, above), each with `not`. Write
+  `!(a == b)` or `(!a) == b`: `!a == b` without brackets is refused.
 - Strings in `'…'` or `"…"`, escapes `\\`, `\'`, `\"`, `\uXXXX`; `timestamp '2026-01-01 10:00'`,
   `timestamptz '…+02:00'`. Comments `--` and `/* */`.
 - Members: `Length`, `Contains`, `StartsWith`, `EndsWith`, `ToUpper()`, `ToLower()`, `Trim()` on
@@ -144,4 +147,6 @@ catch (QlException e)          // the text or a value: the client's error
 - Exposing a field with `Filter` "to hide it": it is disclosed by comparisons.
 - Catching `Exception` and returning it to the client: only `QlException` is the client's.
 - Expecting `ToJsonAsync` to bound memory: `MaxRows` bounds rows, not their size.
+- Passing raw user text as a `like` pattern: its `%` and `_` are wildcards. Search for what a user
+  typed with `x.Contains(@q)`, which the provider escapes; `like` is for patterns.
 - Expecting EF Core to behave like linq2db: only linq2db (SQLite, SQL Server) is tested.
