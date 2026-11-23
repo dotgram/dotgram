@@ -1435,8 +1435,9 @@ A recognizer of the host is taken at its word that it consumes, so a rule that r
 only past one, `Nest = @Still & n: Nest & 'b' | 'x'+`, is none of these and compiles; but a
 recognizer may succeed without moving (§7.2), and where it does there the rule comes back to
 itself without having read anything. That is the same left recursion, found while parsing: the
-parse is refused there, with a message naming the rule and the recognizer (`GRAM5021` says
-which rules can do it).
+entry that came back fails as an alternative that did not match does, and the rule's other
+alternatives are read, as the rewritten left recursion would read them (§7.2 says when, and
+`GRAM5021` which rules have the check).
 
 #### 4.3.1 Binding powers, when levels are not enough
 
@@ -2368,8 +2369,9 @@ and the two forms cost the same (§7.7). An accepted input is one reading in eve
 `First()`, `Where()`, `Take()` are LINQ's job and it would be strange to reinvent
 three of them. It yields occurrences as it finds them, so a document with a million
 matches costs one at a time rather than an array of a million. A start where a rule comes back
-to itself without reading anything (§7.2) is not one where nothing was found: after the
-occurrences before it, `MoveNext` throws `InvalidOperationException` with the refusal's message.
+to itself without reading anything too many times (§7.2) is not one where nothing was found:
+after the occurrences before it, `MoveNext` throws the `InvalidOperationException` a `parse`
+throws there.
 
 A rule whose value is a sequence — `Feed : FeedItem[]` — is published with `parse`
 like any other, and what comes back is that sequence. Reading a feed is not a third
@@ -3868,14 +3870,26 @@ ordinary C# rules.
   does not move reads `M` three times, and `(@M)*` none. In a recursion it is the other half of the
   same rule: a rule that comes back to itself where it already stands, through a recognizer that
   did not move — `Frames = @ReadFrame & Frames | eof` where `ReadFrame` read nothing — would come
-  back the same way for ever, since the recognizer will not move on the next entry either. The parse
-  is refused there instead, as `NoMatch` at that position, with a message naming the rule and the
-  recognizer; a `yield` throws it from `MoveNext` and a `find` throws `InvalidOperationException`
-  (§6). A `recover` does not step over it: it says the grammar cannot be read there, not that an
-  element was bad. The repetition, `Frames = @ReadFrame* & eof`, is the spelling that needs no such
-  check. **A recursion that relies on `context` changing between two entries at one position is
-  refused there too:** what is compared is the rule and the position (and the strength it is read
-  at, §4.3.1), not the context, so write the progress into the input position, not the context.
+  back the same way for ever, since the recognizer will not move on the next entry either. Such an
+  entry is cut instead, as an alternative that did not match, and the rule's other alternatives are
+  read. Where nothing is read after the call back, as in `Frames`, it is cut at once: it could only
+  read what the entry already standing there reads. Where something is, a parse may need the rule
+  entered there more than once — `Sum = Num | @Ws & Sum & '+' & Num` reads `1+2+3` with `Sum`
+  entered three times at 0, once for each `'+' & Num` pending — so the entries standing at one
+  position are let stand while there are no more of them than items of input left past it, plus
+  two, and one more is cut; wherever the parse would end without the check, it answers the same
+  with it. That search can still take time exponential in the input — a second alternative like
+  the first, `| @Ws & Sum & '-' & Num`, doubles it every two items — so a reading in which entries
+  come back more than 4·n² times, `n` the input's length (over a reader, what has been read of it),
+  and at least 2²⁴, throws an `InvalidOperationException` naming the rule, the recognizer and the
+  position: from a `parse`, and from a `yield`'s or a `find`'s `MoveNext` (§6); a `recover` does
+  not step over it. The repetition, `Frames = @ReadFrame* & eof`, is the spelling that needs no
+  such check. **What is compared is the rule and the position, and the strength it is read at
+  (§4.3.1), not the `context` and not values:** where a `when` or a `switch` reads a value the
+  cycle builds, or a hook on the way names `context`, the entries are counted, never cut at once,
+  and the count holds only for what the position decides — a parse that would finish only once such
+  a value or the context had grown deep enough may be refused. Write the progress into the input
+  position.
 - An external recognizer and a `when` guard execute during recognition. Ordered choice
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects

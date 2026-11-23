@@ -223,7 +223,12 @@ Notes:
   changes during the parse may be answered from before the change. State that changes belongs in `context`,
   which the generator can see ([context and state](15-context-and-state.md)).
 - **A recognizer restores the position on failure**, and may succeed without moving it: inside a repetition,
-  past its fewest turns, a turn that does not move ends the repetition.
+  past its fewest turns, a turn that does not move ends the repetition. A rule that comes back to itself
+  through such a recognizer, `Frames = @ReadFrame & Frames | eof`, compiles (`GRAM5021` says so), and an entry
+  of it where it already stands is cut as an alternative that did not match; where something is read after
+  the call back, as in `Sum = Num | @Ws & Sum & '+' & Num`, the entries are counted against the input left
+  instead, and a reading in which they come back too often throws `InvalidOperationException`. The
+  repetition, `Frames = @ReadFrame* & eof`, needs no such check.
 - **Nothing is caught.** An exception from the C# leaves the parse, from `TryParse…` too.
 
 ## Names the generated code keeps
