@@ -91,6 +91,7 @@ public sealed class ReentryTailTests
 	public void A_cut_at_once_answers_as_the_count(string name)
 	{
 		var (_, grammar, tail, alphabet) = Shapes.Single(shape => shape.Name == name);
+
 		var inputs = 0;
 
 		foreach (var direct in new[] { true, false })
@@ -123,7 +124,8 @@ public sealed class ReentryTailTests
 	public void A_cut_at_once_reads_long_input_in_linear_time(bool direct)
 	{
 		var (parser, _) = Build("T = @Still & T | 'a' & T | eof", direct, untailed: false);
-		var valid       = new string('a', 65536);
+
+		var valid = new string('a', 65536);
 
 		// The engine's first reading compiles what it reads; time the second.
 		Answer(parser, "aab");
