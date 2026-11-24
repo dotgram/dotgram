@@ -184,6 +184,34 @@ public sealed class RuleTypedByTextTests
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
 	}
 
+	/// <summary>
+	/// The operand is held by a capture of the rule's own making, which no name the author wrote can be: a capture
+	/// named like it, <c>item0</c> or <c>items</c>, is the author's and is not what the rule hands back.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Bare = item0: '<' & Bare & '>'" + Words, "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & items: '>'" + Words, "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & item: '>'" + Words, "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & item1: '>' | Bare" + Words, "<abc>")]
+	[InlineData("Start : Quoted = Quoted | '!' & Bare & items: '!'" + Quoted + Words, "!abc!")]
+	[InlineData("Start : Num = '<' & Num & item0: '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "<1>")]
+	public void A_capture_the_author_names_like_the_operand_is_not_the_operand(string grammar, string input)
+	{
+		Assert.Contains(Convert.ToString(Parsed(grammar, input, kind: true)), new[] { "abc", "1" });
+	}
+
+	/// <summary>
+	/// A group that has a rule that builds the value in one branch and a rule that only matched it in another is
+	/// one operand on each route: what the route that ran read is what is handed back.
+	/// </summary>
+	[Theory]
+	[InlineData("-<abc>")]
+	[InlineData("abc")]
+	public void A_group_of_a_built_operand_and_a_matched_one_gives_the_operand(string input)
+	{
+		Assert.Equal("abc", Parsed("Start : Bare = '-'? & ('<' & Quoted & '>' | Bare)\nQuoted : @string = x: ['a'..'z']+ => @(x)" + Words, input));
+	}
+
 	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>
 	[Fact]
 	public void A_left_recursive_rule_builds_with_its_own_construction()

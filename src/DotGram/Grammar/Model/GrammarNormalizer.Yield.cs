@@ -96,7 +96,7 @@ sealed partial class GrammarNormalizer
 						var scalar = recovery!.Factory is not null;
 						var step = new Node.Repeat(new Node.Capture("item", call), 1, scalar ? 1 : null);
 						_rules.Add(target);
-						_bodies[target] = new Node.Construct(step, scalar ? Construction.Operand.Instance : Construction.Sequence.Instance);
+						_bodies[target] = new Node.Construct(step, scalar ? new Construction.Operand("item") : Construction.Sequence.Instance);
 						_types[target] = scalar ? collectedType : _language.SequenceOf(collectedType);
 						_nullable[target] = false;
 						_recoveries[step] = recovery! with { YieldStep = true };

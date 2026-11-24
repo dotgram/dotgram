@@ -508,7 +508,7 @@ sealed partial class GrammarNormalizer
 				_language.ExternalValue(MethodOf(written), TypeName(type), out _) == ExternalValueResolution.Found)
 			{
 				_bodies[rule] = new Node.Construct(
-					new Node.Capture("item0", _bodies[rule]), Construction.Operand.Instance);
+					new Node.Capture("item0", _bodies[rule]), new Construction.Operand("item0"));
 			}
 	}
 

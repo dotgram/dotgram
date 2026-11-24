@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DotGram.Grammar.Model;
 
@@ -47,9 +48,19 @@ abstract record Construction
 	/// <summary>
 	/// §4.1 case 3: the rule's value is the one operand of it that produces one.
 	/// </summary>
-	public sealed record Operand : Construction
+	/// <param name="Captures">
+	/// The captures the operand is made a capture by, which it is handed back from: the one that holds it on
+	/// the route that ran. Named here and not found by what their names begin with, since a capture the author
+	/// wrote may be named anything. More than one where the operands of different routes are held differently,
+	/// the value of a rule that builds one and the text of a rule that matched it.
+	/// </param>
+	public sealed record Operand(IReadOnlyList<string> Captures) : Construction
 	{
-		public static readonly Operand Instance = new();
+		/// <summary>The operand held by one capture.</summary>
+		public Operand(string capture)
+			: this([capture])
+		{
+		}
 
 		public override string ToString()
 		{

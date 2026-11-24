@@ -4872,13 +4872,19 @@ file.Line("return spare;");
 				break;
 
 			// §4.1 case 3: the value is one of the operands, handed back as it stands.
-			case Construction.Operand:
+			case Construction.Operand(var captures):
 			{
-				var value = "default";
+				// By the names the rewrite gave them, in the order it gave them: of several, the one the route
+				// that ran wrote is the one that is not null.
+				var held = new List<string>();
 
-				foreach (var member in factory.Members)
-					if (member.Name.StartsWith("item", StringComparison.Ordinal))
-						value = ResultTypes.ParameterOf(member);
+				foreach (var name in captures)
+					foreach (var member in factory.Members)
+						if (member.Name == name)
+							held.Add(ResultTypes.ParameterOf(member));
+
+				// The route wrote one of them, so the other is null and the whole is not.
+				var value = held.Count == 0 ? "default" : held.Count == 1 ? held[0] : "(" + string.Join(" ?? ", held) + ")!";
 
 				file.Line(summary + ": what its operand was (§4.1 case 3).</summary>");
 				file.Line(head + " =>");

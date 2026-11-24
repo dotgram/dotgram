@@ -654,7 +654,8 @@ sealed partial class GrammarNormalizer
 
 	void PassThrough()
 	{
-		var extents = new List<RuleSymbol>();
+		var extents  = new HashSet<RuleSymbol>();
+		var operands = new List<(RuleSymbol Rule, string Type, IReadOnlyList<Node> Alternatives)>();
 
 		foreach (var pair in _produces)
 		{
@@ -692,29 +693,121 @@ sealed partial class GrammarNormalizer
 					break;
 
 				case PassOutcome.Operand:
-				{
-					var rewritten = new List<Node>(alternatives.Count);
-
-					for (var i = 0; i < alternatives.Count; i++)
-					{
-						Operands(alternatives[i], type, "item" + i, out var taken);
-
-						rewritten.Add(new Node.Construct(taken, Construction.Operand.Instance));
-					}
-
-					_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
-						? selected.Rebuild(rewritten)
-						: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+					operands.Add((rule, type, alternatives));
 
 					break;
-				}
 			}
 		}
 
-		// Once every rule has been asked: a rule asked after another that gave its type up would otherwise be
-		// told a different answer for the same grammar.
+		// Once every rule has been asked, so that what a rule hands back is told from what no rule builds with
+		// the answer for the whole grammar: a rule asked after another that gave its type up would otherwise
+		// be told a different answer for the same grammar.
+		foreach (var (rule, type, alternatives) in operands)
+		{
+			var reserved  = ReservedNames(rule);
+			var rewritten = new List<Node>(alternatives.Count);
+
+			for (var i = 0; i < alternatives.Count; i++)
+			{
+				// What is built is held by one capture, and what only matched by another, since a member has
+				// one kind of thing in it. Named for the alternative, and never as one of the author's.
+				var names = new OperandCaptures(
+					Unreserved("item" + i, reserved),
+					Unreserved("item" + i + "_text", reserved),
+					rule => BuildsValue(rule) && !extents.Contains(rule));
+
+				Operands(alternatives[i], type, names, out var taken);
+
+				rewritten.Add(new Node.Construct(taken, new Construction.Operand(names.Used())));
+			}
+
+			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
+				? selected.Rebuild(rewritten)
+				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+		}
+
 		foreach (var rule in extents)
 			_types.Remove(rule);
+	}
+
+	/// <summary>The names an operand is captured by in one alternative, and which of them a call is held by.</summary>
+	sealed class OperandCaptures(string built, string matched, Func<RuleSymbol, bool> builds)
+	{
+		bool _usedBuilt;
+		bool _usedMatched;
+
+		/// <summary>The capture that holds the operand of this call, which is a rule that builds a value or one that does not.</summary>
+		public string For(RuleSymbol rule)
+		{
+			if (builds(rule))
+			{
+				_usedBuilt = true;
+
+				return built;
+			}
+
+			_usedMatched = true;
+
+			return matched;
+		}
+
+		/// <summary>The captures that were used, the built one first.</summary>
+		public IReadOnlyList<string> Used()
+		{
+			var used = new List<string>();
+
+			if (_usedBuilt)
+				used.Add(built);
+
+			if (_usedMatched)
+				used.Add(matched);
+
+			return used;
+		}
+	}
+
+	/// <summary>
+	/// The names a rule's own text uses for a capture, a binding or a parameter: the ones a capture this compiler
+	/// makes in the rule's place must not take.
+	/// </summary>
+	HashSet<string> ReservedNames(RuleSymbol rule)
+	{
+		var names = new HashSet<string>(StringComparer.Ordinal);
+
+		if (rule.Declaration is { } declaration)
+			foreach (var parameter in declaration.Params)
+				names.Add(parameter.Name);
+
+		if (_bodies.TryGetValue(rule, out var body))
+			foreach (var node in NodeWalk.Descendants(body))
+				switch (node)
+				{
+					case Node.Capture capture:
+						names.Add(capture.Name);
+
+						break;
+
+					case Node.Bind bind:
+						names.Add(bind.Binding.Name);
+
+						break;
+				}
+
+		return names;
+	}
+
+	/// <summary>
+	/// <paramref name="stem"/> if no name of the rule's own is that, and otherwise the stem and underscores until none is.
+	/// Taken, so the next is not it either.
+	/// </summary>
+	static string Unreserved(string stem, HashSet<string> reserved)
+	{
+		var name = stem;
+
+		while (!reserved.Add(name))
+			name += "_";
+
+		return name;
 	}
 
 	/// <summary>What a rule that takes another's type, and builds nothing itself, comes to (§4.1 cases 3 and 4).</summary>
@@ -736,7 +829,7 @@ sealed partial class GrammarNormalizer
 	/// <summary>
 	/// The one walk over what a rule takes the value of (§4.1 case 3): the fewest and the most operands of a type
 	/// that a route through a node reads (0, 1, or 2 for two or more or one that is repeated), and, where
-	/// <paramref name="capture"/> is given, the node with each of them made a capture of that name.
+	/// <paramref name="capture"/> is given, the node with each of them made a capture, of the name it holds it by.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -754,7 +847,7 @@ sealed partial class GrammarNormalizer
 	/// repetition it rebuilds.
 	/// </para>
 	/// </remarks>
-	(int Least, int Most) Operands(Node node, string type, string? capture, out Node result)
+	(int Least, int Most) Operands(Node node, string type, OperandCaptures? capture, out Node result)
 	{
 		if (DeepStack.Low)
 		{
@@ -770,8 +863,8 @@ sealed partial class GrammarNormalizer
 
 		switch (node)
 		{
-			case Node.Call when Fits(node, type, declared: true):
-				result = capture is null ? node : new Node.Capture(capture, node);
+			case Node.Call(var called, _) when Fits(node, type, declared: true):
+				result = capture is null ? node : new Node.Capture(capture.For(called), node);
 
 				return (1, 1);
 
@@ -1152,6 +1245,8 @@ sealed partial class GrammarNormalizer
 			var taken     = 0;
 			var joined    = new List<List<string>>();
 
+			_collected = ReservedNames(rule);
+
 			foreach (var alternative in ValueAlternatives(_bodies[rule]))
 				rewritten.Add(new Node.Construct(
 					Gather(alternative, element, ref taken, joined, null), Construction.Sequence.Instance));
@@ -1384,6 +1479,9 @@ sealed partial class GrammarNormalizer
 		}
 	}
 
+	/// <summary>The names of the rule being collected that the author wrote, which what is collected is not captured by.</summary>
+	HashSet<string> _collected = [];
+
 	/// <summary>
 	/// An operand wrapped in the capture that puts it in the sequence.
 	/// </summary>
@@ -1395,7 +1493,7 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	Node Collected(Node part, ref int taken, List<string>? group)
 	{
-		var name = "item" + taken++;
+		var name = Unreserved("item" + taken++, _collected);
 
 		group?.Add(name);
 
