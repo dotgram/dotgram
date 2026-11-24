@@ -81,6 +81,7 @@ FASTER
 
 - A run read up to a delimiter, (?!X & any)* & X, searches for where the delimiter may begin rather than trying it at every character.
 - A refused input on the immediate carrier no longer builds the standing turns of a loop again on every attempt (a refused list of a thousand members allocated 24 MB, now 96 KB); a refused text over characters under binding powers no longer costs two to the power of its operators; a grammar of several hundred rules read from a buffer no longer takes minutes to generate.
+- Explaining a refusal at a place that very many ways tied for no longer searches the list of their sets at every way: a choice whose widest group begins with a call asked it, once per way, whether it held a rule's own words and the set the call said (a reader refused after twelve 'b' read by eight runs in a row, then a choice over a call: nine seconds, now 40 ms). The messages are the same.
 
 FIXED (each takes effect once the parser is generated again)
 
