@@ -87,15 +87,17 @@ select id, status, net
   strings in `'…'` or `"…"` with the escapes `\\`, `\'`, `\"` and `\uXXXX`; `true`, `false`, `null`;
   `timestamp '2026-01-01 10:00:00'` and `timestamptz '2026-01-01 10:00:00+02:00'`.
 - **Operators**, at C#'s precedence: `*` `/` `%`, `+` `-`, the comparisons `==` `!=` `<` `<=` `>`
-  `>=`, `&&`, `||`, and the unary `!` and `-`. `x [not] in (a, b)` (of literals and parameters), `x [not] in @list`,
+  `>=`, `&&`, `||`, and the unary `!` and `-`. `x [not] in (a, b)` (any values of the type of `x`), `x [not] in @list`,
   `x [not] between a and b`, `x is [not] null`, `x [not] like p` (below). `!` binds as in C#,
   tighter than any binary operator; where C# and SQL's `NOT` would read a text differently — `!a == b`, `!flag is null` —
   the text is refused and asks for `!(a == b)` or `(!a) == b`.
 - **Members**: `Length`, `Contains(s)`, `StartsWith(s)`, `EndsWith(s)`, `ToUpper()`, `ToLower()`,
-  `Trim()` of a string; `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`, `Date` of a timestamp.
+  `Trim()` of a string; `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`, `Date` of a timestamp. The
+  string may be any string, a literal or a `let` too; what a provider cannot compute it refuses itself.
 - **Aggregates**, in a `select` whose columns are all aggregates: `Count(*)`, `Count(x)` (the rows
   where `x` is not null), `Sum(x)`, `Avg(x)`, `Min(x)`, `Max(x)`. They aggregate every row at once
-  and give one row — with no rows, `Count` is 0 and the others null. An integer's average is a
+  and give one row — with no rows, `Count` is 0 and the others null. `x` is any value, a constant too:
+  `Sum(1)` counts the rows. An integer's average is a
   `double`. There is no `group by` yet.
 - **Null** compares as in C#, not as in SQL: `x == null` tests for null, `x != 1` holds where `x` is
   null.

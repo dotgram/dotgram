@@ -122,9 +122,9 @@ catch (QlException e)          // the text or a value: the client's error
 - Strings in `'…'` or `"…"`, escapes `\\`, `\'`, `\"`, `\uXXXX`; `timestamp '2026-01-01 10:00'`,
   `timestamptz '…+02:00'`. Comments `--` and `/* */`.
 - Members: `Length`, `Contains`, `StartsWith`, `EndsWith`, `ToUpper()`, `ToLower()`, `Trim()` on
-  strings; `Year` … `Second`, `Date` on dates.
+  strings, which may be literals too; `Year` … `Second`, `Date` on dates.
 - Aggregates over all rows in a `select` whose columns are all aggregates: `Count(*)`, `Count(x)`,
-  `Sum`, `Avg`, `Min`, `Max`; no rows give one row with `Count` 0 and the others null. No `group by`,
+  `Sum`, `Avg`, `Min`, `Max` of any value, a constant too; no rows give one row with `Count` 0 and the others null. No `group by`,
   `join` or `distinct` yet.
 - Null compares as in C#, not as in SQL: `x == null` tests for null, and `x != 1` holds where `x` is null.
 
