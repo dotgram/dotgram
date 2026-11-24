@@ -491,7 +491,16 @@ sealed partial class Machine
 
 				var reader = new ReaderWriter(this, rule);
 				var tape   = opens.Contains(rule);
-				var inner  = tape ? CSharpEmitter.Inner("ReadBody", CSharpEmitter.IdentifierOf(rule)) : ReaderOf(rule);
+
+				// A rule that may be entered again where it stands is entered through its check, and read by a
+				// method of its own under it (Machine.Reentry.cs); a rule with a way back has its check there.
+				var checks = !tape && Reentrant.ContainsKey(rule);
+
+				if (checks)
+					RenderReentryCheck(file, rule, ReaderOf(rule), DirectStrength(rule), Deepens(rule));
+
+				var inner  = tape ? CSharpEmitter.Inner("ReadBody", CSharpEmitter.IdentifierOf(rule)) :
+					checks ? CSharpEmitter.Inner("Reentering", CSharpEmitter.IdentifierOf(rule)) : ReaderOf(rule);
 
 				if (tape)
 					RenderWayBack(
@@ -517,7 +526,7 @@ sealed partial class Machine
 				// calls rather than anything cleverer: `Name` reaches `Identifier` reaches a class,
 				// with a seam between each, and every one of those was two calls where it needed
 				// one.
-				if (tape || Trivial(rule))
+				if (tape || checks || Trivial(rule))
 					file.Line(
 						"[global::System.Runtime.CompilerServices.MethodImpl(" +
 						"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
@@ -551,7 +560,7 @@ sealed partial class Machine
 
 					// The rule the way back into itself goes through, so the probe stands here and
 					// not at the call: one line a rule instead of one at every place that calls it.
-					if (!tape && Deepens(rule))
+					if (!tape && !checks && Deepens(rule))
 						Probe(file, rule);
 
 					// After the probe: a reading carried onto a stack of its own enters the rule
@@ -827,12 +836,19 @@ sealed partial class Machine
 	{
 		var defers = Deferral(owner, entry ? RetrySite.Entry : RetrySite.Rule, noting: true).Defers && Tracing is null;
 
+		// A rule that may be entered again where it stands is checked here, after the probe, and its record put
+		// back wherever the loop answers (Machine.Reentry.cs).
+		IReadOnlyList<string> leaving = entry ? [] : Leaving(owner);
+
 		file.Line(summary);
 
 		using (file.Block($"public int {name}(int pos{strength})"))
 		{
 			if (deepens is not null)
 				Probe(file, deepens);
+
+			if (leaving.Count > 0)
+				Entering(file, owner);
 
 			file.Line("var s  = ways.Cursor;");
 			if (defers)
@@ -854,7 +870,7 @@ sealed partial class Machine
 				file.Line();
 				if (defers)
 				{
-					Stood(file, "q", "", restore, seal ? ["ways.Seal(s);", "", "return q;"] : ["return q;"]);
+					Stood(file, "q", "", restore, seal ? ["ways.Seal(s);", "", .. leaving, "return q;"] : [.. leaving, "return q;"]);
 				}
 				else if (seal)
 				{
@@ -862,6 +878,20 @@ sealed partial class Machine
 					{
 						file.Line("ways.Seal(s);");
 						file.Line();
+
+						foreach (var line in leaving)
+							file.Line(line);
+
+						file.Line("return q;");
+					}
+				}
+				else if (leaving.Count > 0)
+				{
+					using (file.Block("if (q >= 0)"))
+					{
+						foreach (var line in leaving)
+							file.Line(line);
+
 						file.Line("return q;");
 					}
 				}
@@ -895,6 +925,10 @@ sealed partial class Machine
 				}
 
 				file.Line();
+
+				foreach (var line in leaving)
+					file.Line(line);
+
 				file.Line("return -1;");
 			}
 		}
@@ -1623,7 +1657,7 @@ sealed partial class Machine
 	{
 		var header    = new Writer(0);
 		var state     = Carrier.ReaderState.ToList();
-		var registers = Carrier.ReaderRegisters.ToList();
+		var registers = Carrier.ReaderRegisters.Concat(ReentryRegisters()).ToList();
 		var cuts      = _graph.Segmented && file.Contains("ref segmentEnd", 0);
 
 		header.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");

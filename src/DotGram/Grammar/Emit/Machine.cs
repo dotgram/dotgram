@@ -2422,6 +2422,10 @@ sealed partial class Machine
 			using (file.Block("try"))
 			{
 				file.Line("var entries = parser.Entries;");
+
+				// What the check at a marked rule's calls keeps (Machine.Reentry.cs).
+				RenderEngineReentryLocals(file);
+
 				file.Line("var p       = pos;");
 				file.Line("var call    = -1;");
 				file.Line("var atomic  = -1;");
@@ -3079,6 +3083,8 @@ sealed partial class Machine
 				file.Line("if (lent) ReturnParser_DotGram(parser); else Recycle_DotGram(parser);");
 			}
 		}
+
+		RenderEngineReentry(file);
 
 		_arenaRendered = true;
 
@@ -4063,10 +4069,13 @@ sealed partial class Machine
 				if (seams)
 					writer.Line("seaming++;");
 
+				// A rule that may be entered again where it stands is asked first whether it is (Machine.Reentry.cs).
+				EngineReentering(writer, rule);
+
 				writer.Line("var callIndex = entries.Count;");
 				writer.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
-					$"lookahead, {(saying < 0 ? "0" : (-1 - saying).ToString(System.Globalization.CultureInfo.InvariantCulture))}, {(seams ? "-2" : ValueRule(rule))}" +
+					$"lookahead, {(saying < 0 ? "0" : (-1 - saying).ToString(System.Globalization.CultureInfo.InvariantCulture))}, {(seams ? "-2" : EngineRuleIndex(rule))}" +
 					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
 
 				if (Tracing is not null)
