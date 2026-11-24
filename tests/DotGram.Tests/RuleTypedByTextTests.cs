@@ -4,7 +4,11 @@ using System.Linq;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Model;
+using DotGram.Generation;
 using DotGram.Language;
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 using Xunit;
 
@@ -210,6 +214,128 @@ public sealed class RuleTypedByTextTests
 	public void A_group_of_a_built_operand_and_a_matched_one_gives_the_operand(string input)
 	{
 		Assert.Equal("abc", Parsed("Start : Bare = '-'? & ('<' & Quoted & '>' | Bare)\nQuoted : @string = x: ['a'..'z']+ => @(x)" + Words, input));
+	}
+
+	/// <summary>
+	/// What a rule hands back from a text operand is the same in every mode that reads characters: a capture is a
+	/// span under <c>UseSpanCaptures</c>, and the string it is handed back as is made of it.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Bare = '<' & Bare & '>'", "<abc>")]
+	[InlineData("Start : Bare = x: '<' & Bare & '>'", "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & items: '>'", "<abc>")]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)", "-<abc>")]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)", "abc")]
+	[InlineData("Start : Word = '-'? & ('<' & Word & '>' | Bare)\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "-<abc>")]
+	[InlineData("Start : Word = '-'? & ('<' & Word & '>' | Bare)\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "abc")]
+	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())", "[abc]")]
+	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())", "abc")]
+	public void A_text_operand_gives_its_text_under_span_captures(string grammar, string input)
+	{
+		foreach (var option in new[] { "", ", UseSpanCaptures = true" })
+		{
+			var type = GeneratorDriverTests.Build(
+				"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nBare : @string = ['a'..'z']+\\nparse Start\"" + option + ")]\npublic partial class Spanned { }")
+				.GetType("Spanned")!;
+
+			Assert.Equal("abc", (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!);
+		}
+	}
+
+	/// <summary>
+	/// Over bytes a raw capture is a span that nothing decodes (§6.3), so a rule that hands back a text operand is
+	/// refused there, in the grammar's terms, as a type made of a raw capture is.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Bare = '<' & Bare & '>'")]
+	[InlineData("Start : Bare = x: '<' & Bare & '>'")]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)")]
+	public void A_text_operand_over_bytes_is_refused(string grammar)
+	{
+		var run   = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nBare : @string = ['a'..'z']+\\nparse Start\\nparse Start as Bytes stream bytes\")]\npublic partial class Spanned { }");
+		var found = Assert.Single(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
+
+		Assert.Equal("GRAM4026", found.Id);
+		Assert.Contains("hands back the raw capture", found.GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A local the generated factory declares is not one an author's capture may take: <c>count</c>, <c>items</c>
+	/// and <c>at</c> are names a capture is called.
+	/// </summary>
+	[Theory]
+	[InlineData("items")]
+	[InlineData("count")]
+	[InlineData("at")]
+	[InlineData("item0")]
+	public void A_capture_beside_a_collected_sequence_may_have_any_name(string name)
+	{
+		var result = Compile("Start : @string[] = Word+ & " + name + ": ';'\nWord : @string = c: ['a'..'z'] => @(c)\nparse Start");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var (isSuccess, value, error, _) = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static one => one.Text)),
+			"Grammar",
+			"TryParseStart",
+			"ab;");
+
+		Assert.True(isSuccess, error);
+		Assert.Equal(["a", "b", ";"], (string[])value!);
+	}
+
+	/// <summary>
+	/// A named capture is collected beside the operands, and where it is not an element of the array that is told
+	/// rather than left to the C# compiler.
+	/// </summary>
+	[Theory]
+	[InlineData("x")]
+	[InlineData("item0")]
+	public void A_capture_that_is_not_an_element_of_the_sequence_is_told(string name)
+	{
+		var result = Compile("Start : @int[] = Num & " + name + ": ',' & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))\nparse Start");
+		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
+		Assert.Contains("Drop the name", found.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_capture_the_sequence_does_not_hold_is_left_out_by_dropping_the_name()
+	{
+		var value = (int[])Parsed("Start : @int[] = Num & ',' & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "1,2", kind: true)!;
+
+		Assert.Equal([1, 2], value);
+	}
+
+	/// <summary>The local a located factory declares is not one an author's capture may take.</summary>
+	[Fact]
+	public void A_capture_named_made_in_a_located_rule_builds()
+	{
+		const string members = """
+			public interface ILoc { void Locate(int at, int length); }
+			public sealed class Loc : ILoc { public string S = ""; public int At = -1; public void Locate(int at, int length) { At = at; } }
+			""";
+
+		var host = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References);
+
+		var result = GramCompiler.Compile(
+			"Root : @Loc = made: ['a'..'z']+ => @(new Loc { S = made })\nparse Root",
+			new GramCompilerOptions
+			{
+				ClassName      = "Grammar",
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+				SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+				LocationType   = "Grammar.ILoc",
+			});
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		EmittedCode.Compile(result.Sources[0].Text, declarationMembers: members, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
 	}
 
 	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>

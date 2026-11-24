@@ -46,6 +46,18 @@ static partial class CSharpEmitter
 				}
 		}
 
+		// A rule that takes the value of its operand or collects its operands (§4.1 cases 2 and 3) hands back what
+		// it captured, and where that is the raw text of a rule that builds nothing it is the same span.
+		foreach (var rule in rules)
+			if (graph.Types.ContainsKey(rule) && graph.Results.TryGetValue(rule, out var members))
+				foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+					if (node is Node.Construct(_, var how) && how is Construction.Operand or Construction.Sequence)
+						foreach (var member in members)
+							if (member.Rule is null && member.Element is null && !member.IsSequence &&
+								(how is Construction.Sequence || how is Construction.Operand(var captures) && captures.Contains(member.Name)))
+								return $"'{rule.Name}' hands back the raw capture '{member.Name}' as part of its value, and a raw capture " +
+									"over bytes is a ReadOnlySpan<byte> that nothing decodes; build the value with a '=>'";
+
 		// The same, written out: a rule declared a string whose `=>` is a raw capture or the text it
 		// matched and nothing else, `=> @(t)`, hands the span itself back as the string, and nothing
 		// decodes it (§6.3). What the C# makes of a span otherwise is the C#'s to say; this one is

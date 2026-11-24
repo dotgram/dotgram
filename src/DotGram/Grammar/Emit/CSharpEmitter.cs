@@ -4746,6 +4746,20 @@ file.Line("return spare;");
 		return placed.Append(text, from, text.Length - from).ToString();
 	}
 
+	/// <summary>
+	/// <paramref name="stem"/> if none of <paramref name="taken"/> is that, and otherwise the stem and underscores until
+	/// none is. Taken, so the next is not it either.
+	/// </summary>
+	static string Unreserved(string stem, HashSet<string> taken)
+	{
+		var name = stem;
+
+		while (!taken.Add(name))
+			name += "_";
+
+		return name;
+	}
+
 	static void EmitFactory(
 		Writer file, RecognitionGraph graph, RuleSymbol rule, Machine.Factory factory,
 		ResultTypes results, ILineMap? lines, bool spanCaptures = false, bool bytes = false)
@@ -4811,6 +4825,30 @@ file.Line("return spare;");
 
 					" " + ResultTypes.ParameterOf(member));
 
+		// What the factory's own text is called in: a member of the rule, which an author names as he likes, and
+		// the names the generator supplies. A local the factory declares is given a name none of them has.
+		var taken = new HashSet<string>(factory.Members.Select(ResultTypes.ParameterOf), StringComparer.Ordinal)
+		{
+			"parserText", "parserSpan", "parserInput", "context", "parserState", "parserMarks",
+		};
+
+		// A text member of a factory that builds a value, rather than runs the author's expression, is made a
+		// string where captures are spans: the expression is the author's and takes the span as it is, and what
+		// the generator writes is handed back as the rule's own type. Over bytes there is no string to make (§6.3):
+		// BufferedEmitter refuses the grammar, so this is only written over characters.
+		string Held(ResultMember member)
+		{
+			var name = ResultTypes.ParameterOf(member);
+
+			return spanCaptures && !bytes && member.Rule is null && !member.IsSequence ? name + ".ToString()" : name;
+		}
+
+		// A text member that is a span is never null: absent, it is empty (§6.3).
+		bool Optional(ResultMember member)
+		{
+			return member.IsOptional && !(spanCaptures && member.Rule is null);
+		}
+
 		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
 		var summary = $"/// <summary>What <c>{rule.Name}</c> builds its value with";
 
@@ -4834,7 +4872,9 @@ file.Line("return spare;");
 					// The declared type and not `var`: the author's C# may be a conditional whose
 					// arms are two different records, and only a target type tells the compiler
 					// which of them the whole expression is (CS0173).
-					file.Line($"{graph.Types[rule]} made =");
+					var made = Unreserved("made", taken);
+
+					file.Line($"{graph.Types[rule]} {made} =");
 					Handed(file, lines, (Node.Construct)factory.Of);
 					file.Line();
 					// A rule may hand back null for what was not written (`null!`), and null is no
@@ -4847,16 +4887,16 @@ file.Line("return spare;");
 					if (IsReferenceType(graph, graph.Types[rule]))
 					{
 						// Not `is not null`, which a consumer on C# 8 cannot compile.
-						file.Line("if (!(made is null))");
-						file.Then($"{Named("Locate")}(ref made, parserSpan.Start, parserSpan.Length);");
+						file.Line($"if (!({made} is null))");
+						file.Then($"{Named("Locate")}(ref {made}, parserSpan.Start, parserSpan.Length);");
 						file.Line();
-						file.Line("return made!;");
+						file.Line($"return {made}!;");
 					}
 					else
 					{
-						file.Line($"{Named("Locate")}(ref made, parserSpan.Start, parserSpan.Length);");
+						file.Line($"{Named("Locate")}(ref {made}, parserSpan.Start, parserSpan.Length);");
 						file.Line();
-						file.Line("return made;");
+						file.Line($"return {made};");
 					}
 				}
 
@@ -4881,10 +4921,17 @@ file.Line("return spare;");
 				foreach (var name in captures)
 					foreach (var member in factory.Members)
 						if (member.Name == name)
-							held.Add(ResultTypes.ParameterOf(member));
+							held.Add(Held(member));
 
-				// The route wrote one of them, so the other is null and the whole is not.
-				var value = held.Count == 0 ? "default" : held.Count == 1 ? held[0] : "(" + string.Join(" ?? ", held) + ")!";
+				// A rewrite that named a capture the rule does not have is a defect of the generator's, and is
+				// said here rather than written as a `default` that is nobody's value.
+				if (held.Count == 0)
+					throw new InvalidOperationException($"'{rule.Name}' hands back an operand that none of its captures holds.");
+
+				// Of several, the one the route that ran wrote is not null: a failed branch gives its capture up. The
+				// whole may be null where the operand itself is, as it may be with one capture; `!` only keeps the
+				// compiler from asking about the capture the route did not write.
+				var value = held.Count == 1 ? held[0] : "(" + string.Join(" ?? ", held) + ")!";
 
 				file.Line(summary + ": what its operand was (§4.1 case 3).</summary>");
 				file.Line(head + " =>");
@@ -4902,7 +4949,7 @@ file.Line("return spare;");
 				foreach (var name in order)
 					foreach (var member in factory.Members)
 						if (member.Name == name)
-							arguments.Add(ResultTypes.ParameterOf(member));
+							arguments.Add(Held(member));
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
@@ -4920,7 +4967,7 @@ file.Line("return spare;");
 				foreach (var binding in bindings)
 					foreach (var member in factory.Members)
 						if (member.Name == binding.Capture)
-							written.Add($"{binding.Property} = {ResultTypes.ParameterOf(member)}");
+							written.Add($"{binding.Property} = {Held(member)}");
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
@@ -4964,28 +5011,32 @@ file.Line("return spare;");
 
 				using (file.Block(head))
 				{
-					file.Line("var count = 0;");
+					var count = Unreserved("count", taken);
+					var items = Unreserved("items", taken);
+					var at    = Unreserved("at", taken);
+
+					file.Line($"var {count} = 0;");
 
 					foreach (var member in factory.Members)
 					{
-						var value = ResultTypes.ParameterOf(member);
+						var value = Held(member);
 
 						if (member.IsSequence)
-							file.Line($"if ({value} != null) count += {value}.Length;");
-						else if (member.IsOptional)
-							file.Line($"if ({value} != null) count++;");
+							file.Line($"if ({value} != null) {count} += {value}.Length;");
+						else if (Optional(member))
+							file.Line($"if ({value} != null) {count}++;");
 						else
-							file.Line("count++;");
+							file.Line($"{count}++;");
 					}
 
 					file.Line();
-					file.Line($"var items = {FilledArray(element, "count")};");
-					file.Line("var at    = 0;");
+					file.Line($"var {items} = {FilledArray(element, count)};");
+					file.Line(at == "at" ? "var at    = 0;" : $"var {at} = 0;");
 					file.Line();
 
 					foreach (var member in factory.Members)
 					{
-						var value = ResultTypes.ParameterOf(member);
+						var value = Held(member);
 
 						// A sequence capture already has its exact array. Copy it into this
 						// rule's exact result rather than introducing a typed accumulator.
@@ -4993,23 +5044,23 @@ file.Line("return spare;");
 						{
 							using (file.Block($"if ({value} != null)"))
 							{
-								file.Line($"global::System.Array.Copy({value}, 0, items, at, {value}.Length);");
-								file.Line($"at += {value}.Length;");
+								file.Line($"global::System.Array.Copy({value}, 0, {items}, {at}, {value}.Length);");
+								file.Line($"{at} += {value}.Length;");
 							}
 						}
-						else if (member.IsOptional)
+						else if (Optional(member))
 						{
 							file.Line($"if ({value} != null)");
-							file.Then($"items[at++] = ({element}){value};");
+							file.Then($"{items}[{at}++] = ({element}){value};");
 						}
 						else
 						{
-							file.Line($"items[at++] = {value};");
+							file.Line($"{items}[{at}++] = {value};");
 						}
 					}
 
 					file.Line();
-					file.Line("return items;");
+					file.Line($"return {items};");
 				}
 
 				break;

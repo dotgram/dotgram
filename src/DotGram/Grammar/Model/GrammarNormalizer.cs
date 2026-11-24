@@ -329,6 +329,7 @@ sealed partial class GrammarNormalizer
 		// After the results and the constructors, which are what a value is held to: whether what a
 		// construction hands back can be the type it is declared to give.
 		normalizer.CheckNamedTypes();
+		normalizer.CheckCollectedMembers();
 		normalizer.CheckConstructionTypes();
 		normalizer.CheckRecognizersInHostCode();
 

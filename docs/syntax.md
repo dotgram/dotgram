@@ -1163,6 +1163,11 @@ has an operand that declares the type, and that captures nothing, is case 4's, a
 extent. For `@SourceSpan` the value is the operand's bounds, not the rule's own. A sequence
 (case 2) collects only the operands that build a value: a rule that declares `: @string` over an extent
 contributes nothing to `Words : @string[]`, as a rule that declares none.
+A rule that hands back the text of a rule that builds nothing is refused for a `stream bytes` publication
+(`GRAM4026`), as a type made of a raw capture is: over bytes a capture is a `ReadOnlySpan<byte>` that nothing
+decodes. Under `UseSpanCaptures` the string is made of the span. A capture the author names beside what a sequence
+collects is collected too, so that text is an element of a sequence of `string`; where it is not an element of the
+array, `GRAM4008` says so, and dropping the name leaves it out.
 
 A left-recursive rule that declares `: @string` or `: @SourceSpan` itself and builds nothing is case 4's
 too: its value is the text or the bounds of everything it matched, `Start : @SourceSpan = Start & '+' & Term | Term`.

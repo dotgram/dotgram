@@ -316,6 +316,45 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// What a sequence collects beside its operands: a capture the author wrote and named is in the array, whatever
+	/// it holds, and where that is not an element of it the generated file does not compile (CS0029).
+	/// </summary>
+	/// <remarks>
+	/// <c>Start : @int[] = Num &amp; x: ',' &amp; Num</c> puts the text of the comma in an <c>int[]</c>. Told in the
+	/// grammar's terms where the grammar can tell (<see cref="CannotHold"/>): §4.1 case 2 collects the operands
+	/// nothing else has spoken for, so the name is what puts it in, and dropping it leaves it out. Where the capture
+	/// is an element, as text is of a sequence of <c>string</c>, it is collected as it always was.
+	/// </remarks>
+	void CheckCollectedMembers()
+	{
+		foreach (var rule in _rules)
+		{
+			if (rule.Declaration is null || _folds.ContainsKey(rule) ||
+				!_types.TryGetValue(rule, out var type) || _language.ElementOf(type) is not { } element ||
+				!_results.TryGetValue(rule, out var members) ||
+				!_bodies.TryGetValue(rule, out var body) ||
+				!ValueAlternatives(body).Any(static alternative => alternative is Node.Construct { How: Construction.Sequence }))
+				continue;
+
+			foreach (var member in members)
+			{
+				if (member.IsSequence || member.Element is not null)
+					continue;
+
+				var held = TypeOf(member);
+
+				if (CannotHold(element, held))
+					Report(
+						UnbuiltConstruction,
+						$"'{rule.Name}' collects a sequence of '{element}', and the capture '{member.Name}' holds {held}, which " +
+						"is put in it: a sequence collects the operands nothing else has spoken for (§4.1 case 2). Drop the name " +
+						"to leave it out, or build the value with a '=>'.",
+						rule.Declaration.At);
+			}
+		}
+	}
+
+	/// <summary>
 	/// A construction that hands a capture back as the rule's value, held to the type the rule declares:
 	/// <c>Items : @string[] = items: { Item }* =&gt; @(items)</c> hands back text where an array is
 	/// declared. Said on the construction rather than by the C# compiler in the generated file.
@@ -714,7 +753,10 @@ sealed partial class GrammarNormalizer
 				var names = new OperandCaptures(
 					Unreserved("item" + i, reserved),
 					Unreserved("item" + i + "_text", reserved),
-					rule => BuildsValue(rule) && !extents.Contains(rule));
+					called => BuildsValue(called) && !extents.Contains(called));
+
+				_made.Add((rule, names.Built));
+				_made.Add((rule, names.Matched));
 
 				Operands(alternatives[i], type, names, out var taken);
 
@@ -730,11 +772,18 @@ sealed partial class GrammarNormalizer
 			_types.Remove(rule);
 	}
 
+	/// <summary>The captures this compiler made of a rule's operands, which no text of the grammar names.</summary>
+	readonly HashSet<(RuleSymbol Rule, string Name)> _made = [];
+
 	/// <summary>The names an operand is captured by in one alternative, and which of them a call is held by.</summary>
 	sealed class OperandCaptures(string built, string matched, Func<RuleSymbol, bool> builds)
 	{
 		bool _usedBuilt;
 		bool _usedMatched;
+
+		public string Built => built;
+
+		public string Matched => matched;
 
 		/// <summary>The capture that holds the operand of this call, which is a rule that builds a value or one that does not.</summary>
 		public string For(RuleSymbol rule)
@@ -1614,8 +1663,11 @@ sealed partial class GrammarNormalizer
 					if (!SameValue(sharing[0], slot) || sharing[0].Collects != slot.Collects)
 						Report(
 							CaptureTypeMismatch,
-							$"'{slot.Name}' is captured twice in '{rule.Name}' with different types: " +
-							$"{Held(sharing[0])} and {Held(slot)}.",
+							_made.Contains((rule, slot.Name))
+								? $"'{rule.Name}' takes the value of the one operand that produces it on every route, and " +
+									$"{Held(sharing[0])} and {Held(slot)} do not hold the same type."
+								: $"'{slot.Name}' is captured twice in '{rule.Name}' with different types: " +
+									$"{Held(sharing[0])} and {Held(slot)}.",
 							rule.Declaration!.At);
 
 					sharing.Add(slot);
