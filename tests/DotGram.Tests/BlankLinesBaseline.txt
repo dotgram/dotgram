@@ -61,7 +61,7 @@ src/DotGram/Generation/RoslynSymbolResolver.cs control 1
 src/DotGram/Grammar/Binding/GrammarBinder.cs control 2
 src/DotGram/Grammar/Emit/BufferedEmitter.cs control 5
 src/DotGram/Grammar/Emit/BufferedEmitter.cs declarations 1
-src/DotGram/Grammar/Emit/CSharpEmitter.cs control 31
+src/DotGram/Grammar/Emit/CSharpEmitter.cs control 30
 src/DotGram/Grammar/Emit/CSharpEmitter.cs declarations 5
 src/DotGram/Grammar/Emit/CSharpEmitter.cs short-if-group 30
 src/DotGram/Grammar/Emit/ExpectedSets.cs control 2

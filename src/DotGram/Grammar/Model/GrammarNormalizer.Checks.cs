@@ -886,7 +886,11 @@ sealed partial class GrammarNormalizer
 		foreach (var parameter in rule.Declaration.Params)
 			if (SuppliedNames.Reserved.Contains(parameter.Name) && _parametersTold.Add(parameter))
 				Report(ReservedCaptureName, ReservedNameMessage(parameter.Name, "a parameter"), parameter.At);
-			else if (parameter.Name == "context" && (_context ?? _model.Context) is not null && _parametersTold.Add(parameter))
+			// A recognizer parameter is specialized away and is never a name of the generated code; a value parameter is
+			// substituted where its name is written, and would hide the context there.
+			else if (parameter.Name == "context" && parameter.Type is { } valued && (valued.IsHost || IsTypeKeyword(valued.Name)) &&
+				(_context ?? _model.Context) is not null &&
+				_parametersTold.Add(parameter))
 				Report(ReservedCaptureName, ContextNameMessage("a parameter"), parameter.At);
 	}
 

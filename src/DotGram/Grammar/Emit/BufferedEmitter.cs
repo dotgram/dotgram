@@ -53,14 +53,12 @@ static partial class CSharpEmitter
 			if (!graph.Types.ContainsKey(rule) || !graph.Results.TryGetValue(rule, out var members))
 				continue;
 
-			// What the rule builds its value with: one construction is enough to say, and the members are the same
-			// whichever node it is.
+			// What the rule builds its value with: every construction, since each route of a rule has one of its own
+			// and an operand's captures are the route's. The members are the rule's.
 			var built = NodeWalk.Descendants(graph.Bodies[rule])
 				.Select(static node => (node as Node.Construct)?.How)
-				.FirstOrDefault(static how => how is Construction.Operand or Construction.Sequence);
-
-			if (built is null)
-				continue;
+				.Where(static how => how is Construction.Operand or Construction.Sequence)
+				.ToList();
 
 			foreach (var member in members)
 			{
@@ -69,11 +67,8 @@ static partial class CSharpEmitter
 
 				// A capture the author wrote is named as he wrote it; one the compiler made of an operand is
 				// told by the operand's rule, the only name the grammar has for it.
-				if (built is Construction.Operand(var captures))
+				if (built.Any(how => how is Construction.Operand(var captures) && captures.Contains(member.Name)))
 				{
-					if (!captures.Contains(member.Name))
-						continue;
-
 					var operand = NodeWalk.Descendants(graph.Bodies[rule])
 						.OfType<Node.Capture>()
 						.Where(capture => capture.Name == member.Name)
@@ -84,8 +79,9 @@ static partial class CSharpEmitter
 						"over bytes is a ReadOnlySpan<byte> that nothing decodes; build the value with a '=>'";
 				}
 
-				return $"'{rule.Name}' collects the raw capture '{member.Name}' with what it gathers, and a raw capture " +
-					"over bytes is a ReadOnlySpan<byte> that nothing decodes; build the value with a '=>'";
+				if (built.Any(static how => how is Construction.Sequence))
+					return $"'{rule.Name}' collects the raw capture '{member.Name}' with what it gathers, and a raw capture " +
+						"over bytes is a ReadOnlySpan<byte> that nothing decodes; build the value with a '=>'";
 			}
 		}
 

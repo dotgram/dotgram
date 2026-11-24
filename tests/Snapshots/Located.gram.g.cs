@@ -76,31 +76,17 @@ namespace DotGram.Snapshots
 		static Entry[] New_DotGram_Config(Entry[] item0) =>
 			item0 ?? global::System.Array.Empty<Entry>();
 
-		static Entry New_DotGram_Entry(SourceSpan parserSpan, Place key, string value)
-		{
-			Entry parserMade =
+		static Entry New_DotGram_Entry(SourceSpan parserSpan, Place key, string value) =>
+			Written_DotGram<Entry>(
 #line 21 "Located.gram"
-                                                         (new Entry(key, value));
+                                                         (new Entry(key, value)), parserSpan.Start, parserSpan.Length);
 #line default
 
-			if (!(parserMade is null))
-				Locate_DotGram(ref parserMade, parserSpan.Start, parserSpan.Length);
-
-			return parserMade!;
-		}
-
-		static Place New_DotGram_Name(SourceSpan parserSpan, string w)
-		{
-			Place parserMade =
+		static Place New_DotGram_Name(SourceSpan parserSpan, string w) =>
+			Written_DotGram<Place>(
 #line 27 "Located.gram"
-                            (new Place(w));
+                            (new Place(w)), parserSpan.Start, parserSpan.Length);
 #line default
-
-			if (!(parserMade is null))
-				Locate_DotGram(ref parserMade, parserSpan.Start, parserSpan.Length);
-
-			return parserMade!;
-		}
 
 		static string New_DotGram_Word(string t) =>
 #line 29 "Located.gram"
@@ -115,6 +101,14 @@ namespace DotGram.Snapshots
 		static void Locate_DotGram<T>(ref T made, int at, int length) where T : ILocated
 		{
 			made.Locate(at, length);
+		}
+
+		static T Written_DotGram<T>(T made, int at, int length) where T : ILocated
+		{
+			if (!(made is null))
+				Locate_DotGram(ref made, at, length);
+
+			return made!;
 		}
 
 		static int Recognize_DotGram(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)

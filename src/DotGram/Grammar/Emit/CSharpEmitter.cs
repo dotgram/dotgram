@@ -962,6 +962,19 @@ static partial class CSharpEmitter
 			}
 
 			file.Line();
+			file.Line("/// <summary>What a located construction builds, told where it was written; null is no value made, and nothing is told of it.</summary>");
+
+			// Not `is not null`, which a consumer on C# 8 cannot compile. A struct is never null, and the test costs
+			// it nothing.
+			using (file.Block($"static T {Named("Written")}<T>(T made, int at, int length) where T : {(options.LocationTypeIsClass ? "class" : rooted)}"))
+			{
+				file.Line("if (!(made is null))");
+				file.Then($"{Named("Locate")}(ref made, at, length);");
+				file.Line();
+				file.Line("return made!;");
+			}
+
+			file.Line();
 		}
 
 		if (machines.Count > 0)
@@ -4878,40 +4891,16 @@ file.Line("return spare;");
 				// grammars — most of them — that ask for no locations.
 				file.Line(summary + " (docs/syntax.md §7.3), and where it was written.</summary>");
 
-				using (file.Block(head))
-				{
-					// The declared type and not `var`: the author's C# may be a conditional whose
-					// arms are two different records, and only a target type tells the compiler
-					// which of them the whole expression is (CS0173).
-					// Written where the author's own expression is, in which a member of the host answers to what it is
-					// called: a name the author cannot write is one it cannot take (the prefix is reserved, §8.2).
-					var made = "parserMade";
+				// The author's C# is the argument of a call, with no local of the generator's beside it: a name the
+				// factory declared would hide what the C# means by it (a member of the host, a capture), and no
+				// name is one the C# may not use. The type is written to the call, as it was to a local: the C# may
+				// be a conditional whose arms are two different records, and only a target type tells the compiler
+				// which of them the whole expression is (CS0173).
+				file.Line(head + " =>");
+				file.Line($"	{Named("Written")}<{graph.Types[rule]}>(");
 
-					file.Line($"{graph.Types[rule]} {made} =");
-					Handed(file, lines, (Node.Construct)factory.Of);
-					file.Line();
-					// A rule may hand back null for what was not written (`null!`), and null is no
-					// value made: nothing is told. A struct is never null and is not asked. The
-					// test teaches the compiler that the value may be null, which the rule's type
-					// says it is not; it is handed back as the author's C# made it (CS8603).
-					//
-					// Told through the generic helper written once for the class (Locate): an explicit
-					// implementation of the interface is called too, and a struct is told in place.
-					if (IsReferenceType(graph, graph.Types[rule]))
-					{
-						// Not `is not null`, which a consumer on C# 8 cannot compile.
-						file.Line($"if (!({made} is null))");
-						file.Then($"{Named("Locate")}(ref {made}, parserSpan.Start, parserSpan.Length);");
-						file.Line();
-						file.Line($"return {made}!;");
-					}
-					else
-					{
-						file.Line($"{Named("Locate")}(ref {made}, parserSpan.Start, parserSpan.Length);");
-						file.Line();
-						file.Line($"return {made};");
-					}
-				}
+				if (((Node.Construct)factory.Of).How is Construction.Expression { Text: var located, At: var locatedAt })
+					Handed(file, lines, locatedAt, located + ", parserSpan.Start, parserSpan.Length);");
 
 				break;
 

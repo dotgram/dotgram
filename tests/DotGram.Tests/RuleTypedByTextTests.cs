@@ -250,6 +250,12 @@ public sealed class RuleTypedByTextTests
 	[InlineData("Start : Bare = '<' & Bare & '>'")]
 	[InlineData("Start : Bare = x: '<' & Bare & '>'")]
 	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)")]
+
+	// Each route of a rule has a construction of its own, and the refusal is of every one: a built operand first and
+	// a raw text one after it.
+	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())")]
+	[InlineData("Start : Word = Word | Bare\nWord : @string = c: ['a'..'z'] => @(c.ToString())")]
+	[InlineData("Start : Word = Word | '!' & Bare\nWord : @string = c: ['a'..'z'] => @(c.ToString())")]
 	public void A_text_operand_over_bytes_is_refused(string grammar)
 	{
 		var run   = GeneratorDriverTests.RunGenerator(
@@ -430,6 +436,57 @@ public sealed class RuleTypedByTextTests
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
 
 		EmittedCode.Compile(result.Sources[0].Text, declarationMembers: members, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+	}
+
+	/// <summary>
+	/// A located factory declares nothing of its own beside the author's C#: a capture or a member of the host named as
+	/// anything the author may write is read as it is written.
+	/// </summary>
+	[Theory]
+	[InlineData("Root : @Loc = parserMade: ['a'..'z']+ => @(new Loc { S = parserMade.ToString() })", "")]
+	[InlineData("Root : @Loc = parserMade: ['a'..'z']+ & s: '!' => @(new Loc { S = s.ToString() })", "")]
+	[InlineData("Root : @Loc = s: ['a'..'z']+ => @(new Loc { S = parserMade + s.ToString() })", "public static string parserMade = \"host\";")]
+	[InlineData("Root : @Loc = s: ['a'..'z']+ => @(new Loc { S = made + s.ToString() })", "public static string made = \"host\";")]
+	public void A_located_rule_reads_the_authors_names_as_written(string grammar, string extra)
+	{
+		var members = """
+			public interface ILoc { void Locate(int at, int length); }
+			public sealed class Loc : ILoc { public string S = ""; public void Locate(int at, int length) { } }
+			""" + extra;
+
+		var host = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References);
+
+		var result = GramCompiler.Compile(
+			grammar + "\nparse Root",
+			new GramCompilerOptions
+			{
+				ClassName      = "Grammar",
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+				SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+				LocationType   = "Grammar.ILoc",
+			});
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		EmittedCode.Compile(result.Sources[0].Text, declarationMembers: members, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+	}
+
+	/// <summary>
+	/// A parameter that stands for a piece of grammar is specialized away and is no name of the generated code, so it
+	/// may be called <c>context</c> beside a declared context; one that holds a value is written into the C#, where it
+	/// would hide the context, and may not.
+	/// </summary>
+	[Theory]
+	[InlineData("P(context) : @string = v: context => @(v.ToString())\nRoot : @string = P(W)", false)]
+	[InlineData("P(context: @int) : @string = v: W => @(v.ToString() + context)\nRoot : @string = P(1)", true)]
+	public void A_parameter_named_context_is_refused_only_where_it_holds_a_value(string rules, bool refused)
+	{
+		var result = Compile("context : @Names\n" + rules + "\nW : @string = ['a'..'z']+\nparse Root");
+
+		Assert.Equal(refused, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.ReservedCaptureName));
 	}
 
 	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>
