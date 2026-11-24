@@ -413,24 +413,44 @@ public sealed class ReentryTests
 	{
 		var parser = Traced(grammar);
 		var lines  = OnStack(256 * 1024, () => Recorded(parser, new string('(', 5000) + "x" + after));
-		var first  = lines.First(static line => line.StartsWith("deepened ", StringComparison.Ordinal));
-		var at     = int.Parse(first.Substring("deepened ".Length), System.Globalization.CultureInfo.InvariantCulture);
+		var centre = DeepenedAt(lines) ?? throw new InvalidOperationException("The deep input never moved to another stack.");
 		var split  = 0;
 
-		for (var depth = Math.Max(1, at - 24); depth <= at + 8; depth++)
+		// Where the first stack runs low depends on the size of the frames, which the JIT changes as the code tiers up
+		// and a loaded machine changes as it goes. So the window around it is taken again from what each reading says
+		// of itself, and a round that met no depth where the entry that came back crossed is followed by one centred
+		// on the latest place a reading did move: every depth of every round is compared with the whole reading.
+		for (var round = 0; round < 12 && split == 0; round++)
 		{
-			var input = new string('(', depth) + "x" + after;
-			var read  = OnStack(256 * 1024, () => Recorded(parser, input));
-			var whole = OnStack(64 << 20, () => Recorded(parser, input));
+			var moved = centre;
 
-			Assert.Equal(whole, read.Where(static line => !line.StartsWith("deepened ", StringComparison.Ordinal)));
-			Assert.Contains("enter " + depth, read);
+			for (var depth = Math.Max(1, centre - 24); depth <= centre + 8; depth++)
+			{
+				var input = new string('(', depth) + "x" + after;
+				var read  = OnStack(256 * 1024, () => Recorded(parser, input));
+				var whole = OnStack(64 << 20, () => Recorded(parser, input));
 
-			if (read.Contains("deepened " + depth))
-				split++;
+				Assert.Equal(whole, read.Where(static line => !line.StartsWith("deepened ", StringComparison.Ordinal)));
+				Assert.Contains("enter " + depth, read);
+
+				if (read.Contains("deepened " + depth))
+					split++;
+
+				moved = DeepenedAt(read) ?? moved;
+			}
+
+			centre = moved;
 		}
 
-		Assert.True(split > 0, $"No depth around {at} carried the entry that came back onto another stack.");
+		Assert.True(split > 0, $"No depth around {centre} carried the entry that came back onto another stack.");
+	}
+
+	/// <summary>Where a reading first moved to a stack of its own, as it said so itself.</summary>
+	static int? DeepenedAt(string[] lines)
+	{
+		var first = lines.FirstOrDefault(static line => line.StartsWith("deepened ", StringComparison.Ordinal));
+
+		return first is null ? null : int.Parse(first.Substring("deepened ".Length), System.Globalization.CultureInfo.InvariantCulture);
 	}
 
 	static string[] OnStack(int size, Func<string[]> read)
