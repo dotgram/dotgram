@@ -213,8 +213,9 @@ A refused text or value is a document of its own, `QlError.ToJson()`:
 - `columns` is there in both forms, so a client knows the columns of a result with no rows.
   `count` is the number of rows in `rows`.
 - `truncated` is true only where `MaxRows` cut the result: `ToJsonAsync` reads one row past the
-  bound to tell, and drops it. A `take` of the text is what was asked for, not a cut. With
-  `MaxRows` null it is always false.
+  bound to tell, and drops it. That extra row is formatted like the others, so a host `Format<T>`
+  that throws on it fails the document, though the row is not written. A `take` of the text is what
+  was asked for, not a cut. With `MaxRows` null it is always false.
 - `warnings`, after `columns`, only where the text has any:
   ``"warnings":[{"code":"UnusedName","message":"`x` is never used.","position":19}]``. A warning is a
   hint, not a status.
@@ -229,14 +230,16 @@ A refused text or value is a document of its own, `QlError.ToJson()`:
 - The document is not `application/problem+json`, whose `status` is a number. A host that wraps it
   in problem details puts it in a member of its own.
 
-`Describe(text).ToJson()` describes a text with the same first member. A description reads no row,
-so it is whole when it is written: it opens with `"ok"` and has no `result`.
+`Describe(text).ToJson()` describes a text in the same envelope: `status` first, `"started"`, and
+`result` last, `"completed"`. A description reads no row, so it is whole when it is written, and
+its `result` is always `"completed"`.
 
 ```json
-{"status":"ok","columns":[{"name":"id","type":"Int","nullable":false},{"name":"total","type":"Decimal","nullable":true}],"parameters":[{"name":"low","type":"Decimal","nullable":true,"list":false}]}
+{"status":"started","columns":[{"name":"id","type":"Int","nullable":false},{"name":"total","type":"Decimal","nullable":true}],"parameters":[{"name":"low","type":"Decimal","nullable":true,"list":false}],"result":"completed"}
 ```
 
-A `type` is the name of the `QlType`, and `warnings` follow the parameters where there are any.
+A `type` is the name of the `QlType`, and `warnings` follow the parameters, before `result`, where
+there are any.
 
 Values are written the same way everywhere:
 

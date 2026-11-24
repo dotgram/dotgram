@@ -52,6 +52,7 @@ public sealed record QlOptions
 	/// <summary>
 	/// Rows a query returns at most: a <c>Take</c> of this many is the last call before the final
 	/// projection. Null adds no <c>Take</c>, and the host bounds the rows itself. 1000 by default.
+	/// <see cref="QlModel{TContext}.ToJsonAsync"/> reads one row more than this, to tell whether the result was cut.
 	/// </summary>
 	public int? MaxRows { get; init; } = 1000;
 

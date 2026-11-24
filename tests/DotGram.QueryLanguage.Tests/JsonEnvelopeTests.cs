@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -220,10 +221,29 @@ public sealed class JsonEnvelopeTests(Databases databases)
 		var info = Crm.Model().Describe("from customers let x = id where total > @low && name in @names select id, total");
 
 		Assert.Equal(
-			"""{"status":"ok","columns":[{"name":"id","type":"Int","nullable":false},{"name":"total","type":"Decimal","nullable":true}],"parameters":[{"name":"low","type":"Decimal","nullable":true,"list":false},{"name":"names","type":"String","nullable":false,"list":true}],"warnings":[{"code":"UnusedName","message":"`x` is never used.","position":19}]}""",
+			"""{"status":"started","columns":[{"name":"id","type":"Int","nullable":false},{"name":"total","type":"Decimal","nullable":true}],"parameters":[{"name":"low","type":"Decimal","nullable":true,"list":false},{"name":"names","type":"String","nullable":false,"list":true}],"warnings":[{"code":"UnusedName","message":"`x` is never used.","position":19}],"result":"completed"}""",
 			info.ToJson());
 
-		Assert.Equal(["status", "columns", "parameters"], Members(Crm.Model().Describe("from customers select id").ToJson()));
-		Assert.Equal("""{"status":"ok","columns":[{"name":"id","type":"Int","nullable":false}],"parameters":[]}""", Crm.Model().Describe("from customers select id").ToJson());
+		Assert.Equal(["status", "columns", "parameters", "result"], Members(Crm.Model().Describe("from customers select id").ToJson()));
+		Assert.Equal(["status", "columns", "parameters", "warnings", "result"], Members(info.ToJson()));
+		Assert.Equal("""{"status":"started","columns":[{"name":"id","type":"Int","nullable":false}],"parameters":[],"result":"completed"}""", Crm.Model().Describe("from customers select id").ToJson());
+	}
+
+	/// <summary>The description the reference page shows is what <c>Describe</c> writes, byte for byte.</summary>
+	[Fact]
+	public void TheDescriptionOnTheReferencePageIsTheRealOne()
+	{
+		var json = Crm.Model().Describe("from customers where total > @low select id, total").ToJson();
+
+		var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+		while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "docs", "query-language.md")))
+			directory = directory.Parent;
+
+		Assert.NotNull(directory);
+
+		var page = File.ReadAllText(Path.Combine(directory.FullName, "docs", "query-language.md"));
+
+		Assert.Contains("\n" + json + "\n", page.Replace("\r\n", "\n"), StringComparison.Ordinal);
 	}
 }

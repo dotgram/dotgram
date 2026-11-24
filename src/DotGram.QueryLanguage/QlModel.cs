@@ -98,7 +98,9 @@ public sealed class QlModel<TContext>
 	/// it has any. <c>truncated</c> is true where <see cref="QlOptions.MaxRows"/> left rows out: one row past the bound
 	/// is read to tell, and dropped. The rows are read through the provider's <see cref="IAsyncEnumerable{T}"/> where its
 	/// query is one, and synchronously where not. The whole document is held in memory: <see cref="QlOptions.MaxRows"/>
-	/// bounds the rows, nothing here bounds the size of the values in them. A refused text or value fails the returned
+	/// bounds the rows, nothing here bounds the size of the values in them. One row more than
+	/// <see cref="QlOptions.MaxRows"/> is read, to tell a cut from an exact fit; it is formatted as the others are,
+	/// so a host <c>Format&lt;T&gt;</c> that throws on it fails the document, though the row is not written. A refused text or value fails the returned
 	/// task with <see cref="QlException"/>, whose <see cref="QlError.ToJson"/> is the document of the refusal; the
 	/// provider's errors fail it with the provider's own exceptions, and nothing of them is written.
 	/// </remarks>
@@ -232,11 +234,11 @@ public sealed class QlQueryInfo
 	public IReadOnlyList<QlWarning> Warnings { get; }
 
 	/// <summary>
-	/// The description as JSON: <c>{"status":"ok","columns":[{"name":"id","type":"Int","nullable":false},…],
-	/// "parameters":[{"name":"low","type":"Decimal","nullable":false,"list":false},…]}</c>, and <c>"warnings"</c> after
-	/// them where there are any. A type is the name of its <see cref="QlType"/>. A description reads no row, so it is
-	/// whole when it is written: it opens with <c>"ok"</c>, not with the <c>"started"</c> of the rows, and has no
-	/// <c>"result"</c>.
+	/// The description as JSON: <c>{"status":"started","columns":[{"name":"id","type":"Int","nullable":false},…],
+	/// "parameters":[{"name":"low","type":"Decimal","nullable":false,"list":false},…],"result":"completed"}</c>, and
+	/// <c>"warnings"</c> after the parameters where there are any. A type is the name of its <see cref="QlType"/>.
+	/// A description reads no row, so it is whole when it is written, yet it opens and closes as the document of the
+	/// rows does: <c>"status":"started"</c> first and <c>"result":"completed"</c> last.
 	/// </summary>
 	public string ToJson()
 	{

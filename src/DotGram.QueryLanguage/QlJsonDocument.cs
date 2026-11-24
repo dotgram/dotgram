@@ -10,8 +10,9 @@ namespace DotGram.QueryLanguage;
 //
 // A message opens with "status". "started" says the text was accepted and its rows follow, and such a message closes
 // with "result" ("completed", or "failed" where the rows stopped short): a message without "result" was cut off.
-// "error" says nothing was read, and the message carries the error alone. "ok" opens a description, which reads no
-// row and so is whole when it is written.
+// "error" says nothing was read, and the message carries the error alone. A description opens with "started" and
+// closes with "result" as well, though it reads no row and is whole when it is written: every message that holds
+// a result has the same first and last member.
 
 /// <summary>Writes the parts of the JSON messages that are not rows.</summary>
 static class QlJsonDocument
@@ -59,14 +60,14 @@ static class QlJsonDocument
 	}
 
 	/// <summary>
-	/// <c>{"status":"ok","columns":[{"name","type","nullable"},…],"parameters":[{"name","type","nullable","list"},…]}</c>,
-	/// and the warnings where there are any.
+	/// <c>{"status":"started","columns":[{"name","type","nullable"},…],"parameters":[{"name","type","nullable","list"},…]</c>,
+	/// the warnings where there are any, and <c>,"result":"completed"}</c>.
 	/// </summary>
 	public static string Describe(QlQueryInfo info)
 	{
 		var json = new StringBuilder();
 
-		json.Append("{\"status\":\"ok\",\"columns\":[");
+		json.Append("{\"status\":\"started\",\"columns\":[");
 
 		for (var i = 0; i < info.Columns.Count; i++)
 		{
@@ -100,7 +101,7 @@ static class QlJsonDocument
 
 		Warnings(json, info.Warnings);
 
-		json.Append('}');
+		json.Append(",\"result\":\"completed\"}");
 
 		return json.ToString();
 	}
