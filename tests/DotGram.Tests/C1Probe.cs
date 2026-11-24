@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -525,6 +525,227 @@ public sealed class C1Probe
 		thread.Join();
 
 		File.WriteAllText(Environment.GetEnvironmentVariable("BLH_OUT") ?? "/ramdisk/tmp/breaker-loopheads/time-out.txt", output.ToString());
+	}
+
+	/// <summary>
+	/// Every publication of a grammar (parse, positional parse, find, yield, recover) held to the oracle, in four
+	/// machines (direct/engine x span/buffered) over string, reader and stream. Cases from $C1_PUB: blocks of a grammar
+	/// with its own publications and @in lines; output to $BLH_OUT.
+	/// </summary>
+	[Fact]
+	public void Publications()
+	{
+		if (Environment.GetEnvironmentVariable("C1_PUB") is not { } file)
+			return;
+
+		var output = new StringBuilder();
+		int compared = 0, differ = 0, loops = 0, ended = 0;
+
+		var thread = new System.Threading.Thread(() =>
+		{
+			foreach (var block in File.ReadAllText(file).Split("\n====\n"))
+			{
+				var lines   = block.Split('\n').Where(static line => line.Length > 0 && !line.StartsWith('#')).ToList();
+				var grammar = string.Join("\n", lines.Where(static line => !line.StartsWith('@')));
+				var inputs  = lines.Where(static line => line.StartsWith("@in ", StringComparison.Ordinal)).SelectMany(static line => line.Substring(4).Split('|')).Select(Expand).ToList();
+
+				if (grammar.Length == 0)
+					continue;
+
+				output.Append($"### {grammar.Replace("\n", " ;; ")}\n");
+
+				foreach (var direct in new[] { true, false })
+					foreach (var tape in new[] { false, true })
+						foreach (var buffered in new[] { false, true })
+						{
+							Built? oracle, checkd;
+
+							try
+							{
+								oracle = Build(grammar, direct, tape, buffered, Mode.Unchecked, publish: "");
+								checkd = Build(grammar, direct, tape, buffered, Mode.Checked, publish: "");
+							}
+							catch (InvalidOperationException e)
+							{
+								output.Append($"  COMPILE {e.Message.Split('\n')[0]} {e.Message.Split('\n').ElementAtOrDefault(1)}\n");
+
+								continue;
+							}
+
+							var reading = (direct ? "direct" : "engine") + (tape ? "/tape" : "/imm") + (buffered ? "/view" : "/span");
+
+							if (oracle is null || checkd is null)
+							{
+								output.Append($"  {reading}: ERR {LastErrors}\n");
+
+								continue;
+							}
+
+							output.Append($"  {reading}: same source {oracle.Source == checkd.Source}\n");
+
+							foreach (var input in inputs)
+								foreach (var (name, expected) in Publish(oracle.Assembly, input))
+								{
+									var got = Publish(checkd.Assembly, input, 60000).First(one => one.Name == name).Answer;
+
+									compared++;
+
+									if (expected.Contains("LOOP", StringComparison.Ordinal))
+									{
+										loops++;
+
+										if (got.Contains("LOOP", StringComparison.Ordinal) || (got.Contains("EXC", StringComparison.Ordinal) && !got.Contains("EXC FormatException", StringComparison.Ordinal)))
+										{
+											differ++;
+											output.Append($"  DIFF {reading} {name} \"{input}\": oracle {expected} | checked {got}\n");
+										}
+										else
+											ended++;
+									}
+									else if (expected != got)
+									{
+										differ++;
+										output.Append($"  DIFF {reading} {name} \"{input}\": oracle {expected} | checked {got}\n");
+									}
+								}
+
+							oracle.Context.Unload();
+							checkd.Context.Unload();
+						}
+
+				File.WriteAllText(Environment.GetEnvironmentVariable("BLH_OUT")!, output.ToString());
+			}
+		}, 1 << 28);
+
+		thread.Start();
+		thread.Join();
+
+		output.Append($"\ncompared {compared}, differing {differ}, oracle went round {loops} (checked ended {ended})\n");
+		File.WriteAllText(Environment.GetEnvironmentVariable("BLH_OUT")!, output.ToString());
+	}
+
+	/// <summary>What every publication answers on one input, by method and form.</summary>
+	static List<(string Name, string Answer)> Publish(Assembly parser, string input, int cap = 3000)
+	{
+		var type    = parser.GetType("Probe")!;
+		var answers = new List<(string, string)>();
+
+		foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static).OrderBy(static one => one.ToString(), StringComparer.Ordinal))
+		{
+			if (!(method.Name.StartsWith("Parse", StringComparison.Ordinal) || method.Name.StartsWith("TryParse", StringComparison.Ordinal) || method.Name.StartsWith("Find", StringComparison.Ordinal)))
+				continue;
+
+			var parameters = method.GetParameters().Select(static one => one.ParameterType).ToArray();
+			var forms      = new List<(string Label, object?[] Args)>();
+
+			if (parameters.SequenceEqual([typeof(string)]))
+				forms.Add(("s", [input]));
+			else if (parameters.SequenceEqual([typeof(string), typeof(int)]))
+				for (var at = 0; at <= input.Length; at++)
+					forms.Add(($"s@{at}", [input, at]));
+			else if (parameters.SequenceEqual([typeof(string), typeof(int), typeof(int)]))
+				for (var at = 0; at <= input.Length; at++)
+					forms.Add(($"s@{at}+{input.Length - at}", [input, at, input.Length - at]));
+			else if (parameters.SequenceEqual([typeof(TextReader), typeof(int?), typeof(int?)]))
+				forms.Add(("r", [new StringReader(input), 1, 1 << 16]));
+			else if (parameters.SequenceEqual([typeof(Stream), typeof(int?), typeof(int?)]))
+				forms.Add(("b", [new MemoryStream(Encoding.ASCII.GetBytes(input)), 1, 1 << 16]));
+			else
+				continue;
+
+			foreach (var (label, args) in forms)
+			{
+				type.GetField("Cap")!.SetValue(null, cap);
+				type.GetMethod("Reset")!.Invoke(null, null);
+
+				string answer;
+
+				try
+				{
+					answer = Shown(method.Invoke(null, args));
+				}
+				catch (TargetInvocationException thrown) when (thrown.InnerException is { } inner)
+				{
+					answer = inner.Message == "went round" || inner is InsufficientExecutionStackException ? "LOOP" : "EXC " + inner.GetType().Name + ": " + inner.Message;
+				}
+				catch (InvalidOperationException thrown) when (thrown.Message == "went round")
+				{
+					answer = "LOOP";
+				}
+
+				answers.Add((method.Name + "/" + label, answer));
+			}
+		}
+
+		return answers;
+	}
+
+	static string Shown(object? value, int depth = 0)
+	{
+		if (depth > 4)
+			return value?.ToString() ?? "null";
+
+		switch (value)
+		{
+			case null:
+				return "null";
+
+			case string text:
+				return "\"" + text + "\"";
+
+			case byte[] bytes:
+				return "\"" + Encoding.ASCII.GetString(bytes) + "\"";
+
+			case System.Collections.IEnumerable items when value.GetType().GetProperty("IsSuccess") is null:
+			{
+				var shown = new List<string>();
+
+				try
+				{
+					foreach (var item in items)
+						shown.Add(Shown(item, depth + 1));
+				}
+				catch (Exception thrown) when (thrown is InvalidOperationException { Message: "went round" } or InsufficientExecutionStackException)
+				{
+					shown.Add("LOOP");
+				}
+				catch (Exception thrown) when (thrown is not OutOfMemoryException)
+				{
+					shown.Add("EXC " + thrown.GetType().Name + ": " + thrown.Message);
+				}
+
+				return "[" + string.Join(", ", shown) + "]";
+			}
+		}
+
+		var type = value.GetType();
+
+		if (type.IsPrimitive || type.IsEnum)
+			return value.ToString()!;
+
+		var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+			.Where(static one => one.GetIndexParameters().Length == 0)
+			.OrderBy(static one => one.Name, StringComparer.Ordinal);
+
+		var parts = new List<string>();
+
+		foreach (var property in properties)
+		{
+			object? read;
+
+			try
+			{
+				read = property.GetValue(value);
+			}
+			catch (TargetInvocationException)
+			{
+				continue;
+			}
+
+			parts.Add(property.Name + "=" + (read is null || read.GetType().IsPrimitive || read is string || read.GetType().IsEnum ? read?.ToString() ?? "null" : Shown(read, depth + 1)));
+		}
+
+		return "{" + string.Join(" ", parts) + "}";
 	}
 
 	/// <summary>"a*5 + b" style: pieces joined by " + ", each "text*count".</summary>
