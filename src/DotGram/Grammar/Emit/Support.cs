@@ -1539,6 +1539,19 @@ static partial class CSharpEmitter
 		/// and answers for with ", among others". A set of its own, shared by every list.
 		/// </summary>
 		private static readonly string[] Truncated_DotGram = new string[] { "\u0001" };
+		// <counted>
+
+		#if DOTGRAM_COUNTS
+
+		/// <summary>
+		/// The sets the searches of the list of ties looked at, summed over every reading, for a test that
+		/// gates them by counting rather than by a clock. <b>Compiled only under <c>DOTGRAM_COUNTS</c>, which
+		/// no project defines; it is not a supported setting.</b>
+		/// </summary>
+		internal static long TiesVisited_DotGram = 0;
+
+		#endif
+		// </counted>
 
 		/// <summary>
 		/// Records a set that tied for the furthest position: kept while the list holds fewer than the cap, then
@@ -1572,6 +1585,20 @@ static partial class CSharpEmitter
 
 				return;
 			}
+
+			// Past the cap the list holds no guard, and a tie there is dropped without a search: a guard
+			// enters only below the cap, and the mark of the cut is appended only at the cap, once a search
+			// found none. Only this method appends to the list; everything else takes sets out of it, and
+			// whatever comes to append elsewhere has to keep this so. A search on every tie past the cap
+			// was the whole list per way, seconds for a refusal reached a few hundred thousand ways.
+			if (more.Count > TieCap_DotGram)
+				return;
+			// <counted>
+
+			#if DOTGRAM_COUNTS
+			TiesVisited_DotGram += more.Count;
+			#endif
+			// </counted>
 
 			for (var at = more.Count - 1; at >= 0; at--)
 				if (Guarding_DotGram(more[at]))

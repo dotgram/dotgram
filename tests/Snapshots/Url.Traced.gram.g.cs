@@ -4359,6 +4359,14 @@ namespace DotGram.Snapshots
 					return;
 				}
 
+				// Past the cap the list holds no guard, and a tie there is dropped without a search: a guard
+				// enters only below the cap, and the mark of the cut is appended only at the cap, once a search
+				// found none. Only this method appends to the list; everything else takes sets out of it, and
+				// whatever comes to append elsewhere has to keep this so. A search on every tie past the cap
+				// was the whole list per way, seconds for a refusal reached a few hundred thousand ways.
+				if (more.Count > TieCap_DotGram)
+					return;
+
 				for (var at = more.Count - 1; at >= 0; at--)
 					if (Guarding_DotGram(more[at]))
 					{
