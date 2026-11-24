@@ -76,6 +76,20 @@ public sealed class RuleTypedByTextTests
 	[InlineData("Start : Quoted = Quoted | Bare & Bare" + Quoted + Words)]
 	[InlineData("Start : Mid = Mid | Bare\nMid : Bare = Bare | '!' & Bare" + Plain)]
 	[InlineData("Start : Span = Span | Digits\nSpan : @SourceSpan = ['a'..'z']+\nDigits = ['0'..'9']+")]
+
+	// An operand that is not one on every route: several, repeated, optional, or written in two branches of a group.
+	[InlineData("Start : Bare = Bare & ' ' & Bare" + Words)]
+	[InlineData("Start : Bare = (Bare & ',')+" + Words)]
+	[InlineData("Start : Bare = '<' & (Bare & ';')* recover ';' & '>'" + Words)]
+	[InlineData("Start : Bare = Bare{2}" + Words)]
+	[InlineData("Start : Bare = '<' & Bare? & '>'" + Words)]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)" + Words)]
+	[InlineData("Start : Span = Span & ' ' & Span\nSpan : @SourceSpan = ['a'..'z']+")]
+
+	// A left-recursive rule says how it is built with a '=>' of its own.
+	[InlineData("Start : Bare = Start & '+' & Bare | Bare" + Words)]
+	[InlineData("Start : Bare = Start & '+' & Bare | Bare" + Plain)]
+	[InlineData("Start : Span = Start & '+' & Span | Span\nSpan : @SourceSpan = ['a'..'z']+")]
 	public void Is_told_where_the_alternatives_do_not_each_give_the_value(string grammar)
 	{
 		var result = Compile(grammar + "\nparse Start");
@@ -83,6 +97,29 @@ public sealed class RuleTypedByTextTests
 
 		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
 		Assert.Contains("'Start' takes the type of the rule it names", found.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A capture of the rule's own says it builds something, so the declared type is not given up for the
+	/// extent: it is refused as it always was, and the rule does not become a generated type.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Bare = '<' & x: Bare & '>'" + Words)]
+	[InlineData("Start : Bare = '<' & x: Bare & '>' | '[' & x: Bare & ']'" + Words)]
+	[InlineData("Start : Bare = '<' & x: Bare & '>'" + Plain)]
+	public void A_capture_without_a_construction_does_not_change_the_type(string grammar)
+	{
+		var result = Compile(grammar + "\nparse Start");
+		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
+	}
+
+	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>
+	[Fact]
+	public void A_left_recursive_rule_builds_with_its_own_construction()
+	{
+		Assert.Equal("b", Parsed("Start : Bare = Start & '+' & b: Bare => @(b) | b: Bare => @(b)" + Words, "a+b"));
 	}
 
 	[Theory]

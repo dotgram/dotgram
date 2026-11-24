@@ -1152,11 +1152,16 @@ by it. A separator written as
 `Space = [' ']+` is silent for the same reason, and needs no keyword to say so.
 
 A rule typed by another, `Name : Quoted = Quoted | Bare`, has the value of the operand that matched, so
-each alternative has exactly one operand that declares the type: a rule that builds it, or one that
-declares `: @string` over an extent, as `Bare : @string = ['a'..'z']+` does. An alternative with none, or
-with two, beside one that has one, is `GRAM4008`: the extent it matched would be the answer on one and the
-operand's on the other. Where no alternative has an operand that declares it, the rule is case 4's, and
-its value is its own extent.
+on every route through each alternative there is exactly one operand that declares the type, written in one
+place: a rule that builds it, or one that declares `: @string` or `: @SourceSpan` over an extent, as
+`Bare : @string = ['a'..'z']+` does. An operand that may be absent (`Bare?`), repeated (`(Bare & ',')+`) or
+more than one (`Bare & ' ' & Bare`) is not one, nor is one written in two branches of a group, and a
+left-recursive rule has no `=>` to say which: for `string` and `@SourceSpan`, `GRAM4008` says so on the rule,
+where the extent would otherwise be the answer with nobody having written it. A rule none of whose
+alternatives has an operand that declares the type, and that captures nothing, is case 4's, and its value is
+its own extent. For `@SourceSpan` the value is the operand's bounds, not the rule's own. A sequence
+(case 2) collects only the operands that build a value: a rule that declares `: @string` over an extent
+contributes nothing to `Words : @string[]`, as a rule that declares none.
 
 **What a construction hands back has to be the declared type.** Where the grammar can tell
 that it cannot be — a capture handed back whole, `=> x` or `=> @(x)`, that holds text where

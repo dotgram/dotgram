@@ -623,8 +623,10 @@ sealed partial class GrammarNormalizer
 			var body = _bodies[rule];
 
 			// A rule that captures or builds is making something of its parts; this is for
-			// the one that made nothing and is asking where it was.
-			if (HasCapture(body) || Constructs(body).FirstOrDefault() is not null)
+			// the one that made nothing and is asking where it was. A folded rule's body is
+			// the rewrite §4.3 made of it, not a choice of alternatives to wrap, and what it
+			// builds is its own `=>` (CheckConstruction says so where it has none).
+			if (HasCapture(body) || Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule))
 				continue;
 
 			var rewritten = new List<Node>();
@@ -640,101 +642,224 @@ sealed partial class GrammarNormalizer
 
 	void PassThrough()
 	{
-		var extents = new List<(RuleSymbol Rule, string Type)>();
-
-		_extentsFit = true;
+		var extents = new List<RuleSymbol>();
 
 		foreach (var pair in _produces)
 		{
 			var rule = pair.Key;
 
+			if (pair.Value.IsSequence || !_types.TryGetValue(rule, out var type))
+				continue;
+
 			// A folded rule's body is the rewrite §4.3 made of it — the bases and the loop
 			// over the steps — and not a choice of alternatives. Its own `=>` is what the
 			// fold applies at each step, so there is nothing here to supply.
 			if (_folds.ContainsKey(rule))
-				continue;
+			{
+				RefuseUnbuilt(rule, type, "a left-recursive rule says how it is built with a '=>' of its own");
 
-			if (pair.Value.IsSequence || !_types.TryGetValue(rule, out var type))
 				continue;
+			}
 
 			var alternatives = ValueAlternatives(_bodies[rule]);
 
 			if (alternatives.Any(static alternative => alternative is Node.Construct))
 				continue;
 
-			var rewritten = new List<Node>(alternatives.Count);
-			var taken     = 0;
-			var unsaid    = new List<string>();
+			var ways = alternatives.Select(alternative => OperandsOf(alternative, type)).ToList();
 
-			for (var i = 0; i < alternatives.Count; i++)
+			switch (Decide(rule, type, alternatives.Count, ways))
 			{
-				var before = taken;
-				var built  = Gather(alternatives[i], type, ref taken);
+				case PassOutcome.Extent:
+					extents.Add(rule);
 
-				// One per alternative, and one only.
-				if (taken != before + 1)
-					unsaid.Add(taken == before ? $"{i + 1} has none" : $"{i + 1} has {taken - before}");
+					break;
 
-				rewritten.Add(new Node.Construct(built, Construction.Operand.Instance));
+				case PassOutcome.Operand:
+				{
+					var rewritten = new List<Node>(alternatives.Count);
+					var taken     = 0;
+
+					foreach (var alternative in alternatives)
+						rewritten.Add(new Node.Construct(Gather(alternative, type, ref taken, null, null, declared: true), Construction.Operand.Instance));
+
+					_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
+						? selected.Rebuild(rewritten)
+						: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+
+					break;
+				}
 			}
-
-			if (unsaid.Count > 0)
-			{
-				if (PassedNothing(rule, type, alternatives.Count, taken, unsaid))
-					extents.Add((rule, type));
-
-				continue;
-			}
-
-			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
-				? selected.Rebuild(rewritten)
-				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
 
-		_extentsFit = false;
-
-		foreach (var (rule, _) in extents)
+		// Once every rule has been asked: a rule asked after another that gave its type up would otherwise be
+		// told a different answer for the same grammar.
+		foreach (var rule in extents)
 			_types.Remove(rule);
 	}
 
+	/// <summary>What a rule that takes another's type, and builds nothing itself, comes to (§4.1 cases 3 and 4).</summary>
+	enum PassOutcome
+	{
+		/// <summary>Each alternative is exactly one operand that produces the value, which the rule gives back.</summary>
+		Operand,
+
+		/// <summary>No alternative has an operand: the rule is the extent it matched.</summary>
+		Extent,
+
+		/// <summary>Left as it is, for <see cref="CheckConstruction"/> to say what it says of any rule that declares a type and does not build it.</summary>
+		Left,
+
+		/// <summary>Told here, where the extent would otherwise answer without anyone having written it.</summary>
+		Refused,
+	}
+
 	/// <summary>
-	/// A rule that takes another's type, <c>Start : Quoted = Quoted | Bare</c>, whose alternatives are not
-	/// each one operand that produces it (§4.1 case 3).
+	/// The fewest and the most operands of a type that a route through a node reads: 0, 1, or 2 for two or
+	/// more or one that is repeated; and how many places in the node write one, which a rewrite that makes
+	/// each a capture of the rule has to find one of.
+	/// </summary>
+	/// <remarks>
+	/// Per route and not summed over the sites a node writes, so that <c>'-'? &amp; ('&lt;' &amp; Bare &amp; '&gt;' | Bare)</c>,
+	/// where only one of two can run, is one on every route (but written twice, which is told), and <c>Bare?</c> and <c>(Bare &amp; ',')+</c> are not:
+	/// the value of one is absent, and of the other the join of its turns, which nobody wrote.
+	/// </remarks>
+	(int Least, int Most, int Sites) OperandsOf(Node node, string type)
+	{
+		if (DeepStack.Low)
+			return DeepStack.Run(() => OperandsOf(node, type));
+
+		switch (node)
+		{
+			case Node.Call when Fits(node, type, declared: true):
+				return (1, 1, 1);
+
+			case Node.Sequence(var parts):
+			{
+				var (least, most, sites) = (0, 0, 0);
+
+				foreach (var part in parts)
+				{
+					var (one, many, written) = OperandsOf(part, type);
+
+					least += one;
+					most  += many;
+					sites += written;
+				}
+
+				return (Math.Min(least, 2), Math.Min(most, 2), sites);
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				var (least, most, sites) = (2, 0, 0);
+
+				foreach (var alternative in alternatives)
+				{
+					var (one, many, written) = OperandsOf(alternative, type);
+
+					least  = Math.Min(least, one);
+					most   = Math.Max(most, many);
+					sites += written;
+				}
+
+				return (alternatives.Count == 0 ? 0 : least, most, sites);
+			}
+
+			case Node.Repeat(var body, var min, var max):
+				return Repeated(OperandsOf(body, type), min > 0, max == 1);
+
+			case Node.Counted(var body, var min, var max):
+				return Repeated(OperandsOf(body, type), min is CountBound.Items(> 0), max is CountBound.Items(1));
+
+			case Node.Atomic(var body):
+				return OperandsOf(body, type);
+
+			case Node.Marked(var body, _):
+				return OperandsOf(body, type);
+
+			case Node.Bind bind:
+				return OperandsOf(bind.Body, type);
+
+			// Gather does not go into a capture the author wrote, a lookahead or a construction.
+			default:
+				return (0, 0, 0);
+		}
+
+		static (int Least, int Most, int Sites) Repeated((int Least, int Most, int Sites) body, bool atLeastOnce, bool atMostOnce)
+		{
+			return (atLeastOnce ? body.Least : 0, body.Most == 0 ? 0 : atMostOnce ? body.Most : 2, body.Sites);
+		}
+	}
+
+	/// <summary>
+	/// Says what <paramref name="rule"/>, which takes another's type, <c>Start : Quoted = Quoted | Bare</c>, comes to
+	/// when its alternatives are not each one operand that produces it (§4.1 case 3).
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// Where no alternative has one, the rule says nothing of its value and is case 4's: the extent it matched,
-	/// the same as a rule that declared <c>: @string</c> itself. The type stays out of <c>_types</c> then, which
-	/// is what a caller is handed a value of: left in, the caller waited for a value the rule never built, and
-	/// the generated file did not compile (CS1501, or CS1729 where it was built for it). Returned true for
-	/// that, and the caller takes the type out once every rule has been asked: a rule asked after another that
-	/// gave its type up would otherwise be told a different answer for the same grammar.
+	/// Where no alternative has an operand, and the rule captures nothing, it says nothing of its value and is
+	/// case 4's: the extent it matched, the same as a rule that declared <c>: @string</c> itself. Its type then
+	/// stays out of <c>_types</c>, which is what a caller is handed a value of: left in, the caller waited for a
+	/// value the rule never built, and the generated file did not compile (CS1501, or CS1729 where it was built for it).
 	/// </para>
 	/// <para>
-	/// Where some have and some have not, or one has several, there is no value to give: the extent would be
-	/// the answer on the alternatives that name no operand and the operand's on the rest, which no one wrote.
-	/// It is told on the rule, for the types the extent would answer for. Other types are told by
-	/// <see cref="CheckConstruction"/>, which says it of every rule that declares one and does not build it.
+	/// Where some alternative has an operand on some route and not on every one, or several, there is no value to
+	/// give: the extent would be the answer where no operand is named and the operand's where one is, which no one
+	/// wrote. It is told on the rule, for the types the extent would answer for. Other types are told by
+	/// <see cref="CheckConstruction"/>.
 	/// </para>
 	/// </remarks>
-	bool PassedNothing(RuleSymbol rule, string type, int alternatives, int taken, List<string> unsaid)
+	PassOutcome Decide(RuleSymbol rule, string type, int alternatives, List<(int Least, int Most, int Sites)> ways)
+	{
+		if (ways.All(static one => one is (1, 1, 1)))
+			return PassOutcome.Operand;
+
+		var kind = _language.Classify(type, out _);
+
+		if (ways.All(static one => one.Most == 0))
+			return kind == KnownType.Text && !HasCapture(_bodies[rule]) ? PassOutcome.Extent : PassOutcome.Left;
+
+		if (kind is not (KnownType.Text or KnownType.SourceSpan) || rule.Declaration is null)
+			return PassOutcome.Left;
+
+		var unsaid = new List<string>();
+
+		for (var i = 0; i < ways.Count; i++)
+		{
+			var (least, most, sites) = ways[i];
+
+			if (ways[i] is (1, 1, 1))
+				continue;
+
+			var which = alternatives == 1 ? "its only alternative" : $"alternative {i + 1} of its {alternatives}";
+
+			unsaid.Add(
+				most == 0 ? $"{which} has none"
+				: least == 0 && most == 1 ? $"{which} may have none"
+				: most > 1 ? $"{which} may have more than one"
+				: $"{which} names one in {sites} places, of the branches of a group");
+		}
+
+		RefuseUnbuilt(rule, type, string.Join("; ", unsaid) + ". Give each alternative one operand that declares '" + type + "', or a '=>' of its own");
+
+		return PassOutcome.Refused;
+	}
+
+	void RefuseUnbuilt(RuleSymbol rule, string type, string why)
 	{
 		var kind = _language.Classify(type, out _);
 
-		if (taken == 0)
-			return kind == KnownType.Text;
-
-		if (kind is not (KnownType.Text or KnownType.SourceSpan) || rule.Declaration is null)
-			return false;
+		// What the extent would answer for, and for a rule with no construction at all: a rule with one is
+		// the author's, and a type the extent does not answer for is told by CheckConstruction.
+		if (kind is not (KnownType.Text or KnownType.SourceSpan) || rule.Declaration is null || Constructs(_bodies[rule]).Any())
+			return;
 
 		Report(
 			UnbuiltConstruction,
 			$"'{rule.Name}' takes the type of the rule it names, '{type}', and its value is the value of the " +
-			$"one operand that produces it (§4.1 case 3), on every alternative: alternative {string.Join(", alternative ", unsaid)} " +
-			$"of its {alternatives}. Give each alternative one operand that declares '{type}', or a '=>' of its own.",
+			$"one operand that produces it (§4.1 case 3), on every route: {why}.",
 			rule.Declaration.At);
-
-		return false;
 	}
 
 	void BuildByConstructor()
@@ -1082,9 +1207,9 @@ sealed partial class GrammarNormalizer
 	/// for <see cref="ComputeResults"/> to make them one member; null where nothing is.
 	/// </param>
 	/// <param name="group">The list of the repetition this node stands in, where it stands in one.</param>
-	Node Gather(Node node, string element, ref int taken, List<List<string>>? joined, List<string>? group)
+	Node Gather(Node node, string element, ref int taken, List<List<string>>? joined, List<string>? group, bool declared = false)
 	{
-		if (Fits(node, element))
+		if (Fits(node, element, declared))
 			return Collected(node, ref taken, group);
 
 		switch (node)
@@ -1094,7 +1219,7 @@ sealed partial class GrammarNormalizer
 				var built = new List<Node>(parts.Count);
 
 				foreach (var part in parts)
-					built.Add(Gather(part, element, ref taken, joined, group));
+					built.Add(Gather(part, element, ref taken, joined, group, declared));
 
 				return new Node.Sequence(built);
 			}
@@ -1104,7 +1229,7 @@ sealed partial class GrammarNormalizer
 				var built = new List<Node>(alternatives.Count);
 
 				foreach (var alternative in alternatives)
-					built.Add(Gather(alternative, element, ref taken, joined, group));
+					built.Add(Gather(alternative, element, ref taken, joined, group, declared));
 
 				return ((Node.Choice)node).Rebuild(built);
 			}
@@ -1121,7 +1246,7 @@ sealed partial class GrammarNormalizer
 					joined.Add(group);
 				}
 
-				var inner = Gather(body, element, ref taken, joined, group);
+				var inner = Gather(body, element, ref taken, joined, group, declared);
 
 				return ReferenceEquals(inner, body)
 					? node
@@ -1130,14 +1255,14 @@ sealed partial class GrammarNormalizer
 
 			case Node.Atomic(var body):
 			{
-				var inner = Gather(body, element, ref taken, joined, group);
+				var inner = Gather(body, element, ref taken, joined, group, declared);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
 			}
 
 			case Node.Marked(var body, var text):
 			{
-				var inner = Gather(body, element, ref taken, joined, group);
+				var inner = Gather(body, element, ref taken, joined, group, declared);
 
 				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
 			}
@@ -1146,7 +1271,7 @@ sealed partial class GrammarNormalizer
 			// inside it are this rule's as they would be without it.
 			case Node.Bind bind:
 			{
-				var inner = Gather(bind.Body, element, ref taken, joined, group);
+				var inner = Gather(bind.Body, element, ref taken, joined, group, declared);
 
 				return ReferenceEquals(inner, bind.Body) ? node : bind with { Body = inner };
 			}
@@ -1160,7 +1285,7 @@ sealed partial class GrammarNormalizer
 					joined.Add(group);
 				}
 
-				var inner = Gather(body, element, ref taken, joined, group);
+				var inner = Gather(body, element, ref taken, joined, group, declared);
 
 				return ReferenceEquals(inner, body) ? node : Placed(node, new Node.Counted(inner, min, max));
 			}
@@ -1226,7 +1351,7 @@ sealed partial class GrammarNormalizer
 	/// ancestor and so fits nothing but a sequence of <c>@object</c> — it is left out
 	/// rather than guessed at.
 	/// </remarks>
-	bool Fits(Node part, string element)
+	bool Fits(Node part, string element, bool declared = false)
 	{
 		var called = part switch
 		{
@@ -1242,13 +1367,12 @@ sealed partial class GrammarNormalizer
 		// A type the grammar generates is known to no host: a value of one fits a sequence of that
 		// type and of no other, and nothing but one fits a sequence of it.
 		if (_namedTypes.ContainsKey(element))
-			return (_types.TryGetValue(called, out var declared) ? declared : GeneratedNameOf(called)) == element;
+			return (_types.TryGetValue(called, out var typed) ? typed : GeneratedNameOf(called)) == element;
 
 		if (_types.TryGetValue(called, out var type))
-			return string.Equals(type, element, StringComparison.Ordinal) || _language.Fits(type, element);
+			return _language.Fits(type, element);
 
-		return _extentsFit && _extents.TryGetValue(called, out type) &&
-			(string.Equals(type, element, StringComparison.Ordinal) || _language.Fits(type, element));
+		return declared && _extents.TryGetValue(called, out type) && _language.Fits(type, element);
 	}
 
 	/// <summary>
@@ -1258,16 +1382,12 @@ sealed partial class GrammarNormalizer
 	/// <remarks>
 	/// The declaration says what a rule with none says by default, so it is kept out of <c>_types</c>: what
 	/// is typed there is what a caller is handed a value of. A rule another takes the value of is told apart
-	/// from one that declared nothing by this.
+	/// from one that declared nothing by this (<c>declared</c> of <see cref="Fits"/>): not a sequence, which
+	/// collects what builds a value, and whose repetition of one is read as one run of text
+	/// (<see cref="HoistTextCaptures"/>).
 	/// </remarks>
 	readonly Dictionary<RuleSymbol, string> _extents = [];
 
-	/// <summary>
-	/// Whether <see cref="Fits"/> counts a rule in <see cref="_extents"/>: while a rule takes the value of the
-	/// operand that produces it (§4.1 case 3), and not where a sequence collects (case 2), whose repetition
-	/// of one is read as one run of text (<see cref="HoistTextCaptures"/>).
-	/// </summary>
-	bool _extentsFit;
 
 	/// <summary>Whether a type is one a grammar may write by keyword alone, without <c>@</c> (§2).</summary>
 	bool IsTypeKeyword(string name)
