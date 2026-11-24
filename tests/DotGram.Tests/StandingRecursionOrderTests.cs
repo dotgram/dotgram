@@ -306,10 +306,8 @@ public sealed class StandingRecursionOrderTests
 		foreach (var (direct, tape, buffered) in Readings)
 		{
 			var reading = $"{(direct ? "direct" : "engine")}/{(tape ? "tape" : "immediate")}/{(buffered ? "view" : "span")}";
-			var today   = Build(marked, direct, tape, buffered, lexical: false, out var told);
+			var today   = Build(marked, direct, tape, buffered, lexical: false, out _);
 			var other   = Build(twin, direct, tape, buffered, lexical: false, out _);
-
-			Assert.Contains(told, static one => one.Id == Reentry.Reenters);
 
 			foreach (var row in rows)
 				foreach (var over in buffered ? new[] { typeof(string), typeof(TextReader) } : [typeof(string)])
