@@ -129,6 +129,11 @@ public sealed class EntityFrameworkTests : IDisposable
 		var rows = await With(c => Task.FromResult(Model().QueryJsonRow(c, "from customers order by id select id, created").ToList()));
 
 		Assert.Equal(["[1,\"2026-11-01T09:30:00.0000000\"]", "[2,\"2026-11-02T00:00:00.0000000\"]", "[3,\"2026-11-03T18:05:07.0000000\"]"], rows);
+
+		// SQLite under EF Core keeps a decimal as text: the scale is the text's.
+		Assert.Equal(
+			Document("[1,1250.5],[2,null],[3,0.1]", 3, columns: "\"id\",\"total\""),
+			await With(c => Model().ToJsonAsync(c, "from customers order by id select id, total", cancellationToken: ct)));
 	}
 
 	[Fact]

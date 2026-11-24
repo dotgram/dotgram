@@ -65,9 +65,13 @@ QlQueryInfo           info = model.Describe(text);                       // colu
 
 - **Nothing runs until the host enumerates.** `QueryData` and `QueryJsonRow` return the provider's
   `IQueryable`: use `ToList()`, linq2db's `ToListAsync()`, or `await foreach`.
-- `ToJsonAsync` gives `{"columns":[…],"rows":[[…],…]}` (`QlJsonFormat.Array`, the default) or
-  `[{…},…]` (`QlJsonFormat.Object`), and holds the whole document in memory. For large results
-  stream `QueryJsonRow`.
+- `ToJsonAsync` gives
+  `{"status":"started","columns":[…],"rows":[[…],…],"count":N,"truncated":false,"result":"completed"}`,
+  the rows as arrays (`QlJsonFormat.Array`, the default) or objects (`QlJsonFormat.Object`), and holds
+  the whole document in memory. For large results stream `QueryJsonRow`.
+- Read the status from the document, not from its shape: `status` first, `result` last (a document
+  without it was cut off), `truncated: true` where `MaxRows` left rows out. An empty `rows` is just
+  an empty result.
 - **Do not add `Where`, `OrderBy` or paging over the returned `IQueryable`.** Filters and orders over
   the JSON text cannot be translated and throw; paging belongs in the text (`skip`, `take`).
   `Count()` and `Any()` are fine.
@@ -101,12 +105,13 @@ try
 }
 catch (QlException e)          // the text or a value: the client's error
 {
-    return Results.BadRequest(new { e.Error.Code, e.Error.Message, e.Error.Position });
+    return Results.Text(e.Error.ToJson(), "application/json", statusCode: 400);
 }
 ```
 
 - `QlException` carries `Error.Code` (`Syntax`, `UnknownName`, `Type`, `Limit`, `Parameter`,
   `DivisionByZero`, `Overflow`), a message meant for whoever wrote the text, and the position in it.
+  `Error.ToJson()` is `{"status":"error","error":{"code":"…","message":"…","position":N}}`.
 - Everything else — a timeout, a database error, a value the provider cannot read, a host format
   that throws — is the provider's or the host's exception and is not the client's fault.
 - `Describe(text).Warnings` lists names declared and never used (`UnusedName`); they never stop a query.
@@ -149,4 +154,5 @@ catch (QlException e)          // the text or a value: the client's error
 - Expecting `ToJsonAsync` to bound memory: `MaxRows` bounds rows, not their size.
 - Passing raw user text as a `like` pattern: its `%` and `_` are wildcards. Search for what a user
   typed with `x.Contains(@q)`, which the provider escapes; `like` is for patterns.
-- Expecting EF Core to behave like linq2db: only linq2db (SQLite, SQL Server) is tested.
+- Expecting EF Core to behave like linq2db: linq2db (SQLite, SQL Server), EF Core (SQLite) and
+  LINQ to Objects are tested, and the providers differ where the reference says so.

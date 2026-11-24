@@ -37,8 +37,12 @@ Then run what somebody typed:
 ```csharp
 var json = await model.ToJsonAsync(db, "from orders where total > 100 order by total desc take 2 select id, total");
 
-// {"columns":["id","total"],"rows":[[3,250.00],[1,120.50]]}
+// {"status":"started","columns":["id","total"],"rows":[[3,250.00],[1,120.50]],"count":2,"truncated":false,"result":"completed"}
 ```
+
+The document says how it went in its own members: `status` first (`"started"`, or `"error"` for a
+refusal), `result` last (`"completed"`; a document without it was cut off), and `truncated` where
+`MaxRows` left rows out.
 
 `QueryData` returns the rows as `object?[]`, `QueryJsonRow` as one JSON string a row, and
 `Describe` says what a text returns and needs without running it. Each returns an
@@ -47,7 +51,7 @@ var json = await model.ToJsonAsync(db, "from orders where total > 100 order by t
 ## A web endpoint
 
 The usual shape: text and values come in as JSON, the result goes out as JSON, and a refused
-text is the client's error.
+text is the client's error, answered with a JSON document of the same kind.
 
 ```csharp
 app.MapPost("/query", async (QueryRequest request, AppDb db, CancellationToken cancellationToken) =>
@@ -60,7 +64,8 @@ app.MapPost("/query", async (QueryRequest request, AppDb db, CancellationToken c
     }
     catch (QlException e)
     {
-        return Results.BadRequest(new { e.Error.Code, e.Error.Message, e.Error.Position });
+        // {"status":"error","error":{"code":"UnknownName","message":"Unknown name `price`.","position":18}}
+        return Results.Text(e.Error.ToJson(), "application/json", statusCode: 400);
     }
 });
 
@@ -147,6 +152,6 @@ A format runs inside the provider's reading of the rows, on many threads at once
 
 The language, every bound, the JSON rules and the differences between providers are on
 [the query language page](https://github.com/dotgram/dotgram/blob/main/docs/query-language.md).
-Tested with linq2db over SQLite and SQL Server; EF Core is not tested.
+Tested with linq2db over SQLite and SQL Server, with EF Core over SQLite, and over LINQ to Objects.
 
 The package is built and tested with every change and is not yet published.
