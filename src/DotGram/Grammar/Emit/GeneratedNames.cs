@@ -68,7 +68,7 @@ static partial class CSharpEmitter
 		"Recognize{v}", "RecognizeDispatch{v}", "RecognizePart{v}#", "RecognizeGuard{v}#", "RecognizeGuardKey{v}#",
 		"RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}", "RecognizeUnrecorded{v}",
 		"RecognizeAgreeing{v}", "RecognizeClass{v}#", "RecognizeBits{v}#", "RecognizeBit{v}", "RecognizeGroups{v}#",
-		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#",
+		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#", "RecognizeReenters{v}",
 		"RecognizeWord{v}", "Words{v}#",
 		"Materialize{v}", "MaterializePart{v}#", "MaterializeConstruct{v}#Part#", "MaterializeDirect{v}",
 		"MaterializeDirectPart{v}#", "MaterializeDirectReach{v}", "MaterializeDirectReaches{v}#",
@@ -87,7 +87,7 @@ static partial class CSharpEmitter
 	public static readonly string[] NestedKinds =
 	[
 		"Read", "ReadBody", "ReadPart#", "ReadBroken", "ReadBroken#", "RecRead", "RecReadBody", "RecWholeRead",
-		"RecWholeReadBody", "CountEntered",
+		"RecWholeReadBody", "CountEntered", "Reentering",
 	];
 
 	/// <summary>
