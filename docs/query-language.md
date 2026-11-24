@@ -107,10 +107,10 @@ select id, status, net
 
 ### `like`
 
-`title like @pattern`, `title not like 'War%'` match a string of the rows against a pattern, at the
+`title like @pattern`, `title not like 'War%'` match a string against a pattern, at the
 level of a comparison: `a like p && b > 1` is `(a like p) && (b > 1)`, and `a like p like q` is not a
-text. The left is a string the rows give — a field, a `let`, a member of one; the pattern is any
-string, a literal, a parameter or another field.
+text. Both sides are any string: a field, a `let`, a member of one, a literal or a parameter. What a
+provider cannot compute it refuses itself; the language asks nothing of the rows.
 
 The language has no LIKE of its own. The host says what `like` means, once, with its provider's own:
 

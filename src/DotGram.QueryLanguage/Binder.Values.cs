@@ -429,24 +429,18 @@ sealed partial class Binder
 	}
 
 	/// <summary>
-	/// <c>x like p</c>, as the host's LIKE: the language reads nothing in the pattern. The left is a string of the rows,
-	/// so that the database computes it; the right is any string. A model without a LIKE refuses it after its operands,
+	/// <c>x like p</c>, as the host's LIKE: the language reads nothing in the pattern. Both sides are any strings; what
+	/// the provider cannot compute is the provider's to refuse. A model without a LIKE refuses it after its operands,
 	/// so that a field named there without its right is reported as it is anywhere else.
 	/// </summary>
 	BoundExpr BindLike(LikeExpr like)
 	{
 		var text = ScalarType.Of(QlType.String, true);
 
-		if (IsUntyped(like.Operand) || like.Operand is LiteralExpr or TypedLiteralExpr)
-			throw Error(QlErrorCode.Type, "`like` matches a value of the rows: write the field on its left, `name like @pattern`.", like.Position);
-
 		var operand = BindValue(like.Operand, text);
 
 		if (operand.Type.Type != QlType.String)
 			throw Error(QlErrorCode.Type, $"`like` matches strings, and this is a {operand.Type.Name}.", like.Position);
-
-		if (!operand.ReadsRow)
-			throw Error(QlErrorCode.Type, "`like` matches a value of the rows: write the field on its left, `name like @pattern`.", like.Position);
 
 		var pattern = BindValue(like.Pattern, text);
 
