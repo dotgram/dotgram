@@ -1903,8 +1903,20 @@ sealed partial class Machine
 	/// Called through a method of the generated class (<see cref="CSharpEmitter.HostCall"/>), which
 	/// the parameters of this reader cannot hide.
 	/// </remarks>
+	/// <summary>How many recognizers asked whether they stand this machine has written, for the locals that hold their copies.</summary>
+	int _stills;
+
 	string ExternalCall(Node.External external, string position, string? value = null, string? valueType = null)
 	{
+		// Read from a copy of the position, and taken only where it is where it was: consumes nothing.
+		if (external.Stands is { } stands)
+		{
+			var still = $"still{_stills++}";
+			var asked = ExternalCall(external with { Stands = null }, still, value, valueType);
+
+			return $"{(stands ? "" : "!")}({position} is var {still} && {asked} && {still} == {position})";
+		}
+
 		var view       = $"ParserInput<{(BufferedBytes ? "byte" : "char")}>";
 		var parameters = new List<(string Type, string Mode)>
 		{
