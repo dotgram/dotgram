@@ -460,7 +460,7 @@ sealed partial class Machine
 				file.Line("failure = replayed;");
 				file.Line();
 				file.Line("if (more != null && more.Count > replayedMore)");
-				file.Then("more.RemoveRange(replayedMore, more.Count - replayedMore);");
+				file.Then("Untied_DotGram(more, replayedMore);");
 			}
 
 			file.Line();

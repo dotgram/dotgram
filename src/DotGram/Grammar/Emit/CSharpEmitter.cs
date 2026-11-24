@@ -1258,7 +1258,7 @@ static partial class CSharpEmitter
 			// The thread's list for a reading's ties, where some machine writes ties at all.
 			if (moreField)
 			{
-				file.Write(Region(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null), "counted", options.CountRules));
+				file.Write(Region(Region(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null), "counted", options.CountRules), "untied", machines.Exists(static compiled => compiled.Direct)));
 				file.Line();
 			}
 
@@ -1421,7 +1421,7 @@ static partial class CSharpEmitter
 			var tape     = machines.FindAll(static compiled => compiled.Direct && compiled.Plan.Carrier?.Immediate != true);
 			var builds   = tape.Exists(static compiled => compiled.Machine.BuildsDuringRecognition);
 			var rewinds  = tape.Exists(static compiled => !compiled.Machine.BuildsDuringRecognition);
-			var regioned = Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0);
+			var regioned = Region(Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0), "counted", options.CountRules);
 
 			// A reading that is quiet writes down how far it got where the reading after it tries the
 			// turns behind shut doors from there (Machine.KeepsDoors); a trace build keeps every reading as it was.
