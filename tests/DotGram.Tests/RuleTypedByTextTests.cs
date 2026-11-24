@@ -25,9 +25,10 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class RuleTypedByTextTests
 {
-	const string Quoted = "\nQuoted : @string = '[' & b: Bare & ']' => @(b)";
-	const string Words  = "\nBare : @string = ['a'..'z']+";
-	const string Plain  = "\nBare = ['a'..'z']+";
+	const string Quoted  = "\nQuoted : @string = '[' & b: Bare & ']' => @(b)";
+	const string Words   = "\nBare : @string = ['a'..'z']+";
+	const string Plain   = "\nBare = ['a'..'z']+";
+	const string Letters = "\nPlain = ['a'..'z']+";
 
 	[Theory]
 	[InlineData("Start : Quoted = Quoted | Bare" + Quoted + Words, "[abc]", "abc")]
@@ -43,6 +44,13 @@ public sealed class RuleTypedByTextTests
 	[InlineData("Start : Bare = '<' & Bare & '>'" + Words, "<abc>", "abc")]
 	[InlineData("Start : Bare = Bare | Other" + Words + "\nOther : @string = ['0'..'9']+", "123", "123")]
 	[InlineData("Start : Bare = '(' & Bare & ')' | Bare" + Words, "(abc)", "abc")]
+
+	// Written in two branches of a group, of which one runs: one operand on every route.
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)" + Words, "-<abc>", "abc")]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)" + Words, "abc", "abc")]
+
+	// A repetition that never runs is nobody's operand.
+	[InlineData("Start : Bare = '<' & Bare{0} & Bare & '>'" + Words, "<abc>", "abc")]
 
 	// Through a rule that is itself typed by a rule.
 	[InlineData("Start : Mid = Mid | Bare\nMid : Bare = Bare | '!' & Bare" + Words, "!abc", "abc")]
@@ -83,7 +91,6 @@ public sealed class RuleTypedByTextTests
 	[InlineData("Start : Bare = '<' & (Bare & ';')* recover ';' & '>'" + Words)]
 	[InlineData("Start : Bare = Bare{2}" + Words)]
 	[InlineData("Start : Bare = '<' & Bare? & '>'" + Words)]
-	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)" + Words)]
 	[InlineData("Start : Span = Span & ' ' & Span\nSpan : @SourceSpan = ['a'..'z']+")]
 
 	// A left-recursive rule says how it is built with a '=>' of its own.
@@ -115,6 +122,68 @@ public sealed class RuleTypedByTextTests
 		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
 	}
 
+	/// <summary>
+	/// A left-recursive rule that declares the type of its extent gives its extent, as one that is not left-recursive
+	/// does: the text for <c>: @string</c>, and the bounds for <c>: @SourceSpan</c>.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @SourceSpan = Start & '+' & Plain | Plain" + Letters, "a+bc", 4)]
+	[InlineData("Start : @SourceSpan = Start & '+' & Span | Span\nSpan : @SourceSpan = ['a'..'z']+", "a+bc", 4)]
+	[InlineData("Start : @SourceSpan = '(' & Start & ')' | Start & '+' & Plain | Plain" + Letters, "(a+b)+c", 7)]
+	[InlineData("Start : Expr = '(' & Expr & ')'\nExpr : @SourceSpan = Expr & '+' & Plain | Plain" + Letters, "(a+b)", 3)]
+	public void A_left_recursive_SourceSpan_rule_gives_its_extent(string grammar, string input, int length)
+	{
+		var value = Parsed(grammar, input, kind: true)!;
+
+		Assert.Equal(length, (int)value.GetType().GetProperty("Length")!.GetValue(value)!);
+	}
+
+	[Fact]
+	public void A_left_recursive_text_rule_gives_its_extent()
+	{
+		Assert.Equal("a+b", Parsed("Start : @string = Start & '+' & Plain | Plain" + Letters, "a+b"));
+	}
+
+	/// <summary>
+	/// A rule that takes another's type and is left-recursive says which operand it hands on with a <c>=&gt;</c>
+	/// of its own, and says so for every type.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Num = Start & '+' & Num | Num\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))")]
+	[InlineData("Start : Bare = Start & '+' & Plain | Plain" + Words + Letters)]
+	public void A_left_recursive_rule_typed_by_a_rule_is_told_why(string grammar)
+	{
+		var result = Compile(grammar + "\nparse Start");
+		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Contains("'=>' of its own to say", found.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The route that has none or several is told for every type, and the advice is not to declare text where the
+	/// type is a number or a class.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Num = '<' & Num? & '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "may have none")]
+	[InlineData("Start : Num = Num+\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "may have more than one")]
+	[InlineData("Start : Item = '<' & Item? & '>'\nItem = x: ['a'..'z']+", "may have none")]
+	public void A_non_text_operand_that_is_not_one_is_told_why(string grammar, string why)
+	{
+		var result = Compile(grammar + "\nparse Start");
+		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Contains(why, found.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain("as ': @string'", found.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_repetition_of_nought_is_not_more_than_one()
+	{
+		var result = Compile("Start : Bare = '<' & Bare{0} & Plain & '>'" + Words + Letters + "\nparse Start");
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+	}
+
 	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>
 	[Fact]
 	public void A_left_recursive_rule_builds_with_its_own_construction()
@@ -125,6 +194,7 @@ public sealed class RuleTypedByTextTests
 	[Theory]
 	[InlineData("Start : Span = Span | Digits\nSpan : @SourceSpan = ['a'..'z']+\nDigits : @SourceSpan = ['0'..'9']+", "123", "3")]
 	[InlineData("Start : Span = '<' & Span & '>' | Span\nSpan : @SourceSpan = ['a'..'z']+", "<abc>", "3")]
+	[InlineData("Start : Span = '-'? & ('<' & Span & '>' | Span)\nSpan : @SourceSpan = ['a'..'z']+", "-<ab>", "2")]
 	public void Gives_the_extent_of_the_operand_that_matched(string grammar, string input, string expected)
 	{
 		Assert.Equal(expected, Length(grammar, input));

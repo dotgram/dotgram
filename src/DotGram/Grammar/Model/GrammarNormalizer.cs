@@ -268,6 +268,10 @@ sealed partial class GrammarNormalizer
 		// Group factories need their contextual type before recursion introduces its
 		// own nested constructions, which remain part of the enclosing fold.
 		normalizer.ComputeTypes();
+
+		// A rule that declared `: @SourceSpan` and builds nothing is given its construction before the
+		// left-recursive rules are rewritten, which makes a fold of the construction on each alternative.
+		normalizer.ExtentValues(declared: true);
 		normalizer.LowerGroupValues();
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
@@ -286,7 +290,7 @@ sealed partial class GrammarNormalizer
 		// The pass-through first: a rule typed by one that gives an extent takes the operand's, and
 		// what takes none is left for the extent.
 		normalizer.PassThrough();
-		normalizer.ExtentValues();
+		normalizer.ExtentValues(declared: false);
 
 		// After the types — valuedness is what tells a collected thing from the inside
 		// of a lexeme — and after the sequence captures exist, so the implicit capture

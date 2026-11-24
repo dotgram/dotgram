@@ -329,7 +329,7 @@ sealed partial class GrammarNormalizer
 		// below anyway; a synthesized external rule *is* declared — its type is set
 		// directly rather than through a `: @T` this rule reads — so without this guard
 		// it would reach one and dereference a null `Declaration`.
-		if (rule.Declaration is null)
+		if (rule.Declaration is null || _unsaid.Contains(rule))
 			return;
 
 		var body     = _bodies[rule];
@@ -384,7 +384,7 @@ sealed partial class GrammarNormalizer
 		else if (declared && building < offered.Count)
 			Report(
 				UnbuiltConstruction,
-				$"'{Shown(rule)}' declares a type and does not say how to build it. Only ': @string' " +
+				$"'{Shown(rule)}' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' " +
 				"can be left to the shape of the rule — §4.1 case 4, the extent it matched. " +
 				(HasCapture(body)
 					? $"No constructor of '{_types[rule]}' has every parameter covered by a capture " +

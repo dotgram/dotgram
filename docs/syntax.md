@@ -1152,16 +1152,20 @@ by it. A separator written as
 `Space = [' ']+` is silent for the same reason, and needs no keyword to say so.
 
 A rule typed by another, `Name : Quoted = Quoted | Bare`, has the value of the operand that matched, so
-on every route through each alternative there is exactly one operand that declares the type, written in one
-place: a rule that builds it, or one that declares `: @string` or `: @SourceSpan` over an extent, as
-`Bare : @string = ['a'..'z']+` does. An operand that may be absent (`Bare?`), repeated (`(Bare & ',')+`) or
-more than one (`Bare & ' ' & Bare`) is not one, nor is one written in two branches of a group, and a
-left-recursive rule has no `=>` to say which: for `string` and `@SourceSpan`, `GRAM4008` says so on the rule,
-where the extent would otherwise be the answer with nobody having written it. A rule none of whose
-alternatives has an operand that declares the type, and that captures nothing, is case 4's, and its value is
-its own extent. For `@SourceSpan` the value is the operand's bounds, not the rule's own. A sequence
+on every route through each alternative there is exactly one operand that declares the type: a rule that
+builds it, or one that declares `: @string` or `: @SourceSpan` over an extent, as
+`Bare : @string = ['a'..'z']+` does. It may be written in more than one place when only one of them can
+run, `'-'? & ('<' & Bare & '>' | Bare)`. An operand that may be absent (`Bare?`), repeated
+(`(Bare & ',')+`) or more than one (`Bare & ' ' & Bare`) is not one, and a left-recursive rule has no
+saying which operand it hands on at each step: that is `GRAM4008` on the rule, which names the route that
+has none or several, or the recursion, and asks for a `=>` of its own. A rule none of whose alternatives
+has an operand that declares the type, and that captures nothing, is case 4's, and its value is its own
+extent. For `@SourceSpan` the value is the operand's bounds, not the rule's own. A sequence
 (case 2) collects only the operands that build a value: a rule that declares `: @string` over an extent
 contributes nothing to `Words : @string[]`, as a rule that declares none.
+
+A left-recursive rule that declares `: @string` or `: @SourceSpan` itself and builds nothing is case 4's
+too: its value is the text or the bounds of everything it matched, `Start : @SourceSpan = Start & '+' & Term | Term`.
 
 **What a construction hands back has to be the declared type.** Where the grammar can tell
 that it cannot be — a capture handed back whole, `=> x` or `=> @(x)`, that holds text where
