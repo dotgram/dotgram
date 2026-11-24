@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Grammar.Binding;
@@ -123,7 +123,9 @@ sealed partial class GrammarNormalizer
 					break;
 				}
 
-				if (operand is not (Node.External { HasValue: false, UsesContext: false } or Node.Lookahead))
+				// Spike: one recognizer and nothing else before the call. A lookahead beside it would have to be asked
+				// again, negated, on the way to the rule as written, and a refusal there says what it saw.
+				if (operand is not Node.External { HasValue: false, UsesContext: false })
 					break;
 			}
 
@@ -204,6 +206,18 @@ sealed partial class GrammarNormalizer
 			var operands = ((Node.Sequence)inner).Nodes;
 
 			if (operands.Count > head + 1 && EndsWith(new Node.Sequence([.. operands.Skip(head + 1)]), rule))
+				return;
+		}
+
+		// A tail that may read nothing would be a turn of the loop that reads nothing, which §4.3 refuses as a
+		// repetition that would not end (GRAM4001): such a rule is left as it is written.
+		ComputeNullability();
+
+		foreach (var (head, inner, _) in guarded.Values)
+		{
+			var operands = ((Node.Sequence)inner).Nodes;
+
+			if (operands.Count > head + 1 && IsNullable(new Node.Sequence([.. operands.Skip(head + 1)])))
 				return;
 		}
 
