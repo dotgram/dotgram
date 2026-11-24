@@ -2643,7 +2643,7 @@ static class FirstSets
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
 			Node.Literal(var text) => text.Length == 0,
 			Node.Element => false,
-			Node.External => hosts,
+			Node.External external => external.Stands is not null || hosts && !external.Moves,
 			Node.Atomic(var body) => Nullable(body, rule, graph, bound, hosts),
 			Node.Marked(var body, _) => Nullable(body, rule, graph, bound, hosts),
 			Node.Capture(_, var captured) => Nullable(captured, rule, graph, bound, hosts),
