@@ -475,18 +475,17 @@ public sealed class RuleTypedByTextTests
 	}
 
 	/// <summary>
-	/// A parameter that stands for a piece of grammar is specialized away and is no name of the generated code, so it
-	/// may be called <c>context</c> beside a declared context; one that holds a value is written into the C#, where it
-	/// would hide the context, and may not.
+	/// A rule parameter is no name of the generated code that could be a second <c>context</c>: it builds beside a declared
+	/// context, as a recognizer and as a value, as it did.
 	/// </summary>
 	[Theory]
-	[InlineData("P(context) : @string = v: context => @(v.ToString())\nRoot : @string = P(W)", false)]
-	[InlineData("P(context: @int) : @string = v: W => @(v.ToString() + context)\nRoot : @string = P(1)", true)]
-	public void A_parameter_named_context_is_refused_only_where_it_holds_a_value(string rules, bool refused)
+	[InlineData("P(context) : @string = v: context => @(v.ToString())\nRoot : @string = P(W)")]
+	[InlineData("P(context: @int) : @string = v: W => @(v.ToString() + context)\nRoot : @string = P(1)")]
+	public void A_parameter_named_context_builds_beside_a_declared_context(string rules)
 	{
 		var result = Compile("context : @Names\n" + rules + "\nW : @string = ['a'..'z']+\nparse Root");
 
-		Assert.Equal(refused, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.ReservedCaptureName));
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.ReservedCaptureName);
 	}
 
 	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>
