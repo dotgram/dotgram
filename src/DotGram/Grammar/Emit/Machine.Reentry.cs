@@ -168,7 +168,7 @@ sealed partial class Machine
 		var root  = $"reentryRoot == {Mark(Lands, _entries[rule])}";
 		var alike = $"{Tag.Named("RecognizeReenters")}(entries, call, p, {root}, {EngineRuleIndex(rule).ToString(CultureInfo.InvariantCulture)})";
 
-		writer.Line($"if ({alike} > 0) {{ {Cleared()} goto {Label(writer, _fail)}; }}");
+		writer.Line($"if ({alike}) {{ {Cleared()} goto {Label(writer, _fail)}; }}");
 	}
 
 	/// <summary>The local the engine's reading keeps for the check: where the reading began, which says whether its root entry reads a marked rule.</summary>
@@ -187,14 +187,11 @@ sealed partial class Machine
 			return;
 
 		file.Line();
-		file.Line("/// <summary>How many live entries of a marked rule stand at a position, up the calls being read (docs/syntax.md §7.2).</summary>");
+		file.Line("/// <summary>Whether a live entry of a marked rule stands at a position, up the calls being read (docs/syntax.md §7.2).</summary>");
 
 		using (file.Block(
-			$"static int {Tag.Named("RecognizeReenters")}(ParserArena_DotGram entries, int call, int p, bool root, int rule)"))
+			$"static bool {Tag.Named("RecognizeReenters")}(ParserArena_DotGram entries, int call, int p, bool root, int rule)"))
 		{
-			file.Line("var alike = 0;");
-			file.Line();
-
 			using (file.Block("for (var up = call; up >= 0; up = entries[up].CallIndex)"))
 			{
 				file.Line("var entry = entries[up];");
@@ -203,11 +200,11 @@ sealed partial class Machine
 				file.Then("break;");
 				file.Line();
 				file.Line("if (up == 0 ? root : entry.RuleIndex == rule)");
-				file.Then("alike++;");
+				file.Then("return true;");
 			}
 
 			file.Line();
-			file.Line("return alike;");
+			file.Line("return false;");
 		}
 	}
 }

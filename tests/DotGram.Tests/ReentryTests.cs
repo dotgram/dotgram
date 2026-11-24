@@ -184,12 +184,12 @@ public sealed class ReentryTests
 			}).Sources[0].Text;
 		}
 
-		var counted    = Source(Nest);
+		var plain      = Source(Nest);
 		var dispatched = Source(Table.Single(static row => row.Name == "dispatched").Grammar);
 		var tail       = Source(Table.Single(static row => row.Name == "tail").Grammar);
 
-		Assert.DoesNotContain("standing", counted, StringComparison.Ordinal);
-		Assert.DoesNotContain("reentr", counted, StringComparison.OrdinalIgnoreCase);
+		Assert.DoesNotContain("standing", plain, StringComparison.Ordinal);
+		Assert.DoesNotContain("reentr", plain, StringComparison.OrdinalIgnoreCase);
 		Assert.Contains("var read = Reentering_T(pos);", dispatched, StringComparison.Ordinal);
 		Assert.DoesNotContain("Reentering_T", tail, StringComparison.Ordinal);
 
@@ -515,11 +515,11 @@ public sealed class ReentryTests
 	}
 
 	/// <summary>
-	/// A pass that copies a rule for the site it is read at — a run settled for what follows it — copies no rule
-	/// that reads a marked one: the copy would be read past the check. The parse reads as the rule itself does.
+	/// A marked rule behind a caller (`Name = @Pfx & Name | ['a'..'z']+`) reads `.ab=` and `ab=` and refuses `..=`,
+	/// by methods and in the engine.
 	/// </summary>
 	[Fact]
-	public void A_rule_that_reads_a_marked_one_is_not_copied()
+	public void A_marked_rule_read_by_a_caller_parses_as_written()
 	{
 		const string Grammar = "T = Name & '='\nName = @Pfx & Name | ['a'..'z']+";
 
@@ -527,8 +527,6 @@ public sealed class ReentryTests
 		var name  = graph.Rules.Single(static rule => rule.Name == "Name");
 
 		Assert.True(Reentry.Marked(graph, name));
-		Assert.False(Reentry.MayCopy(graph, name));
-		Assert.False(Reentry.MayCopy(graph, graph.Rules.Single(static rule => rule.Name == "T")));
 		Assert.Single(graph.Rules, rule => ReferenceEquals(graph.Origin(rule), name) || rule.Declaration?.Name == "Name");
 
 		const string Moves = "static bool Pfx(System.ReadOnlySpan<char> input, ref int p) { if (p < input.Length && input[p] == '.') p++; return true; }";

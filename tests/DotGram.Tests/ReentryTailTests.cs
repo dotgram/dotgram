@@ -160,7 +160,7 @@ public sealed class ReentryTailTests
 	/// <summary>
 	/// A cycle cut at once reads long input in time linear in it, valid or not, by methods and in the engine, over a
 	/// string, a reader and a stream: where the parser without the check goes round on the invalid input, and had the
-	/// entries been counted, would go round about the square of the input with a deep stack.
+	/// every entry up the calls been looked at, it would go round about the square of the input with a deep stack.
 	/// </summary>
 	[Theory]
 	[InlineData("T = @Still & T | 'a' & T | eof", "", "b", true)]
@@ -230,7 +230,7 @@ public sealed class ReentryTailTests
 	[InlineData("T = P('a', 'b')\nP(x, y) = @Still & P(y, x) & x | y")]
 	[InlineData("T = E\nE = @Still & E << 2 | E & '+' & E << 1 | 'x'")]
 	[InlineData("T = ((@Still & T & 'b' | 'x')* recover ',' & ';')* recover ';' & eof")]
-	public void A_counted_cycle_is_written_as_without_the_check(string grammar)
+	public void A_cycle_left_unchecked_is_written_as_without_the_check(string grammar)
 	{
 		var graph = ExponentialRepetitionTests.Graph(grammar + "\nparse T", lexical: false, out _);
 

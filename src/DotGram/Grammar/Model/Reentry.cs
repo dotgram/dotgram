@@ -117,49 +117,6 @@ static class Reentry
 	}
 
 	/// <summary>
-	/// Whether a pass that copies a rule for one of its sites may copy this one: not where the copy would read a
-	/// marked rule, itself or through what it calls.
-	/// </summary>
-	/// <remarks>
-	/// For a pass that settles a run for the site it is read at, by a copy of the rule that reads it (none is
-	/// written yet): a copy made after this fact was worked out is not marked, so the recursion through it
-	/// would go unchecked, or be checked as another rule's and cut one entry later than the rule it was
-	/// copied from. Such a rule is left as it is, and read as it is; the run it settles is only faster.
-	/// </remarks>
-	public static bool MayCopy(RecognitionGraph graph, RuleSymbol rule)
-	{
-		var facts = Of(graph);
-
-		if (facts.Marked.Count == 0)
-			return true;
-
-		var seen    = new HashSet<RuleSymbol>();
-		var pending = new Stack<RuleSymbol>();
-
-		pending.Push(rule);
-
-		while (pending.Count > 0)
-		{
-			var one = pending.Pop();
-
-			if (!seen.Add(one))
-				continue;
-
-			if (facts.Marked.Contains(one))
-				return false;
-
-			if (!graph.Bodies.TryGetValue(one, out var body))
-				continue;
-
-			foreach (var node in NodeWalk.Descendants(body))
-				if (node is Node.Call(var called, _))
-					pending.Push(called);
-		}
-
-		return true;
-	}
-
-	/// <summary>
 	/// What the build says of the rules that can come back to themselves: once a cycle, on the rule that closes it, as
 	/// Information — the grammar is sound, and a recognizer that always moves never meets the cycle.
 	/// </summary>
@@ -182,7 +139,7 @@ static class Reentry
 					"one, and fails as an alternative does instead of going round for ever."
 				: "Something is read after the call back, or what is read depends on more than the position, so nothing " +
 					"checks the entry: the rule is read as it is written, and where the recognizer does not move, a parse " +
-					"that has to try that alternative goes round until the stack or memory runs out.";
+					"that has to give up on that alternative goes round until the stack or memory runs out.";
 
 			told.Add(new GramDiagnostic(
 				Reenters,

@@ -3881,7 +3881,7 @@ ordinary C# rules.
   is written: where the parse finds its answer before it has to give up on the recursive
   alternative, it ends as it always did; where it would have to give up on it — most input it
   refuses — it goes round, and ends only where the stack or the memory does. The same holds for a
-  cycle with nothing read after the call back on whose way a `when` or a `switch` reads a value the
+  cycle with nothing read after the call back where a `when` or a `switch`, in the cycle or in a rule that calls into it, reads a value the
   cycle builds, or a hook names `context`: what it reads then depends on more than the position,
   and it is not cut. `GRAM5021` says which of the two a cycle is. The repetition, `Frames = @ReadFrame* & eof`, or a
   recognizer that moves whenever it succeeds, needs no check; write the progress into the input
