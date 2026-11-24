@@ -9,7 +9,7 @@ namespace DotGram.QueryLanguage;
 
 /// <summary>
 /// Builds a call's tree from a bound text: the entity's source, then one <see cref="Queryable"/> call per clause as
-/// the text wrote it, then a <c>Take</c> of <see cref="QlOptions.MaxRows"/>, then the final projection. Nothing the
+/// the text wrote it, then a <c>Take</c> of the rows the call may return, then the final projection. Nothing the
 /// text names is looked up here: every member comes from the model, every method from the fixed set below.
 /// </summary>
 static class Translator
@@ -49,10 +49,10 @@ static class Translator
 	}
 
 	/// <summary>The rows as arrays of values, over <paramref name="source"/>, with the call's coerced <paramref name="values"/>.</summary>
-	public static IQueryable<object?[]> QueryData(BoundQuery query, IQueryable source, object?[] values, QlOptions options)
+	public static IQueryable<object?[]> QueryData(BoundQuery query, IQueryable source, object?[] values, int? maxRows)
 	{
 		var call  = new Call(values, query.Parameters);
-		var chain = Chain(query, source.Expression, call, options);
+		var chain = Chain(query, source.Expression, call, maxRows);
 		var row   = Expression.Parameter(RowType(query.Final, query.Entity), "r");
 
 		var columns = new Expression[query.Output.Length];
@@ -74,10 +74,10 @@ static class Translator
 	/// The rows as JSON text, over <paramref name="source"/>, with the call's coerced <paramref name="values"/>: the same
 	/// chain as <see cref="QueryData"/>, ending in the calls of <see cref="QlJson"/> instead of an array.
 	/// </summary>
-	public static IQueryable<string> QueryJsonRow(BoundQuery query, IQueryable source, object?[] values, QlOptions options, QlJsonFormat format, IReadOnlyDictionary<Type, Delegate> formats)
+	public static IQueryable<string> QueryJsonRow(BoundQuery query, IQueryable source, object?[] values, int? maxRows, QlJsonFormat format, IReadOnlyDictionary<Type, Delegate> formats)
 	{
 		var call  = new Call(values, query.Parameters);
-		var chain = Chain(query, source.Expression, call, options);
+		var chain = Chain(query, source.Expression, call, maxRows);
 		var row   = Expression.Parameter(RowType(query.Final, query.Entity), "r");
 
 		var columns = new Expression[query.Output.Length];
@@ -91,15 +91,15 @@ static class Translator
 		return source.Provider.CreateQuery<string>(final);
 	}
 
-	/// <summary>The source, each clause as written, and the row bound last.</summary>
-	static Expression Chain(BoundQuery query, Expression source, Call call, QlOptions options)
+	/// <summary>The source, each clause as written, and <paramref name="maxRows"/> last, where there is one.</summary>
+	static Expression Chain(BoundQuery query, Expression source, Call call, int? maxRows)
 	{
 		var chain = source;
 
 		foreach (var clause in query.Clauses)
 			chain = Clause(query.Entity, chain, clause, call);
 
-		if (options.MaxRows is { } rows)
+		if (maxRows is { } rows)
 			chain = Expression.Call(TakeMethod.MakeGenericMethod(RowType(query.Final, query.Entity)), chain, Expression.Constant(rows));
 
 		return chain;

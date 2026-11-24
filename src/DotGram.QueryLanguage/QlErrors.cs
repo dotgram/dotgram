@@ -3,6 +3,11 @@
 namespace DotGram.QueryLanguage;
 
 /// <summary>What is wrong with a query text or with the values passed with it.</summary>
+/// <remarks>
+/// The names of the members are the <c>"code"</c> of <see cref="QlError.ToJson"/>, and do not change. One more code is
+/// kept for JSON alone: <c>Failed</c>, a failure of the provider after the rows started, which no
+/// <see cref="QlException"/> carries.
+/// </remarks>
 public enum QlErrorCode
 {
 	/// <summary>The text is not the language.</summary>
@@ -48,6 +53,16 @@ public sealed class QlError
 
 	/// <summary>The zero-based offset in the text of the character the error is about, where there is one.</summary>
 	public int? Position { get; }
+
+	/// <summary>
+	/// The error as a JSON document: <c>{"status":"error","error":{"code":"UnknownName","message":"…","position":31}}</c>,
+	/// the code by its name, and <c>"position"</c> (in UTF-16 code units, as JavaScript counts) only where there is one.
+	/// It is the document a host answers a refused text with where <see cref="QlModel{TContext}.ToJsonAsync"/> throws.
+	/// </summary>
+	public string ToJson()
+	{
+		return QlJsonDocument.Error(this);
+	}
 }
 
 /// <summary>A query text or its values were refused. Nothing has run.</summary>
