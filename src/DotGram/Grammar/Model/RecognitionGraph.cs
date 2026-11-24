@@ -464,6 +464,19 @@ abstract record Node
 
 		public bool UsesContext { get; init; }
 
+		/// <summary>
+		/// Null for a recognizer read as it is written. True: succeeds only where the recognizer succeeds without
+		/// moving; false: only where it does not (it fails or moves). Either way it consumes nothing and records
+		/// nothing: the test a rule split by the guarded left-recursion rewrite asks at its entry.
+		/// </summary>
+		public bool? Stands { get; init; }
+
+		/// <summary>
+		/// Known to move wherever it is read, because it is read only where the same recognizer at the same position
+		/// did not stand: for the analyses, never emitted differently.
+		/// </summary>
+		public bool Moves { get; init; }
+
 		public override string ToString()
 		{
 			return "@" + Name;
