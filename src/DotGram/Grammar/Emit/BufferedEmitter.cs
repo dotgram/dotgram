@@ -79,7 +79,7 @@ static partial class CSharpEmitter
 						"over bytes is a ReadOnlySpan<byte> that nothing decodes; build the value with a '=>'";
 				}
 
-				if (built.Any(static how => how is Construction.Sequence))
+				if (built.Any(how => how is Construction.Sequence(var collected) && (collected is null || collected.Contains(member.Name))))
 					return $"'{rule.Name}' collects the raw capture '{member.Name}' with what it gathers, and a raw capture " +
 						"over bytes is a ReadOnlySpan<byte> that nothing decodes; build the value with a '=>'";
 			}

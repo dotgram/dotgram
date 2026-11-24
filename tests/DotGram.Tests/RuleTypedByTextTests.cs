@@ -111,13 +111,12 @@ public sealed class RuleTypedByTextTests
 	}
 
 	/// <summary>
-	/// A capture of the rule's own says it builds something, so the declared type is not given up for the
-	/// extent: it is refused as it always was, and the rule does not become a generated type.
+	/// A name speaks for the operand it names, so the declared type is not given up for the extent where an operand
+	/// is named: it is refused, and the rule does not become a generated type.
 	/// </summary>
 	[Theory]
 	[InlineData("Start : Bare = '<' & x: Bare & '>'" + Words)]
 	[InlineData("Start : Bare = '<' & x: Bare & '>' | '[' & x: Bare & ']'" + Words)]
-	[InlineData("Start : Bare = '<' & x: Bare & '>'" + Plain)]
 	public void A_capture_without_a_construction_does_not_change_the_type(string grammar)
 	{
 		var result = Compile(grammar + "\nparse Start");
@@ -202,6 +201,13 @@ public sealed class RuleTypedByTextTests
 	public void A_capture_the_author_names_like_the_operand_is_not_the_operand(string grammar, string input)
 	{
 		Assert.Contains(Convert.ToString(Parsed(grammar, input, kind: true)), new[] { "abc", "1" });
+	}
+
+	/// <summary>A name on what is no operand, a rule that declared nothing, adds nothing: the rule is the extent it matched.</summary>
+	[Fact]
+	public void A_name_on_what_declared_no_type_is_ignored()
+	{
+		Assert.Equal("<abc>", Parsed("Start : Bare = '<' & x: Bare & '>'" + Plain, "<abc>"));
 	}
 
 	/// <summary>
@@ -293,23 +299,67 @@ public sealed class RuleTypedByTextTests
 			"ab;");
 
 		Assert.True(isSuccess, error);
-		Assert.Equal(["a", "b", ";"], (string[])value!);
+		Assert.Equal(["a", "b"], (string[])value!);
 	}
 
 	/// <summary>
-	/// A named capture is collected beside the operands, and where it is not an element of the array that is told
-	/// rather than left to the C# compiler.
+	/// A name is never part of an implicit value (§4.1): what a sequence collects is its operands, so a capture the author
+	/// wrote of anything else, a literal's text or the bounds of an extent, adds nothing to the array, whatever the
+	/// element type is and whatever the name is.
 	/// </summary>
 	[Theory]
-	[InlineData("x")]
-	[InlineData("item0")]
-	public void A_capture_that_is_not_an_element_of_the_sequence_is_told(string name)
+	[InlineData("Start : @int[] = Num & x: ',' & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "1,2", "1;2")]
+	[InlineData("Start : @int[] = Num & item0: ',' & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "1,2", "1;2")]
+	[InlineData("Start : @string[] = x: '[' & Word+ & ']'\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "[ab]", "ab")]
+	[InlineData("Start : @string[] = Word & (x: ',' & Word)*\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "ab,cd,ef", "ab;cd;ef")]
+	[InlineData("Start : @string[] = Word & x: ';'?\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "ab;", "ab")]
+	public void A_name_beside_a_sequence_adds_nothing_to_it(string grammar, string input, string expected)
 	{
-		var result = Compile("Start : @int[] = Num & " + name + ": ',' & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))\nparse Start");
-		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+		var value = (System.Collections.IEnumerable)Parsed(grammar, input, kind: true)!;
+
+		Assert.Equal(expected, string.Join(";", value.Cast<object>()));
+	}
+
+	[Fact]
+	public void A_name_beside_a_sequence_of_bounds_adds_nothing_to_it()
+	{
+		var value = (System.Collections.IEnumerable)Parsed("Start : @SourceSpan[] = Span & x: ';'\nSpan : @SourceSpan = ['a'..'z']+", "ab;", kind: true)!;
+
+		Assert.Single(value.Cast<object>());
+	}
+
+	/// <summary>
+	/// A name speaks for what it names (§4.1): an operand that is named is no longer one the implicit value is made of, and
+	/// where that leaves nothing the rule is told, with the name.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @string[] = rows: Word+\nWord : @string = c: ['a'..'z']+ => @(c.ToString())")]
+	[InlineData("Start : Bare = '<' & b: Bare & '>'\nBare : @string = ['a'..'z']+")]
+	[InlineData("Start : Num = '<' & n: Num & '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))")]
+	public void A_named_operand_leaves_the_implicit_value_and_the_rule_is_told(string grammar)
+	{
+		var result = Compile(grammar + "\nparse Start");
+		var found  = result.Diagnostics.First(static one => one.Severity == GramSeverity.Error);
 
 		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
-		Assert.Contains("Drop the name", found.Message, StringComparison.Ordinal);
+		Assert.Contains("A name speaks for what it names", found.Message, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("Start : @string[] = w: Word & Word\nWord : @string = c: ['a'..'z'] => @(c.ToString())", "ab", "b")]
+	[InlineData("Start : @int[] = n: Num & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "12", "2")]
+	public void A_named_operand_beside_another_is_not_collected(string grammar, string input, string expected)
+	{
+		var value = (System.Collections.IEnumerable)Parsed(grammar, input, kind: true)!;
+
+		Assert.Equal(expected, string.Join(";", value.Cast<object>()));
+	}
+
+	/// <summary>A name on something that is no operand, in a rule that declared the type of its extent, adds nothing to the extent.</summary>
+	[Fact]
+	public void A_name_in_a_rule_of_an_extent_adds_nothing_to_it()
+	{
+		Assert.Equal("abc", Parsed("Start : @string = x: Letters\nLetters = ['a'..'z']+", "abc"));
 	}
 
 	[Fact]
@@ -356,7 +406,7 @@ public sealed class RuleTypedByTextTests
 	/// </summary>
 	[Theory]
 	[InlineData("ab", "ab")]
-	[InlineData("ab;", "ab,;")]
+	[InlineData("ab;", "ab")]
 	public void An_absent_optional_capture_beside_a_sequence_is_the_same_in_every_mode(string input, string expected)
 	{
 		foreach (var option in new[] { "", ", UseSpanCaptures = true" })
@@ -367,19 +417,6 @@ public sealed class RuleTypedByTextTests
 
 			Assert.Equal(expected, string.Join(",", (string[])type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!));
 		}
-	}
-
-	/// <summary>
-	/// What a named capture beside a sequence would put in an array of the bounds of an extent is told as it is of the
-	/// keyword types; an element type of the host's is the C#'s to judge, since the host may convert text to it.
-	/// </summary>
-	[Fact]
-	public void A_capture_that_is_not_an_element_of_a_span_sequence_is_told()
-	{
-		var result = Compile("Start : @SourceSpan[] = Span & x: ';'\nSpan : @SourceSpan = ['a'..'z']+\nparse Start");
-		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
-
-		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
 	}
 
 	/// <summary>

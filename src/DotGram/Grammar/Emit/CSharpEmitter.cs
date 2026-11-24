@@ -4845,8 +4845,7 @@ file.Line("return spare;");
 			"parserText", "parserSpan", "parserInput", "context", "parserState", "parserMarks",
 		};
 
-		// A text member that is a span where captures are spans, and was not read where it is absent: the machine
-		// hands an absent optional capture as `default`, which no capture read from the input is, even an empty one.
+		// A text member that is a span where captures are spans.
 		bool SpanText(ResultMember member)
 		{
 			return spanCaptures && !bytes && member.Rule is null && !member.IsSequence;
@@ -4862,15 +4861,6 @@ file.Line("return spare;");
 			var name = ResultTypes.ParameterOf(member);
 
 			return SpanText(member) ? name + ".ToString()" : name;
-		}
-
-		// Whether an optional member was read, said as the member says it: not null, or not the span that stands for
-		// none. A grammar gives the same value whether captures are strings or spans.
-		string Present(ResultMember member)
-		{
-			var name = ResultTypes.ParameterOf(member);
-
-			return SpanText(member) ? $"!({name} == default({captureType}))" : name + " != null";
 		}
 
 		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
@@ -4981,19 +4971,23 @@ file.Line("return spare;");
 			// §4.1 case 2: the grammar wrote no expression, so there is none to write out.
 			// A body rather than an expression, because a repetition contributes an unknown
 			// number of elements and an optional operand contributes none.
-			case Construction.Sequence:
+			case Construction.Sequence(var collected):
 			{
 				var element = graph.Types[rule].Substring(0, graph.Types[rule].Length - "[]".Length);
+
+				// What the rule collects: its operands. A capture of the author's that is not one is a member of the
+				// rule, handed to this method, and is no part of the value (§4.1).
+				var gathered = factory.Members.Where(member => collected is null || collected.Contains(member.Name)).ToList();
 
 				file.Line($"/// <summary>Everything <c>{rule.Name}</c> is made of, in order (§4.1 case 2).</summary>");
 
 				// One repetition and nothing else means the array handed in already is the
 				// result, fresh from the materializer and shared with nobody: hand it back
 				// rather than counting it into a copy of itself.
-				if (factory.Members.Count == 1 && factory.Members[0].IsSequence &&
-					results.ValueOf(factory.Members[0]) == element)
+				if (gathered.Count == 1 && gathered[0].IsSequence &&
+					results.ValueOf(gathered[0]) == element)
 				{
-					var only = ResultTypes.ParameterOf(factory.Members[0]);
+					var only = ResultTypes.ParameterOf(gathered[0]);
 
 					file.Line(head + " =>");
 					file.Line($"	{only} ?? {FilledArray(element, "0")};");
@@ -5003,7 +4997,7 @@ file.Line("return spare;");
 
 				// An alternative that reads no element — a separator written beside the
 				// elements — contributes none, and needs no counting to say so.
-				if (factory.Members.Count == 0)
+				if (gathered.Count == 0)
 				{
 					file.Line(head + " =>");
 					file.Line($"	{FilledArray(element, "0")};");
@@ -5019,14 +5013,14 @@ file.Line("return spare;");
 
 					file.Line($"var {count} = 0;");
 
-					foreach (var member in factory.Members)
+					foreach (var member in gathered)
 					{
 						var value = Held(member);
 
 						if (member.IsSequence)
 							file.Line($"if ({value} != null) {count} += {value}.Length;");
 						else if (member.IsOptional)
-							file.Line($"if ({Present(member)}) {count}++;");
+							file.Line($"if ({value} != null) {count}++;");
 						else
 							file.Line($"{count}++;");
 					}
@@ -5036,7 +5030,7 @@ file.Line("return spare;");
 					file.Line(at == "at" ? "var at    = 0;" : $"var {at} = 0;");
 					file.Line();
 
-					foreach (var member in factory.Members)
+					foreach (var member in gathered)
 					{
 						var value = Held(member);
 
@@ -5052,7 +5046,7 @@ file.Line("return spare;");
 						}
 						else if (member.IsOptional)
 						{
-							file.Line($"if ({Present(member)})");
+							file.Line($"if ({value} != null)");
 							file.Then($"{items}[{at}++] = ({element}){value};");
 						}
 						else

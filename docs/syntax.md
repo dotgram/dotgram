@@ -1165,11 +1165,23 @@ extent. For `@SourceSpan` the value is the operand's bounds, not the rule's own.
 contributes nothing to `Words : @string[]`, as a rule that declares none.
 A rule that hands back the text of a rule that builds nothing is refused for a `stream bytes` publication
 (`GRAM4026`), as a type made of a raw capture is: over bytes a capture is a `ReadOnlySpan<byte>` that nothing
-decodes. Under `UseSpanCaptures` the string is made of the span. A capture the author names beside what a sequence
-collects is collected too, as it always was, so that its text is an element of a sequence of `string` or
-`object`: this is behaviour kept for compatibility, not the rule §4.1 case 2 states, which leaves out what has been
-spoken for. Where the capture is not an element of the array (the text of a literal in a sequence of `int` or of
-`@SourceSpan`) `GRAM4008` says so, and dropping the name leaves it out.
+decodes. Under `UseSpanCaptures` the string is made of the span.
+
+**A name never adds anything to an implicit value, and speaks for what it names.** A capture's name is read only
+where a value goes (§3.5): after a `=>`, in a guard or a `switch`, as a member of a generated type, or by a §7.3
+constructor or initializer. A rule whose value is implicit, a sequence (case 2), the value of one operand (case 3) or its
+own extent (case 4), writes none of these, so for such a rule a name is either read by nothing or says that the author
+will read the operand himself, and the rule is one thing in every shape:
+
+| What is named | The implicit value |
+| --- | --- |
+| something that is not an operand: a literal, an extent, a rule of another type, repeated or optional | nothing is added, whatever the name and the element type; the rule is the one it would be unnamed |
+| an operand | it leaves the value (it is *spoken for*); a rule left with no operand to take its value from is `GRAM4008`, which names the capture: drop the name, or build the value with `=>` |
+
+So `Start : @int[] = Num & x: ',' & Num` is the array of its two `Num`, and `Start : Bare = x: '<' & Bare & '>'` is the
+text of its `Bare`; `Start : @string[] = w: Word & Word` is the array of its second `Word`, and
+`Start : @string[] = rows: Word+` and `Start : Bare = '<' & b: Bare & '>'` are refused. In a rule of a generated type the
+names are its members, and a `=>` reads what it reads: both as before.
 
 A left-recursive rule that declares `: @string` or `: @SourceSpan` itself and builds nothing is case 4's
 too: its value is the text or the bounds of everything it matched, `Start : @SourceSpan = Start & '+' & Term | Term`.
@@ -2797,7 +2809,7 @@ ownership. Missing or incompatible overloads are normal C# compilation errors.
 
 What the generator itself assembles is the exception, since the rule's own type is `string`: the operand that a rule
 typed by a text rule hands back (§4.1 case 3) and an element a sequence collects are made strings from the span, and an
-optional capture that was not read is left out of the sequence, as it is where captures are strings. What a host's
+optional operand that was not read is left out of the sequence, as it is where captures are strings. What a host's
 constructor or initializer (§7.3) is handed is the span as captured: which overload it has is the host's, and the
 generator writes no conversion for it.
 The character parser requires `UseSpanCaptures = true` to avoid its usual string

@@ -35,7 +35,13 @@ abstract record Construction
 	}
 
 	/// <summary>§4.1 case 2: everything the rule is made of, in order.</summary>
-	public sealed record Sequence : Construction
+	/// <param name="Taken">
+	/// The captures that are collected, in the order the rule has them: the operands, whether the author named them or
+	/// not. A name is never part of an implicit value (§4.1), so a capture the author wrote of something that is not an
+	/// operand is a member of the rule and is not collected. Null where every member is: a construction this compiler
+	/// wrote for a rule of its own.
+	/// </param>
+	public sealed record Sequence(IReadOnlyList<string>? Taken = null) : Construction
 	{
 		public static readonly Sequence Instance = new();
 

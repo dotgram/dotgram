@@ -54,9 +54,13 @@ sealed partial class GrammarNormalizer
 				// what tells the emitter to expect a value the machine never builds.
 				if (IsKeyword(TypeName(type), KnownType.Text) &&
 					_bodies.TryGetValue(rule, out var said) &&
-					!HasCapture(said) &&
+					(!HasCapture(said) || !KeepsNames(rule, said)) &&
 					Constructs(said).FirstOrDefault() is null)
 				{
+					// A name the author wrote is read by nothing here, and adds nothing to the extent (§4.1): the rule
+					// is the one it would be without it.
+					_bodies[rule] = Unnamed(said);
+
 					// Not recorded as a type, but declared all the same: an operand of another
 					// rule says what it produces by it (§4.1 cases 2 and 3).
 					_extents[rule] = TypeName(type);
@@ -320,48 +324,6 @@ sealed partial class GrammarNormalizer
 						ConstructionTypeMismatch,
 						$"'{name}' holds {from}, and '{members[i].Name}' of the type '{rule.Name}' is made of holds {to}.",
 						arguments[i].At);
-			}
-		}
-	}
-
-	/// <summary>
-	/// What a sequence collects beside its operands: a capture the author wrote and named is in the array, whatever
-	/// it holds, and where that is not an element of it the generated file does not compile (CS0029).
-	/// </summary>
-	/// <remarks>
-	/// <c>Start : @int[] = Num &amp; x: ',' &amp; Num</c> puts the text of the comma in an <c>int[]</c>. Told in the
-	/// grammar's terms where the grammar can tell (<see cref="CannotHold"/>): §4.1 case 2 collects the operands
-	/// nothing else has spoken for, so the name is what puts it in, and dropping it leaves it out. Where the capture
-	/// is an element, as text is of a sequence of <c>string</c>, it is collected as it always was. An element type of
-	/// the host's is the C# compiler's to judge: the host can declare a conversion from text, and the only question
-	/// <see cref="ITargetLanguage.Fits"/> puts to it leaves user-defined conversions out (a rule is an operand only
-	/// where it already is the element type), so a refusal here would refuse a grammar that compiles.
-	/// </remarks>
-	void CheckCollectedMembers()
-	{
-		foreach (var rule in _rules)
-		{
-			if (rule.Declaration is null || _folds.ContainsKey(rule) ||
-				!_types.TryGetValue(rule, out var type) || _language.ElementOf(type) is not { } element ||
-				!_results.TryGetValue(rule, out var members) ||
-				!_bodies.TryGetValue(rule, out var body) ||
-				!ValueAlternatives(body).Any(static alternative => alternative is Node.Construct { How: Construction.Sequence }))
-				continue;
-
-			foreach (var member in members)
-			{
-				if (member.IsSequence || member.Element is not null)
-					continue;
-
-				var held = TypeOf(member);
-
-				if (CannotHold(element, held))
-					Report(
-						UnbuiltConstruction,
-						$"'{rule.Name}' collects a sequence of '{element}', and the capture '{member.Name}' holds {held}, which " +
-						"is put in it: a sequence collects the operands nothing else has spoken for (§4.1 case 2). Drop the name " +
-						"to leave it out, or build the value with a '=>'.",
-						rule.Declaration.At);
 			}
 		}
 	}
@@ -684,12 +646,13 @@ sealed partial class GrammarNormalizer
 
 			var body = _bodies[rule];
 
-			// A rule that captures or builds is making something of its parts; this is for
-			// the one that made nothing and is asking where it was. A folded rule's body is
+			// A rule that builds is making something of its parts; this is for the one that
+			// made nothing and is asking where it was: what it captured is read by nothing
+			// here, and adds nothing to the bounds (§4.1). A folded rule's body is
 			// the rewrite §4.3 made of it, not a choice of alternatives to wrap: one that took
 			// its type from another rule is told by the pass-through, and the rest were
 			// given a construction before it was rewritten.
-			if (HasCapture(body) || Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule))
+			if (Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule))
 				continue;
 
 			var rewritten = new List<Node>();
@@ -781,7 +744,108 @@ sealed partial class GrammarNormalizer
 		}
 
 		foreach (var rule in extents)
+		{
 			_types.Remove(rule);
+
+			// The names the author wrote are read by nothing, and add nothing to the extent (§4.1): the rule has no
+			// capture, as it would not have had if he had left them off.
+			_bodies[rule] = Unnamed(_bodies[rule]);
+		}
+	}
+
+	/// <summary>
+	/// Whether something of the rule reads the names it captures, so that they are not dropped: its own text, as it is
+	/// read (<see cref="ReadsValues"/>), or the value so far of a left-recursive step, which is a capture of the rule's own
+	/// leading call (§4.3) and which a rule with no construction is refused for.
+	/// </summary>
+	bool KeepsNames(RuleSymbol rule, Node body)
+	{
+		if (ReadsValues(body))
+			return true;
+
+		foreach (var alternative in ValueAlternatives(body))
+		{
+			var first = alternative is Node.Sequence { Nodes.Count: > 0 } sequence ? sequence.Nodes[0] : alternative;
+
+			if (first is Node.Capture(_, Node.Call(var called, _)) && called == rule)
+				return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Whether a rule's own text reads a capture by name where it is read as it goes: a guard, a mark, a switch's
+	/// selector or a condition.
+	/// </summary>
+	/// <remarks>A name read there is read, whatever the rule's value is, and is not dropped.</remarks>
+	static bool ReadsValues(Node body)
+	{
+		return NodeWalk.Descendants(body).Any(static node =>
+			node is Node.Guard or Node.Marked or Node.Condition || node is Node.Choice { Selection: not null });
+	}
+
+	/// <summary>
+	/// The node with the captures the author wrote of it taken off, each a capture of what it holds and no more.
+	/// </summary>
+	/// <remarks>
+	/// For a rule whose value is implicit, where nothing the rule writes reads a name (§4.1): the rule is the one it
+	/// would have been without them. A construction or a lookahead is left as it is.
+	/// </remarks>
+	Node Unnamed(Node node)
+	{
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Unnamed(node));
+
+		switch (node)
+		{
+			case Node.Capture(_, var body):
+				return Unnamed(body);
+
+			case Node.Sequence(var parts):
+				return new Node.Sequence([.. parts.Select(Unnamed)]);
+
+			case Node.Choice(var alternatives):
+				return ((Node.Choice)node).Rebuild([.. alternatives.Select(Unnamed)]);
+
+			case Node.Repeat(var body, var min, var max):
+			{
+				var inner = Unnamed(body);
+
+				return ReferenceEquals(inner, body) ? node : Repeated(node, new Node.Repeat(inner, min, max));
+			}
+
+			case Node.Counted(var body, var min, var max):
+			{
+				var inner = Unnamed(body);
+
+				return ReferenceEquals(inner, body) ? node : Placed(node, new Node.Counted(inner, min, max));
+			}
+
+			case Node.Atomic(var body):
+			{
+				var inner = Unnamed(body);
+
+				return ReferenceEquals(inner, body) ? node : new Node.Atomic(inner);
+			}
+
+			case Node.Marked(var body, var text):
+			{
+				var inner = Unnamed(body);
+
+				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
+			}
+
+			case Node.Bind bind:
+			{
+				var inner = Unnamed(bind.Body);
+
+				return ReferenceEquals(inner, bind.Body) ? node : bind with { Body = inner };
+			}
+
+			default:
+				return node;
+		}
 	}
 
 	/// <summary>The captures this compiler made of a rule's operands, which no text of the grammar names.</summary>
@@ -1059,7 +1123,27 @@ sealed partial class GrammarNormalizer
 			return PassOutcome.Operand;
 
 		if (ways.All(static one => one.Most == 0))
-			return _language.Classify(type, out _) == KnownType.Text && !HasCapture(_bodies[rule]) ? PassOutcome.Extent : PassOutcome.Left;
+		{
+			// An operand that is named is spoken for, and leaves the value with nothing to take it from: said as it is
+			// of a sequence, since the language says one thing of a name.
+			if (rule.Declaration is not null && SpokenFor(_bodies[rule], type, declared: true) is { } spoken)
+			{
+				_unsaid.Add(rule);
+
+				Report(
+					UnbuiltConstruction,
+					$"'{rule.Name}' takes the type of the rule it names, '{type}', and the operand that would give its value " +
+						$"is captured as '{spoken}'. A name speaks for what it names (§4.1): drop the name and let the operand " +
+						"be the value, or keep it and build the value with '=>'.",
+					rule.Declaration.At);
+
+				return PassOutcome.Refused;
+			}
+
+			return _language.Classify(type, out _) == KnownType.Text && (!HasCapture(_bodies[rule]) || !KeepsNames(rule, _bodies[rule]))
+				? PassOutcome.Extent
+				: PassOutcome.Left;
+		}
 
 		if (rule.Declaration is null)
 			return PassOutcome.Left;
@@ -1308,26 +1392,32 @@ sealed partial class GrammarNormalizer
 
 			_collected = ReservedNames(rule);
 
+			// A name is never part of an implicit value (§4.1): what an alternative collects is its operands, and
+			// each is a capture of the compiler's or, where the author named it, his.
 			foreach (var alternative in ValueAlternatives(_bodies[rule]))
-				rewritten.Add(new Node.Construct(
-					Gather(alternative, element, ref taken, joined, null), Construction.Sequence.Instance));
+			{
+				_gathered = [];
+
+				var gathered = Gather(alternative, element, ref taken, joined, null);
+
+				rewritten.Add(new Node.Construct(gathered, new Construction.Sequence([.. _gathered])));
+			}
 
 			if (joined.Count > 0)
 				_joined[rule] = (element, joined);
 
 			if (taken == 0)
 			{
-				// The near miss, told apart from the miss. An operand that would have joined
-				// the sequence and is captured by hand is the likeliest way to write this
-				// wrong, and "no operand of it produces one" is untrue of it — one does, and
-				// it has a name already.
+				// The near miss, told apart from the miss. An operand that would have joined the sequence and is
+				// captured by hand is the likeliest way to write this wrong, and "no operand of it produces one"
+				// is untrue of it: one does, and it has a name already.
 				Report(
 					UnbuiltConstruction,
-					Spoken(_bodies[rule], element) is { } name
+					SpokenFor(_bodies[rule], element) is { } name
 						? $"'{rule.Name}' declares its result as a sequence of '{element}', and " +
-							$"the operand that would fill it is captured as '{name}'. A sequence result " +
-							"collects the operands nothing else has spoken for (§4.1 case 2), so drop " +
-							"the name and let it be collected, or keep it and build the value with '=>'."
+							$"the operand that would fill it is captured as '{name}'. A name speaks for what it " +
+							"names (§4.1 case 2): a sequence result collects the operands nothing else has spoken for, " +
+							"so drop the name and let it be collected, or keep it and build the value with '=>'."
 						: $"'{rule.Name}' declares its result as a sequence of '{element}', and no " +
 							"operand of it produces one — every part either builds no value or builds a " +
 							$"type that is not a '{element}'. §4.1 case 2 says which operands join " +
@@ -1411,12 +1501,14 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// The name of a capture holding what the sequence was looking for, where there is one.
+	/// The name of a capture the author wrote of an operand that would otherwise have filled what a rule takes the
+	/// value of, where there is one: an operand that is named is spoken for, and leaves the implicit value (§4.1).
 	/// </summary>
-	string? Spoken(Node node, string element)
+	/// <param name="declared">Whether a rule that declared the type of its extent is one that fills it (§4.1 case 3).</param>
+	string? SpokenFor(Node node, string element, bool declared = false)
 	{
 		foreach (var inside in NodeWalk.Descendants(node))
-			if (inside is Node.Capture(var name, var body) && Fits(body, element))
+			if (inside is Node.Capture(var name, var body) && Fits(body, element, declared))
 				return name;
 
 		return null;
@@ -1543,6 +1635,9 @@ sealed partial class GrammarNormalizer
 	/// <summary>The names of the rule being collected that the author wrote, which what is collected is not captured by.</summary>
 	HashSet<string> _collected = [];
 
+	/// <summary>The captures of the alternative being gathered that are its operands, in the order they are read; the author's are not (§4.1).</summary>
+	List<string> _gathered = [];
+
 	/// <summary>
 	/// An operand wrapped in the capture that puts it in the sequence.
 	/// </summary>
@@ -1556,6 +1651,7 @@ sealed partial class GrammarNormalizer
 	{
 		var name = Unreserved("item" + taken++, _collected);
 
+		_gathered.Add(name);
 		group?.Add(name);
 
 		if (part is Node.Counted(var counted, var least, var most))
