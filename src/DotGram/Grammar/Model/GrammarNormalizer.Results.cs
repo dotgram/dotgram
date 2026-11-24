@@ -777,8 +777,9 @@ sealed partial class GrammarNormalizer
 
 			case Node.Sequence(var parts):
 			{
-				var (least, most) = (0, 0);
-				var built         = new List<Node>(parts.Count);
+				var least = 0;
+				var most  = 0;
+				var built = new List<Node>(parts.Count);
 
 				foreach (var part in parts)
 				{
@@ -797,8 +798,9 @@ sealed partial class GrammarNormalizer
 
 			case Node.Choice(var alternatives):
 			{
-				var (least, most) = (2, 0);
-				var built         = new List<Node>(alternatives.Count);
+				var least = 2;
+				var most  = 0;
+				var built = new List<Node>(alternatives.Count);
 
 				foreach (var alternative in alternatives)
 				{
