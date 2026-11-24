@@ -54,7 +54,7 @@ sealed partial class GrammarNormalizer
 				// what tells the emitter to expect a value the machine never builds.
 				if (IsKeyword(TypeName(type), KnownType.Text) &&
 					_bodies.TryGetValue(rule, out var said) &&
-					(!HasCapture(said) || !KeepsNames(rule, said)) &&
+					(!HasCapture(said) || !KeepsNames(rule, said) && !NamesAnOperand(said)) &&
 					Constructs(said).FirstOrDefault() is null)
 				{
 					// A name the author wrote is read by nothing here, and adds nothing to the extent (§4.1): the rule
@@ -652,7 +652,7 @@ sealed partial class GrammarNormalizer
 			// the rewrite §4.3 made of it, not a choice of alternatives to wrap: one that took
 			// its type from another rule is told by the pass-through, and the rest were
 			// given a construction before it was rewritten.
-			if (Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule))
+			if (Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule) || NamesAnOperand(body))
 				continue;
 
 			var rewritten = new List<Node>();
@@ -751,6 +751,16 @@ sealed partial class GrammarNormalizer
 			// capture, as it would not have had if he had left them off.
 			_bodies[rule] = Unnamed(_bodies[rule]);
 		}
+	}
+
+	/// <summary>
+	/// Whether the rule names an operand, a rule that declared a type, which a name speaks for (§4.1): a rule that
+	/// does is not the extent it matched, whatever its type says, and is told as it was.
+	/// </summary>
+	static bool NamesAnOperand(Node body)
+	{
+		return NodeWalk.Descendants(body).Any(static node =>
+			node is Node.Capture(_, Node.Call(var called, _)) && called.Declaration?.Type is not null);
 	}
 
 	/// <summary>
