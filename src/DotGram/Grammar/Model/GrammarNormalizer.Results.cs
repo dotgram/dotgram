@@ -207,13 +207,22 @@ sealed partial class GrammarNormalizer
 		if (toElement is null != fromElement is null)
 			return true;
 
+		// The bounds a grammar reads are the generator's own type too: nothing converts to or from them but themselves.
+		if (Span(to) || Span(from))
+			return !(Span(to) && Span(from));
+
 		return IsKeyword(to, KnownType.Text) || IsKeyword(from, KnownType.Text) || Generated(to) || Generated(from);
+
+		bool Span(string type)
+		{
+			return _language.Classify(type, out _) == KnownType.SourceSpan;
+		}
 
 		bool Known(string type)
 		{
 			return _language.ElementOf(type) is { } element
 				? Known(element)
-				: IsTypeKeyword(type) || Generated(type);
+				: IsTypeKeyword(type) || Span(type) || Generated(type);
 		}
 
 		// Asked once the results are known, which is when the set is made; once, since a grammar of
@@ -323,7 +332,10 @@ sealed partial class GrammarNormalizer
 	/// <c>Start : @int[] = Num &amp; x: ',' &amp; Num</c> puts the text of the comma in an <c>int[]</c>. Told in the
 	/// grammar's terms where the grammar can tell (<see cref="CannotHold"/>): §4.1 case 2 collects the operands
 	/// nothing else has spoken for, so the name is what puts it in, and dropping it leaves it out. Where the capture
-	/// is an element, as text is of a sequence of <c>string</c>, it is collected as it always was.
+	/// is an element, as text is of a sequence of <c>string</c>, it is collected as it always was. An element type of
+	/// the host's is the C# compiler's to judge: the host can declare a conversion from text, and the only question
+	/// <see cref="ITargetLanguage.Fits"/> puts to it leaves user-defined conversions out (a rule is an operand only
+	/// where it already is the element type), so a refusal here would refuse a grammar that compiles.
 	/// </remarks>
 	void CheckCollectedMembers()
 	{

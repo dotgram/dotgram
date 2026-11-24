@@ -860,6 +860,13 @@ sealed partial class GrammarNormalizer
 				"what that prefix is for.";
 	}
 
+	/// <summary>Why a capture or a parameter may not be called <c>context</c> where the grammar declares one (GRAM4012).</summary>
+	static string ContextNameMessage(string what)
+	{
+		return $"'context' is the name the generated parser gives the grammar's context (docs/syntax.md §7.7), which this grammar " +
+			$"declares, so {what} may not take it.";
+	}
+
 	/// <summary>
 	/// A parameter of a rule called by a reserved name, said once for the rule as it was written: its
 	/// specializations are clones of one declaration.
@@ -879,6 +886,8 @@ sealed partial class GrammarNormalizer
 		foreach (var parameter in rule.Declaration.Params)
 			if (SuppliedNames.Reserved.Contains(parameter.Name) && _parametersTold.Add(parameter))
 				Report(ReservedCaptureName, ReservedNameMessage(parameter.Name, "a parameter"), parameter.At);
+			else if (parameter.Name == "context" && (_context ?? _model.Context) is not null && _parametersTold.Add(parameter))
+				Report(ReservedCaptureName, ContextNameMessage("a parameter"), parameter.At);
 	}
 
 	readonly HashSet<Param> _parametersTold = [];
@@ -910,6 +919,11 @@ sealed partial class GrammarNormalizer
 			// not compile — points at a file the author did not write.
 			if (SuppliedNames.Reserved.Contains(name))
 				Report(ReservedCaptureName, ReservedNameMessage(name, "a capture"), rule.Declaration!.At);
+
+			// The grammar's own context is a parameter of every method that builds a value, by the name it is
+			// written by (§7.7), and a capture of that name is a second.
+			else if (name == "context" && (_context ?? _model.Context) is not null)
+				Report(ReservedCaptureName, ContextNameMessage("a capture"), rule.Declaration!.At);
 
 			// A capture inside a repetition that is not the whole of what repeats used to be
 			// refused here, on the grounds that the text of the turns could not be told from

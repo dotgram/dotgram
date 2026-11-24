@@ -256,8 +256,13 @@ public sealed class RuleTypedByTextTests
 			"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nBare : @string = ['a'..'z']+\\nparse Start\\nparse Start as Bytes stream bytes\")]\npublic partial class Spanned { }");
 		var found = Assert.Single(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
 
+		var message = found.GetMessage();
+
 		Assert.Equal("GRAM4026", found.Id);
-		Assert.Contains("hands back the raw capture", found.GetMessage(), StringComparison.Ordinal);
+
+		// The operand's rule is the name the grammar has for it; the capture the compiler made of it is nobody's.
+		Assert.Contains("hands back the text of 'Bare'", message, StringComparison.Ordinal);
+		Assert.DoesNotContain("item", message, StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -325,6 +330,95 @@ public sealed class RuleTypedByTextTests
 
 		var result = GramCompiler.Compile(
 			"Root : @Loc = made: ['a'..'z']+ => @(new Loc { S = made })\nparse Root",
+			new GramCompilerOptions
+			{
+				ClassName      = "Grammar",
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+				SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+				LocationType   = "Grammar.ILoc",
+			});
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		EmittedCode.Compile(result.Sources[0].Text, declarationMembers: members, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+	}
+
+	/// <summary>
+	/// One grammar is one value whether captures are strings or spans: an optional capture beside what a sequence
+	/// collects is left out where it was not read, and the machine hands an absent one over as the span that stands
+	/// for none, which an empty one read from the input is not.
+	/// </summary>
+	[Theory]
+	[InlineData("ab", "ab")]
+	[InlineData("ab;", "ab,;")]
+	public void An_absent_optional_capture_beside_a_sequence_is_the_same_in_every_mode(string input, string expected)
+	{
+		foreach (var option in new[] { "", ", UseSpanCaptures = true" })
+		{
+			var type = GeneratorDriverTests.Build(
+				"[DotGram.Gram(\"Start : @string[] = Word & x: ';'?\\nWord : @string = c: ['a'..'z']+ => @(c.ToString())\\nparse Start\"" + option + ")]\npublic partial class Spanned { }")
+				.GetType("Spanned")!;
+
+			Assert.Equal(expected, string.Join(",", (string[])type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!));
+		}
+	}
+
+	/// <summary>
+	/// What a named capture beside a sequence would put in an array of the bounds of an extent is told as it is of the
+	/// keyword types; an element type of the host's is the C#'s to judge, since the host may convert text to it.
+	/// </summary>
+	[Fact]
+	public void A_capture_that_is_not_an_element_of_a_span_sequence_is_told()
+	{
+		var result = Compile("Start : @SourceSpan[] = Span & x: ';'\nSpan : @SourceSpan = ['a'..'z']+\nparse Start");
+		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
+	}
+
+	/// <summary>
+	/// A host's constructor is handed the capture as it is read, a span where captures are spans: which overload it has
+	/// is the host's, and a conversion the generator wrote would be a copy it did not ask for (§6.3).
+	/// </summary>
+	[Fact]
+	public void A_hosts_constructor_is_handed_the_span()
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"Start : @Box = name: ['a'..'z']+\\nparse Start\", UseSpanCaptures = true)]\n" +
+			"public partial class Boxes { public sealed class Box { public Box(System.ReadOnlySpan<char> name) { } } }");
+		var text = string.Concat(run.Results.SelectMany(static one => one.GeneratedSources).Select(static one => one.SourceText.ToString()));
+
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
+		Assert.DoesNotContain("name.ToString()", text, StringComparison.Ordinal);
+	}
+
+	/// <summary>The name of the grammar's own context is a parameter of every method that builds, and a capture of it is a second.</summary>
+	[Fact]
+	public void A_capture_may_not_be_named_like_the_context()
+	{
+		var result = Compile("context : @Names\nRoot : @string = context: ['a'..'z']+ => @(context.ToString())\nparse Root");
+		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GrammarNormalizer.ReservedCaptureName, found.Id);
+	}
+
+	/// <summary>The local a located factory declares has a name the author cannot take, so a member of the host named like it is read as the host's.</summary>
+	[Fact]
+	public void A_host_member_named_made_is_read_in_a_located_rule()
+	{
+		const string members = """
+			public interface ILoc { void Locate(int at, int length); }
+			public sealed class Loc : ILoc { public string S = ""; public void Locate(int at, int length) { } }
+			public static string made = "m";
+			""";
+
+		var host = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References);
+
+		var result = GramCompiler.Compile(
+			"Root : @Loc = ['a'..'z']+ => @(new Loc { S = made })\nparse Root",
 			new GramCompilerOptions
 			{
 				ClassName      = "Grammar",

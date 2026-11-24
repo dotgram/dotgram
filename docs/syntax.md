@@ -1166,8 +1166,10 @@ contributes nothing to `Words : @string[]`, as a rule that declares none.
 A rule that hands back the text of a rule that builds nothing is refused for a `stream bytes` publication
 (`GRAM4026`), as a type made of a raw capture is: over bytes a capture is a `ReadOnlySpan<byte>` that nothing
 decodes. Under `UseSpanCaptures` the string is made of the span. A capture the author names beside what a sequence
-collects is collected too, so that text is an element of a sequence of `string`; where it is not an element of the
-array, `GRAM4008` says so, and dropping the name leaves it out.
+collects is collected too, as it always was, so that its text is an element of a sequence of `string` or
+`object`: this is behaviour kept for compatibility, not the rule §4.1 case 2 states, which leaves out what has been
+spoken for. Where the capture is not an element of the array (the text of a literal in a sequence of `int` or of
+`@SourceSpan`) `GRAM4008` says so, and dropping the name leaves it out.
 
 A left-recursive rule that declares `: @string` or `: @SourceSpan` itself and builds nothing is case 4's
 too: its value is the text or the bounds of everything it matched, `Start : @SourceSpan = Start & '+' & Term | Term`.
@@ -2792,6 +2794,12 @@ Provide `ToInt(ReadOnlySpan<char>)` and `ToInt(ReadOnlySpan<byte>)` overloads in
 host. C# selects the overload directly; the generator does not insert conversions
 or a runtime interface. The author controls validation, overflow, encoding and
 ownership. Missing or incompatible overloads are normal C# compilation errors.
+
+What the generator itself assembles is the exception, since the rule's own type is `string`: the operand that a rule
+typed by a text rule hands back (§4.1 case 3) and an element a sequence collects are made strings from the span, and an
+optional capture that was not read is left out of the sequence, as it is where captures are strings. What a host's
+constructor or initializer (§7.3) is handed is the span as captured: which overload it has is the host's, and the
+generator writes no conversion for it.
 The character parser requires `UseSpanCaptures = true` to avoid its usual string
 capture allocation. A small helper is eligible for JIT inlining; inlining is not
 guaranteed by the generator.

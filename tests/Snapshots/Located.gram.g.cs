@@ -78,28 +78,28 @@ namespace DotGram.Snapshots
 
 		static Entry New_DotGram_Entry(SourceSpan parserSpan, Place key, string value)
 		{
-			Entry made =
+			Entry parserMade =
 #line 21 "Located.gram"
                                                          (new Entry(key, value));
 #line default
 
-			if (!(made is null))
-				Locate_DotGram(ref made, parserSpan.Start, parserSpan.Length);
+			if (!(parserMade is null))
+				Locate_DotGram(ref parserMade, parserSpan.Start, parserSpan.Length);
 
-			return made!;
+			return parserMade!;
 		}
 
 		static Place New_DotGram_Name(SourceSpan parserSpan, string w)
 		{
-			Place made =
+			Place parserMade =
 #line 27 "Located.gram"
                             (new Place(w));
 #line default
 
-			if (!(made is null))
-				Locate_DotGram(ref made, parserSpan.Start, parserSpan.Length);
+			if (!(parserMade is null))
+				Locate_DotGram(ref parserMade, parserSpan.Start, parserSpan.Length);
 
-			return made!;
+			return parserMade!;
 		}
 
 		static string New_DotGram_Word(string t) =>

@@ -4832,21 +4832,32 @@ file.Line("return spare;");
 			"parserText", "parserSpan", "parserInput", "context", "parserState", "parserMarks",
 		};
 
-		// A text member of a factory that builds a value, rather than runs the author's expression, is made a
-		// string where captures are spans: the expression is the author's and takes the span as it is, and what
-		// the generator writes is handed back as the rule's own type. Over bytes there is no string to make (§6.3):
-		// BufferedEmitter refuses the grammar, so this is only written over characters.
+		// A text member that is a span where captures are spans, and was not read where it is absent: the machine
+		// hands an absent optional capture as `default`, which no capture read from the input is, even an empty one.
+		bool SpanText(ResultMember member)
+		{
+			return spanCaptures && !bytes && member.Rule is null && !member.IsSequence;
+		}
+
+		// What the generator assembles a value of, an operand it hands back or an element it collects, is made of a
+		// text member as a string, where captures are spans: the rule's own type is the string, and nothing the
+		// author wrote takes it. What the author wrote takes the span as it is, and so does a host's constructor
+		// or initializer: which overload it has is the host's, and a conversion here would be a copy it did not ask
+		// for (§6.3). Over bytes there is no string to make: BufferedEmitter refuses the grammar.
 		string Held(ResultMember member)
 		{
 			var name = ResultTypes.ParameterOf(member);
 
-			return spanCaptures && !bytes && member.Rule is null && !member.IsSequence ? name + ".ToString()" : name;
+			return SpanText(member) ? name + ".ToString()" : name;
 		}
 
-		// A text member that is a span is never null: absent, it is empty (§6.3).
-		bool Optional(ResultMember member)
+		// Whether an optional member was read, said as the member says it: not null, or not the span that stands for
+		// none. A grammar gives the same value whether captures are strings or spans.
+		string Present(ResultMember member)
 		{
-			return member.IsOptional && !(spanCaptures && member.Rule is null);
+			var name = ResultTypes.ParameterOf(member);
+
+			return SpanText(member) ? $"!({name} == default({captureType}))" : name + " != null";
 		}
 
 		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
@@ -4872,7 +4883,9 @@ file.Line("return spare;");
 					// The declared type and not `var`: the author's C# may be a conditional whose
 					// arms are two different records, and only a target type tells the compiler
 					// which of them the whole expression is (CS0173).
-					var made = Unreserved("made", taken);
+					// Written where the author's own expression is, in which a member of the host answers to what it is
+					// called: a name the author cannot write is one it cannot take (the prefix is reserved, §8.2).
+					var made = "parserMade";
 
 					file.Line($"{graph.Types[rule]} {made} =");
 					Handed(file, lines, (Node.Construct)factory.Of);
@@ -4949,7 +4962,7 @@ file.Line("return spare;");
 				foreach (var name in order)
 					foreach (var member in factory.Members)
 						if (member.Name == name)
-							arguments.Add(Held(member));
+							arguments.Add(ResultTypes.ParameterOf(member));
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
@@ -4967,7 +4980,7 @@ file.Line("return spare;");
 				foreach (var binding in bindings)
 					foreach (var member in factory.Members)
 						if (member.Name == binding.Capture)
-							written.Add($"{binding.Property} = {Held(member)}");
+							written.Add($"{binding.Property} = {ResultTypes.ParameterOf(member)}");
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
@@ -5023,8 +5036,8 @@ file.Line("return spare;");
 
 						if (member.IsSequence)
 							file.Line($"if ({value} != null) {count} += {value}.Length;");
-						else if (Optional(member))
-							file.Line($"if ({value} != null) {count}++;");
+						else if (member.IsOptional)
+							file.Line($"if ({Present(member)}) {count}++;");
 						else
 							file.Line($"{count}++;");
 					}
@@ -5048,9 +5061,9 @@ file.Line("return spare;");
 								file.Line($"{at} += {value}.Length;");
 							}
 						}
-						else if (Optional(member))
+						else if (member.IsOptional)
 						{
-							file.Line($"if ({value} != null)");
+							file.Line($"if ({Present(member)})");
 							file.Then($"{items}[{at}++] = ({element}){value};");
 						}
 						else
