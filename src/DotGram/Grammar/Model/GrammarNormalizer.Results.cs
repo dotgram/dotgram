@@ -54,16 +54,16 @@ sealed partial class GrammarNormalizer
 				// what tells the emitter to expect a value the machine never builds.
 				if (IsKeyword(TypeName(type), KnownType.Text) &&
 					_bodies.TryGetValue(rule, out var said) &&
-					(!HasCapture(said) || !KeepsNames(rule, said) && !NamesAnOperand(said)) &&
 					Constructs(said).FirstOrDefault() is null)
 				{
-					// A name the author wrote is read by nothing here, and adds nothing to the extent (§4.1): the rule
-					// is the one it would be without it.
-					_bodies[rule] = Unnamed(said);
-
 					// Not recorded as a type, but declared all the same: an operand of another
-					// rule says what it produces by it (§4.1 cases 2 and 3).
+					// rule says what it produces by it (§4.1 cases 2 and 3). Tentatively where the rule names
+					// something: whether the names are read, and whether one is an operand, is asked once every
+					// rule has said what it declared (DecideExtents).
 					_extents[rule] = TypeName(type);
+
+					if (HasCapture(said))
+						_named.Add(rule);
 
 					continue;
 				}
@@ -110,6 +110,61 @@ sealed partial class GrammarNormalizer
 		}
 
 		ResolveProduced();
+		DecideExtents();
+	}
+
+	/// <summary>The rules that declared the type of their extent and name something, until <see cref="DecideExtents"/> has said what they are.</summary>
+	readonly List<RuleSymbol> _named = [];
+
+	/// <summary>
+	/// What a rule that declared <c>: @string</c>, builds nothing and names something is: the one extent, as it is without
+	/// the names, or one that is refused, whatever the names are (§4.1).
+	/// </summary>
+	/// <remarks>
+	/// A name adds nothing to an implicit value, and speaks for what it names. So the names of what is no operand are
+	/// dropped; a name that a guard, a mark or a switch reads is read, so it stays a capture of the rule and the extent
+	/// is built from the text the rule matched (the rule is no different for it); a name on an operand, a rule that declared
+	/// text, or the accumulator of a left-recursive step is refused as it was.
+	/// </remarks>
+	void DecideExtents()
+	{
+		foreach (var rule in _named)
+		{
+			var body = _bodies[rule];
+			var type = _extents[rule];
+
+			if (NamesAnOperand(body, type) || Accumulates(rule, body))
+			{
+				_extents.Remove(rule);
+				_types[rule] = type;
+			}
+			else if (ReadsValues(body))
+			{
+				_extents.Remove(rule);
+				_types[rule] = type;
+				_bodies[rule] = Extended(body, "parserText.ToString()");
+			}
+			else
+			{
+				_bodies[rule] = Unnamed(body);
+			}
+		}
+	}
+
+	/// <summary>
+	/// The alternatives of a body, each built as the text or the bounds the rule matched: what the extent is, written as
+	/// a construction, for a rule whose captures are read and so are kept.
+	/// </summary>
+	Node Extended(Node body, string expression)
+	{
+		var rewritten = new List<Node>();
+
+		foreach (var alternative in ValueAlternatives(body))
+			rewritten.Add(new Node.Construct(alternative, new Construction.Expression(expression)));
+
+		return body is Node.Choice { Selection: not null } selected
+			? selected.Rebuild(rewritten)
+			: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 	}
 
 	/// <summary>
@@ -652,17 +707,10 @@ sealed partial class GrammarNormalizer
 			// the rewrite §4.3 made of it, not a choice of alternatives to wrap: one that took
 			// its type from another rule is told by the pass-through, and the rest were
 			// given a construction before it was rewritten.
-			if (Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule) || NamesAnOperand(body))
+			if (Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule) || NamesAnOperand(body, type))
 				continue;
 
-			var rewritten = new List<Node>();
-
-			foreach (var alternative in ValueAlternatives(body))
-				rewritten.Add(new Node.Construct(alternative, new Construction.Expression("parserSpan")));
-
-			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
-				? selected.Rebuild(rewritten)
-				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+			_bodies[rule] = Extended(body, "parserSpan");
 		}
 	}
 
@@ -703,6 +751,11 @@ sealed partial class GrammarNormalizer
 			{
 				case PassOutcome.Extent:
 					extents.Add(rule);
+
+					break;
+
+				case PassOutcome.Built:
+					_bodies[rule] = Extended(_bodies[rule], "parserText.ToString()");
 
 					break;
 
@@ -754,25 +807,17 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// Whether the rule names an operand, a rule that declared a type, which a name speaks for (§4.1): a rule that
-	/// does is not the extent it matched, whatever its type says, and is told as it was.
+	/// Whether the rule names an operand of its type, which a name speaks for (§4.1): a rule that does is not the extent it
+	/// matched, whatever its type says, and is told as it was. A rule of another type is no operand of it.
 	/// </summary>
-	static bool NamesAnOperand(Node body)
+	bool NamesAnOperand(Node body, string type)
 	{
-		return NodeWalk.Descendants(body).Any(static node =>
-			node is Node.Capture(_, Node.Call(var called, _)) && called.Declaration?.Type is not null);
+		return NodeWalk.Descendants(body).Any(node => node is Node.Capture(_, var named) && Fits(named, type, declared: true));
 	}
 
-	/// <summary>
-	/// Whether something of the rule reads the names it captures, so that they are not dropped: its own text, as it is
-	/// read (<see cref="ReadsValues"/>), or the value so far of a left-recursive step, which is a capture of the rule's own
-	/// leading call (§4.3) and which a rule with no construction is refused for.
-	/// </summary>
-	bool KeepsNames(RuleSymbol rule, Node body)
+	/// <summary>Whether a rule captures its own leading call, the value so far of a left-recursive step (§4.3).</summary>
+	bool Accumulates(RuleSymbol rule, Node body)
 	{
-		if (ReadsValues(body))
-			return true;
-
 		foreach (var alternative in ValueAlternatives(body))
 		{
 			var first = alternative is Node.Sequence { Nodes.Count: > 0 } sequence ? sequence.Nodes[0] : alternative;
@@ -954,6 +999,9 @@ sealed partial class GrammarNormalizer
 		/// <summary>No alternative has an operand: the rule is the extent it matched.</summary>
 		Extent,
 
+		/// <summary>The same, for a rule whose captures a guard, a mark or a switch reads: they stay, and the extent is built from the text.</summary>
+		Built,
+
 		/// <summary>Left as it is, for <see cref="CheckConstruction"/> to say what it says of any rule that declares a type and does not build it.</summary>
 		Left,
 
@@ -1002,6 +1050,17 @@ sealed partial class GrammarNormalizer
 				result = capture is null ? node : new Node.Capture(capture.For(called), node);
 
 				return (1, 1);
+
+			// A name on something that is no operand adds nothing (§4.1): what is under it counts as it would unnamed, a group
+			// that holds the operand included. A name on an operand speaks for it, and it is not counted.
+			case Node.Capture(var name, var inner) when !Fits(inner, type, declared: true):
+			{
+				var held = Operands(inner, type, capture, out var changed);
+
+				result = ReferenceEquals(changed, inner) ? node : new Node.Capture(name, changed);
+
+				return held;
+			}
 
 			case Node.Sequence(var parts):
 			{
@@ -1150,9 +1209,10 @@ sealed partial class GrammarNormalizer
 				return PassOutcome.Refused;
 			}
 
-			return _language.Classify(type, out _) == KnownType.Text && (!HasCapture(_bodies[rule]) || !KeepsNames(rule, _bodies[rule]))
-				? PassOutcome.Extent
-				: PassOutcome.Left;
+			if (_language.Classify(type, out _) != KnownType.Text || Accumulates(rule, _bodies[rule]))
+				return PassOutcome.Left;
+
+			return HasCapture(_bodies[rule]) && ReadsValues(_bodies[rule]) ? PassOutcome.Built : PassOutcome.Extent;
 		}
 
 		if (rule.Declaration is null)
@@ -1388,6 +1448,12 @@ sealed partial class GrammarNormalizer
 			if (ValueAlternatives(_bodies[rule]).Any(static alternative => alternative is Node.Construct))
 				continue;
 
+			// A left-recursive rule's body is the rewrite §4.3 made of it, the bases and the loop of the steps, and not a
+			// choice of alternatives to collect from: which operand a step hands on is for a `=>` to say, and the rule is
+			// told, as any rule that declares a type and does not build it is (CheckConstruction).
+			if (_folds.ContainsKey(rule))
+				continue;
+
 			// What the declaration says, unless it named a parameter: a specialization of
 			// `List(item, sep) : item[]` has `item[]` written on it and `JsonMember[]`
 			// worked out for it, and the host is asked about the second. Asking about the
@@ -1561,6 +1627,15 @@ sealed partial class GrammarNormalizer
 
 		switch (node)
 		{
+			// A name on something that is no operand adds nothing (§4.1): what is under it is collected as it would be
+			// unnamed. A name on an operand speaks for it, and it is left out.
+			case Node.Capture(var name, var inner) when !Fits(inner, element):
+			{
+				var changed = Gather(inner, element, ref taken, joined, group);
+
+				return ReferenceEquals(changed, inner) ? node : new Node.Capture(name, changed);
+			}
+
 			case Node.Sequence(var parts):
 			{
 				var built = new List<Node>(parts.Count);
@@ -1868,6 +1943,7 @@ sealed partial class GrammarNormalizer
 			Node.Marked(var body, _)       => Sites(body, element),
 			Node.Bind(_, var body, _)      => Sites(body, element),
 			Node.Counted(var body, _, _)   => Sites(body, element),
+			Node.Capture(_, var body)      => Fits(body, element) ? 0 : Sites(body, element),
 			_                              => 0,
 		};
 	}

@@ -860,11 +860,28 @@ sealed partial class GrammarNormalizer
 				"what that prefix is for.";
 	}
 
+	/// <summary>Whether the C# a rule writes, a `=>` or a guard, names <c>context</c>: the methods built from it are handed the grammar's context.</summary>
+	bool WritesContext(RuleSymbol rule)
+	{
+		return NodeWalk.Descendants(_bodies[rule]).Any(static node => node switch
+		{
+			Node.Construct(_, Construction.Expression { Text: var text }) => Names(text),
+			Node.Guard(var text, _) => Names(text),
+			Node.Choice { Selection: { } selection } => Names(selection.Selector.Text),
+			_ => false,
+		});
+
+		static bool Names(string text)
+		{
+			return System.Text.RegularExpressions.Regex.IsMatch(text, @"\bcontext\b");
+		}
+	}
+
 	/// <summary>Why a capture or a parameter may not be called <c>context</c> where the grammar declares one (GRAM4012).</summary>
 	static string ContextNameMessage(string what)
 	{
 		return $"'context' is the name the generated parser gives the grammar's context (docs/syntax.md §7.7), which this grammar " +
-			$"declares, so {what} may not take it.";
+			$"declares, and the C# of this rule writes it, so {what} may not take it.";
 	}
 
 	/// <summary>
@@ -918,9 +935,9 @@ sealed partial class GrammarNormalizer
 			if (SuppliedNames.Reserved.Contains(name))
 				Report(ReservedCaptureName, ReservedNameMessage(name, "a capture"), rule.Declaration!.At);
 
-			// The grammar's own context is a parameter of every method that builds a value, by the name it is
-			// written by (§7.7), and a capture of that name is a second.
-			else if (name == "context" && (_context ?? _model.Context) is not null)
+			// The grammar's own context is a parameter of a method that writes its name (§7.7), and a capture of that name
+			// is a second. Where nothing the rule writes names it, it is no parameter and the capture is the author's.
+			else if (name == "context" && (_context ?? _model.Context) is not null && WritesContext(rule))
 				Report(ReservedCaptureName, ContextNameMessage("a capture"), rule.Declaration!.At);
 
 			// A capture inside a repetition that is not the whole of what repeats used to be

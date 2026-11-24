@@ -93,7 +93,7 @@ static partial class CSharpEmitter
 			if (graph.Types.TryGetValue(rule, out var type) && type is "string" or "System.String" or "global::System.String")
 				foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 					if (node is Node.Construct(var built, Construction.Expression { Text: var text }) &&
-						Bare(text) is { } name &&
+						(text.Trim() == "parserText.ToString()" ? "parserText" : Bare(text)) is { } name &&
 						(name == "parserText" || RawCapture(built, name, graph)))
 					{
 						return $"'{rule.Name}' builds its string with '=> @({name})', and over bytes '{name}' is a " +

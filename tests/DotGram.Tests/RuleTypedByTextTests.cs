@@ -525,6 +525,77 @@ public sealed class RuleTypedByTextTests
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.ReservedCaptureName);
 	}
 
+	/// <summary>
+	/// A name on a group is a name on something that is no operand, and adds nothing: what is in the group counts as it
+	/// would unnamed, in a rule that takes an operand's value as in a sequence.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Word = x: ('<' & Word & '>')\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "<abc>", "abc")]
+	[InlineData("Start : Bare = x: ('<' & Bare & '>')\nBare : @string = ['a'..'z']+", "<abc>", "abc")]
+	public void A_name_on_a_group_adds_nothing_to_the_value_of_an_operand(string grammar, string input, string expected)
+	{
+		Assert.Equal(expected, Parsed(grammar, input));
+	}
+
+	[Theory]
+	[InlineData("Start : @string[] = Word & x: (',' & Word)*", "ab,cd,ef", "ab;cd;ef")]
+	[InlineData("Start : @string[] = x: (Word & ',' & Word)", "ab,cd", "ab;cd")]
+	[InlineData("Start : @string[] = Word & (',' & x: Word)*", "ab,cd,ef", "ab")]
+	public void A_name_on_a_group_adds_nothing_to_a_sequence(string rules, string input, string expected)
+	{
+		var value = (System.Collections.IEnumerable)Parsed(rules + "\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", input, kind: true)!;
+
+		Assert.Equal(expected, string.Join(";", value.Cast<object>()));
+	}
+
+	/// <summary>A name that a guard reads is read, and the rule is the one it would be unnamed: an extent of text as an extent of bounds.</summary>
+	[Theory]
+	[InlineData("Start : @string = x: ['a'..'z']+ & when @(x.Length > 1)", "abc", "abc")]
+	[InlineData("Start : Bare = x: '<' & when @(x.Length == 1) & Bare & '>'\nBare : @string = ['a'..'z']+", "<abc>", "abc")]
+	public void A_name_read_by_a_guard_leaves_the_value_as_it_is(string grammar, string input, string expected)
+	{
+		Assert.Equal(expected, Parsed(grammar, input));
+	}
+
+	/// <summary>A name on an operand of another type is no operand's name: it adds nothing, whatever the rule declared.</summary>
+	[Theory]
+	[InlineData("Start : @string = n: Num & ['a'..'z']+\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "12abc", "12abc")]
+	[InlineData("Start : @string = i: Item & '!'\nItem = x: ['a'..'z']+", "abc!", "abc!")]
+	public void A_name_on_an_operand_of_another_type_adds_nothing(string grammar, string input, string expected)
+	{
+		// Through the real generator: whether `int` fits a `string` is a question the host answers.
+		var type = GeneratorDriverTests.Build(
+			"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nparse Start\")]\npublic partial class Typed { }")
+			.GetType("Typed")!;
+
+		Assert.Equal(expected, (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!);
+	}
+
+	/// <summary>A left-recursive rule that collects has no saying which operand a step hands on: it is told, and the generator does not throw.</summary>
+	[Fact]
+	public void A_left_recursive_sequence_is_told()
+	{
+		var result = Compile("Start : @string[] = Start & ',' & Word | Word\nWord : @string = c: ['a'..'z']+ => @(c.ToString())\nparse Start");
+
+		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.UnbuiltConstruction);
+	}
+
+	/// <summary>
+	/// A capture named <c>context</c> beside a declared context is a second parameter only where the C# of the rule writes
+	/// it: elsewhere it is a name like any other.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Word = '<' & Word & context: '>'\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", false)]
+	[InlineData("Start : @string[] = Word & context: ';'\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", false)]
+	[InlineData("Start : @string = context: ['a'..'z']+", false)]
+	[InlineData("Start : @string = context: ['a'..'z']+ => @(context.ToString())", true)]
+	public void A_capture_named_context_is_refused_only_where_the_rule_writes_the_context(string grammar, bool refused)
+	{
+		var result = Compile("context : @Names\n" + grammar + "\nparse Start");
+
+		Assert.Equal(refused, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.ReservedCaptureName));
+	}
+
 	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>
 	[Fact]
 	public void A_left_recursive_rule_builds_with_its_own_construction()
