@@ -57,6 +57,10 @@ sealed partial class GrammarNormalizer
 					!HasCapture(said) &&
 					Constructs(said).FirstOrDefault() is null)
 				{
+					// Not recorded as a type, but declared all the same: an operand of another
+					// rule says what it produces by it (§4.1 cases 2 and 3).
+					_extents[rule] = TypeName(type);
+
 					continue;
 				}
 
@@ -636,6 +640,10 @@ sealed partial class GrammarNormalizer
 
 	void PassThrough()
 	{
+		var extents = new List<(RuleSymbol Rule, string Type)>();
+
+		_extentsFit = true;
+
 		foreach (var pair in _produces)
 		{
 			var rule = pair.Key;
@@ -656,30 +664,77 @@ sealed partial class GrammarNormalizer
 
 			var rewritten = new List<Node>(alternatives.Count);
 			var taken     = 0;
+			var unsaid    = new List<string>();
 
-			foreach (var alternative in alternatives)
+			for (var i = 0; i < alternatives.Count; i++)
 			{
 				var before = taken;
-				var built  = Gather(alternative, type, ref taken);
+				var built  = Gather(alternatives[i], type, ref taken);
 
 				// One per alternative, and one only.
 				if (taken != before + 1)
-				{
-					taken = -1;
-
-					break;
-				}
+					unsaid.Add(taken == before ? $"{i + 1} has none" : $"{i + 1} has {taken - before}");
 
 				rewritten.Add(new Node.Construct(built, Construction.Operand.Instance));
 			}
 
-			if (taken < 0)
+			if (unsaid.Count > 0)
+			{
+				if (PassedNothing(rule, type, alternatives.Count, taken, unsaid))
+					extents.Add((rule, type));
+
 				continue;
+			}
 
 			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
 				? selected.Rebuild(rewritten)
 				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
+
+		_extentsFit = false;
+
+		foreach (var (rule, _) in extents)
+			_types.Remove(rule);
+	}
+
+	/// <summary>
+	/// A rule that takes another's type, <c>Start : Quoted = Quoted | Bare</c>, whose alternatives are not
+	/// each one operand that produces it (§4.1 case 3).
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Where no alternative has one, the rule says nothing of its value and is case 4's: the extent it matched,
+	/// the same as a rule that declared <c>: @string</c> itself. The type stays out of <c>_types</c> then, which
+	/// is what a caller is handed a value of: left in, the caller waited for a value the rule never built, and
+	/// the generated file did not compile (CS1501, or CS1729 where it was built for it). Returned true for
+	/// that, and the caller takes the type out once every rule has been asked: a rule asked after another that
+	/// gave its type up would otherwise be told a different answer for the same grammar.
+	/// </para>
+	/// <para>
+	/// Where some have and some have not, or one has several, there is no value to give: the extent would be
+	/// the answer on the alternatives that name no operand and the operand's on the rest, which no one wrote.
+	/// It is told on the rule, for the types the extent would answer for. Other types are told by
+	/// <see cref="CheckConstruction"/>, which says it of every rule that declares one and does not build it.
+	/// </para>
+	/// </remarks>
+	bool PassedNothing(RuleSymbol rule, string type, int alternatives, int taken, List<string> unsaid)
+	{
+		var kind = _language.Classify(type, out _);
+
+		if (taken == 0)
+			return kind == KnownType.Text;
+
+		if (kind is not (KnownType.Text or KnownType.SourceSpan) || rule.Declaration is null)
+			return false;
+
+		Report(
+			UnbuiltConstruction,
+			$"'{rule.Name}' takes the type of the rule it names, '{type}', and its value is the value of the " +
+			$"one operand that produces it (§4.1 case 3), on every alternative: alternative {string.Join(", alternative ", unsaid)} " +
+			$"of its {alternatives}. Give each alternative one operand that declares '{type}', or a '=>' of its own.",
+			rule.Declaration.At);
+
+		return false;
 	}
 
 	void BuildByConstructor()
@@ -1189,8 +1244,30 @@ sealed partial class GrammarNormalizer
 		if (_namedTypes.ContainsKey(element))
 			return (_types.TryGetValue(called, out var declared) ? declared : GeneratedNameOf(called)) == element;
 
-		return _types.TryGetValue(called, out var type) && _language.Fits(type, element);
+		if (_types.TryGetValue(called, out var type))
+			return string.Equals(type, element, StringComparison.Ordinal) || _language.Fits(type, element);
+
+		return _extentsFit && _extents.TryGetValue(called, out type) &&
+			(string.Equals(type, element, StringComparison.Ordinal) || _language.Fits(type, element));
 	}
+
+	/// <summary>
+	/// The rules that declared the type of the extent they match, <c>: @string</c>, over a body that builds
+	/// nothing and captures nothing, by the type they declared.
+	/// </summary>
+	/// <remarks>
+	/// The declaration says what a rule with none says by default, so it is kept out of <c>_types</c>: what
+	/// is typed there is what a caller is handed a value of. A rule another takes the value of is told apart
+	/// from one that declared nothing by this.
+	/// </remarks>
+	readonly Dictionary<RuleSymbol, string> _extents = [];
+
+	/// <summary>
+	/// Whether <see cref="Fits"/> counts a rule in <see cref="_extents"/>: while a rule takes the value of the
+	/// operand that produces it (§4.1 case 3), and not where a sequence collects (case 2), whose repetition
+	/// of one is read as one run of text (<see cref="HoistTextCaptures"/>).
+	/// </summary>
+	bool _extentsFit;
 
 	/// <summary>Whether a type is one a grammar may write by keyword alone, without <c>@</c> (§2).</summary>
 	bool IsTypeKeyword(string name)

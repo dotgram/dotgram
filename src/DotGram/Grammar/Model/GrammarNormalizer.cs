@@ -283,8 +283,10 @@ sealed partial class GrammarNormalizer
 
 		// After the types and before the results, the same as the sequence rewrite above:
 		// it writes captures that the results are then computed from (§4.1 case 3).
-		normalizer.ExtentValues();
+		// The pass-through first: a rule typed by one that gives an extent takes the operand's, and
+		// what takes none is left for the extent.
 		normalizer.PassThrough();
+		normalizer.ExtentValues();
 
 		// After the types — valuedness is what tells a collected thing from the inside
 		// of a lexeme — and after the sequence captures exist, so the implicit capture

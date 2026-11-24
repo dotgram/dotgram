@@ -1151,6 +1151,13 @@ grammar generates, `Pairs : Pair[]`, is joined by the calls of that rule and of 
 by it. A separator written as
 `Space = [' ']+` is silent for the same reason, and needs no keyword to say so.
 
+A rule typed by another, `Name : Quoted = Quoted | Bare`, has the value of the operand that matched, so
+each alternative has exactly one operand that declares the type: a rule that builds it, or one that
+declares `: @string` over an extent, as `Bare : @string = ['a'..'z']+` does. An alternative with none, or
+with two, beside one that has one, is `GRAM4008`: the extent it matched would be the answer on one and the
+operand's on the other. Where no alternative has an operand that declares it, the rule is case 4's, and
+its value is its own extent.
+
 **What a construction hands back has to be the declared type.** Where the grammar can tell
 that it cannot be — a capture handed back whole, `=> x` or `=> @(x)`, that holds text where
 an array is declared or a generated type where another is, between types that declare no
