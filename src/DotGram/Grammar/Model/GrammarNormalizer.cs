@@ -277,6 +277,7 @@ sealed partial class GrammarNormalizer
 		// own nested constructions, which remain part of the enclosing fold.
 		normalizer.ComputeTypes();
 		normalizer.LowerGroupValues();
+		normalizer.RewriteGuardedLeftRecursion();
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
 
