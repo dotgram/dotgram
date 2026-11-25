@@ -50,6 +50,7 @@ public sealed class StandingRecursionOrderTests
 	const string Counter = """
 		[System.ThreadStatic] static int calls;
 		public static void Reset() { calls = 0; }
+		public static int Calls() { return calls; }
 		static void Count() { if (++calls > 20000) throw new System.InvalidOperationException("went round"); }
 		""";
 
@@ -210,66 +211,66 @@ public sealed class StandingRecursionOrderTests
 	/// <summary>
 	/// Every input with what the marked rule answers today and what its twin answers; a null <c>Today</c> goes round.
 	/// </summary>
-	static readonly (string Family, string Grammar, string Input, string? Today, string Twin)[] Rows =
+	static readonly (string Family, string Grammar, string Input, string? V030, string C1, string Twin)[] Rows =
 	[
-		("calculator", "tail",   "1",         "ok@1 1 + [0: 0] = 1",   "ok@1 1 + [0: 0] = 1"),
-		("calculator", "tail",   "1+1",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2"),
-		("calculator", "tail",   "1+2+3",     "ok@5 1 + [2: 5] = 6",   "ok@5 6 + [0: 0] = 6"),
-		("calculator", "tail",   "12+3",      "ok@4 12 + [1: 3] = 15", "ok@4 15 + [0: 0] = 15"),
-		("calculator", "tail",   " 1+1",      "ok@4 2 + [0: 0] = 2",   "no@0"),
-		("calculator", "tail",   " 1",        null,                    "no@0"),
-		("calculator", "tail",   "1+",        null,                    "no@2"),
-		("count",      "tail",   "1",         "ok@1 1 + [0: 0] = 1",   "ok@1 1 + [0: 0] = 1"),
-		("count",      "tail",   "1+1",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2"),
-		("count",      "tail",   "1+1+1",     "ok@5 1 + [2: 2] = 3",   "ok@5 3 + [0: 0] = 3"),
-		("count",      "tail",   "12+3",      "ok@4 1 + [1: 1] = 2",   "ok@4 2 + [0: 0] = 2"),
-		("count",      "tail",   " 1+1",      "ok@4 2 + [0: 0] = 2",   "no@0"),
-		("count",      "tail",   "1+",        null,                    "no@2"),
+		("calculator", "tail", "1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1"),
+		("calculator", "tail", "1+1", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
+		("calculator", "tail", "1+2+3", "ok@5 1 + [2: 5] = 6", "ok@5 6 + [0: 0] = 6", "ok@5 6 + [0: 0] = 6"),
+		("calculator", "tail", "12+3", "ok@4 12 + [1: 3] = 15", "ok@4 15 + [0: 0] = 15", "ok@4 15 + [0: 0] = 15"),
+		("calculator", "tail", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
+		("calculator", "tail", " 1", null, "no@2", "no@0"),
+		("calculator", "tail", "1+", null, "no@2", "no@2"),
+		("count", "tail", "1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1"),
+		("count", "tail", "1+1", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
+		("count", "tail", "1+1+1", "ok@5 1 + [2: 2] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
+		("count", "tail", "12+3", "ok@4 1 + [1: 1] = 2", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2"),
+		("count", "tail", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
+		("count", "tail", "1+", null, "no@2", "no@2"),
 
-		("calculator", "end",    "1+2+3",     "ok@5 6 + [0: 0] = 6",   "ok@5 6 + [0: 0] = 6"),
-		("calculator", "end",    " 1+1",      "ok@4 2 + [0: 0] = 2",   "no@0"),
-		("calculator", "end",    "1+",        null,                    "no@2"),
-		("count",      "end",    "1+2+3",     "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3"),
-		("count",      "end",    " 1+1",      "ok@4 2 + [0: 0] = 2",   "no@0"),
-		("count",      "end",    "1+",        null,                    "no@2"),
+		("calculator", "end", "1+2+3", "ok@5 6 + [0: 0] = 6", "ok@5 6 + [0: 0] = 6", "ok@5 6 + [0: 0] = 6"),
+		("calculator", "end", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
+		("calculator", "end", "1+", null, "no@2", "no@2"),
+		("count", "end", "1+2+3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
+		("count", "end", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
+		("count", "end", "1+", null, "no@2", "no@2"),
 
-		("calculator", "parens", "1+2",       "ok@3 1 + [1: 2] = 3",   "ok@3 3 + [0: 0] = 3"),
-		("calculator", "parens", "(1+2)+3",   "ok@7 3 + [1: 3] = 6",   "ok@7 6 + [0: 0] = 6"),
-		("calculator", "parens", "1+(2+3)",   "ok@7 1 + [1: 5] = 6",   "ok@7 6 + [0: 0] = 6"),
-		("calculator", "parens", "(1+2+3)",   "ok@7 6 + [0: 0] = 6",   "ok@7 6 + [0: 0] = 6"),
-		("calculator", "parens", "(1+2",      null,                    "no@4"),
-		("count",      "parens", "1+2",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2"),
-		("count",      "parens", "(1+2)+3",   "ok@7 2 + [1: 1] = 3",   "ok@7 3 + [0: 0] = 3"),
-		("count",      "parens", "1+(2+3)",   "ok@7 1 + [1: 2] = 3",   "ok@7 3 + [0: 0] = 3"),
-		("count",      "parens", "(1+2+3)",   "ok@7 3 + [0: 0] = 3",   "ok@7 3 + [0: 0] = 3"),
+		("calculator", "parens", "1+2", "ok@3 1 + [1: 2] = 3", "ok@3 3 + [0: 0] = 3", "ok@3 3 + [0: 0] = 3"),
+		("calculator", "parens", "(1+2)+3", "ok@7 3 + [1: 3] = 6", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
+		("calculator", "parens", "1+(2+3)", "ok@7 1 + [1: 5] = 6", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
+		("calculator", "parens", "(1+2+3)", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
+		("calculator", "parens", "(1+2", null, "no@4", "no@4"),
+		("count", "parens", "1+2", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
+		("count", "parens", "(1+2)+3", "ok@7 2 + [1: 1] = 3", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
+		("count", "parens", "1+(2+3)", "ok@7 1 + [1: 2] = 3", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
+		("count", "parens", "(1+2+3)", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
 
 		// The levels are not ambiguous: one split fits, and both read it where the marked rule ends. Its second recursive
 		// alternative is never reached, so a binary minus goes round.
-		("calculator", "levels", "1+2*3",     "ok@5 7 + [0: 0] = 7",   "ok@5 7 + [0: 0] = 7"),
-		("calculator", "levels", "1*2+3",     "ok@5 5 + [0: 0] = 5",   "ok@5 5 + [0: 0] = 5"),
-		("calculator", "levels", "8/4/2",     "ok@5 1 + [0: 0] = 1",   "ok@5 1 + [0: 0] = 1"),
-		("calculator", "levels", "-2*3",      "ok@4 -6 + [0: 0] = -6", "ok@4 -6 + [0: 0] = -6"),
-		("calculator", "levels", "(1+2)*3",   "ok@7 9 + [0: 0] = 9",   "ok@7 9 + [0: 0] = 9"),
-		("calculator", "levels", "2*(3+4)",   "ok@7 14 + [0: 0] = 14", "ok@7 14 + [0: 0] = 14"),
-		("calculator", "levels", "1-2",       null,                    "ok@3 -1 + [0: 0] = -1"),
-		("count",      "levels", "1+2*3",     "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3"),
-		("count",      "levels", "3+6*(5/9)", "ok@9 4 + [0: 0] = 4",   "ok@9 4 + [0: 0] = 4"),
-		("count",      "levels", "8/4/2",     "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3"),
-		("count",      "levels", "1-2",       null,                    "ok@3 2 + [0: 0] = 2"),
+		("calculator", "levels", "1+2*3", "ok@5 7 + [0: 0] = 7", "ok@5 7 + [0: 0] = 7", "ok@5 7 + [0: 0] = 7"),
+		("calculator", "levels", "1*2+3", "ok@5 5 + [0: 0] = 5", "ok@5 5 + [0: 0] = 5", "ok@5 5 + [0: 0] = 5"),
+		("calculator", "levels", "8/4/2", "ok@5 1 + [0: 0] = 1", "ok@5 1 + [0: 0] = 1", "ok@5 1 + [0: 0] = 1"),
+		("calculator", "levels", "-2*3", "ok@4 -6 + [0: 0] = -6", "ok@4 -6 + [0: 0] = -6", "ok@4 -6 + [0: 0] = -6"),
+		("calculator", "levels", "(1+2)*3", "ok@7 9 + [0: 0] = 9", "ok@7 9 + [0: 0] = 9", "ok@7 9 + [0: 0] = 9"),
+		("calculator", "levels", "2*(3+4)", "ok@7 14 + [0: 0] = 14", "ok@7 14 + [0: 0] = 14", "ok@7 14 + [0: 0] = 14"),
+		("calculator", "levels", "1-2", null, "ok@3 -1 + [0: 0] = -1", "ok@3 -1 + [0: 0] = -1"),
+		("count", "levels", "1+2*3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
+		("count", "levels", "3+6*(5/9)", "ok@9 4 + [0: 0] = 4", "ok@9 4 + [0: 0] = 4", "ok@9 4 + [0: 0] = 4"),
+		("count", "levels", "8/4/2", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
+		("count", "levels", "1-2", null, "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
 
 		// The base after the recursive alternative is never reached where the recognizer stands.
-		("calculator", "base",   "1+2",       "ok@3 1 + [1: 2] = 3",   "ok@3 3 + [0: 0] = 3"),
-		("calculator", "base",   "5",         "ok@1 5 + [0: 0] = 5",   "ok@1 5 + [0: 0] = 5"),
-		("calculator", "base",   "(1+2)+3",   null,                    "ok@7 6 + [0: 0] = 6"),
-		("count",      "base",   "1+2",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2"),
-		("count",      "base",   "(1+2)+3",   null,                    "ok@7 3 + [0: 0] = 3"),
+		("calculator", "base", "1+2", "ok@3 1 + [1: 2] = 3", "ok@3 3 + [0: 0] = 3", "ok@3 3 + [0: 0] = 3"),
+		("calculator", "base", "5", "ok@1 5 + [0: 0] = 5", "ok@1 5 + [0: 0] = 5", "ok@1 5 + [0: 0] = 5"),
+		("calculator", "base", "(1+2)+3", null, "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
+		("count", "base", "1+2", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
+		("count", "base", "(1+2)+3", null, "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
 
 		// The list asks for one more expression at the end, and the marked rule goes round there on every input.
-		("calculator", "list",   "1",         null,                    "ok@1 1"),
-		("calculator", "list",   "1-2",       null,                    "ok@3 -1"),
-		("calculator", "list",   "1--2",      null,                    "ok@4 3"),
-		("count",      "list",   "1-2-3",     null,                    "ok@5 3"),
-		("count",      "list",   "(1-2)-3",   null,                    "ok@7 3"),
+		("calculator", "list", "1", null, "ok@1 1", "ok@1 1"),
+		("calculator", "list", "1-2", null, "ok@3 -1", "ok@3 -1"),
+		("calculator", "list", "1--2", null, "ok@4 3", "ok@4 3"),
+		("count", "list", "1-2-3", null, "ok@5 3", "ok@5 3"),
+		("count", "list", "(1-2)-3", null, "ok@7 3", "ok@7 3"),
 	];
 
 	/// <summary>The readings: by methods or the engine, carried immediately or deferred, over a span or the buffered view.</summary>
@@ -292,8 +293,9 @@ public sealed class StandingRecursionOrderTests
 	}
 
 	/// <summary>
-	/// The marked rule answers today's split in every reading, over a string and, buffered, over a reader too; its twin
-	/// answers its own.
+	/// The marked rule answers its twin's split where the recognizer stands and reads as written where it moves, in
+	/// every reading, over a string and, buffered, over a reader too; read as in 0.3.0 it answers the fewest tails where
+	/// it ends, and its twin answers its own.
 	/// </summary>
 	[Theory]
 	[MemberData(nameof(Grammars))]
@@ -302,56 +304,319 @@ public sealed class StandingRecursionOrderTests
 		var marked = Grammar(family, name);
 		var twin   = marked.Replace("@Ws & ", "", StringComparison.Ordinal);
 		var rows   = Rows.Where(row => row.Family == family && row.Grammar == name).ToArray();
+		var wrong  = new List<string>();
 
 		foreach (var (direct, tape, buffered) in Readings)
 		{
 			var reading = $"{(direct ? "direct" : "engine")}/{(tape ? "tape" : "immediate")}/{(buffered ? "view" : "span")}";
-			var today   = Build(marked, direct, tape, buffered, lexical: false, out _);
+			var read    = Build(marked, direct, tape, buffered, lexical: false, out _);
+			var v030    = Unchecked(() => Build(marked, direct, tape, buffered, lexical: false, out _));
 			var other   = Build(twin, direct, tape, buffered, lexical: false, out _);
 
 			foreach (var row in rows)
 				foreach (var over in buffered ? new[] { typeof(string), typeof(TextReader) } : [typeof(string)])
 				{
-					if (row.Today is not null)
-						Assert.True(Answer(today, row.Input, over) == row.Today, $"{family} {name} {reading} {over.Name} \"{row.Input}\": {Answer(today, row.Input, over)}, today {row.Today}");
+					Check(read, row.C1, "C1");
+					Check(other, row.Twin, "twin");
 
-					Assert.True(Answer(other, row.Input, over) == row.Twin, $"{family} {name} twin {reading} {over.Name} \"{row.Input}\": {Answer(other, row.Input, over)}, expected {row.Twin}");
+					if (row.V030 is not null)
+						Check(v030, row.V030, "0.3.0");
+
+					void Check(Assembly parser, string expected, string what)
+					{
+						var answer = Answer(parser, row.Input, over);
+
+						if (answer != expected)
+							wrong.Add($"{family} {name} {what} {reading} {over.Name} \"{row.Input}\": {answer}, expected {expected}");
+					}
 				}
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>Compiled as 0.3.0 compiles it: no check at the entry, no rule read past a prefix that stands.</summary>
+	static T Unchecked<T>(Func<T> build)
+	{
+		var was = Reentry.Unchecked;
+
+		Reentry.Unchecked = true;
+
+		try
+		{
+			return build();
+		}
+		finally
+		{
+			Reentry.Unchecked = was;
 		}
 	}
 
 	/// <summary>
 	/// Asked for tokens, a recognizer in syntactic position keeps the grammar over characters (GRAM5004), so the marked
-	/// rule answers as over characters, its trivia between the items; the twin is cut into tokens and answers its own.
+	/// rule answers as over characters, its trivia between the items, read past the recognizer and the seam after it;
+	/// the twin is cut into tokens and answers its own.
 	/// </summary>
 	[Theory]
-	[InlineData("calculator", "tail", "1+1",   "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2")]
-	[InlineData("calculator", "tail", " 1+1",  "ok@4 1 + [1: 1] = 2", "ok@4 2 + [0: 0] = 2")]
-	[InlineData("calculator", "tail", "1 +1",  "ok@4 1 + [1: 1] = 2", "ok@4 2 + [0: 0] = 2")]
-	[InlineData("calculator", "tail", "1+",    null,                  "no@2")]
-	[InlineData("count",      "tail", "1+1+1", "ok@5 1 + [2: 2] = 3", "ok@5 3 + [0: 0] = 3")]
-	[InlineData("count",      "tail", " 1",    "ok@2 1 + [0: 0] = 1", "ok@2 1 + [0: 0] = 1")]
-	[InlineData("calculator", "levels", "1 + 2 * 3", "ok@9 7 + [0: 0] = 7", "ok@9 7 + [0: 0] = 7")]
-	[InlineData("calculator", "levels", "1 - 2",     null,                  "ok@5 -1 + [0: 0] = -1")]
-	[InlineData("count",      "levels", "(1 + 2) * 3", "ok@11 3 + [0: 0] = 3", "ok@11 3 + [0: 0] = 3")]
-	public void Over_tokens_the_marked_rule_stays_over_characters(string family, string name, string input, string? today, string twin)
+	[InlineData("calculator", "tail",   "1+1",         "ok@3 1 + [1: 1] = 2",  "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2")]
+	[InlineData("calculator", "tail",   " 1+1",        "ok@4 1 + [1: 1] = 2",  "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2")]
+	[InlineData("calculator", "tail",   "1 +1",        "ok@4 1 + [1: 1] = 2",  "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2")]
+	[InlineData("calculator", "tail",   "1+",          null,                   "no@2", "no@2")]
+	[InlineData("count",      "tail",   "1+1+1",       "ok@5 1 + [2: 2] = 3",  "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3")]
+	[InlineData("count",      "tail",   " 1",          "ok@2 1 + [0: 0] = 1",  "ok@2 1 + [0: 0] = 1", "ok@2 1 + [0: 0] = 1")]
+	[InlineData("calculator", "levels", "1 + 2 * 3",   "ok@9 7 + [0: 0] = 7",  "ok@9 7 + [0: 0] = 7", "ok@9 7 + [0: 0] = 7")]
+	[InlineData("calculator", "levels", "1 - 2",       null,                   "ok@5 -1 + [0: 0] = -1", "ok@5 -1 + [0: 0] = -1")]
+	[InlineData("count",      "levels", "(1 + 2) * 3", "ok@11 3 + [0: 0] = 3", "ok@11 3 + [0: 0] = 3", "ok@11 3 + [0: 0] = 3")]
+	public void Over_tokens_the_marked_rule_stays_over_characters(string family, string name, string input, string? v030, string c1, string twin)
 	{
 		var marked = Lexical(Grammar(family, name));
+		var wrong  = new List<string>();
 
 		foreach (var direct in new[] { true, false })
 			foreach (var buffered in new[] { false, true })
 			{
 				var parser = Build(marked, direct, tape: false, buffered, lexical: true, out var told);
+				var old    = Unchecked(() => Build(marked, direct, tape: false, buffered, lexical: true, out _));
 				var cut    = Build(marked.Replace("@Ws & ", "", StringComparison.Ordinal), direct, tape: false, buffered, lexical: true, out var cutTold);
 
 				Assert.Contains(told, static one => one.Id == GramCompiler.NotCut);
 				Assert.DoesNotContain(cutTold, static one => one.Id == GramCompiler.NotCut);
 
-				if (today is not null)
-					Assert.Equal(today, Answer(parser, input, typeof(string)));
+				Check(parser, c1, "C1");
+				Check(cut, twin, "twin");
 
-				Assert.Equal(twin, Answer(cut, input, typeof(string)));
+				if (v030 is not null)
+					Check(old, v030, "0.3.0");
+
+				void Check(Assembly built, string expected, string what)
+				{
+					var answer = Answer(built, input, typeof(string));
+
+					if (answer != expected)
+						wrong.Add($"{family} {name} {what} {(direct ? "direct" : "engine")}/{(buffered ? "view" : "span")} \"{input}\": {answer}, expected {expected}");
+				}
 			}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// What is read before the call back, in the shapes a prefix comes in, and the rules a split rule is called from
+	/// and calls: each grammar with the prefix written, and the same without it, which §4.3 folds. Values show the
+	/// grouping; the inputs have no space where the rule is entered, so the prefix stands and the two answer alike.
+	/// </summary>
+	static readonly (string Name, string Marked, string Twin, string[] Inputs)[] Shapes =
+	[
+		// A second operator: a later recursive alternative is read too.
+		("operators", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | @Ws & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			    | @Ws & l: Sum & '-' & r: Num => @("(" + l + "-" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "", ["1+2", "1-2", "1+2-3", "1-2+3-4", "1-", "-1"]),
+
+		// Two levels, both past the recognizer: the base of one is the other, itself split.
+		("levels", """
+			T : @string = s: Add & eof => @(s)
+			Add : @string = m: Mul => @(m)
+			    | @Ws & l: Add & '+' & r: Mul => @("(" + l + "+" + r + ")")
+			Mul : @string = n: Num => @(n)
+			    | @Ws & l: Mul & '*' & r: Num => @("(" + l + "*" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "", ["2*3", "1+2", "1*2+3", "1+2*3*4+5", "1+*2"]),
+
+		// Under a repetition: the list asks for one more at the end, where the recognizer stands.
+		("list", """
+			T : @string = es: Add+ & eof => @(string.Join(" ; ", es))
+			Add : @string = n: Num => @(n)
+			    | @Ws & l: Add & '-' & r: Num => @("(" + l + "-" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "", ["1", "1-2", "1-2-3", "1-"]),
+
+		// A base written after the recursive alternative, which reaches the rule again past a bracket.
+		("base", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | @Ws & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			    | '(' & s: Sum & ')' => @(s)
+			Num : string = ['0'..'9']+
+			""", "", ["1+2", "(1)", "(1+2)+3", "((1)+2)", "(1+2"]),
+
+		// A choice beside the brackets that gives back into them.
+		("power", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = p: P => @(p)
+			    | @Ws & l: Sum & '+' & r: P => @("(" + l + "+" + r + ")")
+			P : @string = a: Atom & '^' & n: Num => @("(" + a + "^" + n + ")")
+			    | a: Atom => @(a)
+			Atom : @string = n: Num => @(n)
+			    | '(' & s: Sum & ')' => @(s)
+			Num : string = ['0'..'9']+
+			""", "", ["(1+2)^3", "(1+2)", "2^3+(1+2)", "1+2^3+4"]),
+
+		// A rule that only wraps the recognizer.
+		("wrapped", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | W & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			W = @Ws
+			Num : string = ['0'..'9']+
+			""", "W & |W = @Ws\n", ["1+2", "1+2+3"]),
+
+		// Two recognizers, and a lookahead beside one.
+		("several", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | @Ws & @Ws & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			    | ?!'#' & @Ws & l: Sum & '-' & r: Num => @("(" + l + "-" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "@Ws & @Ws & |?!'#' & @Ws & ", ["1+2", "1-2", "1+2-3+4", "1-2+3"]),
+
+		// Trivia woven between the recognizer and the call back.
+		("trivia", """
+			trivia = [' ']*
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | @Ws & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "", ["1+2", "1 + 2", "1 +2+ 3", "1 +"]),
+
+		// The trivia and two levels, the lower one plain left recursion.
+		("trivia levels", """
+			trivia = [' ']*
+			T : @string = s: Add & eof => @(s)
+			Add : @string = m: Mul => @(m)
+			    | @Ws & l: Add & '+' & r: Mul => @("(" + l + "+" + r + ")")
+			    | @Ws & l: Add & '-' & r: Mul => @("(" + l + "-" + r + ")")
+			Mul : @string = a: Atom => @(a)
+			    | l: Mul & '*' & r: Atom => @("(" + l + "*" + r + ")")
+			Atom : @string = n: Num => @(n)
+			    | '(' & s: Add & ')' => @(s)
+			Num : string = ['0'..'9']+
+			""", "", ["1 - 2 - 3", "(1 + 2) * 3", "1 - (2 - 3)", "3 + 6 * (5 - 9)"]),
+	];
+
+	public static TheoryData<string> ShapeNames()
+	{
+		var names = new TheoryData<string>();
+
+		foreach (var shape in Shapes)
+			names.Add(shape.Name);
+
+		return names;
+	}
+
+	/// <summary>Where the prefix stands, the rule answers what the rule without it answers, in every reading.</summary>
+	[Theory]
+	[MemberData(nameof(ShapeNames))]
+	public void Where_the_prefix_stands_the_rule_answers_as_its_twin(string name)
+	{
+		var shape  = Shapes.Single(one => one.Name == name);
+		var marked = shape.Marked.ReplaceLineEndings("\n");
+		var twin   = marked;
+
+		foreach (var prefix in (shape.Twin.Length == 0 ? "@Ws & " : shape.Twin).Split('|'))
+			twin = twin.Replace(prefix, "", StringComparison.Ordinal);
+
+		var wrong = new List<string>();
+
+		foreach (var (direct, tape, buffered) in Readings)
+		{
+			var reading = $"{(direct ? "direct" : "engine")}/{(tape ? "tape" : "immediate")}/{(buffered ? "view" : "span")}";
+			var read    = Build(marked, direct, tape, buffered, lexical: false, out var told);
+			var other   = Build(twin, direct, tape, buffered, lexical: false, out _);
+
+			Assert.Contains(told, static one => one.Id == "GRAM5021" && one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+
+			foreach (var input in shape.Inputs)
+				foreach (var over in buffered ? new[] { typeof(string), typeof(TextReader) } : [typeof(string)])
+				{
+					var expected = Answer(other, input, typeof(string));
+					var answer   = Answer(read, input, over);
+
+					if (answer != expected)
+						wrong.Add($"{name} {reading} {over.Name} \"{input}\": {answer}, twin {expected}");
+				}
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	/// <summary>
+	/// Where the rule without the prefix is a left recursion §4.3 refuses, the rule is read as written, and the build
+	/// says why in the terms of that rule.
+	/// </summary>
+	[Theory]
+	[InlineData("A = @Ws & A & 'b'", "no alternative to start from")]
+	[InlineData("A = 'a' | @Ws & A & '+' & A", "recursive on both sides")]
+	[InlineData("A = 'a' | @Ws & A & 'b'?", "a step may read nothing")]
+	[InlineData("A = B | @Ws & A & 'x'\nB = 'b' | @Ws & A & 'y'", "goes through 'B'")]
+	public void Where_the_twin_is_refused_the_rule_is_read_as_written(string rules, string reason)
+	{
+		var result = GramCompiler.Compile("T = A & eof\n" + rules + "\nparse T", Options(direct: true, tape: false, buffered: false, lexical: false));
+
+		var refused = Assert.Single(result.Diagnostics, static one => one.Id == GrammarNormalizer.StandingRefused);
+
+		Assert.Equal(GramSeverity.Warning, refused.Severity);
+		Assert.Contains(reason, refused.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+	}
+
+	/// <summary>A value guard in a caller reads what the cycle builds: the rule is read as written, as in 0.3.0.</summary>
+	[Fact]
+	public void A_value_guard_on_the_way_keeps_the_rule_as_written()
+	{
+		var grammar = """
+			T = d: Sum & when @(d >= 2) & eof
+			Sum : @int = Num => @(1)
+			    | @Ws & s: Sum & '+' & Num => @(s + 1)
+			Num = ['0'..'9']+
+			parse T
+			""".ReplaceLineEndings("\n");
+
+		var result = GramCompiler.Compile(grammar, Options(direct: true, tape: false, buffered: false, lexical: false));
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.StandingRefused);
+		Assert.Contains(result.Diagnostics, static one => one.Id == "GRAM5021" && one.Message.Contains("is read as it is written", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// Where the prefix stands, the recognizer is asked once where the rule is entered, and the loop enters it no more;
+	/// as written it is asked once an entry, and entered once a tail where the parse needs the recursive alternative.
+	/// </summary>
+	[Theory]
+	[InlineData("1+1+1", 1)]
+	[InlineData("1+2+3+4", 1)]
+	[InlineData(" 1+1", -1)]
+	[InlineData(" 1+1+1", -1)]
+	public void The_recognizer_is_asked_once_where_the_prefix_stands(string input, int once)
+	{
+		var marked = Grammar("count", "end");
+		var counts = new List<string>();
+
+		foreach (var (direct, tape, buffered) in Readings)
+		{
+			var read    = Build(marked, direct, tape, buffered, lexical: false, out _);
+			var written = Unchecked(() => Build(marked, direct, tape, buffered, lexical: false, out _));
+			var ended   = Answer(written, input, typeof(string));
+			var asked   = Calls(written);
+			var answer  = Answer(read, input, typeof(string));
+
+			Assert.StartsWith("ok@", answer, StringComparison.Ordinal);
+
+			counts.Add($"{(direct ? "direct" : "engine")}/{(tape ? "tape" : "immediate")}/{(buffered ? "view" : "span")}: {Calls(read)} (as written {(ended == "LOOP" ? "LOOP" : asked)})");
+
+			if (once > 0)
+				Assert.Equal(once, Calls(read));
+		}
+
+		Console.WriteLine($"calls \"{input}\": " + string.Join("; ", counts));
+
+		static int Calls(Assembly parser)
+		{
+			return (int)parser.GetType("Probe")!.GetMethod("Calls")!.Invoke(null, null)!;
+		}
 	}
 
 	/// <summary>
@@ -407,8 +672,9 @@ public sealed class StandingRecursionOrderTests
 
 		told = result.Diagnostics;
 
-		// GRAM5004 is what the lexical rows are about.
-		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id is not (GramCompiler.BufferedUnsupported or GramCompiler.NotCut)));
+		// GRAM5004 is what the lexical rows are about, and GRAM4016 is said of a choice beside brackets that one of the
+		// shapes has on purpose.
+		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id is not (GramCompiler.BufferedUnsupported or GramCompiler.NotCut or "GRAM4016")));
 
 		// A grammar without the recognizer gets no input view over tokens, and needs none.
 		var host = !grammar.Contains("@Ws", StringComparison.Ordinal) ? Counter + Reports : buffered ? ViewHost : SpanHost;
