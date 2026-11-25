@@ -158,6 +158,7 @@ static class DiagnosticCatalog
 		["GRAM4063"] = new("A binding and its reference on two sides of a constructing group", GramSeverity.Error),
 		["GRAM4064"] = new("A binding in a step of a left-recursive rule, or around its leading call to itself", GramSeverity.Error),
 		["GRAM4065"] = new("A piece of grammar, a group or an operator, written where a value goes", GramSeverity.Error),
+		["GRAM4066"] = new("A rule comes back to itself past a prefix that may succeed without moving, and is no left recursion without it", GramSeverity.Warning),
 		["GRAM5001"] = new("A publication gets no overload taking a reader, or, in a grammar that names eos, reads its segments whole", GramSeverity.Info),
 		["GRAM5002"] = new("A repetition can begin with the same input as what follows it", GramSeverity.Info),
 		["GRAM5003"] = new("A generated method is left past the size at which the JIT stops optimizing it", GramSeverity.Warning),
