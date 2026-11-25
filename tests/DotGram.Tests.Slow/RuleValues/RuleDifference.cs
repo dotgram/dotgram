@@ -62,19 +62,4 @@ static class RuleDifference
 	{
 		return difference is RefusedNow or ValueChanged or WarnOnly;
 	}
-
-	/// <summary>A short name for a class, for a column.</summary>
-	public static string Short(string difference)
-	{
-		return difference switch
-		{
-			Same         => "same",
-			Relaxed      => "relax",
-			RefusedNow   => "REFUSE",
-			ValueChanged => "CHANGE",
-			WarnOnly     => "warn",
-			ErrorToError => "err",
-			_            => throw new ArgumentOutOfRangeException(nameof(difference)),
-		};
-	}
 }

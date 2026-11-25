@@ -107,6 +107,14 @@ public sealed class RuleValueGateTests
 				jobs.Add(new Job(shape, printed, mode, "G" + jobs.Count.ToString("D6", CultureInfo.InvariantCulture)));
 		}
 
+		// Jobs by their class number, for going back to a batch: "19136-19199,4480-4543".
+		if (Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES_JOBS") is { } ranges)
+		{
+			var keep = ranges.Split(',').Select(static r => r.Split('-')).Select(static r => (From: int.Parse(r[0], CultureInfo.InvariantCulture), To: int.Parse(r[1], CultureInfo.InvariantCulture))).ToList();
+
+			jobs.RemoveAll(j => !keep.Any(r => int.Parse(j.ClassName.AsSpan(1), CultureInfo.InvariantCulture) is var n && n >= r.From && n <= r.To));
+		}
+
 		var size     = Number("DOTGRAM_RULEVALUES_BATCH", 64);
 		var parallel = Number("DOTGRAM_RULEVALUES_PARALLEL", Math.Max(1, Environment.ProcessorCount / 2));
 		var batches  = jobs.Chunk(size).ToList();
@@ -114,12 +122,26 @@ public sealed class RuleValueGateTests
 		var package  = GeneratorSide.PackageSide.Value;
 		var failures = new ConcurrentBag<string>();
 
+		// What is running, so that a run the process does not survive (a parser that overflows its stack) says where.
+		using var progress = new StreamWriter(Path.Combine(output, "progress.log")) { AutoFlush = true };
+
+		void Log(string line)
+		{
+			lock (progress)
+				progress.WriteLine(line);
+		}
+
+		RuleRunner.Trace = Log;
+
 		Parallel.ForEach(batches, new ParallelOptions { MaxDegreeOfParallelism = parallel }, batch =>
 		{
 			try
 			{
+				Log("start " + batch[0].ClassName + " " + batch[0].Shape.Id);
 				RuleRunner.Run(batch, package);
+				Log("package " + batch[0].ClassName);
 				RuleRunner.Run(batch, GeneratorSide.HeadSide);
+				Log("done " + batch[0].ClassName);
 			}
 			catch (Exception e)
 			{
@@ -193,7 +215,7 @@ public sealed class RuleValueGateTests
 
 		var summary = new StringBuilder();
 
-		summary.Append(CultureInfo.InvariantCulture, $"shapes {jobs.Count / 3}, jobs {jobs.Count}, cells {counts.Values.Sum()}, batches {batches}, ");
+		summary.Append(CultureInfo.InvariantCulture, $"shapes {jobs.Select(static j => j.Shape).Distinct().Count()}, jobs {jobs.Count}, cells {counts.Values.Sum()}, batches {batches}, ");
 		summary.Append(CultureInfo.InvariantCulture, $"seed {seed}, elapsed {elapsed.TotalSeconds:F0} s, ");
 		summary.Append(CultureInfo.InvariantCulture, $"whole-batch crashes {RuleRunner.WholeBatchCrashes}, unattributed errors {RuleRunner.Unattributed}, head warns new {newWarn}\n");
 		summary.Append(CultureInfo.InvariantCulture, $"the bounded enumeration: core {RuleShapes.Core().Count()}, deviations {RuleShapes.Deviations().Count()}, atoms {RuleShapes.Atoms().Count()}\n\n");
@@ -220,7 +242,10 @@ public sealed class RuleValueGateTests
 
 		foreach (var (label, shape) in Landmarks)
 		{
-			var job = jobs.First(j => j.Shape == shape && j.Mode == Mode.D);
+			var job = jobs.FirstOrDefault(j => j.Shape == shape && j.Mode == Mode.D);
+
+			if (job is null)
+				continue;
 
 			for (var r = 0; r < job.Printed.Routes.Length; r++)
 				summary.Append(label).Append('\t').Append(job.Printed.Routes[r].Input).Append('\t')

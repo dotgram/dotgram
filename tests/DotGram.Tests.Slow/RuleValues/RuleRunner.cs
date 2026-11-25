@@ -133,6 +133,9 @@ static class RuleRunner
 	/// <summary>Diagnostics that could not be given to a job (no location in a job's tree).</summary>
 	public static int Unattributed;
 
+	/// <summary>Told the class of each job before its parser runs.</summary>
+	public static Action<string>? Trace;
+
 	/// <summary>Compiles and runs the batch with the side's generator, and stores the outcomes on the jobs.</summary>
 	public static void Run(IReadOnlyList<Job> batch, GeneratorSide side)
 	{
@@ -154,6 +157,8 @@ static class RuleRunner
 			static job => job);
 
 		var compilation = CSharpCompilation.Create("RuleValues" + Guid.NewGuid().ToString("N"), trees.Keys, References, Options);
+
+		Trace?.Invoke("generate " + side.Name + " " + batch[0].ClassName + "-" + batch[^1].ClassName);
 
 		var run = CSharpGeneratorDriver
 			.Create([side.Create()], parseOptions: Parse)
@@ -255,6 +260,8 @@ static class RuleRunner
 
 		using var image = new MemoryStream();
 
+		Trace?.Invoke("emit " + side.Name + " " + batch[0].ClassName + "-" + batch[^1].ClassName);
+
 		for (var round = 0; ; round++)
 		{
 			image.SetLength(0);
@@ -293,7 +300,10 @@ static class RuleRunner
 
 		var context = new AssemblyLoadContext("RuleValues", isCollectible: true);
 
-		try
+		// The parsers run on a thread of their own that ends before the context is unloaded: what they write keeps
+		// thread-static pools, and those of an unloaded assembly left on a pool thread brought the process down in the
+		// garbage collector (SIGSEGV, .NET 10.0.15) within a minute of a parallel run.
+		var thread = new System.Threading.Thread(() =>
 		{
 			image.Position = 0;
 
@@ -304,13 +314,18 @@ static class RuleRunner
 				var type  = assembly.GetType(job.ClassName)!;
 				var shown = string.Join(",", warnings[job]);
 
-				result[job] = [.. job.Printed.Routes.Select(route => Invoke(type, job.Mode, route.Input, shown))];
+				Trace?.Invoke("run " + side.Name + " " + job.ClassName + " " + job.Mode + " " + job.Shape.Id);
+
+				var outcomes = job.Printed.Routes.Select(route => Invoke(type, job.Mode, route.Input, shown)).ToArray();
+
+				lock (result)
+					result[job] = outcomes;
 			}
-		}
-		finally
-		{
-			context.Unload();
-		}
+		}, 64 * 1024 * 1024);
+
+		thread.Start();
+		thread.Join();
+		context.Unload();
 
 		return result;
 	}
