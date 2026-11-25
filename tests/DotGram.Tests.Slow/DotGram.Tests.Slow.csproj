@@ -46,6 +46,15 @@
 		                  OutputItemType="AnalyzerReference" ReferenceOutputAssembly="true" />
 	</ItemGroup>
 
+	<!-- The rule-value gate (RuleValues/) compiles every grammar it writes with this build's generator and with the
+	     published DotGram 0.3.0, whose generator is taken from the NuGet cache and loaded into a load context of its
+	     own. Downloaded, not referenced: nothing of the package is compiled into or run over this project. -->
+	<ItemGroup>
+		<PackageDownload Include="DotGram" Version="[0.3.0]" />
+		<None Include="$(NuGetPackageRoot)dotgram/0.3.0/analyzers/dotnet/cs/DotGram.dll"
+		      Link="DotGram030/DotGram.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+
 	<!-- Written once, in DotGram.Tests, and read by both: the compiler of emitted code, the
 	     shapes and the record of their refusals, which DotGram.Tests holds a sample of. -->
 	<ItemGroup>
