@@ -881,7 +881,7 @@ sealed partial class GrammarNormalizer
 	static string ContextNameMessage(string what)
 	{
 		return $"'context' is the name the generated parser gives the grammar's context (docs/syntax.md §7.7), which this grammar " +
-			$"declares, and the C# of this rule writes it, so {what} may not take it.";
+			$"declares, and the code of this rule writes it, so {what} may not take it.";
 	}
 
 	/// <summary>
