@@ -2,4 +2,6 @@
 
 Added: the head of a query may be written `from o in orders` as well as `from orders o` and `from orders as o`, and `orderby`, `ascending` and `descending` are read as `order by`, `asc` and `desc`. An alias written without `as` can no longer be `in`, `join`, `left` or `on`.
 
+Added: `*` is an item of a `select` list (`select 1 as one, *, total`): the columns of the row as it stands, with the `let`s; a column written by name takes the place of the field of that name. `select *` after a `let` now returns the `let`s too.
+
 Changed: the JSON of `Describe(text).ToJson()` opens with `"status":"started"` and closes with `"result":"completed"`, as the document of the rows does; it opened with `"status":"ok"` and had no `result`. The refusal document is unchanged.

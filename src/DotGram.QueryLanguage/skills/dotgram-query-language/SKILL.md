@@ -122,7 +122,8 @@ catch (QlException e)          // the text or a value: the client's error
   every source has a name: its alias or the entity's name. `orderby` is `order by`, `ascending` is `asc`,
   `descending` is `desc`. Then any number of `where`, `let n = …`, `select`, `order by`, `skip`, `take`,
   in any order; each is applied where it is written. `select` replaces the row: after it, only its
-  columns can be named.
+  columns can be named. `*` in the list is the projection of the last method (the row's columns, once);
+  a column written by name wins over the field of the same name that `*` would give.
 - C# operators: `==` `!=` `<` `<=` `>` `>=` `&&` `||` `!` `+` `-` `*` `/` `%`; and `in (…)`, `in @list`,
   `between … and …`, `is [not] null`, `like` (the host's LIKE, above), each with `not`. Write
   `!(a == b)` or `(!a) == b`: `!a == b` without brackets is refused.

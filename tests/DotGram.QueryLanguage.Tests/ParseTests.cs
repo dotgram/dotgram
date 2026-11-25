@@ -125,6 +125,18 @@ public sealed class ParseTests
 	}
 
 	[Fact]
+	public void StarIsAnItemOfTheSelectList()
+	{
+		var items = ((SelectClause)Read("from orders select 1 as one, *, total").Clauses[0]).Items!;
+
+		Assert.Equal(3, items.Length);
+		Assert.IsType<StarExpr>(items[1].Value);
+		Assert.Null(((SelectClause)Read("from orders select *").Clauses[0]).Items);
+		Assert.Equal(2, ((SelectClause)Read("from orders select *, *").Clauses[0]).Items!.Length);
+		Assert.IsType<BinaryExpr>(((SelectClause)Read("from orders select a * b as c").Clauses[0]).Items![0].Value);
+	}
+
+	[Fact]
 	public void AnAliasWithoutAsIsNeverAClauseWord()
 	{
 		var query = Read("from orders order by id");

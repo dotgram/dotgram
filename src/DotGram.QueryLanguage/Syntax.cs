@@ -494,6 +494,11 @@ sealed class OrderClause : ClauseSyntax
 	public OrderItemSyntax[] Items { get; }
 }
 
+/// <summary>The <c>*</c> of a <c>select</c> list: the columns of the row as it stands.</summary>
+sealed class StarExpr(int position) : ExprSyntax(position)
+{
+}
+
 sealed class SelectItemSyntax(ExprSyntax value, NameSyntax? alias)
 {
 	public ExprSyntax  Value { get; } = value;
@@ -559,6 +564,12 @@ sealed class HeadSyntax(NameSyntax? root, NameSyntax? alias)
 /// <summary>The constructions the grammar calls where a node is not made by its constructor alone.</summary>
 static class Nodes
 {
+	/// <summary>The list of a <c>select</c>; a lone <c>*</c> is no list at all, as the one <c>select *</c> has always been.</summary>
+	public static SelectItemSyntax[]? Items(SelectItemSyntax[] items)
+	{
+		return items.Length == 1 && items[0].Value is StarExpr ? null : items;
+	}
+
 	public static QuerySyntax Query(NameSyntax first, HeadSyntax? head, ClauseSyntax[] clauses)
 	{
 		return head?.Root is { } root ? new QuerySyntax(root, first, clauses) : new QuerySyntax(first, head?.Alias, clauses);

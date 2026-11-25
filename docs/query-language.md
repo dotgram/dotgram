@@ -83,10 +83,16 @@ select id, status, net
   | --- | --- |
   | `where <condition>` | keeps the rows where the condition is true |
   | `let <name> = <value>` | adds a named value to the row |
-  | `select <value> [as <name>], …` or `select *` | replaces the row with these columns; after it only they can be named |
+  | `select <value> [as <name>], …` | replaces the row with these columns; after it only they can be named |
   | `order by <value> [asc \| desc] [nulls first \| nulls last], …` | sorts; a second `order by` sorts again; `orderby` is `order by`, `ascending` is `asc` and `descending` is `desc` |
   | `skip <count>`, `take <count>` | pages, where the query's paging belongs; a count is a number or a parameter |
 
+- **`*`** — the projection of the last method — is an item of a `select` list like any other: it
+  stands for the columns of the row as it stands, the entity's fields with Select, then the `let`s
+  after the head, or the columns of the last `select`, then its `let`s. `select 1 as one, *, total` is one
+  column, the fields, then `total`. It stands once in a list; `select *` alone returns the row as it is. A
+  name the list writes itself wins over the field `*` would give: that field is left out, and the written
+  column keeps its place. A column that is not a name still needs `as`.
 - **Values**: the entity's fields, by name or after the alias (`o.total`); names of `let`s and
   `select` columns; parameters `@name`; numbers, which take the type of what they meet (`total > 1.5`);
   strings in `'…'` or `"…"` with the escapes `\\`, `\'`, `\"` and `\uXXXX`; `true`, `false`, `null`;

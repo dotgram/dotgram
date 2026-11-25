@@ -204,67 +204,99 @@ sealed partial class Binder
 
 	BoundClause BindSelect(SelectClause select)
 	{
-		var before  = _shape;
-		var columns = new List<Column>();
-		var names   = new HashSet<string>(Names.Comparer);
+		var before = _shape;
+		var items  = select.Items ?? [new SelectItemSyntax(new StarExpr(select.Position), null)];
+		var names  = new HashSet<string>(Names.Comparer);
+		var slots  = new List<Column>?[items.Length];
+		var star   = -1;
 
-		if (select.Items is null)
+		for (var i = 0; i < items.Length; i++)
 		{
-			// `*`: the columns of the row as it stands — the fields with Select before any `select`, the columns
-			// of the last one after it.
+			if (items[i].Value is not StarExpr)
+				continue;
+
+			if (star >= 0)
+				throw Error(QlErrorCode.Syntax, "`*` stands once in a `select`.", items[i].Value.Position);
+
+			star = i;
+		}
+
+		var aggregates = items.Count(i => i.Value is CallExpr call && Aggregates.Is(call.Name.Text));
+
+		if (aggregates > 0 && star >= 0)
+			throw Error(QlErrorCode.Type, "`*` is not aggregated: with an aggregate, every column of a `select` is one (group by comes later).", items[star].Value.Position);
+
+		if (aggregates > 0 && aggregates < items.Length)
+		{
+			var plain = items.First(i => !(i.Value is CallExpr call && Aggregates.Is(call.Name.Text)));
+
+			throw Error(QlErrorCode.Type, $"`{Describe(plain.Value)}` is not aggregated: with an aggregate, every column of a `select` is one (group by comes later).", plain.Value.Position);
+		}
+
+		for (var i = 0; i < items.Length; i++)
+		{
+			var item = items[i];
+
+			if (i == star)
+				continue;
+
+			var mark  = _expansion;
+			var value = aggregates > 0 ? BindAggregate((CallExpr)item.Value) : BindValue(item.Value, null);
+			var name  = item.Alias?.Text ?? DefaultName(item.Value);
+
+			if (name is null)
+				throw Error(QlErrorCode.Syntax, $"Name this column: `{Describe(item.Value)} as x`.", Start(item.Value));
+
+			if (!names.Add(name))
+				throw Error(QlErrorCode.Syntax, $"`{name}` names two columns of this `select`: rename one with `as`.", item.Alias?.Position ?? Start(item.Value));
+
+			slots[i] = [new Column(name, item.Alias?.Position ?? Start(item.Value), value) { Expanded = Saturated(item.Value.Size + _expansion - mark) }];
+		}
+
+		if (star >= 0)
+		{
+			// `*`: the columns of the row as it stands, the projection of the last clause that made one — the fields
+			// with Select before any `select`, then the `let`s and the columns of the last `select`. A name a column
+			// of the list already has is left out here: the column written stays where it is written.
+			var at       = items[star].Value.Position;
+			var expanded = new List<Column>();
+
 			if (_selectAt is null)
 			{
 				// A field the rest of the text uses without its right is left out, so that naming it later fails as a
 				// name the `*` never gave: as a field the model does not have would.
 				foreach (var field in _entity.Fields)
 					if ((field.Use & QlUse.Select) != 0 && (!_star.TryGetValue((select, field.Name), out var needs) || (field.Use & needs) == needs))
-						columns.Add(new Column(field.Name, select.Position, new BoundField(field, field.Name, select.Position, null)));
+						expanded.Add(new Column(field.Name, at, new BoundField(field, field.Name, at, null)));
 			}
-			else
+
+			foreach (var column in _shape.Columns)
 			{
-				foreach (var column in _finalColumns!)
-				{
-					columns.Add(new Column(column.Name, select.Position, new BoundColumn(column, select.Position)) { Expanded = column.Expanded });
-
-					_expansion = Saturated(_expansion + column.Expanded);
-				}
+				// A `let` of a field's name hides the field, as everywhere else.
+				expanded.RemoveAll(c => Names.Comparer.Equals(c.Name, column.Name));
+				expanded.Add(new Column(column.Name, at, new BoundColumn(column, at)) { Expanded = column.Expanded });
 			}
 
-			if (columns.Count == 0)
-				throw Error(QlErrorCode.Type, $"`{_entity.Name}` has no fields to return.", select.Position);
+			expanded.RemoveAll(c => names.Contains(c.Name));
 
-			if (columns.Count > _options.MaxColumns)
-				throw Error(QlErrorCode.Limit, $"`*` names more than {_options.MaxColumns} columns: list them.", select.Position);
-
-			foreach (var column in columns)
+			foreach (var column in expanded)
+			{
 				names.Add(column.Name);
-		}
-		else
-		{
-			var aggregates = select.Items.Count(i => i.Value is CallExpr call && Aggregates.Is(call.Name.Text));
 
-			if (aggregates > 0 && aggregates < select.Items.Length)
-			{
-				var plain = select.Items.First(i => !(i.Value is CallExpr call && Aggregates.Is(call.Name.Text)));
-
-				throw Error(QlErrorCode.Type, $"`{Describe(plain.Value)}` is not aggregated: with an aggregate, every column of a `select` is one (group by comes later).", plain.Value.Position);
+				if (column.Value is BoundColumn)
+					_expansion = Saturated(_expansion + column.Expanded);
 			}
 
-			foreach (var item in select.Items)
-			{
-				var mark  = _expansion;
-				var value = aggregates > 0 ? BindAggregate((CallExpr)item.Value) : BindValue(item.Value, null);
-				var name  = item.Alias?.Text ?? DefaultName(item.Value);
+			if (expanded.Count == 0 && items.Length == 1)
+				throw Error(QlErrorCode.Type, $"`{_entity.Name}` has no fields to return.", at);
 
-				if (name is null)
-					throw Error(QlErrorCode.Syntax, $"Name this column: `{Describe(item.Value)} as x`.", Start(item.Value));
+			slots[star] = expanded;
 
-				if (!names.Add(name))
-					throw Error(QlErrorCode.Syntax, $"`{name}` names two columns of this `select`: rename one with `as`.", item.Alias?.Position ?? Start(item.Value));
-
-				columns.Add(new Column(name, item.Alias?.Position ?? Start(item.Value), value) { Expanded = Saturated(item.Value.Size + _expansion - mark) });
-			}
+			if (slots.Sum(s => s?.Count ?? 0) > _options.MaxColumns)
+				throw Error(QlErrorCode.Limit, $"`*` names more than {_options.MaxColumns} columns: list them.", at);
 		}
+
+		var columns = slots.SelectMany(s => s ?? []).ToList();
 
 		CheckSlots(columns, select.Position);
 

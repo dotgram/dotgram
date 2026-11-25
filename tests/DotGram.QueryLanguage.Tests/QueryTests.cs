@@ -51,6 +51,20 @@ public sealed class QueryTests(Databases databases)
 
 	[Theory]
 	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
+	public void StarInAListSpreadsTheRowBesideTheOtherItems(string provider)
+	{
+		var rows = Run(provider, "from orders order by id select 1 as one, *, total");
+
+		Assert.Equal(20, rows.Count);
+		Assert.Equal(19, rows[0].Length);
+		Assert.Equal(1, rows[0][0]);
+		Assert.Equal(1, rows[0][1]);
+		Assert.Equal(12.5m, rows[0][^1]);
+		Assert.Equal(Mine.OrderBy(o => o.Id).Select(o => (object?)o.Total), rows.Select(r => r[^1]));
+	}
+
+	[Theory]
+	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
 	public void TheSourceChoosesTheRows(string provider)
 	{
 		Assert.Equal(Enumerable.Range(21, 20), Run(provider, "from orders order by id select id", tenant: 2).First<int>());

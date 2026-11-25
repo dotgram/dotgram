@@ -61,9 +61,9 @@ Clause : @ClauseSyntax on fail "Expected an operator, or the next clause: `where
 	| "skip"i   & c: Count                 => @(new PageClause(true, c, parserSpan.Start))
 	| "take"i   & c: Count                 => @(new PageClause(false, c, parserSpan.Start))
 
-SelectBody : @SelectItemSyntax[] = '*' => @(null!) | items: SelectItems => @(items)
+SelectBody : @SelectItemSyntax[] = items: SelectItems => @(Nodes.Items(items)!)
 SelectItems : SelectItem[]       = SelectItem & (',' & SelectItem)*
-SelectItem  : @SelectItemSyntax  = e: Expr & alias: As? => @(new SelectItemSyntax(e, alias))
+SelectItem  : @SelectItemSyntax  = '*' => @(new SelectItemSyntax(new StarExpr(parserSpan.Start), null)) | e: Expr & alias: As? => @(new SelectItemSyntax(e, alias))
 As          : @NameSyntax        = "as"i & n: Name => @(n)
 
 OrderItems : OrderItem[]        = OrderItem & (',' & OrderItem)*
