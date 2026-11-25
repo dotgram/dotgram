@@ -1904,17 +1904,19 @@ sealed partial class Machine
 		return helper.ToString();
 	}
 
+	/// <summary>How many recognizers asked whether they stand this machine has written, for the locals that hold their copies.</summary>
+	int _stills;
+
 	/// <param name="value">
 	/// What the value is written to: <c>_</c> for none wanted, or a declaration, for which
 	/// <paramref name="valueType"/> is the type the method hands back.
 	/// </param>
 	/// <remarks>
 	/// Called through a method of the generated class (<see cref="CSharpEmitter.HostCall"/>), which
-	/// the parameters of this reader cannot hide.
+	/// the parameters of this reader cannot hide. A recognizer asked whether it stands
+	/// (<see cref="Node.External.Stands"/>) is read from a copy of the position and compared with
+	/// it, and consumes nothing either way.
 	/// </remarks>
-	/// <summary>How many recognizers asked whether they stand this machine has written, for the locals that hold their copies.</summary>
-	int _stills;
-
 	string ExternalCall(Node.External external, string position, string? value = null, string? valueType = null)
 	{
 		// Read from a copy of the position, and taken only where it is where it was: consumes nothing.
