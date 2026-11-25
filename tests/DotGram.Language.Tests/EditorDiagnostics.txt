@@ -529,6 +529,9 @@ parse E
 A : @int = ['0'..'9']+ => @int.Parse(parserText)
 R : @int = l: A & r: A => (l & r)
 parse R
+=== GRAM4066
+A = 'a' | @Still & A & '+' & A
+parse A
 === GRAM5001
 A = 'a' & any* & 'b'
 find A
