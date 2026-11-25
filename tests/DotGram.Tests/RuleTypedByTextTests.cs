@@ -614,6 +614,8 @@ public sealed class RuleTypedByTextTests
 	/// <summary>A rule that takes the type of a text rule asks the same of its names as one that declares it.</summary>
 	[Theory]
 	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num\\nBare : @string = ['a'..'z']+\\n", "a123,de", "ccc")]
+	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num & when @(count > 0)\\nBare : @string = ['a'..'z']+\\n", "a123,de", "ccc")]
+	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num & Bare\\nBare : @string = ['a'..'z']+\\n", "a123xy,de", "ccc")]
 	public void A_rule_typed_by_a_text_rule_asks_the_constructor(string grammar, string input, string expected)
 	{
 		var type = GeneratorDriverTests.Build(

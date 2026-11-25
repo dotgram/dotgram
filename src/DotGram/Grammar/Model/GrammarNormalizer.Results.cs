@@ -746,14 +746,19 @@ sealed partial class GrammarNormalizer
 			if (alternatives.Any(static alternative => alternative is Node.Construct))
 				continue;
 
+			// One question, asked once and before any outcome is chosen: do the names fill a constructor of the taken
+			// text type (§7.3)? If so the rule is built by it, as the same rule declared ': @string' is, whatever the
+			// rule holds besides: a guard, a mark or a switch reading the names, or a text operand that builds nothing.
+			// An operand that builds a value is the value, as it always was.
+			if (_language.Classify(type, out _) == KnownType.Text && ReadByConstruction(_bodies[rule], type) &&
+				!NodeWalk.Descendants(_bodies[rule]).Any(node =>
+					node is Node.Call(var called, _) && Fits(node, type, declared: true) && BuildsValue(called)))
+				continue;
+
 			var ways = alternatives.Select(alternative => Operands(alternative, type, null, out _)).ToList();
 
 			switch (Decide(rule, type, alternatives.Count, ways))
 			{
-				// No operand gives the value, but the names may fill a constructor of the taken type (§7.3): they are read.
-				case PassOutcome.Extent when ReadByConstruction(_bodies[rule], type):
-					break;
-
 				case PassOutcome.Extent:
 					extents.Add(rule);
 
