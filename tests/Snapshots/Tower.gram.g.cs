@@ -3192,28 +3192,24 @@ namespace DotGram.Snapshots
 			internal int Worded;
 		}
 
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static bool Counting_DotGram(global::System.Collections.Generic.List<string[]> more)
 		{
-			if (!(more is TieList_DotGram list))
+			if (more.Count < TiesCounted_DotGram || !(more is TieList_DotGram list))
 				return false;
-
-			if (list.Count == 0)
-			{
-				list.Counted = false;
-
-				return false;
-			}
 
 			if (list.Counted)
 				return true;
 
-			if (list.Count < TiesCounted_DotGram)
-				return false;
+			return Count_DotGram(list);
+		}
 
+		private static bool Count_DotGram(TieList_DotGram list)
+		{
 			var held = list.Held ??= new global::System.Collections.Generic.Dictionary<string[], int>();
 
 			held.Clear();
-			list.Worded  = 0;
+			list.Worded = 0;
 			list.Counted = true;
 
 			foreach (var one in list)
@@ -3239,6 +3235,7 @@ namespace DotGram.Snapshots
 				list.Worded += by;
 		}
 
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static bool HoldsTie_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
 		{
 			if (Counting_DotGram(more))
@@ -3247,6 +3244,7 @@ namespace DotGram.Snapshots
 			return more.Contains(set);
 		}
 
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static void Added_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
 		{
 			if (more is TieList_DotGram { Counted: true } list)
@@ -3275,6 +3273,17 @@ namespace DotGram.Snapshots
 					Tally_DotGram(list, list[at], -1);
 
 			more.RemoveRange(from, more.Count - from);
+		}
+
+		private static void Untie_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
+		{
+			if (Counting_DotGram(more) && !((TieList_DotGram)more).Held!.ContainsKey(set))
+				return;
+
+			var at = more.IndexOf(set);
+
+			if (at >= 0)
+				Removed_DotGram(more, at);
 		}
 
 		static bool Spoke_DotGram(string[]? expected)
@@ -3853,8 +3862,8 @@ namespace DotGram.Snapshots
 
 				var tied = failure.ExpectedMore;
 
-				if (tied != null && HoldsTie_DotGram(tied, covered))
-					Removed_DotGram(tied, tied.IndexOf(covered));
+				if (tied != null)
+					Untie_DotGram(tied, covered);
 			}
 
 			Refuse_DotGram(ref failure, at, expected);

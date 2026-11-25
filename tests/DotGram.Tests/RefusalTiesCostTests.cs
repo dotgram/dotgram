@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar;
 using DotGram.Language;
@@ -262,6 +264,36 @@ public sealed class RefusalTiesCostTests
 
 		foreach (var (set, times) in held)
 			Assert.Equal(sets.Count(one => ReferenceEquals(one, set)), times);
+	}
+
+	/// <summary>
+	/// The count a long list keeps is right only while every set added to it or taken out of it, but by
+	/// <c>Clear</c>, goes through the support's three helpers. Nothing else in what the generator writes,
+	/// in its emitters or in the files it wrote for the snapshots, adds to the list of ties or takes from it.
+	/// </summary>
+	[Fact]
+	public void Only_the_helpers_change_the_list_of_ties()
+	{
+		var root    = Path.GetDirectoryName(Path.GetDirectoryName(SnapshotTests.Directory)!)!;
+		var changes = new Regex(@"\b(more|tied|ties|ExpectedMore)\??\.(Add|AddRange|Insert|InsertRange|Remove|RemoveAt|RemoveRange|RemoveAll|Reverse|Sort)\(|\b(more|tied|ties)\[[^\]]+\]\s*=[^=]");
+
+		string[] helpers = ["more.Add(set);", "more.RemoveAt(at);", "more.RemoveRange(from, more.Count - from);"];
+
+		var files = Directory.GetFiles(Path.Combine(root, "src", "DotGram", "Grammar", "Emit"), "*.cs")
+			.Concat(Directory.GetFiles(SnapshotTests.Directory, "*.g.cs"));
+
+		var found = new List<string>();
+
+		foreach (var file in files)
+		{
+			var lines = File.ReadAllLines(file);
+
+			for (var at = 0; at < lines.Length; at++)
+				if (changes.IsMatch(lines[at]) && !helpers.Contains(lines[at].Trim()))
+					found.Add($"{Path.GetFileName(file)}:{at + 1}: {lines[at].Trim()}");
+		}
+
+		Assert.True(found.Count == 0, "the list of ties changed outside Added_DotGram, Removed_DotGram and Untied_DotGram:\n" + string.Join("\n", found));
 	}
 
 	static readonly ConcurrentDictionary<(string, bool), Type> Built = new();

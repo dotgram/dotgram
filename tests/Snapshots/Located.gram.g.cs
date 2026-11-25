@@ -1435,32 +1435,25 @@ namespace DotGram.Snapshots
 			internal bool Counted;
 
 			internal global::System.Collections.Generic.Dictionary<string[], int>? Held;
-
-			internal int Worded;
 		}
 
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static bool Counting_DotGram(global::System.Collections.Generic.List<string[]> more)
 		{
-			if (!(more is TieList_DotGram list))
+			if (more.Count < TiesCounted_DotGram || !(more is TieList_DotGram list))
 				return false;
-
-			if (list.Count == 0)
-			{
-				list.Counted = false;
-
-				return false;
-			}
 
 			if (list.Counted)
 				return true;
 
-			if (list.Count < TiesCounted_DotGram)
-				return false;
+			return Count_DotGram(list);
+		}
 
+		private static bool Count_DotGram(TieList_DotGram list)
+		{
 			var held = list.Held ??= new global::System.Collections.Generic.Dictionary<string[], int>();
 
 			held.Clear();
-			list.Worded  = 0;
 			list.Counted = true;
 
 			foreach (var one in list)
@@ -1481,11 +1474,9 @@ namespace DotGram.Snapshots
 				held.Remove(set);
 			else
 				held[set] = times;
-
-			if (Spoke_DotGram(set))
-				list.Worded += by;
 		}
 
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static bool HoldsTie_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
 		{
 			if (Counting_DotGram(more))
@@ -1494,6 +1485,7 @@ namespace DotGram.Snapshots
 			return more.Contains(set);
 		}
 
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static void Added_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
 		{
 			if (more is TieList_DotGram { Counted: true } list)
@@ -1513,16 +1505,6 @@ namespace DotGram.Snapshots
 				Tally_DotGram(list, list[at], -1);
 
 			more.RemoveAt(at);
-		}
-
-		static bool Spoke_DotGram(string[]? expected)
-		{
-			if (expected != null)
-				foreach (var one in expected)
-					if (one.Length > 0 && one[0] == '\u0000')
-						return true;
-
-			return false;
 		}
 
 		private static void Tie_DotGram(ref Failure failure, string[] expected)

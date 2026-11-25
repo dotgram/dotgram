@@ -1258,7 +1258,7 @@ static partial class CSharpEmitter
 			// The thread's list for a reading's ties, where some machine writes ties at all.
 			if (moreField)
 			{
-				file.Write(Region(Region(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null), "counted", options.CountRules), "untied", machines.Exists(static compiled => compiled.Direct)));
+				file.Write(Region(Region(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null), "counted", options.CountRules), "direct", machines.Exists(static compiled => compiled.Direct)));
 				file.Line();
 			}
 

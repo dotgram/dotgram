@@ -1574,37 +1574,43 @@ static partial class CSharpEmitter
 		/// </remarks>
 		private sealed class TieList_DotGram : global::System.Collections.Generic.List<string[]>
 		{
-			/// <summary>Whether <see cref="Held"/> and <see cref="Worded"/> say what the list holds.</summary>
+			/// <summary>Whether what the list holds is counted (<see cref="Held"/>).</summary>
 			internal bool Counted;
 
 			/// <summary>How many times each set the list holds is in it, while it is counted.</summary>
 			internal global::System.Collections.Generic.Dictionary<string[], int>? Held;
+			// <direct>
 
 			/// <summary>How many of the sets in the list hold a rule's own words, while it is counted.</summary>
 			internal int Worded;
+			// </direct>
 		}
 
 		/// <summary>
 		/// Whether the list keeps count of what it holds: from the first question asked of it once it is
 		/// long, until it is found empty.
 		/// </summary>
+		/// <remarks>
+		/// A short list is searched, counted or not: the length is asked first, so that a refusal that
+		/// ties a few sets pays one comparison. A count left by a <c>Clear</c> it was not told of is
+		/// dropped by the next set added (<c>Added_DotGram</c>), before anything reads it.
+		/// </remarks>
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static bool Counting_DotGram(global::System.Collections.Generic.List<string[]> more)
 		{
-			if (!(more is TieList_DotGram list))
+			if (more.Count < TiesCounted_DotGram || !(more is TieList_DotGram list))
 				return false;
-
-			if (list.Count == 0)
-			{
-				list.Counted = false;
-
-				return false;
-			}
 
 			if (list.Counted)
 				return true;
 
-			if (list.Count < TiesCounted_DotGram)
-				return false;
+			return Count_DotGram(list);
+		}
+
+		/// <summary>Counts what a long list holds, the first time it is asked something.</summary>
+		private static bool Count_DotGram(TieList_DotGram list)
+		{
+			var held = list.Held ??= new global::System.Collections.Generic.Dictionary<string[], int>();
 			// <counted>
 
 			#if DOTGRAM_COUNTS
@@ -1612,10 +1618,10 @@ static partial class CSharpEmitter
 			#endif
 			// </counted>
 
-			var held = list.Held ??= new global::System.Collections.Generic.Dictionary<string[], int>();
-
 			held.Clear();
-			list.Worded  = 0;
+			// <direct>
+			list.Worded = 0;
+			// </direct>
 			list.Counted = true;
 
 			foreach (var one in list)
@@ -1637,12 +1643,15 @@ static partial class CSharpEmitter
 				held.Remove(set);
 			else
 				held[set] = times;
+			// <direct>
 
 			if (Spoke_DotGram(set))
 				list.Worded += by;
+			// </direct>
 		}
 
 		/// <summary>Whether the list holds the set.</summary>
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static bool HoldsTie_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
 		{
 			if (Counting_DotGram(more))
@@ -1658,6 +1667,7 @@ static partial class CSharpEmitter
 		}
 
 		/// <summary>Appends a set to the list, and counts it where the list is counted.</summary>
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		private static void Added_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
 		{
 			if (more is TieList_DotGram { Counted: true } list)
@@ -1679,7 +1689,7 @@ static partial class CSharpEmitter
 
 			more.RemoveAt(at);
 		}
-		// <untied>
+		// <direct>
 
 		/// <summary>Takes back the sets after the first so many, and out of the count where the list is counted.</summary>
 		private static void Untied_DotGram(global::System.Collections.Generic.List<string[]> more, int from)
@@ -1690,7 +1700,21 @@ static partial class CSharpEmitter
 
 			more.RemoveRange(from, more.Count - from);
 		}
-		// </untied>
+
+		/// <summary>
+		/// Takes the first of a set out of the list, where it holds one: by the count where the list is
+		/// counted, so that a set it does not hold is not searched for, and otherwise by one search.
+		/// </summary>
+		private static void Untie_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
+		{
+			if (Counting_DotGram(more) && !((TieList_DotGram)more).Held!.ContainsKey(set))
+				return;
+
+			var at = more.IndexOf(set);
+
+			if (at >= 0)
+				Removed_DotGram(more, at);
+		}
 
 		/// <summary>Whether a set holds a rule's own words for its refusal (§4's <c>on fail</c>).</summary>
 		static bool Spoke_DotGram(string[]? expected)
@@ -1702,6 +1726,7 @@ static partial class CSharpEmitter
 
 			return false;
 		}
+		// </direct>
 
 		/// <summary>
 		/// Records a set that tied for the furthest position: kept while the list holds fewer than the cap, then
@@ -4217,8 +4242,8 @@ static partial class CSharpEmitter
 
 				var tied = failure.ExpectedMore;
 
-				if (tied != null && HoldsTie_DotGram(tied, covered))
-					Removed_DotGram(tied, tied.IndexOf(covered));
+				if (tied != null)
+					Untie_DotGram(tied, covered);
 			}
 
 			Refuse_DotGram(ref failure, at, expected);
