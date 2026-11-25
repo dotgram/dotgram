@@ -7,11 +7,11 @@
 | Web | 171 | 137 (80.1 %) | 63 | 34 |
 | FIX | 5 | 5 (100.0 %) | 0 | 0 |
 | Expression language | 358 | 308 (86.0 %) | 98 | 50 |
-| Query language | 63 | 58 (92.1 %) | 16 | 5 |
+| Query language | 66 | 61 (92.4 %) | 15 | 5 |
 | CLI | 4 | 4 (100.0 %) | 2 | 0 |
 | Examples | 266 | 251 (94.4 %) | 100 | 15 |
 | Std | 8 | 0 (0.0 %) | 0 | 8 |
-| All | 4616 | 3886 (84.2 %) | 1049 | 730 |
+| All | 4619 | 3889 (84.2 %) | 1048 | 730 |
 
 | Form | Fragments holding it | Alone | Where |
 | --- | ---: | ---: | --- |
@@ -46,4 +46,4 @@
 | SwitchExpression | 1 | 0 | SQL standard 1 |
 | UnaryMinusExpression | 1 | 1 | Examples 1 |
 
-Verdicts: 737422b03fcff62b
+Verdicts: 1df05e72018f76d7
