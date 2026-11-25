@@ -15,7 +15,8 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// Expression grammars whose rules call themselves past a recognizer of the host that may succeed without moving
-/// (docs/syntax.md §7.2): which of several valid splits of the input such a rule answers, in every reading.
+/// (docs/syntax.md §7.2): which of several valid splits of the input such a rule answers, in every reading, and that it
+/// answers on every valid input.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,13 +26,14 @@ namespace DotGram.Tests;
 /// their value, and the sum of the two, which is the same however the input was split.
 /// </para>
 /// <para>
-/// <c>Today</c> is what the rule written with <c>@Ws &amp;</c> before its call back answers now: where several splits
-/// fit, the one with the fewest tails in the rule, a consequence of the order its alternatives are tried in rather
-/// than of anything the rule says. <c>Twin</c> is what the same rule without the recognizer answers, read as left
-/// recursion is (§4.3), as many tails in the rule as fit. Where the two differ, the answer depends on the order the
-/// cycle is read in; choosing the order of left recursion for the marked rule means writing <c>Twin</c> into
-/// <c>Today</c> on those rows and nothing else. A null <c>Today</c> is an input the marked rule goes round on and is not
-/// pinned; its recognizer counts its calls and throws past a bound no ending parse comes near, so it cannot hang a run.
+/// <c>V030</c> is what the rule written with <c>@Ws &amp;</c> before its call back answered in 0.3.0, compiled here as 0.3.0
+/// compiled it (<see cref="Reentry.Unchecked"/>): where several splits fit, the one with the fewest tails in the rule, a
+/// consequence of the order its alternatives are tried in rather than of anything the rule says, and where the parse has
+/// to give up on the recursive alternative, round for ever. <c>C1</c> is what it answers now: where the recognizer stands
+/// at the rule's entry, the rule is read as its twin, and where it moves, as written. <c>Twin</c> is what the same rule
+/// without the recognizer answers, read as left recursion is (§4.3), as many tails in the rule as fit. A null
+/// <c>V030</c> is an input the old reading goes round on and is not pinned; its recognizer counts its calls and throws past
+/// a bound no ending parse comes near, so it cannot hang a run.
 /// </para>
 /// </remarks>
 public sealed class StandingRecursionOrderTests
@@ -209,68 +211,69 @@ public sealed class StandingRecursionOrderTests
 	};
 
 	/// <summary>
-	/// Every input with what the marked rule answers today and what its twin answers; a null <c>Today</c> goes round.
+	/// Every input with what the marked rule answered in 0.3.0 (a null goes round), what it answers now, and what its twin
+	/// answers: the two agree except where the recognizer moves at the rule's entry (<c>" 1+1"</c>, <c>" 1"</c>).
 	/// </summary>
 	static readonly (string Family, string Grammar, string Input, string? V030, string C1, string Twin)[] Rows =
 	[
-		("calculator", "tail", "1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1"),
-		("calculator", "tail", "1+1", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
-		("calculator", "tail", "1+2+3", "ok@5 1 + [2: 5] = 6", "ok@5 6 + [0: 0] = 6", "ok@5 6 + [0: 0] = 6"),
-		("calculator", "tail", "12+3", "ok@4 12 + [1: 3] = 15", "ok@4 15 + [0: 0] = 15", "ok@4 15 + [0: 0] = 15"),
-		("calculator", "tail", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
-		("calculator", "tail", " 1", null, "no@2", "no@0"),
-		("calculator", "tail", "1+", null, "no@2", "no@2"),
-		("count", "tail", "1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1", "ok@1 1 + [0: 0] = 1"),
-		("count", "tail", "1+1", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
-		("count", "tail", "1+1+1", "ok@5 1 + [2: 2] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
-		("count", "tail", "12+3", "ok@4 1 + [1: 1] = 2", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2"),
-		("count", "tail", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
-		("count", "tail", "1+", null, "no@2", "no@2"),
+		("calculator", "tail",   "1",         "ok@1 1 + [0: 0] = 1",   "ok@1 1 + [0: 0] = 1",   "ok@1 1 + [0: 0] = 1"),
+		("calculator", "tail",   "1+1",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2",   "ok@3 2 + [0: 0] = 2"),
+		("calculator", "tail",   "1+2+3",     "ok@5 1 + [2: 5] = 6",   "ok@5 6 + [0: 0] = 6",   "ok@5 6 + [0: 0] = 6"),
+		("calculator", "tail",   "12+3",      "ok@4 12 + [1: 3] = 15", "ok@4 15 + [0: 0] = 15", "ok@4 15 + [0: 0] = 15"),
+		("calculator", "tail",   " 1+1",      "ok@4 2 + [0: 0] = 2",   "ok@4 2 + [0: 0] = 2",   "no@0"),
+		("calculator", "tail",   " 1",        null,                    "no@2",                  "no@0"),
+		("calculator", "tail",   "1+",        null,                    "no@2",                  "no@2"),
+		("count",      "tail",   "1",         "ok@1 1 + [0: 0] = 1",   "ok@1 1 + [0: 0] = 1",   "ok@1 1 + [0: 0] = 1"),
+		("count",      "tail",   "1+1",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2",   "ok@3 2 + [0: 0] = 2"),
+		("count",      "tail",   "1+1+1",     "ok@5 1 + [2: 2] = 3",   "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3"),
+		("count",      "tail",   "12+3",      "ok@4 1 + [1: 1] = 2",   "ok@4 2 + [0: 0] = 2",   "ok@4 2 + [0: 0] = 2"),
+		("count",      "tail",   " 1+1",      "ok@4 2 + [0: 0] = 2",   "ok@4 2 + [0: 0] = 2",   "no@0"),
+		("count",      "tail",   "1+",        null,                    "no@2",                  "no@2"),
 
-		("calculator", "end", "1+2+3", "ok@5 6 + [0: 0] = 6", "ok@5 6 + [0: 0] = 6", "ok@5 6 + [0: 0] = 6"),
-		("calculator", "end", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
-		("calculator", "end", "1+", null, "no@2", "no@2"),
-		("count", "end", "1+2+3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
-		("count", "end", " 1+1", "ok@4 2 + [0: 0] = 2", "ok@4 2 + [0: 0] = 2", "no@0"),
-		("count", "end", "1+", null, "no@2", "no@2"),
+		("calculator", "end",    "1+2+3",     "ok@5 6 + [0: 0] = 6",   "ok@5 6 + [0: 0] = 6",   "ok@5 6 + [0: 0] = 6"),
+		("calculator", "end",    " 1+1",      "ok@4 2 + [0: 0] = 2",   "ok@4 2 + [0: 0] = 2",   "no@0"),
+		("calculator", "end",    "1+",        null,                    "no@2",                  "no@2"),
+		("count",      "end",    "1+2+3",     "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3"),
+		("count",      "end",    " 1+1",      "ok@4 2 + [0: 0] = 2",   "ok@4 2 + [0: 0] = 2",   "no@0"),
+		("count",      "end",    "1+",        null,                    "no@2",                  "no@2"),
 
-		("calculator", "parens", "1+2", "ok@3 1 + [1: 2] = 3", "ok@3 3 + [0: 0] = 3", "ok@3 3 + [0: 0] = 3"),
-		("calculator", "parens", "(1+2)+3", "ok@7 3 + [1: 3] = 6", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
-		("calculator", "parens", "1+(2+3)", "ok@7 1 + [1: 5] = 6", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
-		("calculator", "parens", "(1+2+3)", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
-		("calculator", "parens", "(1+2", null, "no@4", "no@4"),
-		("count", "parens", "1+2", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
-		("count", "parens", "(1+2)+3", "ok@7 2 + [1: 1] = 3", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
-		("count", "parens", "1+(2+3)", "ok@7 1 + [1: 2] = 3", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
-		("count", "parens", "(1+2+3)", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
+		("calculator", "parens", "1+2",       "ok@3 1 + [1: 2] = 3",   "ok@3 3 + [0: 0] = 3",   "ok@3 3 + [0: 0] = 3"),
+		("calculator", "parens", "(1+2)+3",   "ok@7 3 + [1: 3] = 6",   "ok@7 6 + [0: 0] = 6",   "ok@7 6 + [0: 0] = 6"),
+		("calculator", "parens", "1+(2+3)",   "ok@7 1 + [1: 5] = 6",   "ok@7 6 + [0: 0] = 6",   "ok@7 6 + [0: 0] = 6"),
+		("calculator", "parens", "(1+2+3)",   "ok@7 6 + [0: 0] = 6",   "ok@7 6 + [0: 0] = 6",   "ok@7 6 + [0: 0] = 6"),
+		("calculator", "parens", "(1+2",      null,                    "no@4",                  "no@4"),
+		("count",      "parens", "1+2",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2",   "ok@3 2 + [0: 0] = 2"),
+		("count",      "parens", "(1+2)+3",   "ok@7 2 + [1: 1] = 3",   "ok@7 3 + [0: 0] = 3",   "ok@7 3 + [0: 0] = 3"),
+		("count",      "parens", "1+(2+3)",   "ok@7 1 + [1: 2] = 3",   "ok@7 3 + [0: 0] = 3",   "ok@7 3 + [0: 0] = 3"),
+		("count",      "parens", "(1+2+3)",   "ok@7 3 + [0: 0] = 3",   "ok@7 3 + [0: 0] = 3",   "ok@7 3 + [0: 0] = 3"),
 
-		// The levels are not ambiguous: one split fits, and both read it where the marked rule ends. Its second recursive
-		// alternative is never reached, so a binary minus goes round.
-		("calculator", "levels", "1+2*3", "ok@5 7 + [0: 0] = 7", "ok@5 7 + [0: 0] = 7", "ok@5 7 + [0: 0] = 7"),
-		("calculator", "levels", "1*2+3", "ok@5 5 + [0: 0] = 5", "ok@5 5 + [0: 0] = 5", "ok@5 5 + [0: 0] = 5"),
-		("calculator", "levels", "8/4/2", "ok@5 1 + [0: 0] = 1", "ok@5 1 + [0: 0] = 1", "ok@5 1 + [0: 0] = 1"),
-		("calculator", "levels", "-2*3", "ok@4 -6 + [0: 0] = -6", "ok@4 -6 + [0: 0] = -6", "ok@4 -6 + [0: 0] = -6"),
-		("calculator", "levels", "(1+2)*3", "ok@7 9 + [0: 0] = 9", "ok@7 9 + [0: 0] = 9", "ok@7 9 + [0: 0] = 9"),
-		("calculator", "levels", "2*(3+4)", "ok@7 14 + [0: 0] = 14", "ok@7 14 + [0: 0] = 14", "ok@7 14 + [0: 0] = 14"),
-		("calculator", "levels", "1-2", null, "ok@3 -1 + [0: 0] = -1", "ok@3 -1 + [0: 0] = -1"),
-		("count", "levels", "1+2*3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
-		("count", "levels", "3+6*(5/9)", "ok@9 4 + [0: 0] = 4", "ok@9 4 + [0: 0] = 4", "ok@9 4 + [0: 0] = 4"),
-		("count", "levels", "8/4/2", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3", "ok@5 3 + [0: 0] = 3"),
-		("count", "levels", "1-2", null, "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
+		// The levels are not ambiguous: one split fits, and every reading takes it where it ends. In 0.3.0 the second
+		// recursive alternative is never reached, so a binary minus goes round.
+		("calculator", "levels", "1+2*3",     "ok@5 7 + [0: 0] = 7",   "ok@5 7 + [0: 0] = 7",   "ok@5 7 + [0: 0] = 7"),
+		("calculator", "levels", "1*2+3",     "ok@5 5 + [0: 0] = 5",   "ok@5 5 + [0: 0] = 5",   "ok@5 5 + [0: 0] = 5"),
+		("calculator", "levels", "8/4/2",     "ok@5 1 + [0: 0] = 1",   "ok@5 1 + [0: 0] = 1",   "ok@5 1 + [0: 0] = 1"),
+		("calculator", "levels", "-2*3",      "ok@4 -6 + [0: 0] = -6", "ok@4 -6 + [0: 0] = -6", "ok@4 -6 + [0: 0] = -6"),
+		("calculator", "levels", "(1+2)*3",   "ok@7 9 + [0: 0] = 9",   "ok@7 9 + [0: 0] = 9",   "ok@7 9 + [0: 0] = 9"),
+		("calculator", "levels", "2*(3+4)",   "ok@7 14 + [0: 0] = 14", "ok@7 14 + [0: 0] = 14", "ok@7 14 + [0: 0] = 14"),
+		("calculator", "levels", "1-2",       null,                    "ok@3 -1 + [0: 0] = -1", "ok@3 -1 + [0: 0] = -1"),
+		("count",      "levels", "1+2*3",     "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3"),
+		("count",      "levels", "3+6*(5/9)", "ok@9 4 + [0: 0] = 4",   "ok@9 4 + [0: 0] = 4",   "ok@9 4 + [0: 0] = 4"),
+		("count",      "levels", "8/4/2",     "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3",   "ok@5 3 + [0: 0] = 3"),
+		("count",      "levels", "1-2",       null,                    "ok@3 2 + [0: 0] = 2",   "ok@3 2 + [0: 0] = 2"),
 
-		// The base after the recursive alternative is never reached where the recognizer stands.
-		("calculator", "base", "1+2", "ok@3 1 + [1: 2] = 3", "ok@3 3 + [0: 0] = 3", "ok@3 3 + [0: 0] = 3"),
-		("calculator", "base", "5", "ok@1 5 + [0: 0] = 5", "ok@1 5 + [0: 0] = 5", "ok@1 5 + [0: 0] = 5"),
-		("calculator", "base", "(1+2)+3", null, "ok@7 6 + [0: 0] = 6", "ok@7 6 + [0: 0] = 6"),
-		("count", "base", "1+2", "ok@3 1 + [1: 1] = 2", "ok@3 2 + [0: 0] = 2", "ok@3 2 + [0: 0] = 2"),
-		("count", "base", "(1+2)+3", null, "ok@7 3 + [0: 0] = 3", "ok@7 3 + [0: 0] = 3"),
+		// In 0.3.0 the base after the recursive alternative is never reached where the recognizer stands.
+		("calculator", "base",   "1+2",       "ok@3 1 + [1: 2] = 3",   "ok@3 3 + [0: 0] = 3",   "ok@3 3 + [0: 0] = 3"),
+		("calculator", "base",   "5",         "ok@1 5 + [0: 0] = 5",   "ok@1 5 + [0: 0] = 5",   "ok@1 5 + [0: 0] = 5"),
+		("calculator", "base",   "(1+2)+3",   null,                    "ok@7 6 + [0: 0] = 6",   "ok@7 6 + [0: 0] = 6"),
+		("count",      "base",   "1+2",       "ok@3 1 + [1: 1] = 2",   "ok@3 2 + [0: 0] = 2",   "ok@3 2 + [0: 0] = 2"),
+		("count",      "base",   "(1+2)+3",   null,                    "ok@7 3 + [0: 0] = 3",   "ok@7 3 + [0: 0] = 3"),
 
-		// The list asks for one more expression at the end, and the marked rule goes round there on every input.
-		("calculator", "list", "1", null, "ok@1 1", "ok@1 1"),
-		("calculator", "list", "1-2", null, "ok@3 -1", "ok@3 -1"),
-		("calculator", "list", "1--2", null, "ok@4 3", "ok@4 3"),
-		("count", "list", "1-2-3", null, "ok@5 3", "ok@5 3"),
-		("count", "list", "(1-2)-3", null, "ok@7 3", "ok@7 3"),
+		// The list asks for one more expression at the end, and in 0.3.0 the marked rule goes round there on every input.
+		("calculator", "list",   "1",         null,                    "ok@1 1",                "ok@1 1"),
+		("calculator", "list",   "1-2",       null,                    "ok@3 -1",               "ok@3 -1"),
+		("calculator", "list",   "1--2",      null,                    "ok@4 3",                "ok@4 3"),
+		("count",      "list",   "1-2-3",     null,                    "ok@5 3",                "ok@5 3"),
+		("count",      "list",   "(1-2)-3",   null,                    "ok@7 3",                "ok@7 3"),
 	];
 
 	/// <summary>The readings: by methods or the engine, carried immediately or deferred, over a span or the buffered view.</summary>
