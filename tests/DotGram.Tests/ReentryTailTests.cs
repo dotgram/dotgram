@@ -50,22 +50,25 @@ public sealed class ReentryTailTests
 		static bool Still(ParserInput<byte> input, ref int p) { return true; }
 		""";
 
-	/// <summary>The shapes, each with whether nothing is read after its call back, and the items its inputs are made of.</summary>
-	static readonly (string Name, string Grammar, bool Tail, string Alphabet)[] Shapes =
+	/// <summary>
+	/// The shapes, each with whether nothing is read after its call back, whether it is read as its twin past the
+	/// recognizer instead (GrammarNormalizer.Guarded.cs), and the items its inputs are made of.
+	/// </summary>
+	static readonly (string Name, string Grammar, bool Tail, bool Taken, string Alphabet)[] Shapes =
 	[
-		("self",       "T = @Still & T | 'a' & T | eof",                                  true,  "ab"),
-		("mutual",     "T = @Still & U | 'a'\nU = @Still & T | 'b' & T",                  true,  "ab"),
-		("half",       "T = @Half & T | eof",                                             true,  ".x"),
-		("second",     "T = 'a' & T | @Still & T | 'b'",                                  true,  "ab"),
-		("giveback",   "T = S & 'c'\nS = @Still & S | 'a' | 'a' & 'b'",                   true,  "abc"),
-		("lookahead",  "T = ?!'b' & @Still & T | 'a' & T | 'b'",                          true,  "ab"),
-		("list",       "T = S & eof\nS = @Ws & S | Num & ('+' & S)?\nNum = ['0'..'9']+",  true,  "1+ "),
-		("eof",        "T = A & eof\nA = @Still & A | 'a' & A | 'b'",                     true,  "abc"),
-		("value",      "T = d: A & when @(d >= 2)\nA : @int = 'a' => @(1) | @Still & i: A => @(i + 1)", false, "a"),
-		("sum",        "T = Sum & eof\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+", false, "1+ "),
-		("abc",        "T = A & 'c'\nA = 'a' | @Still & A & 'b'",                         false, "abc"),
-		("block",      "T = @Still & T & 'e' | 'x'",                                      false, "xe"),
-		("mixed",      "T = A & eof\nA = @Still & A | 'a' & A | 'b' | @Still & A & 'z'",  false, "abz"),
+		("self",       "T = @Still & T | 'a' & T | eof",                                  true,  false, "ab"),
+		("mutual",     "T = @Still & U | 'a'\nU = @Still & T | 'b' & T",                  true,  false, "ab"),
+		("half",       "T = @Half & T | eof",                                             true,  false, ".x"),
+		("second",     "T = 'a' & T | @Still & T | 'b'",                                  true,  false, "ab"),
+		("giveback",   "T = S & 'c'\nS = @Still & S | 'a' | 'a' & 'b'",                   true,  false, "abc"),
+		("lookahead",  "T = ?!'b' & @Still & T | 'a' & T | 'b'",                          true,  false, "ab"),
+		("list",       "T = S & eof\nS = @Ws & S | Num & ('+' & S)?\nNum = ['0'..'9']+",  true,  false, "1+ "),
+		("eof",        "T = A & eof\nA = @Still & A | 'a' & A | 'b'",                     true,  false, "abc"),
+		("value",      "T = d: A & when @(d >= 2)\nA : @int = 'a' => @(1) | @Still & i: A => @(i + 1)", false, false, "a"),
+		("sum",        "T = Sum & eof\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+", false, true,  "1+ "),
+		("abc",        "T = A & 'c'\nA = 'a' | @Still & A & 'b'",                         false, true,  "abc"),
+		("block",      "T = @Still & T & 'e' | 'x'",                                      false, true,  "xe"),
+		("mixed",      "T = A & eof\nA = @Still & A | 'a' & A | 'b' | @Still & A & 'z'",  false, true,  "abz"),
 	];
 
 	public static TheoryData<string> Names()
@@ -87,7 +90,6 @@ public sealed class ReentryTailTests
 	[InlineData("T = S & eof\nS = @Ws & S | Num & ('+' & S)?\nNum = ['0'..'9']+", true)]
 	[InlineData("T = ?='.' & @Still & T | ?!'.' & 'x'", true)]
 	[InlineData("T = x: A\nA : @int = 'a' => @(1) | @Still & i: A => @(i + 1)", true)]
-	[InlineData("T = @Still & T & 'e' | 'x'", false)]
 	[InlineData("T = (@Still & T | 'a') & 'b'", false)]
 	[InlineData("T = ?=(@Still & T) & 'x' | 'y'", false)]
 	[InlineData("T = 'x' | ?!'y' & (@Still & T)+", false)]
@@ -95,7 +97,6 @@ public sealed class ReentryTailTests
 	[InlineData("T = d: A & when @(d >= 2)\nA : @int = 'a' => @(1) | @Still & i: A => @(i + 1)", false)]
 	[InlineData("T = E\nE = @Still & E << 2 | E & '+' & E << 1 | 'x'", false)]
 	[InlineData("context : @Ctx\nT = A\nA = when @(context.Depth >= 5) & 'x' | when @(context.Bump() > 0) & @Still & A", false)]
-	[InlineData("T = A & eof\nA = @Still & A | 'a' & A | 'b' | @Still & A & 'z'", false)]
 	public void Cut_at_once_where_nothing_is_read_after_the_call_back(string grammar, bool tail)
 	{
 		var graph = ExponentialRepetitionTests.Graph(grammar + "\nparse T", lexical: false, out _);
@@ -110,15 +111,15 @@ public sealed class ReentryTailTests
 	}
 
 	/// <summary>
-	/// The cut at once answers as the parser without the check does wherever that one ends, input for input, in the
-	/// reader by methods and in the engine, and ends wherever it does not; where a shape is not cut at once, its parser
-	/// is the one without the check.
+	/// The cut at once, and a rule read as its twin past the recognizer, answer as the parser without either does
+	/// wherever that one ends, input for input, in the reader by methods and in the engine, and end wherever it does not;
+	/// where a shape is neither, its parser is the one without the check.
 	/// </summary>
 	[Theory]
 	[MemberData(nameof(Names))]
 	public void A_cut_at_once_answers_as_the_parser_without_it(string name)
 	{
-		var (_, grammar, tail, alphabet) = Shapes.Single(shape => shape.Name == name);
+		var (_, grammar, tail, taken, alphabet) = Shapes.Single(shape => shape.Name == name);
 
 		var (ended, round) = (0, 0);
 
@@ -127,9 +128,9 @@ public sealed class ReentryTailTests
 			var (cut, cutSource)         = Build(grammar, direct, unchecked_: false);
 			var (without, withoutSource) = Build(grammar, direct, unchecked_: true);
 
-			Assert.Equal(tail, cutSource != withoutSource);
+			Assert.Equal(tail || taken, cutSource != withoutSource);
 
-			if (!tail)
+			if (!tail && !taken)
 				continue;
 
 			foreach (var input in Inputs(alphabet, 5))
@@ -217,14 +218,8 @@ public sealed class ReentryTailTests
 	/// count and nothing thrown; it reads as it always read.
 	/// </summary>
 	[Theory]
-	[InlineData("T = Sum & eof\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+")]
-	[InlineData("T = Sum & eof\nSum = Num | @Ws & Sum & '+' & Num | @Ws & Sum & '-' & Num\nNum = ['0'..'9']+")]
-	[InlineData("T = A & eof\nA = B | @Ws & A & '+' & B\nB = Num | @Ws & B & '*' & Num\nNum = ['0'..'9']+")]
-	[InlineData("T = Z* & eof\nZ = Sum & ';' | '1' | '+'\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+")]
 	[InlineData("T = A & 'c'\nA = (@Still & A)? & @Still & A | 'b' & A")]
-	[InlineData("T = A & eof\nA = @Still & A | 'a' & A | 'b' | @Still & A & 'z'")]
 	[InlineData("T = A & eof\nA = 'a' & A | @Still & A | 'b' | B & 'z'\nB = @Still & A")]
-	[InlineData("T = X & '#' & {Sum & '!'} & ';' | 'a'+ & '#' & {Sum & '!'} & eof\nX = 'a'* & 'a'* & 'a'* & 'a'* & 'a'* & 'a'* & 'a'* & 'a'*\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+")]
 	[InlineData("T = d: A & when @(d >= 5)\nA : @int = 'a' => @(1) | @Still & i: A => @(i + 1)")]
 	[InlineData("T = @Still & n: T & 'b' | 'x'+")]
 	[InlineData("T = P('a', 'b')\nP(x, y) = @Still & P(y, x) & x | y")]
@@ -247,6 +242,36 @@ public sealed class ReentryTailTests
 					Assert.Equal(without.Sources, with.Sources);
 					Assert.Contains(with.Told, static one => one.Id == Reentry.Reenters);
 				}
+	}
+
+	/// <summary>
+	/// A cycle with something read after the call back, past a recognizer and nothing that reads a value or the context,
+	/// is not checked at all: where the recognizer stands the rule is read as the left recursion it is without it, so no
+	/// rule comes back to itself where it stands, and the build says how the rule is read.
+	/// </summary>
+	[Theory]
+	[InlineData("T = Sum & eof\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+")]
+	[InlineData("T = Sum & eof\nSum = Num | @Ws & Sum & '+' & Num | @Ws & Sum & '-' & Num\nNum = ['0'..'9']+")]
+	[InlineData("T = A & eof\nA = B | @Ws & A & '+' & B\nB = Num | @Ws & B & '*' & Num\nNum = ['0'..'9']+")]
+	[InlineData("T = Z* & eof\nZ = Sum & ';' | '1' | '+'\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+")]
+	[InlineData("T = A & eof\nA = @Still & A | 'a' & A | 'b' | @Still & A & 'z'")]
+	[InlineData("T = X & '#' & {Sum & '!'} & ';' | 'a'+ & '#' & {Sum & '!'} & eof\nX = 'a'* & 'a'* & 'a'* & 'a'* & 'a'* & 'a'* & 'a'* & 'a'*\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+")]
+	[InlineData("T = @Still & T & 'e' | 'x'")]
+	public void A_cycle_past_a_recognizer_that_stands_is_read_as_its_twin(string grammar)
+	{
+		var graph = ExponentialRepetitionTests.Graph(grammar + "\nparse T", lexical: false, out _);
+
+		Assert.Empty(Reentry.FoundRules(graph));
+		Assert.False(Reentry.Any(graph));
+
+		foreach (var direct in new[] { true, false })
+		{
+			var with    = Generated(grammar, direct, CarrierKind.Auto, buffered: false, unchecked_: false);
+			var without = Generated(grammar, direct, CarrierKind.Auto, buffered: false, unchecked_: true);
+
+			Assert.NotEqual(without.Sources, with.Sources);
+			Assert.Contains(with.Told, static one => one.Id == Reentry.Reenters && one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+		}
 	}
 
 	static (IReadOnlyList<string> Sources, IReadOnlyList<GramDiagnostic> Told) Generated(

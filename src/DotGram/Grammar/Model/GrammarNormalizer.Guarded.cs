@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Grammar.Binding;
@@ -6,32 +7,67 @@ using DotGram.Grammar.Binding;
 namespace DotGram.Grammar.Model;
 
 /// <summary>
-/// A rule that comes back to itself past a recognizer of the host, with something read after the call back, read as
-/// the left recursion §4.3 rewrites wherever the recognizer stands still at the rule's entry.
+/// A rule that comes back to itself past a prefix that may succeed without moving — a recognizer of the host, and
+/// whatever stands with it — read as the left recursion it is without the prefix, wherever the prefix does not move
+/// at the rule's entry.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <c>Sum = Num | @Ws &amp; Sum &amp; '+' &amp; Num</c>. Where <c>Ws</c> moves, the call back is an ordinary call
 /// from a later position. Where it stands, it is the same rule at the same position — left recursion, which §4.3
 /// reads as a loop over the tails and which the recognizer only hid. A recognizer's answer depends only on the text
-/// and the position (§7.2), so whether it stands is settled once at the entry, and the rule becomes a choice between
-/// two rules it is the name of:
+/// and the position (§7.2), so whether the prefix stands is settled once at the entry, and the rule becomes a choice
+/// between two rules it is the name of:
 /// </para>
 /// <code>
-/// Sum       = @Ws(stands) &amp; Sum_Left | ?!@Ws(stands) &amp; Sum_Plain
-/// Sum_Left  = Num | Sum_Left &amp; '+' &amp; Num            (folded as §4.3 folds it)
-/// Sum_Plain = Num | @Ws(moves) &amp; Sum &amp; '+' &amp; Num  (the rule as written)
+/// Sum       = stands(@Ws) &amp; Sum_Left | !stands(@Ws) &amp; Sum_Plain
+/// Sum_Left  = Num | Sum_Left &amp; '+' &amp; Num            (the twin: folded as §4.3 folds it)
+/// Sum_Plain = Num | @Ws &amp; Sum &amp; '+' &amp; Num        (the rule as written, @Ws known to move)
 /// </code>
 /// <para>
-/// Spike: taken only for a direct cycle whose recursive alternatives share one prefix of a single recognizer and
-/// lookaheads, with a base, no guard, context, binding, parameter, recovery or strength on the way, and a value
-/// built by <c>=&gt;</c> on every alternative or by none. Everything else is left as it is written.
+/// The prefix is everything read before the call back: recognizers, lookaheads, the seam of trivia §4.5 weaves after
+/// them, and rules that read nothing but those. It stands where its first reading ends where it began; that is asked
+/// once, at the entry, of a test that reads nothing (<see cref="StandsTest"/>). Where the recursive alternatives
+/// have different prefixes, each is asked once and the rule is split once for every set of them that may stand
+/// together.
+/// </para>
+/// <para>
+/// A rule is taken only if its twin — the rule with the standing prefixes taken off — is a left recursion §4.3
+/// folds (<see cref="TwinRefusal"/>). Where the twin would be refused, the rule is read as written and the build says
+/// why in the twin's terms (GRAM4066). Where what is read depends on more than the text and the position — a
+/// <c>when</c> or a <c>switch</c> on the way or in a caller, a <c>context</c> — the rule is read as written, as it
+/// always was (GRAM5021).
 /// </para>
 /// </remarks>
 sealed partial class GrammarNormalizer
 {
-	/// <summary>The rules this pass split, by the rule a caller names: the loop and the rule as written.</summary>
-	readonly Dictionary<RuleSymbol, (RuleSymbol Left, RuleSymbol Plain)> _guarded = [];
+	/// <summary>A rule comes back to itself past a prefix that may stand, and its twin is a left recursion §4.3 refuses.</summary>
+	public const string StandingRefused = "GRAM4066";
+
+	/// <summary>The most different prefixes a rule is split for: each doubles the rules it is split into.</summary>
+	const int MostPrefixes = 3;
+
+	/// <summary>The rules a split made that are folded as left recursion: their loop is <see cref="StandingLoop"/>.</summary>
+	readonly HashSet<RuleSymbol> _standing = [];
+
+	/// <summary>
+	/// The loop a rule made by the split reads its tails in: the one place the order of a standing cycle is chosen.
+	/// </summary>
+	/// <remarks>
+	/// As many tails as what follows accepts, given back one at a time from the end — the order §4.3's own loop
+	/// reads every left recursion in, so a rule past a prefix that stands answers what its twin answers. Reading the
+	/// fewest first instead would be a lazy repetition here and nothing else.
+	/// </remarks>
+	static Node.Repeat StandingLoop(Node tails)
+	{
+		return new Node.Repeat(tails, 0, null);
+	}
+
+	/// <summary>Whether nullability is worked out for the bodies as they stand: once a grammar asks, and again after a split.</summary>
+	bool _standingNullable;
+
+	/// <summary>One alternative of a rule that calls itself: where the call is, and what is read before it.</summary>
+	sealed record Recursive(int Index, int Head, IReadOnlyList<Node> Operands, Node.Construct? Built, string? Key);
 
 	void RewriteGuardedLeftRecursion()
 	{
@@ -82,245 +118,508 @@ sealed partial class GrammarNormalizer
 
 	void Guard(RuleSymbol rule, Node body, Dictionary<RuleSymbol, HashSet<RuleSymbol>> callers)
 	{
-		if (rule.Declaration is not { } declaration || declaration.Params.Count > 0 || _guarded.ContainsKey(rule))
+		if (rule.Declaration is not { } declaration || declaration.Params.Count > 0 || body is Node.Choice { Selection: not null })
 			return;
 
 		var alternatives = Alternatives(body);
-
-		if (body is Node.Choice { Selection: not null })
-			return;
-
-		var reaching = Reaching(rule, callers);
-
-		List<Node>? prefix = null;
-
-		var guarded = new Dictionary<int, (int Head, Node Body, Node.Construct? Built)>();
+		var recursive    = new List<Recursive>();
 
 		for (var i = 0; i < alternatives.Count; i++)
-		{
-			var alternative = alternatives[i];
-			var built       = alternative as Node.Construct;
-			var inner       = built?.Body ?? alternative;
+			if (Recursion(rule, i, alternatives[i]) is { } found)
+				recursive.Add(found);
 
-			if (_bounds.ContainsKey(inner) || _bounds.ContainsKey(alternative))
-				return;
+		var keys = recursive.Where(static one => one.Key is not null).Select(static one => one.Key!).Distinct().ToList();
 
-			if (inner is not Node.Sequence(var operands))
-				continue;
-
-			var head = -1;
-
-			for (var at = 0; at < operands.Count; at++)
-			{
-				var operand = operands[at];
-
-				if ((operand is Node.Capture(_, var captured) ? captured : operand) is Node.Call(var called, var arguments) &&
-					ReferenceEquals(called, rule))
-				{
-					if (arguments.Count == 0)
-						head = at;
-
-					break;
-				}
-
-				// Spike: one recognizer and nothing else before the call. A lookahead beside it would have to be asked
-				// again, negated, on the way to the rule as written, and a refusal there says what it saw.
-				if (operand is not Node.External { HasValue: false, UsesContext: false })
-					break;
-			}
-
-			if (head <= 0)
-				continue;
-
-			var leading = operands.Take(head).ToList();
-
-			if (leading.Count(static one => one is Node.External) != 1)
-				return;
-
-			// What the lookaheads of the prefix read must not reach the rule, nor capture.
-			foreach (var part in leading)
-				if (NodeWalk.Descendants(part).Any(node =>
-					node is Node.Capture or Node.Bind or Node.Guard or Node.Condition ||
-					node is Node.Call(var called, _) && reaching.Contains(called)))
-				{
-					return;
-				}
-
-			if (prefix is null)
-				prefix = leading;
-			else if (!prefix.SequenceEqual(leading))
-				return;
-
-			guarded[i] = (head, inner, built);
-		}
-
-		if (prefix is null)
+		if (keys.Count == 0)
 			return;
 
 		// Something read after the call back on at least one of them: where nothing is, the cut at once already reads
 		// the rule (Reentry).
-		if (guarded.Values.All(one => ((Node.Sequence)one.Body).Nodes.Count == one.Head + 1))
+		if (recursive.All(static one => one.Key is null || one.Operands.Count == one.Head + 1))
 			return;
 
-		// A base to start from.
-		if (guarded.Count == alternatives.Count)
-			return;
+		var prefixes = keys.Select(key => recursive.First(one => one.Key == key)).Select(static one => one.Operands.Take(one.Head).ToList()).ToList();
+		var shown    = Shown(prefixes);
 
-		// What the rule reads, and what reads it, reads nothing but the text and the position.
-		foreach (var node in NodeWalk.Descendants(body))
-			if (node is Node.Guard or Node.Condition or Node.Bind or Node.Same or Node.Counted or Node.Marked or
-				Node.External { UsesContext: true } or Node.Choice { Selection: not null } ||
-				node is Node.Repeat && _recoveries.ContainsKey(node) ||
-				node is Node.Call { Arguments.Count: > 0 })
-			{
-				return;
-			}
-
-		foreach (var caller in reaching)
-			if (_bodies.TryGetValue(caller, out var read) && NodeWalk.Descendants(read).Any(static node => node is Node.Guard or Node.Condition))
-				return;
+		// What is read depends on more than the text and the position: a value guard on the way or in a caller, or the
+		// context. Read as written, as it always was, and told so by GRAM5021.
+		var reaching = Reaching(rule, callers);
 
 		if (_context is not null || _model.Context is not null)
 			return;
 
-		// A value built by every alternative, or by none and nothing captured.
+		foreach (var caller in reaching)
+			if (_bodies.TryGetValue(caller, out var read) &&
+				NodeWalk.Descendants(read).Any(static node => node is Node.Guard or Node.Condition or Node.Choice { Selection: not null }))
+				return;
+
+		// What the rule reads keeps its facts by node, and is not copied into several rules here.
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Bind or Node.Same or Node.Counted || node is Node.Repeat && _recoveries.ContainsKey(node))
+				return;
+
+		// A value: built by every alternative, or by none and nothing captured.
 		var builds = alternatives.All(static one => one is Node.Construct);
 
-		if (!builds && NodeWalk.Descendants(body).Any(static node => node is Node.Capture or Node.Construct))
+		if (builds ? !_types.ContainsKey(rule) : _types.ContainsKey(rule) || NodeWalk.Descendants(body).Any(static node => node is Node.Capture or Node.Construct))
 			return;
 
-		if (builds && !_types.ContainsKey(rule))
+		if (TwinRefusal(rule, alternatives, recursive) is { } refusal)
+		{
+			Warn(
+				StandingRefused,
+				$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2); " +
+				$"where it does not move, this is left recursion the rewrite cannot take: {refusal} (§4.3). It is read as " +
+				"written there, and a parse that has to give up on that alternative goes round until the stack or memory " +
+				$"runs out. Make the rule without {shown} one §4.3 accepts, or let {shown} always move.",
+				declaration.At);
+
 			return;
+		}
 
-		if (!builds && _types.ContainsKey(rule))
-			return;
+		var tests = new List<Node>();
 
-		// A base must not reach the rule before it has read something.
-		for (var i = 0; i < alternatives.Count; i++)
-			if (!guarded.ContainsKey(i) && ReachesFirst(alternatives[i], reaching))
+		foreach (var prefix in prefixes)
+			if (StandsTest(new Node.Sequence(prefix), []) is { } test)
+				tests.Add(test);
+			else
 				return;
 
-		// Recursive on both sides: §4.3 refuses it, and so is it left.
-		foreach (var (head, inner, _) in guarded.Values)
-		{
-			var operands = ((Node.Sequence)inner).Nodes;
+		Split(rule, alternatives, recursive, keys, tests, builds);
 
-			if (operands.Count > head + 1 && EndsWith(new Node.Sequence([.. operands.Skip(head + 1)]), rule))
-				return;
-		}
-
-		// A tail that may read nothing would be a turn of the loop that reads nothing, which §4.3 refuses as a
-		// repetition that would not end (GRAM4001): such a rule is left as it is written.
-		ComputeNullability();
-
-		foreach (var (head, inner, _) in guarded.Values)
-		{
-			var operands = ((Node.Sequence)inner).Nodes;
-
-			if (operands.Count > head + 1 && IsNullable(new Node.Sequence([.. operands.Skip(head + 1)])))
-				return;
-		}
-
-		var left  = Made(rule, "_Left");
-		var plain = Made(rule, "_Plain");
-
-		// The loop: the bases as they are, each recursive alternative as its tail after a call of the loop's own rule;
-		// one with nothing after the call reads only what the entry it came back to reads, and is left out.
-		var looped = new List<Node>();
-
-		for (var i = 0; i < alternatives.Count; i++)
-		{
-			if (!guarded.TryGetValue(i, out var one))
-			{
-				looped.Add(Copied(alternatives[i]));
-
-				continue;
-			}
-
-			var operands = ((Node.Sequence)one.Body).Nodes;
-
-			if (operands.Count == one.Head + 1)
-				continue;
-
-			var call = operands[one.Head] is Node.Capture(var name, _)
-				? (Node)new Node.Capture(name, new Node.Call(left, []))
-				: new Node.Call(left, []);
-
-			var step = new Node.Sequence([call, .. operands.Skip(one.Head + 1).Select(Copied)]);
-
-			looped.Add(one.Built is { } built ? new Node.Construct(step, built.How) : step);
-		}
-
-		// The rule as written, its recognizer known to move: it is read only where it did not stand.
-		var written = new List<Node>();
-
-		for (var i = 0; i < alternatives.Count; i++)
-		{
-			if (!guarded.TryGetValue(i, out var one))
-			{
-				written.Add(alternatives[i]);
-
-				continue;
-			}
-
-			var operands = ((Node.Sequence)one.Body).Nodes;
-			var moved    = new Node.Sequence([.. operands.Select((node, at) => at < one.Head && node is Node.External external ? external with { Moves = true } : node)]);
-
-			written.Add(one.Built is { } built ? new Node.Construct(moved, built.How) : moved);
-		}
-
-		_bodies[left]  = looped.Count == 1 ? looped[0] : new Node.Choice(looped);
-		_bodies[plain] = written.Count == 1 ? written[0] : new Node.Choice(written);
-
-		// Whether the prefix stands at the entry, and whether it does not: a recognizer asked so records nothing.
-		Node Stands(bool stands)
-		{
-			return new Node.Sequence([.. prefix.Select(node => node is Node.External external ? external with { Stands = stands } : Copied(node))]);
-		}
-
-		Node NotStands()
-		{
-			var looks = prefix.Where(static node => node is not Node.External).ToList();
-
-			return looks.Count == 0
-				? Stands(false)
-				: new Node.Choice([Stands(false), new Node.Lookahead(false, new Node.Sequence([.. looks.Select(Copied)]))]);
-		}
-
-		Node Handed(Node lead, RuleSymbol to)
-		{
-			var leads = lead is Node.Sequence(var parts) ? parts : [lead];
-
-			return builds
-				? new Node.Construct(new Node.Sequence([.. leads, new Node.Capture("item0", new Node.Call(to, []))]), Construction.Operand.Instance)
-				: new Node.Sequence([.. leads, new Node.Call(to, [])]);
-		}
-
-		_bodies[rule] = new Node.Choice(
-		[
-			Handed(Stands(true), left),
-			Handed(NotStands(), plain),
-		]);
-
-		_guarded[rule] = (left, plain);
+		_diagnostics.Add(new GramDiagnostic(
+			Reentry.Reenters,
+			$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2). " +
+			$"Where it does not move, '{rule.Name}' is read as the left recursion it is without {shown} (§4.3): as many " +
+			"steps as what follows accepts, given back one at a time from the end. Where it moves, the rule is read as " +
+			"it is written.",
+			declaration.At.Position,
+			declaration.At.Length,
+			GramSeverity.Info));
 	}
 
-	/// <summary>Whether an alternative may call into <paramref name="reaching"/> before it has read a literal or a class.</summary>
-	static bool ReachesFirst(Node alternative, HashSet<RuleSymbol> reaching)
+	/// <summary>
+	/// Whether an alternative calls <paramref name="rule"/> on the left, either at once or past a prefix that may
+	/// stand; the prefix's key tells prefixes apart, and is null for a call at once.
+	/// </summary>
+	Recursive? Recursion(RuleSymbol rule, int index, Node alternative)
 	{
-		var inner    = alternative is Node.Construct(var built, _) ? built : alternative;
-		var operands = inner is Node.Sequence(var nodes) ? nodes : [inner];
+		var built = alternative as Node.Construct;
 
-		foreach (var operand in operands)
+		if ((built?.Body ?? alternative) is not Node.Sequence(var operands))
+			return null;
+
+		for (var at = 0; at < operands.Count; at++)
 		{
-			if (NodeWalk.Descendants(operand).Any(node => node is Node.Call(var called, _) && reaching.Contains(called)))
-				return true;
+			var operand = operands[at];
 
-			if (operand is Node.Literal { Text.Length: > 0 } or Node.Element)
-				return false;
+			if ((operand is Node.Capture(_, var captured) ? captured : operand) is not Node.Call(var called, var arguments) ||
+				!ReferenceEquals(called, rule))
+				continue;
+
+			if (arguments.Count > 0)
+				return null;
+
+			if (at == 0)
+				return new Recursive(index, 0, operands, built, null);
+
+			var prefix = operands.Take(at).ToList();
+
+			// Asked only of an alternative with a recognizer of the host before the call: a grammar with none pays nothing.
+			if (!Hosted(prefix, []))
+				return null;
+
+			if (!_standingNullable)
+			{
+				ComputeNullability();
+
+				_standingNullable = true;
+			}
+
+			return prefix.All(part => PrefixPart(part, rule, [])) ? new Recursive(index, at, operands, built, string.Join(" & ", prefix)) : null;
 		}
 
+		return null;
+	}
+
+	/// <summary>
+	/// Whether a node may be read before the call back as part of a prefix: it reads nothing but the text, records
+	/// nothing, and may succeed without moving once recognizers are allowed to.
+	/// </summary>
+	bool PrefixPart(Node node, RuleSymbol? rule, HashSet<RuleSymbol> seen)
+	{
+		return Pure(node, rule, seen) && MayStand(node, []);
+	}
+
+	/// <summary>Whether a node reads only the text and does nothing else: no value, no binding, no hook, no call of <paramref name="rule"/>.</summary>
+	bool Pure(Node node, RuleSymbol? rule, HashSet<RuleSymbol> seen)
+	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Pure(node, rule, seen));
+
+		switch (node)
+		{
+			case Node.External { HasValue: false, UsesContext: false, Stands: null }:
+			case Node.Empty or Node.Element or Node.Literal or Node.Glue or Node.Behind:
+				return true;
+
+			case Node.Lookahead or Node.Sequence or Node.Atomic:
+			case Node.Choice { Selection: null }:
+			case Node.Repeat repeat when !_recoveries.ContainsKey(repeat):
+				return node.Children.All(child => Pure(child, rule, seen));
+
+			case Node.Call(var called, var arguments) when arguments.Count == 0 && !ReferenceEquals(called, rule):
+				return !seen.Add(called) || _bodies.TryGetValue(called, out var body) && !_types.ContainsKey(called) && Pure(body, rule, seen);
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>Whether a node may succeed without moving where every recognizer may: nullable with the hosts.</summary>
+	bool MayStand(Node node, HashSet<RuleSymbol> seen)
+	{
+		if (DeepStack.Low)
+			return DeepStack.Run(() => MayStand(node, seen));
+
+		switch (node)
+		{
+			case Node.External:
+				return true;
+
+			case Node.Sequence(var parts):
+				return parts.All(part => MayStand(part, seen));
+
+			case Node.Choice(var alternatives):
+				return alternatives.Any(one => MayStand(one, seen));
+
+			case Node.Atomic(var atomic):
+				return MayStand(atomic, seen);
+
+			case Node.Repeat(var repeated, var min, _):
+				return min == 0 || MayStand(repeated, seen);
+
+			case Node.Call(var called, _):
+				return IsNullable(node) || seen.Add(called) && _bodies.TryGetValue(called, out var body) && MayStand(body, seen);
+
+			default:
+				return IsNullable(node);
+		}
+	}
+
+	/// <summary>Whether a prefix reads a recognizer of the host, itself or through a rule it calls.</summary>
+	bool Hosted(IEnumerable<Node> prefix, HashSet<RuleSymbol> seen)
+	{
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Hosted(prefix, seen));
+
+		foreach (var part in prefix)
+			foreach (var node in NodeWalk.Descendants(part))
+				if (node is Node.External ||
+					node is Node.Call(var called, _) && seen.Add(called) && _bodies.TryGetValue(called, out var body) && Hosted([body], seen))
+					return true;
+
 		return false;
+	}
+
+	/// <summary>
+	/// A node that reads nothing and succeeds exactly where the first reading of <paramref name="node"/> ends where it
+	/// began, or null where that cannot be asked of it.
+	/// </summary>
+	/// <remarks>
+	/// A recognizer is asked from a copy of the position and compared with it (<see cref="Node.External.Stands"/>);
+	/// a lookahead is asked as it is; a repetition's first reading is empty where its body does not match; a choice's
+	/// is its first alternative's where that matches and the next one's where it does not; a sequence's, where each
+	/// part's is. That last is the first reading only where no part has to give back for the next to match, which a
+	/// prefix of recognizers, lookaheads and trivia does not need.
+	/// </remarks>
+	Node? StandsTest(Node node, HashSet<RuleSymbol> seen)
+	{
+		if (DeepStack.Low)
+			return DeepStack.Run(() => StandsTest(node, seen));
+
+		switch (node)
+		{
+			case Node.External external:
+				return external with { Stands = true };
+
+			case Node.Lookahead or Node.Behind or Node.Glue:
+				return CloneAndRewrite(node, NoTargets, [], "Standing");
+
+			case Node.Empty:
+				return node;
+
+			case Node.Atomic(var body):
+				return StandsTest(body, seen);
+
+			case Node.Sequence(var parts):
+			{
+				var tests = new List<Node>();
+
+				foreach (var part in parts)
+					if (StandsTest(part, seen) is { } test)
+						tests.Add(test);
+					else
+						return null;
+
+				return tests.Count == 1 ? tests[0] : new Node.Sequence(tests);
+			}
+
+			case Node.Choice(var alternatives):
+			{
+				var first = StandsTest(alternatives[0], seen);
+
+				if (first is null || alternatives.Count == 1 || IsNullable(alternatives[0]) && Pure(alternatives[0], null, []) && !Hosted([alternatives[0]], []))
+					return first;
+
+				var rest = StandsTest(alternatives.Count == 2 ? alternatives[1] : new Node.Choice([.. alternatives.Skip(1)]), seen);
+
+				return rest is null
+					? null
+					: new Node.Choice([first, new Node.Sequence([new Node.Lookahead(false, CloneAndRewrite(alternatives[0], NoTargets, [], "Standing")), rest])]);
+			}
+
+			case Node.Repeat(var body, 0, _) when !MayStand(body, []):
+				return new Node.Lookahead(false, CloneAndRewrite(body, NoTargets, [], "Standing"));
+
+			case Node.Call(var called, _) when seen.Add(called) && _bodies.TryGetValue(called, out var body):
+				return StandsTest(body, seen);
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>
+	/// Why the twin — the rule with every prefix that may stand taken off — is not a left recursion §4.3 folds, in its
+	/// words, or null where it is.
+	/// </summary>
+	string? TwinRefusal(RuleSymbol rule, IReadOnlyList<Node> alternatives, IReadOnlyList<Recursive> recursive)
+	{
+		var bases = alternatives.Where((_, i) => recursive.All(one => one.Index != i)).ToList();
+
+		if (bases.Count == 0)
+			return "it has no alternative to start from";
+
+		if (alternatives.Any(one => BoundOn(one) is not null))
+			return "it states strengths ('<<', '>>', §4.3.1), and a rule past a prefix is not climbed";
+
+		var steps = recursive.Where(static one => one.Operands.Count > one.Head + 1).Select(static one => new Node.Sequence([.. one.Operands.Skip(one.Head + 1)])).ToList();
+
+		foreach (var step in steps)
+		{
+			if (EndsWith(step, rule))
+				return "an alternative is recursive on both sides";
+
+			if (IsNullable(step))
+				return "a step may read nothing";
+		}
+
+		if (!alternatives.Any(static one => one is Node.Construct) && steps.Any(static step => NodeWalk.Descendants(step).Any(static node => node is Node.Capture)))
+			return "a step captures, and the rule builds no value";
+
+		// A base that reaches the rule again before it has read anything, a recognizer that may stand counted as reading
+		// nothing: there the twin reaches itself on the left through another rule.
+		foreach (var one in bases)
+			if (LeftReaches(one, rule) is { } through)
+				return $"the call back goes through '{through.Name}', which does more than forward what it calls";
+
+		return null;
+	}
+
+	/// <summary>
+	/// The rule through which a base reaches <paramref name="rule"/> before it has read anything, a recognizer that may
+	/// stand counted as reading nothing, or null where it does not.
+	/// </summary>
+	RuleSymbol? LeftReaches(Node start, RuleSymbol rule)
+	{
+		var seen    = new HashSet<RuleSymbol>();
+		var pending = new Stack<(Node Node, RuleSymbol? Through)>();
+
+		pending.Push((start, null));
+
+		while (pending.Count > 0)
+		{
+			var (node, through) = pending.Pop();
+
+			switch (node)
+			{
+				case Node.Call(var called, _):
+					if (ReferenceEquals(called, rule))
+						return through ?? called;
+
+					if (seen.Add(called) && _bodies.TryGetValue(called, out var body))
+						pending.Push((body, through ?? called));
+
+					break;
+
+				case Node.Sequence(var nodes):
+					foreach (var child in nodes)
+					{
+						pending.Push((child, through));
+
+						if (!MayStand(child, []))
+							break;
+					}
+
+					break;
+
+				case Node.Choice or Node.Capture or Node.Bind or Node.Counted or Node.Construct or Node.Atomic or Node.Marked or Node.Repeat or Node.Lookahead:
+					foreach (var child in node.Children)
+						pending.Push((child, through));
+
+					break;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// The rule split: one rule for each set of prefixes that may stand together at the entry, each the rule with those
+	/// prefixes taken off, and the rule itself a dispatch on which of them stand.
+	/// </summary>
+	void Split(RuleSymbol rule, IReadOnlyList<Node> alternatives, IReadOnlyList<Recursive> recursive, IReadOnlyList<string> keys, IReadOnlyList<Node> tests, bool builds)
+	{
+		var sets  = 1 << keys.Count;
+		var parts = new RuleSymbol[sets];
+
+		for (var set = 0; set < sets; set++)
+			parts[set] = Made(rule, keys.Count == 1 ? set == 0 ? "_Plain" : "_Left" : $"_Stood{set}");
+
+		for (var set = 0; set < sets; set++)
+		{
+			var made  = parts[set];
+			var built = new List<Node>();
+
+			for (var i = 0; i < alternatives.Count; i++)
+			{
+				var one = recursive.FirstOrDefault(each => each.Index == i);
+
+				// A base, as it is: the rule that reads where nothing stands keeps the nodes the passes before know.
+				if (one is null)
+				{
+					built.Add(set == 0 ? alternatives[i] : CloneAndRewrite(alternatives[i], NoTargets, [], "Standing"));
+
+					continue;
+				}
+
+				var stood = one.Key is null || (set & (1 << IndexOf(keys, one.Key))) != 0;
+
+				if (stood)
+				{
+					// A turn of the loop: the call back is this rule's own, at once. One with nothing after the call reads
+					// only what the entry it came back to reads, and is left out.
+					if (one.Operands.Count == one.Head + 1)
+						continue;
+
+					var head = one.Operands[one.Head] is Node.Capture(var name, _)
+						? (Node)new Node.Capture(name, new Node.Call(made, []))
+						: new Node.Call(made, []);
+
+					built.Add(Rebuilt(one, [head, .. one.Operands.Skip(one.Head + 1).Select(node => CloneAndRewrite(node, NoTargets, [], "Standing"))]));
+				}
+				else
+				{
+					// The prefix moves here: the alternative as written, its prefix read once, and known to move.
+					var prefix = one.Operands.Take(one.Head).Select(node => Moving(node, [])).ToList();
+					var read   = prefix.All(static node => node is Node.External or Node.Lookahead or Node.Empty)
+						? prefix
+						: [new Node.Atomic(prefix.Count == 1 ? prefix[0] : new Node.Sequence(prefix))];
+
+					built.Add(Rebuilt(one, [.. read, .. one.Operands.Skip(one.Head).Select(node => CloneAndRewrite(node, NoTargets, [], "Standing"))]));
+				}
+			}
+
+			_bodies[made] = built.Count == 1 ? built[0] : new Node.Choice(built);
+			_standing.Add(made);
+		}
+
+		_standingNullable = false;
+
+		var dispatch = new List<Node>();
+
+		for (var set = sets - 1; set >= 0; set--)
+		{
+			var leads = new List<Node>();
+
+			for (var key = 0; key < keys.Count; key++)
+				leads.Add((set & (1 << key)) != 0 ? CloneAndRewrite(tests[key], NoTargets, [], "Standing") : NotStands(tests[key]));
+
+			dispatch.Add(builds
+				? new Node.Construct(new Node.Sequence([.. leads, new Node.Capture("item0", new Node.Call(parts[set], []))]), Construction.Operand.Instance)
+				: new Node.Sequence([.. leads, new Node.Call(parts[set], [])]));
+		}
+
+		_bodies[rule] = new Node.Choice(dispatch);
+
+		static int IndexOf(IReadOnlyList<string> keys, string key)
+		{
+			for (var i = 0; i < keys.Count; i++)
+				if (keys[i] == key)
+					return i;
+
+			return -1;
+		}
+	}
+
+	/// <summary>The alternative a recursive one was, its operands replaced, its <c>=&gt;</c> kept.</summary>
+	static Node Rebuilt(Recursive one, IReadOnlyList<Node> operands)
+	{
+		Node body = new Node.Sequence(operands);
+
+		return one.Built is { } built ? new Node.Construct(body, built.How) : body;
+	}
+
+	/// <summary>The test that a prefix does not stand: a recognizer asked so, or the negation of the whole test.</summary>
+	Node NotStands(Node test)
+	{
+		return test is Node.External { Stands: true } external
+			? external with { Stands = false }
+			: new Node.Lookahead(false, CloneAndRewrite(test, NoTargets, [], "Standing"));
+	}
+
+	/// <summary>
+	/// A part of a prefix read where the prefix does not stand: its recognizers known to move, so that no analysis finds
+	/// the call back on the left, and a rule that only wraps one read in place, so that its recognizers can be marked.
+	/// </summary>
+	Node Moving(Node node, HashSet<RuleSymbol> seen)
+	{
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Moving(node, seen));
+
+		return node switch
+		{
+			Node.External external => external with { Moves = true },
+			Node.Call(var called, _) when Hosted([node], []) && seen.Add(called) && _bodies.TryGetValue(called, out var body) => Moving(body, seen),
+			Node.Sequence(var nodes) => new Node.Sequence([.. nodes.Select(one => Moving(one, seen))]),
+			Node.Choice choice       => choice.Rebuild([.. choice.Nodes.Select(one => Moving(one, seen))]),
+			Node.Atomic(var body)    => new Node.Atomic(Moving(body, seen)),
+			_                        => CloneAndRewrite(node, NoTargets, [], "Standing"),
+		};
+	}
+
+	/// <summary>The prefixes as the author wrote them, for a message: the recognizers and the rules, without the seams.</summary>
+	string Shown(IReadOnlyList<List<Node>> prefixes)
+	{
+		var names = new List<string>();
+
+		foreach (var prefix in prefixes)
+			foreach (var part in prefix)
+			{
+				var name = part switch
+				{
+					Node.External external                                       => "@" + external.Name,
+					Node.Call(var called, _) when !_model.Trivia.Values.Contains(called) => called.Name,
+					_                                                            => null,
+				};
+
+				if (name is not null && !names.Contains(name))
+					names.Add(name);
+			}
+
+		return names.Count == 0 ? "a recognizer of the host" : string.Join(" and ", names.Select(static name => $"'{name}'"));
 	}
 
 	/// <summary>A rule made beside <paramref name="rule"/>, of its type and its trivia, named after it.</summary>
@@ -346,25 +645,5 @@ sealed partial class GrammarNormalizer
 		_lifted[made] = new Lift(rule, origin, Transparent: false);
 
 		return made;
-	}
-
-	/// <summary>A copy of a node no pass has recorded anything against.</summary>
-	static Node Copied(Node node)
-	{
-		return node switch
-		{
-			Node.Sequence (var nodes)              => new Node.Sequence([.. nodes.Select(Copied)]),
-			Node.Choice   choice                   => choice.Rebuild([.. choice.Nodes.Select(Copied)]),
-			Node.Atomic   (var body)               => new Node.Atomic(Copied(body)),
-			Node.Repeat   (var body, var min, var max) => new Node.Repeat(Copied(body), min, max),
-			Node.Lookahead look                    => look with { Body = Copied(look.Body) },
-			Node.Capture  (var name, var body)     => new Node.Capture(name, Copied(body)),
-			Node.Construct(var body, var how)      => new Node.Construct(Copied(body), how),
-			Node.Literal  literal                  => literal with { },
-			Node.Element  element                  => element with { },
-			Node.External external                 => external with { },
-			Node.Call     (var rule, var arguments) => new Node.Call(rule, [.. arguments.Select(Copied)]),
-			_                                      => node,
-		};
 	}
 }
