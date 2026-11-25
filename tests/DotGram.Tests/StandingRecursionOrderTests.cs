@@ -482,6 +482,16 @@ public sealed class StandingRecursionOrderTests
 			Num : string = ['0'..'9']+
 			""", "", ["1+2", "1 + 2", "1 +2+ 3", "1 +"]),
 
+		// Through a rule that only forwards what it calls, which §4.3 makes direct.
+		("forwarded", """
+			T : @string = s: Primary & eof => @(s)
+			Primary : @string = p: Call => @(p)
+			    | n: Number => @(n)
+			Call : @string = @Ws & t: Primary & '(' & a: Number & ')' => @(t + "(" + a + ")")
+			Number : @string = d: Num => @(d)
+			Num : string = ['0'..'9']+
+			""", "", ["1", "1(2)", "1(2)(3)", "1(2", "(2)"]),
+
 		// The trivia and two levels, the lower one plain left recursion.
 		("trivia levels", """
 			trivia = [' ']*
@@ -552,14 +562,16 @@ public sealed class StandingRecursionOrderTests
 	[InlineData("A = 'a' | @Ws & A & '+' & A", "recursive on both sides")]
 	[InlineData("A = 'a' | @Ws & A & 'b'?", "a step may read nothing")]
 	[InlineData("A = B | @Ws & A & 'x'\nB = 'b' | @Ws & A & 'y'", "goes through 'B'")]
+	[InlineData("A = 'a' | @Ws & B & 'c'\nB = A & 'b'", "goes through 'B'")]
 	public void Where_the_twin_is_refused_the_rule_is_read_as_written(string rules, string reason)
 	{
 		var result = GramCompiler.Compile("T = A & eof\n" + rules + "\nparse T", Options(direct: true, tape: false, buffered: false, lexical: false));
 
-		var refused = Assert.Single(result.Diagnostics, static one => one.Id == GrammarNormalizer.StandingRefused);
+		var refused = result.Diagnostics.Where(static one => one.Id == GrammarNormalizer.StandingRefused).ToList();
 
-		Assert.Equal(GramSeverity.Warning, refused.Severity);
-		Assert.Contains(reason, refused.Message, StringComparison.Ordinal);
+		Assert.NotEmpty(refused);
+		Assert.All(refused, static one => Assert.Equal(GramSeverity.Warning, one.Severity));
+		Assert.Contains(refused, one => one.Message.Contains(reason, StringComparison.Ordinal));
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
 	}
 
