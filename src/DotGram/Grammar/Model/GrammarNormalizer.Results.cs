@@ -708,7 +708,7 @@ sealed partial class GrammarNormalizer
 			// the rewrite §4.3 made of it, not a choice of alternatives to wrap: one that took
 			// its type from another rule is told by the pass-through, and the rest were
 			// given a construction before it was rewritten.
-			if (Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule) || NamesAnOperand(body, type))
+			if (Constructs(body).FirstOrDefault() is not null || _folds.ContainsKey(rule) || NamesAnOperand(body, type) || ReadByConstruction(body, type))
 				continue;
 
 			_bodies[rule] = Extended(body, "parserSpan");
@@ -750,6 +750,10 @@ sealed partial class GrammarNormalizer
 
 			switch (Decide(rule, type, alternatives.Count, ways))
 			{
+				// No operand gives the value, but the names may fill a constructor of the taken type (§7.3): they are read.
+				case PassOutcome.Extent when ReadByConstruction(_bodies[rule], type):
+					break;
+
 				case PassOutcome.Extent:
 					extents.Add(rule);
 
@@ -827,11 +831,34 @@ sealed partial class GrammarNormalizer
 		if (names.Count == 0)
 			return false;
 
-		if (TryConstructors(type, out var constructors) &&
-			constructors.Any(constructor => constructor.Count > 0 && constructor.All(parameter => names.Contains(parameter.Name))))
-			return true;
+		// The span the grammar generates is no type the host shows: its constructor is (start, length), and a rule
+		// naming both is told as it was, not left to an extent that drops them.
+		if (_language.Classify(type, out _) == KnownType.SourceSpan)
+			return names.Contains("start") && names.Contains("length");
 
-		return TrySettable(type, out var properties) && properties.Any(property => names.Contains(property.Name));
+		// What BuildByConstructor would build: the constructor with the most parameters all named, and none when two
+		// tie; else the properties the names set, with every required one named.
+		var length = -1;
+		var tied   = false;
+
+		if (TryConstructors(type, out var constructors))
+			foreach (var constructor in constructors)
+			{
+				if (constructor.Count == 0 || !constructor.All(parameter => names.Contains(parameter.Name)))
+					continue;
+
+				if (constructor.Count > length)
+					(length, tied) = (constructor.Count, false);
+				else if (constructor.Count == length)
+					tied = true;
+			}
+
+		if (length > 0)
+			return !tied;
+
+		return TrySettable(type, out var properties) &&
+			properties.Any(property => names.Contains(property.Name)) &&
+			properties.All(property => !property.IsRequired || names.Contains(property.Name));
 	}
 
 	/// <summary>Whether a rule captures its own leading call, the value so far of a left-recursive step (§4.3).</summary>

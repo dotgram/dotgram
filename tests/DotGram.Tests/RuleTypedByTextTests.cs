@@ -611,6 +611,19 @@ public sealed class RuleTypedByTextTests
 		Assert.Equal("ccc", (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["a123"])!);
 	}
 
+	/// <summary>A rule that takes the type of a text rule asks the same of its names as one that declares it.</summary>
+	[Theory]
+	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num\\nBare : @string = ['a'..'z']+\\n", "a123,de", "ccc")]
+	public void A_rule_typed_by_a_text_rule_asks_the_constructor(string grammar, string input, string expected)
+	{
+		var type = GeneratorDriverTests.Build(
+			"[DotGram.Gram(\"" + grammar + "Ch : @char = x: ['a'..'z'] => @('c')\\nNum : @int = d: ['0'..'9']+ => @(d.Length)\\nparse Start\")]\npublic partial class Typed2 { }")
+			.GetType("Typed2")!;
+		var value = type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!;
+
+		Assert.Equal(expected, value is string[] many ? string.Join(",", many) : (string)value);
+	}
+
 	/// <summary>The word <c>context</c> in a literal, or after a dot, is no name the code of the rule writes.</summary>
 	[Theory]
 	[InlineData("Start : @string = context: W & y: W => @(y.ToString() + \"context\")\nW : @string = c: ['a'..'z']+ => @(c.ToString())")]
