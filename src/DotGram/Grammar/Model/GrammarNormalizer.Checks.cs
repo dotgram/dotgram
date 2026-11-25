@@ -863,7 +863,7 @@ sealed partial class GrammarNormalizer
 	/// <summary>Whether the C# a rule writes, a `=>` or a guard, names <c>context</c>: the methods built from it are handed the grammar's context.</summary>
 	bool WritesContext(RuleSymbol rule)
 	{
-		return NodeWalk.Descendants(_bodies[rule]).Any(static node => node switch
+		return NodeWalk.Descendants(_bodies[rule]).Any(node => node switch
 		{
 			Node.Construct(_, Construction.Expression { Text: var text }) => Names(text),
 			Node.Guard(var text, _) => Names(text),
@@ -871,9 +871,13 @@ sealed partial class GrammarNormalizer
 			_ => false,
 		});
 
-		static bool Names(string text)
+		// The names the code leaves free, as the emitter asks them: a word in a literal, a comment or after a dot is
+		// none. Where the code cannot be read, the spelling answers.
+		bool Names(string text)
 		{
-			return System.Text.RegularExpressions.Regex.IsMatch(text, @"\bcontext\b");
+			return _language.NamesUsed(text) is { } free
+				? free.Contains("context")
+				: System.Text.RegularExpressions.Regex.IsMatch(text, @"\bcontext\b");
 		}
 	}
 

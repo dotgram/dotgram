@@ -596,6 +596,32 @@ public sealed class RuleTypedByTextTests
 		Assert.Equal(refused, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.ReservedCaptureName));
 	}
 
+	/// <summary>
+	/// A name that a §7.3 constructor of the declared type reads is read, as one a <c>=&gt;</c> reads is: the value is the
+	/// one the constructor builds, <c>new string('c', 3)</c>, and not the extent.
+	/// </summary>
+	[Fact]
+	public void A_string_built_by_its_own_constructor_from_the_names_keeps_that_value()
+	{
+		var type = GeneratorDriverTests.Build(
+			"[DotGram.Gram(\"Start : @string = c: Ch & count: Num\\nCh : @char = x: ['a'..'z'] => @('c')\\n" +
+			"Num : @int = d: ['0'..'9']+ => @(d.Length)\\nparse Start\")]\npublic partial class Ctor { }")
+			.GetType("Ctor")!;
+
+		Assert.Equal("ccc", (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["a123"])!);
+	}
+
+	/// <summary>The word <c>context</c> in a literal, or after a dot, is no name the code of the rule writes.</summary>
+	[Theory]
+	[InlineData("Start : @string = context: W & y: W => @(y.ToString() + \"context\")\nW : @string = c: ['a'..'z']+ => @(c.ToString())")]
+	[InlineData("Start : @string = context: W & y: W => @(y.ToString().context)\nW : @string = c: ['a'..'z']+ => @(c.ToString())")]
+	public void The_word_context_that_the_code_does_not_name_is_no_name_of_the_context(string grammar)
+	{
+		var result = Compile("context : @Names\n" + grammar + "\nparse Start");
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.ReservedCaptureName);
+	}
+
 	/// <summary>A left-recursive rule that builds its value with a '=>' of its own is as it was.</summary>
 	[Fact]
 	public void A_left_recursive_rule_builds_with_its_own_construction()

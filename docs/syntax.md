@@ -1166,17 +1166,22 @@ contributes nothing to `Words : @string[]`, as a rule that declares none.
 A rule that hands back the text of a rule that builds nothing is refused for a `stream bytes` publication
 (`GRAM4026`), as a type made of a raw capture is: over bytes a capture is a `ReadOnlySpan<byte>` that nothing
 decodes. Under `UseSpanCaptures` the string is made of the span.
+A `@string` extent whose names a guard or a `switch` reads is the one case where the byte form differs from the same rule without
+the reader: the value is then built by a construction from the text (`parserText.ToString()`), which over bytes is `GRAM4026`
+as any construction of the text is, while the rule without the reader hands back its bytes.
 
 **A name never adds anything to an implicit value, and speaks for what it names.** A capture's name is read only
 where a value goes (§3.5): after a `=>`, in a guard or a `switch`, as a member of a generated type, or by a §7.3
 constructor or initializer. A rule whose value is implicit, a sequence (case 2), the value of one operand (case 3) or its
 own extent (case 4), writes no construction that reads a name, so for such a rule a name is either read by nothing, or read
-by a guard or a `switch` of the rule, which keeps it a member of the rule and changes nothing about the value, or says that
-the author will read the operand himself. One rule, in every shape:
+by a guard or a `switch` of the rule, which keeps it a member of the rule and changes nothing against the same name without
+the guard, or says that the author will read the operand himself; or by a §7.3 constructor or initializer of the declared type
+(`Start : @string = c: Ch & count: Num` calls `new string('c', 3)`), which builds the value from the names and so is no
+extent at all. One rule, in every shape:
 
 | What is named | The implicit value |
 | --- | --- |
-| something that is not an operand: a literal, an extent, a rule of another type, a repetition or an option of any of them, a group | nothing is added, whatever the name and the element type and whether a guard reads it; what is inside a group counts as it would unnamed, the operands in it included; the rule is the one it would be unnamed |
+| something that is not an operand: a literal, an extent, a rule of another type, a repetition or an option of any of them, a group, a choice of operands in a group, `x: (Word \| Quoted)` | nothing is added, whatever the name and the element type and whether a guard reads it; what is inside a group counts as it would unnamed, the operands in it included; the rule is the one it would be unnamed |
 | an operand: a call of a rule that declared the type the value has, or a repetition of one | it leaves the value (it is *spoken for*); a rule left with no operand to take its value from is `GRAM4008`, which names the capture: drop the name, or build the value with `=>` |
 
 So `Start : @int[] = Num & x: ',' & Num` is the array of its two `Num`, `Start : Bare = x: '<' & Bare & '>'` and

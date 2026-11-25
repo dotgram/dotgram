@@ -133,7 +133,7 @@ sealed partial class GrammarNormalizer
 			var body = _bodies[rule];
 			var type = _extents[rule];
 
-			if (NamesAnOperand(body, type) || Accumulates(rule, body))
+			if (NamesAnOperand(body, type) || Accumulates(rule, body) || ReadByConstruction(body, type))
 			{
 				_extents.Remove(rule);
 				_types[rule] = type;
@@ -198,7 +198,8 @@ sealed partial class GrammarNormalizer
 	/// <summary>The same, asked without the grammar's naming it.</summary>
 	string? GeneratedNameOf(RuleSymbol rule)
 	{
-		if (rule.Declaration is null || _types.ContainsKey(rule) || _produces.ContainsKey(rule) ||
+		// A rule that declared its extent generates no type for its names, whatever they turn out to be (DecideExtents).
+		if (rule.Declaration is null || _types.ContainsKey(rule) || _produces.ContainsKey(rule) || _extents.ContainsKey(rule) ||
 			!_bodies.TryGetValue(rule, out var body) || !HasCapture(body) || Constructs(body).Any())
 			return null;
 
@@ -813,6 +814,24 @@ sealed partial class GrammarNormalizer
 	bool NamesAnOperand(Node body, string type)
 	{
 		return NodeWalk.Descendants(body).Any(node => node is Node.Capture(_, var named) && Fits(named, type, declared: true));
+	}
+
+	/// <summary>
+	/// Whether the names of a rule fill a constructor or the properties of its declared type (§7.3), which reads them as
+	/// a <c>=&gt;</c> does: a rule whose names are read so is built by them and is not the extent it matched.
+	/// </summary>
+	bool ReadByConstruction(Node body, string type)
+	{
+		var names = new HashSet<string>(NodeWalk.Descendants(body).OfType<Node.Capture>().Select(static capture => capture.Name), StringComparer.OrdinalIgnoreCase);
+
+		if (names.Count == 0)
+			return false;
+
+		if (TryConstructors(type, out var constructors) &&
+			constructors.Any(constructor => constructor.Count > 0 && constructor.All(parameter => names.Contains(parameter.Name))))
+			return true;
+
+		return TrySettable(type, out var properties) && properties.Any(property => names.Contains(property.Name));
 	}
 
 	/// <summary>Whether a rule captures its own leading call, the value so far of a left-recursive step (§4.3).</summary>
