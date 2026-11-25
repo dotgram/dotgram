@@ -624,6 +624,29 @@ public sealed class RuleTypedByTextTests
 		Assert.Equal(expected, value is string[] many ? string.Join(",", many) : (string)value);
 	}
 
+	/// <summary>A name that several constructors of the type tie on (<c>string(char[] value)</c>, <c>string(ReadOnlySpan&lt;char&gt; value)</c>) builds nothing, so it is read by nothing and the rule is the extent, as with any other name.</summary>
+	[Theory]
+	[InlineData("value")]
+	[InlineData("x")]
+	public void A_name_that_constructors_tie_on_is_the_extent_as_any_other_name_is(string name)
+	{
+		var type = GeneratorDriverTests.Build(
+			"[DotGram.Gram(\"Start : @string = " + name + ": ['a'..'z']+\\nparse Start\")]\npublic partial class Tied { }")
+			.GetType("Tied")!;
+
+		Assert.Equal("abc", (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"])!);
+	}
+
+	/// <summary>The names of the generated span's own constructor are told, as they were, and are not silently the extent.</summary>
+	[Fact]
+	public void A_SourceSpan_rule_named_like_the_span_constructor_is_told()
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"Start : @SourceSpan = start: N1 & length: N1\\nN1 : @int = d: ['0'..'9'] => @(d.Length)\\nparse Start\")]\npublic partial class Spans { }");
+
+		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM4008");
+	}
+
 	/// <summary>The word <c>context</c> in a literal, or after a dot, is no name the code of the rule writes.</summary>
 	[Theory]
 	[InlineData("Start : @string = context: W & y: W => @(y.ToString() + \"context\")\nW : @string = c: ['a'..'z']+ => @(c.ToString())")]
