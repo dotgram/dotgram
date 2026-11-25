@@ -217,13 +217,15 @@ sealed partial class GrammarNormalizer
 
 		if (TwinRefusal(rule, alternatives, recursive) is { } refusal)
 		{
-			Warn(
+			Told(new GramDiagnostic(
 				StandingRefused,
 				$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2); " +
 				$"where it does not move, this is left recursion the rewrite cannot take: {refusal} (§4.3). It is read as " +
 				"written there, and a parse that has to give up on that alternative goes round until the stack or memory " +
 				$"runs out. Make the rule without {shown} one §4.3 accepts, or let {shown} always move.",
-				declaration.At);
+				declaration.At.Position,
+				declaration.At.Length,
+				GramSeverity.Warning));
 
 			return;
 		}
@@ -238,7 +240,7 @@ sealed partial class GrammarNormalizer
 
 		Split(rule, alternatives, recursive, keys, tests, builds);
 
-		_diagnostics.Add(new GramDiagnostic(
+		Told(new GramDiagnostic(
 			Reentry.Reenters,
 			$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2). " +
 			$"Where it does not move, '{rule.Name}' is read as the left recursion it is without {shown} (§4.3): as many " +
@@ -247,6 +249,13 @@ sealed partial class GrammarNormalizer
 			declaration.At.Position,
 			declaration.At.Length,
 			GramSeverity.Info));
+	}
+
+	/// <summary>Said once: a rule and the copies a specialization made of it say the same thing at the same place.</summary>
+	void Told(GramDiagnostic diagnostic)
+	{
+		if (!_diagnostics.Contains(diagnostic))
+			_diagnostics.Add(diagnostic);
 	}
 
 	/// <summary>
