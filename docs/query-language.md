@@ -90,9 +90,13 @@ select id, status, net
 - **`*`** — the projection of the last method — is an item of a `select` list like any other: it
   stands for the columns of the row as it stands, the entity's fields with Select, then the `let`s
   after the head, or the columns of the last `select`, then its `let`s. `select 1 as one, *, total` is one
-  column, the fields, then `total`. It stands once in a list; `select *` alone returns the row as it is. A
-  name the list writes itself wins over the field `*` would give: that field is left out, and the written
-  column keeps its place. A column that is not a name still needs `as`.
+  column, the fields, then `total`. It stands once in a list; `select *` alone returns the row as it is.
+  A query with no `select` returns the same row, `let`s included: `from orders let t = total * 2` is
+  `from orders let t = total * 2 select *`. A name the list writes itself wins over any column `*` would give — a
+  field, a `let`, or a column of an earlier `select` — that column is left out, and the written one keeps its
+  place. A field the rest of the text uses without the right it needs (`order by status` where `status` has no
+  Sort) is not given by `*` either, and naming it later is refused as a field the model does not have.
+  A column that is not a name still needs `as`. `*` stands alone: not `o.*`, not `* as x`.
 - **Values**: the entity's fields, by name or after the alias (`o.total`); names of `let`s and
   `select` columns; parameters `@name`; numbers, which take the type of what they meet (`total > 1.5`);
   strings in `'…'` or `"…"` with the escapes `\\`, `\'`, `\"` and `\uXXXX`; `true`, `false`, `null`;

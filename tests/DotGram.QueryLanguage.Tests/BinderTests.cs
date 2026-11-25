@@ -176,6 +176,56 @@ public sealed class BinderTests
 		Assert.Equal([.. Fields.Where(f => f != "total"), "total"], Names("from orders let total = qty select *"));
 	}
 
+	/// <summary>A `*` column an explicit item replaces is not returned, so it needs no Select: its fields are used by their own rights.</summary>
+	[Theory]
+	[InlineData("from orders let s = salary where s > 1 select *, 1 as s", "s")]
+	[InlineData("from orders let s = salary where s > 1 select 1 as s, *", "s")]
+	[InlineData("from orders let r = rank order by r select *, 1 as r", "r")]
+	[InlineData("from orders let s = salary where s > 1 select id, s > 1 as t select *, 1 as t", "t")]
+	public void AStarColumnAnExplicitItemReplacesNeedsNoSelect(string text, string replaced)
+	{
+		Assert.Contains(replaced, Names(text));
+	}
+
+	[Fact]
+	public void AnExplicitItemWinsOverALetAndOverAColumnOfAnEarlierSelectToo()
+	{
+		var info = Describe("from orders let t = 1 select *, 2 as t");
+
+		Assert.Equal("t", info.Columns[^1].Name);
+		Assert.Single(info.Columns, c => c.Name == "t");
+		Assert.Contains(info.Warnings, w => w.Message == "`t` is never used.");
+
+		Assert.Equal(["id", "t"], Names("from orders select id, total as t select *, id + 1 as t"));
+	}
+
+	[Fact]
+	public void WithoutASelectTheRowIsWhatStarWouldGive()
+	{
+		Assert.Equal(Names("from orders let t = total * 2 select *"), Names("from orders let t = total * 2"));
+		Assert.Equal(Names("from orders let total = qty select *"), Names("from orders let total = qty"));
+		Assert.Equal(Names("from orders select id let t = id * 2 select *"), Names("from orders select id let t = id * 2"));
+		Assert.Equal([.. Fields, "t"], Names("from orders let t = total * 2"));
+
+		// What the row returns is read, so it is not unused.
+		Assert.Empty(Describe("from orders let t = total * 2").Warnings);
+	}
+
+	[Fact]
+	public void ALetTheRowReturnsNeedsSelect()
+	{
+		Fails("from orders let s = salary", QlErrorCode.UnknownName, 20);
+		Fails("from orders let r = rank where r > 1", QlErrorCode.UnknownName, 20);
+		Describe("from orders let s = salary where s > 1 select id");
+	}
+
+	[Fact]
+	public void StarColumnsThatNothingReadsAreNotReportedOneByOne()
+	{
+		Assert.Empty(Describe("from orders select * select id").Warnings);
+		Assert.Single(Describe("from orders let t = 1 select * select id").Warnings);
+	}
+
 	[Fact]
 	public void StarStandsOnceInASelect()
 	{

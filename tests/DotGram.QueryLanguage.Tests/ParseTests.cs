@@ -124,6 +124,17 @@ public sealed class ParseTests
 		Read(text);
 	}
 
+	[Theory]
+	[InlineData("from orders o select o.*",         "`*` stands alone: write `select *`, not after a name.")]
+	[InlineData("from orders select orders.*",      "`*` stands alone: write `select *`, not after a name.")]
+	[InlineData("from orders select * as x",        "`*` takes no name and no operator: it stands for the columns of the row; write `select *, x as y` for more.")]
+	[InlineData("from orders select id, * * 2",     "`*` takes no name and no operator: it stands for the columns of the row; write `select *, x as y` for more.")]
+	[InlineData("from orders in where in.id > 1",   "`in` is not an alias without `as`: write `from orders as in`, or `from o in orders`.")]
+	public void TheHabitsOfSqlGetAHint(string text, string message)
+	{
+		Assert.Equal(message, Refused(text).Message);
+	}
+
 	[Fact]
 	public void StarIsAnItemOfTheSelectList()
 	{

@@ -100,25 +100,39 @@ sealed partial class Binder
 		return new BoundQuery(_entity, [.. clauses], _shape, output, names, [.. _order], warnings);
 	}
 
-	/// <summary>The columns a row returns: the last <c>select</c>'s, or the entity's fields with <see cref="QlUse.Select"/>.</summary>
+	/// <summary>
+	/// The columns a row returns: the row as the last clause that made one leaves it, as <c>select *</c> would give it — the
+	/// columns of the last <c>select</c>, or the entity's fields with <see cref="QlUse.Select"/>, and the <c>let</c>s after it.
+	/// </summary>
 	(BoundExpr[] Output, string[] Names) Output(QuerySyntax query)
 	{
-		if (_shape.Kind == ShapeKind.Scalars)
-		{
-			var columns = _finalColumns!;
+		var output = new List<BoundExpr>();
+		var names  = new List<string>();
 
-			return ([.. columns.Select(c => (BoundExpr)new BoundColumn(c, c.Position))], [.. columns.Select(c => c.Name)]);
+		if (_selectAt is null)
+		{
+			var fields = _entity.Fields.Where(f => (f.Use & QlUse.Select) != 0 && !_shape.Columns.Any(c => Names.Comparer.Equals(c.Name, f.Name))).ToArray();
+
+			if (fields.Length + _shape.Columns.Length == 0)
+				throw Error(QlErrorCode.Type, $"`{_entity.Name}` has no fields to return.", query.Root.Position);
+
+			if (fields.Length + _shape.Columns.Length > _options.MaxColumns)
+				throw Error(QlErrorCode.Limit, $"`{_entity.Name}` has more than {_options.MaxColumns} fields to return: list them in `select`.", query.Root.Position);
+
+			foreach (var field in fields)
+			{
+				output.Add(new BoundField(field, field.Name, query.Root.Position, null));
+				names.Add(field.Name);
+			}
 		}
 
-		var fields = _entity.Fields.Where(f => (f.Use & QlUse.Select) != 0).ToArray();
+		foreach (var column in _shape.Columns)
+		{
+			output.Add(new BoundColumn(column, column.Position));
+			names.Add(column.Name);
+		}
 
-		if (fields.Length == 0)
-			throw Error(QlErrorCode.Type, $"`{_entity.Name}` has no fields to return.", query.Root.Position);
-
-		if (fields.Length > _options.MaxColumns)
-			throw Error(QlErrorCode.Limit, $"`{_entity.Name}` has more than {_options.MaxColumns} fields to return: list them in `select`.", query.Root.Position);
-
-		return ([.. fields.Select(f => (BoundExpr)new BoundField(f, f.Name, query.Root.Position, null))], [.. fields.Select(f => f.Name)]);
+		return ([.. output], [.. names]);
 	}
 
 	/// <summary>What naming columns has added to the size of the text so far: each use of a name, its column's size less one.</summary>
@@ -128,9 +142,6 @@ sealed partial class Binder
 	{
 		return Math.Min(value, int.MaxValue);
 	}
-
-	/// <summary>The columns of the last <c>select</c>, which the result returns where nothing replaces them.</summary>
-	Column[]? _finalColumns;
 
 	BoundClause BindClause(ClauseSyntax clause)
 	{
@@ -209,6 +220,7 @@ sealed partial class Binder
 		var names  = new HashSet<string>(Names.Comparer);
 		var slots  = new List<Column>?[items.Length];
 		var star   = -1;
+		var spread = new HashSet<Column>();
 
 		for (var i = 0; i < items.Length; i++)
 		{
@@ -291,6 +303,7 @@ sealed partial class Binder
 				throw Error(QlErrorCode.Type, $"`{_entity.Name}` has no fields to return.", at);
 
 			slots[star] = expanded;
+			spread.UnionWith(expanded);
 
 			if (slots.Sum(s => s?.Count ?? 0) > _options.MaxColumns)
 				throw Error(QlErrorCode.Limit, $"`*` names more than {_options.MaxColumns} columns: list them.", at);
@@ -300,11 +313,12 @@ sealed partial class Binder
 
 		CheckSlots(columns, select.Position);
 
+		// A column `*` spread is a copy of one declared already, which is what warns where nothing reads it.
 		foreach (var column in columns)
-			_declared.Add(column);
+			if (!spread.Contains(column))
+				_declared.Add(column);
 
 		_selectAt     = select.Position;
-		_finalColumns = [.. columns];
 		_shape        = new Shape(ShapeKind.Scalars, [.. columns]);
 
 		return new BoundSelect(before, _shape, select.Items is not null && select.Items.Length > 0 && select.Items[0].Value is CallExpr first && Aggregates.Is(first.Name.Text), select.Position);

@@ -47,6 +47,8 @@ static class RightsPlan
 
 		List<Declared>? last = null;
 
+		var row = new List<Declared>();
+
 		void Walk(ExprSyntax node, Place place, Declared? into)
 		{
 			switch (node)
@@ -158,6 +160,8 @@ static class RightsPlan
 					if (!scope.ContainsKey(let.Name.Text))
 						scope[let.Name.Text] = column;
 
+					row.Add(column);
+
 					break;
 				}
 
@@ -209,7 +213,6 @@ static class RightsPlan
 								declared.Add(column);
 								stars.Add((select, field, column));
 								taken[field] = column;
-								last.Add(column);
 							}
 						}
 
@@ -220,22 +223,33 @@ static class RightsPlan
 							copy.Reads.Add(previous.Value);
 							declared.Add(copy);
 							taken[previous.Key] = copy;
-							last.Add(copy);
 						}
 
+						// Only a column the list does not replace is returned, so only it needs Select.
 						foreach (var pair in taken)
+						{
 							if (!columns.ContainsKey(pair.Key))
+							{
 								columns[pair.Key] = pair.Value;
+								last.Add(pair.Value);
+							}
+						}
 					}
 
 					scope    = columns;
 					selected = true;
+
+					row.Clear();
 					break;
 				}
 			}
 		}
 
 		foreach (var column in last ?? [])
+			column.Needs |= QlUse.Select;
+
+		// The row is returned with the `let`s made since the last `select`, as `*` would spread it.
+		foreach (var column in row)
 			column.Needs |= QlUse.Select;
 
 		// A column reads only columns declared before it: from the last back, each passes on what it needs.
