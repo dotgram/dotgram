@@ -74,6 +74,17 @@ public sealed class BinderTests
 	}
 
 	[Fact]
+	public void EverySourceHasANameItsAliasOrTheEntitys()
+	{
+		Describe("from o in orders where o.qty > 1 && qty > 1 select o.id, total");
+		Describe("from orders as o where o.qty > 1 select o.id");
+		Describe("from orders where orders.qty > 1 select orders.id");
+
+		Fails("from o in orders where orders.qty > 1", QlErrorCode.UnknownName, 23);
+		Fails("from total in orders", QlErrorCode.Syntax, 5);
+	}
+
+	[Fact]
 	public void TheEntityIsNotAValue()
 	{
 		Fails("from orders o where o > 1", QlErrorCode.Type, 20);

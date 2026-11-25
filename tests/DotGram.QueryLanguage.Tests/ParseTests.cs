@@ -53,6 +53,77 @@ public sealed class ParseTests
 		Assert.Equal(alias, Read(text).Alias!.Text);
 	}
 
+	[Theory]
+	[InlineData("from orders",          null, "orders")]
+	[InlineData("from orders o",        "o",  "orders")]
+	[InlineData("from orders as o",     "o",  "orders")]
+	[InlineData("from o in orders",     "o",  "orders")]
+	[InlineData("FROM O IN Orders",     "O",  "Orders")]
+	[InlineData("from orders as in",    "in", "orders")]
+	[InlineData("from in in orders",    "in", "orders")]
+	[InlineData("from where in orders", "where", "orders")]
+	[InlineData("from x in where",      "x",  "where")]
+	[InlineData("from orders in in",    "orders", "in")]
+	public void TheHeadHasThreeSpellingsAndOneTree(string text, string? alias, string root)
+	{
+		var query = Read(text);
+
+		Assert.Equal(root, query.Root.Text);
+		Assert.Equal(alias, query.Alias?.Text);
+		Assert.Empty(query.Clauses);
+	}
+
+	[Fact]
+	public void TheHeadsPositionsFollowTheText()
+	{
+		var query = Read("from o in orders");
+
+		Assert.Equal((5, 10), (query.Alias!.Position, query.Root.Position));
+	}
+
+	[Theory]
+	[InlineData("from orders in",       14)]
+	[InlineData("from b in books b",    16)]
+	[InlineData("from b in books as x", 16)]
+	[InlineData("from orders left",     12)]
+	[InlineData("from orders join",     12)]
+	[InlineData("from orders on",       12)]
+	[InlineData("from orders left join", 12)]
+	[InlineData("from o in",            9)]
+	public void AnInAndAClauseWordAreNotAnAlias(string text, int position)
+	{
+		var error = Refused(text);
+
+		Assert.Equal(QlErrorCode.Syntax, error.Code);
+		Assert.Equal(position, error.Position);
+		Assert.DoesNotContain("join", error.Message);
+	}
+
+	[Fact]
+	public void OrderByIsWrittenInOneWordToo()
+	{
+		var query = Read("from orders orderby id descending, b ascending order by c desc orderby d asc, e");
+
+		Assert.Null(query.Alias);
+		Assert.Equal(3, query.Clauses.Length);
+		Assert.All(query.Clauses, c => Assert.IsType<OrderClause>(c));
+
+		var items = query.Clauses.Cast<OrderClause>().SelectMany(c => c.Items).Select(i => i.Descending);
+
+		Assert.Equal([true, false, true, false, false], items);
+	}
+
+	[Theory]
+	[InlineData("from orders ORDERBY id Descending")]
+	[InlineData("from orders as orderby orderby id")]
+	[InlineData("from orders order by descending descending")]
+	[InlineData("from orders order by ascending ascending, orderby descending")]
+	[InlineData("from orders select join, left, on, orderby, ascending, descending")]
+	public void TheNewWordsAreNamesWhereANameStands(string text)
+	{
+		Read(text);
+	}
+
 	[Fact]
 	public void AnAliasWithoutAsIsNeverAClauseWord()
 	{

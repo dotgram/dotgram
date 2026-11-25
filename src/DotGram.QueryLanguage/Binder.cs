@@ -63,7 +63,7 @@ sealed partial class Binder
 		_needs     = RightsPlan.Of(query, _qualifier, _entity.Fields.Where(f => (f.Use & QlUse.Select) != 0).Select(f => f.Name), out _star);
 
 		if (query.Alias is { } alias && _entity.Find(alias.Text) is { } field)
-			throw Error(QlErrorCode.Syntax, $"`{field.Name}` is a field of `{_entity.Name}`: choose another alias.", alias.Position);
+			throw Error(QlErrorCode.Syntax, $"`{field.Name}` is a field of `{_entity.Name}`: choose another name for the entity.", alias.Position);
 
 		var clauses = new List<BoundClause>();
 		var nodes   = 1L;

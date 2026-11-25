@@ -65,7 +65,7 @@ JSON document of the refusal.
 ## The language
 
 ```text
-from orders o
+from o in orders
 where o.status in @statuses && total between @low and @high
 let net = total - total / 6
 order by net desc, id
@@ -73,15 +73,18 @@ take 20
 select id, status, net
 ```
 
-- **`from <entity> [[as] alias]`** comes first. Then any number of clauses in any order, each
-  applied where it is written, as a call of its own:
+- **The head** comes first, in any of three spellings that mean the same: `from orders`,
+  `from orders o` or `from orders as o` (the entity, then an alias), and `from o in orders` (the name,
+  then the entity). Every source has a name: its alias or the entity's name; fields are written after it
+  (`o.total`) or alone. Then any number of clauses in any order, each applied where it is written, as a
+  call of its own:
 
   | Clause | Does |
   | --- | --- |
   | `where <condition>` | keeps the rows where the condition is true |
   | `let <name> = <value>` | adds a named value to the row |
   | `select <value> [as <name>], …` or `select *` | replaces the row with these columns; after it only they can be named |
-  | `order by <value> [asc \| desc] [nulls first \| nulls last], …` | sorts; a second `order by` sorts again |
+  | `order by <value> [asc \| desc] [nulls first \| nulls last], …` | sorts; a second `order by` sorts again; `orderby` is `order by`, `ascending` is `asc` and `descending` is `desc` |
   | `skip <count>`, `take <count>` | pages, where the query's paging belongs; a count is a number or a parameter |
 
 - **Values**: the entity's fields, by name or after the alias (`o.total`); names of `let`s and
@@ -104,7 +107,9 @@ select id, status, net
 - **Null** compares as in C#, not as in SQL: `x == null` tests for null, `x != 1` holds where `x` is
   null.
 - **Words** of the language are words only where a name cannot stand, so a field may be called
-  `order` or `select`; `null`, `true` and `false` are reserved. Names and words ignore case.
+  `order` or `select`; `null`, `true` and `false` are reserved. An alias written without `as` is
+  never a word that starts a clause (`where`, `let`, `order`, `orderby`, `select`, `skip`, `take`, `join`, `left`, `on`)
+  and never `in`; after `as` any name will do. Names and words ignore case.
   Comments are `--` to the end of the line and `/* … */`.
 - A name declared and never used is reported in `Describe(text).Warnings` (`UnusedName`) and is
   not built into the query.

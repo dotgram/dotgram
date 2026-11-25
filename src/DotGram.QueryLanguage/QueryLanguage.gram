@@ -34,18 +34,29 @@ wordboundary = Lexical.NamePart
 
 trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
+// The head names the source in one of three ways: `from orders`, `from orders o` or `from orders as o`
+// (the entity, then its alias), and `from o in orders` (the name first, then the entity). All three read
+// to the same tree.
 Query : @QuerySyntax
-	= "from"i & root: Name & alias: Alias? & clauses: Clause* & eof => @(new QuerySyntax(root, alias, clauses))
+	= "from"i & first: Name & head: Head? & clauses: Clause* & eof => @(Nodes.Query(first, head, clauses))
 
-// An alias without `as` cannot be a word that starts a clause: `from orders order by id` sorts.
-Alias : @NameSyntax = "as"i & n: Name => @(n) | ?!ClauseWord & n: Name => @(n)
+Head : @HeadSyntax
+	= "in"i & root: Name => @(new HeadSyntax(root, null))
+	| a: Alias           => @(new HeadSyntax(null, a))
 
-ClauseWord = "where"i | "let"i | "order"i | "select"i | "skip"i | "take"i
+// An alias without `as` cannot be a word that starts a clause: `from orders order by id` sorts. Nor can
+// it be `in`, which would make `from orders in where` read two ways.
+Alias : @NameSyntax = "as"i & n: Name => @(n) | ?!BareStop & n: Name => @(n)
+
+BareStop = ClauseWord | "in"i
+
+ClauseWord = "where"i | "let"i | "order"i | "orderby"i | "select"i | "skip"i | "take"i | "join"i | "left"i | "on"i
 
 Clause : @ClauseSyntax on fail "Expected an operator, or the next clause: `where`, `let`, `order by`, `select`, `skip` or `take`."
 	= "where"i  & e: Expr                  => @(new WhereClause(e, parserSpan.Start))
 	| "let"i    & n: Name & '=' & e: Expr  => @(new LetClause(n, e, parserSpan.Start))
 	| "order"i  & "by"i & keys: OrderItems  => @(new OrderClause(keys, parserSpan.Start))
+	| "orderby"i & keys: OrderItems        => @(new OrderClause(keys, parserSpan.Start))
 	| "select"i & items: SelectBody        => @(new SelectClause(items, parserSpan.Start))
 	| "skip"i   & c: Count                 => @(new PageClause(true, c, parserSpan.Start))
 	| "take"i   & c: Count                 => @(new PageClause(false, c, parserSpan.Start))
@@ -57,7 +68,7 @@ As          : @NameSyntax        = "as"i & n: Name => @(n)
 
 OrderItems : OrderItem[]        = OrderItem & (',' & OrderItem)*
 OrderItem  : @OrderItemSyntax   = e: Expr & d: Direction? & n: Nulls? => @(new OrderItemSyntax(e, d == true, n))
-Direction  : @bool              = "asc"i => @(false) | "desc"i => @(true)
+Direction  : @bool              = ("asc"i | "ascending"i) => @(false) | ("desc"i | "descending"i) => @(true)
 Nulls      : @bool              = "nulls"i & "first"i => @(true) | "nulls"i & "last"i => @(false)
 
 Count : @ExprSyntax on fail "Expected a count: a number or a parameter." = t: Number => @(new LiteralExpr(LiteralKind.Number, t, parserSpan.Start)) | p: ParameterRef => @(p)

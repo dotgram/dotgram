@@ -39,6 +39,18 @@ public sealed class QueryTests(Databases databases)
 
 	[Theory]
 	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
+	public void TheThreeHeadsAndTheLinqSpellingOfSortingGiveTheSameRows(string provider)
+	{
+		var expected = Run(provider, "from orders o where o.qty > 1 order by id desc select id");
+
+		Assert.NotEmpty(expected);
+		Assert.Equal(expected, Run(provider, "from orders as o where o.qty > 1 order by id desc select id"));
+		Assert.Equal(expected, Run(provider, "from o in orders where o.qty > 1 orderby id descending select id"));
+		Assert.Equal(expected, Run(provider, "from orders where orders.qty > 1 orderby id desc select id"));
+	}
+
+	[Theory]
+	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
 	public void TheSourceChoosesTheRows(string provider)
 	{
 		Assert.Equal(Enumerable.Range(21, 20), Run(provider, "from orders order by id select id", tenant: 2).First<int>());
