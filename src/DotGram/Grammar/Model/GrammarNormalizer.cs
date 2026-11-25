@@ -858,8 +858,9 @@ sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			var loop = new Node.Repeat(
-				tails.Count == 1 ? tails[0] : new Node.Choice(tails), 0, null);
+			// A rule a split made past a prefix that stood is read in the order chosen for it (GrammarNormalizer.Guarded.cs).
+			var steps = tails.Count == 1 ? tails[0] : new Node.Choice(tails);
+			var loop  = _standing.Contains(rule) ? StandingLoop(steps) : new Node.Repeat(steps, 0, null);
 
 			_bodies[rule] = new Node.Sequence(
 				[bases.Count == 1 ? bases[0] : new Node.Choice(bases), loop]);
