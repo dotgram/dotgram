@@ -66,19 +66,63 @@ sealed partial class GrammarNormalizer
 	/// <summary>Whether nullability is worked out for the bodies as they stand: once a grammar asks, and again after a split.</summary>
 	bool _standingNullable;
 
+	/// <summary>The rules that may match nothing where every recognizer of the host may: worked out once a pass, and again after a split.</summary>
+	readonly Dictionary<RuleSymbol, bool> _mayStand = [];
+
+	/// <summary>The rules that read a recognizer of the host, themselves or through the rules they call.</summary>
+	readonly HashSet<RuleSymbol> _hosted = [];
+
 	/// <summary>One alternative of a rule that calls itself: where the call is, and what is read before it.</summary>
-	sealed record Recursive(int Index, int Head, IReadOnlyList<Node> Operands, Node.Construct? Built, string? Key);
+	/// <remarks>
+	/// <see cref="Through"/> names the rule the call back goes through where it is not to the rule itself: a forwarder
+	/// §4.3 makes direct (<see cref="Forwards"/>), or a rule that does something of its own, which it refuses.
+	/// </remarks>
+	sealed record Recursive(int Index, int Head, IReadOnlyList<Node> Operands, Node.Construct? Built, string? Key)
+	{
+		public RuleSymbol? Through { get; init; }
+
+		public bool Forwards { get; init; }
+	}
 
 	void RewriteGuardedLeftRecursion()
 	{
-		if (Reentry.Unchecked)
+		if (Reentry.Unchecked || !_bodies.Values.Any(static body => NodeWalk.Descendants(body).Any(static node => node is Node.External)))
 			return;
+
+		Standing();
 
 		var callers = Callers();
 
 		foreach (var rule in _rules.ToList())
 			if (_bodies.TryGetValue(rule, out var body))
 				Guard(rule, body, callers);
+	}
+
+	/// <summary>Which rules may stand where recognizers may, and which read one: for the bodies as they stand now.</summary>
+	void Standing()
+	{
+		_mayStand.Clear();
+		_hosted.Clear();
+
+		foreach (var rule in _bodies.Keys)
+			_mayStand[rule] = false;
+
+		for (var changed = true; changed;)
+		{
+			changed = false;
+
+			foreach (var pair in _bodies)
+			{
+				var (rule, body) = (pair.Key, pair.Value);
+
+				if (!_mayStand[rule] && FirstSets.Nullable(body, one => _mayStand.TryGetValue(one, out var may) && may, _boundBodies, hosts: true))
+					changed = _mayStand[rule] = true;
+
+				if (!_hosted.Contains(rule) &&
+					NodeWalk.Descendants(body).Any(node => node is Node.External || node is Node.Call(var called, _) && _hosted.Contains(called)))
+					changed = _hosted.Add(rule);
+			}
+		}
 	}
 
 	/// <summary>For each rule, the rules that call it.</summary>
@@ -132,6 +176,13 @@ sealed partial class GrammarNormalizer
 
 		if (keys.Count == 0)
 			return;
+
+		if (!_standingNullable)
+		{
+			ComputeNullability();
+
+			_standingNullable = true;
+		}
 
 		// Something read after the call back on at least one of them: where nothing is, the cut at once already reads
 		// the rule (Reentry).
@@ -212,34 +263,51 @@ sealed partial class GrammarNormalizer
 		for (var at = 0; at < operands.Count; at++)
 		{
 			var operand = operands[at];
+			var head    = operand is Node.Capture(_, var captured) ? captured : operand;
 
-			if ((operand is Node.Capture(_, var captured) ? captured : operand) is not Node.Call(var called, var arguments) ||
-				!ReferenceEquals(called, rule))
-				continue;
-
-			if (arguments.Count > 0)
-				return null;
-
-			if (at == 0)
-				return new Recursive(index, 0, operands, built, null);
-
-			var prefix = operands.Take(at).ToList();
-
-			// Asked only of an alternative with a recognizer of the host before the call: a grammar with none pays nothing.
-			if (!Hosted(prefix, []))
-				return null;
-
-			if (!_standingNullable)
+			if (head is Node.Call(var called, var arguments) && ReferenceEquals(called, rule))
 			{
-				ComputeNullability();
+				if (arguments.Count > 0)
+					return null;
 
-				_standingNullable = true;
+				if (at == 0)
+					return new Recursive(index, 0, operands, built, null);
+
+				var prefix = operands.Take(at).ToList();
+
+				return Prefixed(prefix) ? new Recursive(index, at, operands, built, string.Join(" & ", prefix)) : null;
 			}
 
-			return prefix.All(part => PrefixPart(part, rule, [])) ? new Recursive(index, at, operands, built, string.Join(" & ", prefix)) : null;
+			if (PrefixPart(operand, rule, []))
+				continue;
+
+			// The first thing that is no part of a prefix: past a prefix of recognizers, a call back through another
+			// rule. Through one that only forwards what it calls, §4.3 makes it direct and the twin folds; through one
+			// that does more, it does not, and the rule is told so.
+			if (at == 0 || head is not Node.Call(var other, { Count: 0 }) || !Prefixed([.. operands.Take(at)]))
+				return null;
+
+			var key = string.Join(" & ", operands.Take(at));
+
+			_forwarders ??= Forwarders();
+
+			if (_forwarders.TryGetValue(other, out var sources) && sources.Contains(rule) &&
+				(operand is not Node.Capture || other.Declaration?.Type is not null))
+				return new Recursive(index, at, operands, built, key) { Through = other, Forwards = true };
+
+			return LeftReaches(operand, rule) is not null ? new Recursive(index, at, operands, built, key) { Through = other } : null;
 		}
 
 		return null;
+	}
+
+	/// <summary>
+	/// Whether the operands read before a call may be the prefix of a call back: a recognizer of the host among them, and
+	/// nothing that does not stand or does more than read.
+	/// </summary>
+	bool Prefixed(IReadOnlyList<Node> prefix)
+	{
+		return Hosted(prefix) && prefix.All(part => PrefixPart(part, null, []));
 	}
 
 	/// <summary>
@@ -248,7 +316,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	bool PrefixPart(Node node, RuleSymbol? rule, HashSet<RuleSymbol> seen)
 	{
-		return Pure(node, rule, seen) && MayStand(node, []);
+		return MayStand(node) && Pure(node, rule, seen);
 	}
 
 	/// <summary>Whether a node reads only the text and does nothing else: no value, no binding, no hook, no call of <paramref name="rule"/>.</summary>
@@ -278,49 +346,15 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether a node may succeed without moving where every recognizer may: nullable with the hosts.</summary>
-	bool MayStand(Node node, HashSet<RuleSymbol> seen)
+	bool MayStand(Node node)
 	{
-		if (DeepStack.Low)
-			return DeepStack.Run(() => MayStand(node, seen));
-
-		switch (node)
-		{
-			case Node.External:
-				return true;
-
-			case Node.Sequence(var parts):
-				return parts.All(part => MayStand(part, seen));
-
-			case Node.Choice(var alternatives):
-				return alternatives.Any(one => MayStand(one, seen));
-
-			case Node.Atomic(var atomic):
-				return MayStand(atomic, seen);
-
-			case Node.Repeat(var repeated, var min, _):
-				return min == 0 || MayStand(repeated, seen);
-
-			case Node.Call(var called, _):
-				return IsNullable(node) || seen.Add(called) && _bodies.TryGetValue(called, out var body) && MayStand(body, seen);
-
-			default:
-				return IsNullable(node);
-		}
+		return FirstSets.Nullable(node, one => _mayStand.TryGetValue(one, out var may) && may, _boundBodies, hosts: true);
 	}
 
 	/// <summary>Whether a prefix reads a recognizer of the host, itself or through a rule it calls.</summary>
-	bool Hosted(IEnumerable<Node> prefix, HashSet<RuleSymbol> seen)
+	bool Hosted(IEnumerable<Node> prefix)
 	{
-		if (DeepStack.Low)
-			return DeepStack.Run(() => Hosted(prefix, seen));
-
-		foreach (var part in prefix)
-			foreach (var node in NodeWalk.Descendants(part))
-				if (node is Node.External ||
-					node is Node.Call(var called, _) && seen.Add(called) && _bodies.TryGetValue(called, out var body) && Hosted([body], seen))
-					return true;
-
-		return false;
+		return prefix.Any(part => NodeWalk.Descendants(part).Any(node => node is Node.External || node is Node.Call(var called, _) && _hosted.Contains(called)));
 	}
 
 	/// <summary>
@@ -370,7 +404,7 @@ sealed partial class GrammarNormalizer
 			{
 				var first = StandsTest(alternatives[0], seen);
 
-				if (first is null || alternatives.Count == 1 || IsNullable(alternatives[0]) && Pure(alternatives[0], null, []) && !Hosted([alternatives[0]], []))
+				if (first is null || alternatives.Count == 1 || IsNullable(alternatives[0]) && Pure(alternatives[0], null, []) && !Hosted([alternatives[0]]))
 					return first;
 
 				var rest = StandsTest(alternatives.Count == 2 ? alternatives[1] : new Node.Choice([.. alternatives.Skip(1)]), seen);
@@ -380,7 +414,7 @@ sealed partial class GrammarNormalizer
 					: new Node.Choice([first, new Node.Sequence([new Node.Lookahead(false, CloneAndRewrite(alternatives[0], NoTargets, [], "Standing")), rest])]);
 			}
 
-			case Node.Repeat(var body, 0, _) when !MayStand(body, []):
+			case Node.Repeat(var body, 0, _) when !MayStand(body):
 				return new Node.Lookahead(false, CloneAndRewrite(body, NoTargets, [], "Standing"));
 
 			case Node.Call(var called, _) when seen.Add(called) && _bodies.TryGetValue(called, out var body):
@@ -399,8 +433,18 @@ sealed partial class GrammarNormalizer
 	{
 		var bases = alternatives.Where((_, i) => recursive.All(one => one.Index != i)).ToList();
 
+		// Through a forwarder, each rule it forwards other than this one is a base of the twin, as §4.3 makes it.
+		foreach (var one in recursive)
+			if (one is { Forwards: true, Through: { } forwarder } && _forwarders is { } forwards && forwards.TryGetValue(forwarder, out var sources))
+				foreach (var source in sources)
+					if (!ReferenceEquals(source, rule))
+						bases.Add(new Node.Sequence([new Node.Call(source, []), .. one.Operands.Skip(one.Head + 1)]));
+
 		if (bases.Count == 0)
 			return "it has no alternative to start from";
+
+		if (recursive.FirstOrDefault(static one => one.Through is not null && !one.Forwards) is { Through: { } indirect })
+			return $"the call back goes through '{indirect.Name}', which does more than forward what it calls";
 
 		if (alternatives.Any(one => BoundOn(one) is not null))
 			return "it states strengths ('<<', '>>', §4.3.1), and a rule past a prefix is not climbed";
@@ -459,7 +503,7 @@ sealed partial class GrammarNormalizer
 					{
 						pending.Push((child, through));
 
-						if (!MayStand(child, []))
+						if (!MayStand(child))
 							break;
 					}
 
@@ -482,8 +526,9 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	void Split(RuleSymbol rule, IReadOnlyList<Node> alternatives, IReadOnlyList<Recursive> recursive, IReadOnlyList<string> keys, IReadOnlyList<Node> tests, bool builds)
 	{
-		var sets  = 1 << keys.Count;
-		var parts = new RuleSymbol[sets];
+		var sets     = 1 << keys.Count;
+		var parts    = new RuleSymbol[sets];
+		var forwards = _forwarders ??= Forwarders();
 
 		for (var set = 0; set < sets; set++)
 			parts[set] = Made(rule, keys.Count == 1 ? set == 0 ? "_Plain" : "_Left" : $"_Stood{set}");
@@ -514,6 +559,18 @@ sealed partial class GrammarNormalizer
 					if (one.Operands.Count == one.Head + 1)
 						continue;
 
+					// Through a forwarder: the alternative as §4.3 makes it direct, one for each rule it forwards, the
+					// call back to this rule's own.
+					if (one.Through is not null)
+					{
+						var twin = Rebuilt(one, [.. one.Operands.Skip(one.Head).Select(node => CloneAndRewrite(node, NoTargets, [], "Standing"))]);
+
+						foreach (var each in Distribute(rule, twin, forwards))
+							built.Add(Retargeted(each, rule, made));
+
+						continue;
+					}
+
 					var head = one.Operands[one.Head] is Node.Capture(var name, _)
 						? (Node)new Node.Capture(name, new Node.Call(made, []))
 						: new Node.Call(made, []);
@@ -523,7 +580,7 @@ sealed partial class GrammarNormalizer
 				else
 				{
 					// The prefix moves here: the alternative as written, its prefix read once, and known to move.
-					var prefix = one.Operands.Take(one.Head).Select(node => Moving(node, [])).ToList();
+					var prefix = one.Operands.Take(one.Head).Select(node => MovingPrefix(node, [])).ToList();
 					var read   = prefix.All(static node => node is Node.External or Node.Lookahead or Node.Empty)
 						? prefix
 						: [new Node.Atomic(prefix.Count == 1 ? prefix[0] : new Node.Sequence(prefix))];
@@ -536,7 +593,11 @@ sealed partial class GrammarNormalizer
 			_standing.Add(made);
 		}
 
+		// The bodies changed: what stands, what reads a recognizer, what forwards and what is nullable is asked again.
 		_standingNullable = false;
+		_forwarders       = null;
+
+		Standing();
 
 		var dispatch = new List<Node>();
 
@@ -564,6 +625,29 @@ sealed partial class GrammarNormalizer
 		}
 	}
 
+	/// <summary>An alternative whose leading call is to <paramref name="rule"/>, that call made to <paramref name="made"/>.</summary>
+	static Node Retargeted(Node alternative, RuleSymbol rule, RuleSymbol made)
+	{
+		var built = alternative as Node.Construct;
+
+		if ((built?.Body ?? alternative) is not Node.Sequence(var operands))
+			return alternative;
+
+		Node head = operands[0] switch
+		{
+			Node.Capture(var name, Node.Call(var called, _)) when ReferenceEquals(called, rule) => new Node.Capture(name, new Node.Call(made, [])),
+			Node.Call(var called, _) when ReferenceEquals(called, rule)                         => new Node.Call(made, []),
+			var other                                                                           => other,
+		};
+
+		if (ReferenceEquals(head, operands[0]))
+			return alternative;
+
+		Node body = new Node.Sequence([head, .. operands.Skip(1)]);
+
+		return built is null ? body : built with { Body = body };
+	}
+
 	/// <summary>The alternative a recursive one was, its operands replaced, its <c>=&gt;</c> kept.</summary>
 	static Node Rebuilt(Recursive one, IReadOnlyList<Node> operands)
 	{
@@ -584,18 +668,18 @@ sealed partial class GrammarNormalizer
 	/// A part of a prefix read where the prefix does not stand: its recognizers known to move, so that no analysis finds
 	/// the call back on the left, and a rule that only wraps one read in place, so that its recognizers can be marked.
 	/// </summary>
-	Node Moving(Node node, HashSet<RuleSymbol> seen)
+	Node MovingPrefix(Node node, HashSet<RuleSymbol> seen)
 	{
 		if (DeepStack.Low)
-			return DeepStack.Run(() => Moving(node, seen));
+			return DeepStack.Run(() => MovingPrefix(node, seen));
 
 		return node switch
 		{
 			Node.External external => external with { Moves = true },
-			Node.Call(var called, _) when Hosted([node], []) && seen.Add(called) && _bodies.TryGetValue(called, out var body) => Moving(body, seen),
-			Node.Sequence(var nodes) => new Node.Sequence([.. nodes.Select(one => Moving(one, seen))]),
-			Node.Choice choice       => choice.Rebuild([.. choice.Nodes.Select(one => Moving(one, seen))]),
-			Node.Atomic(var body)    => new Node.Atomic(Moving(body, seen)),
+			Node.Call(var called, _) when Hosted([node]) && seen.Add(called) && _bodies.TryGetValue(called, out var body) => MovingPrefix(body, seen),
+			Node.Sequence(var nodes) => new Node.Sequence([.. nodes.Select(one => MovingPrefix(one, seen))]),
+			Node.Choice choice       => choice.Rebuild([.. choice.Nodes.Select(one => MovingPrefix(one, seen))]),
+			Node.Atomic(var body)    => new Node.Atomic(MovingPrefix(body, seen)),
 			_                        => CloneAndRewrite(node, NoTargets, [], "Standing"),
 		};
 	}

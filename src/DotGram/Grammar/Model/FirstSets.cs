@@ -2626,6 +2626,12 @@ static class FirstSets
 		return Nullable(node, rule, null, bound);
 	}
 
+	/// <summary>The same, a recognizer of the host taken to match nothing where <paramref name="hosts"/> says it may.</summary>
+	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule, Func<TextBinding, IEnumerable<Node>> bound, bool hosts)
+	{
+		return Nullable(node, rule, null, bound, hosts);
+	}
+
 	/// <param name="hosts">
 	/// Whether a recognizer of the host may match nothing (<see cref="StandsStill"/>); otherwise it
 	/// is taken at its word, that it consumes.
