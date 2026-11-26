@@ -92,10 +92,6 @@
 		<DefineConstants Condition="'$(DotGramCounts)' == 'true'">$(DefineConstants);DOTGRAM_COUNTS</DefineConstants>
 		<DefineConstants Condition="'$(DotGramChecks)' == 'true'">$(DefineConstants);DOTGRAM_CHECKS</DefineConstants>
 
-		<!-- And one a comparison turns on to build the parsers without settled copies, beside a build
-		     with them: DOTGRAM_NO_SETTLE (GramCompilerOptions.SettleRunTails). -->
-		<DefineConstants Condition="'$(DotGramNoSettle)' == 'true'">$(DefineConstants);DOTGRAM_NO_SETTLE</DefineConstants>
-
 		<!-- Off everywhere unless a caller sets it: the generator's own generated code analysed
 		     for dead or redundant emitter output (tools/DotGram.GeneratedAnalyzers), which each
 		     shipped package and the examples reference as an analyzer only under this property

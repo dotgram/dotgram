@@ -86,6 +86,15 @@ a refused script of 100 KB (under a second). The two copies cost the solution bu
 more compilations of the SQL grammars, for net10.0 only. `tests/DotGram.Tests/TraceTests.cs` holds
 the same over small grammars, a reading shape at a time.
 
+A grammar whose rule ends in a run that gives characters back reads that rule, where it is called
+before something that could take none of them, through a settled copy that gives nothing back
+(`GramCompilerOptions.SettleRunTails`; never in the editor's analysis, and only where every machine of
+the file is a reader over a string). The generator builds without the copies where the compilation
+defines `DOTGRAM_NO_SETTLE`; `tests/DotGram.Tests/SettledShippedFormsTests.cs` generates the shipped
+grammars that keep copies (the XML and configuration examples, the located reading among them, the
+notation's own grammar, RFC 7239) both ways from their own files and holds every input of a corpus to
+one answer.
+
 The engine's own step trace — one line on standard error per step of the automaton, for working on
 the generator, not for grammar authors — is written into a parser, and compiled, only where the build
 defines `DOTGRAM_STEPS`: the generator reads the symbol from the compilation's preprocessor symbols (as it
