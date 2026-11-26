@@ -1830,6 +1830,9 @@ sealed partial class Machine
 			return "";
 
 		var located = "global::" + CSharpLanguage.HostOf(_graph).LocationType;
+
+		// PROBE ONLY: a per-call reading whose location type offers only Locate(int, int).
+		var twoArg  = located == "global::DotGram.Sql.ISqlSpan";
 		var tokens  = OverKinds ? ", int[] starts, int[] lengths" : "";
 		var handed  = OverKinds ? ", starts, lengths" : "";
 
@@ -1869,7 +1872,7 @@ sealed partial class Machine
 			{
 				// Over characters the trivia is not set apart from what it stands between, so
 				// nothing says where the gap began: it is said to be empty.
-				helper.Line("made.Locate(from, length, from);");
+				helper.Line(twoArg ? "made.Locate(from, length);" : "made.Locate(from, length, from);");
 			}
 			else
 			{
@@ -1879,7 +1882,7 @@ sealed partial class Machine
 				// As Span_DotGram: a run of none stands where the next token begins.
 				using (helper.Block("if (length <= 0)"))
 				{
-					helper.Line("made.Locate(from < starts.Length ? starts[from] : 0, 0, gap);");
+					helper.Line(twoArg ? "made.Locate(from < starts.Length ? starts[from] : 0, 0);" : "made.Locate(from < starts.Length ? starts[from] : 0, 0, gap);");
 					helper.Line();
 					helper.Line("return;");
 				}
@@ -1888,7 +1891,7 @@ sealed partial class Machine
 				helper.Line("var began = starts[from];");
 				helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
 				helper.Line();
-				helper.Line("made.Locate(began, ended - began, gap);");
+				helper.Line(twoArg ? "made.Locate(began, ended - began);" : "made.Locate(began, ended - began, gap);");
 			}
 		}
 
