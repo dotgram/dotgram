@@ -6420,6 +6420,27 @@ sealed partial class Machine
 	/// </remarks>
 	IReadOnlyList<string> PredictedDisplays(IReadOnlyList<Node> alternatives)
 	{
+		var predicting = _predicting;
+
+		_predicting = true;
+
+		try
+		{
+			var said = Predicted(alternatives);
+
+			if (DisplaysTold is { } told && _reading && !predicting && alternatives.Count > 0)
+				told(alternatives[0], ["(predicted)", .. said]);
+
+			return said;
+		}
+		finally
+		{
+			_predicting = predicting;
+		}
+	}
+
+	IReadOnlyList<string> Predicted(IReadOnlyList<Node> alternatives)
+	{
 		// Alternatives that begin with the seam predict spaces too, and a set that lists the
 		// whitespace classes before the operators says nothing anybody wanted: each is said by
 		// what begins it past the seam instead, one item an alternative.
@@ -8879,7 +8900,66 @@ sealed partial class Machine
 	/// </remarks>
 	IReadOnlyList<string> Displays(Node node)
 	{
-		return Displays(node, leading: true);
+		var said = Displays(node, leading: true);
+
+		if (DisplaysTold is { } told && _reading && !_predicting)
+			told(node, said);
+
+		return said;
+	}
+
+	/// <summary>
+	/// For a test that holds what a refusal can say at each place to the same grammar compiled another
+	/// way: told every node a display is asked of on this thread, and what it was said as — for a choice
+	/// said by what it predicts, its first alternative. Not a setting; null tells nothing.
+	/// </summary>
+	internal static Action<Node, IReadOnlyList<string>>? DisplaysTold
+	{
+		get { return _said; }
+		set { _said = value; }
+	}
+
+	[ThreadStatic]
+	static Action<Node, IReadOnlyList<string>>? _said;
+
+	/// <summary>Whether a choice is being said by what it predicts, whose own display is asked inside and told once.</summary>
+	bool _predicting;
+
+	/// <summary>Whether a reader is asking: what <see cref="DisplaysTold"/> is told, since a reader's displays are the ones printed.</summary>
+	bool _reading;
+
+	/// <summary><see cref="Displays(Node)"/>, asked by a reader.</summary>
+	internal IReadOnlyList<string> ReaderDisplays(Node node)
+	{
+		var reading = _reading;
+
+		_reading = true;
+
+		try
+		{
+			return Displays(node);
+		}
+		finally
+		{
+			_reading = reading;
+		}
+	}
+
+	/// <summary><see cref="PredictedDisplays"/>, asked by a reader.</summary>
+	internal IReadOnlyList<string> ReaderPredicted(IReadOnlyList<Node> alternatives)
+	{
+		var reading = _reading;
+
+		_reading = true;
+
+		try
+		{
+			return PredictedDisplays(alternatives);
+		}
+		finally
+		{
+			_reading = reading;
+		}
 	}
 
 	/// <summary>

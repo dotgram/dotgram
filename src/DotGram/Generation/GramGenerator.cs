@@ -247,6 +247,10 @@ sealed class GramGenerator : IIncrementalGenerator
 		// And one that defines DOTGRAM_NO_COLLAPSE calls every rule that only forwards another's value
 		// as written, so that a test can hold a trace build's frames of those rules to the rules
 		// themselves (GramCompilerOptions.CollapseForwarders).
+		//
+		// And one that defines DOTGRAM_NO_SETTLE reads every call of a rule that ends in a run giving
+		// characters back through the rule itself, so that a comparison can hold the parser with the
+		// settled copies to the one without them (GramCompilerOptions.SettleRunTails).
 		var counting = context.ParseOptionsProvider.Combine(tracing).Select(static (input, _) =>
 			new BuildSwitches
 			{
@@ -255,6 +259,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				Keeps     = !input.Left.PreprocessorSymbolNames.Contains(NoSuccessMemoSymbol),
 				Traces    =  input.Right,
 				Collapses = !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
+				Settles   = !input.Left.PreprocessorSymbolNames.Contains(NoSettleSymbol),
 				Utf8      =  input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
 				Checks    =  input.Left.PreprocessorSymbolNames.Contains(ChecksSymbol),
 				Steps     =  input.Left.PreprocessorSymbolNames.Contains(StepsSymbol),
@@ -562,6 +567,9 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which a test compiles a parser that calls its forwarding rules as written.</summary>
 	const string NoCollapseSymbol = "DOTGRAM_NO_COLLAPSE";
 
+	/// <summary>The symbol under which a comparison compiles a parser without settled copies.</summary>
+	const string NoSettleSymbol = "DOTGRAM_NO_SETTLE";
+
 	/// <summary>
 	/// What the consuming project's parse options say about how every grammar of it is compiled:
 	/// the preprocessor symbols a test or a build defines, and the language version.
@@ -586,6 +594,9 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		/// <summary>Whether a rule that only forwards another's value is collapsed (not <c>DOTGRAM_NO_COLLAPSE</c>).</summary>
 		public bool Collapses { get; init; }
+
+		/// <summary>Whether a rule ending in a run that gives back gets settled copies (not <c>DOTGRAM_NO_SETTLE</c>).</summary>
+		public bool Settles { get; init; }
 
 		/// <summary>Whether the consumer's C# has UTF-8 literals (C# 11 or later).</summary>
 		public bool Utf8 { get; init; }
@@ -1616,6 +1627,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			MemoiseFailures    = counting.Memoises,
 			MemoiseSuccesses   = counting.Keeps,
 			CollapseForwarders = counting.Collapses,
+			SettleRunTails     = counting.Settles,
 			Utf8Literals       = counting.Utf8,
 			Checks             = counting.Checks,
 			Steps              = counting.Steps,

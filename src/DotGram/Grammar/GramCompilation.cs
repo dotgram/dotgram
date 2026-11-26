@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using DotGram.Grammar.Model;
 using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar;
@@ -44,6 +45,9 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 
 	/// <summary>Whether the plan was printed (<see cref="EmitContext.Printed"/>): false where it refused what was asked.</summary>
 	public bool Printed { get; init; }
+
+	/// <summary>The graph the file was printed from, for a test that asks which rule a place of it is in.</summary>
+	internal RecognitionGraph? Graph { get; init; }
 
 	public bool HasErrors
 	{
@@ -333,7 +337,9 @@ sealed class GrammarOptions
 	/// </summary>
 	/// <remarks>
 	/// Never over tokens: a grammar that asks to be cut in two is normalized without the copies,
-	/// whether the cut then succeeds or not.
+	/// whether the cut then succeeds or not. Nor where any machine of the file is not a reader over a
+	/// string: the file is then the one without copies. The generator sets it off where the
+	/// compilation defines <c>DOTGRAM_NO_SETTLE</c>, and nowhere else.
 	/// </remarks>
 	public bool SettleRunTails { get; set; } = true;
 

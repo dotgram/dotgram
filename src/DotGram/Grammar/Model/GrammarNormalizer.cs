@@ -438,7 +438,10 @@ sealed partial class GrammarNormalizer
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
 			ReferenceTypes = ReferenceTypes(normalizer, model.Root, Imports(model.Root)),
 
-			Settled    = normalizer._settledFrom,
+			Settled    = normalizer._settledFrom
+				.Where(pair => normalizer._rules.Contains(pair.Key))
+				.ToDictionary(pair => pair.Key, pair => pair.Value),
+			SettledNodes = normalizer._settledNodes,
 
 			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,

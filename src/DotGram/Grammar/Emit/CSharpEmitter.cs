@@ -709,6 +709,20 @@ static partial class CSharpEmitter
 		if (context is not null)
 			context.Plan = plan;
 
+		// A graph with settled copies is printed only where every machine reads by methods over a
+		// string. Any other machine records what a refusal expected from how each place was printed
+		// — an engine (a jump or a flat machine), one over a buffer, one read from a position, the one
+		// that values tokens — and a copy, told less of what follows it, may be printed another way
+		// there and refused in other words. The compiler then compiles the grammar without the copies.
+		if (context is { ReadersOnly: true } &&
+			(valuing is not null || printed.Exists(static compiled =>
+				compiled.Plan.Strategy != ReadingStrategy.Reader || compiled.Plan.PositionalOnly || compiled.Machine.BufferedInput)))
+		{
+			context.LeftTheReaders = true;
+
+			return null;
+		}
+
 		// What the target cannot read is said, and not printed: no parser comes out for it.
 		if (plan.Refused)
 			return null;

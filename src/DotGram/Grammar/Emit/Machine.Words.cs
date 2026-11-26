@@ -297,7 +297,7 @@ sealed partial class Machine
 						!Plain(beyond) || machine.ElementUnder(beyond.Body) is not { } after)
 						return null;
 
-					var set = machine.DeclareExpected(machine.Displays(before));
+					var set = machine.DeclareExpected(machine.ReaderDisplays(before));
 
 					if (continues is null)
 					{
@@ -337,7 +337,7 @@ sealed partial class Machine
 				foreach (var member in members)
 				{
 					var literal = WordOf(member, look)!;
-					var set     = machine.DeclareExpected(machine.Displays(literal));
+					var set     = machine.DeclareExpected(machine.ReaderDisplays(literal));
 
 					machine._expectedUsed.Add(set);
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 
 using DotGram.Grammar;
+using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Language;
 
@@ -459,55 +460,132 @@ public sealed class SettledRunTailTests
 	}
 
 	/// <summary>
-	/// Which grammars of the repository get copies, and how every machine of each is read: a copy is
-	/// kept only where every machine is a reader (the engine records what it expects from how each
-	/// place was printed, and a copy changes how places are printed), so a grammar with any other
-	/// machine loses its copies — this says which, and why.
+	/// Every grammar of the repository read over characters that gets copies, compiled with them and
+	/// without, plainly, in a trace build, a build that steps, one that counts and one read by the engine:
+	/// where any machine of the plan is not a reader over a string the file is the one without copies,
+	/// byte for byte; where every machine is one, the file without copies has the same machines, read
+	/// the same way, and the grammar is told the same things. Says which grammars keep their copies.
 	/// </summary>
 	[Fact]
-	public void Census_of_the_grammars_with_copies_and_how_they_are_read()
+	public void A_grammar_keeps_its_copies_only_where_every_machine_is_a_reader()
 	{
-		var rows = new System.Collections.Concurrent.ConcurrentBag<string>();
+		var rows   = new System.Collections.Concurrent.ConcurrentBag<string>();
+		var faults = new System.Collections.Concurrent.ConcurrentBag<string>();
 
 		System.Threading.Tasks.Parallel.ForEach(
-			ExponentialRepetitionTests.Grammars(SourceRoot.Directory).Where(static grammar => grammar.Modes.Contains(false)),
+			Copied(),
 			grammar =>
 			{
-				RecognitionGraph graph;
+				var kept = new List<string>();
 
-				try
+				foreach (var (label, variant) in Variants)
 				{
-					graph = ExponentialRepetitionTests.Built(grammar, lexical: false, out _, settle: true);
+					GramCompilation with, without;
+
+					try
+					{
+						with    = GramCompiler.Compile(grammar.Text, variant(true));
+						without = GramCompiler.Compile(grammar.Text, variant(false));
+					}
+					catch (Exception error)
+					{
+						faults.Add($"{grammar.Name} {label}: threw {error.GetType().Name}: {error.Message}");
+
+						continue;
+					}
+
+					if (with.Sources.Select(static one => one.Text).SequenceEqual(without.Sources.Select(static one => one.Text)))
+						continue;
+
+					kept.Add(label);
+
+					if (with.Plan is not { } plan || without.Plan is not { } plain ||
+						!plan.Machines.All(static machine => machine.Strategy == DotGram.Grammar.Plan.ReadingStrategy.Reader && !machine.PositionalOnly))
+						faults.Add($"{grammar.Name} {label}: the file differs from the one without copies, and not every machine is a reader");
+					else if (!plain.Machines.Select(static machine => (machine.Name, machine.Strategy)).SequenceEqual(plan.Machines.Select(static machine => (machine.Name, machine.Strategy))))
+						faults.Add($"{grammar.Name} {label}: the machines without copies are not the machines with them");
+
+					if (!with.Diagnostics.Select(Told).SequenceEqual(without.Diagnostics.Select(Told)))
+						faults.Add($"{grammar.Name} {label}: told otherwise: [{string.Join("; ", with.Diagnostics.Select(Told).Except(without.Diagnostics.Select(Told)))}] " +
+							$"against [{string.Join("; ", without.Diagnostics.Select(Told).Except(with.Diagnostics.Select(Told)))}]");
 				}
-				catch (Exception)
-				{
-					return;
-				}
 
-				if (graph.Settled.Count == 0)
-					return;
-
-				var copies = string.Join(", ", graph.Settled.Values.Select(static rule => rule.Name).Distinct().Order(StringComparer.Ordinal));
-				var modes  = string.Join("/", grammar.Modes.Select(static lexical => lexical ? "kinds" : "chars"));
-
-				if (grammar.Included.Count > 0)
-				{
-					rows.Add($"{grammar.Name} | {modes} | {copies} | includes {string.Join(", ", grammar.Included.Select(static one => one.Name))}: not compiled here");
-
-					return;
-				}
-
-				rows.Add($"{grammar.Name} | {modes} | {copies} | settled: {Machines(grammar.Text, settle: true)} | unsettled: {Machines(grammar.Text, settle: false)}");
+				rows.Add($"{grammar.Name}: {(kept.Count == 0 ? "no copies kept" : "copies kept in " + string.Join(", ", kept))}");
 			});
 
-		var census = string.Join("\n", rows.Order(StringComparer.Ordinal));
+		TestContext.Current.SendDiagnosticMessage(string.Join("\n", rows.Order(StringComparer.Ordinal)));
 
-		TestContext.Current.SendDiagnosticMessage(census);
+		Assert.Contains(rows, static row => row.StartsWith("XmlExample", StringComparison.Ordinal) && row.Contains("kept", StringComparison.Ordinal) && !row.Contains("no copies", StringComparison.Ordinal));
+		Assert.True(faults.IsEmpty, string.Join("\n", faults.Order(StringComparer.Ordinal)));
 
-		Assert.NotEmpty(rows);
-
-		static string Machines(string text, bool settle)
+		static string Told(GramDiagnostic diagnostic)
 		{
+			return $"{diagnostic.Id} {diagnostic.Severity} {diagnostic.Position}+{diagnostic.Length} {diagnostic.Message}";
+		}
+	}
+
+	/// <summary>
+	/// What a refusal can say at each place of a reader, held to the same grammar without copies: for
+	/// every node a display is asked of — a node of a copy taken as the node of its rule it was copied
+	/// from — the displays said there with the copies are the ones said there without. A place that
+	/// a copy reads another way, and refuses in other words, is a display the place did not have.
+	/// </summary>
+	[Fact]
+	public void Every_place_of_a_reader_says_what_it_said_without_the_copies()
+	{
+		var faults   = new System.Collections.Concurrent.ConcurrentBag<string>();
+		var compared = 0;
+		var mapped   = 0;
+
+		System.Threading.Tasks.Parallel.ForEach(
+			Copied(),
+			grammar =>
+			{
+				var (with, graph)  = Places(grammar.Text, settle: true);
+				var (without, _)   = Places(grammar.Text, settle: false);
+
+				// Not where nothing was printed, with the copies or without: a grammar that needs its host.
+				if (graph is null || graph.Settled.Count == 0 || with.Count == 0 && without.Count == 0)
+					return;
+
+				System.Threading.Interlocked.Increment(ref compared);
+
+				if (with.Count == 0 || without.Count == 0)
+					faults.Add($"{grammar.Name}: a display was told on one side only");
+
+				foreach (var place in with.Except(without).Order(StringComparer.Ordinal).Take(10))
+					faults.Add($"{grammar.Name}: said with the copies only: {place}");
+
+				foreach (var place in without.Except(with).Order(StringComparer.Ordinal).Take(10))
+					faults.Add($"{grammar.Name}: said without the copies only: {place}");
+
+				// The node map agrees with where the copy's nodes stand: each, followed to its end, is the
+				// node at the same place of the rule's own body.
+				var at = Paths(graph);
+
+				foreach (var copy in graph.Settled.Keys)
+					foreach (var node in NodeWalk.Descendants(graph.Bodies[copy]))
+						if (graph.Bodies.ContainsKey(graph.Settled[copy]))
+						{
+							if (!at.TryGetValue(graph.Original(node), out var origin) || origin.Rule != graph.Settled[copy] ||
+								graph.Original(node).GetType() != node.GetType())
+								faults.Add($"{grammar.Name}: a node of '{copy.Name}' at {at[node].Path} maps to no node of '{graph.Settled[copy].Name}' like it");
+
+							System.Threading.Interlocked.Increment(ref mapped);
+						}
+			});
+
+		TestContext.Current.SendDiagnosticMessage($"{compared} grammars with copies compared, {mapped} nodes of copies mapped");
+
+		Assert.True(compared >= 4, $"only {compared} grammars kept copies");
+		Assert.True(faults.IsEmpty, string.Join("\n", faults.Order(StringComparer.Ordinal).Take(60)));
+
+		static (HashSet<string> Said, RecognitionGraph? Graph) Places(string text, bool settle)
+		{
+			var told = new List<(Node Node, IReadOnlyList<string> Said)>();
+
+			DotGram.Grammar.Emit.Machine.DisplaysTold = (node, said) => told.Add((node, said));
+
 			GramCompilation result;
 
 			try
@@ -520,21 +598,103 @@ public sealed class SettledRunTailTests
 					SettleRunTails = settle,
 				});
 			}
-			catch (Exception error)
+			finally
 			{
-				return $"threw {error.GetType().Name}";
+				DotGram.Grammar.Emit.Machine.DisplaysTold = null;
 			}
 
-			if (result.Plan is not { } plan)
-				return "no plan (" + string.Join("; ", result.Diagnostics.Where(static one => one.Severity == GramSeverity.Error).Select(static one => one.Id).Distinct()) + ")";
+			var graph = result.Graph;
+			var at    = graph is null ? [] : Paths(graph);
+			var said  = new HashSet<string>(StringComparer.Ordinal);
 
-			var others = plan.Machines.Where(static machine => machine.Strategy != DotGram.Grammar.Plan.ReadingStrategy.Reader).ToList();
+			foreach (var (node, displays) in told)
+			{
+				// A node of a copy is the node of its rule it was copied from, where that rule is still read.
+				var origin = at.ContainsKey(graph!.Original(node)) ? graph.Original(node) : node;
+				var where  = at.TryGetValue(origin, out var place)
+					? $"{Qualified(graph.Counted(place.Rule))} {place.Path}"
+					: $"? {node}";
 
-			return others.Count == 0
-				? $"all {plan.Machines.Count} readers"
-				: $"{plan.Machines.Count - others.Count} readers, " + string.Join("; ", others.Select(static machine =>
-					$"{machine.Name} {machine.Strategy}{(machine.Reason is { } reason ? " (" + reason + ")" : "")}"));
+				said.Add($"{where}: {string.Join(" | ", displays)}");
+			}
+
+			return (said, graph);
 		}
+	}
+
+	/// <summary>The rule each node of a graph's bodies stands in, and where: the child indexes down to it.</summary>
+	static Dictionary<Node, (RuleSymbol Rule, string Path)> Paths(RecognitionGraph graph)
+	{
+		var at = new Dictionary<Node, (RuleSymbol, string)>(NodeIdentity.Instance);
+
+		foreach (var rule in graph.Rules)
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				Walk(rule, body, "");
+
+		return at;
+
+		void Walk(RuleSymbol rule, Node node, string path)
+		{
+			at.TryAdd(node, (rule, path));
+
+			var index = 0;
+
+			foreach (var child in node.Children)
+				Walk(rule, child, path + "/" + index++);
+		}
+	}
+
+	static string Qualified(RuleSymbol rule)
+	{
+		return rule.Namespace.Name is { Length: > 0 } name ? name + "." + rule.Name : rule.Name;
+	}
+
+	/// <summary>The grammars of the repository read over characters, compiled here, that get copies.</summary>
+	static IEnumerable<ExponentialRepetitionTests.CorpusGrammar> Copied()
+	{
+		foreach (var grammar in ExponentialRepetitionTests.Grammars(SourceRoot.Directory))
+		{
+			if (!grammar.Modes.Contains(false) || grammar.Included.Count > 0)
+				continue;
+
+			RecognitionGraph graph;
+
+			try
+			{
+				graph = ExponentialRepetitionTests.Built(grammar, lexical: false, out _, settle: true);
+			}
+			catch (Exception)
+			{
+				continue;
+			}
+
+			if (graph.Settled.Count > 0)
+				yield return grammar;
+		}
+	}
+
+	static readonly (string Label, Func<bool, GramCompilerOptions> Options)[] Variants =
+	[
+		("plain",   settle => Options(settle)),
+		("trace",   settle => Options(settle, trace: true)),
+		("steps",   settle => Options(settle, steps: true)),
+		("counted", settle => Options(settle, counts: true)),
+		("engine",  settle => Options(settle, direct: false)),
+	];
+
+	static GramCompilerOptions Options(bool settle, bool trace = false, bool steps = false, bool counts = false, bool direct = true)
+	{
+		return new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = PermissiveSymbolResolver.Instance,
+			SettleRunTails = settle,
+			Trace          = trace,
+			Steps          = steps,
+			CountRules     = counts,
+			Direct         = direct,
+		};
 	}
 
 	static Subject Of(string name)
