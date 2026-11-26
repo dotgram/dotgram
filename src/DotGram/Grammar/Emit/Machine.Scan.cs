@@ -36,6 +36,13 @@ sealed partial class Machine
 		if (BufferedInput)
 			return null;
 
+		// A settled copy is read as the rule it was made from is read, minus the ways back. That
+		// rule gave characters back, so it was no scanner, and a refusal inside it names what failed
+		// there; read in one scan, the copy's refusal would name the rule instead, and the same input
+		// would be refused in other words where a call happened to settle.
+		if (_graph.Settled.ContainsKey(rule))
+			return null;
+
 		if (_scanners.TryGetValue(rule, out var known))
 			return known;
 
