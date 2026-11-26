@@ -103,6 +103,7 @@ public sealed class LexemeSplitShapeTests
 	{
 		var row      = Today.Single(one => one.Grammar == grammar && one.Input == input);
 		var assembly = Compiled(grammar == nameof(Guarded) ? Guarded : Recovering);
+
 		var (accepted, value, error, position) = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
 
 		Assert.Equal(row.Accepted, accepted);

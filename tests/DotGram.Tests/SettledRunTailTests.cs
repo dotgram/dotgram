@@ -150,6 +150,7 @@ public sealed class SettledRunTailTests
 	public void Every_input_is_answered_as_without_the_copies(string name)
 	{
 		var (grammar, host, inputs) = Of(name);
+
 		var alphabet = name == "Xml" ? "<>=/\"'ab !" : name == "Chained" ? "ab1=/;!" : "abx=";
 		var random   = new Random(20261126);
 		var all      = inputs.Concat(Enumerable.Range(0, name == "Xml" ? 10000 : 2000).Select(_ => Random(random, alphabet, 12))).ToList();

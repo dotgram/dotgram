@@ -340,6 +340,15 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	static IEnumerable<Node> Ends(Node node)
 	{
+		// Follows the body only, so it is as deep as the rule is written (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Ends(node).ToList());
+
+		return Ending(node);
+	}
+
+	static IEnumerable<Node> Ending(Node node)
+	{
 		switch (node)
 		{
 			case Node.Repeat repeat:
@@ -502,6 +511,19 @@ sealed partial class GrammarNormalizer
 	/// <summary>Carries what is recorded against each node of a body onto its copy, node for node.</summary>
 	void Carried(Node from, Node to)
 	{
+		// Follows the body only, so it is as deep as the rule is written (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				Carried(from, to);
+
+				return true;
+			});
+
+			return;
+		}
+
 		Carry(from, to);
 
 		using var children = from.Children.GetEnumerator();
