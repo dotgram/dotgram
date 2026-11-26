@@ -786,15 +786,20 @@ public sealed class SettledRunTailTests
 		("steps",   settle => Options(settle, steps: true)),
 		("counted", settle => Options(settle, counts: true)),
 		("engine",  settle => Options(settle, direct: false)),
+
+		// As the editor and a host the build cannot see compile it: the carrier is then the immediate
+		// one, and what it is told of the rules it carries is held too.
+		("unseen",  settle => Options(settle, unseen: true)),
 	];
 
-	static GramCompilerOptions Options(bool settle, bool trace = false, bool steps = false, bool counts = false, bool direct = true)
+	static GramCompilerOptions Options(
+		bool settle, bool trace = false, bool steps = false, bool counts = false, bool direct = true, bool unseen = false)
 	{
 		return new GramCompilerOptions
 		{
 			ClassName      = "Grammar",
 			CSharpScanner  = RoslynCSharpScanner.Instance,
-			SymbolResolver = PermissiveSymbolResolver.Instance,
+			SymbolResolver = unseen ? UnseenHostSymbolResolver.Instance : PermissiveSymbolResolver.Instance,
 			SettleRunTails = settle,
 			Trace          = trace,
 			Steps          = steps,

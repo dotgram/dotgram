@@ -658,7 +658,16 @@ sealed partial class Machine
 		if (_settings.Carrier != CarrierKind.Immediate || _settings.Replay is null || GateReasons is not null)
 			return;
 
-		var building = rules.Where(rule => _results.QualifiedOf(rule) is not null).ToList();
+		// In the order the rules were reached, a settled copy and the rule it was made from as one, reached
+		// where the first of them was: the copy stands where the rule was called, and what is said of the
+		// rules is said in the order it is said without copies.
+		var first = new Dictionary<RuleSymbol, int>();
+
+		for (var at = 0; at < rules.Count; at++)
+			if (!first.ContainsKey(_graph.Counted(rules[at])))
+				first[_graph.Counted(rules[at])] = at;
+
+		var building = rules.Where(rule => _results.QualifiedOf(rule) is not null).OrderBy(rule => first[_graph.Counted(rule)]).ToList();
 
 		if (building.Count == 0)
 			return;
@@ -667,7 +676,7 @@ sealed partial class Machine
 			.Where(rule => !_settings.Replay.Keeps(rule))
 			.OrderBy(rule => _settings.Replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
 			.ToList();
-		var again    = replayed.Count > 0 ? [] : ReadAgain(rules, opens, ownWays);
+		var again    = replayed.Count > 0 ? [] : ReadAgain(rules, opens, ownWays).OrderBy(rule => first[_graph.Counted(rule)]).ToList();
 
 		if (replayed.Count > 0 || again.Count > 0)
 			GateReasons = new Kept(building, replayed, again);
