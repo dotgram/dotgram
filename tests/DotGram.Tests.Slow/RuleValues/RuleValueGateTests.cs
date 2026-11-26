@@ -59,6 +59,20 @@ public sealed class RuleValueGateTests
 		Landmark("taken host type, filling names and an optional operand",        ":Bx", "optional", Atom.Implicit, null, NameKind.Filling),
 		Landmark("own int around one operand",                                    "@int", "one", Atom.Built, null, NameKind.None),
 		Landmark("taken text, two built operands",                                ":Word", "two", Atom.Built, Atom.Built, NameKind.None),
+		Landmark("own text around an own text rule that calls a building one",    "@string", "one", Atom.OwnOverMaking, null, NameKind.None),
+		Landmark("own span around an own span rule that calls a building one",    "@SourceSpan", "one", Atom.OwnOverMaking, null, NameKind.None),
+		Landmark("taken text around an own text rule that calls a building one",  ":Word", "one", Atom.OwnOverMaking, null, NameKind.None),
+		Landmark("taken text around a taken rule over a building one",            ":Word", "one", Atom.TakenOverMaking, null, NameKind.None),
+		Landmark("taken span around a taken rule over a building one",            ":Sp", "one", Atom.TakenOverMaking, null, NameKind.None),
+		Landmark("taken text around a rule with a building and a text route",     ":Word", "one", Atom.PerRoute, null, NameKind.None),
+		Landmark("sequence of an own text rule over a building one and a built",  "@string[]", "two", Atom.OwnOverMaking, Atom.Built, NameKind.None),
+		Landmark("sequence of a taken rule over a building one and a built",      "@string[]", "two", Atom.TakenOverMaking, Atom.Built, NameKind.None),
+		Landmark("left-recursive taken text over a text operand",                 ":Word", RuleShapes.LeftRecursiveStructure, Atom.Implicit, null, NameKind.None),
+		Landmark("left-recursive taken text over a building operand",             ":Word", RuleShapes.LeftRecursiveStructure, Atom.Built, null, NameKind.None),
+		Landmark("left-recursive taken span over an extent operand",              ":Span", RuleShapes.LeftRecursiveStructure, Atom.Implicit, null, NameKind.None),
+		Landmark("left-recursive taken span over a building operand",             ":Sp", RuleShapes.LeftRecursiveStructure, Atom.Built, null, NameKind.None),
+		Landmark("left-recursive own text over a building operand",               "@string", RuleShapes.LeftRecursiveStructure, Atom.Built, null, NameKind.None),
+		Landmark("left-recursive own span over a building operand",               "@SourceSpan", RuleShapes.LeftRecursiveStructure, Atom.Built, null, NameKind.None),
 	];
 
 	static (string, RuleShape) Landmark(string label, string type, string structure, Atom? first, Atom? second, NameKind names)
@@ -73,25 +87,7 @@ public sealed class RuleValueGateTests
 		var setting = Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES");
 		var filter  = Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES_FILTER");
 		var seed    = Number("DOTGRAM_RULEVALUES_SEED", 20261125);
-		var shapes  = new List<RuleShape>();
-
-		shapes.AddRange(Landmarks.Select(static l => l.Shape));
-
-		if (setting == "full")
-		{
-			shapes.AddRange(RuleShapes.Bounded());
-			shapes.AddRange(RuleShapes.Random(seed, Number("DOTGRAM_RULEVALUES_RANDOM", 2000)));
-		}
-		else if (int.TryParse(setting, NumberStyles.None, CultureInfo.InvariantCulture, out var sample))
-		{
-			var all  = RuleShapes.Bounded();
-			var step = Math.Max(1, all.Count / Math.Max(1, sample));
-
-			shapes.AddRange(all.Where((_, i) => i % step == 0).Take(sample));
-		}
-
-		if (filter is not null)
-			shapes.RemoveAll(s => !s.Id.Contains(filter, StringComparison.Ordinal));
+		var shapes  = BuildShapes(setting, filter, seed, Number("DOTGRAM_RULEVALUES_RANDOM", 2000));
 
 		var output = Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES_OUT") ?? Path.Combine(Path.GetTempPath(), "dotgram-rulevalues");
 
@@ -158,6 +154,66 @@ public sealed class RuleValueGateTests
 		Assert.All(jobs, static j => Assert.NotEmpty(j.Printed.Routes));
 	}
 
+	/// <summary>Whether the operands a shape reads are text rules, making rules, both, or none.</summary>
+	static string OperandKind(IReadOnlyList<Helper> operands)
+	{
+		var text   = operands.Any(static h => h.Kind == HelperKind.Text);
+		var making = operands.Any(static h => h.Kind == HelperKind.Making);
+
+		return (text, making) switch
+		{
+			(true, true)  => "both",
+			(true, false) => "text",
+			(false, true) => "making",
+			_             => "none",
+		};
+	}
+
+	/// <summary>An outcome as three tab-separated fields, with no tab or line break in them.</summary>
+	static string Field(Outcome outcome)
+	{
+		return string.Join('\t', outcome.Kind, Clean(outcome.Text), outcome.Warnings);
+	}
+
+	static string Clean(string text)
+	{
+		return text.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
+	}
+
+	/// <summary>
+	/// The shapes a run covers: the landmarks and the fixed grammars always; with <c>full</c> the bounded enumeration and
+	/// the random tier, with a number that many shapes of the enumeration; and each shape that calls a text rule once more
+	/// with the rule's body written in place.
+	/// </summary>
+	internal static List<RuleShape> BuildShapes(string? setting, string? filter, int seed, int randomCount)
+	{
+		var shapes = new List<RuleShape>();
+
+		shapes.AddRange(Landmarks.Select(static l => l.Shape));
+		shapes.AddRange(RuleShapes.Fixed());
+
+		if (setting == "full")
+		{
+			shapes.AddRange(RuleShapes.Bounded());
+			shapes.AddRange(RuleShapes.Random(seed, randomCount));
+		}
+		else if (int.TryParse(setting, NumberStyles.None, CultureInfo.InvariantCulture, out var sample))
+		{
+			var all  = RuleShapes.Bounded();
+			var step = Math.Max(1, all.Count / Math.Max(1, sample));
+
+			shapes.AddRange(all.Where((_, i) => i % step == 0).Take(sample));
+		}
+
+		// Each shape that calls a text rule, once more with the rule's body written in place.
+		shapes.AddRange(shapes.Select(RuleShapes.Inlined).OfType<RuleShape>().ToList());
+
+		if (filter is not null)
+			shapes.RemoveAll(s => !s.Id.Contains(filter, StringComparison.Ordinal));
+
+		return shapes;
+	}
+
 	static int Number(string name, int otherwise)
 	{
 		return int.TryParse(Environment.GetEnvironmentVariable(name), NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : otherwise;
@@ -175,6 +231,8 @@ public sealed class RuleValueGateTests
 		var byType  = new SortedDictionary<string, int>(StringComparer.Ordinal);
 		var byMode  = new SortedDictionary<string, int>(StringComparer.Ordinal);
 		var byTier  = new SortedDictionary<string, int>(StringComparer.Ordinal);
+		var byHelp  = new SortedDictionary<string, int>(StringComparer.Ordinal);
+		var byKind  = new SortedDictionary<string, int>(StringComparer.Ordinal);
 		var newWarn = 0;
 
 		void Count(SortedDictionary<string, int> into, string key)
@@ -182,12 +240,24 @@ public sealed class RuleValueGateTests
 			into[key] = into.GetValueOrDefault(key) + 1;
 		}
 
-		cells.Append("id\tmode\tinput\tclass\tv0.3.0\thead\n");
+		var outcomes = new StringBuilder();
+
+		cells.Append("id\tmode\tinput\tclass\tv0.3.0\thead\tpair\n");
+		outcomes.Append("id\tmode\tinput\tpackage kind\tpackage text\tpackage warnings\thead kind\thead text\thead warnings\n");
 
 		foreach (var job in jobs)
+		{
+			var operands = RuleShapes.Operands(job.Shape);
+			var kind     = OperandKind(operands);
+
 			for (var r = 0; r < job.Printed.Routes.Length; r++)
 			{
 				var difference = RuleDifference.Classify(job.Package[r], job.Head[r]);
+
+				Count(byKind, difference + "\t" + kind);
+
+				foreach (var helper in operands.DefaultIfEmpty())
+					Count(byHelp, difference + "\t" + (helper is null ? "(none)" : helper.Name + " (" + helper.Kind.ToString().ToLowerInvariant() + ")"));
 
 				Count(counts, difference);
 				Count(byType, difference + "\t" + job.Shape.Type.Name);
@@ -198,10 +268,16 @@ public sealed class RuleValueGateTests
 					newWarn++;
 
 				cells.Append(job.Shape.Id).Append('\t').Append(job.Mode).Append('\t').Append(job.Printed.Routes[r].Input).Append('\t')
-					.Append(difference).Append('\t').Append(job.Package[r]).Append('\t').Append(job.Head[r]).Append('\n');
+					.Append(difference).Append('\t').Append(job.Package[r]).Append('\t').Append(job.Head[r]).Append('\t')
+					.Append(job.Shape.InlinedFrom?.Id).Append('\n');
+
+				outcomes.Append(job.Shape.Id).Append('\t').Append(job.Mode).Append('\t').Append(job.Printed.Routes[r].Input).Append('\t')
+					.Append(Field(job.Package[r])).Append('\t').Append(Field(job.Head[r])).Append('\n');
 			}
+		}
 
 		File.WriteAllText(Path.Combine(output, "cells.tsv"), cells.ToString());
+		File.WriteAllText(Path.Combine(output, "outcomes.tsv"), outcomes.ToString());
 
 		var grammars = new StringBuilder();
 
@@ -218,7 +294,8 @@ public sealed class RuleValueGateTests
 		summary.Append(CultureInfo.InvariantCulture, $"shapes {jobs.Select(static j => j.Shape).Distinct().Count()}, jobs {jobs.Count}, cells {counts.Values.Sum()}, batches {batches}, ");
 		summary.Append(CultureInfo.InvariantCulture, $"seed {seed}, elapsed {elapsed.TotalSeconds:F0} s, ");
 		summary.Append(CultureInfo.InvariantCulture, $"whole-batch crashes {RuleRunner.WholeBatchCrashes}, unattributed errors {RuleRunner.Unattributed}, head warns new {newWarn}\n");
-		summary.Append(CultureInfo.InvariantCulture, $"the bounded enumeration: core {RuleShapes.Core().Count()}, deviations {RuleShapes.Deviations().Count()}, atoms {RuleShapes.Atoms().Count()}\n\n");
+		summary.Append(CultureInfo.InvariantCulture, $"the bounded enumeration: core {RuleShapes.Core().Count()}, deviations {RuleShapes.Deviations().Count()}, atoms {RuleShapes.Atoms().Count()}, left recursion {RuleShapes.LeftRecursion().Count()}, ");
+		summary.Append(CultureInfo.InvariantCulture, $"extraction pairs in this run {jobs.Where(static j => j.Mode == Mode.D && j.Shape.InlinedFrom is not null).Count()}\n\n");
 
 		foreach (var difference in RuleDifference.All)
 			summary.Append(difference).Append('\t').Append(counts.GetValueOrDefault(difference)).Append('\n');
@@ -231,6 +308,16 @@ public sealed class RuleValueGateTests
 		summary.Append("\nby tier\n");
 
 		foreach (var (key, value) in byTier)
+			summary.Append(key).Append('\t').Append(value).Append('\n');
+
+		summary.Append("\nby operand kind (the helpers a shape reads as operands: text, making, both, or none)\n");
+
+		foreach (var (key, value) in byKind)
+			summary.Append(key).Append('\t').Append(value).Append('\n');
+
+		summary.Append("\nby operand helper (a cell counts once for each helper it reads)\n");
+
+		foreach (var (key, value) in byHelp)
 			summary.Append(key).Append('\t').Append(value).Append('\n');
 
 		summary.Append("\nby type\n");

@@ -204,7 +204,7 @@ static class RulePrinter
 
 	static bool Simple(Expr expr)
 	{
-		return expr is Literal or Call or SelfCall or Parameter or Group or Choice or AnyItems;
+		return expr is Literal or Lexeme or Call or SelfCall or Parameter or Group or Choice or AnyItems;
 	}
 
 	/// <summary>Writes an expression of the rule under test's body.</summary>
@@ -217,6 +217,9 @@ static class RulePrinter
 
 			case AnyItems any:
 				return "any{" + any.Count + "}";
+
+			case Lexeme lexeme:
+				return lexeme.Pattern;
 
 			case Call call:
 				called.Add(call.Rule.Name);
@@ -289,9 +292,20 @@ static class RulePrinter
 				case Literal literal:
 					return [new Variant(literal.Text, [])];
 
+				case Lexeme lexeme:
+					return [new Variant(lexeme.Sample(samples), [])];
+
 				case Call call:
 				{
 					var text = call.Count ? Samples.Count() : call.Rule.Sample(samples);
+
+					// A rule with two routes is read through each of them, one after the other.
+					if (call.Rule.Alternate is { } alternate)
+					{
+						var other = alternate(samples);
+
+						return [new Variant(text, [new Read(call, text)]), new Variant(other, [new Read(call, other)])];
+					}
 
 					return [new Variant(text, call.Atom is null ? [] : [new Read(call, text)])];
 				}
@@ -356,7 +370,8 @@ static class RulePrinter
 			{
 				if (items[i] is Wrapped { Wrap: Wrap.Ahead } ahead && i + 1 < items.Length && items[i + 1] is AnyItems)
 				{
-					parts.Add([.. Of(ahead.Inner).Select(static v => new Variant(v.Text, []))]);
+					// The first way only: a rule with two routes of different width would not match the items after it.
+					parts.Add([.. Of(ahead.Inner).Take(1).Select(static v => new Variant(v.Text, []))]);
 					i++;
 					continue;
 				}
