@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -142,41 +143,66 @@ public sealed class SettledRunTailTests
 
 	public static TheoryData<string> Grammars()
 	{
-		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering");
+		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering", "Url", "Gram");
 	}
+
+	/// <summary>How a parser is read: by methods or by the engine, with a trace build of each, or from a reader of text.</summary>
+	public enum Door
+	{
+		Reader,
+		Engine,
+		ReaderTrace,
+		EngineTrace,
+		Streamed,
+	}
+
+	/// <summary>A grammar under test: its text, what the host adds, its inputs, what it publishes and how it is read.</summary>
+	sealed record Subject(string Grammar, string? Host, string[] Inputs, string Alphabet, int Drawn, int Longest, string Start, Door[] Doors)
+	{
+		public string Class { get; init; } = "Grammar";
+
+		public string? Namespace { get; init; }
+
+		/// <summary>Whether what the host adds is written in a C# above the floor the parsers are compiled at.</summary>
+		public bool Modern { get; init; }
+
+		public string Type => Namespace is null ? Class : Namespace + "." + Class;
+	}
+
+	static readonly Door[] Four = [Door.Reader, Door.Engine, Door.ReaderTrace, Door.EngineTrace];
 
 	[Theory]
 	[MemberData(nameof(Grammars))]
 	public void Every_input_is_answered_as_without_the_copies(string name)
 	{
-		var (grammar, host, inputs) = Of(name);
-
-		var alphabet = name == "Xml" ? "<>=/\"'ab !" : name == "Chained" ? "ab1=/;!" : "abx=";
+		var subject  = Of(name);
 		var random   = new Random(20261126);
-		var all      = inputs.Concat(Enumerable.Range(0, name == "Xml" ? 10000 : 2000).Select(_ => Random(random, alphabet, 12))).ToList();
+		var all      = subject.Inputs
+			.Concat(Enumerable.Range(0, subject.Drawn).Select(_ => Random(random, subject.Alphabet, subject.Longest)))
+			.Distinct()
+			.ToList();
 		var compared = 0;
 		var differ   = new List<string>();
 
-		foreach (var (direct, trace) in new[] { (true, false), (false, false), (true, true), (false, true) })
+		foreach (var door in subject.Doors)
 		{
-			var settled = Build(grammar, host, settle: true,  direct, trace);
-			var plain   = Build(grammar, host, settle: false, direct, trace);
-			var where   = $"{(direct ? "reader" : "engine")}{(trace ? " trace" : "")}";
+			var settled = Build(subject, settle: true,  door);
+			var plain   = Build(subject, settle: false, door);
 			var count   = 0;
 
-			foreach (var input in all.Distinct())
+			foreach (var input in all)
 			{
-				var expected = Answer(plain, input);
-				var got      = Answer(settled, input);
+				var expected = Answer(plain, subject, door, input);
+				var got      = Answer(settled, subject, door, input);
 
 				if (expected != got && count++ < 5)
-					differ.Add($"{name} {where} \"{input}\": without the copies {expected} | with them {got}");
+					differ.Add($"{name} {door} {Shown(input)}: without the copies {Shown(expected)} | with them {Shown(got)}");
 
 				compared++;
 			}
 
 			if (count > 0)
-				differ.Add($"{name} {where}: {count} of {all.Distinct().Count()} inputs answered otherwise");
+				differ.Add($"{name} {door}: {count} of {all.Count} inputs answered otherwise");
 		}
 
 		TestContext.Current.SendDiagnosticMessage($"{name}: {compared} answers compared");
@@ -193,10 +219,10 @@ public sealed class SettledRunTailTests
 	[InlineData("Recovering",  false)]
 	public void A_copy_is_made_where_the_call_settles_the_run_and_nowhere_else(string name, bool copied)
 	{
-		var (grammar, _, _) = Of(name);
+		var grammar = Of(name).Grammar;
 
-		var with    = Source(grammar, settle: true,  direct: true, trace: false, counts: false);
-		var without = Source(grammar, settle: false, direct: true, trace: false, counts: false);
+		var with    = Source(grammar, settle: true,  Door.Reader);
+		var without = Source(grammar, settle: false, Door.Reader);
 
 		Assert.Equal(copied, with.Contains("_Settled(", StringComparison.Ordinal));
 		Assert.Equal(copied, with != without);
@@ -246,7 +272,7 @@ public sealed class SettledRunTailTests
 			Assert.Same(pair.Value, graph.Counted(pair.Key));
 		}
 
-		var source = Source(Xml, settle: true, direct: true, trace: false, counts: true);
+		var source = Source(Xml, settle: true, Door.Reader, counts: true);
 
 		Assert.DoesNotContain("CountEntered_Name_Settled", source, StringComparison.Ordinal);
 		Assert.Contains("CountEntered_Name;", source, StringComparison.Ordinal);
@@ -321,18 +347,177 @@ public sealed class SettledRunTailTests
 		Assert.Equal(before, GrammarNormalizer.Unsettles);
 	}
 
-	static (string Grammar, string? Host, string[] Inputs) Of(string name)
+	/// <summary>
+	/// What a parser says of itself in text — a refusal, a step, a trace, a check that fails — names
+	/// the rules the author wrote: no string the generated code holds names a settled copy, in a
+	/// plain build, a trace build, a build that steps or one that counts, read by methods or the engine.
+	/// </summary>
+	[Theory]
+	[InlineData("Xml")]
+	[InlineData("Chained")]
+	[InlineData("Url")]
+	[InlineData("Gram")]
+	[InlineData("Notation")]
+	public void No_text_the_parser_holds_names_a_copy(string name)
+	{
+		var grammar = name == "Notation"
+			? File.ReadAllText(Path.Combine(SourceRoot.Directory, "tests", "Snapshots", "Notation.gram"))
+			: Of(name).Grammar;
+		var copies  = Graph(grammar).Settled.Keys.Select(static copy => copy.Name).ToList();
+		var found   = new List<string>();
+
+		Assert.NotEmpty(copies);
+
+		foreach (var direct in new[] { true, false })
+			foreach (var (trace, steps, counts) in new[] { (false, false, false), (true, false, false), (false, true, false), (false, false, true) })
+			{
+				var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+				{
+					ClassName      = "Grammar",
+					CSharpScanner  = RoslynCSharpScanner.Instance,
+					SymbolResolver = PermissiveSymbolResolver.Instance,
+					Direct         = direct,
+					Trace          = trace,
+					Steps          = steps,
+					CountRules     = counts,
+				});
+
+				foreach (var source in result.Sources)
+					foreach (var token in Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source.Text, cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken).DescendantTokens())
+						if (token.RawKind == (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.StringLiteralToken ||
+							token.RawKind == (int)Microsoft.CodeAnalysis.CSharp.SyntaxKind.InterpolatedStringTextToken)
+							foreach (var copy in copies)
+								if (System.Text.RegularExpressions.Regex.IsMatch(token.ValueText, $@"\b{copy}\b"))
+									found.Add($"{(direct ? "reader" : "engine")}{(trace ? " trace" : "")}{(steps ? " steps" : "")}{(counts ? " counts" : "")}: {token.Text}");
+			}
+
+		Assert.True(found.Count == 0, string.Join("\n", found.Distinct().Take(20)));
+	}
+
+	/// <summary>
+	/// Every grammar of the repository read over characters, compiled for the engine with the copies
+	/// and without: the rules it reads by a scanner are the same rules. A copy is never one, and an
+	/// original whose follow narrowed when some of its calls moved to a copy does not become one —
+	/// a scanner names its rule in a refusal where the states it replaces named what failed.
+	/// </summary>
+	[Fact]
+	public void The_engine_scans_the_same_rules_with_the_copies_and_without()
+	{
+		var differ   = new System.Collections.Concurrent.ConcurrentBag<string>();
+		var compared = 0;
+
+		System.Threading.Tasks.Parallel.ForEach(
+			ExponentialRepetitionTests.Grammars(SourceRoot.Directory)
+				.Where(static grammar => grammar.Modes.Contains(false) && grammar.Included.Count == 0),
+			grammar =>
+			{
+				string[] with, without;
+
+				try
+				{
+					with    = Scanners(grammar.Text, settle: true);
+					without = Scanners(grammar.Text, settle: false);
+				}
+				catch (Exception)
+				{
+					return;
+				}
+
+				System.Threading.Interlocked.Increment(ref compared);
+
+				if (!with.SequenceEqual(without))
+					differ.Add($"{grammar.Name}: with the copies [{string.Join(", ", with.Except(without))}], without them [{string.Join(", ", without.Except(with))}]");
+			});
+
+		TestContext.Current.SendDiagnosticMessage($"{compared} grammars compared");
+
+		Assert.True(compared > 50, $"only {compared} grammars compiled");
+		Assert.True(differ.IsEmpty, string.Join("\n", differ.Order(StringComparer.Ordinal)));
+
+		static string[] Scanners(string text, bool settle)
+		{
+			var result = GramCompiler.Compile(text, new GramCompilerOptions
+			{
+				ClassName      = "Grammar",
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+				SymbolResolver = PermissiveSymbolResolver.Instance,
+				Direct         = false,
+				SettleRunTails = settle,
+			});
+
+			if (result.Diagnostics.Any(static one => one.Severity == GramSeverity.Error))
+				throw new InvalidOperationException("not compiled");
+
+			return
+			[
+				.. result.Sources
+					.SelectMany(static source => System.Text.RegularExpressions.Regex.Matches(source.Text, @"\bScan(?:\w*?)_DotGram_\w+").Select(static match => match.Value))
+					.Distinct()
+					.Order(StringComparer.Ordinal),
+			];
+		}
+	}
+
+	static Subject Of(string name)
 	{
 		return name switch
 		{
-			"Xml"         => (Xml, null, XmlInputs),
-			"Chained"     => (Chained, null, ChainedInputs),
-			"Standing"    => (Standing, StandingHost, StandingInputs),
-			"Overlapping" => (Overlapping, null, OverlappingInputs),
-			"Guarded"     => (LexemeSplitShapeTests.Guarded, null, ["ab=c", "abc=d", "abc=", "abcd=", "a=", "ab", "abc", "ab=", "=", ""]),
-			"Recovering"  => (LexemeSplitShapeTests.Recovering, null, ["[a=b;]", "[ab=;c=d;]", "[abc;d=e;]", "[a=bc]", "a=,=b.", "ab=cd!", "abc"]),
+			"Xml"         => new(Xml, null, XmlInputs, "<>=/\"'ab !", 10000, 12, "TryParseStart", [.. Four, Door.Streamed]),
+			"Chained"     => new(Chained, null, ChainedInputs, "ab1=/;!", 2000, 12, "TryParseStart", Four),
+			"Standing"    => new(Standing, StandingHost, StandingInputs, "abx=", 2000, 12, "TryParseStart", Four),
+			"Overlapping" => new(Overlapping, null, OverlappingInputs, "abx=", 2000, 12, "TryParseStart", Four),
+			"Guarded"     => new(LexemeSplitShapeTests.Guarded, null, ["ab=c", "abc=d", "abc=", "abcd=", "a=", "ab", "abc", "ab=", "=", ""], "abx=", 2000, 12, "TryParseStart", Four),
+			"Recovering"  => new(LexemeSplitShapeTests.Recovering, null, ["[a=b;]", "[ab=;c=d;]", "[abc;d=e;]", "[a=bc]", "a=,=b.", "ab=cd!", "abc"], "abx=", 2000, 12, "TryParseStart", Four),
+			"Url"         => new(UrlGrammar, null, UrlInputs, "htp:/1.2[]:a@?#%f", 3000, 20, "TryParseUrl", Four),
+			"Gram"        => GramSubject(),
 			_             => throw new ArgumentOutOfRangeException(nameof(name)),
 		};
+	}
+
+	static readonly string[] UrlInputs =
+	[
+		"http://a.b/c", "http://1.2.3.4/x", "http://1.2.3.400/", "http://1.2.3/", "http://1234.1.1.1/", "ftp://u:p@h:21/p?q#f",
+		"http://[::1]/", "http://[1:2:3:4:5:6:7:8]/", "http://[1:2:3:4:5:6:1.2.3.4]/", "http://[::ffff:1.2.3.4]", "http://[1::]/",
+		"http://[12345::]/", "http://123", "https://a%2", "http://a@b@c/", "HTTP://A.B:8080",
+	];
+
+	static string UrlGrammar => File.ReadAllText(Path.Combine(SourceRoot.Directory, "tests", "Snapshots", "Url.gram"));
+
+	/// <summary>
+	/// The example's grammar of the notation itself, with the records it builds: its host class beside
+	/// it under a namespace of the test's own, compiled at the C# the records are written in.
+	/// </summary>
+	static Subject GramSubject()
+	{
+		var file    = File.ReadAllText(Path.Combine(SourceRoot.Directory, "examples", "DotGram.Examples", "Languages", "GramExample.cs")).Replace("\r\n", "\n");
+		var begin   = file.IndexOf("[Gram(\"\"\"", StringComparison.Ordinal) + "[Gram(\"\"\"".Length;
+		var end     = file.IndexOf("\"\"\")]", begin, StringComparison.Ordinal);
+		var grammar = string.Join("\n", file[begin..end].Split('\n').Select(static line => line.StartsWith('\t') ? line[1..] : line))
+			.Replace("@using DotGram.Examples.Languages;", "", StringComparison.Ordinal);
+		var body    = file.IndexOf('{', file.IndexOf("public partial class GramGrammar", end, StringComparison.Ordinal)) + 1;
+
+		// On one line, as the harness declares the class: a line's comment would end the class.
+		var host    = string.Join("\n", file[body..file.LastIndexOf('}')].Split('\n')
+				.Where(static line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal)))
+			.Replace("first is null ? [] :", "first is null ? System.Array.Empty<GramExpr>() :", StringComparison.Ordinal)
+			.Replace("(ReadOnlySpan<char>", "(System.ReadOnlySpan<char>", StringComparison.Ordinal);
+		var texts   = new[] { grammar, Xml, Chained, UrlGrammar, LexemeSplitShapeTests.Guarded, LexemeSplitShapeTests.Recovering };
+		var inputs  = texts.Concat(texts.SelectMany(static text => Enumerable.Range(1, text.Length / 23).Select(cut => text[..(cut * 23)]))).ToArray();
+
+		return new(grammar, "\n#nullable enable\n" + host, inputs, "Ab=|&'\"/ *;{}@:()+?.\n", 1000, 16, "TryParseFile", Four)
+		{
+			Class     = "GramGrammar",
+			Namespace = "Probe",
+			Modern    = true,
+		};
+	}
+
+	/// <summary>Text on one line, its middle left out where it is long.</summary>
+	static string Shown(string text)
+	{
+		var line = text.Replace("\r", "\\r", StringComparison.Ordinal).Replace("\n", "\\n", StringComparison.Ordinal);
+
+		return line.Length <= 160 ? $"\"{line}\"" : $"\"{line[..60]}…{line[^90..]}\" ({text.Length} characters)";
 	}
 
 	static string Random(Random random, string alphabet, int most)
@@ -347,15 +532,37 @@ public sealed class SettledRunTailTests
 	}
 
 	/// <summary>What a parser answers for an input, in one string: the value, or the message and where it stands.</summary>
-	static string Answer(Assembly parser, string input)
+	static string Answer(Assembly parser, Subject subject, Door door, string input)
 	{
-		parser.GetType("Grammar")!.GetMethod("Reset")?.Invoke(null, null);
+		var type = parser.GetType(subject.Type)!;
+
+		type.GetMethod("Reset")?.Invoke(null, null);
 
 		try
 		{
-			var (accepted, value, error, position) = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+			if (door != Door.Streamed)
+			{
+				var (accepted, value, error, position) = EmittedCode.Match(parser, subject.Type, subject.Start, input);
 
-			return accepted ? $"ok {value}" : $"no {error} @{position}";
+				return accepted ? $"ok {value}" : $"no {error} @{position}";
+			}
+
+			var method = type.GetMethods().Single(one => one.Name == subject.Start &&
+				one.GetParameters() is [{ ParameterType: var first }, ..] && first == typeof(TextReader));
+			var given  = method.GetParameters().Select(static one => one.HasDefaultValue ? one.DefaultValue : null).ToArray();
+
+			using var reader = new StringReader(input);
+
+			given[0] = reader;
+
+			var match = method.Invoke(null, given)!;
+
+			object? Read(string property)
+			{
+				return match.GetType().GetProperty(property)!.GetValue(match);
+			}
+
+			return (bool)Read("IsSuccess")! ? $"ok {Read("Value")}" : $"no {Read("Error")} @{Read("Position")}";
 		}
 		catch (TargetInvocationException thrown) when (thrown.InnerException?.Message == "went round")
 		{
@@ -363,15 +570,20 @@ public sealed class SettledRunTailTests
 		}
 	}
 
-	static readonly Dictionary<(string, bool, bool, bool), Assembly> _built = [];
+	static readonly Dictionary<(string, bool, Door), Assembly> _built = [];
 
-	static Assembly Build(string grammar, string? host, bool settle, bool direct, bool trace)
+	static Assembly Build(Subject subject, bool settle, Door door)
 	{
 		lock (_built)
 		{
-			if (!_built.TryGetValue((grammar, settle, direct, trace), out var assembly))
-				_built[(grammar, settle, direct, trace)] = assembly = EmittedCode.Compile(
-					Source(grammar, settle, direct, trace, counts: false), "Grammar", declarationMembers: host);
+			if (!_built.TryGetValue((subject.Grammar, settle, door), out var assembly))
+			{
+				var result = Compiled(subject.Grammar, settle, door, counts: false, subject.Class, subject.Namespace);
+
+				_built[(subject.Grammar, settle, door)] = assembly = EmittedCode.Compile(
+					result.Sources[0].Text, subject.Class, subject.Namespace, subject.Host, result.Sources.Skip(1).Select(static one => one.Text),
+					utf8Literals: subject.Modern);
+			}
 
 			return assembly;
 		}
@@ -379,7 +591,7 @@ public sealed class SettledRunTailTests
 
 	static Assembly Counted(string grammar, bool settle)
 	{
-		return EmittedCode.Compile(Source(grammar, settle, direct: true, trace: false, counts: true), "Grammar", symbols: ["DOTGRAM_COUNTS"]);
+		return EmittedCode.Compile(Source(grammar, settle, Door.Reader, counts: true), "Grammar", symbols: ["DOTGRAM_COUNTS"]);
 	}
 
 	/// <summary>The entries to every rule and the characters every run stepped over, reading one input.</summary>
@@ -403,22 +615,29 @@ public sealed class SettledRunTailTests
 			counters.Where(static one => one.Name.StartsWith("CountScanned_", StringComparison.Ordinal)).Sum(static one => (long)one.GetValue(null)!));
 	}
 
-	static string Source(string grammar, bool settle, bool direct, bool trace, bool counts)
+	static string Source(string grammar, bool settle, Door door, bool counts = false)
+	{
+		return Assert.Single(Compiled(grammar, settle, door, counts).Sources).Text;
+	}
+
+	static GramCompilation Compiled(string grammar, bool settle, Door door, bool counts, string className = "Grammar", string? @namespace = null)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			ClassName      = "Grammar",
+			ClassName      = className,
+			Namespace      = @namespace,
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 			SymbolResolver = PermissiveSymbolResolver.Instance,
-			Direct         = direct,
-			Trace          = trace,
+			Direct         = door is not (Door.Engine or Door.EngineTrace),
+			Trace          = door is Door.ReaderTrace or Door.EngineTrace,
+			BufferedInput  = door == Door.Streamed,
 			CountRules     = counts,
 			SettleRunTails = settle,
 		});
 
 		EmittedCode.Quiet(result.Diagnostics);
 
-		return Assert.Single(result.Sources).Text;
+		return result;
 	}
 
 	static RecognitionGraph Graph(string grammar)

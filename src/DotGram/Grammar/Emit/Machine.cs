@@ -748,7 +748,7 @@ sealed partial class Machine
 		if (_rules.LastOrDefault() is { } last)
 		{
 			_seam = FollowSets.SeamOf(last, graph);
-			_traceRule = last.Name;
+			_traceRule = Spoken(last).Name;
 		}
 
 		if (!settings.DeferCompilation)
@@ -773,7 +773,7 @@ sealed partial class Machine
 		foreach (var rule in _rules)
 		{
 			_seam      = FollowSets.SeamOf(rule, graph);
-			_traceRule = graph.Origin(rule).Name;
+			_traceRule = Spoken(rule).Name;
 			_frame     = FrameOf(rule);
 
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
@@ -1449,6 +1449,15 @@ sealed partial class Machine
 	/// rule it was inlined into, which is where its states actually live.
 	/// </remarks>
 	string _traceRule = "";
+
+	/// <summary>
+	/// The rule a step names for <paramref name="rule"/>: the rule a lift or a settled copy was made
+	/// from, which is the one the grammar calls by that name.
+	/// </summary>
+	RuleSymbol Spoken(RuleSymbol rule)
+	{
+		return _graph.Origin(_graph.Counted(rule));
+	}
 
 	/// <summary>The trailing arguments of an emitted trace call: input and rule.</summary>
 	string Traced => $", text, \"{Escape(_traceRule)}\"";
@@ -4067,7 +4076,7 @@ sealed partial class Machine
 							writer.Line($"failure.Trace?.Scanned(completedCall, call, {Tracing.RuleOf(rule)}, p, scalarEnd);");
 
 						writer.Line("p = scalarEnd;");
-						writer.Line($"Step_DotGram(\"read {Escape(rule.Name)}\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+						writer.Line($"Step_DotGram(\"read {Escape(Spoken(rule).Name)}\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 						writer.Line($"goto {Label(writer, next)};");
 					}
 				}
@@ -4097,7 +4106,7 @@ sealed partial class Machine
 					writer.Line($"power = {calledPower};");
 
 				writer.Line(
-					$"Step_DotGram(\"call {Escape(_graph.Origin(rule).Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
+					$"Step_DotGram(\"call {Escape(Spoken(rule).Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, _entries[rule])};");
 
 				return state;

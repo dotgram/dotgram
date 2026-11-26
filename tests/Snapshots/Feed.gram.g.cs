@@ -557,7 +557,7 @@ namespace DotGram.Snapshots
 				var b0 = -1;
 				if ((uint)p >= (uint)text.Length || text[p] != 'H')
 				{
-					RefusedSet_DotGram(ref failure, p, 19);
+					RefusedSet_DotGram(ref failure, p, 18);
 					return -1;
 				}
 				p += 1;
@@ -723,7 +723,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					RefusedSet_DotGram(ref failure, p, 20);
+					RefusedSet_DotGram(ref failure, p, 19);
 					return -1;
 				}
 				c = text[p];
@@ -773,7 +773,7 @@ namespace DotGram.Snapshots
 							break;
 						}
 					default:
-						RefusedSet_DotGram(ref failure, p, 20);
+						RefusedSet_DotGram(ref failure, p, 19);
 						return -1;
 				}
 				return p;
@@ -903,7 +903,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					RefusedSet_DotGram(ref failure, p, 17);
+					RefusedSet_DotGram(ref failure, p, 13);
 					return -1;
 				}
 
@@ -1273,7 +1273,7 @@ namespace DotGram.Snapshots
 					}
 					if (p < runStart + 1)
 					{
-						expected = ExpectedSet_DotGram(17);
+						expected = ExpectedSet_DotGram(13);
 						goto Fail;
 					}
 					if (p > runStart + 1)
@@ -1450,8 +1450,8 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S3;
-					case 14: goto S14;
-					case 16: goto S16;
+					case 15: goto S15;
+					case 17: goto S17;
 					default: expected = null; goto Fail;
 				}
 
@@ -1492,16 +1492,38 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_DotGram_Name_Settled_DotGram_Row(text, p, ref failure);
-					if (scanned < 0)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						p = -1 - scanned;
 						expected = ExpectedSet_DotGram(13);
 						goto Fail;
 					}
-					p = scanned;
+					c = text[p];
+					if (!(!(c == '\n' || c == '\r' || c == '|')))
+					{
+						expected = ExpectedSet_DotGram(13);
+						goto Fail;
+					}
+					p++;
 				}
 
+				S7:
+				{
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
+					{
+						expected = ExpectedSet_DotGram(13);
+						goto S8;
+					}
+					c = text[p];
+					if (!(!(c == '\n' || c == '\r' || c == '|')))
+					{
+						expected = ExpectedSet_DotGram(13);
+						goto S8;
+					}
+					p++;
+					goto S7;
+				}
+
+				S8:
 				{
 					var openedAt = opened0;
 
@@ -1616,9 +1638,9 @@ namespace DotGram.Snapshots
 					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
-						if (!(c == '\r')) goto S14;
+						if (!(c == '\r')) goto S15;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 14, p, call, atomic, repeat, lookahead, 0));
+					entries.Add(new ParserEntry(ParserEntry.Choice, 15, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -1642,18 +1664,18 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S14:
+				S15:
 				{
 					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
-						if (!(c == '\n')) goto S16;
-						goto S15;
+						if (!(c == '\n')) goto S17;
+						goto S16;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 16, p, call, atomic, repeat, lookahead, 0));
+					entries.Add(new ParserEntry(ParserEntry.Choice, 17, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S15:
+				S16:
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
@@ -1670,7 +1692,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S16:
+				S17:
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
@@ -1904,24 +1926,6 @@ namespace DotGram.Snapshots
 
 			reachedAt = furthest;
 			return -1 - furthest;
-		}
-
-		static int Scan_DotGram_Name_Settled_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			var p = pos;
-
-			var from0 = p;
-			var found0 = global::System.MemoryExtensions.IndexOfAny(text.Slice(p), '\n', '\r', '|');
-			p = found0 < 0 ? text.Length : p + found0;
-			if (p - from0 < 1) goto Refuse;
-
-			if (p >= text.Length) failure.Starved = true;
-
-			return p;
-
-			Refuse:
-			if (p >= text.Length) failure.Starved = true;
-			return -1 - p;
 		}
 
 		static int Scan_DotGram_Digit_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -3800,8 +3804,8 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEILNPRTVXZ\u005C\u005Ea@aBaDaFaHaJaLBABBDCDECCEBCBDBFBGBHBEBIBJBKBLBMBNBOBPBQBRBS";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[21], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACEILNPRTVXZ\u005C\u005Ea@aBaDaFaHaJBABBDCDECCEBCBDBFBGBHBEBIBJBKBLBMBNBOBPBQBR";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[20], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"end of input",
@@ -3815,11 +3819,10 @@ namespace DotGram.Snapshots
 					"Digit",
 					"['0'..'9']",
 					"Amount",
-					"Name",
+					"[^ '\\n' | '\\r' | '|']",
 					"'R'",
 					"'.'",
 					"'-'",
-					"[^ '\\n' | '\\r' | '|']",
 					"Date",
 					"'H'",
 					"['\\r' | '\\n']",
@@ -3830,7 +3833,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[21];
+				starts = new int[20];
 
 				for (var i = 0; i < starts.Length; i++)
 				{
