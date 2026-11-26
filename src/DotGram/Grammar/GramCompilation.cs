@@ -223,6 +223,9 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="GrammarOptions.CollapseForwarders"/>
 	public bool CollapseForwarders { get => Grammar.CollapseForwarders; set => Grammar.CollapseForwarders = value; }
 
+	/// <inheritdoc cref="GrammarOptions.SettleRunTails"/>
+	public bool SettleRunTails { get => Grammar.SettleRunTails; set => Grammar.SettleRunTails = value; }
+
 	/// <inheritdoc cref="AuthorOptions.MemoiseFailures"/>
 	public bool MemoiseFailures { get => Author.MemoiseFailures; set => Author.MemoiseFailures = value; }
 
@@ -321,6 +324,18 @@ sealed class GrammarOptions
 	/// refusal's expected list can differ.
 	/// </remarks>
 	public bool CollapseForwarders { get; set; } = true;
+
+	/// <summary>
+	/// Whether a rule that ends in a run giving characters back is read, where it is called before
+	/// something that could take none of them, by a copy of it that gives none back. On by default
+	/// and not offered in the attribute; off is for a test that holds the parser with the copies to
+	/// the parser without them, which answers every input alike.
+	/// </summary>
+	/// <remarks>
+	/// Never over tokens: a grammar that asks to be cut in two is normalized without the copies,
+	/// whether the cut then succeeds or not.
+	/// </remarks>
+	public bool SettleRunTails { get; set; } = true;
 
 	/// <summary>
 	/// Whether the shared-recursion analysis runs (GRAM4054, and what <see cref="MemoiseSuccesses"/>

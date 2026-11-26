@@ -304,10 +304,13 @@ sealed partial class Machine
 	/// </summary>
 	internal TraceTables? Tracing => _settings.Tracing;
 
-	/// <summary>The counter of entries to a rule's method (<see cref="CountsRules"/>).</summary>
-	static string EnteredOf(RuleSymbol rule)
+	/// <summary>
+	/// The counter of entries to a rule's method (<see cref="CountsRules"/>): a settled copy's are
+	/// counted as the rule's it was made from (<see cref="RecognitionGraph.Counted"/>).
+	/// </summary>
+	string EnteredOf(RuleSymbol rule)
 	{
-		return CSharpEmitter.Inner("CountEntered", CSharpEmitter.IdentifierOf(rule));
+		return CSharpEmitter.Inner("CountEntered", CSharpEmitter.IdentifierOf(_graph.Counted(rule)));
 	}
 
 	/// <summary>The publications the readers were settled for (<see cref="Settle"/>), or null before they were.</summary>
@@ -1713,11 +1716,17 @@ sealed partial class Machine
 				header.Line("// Entries to each rule's method, for a test that counts them; compiled only under");
 				header.Line("// DOTGRAM_COUNTS, which no project defines, and not a supported setting.");
 
+				// One counter a rule, a settled copy and the rule it was made from sharing one.
+				var counted = new HashSet<RuleSymbol>();
+
 				foreach (var rule in _directRules)
 				{
+					if (!counted.Add(_graph.Counted(rule)))
+						continue;
+
 					header.Line($"internal static long {EnteredOf(rule)};");
 
-					if (_scanning.Contains(rule))
+					if (_scanning.Contains(_graph.Counted(rule)))
 						header.Line($"internal static long {ScannedOf(rule)};");
 				}
 

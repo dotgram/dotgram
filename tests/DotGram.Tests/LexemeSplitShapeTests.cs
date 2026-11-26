@@ -32,7 +32,7 @@ namespace DotGram.Tests;
 public sealed class LexemeSplitShapeTests
 {
 	/// <summary>A guard between the name and the character after it; and one before a second name that may take what the first gives back.</summary>
-	const string Guarded = """
+	internal const string Guarded = """
 		trivia = none
 
 		NameText = ['a'..'z'] & ['a'..'z']*
@@ -47,7 +47,7 @@ public sealed class LexemeSplitShapeTests
 		""";
 
 	/// <summary>The name inside the element of a repetition marked <c>recover</c>, and a name followed by one.</summary>
-	const string Recovering = """
+	internal const string Recovering = """
 		trivia = none
 
 		NameText = ['a'..'z'] & ['a'..'z']*

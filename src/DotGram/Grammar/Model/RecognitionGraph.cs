@@ -930,6 +930,23 @@ sealed class RecognitionGraph(
 	public IReadOnlyCollection<RuleSymbol> Located { get; init; } = [];
 
 	/// <summary>
+	/// The rule each settled copy was made from: a copy of a rule ending in a run that gives characters
+	/// back, called where nothing could take one (<c>GrammarNormalizer.SettleRunTails</c>). Empty where
+	/// none was made.
+	/// </summary>
+	/// <remarks>
+	/// The copy keeps the rule's declaration, so it is named as the rule is wherever a refusal or a
+	/// trace names it; what counts entries to rules counts the copy's as the rule's (<see cref="Counted"/>).
+	/// </remarks>
+	public IReadOnlyDictionary<RuleSymbol, RuleSymbol> Settled { get; init; } = new Dictionary<RuleSymbol, RuleSymbol>();
+
+	/// <summary>The rule a count of entries counts <paramref name="rule"/> as: the rule a settled copy was made from.</summary>
+	public RuleSymbol Counted(RuleSymbol rule)
+	{
+		return Settled.TryGetValue(rule, out var from) ? from : rule;
+	}
+
+	/// <summary>
 	/// Whether locations are decided per call rather than compiled in (<see cref="ITargetLanguage.LocationsPerCall"/>).
 	/// </summary>
 	/// <remarks>

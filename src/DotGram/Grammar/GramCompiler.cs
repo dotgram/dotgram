@@ -105,7 +105,8 @@ static partial class GramCompiler
 		options.Bound?.Invoke(model);
 
 		var graph = GrammarNormalizer.NormalizeIn(
-			model, language, options.PositionalFollow, options.PositionalFollowSplit, options.CollapseForwarders);
+			model, language, options.PositionalFollow, options.PositionalFollowSplit, options.CollapseForwarders,
+			settle: options.SettleRunTails && !options.Lexical);
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
