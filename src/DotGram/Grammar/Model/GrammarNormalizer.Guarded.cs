@@ -43,8 +43,8 @@ namespace DotGram.Grammar.Model;
 /// and the dispatch hands their value on. Built by none, a left recursion is the record of what its bases captured
 /// (§4.3), and a record is not split into rules, which would each make a type of their own from their own captures:
 /// its twin is folded in place, <c>E = stands(@Ws) &amp; Bases &amp; Steps* | !stands(@Ws) &amp; (E as written)</c>,
-/// and the type is made from the rule's captures as it always was. A declared type built by no <c>=&gt;</c> has no
-/// twin §4.3 folds.
+/// and the type is made from the rule's captures as it always was. A declared type built by no <c>=&gt;</c>, or a
+/// record whose steps capture, has a twin with no value, and is read as written (GRAM5021).
 /// </para>
 /// </remarks>
 sealed partial class GrammarNormalizer
@@ -226,6 +226,12 @@ sealed partial class GrammarNormalizer
 
 		// Built by none, and captures: the record of what its bases captured, the type made from its captures (§4.1 case 3).
 		var record = !builds && !_types.ContainsKey(rule) && NodeWalk.Descendants(body).Any(static node => node is Node.Capture);
+
+		// Built by none, a left recursion is only that record, and its steps only extend what the bases matched (§4.3).
+		// A declared type then has nothing to build it from, and a capture in a step — the call back's own, or one after
+		// it — nowhere to go: the twin has no value. Read as written, as it always was, and told so by GRAM5021.
+		if (!builds && (_types.ContainsKey(rule) || recursive.Any(StepCaptures)))
+			return;
 
 		if (TwinRefusal(rule, alternatives, recursive) is { } refusal)
 		{
@@ -481,19 +487,6 @@ sealed partial class GrammarNormalizer
 				return "a step may read nothing";
 		}
 
-		// Built by no '=>': a left recursion is then a record of what its bases captured, and the steps only extend what
-		// it matched. A declared type has nothing to build it from, and a step's capture — the call back's own, or one
-		// after it — nowhere to go.
-		if (!alternatives.Any(static one => one is Node.Construct))
-		{
-			if (_types.ContainsKey(rule))
-				return "it declares a type and no alternative builds it with '=>', and without one a left recursion is only a record of what its bases captured";
-
-			if (recursive.Any(static one => one.Operands[one.Head] is Node.Capture) ||
-				steps.Any(static step => NodeWalk.Descendants(step).Any(static node => node is Node.Capture)))
-				return "a step captures, and the rule builds no value";
-		}
-
 		// A base that reaches the rule again before it has read anything, a recognizer that may stand counted as reading
 		// nothing: there the twin reaches itself on the left through another rule.
 		foreach (var one in bases)
@@ -501,6 +494,12 @@ sealed partial class GrammarNormalizer
 				return $"the call back goes through '{through.Name}', which does more than forward what it calls";
 
 		return null;
+	}
+
+	/// <summary>Whether a recursive alternative captures in its step: the call back itself, or what is read after it.</summary>
+	static bool StepCaptures(Recursive one)
+	{
+		return one.Operands.Skip(one.Head).Any(static operand => NodeWalk.Descendants(operand).Any(static node => node is Node.Capture));
 	}
 
 	/// <summary>
