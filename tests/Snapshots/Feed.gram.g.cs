@@ -557,7 +557,7 @@ namespace DotGram.Snapshots
 				var b0 = -1;
 				if ((uint)p >= (uint)text.Length || text[p] != 'H')
 				{
-					RefusedSet_DotGram(ref failure, p, 18);
+					RefusedSet_DotGram(ref failure, p, 19);
 					return -1;
 				}
 				p += 1;
@@ -723,7 +723,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					RefusedSet_DotGram(ref failure, p, 19);
+					RefusedSet_DotGram(ref failure, p, 20);
 					return -1;
 				}
 				c = text[p];
@@ -773,7 +773,7 @@ namespace DotGram.Snapshots
 							break;
 						}
 					default:
-						RefusedSet_DotGram(ref failure, p, 19);
+						RefusedSet_DotGram(ref failure, p, 20);
 						return -1;
 				}
 				return p;
@@ -864,7 +864,7 @@ namespace DotGram.Snapshots
 				if (q0 < 0) return -1;
 				p = q0;
 				a0 = p;
-				var q1 = Read_Name(p);
+				var q1 = Read_Name_Settled(p);
 				if (q1 < 0) return -1;
 				p = q1;
 				b0 = p;
@@ -883,27 +883,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Name(int pos)
-			{
-				var s  = ways.Cursor;
-
-				while (true)
-				{
-					var q = ReadBody_Name(pos);
-
-					if (q >= 0)
-						return q;
-
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int ReadBody_Name(int pos)
+			public int Read_Name_Settled(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -919,36 +899,14 @@ namespace DotGram.Snapshots
 						break;
 
 					p++;
-
-					if (p == m0 + 2 && ways.Cursor < ways.Count)
-					{
-						p = ways.Places[ways.Cursor * 2];
-						break;
-					}
 				}
 
 				if (p < m0 + 1)
 				{
-					RefusedSet_DotGram(ref failure, p, 13);
+					RefusedSet_DotGram(ref failure, p, 17);
 					return -1;
 				}
 
-				if (p > (m0 + 1))
-				{
-					var d0 = 0;
-
-					if (ways.Cursor < ways.Count)
-					{
-						d0 = ways.Items[ways.Cursor * 2];
-						ways.Cursor++;
-					}
-					else
-					{
-						ways.Open(0, p - (m0 + 1), p);
-					}
-
-					p -= d0;
-				}
 				return p;
 			}
 
@@ -1315,7 +1273,7 @@ namespace DotGram.Snapshots
 					}
 					if (p < runStart + 1)
 					{
-						expected = ExpectedSet_DotGram(13);
+						expected = ExpectedSet_DotGram(17);
 						goto Fail;
 					}
 					if (p > runStart + 1)
@@ -1492,8 +1450,8 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S3;
-					case 15: goto S15;
-					case 17: goto S17;
+					case 14: goto S14;
+					case 16: goto S16;
 					default: expected = null; goto Fail;
 				}
 
@@ -1534,38 +1492,16 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
+					var scanned = Scan_DotGram_Name_Settled_DotGram_Row(text, p, ref failure);
+					if (scanned < 0)
 					{
+						p = -1 - scanned;
 						expected = ExpectedSet_DotGram(13);
 						goto Fail;
 					}
-					c = text[p];
-					if (!(!(c == '\n' || c == '\r' || c == '|')))
-					{
-						expected = ExpectedSet_DotGram(13);
-						goto Fail;
-					}
-					p++;
+					p = scanned;
 				}
 
-				S7:
-				{
-					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
-					{
-						expected = ExpectedSet_DotGram(13);
-						goto S8;
-					}
-					c = text[p];
-					if (!(!(c == '\n' || c == '\r' || c == '|')))
-					{
-						expected = ExpectedSet_DotGram(13);
-						goto S8;
-					}
-					p++;
-					goto S7;
-				}
-
-				S8:
 				{
 					var openedAt = opened0;
 
@@ -1680,9 +1616,9 @@ namespace DotGram.Snapshots
 					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
-						if (!(c == '\r')) goto S15;
+						if (!(c == '\r')) goto S14;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 15, p, call, atomic, repeat, lookahead, 0));
+					entries.Add(new ParserEntry(ParserEntry.Choice, 14, p, call, atomic, repeat, lookahead, 0));
 				}
 
 				{
@@ -1706,18 +1642,18 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S15:
+				S14:
 				{
 					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
-						if (!(c == '\n')) goto S17;
-						goto S16;
+						if (!(c == '\n')) goto S16;
+						goto S15;
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 17, p, call, atomic, repeat, lookahead, 0));
+					entries.Add(new ParserEntry(ParserEntry.Choice, 16, p, call, atomic, repeat, lookahead, 0));
 				}
 
-				S16:
+				S15:
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
@@ -1734,7 +1670,7 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S17:
+				S16:
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
@@ -1823,20 +1759,6 @@ namespace DotGram.Snapshots
 						lookahead = entry.LookaheadIndex;
 						goto Dispatch;
 					}
-					if (entry.Kind == ParserEntry.Run)
-					{
-						if (entry.Value <= entry.Position) continue;
-
-						state  = entry.State;
-						p      = entry.Value - 1;
-						call   = entry.CallIndex;
-						atomic = entry.AtomicIndex;
-						repeat = entry.RepeatIndex;
-						lookahead = entry.LookaheadIndex;
-						entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, entry.LookaheadIndex, p));
-						goto Dispatch;
-					}
-
 					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture || entry.Kind == ParserEntry.CaptureOpen)
 						continue;
 
@@ -1982,6 +1904,24 @@ namespace DotGram.Snapshots
 
 			reachedAt = furthest;
 			return -1 - furthest;
+		}
+
+		static int Scan_DotGram_Name_Settled_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var p = pos;
+
+			var from0 = p;
+			var found0 = global::System.MemoryExtensions.IndexOfAny(text.Slice(p), '\n', '\r', '|');
+			p = found0 < 0 ? text.Length : p + found0;
+			if (p - from0 < 1) goto Refuse;
+
+			if (p >= text.Length) failure.Starved = true;
+
+			return p;
+
+			Refuse:
+			if (p >= text.Length) failure.Starved = true;
+			return -1 - p;
 		}
 
 		static int Scan_DotGram_Digit_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -3058,15 +2998,15 @@ namespace DotGram.Snapshots
 				// pool's largest kept array is 2^20 elements, the very number this bound is
 				// written in, so it would decline exactly these arrays and "pool it" would mean
 				// "drop it" in more words.
-				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length + ways.Places.Length > 1048576)
+				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
 				{
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(_large)).SetTarget(_large);
 
 					// The same question the ordinary slot asks below: is the room far larger than the
 					// use. The bound decides which slot holds the tape, not whether to keep it.
-					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length + ways.Places.Length
-						> 4L * (ways.Count * 4L + ways.LogCount + ways.RefsCount)))
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
+						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
@@ -3088,8 +3028,8 @@ namespace DotGram.Snapshots
 				// release's counts are the same quantity twice. Four times and not twice because a
 				// table grows to at least double: one doubling is the slack a steady workload leaves,
 				// and two is a workload that has shrunk.
-				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length + ways.Places.Length
-					> 4L * (ways.Count * 4L + ways.LogCount + ways.RefsCount)))
+				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
+					> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
 				{
@@ -3156,20 +3096,6 @@ namespace DotGram.Snapshots
 			{
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
-			}
-
-			internal int[] Places = new int[32];
-
-			internal int Open(int at, int last, int place)
-			{
-				var way = Open(at, last);
-
-				if (Places.Length < Items.Length)
-					global::System.Array.Resize(ref Places, Items.Length);
-
-				Places[way * 2] = place;
-
-				return way;
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -3874,8 +3800,8 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEILNPRTVXZ\u005C\u005Ea@aBaDaFaHaJBABBDCDECCEBCBDBFBGBHBEBIBJBKBLBMBNBOBPBQBR";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[20], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACEILNPRTVXZ\u005C\u005Ea@aBaDaFaHaJaLBABBDCDECCEBCBDBFBGBHBEBIBJBKBLBMBNBOBPBQBRBS";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[21], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"end of input",
@@ -3889,10 +3815,11 @@ namespace DotGram.Snapshots
 					"Digit",
 					"['0'..'9']",
 					"Amount",
-					"[^ '\\n' | '\\r' | '|']",
+					"Name",
 					"'R'",
 					"'.'",
 					"'-'",
+					"[^ '\\n' | '\\r' | '|']",
 					"Date",
 					"'H'",
 					"['\\r' | '\\n']",
@@ -3903,7 +3830,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[20];
+				starts = new int[21];
 
 				for (var i = 0; i < starts.Length; i++)
 				{
