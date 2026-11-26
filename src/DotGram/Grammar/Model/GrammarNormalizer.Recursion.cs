@@ -211,6 +211,9 @@ sealed partial class GrammarNormalizer
 			// Where a repetition was written, for a diagnostic about it.
 			Moving(_repetitionsAt),
 
+			// The node of a rule a node of its settled copy stands for: a node rebuilt stands for it too.
+			Moving(_settledNodes),
+
 			// Keyed by rule rather than by node, and named here all the same: the *values*
 			// name nodes, so a rebuild has to reach into them. That is why the list holds a
 			// move rather than a dictionary.
