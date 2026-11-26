@@ -644,10 +644,6 @@ public sealed class StandingRecursionOrderTests
 	[InlineData("A = 'a' | @Ws & A & 'b'?", "a step may read nothing")]
 	[InlineData("A = B | @Ws & A & 'x'\nB = 'b' | @Ws & A & 'y'", "goes through 'B'")]
 	[InlineData("A = 'a' | @Ws & B & 'c'\nB = A & 'b'", "goes through 'B'")]
-	[InlineData("A : B = B | @Ws & A & '!'\nB : @int = 'b' => @(1)", "declares a type and no alternative builds it")]
-	[InlineData("A : @SourceSpan = 'a' | @Ws & A & '+' & 'a'", "declares a type and no alternative builds it")]
-	[InlineData("A = x: 'a' | @Ws & y: A & 'c'", "a step captures")]
-	[InlineData("A = x: 'a' | @Ws & A & y: 'c'", "a step captures")]
 	public void Where_the_twin_is_refused_the_rule_is_read_as_written(string rules, string reason)
 	{
 		var result = GramCompiler.Compile("T = A & eof\n" + rules + "\nparse T", Options(direct: true, tape: false, buffered: false, lexical: false));
@@ -658,6 +654,30 @@ public sealed class StandingRecursionOrderTests
 		Assert.All(refused, static one => Assert.Equal(GramSeverity.Warning, one.Severity));
 		Assert.Contains(refused, one => one.Message.Contains(reason, StringComparison.Ordinal));
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// Built by no '=>', a twin has a value only as a record whose steps capture nothing: a declared type built so, or a
+	/// record whose step captures, is read as written and told as it was, and the shapes the twin itself refuses stay
+	/// the build's to refuse.
+	/// </summary>
+	[Theory]
+	[InlineData("A : B = B | @Ws & A & '!'\nB : @int = 'b' => @(1)")]
+	[InlineData("A : @SourceSpan = 'a' | @Ws & A & '+' & 'a'")]
+	[InlineData("A : @int = B | @Ws & A & '!'\nB : @int = 'b' => @(1)")]
+	[InlineData("A = x: 'a' | @Ws & y: A & 'c'")]
+	[InlineData("A = x: 'a' | @Ws & A & y: 'c'")]
+	[InlineData("A = x: 'a' | @Ws & A & 'c' | A & y: 'd'")]
+	public void A_twin_with_no_value_keeps_the_rule_as_written(string rules)
+	{
+		var result = GramCompiler.Compile("T = A & eof\n" + rules + "\nparse T", Options(direct: true, tape: false, buffered: false, lexical: false));
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.StandingRefused);
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+
+		// Where the rule as written is refused too (GRAM4008, GRAM4039), that is what the build says, as it did.
+		if (!result.Diagnostics.Any(static one => one.Severity == GramSeverity.Error))
+			Assert.Contains(result.Diagnostics, static one => one.Id == "GRAM5021");
 	}
 
 	/// <summary>
