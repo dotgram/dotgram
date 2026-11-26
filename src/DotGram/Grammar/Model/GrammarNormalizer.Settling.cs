@@ -121,8 +121,9 @@ sealed partial class GrammarNormalizer
 		if (settled.Count == 0)
 			return;
 
-		var bodies = new Dictionary<RuleSymbol, Node>(_bodies);
-		var rules  = _rules.ToList();
+		var bodies  = new Dictionary<RuleSymbol, Node>(_bodies);
+		var results = new Dictionary<RuleSymbol, IReadOnlyList<ResultMember>>(_results);
+		var rules   = _rules.ToList();
 		var made   = Copies(copies.Keys);
 
 		// The calls are moved to the copies in the bodies as they stand, the copies' own among them:
@@ -142,8 +143,8 @@ sealed partial class GrammarNormalizer
 
 			_nullable[copy] = _nullable.TryGetValue(rule, out var nullable) && nullable;
 
-			if (_results.TryGetValue(rule, out var results))
-				_results[copy] = results;
+			if (_results.TryGetValue(rule, out var members))
+				_results[copy] = members;
 
 			if (_types.TryGetValue(rule, out var type))
 				_types[copy] = type;
@@ -158,6 +159,13 @@ sealed partial class GrammarNormalizer
 
 			_rules.Insert(_rules.IndexOf(rule) + 1, copy);
 		}
+
+		// A member of a result names the rule its capture calls, and the emitter reads that rule's
+		// value through it: where every call a body made to a rule now goes to the copy, so does the
+		// member, or it would name a rule the parser may no longer have.
+		foreach (var rule in _rules)
+			if (_results.TryGetValue(rule, out var members) && _bodies.TryGetValue(rule, out var body))
+				_results[rule] = Members(members, body, made);
 
 		// What the copies were made for, asked again of the grammar they are in: the fixed point over
 		// the calls as they now stand. A walk above that disagreed with it would leave a copy whose run
@@ -174,11 +182,36 @@ sealed partial class GrammarNormalizer
 				if (end is Node.Repeat repeat && repeat.Min != repeat.Max &&
 					!Determinism.NeverGivesBack(repeat, again[copy].Taught, now, FollowSets.SeamOf(copy, now)))
 				{
-					Unsettled(bodies, rules);
+					Unsettled(bodies, results, rules);
 
 					return;
 				}
 		}
+	}
+
+	/// <summary>
+	/// The members of a rule's result, each naming the copy of the rule it named where the body calls
+	/// the copy and no longer the rule.
+	/// </summary>
+	static IReadOnlyList<ResultMember> Members(
+		IReadOnlyList<ResultMember> members, Node body, Dictionary<RuleSymbol, RuleSymbol> made)
+	{
+		var called = new HashSet<RuleSymbol>(NodeWalk.Descendants(body).OfType<Node.Call>().Select(static call => call.Rule));
+		var moved  = false;
+		var result = new List<ResultMember>(members.Count);
+
+		foreach (var member in members)
+		{
+			if (member.Rule is { } named && made.TryGetValue(named, out var copy) && called.Contains(copy) && !called.Contains(named))
+			{
+				result.Add(member with { Rule = copy });
+				moved = true;
+			}
+			else
+				result.Add(member);
+		}
+
+		return moved ? result : members;
 	}
 
 	/// <summary>
@@ -190,7 +223,8 @@ sealed partial class GrammarNormalizer
 	static int _unsettles;
 
 	/// <summary>Takes back every copy <see cref="SettleRunTails"/> made, and the calls it moved to them.</summary>
-	void Unsettled(Dictionary<RuleSymbol, Node> bodies, List<RuleSymbol> rules)
+	void Unsettled(
+		Dictionary<RuleSymbol, Node> bodies, Dictionary<RuleSymbol, IReadOnlyList<ResultMember>> results, List<RuleSymbol> rules)
 	{
 		System.Threading.Interlocked.Increment(ref _unsettles);
 
@@ -206,6 +240,9 @@ sealed partial class GrammarNormalizer
 
 		foreach (var pair in bodies)
 			_bodies[pair.Key] = pair.Value;
+
+		foreach (var pair in results)
+			_results[pair.Key] = pair.Value;
 
 		_settledFrom.Clear();
 		_rules.Clear();
