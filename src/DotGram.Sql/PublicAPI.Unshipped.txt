@@ -7,14 +7,7 @@ DotGram.Sql.PostgreSql.PostgreSqlParser.ParserLimits.MaxBufferedInputLength.get 
 DotGram.Sql.PostgreSql.PostgreSqlParser.ParserLimits.MaxExtraStacks.get -> int
 DotGram.Sql.PostgreSql.PostgreSqlParser.ParserLimits.WithMaxBufferedInputLength(int value) -> DotGram.Sql.PostgreSql.PostgreSqlParser.ParserLimits!
 DotGram.Sql.PostgreSql.PostgreSqlParser.ParserLimits.WithMaxExtraStacks(int value) -> DotGram.Sql.PostgreSql.PostgreSqlParser.ParserLimits!
-static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.Limits.get -> DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits!
-static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.Limits.set -> void
-DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits
-static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits.Default.get -> DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits!
-DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits.MaxBufferedInputLength.get -> int
-DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits.MaxExtraStacks.get -> int
-DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits.WithMaxBufferedInputLength(int value) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits!
-DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits.WithMaxExtraStacks(int value) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParserLimits!
+DotGram.Sql.PostgreSql.PostgreSqlParser.Match<T>.ReadingEnd.get -> long
 static DotGram.Sql.Standard.Sql92Parser.Limits.get -> DotGram.Sql.Standard.Sql92Parser.ParserLimits!
 static DotGram.Sql.Standard.Sql92Parser.Limits.set -> void
 DotGram.Sql.Standard.Sql92Parser.ParserLimits

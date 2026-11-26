@@ -30,7 +30,7 @@ namespace DotGram.Sql.PostgreSql;
 // what they are given and read no host state, so a derivation given up leaves nothing a later one
 // could read.
 [Gram("PostgreSql.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
-[GramParserVariant("Located", LocationType = typeof(ISqlSpan))]
+[GramParserVariant("Located", LocationType = typeof(ISqlLocatable), UsePerCallLocations = true)]
 public abstract partial class PostgreSqlParser
 {
 	// Every entry is static and nothing is made of the class, so nothing outside derives from it either.
