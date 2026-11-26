@@ -509,7 +509,32 @@ public sealed class StandingRecursionOrderTests
 			Num : string = ['0'..'9']+
 			""", "", ["1 - 2 - 3", "(1 + 2) * 3", "1 - (2 - 3)", "3 + 6 * (5 - 9)"]),
 
-		// Values as the twin has them: built by no '=>', a left recursion is a record of what its bases captured, and the
+		// Values as the twin has them. A rule typed by another rule (A : B), its value built by '=>' on every alternative.
+		("typed by a rule", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : Item = i: Item => @(i)
+			    | @Ws & l: Sum & '+' & r: Item => @("(" + l + "+" + r + ")")
+			Item : @string = n: Num => @("<" + n + ">")
+			Num : string = ['0'..'9']+
+			""", "", ["1", "1+2", "1+2+3", "1+"]),
+
+		("typed by a record", """
+			T : @string = s: Sum & eof => @(s.A + "=" + s.B)
+			Sum : P = p: P => @(p)
+			    | @Ws & l: Sum & '+' & n: Num => @(new P(l.A + "+" + n, l.B))
+			P = a: Num & '=' & b: Num
+			Num : string = ['0'..'9']+
+			""", "", ["1=2", "1=2+3", "1=2+3+4", "1=2+"]),
+
+		// The text it matched.
+		("text", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = Num
+			    | @Ws & Sum & '+' & Num
+			Num : string = ['0'..'9']+
+			""", "", ["1", "1+2", "12+3+45", "1+"]),
+
+		// Built by no '=>', a left recursion is the record of what its bases captured, and the
 		// steps only extend what it matched.
 		("record", """
 			T : @string = e: E & eof => @(e.A + "=" + e.B)
