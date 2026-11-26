@@ -1660,7 +1660,7 @@ sealed partial class Machine
 	{
 		var header    = new Writer(0);
 		var state     = Carrier.ReaderState.ToList();
-		var registers = Carrier.ReaderRegisters.Concat(ReentryRegisters()).ToList();
+		var registers = Carrier.ReaderRegisters.Concat(ReentryRegisters()).Concat(RunEndRegisters()).ToList();
 		var cuts      = _graph.Segmented && file.Contains("ref segmentEnd", 0);
 
 		header.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
@@ -5392,6 +5392,13 @@ sealed partial class Machine
 			// would rightly warn about.
 			var counted = max is not null || min is not null || !settled;
 
+			// Where a run of this class already read from before here ends: its end from here
+			// (Machine.RunEndOf). Only for a run with no most, which reads to the first character
+			// outside the class.
+			var remembered = max is null ? machine.RunEndOf(body) : null;
+
+			counted |= remembered is not null;
+
 			// A replay of a run that gives back reads where it ended off the tape rather than
 			// scanning to its end again (Ways_DotGram.Places): the moment it passes its floor, the
 			// way at the cursor is this run's, since whether there is a way at all is the same
@@ -5406,6 +5413,20 @@ sealed partial class Machine
 
 			if (counted)
 				code.Line($"var {mark} = p;");
+
+			var from = $"runFrom{remembered}";
+			var to   = $"runTo{remembered}";
+
+			if (remembered is not null)
+			{
+				code.Line($"if ({from} != 0 && p >= {from} - 1 && p <= {to})");
+				code.Then($"p = {to};");
+				code.Line("else");
+			}
+
+			// Read to the end where it is not known, and then known: the end of the reading, not of a
+			// reading that gave back, which is where the scan stopped or where the tape says it did.
+			var unknown = remembered is null ? null : code.Block("");
 
 			using (code.Block("while (true)"))
 			{
@@ -5450,6 +5471,15 @@ sealed partial class Machine
 						code.Line("break;");
 					}
 				}
+			}
+
+			if (unknown is not null)
+			{
+				code.Line();
+				code.Line($"{from} = {mark} + 1;");
+				code.Line($"{to} = p;");
+
+				unknown.Dispose();
 			}
 
 			code.Line();

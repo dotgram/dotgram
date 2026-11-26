@@ -230,6 +230,9 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="GrammarOptions.SettleRunTails"/>
 	public bool SettleRunTails { get => Grammar.SettleRunTails; set => Grammar.SettleRunTails = value; }
 
+	/// <inheritdoc cref="GrammarOptions.RememberRunEnds"/>
+	public bool RememberRunEnds { get => Grammar.RememberRunEnds; set => Grammar.RememberRunEnds = value; }
+
 	/// <inheritdoc cref="AuthorOptions.MemoiseFailures"/>
 	public bool MemoiseFailures { get => Author.MemoiseFailures; set => Author.MemoiseFailures = value; }
 
@@ -342,6 +345,14 @@ sealed class GrammarOptions
 	/// compilation defines <c>DOTGRAM_NO_SETTLE</c>, and nowhere else.
 	/// </remarks>
 	public bool SettleRunTails { get; set; } = true;
+
+	/// <summary>
+	/// Whether a reader keeps, while it reads one input, where a run of a settled copy's class ended,
+	/// so that a run of it begun inside that one takes its end and reads nothing (<c>Machine.RunEnds</c>).
+	/// On by default, not offered in the attribute, and meaningless without <see cref="SettleRunTails"/>;
+	/// off is for a test that holds the parser keeping them to the one that does not.
+	/// </summary>
+	public bool RememberRunEnds { get; set; } = true;
 
 	/// <summary>
 	/// Whether the shared-recursion analysis runs (GRAM4054, and what <see cref="MemoiseSuccesses"/>

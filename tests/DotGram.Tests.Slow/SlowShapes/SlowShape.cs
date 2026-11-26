@@ -121,7 +121,7 @@ static class SlowShapes
 		new("Xml", "XmlParser", "TryParseXml", GeneratorItem.ClassA,
 		[
 			new("attributes, then a character that is none", n => "<a" + Repeated(" k=\"v\"", n) + " !", false, 2.0),
-			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 2.0, First: 256, Item: GeneratorItem.LexemeSplit),
+			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 1.0, Linear: true, Item: GeneratorItem.LexemeSplit),
 			new("children with attributes, the element never closed", n => "<a>" + Repeated("<b k=\"v\"/>", n), false, 2.0, First: 512),
 			new("children with attributes, closed by another name", n => "<a>" + Repeated("<b k=\"v\"/>", n) + "</b>", false, 2.0, First: 512),
 			new("elements nested to a depth, accepted", n => Nest(n), true, 1.0, Linear: true),
@@ -134,7 +134,7 @@ static class SlowShapes
 			new("children with attributes, the element never closed", n => "<a>" + Repeated("<b k=\"v\"/>", n), false, 1.0, Linear: true),
 			new("children with attributes, closed by another name", n => "<a>" + Repeated("<b k=\"v\"/>", n) + "</b>", false, 1.0, Linear: true),
 			new("elements nested to a depth, accepted", n => Nest(n), true, 1.6, First: 8192, ByTime: true),
-			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 2.0, First: 256, Item: GeneratorItem.LexemeSplit),
+			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 1.0, Linear: true, Item: GeneratorItem.LexemeSplit),
 		]),
 
 		// Filter and Gram as they ship.
