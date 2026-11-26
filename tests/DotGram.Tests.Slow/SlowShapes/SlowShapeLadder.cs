@@ -14,7 +14,7 @@ namespace DotGram.Tests.SlowShapes;
 /// <summary>What one input cost at each size it was read at.</summary>
 /// <param name="Sizes">The sizes reached, in characters of input.</param>
 /// <param name="Entries">The rule entries of one reading at each size.</param>
-/// <param name="Milliseconds">The time of that reading at each size: directional, since it is taken beside the counters.</param>
+/// <param name="Milliseconds">The time of that reading at each size: directional, since it is taken beside the counters; for a row held by its time, the fewest of settled rounds.</param>
 sealed record SlowLadder(int[] Sizes, long[] Entries, double[] Milliseconds)
 {
 	/// <summary>The exponent of the entries between the first size and the last: 1 is linear, 2 is quadratic.</summary>
@@ -68,7 +68,9 @@ static class SlowShapeLadder
 		{
 			var size = input.First << i;
 
-			var (count, milliseconds, _) = Count(parser, entry, input.Text(size), input.Accepted);
+			var (count, milliseconds) = input.ByTime
+				? Settled(parser, entry, input.Text(size), input.Accepted)
+				: Once(parser, entry, input.Text(size), input.Accepted);
 
 			sizes.Add(size);
 			entries.Add(count);
@@ -80,6 +82,48 @@ static class SlowShapeLadder
 
 		return new SlowLadder([.. sizes], [.. entries], [.. times]);
 	}
+
+	static (long Entries, double Milliseconds) Once(Type parser, string entry, string text, bool accepted)
+	{
+		var (count, milliseconds, _) = Count(parser, entry, text, accepted);
+
+		return (count, milliseconds);
+	}
+
+	/// <summary>
+	/// The time of one reading once the process has settled, for a row held by its time: the fewest
+	/// milliseconds of rounds, until three rounds in a row bring nothing more than 5% lower.
+	/// </summary>
+	/// <remarks>
+	/// One reading a size let one spike decide the exponent: a collection or another process landing on
+	/// the largest reading made a linear row read 2.0, and on a middle one made it read below zero. A
+	/// quadratic term is in every round, so the fewest of enough rounds is the reading's cost and a row
+	/// that grows is still seen growing. The entries are the same in every round.
+	/// </remarks>
+	static (long Entries, double Milliseconds) Settled(Type parser, string entry, string text, bool accepted)
+	{
+		var (count, best, _) = Count(parser, entry, text, accepted);
+		var steady = 0;
+
+		for (var round = 1; round < MaxRounds && steady < 3 && best <= GiveUpMilliseconds; round++)
+		{
+			var (again, milliseconds, _) = Count(parser, entry, text, accepted);
+
+			Assert.Equal(count, again);
+
+			if (milliseconds < best * 0.95)
+				steady = 0;
+			else
+				steady++;
+
+			best = Math.Min(best, milliseconds);
+		}
+
+		return (count, best);
+	}
+
+	/// <summary>The most readings a size of a row held by its time is read for.</summary>
+	const int MaxRounds = 15;
 
 	/// <summary>Checks a ladder against what is held of its input, and says what it found.</summary>
 	public static void Hold(SlowShape shape, SlowInput input, SlowLadder ladder, Action<string> write)

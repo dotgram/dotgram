@@ -128,12 +128,13 @@ static class SlowShapes
 		]),
 
 		// XML with braces round the attributes and round the children, as it was for the hour in which it was rewritten and rolled back:
-		// what the braces on the children make linear (an element refused at its closing tag), and what they make quadratic (a nest).
+		// what the braces on the children make linear (an element refused at its closing tag), and a nest, which they made quadratic
+		// until a seal skipped the ways sealed before it (held by time, the fewest of settled readings a size).
 		new("XmlBracedChildren", "XmlParser", "TryParseXml", GeneratorItem.Seal,
 		[
 			new("children with attributes, the element never closed", n => "<a>" + Repeated("<b k=\"v\"/>", n), false, 1.0, Linear: true),
 			new("children with attributes, closed by another name", n => "<a>" + Repeated("<b k=\"v\"/>", n) + "</b>", false, 1.0, Linear: true),
-			new("elements nested to a depth, accepted", n => Nest(n), true, 1.6, First: 8192, ByTime: true),
+			new("elements nested to a depth, accepted", n => Nest(n), true, 1.0, First: 8192, Linear: true, ByTime: true),
 			new("a long name, then a character that is none", n => "<" + Run('a', n) + "!", false, 1.0, Linear: true, Item: GeneratorItem.LexemeSplit),
 		]),
 
