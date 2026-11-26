@@ -100,7 +100,7 @@ if (mode == "spans")
 if (mode == "time")
 {
 	// Warm both readings first, then interleave them round by round.
-	for (var warm = 0; warm < 2; warm++)
+	for (var warm = 0; warm < 5; warm++)
 	{
 		Plain();
 		Located();
@@ -120,14 +120,49 @@ if (mode == "time")
 		located.Add(clock.Elapsed.TotalMilliseconds);
 	}
 
+	var before = GC.GetAllocatedBytesForCurrentThread();
+
+	Plain();
+
+	var plainBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+	before = GC.GetAllocatedBytesForCurrentThread();
+	Located();
+
+	var locatedBytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+	Console.WriteLine("plain   " + string.Join(" ", plain.Select(static one => one.ToString("F0"))));
+	Console.WriteLine("located " + string.Join(" ", located.Select(static one => one.ToString("F0"))));
 	plain.Sort();
 	located.Sort();
-	Console.WriteLine($"statements {statements.Count}; plain median {plain[plain.Count / 2]:F1} ms min {plain[0]:F1}; located median {located[located.Count / 2]:F1} ms min {located[0]:F1}");
+	Console.WriteLine($"statements {statements.Count}; plain median {plain[plain.Count / 2]:F1} ms min {plain[0]:F1}, {plainBytes / 1048576.0:F1} MB; located median {located[located.Count / 2]:F1} ms min {located[0]:F1}, {locatedBytes / 1048576.0:F1} MB");
 
 	return 0;
 }
 
-Console.Error.WriteLine("modes: spans, time");
+if (mode == "cold")
+{
+	// The first plain and the first located reading of every statement of the first file, in a fresh process: what
+	// the JIT costs before either reading has run.
+	var first = statements.TakeWhile(one => one.Where.Split(':')[0] == statements[0].Where.Split(':')[0]).ToList();
+	var clock = Stopwatch.StartNew();
+
+	foreach (var (_, text) in first)
+		PostgreSqlParser.TryParseSql(text);
+
+	var plainCold = clock.Elapsed.TotalMilliseconds;
+
+	clock.Restart();
+
+	foreach (var (_, text) in first)
+		PostgreSqlParser.Located.TryParseSql(text);
+
+	Console.WriteLine($"cold: {first.Count} statements, plain first {plainCold:F0} ms, located after {clock.Elapsed.TotalMilliseconds:F0} ms");
+
+	return 0;
+}
+
+Console.Error.WriteLine("modes: spans, time, cold");
 
 return 2;
 
