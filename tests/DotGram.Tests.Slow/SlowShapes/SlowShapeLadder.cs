@@ -103,6 +103,7 @@ static class SlowShapeLadder
 	static (long Entries, double Milliseconds) Settled(Type parser, string entry, string text, bool accepted)
 	{
 		var (count, best, _) = Count(parser, entry, text, accepted);
+
 		var steady = 0;
 
 		for (var round = 1; round < MaxRounds && steady < 3 && best <= GiveUpMilliseconds; round++)
