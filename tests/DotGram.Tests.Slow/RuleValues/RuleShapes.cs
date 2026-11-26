@@ -15,7 +15,8 @@ static class RuleShapes
 	public static readonly Atom[] CoreAtoms = [Atom.Built, Atom.Implicit, Atom.Other, Atom.Plumbing];
 
 	/// <summary>The operand kinds tried on one cell each, in the first slot.</summary>
-	public static readonly Atom[] ExtraAtoms = [Atom.TakenExtent, Atom.TakenOverPlumbing, Atom.ReaderExtent, Atom.Self];
+	public static readonly Atom[] ExtraAtoms =
+		[Atom.TakenExtent, Atom.TakenOverPlumbing, Atom.ReaderExtent, Atom.OwnOverMaking, Atom.TakenOverMaking, Atom.PerRoute, Atom.Self];
 
 	/// <summary>
 	/// The helper a slot of the given kind calls for a family, or null where the family has no such rule.
@@ -31,11 +32,16 @@ static class RuleShapes
 			(Family.Text, Atom.TakenExtent)            => Helper.Mid,
 			(Family.Text, Atom.TakenOverPlumbing)      => Helper.C4,
 			(Family.Text, Atom.ReaderExtent)           => Helper.G,
+			(Family.Text, Atom.OwnOverMaking)          => Helper.Ow,
+			(Family.Text, Atom.TakenOverMaking)        => Helper.Mw,
+			(Family.Text, Atom.PerRoute)               => Helper.Mx,
 			(Family.Span, Atom.Built)                  => Helper.Sp,
 			(Family.Span, Atom.Implicit)               => Helper.Span,
 			(Family.Span, Atom.Other)                  => Helper.Num,
 			(Family.Span, Atom.TakenExtent)            => Helper.Mids,
 			(Family.Span, Atom.ReaderExtent)           => Helper.Gs,
+			(Family.Span, Atom.OwnOverMaking)          => Helper.Ows,
+			(Family.Span, Atom.TakenOverMaking)        => Helper.Mws,
 			(Family.Box, Atom.Built)                   => Helper.Bxa,
 			(Family.Box, Atom.Implicit)                => Helper.Bx,
 			(Family.Box, Atom.Other)                   => Helper.Word,
@@ -138,6 +144,16 @@ static class RuleShapes
 		("optional-tail",       2, static (o, p) => [new Sequence(L("<"), o, new Wrapped(Wrap.Optional, new Sequence(L(","), p)), L(">"))]),
 	];
 
+	/// <summary>
+	/// The name of the structure that makes the rule under test call itself first, as written (<c>R = R &amp; X | X</c>),
+	/// where the <c>leftRecursive</c> dimension appends a tail to the call (<c>R = R &amp; '+' &amp; '#' | ‹body›</c>). It
+	/// is not one of <see cref="Structures"/>: the left-recursive cells are their own tier (<see cref="LeftRecursion"/>).
+	/// </summary>
+	public const string LeftRecursiveStructure = "left-recursive";
+
+	static readonly (string Name, int Slots, Func<Expr, Expr, Expr[]> Body) LeftRecursiveBody =
+		(LeftRecursiveStructure, 1, static (o, _) => [new Sequence(new SelfCall(), o), o]);
+
 	static int Width(Expr slot)
 	{
 		return slot switch
@@ -169,7 +185,7 @@ static class RuleShapes
 		string tier, RuleType type, string structure, Atom? first, Atom? second, NameKind names,
 		ReaderKind reader = ReaderKind.None, bool leftRecursive = false, SeenFrom seenFrom = SeenFrom.Itself, bool template = false)
 	{
-		var (_, slots, body) = Structures.First(s => s.Name == structure);
+		var (_, slots, body) = structure == LeftRecursiveStructure ? LeftRecursiveBody : Structures.First(s => s.Name == structure);
 
 		if ((first is not null) != (slots >= 1) || (second is not null) != (slots >= 2))
 			return null;
@@ -326,7 +342,7 @@ static class RuleShapes
 			Second        = second,
 			Names         = names,
 			Reader        = reader,
-			LeftRecursive = leftRecursive,
+			LeftRecursive = leftRecursive || structure == LeftRecursiveStructure,
 			SeenFrom      = seenFrom,
 			Template      = template,
 			Alternatives  = alternatives,
@@ -502,10 +518,142 @@ static class RuleShapes
 					}
 	}
 
-	/// <summary>The whole bounded enumeration: core, deviations and atoms, each shape once.</summary>
+	/// <summary>
+	/// The rule under test calling itself first, with no tail: <c>Start : T = Start &amp; X | X</c>. For each type of a text
+	/// or span family that is said by its own type or by a taken rule (a rule that makes its value and one that is its own
+	/// text), and each kind of operand <c>X</c>: a rule that is text, one that makes, one that is text over a making rule,
+	/// one that takes a making rule's type, one with a text route and a building route.
+	/// </summary>
+	public static IEnumerable<RuleShape> LeftRecursion()
+	{
+		var types = new[] { "@string", ":Word", ":Bare", "@SourceSpan", ":Sp", ":Span" };
+		var atoms = new[] { Atom.Built, Atom.Implicit, Atom.TakenExtent, Atom.TakenOverPlumbing, Atom.ReaderExtent, Atom.OwnOverMaking, Atom.TakenOverMaking, Atom.PerRoute };
+
+		foreach (var type in types)
+			foreach (var atom in atoms)
+				if (Make("leftrec", RuleType.Named(type), LeftRecursiveStructure, atom, null, NameKind.None) is { } shape)
+					yield return shape;
+	}
+
+	/// <summary>The whole bounded enumeration: core, deviations, atoms and left recursion, each shape once.</summary>
 	public static IReadOnlyList<RuleShape> Bounded()
 	{
-		return [.. Core().Concat(Deviations()).Concat(Atoms())];
+		return [.. Core().Concat(Deviations()).Concat(Atoms()).Concat(LeftRecursion())];
+	}
+
+	/// <summary>
+	/// The helpers a shape reads as operands (outside the calls that only fill a name), each once, in order; the template's
+	/// argument for the parameter of a template. The rule under test calling itself is no helper and is left out.
+	/// </summary>
+	public static IReadOnlyList<Helper> Operands(RuleShape shape)
+	{
+		var found = new List<Helper>();
+
+		void Visit(Expr expr)
+		{
+			switch (expr)
+			{
+				case Call { Atom: not null } call:
+					if (!found.Contains(call.Rule))
+						found.Add(call.Rule);
+
+					break;
+
+				case Parameter when shape.TemplateArgument is { } argument:
+					if (!found.Contains(argument))
+						found.Add(argument);
+
+					break;
+
+				case Named named:
+					Visit(named.Inner);
+					break;
+
+				case Sequence sequence:
+					foreach (var item in sequence.Items)
+						Visit(item);
+
+					break;
+
+				case Choice choice:
+					foreach (var alternative in choice.Alternatives)
+						Visit(alternative);
+
+					break;
+
+				case Group group:
+					Visit(group.Inner);
+					break;
+
+				case Wrapped wrapped:
+					Visit(wrapped.Inner);
+					break;
+			}
+		}
+
+		foreach (var alternative in shape.Alternatives)
+			Visit(alternative);
+
+		return found;
+	}
+
+	/// <summary>
+	/// The shape with the bodies of its text rules written in place of their calls (every operand call of a rule that
+	/// declares a text value without building it, <see cref="Helper.Inline"/>), or null where it calls none. The shape and
+	/// its extraction read the same input; whether they must agree is the oracle's question.
+	/// </summary>
+	public static RuleShape? Inlined(RuleShape shape)
+	{
+		var count = 0;
+
+		Expr Replace(Expr expr)
+		{
+			switch (expr)
+			{
+				case Call { Atom: not null, Rule.Inline: { } inline }:
+					return inline(count++);
+
+				case Named named:
+					return new Named(named.Name, Replace(named.Inner));
+
+				case Sequence sequence:
+					return new Sequence([.. sequence.Items.Select(Replace)]);
+
+				case Choice choice:
+					return new Choice([.. choice.Alternatives.Select(Replace)]);
+
+				case Group group:
+					return new Group(Replace(group.Inner));
+
+				case Wrapped wrapped:
+					return new Wrapped(wrapped.Wrap, Replace(wrapped.Inner));
+
+				default:
+					return expr;
+			}
+		}
+
+		var alternatives = shape.Alternatives.Select(Replace).ToList();
+
+		if (count == 0)
+			return null;
+
+		return new RuleShape
+		{
+			Id            = "inlined/" + shape.Id,
+			Tier          = "inlined",
+			InlinedFrom   = shape,
+			Type          = shape.Type,
+			Structure     = shape.Structure,
+			First         = shape.First,
+			Second        = shape.Second,
+			Names         = shape.Names,
+			Reader        = shape.Reader,
+			LeftRecursive = shape.LeftRecursive,
+			SeenFrom      = shape.SeenFrom,
+			Template      = shape.Template,
+			Alternatives  = alternatives,
+		};
 	}
 
 	/// <summary>

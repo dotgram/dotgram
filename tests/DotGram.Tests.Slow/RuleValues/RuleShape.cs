@@ -86,6 +86,39 @@ enum Making
 
 	/// <summary>Declares no type and names nothing.</summary>
 	Plumbing,
+
+	/// <summary>
+	/// Declares <c>@string</c> or <c>@SourceSpan</c>, writes no <c>=&gt;</c> and no name, and calls a rule that builds its
+	/// value (<c>=&gt;</c>) between two literals: what it makes is its own text, whatever it calls.
+	/// </summary>
+	ExtentAroundMaking,
+
+	/// <summary>
+	/// Takes the type of a rule that builds its value with <c>=&gt;</c> and reads exactly one call of that rule between two
+	/// literals: the one operand of its type is a rule that makes a value.
+	/// </summary>
+	TakenAroundMakingOperand,
+
+	/// <summary>
+	/// Takes the type of a rule that builds its value with <c>=&gt;</c>, and has two routes: the first reads that rule, the
+	/// second reads a text rule between two literals.
+	/// </summary>
+	TakenPerRoute,
+}
+
+/// <summary>
+/// What a helper hands to a rule that calls it, as the helper is written.
+/// </summary>
+enum HelperKind
+{
+	/// <summary>Its value is its own text or bounds, whatever it calls: it is no operand and no element of an array.</summary>
+	Text,
+
+	/// <summary>Something makes its value: a <c>=&gt;</c>, a construction, a generated type, or a rule that hands one on.</summary>
+	Making,
+
+	/// <summary>It has no type.</summary>
+	Plumbing,
 }
 
 /// <summary>
@@ -126,8 +159,43 @@ sealed class Helper
 	/// <summary>Writes an input the rule reads whole, drawing fresh letters or digits from the samples.</summary>
 	public Func<Samples, string> Sample { get; }
 
-	/// <summary>How many characters every input of the rule has.</summary>
+	/// <summary>
+	/// How many characters every input of the rule has. A rule with two routes (<see cref="Alternate"/>) has the width of
+	/// its first route's input.
+	/// </summary>
 	public int Width => Sample(new Samples()).Length;
+
+	/// <summary>The input of the rule's second route, for a rule with two routes of different width; otherwise null.</summary>
+	public Func<Samples, string>? Alternate { get; private init; }
+
+	/// <summary>
+	/// The rule's body as a tree, for writing it in place of a call (the argument is how many times a body has already
+	/// been written in place in the shape, so that a name it holds stays unique); null for a rule that makes a value.
+	/// </summary>
+	public Func<int, Expr>? Inline { get; private init; }
+
+	/// <summary>What the rule hands to its caller.</summary>
+	public HelperKind Kind
+	{
+		get
+		{
+			switch (Making)
+			{
+				case Making.Extent:
+				case Making.ExtentReadByGuard:
+				case Making.TakenAroundOperand:
+				case Making.TakenAroundPlumbing:
+				case Making.ExtentAroundMaking:
+					return HelperKind.Text;
+
+				case Making.Plumbing:
+					return HelperKind.Plumbing;
+
+				default:
+					return HelperKind.Making;
+			}
+		}
+	}
 
 	/// <summary>
 	/// The value the rule makes of its own input, printed as the runner prints values in mode D, where that value is not
@@ -149,7 +217,10 @@ sealed class Helper
 
 	public static readonly Helper Bare = new(
 		"Bare", "Bare : @string = ['a'..'z']{2}", Making.Extent, RuleValues.Family.Text, "string", [],
-		static s => s.Letters(), static t => "\"" + t + "\"");
+		static s => s.Letters(), static t => "\"" + t + "\"")
+	{
+		Inline = static _ => new Lexeme("['a'..'z']{2}", static s => s.Letters()),
+	};
 
 	public static readonly Helper Plain = new(
 		"Plain", "Plain = ['a'..'z']{2}", Making.Plumbing, null, null, [],
@@ -157,15 +228,24 @@ sealed class Helper
 
 	public static readonly Helper Mid = new(
 		"Mid", "Mid : Bare = '(' & Bare & ')'", Making.TakenAroundOperand, RuleValues.Family.Text, "string", ["Bare"],
-		static s => "(" + s.Letters() + ")", null);
+		static s => "(" + s.Letters() + ")", null)
+	{
+		Inline = static _ => new Sequence(new Literal("("), new Call(Bare, RuleValues.Atom.Implicit), new Literal(")")),
+	};
 
 	public static readonly Helper C4 = new(
 		"C4", "C4 : Bare = '(' & Plain & ')'", Making.TakenAroundPlumbing, RuleValues.Family.Text, "string", ["Bare", "Plain"],
-		static s => "(" + s.Letters() + ")", null);
+		static s => "(" + s.Letters() + ")", null)
+	{
+		Inline = static _ => new Sequence(new Literal("("), new Call(Plain, RuleValues.Atom.Plumbing), new Literal(")")),
+	};
 
 	public static readonly Helper G = new(
 		"G", "G : @string = g: ['a'..'z']{2} & when @(Seen(g))", Making.ExtentReadByGuard, RuleValues.Family.Text, "string", [],
-		static s => s.Letters(), null);
+		static s => s.Letters(), null)
+	{
+		Inline = static n => ReadByGuard(n),
+	};
 
 	public static readonly Helper Sp = new(
 		"Sp", "Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))", Making.Arrow, RuleValues.Family.Span, "SourceSpan", [],
@@ -173,15 +253,56 @@ sealed class Helper
 
 	public static readonly Helper Span = new(
 		"Span", "Span : @SourceSpan = ['a'..'z']{2}", Making.Extent, RuleValues.Family.Span, "SourceSpan", [],
-		static s => s.Letters(), null);
+		static s => s.Letters(), null)
+	{
+		Inline = static _ => new Lexeme("['a'..'z']{2}", static s => s.Letters()),
+	};
 
 	public static readonly Helper Mids = new(
 		"Mids", "Mids : Span = '(' & Span & ')'", Making.TakenAroundOperand, RuleValues.Family.Span, "SourceSpan", ["Span"],
+		static s => "(" + s.Letters() + ")", null)
+	{
+		Inline = static _ => new Sequence(new Literal("("), new Call(Span, RuleValues.Atom.Implicit), new Literal(")")),
+	};
+
+	// An own text rule over a making rule is text: its value is what it matched, whatever the rule inside it builds.
+	public static readonly Helper Ow = new(
+		"Ow", "Ow : @string = '(' & Word & ')'", Making.ExtentAroundMaking, RuleValues.Family.Text, "string", ["Word"],
+		static s => "(" + s.Letters() + ")", null)
+	{
+		Inline = static _ => new Sequence(new Literal("("), new Call(Word, RuleValues.Atom.Built), new Literal(")")),
+	};
+
+	public static readonly Helper Ows = new(
+		"Ows", "Ows : @SourceSpan = '(' & Sp & ')'", Making.ExtentAroundMaking, RuleValues.Family.Span, "SourceSpan", ["Sp"],
+		static s => "(" + s.Letters() + ")", null)
+	{
+		Inline = static _ => new Sequence(new Literal("("), new Call(Sp, RuleValues.Atom.Built), new Literal(")")),
+	};
+
+	// A rule that takes its type from a making rule and reads that rule is making: its value is the one it reads.
+	public static readonly Helper Mw = new(
+		"Mw", "Mw : Word = '(' & Word & ')'", Making.TakenAroundMakingOperand, RuleValues.Family.Text, "string", ["Word"],
 		static s => "(" + s.Letters() + ")", null);
+
+	public static readonly Helper Mws = new(
+		"Mws", "Mws : Sp = '(' & Sp & ')'", Making.TakenAroundMakingOperand, RuleValues.Family.Span, "SourceSpan", ["Sp"],
+		static s => "(" + s.Letters() + ")", null);
+
+	// Two routes of different width: the first reads Word ("ab"), the second a text rule between brackets ("[cd]").
+	public static readonly Helper Mx = new(
+		"Mx", "Mx : Word = Word | '[' & Bare & ']'", Making.TakenPerRoute, RuleValues.Family.Text, "string", ["Word", "Bare"],
+		static s => s.Letters(), null)
+	{
+		Alternate = static s => "[" + s.Letters() + "]",
+	};
 
 	public static readonly Helper Gs = new(
 		"Gs", "Gs : @SourceSpan = g: ['a'..'z']{2} & when @(Seen(g))", Making.ExtentReadByGuard, RuleValues.Family.Span, "SourceSpan", [],
-		static s => s.Letters(), null);
+		static s => s.Letters(), null)
+	{
+		Inline = static n => ReadByGuard(n),
+	};
 
 	public static readonly Helper Nm = new(
 		"Nm", "Nm : @string = n: ['a'..'z']{2} => @(T(n))", Making.Arrow, RuleValues.Family.Text, "string", [],
@@ -223,9 +344,17 @@ sealed class Helper
 		"Ch", "Ch : @char = x: ['a'..'z'] => @('c')", Making.Arrow, null, "char", [],
 		static s => "k", static _ => "'c'");
 
+	// The body of G and Gs written in place: the capture's name is made unique, since two bodies may stand in one rule.
+	static Expr ReadByGuard(int ordinal)
+	{
+		var name = ordinal == 0 ? "g" : "g" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+		return new Sequence(new Named(name, new Lexeme("['a'..'z']{2}", static s => s.Letters())), new Guard("Seen(" + name + ")", name));
+	}
+
 	/// <summary>Every helper, by name.</summary>
 	public static readonly IReadOnlyDictionary<string, Helper> All =
-		new[] { Word, Bare, Plain, Mid, C4, G, Sp, Span, Mids, Gs, Nm, Dg, Bx, Bxa, Lf, Lfa, Item, Num, O, Ch }.ToDictionary(static h => h.Name);
+		new[] { Word, Bare, Plain, Mid, C4, G, Sp, Span, Mids, Gs, Ow, Ows, Mw, Mws, Mx, Nm, Dg, Bx, Bxa, Lf, Lfa, Item, Num, O, Ch }.ToDictionary(static h => h.Name);
 }
 
 /// <summary>
@@ -289,6 +418,15 @@ enum Atom
 
 	/// <summary>A text rule whose own extent is its value and whose name a guard reads (G, Gs).</summary>
 	ReaderExtent,
+
+	/// <summary>A rule that declares <c>@string</c> or <c>@SourceSpan</c> and calls a building rule between literals: text (Ow, Ows).</summary>
+	OwnOverMaking,
+
+	/// <summary>A rule that takes a building rule's type and reads one call of it: making (Mw, Mws).</summary>
+	TakenOverMaking,
+
+	/// <summary>A rule with a building route and a text route: making (Mx).</summary>
+	PerRoute,
 
 	/// <summary>The rule under test itself.</summary>
 	Self,
@@ -472,6 +610,19 @@ sealed class Literal(string text) : Expr
 	public string Text { get; } = text;
 }
 
+/// <summary>
+/// A piece of lexical grammar written in place (a helper's body, inlined): <see cref="Pattern"/> is printed and
+/// <see cref="Sample"/> writes the input it reads.
+/// </summary>
+sealed class Lexeme(string pattern, Func<Samples, string> sample) : Expr
+{
+	/// <summary>The grammar text.</summary>
+	public string Pattern { get; } = pattern;
+
+	/// <summary>Writes an input the piece reads.</summary>
+	public Func<Samples, string> Sample { get; } = sample;
+}
+
 /// <summary><c>any{n}</c> after a lookahead: reads what the lookahead looked at.</summary>
 sealed class AnyItems(int count) : Expr
 {
@@ -595,6 +746,12 @@ sealed class RuleShape
 
 	/// <summary>Which tier made it: <c>core</c>, <c>deviation</c>, <c>atoms</c>, <c>random</c>, <c>landmark</c>.</summary>
 	public required string Tier { get; init; }
+
+	/// <summary>
+	/// The shape this one was made from by writing the bodies of its text rules in place of their calls, or null: the two
+	/// are a pair, and one is the other's extraction.
+	/// </summary>
+	public RuleShape? InlinedFrom { get; init; }
 
 	/// <summary>The type of the rule under test.</summary>
 	public required RuleType Type { get; init; }
