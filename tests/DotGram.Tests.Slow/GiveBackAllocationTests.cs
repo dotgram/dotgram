@@ -132,8 +132,45 @@ public sealed class GiveBackAllocationTests
 				$"A refusal at {size} members allocates {refusedBytes:N0} bytes where the accepted text allocates {acceptedBytes:N0}: {shown}.");
 	}
 
-	/// <summary>The fewest bytes of five calls, on a thread of its own with room for the deepest reading.</summary>
+	/// <summary>
+	/// The bytes one reading allocates once the process has settled: the fewest of rounds, each on a
+	/// thread of its own, until three rounds in a row bring nothing more than 1% lower.
+	/// </summary>
+	/// <remarks>
+	/// What a reading allocates is not one number from its first call. The machinery a call leaves
+	/// behind for the next is held per thread, and the runtime's own warming (tiered compilation, the
+	/// first reflection calls, the pool buckets) belongs to the process and moves on its own clock.
+	/// Beside other tests, which compile and collect all the while, a thread's five calls can fall
+	/// before it is done: a refusal was seen allocating one table's worth more than it settles at
+	/// (24 bytes a member, at 500 to 2,000 members and in every call), and the comparison with the
+	/// accepted twin failed on bytes that are not the regression. A quadratic term is no warming cost:
+	/// it is in every round, so the fewest of enough rounds is the settled figure and the gate stays
+	/// as strict as it was.
+	/// </remarks>
 	static long Measure(Func<string, bool> read, string text)
+	{
+		var best = long.MaxValue;
+		var steady = 0;
+
+		for (var round = 0; round < MaxRounds && steady < 3; round++)
+		{
+			var fewest = Round(read, text);
+
+			if (fewest < best - best / 100)
+				steady = 0;
+			else
+				steady++;
+
+			best = Math.Min(best, fewest);
+		}
+
+		return best;
+	}
+
+	const int MaxRounds = 40;
+
+	/// <summary>The fewest bytes of five calls, on a thread of its own with room for the deepest reading.</summary>
+	static long Round(Func<string, bool> read, string text)
 	{
 		var best = long.MaxValue;
 		Exception? failed = null;
