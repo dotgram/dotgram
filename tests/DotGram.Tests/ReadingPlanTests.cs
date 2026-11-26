@@ -317,7 +317,6 @@ public class ReadingPlanTests
 		"no jumps: Buffered: RecognizeBufBytes_DotGram_FindRecord: jump, refused (it reads a buffer, which the flat machine does not, and the publication is not read by methods over a string)",
 		"no jumps: Csv: Recognize_DotGram: jump (C# as it is targeted here has no jumps; and there is nothing published)",
 		"no jumps: Feed: Recognize_DotGram_Feed: reader (C# as it is targeted here has no jumps)",
-		"no jumps: Feed: Recognize_DotGram_Name: jump, refused (C# as it is targeted here has no jumps; and 'Name' cannot be read by methods because it is published with 'find')",
 		"no jumps: Feed: Recognize_DotGram_Row: jump, refused (C# as it is targeted here has no jumps; and 'Row' cannot be read by methods because it is published with 'find')",
 		"no jumps: Kept: Recognize_DotGram: reader (C# as it is targeted here has no jumps)",
 		"no jumps: Kept: RecognizeSeam_DotGram: jump (it scans the seam between tokens, which the lexer does by jumps)",
@@ -376,7 +375,7 @@ public class ReadingPlanTests
 	];
 
 	/// <summary>How many places of the snapshot readers each proof settled, and how many write a way (None).</summary>
-	const string ExpectedProofs = "None 28, LiteralRun 3, Exclusive 46, SettledText 1, Fixed 4, NeverGivesBack 65, NeverGivesBackPast 1";
+	const string ExpectedProofs = "None 33, LiteralRun 3, Exclusive 46, SettledText 1, Fixed 4, NeverGivesBack 60, NeverGivesBackPast 1";
 
 	static readonly CSharpLanguage Language = new(scanner: RoslynCSharpScanner.Instance);
 

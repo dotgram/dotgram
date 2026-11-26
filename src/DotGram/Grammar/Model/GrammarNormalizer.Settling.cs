@@ -13,6 +13,12 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	readonly Dictionary<RuleSymbol, RuleSymbol> _settledFrom = [];
 
+	/// <summary>
+	/// Each node of a settled copy, with the node of its rule's body it was copied from — or, for one
+	/// rebuilt in the copy, the node it was rebuilt from (<see cref="RecognitionGraph.SettledNodes"/>).
+	/// </summary>
+	readonly Dictionary<Node, Node> _settledNodes = new(NodeIdentity.Instance);
+
 	/// <summary>What <see cref="RecognitionGraph.PositionalFollow"/> will say, for the follow sets asked here.</summary>
 	bool _positionalFollow;
 
@@ -245,6 +251,7 @@ sealed partial class GrammarNormalizer
 			_results[pair.Key] = pair.Value;
 
 		_settledFrom.Clear();
+		_settledNodes.Clear();
 		_rules.Clear();
 		_rules.AddRange(rules);
 	}
@@ -563,6 +570,8 @@ sealed partial class GrammarNormalizer
 
 		Carry(from, to);
 
+		_settledNodes[to] = from;
+
 		using var children = from.Children.GetEnumerator();
 		using var copies   = to.Children.GetEnumerator();
 
@@ -605,6 +614,9 @@ sealed partial class GrammarNormalizer
 		};
 
 		Carry(node, rebuilt);
+
+		if (tailOnly && !ReferenceEquals(node, rebuilt))
+			_settledNodes[rebuilt] = node;
 
 		return rebuilt;
 

@@ -2642,7 +2642,7 @@ sealed partial class Machine
 							"if (p > 0 && p < text.Length && " +
 							"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])"))
 						{
-							Refused(code, machine.DeclareExpected(machine.Displays(node)));
+							Refused(code, machine.DeclareExpected(machine.ReaderDisplays(node)));
 						}
 					}
 
@@ -2763,7 +2763,7 @@ sealed partial class Machine
 				// hand was in `c`, it is put back after.
 				case Node.Behind(var boundary):
 				{
-					var name = machine.DeclareExpected(machine.Displays(node));
+					var name = machine.DeclareExpected(machine.ReaderDisplays(node));
 
 					_character = true;
 
@@ -2895,7 +2895,7 @@ sealed partial class Machine
 		void EmitSame(Writer code, Node node, TextBinding binding)
 		{
 			var slot = machine.BindingSlot(owner, binding);
-			var name = machine.DeclareExpected(machine.Displays(node));
+			var name = machine.DeclareExpected(machine.ReaderDisplays(node));
 
 			using (code.Block($"if (!{machine.SameText()}(text, p, a{slot}, b{slot}))"))
 				Refused(code, name);
@@ -3204,7 +3204,7 @@ sealed partial class Machine
 			if (text.Length == 0)
 				return;
 
-			var name    = machine.DeclareExpected(machine.Displays(node));
+			var name    = machine.DeclareExpected(machine.ReaderDisplays(node));
 			var closing = _closing;
 
 			_closing = null;
@@ -3414,7 +3414,7 @@ sealed partial class Machine
 
 		void EmitElement(Writer code, Node.Element element, bool loaded = false)
 		{
-			var name  = machine.DeclareExpected(machine.Displays(element));
+			var name  = machine.DeclareExpected(machine.ReaderDisplays(element));
 			var first = FirstSets.Of(element, _graph);
 
 			_character = true;
@@ -3588,7 +3588,7 @@ sealed partial class Machine
 
 			if (machine.Dispatchable(alternatives, least: 2) is { } groups)
 			{
-				var name = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+				var name = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
 
 				// A group that is one alternative led by a guard is named in a refusal only where
 				// its guard would let it read: tried in order, that alternative would have asked
@@ -3707,7 +3707,7 @@ sealed partial class Machine
 							// group's own first set, which the choice's set holds: said once, in
 							// the choice's words, as the engine says it.
 							_refuseWith = name;
-							_refuseOver = machine.DeclareExpected(machine.Displays(
+							_refuseOver = machine.DeclareExpected(machine.ReaderDisplays(
 								new Node.Element(false, [.. groups[widest].Set.Ranges], [], [])));
 							_refuseUnless = asked;
 							apart.Next();
@@ -3763,7 +3763,7 @@ sealed partial class Machine
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, List<Node> Members)> groups,
 			(string Name, int From) table, FollowSets.Continuation following)
 		{
-			var name  = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+			var name  = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
 			var asked = Asked(alternatives, groups);
 
 			_character = true;
@@ -3818,7 +3818,7 @@ sealed partial class Machine
 			var guarded = groups.Where(one => one.Members.Count == 1 && LeadingGuard(one.Members[0]) is not null).ToList();
 
 			return guarded.Count == 1
-				? (LeadingGuard(guarded[0].Members[0])!, machine.DeclareExpected(machine.PredictedDisplays(
+				? (LeadingGuard(guarded[0].Members[0])!, machine.DeclareExpected(machine.ReaderPredicted(
 					alternatives.Where(one => !ReferenceEquals(one, guarded[0].Members[0])).ToList())))
 				: null;
 		}
@@ -3840,7 +3840,7 @@ sealed partial class Machine
 		string? GuardRefuses(IReadOnlyList<Node> alternatives, List<Node> members)
 		{
 			return members.Any(LeadsWithGuard)
-				? machine.DeclareExpected(machine.PredictedDisplays(
+				? machine.DeclareExpected(machine.ReaderPredicted(
 					alternatives.Where(one => !members.Contains(one)).ToList()))
 				: null;
 		}
@@ -3878,7 +3878,7 @@ sealed partial class Machine
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
 			FollowSets.Continuation following)
 		{
-			var name  = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+			var name  = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
 			var began = $"k{_ways++}";
 
 			code.Line($"var {began} = p;");
@@ -3919,7 +3919,7 @@ sealed partial class Machine
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
 			FollowSets.Continuation following)
 		{
-			var name = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+			var name = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
 
 			_character = true;
 
@@ -4105,7 +4105,7 @@ sealed partial class Machine
 			if (alternatives[alternatives.Count - 1] is not Node.Empty &&
 				Doorway(alternatives) is { } gate && !(loaded && Chosen(gate)))
 			{
-				var whole = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
+				var whole = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
 
 				if (!loaded)
 				{
@@ -4160,7 +4160,7 @@ sealed partial class Machine
 				// it did not take, and a message that leaves it out is a worse message —
 				// but it is a note and not a failure: the reading goes on with nothing.
 				var wanted = machine.DeclareExpected(
-					machine.PredictedDisplays(alternatives.Take(alternatives.Count - 1).ToList()));
+					machine.ReaderPredicted(alternatives.Take(alternatives.Count - 1).ToList()));
 
 				if (!loaded)
 				{
@@ -5034,7 +5034,7 @@ sealed partial class Machine
 					// (SaysBehindTheDoor) is the rule failing here: the reading that records says
 					// what the turn would have begun with, as EmitTurns says it.
 					var said = min > 0 && SaysBehindTheDoor(body, repeat)
-						? $"if ({turns} < {min}) " + Noted(machine.DeclareExpected(machine.PredictedDisplays([body])))
+						? $"if ({turns} < {min}) " + Noted(machine.DeclareExpected(machine.ReaderPredicted([body])))
 						: null;
 
 					if (said is null)
@@ -5144,7 +5144,7 @@ sealed partial class Machine
 				if (machine.OverKinds)
 				{
 					using (code.Block($"if ({turns} < {min})"))
-						Refused(code, machine.DeclareExpected(machine.PredictedDisplays([body])));
+						Refused(code, machine.DeclareExpected(machine.ReaderPredicted([body])));
 				}
 				else
 				{
@@ -5384,7 +5384,7 @@ sealed partial class Machine
 		/// <param name="max">The most characters, or null where there is no most.</param>
 		void EmitRun(Writer code, Node body, string test, string? min, string? max, bool settled)
 		{
-			var name = machine.DeclareExpected(machine.Displays(body));
+			var name = machine.DeclareExpected(machine.ReaderDisplays(body));
 			var mark = $"m{_marks++}";
 
 			// Where the run has no ceiling, no floor and nothing to give back, nobody ever
@@ -6151,7 +6151,7 @@ sealed partial class Machine
 						if (min is not null && !loudly)
 						{
 							using (code.Block($"if ({turn} < {min})"))
-								Refused(code, machine.DeclareExpected(machine.Displays(body)), furthest: !quietly);
+								Refused(code, machine.DeclareExpected(machine.ReaderDisplays(body)), furthest: !quietly);
 
 							code.Line();
 						}
@@ -6404,7 +6404,7 @@ sealed partial class Machine
 				code.Line();
 
 				using (code.Block($"if ({turn} < {min})"))
-					Refused(code, machine.DeclareExpected(machine.Displays(body)));
+					Refused(code, machine.DeclareExpected(machine.ReaderDisplays(body)));
 			}
 		}
 
@@ -7163,7 +7163,7 @@ sealed partial class Machine
 				return;
 
 			code.Line(Noted(machine.DeclareExpected(
-				machine.Displays(new Node.Element(false, [.. tails.Ranges], [], []))), furthest));
+				machine.ReaderDisplays(new Node.Element(false, [.. tails.Ranges], [], []))), furthest));
 		}
 
 		/// <summary>A refusal recorded and not acted on: what was wanted here, for the message.</summary>

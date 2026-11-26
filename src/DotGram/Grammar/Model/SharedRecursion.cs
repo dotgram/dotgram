@@ -810,16 +810,17 @@ static class SharedRecursion
 			return inside;
 		}
 
-		static string Names(List<RuleSymbol> rules)
+		// A settled copy is named as the rule it was made from, which is the one the grammar wrote.
+		string Names(List<RuleSymbol> rules)
 		{
 			const int most = 2;
 
 			var names = new List<string>();
 
 			foreach (var rule in rules)
-				if (!names.Contains(rule.Name))
+				if (!names.Contains(graph.Counted(rule).Name))
 				{
-					names.Add(rule.Name);
+					names.Add(graph.Counted(rule).Name);
 
 					if (names.Count > most)
 						break;

@@ -940,6 +940,21 @@ sealed class RecognitionGraph(
 	/// </remarks>
 	public IReadOnlyDictionary<RuleSymbol, RuleSymbol> Settled { get; init; } = new Dictionary<RuleSymbol, RuleSymbol>();
 
+	/// <summary>
+	/// Each node of a settled copy, with the node it was copied or rebuilt from: followed to its end, the
+	/// node of the rule's own body that stands where the copy's does. Empty where no copy was made.
+	/// </summary>
+	public IReadOnlyDictionary<Node, Node> SettledNodes { get; init; } = new Dictionary<Node, Node>();
+
+	/// <summary>The node of a rule's own body a node of a settled copy stands for; the node itself for any other.</summary>
+	public Node Original(Node node)
+	{
+		while (SettledNodes.TryGetValue(node, out var from))
+			node = from;
+
+		return node;
+	}
+
 	/// <summary>The rule a count of entries counts <paramref name="rule"/> as: the rule a settled copy was made from.</summary>
 	public RuleSymbol Counted(RuleSymbol rule)
 	{

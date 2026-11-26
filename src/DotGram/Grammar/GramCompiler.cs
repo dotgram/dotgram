@@ -76,6 +76,32 @@ static partial class GramCompiler
 		if (options is null)
 			throw new ArgumentNullException(nameof(options));
 
+		// Settled copies only where every machine of the file is a reader over a string: an engine, a
+		// machine over a buffer, from a position or over tokens records what a refusal expected from
+		// how each place was printed, and a copy can be printed another way. What cannot be read so is
+		// known before anything is compiled where the options say it; the rest is known from the plan,
+		// and where it is not all readers the grammar is compiled again as though there were no copies,
+		// so that the file is the one it would have been.
+		if (options.SettleRunTails && !options.Lexical && options.Direct && !options.BufferedInput && !options.BufferedBytes)
+		{
+			var settled = Compile(language, grammarText, options, settle: true, out var leftTheReaders);
+
+			if (!leftTheReaders)
+				return settled;
+		}
+
+		return Compile(language, grammarText, options, settle: false, out _);
+	}
+
+	/// <summary>
+	/// The same, with settled copies or without; with them, nothing where a machine of the file is not a
+	/// reader over a string, and <paramref name="leftTheReaders"/> set.
+	/// </summary>
+	static GramCompilation Compile(
+		ITargetLanguage language, string grammarText, GramCompilerOptions options, bool settle, out bool leftTheReaders)
+	{
+		leftTheReaders = false;
+
 		var sources     = new List<GeneratedSource>();
 		var diagnostics = new List<GramDiagnostic>();
 
@@ -105,8 +131,19 @@ static partial class GramCompiler
 		options.Bound?.Invoke(model);
 
 		var graph = GrammarNormalizer.NormalizeIn(
-			model, language, options.PositionalFollow, options.PositionalFollowSplit, options.CollapseForwarders,
-			settle: options.SettleRunTails && !options.Lexical);
+			model, language, options.PositionalFollow, options.PositionalFollowSplit, options.CollapseForwarders, settle);
+
+		// What the publications ask for alone says that some machine will not be a reader over a string.
+		var readersOnly = graph.Settled.Count > 0;
+
+		if (readersOnly && (graph.Segmented || graph.Publications.Any(static publication =>
+			publication.Kind != PublishKind.Parse || publication.Yield || publication.Positional ||
+			publication.BufferedInput || publication.BufferedBytes)))
+		{
+			leftTheReaders = true;
+
+			return new GramCompilation([], []);
+		}
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
@@ -248,12 +285,20 @@ static partial class GramCompiler
 			SourceParts   = sourceParts,
 			Carriers      = carriers,
 			SharedChoices = shared,
+			ReadersOnly   = readersOnly,
 		};
 
 		// Nothing where the plan refused what the grammar asks of the target: that is said, and no
 		// parser is written.
 		if (!HasErrors(diagnostics) && language.Emit(lexical?.Syntax ?? graph, options, context) is { } text)
 			sources.Add(new GeneratedSource(language.SourceName(options, 0), text));
+
+		if (context.LeftTheReaders)
+		{
+			leftTheReaders = true;
+
+			return new GramCompilation([], []);
+		}
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(language.SourceName(options, part + 1), sourceParts[part]));
@@ -266,6 +311,7 @@ static partial class GramCompiler
 			Carriers = carriers,
 			Plan = context.Plan,
 			Printed = context.Printed,
+			Graph = graph,
 			Names = sources.Count == 0 ? null : language.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source], options),
 		};
