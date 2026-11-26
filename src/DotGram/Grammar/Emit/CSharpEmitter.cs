@@ -380,6 +380,7 @@ static partial class CSharpEmitter
 			Reporting             = carriers is not null,
 			CountsRules           = options.CountRules,
 			ConstructionsMayThrow = options.ConstructionsMayThrow,
+			RemembersRunEnds      = options.RememberRunEnds,
 		};
 
 		// And what the machines over the file's own input add, which a buffered machine does not.

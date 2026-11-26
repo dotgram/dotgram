@@ -97,6 +97,40 @@ public sealed class SettledRunTailTests
 		static bool Pfx(System.ReadOnlySpan<char> input, ref int p) { if (++calls > 20000) throw new System.InvalidOperationException("went round"); return true; }
 		""";
 
+	/// <summary>
+	/// One name read twice from one place: first where a second name may take what it gives back, then,
+	/// where that fails, before <c>'='</c>, where nothing can.
+	/// </summary>
+	const string SharedStart = """
+		trivia = none
+
+		Word  = ['a'..'z'] & ['a'..'z']*
+		Start : @string = a: Word & b: Word? & '!' => @(a + "|" + b)
+		                | c: Word & '=' => @(c + "=")
+
+		parse Start
+		""";
+
+	/// <summary>A name before <c>'='</c> and a value a guard of the host reads, which throws where the value holds <c>#</c>.</summary>
+	const string Thrown = """
+		trivia = none
+
+		Word   = ['a'..'z'] & ['a'..'z']*
+		Start  : @string = a: Assign & eof => @(a)
+		                 | q: Ask & eof => @(q)
+		Assign : @string = n: Word & '=' & r: Right => @(n + "=" + r)
+		Right  : @string = n2: Word & '!' => @(n2 + "!")
+		                 | v: Value & when @(Boom(v)) => @(v)
+		Ask    : @string = n: Word & m: Word? & '?' => @(n + "|" + m)
+		Value  : @string = t: ['a'..'z' | '#']* => @(t)
+
+		parse Start
+		""";
+
+	const string ThrownHost = """
+		static bool Boom(string value) { if (value.Contains("#")) throw new System.InvalidOperationException("thrown"); return true; }
+		""";
+
 	/// <summary>Each name read before something that could take one of its characters: nothing is settled.</summary>
 	const string Overlapping = """
 		trivia = none
@@ -144,7 +178,7 @@ public sealed class SettledRunTailTests
 
 	public static TheoryData<string> Grammars()
 	{
-		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering", "Url", "Gram");
+		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering", "Url", "Gram", "SharedStart");
 	}
 
 	/// <summary>How a parser is read: by methods or by the engine, with a trace build of each, or from a reader of text.</summary>
@@ -204,6 +238,20 @@ public sealed class SettledRunTailTests
 
 			if (count > 0)
 				differ.Add($"{name} {door}: {count} of {all.Count} inputs answered otherwise");
+		}
+
+		// And with the copies keeping no run's end, by methods: each half of what the copies change, alone.
+		foreach (var door in subject.Doors.Where(static door => door is Door.Reader))
+		{
+			var unkept = Build(subject, settle: true, door, keeps: false);
+			var plain  = Build(subject, settle: false, door);
+			var count  = 0;
+
+			foreach (var input in all)
+				if (Answer(plain, subject, door, input) is var expected && Answer(unkept, subject, door, input) is var got && expected != got && count++ < 5)
+					differ.Add($"{name} {door} keeping no end {Shown(input)}: without the copies {Shown(expected)} | with them {Shown(got)}");
+
+			compared += all.Count;
 		}
 
 		TestContext.Current.SendDiagnosticMessage($"{name}: {compared} answers compared");
@@ -280,37 +328,95 @@ public sealed class SettledRunTailTests
 	}
 
 	/// <summary>
-	/// A long name refused at its end, read in as many entries of rules as it has characters: the
-	/// attribute's name is read once at each place the element's name gives back to, and gives none
-	/// back itself.
+	/// A long name refused at its end, read in as many entries of rules and as many characters as it has
+	/// characters, to 64 KB: the attribute's name is read once at each place the element's name gives back
+	/// to, gives none back itself, and takes the end of the run the element's name read rather than
+	/// reading it again. Without the copies both are the square of the length (the rows up to 512 say so).
 	/// </summary>
 	[Theory]
 	[InlineData("<a", "!")]
 	[InlineData("<a", " !")]
-	public void A_long_name_refused_at_its_end_is_entered_a_number_of_times_linear_in_its_length(string before, string after)
+	public void A_long_name_refused_at_its_end_is_read_in_steps_linear_in_its_length(string before, string after)
 	{
 		var settled = Counted(Xml, settle: true);
 		var plain   = Counted(Xml, settle: false);
 		var rows    = new List<string>();
 
-		long? last = null;
+		(long Entries, long Scanned)? last = null;
 
-		foreach (var n in new[] { 64, 128, 256, 512 })
+		foreach (var n in new[] { 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536 })
 		{
 			var input = before + new string('a', n) + after;
+			var now   = Counts(settled, input);
+			var was   = n <= 512 ? Counts(plain, input) : default;
 
-			var (entries, scanned) = Counts(settled, input);
-			var (was, wasScanned)  = Counts(plain, input);
-
-			rows.Add($"n={n}: entries {was} -> {entries}, characters {wasScanned} -> {scanned}");
+			rows.Add($"n={n}: entries {(n <= 512 ? was.Entries : "-")} -> {now.Entries}, characters {(n <= 512 ? was.Scanned : "-")} -> {now.Scanned}");
 
 			if (last is { } previous)
-				Assert.True(entries <= previous * 2.3, $"entries grew from {previous} to {entries} on doubling: " + string.Join("; ", rows));
+			{
+				Assert.True(now.Entries <= previous.Entries * 2.3, "entries grew more than linearly: " + string.Join("; ", rows));
+				Assert.True(now.Scanned <= previous.Scanned * 2.3, "characters grew more than linearly: " + string.Join("; ", rows));
+			}
 
-			last = entries;
+			last = now;
 		}
 
 		TestContext.Current.SendDiagnosticMessage(string.Join("\n", rows));
+	}
+
+	/// <summary>
+	/// A run read by a rule that gives characters back and by its copy from one place: the rule reads it
+	/// first and gives some back, and the copy takes the end the rule's scan reached, not the shorter
+	/// reading the rule gave back to. Answered as the parser without the copies and as the one with the
+	/// copies that keeps no end.
+	/// </summary>
+	[Fact]
+	public void A_copy_takes_the_end_its_rule_scanned_to_and_not_the_end_it_gave_back_to()
+	{
+		var inputs = new[] { "abc=", "abc!", "ab!", "a!", "abcd=", "abc", "=", "!", "abc=d", "ab c=", "abc!=" };
+		var differ = new List<string>();
+
+		foreach (var door in new[] { Door.Reader, Door.ReaderTrace })
+		{
+			var plain    = Build(Of("SharedStart"), settle: false, door);
+			var settled  = Build(Of("SharedStart"), settle: true,  door);
+			var unkept   = Build(Of("SharedStart"), settle: true,  door, keeps: false);
+
+			foreach (var input in inputs)
+			{
+				var expected = Answer(plain, Of("SharedStart"), door, input);
+
+				foreach (var (label, got) in new[] { ("kept", Answer(settled, Of("SharedStart"), door, input)), ("unkept", Answer(unkept, Of("SharedStart"), door, input)) })
+					if (got != expected)
+						differ.Add($"{door} {label} \"{input}\": without the copies {expected} | with them {got}");
+			}
+		}
+
+		Assert.Contains("runFrom", Source(SharedStart, settle: true, Door.Reader), StringComparison.Ordinal);
+		Assert.True(differ.Count == 0, string.Join("\n", differ));
+	}
+
+	/// <summary>
+	/// A reading that throws while a run's end is kept, then readings of other inputs from the same parser:
+	/// each answers as it does first thing, since a reading keeps the ends it found and a new one begins
+	/// with none.
+	/// </summary>
+	[Fact]
+	public void A_reading_that_throws_leaves_no_end_kept_for_the_next()
+	{
+		var parser = EmittedCode.Compile(Source(Thrown, settle: true, Door.Reader), "Grammar", declarationMembers: ThrownHost);
+		var inputs = new[] { "aaaa=b", "aaaa=", "aaa", "aa=b!", "b=aaaa", "aaaa?", "a?" };
+		var fresh  = inputs.Select(input => Answer(parser, Of("Xml") with { Start = "TryParseStart" }, Door.Reader, input)).ToArray();
+
+		Assert.Contains("runFrom", Source(Thrown, settle: true, Door.Reader), StringComparison.Ordinal);
+
+		foreach (var thrower in new[] { "aaaaaaaa=#", "zzzzzz=#", "a=#" })
+		{
+			var thrown = Assert.Throws<TargetInvocationException>(() => EmittedCode.Match(parser, "Grammar", "TryParseStart", thrower));
+
+			Assert.Equal("thrown", thrown.InnerException?.Message);
+			Assert.Equal(fresh, inputs.Select(input => Answer(parser, Of("Xml") with { Start = "TryParseStart" }, Door.Reader, input)).ToArray());
+		}
 	}
 
 	/// <summary>
@@ -709,6 +815,7 @@ public sealed class SettledRunTailTests
 			"Recovering"  => new(LexemeSplitShapeTests.Recovering, null, ["[a=b;]", "[ab=;c=d;]", "[abc;d=e;]", "[a=bc]", "a=,=b.", "ab=cd!", "abc"], "abx=", 2000, 12, "TryParseStart", Four),
 			"Url"         => new(UrlGrammar, null, UrlInputs, "htp:/1.2[]:a@?#%f", 3000, 20, "TryParseUrl", Four),
 			"Gram"        => GramSubject(),
+			"SharedStart" => new(SharedStart, null, ["abc=", "abc!", "ab!"], "abc=! ", 2000, 10, "TryParseStart", Four),
 			_             => throw new ArgumentOutOfRangeException(nameof(name)),
 		};
 	}
@@ -809,17 +916,17 @@ public sealed class SettledRunTailTests
 		}
 	}
 
-	static readonly Dictionary<(string, bool, Door), Assembly> _built = [];
+	static readonly Dictionary<(string, bool, Door, bool), Assembly> _built = [];
 
-	static Assembly Build(Subject subject, bool settle, Door door)
+	static Assembly Build(Subject subject, bool settle, Door door, bool keeps = true)
 	{
 		lock (_built)
 		{
-			if (!_built.TryGetValue((subject.Grammar, settle, door), out var assembly))
+			if (!_built.TryGetValue((subject.Grammar, settle, door, keeps), out var assembly))
 			{
-				var result = Compiled(subject.Grammar, settle, door, counts: false, subject.Class, subject.Namespace);
+				var result = Compiled(subject.Grammar, settle, door, counts: false, subject.Class, subject.Namespace, keeps);
 
-				_built[(subject.Grammar, settle, door)] = assembly = EmittedCode.Compile(
+				_built[(subject.Grammar, settle, door, keeps)] = assembly = EmittedCode.Compile(
 					result.Sources[0].Text, subject.Class, subject.Namespace, subject.Host, result.Sources.Skip(1).Select(static one => one.Text),
 					utf8Literals: subject.Modern);
 			}
@@ -859,19 +966,21 @@ public sealed class SettledRunTailTests
 		return Assert.Single(Compiled(grammar, settle, door, counts).Sources).Text;
 	}
 
-	static GramCompilation Compiled(string grammar, bool settle, Door door, bool counts, string className = "Grammar", string? @namespace = null)
+	static GramCompilation Compiled(
+		string grammar, bool settle, Door door, bool counts, string className = "Grammar", string? @namespace = null, bool keeps = true)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			ClassName      = className,
-			Namespace      = @namespace,
-			CSharpScanner  = RoslynCSharpScanner.Instance,
-			SymbolResolver = PermissiveSymbolResolver.Instance,
-			Direct         = door is not (Door.Engine or Door.EngineTrace),
-			Trace          = door is Door.ReaderTrace or Door.EngineTrace,
-			BufferedInput  = door == Door.Streamed,
-			CountRules     = counts,
-			SettleRunTails = settle,
+			ClassName       = className,
+			Namespace       = @namespace,
+			CSharpScanner   = RoslynCSharpScanner.Instance,
+			SymbolResolver  = PermissiveSymbolResolver.Instance,
+			Direct          = door is not (Door.Engine or Door.EngineTrace),
+			Trace           = door is Door.ReaderTrace or Door.EngineTrace,
+			BufferedInput   = door == Door.Streamed,
+			CountRules      = counts,
+			SettleRunTails  = settle,
+			RememberRunEnds = keeps,
 		});
 
 		EmittedCode.Quiet(result.Diagnostics);
