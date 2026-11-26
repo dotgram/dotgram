@@ -98,6 +98,9 @@ enum SharedNeeds
 
 	/// <summary>A reading of a host that inherits a grammar, whose types hide the base's (CS0108).</summary>
 	Hides = 32,
+
+	/// <summary><c>Limits</c> and <c>ParserLimits</c>, which a reading that shares the host's reads (CSharpHostShape.SharesLimits).</summary>
+	Limits = 64,
 }
 
 /// <summary>

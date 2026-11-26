@@ -1294,6 +1294,13 @@ static partial class CSharpEmitter
 		if (!options.SharedTypes && inputNeeded)
 			file.Write(ParserInputTypes);
 
+		// The limits a caller may change at run time: what the readers and the buffered overloads read as a
+		// parse begins, defaulting to the [Gram] values written below. One set for every reading of a host that
+		// agrees with the first on those values, in the host, which the classes of the others read by its simple
+		// name; a reading that says other values declares its own.
+		var limitsNeeded = graph.Publications.Count > 0 || machines.Count > 0;
+		var limitsShared = options.SharedTypes && options.SharesLimits;
+
 		// What this reading reads from the host, where the host writes it for all of its readings.
 		if (options.SharedTypes && context is not null)
 			context.SharedNeeds =
@@ -1302,11 +1309,10 @@ static partial class CSharpEmitter
 				(graph.Publications.Count > 0 ? SharedNeeds.Match : 0) |
 				(graph.Publications.Count > 0 && graph.LocationsPerCall ? SharedNeeds.ReadingEnd : 0) |
 				(inputNeeded ? SharedNeeds.Input : 0) |
-				(options.Inherits ? SharedNeeds.Hides : 0);
+				(options.Inherits ? SharedNeeds.Hides : 0) |
+				(limitsNeeded && limitsShared ? SharedNeeds.Limits : 0);
 
-		// The limits a caller may change at run time, one set per reading: what its readers and its buffered
-		// overloads read as a parse begins, defaulting to the [Gram] values written below.
-		if (graph.Publications.Count > 0 || machines.Count > 0)
+		if (limitsNeeded && !limitsShared)
 		{
 			file.Write(LimitsSupport(options.MaxRetained, options.Stacks));
 			file.Line();
@@ -5144,7 +5150,7 @@ file.Line("return spare;");
 
 	/// <summary>
 	/// The file a host with several readings has of its own: the types its readings read from the
-	/// host — the span, the match and the input a recognizer reads — each written where at least
+	/// host — the span, the match, the limits and the input a recognizer reads — each written where at least
 	/// one reading needs it (<see cref="GramCompilation.SharedNeeds"/>), in the host's namespace
 	/// and chain of classes.
 	/// </summary>
@@ -5155,7 +5161,9 @@ file.Line("return spare;");
 	/// a second reading adds a type to the host only where it needs one the first did not.
 	/// </remarks>
 	/// <param name="spanDeclared">Whether the host declares a part of the span itself (GramCompilerOptions.SpanDeclared).</param>
-	internal static string SharedTypes(string? @namespace, string className, SharedNeeds needs, bool spanDeclared)
+	/// <param name="maxRetained">The default of the limits the readings that share them read (<see cref="SharedNeeds.Limits"/>).</param>
+	/// <param name="stacks">The same, of the extra stacks.</param>
+	internal static string SharedTypes(string? @namespace, string className, SharedNeeds needs, bool spanDeclared, int maxRetained, int stacks)
 	{
 		var file  = new Writer(0);
 		var scope = new Stack<IDisposable>();
@@ -5186,6 +5194,12 @@ file.Line("return spare;");
 			file.Write(OutcomeEnum);
 			file.Line();
 			file.Write(MatchStructOf((needs & SharedNeeds.ReadingEnd) != 0));
+			file.Line();
+		}
+
+		if ((needs & SharedNeeds.Limits) != 0)
+		{
+			file.Write(LimitsSupport(maxRetained, stacks));
 			file.Line();
 		}
 

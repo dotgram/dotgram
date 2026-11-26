@@ -1214,7 +1214,9 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// </summary>
 	/// <param name="HintName">The file they are written into, one a host.</param>
 	/// <param name="SpanDeclared">Whether the host declares a part of the span itself.</param>
-	readonly record struct SharedTypesOf(string HintName, string? Namespace, string ClassName, SharedNeeds Needs, bool SpanDeclared);
+	/// <param name="MaxRetained">The default of the limits this reading reads from the host, where it shares them.</param>
+	/// <param name="Stacks">The same, of the extra stacks.</param>
+	readonly record struct SharedTypesOf(string HintName, string? Namespace, string ClassName, SharedNeeds Needs, bool SpanDeclared, int MaxRetained, int Stacks);
 
 	/// <summary>
 	/// The files of the hosts with several readings: each host's types, each written where one of
@@ -1232,9 +1234,12 @@ sealed class GramGenerator : IIncrementalGenerator
 			foreach (var reading in host)
 				needs |= reading.Needs;
 
+			// Every reading that shares the limits says the same defaults, the first reading's (Host.SharesLimits).
+			var limits = host.FirstOrDefault(static reading => (reading.Needs & SharedNeeds.Limits) != 0);
+
 			if (needs != SharedNeeds.None)
 				files.Add(new GeneratedSource(
-					host.Key, CSharpEmitter.SharedTypes(first.Namespace, first.ClassName, needs, first.SpanDeclared)));
+					host.Key, CSharpEmitter.SharedTypes(first.Namespace, first.ClassName, needs, first.SpanDeclared, limits.MaxRetained, limits.Stacks)));
 		}
 
 		return new EquatableArray<GeneratedSource>(files.ToImmutable());
@@ -1611,7 +1616,9 @@ sealed class GramGenerator : IIncrementalGenerator
 			Readings       = host.Readings.Items,
 			SpanDeclared   = host.SpanDeclared,
 			SpanDeclaredInReading = host.SpanDeclaredInReading,
-			MembersDeclared = host.MembersDeclared.Items,
+			MembersDeclared = host.SharesLimits ? host.HostMembersDeclared.Items : host.MembersDeclared.Items,
+			MembersDeclaredInReading = host.SharesLimits && host.Options.Name is { Length: > 0 } ? host.MembersDeclared.Items : [],
+			SharesLimits   = host.SharesLimits,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
@@ -1684,7 +1691,9 @@ sealed class GramGenerator : IIncrementalGenerator
 					host.Namespace,
 					host.ClassName,
 					result.SharedNeeds,
-					host.SpanDeclared)
+					host.SpanDeclared,
+					host.Options.MaxBufferedInputLength,
+					host.Options.MaxExtraStacks)
 				: null);
 	}
 
@@ -2024,8 +2033,10 @@ sealed class GramGenerator : IIncrementalGenerator
 		bool    SpanDeclared   = false,
 		bool    SpanDeclaredInReading = false,
 		EquatableArray<string> MembersDeclared = default,
+		EquatableArray<string> HostMembersDeclared = default,
 		bool    Repeated       = false,
 		bool    Shared         = false,
+		bool    SharesLimits   = false,
 		string? LocationType   = null,
 		string? LocatedFacade  = null,
 		bool    LocatedFacadeDeclared = false,
@@ -2159,6 +2170,12 @@ sealed class GramGenerator : IIncrementalGenerator
 						// What the host's own C# names is written once for every reading, in a file of
 						// the host's own, from what each says it needs (SharedTypes).
 						Shared   = readings.Count > 1,
+
+						// And the limits a caller sets, by every reading that leaves their defaults the
+						// first's: one setting bounds them all (CSharpHostShape.SharesLimits).
+						SharesLimits = readings.Count > 1 &&
+							options.MaxBufferedInputLength == firstOptions.MaxBufferedInputLength &&
+							options.MaxExtraStacks         == firstOptions.MaxExtraStacks,
 					},
 					site));
 			}
@@ -2261,6 +2278,11 @@ sealed class GramGenerator : IIncrementalGenerator
 					.Where(name => into.GetMembers(name).Length > 0)
 					.ToArray();
 
+			// The same in the host, where a reading of several shares the host's limits.
+			var hostMembersDeclared = CSharpEmitter.LimitsNames
+				.Where(name => type.GetMembers(name).Length > 0)
+				.ToArray();
+
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
 			// The literal as written, kept beside the value it decodes to. A diagnostic
@@ -2360,6 +2382,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				SpanDeclared:   spanDeclared,
 				SpanDeclaredInReading: spanDeclaredInReading,
 				MembersDeclared: new EquatableArray<string>([.. membersDeclared]),
+				HostMembersDeclared: new EquatableArray<string>([.. hostMembersDeclared]),
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType,
 				Variant:        variant,

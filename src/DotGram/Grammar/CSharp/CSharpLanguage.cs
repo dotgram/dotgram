@@ -352,29 +352,39 @@ sealed class CSharpLanguage : ITargetLanguage
 			DotGram.Grammar.Emit.CSharpEmitter.ClassesOf(options),
 			options.Lexical);
 
-		// The limits are declared in the class the reading goes into, which can be called neither of their
-		// names (CS0542) nor declare either itself (CS0102): said here, against the grammar, rather than as
-		// an error in code the author did not write.
+		// The limits are declared in the class the reading goes into, or in the host where the reading shares
+		// the host's, which can be called neither of their names (CS0542) nor declare either itself (CS0102):
+		// said here, against the grammar, rather than as an error in code the author did not write. A reading
+		// that shares them can be called neither name either, which its class and the limits would both be in
+		// the host, nor declare one, which would stand between it and the host's.
 		if (graph.Publications.Count > 0)
 		{
-			var into = options.Suffix is { Length: > 0 } suffix
-				? suffix
-				: options.ClassName.Substring(options.ClassName.LastIndexOf('.') + 1);
+			var shared = options.SharedTypes && options.SharesLimits;
+			var host   = options.ClassName.Substring(options.ClassName.LastIndexOf('.') + 1);
+			var into   = options.Suffix is { Length: > 0 } suffix ? suffix : host;
+			var owner  = shared ? host : into;
 
 			foreach (var name in DotGram.Grammar.Emit.CSharpEmitter.LimitsNames)
 			{
-				if (into == name)
+				if (into == name || owner == name)
 					said.Add(new GramDiagnostic(
 						DotGram.Grammar.Emit.CSharpEmitter.GeneratedNameClash,
-						$"The class '{into}' is given a member '{name}', the limits a caller sets (docs/syntax.md §6.5), " +
+						$"The class '{name}' is given a member '{name}', the limits a caller sets (docs/syntax.md §6.5), " +
 						"which no member may share its class's name with. Rename the class.",
 						0, 0, GramSeverity.Error));
 
 				if (options.MembersDeclared.Contains(name))
 					said.Add(new GramDiagnostic(
 						DotGram.Grammar.Emit.CSharpEmitter.GeneratedNameClash,
-						$"'{into}' declares '{name}', which the generated part declares too: the limits a caller sets " +
+						$"'{owner}' declares '{name}', which the generated part declares too: the limits a caller sets " +
 						"(docs/syntax.md §6.5). Rename the member.",
+						0, 0, GramSeverity.Error));
+
+				if (shared && options.MembersDeclaredInReading.Contains(name))
+					said.Add(new GramDiagnostic(
+						DotGram.Grammar.Emit.CSharpEmitter.GeneratedNameClash,
+						$"'{into}' declares '{name}', the class of a reading of a host that has several: they share " +
+						$"one set of limits, declared in '{host}' (docs/syntax.md §6.5). Rename the member.",
 						0, 0, GramSeverity.Error));
 			}
 		}

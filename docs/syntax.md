@@ -3015,9 +3015,9 @@ then answers with the failure it remembered.
 #### Limits at run time
 
 `MaxExtraStacks` and `MaxBufferedInputLength` are written when the parser is generated; the
-program that uses it may change them while it runs. Every class a reading is compiled into —
-the host, and the class of each `[GramParserVariant]` — declares a static property and the
-immutable value it holds:
+program that uses it may change them while it runs. The host declares a static property and the
+immutable value it holds, one for all of its readings — and the class of a `[GramParserVariant]`
+that says other defaults of either, its own beside it:
 
 ```csharp
 public static ParserLimits Limits { get; set; }      // ParserLimits.Default until set; null is refused
@@ -3046,13 +3046,19 @@ Which value applies, first to last: a call's own `maxRetained`, where a buffered
 given one; then `Limits`; then the attribute's value, which is what `ParserLimits.Default` holds.
 `MaxExtraStacks` has no argument of a call.
 
-The setting is the process's, one for each reading of each grammar class: two parts of a
-program that want different limits for the same grammar share them, and a test that changes
-them runs apart from the tests that read them. A reading whose locations are asked for per call
-(`UsePerCallLocations`) is the same reading, and reads its host's `Limits`. A class whose
-readings publish nothing declares none. `Limits` and `ParserLimits` are names the class keeps:
-a publication or a rule's type called either, a class a reading is compiled into called either,
-and a member `Limits` or `ParserLimits` the author declares in that class are `GRAM5018`.
+The setting is the process's, one for each grammar class: two parts of a program that want
+different limits for the same grammar share them, and a test that changes them runs apart from
+the tests that read them. Every reading of the class reads the host's `Limits` — the first, a
+reading whose locations are asked for per call (`UsePerCallLocations`), which is the same
+reading, and a `[GramParserVariant]` compiled into a class of its own, from which the host's
+are in reach by their simple names — so one setting bounds the grammar however it is read. A
+variant whose `MaxExtraStacks` or `MaxBufferedInputLength` differs from the `[Gram]`'s cannot
+take its default from one value with the others, and its class declares `Limits` of its own. A
+class whose readings publish nothing declares none. `Limits` and `ParserLimits` are names the
+class keeps: a publication or a rule's type called either, a class a reading is compiled into
+called either, a member `Limits` or `ParserLimits` the author declares in the class the limits
+are declared in, and one declared in the class of a reading that reads the host's, which would
+stand between it and the host's, are `GRAM5018`.
 
 A library whose grammar classes are internal says so in its own words: the SQL parsers are
 public classes, and `TransactSqlParser.Limits` is theirs; `DotGram.Web` sets every one of its
