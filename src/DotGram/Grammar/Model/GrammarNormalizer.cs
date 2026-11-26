@@ -213,7 +213,8 @@ sealed partial class GrammarNormalizer
 	/// <param name="settle">
 	/// Whether a rule that ends in a run giving characters back gets a copy that does not, for the
 	/// calls where nothing could take them (<see cref="SettleRunTails"/>). Asked by the compiler for a
-	/// grammar read over characters; not by the editor, nor by a question about the graph itself.
+	/// grammar read over characters where its options settle (the editor's do not, since the copies
+	/// change only the parser printed); not by a question about the graph itself.
 	/// </param>
 	public static RecognitionGraph NormalizeIn(
 		GrammarModel model, ITargetLanguage language,

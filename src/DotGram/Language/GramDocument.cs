@@ -392,6 +392,10 @@ static class GramLanguageService
 		// A second on every analysis of a large document, for a hint the build says: left to the build.
 		result.AnalyseSharedRecursion = false;
 
+		// The settled copies change only how the parser is printed, never what is said of the grammar, and
+		// where a machine is not a reader they cost a second compilation for nothing: left to the build.
+		result.SettleRunTails = false;
+
 		return result;
 	}
 
