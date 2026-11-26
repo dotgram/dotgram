@@ -46,4 +46,4 @@
 | SwitchExpression | 1 | 0 | SQL standard 1 |
 | UnaryMinusExpression | 1 | 1 | Examples 1 |
 
-Verdicts: 1df05e72018f76d7
+Verdicts: 0e81baa308371883
