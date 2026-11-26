@@ -508,6 +508,59 @@ public sealed class StandingRecursionOrderTests
 			    | '(' & s: Add & ')' => @(s)
 			Num : string = ['0'..'9']+
 			""", "", ["1 - 2 - 3", "(1 + 2) * 3", "1 - (2 - 3)", "3 + 6 * (5 - 9)"]),
+
+		// Values as the twin has them: built by no '=>', a left recursion is a record of what its bases captured, and the
+		// steps only extend what it matched.
+		("record", """
+			T : @string = e: E & eof => @(e.A + "=" + e.B)
+			E = @Ws & E & '+' & Num
+			  | a: Num & '=' & b: Num
+			Num : string = ['0'..'9']+
+			""", "", ["1=2", "1=2+3", "1=2+3+4", "1=2+", "1+2"]),
+
+		// A record whose base reaches it again past a bracket, and captures it.
+		("record parens", """
+			T : @string = e: E & eof => @(e.A + "=" + e.B + "[" + e.Inner?.A + "]")
+			E = @Ws & E & '+' & Num
+			  | a: Num & '=' & b: Num
+			  | '(' & inner: E & ')'
+			Num : string = ['0'..'9']+
+			""", "", ["1=2", "1=2+3", "(1=2+3)+4", "((1=2))+3", "(1=2"]),
+
+		// A record under a repetition, with two prefixes, past trivia, and read by a rule that builds.
+		("record list", """
+			T : @string = es: E+ & eof => @(string.Join(" ", System.Linq.Enumerable.Select(es, e => e.A + "=" + e.B)))
+			E = @Ws & E & '+' & Num & ';'
+			  | a: Num & '=' & b: Num & ';'
+			Num : string = ['0'..'9']+
+			""", "", ["1=2;", "1=2;+3;", "1=2;+3;4=5;", "1=2;+"]),
+
+		("record several", """
+			T : @string = e: E & eof => @(e.A + "=" + e.B)
+			E = @Ws & @Ws & E & '+' & Num
+			  | ?!'#' & @Ws & E & '-' & Num
+			  | a: Num & '=' & b: Num
+			Num : string = ['0'..'9']+
+			""", "@Ws & @Ws & |?!'#' & @Ws & ", ["1=2", "1=2+3", "1=2-3+4", "1=2+3-"]),
+
+		("record trivia", """
+			trivia = [' ']*
+			T : @string = s: S & eof => @(s)
+			S : @string = e: E => @(e.A + "=" + e.B)
+			E = @Ws & E & '+' & Num
+			  | a: Num & '=' & b: Num
+			Num : string = ['0'..'9']+
+			""", "", ["1=2", "1 = 2 + 3", "1=2 +3+ 4", "1=2 +"]),
+
+		// Two record levels, the base of one the other's operand.
+		("record levels", """
+			T : @string = e: E & eof => @(e.A + "=" + e.B + "/" + e.M?.N)
+			E = @Ws & E & '+' & M
+			  | a: Num & '=' & b: Num & m: M
+			M = @Ws & M & '*' & Num
+			  | ':' & n: Num
+			Num : string = ['0'..'9']+
+			""", "", ["1=2:3", "1=2:3*4", "1=2:3*4+:5*6", "1=2:3+", "1=2:*"]),
 	];
 
 	public static TheoryData<string> ShapeNames()
@@ -566,6 +619,10 @@ public sealed class StandingRecursionOrderTests
 	[InlineData("A = 'a' | @Ws & A & 'b'?", "a step may read nothing")]
 	[InlineData("A = B | @Ws & A & 'x'\nB = 'b' | @Ws & A & 'y'", "goes through 'B'")]
 	[InlineData("A = 'a' | @Ws & B & 'c'\nB = A & 'b'", "goes through 'B'")]
+	[InlineData("A : B = B | @Ws & A & '!'\nB : @int = 'b' => @(1)", "declares a type and no alternative builds it")]
+	[InlineData("A : @SourceSpan = 'a' | @Ws & A & '+' & 'a'", "declares a type and no alternative builds it")]
+	[InlineData("A = x: 'a' | @Ws & y: A & 'c'", "a step captures")]
+	[InlineData("A = x: 'a' | @Ws & A & y: 'c'", "a step captures")]
 	public void Where_the_twin_is_refused_the_rule_is_read_as_written(string rules, string reason)
 	{
 		var result = GramCompiler.Compile("T = A & eof\n" + rules + "\nparse T", Options(direct: true, tape: false, buffered: false, lexical: false));
@@ -576,6 +633,32 @@ public sealed class StandingRecursionOrderTests
 		Assert.All(refused, static one => Assert.Equal(GramSeverity.Warning, one.Severity));
 		Assert.Contains(refused, one => one.Message.Contains(reason, StringComparison.Ordinal));
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// A record read past a prefix that stands is folded in place, and the type made from its captures is the one 0.3.0
+	/// made: the same members, of the same types, in the same order — the alternative read as written where the prefix
+	/// moves captures nothing, as it never did.
+	/// </summary>
+	[Theory]
+	[InlineData("record")]
+	[InlineData("record parens")]
+	[InlineData("record several")]
+	[InlineData("record levels")]
+	public void A_record_keeps_the_type_it_had(string name)
+	{
+		var marked = Shapes.Single(one => one.Name == name).Marked.ReplaceLineEndings("\n") + "\nparse T";
+		var now    = GramCompiler.Compile(marked, Options(direct: true, tape: false, buffered: false, lexical: false));
+		var v030   = Unchecked(() => GramCompiler.Compile(marked, Options(direct: true, tape: false, buffered: false, lexical: false)));
+
+		Assert.Contains(now.Diagnostics, static one => one.Id == "GRAM5021" && one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+		Assert.Equal(Types(v030.Sources[0].Text), Types(now.Sources[0].Text));
+		Assert.NotEmpty(Types(now.Sources[0].Text));
+
+		static string[] Types(string source)
+		{
+			return [.. Regex.Matches(source, @"public sealed class \w+\s*\{.*?\r?\n\t\}\r?\n", RegexOptions.Singleline).Select(static one => one.Value)];
+		}
 	}
 
 	/// <summary>A value guard in a caller reads what the cycle builds: the rule is read as written, as in 0.3.0.</summary>
