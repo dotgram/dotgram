@@ -721,7 +721,7 @@ public sealed class ExponentialRepetitionTests
 	}
 
 	/// <summary>The graph a grammar compiles to, with the grammars it includes spliced on; the library itself is read as it is, with nothing spliced onto it.</summary>
-	internal static RecognitionGraph Built(CorpusGrammar grammar, bool lexical, out LexicalSplit? split)
+	internal static RecognitionGraph Built(CorpusGrammar grammar, bool lexical, out LexicalSplit? split, bool settle = false)
 	{
 		var text = grammar.Text;
 
@@ -747,7 +747,7 @@ public sealed class ExponentialRepetitionTests
 		}
 
 		var model = GrammarBinder.Bind(parsed.File, null, grammar.Text.Length);
-		var graph = GrammarNormalizer.Normalize(model, scanner: RoslynCSharpScanner.Instance);
+		var graph = GrammarNormalizer.Normalize(model, scanner: RoslynCSharpScanner.Instance, settle: settle);
 
 		split = lexical ? LexicalSplit.Of(graph) : null;
 

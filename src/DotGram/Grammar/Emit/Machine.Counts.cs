@@ -18,9 +18,9 @@ namespace DotGram.Grammar.Emit;
 sealed partial class Machine
 {
 	/// <summary>The counter of characters a rule's runs stepped over in a direct reader.</summary>
-	static string ScannedOf(RuleSymbol rule)
+	string ScannedOf(RuleSymbol rule)
 	{
-		return CSharpEmitter.Inner("CountScanned", CSharpEmitter.IdentifierOf(rule));
+		return CSharpEmitter.Inner("CountScanned", CSharpEmitter.IdentifierOf(_graph.Counted(rule)));
 	}
 
 	/// <summary>
@@ -43,7 +43,7 @@ sealed partial class Machine
 		if (!CountsRules)
 			return;
 
-		_scanning.Add(owner);
+		_scanning.Add(_graph.Counted(owner));
 
 		CountScanned(writer, ScannedOf(owner));
 	}
