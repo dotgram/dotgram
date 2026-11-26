@@ -458,6 +458,85 @@ public sealed class SettledRunTailTests
 		}
 	}
 
+	/// <summary>
+	/// Which grammars of the repository get copies, and how every machine of each is read: a copy is
+	/// kept only where every machine is a reader (the engine records what it expects from how each
+	/// place was printed, and a copy changes how places are printed), so a grammar with any other
+	/// machine loses its copies — this says which, and why.
+	/// </summary>
+	[Fact]
+	public void Census_of_the_grammars_with_copies_and_how_they_are_read()
+	{
+		var rows = new System.Collections.Concurrent.ConcurrentBag<string>();
+
+		System.Threading.Tasks.Parallel.ForEach(
+			ExponentialRepetitionTests.Grammars(SourceRoot.Directory).Where(static grammar => grammar.Modes.Contains(false)),
+			grammar =>
+			{
+				RecognitionGraph graph;
+
+				try
+				{
+					graph = ExponentialRepetitionTests.Built(grammar, lexical: false, out _, settle: true);
+				}
+				catch (Exception)
+				{
+					return;
+				}
+
+				if (graph.Settled.Count == 0)
+					return;
+
+				var copies = string.Join(", ", graph.Settled.Values.Select(static rule => rule.Name).Distinct().Order(StringComparer.Ordinal));
+				var modes  = string.Join("/", grammar.Modes.Select(static lexical => lexical ? "kinds" : "chars"));
+
+				if (grammar.Included.Count > 0)
+				{
+					rows.Add($"{grammar.Name} | {modes} | {copies} | includes {string.Join(", ", grammar.Included.Select(static one => one.Name))}: not compiled here");
+
+					return;
+				}
+
+				rows.Add($"{grammar.Name} | {modes} | {copies} | settled: {Machines(grammar.Text, settle: true)} | unsettled: {Machines(grammar.Text, settle: false)}");
+			});
+
+		var census = string.Join("\n", rows.Order(StringComparer.Ordinal));
+
+		TestContext.Current.SendDiagnosticMessage(census);
+
+		Assert.NotEmpty(rows);
+
+		static string Machines(string text, bool settle)
+		{
+			GramCompilation result;
+
+			try
+			{
+				result = GramCompiler.Compile(text, new GramCompilerOptions
+				{
+					ClassName      = "Grammar",
+					CSharpScanner  = RoslynCSharpScanner.Instance,
+					SymbolResolver = PermissiveSymbolResolver.Instance,
+					SettleRunTails = settle,
+				});
+			}
+			catch (Exception error)
+			{
+				return $"threw {error.GetType().Name}";
+			}
+
+			if (result.Plan is not { } plan)
+				return "no plan (" + string.Join("; ", result.Diagnostics.Where(static one => one.Severity == GramSeverity.Error).Select(static one => one.Id).Distinct()) + ")";
+
+			var others = plan.Machines.Where(static machine => machine.Strategy != DotGram.Grammar.Plan.ReadingStrategy.Reader).ToList();
+
+			return others.Count == 0
+				? $"all {plan.Machines.Count} readers"
+				: $"{plan.Machines.Count - others.Count} readers, " + string.Join("; ", others.Select(static machine =>
+					$"{machine.Name} {machine.Strategy}{(machine.Reason is { } reason ? " (" + reason + ")" : "")}"));
+		}
+	}
+
 	static Subject Of(string name)
 	{
 		return name switch
