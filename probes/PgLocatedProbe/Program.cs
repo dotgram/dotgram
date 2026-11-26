@@ -100,7 +100,7 @@ if (mode == "spans")
 if (mode == "time")
 {
 	// Warm both readings first, then interleave them round by round.
-	for (var warm = 0; warm < 5; warm++)
+	for (var warm = 0; warm < int.Parse(Environment.GetEnvironmentVariable("PROBE_WARM") ?? "5"); warm++)
 	{
 		Plain();
 		Located();
