@@ -38,6 +38,14 @@ namespace DotGram.Grammar.Model;
 /// <c>when</c> or a <c>switch</c> on the way or in a caller, a <c>context</c> — the rule is read as written, as it
 /// always was (GRAM5021).
 /// </para>
+/// <para>
+/// The value is the twin's. Built by a <c>=&gt;</c> on every alternative, the parts are folded as §4.3 folds any rule
+/// and the dispatch hands their value on. Built by none, a left recursion is the record of what its bases captured
+/// (§4.3), and a record is not split into rules, which would each make a type of their own from their own captures:
+/// its twin is folded in place, <c>E = stands(@Ws) &amp; Bases &amp; Steps* | !stands(@Ws) &amp; (E as written)</c>,
+/// and the type is made from the rule's captures as it always was. A declared type built by no <c>=&gt;</c> has no
+/// twin §4.3 folds.
+/// </para>
 /// </remarks>
 sealed partial class GrammarNormalizer
 {
@@ -209,11 +217,15 @@ sealed partial class GrammarNormalizer
 			if (node is Node.Bind or Node.Same or Node.Counted || node is Node.Repeat && _recoveries.ContainsKey(node))
 				return;
 
-		// A value: built by every alternative, or by none and nothing captured.
+		// A value as the twin has it: built by every alternative, or by none. Built by some and not the rest, the rule is
+		// refused as written (GRAM4008), and it is not rewritten here.
 		var builds = alternatives.All(static one => one is Node.Construct);
 
-		if (builds ? !_types.ContainsKey(rule) : _types.ContainsKey(rule) || NodeWalk.Descendants(body).Any(static node => node is Node.Capture or Node.Construct))
+		if (builds ? !_types.ContainsKey(rule) : NodeWalk.Descendants(body).Any(static node => node is Node.Construct))
 			return;
+
+		// Built by none, and captures: the record of what its bases captured, the type made from its captures (§4.1 case 3).
+		var record = !builds && !_types.ContainsKey(rule) && NodeWalk.Descendants(body).Any(static node => node is Node.Capture);
 
 		if (TwinRefusal(rule, alternatives, recursive) is { } refusal)
 		{
@@ -238,7 +250,7 @@ sealed partial class GrammarNormalizer
 			else
 				return;
 
-		Split(rule, alternatives, recursive, keys, tests, builds);
+		Split(rule, alternatives, recursive, keys, tests, builds, record);
 
 		Told(new GramDiagnostic(
 			Reentry.Reenters,
@@ -469,8 +481,18 @@ sealed partial class GrammarNormalizer
 				return "a step may read nothing";
 		}
 
-		if (!alternatives.Any(static one => one is Node.Construct) && steps.Any(static step => NodeWalk.Descendants(step).Any(static node => node is Node.Capture)))
-			return "a step captures, and the rule builds no value";
+		// Built by no '=>': a left recursion is then a record of what its bases captured, and the steps only extend what
+		// it matched. A declared type has nothing to build it from, and a step's capture — the call back's own, or one
+		// after it — nowhere to go.
+		if (!alternatives.Any(static one => one is Node.Construct))
+		{
+			if (_types.ContainsKey(rule))
+				return "it declares a type and no alternative builds it with '=>', and without one a left recursion is only a record of what its bases captured";
+
+			if (recursive.Any(static one => one.Operands[one.Head] is Node.Capture) ||
+				steps.Any(static step => NodeWalk.Descendants(step).Any(static node => node is Node.Capture)))
+				return "a step captures, and the rule builds no value";
+		}
 
 		// A base that reaches the rule again before it has read anything, a recognizer that may stand counted as reading
 		// nothing: there the twin reaches itself on the left through another rule.
@@ -533,14 +555,21 @@ sealed partial class GrammarNormalizer
 	/// The rule split: one rule for each set of prefixes that may stand together at the entry, each the rule with those
 	/// prefixes taken off, and the rule itself a dispatch on which of them stand.
 	/// </summary>
-	void Split(RuleSymbol rule, IReadOnlyList<Node> alternatives, IReadOnlyList<Recursive> recursive, IReadOnlyList<string> keys, IReadOnlyList<Node> tests, bool builds)
+	void Split(RuleSymbol rule, IReadOnlyList<Node> alternatives, IReadOnlyList<Recursive> recursive, IReadOnlyList<string> keys, IReadOnlyList<Node> tests, bool builds, bool record)
 	{
 		var sets     = 1 << keys.Count;
 		var parts    = new RuleSymbol[sets];
+		var inline   = new Node[sets];
 		var forwards = _forwarders ??= Forwarders();
 
+		// A record is not split into rules: each would be a type of its own, made from its own captures, and the rule's
+		// would be made from none. Its twin is folded in place instead, which for a record is the whole of the fold — its
+		// steps capture nothing, so there is nothing to hand from one to the next — and the type is made from the
+		// captures of the rule as it always was.
 		for (var set = 0; set < sets; set++)
-			parts[set] = Made(rule, keys.Count == 1 ? set == 0 ? "_Plain" : "_Left" : $"_Stood{set}");
+			parts[set] = record
+				? new RuleSymbol(rule.Name + "_Standing", rule.Namespace, rule.Declaration)
+				: Made(rule, keys.Count == 1 ? set == 0 ? "_Plain" : "_Left" : $"_Stood{set}");
 
 		for (var set = 0; set < sets; set++)
 		{
@@ -598,6 +627,13 @@ sealed partial class GrammarNormalizer
 				}
 			}
 
+			if (record)
+			{
+				inline[set] = Folded(built, made);
+
+				continue;
+			}
+
 			_bodies[made] = built.Count == 1 ? built[0] : new Node.Choice(built);
 			_standing.Add(made);
 		}
@@ -617,8 +653,8 @@ sealed partial class GrammarNormalizer
 			for (var key = 0; key < keys.Count; key++)
 				leads.Add((set & (1 << key)) != 0 ? CloneAndRewrite(tests[key], NoTargets, [], "Standing") : NotStands(tests[key]));
 
-			dispatch.Add(builds
-				? new Node.Construct(new Node.Sequence([.. leads, new Node.Capture("item0", new Node.Call(parts[set], []))]), Construction.Operand.Instance)
+			dispatch.Add(record ? new Node.Sequence([.. leads, inline[set]])
+				: builds ? new Node.Construct(new Node.Sequence([.. leads, new Node.Capture("item0", new Node.Call(parts[set], []))]), Construction.Operand.Instance)
 				: new Node.Sequence([.. leads, new Node.Call(parts[set], [])]));
 		}
 
@@ -632,6 +668,26 @@ sealed partial class GrammarNormalizer
 
 			return -1;
 		}
+	}
+
+	/// <summary>
+	/// The alternatives of a record's twin, folded as §4.3 folds a left recursion: the ones that begin with the call back
+	/// to <paramref name="twin"/> are the steps of a loop after the rest.
+	/// </summary>
+	static Node Folded(IReadOnlyList<Node> alternatives, RuleSymbol twin)
+	{
+		var bases = new List<Node>();
+		var steps = new List<Node>();
+
+		foreach (var alternative in alternatives)
+			if (Tail(alternative, twin) is var (step, _))
+				steps.Add(step);
+			else
+				bases.Add(alternative);
+
+		var start = bases.Count == 1 ? bases[0] : new Node.Choice(bases);
+
+		return steps.Count == 0 ? start : new Node.Sequence([start, StandingLoop(steps.Count == 1 ? steps[0] : new Node.Choice(steps))]);
 	}
 
 	/// <summary>An alternative whose leading call is to <paramref name="rule"/>, that call made to <paramref name="made"/>.</summary>
