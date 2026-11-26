@@ -1272,11 +1272,13 @@ TableItem : @Nodes.TableItem
 	| column: TableColumnDef => @(new Nodes.TableItem.Element(new TableElement.Column(column)))
 
 // gram.y OptTypedTableElementList, TypedTableElement, columnOptions: a constraint, or a column's name with
-// its qualifiers, WITH OPTIONS before them or not.
+// its qualifiers, WITH OPTIONS before them or not. The qualifiers are a column's, ColQualList: a
+// generation or an identity there is parse analysis's to refuse on a typed table, and a partition
+// takes a generation over its parent's.
 TypedElements : @TableElement[] = '(' & first: TypedElement & (',' & rest: TypedElement)* & ')' => @(Nodes.Items(first, rest))
 TypedElement : @TableElement
 	= c: TableConstraint => @(new TableElement.TableConstraint(c))
-	| name: ColId & with: ("WITH"i & "OPTIONS"i)? & quals: ColQual* & when @(Nodes.OptionsFit(quals)) => @(Nodes.ColumnOptions(name, with is null, quals))
+	| name: ColId & with: ("WITH"i & "OPTIONS"i)? & quals: ColQual* & when @(Nodes.QualsFit(quals)) => @(Nodes.ColumnOptions(name, with is null, quals))
 
 // What follows the elements, in gram.y's order: INHERITS, PARTITION BY, USING, WITH or WITHOUT OIDS,
 // ON COMMIT, TABLESPACE, and CREATE TABLE AS's query and WITH [NO] DATA.

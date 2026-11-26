@@ -694,6 +694,7 @@ it. The families stand in alphabetical order, each family's records in the order
 | `DataType.Named` | T-SQL | Data types (Transact-SQL) |
 | `DataType.Vector` | T-SQL | Vector Data Type |
 | `DataType.Xml` | T-SQL | xml (Transact-SQL) |
+| `DataType.SetOf` | PostgreSQL | CREATE FUNCTION |
 | `DatabaseEncryptionKeyChange.Regenerate` | T-SQL | REGENERATE WITH ALGORITHM = a — under ALTER DATABASE ENCRYPTION KEY (Transact-SQL) |
 | `DatabaseEncryptionKeyChange.EncryptedBy` | T-SQL | ENCRYPTION BY SERVER { CERTIFICATE / ASYMMETRIC KEY } name — under ALTER DATABASE ENCRYPTION KEY (Transact-SQL) |
 | `DatabaseSource.ForAttach` | T-SQL | CREATE DATABASE (Transact-SQL) |

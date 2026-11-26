@@ -852,15 +852,12 @@ static partial class Nodes
 	/// <summary>One pair of brackets after a type, and the bound inside it where one was written.</summary>
 	public sealed record Dimension(int? Bound);
 
-	/// <summary>
-	/// A type with its array bounds applied, under <c>SETOF</c> where it was written: the tree has no record for SETOF yet,
-	/// and holds it as an extension around the whole type, bounds and all, which only PostgreSQL's writer writes.
-	/// </summary>
+	/// <summary>A type with its array bounds applied, under <c>SETOF</c> where it was written: around the whole type, bounds and all.</summary>
 	public static DataType Typed(DataType element, Bounds bounds, bool setOf)
 	{
 		var type = Bounded(element, bounds);
 
-		return setOf ? new DataType.Extension("PostgreSQL", "SETOF", [type]) : type;
+		return setOf ? new DataType.SetOf(type) : type;
 	}
 
 	static DataType Bounded(DataType element, Bounds bounds)

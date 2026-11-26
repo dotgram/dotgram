@@ -514,8 +514,8 @@ static partial class Nodes
 	// ── Columns ────────────────────────────────────────────────────────────────
 
 	/// <summary>
-	/// Whether a column's qualifiers are what the server takes and the tree holds: one default or generation, with no name
-	/// (CONSTRAINT before DEFAULT has no slot); not NULL beside NOT NULL; and each attribute after a constraint that takes it,
+	/// Whether a column's qualifiers are what the server takes and the tree holds: one default or generation, named or not;
+	/// not NULL beside NOT NULL; and each attribute after a constraint that takes it,
 	/// once (transformConstraintAttrs) — DEFERRABLE and INITIALLY after a key or a foreign key, ENFORCED after a foreign key
 	/// or a CHECK, NOT DEFERRABLE with no INITIALLY DEFERRED.
 	/// </summary>
@@ -603,20 +603,17 @@ static partial class Nodes
 	}
 
 	/// <summary>
-	/// Whether a typed table's column options are what the tree's options hold: the qualifiers a column takes, with a plain
-	/// DEFAULT and no identity, generation or collation.
+	/// A typed table's or a partition's column options: a default with no name in the standard's slot, any other default,
+	/// generation or identity in <see cref="ColumnOptionList.Generation"/>, the constraints and the collation.
 	/// </summary>
-	public static bool OptionsFit(Qual[]? quals)
-	{
-		return QualsFit(quals) && (quals is null || System.Array.TrueForAll(quals, static one => one is not Qual.Generation { Value: not ColumnGeneration.Default } and not Qual.Generation { Name: not null }));
-	}
-
-	/// <summary>A typed table's column options: the default and the constraints.</summary>
 	public static TableElement ColumnOptions(Identifier name, bool withOmitted, Qual[]? quals)
 	{
 		var (generation, constraints, collation) = Split(quals);
 
-		return new TableElement.ColumnOptions(name, new ColumnOptionList(null, (generation as ColumnGeneration.Default)?.Value, constraints) { Collation = collation }) { WithOptionsOmitted = withOmitted };
+		var plain   = generation is ColumnGeneration.Default { Name: null } unnamed ? unnamed.Value : null;
+		var options = new ColumnOptionList(null, plain, constraints) { Collation = collation, Generation = plain is null ? generation : null };
+
+		return new TableElement.ColumnOptions(name, options) { WithOptionsOmitted = withOmitted };
 	}
 
 	/// <summary>The qualifiers in the standard's slots: the generation, the constraints with their attributes, the collation.</summary>

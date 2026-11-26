@@ -303,6 +303,14 @@ public abstract partial record DataType
 		/// <summary>PostgreSQL: Boolean Type. Written <c>bool</c>.</summary>
 		[Spelling] public bool Abbreviated { get; init; }
 	}
+
+	/// <summary>
+	/// PostgreSQL: CREATE FUNCTION. <c>SETOF t</c>, a set of values of the type: what a function returns, and what gram.y
+	/// reads before any type written in full — an argument's, a column's, a cast's, which parse analysis then refuses or
+	/// reads as the type alone. <see cref="ElementType"/> is the whole type after the word, its array bounds with it:
+	/// <c>SETOF int[]</c> is a set of arrays.
+	/// </summary>
+	public sealed record SetOf(DataType ElementType) : DataType;
 }
 
 /// <summary>PostgreSQL: SELECT (FROM Clause). One function of a <c>ROWS FROM (…)</c>, with its column definition list where one was written.</summary>
