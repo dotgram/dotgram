@@ -346,9 +346,17 @@ sealed class IrProgram
 
 	public int PlanMisses { get; set; }
 
-	/// <summary>How many places that record a refusal the lowering asked the plan about, and how many of them the plan had no answer for.</summary>
+	/// <summary>How many places that record a refusal the lowering asked the plan about, the places the plan holds that it did not read among them.</summary>
 	public int SitesAsked { get; set; }
+
+	/// <summary>
+	/// How many of those the plan had no answer for, or held an answer the lowering does not read: a place of
+	/// a kind it does not lower is said otherwise than the generated reader says it (<see cref="UnreadKinds"/>).
+	/// </summary>
 	public int SiteMisses { get; set; }
+
+	/// <summary>The places the plan holds and the lowering did not read, by their kind.</summary>
+	public SortedDictionary<string, int> UnreadKinds { get; } = new(StringComparer.Ordinal);
 
 	/// <summary>
 	/// How many repetitions the plan left without a way that the lowering opened all the same: a turn

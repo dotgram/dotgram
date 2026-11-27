@@ -247,6 +247,7 @@ sealed partial class IrLowering
 		foreach (var rule in rules)
 			LowerRule(rule);
 
+		Unread(rules);
 		Settle();
 
 		foreach (var publication in _graph.Publications)
@@ -696,7 +697,7 @@ sealed partial class IrLowering
 		return null;
 	}
 
-	/// <summary>Counts a place asked of the plan, and a miss where it had no answer; the answer.</summary>
+	/// <summary>Counts a place asked of the plan, and a miss where it had no answer; the answer, read.</summary>
 	T? Asked<T>(T? site, bool misses = true)
 		where T : class
 	{
@@ -706,7 +707,64 @@ sealed partial class IrLowering
 		if (site is null && misses)
 			_program.SiteMisses++;
 
+		if (site is RecordSite read)
+			_read.Add(read);
+
 		return site;
+	}
+
+	/// <summary>The places of the plan the lowering read (<see cref="Asked"/>).</summary>
+	readonly HashSet<RecordSite> _read = [];
+
+	/// <summary>
+	/// Counts as misses the places the plan holds in the bodies of the rules lowered that the lowering did not
+	/// read — a kind it does not lower, a choice told apart past the seam, a group it could not map — by kind:
+	/// what the generated reader records there, the lowering does not. A place is read where any machine's
+	/// answer for it was.
+	/// </summary>
+	void Unread(List<RuleSymbol> rules)
+	{
+		if (_sites.Count == 0)
+			return;
+
+		var owners = rules.Select(_graph.Counted).ToHashSet();
+		var nodes  = NodeWalk.ByIdentity(rules.SelectMany(rule => NodeWalk.Descendants(_graph.Bodies[rule])));
+		var read   = new HashSet<(RuleSymbol, Node, int, Type)>(PlaceIdentity.Instance);
+
+		foreach (var sites in _sites)
+			foreach (var (owner, node, count, site) in sites.All())
+				if (_read.Contains(site))
+					read.Add((owner, node, count, site.GetType()));
+
+		foreach (var sites in _sites)
+			foreach (var (owner, node, count, site) in sites.All())
+			{
+				if (!owners.Contains(owner) || !nodes.Contains(node) || !read.Add((owner, node, count, site.GetType())))
+					continue;
+
+				var kind = site is DispatchSite { Seam: true } ? "DispatchSite past the seam" : site.GetType().Name;
+
+				_program.SitesAsked++;
+				_program.SiteMisses++;
+				_program.UnreadKinds[kind] = _program.UnreadKinds.GetValueOrDefault(kind) + 1;
+			}
+	}
+
+	/// <summary>A place by the identity of its rule and node.</summary>
+	sealed class PlaceIdentity : IEqualityComparer<(RuleSymbol Owner, Node Node, int Count, Type Kind)>
+	{
+		public static readonly PlaceIdentity Instance = new();
+
+		public bool Equals((RuleSymbol Owner, Node Node, int Count, Type Kind) one, (RuleSymbol Owner, Node Node, int Count, Type Kind) other)
+		{
+			return ReferenceEquals(one.Owner, other.Owner) && ReferenceEquals(one.Node, other.Node) && one.Count == other.Count && one.Kind == other.Kind;
+		}
+
+		public int GetHashCode((RuleSymbol Owner, Node Node, int Count, Type Kind) place)
+		{
+			return HashCode.Combine(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(place.Owner),
+				System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(place.Node), place.Count, place.Kind);
+		}
 	}
 
 	/// <summary>The rule's own words a call records where the rule refused having read nothing, as the plan says; -1 for none.</summary>
@@ -760,7 +818,8 @@ sealed partial class IrLowering
 	{
 		var count = nodes.Count;
 
-		if (Asked(Fact<DispatchSite>(nodes[0], count), misses: false) is { Seam: false } dispatch)
+		// Past the seam the item that tells the alternatives apart is not the next one: not lowered, a miss (Unread).
+		if (Fact<DispatchSite>(nodes[0], count) is { Seam: false } dispatch)
 		{
 			var over         = Fact<OverSite>(nodes[0], count);
 			var otherwise    = Expect(Label(dispatch));
@@ -785,6 +844,11 @@ sealed partial class IrLowering
 				alternatives.Add(group);
 				resets.Add([.. members.SelectMany(one => choice.Resets[one]).Distinct()]);
 			}
+
+			Asked(dispatch, misses: false);
+
+			if (over is not null && dispatch.Called >= 0)
+				Asked(over, misses: false);
 
 			return new IrStmt.Choice(alternatives, resets, false)
 			{

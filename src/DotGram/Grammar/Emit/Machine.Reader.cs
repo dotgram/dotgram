@@ -3962,13 +3962,15 @@ sealed partial class Machine
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
 			FollowSets.Continuation following)
 		{
-			var name = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
+			// The widest is read by the call it begins with where that call tests the item itself.
+			var site = Site(alternatives[0], alternatives.Count, () => new DispatchSite
 			{
 				Items   = Said(machine.ReaderPredicted(alternatives)),
 				Begins  = [.. chain.Select(static one => one.Set.Ranges)],
 				Members = Grouped(alternatives, chain.Select(static one => (IReadOnlyList<Node>)[one.Node])),
 				Called  = Leads(chain[^1].Node) is { } leading && machine.Decidable(leading) is { Ends: false } ? chain.Count - 1 : -1,
 			});
+			var name = machine.DeclareExpected(site.Items);
 
 			_character = true;
 
@@ -4000,7 +4002,7 @@ sealed partial class Machine
 			{
 				apart.Next();
 
-				if (Leads(last) is { } call && machine.Decidable(call) is { Ends: false })
+				if (site.Called >= 0)
 				{
 					_refuseWith = name;
 					Emit(code, last, following);
@@ -6673,7 +6675,17 @@ sealed partial class Machine
 			var node  = graph.Original(at);
 
 			if (machine.Plan is { } plan && !_entry)
-				return PlannedSites(plan).Of<T>(rule, node, count);
+			{
+				var held = PlannedSites(plan).Of<T>(rule, node, count);
+
+				// Asked by a test, the place is said again where it is printed: an answer that depended on what
+				// the key does not hold — what follows the node, the seam — would differ here from the plan's.
+				if (RecordSites.CheckedWhilePrinting && site() is var again && !held.SaysAs(again))
+					throw new InvalidOperationException(
+						$"A place of '{rule.Name}' at {node} is printed as {again} where the plan says {held}.");
+
+				return held;
+			}
 
 			var sites = machine.Plan is { } printed ? PlannedSites(printed) : machine.RefusalSites;
 
