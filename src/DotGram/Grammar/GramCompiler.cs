@@ -82,7 +82,7 @@ static partial class GramCompiler
 		// known before anything is compiled where the options say it; the rest is known from the plan,
 		// and where it is not all readers the grammar is compiled again as though there were no copies,
 		// so that the file is the one it would have been.
-		if (options.SettleRunTails && !options.Lexical && options.Direct && !options.BufferedInput && !options.BufferedBytes)
+		if (Settles(options))
 		{
 			var settled = Compile(language, grammarText, options, settle: true, told: null, out var dropped);
 
@@ -93,6 +93,16 @@ static partial class GramCompiler
 		}
 
 		return Compile(language, grammarText, options, settle: false, told: null, out _);
+	}
+
+	/// <summary>
+	/// Whether the options leave room for settled copies: not where the author asked for another reading
+	/// — over kinds, by the engine, or over a buffer — and nothing is said then. Where they are not asked
+	/// for, no file is compiled with copies, so no machine that reads tokens again can be one of a file that has them.
+	/// </summary>
+	internal static bool Settles(GramCompilerOptions options)
+	{
+		return options.SettleRunTails && !options.Lexical && options.Direct && !options.BufferedInput && !options.BufferedBytes;
 	}
 
 	/// <summary>
@@ -327,8 +337,9 @@ static partial class GramCompiler
 
 	/// <summary>
 	/// What puts a file beyond the readers before anything is planned: a grammar that reads segments, or
-	/// the first publication, in the order written, that asks for what no reader over a string can give.
-	/// Null where the plan has to say.
+	/// the first publication, in the order written, that asks for what no reader over a string can give or
+	/// is given a window form beside it, a <c>parse</c> with no result type. Null where the plan has to say:
+	/// it is the plain <c>parse</c>, which is not a reader for a reason of its own.
 	/// </summary>
 	static SettleBlock? Blocked(RecognitionGraph graph)
 	{
@@ -336,10 +347,26 @@ static partial class GramCompiler
 			return new SettleBlock(SettleCause.Segments, null);
 
 		foreach (var publication in graph.Publications)
+		{
 			if (SettleBlock.Asked(publication) is { } asked)
 				return new SettleBlock(asked, publication);
 
+			if (Retention.Streams(graph, publication))
+				return new SettleBlock(SettleCause.Window, publication);
+		}
+
 		return null;
+	}
+
+	/// <summary>
+	/// The directive that gives a <c>parse</c> a result type, as the author writes it: <c>parse Items</c>,
+	/// and <c>parse Items as Many</c> where the publication is not called what the directive calls it by default.
+	/// </summary>
+	static string Directive(Publication publication)
+	{
+		var named = publication.MethodName == Publication.DefaultMethodName(publication.Kind, publication.Rule.Name);
+
+		return $"parse {publication.Rule.Name}" + (named ? "" : $" as {publication.MethodName}");
 	}
 
 	/// <summary>
@@ -364,7 +391,7 @@ static partial class GramCompiler
 			return [];
 
 		var by   = block.By?.MethodName;
-		var move = "Move it into its own grammar.";
+		var move = $"Move '{by}' into its own grammar.";
 		var told = new List<GramDiagnostic>();
 
 		var (reason, remedy) = block.Cause switch
@@ -372,7 +399,7 @@ static partial class GramCompiler
 			SettleCause.Engine   => ($"publication '{by}' runs on the engine", $"Read '{by}' by methods, or move it into its own grammar."),
 			SettleCause.Find     => ($"publication '{by}' runs on the engine", move),
 			SettleCause.Window   => ($"publication '{by}' is also read a window at a time, on the engine",
-				$"Give '{block.By!.Rule.Name}' a result type, or move it into its own grammar."),
+				$"Give '{by}' a result type ({Directive(block.By!)} : @T), or move it into its own grammar."),
 			SettleCause.Position => ($"publication '{by}' is read from a position", move),
 			SettleCause.Stream   => ($"publication '{by}' reads a stream", move),
 			SettleCause.Flat     => ($"publication '{by}' is compiled flat", move),

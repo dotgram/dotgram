@@ -673,6 +673,37 @@ static class Retention
 		}
 	}
 
+	/// <summary>
+	/// Whether a publication can be read a window at a time.
+	/// </summary>
+	/// <remarks>
+	/// Not over kinds. A window is a stretch of characters, and a machine over tokens is
+	/// handed the tokens a lexer already found — there is no window to grow and nothing to
+	/// grow it from. Refused here rather than emitted and left not to compile, which is
+	/// where it was found: three call sites in the streamed forms handed the recognizer
+	/// characters where it now wants the text the tokens came from.
+	/// <para>
+	/// Nor where a reading reaches a binding (<c>$q: X</c>): a reference compares text bound
+	/// earlier, and a window may have let it go. Left out rather than refused, because this form
+	/// is offered beside every <c>find</c> unasked, and the string form reads the same grammar.
+	/// </para>
+	/// <para>
+	/// Nor for a target without jumps: a window is read by the jump machine and by nothing else, so
+	/// the form is not offered there, and the reader is asked about the publication instead.
+	/// </para>
+	/// </remarks>
+	public static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds = false)
+	{
+		return !overKinds && graph.Language.Can.UnstructuredJumps &&
+		publication.Kind != PublishKind.Yield && !graph.ReachesBoundText(publication.Rule) &&
+		(publication.Kind != PublishKind.Parse || publication.ResultType is null) &&
+		(publication.Kind == PublishKind.Find
+			? Reads(graph, publication.Rule) is null &&
+				ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&
+				extent != LineExtent.Beyond
+			: StreamedParse(graph, publication.Rule) is null);
+	}
+
 	public static string? StreamedParse(RecognitionGraph graph, RuleSymbol rule)
 	{
 		if (graph is null)

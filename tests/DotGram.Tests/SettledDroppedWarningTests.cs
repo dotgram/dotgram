@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using DotGram.Grammar;
+using DotGram.Grammar.Binding;
+using DotGram.Grammar.Model;
 using DotGram.Language;
 
 using Xunit;
@@ -44,7 +49,10 @@ public sealed class SettledDroppedWarningTests
 	/// <summary>A start rule that captures what a lookahead saw, which methods do not read: the engine does.</summary>
 	const string Peeking = "Start : @string = p: Pair & (';' & Pair)* & peek: ?=Word & eof => @(p)";
 
-	const string Move = "Move it into its own grammar.";
+	static string Move(string publication)
+	{
+		return $"Move '{publication}' into its own grammar.";
+	}
 
 	static string Because(string rule, string reason, string remedy)
 	{
@@ -59,7 +67,7 @@ public sealed class SettledDroppedWarningTests
 		var grammar = Names("*", "parse Start\nfind Pair");
 		var told    = Assert.Single(Told(grammar));
 
-		Assert.Equal(Because("Word", "publication 'FindPair' runs on the engine", Move), told.Message);
+		Assert.Equal(Because("Word", "publication 'FindPair' runs on the engine", Move("FindPair")), told.Message);
 		Assert.Equal(GramSeverity.Warning, told.Severity);
 		Assert.Equal(grammar.IndexOf("Word  =", StringComparison.Ordinal), told.Position);
 	}
@@ -69,7 +77,7 @@ public sealed class SettledDroppedWarningTests
 	{
 		var told = Assert.Single(Told(Names("*", "parse Items as Lazy yield : @string")));
 
-		Assert.Equal(Because("Word", "publication 'Lazy' runs on the engine", Move), told.Message);
+		Assert.Equal(Because("Word", "publication 'Lazy' runs on the engine", Move("Lazy")), told.Message);
 	}
 
 	[Fact]
@@ -91,10 +99,22 @@ public sealed class SettledDroppedWarningTests
 
 		Assert.Equal(
 			Because("Word", "publication 'ParseItems' is also read a window at a time, on the engine",
-				"Give 'Items' a result type, or move it into its own grammar."),
+				"Give 'ParseItems' a result type (parse Items : @T), or move it into its own grammar."),
 			told.Message);
 
 		Assert.Empty(Told(Names("*", "parse Items : @string[]")));
+	}
+
+	/// <summary>The rule is typed already, so what is wanted is the publication's own type, written as the author would.</summary>
+	[Fact]
+	public void A_named_parse_of_a_typed_rule_is_shown_how_to_give_the_publication_its_type()
+	{
+		var told = Assert.Single(Told(Names("*", "parse Items as Many")));
+
+		Assert.Equal(
+			Because("Word", "publication 'Many' is also read a window at a time, on the engine",
+				"Give 'Many' a result type (parse Items as Many : @T), or move it into its own grammar."),
+			told.Message);
 	}
 
 	[Fact]
@@ -102,7 +122,7 @@ public sealed class SettledDroppedWarningTests
 	{
 		var told = Assert.Single(Told(Names("*", "parse Start\npositional parse Pair")));
 
-		Assert.Equal(Because("Word", "publication 'ParsePair' is read from a position", Move), told.Message);
+		Assert.Equal(Because("Word", "publication 'ParsePair' is read from a position", Move("ParsePair")), told.Message);
 	}
 
 	[Fact]
@@ -110,7 +130,7 @@ public sealed class SettledDroppedWarningTests
 	{
 		var told = Assert.Single(Told(Names("*", "parse Start\nparse Pair as Streamed : @string stream")));
 
-		Assert.Equal(Because("Word", "publication 'Streamed' reads a stream", Move), told.Message);
+		Assert.Equal(Because("Word", "publication 'Streamed' reads a stream", Move("Streamed")), told.Message);
 	}
 
 	[Fact]
@@ -118,7 +138,7 @@ public sealed class SettledDroppedWarningTests
 	{
 		var told = Assert.Single(Told(Names("*", "parse Start\nparse Name")));
 
-		Assert.Equal(Because("Word", "publication 'ParseName' is compiled flat", Move), told.Message);
+		Assert.Equal(Because("Word", "publication 'ParseName' is compiled flat", Move("ParseName")), told.Message);
 	}
 
 	[Fact]
@@ -138,6 +158,16 @@ public sealed class SettledDroppedWarningTests
 		var told = Assert.Single(Told(Names("*", "parse Name\nfind Pair", Peeking)));
 
 		Assert.Contains("publication 'FindPair' runs", told.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_parse_given_a_window_form_is_named_when_it_is_written_before_a_find_and_not_when_after()
+	{
+		var before = Assert.Single(Told(Names("*", "parse Items\nfind Pair")));
+		var after  = Assert.Single(Told(Names("*", "find Pair\nparse Items")));
+
+		Assert.Contains("publication 'ParseItems' is also read a window at a time", before.Message, StringComparison.Ordinal);
+		Assert.Contains("publication 'FindPair' runs on the engine", after.Message, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -191,17 +221,19 @@ public sealed class SettledDroppedWarningTests
 	}
 
 	/// <summary>
-	/// Where the author's own options leave no copies there is nothing to drop and nothing is said. Over
-	/// kinds it is the one place a machine that only reads a token again is made, and it settles nothing: that
-	/// machine is never the cause of a dropped copy.
+	/// Where the author's own options leave no copies there is nothing to drop and nothing is said: the
+	/// settling is not entered at all, so no compilation is made with copies and then without. Over kinds
+	/// it is the one place a machine that only reads a token again is made, and the settling is never
+	/// entered there, so that machine cannot be what a dropped copy is blamed on.
 	/// </summary>
 	[Theory]
 	[InlineData("lexical")]
 	[InlineData("methods")]
 	[InlineData("buffered")]
+	[InlineData("bytes")]
 	public void Nothing_is_told_where_the_options_leave_no_copies(string option)
 	{
-		var result = GramCompiler.Compile(Names("*", "parse Start\nfind Pair"), new GramCompilerOptions
+		var options = new GramCompilerOptions
 		{
 			ClassName      = "Grammar",
 			CSharpScanner  = RoslynCSharpScanner.Instance,
@@ -209,10 +241,45 @@ public sealed class SettledDroppedWarningTests
 			Lexical        = option == "lexical",
 			Direct         = option != "methods",
 			BufferedInput  = option == "buffered",
-		});
+			BufferedBytes  = option == "bytes",
+		};
+
+		Assert.False(GramCompiler.Settles(options));
+
+		var result = GramCompiler.Compile(Names("*", "parse Start\nfind Pair"), options);
 
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Id is GramCompiler.SettledDropped or GramCompiler.SettledDroppedSegments);
 		Assert.True(result.Graph is null || result.Graph.Settled.Count == 0);
+	}
+
+	[Fact]
+	public void The_options_settle_unless_they_ask_for_another_reading()
+	{
+		Assert.True(GramCompiler.Settles(new GramCompilerOptions()));
+		Assert.False(GramCompiler.Settles(new GramCompilerOptions { SettleRunTails = false }));
+	}
+
+	/// <summary>
+	/// A grammar that recovers makes no copies, so a find beside its runs drops none and says nothing:
+	/// the pass is entered, and takes nothing.
+	/// </summary>
+	[Fact]
+	public void Nothing_is_told_of_a_grammar_that_recovers_and_no_copy_is_made_for_it()
+	{
+		var grammar = Names("*", "parse Start\nfind Pair", "Start : @string[] = (Pair & ';')* recover ';'");
+
+		// The same grammar without the recovery has its copies, so the empty answer below is the recovery's.
+		Assert.NotEmpty(Normalized(Names("*", "parse Start\nfind Pair", "Start : @string[] = (Pair & ';')*")).Settled);
+		Assert.Empty(Normalized(grammar).Settled);
+		Assert.Empty(Told(grammar));
+	}
+
+	static RecognitionGraph Normalized(string grammar)
+	{
+		var parsed = GramCompiler.Read(grammar, RoslynCSharpScanner.Instance);
+		var model  = GrammarBinder.Bind(parsed.File, PermissiveSymbolResolver.Instance, grammar.Length);
+
+		return GrammarNormalizer.Normalize(model, PermissiveSymbolResolver.Instance, RoslynCSharpScanner.Instance, settle: true);
 	}
 
 	[Fact]
@@ -238,16 +305,16 @@ public sealed class SettledDroppedWarningTests
 	[Fact]
 	public void No_grammar_of_the_repository_is_told_it()
 	{
-		var told       = new System.Collections.Concurrent.ConcurrentBag<string>();
-		var faults     = new System.Collections.Concurrent.ConcurrentBag<string>();
-		var candidates = new System.Collections.Concurrent.ConcurrentBag<string>();
+		var told       = new ConcurrentBag<string>();
+		var faults     = new ConcurrentBag<string>();
+		var candidates = new ConcurrentBag<string>();
 		var read       = 0;
 
-		System.Threading.Tasks.Parallel.ForEach(
+		Parallel.ForEach(
 			Shipped().Where(static grammar => grammar.Modes.Contains(false)),
 			grammar =>
 			{
-				System.Threading.Interlocked.Increment(ref read);
+				Interlocked.Increment(ref read);
 
 				try
 				{
