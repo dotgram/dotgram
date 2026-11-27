@@ -418,6 +418,16 @@ sealed partial class Grammar
 	Decision[] Decide(Rule rule)
 	{
 		var calls = Walk(rule.Alternatives).Where(IsCall).ToList();
+		var row   = rule.Kind switch { Kind.C => "C", Kind.S => "S", Kind.A => "A", _ => "O" };
+
+		// A name written inside a lookahead is refused, whatever the rule is.
+		if (Walk(rule.Alternatives, true).OfType<Wrapped>().Any(static w => w.Wrap is Wrap.Ahead or Wrap.NotAhead && Walk([w.Inner], true).OfType<Named>().Any()))
+			return [Decision.Fail(row, "GRAM4006")];
+
+		// A name that captures different kinds (text, the value of one rule, the value of another) anywhere in the rule is
+		// refused before the rule's own decision. A span rule does not check a name that nothing reads.
+		if (CapturesDifferentKinds(rule))
+			return [Decision.Fail(row, "GRAM4007")];
 
 		switch (rule.Kind)
 		{
@@ -497,9 +507,58 @@ sealed partial class Grammar
 		// A name captured more than once on one route is not modelled: the published version decides (the first capture, or a
 		// refusal where the captures differ in type).
 		if (CapturesTwice(alternatives, parameters))
-			return Decision.Of(Source.SamePublished, "O");
+			return Decision.Of(Source.SamePublished, "O-twice");
 
 		return Decision.Of(Source.Constructed, "O");
+	}
+
+	/// <summary>A name that nothing reads in a span rule (no guard, no selector) is not checked for the kind it captures: names change nothing there.</summary>
+	const bool SpanUnreadNamesAreNotChecked = true;
+
+	static bool CapturesDifferentKinds(Rule rule)
+	{
+		var reads = Walk(rule.Alternatives, true).Select(static e => e switch { Guard g => g.Reads, SwitchOn o => o.Reads, _ => null }).OfType<string>().ToHashSet(StringComparer.Ordinal);
+
+		foreach (var group in Walk(rule.Alternatives, true).OfType<Named>().GroupBy(static n => n.Name))
+		{
+			if (SpanUnreadNamesAreNotChecked && rule.Kind == Kind.S && !reads.Contains(group.Key))
+				continue;
+
+			if (group.Select(n => KindOfCapture(n.Inner, rule)).Distinct().Count() > 1)
+				return true;
+		}
+
+		return false;
+	}
+
+	// What a name captures: the text its expression matched, or the value of the call it names (told by the type).
+	static string KindOfCapture(Expr inner, Rule self)
+	{
+		while (true)
+		{
+			switch (inner)
+			{
+				case Group group:
+					inner = group.Inner;
+					continue;
+
+				case Wrapped { Wrap: Wrap.Optional or Wrap.Star or Wrap.Plus } wrapped:
+					inner = wrapped.Inner;
+					continue;
+
+				case Call { Atom: not null } call:
+					return "value of " + LeafInfo(call.Rule.Name).Type;
+
+				case RuleRef reference:
+					return "value of " + (reference.Rule.Kind == Kind.Untyped ? "(untyped)" : reference.Rule.Type);
+
+				case SelfCall:
+					return "value of " + self.Type;
+
+				default:
+					return "text";
+			}
+		}
 	}
 
 	static bool CapturesTwice(IReadOnlyList<Expr> alternatives, string[] parameters)
@@ -697,7 +756,24 @@ sealed partial class Grammar
 			return new Expectation(Source.Error, null, Decision.ErrorId, null, Decision.Row);
 
 		if (Decision.Source == Source.SamePublished)
+		{
+			// An untyped published rule with names: what its generated type holds, where the oracle can say it.
+			if (Decision.Row == "O" && ReferenceEquals(Start, Tested) && Start.Kind == Kind.Untyped)
+			{
+				try
+				{
+					var run = new Evaluation(this, mode, input).Run();
+
+					if (run.Source is Source.NoMatch or Source.SamePublished)
+						return run;
+				}
+				catch (Exception e) when (e is InvalidOperationException or KeyNotFoundException)
+				{
+				}
+			}
+
 			return new Expectation(Source.SamePublished, null, null, null, Decision.Row);
+		}
 
 		// Over bytes a string cannot be joined from a built string or a character without decoding.
 		if (mode == Mode.B && _rules.Any(r => r.Kind == Kind.C && Impure(r)))

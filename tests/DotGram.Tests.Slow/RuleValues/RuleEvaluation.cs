@@ -384,9 +384,64 @@ sealed partial class Grammar
 					return Val.Array(items);
 				}
 
+				case Kind.Untyped:
+					return EvalGenerated(rule, node);
+
 				default:
 					return EvalO(rule, node);
 			}
+		}
+
+		// An untyped rule that writes names is a type of its own: one member per name, in the order the names are written,
+		// each holding what its name captured (the text, or the value of the call). A name the route did not take is null; a name
+		// written under a repetition is not modelled: the caller then has no exact value.
+		Val EvalGenerated(Rule rule, Node node)
+		{
+			var captured = new Dictionary<string, Val>(StringComparer.Ordinal);
+
+			// Every name of the route counts, those written inside another name's expression too.
+			void Gather(Node at)
+			{
+				switch (at.Expr)
+				{
+					case Named:
+						Captures(at, null, captured);
+
+						foreach (var kid in at.Kids)
+							Gather(kid);
+
+						break;
+
+					case Wrapped { Wrap: Wrap.Zero }:
+						Captures(at, null, captured);
+						break;
+
+					case Wrapped { Wrap: Wrap.Ahead or Wrap.NotAhead }:
+						break;
+
+					default:
+						foreach (var kid in at.Kids)
+							Gather(kid);
+
+						break;
+				}
+			}
+
+			Gather(node);
+
+			var written = Walk(rule.Alternatives, true).OfType<Named>().Select(static n => n.Name).Distinct().ToList();
+
+			// A name written under a repetition is an array or the last turn: not modelled.
+			var repeated = Walk(rule.Alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus)
+				.SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Select(static n => n.Name).ToHashSet(StringComparer.Ordinal);
+
+			if (written.Count == 0 || written.Any(repeated.Contains))
+				throw new InvalidOperationException("the oracle does not model the generated type of " + rule.Name + " on this route");
+
+			// A name the route did not take is null.
+			var members = written.Select(n => char.ToUpperInvariant(n[0]) + n[1..] + "=" + (captured.TryGetValue(n, out var value) ? value.Print : "<null>"));
+
+			return Val.Host(rule.Name, rule.Name + "{" + string.Join(",", members) + "}");
 		}
 
 		// Rule C: the pieces of the route, joined. Names change nothing; trivia, lookaheads, {0} and guards give nothing.
@@ -539,11 +594,11 @@ sealed partial class Grammar
 		}
 
 		// A name's capture: the value of the call it names, or the text it matched.
-		void Captures(Node node, string[] parameters, Dictionary<string, Val> into)
+		void Captures(Node node, string[]? parameters, Dictionary<string, Val> into)
 		{
 			switch (node.Expr)
 			{
-				case Named named when parameters.Contains(named.Name):
+				case Named named when parameters is null || parameters.Contains(named.Name):
 				{
 					var inner = node.Kids[0];
 
@@ -564,7 +619,7 @@ sealed partial class Grammar
 				// A name written in X{0} fills its parameter with an empty text.
 				case Wrapped { Wrap: Wrap.Zero } zero:
 					foreach (var named in Walk([zero.Inner], true).OfType<Named>())
-						if (parameters.Contains(named.Name))
+						if (parameters is null || parameters.Contains(named.Name))
 							into[named.Name] = Val.Str("");
 
 					break;
