@@ -501,7 +501,11 @@ public sealed class FirstSetsTests
 	/// U+FFFF a <c>char</c> wraps to zero: with no kind there to name, the walk
 	/// never stopped and the compile hung.
 	/// </remarks>
-	[Fact(Timeout = 30_000)]
+	/// <remarks>
+	/// The timeout is a hang guard, not a speed test: the compile takes a few seconds alone, and
+	/// a loaded machine must not fail it. The defect it guards against never ends.
+	/// </remarks>
+	[Fact(Timeout = 300_000)]
 	public async Task A_repetition_of_any_over_kinds_is_said_and_the_compile_ends()
 	{
 		var reported = await Task.Run(
