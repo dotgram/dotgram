@@ -78,10 +78,10 @@ public sealed class EditorParityTests
 		var tokens   = GramLexer.Tokenize(grammar.Text, RoslynCSharpScanner.Instance).Tokens;
 
 		// Only the compiler's side is narrowed here: the editor's must come narrowed already. GRAM4054 and
-		// GRAM5022 are the messages the build reports and the editor leaves to it (GramDocument.CompilerOptions);
+		// GRAM5022 and GRAM5023 are the messages the build reports and the editor leaves to it (GramDocument.CompilerOptions);
 		// everything else the analysis changes in the file — a method past the JIT's size, say — is held.
 		Assert.Equal(
-			GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics.Where(static one => one.Id is not (GramCompiler.SharedRecursions or GramCompiler.SettledDropped)).ToList(), tokens).Select(Shown),
+			GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics.Where(static one => one.Id is not (GramCompiler.SharedRecursions or GramCompiler.SettledDropped or GramCompiler.SettledDroppedSegments)).ToList(), tokens).Select(Shown),
 			analysed.Diagnostics.Select(Shown));
 	}
 
@@ -120,8 +120,8 @@ public sealed class EditorParityTests
 
 			// Placed as the generator places a diagnostic in the literal: where the literal holds
 			// its place, and over the whole literal where it does not.
-			// GRAM4054 and GRAM5022 are the messages the build reports and the editor leaves to it (the first theory says why).
-			foreach (var diagnostic in GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics.Where(static one => one.Id is not (GramCompiler.SharedRecursions or GramCompiler.SettledDropped)).ToList(), tokens))
+			// GRAM4054, GRAM5022 and GRAM5023 are the messages the build reports and the editor leaves to it (the first theory says why).
+			foreach (var diagnostic in GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics.Where(static one => one.Id is not (GramCompiler.SharedRecursions or GramCompiler.SettledDropped or GramCompiler.SettledDroppedSegments)).ToList(), tokens))
 				if (diagnostic.Position <= grammar.Text.Length)
 					reported.Add((
 						diagnostic,

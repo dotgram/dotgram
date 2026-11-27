@@ -47,7 +47,8 @@ public sealed class SnapshotTests
 		{
 			var result = GramCompiler.Compile(text, options);
 
-			EmittedCode.Quiet(result.Diagnostics);
+			// Feed and Notation are written to show a find beside a run, which the engine reads.
+			EmittedCode.Quiet(result.Diagnostics, name is "Feed" or "Notation" ? [GramCompiler.SettledDropped] : []);
 
 			var sources = result.Sources;
 
