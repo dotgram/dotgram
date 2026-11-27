@@ -281,6 +281,7 @@ reference, and a test fails where the two differ.
 | [`GRAM5018`](../../diagnostics.md#gram5018) | Error | A name would be written twice into the generated class. |
 | [`GRAM5019`](../../diagnostics.md#gram5019) | Warning | A guard that names `context` is read again where a terminal's value is built. |
 | [`GRAM5021`](../../diagnostics.md#gram5021) | Info | A rule can come back to itself without reading anything, through a recognizer of the host that may succeed without moving. |
+| [`GRAM5022`](../../diagnostics.md#gram5022) | Warning | A rule is read without its settled copy because a publication runs on the engine, so a refusal inside a long run of it takes time quadratic in its length. |
 | [`GRAM6001`](../../diagnostics.md#gram6001) | Warning | A classification target is neither `Rule` nor `Rule.capture`. |
 | [`GRAM6002`](../../diagnostics.md#gram6002) | Warning | The grammar rule a classification target names was not found. |
 | [`GRAM6003`](../../diagnostics.md#gram6003) | Warning | The grammar rule a classification target names is ambiguous. |

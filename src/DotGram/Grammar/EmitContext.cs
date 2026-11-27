@@ -1,5 +1,6 @@
 ﻿using System;
 
+using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Plan;
 
@@ -72,4 +73,10 @@ sealed class EmitContext
 
 	/// <summary>Set where <see cref="ReadersOnly"/> was asked and the plan holds another machine: nothing is printed.</summary>
 	public bool LeftTheReaders { get; set; }
+
+	/// <summary>
+	/// The publication whose machine is not a reader over a string, where <see cref="LeftTheReaders"/> is
+	/// set: the first of them in the order they are written. Null where none of the publications asked.
+	/// </summary>
+	public Publication? LeftBy { get; set; }
 }

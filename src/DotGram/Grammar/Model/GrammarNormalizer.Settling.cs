@@ -19,6 +19,12 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	readonly Dictionary<Node, Node> _settledNodes = new(NodeIdentity.Instance);
 
+	/// <summary>
+	/// The copies whose own tail ends in a run with no upper bound that gave characters back
+	/// (<see cref="RecognitionGraph.SettledRuns"/>).
+	/// </summary>
+	readonly HashSet<RuleSymbol> _settledRuns = [];
+
 	/// <summary>What <see cref="RecognitionGraph.PositionalFollow"/> will say, for the follow sets asked here.</summary>
 	bool _positionalFollow;
 
@@ -163,6 +169,10 @@ sealed partial class GrammarNormalizer
 
 			_settledFrom[copy] = rule;
 
+			// The run is told by what it was in the rule, before the copy settled it.
+			if (tails[rule].Giving.Any(one => ReferenceEquals(one.Owner, rule) && one.Repeat.Max is null))
+				_settledRuns.Add(copy);
+
 			_rules.Insert(_rules.IndexOf(rule) + 1, copy);
 		}
 
@@ -252,6 +262,7 @@ sealed partial class GrammarNormalizer
 
 		_settledFrom.Clear();
 		_settledNodes.Clear();
+		_settledRuns.Clear();
 		_rules.Clear();
 		_rules.AddRange(rules);
 	}
