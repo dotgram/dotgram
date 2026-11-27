@@ -106,6 +106,13 @@ public sealed class ComposedValueTests
 	[InlineData("Start : @string = '-'? & Bare", "-ab", "-ab")]
 	[InlineData("Start : @string = { '<' & Word & '>' }", "<ab>", "<W:ab>")]
 	[InlineData("Start : @string = { '<' & Word & '>' | Bare }", "cd", "cd")]
+	[InlineData("Start : @string = '<' & (Word & ',' & P(Word))? & '>'\nP(x) = '(' & x & ')'", "<>", "<>")]
+	[InlineData("Start : @string = '<' & (Word & ',' & P(Word))? & '>'\nP(x) = '(' & x & ')'", "<ab,(cd)>", "<W:ab,(W:cd)>")]
+	[InlineData("Start : @string = '-'? & ('<' & ('(' & Word & ')' | Bare) & '>' | Bare)", "-<(ab)>", "-<(W:ab)>")]
+	[InlineData("Start : @string = '-'? & ('<' & ('(' & Word & ')' | Bare) & '>' | Bare)", "cd", "cd")]
+	[InlineData("Start : @string = '<' & ?!(?!(w: Bare) & '#') & Bare & '>'", "<ab>", "<ab>")]
+	[InlineData("Start : @string = '<' & (w: Bare & ',' & Esc)? & '>' & when @(w == null || w.Length > 0)", "<ab,\\n>", "<ab,\n>")]
+	[InlineData("Start : @string = '<' & (w: Bare & ',' & Esc)? & '>' & when @(w == null || w.Length > 0)", "<>", "<>")]
 	[InlineData("trivia = [' ']*\nStart : @string = Bare & '.' & Bare", "a . b", "a.b")]
 	public void A_string_is_its_pieces_joined(string grammar, string input, string expected)
 	{
@@ -127,6 +134,22 @@ public sealed class ComposedValueTests
 		var value = Parsed(grammar + "\nWord : @string = c: ['a'..'z']+ => @(\"W:\" + c.ToString())\nBare : @string = ['a'..'z']+", input, true);
 
 		Assert.Equal(expected, string.Join(";", ((IEnumerable)value!).Cast<object>()));
+	}
+
+	/// <summary>
+	/// An option given back after its first call matched builds nothing of what it read: the values of the calls inside it are
+	/// asked only where every part around them was kept. The value inside used to be cut from a start the option had set and an
+	/// end it never reached, and the parse threw.
+	/// </summary>
+	[Theory]
+	[InlineData("<>", "")]
+	[InlineData("<ab,(cd)>", "W:abW:cd")]
+	public void An_option_given_back_builds_nothing_it_read(string input, string expected)
+	{
+		Assert.Equal(expected, Parsed(
+			"Start : @string = '<' & x: Part? & '>' => @(x ?? \"\")\nPart : @string = a: Word & ',' & b: Q => @(a + b)\n" +
+			"Q : @string = '(' & w: Word & ')' => @(w)\nWord : @string = c: ['a'..'z']+ => @(\"W:\" + c.ToString())",
+			input));
 	}
 
 	/// <summary>An element type that can hold the array itself leaves a call of the array's type with two readings.</summary>

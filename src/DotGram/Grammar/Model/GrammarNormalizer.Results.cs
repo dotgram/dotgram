@@ -625,6 +625,14 @@ sealed partial class GrammarNormalizer
 				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
 			}
 
+			// What a lookahead saw is no part of an implicit value either.
+			case Node.Lookahead look:
+			{
+				var inner = Unnamed(look.Body);
+
+				return ReferenceEquals(inner, look.Body) ? node : look with { Body = inner };
+			}
+
 			case Node.Bind bind:
 			{
 				var inner = Unnamed(bind.Body);

@@ -428,15 +428,9 @@ sealed partial class GrammarNormalizer
 				}
 
 		foreach (var rule in strings)
-			_ruleValues[rule] =
-
-				// A rule that takes the type of a rule with no type and no names is a string as that rule is, which is the
-				// text it matched where such a rule is not joined.
-				!PublishedPlumbingJoins && _produces.TryGetValue(rule, out var taken) && ReadThrough(taken.Produces)
-					? new RuleValue(ValueSource.Extent, _types[rule])
-				: NonText(rule, joined, []) is { } piece
-					? new RuleValue(ValueSource.Refused, _types[rule], NonTextMessage(rule, piece))
-					: new RuleValue(joined.Contains(rule) ? ValueSource.Joined : ValueSource.Extent, _types[rule]);
+			_ruleValues[rule] = NonText(rule, joined, []) is { } piece
+				? new RuleValue(ValueSource.Refused, _types[rule], NonTextMessage(rule, piece))
+				: new RuleValue(joined.Contains(rule) ? ValueSource.Joined : ValueSource.Extent, _types[rule]);
 
 		foreach (var rule in _rules)
 			if (rule.Declaration is not null && !_ruleValues.ContainsKey(rule) && _types.TryGetValue(rule, out var type) &&
@@ -790,10 +784,13 @@ sealed partial class GrammarNormalizer
 	/// <summary>The node with the names inside its lookaheads taken off.</summary>
 	Node UnnamedLookaheads(Node node)
 	{
-		foreach (var look in NodeWalk.Descendants(node).OfType<Node.Lookahead>().ToList())
-			if (NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture) && !ReadsValues(look.Body) &&
-				NodeWalk.Descendants(node).Any(one => ReferenceEquals(one, look)))
-				node = Replaced(node, look, look with { Body = Unnamed(look.Body) });
+		// The outermost ones: a lookahead inside another goes with it.
+		var looks = NodeWalk.Descendants(node).OfType<Node.Lookahead>().ToList();
+		var inner = new HashSet<Node>(looks.SelectMany(static look => NodeWalk.Descendants(look.Body).OfType<Node.Lookahead>()), NodeIdentity.Instance);
+
+		foreach (var look in looks)
+			if (!inner.Contains(look) && NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture) && !ReadsValues(look.Body))
+				node = Replaced(node, look, Unnamed(look));
 
 		return node;
 	}
@@ -852,7 +849,8 @@ sealed partial class GrammarNormalizer
 		var parts    = new List<JoinPart>();
 		var empty    = new HashSet<RuleSymbol>();
 
-		var moved = false;
+		var moved       = false;
+		var conditional = 0;
 
 		Walk(alternative, Visit, out var rewritten);
 
@@ -893,13 +891,47 @@ sealed partial class GrammarNormalizer
 				case Node.Counted(_, _, CountBound.Items(0)):
 					return new WalkStep(node, false);
 
-				case Node.Literal { IgnoreCase: false } literal when !Joins(node):
+				// Fixed text where every route reads it; inside a choice or an option it is captured like any piece, so that
+				// it is joined only on the route that read it.
+				case Node.Literal { IgnoreCase: false } literal when !Joins(node) && conditional == 0:
 					parts.Add(JoinPart.Fixed(literal.Text));
 
 					return new WalkStep(node, false);
 
 				case var _ when !Joins(node):
 					return Held(node);
+
+				// A choice and an option are read one way on each route: what each branch holds is captured where it stands,
+				// and what the route did not read is empty. Nothing moves to a rule of its own, so a name a guard reads stays
+				// where the guard can read it.
+				case Node.Choice choice:
+				{
+					conditional++;
+
+					var alternatives = new List<Node>(choice.Nodes.Count);
+
+					foreach (var one in choice.Nodes)
+					{
+						Walk(one, Visit, out var inner);
+
+						alternatives.Add(inner);
+					}
+
+					conditional--;
+
+					return new WalkStep(choice.Rebuild(alternatives), false);
+				}
+
+				case Node.Repeat(var body, var min, 1):
+				{
+					conditional++;
+
+					Walk(body, Visit, out var inner);
+
+					conditional--;
+
+					return new WalkStep(ReferenceEquals(inner, body) ? node : Repeated(node, new Node.Repeat(inner, min, 1)), false);
+				}
 
 				// A call of a string or a char is its value; one of an untyped rule is that rule read in place.
 				case Node.Call(var called, var arguments):
