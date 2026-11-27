@@ -80,6 +80,26 @@ static class ByteValues
 	}
 
 	/// <summary>
+	/// The rules whose value is read where a publication is: its own, and the value of every rule that a rule read holds as a
+	/// member. A call nothing holds is only recognized.
+	/// </summary>
+	internal static HashSet<RuleSymbol> Read(RecognitionGraph graph, RuleSymbol root)
+	{
+		var read  = new HashSet<RuleSymbol> { root };
+		var queue = new Queue<RuleSymbol>();
+
+		queue.Enqueue(root);
+
+		while (queue.Count > 0)
+			if (graph.Results.TryGetValue(queue.Dequeue(), out var members))
+				foreach (var member in members)
+					if (member.Rule is { } held && read.Add(held))
+						queue.Enqueue(held);
+
+		return read;
+	}
+
+	/// <summary>
 	/// The first of these rules that is an array collecting the bytes of a text and a string something builds, with the two it
 	/// collects; null where there is none. One array cannot hold both over bytes without decoding the one.
 	/// </summary>

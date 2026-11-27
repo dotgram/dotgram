@@ -10,7 +10,7 @@ namespace DotGram.Grammar.Emit;
 
 static partial class CSharpEmitter
 {
-	static string? ByteRefusal(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol> rules)
+	static string? ByteRefusal(RecognitionGraph graph, IReadOnlyCollection<RuleSymbol> rules, RuleSymbol root)
 	{
 		if (Locating(graph))
 			return "line and column tracking requires character input";
@@ -47,9 +47,12 @@ static partial class CSharpEmitter
 		}
 
 		// A string whose pieces are not all its own text is their join (§4.1), and over bytes a piece of the input is bytes
-		// that nothing decodes into the characters a built string or a char is made of.
+		// that nothing decodes into the characters a built string or a char is made of. Where no one reads the join it is not
+		// built: what its pieces build is built all the same.
+		var read = ByteValues.Read(graph, root);
+
 		foreach (var rule in rules)
-			if (NodeWalk.Descendants(graph.Bodies[rule]).Any(static node => node is Node.Construct { How: Construction.Join }))
+			if (read.Contains(rule) && NodeWalk.Descendants(graph.Bodies[rule]).Any(static node => node is Node.Construct { How: Construction.Join }))
 				return $"'{rule.Name}' is a string joined from its pieces, and some are not their own text: over bytes a piece of " +
 					"the input cannot be joined to a built string or a character without decoding; build the value with '=>'";
 
@@ -221,7 +224,7 @@ static partial class CSharpEmitter
 					? "external recognizers require contiguous input" : null;
 
 			if (why is null && bytes)
-				why = ByteRefusal(graph, rules);
+				why = ByteRefusal(graph, rules, publication.Rule);
 
 			// Named after the publication, which no other has the name of, and told from a group's machine
 			// by its variant.

@@ -81,6 +81,27 @@ public sealed class ByteTextValueTests
 		Assert.Contains("'Start' collects the bytes 'Bare' matched and the string 'Word' builds", said.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A join no one reads is not built over bytes, as a value nothing holds is not made over characters. Read, it is refused as
+	/// before.
+	/// </summary>
+	[Fact]
+	public void A_join_no_rule_holds_is_not_built_over_bytes()
+	{
+		const string grammar = "Start = n: Num & '<' & Ow & '>'\nNum : @int = d: ['0'..'9']{2} => @(int.Parse(Text(d)))\nOw : @string = '(' & Word & ')'\nWord : @string = c: ['a'..'z']{2} => @(\"W:\" + Text(c))\nparse Start stream bytes";
+
+		var parser = Build(grammar, Host, bytes: true);
+		var match  = Match(parser, "TryParseStart", "03<(cd)>");
+		var value  = match.GetType().GetProperty("Value")!.GetValue(match)!;
+
+		Assert.Equal(3, value.GetType().GetProperty("N")!.GetValue(value));
+
+		var refused = Compiled("Start : @string = '<' & Ow & '>'\nOw : @string = '(' & Word & ')'\nWord : @string = c: ['a'..'z']{2} => @(\"W:\" + Text(c))\nparse Start stream bytes", Host, bytes: true);
+		var said    = Assert.Single(refused.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
+	}
+
 	[Fact]
 	public void A_text_rule_a_guard_reads_a_name_of_gives_its_bytes_over_bytes()
 	{

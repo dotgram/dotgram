@@ -4903,6 +4903,16 @@ file.Line("return spare;");
 
 				break;
 
+			// A join over bytes is the one the byte form does not build: the form is refused where its value is read, so this one
+			// is not, and the pieces it would join are built where they stand.
+			case Construction.Join when bytes:
+
+				file.Line(summary + ": nothing, where no one reads it.</summary>");
+				file.Line(head + " =>");
+				file.Line("	default!;");
+
+				break;
+
 			// The author's own C#, written under a `#line` pointing back at it (§7.6).
 			case Construction.Expression:
 
