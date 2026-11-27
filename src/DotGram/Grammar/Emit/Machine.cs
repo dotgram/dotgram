@@ -6427,6 +6427,7 @@ sealed partial class Machine
 		try
 		{
 			var said = Predicted(alternatives);
+			TellNonReaderPredicted(alternatives, said, predicting);
 
 			if (DisplaysTold is { } told && _reading && !predicting && alternatives.Count > 0)
 				told(alternatives[0], ["(predicted)", .. said]);
@@ -8901,6 +8902,7 @@ sealed partial class Machine
 	IReadOnlyList<string> Displays(Node node)
 	{
 		var said = Displays(node, leading: true);
+		TellNonReader(node, said);
 
 		if (DisplaysTold is { } told && _reading && !_predicting)
 			told(node, said);
