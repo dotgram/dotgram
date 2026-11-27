@@ -347,7 +347,7 @@ sealed partial class GrammarNormalizer
 		if (rule.Declaration is null || rule.GivesBack || !_bodies.TryGetValue(rule, out var body))
 			return false;
 
-		if (_folds.ContainsKey(rule) || _climbing.ContainsKey(rule) || _lifted.ContainsKey(rule) ||
+		if (_folds.ContainsKey(rule) || _climbing.ContainsKey(rule) || _lifted.ContainsKey(rule) || _folded.Contains(rule) ||
 			_externals.ContainsValue(rule) || _settledFrom.ContainsKey(rule))
 			return false;
 
@@ -375,7 +375,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	bool Settles(RuleSymbol rule)
 	{
-		return !_folds.ContainsKey(rule) && !_climbing.ContainsKey(rule) && !_lifted.ContainsKey(rule);
+		return !_folds.ContainsKey(rule) && !_climbing.ContainsKey(rule) && !_lifted.ContainsKey(rule) && !_folded.Contains(rule);
 	}
 
 	/// <summary>
