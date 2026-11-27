@@ -74,6 +74,11 @@ static class EmittedCode
 	/// <c>ExponentialRepetitionTests</c>, every grammar of the repository is held to a triaged list
 	/// there, and the slow suite drives what it tells.
 	/// </para>
+	/// <para>
+	/// GRAM5022 likewise: a grammar with a <c>find</c>, a <c>yield</c> or a position beside a run is
+	/// how these tests reach the engine, and a long run refused at its end is not their question.
+	/// <c>SettledDroppedWarningTests</c> asserts on it, and holds every shipped grammar free of it.
+	/// </para>
 	/// </remarks>
 	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
 	{
@@ -81,7 +86,7 @@ static class EmittedCode
 			diagnostics,
 			static one => one.Severity != GramSeverity.Info &&
 				one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused or GrammarNormalizer.SpacedLexeme or
-					GramCompiler.ExponentialRepetitions));
+					GramCompiler.ExponentialRepetitions or GramCompiler.SettledDropped));
 	}
 
 	public static Assembly Compile(
