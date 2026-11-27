@@ -34,7 +34,7 @@ public sealed class AnalyzerProjectTests
 			    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 			    <!-- What the snapshot grammars say about themselves (they are written to show a shape, not to be
 			         clean grammars), not what the analyzer rules say about the files written for them. -->
-			    <NoWarn>$(NoWarn);GRAM4052;GRAM4059;GRAM5016</NoWarn>
+			    <NoWarn>$(NoWarn);GRAM4052;GRAM4059;GRAM5016;GRAM5022</NoWarn>
 			""",
 			$"""
 			{memory}
