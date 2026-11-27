@@ -1,4 +1,4 @@
-Since 0.2.0. The documentation, with a guide to the language and one to the generator, is at https://dotgram.github.io/dotgram/; docs/syntax.md is the language, docs/diagnostics.md every message by its identifier; docs/status.md says what this version does and does not do yet.
+﻿Since 0.2.0. The documentation, with a guide to the language and one to the generator, is at https://dotgram.github.io/dotgram/; docs/syntax.md is the language, docs/diagnostics.md every message by its identifier; docs/status.md says what this version does and does not do yet.
 
 BREAKING CHANGES, and what to do about each. Regenerate the parser to take any of them.
 
