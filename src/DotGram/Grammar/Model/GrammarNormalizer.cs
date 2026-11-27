@@ -445,7 +445,8 @@ sealed partial class GrammarNormalizer
 			SettledNodes = normalizer._settledNodes,
 			SettledRuns  = [.. normalizer._settledFrom
 				.Where(pair => normalizer._rules.Contains(pair.Key) && normalizer._settledRuns.Contains(pair.Key))
-				.Select(static pair => pair.Value)],
+				.Select(static pair => pair.Value)
+				.OrderBy(static rule => rule.Declaration?.At.Position ?? 0)],
 
 			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,
