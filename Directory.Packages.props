@@ -67,6 +67,12 @@
 		     carry nothing of the older arrangement — no VSTest adapter beside the platform
 		     and no pre-.NET-10 opt-in property. -->
 		<PackageVersion Include="Moq" Version="4.20.70" />
+
+		<!-- tests/DotGram.QueryLanguage.Tests only: the query language under a second LINQ provider, one that
+		     evaluates the closed parts of a projection ahead of the rows. Its version pairs with
+		     Microsoft.Data.Sqlite's below. -->
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+
 		<PackageVersion Include="xunit.v3" Version="4.0.0" />
 	</ItemGroup>
 

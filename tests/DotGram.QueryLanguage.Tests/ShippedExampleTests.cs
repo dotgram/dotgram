@@ -59,7 +59,7 @@ public sealed class ShippedExampleTests
 	{
 		var json = await Model().ToJsonAsync(new AppDb(1), "from orders where total > 100 order by total desc take 2 select id, total", cancellationToken: TestContext.Current.CancellationToken);
 
-		Assert.Equal("""{"columns":["id","total"],"rows":[[3,250.00],[1,120.50]]}""", json);
+		Assert.Equal("""{"status":"started","columns":["id","total"],"rows":[[3,250.00],[1,120.50]],"count":2,"truncated":false,"result":"completed"}""", json);
 	}
 
 	[Fact]
@@ -125,7 +125,7 @@ public sealed class ShippedExampleTests
 		}
 		catch (QlException e)
 		{
-			return JsonSerializer.Serialize(new { e.Error.Code, e.Error.Message, e.Error.Position });
+			return e.Error.ToJson();
 		}
 	}
 
@@ -134,13 +134,11 @@ public sealed class ShippedExampleTests
 	{
 		var json = await Endpoint("""{"text":"from orders where status in @statuses && total >= @min order by id select id","values":{"statuses":["paid","new"],"min":100.5}}""");
 
-		Assert.Equal("""{"columns":["id"],"rows":[[1],[3]]}""", json);
+		Assert.Equal("""{"status":"started","columns":["id"],"rows":[[1],[3]],"count":2,"truncated":false,"result":"completed"}""", json);
 
 		var refused = await Endpoint("""{"text":"from orders where price > 1"}""");
 
-		using var error = JsonDocument.Parse(refused);
-
-		Assert.Equal((2, "Unknown name `price`.", 18), (error.RootElement.GetProperty("Code").GetInt32(), error.RootElement.GetProperty("Message").GetString(), error.RootElement.GetProperty("Position").GetInt32()));
+		Assert.Equal("""{"status":"error","error":{"code":"UnknownName","message":"Unknown name `price`.","position":18}}""", refused);
 	}
 
 	[Fact]

@@ -398,9 +398,6 @@ sealed partial class Binder
 			{
 				items[i] = BindValue(@in.Items[i], operand.Type);
 
-				if (items[i].ReadsRow)
-					throw Error(QlErrorCode.Type, "The values of `in` are literals and parameters: they read no row.", @in.Items[i].Position);
-
 				if (items[i].Type.Type != operand.Type.Type || items[i].Type.Core != operand.Type.Core)
 					throw Error(QlErrorCode.Type, $"`in` looks for a {operand.Type.Name}, and this is a {items[i].Type.Name}.", @in.Items[i].Position);
 
@@ -429,24 +426,18 @@ sealed partial class Binder
 	}
 
 	/// <summary>
-	/// <c>x like p</c>, as the host's LIKE: the language reads nothing in the pattern. The left is a string of the rows,
-	/// so that the database computes it; the right is any string. A model without a LIKE refuses it after its operands,
+	/// <c>x like p</c>, as the host's LIKE: the language reads nothing in the pattern. Both sides are any strings; what
+	/// the provider cannot compute is the provider's to refuse. A model without a LIKE refuses it after its operands,
 	/// so that a field named there without its right is reported as it is anywhere else.
 	/// </summary>
 	BoundExpr BindLike(LikeExpr like)
 	{
 		var text = ScalarType.Of(QlType.String, true);
 
-		if (IsUntyped(like.Operand) || like.Operand is LiteralExpr or TypedLiteralExpr)
-			throw Error(QlErrorCode.Type, "`like` matches a value of the rows: write the field on its left, `name like @pattern`.", like.Position);
-
 		var operand = BindValue(like.Operand, text);
 
 		if (operand.Type.Type != QlType.String)
 			throw Error(QlErrorCode.Type, $"`like` matches strings, and this is a {operand.Type.Name}.", like.Position);
-
-		if (!operand.ReadsRow)
-			throw Error(QlErrorCode.Type, "`like` matches a value of the rows: write the field on its left, `name like @pattern`.", like.Position);
 
 		var pattern = BindValue(like.Pattern, text);
 
@@ -507,13 +498,7 @@ sealed partial class Binder
 			return new BoundField(field, member.Name.Text, member.Name.Position, target.Name.Text);
 		}
 
-		if (IsUntyped(member.Target) || member.Target is LiteralExpr or TypedLiteralExpr)
-			throw Error(QlErrorCode.Type, $"`{member.Name.Text}` of a value that reads no row is the caller's to compute: lower or upper the value on the caller's side.", member.Name.Position);
-
 		var receiver = BindValue(member.Target, null);
-
-		if (!receiver.ReadsRow)
-			throw Error(QlErrorCode.Type, $"`{member.Name.Text}` of a value that reads no row is the caller's to compute: lower or upper the value on the caller's side.", member.Name.Position);
 
 		var entry = Members.Find(receiver.Type.Type, member.Name.Text)
 			?? throw Error(QlErrorCode.UnknownName, $"`{receiver.Type.Name}` has no member `{member.Name.Text}`.", member.Name.Position);
@@ -555,9 +540,6 @@ sealed partial class Binder
 			return new BoundAggregate(kind, null, ScalarType.Of(QlType.Int, false), call.Position);
 
 		var argument = BindValue(call.Arguments[0], null);
-
-		if (!argument.ReadsRow)
-			throw Error(QlErrorCode.Type, $"`{name}` aggregates a value of the rows: this one reads none.", call.Arguments[0].Position);
 
 		ScalarType type;
 

@@ -10,7 +10,7 @@ using Xunit;
 namespace DotGram.QueryLanguage.Tests;
 
 /// <summary>
-/// <c>like</c> and <c>not like</c>: read at the level of a comparison, bound over strings of the rows, and translated
+/// <c>like</c> and <c>not like</c>: read at the level of a comparison, bound over any two strings, and translated
 /// as the body of the host's own LIKE with the two strings in place of its parameters.
 /// </summary>
 [Collection(nameof(Databases))]
@@ -106,20 +106,53 @@ public sealed class LikeTests(Databases databases)
 	}
 
 	[Theory]
-	[InlineData("from orders where 'c1' like customer select id",       23, "`like` matches a value of the rows")]
-	[InlineData("from orders where @p like customer select id",         21, "`like` matches a value of the rows")]
-	[InlineData("from orders where null like 'x' select id",            23, "`like` matches a value of the rows")]
-	[InlineData("from orders where ('c1') like customer select id",     25, "`like` matches a value of the rows")]
 	[InlineData("from orders where qty like '1%' select id",            22, "`like` matches strings, and this is a int")]
 	[InlineData("from orders where customer like 1 select id",          32, "The pattern of `like` is a string, and this is a int")]
 	[InlineData("from orders where customer like created select id",    32, "The pattern of `like` is a string")]
 	[InlineData("from orders select customer like 'c%' + 1 as m",       38, "`+` is not defined for strings")]
-	public void LikeMatchesAStringOfTheRowsAgainstAString(string text, int position, string message)
+	public void LikeMatchesStringsOnly(string text, int position, string message)
 	{
 		var error = Refused(text);
 
 		Assert.Equal((QlErrorCode.Type, (int?)position), (error.Code, error.Position));
 		Assert.StartsWith(message, error.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Either side is any string: a literal, a parameter, a name or a field. What a provider cannot compute is the
+	/// provider's to refuse, so the language binds it and asks nothing of the rows.
+	/// </summary>
+	[Theory]
+	[InlineData("from orders where @p like customer select id")]
+	[InlineData("from orders where 'c1' like customer select id")]
+	[InlineData("from orders where @p like @q select id")]
+	[InlineData("from orders let x = 'c1' where x like customer select id")]
+	[InlineData("from orders where ('c1') not like customer select id")]
+	[InlineData("from orders where null like 'x' select id")]
+	public void EitherSideIsAnyString(string text)
+	{
+		var info = Model.Describe(text);
+
+		Assert.Equal([QlType.Int], info.Columns.Select(c => c.Type));
+	}
+
+	[Fact]
+	public void ALeftThatReadsNoRowStandsInTheHooksBody()
+	{
+		var hook = new QlModelBuilder<Shop>();
+
+		hook.Entity("orders", s => s.AllOrders).Column("customer", o => o.Customer).Column("id", o => o.Id);
+		hook.Like((s, p) => Match(s, p));
+
+		var values = new Dictionary<string, object?> { ["p"] = "c1", ["q"] = "c" };
+
+		foreach (var text in new[] { "from orders where @p like customer select id", "from orders where 'c1' like customer select id", "from orders where @p like @q select id" })
+		{
+			var query = hook.Build().QueryData(Shop.InMemory(), text, values);
+			var call = Assert.Single(Calls(query.Expression), c => c.Method.Name == nameof(Match));
+
+			Assert.Equal(2, call.Arguments.Count);
+		}
 	}
 
 	[Fact]
@@ -242,6 +275,20 @@ public sealed class LikeTests(Databases databases)
 	{
 		Assert.Equal(Ids(o => o.Status is not null && !o.Status.StartsWith("pa", StringComparison.Ordinal)), Run(provider, "from orders where status not like 'pa%' order by id select id").Select(r => r[0]));
 		Assert.Equal(Ids(o => o.Status is not null && !o.Status.StartsWith("pa", StringComparison.Ordinal)), Run(provider, "from orders where !(status like 'pa%') order by id select id").Select(r => r[0]));
+	}
+
+	/// <summary>
+	/// A left that reads no row goes to the provider as it is. Both databases compute these through linq2db; a provider
+	/// that could not would refuse them itself.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Databases.Providers), MemberType = typeof(Databases))]
+	public void ALeftThatReadsNoRowGoesToTheProvider(string provider)
+	{
+		Assert.Equal(Ids(o => o.Customer == "c1"), Run(provider, "from orders where @p like customer order by id select id", new { p = "c1" }).Select(r => r[0]));
+		Assert.Equal(Ids(o => o.Customer == "c1"), Run(provider, "from orders where 'c1' like customer order by id select id").Select(r => r[0]));
+		Assert.Equal(Ids(_ => true),               Run(provider, "from orders where @p like @q order by id select id", new { p = "c1", q = "c%" }).Select(r => r[0]));
+		Assert.Empty(Run(provider, "from orders where @p not like @q order by id select id", new { p = "c1", q = "c%" }));
 	}
 
 	[Theory]

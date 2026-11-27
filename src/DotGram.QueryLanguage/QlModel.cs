@@ -48,7 +48,7 @@ public sealed class QlModel<TContext>
 		var bound     = Bind(text);
 		var arguments = Arguments.Bind(bound, values, Options);
 
-		return Translator.QueryData(bound, Source(bound.Entity, context), arguments, Options);
+		return Translator.QueryData(bound, Source(bound.Entity, context), arguments, Options.MaxRows);
 	}
 
 	/// <summary>The rows of an entity for this context: its source, called for every query, so that it sees the context as it is now.</summary>
@@ -76,10 +76,10 @@ public sealed class QlModel<TContext>
 	/// <exception cref="QlException">The text, or a value, is refused.</exception>
 	public IQueryable<string> QueryJsonRow(TContext context, string text, IReadOnlyDictionary<string, object?>? values = null, QlJsonFormat format = QlJsonFormat.Array)
 	{
-		return JsonRows(context, text, values, format, out _);
+		return JsonRows(context, text, values, format, Options.MaxRows, out _);
 	}
 
-	IQueryable<string> JsonRows(TContext context, string text, IReadOnlyDictionary<string, object?>? values, QlJsonFormat format, out BoundQuery bound)
+	IQueryable<string> JsonRows(TContext context, string text, IReadOnlyDictionary<string, object?>? values, QlJsonFormat format, int? maxRows, out BoundQuery bound)
 	{
 		if (format is not (QlJsonFormat.Array or QlJsonFormat.Object))
 			throw new ArgumentOutOfRangeException(nameof(format), format, "A row is an array or an object.");
@@ -88,16 +88,19 @@ public sealed class QlModel<TContext>
 
 		var arguments = Arguments.Bind(bound, values, Options);
 
-		return Translator.QueryJsonRow(bound, Source(bound.Entity, context), arguments, Options, format, Formats);
+		return Translator.QueryJsonRow(bound, Source(bound.Entity, context), arguments, maxRows, format, Formats);
 	}
 
 	/// <summary>Runs <see cref="QueryJsonRow"/> and returns the whole result as one JSON document.</summary>
 	/// <remarks>
-	/// The document is <c>{"columns":["id","name"],"rows":[[1,"Ann"],…]}</c> for arrays, <c>[{"id":1,"name":"Ann"},…]</c>
-	/// for objects; with no rows, <c>"rows":[]</c> and <c>[]</c>. The rows are read through the provider's
-	/// <see cref="IAsyncEnumerable{T}"/> where its query is one, and synchronously where not. The whole document is held
-	/// in memory: <see cref="QlOptions.MaxRows"/> bounds the rows, nothing here bounds the size of the values in them.
-	/// A refused text or value fails the returned task, as the provider's errors do.
+	/// The document is <c>{"status":"started","columns":["id","name"],"rows":[[1,"Ann"]],"count":1,"truncated":false,"result":"completed"}</c>,
+	/// with the rows as objects in <see cref="QlJsonFormat.Object"/>, and the text's warnings after the columns where
+	/// it has any. <c>truncated</c> is true where <see cref="QlOptions.MaxRows"/> left rows out: one row past the bound
+	/// is read to tell, and dropped. The rows are read through the provider's <see cref="IAsyncEnumerable{T}"/> where its
+	/// query is one, and synchronously where not. The whole document is held in memory: <see cref="QlOptions.MaxRows"/>
+	/// bounds the rows, nothing here bounds the size of the values in them. A refused text or value fails the returned
+	/// task with <see cref="QlException"/>, whose <see cref="QlError.ToJson"/> is the document of the refusal; the
+	/// provider's errors fail it with the provider's own exceptions, and nothing of them is written.
 	/// </remarks>
 	/// <param name="context">What the entities' sources are called with.</param>
 	/// <param name="text">The query.</param>
@@ -109,35 +112,33 @@ public sealed class QlModel<TContext>
 	{
 		cancellationToken.ThrowIfCancellationRequested();
 
-		var rows     = JsonRows(context, text, values, format, out var bound);
+		var maxRows = Options.MaxRows;
+
+		// One row past the bound tells a result the bound cut from one that has exactly as many rows. Past int.MaxValue
+		// there is no row to ask for, and the sum would wrap.
+		var rows     = JsonRows(context, text, values, format, maxRows < int.MaxValue ? maxRows + 1 : maxRows, out var query);
 		var document = new StringBuilder();
+		var count    = 0;
+		var cut      = false;
 
-		if (format == QlJsonFormat.Array)
-		{
-			document.Append("{\"columns\":[");
+		QlJsonDocument.Start(document, query.Names, query.Info.Warnings);
 
-			for (var i = 0; i < bound.Names.Length; i++)
-			{
-				if (i > 0)
-					document.Append(',');
-
-				document.Append(QlJson.Quote(bound.Names[i]));
-			}
-
-			document.Append("],\"rows\":[");
-		}
-		else
-		{
-			document.Append('[');
-		}
-
-		var first = true;
+		document.Append(",\"rows\":[");
 
 		// The provider's own reading of the rows where it has one that does not block, its plain one where not.
 		if (rows is IAsyncEnumerable<string> stream)
 		{
 			await foreach (var row in stream.WithCancellation(cancellationToken).ConfigureAwait(false))
+			{
+				if (count == maxRows)
+				{
+					cut = true;
+
+					break;
+				}
+
 				Add(row);
+			}
 		}
 		else
 		{
@@ -145,26 +146,36 @@ public sealed class QlModel<TContext>
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
+				if (count == maxRows)
+				{
+					cut = true;
+
+					break;
+				}
+
 				Add(row);
 			}
 		}
 
-		document.Append(format == QlJsonFormat.Array ? "]}" : "]");
+		document.Append(']');
+
+		QlJsonDocument.Complete(document, count, cut);
 
 		return document.ToString();
 
 		void Add(string row)
 		{
-			if (!first)
+			if (count > 0)
 				document.Append(',');
 
 			document.Append(row);
 
-			first = false;
+			count++;
 		}
 	}
 
 	/// <summary>Reads and binds <paramref name="text"/> without values: its columns, its parameters and its warnings.</summary>
+	/// <remarks><see cref="QlQueryInfo.ToJson"/> is the same as JSON, and <see cref="QlError.ToJson"/> the refusal's.</remarks>
 	/// <exception cref="QlException">The text is refused.</exception>
 	public QlQueryInfo Describe(string text)
 	{
@@ -219,4 +230,16 @@ public sealed class QlQueryInfo
 
 	/// <summary>What is worth telling whoever wrote the text.</summary>
 	public IReadOnlyList<QlWarning> Warnings { get; }
+
+	/// <summary>
+	/// The description as JSON: <c>{"status":"ok","columns":[{"name":"id","type":"Int","nullable":false},…],
+	/// "parameters":[{"name":"low","type":"Decimal","nullable":false,"list":false},…]}</c>, and <c>"warnings"</c> after
+	/// them where there are any. A type is the name of its <see cref="QlType"/>. A description reads no row, so it is
+	/// whole when it is written: it opens with <c>"ok"</c>, not with the <c>"started"</c> of the rows, and has no
+	/// <c>"result"</c>.
+	/// </summary>
+	public string ToJson()
+	{
+		return QlJsonDocument.Describe(this);
+	}
 }

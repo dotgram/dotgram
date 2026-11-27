@@ -12,6 +12,7 @@ DotGram.QueryLanguage.QlError
 DotGram.QueryLanguage.QlError.Code.get -> DotGram.QueryLanguage.QlErrorCode
 DotGram.QueryLanguage.QlError.Message.get -> string!
 DotGram.QueryLanguage.QlError.Position.get -> int?
+DotGram.QueryLanguage.QlError.ToJson() -> string!
 DotGram.QueryLanguage.QlErrorCode
 DotGram.QueryLanguage.QlErrorCode.DivisionByZero = 6 -> DotGram.QueryLanguage.QlErrorCode
 DotGram.QueryLanguage.QlErrorCode.Limit = 4 -> DotGram.QueryLanguage.QlErrorCode
@@ -73,6 +74,7 @@ DotGram.QueryLanguage.QlQueryInfo
 DotGram.QueryLanguage.QlQueryInfo.Columns.get -> System.Collections.Generic.IReadOnlyList<DotGram.QueryLanguage.QlColumnInfo!>!
 DotGram.QueryLanguage.QlQueryInfo.Parameters.get -> System.Collections.Generic.IReadOnlyList<DotGram.QueryLanguage.QlParameterInfo!>!
 DotGram.QueryLanguage.QlQueryInfo.Warnings.get -> System.Collections.Generic.IReadOnlyList<DotGram.QueryLanguage.QlWarning!>!
+DotGram.QueryLanguage.QlQueryInfo.ToJson() -> string!
 DotGram.QueryLanguage.QlType
 DotGram.QueryLanguage.QlType.Bool = 1 -> DotGram.QueryLanguage.QlType
 DotGram.QueryLanguage.QlType.Decimal = 4 -> DotGram.QueryLanguage.QlType

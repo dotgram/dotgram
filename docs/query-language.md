@@ -7,7 +7,8 @@ runs the result. The package's [README](https://github.com/dotgram/dotgram/blob/
 is the overview; this page is the reference.
 
 The package is built and tested with every change and is not yet published. It is tested with
-linq2db over SQLite and SQL Server; other providers, EF Core among them, are not tested.
+linq2db over SQLite and SQL Server, with EF Core over SQLite, and over LINQ to Objects; other
+providers are not tested.
 
 ## The model
 
@@ -53,12 +54,13 @@ after it.
 | `QueryData(context, text, values)` | `IQueryable<object?[]>`: each row's values in column order, as the provider read them |
 | `QueryJsonRow(context, text, values, format)` | `IQueryable<string>`: each row as JSON text, written while the provider reads it |
 | `ToJsonAsync(context, text, values, format, cancellationToken)` | the whole result as one JSON document |
-| `Describe(text)` | the columns a text returns, the parameters it needs and its warnings |
+| `Describe(text)` | the columns a text returns, the parameters it needs and its warnings; `ToJson()` of it is the same as JSON |
 
 Each call reads and binds the text (the binding is kept, by the exact text, for the next call),
 checks the values, calls the sources with the context and builds a new tree. Nothing runs until
 the host enumerates what is returned. A text or a value the language refuses throws
-`QlException`; `ToJsonAsync` returns it through its task.
+`QlException`; `ToJsonAsync` returns it through its task, and `QlException.Error.ToJson()` is the
+JSON document of the refusal.
 
 ## The language
 
@@ -87,15 +89,17 @@ select id, status, net
   strings in `'…'` or `"…"` with the escapes `\\`, `\'`, `\"` and `\uXXXX`; `true`, `false`, `null`;
   `timestamp '2026-01-01 10:00:00'` and `timestamptz '2026-01-01 10:00:00+02:00'`.
 - **Operators**, at C#'s precedence: `*` `/` `%`, `+` `-`, the comparisons `==` `!=` `<` `<=` `>`
-  `>=`, `&&`, `||`, and the unary `!` and `-`. `x [not] in (a, b)` (of literals and parameters), `x [not] in @list`,
+  `>=`, `&&`, `||`, and the unary `!` and `-`. `x [not] in (a, b)` (any values of the type of `x`), `x [not] in @list`,
   `x [not] between a and b`, `x is [not] null`, `x [not] like p` (below). `!` binds as in C#,
   tighter than any binary operator; where C# and SQL's `NOT` would read a text differently — `!a == b`, `!flag is null` —
   the text is refused and asks for `!(a == b)` or `(!a) == b`.
 - **Members**: `Length`, `Contains(s)`, `StartsWith(s)`, `EndsWith(s)`, `ToUpper()`, `ToLower()`,
-  `Trim()` of a string; `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`, `Date` of a timestamp.
+  `Trim()` of a string; `Year`, `Month`, `Day`, `Hour`, `Minute`, `Second`, `Date` of a timestamp. The
+  string may be any string, a literal or a `let` too; what a provider cannot compute it refuses itself.
 - **Aggregates**, in a `select` whose columns are all aggregates: `Count(*)`, `Count(x)` (the rows
   where `x` is not null), `Sum(x)`, `Avg(x)`, `Min(x)`, `Max(x)`. They aggregate every row at once
-  and give one row — with no rows, `Count` is 0 and the others null. An integer's average is a
+  and give one row — with no rows, `Count` is 0 and the others null. `x` is any value, a constant too:
+  `Sum(1)` counts the rows. An integer's average is a
   `double`. There is no `group by` yet.
 - **Null** compares as in C#, not as in SQL: `x == null` tests for null, `x != 1` holds where `x` is
   null.
@@ -107,10 +111,10 @@ select id, status, net
 
 ### `like`
 
-`title like @pattern`, `title not like 'War%'` match a string of the rows against a pattern, at the
+`title like @pattern`, `title not like 'War%'` match a string against a pattern, at the
 level of a comparison: `a like p && b > 1` is `(a like p) && (b > 1)`, and `a like p like q` is not a
-text. The left is a string the rows give — a field, a `let`, a member of one; the pattern is any
-string, a literal, a parameter or another field.
+text. Both sides are any string: a field, a `let`, a member of one, a literal or a parameter. What a
+provider cannot compute it refuses itself; the language asks nothing of the rows.
 
 The language has no LIKE of its own. The host says what `like` means, once, with its provider's own:
 
@@ -168,16 +172,73 @@ Whether the provider can translate what the text does with it is the provider's 
 
 ## JSON
 
-`QueryJsonRow` and `ToJsonAsync` write a row as an array in column order or as an object keyed by
-column name (`QlJsonFormat`):
+`QueryJsonRow` writes each row as an array in column order or as an object keyed by column name
+(`QlJsonFormat`):
 
 ```json
 [1,"Ann \"A\" Lee",1250.50,"2026-11-01T09:30:00.0000000"]
 {"id":1,"name":"Ann \"A\" Lee","total":1250.50,"created":"2026-11-01T09:30:00.0000000"}
 ```
 
-and `ToJsonAsync` the whole result as `{"columns":["id","name","total","created"],"rows":[[…],…]}`
-or `[{…},…]`; with no rows, `"rows":[]` or `[]`.
+`ToJsonAsync` puts the rows in one document, and the document says how it went in members of its
+own, never by the shape of what it holds. Its first member is `status`, its last `result`:
+
+```json
+{"status":"started","columns":["id","name"],"rows":[[1,"Ann"],[2,"Bob"]],"count":2,"truncated":false,"result":"completed"}
+```
+
+The object form is the same document, its rows objects keyed by column name:
+
+```json
+{"status":"started","columns":["id","name"],"rows":[{"id":1,"name":"Ann"},{"id":2,"name":"Bob"}],"count":2,"truncated":false,"result":"completed"}
+```
+
+Where `MaxRows` left rows out, `truncated` says so:
+
+```json
+{"status":"started","columns":["id"],"rows":[[1],[2],…],"count":1000,"truncated":true,"result":"completed"}
+```
+
+A refused text or value is a document of its own, `QlError.ToJson()`:
+
+```json
+{"status":"error","error":{"code":"UnknownName","message":"Unknown name `totl`.","position":21}}
+```
+
+- `status` is `"started"` — the text was accepted and its rows follow — or `"error"` — nothing was
+  read, and the document holds the `error` alone. `result` is `"completed"` where every row was
+  read; a document without `result` was cut off on its way. `ToJsonAsync` writes its document
+  whole or not at all: a failure while it reads the rows fails its task, so `"failed"`, the other
+  `result`, is kept for a writer that sends the rows as it reads them.
+- `columns` is there in both forms, so a client knows the columns of a result with no rows.
+  `count` is the number of rows in `rows`.
+- `truncated` is true only where `MaxRows` cut the result: `ToJsonAsync` reads one row past the
+  bound to tell, and drops it. A `take` of the text is what was asked for, not a cut. With
+  `MaxRows` null it is always false.
+- `warnings`, after `columns`, only where the text has any:
+  ``"warnings":[{"code":"UnusedName","message":"`x` is never used.","position":19}]``. A warning is a
+  hint, not a status.
+- `error.code` is the name of the `QlErrorCode`. `position` is the zero-based offset in the text, in
+  UTF-16 code units as JavaScript counts them, and is left out where there is none. One more code is
+  kept for JSON, `Failed`: a failure of the provider after the rows started, which no `QlException`
+  carries.
+- The provider's own exceptions — a timeout, a lost connection, a format that threw — are not
+  written: `ToJsonAsync` passes them on, and their text, which may name tables or show SQL, never
+  enters a document. What the host answers with is the host's.
+- A client skips members it does not know, so that members can be added without a version.
+- The document is not `application/problem+json`, whose `status` is a number. A host that wraps it
+  in problem details puts it in a member of its own.
+
+`Describe(text).ToJson()` describes a text with the same first member. A description reads no row,
+so it is whole when it is written: it opens with `"ok"` and has no `result`.
+
+```json
+{"status":"ok","columns":[{"name":"id","type":"Int","nullable":false},{"name":"total","type":"Decimal","nullable":true}],"parameters":[{"name":"low","type":"Decimal","nullable":true,"list":false}]}
+```
+
+A `type` is the name of the `QlType`, and `warnings` follow the parameters where there are any.
+
+Values are written the same way everywhere:
 
 - `bool` is `true`/`false`; numbers are culture-free; a `decimal` has the scale the provider read
   it with (`1250.50` from SQL Server's `decimal(10,2)`); a `long` past 2^53 is written exactly,
@@ -188,7 +249,8 @@ or `[{…},…]`; with no rows, `"rows":[]` or `[]`.
 - `DateTime` and `DateTimeOffset` are ISO 8601 (`"O"`), a `Guid` is `"D"`, null is `null`.
 - Strings escape `"`, `\` and the control characters (with `\n`-style short forms where JSON has
   them), U+2028 and U+2029, `<`, `>`, `&` and `'` (so the text is safe inside HTML), and a
-  surrogate without its pair. Everything else is written as it is.
+  surrogate without its pair. Everything else is written as it is. The names and messages of a
+  document are escaped the same way.
 - A type outside the language prints as `ToString(null, CultureInfo.InvariantCulture)` where it is
   `IFormattable`, `ToString()` otherwise: an enum by its name, `DateOnly` as `01/02/2026`, `byte[]` as
   `System.Byte[]`.
@@ -221,7 +283,7 @@ names.
 | `MaxArithmeticOperands` | 8 | operands of one arithmetic expression |
 | `MaxInList` | 100 | values of one `in` list, written or passed |
 | `MaxColumns` | 32 | columns of a `select` and of a result |
-| `MaxRows` | 1000 | rows a query returns: a `Take` before the final projection; null for none |
+| `MaxRows` | 1000 | rows a query returns: a `Take` before the final projection; null for none. `ToJsonAsync` takes one more to tell `truncated` |
 | `MaxSkip` | 10000 | rows all the `skip`s of a text pass over together |
 | `MaxStringLength` | 4096 | characters of one string, literal or value |
 | `MaxParameterBytes` | 16384 | bytes of all the values of one call |
@@ -243,7 +305,8 @@ command timeout and cancellation are the host's.
 | `DivisionByZero`, `Overflow` | arithmetic of literals and parameters, computed before the query runs |
 
 Anything else — a timeout, a database error, a value the provider cannot read, an exception from
-a format — is the provider's or the host's own exception.
+a format — is the provider's or the host's own exception. `Error.ToJson()` is the refusal as a JSON
+document (see JSON above).
 
 ## Providers
 
@@ -257,5 +320,7 @@ a format — is the provider's or the host's own exception.
   SQLite ignores the case of ASCII letters only; whether `é` matches `e` is the collation's.
 - `x in @list` is written by linq2db as a list of literals: one cached query, but a new SQL text,
   and a new plan in the database, for each set of values.
-- Only linq2db is tested. A provider that evaluates closed parts of a projection ahead of the rows
-  (EF Core does) is not known to keep the JSON writer per row.
+- linq2db (SQLite, SQL Server), EF Core (SQLite) and LINQ to Objects are tested. EF Core evaluates
+  the closed parts of a projection ahead of the rows, and the JSON writer is still called a row at
+  a time; its `like` is `EF.Functions.Like(s, p, "\\")`. EF Core over SQLite keeps a `decimal` as
+  text, so its scale is the text's.

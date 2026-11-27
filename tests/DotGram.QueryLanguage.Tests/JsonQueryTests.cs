@@ -82,13 +82,16 @@ public sealed class JsonQueryTests(Databases databases)
 		var array    = await Customers.ToJsonAsync(CrmOf(place), CustomersText, cancellationToken: TestContext.Current.CancellationToken);
 		var objects  = await Customers.ToJsonAsync(CrmOf(place), CustomersText, format: QlJsonFormat.Object, cancellationToken: TestContext.Current.CancellationToken);
 
-		Assert.Equal("{\"columns\":[\"id\",\"name\",\"total\",\"created\"],\"rows\":[" + string.Join(",", Expected(place, ArrayRows)) + "]}", array);
-		Assert.Equal("[" + string.Join(",", Expected(place, ObjectRows)) + "]", objects);
+		const string head = "{\"status\":\"started\",\"columns\":[\"id\",\"name\",\"total\",\"created\"],\"rows\":[";
+		const string tail = "],\"count\":3,\"truncated\":false,\"result\":\"completed\"}";
+
+		Assert.Equal(head + string.Join(",", Expected(place, ArrayRows)) + tail, array);
+		Assert.Equal(head + string.Join(",", Expected(place, ObjectRows)) + tail, objects);
 
 		if (place != "SQLite")
 		{
-			Assert.Equal(238, Encoding.UTF8.GetByteCount(array));
-			Assert.Equal(277, Encoding.UTF8.GetByteCount(objects));
+			Assert.Equal(306, Encoding.UTF8.GetByteCount(array));
+			Assert.Equal(396, Encoding.UTF8.GetByteCount(objects));
 		}
 	}
 
@@ -98,8 +101,10 @@ public sealed class JsonQueryTests(Databases databases)
 	{
 		const string none = "from customers where id > 100 select id, name";
 
-		Assert.Equal("{\"columns\":[\"id\",\"name\"],\"rows\":[]}", await Customers.ToJsonAsync(CrmOf(place), none, cancellationToken: TestContext.Current.CancellationToken));
-		Assert.Equal("[]", await Customers.ToJsonAsync(CrmOf(place), none, format: QlJsonFormat.Object, cancellationToken: TestContext.Current.CancellationToken));
+		const string empty = "{\"status\":\"started\",\"columns\":[\"id\",\"name\"],\"rows\":[],\"count\":0,\"truncated\":false,\"result\":\"completed\"}";
+
+		Assert.Equal(empty, await Customers.ToJsonAsync(CrmOf(place), none, cancellationToken: TestContext.Current.CancellationToken));
+		Assert.Equal(empty, await Customers.ToJsonAsync(CrmOf(place), none, format: QlJsonFormat.Object, cancellationToken: TestContext.Current.CancellationToken));
 		Assert.Empty(Customers.QueryJsonRow(CrmOf(place), none));
 	}
 

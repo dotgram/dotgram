@@ -36,7 +36,7 @@ public sealed class Crm(IQueryable<Customer> customers)
 		return new Crm(db.GetTable<Customer>());
 	}
 
-	public static QlModel<Crm> Model()
+	public static QlModel<Crm> Model(QlOptions? options = null)
 	{
 		var builder = new QlModelBuilder<Crm>();
 
@@ -46,6 +46,6 @@ public sealed class Crm(IQueryable<Customer> customers)
 			.Column("total",   c => c.Total)
 			.Column("created", c => c.Created);
 
-		return builder.Build();
+		return builder.Build(options);
 	}
 }
