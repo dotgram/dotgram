@@ -1167,7 +1167,7 @@ sealed partial class Machine
 				file.Line();
 			}
 
-			file.Line($"var deep = {Tag.Named("Deep")}.Take();");
+			file.Line($"var deep = {Tag.Named("Deep")}{LocatingArgument}.Take();");
 			file.Line();
 			file.Line("deep.whole  = this.whole;");
 			if (_readerWays)
@@ -1277,7 +1277,7 @@ sealed partial class Machine
 	/// </remarks>
 	void RenderLingering(Writer file, IReadOnlyList<(string Type, string Name)> carried)
 	{
-		var deep = Tag.Named("Deep");
+		var deep = Tag.Named("Deep") + LocatingArgument;
 
 		file.Line("/// <summary>The thread the hand-offs of this thread go to, while it waits for another.</summary>");
 		file.Line("[global::System.ThreadStatic]");
@@ -1527,7 +1527,7 @@ sealed partial class Machine
 		file.Line();
 		file.Line("/// <summary>A reading, in a shape another thread can pick up (Machine.Reader.cs).</summary>");
 
-		using (file.Block($"private sealed class {Tag.Named("Deep")}"))
+		using (file.Block($"private sealed class {Tag.Named("Deep")}{LocatingArgument}{LocatingWhere}"))
 		{
 			file.Line("internal global::System.ReadOnlyMemory<char> whole;");
 			if (_readerWays)
@@ -1564,7 +1564,7 @@ sealed partial class Machine
 						file.Line("taken = true;");
 						file.Line();
 						file.Line(
-							$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
+							$"var reader = new {ReaderStruct}{LocatingArgument}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
 							string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
 						file.Line();
 
@@ -1634,6 +1634,13 @@ sealed partial class Machine
 	/// <summary>The name of the reader the rules of this machine are members of.</summary>
 	string ReaderStruct => Tag.Named("Reader");
 
+	/// <summary>PROBE C: whether the reader is generic over whether its reading locates.</summary>
+	internal bool GenericLocating => UsesLocating && Carrier is ImmediateCarrier;
+
+	string LocatingArgument => GenericLocating ? "<TLocating>" : "";
+
+	string LocatingWhere => GenericLocating ? " where TLocating : struct" : "";
+
 	/// <summary>
 	/// Whether some repetition marked <c>recover</c> the reader reads has the end of the reading
 	/// for its continuation, which a reading that begins where it is told has none of: the
@@ -1665,7 +1672,7 @@ sealed partial class Machine
 
 		header.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
 
-		header.Line($"private ref struct {ReaderStruct}");
+		header.Line($"private ref struct {ReaderStruct}{LocatingArgument}{LocatingWhere}");
 		header.Line("{");
 
 		using (header.Indent())
@@ -1843,10 +1850,33 @@ sealed partial class Machine
 
 		// The parameters in the order the wrapper hands them: the strength beside the
 		// position, then the value, the input, the tokens, the context (CSharpEmitter.EmitPublication).
-		using (file.Block(
-			$"static int {core}(" +
-			$"{InputType} text, int pos{(climbs ? ", int power" : "")}, " +
-			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}{WholeParameter})"))
+		var parameters = $"{InputType} text, int pos{(climbs ? ", int power" : "")}, " +
+			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}{WholeParameter}";
+
+		// PROBE C: the entry the callers know asks once whether the reading locates, and reads with the
+		// reader of that type argument, which the runtime compiles for each.
+		if (GenericLocating)
+		{
+			var arguments = string.Join(", ", parameters.Split(',').Select(static one =>
+			{
+				var words = one.Trim().Split(' ');
+				var name  = words[words.Length - 1];
+
+				return words[0] is "ref" or "out" ? words[0] + " " + name : name;
+			}));
+
+			using (file.Block($"static int {core}({parameters})"))
+			{
+				file.Line("if (parserLocating >= 0)");
+				file.Then($"return {core}<{CSharpEmitter.LocatingOn}>({arguments});");
+				file.Line();
+				file.Line($"return {core}<{CSharpEmitter.LocatingOff}>({arguments});");
+			}
+
+			file.Line();
+		}
+
+		using (file.Block($"static int {core}{LocatingArgument}({parameters}){LocatingWhere}"))
 		{
 			// The tape is what the records of a parse are written on; the tables are what
 			// the walk at the end builds into. A refusal inside a lookahead is kept quiet by
@@ -1886,7 +1916,7 @@ sealed partial class Machine
 				if (Memoises)
 					MemoBegun(file);
 
-				file.Line($"var reader = new {ReaderStruct}(text{(_readerWays ? ", ways" : "")}{Carrier.ReaderArgument}{WholeArgument});");
+				file.Line($"var reader = new {ReaderStruct}{LocatingArgument}(text{(_readerWays ? ", ways" : "")}{Carrier.ReaderArgument}{WholeArgument});");
 				file.Line();
 				file.Line("reader.failure = failure;");
 

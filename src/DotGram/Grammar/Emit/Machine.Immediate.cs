@@ -1069,7 +1069,7 @@ sealed partial class Machine
 
 			var call = $"{made.Method}({string.Join(", ", arguments)})";
 
-			return $"{into} = {(start is null ? call : machine.Offered(made, call, start, $"{end} - {start}"))};";
+			return $"{into} = {(start is null ? call : machine.Offered(made, call, start, $"{end} - {start}", generic: machine.GenericLocating))};";
 
 			string Value(DirectMember member)
 			{

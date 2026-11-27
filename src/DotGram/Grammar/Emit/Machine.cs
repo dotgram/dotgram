@@ -1751,7 +1751,7 @@ sealed partial class Machine
 	/// way a located construction offers it itself — after the value is made, and only for the
 	/// author's own C#, since that is where a located construction offers one.
 	/// </remarks>
-	string Offered(Factory factory, string call, string from, string length, bool walk = false)
+	string Offered(Factory factory, string call, string from, string length, bool walk = false, bool generic = false)
 	{
 		if (!UsesLocating || !factory.Located ||
 			factory.Of is not Node.Construct { How: Construction.Expression { Text: var text } })
@@ -1767,11 +1767,13 @@ sealed partial class Machine
 
 		var type = TypeOf(factory);
 
-		(walk ? _offeredInWalk : _offered).Add(type);
+		(walk ? _offeredInWalk : generic ? _offeredGeneric : _offered).Add(type);
 
+		// PROBE C: in a reader generic over whether it locates, the offer asks the type argument.
+		var named = Tag.Named("Offer") + (generic ? "<TLocating>" : "");
 		var offer = OverKinds
-			? $"{Tag.Named("Offer")}({call}, parserLocating, parserStarts, parserLengths, {from}, {length})"
-			: $"{Tag.Named("Offer")}({call}, parserLocating, {from}, {length})";
+			? $"{named}({call}, parserLocating, parserStarts, parserLengths, {from}, {length})"
+			: $"{named}({call}, parserLocating, {from}, {length})";
 
 		// In the generic walk the offer of that name is the walk's own, which asks the type the
 		// runtime answers while it compiles; a reader, an engine's walk or an immediate reader is
@@ -1792,6 +1794,9 @@ sealed partial class Machine
 
 	/// <summary>The types <see cref="Offered"/> wrapped a call of, each needing its own offer.</summary>
 	readonly SortedSet<string> _offered = new(StringComparer.Ordinal);
+
+	/// <summary>PROBE C: the types a reader generic over whether it locates offered a value of.</summary>
+	readonly SortedSet<string> _offeredGeneric = new(StringComparer.Ordinal);
 
 	/// <summary>The offers <see cref="Offered"/> called, one per type, and what they share.</summary>
 	/// <summary>The types the generic walk offered a value of, which has offers of its own.</summary>
@@ -1835,7 +1840,7 @@ sealed partial class Machine
 	{
 		var helper = new Writer(1);
 
-		if (_offered.Count + _offeredInWalk.Count == 0 || !_graph.LocationsPerCall)
+		if (_offered.Count + _offeredInWalk.Count + _offeredGeneric.Count == 0 || !_graph.LocationsPerCall)
 			return "";
 
 		var located = "global::" + CSharpLanguage.HostOf(_graph).LocationType;
@@ -1854,6 +1859,24 @@ sealed partial class Machine
 			{
 				// Below nought where the reading did not ask.
 				helper.Line("if (locating >= 0)");
+				helper.Then($"{Tag.Named("Locate")}(ref made, locating{handed}, from, length);");
+				helper.Line();
+				helper.Line("return made;");
+			}
+
+			helper.Line();
+		}
+
+		// PROBE C: the offers of a reader generic over whether it locates, which ask the type argument.
+		foreach (var type in _offeredGeneric)
+		{
+			helper.Line("/// <summary>A located value told where it was written, where the reading's type argument says so.</summary>");
+			helper.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+
+			using (helper.Block(
+				$"static {type} {Tag.Named("Offer")}<TLocating>({type} made, int locating{tokens}, int from, int length) where TLocating : struct"))
+			{
+				helper.Line($"if ({LocatingTest})");
 				helper.Then($"{Tag.Named("Locate")}(ref made, locating{handed}, from, length);");
 				helper.Line();
 				helper.Line("return made;");
