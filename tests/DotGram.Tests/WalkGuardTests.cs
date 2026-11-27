@@ -53,6 +53,7 @@ public sealed class WalkGuardTests
 		["GrammarNormalizer.Called"] = "one body's tree; a call is collected, not followed",
 		["GrammarNormalizer.NamesACall"] = "one capture's tree; a call is a leaf",
 		["GrammarNormalizer.Gather | GrammarNormalizer.Step"] = "one alternative's tree; a call is collected, not followed",
+		["GrammarNormalizer.Visit"] = "one alternative's tree; a call is joined, not followed",
 		["GramParser.ParseDeclaration | GramParser.ParseNamespace | GramParser.ParseNamespaceWithin"] =
 			"namespaces inside namespaces, counted toward GramParser.MaxNesting",
 		["Language.Shortest"] = "at most Language.Deep levels",

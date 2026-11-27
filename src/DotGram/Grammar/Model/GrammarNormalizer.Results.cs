@@ -579,7 +579,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	/// <remarks>
 	/// For a rule whose value is implicit, where nothing the rule writes reads a name (§4.1): the rule is the one it
-	/// would have been without them. A construction or a lookahead is left as it is.
+	/// would have been without them. A construction is left as it is; a name in <see cref="_namesRead"/> stays.
 	/// </remarks>
 	Node Unnamed(Node node)
 	{
@@ -588,6 +588,13 @@ sealed partial class GrammarNormalizer
 
 		switch (node)
 		{
+			case Node.Capture(var name, var body) when _namesRead?.Contains(name) == true:
+			{
+				var inner = Unnamed(body);
+
+				return ReferenceEquals(inner, body) ? node : new Node.Capture(name, inner);
+			}
+
 			case Node.Capture(_, var body):
 				return Unnamed(body);
 
@@ -644,6 +651,9 @@ sealed partial class GrammarNormalizer
 				return node;
 		}
 	}
+
+	/// <summary>The names <see cref="Unnamed"/> keeps, while it is asked to keep the ones a rule reads; null keeps none.</summary>
+	HashSet<string>? _namesRead;
 
 	/// <summary>
 	/// The names a rule's own text uses for a capture, a binding or a parameter: the ones a capture this compiler

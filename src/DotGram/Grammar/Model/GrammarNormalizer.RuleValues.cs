@@ -694,8 +694,9 @@ sealed partial class GrammarNormalizer
 
 					break;
 
+				// A span is the bounds of what it matched: a name nothing reads is dropped, and a name a guard reads stays.
 				case ValueSource.Extent:
-					_bodies[rule] = Extended(ReadsValues(body) ? body : Unnamed(body), "parserSpan");
+					_bodies[rule] = Extended(ReadsValues(body) ? UnnamedUnread(body) : Unnamed(body), "parserSpan");
 					break;
 
 				case ValueSource.Joined:
@@ -779,6 +780,49 @@ sealed partial class GrammarNormalizer
 		foreach (var rule in _rules)
 			if (_types.TryGetValue(rule, out var type) && IsSpan(type))
 				_types[rule] = _language.Spelling(KnownType.SourceSpan);
+	}
+
+	/// <summary>The node with the names nothing in it reads taken off: a guard's, a condition's, a mark's or a switch's text reads one.</summary>
+	Node UnnamedUnread(Node node)
+	{
+		var read  = new HashSet<string>(StringComparer.Ordinal);
+		var texts = NodeWalk.Descendants(node).SelectMany(static one => one switch
+		{
+			Node.Guard(var text, _)                       => [text],
+			Node.Marked(_, var text)                      => [text],
+			Node.Choice { Selection: { } selection }      => [selection.Selector.Text],
+			Node.Condition(var test, _)                   => Runs(test),
+			_                                             => (IEnumerable<string>)[],
+		}).ToList();
+
+		foreach (var capture in NodeWalk.Descendants(node).OfType<Node.Capture>())
+			if (texts.Any(text => _language.NamesUsed(text) is { } used
+				? used.Contains(capture.Name)
+				: System.Text.RegularExpressions.Regex.IsMatch(text, @"\b" + System.Text.RegularExpressions.Regex.Escape(capture.Name) + @"\b")))
+				read.Add(capture.Name);
+
+		_namesRead = read;
+
+		try
+		{
+			return Unnamed(node);
+		}
+		finally
+		{
+			_namesRead = null;
+		}
+	}
+
+	/// <summary>The C# a condition runs.</summary>
+	static IEnumerable<string> Runs(Test test)
+	{
+		return test switch
+		{
+			Test.Runs(var text, _) => [text],
+			Test.All(var items)    => items.SelectMany(Runs),
+			Test.Any(var items)    => items.SelectMany(Runs),
+			_                      => [],
+		};
 	}
 
 	/// <summary>The node with the names inside its lookaheads taken off.</summary>
