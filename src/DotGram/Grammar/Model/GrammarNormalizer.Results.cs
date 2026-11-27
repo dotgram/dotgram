@@ -859,6 +859,21 @@ sealed partial class GrammarNormalizer
 								: call), false);
 						}
 
+						// A repetition whose turn collects more than once and gives some of it in place, a call of the array's
+						// type or an untyped rule read through: each turn is an array of its own, collected by a rule made
+						// for it, and the turns' arrays are given in place in order.
+						case Node.Repeat(var body, var min, var max)
+							when max is not (0 or 1) && body is not Node.Call && CallsIn(body).Count(call => Collects(call, element, value.Type, [])) > 1 &&
+								CallsIn(body).Any(call => !Fits(call, element) && Collects(call, element, value.Type, [])):
+						{
+							var name = Unreserved("item" + taken++, reserved);
+							var turn = Synthetic(rule, rule.Name + "_Turn", body, value.Type, ValueSource.Collected);
+
+							Take(name, group);
+
+							return new WalkStep(Repeated(part, new Node.Repeat(new Node.Capture(name, new Node.Call(turn, [])), min, max)), false);
+						}
+
 						// A repetition that collects through more than one capture: each collects an array of its own, and
 						// the order between them is kept by listing them together, for one member to gather all their slots
 						// in the order they were read.

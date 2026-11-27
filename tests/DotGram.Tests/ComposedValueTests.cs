@@ -23,6 +23,26 @@ public sealed class ComposedValueTests
 {
 	const string Item = "\nItem : @string = n: Num => @(\"<\" + n + \">\")\nNum : string = ['0'..'9']+";
 
+	/// <summary>Names change nothing in a span: one nothing reads is not held to one type, as one a guard reads is.</summary>
+	[Fact]
+	public void A_span_does_not_check_a_name_nothing_reads()
+	{
+		Assert.Equal("[0..6)", Parsed(
+			"Start : @string = s: Sum & eof => @(s.ToString())\n" +
+			"Sum : Span = n: Num & '<' & w: Span & '>' & when @(n.Length > 0) | n: Num & '!' & (',' & w: Span)* & '#'\n" +
+			"Span : @SourceSpan = ['a'..'z']{2}\nNum = ['0'..'9']{2}",
+			"12<ab>"));
+	}
+
+	/// <summary>A route that names nothing the construction takes leaves the rule unbuilt, even where it names something else.</summary>
+	[Fact]
+	public void A_route_that_names_nothing_the_construction_takes_is_told()
+	{
+		var found = Refused("Start : P = '<' & x: Num & '>' | a: Num & '=' & b: Num\nP = a: Num & '=' & b: Num\nQ = p: P\nNum : string = ['0'..'9']+");
+
+		Assert.Contains("names none of them", found.Message, StringComparison.Ordinal);
+	}
+
 	[Theory]
 	[InlineData("1.", "[0..1)")]
 	[InlineData("1+2.", "[0..3)")]
@@ -129,6 +149,8 @@ public sealed class ComposedValueTests
 	[InlineData("Start : @string[] = w: Word & ';' & Word", "ab;cd", "W:ab;W:cd")]
 	[InlineData("Start : @string[] = Word & x: ';' & Word", "ab;cd", "W:ab;W:cd")]
 	[InlineData("Start : @string[] = Line*\nLine = Bare & ';'", "a;b;", "a;b")]
+	[InlineData("Start : @string[] = '<' & (',' & (P2 & ',' & Mw))* & '>'\nMw : Word = '(' & Word & ')'\nP2 = '(' & Word & ')'", "<,(ab),(cd),(ef),(gh)>", "W:ab;(W:cd);W:ef;(W:gh)")]
+	[InlineData("Start : @string[] = '<' & (':' & (w: Bare & ',' & Word))+ & '>' & when @(true) | '!' & (':' & ('(' & w: Word & ')'))+ & '#'", "<:ab,cd:ef,gh>", "ab;W:cd;ef;W:gh")]
 	public void An_array_collects_the_calls_of_its_element_type(string grammar, string input, string expected)
 	{
 		var value = Parsed(grammar + "\nWord : @string = c: ['a'..'z']+ => @(\"W:\" + c.ToString())\nBare : @string = ['a'..'z']+", input, true);

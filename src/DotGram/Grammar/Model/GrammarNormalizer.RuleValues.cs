@@ -469,9 +469,10 @@ sealed partial class GrammarNormalizer
 		// first, its one call of the type, unless the author named it or the step reads another.
 		var seeds  = alternatives.Where(alternative => Tail(alternative, rule) is null).ToList();
 		var handed = seeds.All(seed => Operands(seed, type) == (1, 1));
-		var ways   = new List<bool>();
-		var unsaid = new List<string>();
-		var names  = new HashSet<string>(StringComparer.Ordinal);
+		var ways     = new List<bool>();
+		var unsaid   = new List<string>();
+		var names    = new HashSet<string>(StringComparer.Ordinal);
+		var building = new List<(Node Alternative, string Which)>();
 
 		for (var i = 0; i < alternatives.Count; i++)
 		{
@@ -496,19 +497,9 @@ sealed partial class GrammarNormalizer
 
 			names.UnionWith(named);
 
-			// Names fill a construction on every route or on none: a route that skips them all, `(name: X)?`, has nothing to
-			// build from.
-			if (named.Count > 0 && Walk(alternative, static part => part switch
-				{
-					Node.Capture => new WalkStep(part, true),
-					Node.Lookahead or Node.Construct => new WalkStep(part, false),
-					_ => null,
-				}, out _, written: true).Least > 0)
-				continue;
-
 			if (named.Count > 0)
 			{
-				unsaid.Add($"a route through {which} names none of them");
+				building.Add((alternative, which));
 
 				continue;
 			}
@@ -524,7 +515,31 @@ sealed partial class GrammarNormalizer
 		if (ways.All(static one => one))
 			return new RuleValue(ValueSource.Operand, type, Ways: ways);
 
-		if (names.Count > 0 && unsaid.Count == 0 && Fill(type, [.. names]) is { } fill)
+		var fill = names.Count > 0 ? Fill(type, [.. names]) : null;
+
+		// The names fill the construction on every route of every alternative it builds, or the rule says none: a route that
+		// writes none of the names the construction takes, `(name: X)?` or a name the type has no use for, has nothing to
+		// build from.
+		if (fill is not null)
+		{
+			var taken = new HashSet<string>(fill switch
+			{
+				Construction.Constructor(var order)    => order,
+				Construction.Initializer(var bindings) => bindings.Select(static one => one.Capture),
+				_                                      => [],
+			}, StringComparer.Ordinal);
+
+			foreach (var (alternative, which) in building)
+				if (Walk(alternative, part => part switch
+					{
+						Node.Capture(var name, _) when taken.Contains(name) => new WalkStep(part, true),
+						Node.Lookahead or Node.Construct => new WalkStep(part, false),
+						_ => null,
+					}, out _, written: true).Least == 0)
+					unsaid.Add($"a route through {which} names none of them");
+		}
+
+		if (fill is not null && unsaid.Count == 0)
 			return new RuleValue(ValueSource.Constructed, type, Fill: fill, Ways: ways);
 
 		return new RuleValue(ValueSource.Refused, type, ValueMessage(rule, type, recursive, unsaid, names.Count > 0, names));
@@ -678,14 +693,15 @@ sealed partial class GrammarNormalizer
 					_types.Remove(rule);
 					_extents[rule] = value.Type;
 
-					if (!HasCapture(body))
+					// A name a guard reads inside a lookahead is a capture of the rule's too.
+					if (!NodeWalk.Descendants(body).Any(static one => one is Node.Capture))
 						break;
 
 					if (ReadsValues(body))
 					{
 						_extents.Remove(rule);
 						_types[rule]  = value.Type;
-						_bodies[rule] = Extended(body, "parserText.ToString()");
+						_bodies[rule] = Extended(UnnamedUnread(body), "parserText.ToString()");
 					}
 					else
 					{
@@ -699,11 +715,10 @@ sealed partial class GrammarNormalizer
 					_bodies[rule] = Extended(ReadsValues(body) ? UnnamedUnread(body) : Unnamed(body), "parserSpan");
 					break;
 
+				// Names change nothing in a string or an array either: the ones nothing reads are dropped.
 				case ValueSource.Joined:
 				case ValueSource.Collected:
-					if (!ReadsValues(body))
-						_bodies[rule] = Unnamed(body);
-
+					_bodies[rule] = ReadsValues(body) ? UnnamedUnread(body) : Unnamed(body);
 					break;
 
 				case ValueSource.Operand:
@@ -783,10 +798,11 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The node with the names nothing in it reads taken off: a guard's, a condition's, a mark's or a switch's text reads one.</summary>
-	Node UnnamedUnread(Node node)
+	/// <param name="scope">What the names are read in: the whole rule, where only a part of it is unnamed.</param>
+	Node UnnamedUnread(Node node, Node? scope = null)
 	{
 		var read  = new HashSet<string>(StringComparer.Ordinal);
-		var texts = NodeWalk.Descendants(node).SelectMany(static one => one switch
+		var texts = NodeWalk.Descendants(scope ?? node).SelectMany(static one => one switch
 		{
 			Node.Guard(var text, _)                       => [text],
 			Node.Marked(_, var text)                      => [text],
@@ -832,9 +848,11 @@ sealed partial class GrammarNormalizer
 		var looks = NodeWalk.Descendants(node).OfType<Node.Lookahead>().ToList();
 		var inner = new HashSet<Node>(looks.SelectMany(static look => NodeWalk.Descendants(look.Body).OfType<Node.Lookahead>()), NodeIdentity.Instance);
 
+		var whole = node;
+
 		foreach (var look in looks)
-			if (!inner.Contains(look) && NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture) && !ReadsValues(look.Body))
-				node = Replaced(node, look, Unnamed(look));
+			if (!inner.Contains(look) && NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture))
+				node = Replaced(node, look, UnnamedUnread(look, whole));
 
 		return node;
 	}
@@ -1139,8 +1157,8 @@ sealed partial class GrammarNormalizer
 
 		// The names build the value on some alternatives and the rest name none of them.
 		if (named && unsaid.Count > 0 && Fill(type, [.. names]) is { } fill)
-			return $"'{rule.Name}' is built by '{Shown(fill)}' from its names, and {string.Join("; ", unsaid)}, and captures none " +
-				"of them. Write '=> …' on every alternative, or name the parts there too.";
+			return $"'{rule.Name}' is built by '{Shown(fill)}' from its names, and {string.Join("; ", unsaid)}. Write '=> …' on " +
+				"every alternative, or name the parts there too.";
 
 		var why = unsaid.Count > 0 ? string.Join("; ", unsaid) + "." : "";
 
