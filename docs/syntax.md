@@ -1440,8 +1440,10 @@ woven after it (§4.5), a rule that only wraps it — does not move at the rule'
 read as the rule without the prefix, `Sum = Num | Sum & '+' & Num`: a base, and a loop over the
 steps that takes as many as what follows accepts and gives them back one at a time from the end.
 Where the prefix moves, the call back is a call from a later position, and the rule is read as
-it is written. Whether the prefix stands is asked once, where the rule is entered. `GRAM5021`
-says that a rule is read so.
+it is written, but for one thing: the prefix is read once there and not given back, so a prefix
+that could match less (`@Ws & ' '*`) is not read again shorter. Where the prefix stands, it is
+asked once, where the rule is entered, and the loop enters the rule no more; where it moves, it
+is asked at the entry and then read. `GRAM5021` says that a rule is read so.
 
 ```dotgram
 T   : @int = s: Sum & ('+' & Num)* & eof => @(s)
@@ -1456,12 +1458,14 @@ the loop after it has none left. (0.3.0 read the base first, which `1+1+1` goes 
 always moves, is read as it was written.
 
 The rule is read so only where the rule without the prefix is a left recursion this section folds,
-with the value this section gives it, and where nothing in the rule, or in a rule that calls into
-it, reads more than the text and the position: a `when` or a `switch` that reads a value the
-rule builds, a hook that names `context`, a binding, a back-reference or a parameter. Where the
-rule without the prefix is refused — it has no alternative to start from, an alternative is
-recursive on both sides, a step may read nothing, it states strengths (§4.3.1), or the call back
-goes through a rule that does more than forward it — `GRAM4066` says which. Where it has no
+with the value this section gives it, and where nothing may read more than the text and the
+position: no `when`, `switch` or condition in the rule or in any rule that calls into it, whatever
+it reads; no `context` declared in the grammar, wherever it is used; and no binding,
+back-reference, parameter or `recover` in the rule. Where the rule without the prefix is refused —
+it has no alternative to start from, an alternative is recursive on both sides, a step may read
+nothing, it states strengths (§4.3.1), or the call back goes through a rule that does more than
+forward it — or the rule cannot be split — it is read past more than three different prefixes,
+or whether its prefix moves cannot be asked where it is entered — `GRAM4066` says which. Where it has no
 value (`Nest = @Still & n: Nest & 'b' | 'x'+`, whose call back is captured, which a left
 recursion does not allow), or something on the way reads more than the text and the position, the
 rule is read as it is written, and `GRAM5021` says what that does (§7.2). Where nothing is read
@@ -3919,15 +3923,16 @@ ordinary C# rules.
   many steps as what follows accepts and gives them back one at a time from the end, so `Sum`
   takes all of `1+2+3` where nothing after it refuses that, and fewer where something does. The
   recognizer is asked once, where the rule is entered, and the loop enters the rule no more. Where
-  it moves, the rule is read as it is written: the call back is then a call from a later
-  position. `GRAM5021` says that a rule is read so, and `GRAM4066` says why where the rule
+  it moves, the rule is read as it is written — the call back is then a call from a later
+  position — except that the recognizer, asked at the entry, is read again there, and what stands
+  with it is read once and not given back. `GRAM5021` says that a rule is read so, and `GRAM4066` says why where the rule
   without the recognizer is no left recursion §4.3 folds. In 0.3.0 such a rule was read as it is
   written wherever the recognizer stood, which gave the base first and the steps to what
   follows: `Sum` was the fewest steps that let the rest be read, and where the parse had to give
   up on the recursive alternative it went round, and ended only where the stack or the memory
-  did. Where the rule is read as it is written still — a `when` or a `switch`, in the cycle or in
-  a rule that calls into it, reads a value the cycle builds, or a hook names `context`, or the
-  rule without the recognizer has no value §4.3 gives it — a parse that has to give up on
+  did. Where the rule is read as it is written still — a `when`, a `switch` or a condition in the
+  rule or in a rule that calls into it, a `context` declared anywhere in the grammar, or the rule
+  without the recognizer has no value §4.3 gives it (§4.3 lists the rest) — a parse that has to give up on
   the recursive alternative still goes round where the recognizer does not move, and
   `GRAM5021` says so. The same holds for a cycle with nothing read after the call back where such a
   `when`, `switch` or hook is on the way: what it reads then depends on more than the position,

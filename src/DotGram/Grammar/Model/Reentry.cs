@@ -55,7 +55,7 @@ static class Reentry
 		/// <summary>The rules cut at once: those of a cycle that passes on what follows it unchanged.</summary>
 		public readonly HashSet<RuleSymbol> Marked = [];
 
-		public readonly List<(RuleSymbol Closing, Cycle Cycle, bool Cut)> Told = [];
+		public readonly List<(RuleSymbol Closing, Cycle Cycle, bool Cut, bool Refused)> Told = [];
 	}
 
 	static readonly Facts None = new();
@@ -126,8 +126,13 @@ static class Reentry
 
 		var facts = Of(graph);
 
-		foreach (var (closing, cycle, cut) in facts.Told)
+		foreach (var (closing, cycle, cut, refused) in facts.Told)
 		{
+			// GRAM4066 said of a rule of the cycle why it is read as written, and that is the reason; the one below,
+			// which names a guard or a hook, is not.
+			if (refused && !cut)
+				continue;
+
 			var at       = (closing.Declaration ?? graph.Origin(closing).Declaration)?.At;
 			var through  = cycle.Through.Count == 0 ? "" : $" through {Joined([.. cycle.Through.Select(static name => $"'{name}'")])}";
 			var standing = cycle.Recognizers.Count == 0 ? "a recognizer of the host" : Joined([.. cycle.Recognizers.Select(static name => "@" + name)]);
@@ -139,9 +144,10 @@ static class Reentry
 					"one, and fails as an alternative does instead of going round for ever."
 				: "Something is read after the call back, so no check of the entry tells one that is needed from one that only " +
 					"goes round, and the rule is not read as its left recursion without the recognizer either: that needs " +
-					"the rule without it to be one §4.3 folds, with a value as §4.3 gives one, and nothing on the way to read " +
-					"more than the text and the position, which a 'when' or 'switch' reading a value the cycle builds, or a " +
-					"hook that names 'context', does. The rule is read as it is written, and where the recognizer does not " +
+					"the rule without it to be one §4.3 folds, with a value as §4.3 gives one, and nothing that may read more " +
+					"than the text and the position: no 'when', 'switch' or condition in the rule or in a rule that calls into " +
+					"it, no 'context' in the grammar, and no binding, back-reference, parameter or 'recover' in the rule. The " +
+					"rule is read as it is written, and where the recognizer does not " +
 					"move, a parse that has to give up on that alternative goes round until the stack or memory runs out.";
 
 			told.Add(new GramDiagnostic(
@@ -226,7 +232,7 @@ static class Reentry
 
 			var (cycle, closing) = Around(first, around, standing, graph);
 
-			facts.Told.Add((closing, cycle, cut));
+			facts.Told.Add((closing, cycle, cut, component.Any(graph.StandingRefused.Contains)));
 		}
 
 		facts.Told.Sort((one, other) => order[one.Closing].CompareTo(order[other.Closing]));

@@ -420,6 +420,7 @@ sealed partial class GrammarNormalizer
 			NamedTypes = [.. normalizer._namedTypes.Values.Where(normalizer.HasGeneratedType).Distinct()],
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
+			StandingRefused = normalizer._standingRefused,
 			Lifted     = normalizer._lifted
 				.Where(pair => normalizer._rules.Contains(pair.Key))
 				.ToDictionary(pair => pair.Key, pair => pair.Value),
