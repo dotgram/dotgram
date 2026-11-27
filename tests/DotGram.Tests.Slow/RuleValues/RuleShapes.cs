@@ -16,7 +16,7 @@ static class RuleShapes
 
 	/// <summary>The operand kinds tried on one cell each, in the first slot.</summary>
 	public static readonly Atom[] ExtraAtoms =
-		[Atom.TakenExtent, Atom.TakenOverPlumbing, Atom.ReaderExtent, Atom.OwnOverMaking, Atom.TakenOverMaking, Atom.PerRoute, Atom.Self];
+		[Atom.TakenExtent, Atom.TakenOverPlumbing, Atom.ReaderExtent, Atom.OwnOverMaking, Atom.TakenOverMaking, Atom.PerRoute, Atom.Character, Atom.Wrapper, Atom.TemplateCall, Atom.Self];
 
 	/// <summary>
 	/// The helper a slot of the given kind calls for a family, or null where the family has no such rule.
@@ -35,6 +35,9 @@ static class RuleShapes
 			(Family.Text, Atom.OwnOverMaking)          => Helper.Ow,
 			(Family.Text, Atom.TakenOverMaking)        => Helper.Mw,
 			(Family.Text, Atom.PerRoute)               => Helper.Mx,
+			(Family.Text, Atom.Character)              => Helper.Esc,
+			(Family.Text, Atom.Wrapper)                => Helper.P2,
+			(Family.Text, Atom.TemplateCall)           => Helper.Pw,
 			(Family.Span, Atom.Built)                  => Helper.Sp,
 			(Family.Span, Atom.Implicit)               => Helper.Span,
 			(Family.Span, Atom.Other)                  => Helper.Num,
@@ -535,6 +538,172 @@ static class RuleShapes
 					yield return shape;
 	}
 
+	static RuleShape Direct(string label, string type, params Expr[] alternatives)
+	{
+		return Direct(label, RuleType.Named(type), alternatives);
+	}
+
+	static RuleShape Direct(string label, RuleType type, params Expr[] alternatives)
+	{
+		return new RuleShape
+		{
+			Id           = "fixed/" + label,
+			Tier         = "fixed",
+			Type         = type,
+			Structure    = "fixed",
+			Names        = NameKind.None,
+			LeftRecursive = alternatives.Any(static a => a is SelfCall or Sequence { Items: [SelfCall, ..] }),
+			Alternatives = alternatives,
+		};
+	}
+
+	/// <summary>A grammar that declares trivia, with or without <c>Lexical</c>.</summary>
+	static RuleShape Spaced(string label, string type, bool lexical, params Expr[] alternatives)
+	{
+		return new RuleShape
+		{
+			Id           = "fixed/" + label,
+			Tier         = "fixed",
+			Type         = RuleType.Named(type),
+			Structure    = "fixed",
+			Names        = NameKind.None,
+			Trivia       = true,
+			Lexical      = lexical,
+			Alternatives = alternatives,
+		};
+	}
+
+	static Call C(Helper rule, Atom atom = Atom.Implicit)
+	{
+		return new Call(rule, atom);
+	}
+
+	/// <summary>
+	/// The grammars the differences from the published version are measured on: each is written out, not enumerated, and
+	/// run in every enumeration, so that each class of difference has a cell that stands for it.
+	/// </summary>
+	public static IReadOnlyList<RuleShape> Fixed()
+	{
+		var filling = Filling(Family.Text)!;
+
+		return
+		[
+			// Names fill a construction and one operand is read on every route.
+			Make("fixed", RuleType.Named("@Box"), "bare", Atom.Implicit, null, NameKind.Filling)!,
+			Direct("box, names, an operand in one of two routes each", ":Bx",
+				new Sequence(new Named("name", new Call(Helper.Dg, null)), new Choice(new Sequence(L("<"), C(Helper.Bx), L(">")), C(Helper.Bx)))),
+			Direct("box, a filling name on a group that holds the operand", ":Bx",
+				new Named("name", new Group(new Sequence(L("<"), C(Helper.Bx), L(">"))))),
+			Direct("text, filling names, an operand in one of two routes each", ":Word",
+				new Sequence([.. filling, new Choice(new Sequence(L("<"), C(Helper.Word, Atom.Built), L(">")), C(Helper.Word, Atom.Built))])),
+
+			// A taken span over a span that makes its value, and two of them.
+			Make("fixed", RuleType.Named(":Sp"), "one", Atom.Built, null, NameKind.None)!,
+			Direct("taken span, two built spans", ":Sp", new Sequence(C(Helper.Sp, Atom.Built), L(" "), C(Helper.Sp, Atom.Built))),
+
+			// An array of spans, one of them an extent.
+			Direct("span array, two extent spans", "@SourceSpan[]", new Sequence(C(Helper.Span), L(";"), C(Helper.Span))),
+			Direct("span array, an extent span and a built one", "@SourceSpan[]", new Sequence(C(Helper.Span), L(";"), C(Helper.Sp, Atom.Built))),
+
+			// Names in an array.
+			Direct("text array, a name on the literal between two built operands", "@string[]",
+				new Sequence(C(Helper.Word, Atom.Built), new Named("x", L(";")), C(Helper.Word, Atom.Built))),
+			Direct("text array, a name on the first of two built operands", "@string[]",
+				new Sequence(new Named("w", C(Helper.Word, Atom.Built)), L(";"), C(Helper.Word, Atom.Built))),
+
+			// A capture named like the one the compiler writes.
+			Direct("taken text, a name that the compiler uses on the last literal", ":Word",
+				new Sequence(L("<"), C(Helper.Word, Atom.Built), new Named("items", L(">")))),
+
+			// An optional operand, with and without names that fill a construction.
+			Make("fixed", RuleType.Named(":Word"), "optional", Atom.Built, null, NameKind.None)!,
+			Direct("box, filling name, an optional operand", ":Bx", new Sequence(new Named("name", new Call(Helper.Dg, null)), new Wrapped(Wrap.Optional, C(Helper.Bx)))),
+			Direct("text, filling names, an operand in one route and an extent in the other", ":Word",
+				new Sequence([.. filling, new Choice(new Sequence(L("<"), C(Helper.Word, Atom.Built), L(">")), C(Helper.Bare))])),
+			Make("fixed", RuleType.Named(":Item"), "optional", Atom.Implicit, null, NameKind.None)!,
+
+			// A text rule with a route that builds a value and one that does not, as a rule of its own.
+			Direct("taken text, a built route and a text route", ":Word", C(Helper.Word, Atom.Built), new Sequence(L("["), C(Helper.Bare), L("]"))),
+
+			// A text extent over bytes with a name that a guard reads.
+			Make("fixed", RuleType.Named("@string"), "one", Atom.ReaderExtent, null, NameKind.None)!,
+
+			// A string rule over a building rule, and the same taken from one: the pieces are joined, own literals included.
+			Direct("string, a built string between literals", "@string", new Sequence(L("<"), C(Helper.Word, Atom.Built), L(">"))),
+			Direct("string, a built string in a recursive rule", "@string",
+				new Sequence(L("("), new SelfCall(), L(")")), C(Helper.Word, Atom.Built)),
+			Direct("taken text, a built operand between literals", ":Word", new Sequence(L("<"), C(Helper.Word, Atom.Built), L(">"))),
+			Direct("taken text, a built operand and a literal", ":Word", new Sequence(C(Helper.Word, Atom.Built), L(";"))),
+			Direct("string, an optional literal and a text rule", "@string", new Sequence(new Wrapped(Wrap.Optional, L("-")), C(Helper.Bare))),
+			Direct("taken text, an optional built operand between literals", ":Word",
+				new Sequence(L("<"), new Wrapped(Wrap.Optional, C(Helper.Word, Atom.Built)), L(">"))),
+
+			// A piece of a type that is not text, in a string rule.
+			Direct("string, an int piece", "@string", new Sequence(L("<"), C(Helper.Num, Atom.Other), L(">"))),
+			Direct("string, a span piece", "@string", new Sequence(L("<"), C(Helper.Span, Atom.Other), L(">"))),
+			Direct("string, a built span piece", "@string", new Sequence(L("<"), C(Helper.Sp, Atom.Other), L(">"))),
+			Direct("string, a generated type piece", "@string", new Sequence(L("<"), C(Helper.Item, Atom.Other), L(">"))),
+			Direct("string, a host type piece", "@string", new Sequence(L("<"), C(Helper.Bx, Atom.Other), L(">"))),
+			Direct("string, a taken span piece", "@string", new Sequence(L("<"), C(Helper.Mids, Atom.Other), L(">"))),
+			Direct("string, names that fill a constructor", "@string",
+				new Sequence(new Named("c", new Call(Helper.Ch, null)), new Named("count", new Call(Helper.Num, null, count: true)))),
+			Direct("string, one name of the constructor", "@string", new Sequence(new Named("c", new Call(Helper.Ch, null)), L("<"))),
+
+			// A rule of type char.
+			Direct("string, a char rule between quotes", "@string", new Sequence(L("\""), C(Helper.Esc, Atom.Character), L("\""))),
+			Direct("string, a repetition of a char rule or an untyped rule", "@string",
+				new Sequence(L("\""), new Wrapped(Wrap.Star, new Choice(C(Helper.Esc, Atom.Character), C(Helper.Plain, Atom.Plumbing))), L("\""))),
+
+			// An untyped rule and an untyped template, read through.
+			Direct("string, an untyped wrapper of a built string", "@string", new Sequence(L("<"), C(Helper.P2, Atom.Wrapper), L(">"))),
+			Direct("string, a template call over a built string", "@string", new Sequence(L("<"), C(Helper.Pw, Atom.TemplateCall), L(">"))),
+			Direct("string array, an untyped wrapper of a built string", "@string[]", new Sequence(C(Helper.P2, Atom.Wrapper), L(";"), C(Helper.Word, Atom.Built))),
+
+			// A binding is a call, and its reference matches the text again.
+			Direct("string, a binding and its reference", "@string", new Sequence(new Bind("q", C(Helper.Word, Atom.Built)), L(","), new BackRef("q"))),
+			Direct("taken text, a binding and its reference", ":Word", new Sequence(new Bind("q", C(Helper.Word, Atom.Built)), L(","), new BackRef("q"))),
+
+			// Arrays: a text rule is collected, a literal never.
+			Direct("text array, a text rule, then a repetition of text rules", "@string[]",
+				new Sequence(C(Helper.Bare), new Wrapped(Wrap.Star, new Sequence(L(","), C(Helper.Bare))))),
+			Direct("text array, a text rule and a built one", "@string[]", new Sequence(C(Helper.Bare), L(","), C(Helper.Word, Atom.Built))),
+
+			// A host or generated type: a name that the compiler uses.
+			Direct("box, a name that the compiler uses on the last literal", ":Bx", new Sequence(L("<"), C(Helper.Bx), new Named("items", L(">")))),
+
+			// Trivia, woven between the operands, and a grammar read over tokens.
+			Spaced("trivia, a string rule over two text rules", "@string", false, new Sequence(C(Helper.Bare), L("."), C(Helper.Bare))),
+			Spaced("trivia, a string rule over two built strings", "@string", false, new Sequence(C(Helper.Word, Atom.Built), L("."), C(Helper.Word, Atom.Built))),
+			Spaced("trivia, a string rule of one token", "@string", false, C(Helper.Bare)),
+			Spaced("trivia, an array over two built strings", "@string[]", false, new Sequence(C(Helper.Word, Atom.Built), L(";"), C(Helper.Word, Atom.Built))),
+			Spaced("kinds, a string rule over two text rules", "@string", true, new Sequence(C(Helper.Bare), L("."), C(Helper.Bare))),
+			Spaced("kinds, a string rule over two built strings", "@string", true, new Sequence(C(Helper.Word, Atom.Built), L("."), C(Helper.Word, Atom.Built))),
+			Spaced("kinds, a taken text rule over a built string", ":Word", true, new Sequence(L("<"), C(Helper.Word, Atom.Built), L(">"))),
+			new RuleShape
+			{
+				Id           = "fixed/trivia, a template that starts with trivia over a built string",
+				Tier         = "fixed",
+				Type         = RuleType.Named(":Word"),
+				Structure    = "fixed",
+				Names        = NameKind.None,
+				Trivia       = true,
+				Template     = true,
+				Alternatives = [new Sequence(new TriviaRef(), new Parameter())],
+			},
+
+			// Left recursion read as a seed and steps: a span, an array, a string and a type with a constructing seed.
+			Direct("left recursion, span", "@SourceSpan", C(Helper.Num, Atom.Other), new Sequence(new SelfCall(), L("+"), C(Helper.Num, Atom.Other))),
+			Direct("left recursion, array", "@string[]", C(Helper.Word, Atom.Built), new Sequence(new SelfCall(), L(","), C(Helper.Word, Atom.Built))),
+			Direct("right recursion, array", "@string[]",
+				new Sequence(C(Helper.Word, Atom.Built), new Wrapped(Wrap.Optional, new Sequence(L(","), new SelfCall())))),
+			Direct("left recursion, taken text", ":Word", C(Helper.Word, Atom.Built), new Sequence(new SelfCall(), L("+"), C(Helper.Word, Atom.Built))),
+			Direct("left recursion, own text over text rules", "@string", C(Helper.Bare), new Sequence(new SelfCall(), L("+"), C(Helper.Bare))),
+			Direct("left recursion, a type with a constructing seed", RuleType.PairTaken,
+				new Sequence(new SelfCall(), L("+"), C(Helper.Num, Atom.Other)),
+				new Sequence(new Named("a", new Call(Helper.Num, null)), L("="), new Named("b", new Call(Helper.Num, null)))),
+		];
+	}
+
 	/// <summary>The whole bounded enumeration: core, deviations, atoms and left recursion, each shape once.</summary>
 	public static IReadOnlyList<RuleShape> Bounded()
 	{
@@ -567,6 +736,10 @@ static class RuleShapes
 
 				case Named named:
 					Visit(named.Inner);
+					break;
+
+				case Bind bind:
+					Visit(bind.Inner);
 					break;
 
 				case Sequence sequence:
@@ -604,6 +777,10 @@ static class RuleShapes
 	/// </summary>
 	public static RuleShape? Inlined(RuleShape shape)
 	{
+		// A grammar read over tokens keeps its terminals in a namespace of their own: written in place they are not terminals.
+		if (shape.Lexical)
+			return null;
+
 		var count = 0;
 
 		Expr Replace(Expr expr)
@@ -652,6 +829,8 @@ static class RuleShapes
 			LeftRecursive = shape.LeftRecursive,
 			SeenFrom      = shape.SeenFrom,
 			Template      = shape.Template,
+			Trivia        = shape.Trivia,
+			Lexical       = shape.Lexical,
 			Alternatives  = alternatives,
 		};
 	}

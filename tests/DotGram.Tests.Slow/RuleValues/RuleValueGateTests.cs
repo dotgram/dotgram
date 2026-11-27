@@ -181,7 +181,7 @@ public sealed class RuleValueGateTests
 	}
 
 	/// <summary>
-	/// The shapes a run covers: the landmarks always; with <c>full</c> the bounded enumeration and
+	/// The shapes a run covers: the landmarks and the fixed grammars always; with <c>full</c> the bounded enumeration and
 	/// the random tier, with a number that many shapes of the enumeration; and each shape that calls a text rule once more
 	/// with the rule's body written in place.
 	/// </summary>
@@ -190,6 +190,7 @@ public sealed class RuleValueGateTests
 		var shapes = new List<RuleShape>();
 
 		shapes.AddRange(Landmarks.Select(static l => l.Shape));
+		shapes.AddRange(RuleShapes.Fixed());
 
 		if (setting == "full")
 		{
@@ -342,5 +343,6 @@ public sealed class RuleValueGateTests
 		}
 
 		File.WriteAllText(Path.Combine(output, "summary.txt"), summary.ToString());
+		File.WriteAllLines(Path.Combine(output, "warnings.txt"), RuleRunner.WarningMessages.OrderBy(static p => p.Key, StringComparer.Ordinal).Select(static p => p.Key + "\t" + p.Value));
 	}
 }

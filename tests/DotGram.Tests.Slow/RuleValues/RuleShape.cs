@@ -344,6 +344,31 @@ sealed class Helper
 		"Ch", "Ch : @char = x: ['a'..'z'] => @('c')", Making.Arrow, null, "char", [],
 		static s => "k", static _ => "'c'");
 
+	// A rule of type char, which a string rule joins as the character it gives (the newline, not its two letters).
+	public static readonly Helper Esc = new(
+		"Esc", "Esc : @char = '\\\\' & 'n' => @('\\n')", Making.Arrow, null, "char", [],
+		static _ => "\\n", static _ => "'\\n'");
+
+	// An untyped rule, and an untyped template, whose body calls a building rule: a rule that calls them reads them through.
+	public static readonly Helper P2 = new(
+		"P2", "P2 = '(' & Word & ')'", Making.Plumbing, null, null, ["Word"],
+		static s => "(" + s.Letters() + ")", null)
+	{
+		Inline = static _ => new Sequence(new Literal("("), new Call(Word, RuleValues.Atom.Built), new Literal(")")),
+	};
+
+	public static readonly Helper Pw = new(
+		"P(Word)", "P(x) = '(' & x & ')'", Making.Plumbing, null, null, ["Word"],
+		static s => "(" + s.Letters() + ")", null)
+	{
+		Inline = static _ => new Sequence(new Literal("("), new Call(Word, RuleValues.Atom.Built), new Literal(")")),
+	};
+
+	// A type the generator makes from two integers.
+	public static readonly Helper Pair = new(
+		"Pair", "Pair = a: Num & '=' & b: Num", Making.Generated, RuleValues.Family.Generated, "Pair", ["Num"],
+		static s => s.Digits() + "=" + s.Digits(), static t => "Pair{A=" + t.Substring(0, 2) + ",B=" + t.Substring(3, 2) + "}");
+
 	// The body of G and Gs written in place: the capture's name is made unique, since two bodies may stand in one rule.
 	static Expr ReadByGuard(int ordinal)
 	{
@@ -354,7 +379,7 @@ sealed class Helper
 
 	/// <summary>Every helper, by name.</summary>
 	public static readonly IReadOnlyDictionary<string, Helper> All =
-		new[] { Word, Bare, Plain, Mid, C4, G, Sp, Span, Mids, Gs, Ow, Ows, Mw, Mws, Mx, Nm, Dg, Bx, Bxa, Lf, Lfa, Item, Num, O, Ch }.ToDictionary(static h => h.Name);
+		new[] { Word, Bare, Plain, Mid, C4, G, Sp, Span, Mids, Gs, Ow, Ows, Mw, Mws, Mx, Nm, Dg, Bx, Bxa, Lf, Lfa, Item, Num, O, Ch, Esc, P2, Pw, Pair }.ToDictionary(static h => h.Name);
 }
 
 /// <summary>
@@ -427,6 +452,15 @@ enum Atom
 
 	/// <summary>A rule with a building route and a text route: making (Mx).</summary>
 	PerRoute,
+
+	/// <summary>A rule of type <c>char</c> (Esc).</summary>
+	Character,
+
+	/// <summary>An untyped rule that calls a building rule (P2).</summary>
+	Wrapper,
+
+	/// <summary>A call of an untyped template over a building rule (P(Word)).</summary>
+	TemplateCall,
 
 	/// <summary>The rule under test itself.</summary>
 	Self,
@@ -589,10 +623,13 @@ sealed class RuleType
 		Sequence("SourceSpan", Family.Span),
 	];
 
+	/// <summary>The type of <c>Pair</c>, said as <c>: Pair</c>; apart from <see cref="All"/>, which it would multiply.</summary>
+	public static readonly RuleType PairTaken = Taking(Helper.Pair);
+
 	/// <summary>The value of the dimension with the given short name.</summary>
 	public static RuleType Named(string name)
 	{
-		return All.First(t => t.Name == name);
+		return All.Append(PairTaken).First(t => t.Name == name);
 	}
 }
 
@@ -716,6 +753,28 @@ sealed class Wrapped(Wrap wrap, Expr inner) : Expr
 	public Expr Inner { get; } = inner;
 }
 
+/// <summary><c>$name: inner</c>: binds the text a call matched, so that <c>$name</c> matches it again.</summary>
+sealed class Bind(string name, Expr inner) : Expr
+{
+	/// <summary>The name bound.</summary>
+	public string Name { get; } = name;
+
+	/// <summary>What is bound.</summary>
+	public Expr Inner { get; } = inner;
+}
+
+/// <summary><c>$name</c>: the text a binding matched, again.</summary>
+sealed class BackRef(string name) : Expr
+{
+	/// <summary>The name of the binding.</summary>
+	public string Name { get; } = name;
+}
+
+/// <summary>A call of the rule <c>trivia</c>; the input holds one space for it.</summary>
+sealed class TriviaRef : Expr
+{
+}
+
 /// <summary><c>when @(code)</c>; <see cref="Reads"/> is the name it reads, or null.</summary>
 sealed class Guard(string code, string? reads) : Expr
 {
@@ -785,6 +844,12 @@ sealed class RuleShape
 
 	/// <summary>The rule passed for the template's parameter.</summary>
 	public Helper? TemplateArgument => Template ? Type.Taken : null;
+
+	/// <summary>The grammar declares <c>trivia = { [' ']* }</c>, which is woven between the operands of every sequence.</summary>
+	public bool Trivia { get; init; }
+
+	/// <summary>The grammar is published with <c>Lexical = true</c>: read over tokens.</summary>
+	public bool Lexical { get; init; }
 
 	/// <summary>The body of the rule under test: its top-level alternatives, after names, reader and left recursion.</summary>
 	public required IReadOnlyList<Expr> Alternatives { get; init; }

@@ -1,0 +1,205 @@
+cells 98154, shapes 19293, cells with no outcome in the files 0
+
+cells by what the oracle says against 0.3.0
+   12901  agree
+       3  allowed: array-call-splices-elements
+     238  allowed: array-collects-text-rule
+     390  allowed: char-piece-gives-character
+      56  allowed: named-text-not-collected
+     252  allowed: non-text-piece-is-error
+     150  allowed: object-rule-reads-two-calls
+     726  allowed: operand-beats-construction
+    1404  allowed: optional-operand-falls-to-construction
+      36  allowed: optional-text-route
+     472  allowed: partial-construction-refused
+    2725  allowed: string-not-built-from-names
+    2912  allowed: string-rule-joins-built-value
+    1068  allowed: taken-span-names-own-bounds
+    4262  allowed: taken-string-rule-keeps-own-literals
+      12  allowed: tied-constructor-refused
+       8  allowed: trivia-dropped-in-string-rule
+       3  allowed: untyped-rule-read-through
+      21  allowed: zero-repetition-operand-refused
+      40  oracle reads no match, 0.3.0 csharp
+     114  oracle reads no match, 0.3.0 gram
+      11  published version did not match the input
+   34475  published version refused, oracle builds
+   25519  refused by both
+   10356  same as 0.3.0 by decision (an untyped rule that writes names)
+
+the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs from the oracle on purpose
+    2912 differ (  644 shapes),    354 agree  Silent    string-rule-joins-built-value
+    4262 differ (  887 shapes),     22 agree  Silent    taken-string-rule-keeps-own-literals
+     700 differ (  164 shapes),   1129 agree  Silent    array-collects-text-rule
+       9 differ (    3 shapes),      9 agree  Silent    array-call-splices-elements
+    1068 differ (  261 shapes),   2805 agree  Silent    taken-span-names-own-bounds
+      16 differ (    7 shapes),      2 agree  Silent    trivia-dropped-in-string-rule
+     448 differ (   90 shapes),     38 agree  Silent    char-piece-gives-character
+     515 differ (  116 shapes),     46 agree  Silent    untyped-rule-read-through
+      69 differ (   48 shapes),     13 agree  Silent    named-text-not-collected
+     774 differ (  184 shapes),    771 agree  Silent    operand-beats-construction
+       1 differ (    1 shapes),      0 agree  Silent    compiler-named-capture
+    6982 differ ( 1507 shapes),      0 agree  Loud      string-not-built-from-names
+    1503 differ (  295 shapes),      0 agree  Loud      non-text-piece-is-error
+     159 differ (   25 shapes),      0 agree  Loud      object-rule-reads-two-calls
+      24 differ (    8 shapes),      0 agree  Loud      zero-repetition-operand-refused
+     472 differ (  114 shapes),      0 agree  Loud      partial-construction-refused
+      12 differ (    2 shapes),      0 agree  Loud      tied-constructor-refused
+     951 differ (  256 shapes),      0 agree  WarnOnly  optional-text-route
+    1558 differ (  269 shapes),      0 agree  WarnOnly  optional-operand-falls-to-construction
+
+unexplained: 0 cells in 0 distinct shapes
+
+the oracle reads no match where 0.3.0 gave a value, one per shape
+
+undecided: the rule gives no answer
+
+allowed cells, one example per class
+
+  string-rule-joins-built-value: a string rule without => (an untyped rule with no names included) that calls a rule building a string is its pieces joined, not the text it matched
+    landmark/@string/one/Built,-/None/None/noLR/Itself/written mode D input <cd>
+    Start : @string = '<' & Word & '>'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  "<cd>"
+      oracle: "<W:cd>" (Joined, rule C)
+
+  taken-string-rule-keeps-own-literals: a rule that takes a string rule's type and calls a building rule is its pieces joined too: its own literals stay
+    landmark/:Word/one/Built,-/FillingAndOnOperand/None/noLR/Itself/written mode D input k03<cd>
+    Start : Word = c: Ch & count: Num & '<' & w: Word & '>'
+    Ch : @char = x: ['a'..'z'] => @('c')
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  "ccc"
+      oracle: error E-NONTEXT
+
+  array-collects-text-rule: an array collects every call of the element type, a text rule's included
+    landmark/@string[]/two/Implicit,Built/None/None/noLR/Itself/written mode D input <ef,gh>
+    Start : @string[] = '<' & Bare & ',' & Word & '>'
+    Bare : @string = ['a'..'z']{2}
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  ["W:gh"]
+      oracle: ["ef","W:gh"] (Collected, rule A)
+
+  array-call-splices-elements: inside an array rule a call of an array rule of the same element type gives its elements in place; 0.3.0 gave the first element or none
+    fixed/right recursion, array mode D input cd,ab
+    Start : @string[] = Word & (',' & Start)?
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  ["W:cd"]
+      oracle: ["W:cd","W:ab"] (Collected, rule A)
+
+  taken-span-names-own-bounds: a span rule is the bounds of what it matched, names or no names: a rule that takes a span's type and writes names no longer hands on its operand's bounds
+    core/:Sp/bare/Built,-/Filling/None/noLR/Itself/written mode D input 0303cd
+    Start : Sp = start: Num & length: Num & Sp
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
+    Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
+      0.3.0:  [104..106)
+      oracle: [0..6) (Extent, rule S)
+
+  trivia-dropped-in-string-rule: the trivia woven between the operands of a string rule is no part of its value, over characters and over kinds
+    fixed/trivia, a string rule over two text rules mode D input ef . gh
+    Start : @string = Bare & '.' & Bare
+    Bare : @string = ['a'..'z']{2}
+    trivia = { [' ']* }
+      0.3.0:  "ef . gh"
+      oracle: "ef.gh" (Joined, rule C)
+
+  char-piece-gives-character: a rule of type char inside a string rule gives its character, not the text it matched
+    fixed/string, a char rule between quotes mode D input "\n"
+    Start : @string = '"' & Esc & '"'
+    Esc : @char = '\\' & 'n' => @('\n')
+      0.3.0:  ""\\n""
+      oracle: ""\n"" (Joined, rule C)
+
+  untyped-rule-read-through: an untyped rule or template is read as if its body were written in place: the values of the calls in it count
+    fixed/string, an untyped wrapper of a built string mode D input <(cd)>
+    Start : @string = '<' & P2 & '>'
+    P2 = '(' & Word & ')'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  "<(cd)>"
+      oracle: "<(W:cd)>" (Joined, rule C)
+
+  named-text-not-collected: a name on a literal, or on text an untyped rule reads, makes no element of an array: only calls of the element type are collected
+    fixed/text array, a name on the literal between two built operands mode D input ef;gh
+    Start : @string[] = Word & x: ';' & Word
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  ["W:ef",";","W:gh"]
+      oracle: ["W:ef","W:gh"] (Collected, rule A)
+
+  operand-beats-construction: names fill a construction and the rule has a call of its type on every route: the call is the value
+    landmark/:Bx/one/Implicit,-/FillingOnGroup/None/noLR/Itself/written mode D input <(cd)>
+    Start : Bx = '<' & name: ('(' & Bx & ')') & '>'
+    Bx : @Box = name: Nm
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      0.3.0:  box:(cd)
+      oracle: box:cd (Operand, rule O)
+
+  compiler-named-capture: a capture an author names the way the generator names its own is the author's, and is no longer the value
+    fixed/taken text, a name that the compiler uses on the last literal mode D input <cd>
+    Start : Word = '<' & Word & items: '>'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  ">"
+      oracle: "<W:cd>" (Joined, rule C)
+
+  string-not-built-from-names: names are not a constructor of a string: the call that fills one is a piece like any other
+    landmark/:Word/one/Built,-/FillingAndOnOperand/None/noLR/Itself/written mode D input k03<cd>
+    Start : Word = c: Ch & count: Num & '<' & w: Word & '>'
+    Ch : @char = x: ['a'..'z'] => @('c')
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  "ccc"
+      oracle: error E-NONTEXT
+
+  non-text-piece-is-error: a piece of a type that is not text (int, a span, a host or generated type) in a string rule is a build error
+    fixed/string, an int piece mode D input <34>
+    Start : @string = '<' & Num & '>'
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
+      0.3.0:  "<34>"
+      oracle: error E-NONTEXT
+
+  object-rule-reads-two-calls: a rule of type object takes a call of any typed rule, so two calls on a route are two operands and no value
+    core/:O/star/Built,-/None/None/noLR/Itself/written mode D input <>
+    Start : O = '<' & (',' & O)* & '>'
+    O : @object = c: ['a'..'z']{2} => @((object)("O:" + T(c)))
+      0.3.0:  []
+      oracle: error E-VALUE
+
+  zero-repetition-operand-refused: a call written only in X{0} reads nothing, so it is no call of the rule's type on any route (0.3.0 gave an empty list)
+    core/:O/zero/Built,-/None/None/noLR/Itself/written mode D input <#>
+    Start : O = '<' & O{0} & '#' & '>'
+    O : @object = c: ['a'..'z']{2} => @((object)("O:" + T(c)))
+      0.3.0:  []
+      oracle: error E-VALUE
+
+  partial-construction-refused: names choose the construction of the whole rule: an alternative that captures none of them is refused
+    core/@Box/optional/Built,-/ParameterOnOperand/None/noLR/Itself/written mode D input <cd>
+    Start : @Box = '<' & (inner: Bxa)? & '>'
+    Bxa : @Box = n: Nm => @(new Box("A" + n))
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      0.3.0:  box:[box:Acd] (warnings CS8604)
+      oracle: error E-PARTIAL
+
+  tied-constructor-refused: a name that two constructors take equally chooses none
+    core/:Bx/optional/Built,-/Tie/None/noLR/Itself/written mode D input 34<cd>
+    Start : Bx = value: Num & '<' & Bxa? & '>'
+    Bx : @Box = name: Nm
+    Bxa : @Box = n: Nm => @(new Box("A" + n))
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
+      0.3.0:  box:Acd (warnings CS8603,GRAM4018)
+      oracle: error E-VALUE
+
+  optional-text-route: a string rule with an optional call, or a route that reads none: where it is missing the value is the other pieces joined (0.3.0 gave null with a warning)
+    landmark/:Word/optional/Built,-/None/None/noLR/Itself/written mode D input <cd>
+    Start : Word = '<' & Word? & '>'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  "W:cd" (warnings CS8603)
+      oracle: "<W:cd>" (Joined, rule C)
+
+  optional-operand-falls-to-construction: a rule of another type has a call of its type on some routes only: the construction from its names is the value, or the build is refused (0.3.0 gave the call, or null with a warning)
+    landmark/:Bx/optional/Implicit,-/Filling/None/noLR/Itself/written mode D input 34<cd>
+    Start : Bx = name: Dg & '<' & Bx? & '>'
+    Bx : @Box = name: Nm
+    Dg : @string = d: ['0'..'9']{2} => @(T(d))
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      0.3.0:  box:cd (warnings CS8603)
+      oracle: box:34 (Constructed, rule O)

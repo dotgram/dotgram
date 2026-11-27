@@ -47,6 +47,9 @@ sealed class PrintedGrammar
 	/// <summary>The inputs, one per route of the published rule (at most <see cref="RulePrinter.MaxRoutes"/>).</summary>
 	public required ImmutableArray<Route> Routes { get; init; }
 
+	/// <summary>The grammar is published with <c>Lexical = true</c>.</summary>
+	public required bool Lexical { get; init; }
+
 	/// <summary>The grammar uses the generated <c>SourceSpan</c> in host code.</summary>
 	public required bool UsesShift { get; init; }
 
@@ -66,6 +69,9 @@ sealed class PrintedGrammar
 
 		if (mode == Mode.S)
 			text.Append(", UseSpanCaptures = true");
+
+		if (Lexical)
+			text.Append(", Lexical = true");
 
 		text.Append(")]\npublic partial class ").Append(className).Append("\n{\n");
 		text.Append(RulePrinter.HostMembers);
@@ -185,12 +191,24 @@ static class RulePrinter
 				if (called.Add(inner))
 					pending.Enqueue(inner);
 
-		foreach (var helper in called)
-			rules.Append(Helper.All[helper].Definition).Append('\n');
+		var text = rules.ToString();
+
+		if (shape.Lexical)
+		{
+			// Over tokens the terminals are a namespace of their own, with no trivia between their characters.
+			text = "using Lexical;\ntrivia = { [' ']* }\n" + text
+				+ "namespace Lexical\n{\n\ttrivia = none\n"
+				+ string.Concat(called.Select(static h => "\t" + Helper.All[h].Definition + "\n")) + "}\n";
+		}
+		else
+		{
+			text += string.Concat(called.Select(static h => Helper.All[h].Definition + "\n")) + (shape.Trivia ? "trivia = { [' ']* }\n" : "");
+		}
 
 		return new PrintedGrammar
 		{
-			Rules     = rules.ToString(),
+			Rules     = text,
+			Lexical   = shape.Lexical,
 			Routes    = Routes(shape),
 			UsesShift = called.Contains(Helper.Sp.Name),
 		};
@@ -204,7 +222,7 @@ static class RulePrinter
 
 	static bool Simple(Expr expr)
 	{
-		return expr is Literal or Lexeme or Call or SelfCall or Parameter or Group or Choice or AnyItems;
+		return expr is Literal or Lexeme or Call or SelfCall or Parameter or Group or Choice or AnyItems or BackRef or TriviaRef;
 	}
 
 	/// <summary>Writes an expression of the rule under test's body.</summary>
@@ -230,6 +248,15 @@ static class RulePrinter
 
 			case Parameter:
 				return "x";
+
+			case BackRef backRef:
+				return "$" + backRef.Name;
+
+			case TriviaRef:
+				return "trivia";
+
+			case Bind bind:
+				return "$" + bind.Name + ": " + Write(bind.Inner, self, called);
 
 			case Named named:
 				return named.Name + ": " + (Simple(named.Inner) || named.Inner is Wrapped ? Write(named.Inner, self, called) : "(" + Write(named.Inner, self, called) + ")");
@@ -282,6 +309,8 @@ static class RulePrinter
 
 	sealed class Walk(RuleShape shape, Samples samples)
 	{
+		readonly Dictionary<string, string> _bound = [];
+
 		/// <summary>The input the rule under test reads where it calls itself; null while it is being worked out.</summary>
 		public Variant? SelfInput { get; set; }
 
@@ -322,6 +351,21 @@ static class RulePrinter
 
 				case Named named:
 					return Of(named.Inner);
+
+				case Bind bind:
+				{
+					var variants = Of(bind.Inner);
+
+					_bound[bind.Name] = variants[0].Text;
+
+					return variants;
+				}
+
+				case BackRef backRef:
+					return [new Variant(_bound[backRef.Name], [])];
+
+				case TriviaRef:
+					return [new Variant(" ", [])];
 
 				case Group group:
 					return Of(group.Inner);
@@ -389,7 +433,15 @@ static class RulePrinter
 				var whole = Variant.Empty;
 
 				for (var j = 0; j < parts.Count; j++)
-					whole = whole.Then(j == at ? chosen : parts[j][0]);
+				{
+					var part = j == at ? chosen : parts[j][0];
+
+					// Trivia is woven between operands: one space where both sides have text.
+					if (shape.Trivia && whole.Text.Length > 0 && part.Text.Length > 0)
+						whole = whole.Then(new Variant(" ", []));
+
+					whole = whole.Then(part);
+				}
 
 				return whole;
 			}
