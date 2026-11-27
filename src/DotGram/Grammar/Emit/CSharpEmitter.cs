@@ -913,7 +913,7 @@ static partial class CSharpEmitter
 
 				EmitFactory(file, graph, rule, factory, results, options.LineMap, options.SpanCaptures);
 				if (byteRules.Contains(rule))
-					EmitFactory(file, graph, rule, factory with { Method = factory.BytesMethod }, results, options.LineMap, true, true);
+					EmitFactory(file, graph, rule, factory with { Method = factory.BytesMethod }, results.ForBytes(), options.LineMap, true, true);
 				file.Line();
 			}
 		}
@@ -1849,7 +1849,7 @@ static partial class CSharpEmitter
 			{
 				var whole  = publication.Kind == PublishKind.Parse;
 				var core   = EntryOf(publication.Rule, whole, machine.Tag);
-				var type   = results.QualifiedOf(publication.Rule);
+				var type   = machine.Results.QualifiedOf(publication.Rule);
 				var climbs = graph.Climbing.ContainsKey(publication.Rule);
 				var reads  = (machine.UsesReading ? ", int parserReading" : "") + (machine.UsesLocating ? ", int parserLocating" : "");
 				var passes = (machine.UsesReading ? ", parserReading" : "") + (machine.UsesLocating ? ", parserLocating" : "");
@@ -4825,7 +4825,7 @@ file.Line("return spare;");
 		// rule itself by (§4.3). It is not a capture any more — the rewrite took the call
 		// away — so it is written in here rather than found among the members.
 		if (factory.Accumulator is { Length: > 0 } accumulator)
-			parameters.Add($"{graph.Types[rule]} {ResultTypes.ParameterOf(accumulator)}");
+			parameters.Add($"{results.TypeOf(rule)} {ResultTypes.ParameterOf(accumulator)}");
 
 		foreach (var member in factory.Members)
 			if (member.Name != "parserText" && member.Name != factory.Accumulator)
@@ -4863,7 +4863,7 @@ file.Line("return spare;");
 			return SpanText(member) ? name + ".ToString()" : name;
 		}
 
-		var head    = $"static {graph.Types[rule]} {factory.Method}({string.Join(", ", parameters)})";
+		var head    = $"static {results.TypeOf(rule)} {factory.Method}({string.Join(", ", parameters)})";
 		var summary = $"/// <summary>What <c>{rule.Name}</c> builds its value with";
 
 		switch (((Node.Construct)factory.Of).How)
@@ -4887,10 +4887,19 @@ file.Line("return spare;");
 				// be a conditional whose arms are two different records, and only a target type tells the compiler
 				// which of them the whole expression is (CS0173).
 				file.Line(head + " =>");
-				file.Line($"	{Named("Written")}<{graph.Types[rule]}>(");
+				file.Line($"	{Named("Written")}<{results.TypeOf(rule)}>(");
 
 				if (((Node.Construct)factory.Of).How is Construction.Expression { Text: var located, At: var locatedAt })
 					Handed(file, lines, locatedAt, located + ", parserSpan.Start, parserSpan.Length);");
+
+				break;
+
+			// The text a rule matched, which the compiler made the value of a string: over bytes, the bytes.
+			case Construction.Expression { At: < 0, Text: ByteValues.MatchedText } when bytes && results.TypeOf(rule) != graph.Types[rule]:
+
+				file.Line(summary + ": the bytes it matched.</summary>");
+				file.Line(head + " =>");
+				file.Line("	parserText.ToArray();");
 
 				break;
 
@@ -4945,7 +4954,7 @@ file.Line("return spare;");
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
-				file.Line($"	new {graph.Types[rule]}({string.Join(", ", arguments)});");
+				file.Line($"	new {results.TypeOf(rule)}({string.Join(", ", arguments)});");
 
 				break;
 			}
@@ -4963,7 +4972,7 @@ file.Line("return spare;");
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
-				file.Line($"	new {graph.Types[rule]} {{ {string.Join(", ", written)} }};");
+				file.Line($"	new {results.TypeOf(rule)} {{ {string.Join(", ", written)} }};");
 
 				break;
 			}
@@ -5205,7 +5214,7 @@ file.Line("return spare;");
 			// number of elements and an optional operand contributes none.
 			case Construction.Sequence(var collected):
 			{
-				var element = graph.Types[rule].Substring(0, graph.Types[rule].Length - "[]".Length);
+				var element = results.TypeOf(rule).Substring(0, results.TypeOf(rule).Length - "[]".Length);
 
 				// What the rule collects: its operands. A capture of the author's that is not one is a member of the
 				// rule, handed to this method, and is no part of the value (§4.1).
@@ -5216,7 +5225,7 @@ file.Line("return spare;");
 				// A call of a rule of this rule's own type gives its elements in place (§4.1).
 				bool Spread(ResultMember member)
 				{
-					return member.Rule is { } called && graph.Types.TryGetValue(called, out var held) && held == graph.Types[rule];
+					return member.Rule is { } called && graph.Types.ContainsKey(called) && results.TypeOf(called) == results.TypeOf(rule);
 				}
 
 				// One repetition and nothing else means the array handed in already is the

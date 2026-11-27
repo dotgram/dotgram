@@ -30,6 +30,12 @@ sealed class ResultTypes
 	readonly Dictionary<RuleSymbol, string> _declared = [];
 	readonly List<RuleSymbol>               _built    = [];
 	readonly string                         _prefix;
+	readonly RecognitionGraph               _graph;
+
+	/// <summary>The types a rule has over bytes where they are not its own (<see cref="ByteValues"/>); null for the types themselves.</summary>
+	readonly IReadOnlyDictionary<RuleSymbol, string>? _bytes;
+
+	ResultTypes? _overBytes;
 
 	Dictionary<(RecognitionGraph Graph, RuleSymbol Rule), IReadOnlyList<Machine.Factory>>? _factories;
 
@@ -60,6 +66,7 @@ sealed class ResultTypes
 	public ResultTypes(RecognitionGraph graph, string className, string? @namespace, bool lexical = false, IReadOnlyCollection<string>? classes = null)
 	{
 		_prefix = "global::" + (@namespace is null ? "" : @namespace + ".") + className + ".";
+		_graph  = graph;
 
 		var taken  = CSharpEmitter.TypeNamesTaken(classes ?? [SimpleNameOf(className)], graph, lexical);
 		var wanted = new List<(RuleSymbol Rule, string Name)>();
@@ -112,6 +119,46 @@ sealed class ResultTypes
 
 		foreach (var (rule, _) in wanted)
 			_built.Add(rule);
+	}
+
+	/// <summary>The types again as the byte form has them, where the grammar holds the bytes a string matched as they are (<see cref="ByteValues"/>).</summary>
+	ResultTypes(ResultTypes basis, IReadOnlyDictionary<RuleSymbol, string> bytes)
+	{
+		_names    = basis._names;
+		_built    = basis._built;
+		_prefix   = basis._prefix;
+		_graph    = basis._graph;
+		_bytes    = bytes;
+		Facade    = basis.Facade;
+		_declared = new Dictionary<RuleSymbol, string>(basis._declared);
+
+		foreach (var pair in bytes)
+			_declared[pair.Key] = pair.Value;
+	}
+
+	/// <summary>
+	/// What the byte form's types are: these types, unless the grammar holds a string as the bytes it matched, and then those
+	/// types with that string, and the arrays of it, as bytes.
+	/// </summary>
+	internal ResultTypes ForBytes()
+	{
+		if (_bytes is not null)
+			return this;
+
+		if (_overBytes is null)
+		{
+			var types = ByteValues.Of(_graph);
+
+			_overBytes = types.Count == 0 ? this : new ResultTypes(this, types);
+		}
+
+		return _overBytes;
+	}
+
+	/// <summary>The type a rule declared, as this reads it: over bytes, what the byte form holds in its place.</summary>
+	internal string TypeOf(RuleSymbol rule)
+	{
+		return _bytes is not null && _bytes.TryGetValue(rule, out var held) ? held : _graph.Types[rule];
 	}
 
 	/// <summary>

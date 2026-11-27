@@ -6625,7 +6625,7 @@ sealed partial class Machine
 				if (build.Length > 0)
 					code.Line(build);
 
-				parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(named)}");
+				parameters.Add($"{machine._results.TypeOf(rule)} {ResultTypes.ParameterOf(named)}");
 				arguments.Add(ValueAt(rule, "fold"));
 			}
 
