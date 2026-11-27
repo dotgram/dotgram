@@ -96,6 +96,12 @@ abstract record Construction
 	/// </summary>
 	public sealed record Constructor(IReadOnlyList<string> Arguments) : Construction
 	{
+		/// <summary>
+		/// The arguments whose parameter takes the characters as a span, which where captures are spans are handed as they
+		/// are; any other is handed as the string it is, as where captures are strings.
+		/// </summary>
+		public IReadOnlyList<string> Spans { get; init; } = [];
+
 		public override string ToString()
 		{
 			return "<constructor>";
@@ -108,6 +114,9 @@ abstract record Construction
 	/// </summary>
 	public sealed record Initializer(IReadOnlyList<PropertyBinding> Bindings) : Construction
 	{
+		/// <summary>The captures whose property takes the characters as a span: see <see cref="Constructor.Spans"/>.</summary>
+		public IReadOnlyList<string> Spans { get; init; } = [];
+
 		public override string ToString()
 		{
 			return "<initializer>";

@@ -643,8 +643,9 @@ sealed partial class GrammarNormalizer
 		if (names.Count == 0)
 			return null;
 
-		var chosen = (IReadOnlyList<string>?)null;
-		var tied   = false;
+		var chosen    = (IReadOnlyList<string>?)null;
+		var chosenFor = (IReadOnlyList<MethodParameter>?)null;
+		var tied      = false;
 
 		if (TryConstructors(type, out var constructors))
 			foreach (var constructor in constructors)
@@ -653,7 +654,7 @@ sealed partial class GrammarNormalizer
 					continue;
 
 				if (chosen is null || order.Count > chosen.Count)
-					(chosen, tied) = (order, false);
+					(chosen, chosenFor, tied) = (order, constructor, false);
 				else if (order.Count == chosen.Count)
 					tied = true;
 			}
@@ -662,10 +663,13 @@ sealed partial class GrammarNormalizer
 			return null;
 
 		if (chosen is not null)
-			return new Construction.Constructor(chosen);
+			return new Construction.Constructor(chosen)
+			{
+				Spans = [.. chosen.Where((_, at) => _language.TakesCharacterView(chosenFor![at].Type))],
+			};
 
-		if (Settable(type, names) is { } written)
-			return new Construction.Initializer(written);
+		if (Settable(type, names, out var spans) is { } written)
+			return new Construction.Initializer(written) { Spans = spans };
 
 		return _language.HostUnseen && !BuiltIn(type) ? new Construction.Constructor([.. names]) : null;
 	}

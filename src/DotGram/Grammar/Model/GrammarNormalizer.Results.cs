@@ -735,12 +735,15 @@ sealed partial class GrammarNormalizer
 	/// own line (§7.6).
 	/// </para>
 	/// </remarks>
-	IReadOnlyList<PropertyBinding>? Settable(string type, IReadOnlyList<string> names)
+	IReadOnlyList<PropertyBinding>? Settable(string type, IReadOnlyList<string> names, out IReadOnlyList<string> spans)
 	{
+		spans = [];
+
 		if (!TrySettable(type, out var properties))
 			return null;
 
 		var written = new List<PropertyBinding>();
+		var held    = new List<string>();
 
 		foreach (var property in properties)
 		{
@@ -755,7 +758,12 @@ sealed partial class GrammarNormalizer
 			}
 
 			written.Add(new PropertyBinding(property.Name, found));
+
+			if (_language.TakesCharacterView(property.Type))
+				held.Add(found);
 		}
+
+		spans = held;
 
 		return written.Count > 0 ? written : null;
 	}
