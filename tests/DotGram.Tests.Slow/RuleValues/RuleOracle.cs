@@ -47,6 +47,9 @@ sealed class Rule
 
 	public bool LeftRecursive { get; init; }
 
+	/// <summary>A published rule with no type and no names, read as the published version did: its own text.</summary>
+	public bool OwnText { get; init; }
+
 	/// <summary>The decision of the alternatives of the rule; for a left-recursive rule, of its seeds and then of its steps.</summary>
 	public Decision[] Groups { get; set; } = [];
 
@@ -77,6 +80,12 @@ sealed class Rule
 /// </summary>
 static class RuleOracle
 {
+	/// <summary>
+	/// A published rule with no type and no names (<c>Start = '&lt;' &amp; Word &amp; '&gt;'</c>, <c>Start : Plain = …</c>) is a
+	/// string rule: its value is its pieces joined. False reads it as the published version did, its own text.
+	/// </summary>
+	public static bool UntypedPublishedJoins { get; } = Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES_UNTYPED_JOINS") is not ("0" or "false");
+
 	/// <summary>What the oracle expects of the input.</summary>
 	public static Expectation Expected(RuleShape shape, Mode mode, string input)
 	{
@@ -132,7 +141,12 @@ sealed partial class Grammar
 		var type = shape.Type;
 		var body = shape.Alternatives.Select(Replace).ToList();
 
-		Tested = Make(shape.RuleName, TypeOf(type), type.How == TypeSaid.Sequence, type.How == TypeSaid.None || type.Taken is { Type: null }, body, shape.LeftRecursive);
+		var untyped = type.How == TypeSaid.None || type.Taken is { Type: null };
+
+		// An untyped rule with no names is a string rule; with names it makes a type of its own, which is not modelled.
+		var string_ = untyped && !Walk(body, true).OfType<Named>().Any();
+
+		Tested = Make(shape.RuleName, string_ ? "string" : TypeOf(type), type.How == TypeSaid.Sequence, untyped && !string_, body, shape.LeftRecursive, string_ && !RuleOracle.UntypedPublishedJoins);
 
 		_rules.Add(Tested);
 
@@ -178,7 +192,7 @@ sealed partial class Grammar
 		return type.Taken is { } taken ? LeafInfo(taken.Name).Type : type.ClrType;
 	}
 
-	static Rule Make(string name, string? type, bool array, bool untyped, IReadOnlyList<Expr> body, bool leftRecursive)
+	static Rule Make(string name, string? type, bool array, bool untyped, IReadOnlyList<Expr> body, bool leftRecursive, bool ownText = false)
 	{
 		var kind = untyped || type is null ? Kind.Untyped : array ? Kind.A : type switch
 		{
@@ -187,7 +201,7 @@ sealed partial class Grammar
 			_            => Kind.O,
 		};
 
-		return new Rule { Name = name, Kind = kind, Type = type, Alternatives = body, LeftRecursive = leftRecursive };
+		return new Rule { Name = name, Kind = kind, Type = type, Alternatives = body, LeftRecursive = leftRecursive, OwnText = ownText };
 	}
 
 	/// <summary>The type of a helper that is read as a single token, and whether it builds its value.</summary>
@@ -275,15 +289,18 @@ sealed partial class Grammar
 		return expr is Call or RuleRef or SelfCall;
 	}
 
-	/// <summary>Every node of the alternatives outside lookaheads and <c>{0}</c>, reading through the untyped rules they call.</summary>
-	static IEnumerable<Expr> Walk(IEnumerable<Expr> alternatives)
+	/// <summary>
+	/// Every node of the alternatives outside lookaheads and <c>{0}</c> (inside them too, where <paramref name="written"/>: what is
+	/// written, not what is read), reading through the untyped rules they call.
+	/// </summary>
+	static IEnumerable<Expr> Walk(IEnumerable<Expr> alternatives, bool written = false)
 	{
 		foreach (var alternative in alternatives)
-			foreach (var node in WalkOne(alternative))
+			foreach (var node in WalkOne(alternative, written))
 				yield return node;
 	}
 
-	static IEnumerable<Expr> WalkOne(Expr expr)
+	static IEnumerable<Expr> WalkOne(Expr expr, bool written)
 	{
 		yield return expr;
 
@@ -294,12 +311,12 @@ sealed partial class Grammar
 			Sequence sequence                                             => sequence.Items,
 			Choice choice                                                 => choice.Alternatives,
 			Group group                                                   => [group.Inner],
-			Wrapped { Wrap: not (Wrap.Ahead or Wrap.NotAhead or Wrap.Zero) } wrapped => [wrapped.Inner],
+			Wrapped wrapped when written || wrapped.Wrap is not (Wrap.Ahead or Wrap.NotAhead or Wrap.Zero) => [wrapped.Inner],
 			RuleRef { Rule.Kind: Kind.Untyped } reference                 => reference.Rule.Alternatives,
 			_                                                             => [],
 		};
 
-		foreach (var node in Walk(inner))
+		foreach (var node in Walk(inner, written))
 			yield return node;
 	}
 
@@ -351,7 +368,7 @@ sealed partial class Grammar
 	/// </summary>
 	bool Impure(Rule rule)
 	{
-		if (!_inProgress.Add(rule))
+		if (rule.OwnText || !_inProgress.Add(rule))
 			return false;
 
 		try
@@ -401,19 +418,23 @@ sealed partial class Grammar
 		switch (rule.Kind)
 		{
 			case Kind.Untyped:
-				return [_composites.ContainsValue(rule) ? Decision.Of(Source.Extent, "-") : Decision.Ask("-", "a published rule with no type: the rule gives its value no source")];
+				return [_composites.ContainsValue(rule) ? Decision.Of(Source.Extent, "-") : Decision.Ask("-", "a published rule with no type that writes names: it makes a type of its own, which the oracle does not model")];
 
 			case Kind.S:
 				return [Decision.Of(Source.Extent, "S")];
 
 			case Kind.C:
+				if (rule.OwnText)
+					return [Decision.Of(Source.Extent, "C")];
+
 				if (calls.Any(c => Classify(c, rule) == Piece.Other))
 					return [Decision.Fail("C", "E-NONTEXT")];
 
 				return [Decision.Of(Impure(rule) ? Source.Joined : Source.Extent, "C")];
 
 			case Kind.A:
-				if (!calls.Any(c => c is not SelfCall && CalleeType(c, rule) == rule.Type))
+				// No call of the element type written: one in X{0} is written, and gives no element.
+				if (!Walk(rule.Alternatives, true).Where(IsCall).Any(c => c is not SelfCall && CalleeType(c, rule) == rule.Type))
 					return [Decision.Fail("A", "E-SEQ")];
 
 				// An object collects any call, so a call of an array of objects is one element or many: it is not told.
@@ -433,32 +454,76 @@ sealed partial class Grammar
 	{
 		var routes = alternatives.SelectMany(a => RoutesOf(a, rule, false)).Distinct().ToList();
 
+		// The call of its type that every route has: one on each route.
 		if (routes.All(static r => r.Operands == 1))
 			return Decision.Of(Source.Operand, "O");
-
-		// An object holds any value, so which calls are its operands, and whether a repetition of them is one, is not told.
-		if (rule.Type == "object")
-			return Decision.Ask("O", "a rule of type object that does not read one call of type object on every route: whether a call of another type fits it, and whether repeated calls are gathered, is not told");
 
 		var parameters = Parameters(rule.Type);
 		var sets       = routes.Select(r => r.Names.Split(',', StringSplitOptions.RemoveEmptyEntries).Where(n => parameters.Contains(n)).Order(StringComparer.Ordinal).ToArray()).ToList();
 
 		if (!sets.Any(static s => s.Length > 0))
+		{
+			if (rule.Type == "object" && routes.Any(static r => r.Operands == 2))
+				Features.Add("O-object-two-calls");
+
 			return Decision.Fail("O", rule.LeftRecursive ? "E-LR" : "E-VALUE");
+		}
 
+		// Names choose the construction of the whole rule: an alternative that captures none of them is refused.
 		if (sets.Select(static s => string.Join(",", s)).Distinct().Count() > 1)
-			return Decision.Ask("O", "names that fill a construction written on some routes of the rule and not on others");
+		{
+			Features.Add("O-partial");
 
+			return Decision.Fail("O", "E-PARTIAL");
+		}
+
+		// A name two constructors take equally chooses none.
 		if (sets[0].Contains("value"))
-			return Decision.Ask("O", "a name that two constructors of the type take equally");
+		{
+			Features.Add("O-tie");
+
+			return Decision.Fail("O", "E-VALUE");
+		}
+
+		// A name of another type than its parameter's is the C# compiler's to refuse.
+		if (Walk(alternatives, true).OfType<Named>().Any(n => ParameterType(rule.Type, n.Name) is { } expected && NamedType(n.Inner, rule) != expected))
+			return Decision.Fail("O", "CS1503");
 
 		return Decision.Of(Source.Constructed, "O");
 	}
 
-	/// <summary>The call is of a rule of the type the rule under reading takes as an operand.</summary>
+	static string? ParameterType(string? type, string name)
+	{
+		return (type, name) switch
+		{
+			("Box", "name") or ("Pr", "t") or ("Item", "x") => "string",
+			("Box", "inner") or ("Pr", "l") or ("Pr", "r")  => type,
+			("Pair", "a") or ("Pair", "b")                  => "int",
+			_                                               => null,
+		};
+	}
+
+	/// <summary>The type of what a name is on: a call's, or text.</summary>
+	static string NamedType(Expr inner, Rule rule)
+	{
+		return inner switch
+		{
+			Group { Inner: var g }                                                  => NamedType(g, rule),
+			Wrapped { Wrap: Wrap.Optional or Wrap.Plus or Wrap.Star, Inner: var w } => NamedType(w, rule),
+			_ when IsCall(inner)                                                    => CalleeType(inner, rule) ?? "string",
+			_                                                                       => "string",
+		};
+	}
+
+	/// <summary>
+	/// The call is of a rule whose type the rule under reading takes as an operand: the same type, or any typed rule where the
+	/// rule is an object (every value converts to it).
+	/// </summary>
 	bool IsOperand(Expr expr, Rule rule)
 	{
-		return IsCall(expr) && rule.Type is not null && CalleeType(expr, rule) == rule.Type && !(expr is RuleRef { Rule.Kind: Kind.A });
+		var callee = IsCall(expr) ? CalleeType(expr, rule) : null;
+
+		return callee is not null && (callee == rule.Type || rule.Type == "object") && !(expr is RuleRef { Rule.Kind: Kind.A });
 	}
 
 	/// <summary>A name directly on a call: <c>x: R</c>, <c>x: R?</c>, <c>x: R+</c>, <c>x: (R)</c>.</summary>
@@ -531,6 +596,10 @@ sealed partial class Grammar
 				return Product(inner, inner);
 			}
 
+			case Wrapped { Wrap: Wrap.Zero } zero:
+				// X{0} gives no call, but a name written in it is written: it fills the constructor with an empty text.
+				return [.. RoutesOf(zero.Inner, rule, author).Select(r => (0, r.Names))];
+
 			default:
 				return [(0, "")];
 		}
@@ -547,6 +616,9 @@ sealed partial class Grammar
 
 		switch (rule.Kind)
 		{
+			case Kind.C when rule.OwnText:
+				break;
+
 			case Kind.C:
 			{
 				var taken = _shape.Type.How == TypeSaid.Taken;
@@ -588,11 +660,8 @@ sealed partial class Grammar
 				if (calls.Any(c => c is not SelfCall && CalleeType(c, rule) == rule.Type && !(c is Call { Rule.Name: "Word" or "Nm" or "Dg" or "Sp" or "Num" })))
 					Features.Add("A-text-rule");
 
-				if (nodes.OfType<Named>().Any(static n => n.Inner is Literal))
-					Features.Add("A-named-literal");
-
-				if (nodes.OfType<Named>().Any(static n => n.Inner is Call { Rule.Name: "Plain" } or Lexeme))
-					Features.Add("A-named-untyped");
+				if (nodes.OfType<Named>().Any(static n => n.Inner is Literal or Lexeme or Call { Rule.Name: "Plain" }))
+					Features.Add("A-named-text");
 
 				if (calls.Any(c => c is SelfCall || c is RuleRef { Rule.Kind: Kind.A }))
 					Features.Add("A-splice");

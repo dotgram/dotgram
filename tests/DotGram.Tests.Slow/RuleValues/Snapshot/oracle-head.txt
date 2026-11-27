@@ -1,22 +1,22 @@
-   40484  green
-   20157  no answer expected
-   37513  red
+   46831  green
+   10368  no answer expected
+   40955  red
 
 red cells by class (silent classes first), and what is expected and what this build gave
 
-    2008 cells in 440 shapes: silent array-collects-text-rule: expected Collected, head gram
-    fixed/text array, a text rule, then a repetition of text rules mode D input gh
-    Start : @string[] = Bare & (',' & Bare)*
-    Bare : @string = ['a'..'z']{2}
-      head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and no operand of it produces one — every…
-      oracle: ["gh"] (Collected, rule A)
-    core/@string[]/bare/Implicit,-/None/None/noLR/Itself/written mode D input cd
-    Start : @string[] = Bare
-    Bare : @string = ['a'..'z']{2}
-      head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and no operand of it produces one — every…
-      oracle: ["cd"] (Collected, rule A)
+    8748 cells in 1565 shapes: silent taken-span-names-own-bounds: expected Extent, head gram
+    landmark/:Span/left-recursive/Implicit,-/None/None/noLR/Itself/written mode D input cdef
+    Start : Span = Start & Span | Span
+    Span : @SourceSpan = ['a'..'z']{2}
+      head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand t…
+      oracle: [0..4) (Extent, rule S)
+    landmark/:Sp/left-recursive/Built,-/None/None/noLR/Itself/written mode D input cdef
+    Start : Sp = Start & Sp | Sp
+    Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
+      head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand t…
+      oracle: [0..4) (Extent, rule S)
 
-    1838 cells in 417 shapes: silent taken-string-rule-keeps-own-literals: expected Joined, head gram
+    2354 cells in 536 shapes: silent taken-string-rule-keeps-own-literals: expected Joined, head gram
     landmark/:Word/two/Built,Implicit/None/None/noLR/Itself/written mode D input <ef,gh>
     Start : Word = '<' & Word & ',' & Bare & '>'
     Bare : @string = ['a'..'z']{2}
@@ -30,7 +30,32 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that …
       oracle: "<W:ef,gh>" (Joined, rule C)
 
-    1611 cells in 324 shapes: silent string-rule-joins-built-value: expected error E-NONTEXT, head gave a different value
+    2178 cells in 509 shapes: silent taken-span-names-own-bounds: expected Extent, head gave a different value
+    landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written mode D input <cd>
+    Start : Span = '<' & Span & '>'
+    Span : @SourceSpan = ['a'..'z']{2}
+      head:   [1..3)
+      oracle: [0..4) (Extent, rule S)
+    landmark/:Sp/one/TakenOverMaking,-/None/None/noLR/Itself/written mode D input <(cd)>
+    Start : Sp = '<' & Mws & '>'
+    Mws : Sp = '(' & Sp & ')'
+    Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
+      head:   [102..104)
+      oracle: [0..6) (Extent, rule S)
+
+    2012 cells in 443 shapes: silent array-collects-text-rule: expected Collected, head gram
+    fixed/text array, a text rule, then a repetition of text rules mode D input gh
+    Start : @string[] = Bare & (',' & Bare)*
+    Bare : @string = ['a'..'z']{2}
+      head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and no operand of it produces one — every…
+      oracle: ["gh"] (Collected, rule A)
+    core/@string[]/bare/Implicit,-/None/None/noLR/Itself/written mode D input cd
+    Start : @string[] = Bare
+    Bare : @string = ['a'..'z']{2}
+      head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and no operand of it produces one — every…
+      oracle: ["cd"] (Collected, rule A)
+
+    1656 cells in 333 shapes: silent string-rule-joins-built-value: expected error E-NONTEXT, head gave a different value
     landmark/@string/one/Built,-/Filling/None/noLR/Itself/written mode D input k03<cd>
     Start : @string = c: Ch & count: Num & '<' & Word & '>'
     Ch : @char = x: ['a'..'z'] => @('c')
@@ -46,7 +71,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   "ccc"
       oracle: error E-NONTEXT
 
-    1321 cells in 335 shapes: silent taken-string-rule-keeps-own-literals: expected error E-NONTEXT, head gave a different value
+    1371 cells in 346 shapes: silent taken-string-rule-keeps-own-literals: expected error E-NONTEXT, head gave a different value
     fixed/text, filling names, an operand in one of two routes each mode D input k03<ef>
     Start : Word = c: Ch & count: Num & ('<' & Word & '>' | Word)
     Ch : @char = x: ['a'..'z'] => @('c')
@@ -63,6 +88,19 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   "W:ef"
       oracle: error E-NONTEXT
 
+    1182 cells in 447 shapes: silent string-rule-joins-built-value: expected Joined, head gave a different value
+    landmark/@string/one/Built,-/None/None/noLR/Itself/written mode D input <cd>
+    Start : @string = '<' & Word & '>'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   "<cd>"
+      oracle: "<W:cd>" (Joined, rule C)
+    landmark/@string/one/OwnOverMaking,-/None/None/noLR/Itself/written mode D input <(cd)>
+    Start : @string = '<' & Ow & '>'
+    Ow : @string = '(' & Word & ')'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   "<(cd)>"
+      oracle: "<(W:cd)>" (Joined, rule C)
+
      899 cells in 263 shapes: silent array-collects-text-rule: expected Collected, head gave a different value
     landmark/@string[]/two/Implicit,Built/None/None/noLR/Itself/written mode D input <ef,gh>
     Start : @string[] = '<' & Bare & ',' & Word & '>'
@@ -77,20 +115,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   ["W:gh"]
       oracle: ["ef","W:gh"] (Collected, rule A)
 
-     758 cells in 281 shapes: silent string-rule-joins-built-value: expected Joined, head gave a different value
-    landmark/@string/one/Built,-/None/None/noLR/Itself/written mode D input <cd>
-    Start : @string = '<' & Word & '>'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   "<cd>"
-      oracle: "<W:cd>" (Joined, rule C)
-    landmark/@string/one/OwnOverMaking,-/None/None/noLR/Itself/written mode D input <(cd)>
-    Start : @string = '<' & Ow & '>'
-    Ow : @string = '(' & Word & ')'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   "<(cd)>"
-      oracle: "<(W:cd)>" (Joined, rule C)
-
-     608 cells in 214 shapes: silent taken-string-rule-keeps-own-literals: expected Joined, head gave a different value
+     816 cells in 283 shapes: silent taken-string-rule-keeps-own-literals: expected Joined, head gave a different value
     landmark/:Word/one/OwnOverMaking,-/None/None/noLR/Itself/written mode D input <(cd)>
     Start : Word = '<' & Ow & '>'
     Ow : @string = '(' & Word & ')'
@@ -104,7 +129,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   "W:cd"
       oracle: "<(W:cd)>" (Joined, rule C)
 
-     519 cells in 287 shapes: silent string-rule-joins-built-value: expected error GRAM4026, head gave a different value
+     780 cells in 436 shapes: silent string-rule-joins-built-value: expected error GRAM4026, head gave a different value
     landmark/@string/one/Built,-/None/None/noLR/Itself/written mode B input <cd>
     Start : @string = '<' & Word & '>'
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
@@ -116,6 +141,18 @@ red cells by class (silent classes first), and what is expected and what this bu
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       head:   bytes"<(cd)>"
       oracle: error GRAM4026
+
+     486 cells in 66 shapes: silent array-call-splices-elements: expected Collected, head gram
+    fixed/left recursion, array mode D input ef
+    Start : @string[] = Word | Start & ',' & Word
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
+      oracle: ["W:ef"] (Collected, rule A)
+    deviation/@string[]/bare/Built,-/None/None/LR/Itself/written mode D input ab+#
+    Start : @string[] = Start & '+' & '#' | Word
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
+      oracle: ["W:ab"] (Collected, rule A)
 
      484 cells in 120 shapes: silent operand-beats-construction: expected Operand, head gave a different value
     landmark/@Box/one/Implicit,-/Filling/None/noLR/Itself/written mode D input 34<cd>
@@ -132,18 +169,6 @@ red cells by class (silent classes first), and what is expected and what this bu
     Nm : @string = n: ['a'..'z']{2} => @(T(n))
       head:   box:34
       oracle: box:cd (Operand, rule O)
-
-     396 cells in 51 shapes: silent array-call-splices-elements: expected Collected, head gram
-    fixed/left recursion, array mode D input ef
-    Start : @string[] = Word | Start & ',' & Word
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
-      oracle: ["W:ef"] (Collected, rule A)
-    deviation/@string[]/bare/Built,-/None/None/LR/Itself/written mode D input ab+#
-    Start : @string[] = Start & '+' & '#' | Word
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
-      oracle: ["W:ab"] (Collected, rule A)
 
      366 cells in 51 shapes: silent operand-beats-construction: expected Constructed, head gram
     fixed/left recursion, a type with a constructing seed mode D input 34=56+78
@@ -172,6 +197,19 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   ["W:ef","W:gh"]
       oracle: ["(W:ef)","W:gh"] (Collected, rule A)
 
+     306 cells in 228 shapes: silent taken-string-rule-keeps-own-literals: expected error GRAM4026, head gave a different value
+    landmark/:Word/one/TakenOverMaking,-/None/None/noLR/Itself/written mode B input <(cd)>
+    Start : Word = '<' & Mw & '>'
+    Mw : Word = '(' & Word & ')'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   "W:cd"
+      oracle: error GRAM4026
+    fixed/taken text, a name that the compiler uses on the last literal mode B input <cd>
+    Start : Word = '<' & Word & items: '>'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   "W:cd"
+      oracle: error GRAM4026
+
      300 cells in 53 shapes: silent operand-beats-construction: expected Operand, head gram
     core/@Box/bare/Built,-/Tie/None/noLR/Itself/written mode D input 34cd
     Start : @Box = value: Num & Bxa
@@ -188,7 +226,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
       oracle: box:cd (Operand, rule O)
 
-     246 cells in 48 shapes: silent char-piece-gives-character: expected error E-NONTEXT, head gave a different value
+     256 cells in 50 shapes: silent char-piece-gives-character: expected error E-NONTEXT, head gave a different value
     atoms/@string/bare/Character,-/Filling/None/noLR/Itself/written mode D input k03\n
     Start : @string = c: Ch & count: Num & Esc
     Ch : @char = x: ['a'..'z'] => @('c')
@@ -204,20 +242,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   "ccc"
       oracle: error E-NONTEXT
 
-     231 cells in 172 shapes: silent taken-string-rule-keeps-own-literals: expected error GRAM4026, head gave a different value
-    landmark/:Word/one/TakenOverMaking,-/None/None/noLR/Itself/written mode B input <(cd)>
-    Start : Word = '<' & Mw & '>'
-    Mw : Word = '(' & Word & ')'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   "W:cd"
-      oracle: error GRAM4026
-    fixed/taken text, a name that the compiler uses on the last literal mode B input <cd>
-    Start : Word = '<' & Word & items: '>'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   "W:cd"
-      oracle: error GRAM4026
-
-     184 cells in 39 shapes: silent string-rule-joins-built-value: expected Collected, head gram
+     222 cells in 57 shapes: silent string-rule-joins-built-value: expected Collected, head gram
     atoms/@string[]/bare/OwnOverMaking,-/None/None/noLR/Itself/written mode D input (cd)
     Start : @string[] = Ow
     Ow : @string = '(' & Word & ')'
@@ -246,6 +271,19 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
       oracle: "34W:cd" (Joined, rule C)
 
+     166 cells in 70 shapes: silent char-piece-gives-character: expected Joined, head gave a different value
+    fixed/string, a char rule between quotes mode D input "\n"
+    Start : @string = '"' & Esc & '"'
+    Esc : @char = '\\' & 'n' => @('\n')
+      head:   ""\\n""
+      oracle: ""\n"" (Joined, rule C)
+    fixed/string, a repetition of a char rule or an untyped rule mode D input "\n\n"
+    Start : @string = '"' & (Esc | Plain)* & '"'
+    Esc : @char = '\\' & 'n' => @('\n')
+    Plain = ['a'..'z']{2}
+      head:   ""\\n\\n""
+      oracle: ""\n\n"" (Joined, rule C)
+
      165 cells in 32 shapes: silent untyped-rule-read-through: expected Collected, head gram
     atoms/@string[]/bare/Wrapper,-/None/None/noLR/Itself/written mode D input (cd)
     Start : @string[] = P2
@@ -260,20 +298,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and no operand of it produces one — every…
       oracle: ["W:cd"] (Collected, rule A)
 
-     122 cells in 51 shapes: silent char-piece-gives-character: expected Joined, head gave a different value
-    fixed/string, a char rule between quotes mode D input "\n"
-    Start : @string = '"' & Esc & '"'
-    Esc : @char = '\\' & 'n' => @('\n')
-      head:   ""\\n""
-      oracle: ""\n"" (Joined, rule C)
-    fixed/string, a repetition of a char rule or an untyped rule mode D input "\n\n"
-    Start : @string = '"' & (Esc | Plain)* & '"'
-    Esc : @char = '\\' & 'n' => @('\n')
-    Plain = ['a'..'z']{2}
-      head:   ""\\n\\n""
-      oracle: ""\n\n"" (Joined, rule C)
-
-      76 cells in 43 shapes: silent char-piece-gives-character: expected error GRAM4026, head gave a different value
+     109 cells in 61 shapes: silent char-piece-gives-character: expected error GRAM4026, head gave a different value
     fixed/string, a char rule between quotes mode B input "\n"
     Start : @string = '"' & Esc & '"'
     Esc : @char = '\\' & 'n' => @('\n')
@@ -286,7 +311,19 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   bytes""""
       oracle: error GRAM4026
 
-      60 cells in 13 shapes: silent char-piece-gives-character: expected Joined, head gram
+     102 cells in 18 shapes: silent named-text-not-collected: expected Collected, head gram
+    core/@string[]/zero/Implicit,-/OnLiteral/None/noLR/Itself/written mode D input <#>
+    Start : @string[] = x: '<' & Bare{0} & '#' & '>'
+    Bare : @string = ['a'..'z']{2}
+      head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and no operand of it produces one — every…
+      oracle: [] (Collected, rule A)
+    core/@string[]/ahead/Built,-/OnLiteral/None/noLR/Itself/written mode D input <cd>
+    Start : @string[] = x: '<' & ?=(Word) & any{2} & '>'
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and no operand of it produces one — every…
+      oracle: [] (Collected, rule A)
+
+      86 cells in 18 shapes: silent char-piece-gives-character: expected Joined, head gram
     atoms/:Word/group-choice/Character,Implicit/None/None/noLR/Itself/written mode D input <(\n)>
     Start : Word = '<' & ('(' & Esc & ')' | Bare) & '>'
     Bare : @string = ['a'..'z']{2}
@@ -302,21 +339,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that …
       oracle: "<\n>" (Joined, rule C)
 
-      56 cells in 17 shapes: silent operand-beats-construction: expected Operand, head csharp
-    core/@Box/bare/Built,-/FillingOnGroup/None/noLR/Itself/written mode S input (cd)
-    Start : @Box = name: ('(' & Bxa & ')')
-    Bxa : @Box = n: Nm => @(new Box("A" + n))
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-      head:   CSHARP CS1503 Argument 1: cannot convert from 'System.ReadOnlySpan<char>' to 'string'
-      oracle: box:Acd (Operand, rule O)
-    core/@Box/bare/Implicit,-/FillingOnGroup/None/noLR/Itself/written mode S input (cd)
-    Start : @Box = name: ('(' & Bx & ')')
-    Bx : @Box = name: Nm
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-      head:   CSHARP CS1503 Argument 1: cannot convert from 'System.ReadOnlySpan<char>' to 'string'
-      oracle: box:cd (Operand, rule O)
-
-      56 cells in 16 shapes: silent taken-string-rule-keeps-own-literals: expected Collected, head gram
+      84 cells in 24 shapes: silent taken-string-rule-keeps-own-literals: expected Collected, head gram
     deviation/:Word/two/Built,Implicit/None/None/noLR/InSequence/written mode D input <ef,gh>;ij
     Start : @string[] = R & ';' & Word
     R : Word = '<' & Word & ',' & Bare & '>'
@@ -331,7 +354,21 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'R' takes the type of the rule it names, 'string', and so the value of the one operand that prod…
       oracle: ["<W:cd>","W:ef"] (Collected, rule A)
 
-      32 cells in 10 shapes: silent taken-string-rule-keeps-own-literals: expected Collected, head gave a different value
+      56 cells in 17 shapes: silent operand-beats-construction: expected Operand, head csharp
+    core/@Box/bare/Built,-/FillingOnGroup/None/noLR/Itself/written mode S input (cd)
+    Start : @Box = name: ('(' & Bxa & ')')
+    Bxa : @Box = n: Nm => @(new Box("A" + n))
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      head:   CSHARP CS1503 Argument 1: cannot convert from 'System.ReadOnlySpan<char>' to 'string'
+      oracle: box:Acd (Operand, rule O)
+    core/@Box/bare/Implicit,-/FillingOnGroup/None/noLR/Itself/written mode S input (cd)
+    Start : @Box = name: ('(' & Bx & ')')
+    Bx : @Box = name: Nm
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      head:   CSHARP CS1503 Argument 1: cannot convert from 'System.ReadOnlySpan<char>' to 'string'
+      oracle: box:cd (Operand, rule O)
+
+      48 cells in 15 shapes: silent taken-string-rule-keeps-own-literals: expected Collected, head gave a different value
     deviation/:Word/one/Built,-/None/None/noLR/InSequence/written mode D input <cd>;ef
     Start : @string[] = R & ';' & Word
     R : Word = '<' & Word & '>'
@@ -345,6 +382,20 @@ red cells by class (silent classes first), and what is expected and what this bu
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       head:   ["W:ef","W:ij"]
       oracle: ["<(W:ef)>","W:ij"] (Collected, rule A)
+
+      32 cells in 10 shapes: silent char-piece-gives-character: expected Joined, head crash
+    atoms/:Plain/bare/Character,-/None/None/noLR/Itself/written mode D input \n
+    Start : Plain = Esc
+    Esc : @char = '\\' & 'n' => @('\n')
+    Plain = ['a'..'z']{2}
+      head:   CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidOperationException: …
+      oracle: "\n" (Joined, rule C)
+    atoms/:Plain/one/Character,-/None/None/noLR/Itself/written mode D input <\n>
+    Start : Plain = '<' & Esc & '>'
+    Esc : @char = '\\' & 'n' => @('\n')
+    Plain = ['a'..'z']{2}
+      head:   CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidOperationException: …
+      oracle: "<\n>" (Joined, rule C)
 
       30 cells in 12 shapes: silent array-collects-text-rule: expected error E-NONTEXT, head gave a different value
     deviation/@string/none/-,-/Filling/None/noLR/InSequence/written mode D input k03<#>;ab
@@ -381,7 +432,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   CSHARP CS0029 Cannot implicitly convert type 'char' to 'string'
       oracle: ["(cd)"] (Collected, rule A)
 
-      16 cells in 4 shapes: silent string-rule-joins-built-value: expected Collected, head csharp
+      20 cells in 6 shapes: silent string-rule-joins-built-value: expected Collected, head csharp
     atoms/@string[]/optional/TakenOverMaking,-/Filling/None/noLR/Itself/written mode D input k03<(cd)>
     Start : @string[] = c: Ch & count: Num & '<' & Mw? & '>'
     Ch : @char = x: ['a'..'z'] => @('c')
@@ -421,18 +472,6 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4006 'w' is captured inside a lookahead in 'Start', which is not built: what a lookahead records on t…
       oracle: "<#>" (Extent, rule C)
 
-      12 cells in 4 shapes: silent named-literal-not-collected: expected error E-SEQ, head gave a different value
-    core/@string[]/zero/Built,-/OnLiteral/None/noLR/Itself/written mode D input <#>
-    Start : @string[] = x: '<' & Word{0} & '#' & '>'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   []
-      oracle: error E-SEQ
-    core/@int[]/zero/Built,-/OnLiteral/None/noLR/Itself/written mode D input <#>
-    Start : @int[] = x: '<' & Num{0} & '#' & '>'
-    Num : @int = d: ['0'..'9']{2} => @(N(d))
-      head:   []
-      oracle: error E-SEQ
-
       12 cells in 2 shapes: silent taken-string-rule-keeps-own-literals: expected Extent, head gram
     random/20261125/248/:Bare mode D input <#>
     Start : Bare = '<' & (?!(w: Mx) & '#') & '>' | '!' & ('(' & w: Bare & ')' | ?!(C4) & '#') & '#'
@@ -471,27 +510,21 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   "ef . gh"
       oracle: "ef.gh" (Joined, rule C)
 
-       5 cells in 2 shapes: silent string-rule-joins-built-value: expected error E-SEQ, head gave a different value
-    atoms/@string[]/zero/TakenOverMaking,-/None/None/noLR/Itself/written mode D input <#>
-    Start : @string[] = '<' & Mw{0} & '#' & '>'
-    Mw : Word = '(' & Word & ')'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   []
-      oracle: error E-SEQ
-    atoms/@string[]/zero/PerRoute,-/None/None/noLR/Itself/written mode D input <#>
-    Start : @string[] = '<' & Mx{0} & '#' & '>'
-    Bare : @string = ['a'..'z']{2}
-    Mx : Word = Word | '[' & Bare & ']'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   []
-      oracle: error E-SEQ
-
        3 cells in 1 shapes: silent array-call-splices-elements: expected Collected, head gave a different value
     fixed/right recursion, array mode D input cd,ab
     Start : @string[] = Word & (',' & Start)?
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       head:   ["W:cd"]
       oracle: ["W:cd","W:ab"] (Collected, rule A)
+
+       3 cells in 1 shapes: silent string-rule-joins-built-value: expected error E-NONTEXT, head fail
+    random/20261125/361/none mode D input <#>
+    Start = '<' & (?!(Mw?) & '#') & '>' | '!' & Num & '#'
+    Mw : Word = '(' & Word & ')'
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   FAIL 
+      oracle: error E-NONTEXT
 
        3 cells in 3 shapes: silent string-rule-joins-built-value: expected error GRAM4026, head fail
     random/20261125/88/@string mode B input <#>
@@ -539,7 +572,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   FAIL 
       oracle: error GRAM4026
 
-    3045 cells in 732 shapes: loud string-not-built-from-names: expected error E-NONTEXT, head gave a different value
+    3051 cells in 735 shapes: loud string-not-built-from-names: expected error E-NONTEXT, head gave a different value
     landmark/:Word/ahead/Built,-/Filling/None/noLR/Itself/written mode D input k03<cd>
     Start : Word = c: Ch & count: Num & '<' & ?=(Word) & any{2} & '>'
     Ch : @char = x: ['a'..'z'] => @('c')
@@ -555,7 +588,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   "k03<#>"
       oracle: error E-NONTEXT
 
-     874 cells in 186 shapes: loud non-text-piece-is-error: expected error E-NONTEXT, head gave a different value
+    1002 cells in 213 shapes: loud non-text-piece-is-error: expected error E-NONTEXT, head gave a different value
     fixed/string, an int piece mode D input <34>
     Start : @string = '<' & Num & '>'
     Num : @int = d: ['0'..'9']{2} => @(N(d))
@@ -566,6 +599,20 @@ red cells by class (silent classes first), and what is expected and what this bu
     Span : @SourceSpan = ['a'..'z']{2}
       head:   "<cd>"
       oracle: error E-NONTEXT
+
+     317 cells in 78 shapes: loud partial-construction-refused: expected error E-PARTIAL, head gave a different value
+    core/@Box/optional/Built,-/ParameterOnOperand/None/noLR/Itself/written mode D input <cd>
+    Start : @Box = '<' & (inner: Bxa)? & '>'
+    Bxa : @Box = n: Nm => @(new Box("A" + n))
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      head:   box:[box:Acd] (warnings CS8604)
+      oracle: error E-PARTIAL
+    core/@Box/optional/Built,-/FillingOnGroup/None/noLR/Itself/written mode D input <(cd)>
+    Start : @Box = '<' & (name: ('(' & Bxa & ')'))? & '>'
+    Bxa : @Box = n: Nm => @(new Box("A" + n))
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      head:   box:(cd) (warnings CS8604)
+      oracle: error E-PARTIAL
 
      302 cells in 115 shapes: loud string-not-built-from-names: expected Joined, head gram
     core/@string/none/-,-/Tie/None/noLR/Itself/written mode D input 34<#>
@@ -604,6 +651,16 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   bytes"k<#>"
       oracle: error GRAM4026
 
+       3 cells in 1 shapes: loud partial-construction-refused: expected error E-PARTIAL, head fail
+    random/20261125/621/@Pr mode D input !##
+    Start : @Pr = t: Dg & '<' & x: ('(' & Lfa & ')') & '>' | '!' & (?!(?!(Lf) & '#') & '#') & '#'
+    Dg : @string = d: ['0'..'9']{2} => @(T(d))
+    Lf : @Pr = t: Nm
+    Lfa : @Pr = n: Nm => @(new Pr { T = "A" + n })
+    Nm : @string = n: ['a'..'z']{2} => @(T(n))
+      head:   FAIL 
+      oracle: error E-PARTIAL
+
        2 cells in 1 shapes: loud string-not-built-from-names: expected error E-NONTEXT, head fail
     random/20261125/1018/:Word mode D input <#>
     Start : Word = '<' & (?!(?!(Mid) & '#') & '#') & '>' | c: Ch & count: Num & '!' & ((':' & Plain)+ & ',' & Plain?) & '#'
@@ -616,32 +673,33 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   FAIL  (warnings GRAM4018)
       oracle: error E-NONTEXT
 
-   11766 cells in 2140 shapes: other, rule S: expected Extent, head gram
-    landmark/:Span/left-recursive/Implicit,-/None/None/noLR/Itself/written mode D input cdef
-    Start : Span = Start & Span | Span
-    Span : @SourceSpan = ['a'..'z']{2}
-      head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand t…
-      oracle: [0..4) (Extent, rule S)
-    landmark/:Sp/left-recursive/Built,-/None/None/noLR/Itself/written mode D input cdef
-    Start : Sp = Start & Sp | Sp
+    3018 cells in 575 shapes: other, rule S: expected Extent, head gram
+    core/@SourceSpan/none/-,-/Filling/None/noLR/Itself/written mode D input 0303<#>
+    Start : @SourceSpan = start: Num & length: Num & '<' & '#' & '>'
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
+      head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
+      oracle: [0..7) (Extent, rule S)
+    core/@SourceSpan/bare/Built,-/Filling/None/noLR/Itself/written mode D input 0303cd
+    Start : @SourceSpan = start: Num & length: Num & Sp
+    Num : @int = d: ['0'..'9']{2} => @(N(d))
     Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
-      head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand t…
-      oracle: [0..4) (Extent, rule S)
-
-    2178 cells in 509 shapes: other, rule S: expected Extent, head gave a different value
-    landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written mode D input <cd>
-    Start : Span = '<' & Span & '>'
-    Span : @SourceSpan = ['a'..'z']{2}
-      head:   [1..3)
-      oracle: [0..4) (Extent, rule S)
-    landmark/:Sp/one/TakenOverMaking,-/None/None/noLR/Itself/written mode D input <(cd)>
-    Start : Sp = '<' & Mws & '>'
-    Mws : Sp = '(' & Sp & ')'
-    Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
-      head:   [102..104)
+      head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
       oracle: [0..6) (Extent, rule S)
 
-    1863 cells in 364 shapes: other, rule O: expected Constructed, head gram
+    1924 cells in 584 shapes: other, rule C: expected Extent, head gram
+    landmark/:Word/left-recursive/Implicit,-/None/None/noLR/Itself/written mode D input cdef
+    Start : Word = Start & Bare | Bare
+    Bare : @string = ['a'..'z']{2}
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that …
+      oracle: "cdef" (Extent, rule C)
+    fixed/@string/one/ReaderExtent,-/None/None/noLR/Itself/written mode B input <cd>
+    Start : @string = '<' & G & '>'
+    G : @string = g: ['a'..'z']{2} & when @(Seen(g))
+      head:   GRAM GRAM4026 Cannot generate buffered input for 'By': 'G' builds its string with '=> @(parserText)', and over…
+      oracle: bytes"<cd>" (Extent, rule C)
+
+    1869 cells in 366 shapes: other, rule O: expected Constructed, head gram
     landmark/:Bx/one/Implicit,-/FillingAndOnOperand/None/noLR/Itself/written mode D input 34<cd>
     Start : Bx = name: Dg & '<' & w: Bx & '>'
     Bx : @Box = name: Nm
@@ -657,20 +715,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'Box', and so the value of the one operand that pro…
       oracle: box:34 (Constructed, rule O)
 
-    1557 cells in 456 shapes: other, rule C: expected Extent, head gram
-    landmark/:Word/left-recursive/Implicit,-/None/None/noLR/Itself/written mode D input cdef
-    Start : Word = Start & Bare | Bare
-    Bare : @string = ['a'..'z']{2}
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that …
-      oracle: "cdef" (Extent, rule C)
-    fixed/@string/one/ReaderExtent,-/None/None/noLR/Itself/written mode B input <cd>
-    Start : @string = '<' & G & '>'
-    G : @string = g: ['a'..'z']{2} & when @(Seen(g))
-      head:   GRAM GRAM4026 Cannot generate buffered input for 'By': 'G' builds its string with '=> @(parserText)', and over…
-      oracle: bytes"<cd>" (Extent, rule C)
-
-    1302 cells in 284 shapes: other, rule O: expected Operand, head gram
+    1389 cells in 296 shapes: other, rule O: expected Operand, head gram
     landmark/@int/one/Built,-/None/None/noLR/Itself/written mode D input <34>
     Start : @int = '<' & Num & '>'
     Num : @int = d: ['0'..'9']{2} => @(N(d))
@@ -683,7 +728,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' c…
       oracle: box:Acd (Operand, rule O)
 
-     618 cells in 118 shapes: other, rule A: expected Collected, head gram
+    1167 cells in 297 shapes: other, rule A: expected Collected, head gram
     core/@string[]/none/-,-/Tie/None/noLR/Itself/written mode D input 34<#>
     Start : @string[] = value: Dg & '<' & '#' & '>'
     Dg : @string = d: ['0'..'9']{2} => @(T(d))
@@ -695,7 +740,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   GRAM GRAM4008 'Start' declares its result as a sequence of 'string', and the operand that would fill it is cap…
       oracle: ["W:cd"] (Collected, rule A)
 
-     212 cells in 78 shapes: other, rule C: expected Extent, head gave a different value
+     282 cells in 102 shapes: other, rule C: expected Extent, head gave a different value
     core/:Word/bare/Implicit,-/OnGroup/None/noLR/Itself/written mode D input (cd)
     Start : Word = x: ('(' & Bare & ')')
     Bare : @string = ['a'..'z']{2}
@@ -709,7 +754,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   "cd" (warnings GRAM4018)
       oracle: "<cd>" (Extent, rule C)
 
-     200 cells in 85 shapes: other, rule O: expected Constructed, head csharp
+     214 cells in 97 shapes: other, rule O: expected Constructed, head csharp
     core/@Box/bare/Other,-/FillingOnGroup/None/noLR/Itself/written mode S input (cd)
     Start : @Box = name: ('(' & Word & ')')
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
@@ -721,7 +766,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   CSHARP CS1503 Argument 1: cannot convert from 'System.ReadOnlySpan<char>' to 'string'
       oracle: box:(cd) (Constructed, rule O)
 
-     126 cells in 32 shapes: other, rule A: expected Collected, head gave a different value
+     130 cells in 34 shapes: other, rule A: expected Collected, head gave a different value
     landmark/@string[]/two/Built,Built/OnOperand/None/noLR/Itself/written mode D input <ef,gh>
     Start : @string[] = '<' & w: Word & ',' & Word & '>'
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
@@ -733,19 +778,7 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   ["W:gh"]
       oracle: ["W:ef","W:gh"] (Collected, rule A)
 
-     116 cells in 40 shapes: other, rule A: expected error E-SEQ, head gave a different value
-    core/@string[]/zero/Built,-/None/None/noLR/Itself/written mode D input <#>
-    Start : @string[] = '<' & Word{0} & '#' & '>'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   []
-      oracle: error E-SEQ
-    core/@string[]/zero/Built,-/OnGroup/None/noLR/Itself/written mode D input <#>
-    Start : @string[] = '<' & (x: ('(' & Word & ')')){0} & '#' & '>'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      head:   []
-      oracle: error E-SEQ
-
-      45 cells in 10 shapes: other, rule A: expected Collected, head csharp
+      64 cells in 17 shapes: other, rule A: expected Collected, head csharp
     core/@string[]/optional/Built,-/Filling/None/noLR/Itself/written mode D input k03<cd>
     Start : @string[] = c: Ch & count: Num & '<' & Word? & '>'
     Ch : @char = x: ['a'..'z'] => @('c')
@@ -760,16 +793,14 @@ red cells by class (silent classes first), and what is expected and what this bu
       head:   CSHARP CS0029 Cannot implicitly convert type 'char' to 'string'
       oracle: ["W:cd"] (Collected, rule A)
 
-      24 cells in 24 shapes: other, rule O: expected error E-VALUE, head gave a different value
-    core/@Box/zero/Built,-/FillingOnGroup/None/noLR/Itself/written mode D input <#>
-    Start : @Box = '<' & (name: ('(' & Bxa & ')')){0} & '#' & '>'
-    Bxa : @Box = n: Nm => @(new Box("A" + n))
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-      head:   box:
-      oracle: error E-VALUE
-    core/@Box/zero/Implicit,-/FillingOnGroup/None/noLR/Itself/written mode D input <#>
-    Start : @Box = '<' & (name: ('(' & Bx & ')')){0} & '#' & '>'
-    Bx : @Box = name: Nm
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-      head:   box:
-      oracle: error E-VALUE
+      20 cells in 12 shapes: other, rule O: expected error CS1503, head gave a different value
+    core/@Box/bare/Other,-/ParameterOnOperand/None/noLR/Itself/written mode D input cd
+    Start : @Box = inner: Word
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      head:   box:W:cd
+      oracle: error CS1503
+    core/@Box/bare/Plumbing,-/ParameterOnOperand/None/noLR/Itself/written mode D input cd
+    Start : @Box = inner: Plain
+    Plain = ['a'..'z']{2}
+      head:   box:cd
+      oracle: error CS1503

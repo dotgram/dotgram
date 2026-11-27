@@ -30,8 +30,7 @@ sealed partial class Grammar
 
 	sealed class Evaluation(Grammar grammar, Mode mode, string input)
 	{
-		readonly Dictionary<string, string> _bound  = [];
-		readonly Dictionary<string, string> _values = [];
+		readonly Dictionary<string, string> _bound = [];
 
 		public Expectation Run()
 		{
@@ -368,7 +367,10 @@ sealed partial class Grammar
 				{
 					var text = new StringBuilder();
 
-					Join(node, text);
+					if (rule.OwnText)
+						text.Append(input, node.Start, node.End - node.Start);
+					else
+						Join(node, text);
 
 					return mode == Mode.B ? Val.Bytes(text.ToString()) : Val.Str(text.ToString());
 				}
@@ -408,19 +410,13 @@ sealed partial class Grammar
 
 					break;
 
-				case BackRef backRef:
-					into.Append(_values[backRef.Name]);
+				case BackRef:
+					into.Append(input, node.Start, node.End - node.Start);
 					break;
 
-				case Bind bind:
-				{
-					var before = into.Length;
-
+				case Bind:
 					Join(node.Kids[0], into);
-					_values[bind.Name] = into.ToString(before, into.Length - before);
-
 					break;
-				}
 
 				case Wrapped { Wrap: Wrap.Ahead or Wrap.NotAhead or Wrap.Zero } or Guard or SwitchOn or TriviaRef:
 					break;
@@ -562,7 +558,15 @@ sealed partial class Grammar
 					break;
 				}
 
-				case Call or SelfCall or RuleRef or Wrapped { Wrap: Wrap.Ahead or Wrap.NotAhead or Wrap.Zero }:
+				// A name written in X{0} fills its parameter with an empty text.
+				case Wrapped { Wrap: Wrap.Zero } zero:
+					foreach (var named in Walk([zero.Inner], true).OfType<Named>())
+						if (parameters.Contains(named.Name))
+							into[named.Name] = Val.Str("");
+
+					break;
+
+				case Call or SelfCall or RuleRef or Wrapped { Wrap: Wrap.Ahead or Wrap.NotAhead }:
 					break;
 
 				default:

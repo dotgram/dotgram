@@ -67,9 +67,9 @@
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       "W:cd"  vs  "cd"
 
-===== this build: 15405 violations =====
+===== this build: 15465 violations =====
 
-     804 extraction-keeps-the-value (260 shapes)
+     864 extraction-keeps-the-value (288 shapes)
     landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written / inlined/landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written mode D input <cd>
     Start : Span = '<' & Span & '>'
     Span : @SourceSpan = ['a'..'z']{2}

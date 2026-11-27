@@ -88,7 +88,7 @@ public sealed class RuleOracleTests
 	[InlineData("string, a char rule between quotes", 0, "\"\"\\n\"\"")]
 	[InlineData("string, an untyped wrapper of a built string", 0, "\"<(W:{0})>\"")]
 	[InlineData("string, a template call over a built string", 0, "\"<(W:{0})>\"")]
-	[InlineData("string, a binding and its reference", 0, "\"W:{0},W:{0}\"")]
+	[InlineData("string, a binding and its reference", 0, "\"W:{0},{0}\"")]
 	public void The_oracle_reads_the_table_of_the_rule(string label, int route, string pattern)
 	{
 		var shape = RuleShapes.Fixed().FirstOrDefault(f => f.Id == "fixed/" + label);
@@ -137,9 +137,7 @@ public sealed class RuleOracleTests
 		var matched   = RuleAllowList.Entries.ToDictionary(static e => e.Name, static _ => new List<Cell>());
 		var agreeing  = RuleAllowList.Entries.ToDictionary(static e => e.Name, static _ => 0);
 		var unexplained = new List<(Cell Cell, Expectation Expected)>();
-		var nulls = new List<(Cell Cell, Expectation Expected)>();
 		var unmatched = new List<(Cell Cell, Expectation Expected)>();
-		var raised = new List<(Cell Cell, Expectation Expected, string Question)>();
 		var undecided = new SortedDictionary<string, (int Count, Cell Example)>(StringComparer.Ordinal);
 
 		report.Append(CultureInfo.InvariantCulture, $"cells {cells.Count}, shapes {shapes.Count}, cells with no outcome in the files {missing}\n");
@@ -176,19 +174,7 @@ public sealed class RuleOracleTests
 				foreach (var entry in covering)
 					matched[entry.Name].Add(cell);
 
-				var asked = covering.Count == 0 ? RuleQuestions.Raised(new AllowCase(cell.Shape, cell.Mode, old, Newer.Of(expected), RuleOracle.Describe(cell.Shape))).FirstOrDefault() : null;
-
-				if (asked is not null)
-				{
-					category = "question: " + asked.Name;
-					raised.Add((cell, expected, asked.Name));
-				}
-				else if (covering.Count == 0 && old.Text == "<null>" && old.WarnedNull)
-				{
-					category = "question: 0.3.0 gave null (CS8603), oracle " + (expected.IsError ? "refuses" : expected.Source.ToString());
-					nulls.Add((cell, expected));
-				}
-				else if (covering.Count == 0)
+				if (covering.Count == 0)
 				{
 					category = "UNEXPLAINED";
 					unexplained.Add((cell, expected));
@@ -217,8 +203,8 @@ public sealed class RuleOracleTests
 
 		report.Append("\nthe allow-list, silent classes first: cells (and shapes) where 0.3.0 differs from the oracle on purpose\n");
 
-		foreach (var entry in RuleAllowList.Entries.OrderByDescending(static e => e.Silent))
-			report.Append(CultureInfo.InvariantCulture, $"{matched[entry.Name].Count,8} differ ({matched[entry.Name].Select(static c => c.Shape.Id).Distinct().Count(),5} shapes), {agreeing[entry.Name],6} agree  {(entry.Silent ? "silent" : "loud  ")}  {entry.Name}\n");
+		foreach (var entry in RuleAllowList.Entries.OrderBy(static e => e.Impact))
+			report.Append(CultureInfo.InvariantCulture, $"{matched[entry.Name].Count,8} differ ({matched[entry.Name].Select(static c => c.Shape.Id).Distinct().Count(),5} shapes), {agreeing[entry.Name],6} agree  {entry.Impact,-8}  {entry.Name}\n");
 
 		var dead = matched.Where(static p => p.Value.Count == 0).Select(static p => p.Key).ToList();
 
@@ -239,29 +225,6 @@ public sealed class RuleOracleTests
 		foreach (var (cell, expected) in unmatched.GroupBy(static u => u.Cell.Shape.Id).Select(static g => g.First()))
 			Example(report, cell, Show(cell.Package), expected, "0.3.0:  ");
 
-		report.Append("\nquestions raised by differences no class explains\n");
-
-		foreach (var question in RuleQuestions.Entries)
-		{
-			var cellsOf = raised.Where(r => r.Question == question.Name).ToList();
-
-			report.Append(CultureInfo.InvariantCulture, $"\n  {question.Name}: {cellsOf.Count} cells in {cellsOf.Select(static r => r.Cell.Shape.Id).Distinct().Count()} shapes: {question.Description}\n");
-
-			if (cellsOf.Count > 0)
-				Example(report, cellsOf[0].Cell, Show(cellsOf[0].Cell.Package), cellsOf[0].Expected, "0.3.0:  ");
-		}
-
-		report.Append(CultureInfo.InvariantCulture, $"\nnull in 0.3.0 (question): {nulls.Count} cells in {nulls.Select(static u => u.Cell.Shape.Id).Distinct().Count()} distinct shapes\n");
-
-		foreach (var family in nulls.GroupBy(static u => u.Cell.Shape.Type.Name + " / " + u.Cell.Shape.Structure + " / " + (u.Expected.IsError ? "error " + u.Expected.ErrorId : u.Expected.Source.ToString())).OrderBy(static g => g.Key, StringComparer.Ordinal))
-		{
-			report.Append(CultureInfo.InvariantCulture, $"\n  family {family.Key}: {family.Select(static u => u.Cell.Shape.Id).Distinct().Count()} shapes, {family.Count()} cells\n");
-
-			var (cell, expected) = family.First();
-
-			Example(report, cell, Show(cell.Package), expected, "0.3.0:  ");
-		}
-
 		report.Append("\nundecided: the rule gives no answer\n");
 
 		foreach (var (question, (count, example)) in undecided)
@@ -273,7 +236,7 @@ public sealed class RuleOracleTests
 
 		report.Append("\nallowed cells, one example per class\n");
 
-		foreach (var entry in RuleAllowList.Entries.OrderByDescending(static e => e.Silent))
+		foreach (var entry in RuleAllowList.Entries.OrderBy(static e => e.Impact))
 			if (matched[entry.Name].FirstOrDefault() is { } example)
 			{
 				report.Append("\n  ").Append(entry.Name).Append(": ").Append(entry.Description).Append('\n');
@@ -317,7 +280,7 @@ public sealed class RuleOracleTests
 
 			// The class of a red cell: the entry of the allow-list whose grammars it is, or the rule that decides it.
 			var covering = RuleAllowList.Covering(new AllowCase(cell.Shape, cell.Mode, head, Newer.Of(expected), RuleOracle.Describe(cell.Shape)) { AsIfDifferent = true }).FirstOrDefault();
-			var key = (covering is null ? "other, rule " + expected.Row : (covering.Silent ? "silent " : "loud ") + covering.Name)
+			var key = (covering is null ? "other, rule " + expected.Row : covering.Impact.ToString().ToLowerInvariant() + " " + covering.Name)
 				+ ": expected " + (expected.IsError ? "error " + expected.ErrorId : expected.Source.ToString())
 				+ ", head " + (head.Kind == "value" ? "gave a different value" : head.Kind);
 
@@ -332,7 +295,7 @@ public sealed class RuleOracleTests
 
 		report.Append("\nred cells by class (silent classes first), and what is expected and what this build gave\n");
 
-		foreach (var (key, list) in red.OrderBy(static p => p.Key.StartsWith("silent", StringComparison.Ordinal) ? 0 : p.Key.StartsWith("loud", StringComparison.Ordinal) ? 1 : 2).ThenByDescending(static p => p.Value.Count))
+		foreach (var (key, list) in red.OrderBy(static p => p.Key.StartsWith("silent", StringComparison.Ordinal) ? 0 : p.Key.StartsWith("loud", StringComparison.Ordinal) ? 1 : p.Key.StartsWith("warnonly", StringComparison.Ordinal) ? 2 : 3).ThenByDescending(static p => p.Value.Count))
 		{
 			report.Append(CultureInfo.InvariantCulture, $"\n{list.Count,8} cells in {list.Select(static x => x.Cell.Shape.Id).Distinct().Count()} shapes: {key}\n");
 
