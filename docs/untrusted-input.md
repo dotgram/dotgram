@@ -34,7 +34,9 @@ grammar names (`=>`, `when`, recognizers of the host) with the caller's rights, 
   that is about one record. The values the caller keeps of the records are the caller's.
 - **Time.** The generator warns of the shapes it knows to read a refused input more than a linear
   number of times: `GRAM4051` and `GRAM4052` (exponential), `GRAM4016` and `GRAM4054` (a power of
-  the nesting depth), `GRAM5016` (memory quadratic in a list's length). Silence is not a proof, as
+  the nesting depth), `GRAM5016` (memory quadratic in a list's length), `GRAM5022` (time quadratic
+  in the length of a run refused at its end, in a file that has a `find` or another publication not
+  read by methods). Silence is not a proof, as
   those messages say themselves ([diagnostics](diagnostics.md)): no option or check promises linear
   time for a grammar of yours, so test it on the refused inputs you expect.
 - **The packages.** `DotGram.Finance` reads a FIX stream a message at a time, each at most the
@@ -74,7 +76,7 @@ Plainly, as of this version:
   recursive grammar that faces input it did not write, so a nest past what any real input holds fails
   rather than taking stacks for as long as there is memory. For the packages: `WebParsers.Limits`,
   `TransactSqlParser.Limits` and the like, set once at start-up.
-- **Treat every `GRAM4051`, `GRAM4052`, `GRAM4016` and `GRAM4054`** in a grammar that reads untrusted
+- **Treat every `GRAM4051`, `GRAM4052`, `GRAM4016`, `GRAM4054` and `GRAM5022`** in a grammar that reads untrusted
   text as a defect to fix, not a warning to silence.
 - **Keep business checks out of the parser.** What it accepts is what is *written* correctly; whether
   a date exists, a total adds up or an operation is allowed is the program's
