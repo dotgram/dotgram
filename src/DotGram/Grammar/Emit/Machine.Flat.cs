@@ -605,8 +605,21 @@ sealed partial class Machine
 
 				file.Line($"{_results.QualifiedOf(site.Rule)} value{site.Id} = default!;");
 
-				using (file.Block($"if (flat{site.Parent}_{site.Slot}Start >= 0)"))
+				using (file.Block($"if ({Reached(site)})"))
 					EmitFlatConstruction(file, site.Id, site.Rule, $"value{site.Id}");
+			}
+
+			// Whether a site was read on the route the parse kept: its own slot is set, and so is every slot it sits
+			// inside. A turn given back puts back the slots it opened, not those of the sites inside them, so a site
+			// whose parent was given back keeps the start it had, and its end from no reading at all.
+			string Reached(FlatSite site)
+			{
+				var reached = $"flat{site.Parent}_{site.Slot}Start >= 0";
+
+				for (var parent = _flatSites.Find(one => one.Id == site.Parent); parent is not null; parent = _flatSites.Find(one => one.Id == parent.Parent))
+					reached += $" && flat{parent.Parent}_{parent.Slot}Start >= 0";
+
+				return reached;
 			}
 
 			if (_factories[rule].Count > 1)

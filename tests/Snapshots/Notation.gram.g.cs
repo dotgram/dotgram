@@ -1089,7 +1089,7 @@ namespace DotGram.Snapshots
 			Accept:
 			if (p != text.Length) { expected = ExpectedSet_DotGram(11); goto Fail; }
 			string value2 = default!;
-			if (flat1_1Start >= 0)
+			if (flat1_1Start >= 0 && flat0_0Start >= 0)
 			{
 				var captured2_0 = flat2_2Start < 0 ? string.Empty : text.Slice(flat2_2Start, flat2_2End - flat2_2Start).ToString();
 				value2 = New_DotGram_Word(captured2_0);
