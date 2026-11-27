@@ -292,6 +292,12 @@ interface ITargetLanguage
 	/// <returns><c>false</c> where the type is not in scope, or offers no way to build it.</returns>
 	bool TryWaysToBuild(string type, out IReadOnlyList<IReadOnlyList<MethodParameter>> ways);
 
+	/// <summary>
+	/// Whether a type the host gave a parameter or a member takes the characters of the input as a view of them, which a capture of
+	/// text may be handed as it is where captures are views, rather than as a string.
+	/// </summary>
+	bool TakesCharacterView(string type);
+
 	/// <summary>The members of a type that can be set as it is made.</summary>
 	/// <returns><c>false</c> where the type is not in scope, or nothing about it can be set.</returns>
 	bool TrySettableMembers(string type, out IReadOnlyList<ObjectMember> members);

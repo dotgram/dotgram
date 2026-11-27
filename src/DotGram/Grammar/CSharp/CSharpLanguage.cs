@@ -562,6 +562,11 @@ sealed class CSharpLanguage : ITargetLanguage
 		return _resolver.TryResolveConstructors(type, out ways);
 	}
 
+	public bool TakesCharacterView(string type)
+	{
+		return type.Contains("Span<char>") || type.Contains("Span<global::System.Char>") || type.Contains("Span<System.Char>");
+	}
+
 	public bool TrySettableMembers(string type, out IReadOnlyList<ObjectMember> members)
 	{
 		return _resolver.TryResolveSettableProperties(type, out members);

@@ -887,6 +887,9 @@ sealed partial class Machine
 		/// </remarks>
 		public override string PutText(DirectMember member, string from, string to, string? cached = null)
 		{
+			// A type the grammar generates holds the text as a string.
+			using var own = machine.OwnText(_factory < 0);
+
 			var missing = machine.BorrowedCaptures ? machine.EmptyCapture : member.Member.IsOptional ? "null" : "string.Empty";
 			var cut     = $"({from} < 0 ? {missing} : {machine.Cut(from, $"{to} - {from}")})";
 
@@ -955,10 +958,15 @@ sealed partial class Machine
 		/// </summary>
 		public override string Collect(DirectMember member, string from, bool pairs)
 		{
+			using var own = machine.OwnText(_factory < 0);
+
+			var joins = pairs && machine.JoinsText;
 			var stack = pairs ? Gathering("Spans") : StackOf(machine._results.ValueOf(member.Member.Rule));
 			var taken = $"values.Take{stack}({from}_{stack})";
 
-			_puts.Add((member, pairs ? $"Joined_DotGram({taken}, {(member.Member.IsOptional ? "true" : "false")})" : taken));
+			machine.JoinedText |= joins;
+
+			_puts.Add((member, pairs ? $"{(joins ? "JoinedText_DotGram" : "Joined_DotGram")}({taken}, {(member.Member.IsOptional ? "true" : "false")})" : taken));
 			_drops.Add($"values.Count{stack} = {from}_{stack};");
 
 			return "";
@@ -1154,6 +1162,22 @@ sealed partial class Machine
 				}
 
 				file.Line();
+
+				// What a type the grammar generates holds of the run, where captures are spans: the string it makes.
+				if (machine.JoinedText)
+				{
+					file.Line("/// <summary>The same run joined as a string, for a type the grammar generates.</summary>");
+
+					using (file.Block("string JoinedText_DotGram(long[] pieces, bool optional)"))
+					{
+						file.Line("if (pieces.Length == 0)");
+						file.Then("return optional ? null! : string.Empty;");
+						file.Line();
+						file.Line("return Joined_DotGram(pieces, optional).ToString();");
+					}
+
+					file.Line();
+				}
 
 				return file.ToString();
 			}

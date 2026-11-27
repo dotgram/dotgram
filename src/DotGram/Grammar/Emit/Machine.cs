@@ -23,7 +23,38 @@ sealed partial class Machine
 
 	public bool BufferedInput    => _settings.BufferedInput;
 	public bool BufferedBytes    => _settings.BufferedBytes;
-	public bool BorrowedCaptures => _settings.BufferedBytes || _settings.SpanCaptures;
+	public bool BorrowedCaptures => _settings.BufferedBytes || _settings.SpanCaptures && !_ownText;
+
+	/// <summary>Whether the members being written are a type the grammar generates holds, whose text is a string where the rest is a span.</summary>
+	bool _ownText;
+
+	/// <summary>
+	/// Where text captures are spans, what the type the grammar generates for a rule holds of them is strings: the members of a
+	/// rule that has no construction of its own are read as strings, and handed to it as they are.
+	/// </summary>
+	/// <remarks>Over bytes there is no string to hold, and a type that holds text is refused.</remarks>
+	internal IDisposable OwnText(bool own)
+	{
+		var previous = _ownText;
+
+		_ownText = own && !_settings.BufferedBytes;
+
+		return new Restore(() => _ownText = previous);
+	}
+
+	sealed class Restore(Action action) : IDisposable
+	{
+		public void Dispose()
+		{
+			action();
+		}
+	}
+
+	/// <summary>Whether a run of text a rule gathers is joined as a string, where captures are spans.</summary>
+	internal bool JoinsText => _settings.SpanCaptures && !_settings.BufferedBytes && _ownText;
+
+	/// <summary>Set once a run of text was joined as a string where captures are spans, which asks for the method that does it.</summary>
+	internal bool JoinedText { get; set; }
 
 	/// <summary>
 	/// Whether this machine reads bytes the caller already holds, whole (D7), and nothing that

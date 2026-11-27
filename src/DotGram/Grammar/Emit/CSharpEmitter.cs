@@ -4943,14 +4943,16 @@ file.Line("return spare;");
 
 			// §7.3's first way: the captures fill the declared type's constructor, in the
 			// order the case carries.
-			case Construction.Constructor(var order):
+			case Construction.Constructor(var order) constructor:
 			{
 				var arguments = new List<string>();
 
+				// The text of a piece is handed as the string a constructor takes it as, as where captures are strings, unless
+				// the parameter takes the characters as a span.
 				foreach (var name in order)
 					foreach (var member in factory.Members)
 						if (member.Name == name)
-							arguments.Add(ResultTypes.ParameterOf(member));
+							arguments.Add(constructor.Spans.Contains(name) ? ResultTypes.ParameterOf(member) : Held(member));
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
@@ -4961,14 +4963,14 @@ file.Line("return spare;");
 
 			// §7.3's second way: made, then written into. An object initializer rather than
 			// assignments, because `init` and `required` can only be written in one.
-			case Construction.Initializer(var bindings):
+			case Construction.Initializer(var bindings) initializer:
 			{
 				var written = new List<string>();
 
 				foreach (var binding in bindings)
 					foreach (var member in factory.Members)
 						if (member.Name == binding.Capture)
-							written.Add($"{binding.Property} = {ResultTypes.ParameterOf(member)}");
+							written.Add($"{binding.Property} = {(initializer.Spans.Contains(binding.Capture) ? ResultTypes.ParameterOf(member) : Held(member))}");
 
 				file.Line(summary + " (§7.3).</summary>");
 				file.Line(head + " =>");
