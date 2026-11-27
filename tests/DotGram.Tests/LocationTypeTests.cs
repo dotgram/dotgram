@@ -28,7 +28,7 @@ public sealed class LocationTypeTests
 	[InlineData("public struct ILoc { public void Locate(int at, int length) { } }", "", "void Locate(int at, int length)")]
 	[InlineData("public interface ILoc { }", "", "void Locate(int at, int length)")]
 	[InlineData("public interface ILoc { void Locate(int at); }", "public void Locate(int at) { }", "void Locate(int at, int length)")]
-	[InlineData("public interface ILoc { void Locate(int at, int length); }", "public void Locate(int at, int length) { }", "void Locate(int at, int length, int gapStart)")]
+	[InlineData("public interface ILoc { void Locate(int at); }", "public void Locate(int at) { }", "void Locate(int at, int length) or void Locate(int at, int length, int gapStart)")]
 	public void A_type_that_cannot_be_told_a_place_is_refused(string location, string implementation, string wanted)
 	{
 		var types   = location + "\npublic sealed class Item : ILoc { public Item(string text) { } " + implementation + " }";
@@ -91,7 +91,7 @@ public sealed class LocationTypeTests
 	public void A_per_call_reading_is_told_on_its_own_attribute()
 	{
 		var source = Host(
-			"public interface ILoc { void Locate(int at, int length); }\npublic sealed class Item : ILoc { public Item(string text) { } public void Locate(int at, int length) { } }",
+			"public interface ILoc { void Locate(int at); }\npublic sealed class Item : ILoc { public Item(string text) { } public void Locate(int at) { } }",
 			"Lexical = false",
 			"[DotGram.GramParserVariant(\"Located\", LocationType = typeof(ILoc), UsePerCallLocations = true)]");
 		var run     = GeneratorDriverTests.RunGenerator(source);

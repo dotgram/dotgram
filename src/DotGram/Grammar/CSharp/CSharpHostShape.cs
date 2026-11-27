@@ -60,6 +60,17 @@ sealed class CSharpHostShape
 	public bool LocationTypeIsClass { get; set; }
 
 	/// <summary>
+	/// Whether a reading whose locations are asked for per call tells <see cref="LocationType"/>
+	/// the start of the gap in front of a value, through <c>Locate(int at, int length, int gapStart)</c>;
+	/// false where the type declares only <c>Locate(int at, int length)</c>, which is then called.
+	/// </summary>
+	/// <remarks>
+	/// The generator answers it from the type's methods; where it declares both, the three-integer
+	/// one is called. A reading that compiles its locations in calls the two-integer one either way.
+	/// </remarks>
+	public bool LocationTakesGap { get; set; } = true;
+
+	/// <summary>
 	/// The nested class whose published methods call this parser with locations on, where
 	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
 	/// (<c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>). Null compiles locations in, as before.

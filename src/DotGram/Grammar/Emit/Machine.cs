@@ -882,7 +882,8 @@ sealed partial class Machine
 
 		/// <summary>
 		/// Whether what this builds is told where it was written — a rule whose value is
-		/// assignable to the grammar's <c>LocationType</c>. It is handed the same
+		/// assignable to the grammar's <c>LocationType</c>, where the construction makes the value
+		/// rather than hand back one another rule made (<see cref="HandsBack"/>). It is handed the same
 		/// <c>parserSpan</c> an expression may ask for by name, and every path that supplies
 		/// one already supplies this.
 		/// </summary>
@@ -1753,17 +1754,10 @@ sealed partial class Machine
 	/// </remarks>
 	string Offered(Factory factory, string call, string from, string length, bool walk = false)
 	{
+		// A construction that hands back a value another rule made is not located (HandsBack).
 		if (!UsesLocating || !factory.Located ||
-			factory.Of is not Node.Construct { How: Construction.Expression { Text: var text } })
+			factory.Of is not Node.Construct { How: Construction.Expression })
 			return call;
-
-		// A construction that hands back a value another rule made offers nothing: that value
-		// was told where it was written by the rule that made it, and a span is the range of the
-		// rule that built the value — `WHERE` is not part of the condition after it.
-		foreach (var member in factory.Members)
-			if (member is { Rule: not null, IsSequence: false } &&
-				(Bare(text) == member.Name || Bare(text) == "@" + member.Name))
-				return call;
 
 		var type = TypeOf(factory);
 
@@ -1777,6 +1771,31 @@ sealed partial class Machine
 		// runtime answers while it compiles; a reader, an engine's walk or an immediate reader is
 		// not generic, and the offer beside it asks the reading's own number (Offers).
 		return offer;
+	}
+
+	/// <summary>
+	/// Whether a construction hands back a value another rule made — <c>=&gt; @(e)</c>, where
+	/// <c>e</c> captured one call of a rule — rather than making one.
+	/// </summary>
+	/// <remarks>
+	/// Such a construction is not located, whether the locations are compiled in or asked for per
+	/// call: the value was told where it was written by the rule that made it, and <c>Locate</c>
+	/// is called once, on a value just made (docs/syntax.md §6.8). A span is the range of the rule
+	/// that built the value — `WHERE` is not part of the condition after it, nor are the brackets
+	/// around an expression a rule hands back from between them.
+	/// </remarks>
+	internal static bool HandsBack(Node construct, IReadOnlyList<ResultMember> members)
+	{
+		if (construct is not Node.Construct { How: Construction.Expression { Text: var text } })
+			return false;
+
+		var bare = Bare(text);
+
+		foreach (var member in members)
+			if (member is { Rule: not null, IsSequence: false } && (bare == member.Name || bare == "@" + member.Name))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>The type a construction is declared to return, which its rule's is.</summary>
@@ -1838,9 +1857,14 @@ sealed partial class Machine
 		if (_offered.Count + _offeredInWalk.Count == 0 || !_graph.LocationsPerCall)
 			return "";
 
-		var located = "global::" + CSharpLanguage.HostOf(_graph).LocationType;
+		var host    = CSharpLanguage.HostOf(_graph);
+		var located = "global::" + host.LocationType;
 		var tokens  = OverKinds ? ", int[] starts, int[] lengths" : "";
 		var handed  = OverKinds ? ", starts, lengths" : "";
+
+		// A location type with only the two-integer Locate is told no gap, as a reading that
+		// compiles its locations in tells none.
+		var gapped = host.LocationTakesGap;
 
 		foreach (var type in _offered)
 		{
@@ -1878,17 +1902,22 @@ sealed partial class Machine
 			{
 				// Over characters the trivia is not set apart from what it stands between, so
 				// nothing says where the gap began: it is said to be empty.
-				helper.Line("made.Locate(from, length, from);");
+				helper.Line(gapped ? "made.Locate(from, length, from);" : "made.Locate(from, length);");
 			}
 			else
 			{
-				helper.Line("var gap = from > 0 ? starts[from - 1] + lengths[from - 1] : floor;");
-				helper.Line();
+				var gap = gapped ? ", gap" : "";
+
+				if (gapped)
+				{
+					helper.Line("var gap = from > 0 ? starts[from - 1] + lengths[from - 1] : floor;");
+					helper.Line();
+				}
 
 				// As Span_DotGram: a run of none stands where the next token begins.
 				using (helper.Block("if (length <= 0)"))
 				{
-					helper.Line("made.Locate(from < starts.Length ? starts[from] : 0, 0, gap);");
+					helper.Line($"made.Locate(from < starts.Length ? starts[from] : 0, 0{gap});");
 					helper.Line();
 					helper.Line("return;");
 				}
@@ -1897,7 +1926,7 @@ sealed partial class Machine
 				helper.Line("var began = starts[from];");
 				helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
 				helper.Line();
-				helper.Line("made.Locate(began, ended - began, gap);");
+				helper.Line($"made.Locate(began, ended - began{gap});");
 			}
 		}
 

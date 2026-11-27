@@ -397,7 +397,7 @@ Primary : @Expression
 	| v: CaseExpr => @(v)
 	| "EXISTS"i & q: Subquery => @(new Expression.Exists(q))
 	| "ARRAY"i & q: Subquery => @(new Expression.CollectionQuery(CollectionKind.Array, q))
-	| "ARRAY"i & a: ArrayExpr => @(a)
+	| "ARRAY"i & a: ArrayExpr => @(a with { })
 	| "ROW"i & '(' & (first: AExpr & (',' & rest: AExpr)*)? & ')' => @(Nodes.Row(first, rest, true))
 	| "GROUPING"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(Nodes.Invoked("GROUPING", first, rest))
 	| "DEFAULT"i => @(new Expression.Default())
@@ -412,8 +412,10 @@ Primary : @Expression
 // stands between one pair of brackets: a query's word after the bracket says a subquery, and
 // otherwise the value inside is read once and what follows it says which — a comma a row, a set
 // operation a query whose first operand the value was, `((SELECT 1) UNION (SELECT 2))`, and the
-// close the value in brackets — never a second reading from the bracket, at any depth.
-Bracketed : @Expression = '(' & e: Bracket & ')' => @(e)
+// close the value in brackets — never a second reading from the bracket, at any depth. The node is
+// the brackets as well as what they hold, so it is copied here, where they are read: a value handed
+// back would keep the range of Bracket, inside them.
+Bracketed : @Expression = '(' & e: Bracket & ')' => @(e with { })
 
 Bracket : @Expression
 	= ?=("SELECT"i | "VALUES"i | "TABLE"i | "WITH"i) & q: SelectNoParens => @(new Expression.Subquery(q))
@@ -1597,7 +1599,7 @@ CommentTarget : @ObjectReference
 	| "AGGREGATE"i & a: AggregateWithArgtypes => @(new ObjectReference.Routine(a))
 	| word: ("FUNCTION"i | "PROCEDURE"i | "ROUTINE"i) & r: FunctionWithArgtypes => @(new ObjectReference.Routine(r with { Kind = Nodes.RoutineKindOf(word) }))
 	| "OPERATOR"i & word: ("CLASS"i | "FAMILY"i) & name: AnyName & "USING"i & method: ColId => @(new ObjectReference.OperatorClass(Nodes.ClassKindOf(word), name, method))
-	| "OPERATOR"i & op: OperatorWithArgtypes => @(op)
+	| "OPERATOR"i & op: OperatorWithArgtypes => @(op with { })
 	| "CONSTRAINT"i & constraint: ColId & "ON"i & domain: "DOMAIN"i? & table: AnyName => @(new ObjectReference.OnTable(ObjectKind.Constraint, constraint, table) { DomainWord = domain is not null })
 	| word: ("POLICY"i | "RULE"i | "TRIGGER"i) & onTable: ColId & "ON"i & table: AnyName => @(new ObjectReference.OnTable(Nodes.OnTableKindOf(word), onTable, table))
 	| "TRANSFORM"i & transform: TransformReference => @(transform)

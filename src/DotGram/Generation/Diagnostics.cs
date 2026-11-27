@@ -117,7 +117,7 @@ static class Diagnostics
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
 		helpLinkUri:        HelpLink("GRAM0011"),
-		description:        "A rule whose value implements the LocationType is told where it was written through that interface: void Locate(int at, int length), or with UsePerCallLocations void Locate(int at, int length, int gapStart). It is called through the interface, so an explicit implementation serves.");
+		description:        "A rule whose value implements the LocationType is told where it was written through that interface: void Locate(int at, int length). With UsePerCallLocations it may declare void Locate(int at, int length, int gapStart) instead, or beside it, and is then also told where the text in front of the value begins. It is called through the interface, so an explicit implementation serves.");
 
 	/// <summary>
 	/// A name the generator's attributes had before 0.3.0, said with what it is called now rather than

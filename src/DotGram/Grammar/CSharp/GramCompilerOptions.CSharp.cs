@@ -30,6 +30,9 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="CSharpHostShape.LocationTypeIsClass"/>
 	public bool LocationTypeIsClass { get => Host.LocationTypeIsClass; set => Host.LocationTypeIsClass = value; }
 
+	/// <inheritdoc cref="CSharpHostShape.LocationTakesGap"/>
+	public bool LocationTakesGap { get => Host.LocationTakesGap; set => Host.LocationTakesGap = value; }
+
 	/// <inheritdoc cref="CSharpHostShape.LocatedFacade"/>
 	public string? LocatedFacade { get => Host.LocatedFacade; set => Host.LocatedFacade = value; }
 

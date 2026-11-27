@@ -345,17 +345,16 @@ internal interface ISqlLocatable : ISqlSpan
 /// <remarks>
 /// <para>
 /// <b>A method and not a setter, because the policy is not the parser's.</b> The reader offers
-/// every rule's range to the value that came out of it, innermost first, and what to do with
-/// the offer is decided here.
+/// a value the range of the rule that made it, and what to do with the offer is decided here.
 /// </para>
 /// <para>
-/// <b>The last offer wins, so a span is the outermost rule that built the value.</b> A
-/// value completed from a tail — <c>Syntax.Predicated</c> copies one with <c>with</c> — is
-/// offered again by the rule that completed it, and claims <c>b = 2</c> rather than the
-/// tail's <c>= 2</c>. A rule that only hands back a value another rule made —
-/// <c>WhereClause = "WHERE"i &amp; c: SearchCondition =&gt; @(c)</c> — offers nothing in
-/// T-SQL's located reading, so the condition does not claim the <c>WHERE</c> in front of it:
-/// every clause's keyword stays outside the value it introduces.
+/// <b>A span is the range of the rule that made the value.</b> A value completed from a tail —
+/// <c>Syntax.Predicated</c> copies one with <c>with</c> — is made by the rule that completed it,
+/// and claims <c>b = 2</c> rather than the tail's <c>= 2</c>. A rule that only hands back a value
+/// another rule made — <c>WhereClause = "WHERE"i &amp; c: SearchCondition =&gt; @(c)</c> — offers
+/// nothing, in every located reading, so the condition does not claim the <c>WHERE</c> in front
+/// of it: every clause's keyword stays outside the value it introduces, and a node that is its
+/// brackets or its key word is made where they are read.
 /// </para>
 /// <para>
 /// It mutates, once, on a node the reader has just made and nothing has yet seen. An
@@ -383,8 +382,8 @@ public interface ISqlSpan
 	SqlSpan Span { get; }
 
 	/// <summary>
-	/// Offer a range: the reader calls this for every rule the value came out of, innermost
-	/// first, and the last of them is the one kept.
+	/// Offer a range: the reader calls this with the range of the rule that made the value, and a
+	/// rule that only hands the value back offers nothing.
 	/// </summary>
 	void Locate(int at, int length);
 }

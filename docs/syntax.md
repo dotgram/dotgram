@@ -3317,12 +3317,19 @@ carrier is what a reader holds; left to the generator, the fallback is silent.
 ```
 
 Name an interface declaring `void Locate(int at, int length)` — with `UsePerCallLocations`,
-`void Locate(int at, int length, int gapStart)` (below) — and every rule whose value
+that or `void Locate(int at, int length, int gapStart)` (below) — and every rule whose value
 implements it is handed the range of input it was built from: the rule's own text, without
 the trivia around it, so that a comment falls between two values rather than inside one.
 `Locate` is called once, by the reader, on a value it has just made and nothing has yet seen,
 and it is called through the interface, so an explicit implementation serves as well as a
-public one. A class declaring `Locate`, or inheriting it, may be named instead, and is called on
+public one.
+
+A rule that hands back a value another rule made, `=> @(e)` where `e` captured a call, makes
+nothing, and tells the value nothing: the value keeps the range of the rule that built it. In
+`Paren = '(' & e: Expr & ')' => @(e)` the value read from `(1+2)` spans `1+2`. A rule that wants
+its delimiters inside the span makes a value of its own where it reads them — a node for the
+brackets, or a copy, `=> @(e with { })` for a record — and that value is told the rule's range.
+The two ways of asking for locations, compiled in and per call, give the same spans. A class declaring `Locate`, or inheriting it, may be named instead, and is called on
 the class. A type that is neither is `GRAM0011`.
 
 An implementor may be a class or a struct; a struct is told on the value the rule returns. A rule
@@ -3349,9 +3356,12 @@ written need not be a second parser. With `UsePerCallLocations`, the `[GramParse
 its own: the grammar is compiled once, its constructions are told where they were written only
 when a call asks, and the nested class it names — `TransactSqlParser.Located` — holds
 the same published methods, each of them asking. A call through the class itself does not ask,
-and pays a test per construction for the choice. The interface must then declare a three-argument
+and pays a test per construction for the choice. The interface may then declare a three-argument
 `Locate(int at, int length, int gapStart)`, where the gap start is where the text between the
-value and the token before it begins: the end of that token, or where the reading began.
+value and the token before it begins: the end of that token, or where the reading began. A type
+that declares only `Locate(int at, int length)` is told no gap, as a reading compiled with
+locations in tells none; one that declares both is called through the three-argument form. The
+form is chosen by the methods the type declares or inherits, not by its name.
 
 The nested class holds the forms over a string and over segments. The forms over a buffered
 input — a `TextReader`, a `Stream`, bytes — are written on the class itself only; a grammar that

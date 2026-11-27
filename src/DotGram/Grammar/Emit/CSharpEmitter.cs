@@ -4460,7 +4460,9 @@ file.Line("return spare;");
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
 					: null,
-				graph.Located.Contains(rule)) { BytesMethod = Named("NewBytes" + number, name) });
+
+				// Not where it hands back a value another rule made, which that rule located.
+				graph.Located.Contains(rule) && !Machine.HandsBack(node, visible)) { BytesMethod = Named("NewBytes" + number, name) });
 		}
 
 		return found;
@@ -4841,10 +4843,10 @@ file.Line("return spare;");
 			case Construction.Expression when factory.Located && !graph.LocationsPerCall:
 
 				// Offered the range it was read over, which is a statement and not an
-				// expression. Offered rather than written: a rule may hand back a value another
-				// rule made, and the range it was read over is then wider than the value's own.
-				// What the offer does with it is the named interface's business, not this
-				// file's — see `LocationType` on the attribute.
+				// expression. What the offer does with it is the named interface's business, not
+				// this file's — see `LocationType` on the attribute. A construction that hands back
+				// a value another rule made is not located (Machine.HandsBack), so a value is
+				// offered once, by the rule that made it, as a per-call reading offers it.
 				//
 				// A block body rather than a helper, so that nothing at all is emitted for the
 				// grammars — most of them — that ask for no locations.

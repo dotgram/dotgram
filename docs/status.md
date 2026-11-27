@@ -1547,8 +1547,9 @@ project is left alone, and `GRAM0017` (information) says so where the two differ
 table's referenced-assembly row rests on.
 
 `LocationType` names an interface declaring `void Locate(int at, int length)` — with
-`UsePerCallLocations`, `void Locate(int at, int length, int gapStart)` — or a class declaring or
-inheriting it; every value of that type is handed the range it was read from. An interface is
+`UsePerCallLocations`, that or `void Locate(int at, int length, int gapStart)` — or a class declaring or
+inheriting it; every value of that type is handed the range it was read from, once, by the rule that
+made it: a rule that hands back another rule's value (`=> @(e)`) tells it nothing. An interface is
 called through the interface, so an explicit implementation serves and a struct is told on the
 value the rule returns; a class is called on the class. A type that is neither, or that lacks the
 form its reading needs, is `GRAM0011`.

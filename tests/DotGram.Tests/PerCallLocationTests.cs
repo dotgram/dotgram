@@ -112,7 +112,8 @@ public sealed class PerCallLocationTests
 		// The plain door and the other reading say nothing about where.
 		Assert.All(plain.Concat(other), static item => Assert.Equal(-1, Field(item, "At")));
 
-		// The located door says where each item is and where the text in front of it began, once.
+		// The located door says where each item is and where the text in front of it began, once:
+		// the type declares both forms of Locate, and the three-integer one is called.
 		Assert.Equal((2, 4, 0, 1), Location(located[0]));
 		Assert.Equal((7, 3, 6, 1), Location(located[1]));
 	}
@@ -213,6 +214,66 @@ public sealed class PerCallLocationTests
 
 		Assert.Equal((0, 2), (Field(Name(located, "Key"), "At"), Field(Name(located, "Key"), "Length")));
 		Assert.Equal((5, 3), (Field(Name(located, "Value"), "At"), Field(Name(located, "Value"), "Length")));
+	}
+
+	static string TwoIntegerSource(string carrier, string location, string item)
+	{
+		return $$""""
+			using DotGram;
+
+			namespace PerCallTwoProbe
+			{
+				{{location}}
+
+				{{item}}
+
+				[Gram("""
+					using Std;
+
+					trivia = { Spacing* }
+
+					List : @Item[] = Item* & eof
+
+					Item : @Item = k: Identifier & ';' => @(new Item(k))
+
+					parse List
+					""", Lexical = true, Carrier = GramCarrier.{{carrier}})]
+				[GramParserVariant("Located", LocationType = typeof(ILoc), UsePerCallLocations = true)]
+				public static partial class P
+				{
+				}
+			}
+			"""";
+	}
+
+	/// <summary>
+	/// A location type that declares only the two-integer <c>Locate</c> serves a per-call reading as
+	/// well, told no gap, as a reading that compiles its locations in tells none: an interface
+	/// implemented explicitly, and a class whose base declares the method. Where a type declares both,
+	/// the three-integer one is called (<see cref="A_per_call_reading_compiles_and_locates_on_every_carrier"/>).
+	/// </summary>
+	[Theory]
+	[InlineData("Deferred", "public interface ILoc { void Locate(int at, int length); }", "public sealed class Item : ILoc { public Item(string key) { Key = key; } public string Key { get; } public int At = -1; public int Length = -1; void ILoc.Locate(int at, int length) { At = at; Length = length; } }")]
+	[InlineData("Immediate", "public interface ILoc { void Locate(int at, int length); }", "public sealed class Item : ILoc { public Item(string key) { Key = key; } public string Key { get; } public int At = -1; public int Length = -1; void ILoc.Locate(int at, int length) { At = at; Length = length; } }")]
+	[InlineData("Deferred", "public class Place { public int At = -1; public int Length = -1; public void Locate(int at, int length) { At = at; Length = length; } } public abstract class ILoc : Place { }", "public sealed class Item : ILoc { public Item(string key) { Key = key; } public string Key { get; } }")]
+	[InlineData("Immediate", "public class Place { public int At = -1; public int Length = -1; public void Locate(int at, int length) { At = at; Length = length; } } public abstract class ILoc : Place { }", "public sealed class Item : ILoc { public Item(string key) { Key = key; } public string Key { get; } }")]
+	public void A_per_call_reading_tells_a_two_integer_Locate(string carrier, string location, string item)
+	{
+		var source    = TwoIntegerSource(carrier, location, item);
+		var assembly  = GeneratorDriverTests.Build(source);
+		var host      = assembly.GetType("PerCallTwoProbe.P")!;
+		var text      = "  ab ; cd;";
+		var generated = GeneratorDriverTests.GetGeneratedSource(GeneratorDriverTests.RunGenerator(source), "PerCallTwoProbe.P.g.cs");
+
+		Assert.DoesNotContain("var gap =", generated, StringComparison.Ordinal);
+
+		var plain   = Read(host, text);
+		var located = Read(host.GetNestedType("Located")!, text);
+
+		Assert.Equal(["ab", "cd"], located.Select(Key));
+		Assert.All(plain, static one => Assert.Equal(-1, Field(one, "At")));
+		Assert.Equal((2, 4), (Field(located[0], "At"), Field(located[0], "Length")));
+		Assert.Equal((7, 3), (Field(located[1], "At"), Field(located[1], "Length")));
 	}
 
 	static string StreamedSource(string carrier, string config)

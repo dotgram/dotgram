@@ -432,7 +432,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			// than as a compiler error in every generated construction that would tell one.
 			// It is said where the type is named: on the per-call reading's attribute, where the
 			// locations are that reading's.
-			if (LocationRefused(grammar.Host, compilation, out var locatesClass) is { } refused)
+			if (LocationRefused(grammar.Host, compilation, out var locatesClass, out var locatesGap) is { } refused)
 				return grammar with
 				{
 					Text    = null,
@@ -449,6 +449,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			return grammar with
 			{
 				LocatesClass = locatesClass,
+				LocatesGap   = locatesGap,
 				Answers = new EquatableArray<Answer>(Questions.Ask(
 					grammar.Questions.Items,
 					new RoslynSymbolResolver(
@@ -468,19 +469,24 @@ sealed class GramGenerator : IIncrementalGenerator
 
 	/// <summary>
 	/// The location type a reading is compiled with, where it cannot be told a place: neither an
-	/// interface nor a class that declares the <c>Locate</c> the reading calls — two integers, or three
-	/// where the locations are asked for per call. Null where there is none, where it can, or where it
-	/// cannot be found.
+	/// interface nor a class that declares the <c>Locate</c> the reading calls — two integers, or,
+	/// where the locations are asked for per call, two or three. Null where there is none, where it
+	/// can, or where it cannot be found.
 	/// </summary>
 	/// <remarks>
 	/// An interface's own <c>Locate</c> or one it inherits, which generated code calls through the
 	/// interface, so an explicit implementation serves; or a class's, its own or a base's, which it
-	/// calls on the class.
+	/// calls on the class. Found by the method's parameters, never by the type's name.
 	/// </remarks>
 	/// <param name="isClass">Whether the type is a class, which the constructions call it through.</param>
-	static (string Type, string Locate)? LocationRefused(Host host, Compilation compilation, out bool isClass)
+	/// <param name="takesGap">
+	/// Whether a per-call reading tells the start of the gap in front of a value: the type declares
+	/// the three-integer <c>Locate</c>, which is called where it declares both.
+	/// </param>
+	static (string Type, string Locate)? LocationRefused(Host host, Compilation compilation, out bool isClass, out bool takesGap)
 	{
-		isClass = false;
+		isClass  = false;
+		takesGap = true;
 
 		if (host.LocationType is not { } named)
 			return null;
@@ -496,8 +502,10 @@ sealed class GramGenerator : IIncrementalGenerator
 		if (type is null || type.TypeKind == TypeKind.Error)
 			return null;
 
-		var arity  = host.LocatedFacade is null ? 2 : 3;
-		var locate = arity == 2 ? "void Locate(int at, int length)" : "void Locate(int at, int length, int gapStart)";
+		var perCall = host.LocatedFacade is not null;
+		var locate  = perCall
+			? "void Locate(int at, int length) or void Locate(int at, int length, int gapStart)"
+			: "void Locate(int at, int length)";
 
 		IEnumerable<ISymbol> candidates;
 
@@ -512,16 +520,24 @@ sealed class GramGenerator : IIncrementalGenerator
 		else
 			return (named, locate);
 
-		var declared = candidates
-			.OfType<IMethodSymbol>()
-			.Any(method =>
+		var methods = candidates.OfType<IMethodSymbol>().ToList();
+
+		if (perCall && Declares(methods, 3))
+			return null;
+
+		takesGap = false;
+
+		return Declares(methods, 2) ? null : (named, locate);
+
+		static bool Declares(List<IMethodSymbol> methods, int arity)
+		{
+			return methods.Exists(method =>
 				!method.IsStatic &&
 				method.ReturnsVoid &&
 				method.TypeParameters.Length == 0 &&
 				method.Parameters.Length == arity &&
 				method.Parameters.All(static parameter => parameter.RefKind == RefKind.None && parameter.Type.SpecialType == SpecialType.System_Int32));
-
-		return declared ? null : (named, locate);
+		}
 
 		static IEnumerable<INamedTypeSymbol> Bases(INamedTypeSymbol type)
 		{
@@ -1312,6 +1328,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Piece>    Pieces = default,
 		EquatableArray<string>   Published = default,
 		bool                     LocatesClass = false,
+		bool                     LocatesGap = true,
 		bool                     PublishesAny = false);
 
 	/// <summary>
@@ -1605,6 +1622,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			LineMap               = MapOf(grammar, text, marked),
 			LocationType          = host.LocationType,
 			LocationTypeIsClass   = grammar.LocatesClass,
+			LocationTakesGap      = grammar.LocatesGap,
 			LocatedFacade         = host.LocatedFacade,
 			LocatedFacadeDeclared = host.LocatedFacadeDeclared,
 
