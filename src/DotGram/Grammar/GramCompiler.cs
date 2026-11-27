@@ -160,6 +160,8 @@ static partial class GramCompiler
 			if (!Inside(broken, diagnostic))
 				diagnostics.Add(diagnostic);
 
+		DropStandingRefusedWhereRefused(diagnostics, parsed);
+
 		// What a rule begins with goes round for ever on some grammars rather than settling — rings
 		// of rules that lead with one another, which are refused for that already. Where nothing
 		// else refused the grammar, this does: its answers were cut off, not worked out.
@@ -605,6 +607,46 @@ static partial class GramCompiler
 				return true;
 
 		return false;
+	}
+
+	/// <summary>
+	/// How a rule would be read is not said of one the grammar refuses: GRAM4066 names a rule that comes back to itself past
+	/// a prefix that may stand, and where an error is told of the same declaration — the left recursion it is refused for,
+	/// say — that is what the author is to mend first.
+	/// </summary>
+	static void DropStandingRefusedWhereRefused(List<GramDiagnostic> diagnostics, ParseResult parsed)
+	{
+		if (!diagnostics.Exists(static one => one.Id == GrammarNormalizer.StandingRefused))
+			return;
+
+		var starts = new List<int>();
+
+		foreach (var declaration in parsed.File.Decls)
+			starts.Add(declaration.At.Position);
+
+		starts.Sort();
+
+		// The declaration a diagnostic is in: from where it starts up to where the next one does, as Broken has it.
+		int Declaration(GramDiagnostic diagnostic)
+		{
+			var from = -1;
+
+			foreach (var start in starts)
+				if (start <= diagnostic.Position)
+					from = start;
+				else
+					break;
+
+			return from;
+		}
+
+		var refused = new HashSet<int>();
+
+		foreach (var diagnostic in diagnostics)
+			if (diagnostic.Severity == GramSeverity.Error)
+				refused.Add(Declaration(diagnostic));
+
+		diagnostics.RemoveAll(one => one.Id == GrammarNormalizer.StandingRefused && refused.Contains(Declaration(one)));
 	}
 
 	static bool HasErrors(List<GramDiagnostic> diagnostics)

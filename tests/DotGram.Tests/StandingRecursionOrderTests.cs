@@ -696,6 +696,77 @@ public sealed class StandingRecursionOrderTests
 	}
 
 	/// <summary>
+	/// The message names what is read before the call back as the grammar writes it, and says what to do about it in the
+	/// terms of what it is: the host code that is to always move, named wherever it stands, and never an optional
+	/// element or a lookahead beside it, which the prefix moves past where the host code does.
+	/// </summary>
+	[Theory]
+	[InlineData("@Ws", "'@Ws'", "let '@Ws' always move")]
+	[InlineData("@Ws & @Ws", "'@Ws & @Ws'", "let '@Ws' always move")]
+	[InlineData("?!'#' & @Ws", "\"?!'#' & @Ws\"", "let '@Ws' always move")]
+	[InlineData("@Ws & ?!'#'", "\"@Ws & ?!'#'\"", "let '@Ws' always move")]
+	[InlineData("@Ws & ','?", "\"@Ws & ','?\"", "let '@Ws' always move")]
+	[InlineData("(@Ws | ',')", "\"(@Ws | ',')\"", "let the host code it reads, '@Ws', always move")]
+	[InlineData("W", "'W'", "let the host code it reads, '@Ws', always move")]
+	[InlineData("W & W", "'W & W'", "let the host code it reads, '@Ws', always move")]
+	[InlineData("@Ws & Lead", "'@Ws & Lead'", "let '@Ws' always move")]
+	public void The_refusal_names_the_prefix_as_it_is_written_and_says_what_to_mend(string prefix, string shown, string mend)
+	{
+		foreach (var trivia in new[] { "", "trivia = [' ']*\n" })
+		{
+			var result = GramCompiler.Compile(
+				trivia + $"T = A & eof\nA = 'a' | {prefix} & A & '+' & A\nW = @Ws\nLead = 'x'?\nparse T",
+				Options(direct: true, tape: false, buffered: false, lexical: false));
+
+			var told = Assert.Single(result.Diagnostics, static one => one.Id == GrammarNormalizer.StandingRefused);
+
+			Assert.Contains($"past {shown}, which may succeed without moving", told.Message, StringComparison.Ordinal);
+			Assert.Contains($"without {shown} one §4.3 accepts, or {mend}.", told.Message, StringComparison.Ordinal);
+			Assert.DoesNotContain("a recognizer of the host", told.Message, StringComparison.Ordinal);
+		}
+	}
+
+	/// <summary>Where a rule is read past several different prefixes, each is named as it is written.</summary>
+	[Fact]
+	public void The_refusal_names_every_prefix()
+	{
+		var result = GramCompiler.Compile(
+			"T = A & eof\nA = 'a' | @Ws & A & '+' & A | ?!'#' & W & A & '-' & A\nW = @Ws\nparse T",
+			Options(direct: true, tape: false, buffered: false, lexical: false));
+
+		var told = Assert.Single(result.Diagnostics, static one => one.Id == GrammarNormalizer.StandingRefused);
+
+		Assert.Contains("past '@Ws' and \"?!'#' & W\", which", told.Message, StringComparison.Ordinal);
+		Assert.Contains("or let the host code it reads, '@Ws', always move.", told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A rule the grammar refuses on its own account is told of that, and not of how it would be read: the prefix there
+	/// is empty because of what the grammar says ('(@Op)?'), not because of the host code. A rule beside it that is
+	/// not refused is told as before.
+	/// </summary>
+	[Theory]
+	[InlineData("(@Op)?")]
+	[InlineData("@Op?")]
+	[InlineData("?!'#'")]
+	[InlineData("Pre")]
+	public void A_rule_the_grammar_refuses_is_not_told_how_it_would_be_read(string prefix)
+	{
+		var result = GramCompiler.Compile(
+			$"T = E & ';' & A & eof\nE : @string = n: ['0'..'9'] => @(n.ToString())\n  | {prefix} & l: E & r: E => @(l + r)\n" +
+			"Pre = @Op?\nA = 'a' | @Ws & A & '+' & A\nparse T",
+			Options(direct: true, tape: false, buffered: false, lexical: false));
+
+		var refused = result.Diagnostics.Where(static one => one.Id == GrammarNormalizer.StandingRefused).ToList();
+
+		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.LeftRecursion && one.Severity == GramSeverity.Error);
+
+		// Only A: the rule E has its error already.
+		Assert.Single(refused);
+		Assert.Contains("'A' comes back to itself", refused[0].Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// The split makes one rule for each set of prefixes that may stand together: a rule past more than three different
 	/// prefixes is not split, and is told so, and its generation costs what one past a single prefix does.
 	/// </summary>

@@ -257,7 +257,7 @@ sealed partial class GrammarNormalizer
 
 		if (TwinRefusal(rule, alternatives, recursive) is { } refusal)
 		{
-			Refused(rule, declaration, shown, refusal + " (§4.3)");
+			Refused(rule, declaration, prefixes, refusal + " (§4.3)");
 
 			return;
 		}
@@ -265,7 +265,7 @@ sealed partial class GrammarNormalizer
 		// One rule for each set of prefixes that may stand together: past more than a few, the rule is not split.
 		if (keys.Count > MostPrefixes)
 		{
-			Refused(rule, declaration, shown, $"it is read past {keys.Count} different prefixes, and a rule is split for at most {MostPrefixes}");
+			Refused(rule, declaration, prefixes, $"it is read past {keys.Count} different prefixes, and a rule is split for at most {MostPrefixes}");
 
 			return;
 		}
@@ -279,7 +279,7 @@ sealed partial class GrammarNormalizer
 			}
 			else
 			{
-				Refused(rule, declaration, shown, "whether what is read before the call back moves cannot be asked of it where the rule is entered");
+				Refused(rule, declaration, prefixes, "whether what is read before the call back moves cannot be asked of it where the rule is entered");
 
 				return;
 			}
@@ -298,19 +298,21 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>A rule the rewrite cannot take, told so (GRAM4066) at the level <see cref="StandingRefusedLevel"/> chooses.</summary>
-	void Refused(RuleSymbol rule, Parsing.Decl.Rule declaration, string shown, string why)
+	void Refused(RuleSymbol rule, Parsing.Decl.Rule declaration, IReadOnlyList<List<Node>> prefixes, string why)
 	{
 		_standingRefused.Add(rule);
 
 		if (StandingRefusedLevel is not { } level)
 			return;
 
+		var shown = Shown(prefixes);
+
 		Told(new GramDiagnostic(
 			StandingRefused,
 			$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2). " +
 			$"Where it does not move, this is left recursion the rewrite cannot take: {why}. The rule is read as it is " +
 			"written there, and a parse that has to give up on that alternative goes round until the stack or memory " +
-			$"runs out. Make the rule without {shown} one §4.3 accepts, or let {shown} always move.",
+			$"runs out. Make the rule without {shown} one §4.3 accepts, or {Moving(prefixes, shown)}.",
 			declaration.At.Position,
 			declaration.At.Length,
 			level));
@@ -827,26 +829,109 @@ sealed partial class GrammarNormalizer
 		};
 	}
 
-	/// <summary>The prefixes as the author wrote them, for a message: the recognizers and the rules, without the seams.</summary>
+	/// <summary>What a prefix is read as, the way the grammar writes it: its parts but the trivia woven after them.</summary>
+	string Spelled(IReadOnlyList<Node> prefix)
+	{
+		return string.Join(" & ", prefix.Where(part => !Seam(part)).Select(static part => part.ToString()));
+	}
+
+	/// <summary>Whether a part of a prefix is the trivia woven after the one before it (§4.5), which the author did not write.</summary>
+	bool Seam(Node part)
+	{
+		return part is Node.Call(var called, _) && _model.Trivia.Values.Contains(called);
+	}
+
+	/// <summary>The prefixes of a rule as the grammar writes them, each quoted, for a message to name.</summary>
 	string Shown(IReadOnlyList<List<Node>> prefixes)
 	{
-		var names = new List<string>();
+		var spelled = new List<string>();
 
 		foreach (var prefix in prefixes)
-			foreach (var part in prefix)
-			{
-				var name = part switch
-				{
-					Node.External external                                       => "@" + external.Name,
-					Node.Call(var called, _) when !_model.Trivia.Values.Contains(called) => called.Name,
-					_                                                            => null,
-				};
+			if (Spelled(prefix) is { Length: > 0 } text && !spelled.Contains(text))
+				spelled.Add(text);
 
-				if (name is not null && !names.Contains(name))
-					names.Add(name);
+		// A text with a quote of its own in it (?!'#') is quoted with the other kind.
+		return spelled.Count == 0 ? "what is read before the call back" : string.Join(" and ", spelled.Select(static text => Quoted(text)));
+	}
+
+	static string Quoted(string text)
+	{
+		return text.Contains('\'') && !text.Contains('"') ? $"\"{text}\"" : $"'{text}'";
+	}
+
+	/// <summary>
+	/// What the author can do so that the prefixes always move, said of what they are: the recognizers of the host
+	/// that decide it, which a prefix reads once it has them. An optional element, a lookahead or a repetition that may
+	/// match nothing is not one of them: the prefix moves where a recognizer beside it does.
+	/// </summary>
+	string Moving(IReadOnlyList<List<Node>> prefixes, string shown)
+	{
+		var hosts   = new List<string>();
+		var through = false;
+
+		foreach (var prefix in prefixes)
+			foreach (var part in prefix.Where(part => !Seam(part)))
+			{
+				var found = new List<string>();
+
+				HostCode(part, found, []);
+
+				through |= part is not Node.External && found.Count > 0;
+
+				foreach (var name in found)
+					if (!hosts.Contains(name))
+						hosts.Add(name);
 			}
 
-		return names.Count == 0 ? "a recognizer of the host" : string.Join(" and ", names.Select(static name => $"'{name}'"));
+		if (hosts.Count == 0)
+			return $"let {shown} always read something";
+
+		var named = string.Join(" and ", hosts.Select(static name => $"'{name}'"));
+
+		return through ? $"let the host code it reads, {named}, always move" : $"let {named} always move";
+	}
+
+	/// <summary>
+	/// The recognizers of the host a node reads where it must: not under an element that may be skipped, and not in a
+	/// lookahead, which reads nothing.
+	/// </summary>
+	void HostCode(Node node, List<string> found, HashSet<RuleSymbol> seen)
+	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				HostCode(node, found, seen);
+
+				return true;
+			});
+
+			return;
+		}
+
+		switch (node)
+		{
+			case Node.External external:
+				found.Add("@" + external.Name);
+
+				break;
+
+			case Node.Repeat { Min: 0 } or Node.Lookahead:
+				break;
+
+			case Node.Call(var called, { Count: 0 }):
+				if (seen.Add(called) && _bodies.TryGetValue(called, out var body))
+					HostCode(body, found, seen);
+
+				break;
+
+			default:
+				foreach (var child in node.Children)
+					HostCode(child, found, seen);
+
+				break;
+		}
 	}
 
 	/// <summary>A rule made beside <paramref name="rule"/>, of its type and its trivia, named after it.</summary>
