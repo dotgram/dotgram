@@ -317,6 +317,7 @@ public sealed class PostgreSqlTableTests
 	[Theory]
 	[InlineData("array element")]
 	[InlineData("array of arrays")]
+	[InlineData("multiset element")]
 	[InlineData("setof setof")]
 	[InlineData("typed literal")]
 	[InlineData("sequence as")]
@@ -328,11 +329,12 @@ public sealed class PostgreSqlTableTests
 
 		ISqlNode tree = where switch
 		{
-			"array element"   => new Expression.Cast(one, new DataType.Array(setOf) { Brackets = true }) { Spelling = CastSpelling.DoubleColon },
-			"array of arrays" => new Expression.Cast(one, new DataType.Array(new DataType.Array(setOf) { Brackets = true }) { Brackets = true }),
-			"setof setof"     => new Expression.Cast(one, new DataType.SetOf(setOf)),
-			"typed literal"   => new Expression.Cast(text, setOf) { Spelling = CastSpelling.TypedLiteral },
-			_                 => Table(Int(null, new ColumnGeneration.Identity(IdentityGeneration.Always, [new SequenceOption.DataTypeOption(setOf)]))),
+			"array element"    => new Expression.Cast(one, new DataType.Array(setOf) { Brackets = true }) { Spelling = CastSpelling.DoubleColon },
+			"array of arrays"  => new Expression.Cast(one, new DataType.Array(new DataType.Array(setOf) { Brackets = true }) { Brackets = true }),
+			"multiset element" => new Expression.Cast(one, new DataType.Multiset(setOf)),
+			"setof setof"      => new Expression.Cast(one, new DataType.SetOf(setOf)),
+			"typed literal"    => new Expression.Cast(text, setOf) { Spelling = CastSpelling.TypedLiteral },
+			_                  => Table(Int(null, new ColumnGeneration.Identity(IdentityGeneration.Always, [new SequenceOption.DataTypeOption(setOf)]))),
 		};
 
 		var refusal = Assert.ThrowsAny<ArgumentException>(() => PostgreSqlWriter.Write(tree));
