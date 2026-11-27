@@ -115,10 +115,14 @@ abstract record Construction
 	}
 }
 
-/// <summary>One part of a <see cref="Construction.Join"/>: fixed text, or the capture that holds the part.</summary>
-/// <param name="Text">The text, where the grammar fixes it; null for a capture.</param>
-/// <param name="Capture">The capture, where the part is one; null for fixed text.</param>
-readonly record struct JoinPart(string? Text, string? Capture)
+/// <summary>
+/// One part of a <see cref="Construction.Join"/>: fixed text, the capture that holds the part, or the parts of each turn of a
+/// repetition, every capture of which holds one value per turn.
+/// </summary>
+/// <param name="Text">The text, where the grammar fixes it; null otherwise.</param>
+/// <param name="Capture">The capture, where the part is one; null otherwise.</param>
+/// <param name="Turn">The parts of one turn, joined turn by turn; null otherwise.</param>
+readonly record struct JoinPart(string? Text, string? Capture, IReadOnlyList<JoinPart>? Turn = null)
 {
 	public static JoinPart Fixed(string text)
 	{
@@ -128,6 +132,11 @@ readonly record struct JoinPart(string? Text, string? Capture)
 	public static JoinPart Held(string capture)
 	{
 		return new JoinPart(null, capture);
+	}
+
+	public static JoinPart Turns(IReadOnlyList<JoinPart> turn)
+	{
+		return new JoinPart(null, null, turn);
 	}
 }
 

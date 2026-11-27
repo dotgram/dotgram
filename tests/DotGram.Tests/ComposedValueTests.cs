@@ -133,6 +133,8 @@ public sealed class ComposedValueTests
 	[InlineData("Start : @string = '<' & ?!(?!(w: Bare) & '#') & Bare & '>'", "<ab>", "<ab>")]
 	[InlineData("Start : @string = '<' & (w: Bare & ',' & Esc)? & '>' & when @(w == null || w.Length > 0)", "<ab,\\n>", "<ab,\n>")]
 	[InlineData("Start : @string = '<' & (w: Bare & ',' & Esc)? & '>' & when @(w == null || w.Length > 0)", "<>", "<>")]
+	[InlineData("Start : Word = '<' & ((',' & w: P(Word))*)? & '>' & when @(w != null)\nP(x) = '(' & x & ')'", "<,(ab),(cd)>", "<,(W:ab),(W:cd)>")]
+	[InlineData("Start : @string = '<' & (w: Esc & Bare)* & '>' & when @(w != null)", "<\\nab\\ncd>", "<\nab\ncd>")]
 	[InlineData("trivia = [' ']*\nStart : @string = Bare & '.' & Bare", "a . b", "a.b")]
 	public void A_string_is_its_pieces_joined(string grammar, string input, string expected)
 	{
@@ -172,6 +174,19 @@ public sealed class ComposedValueTests
 			"Start : @string = '<' & x: Part? & '>' => @(x ?? \"\")\nPart : @string = a: Word & ',' & b: Q => @(a + b)\n" +
 			"Q : @string = '(' & w: Word & ')' => @(w)\nWord : @string = c: ['a'..'z']+ => @(\"W:\" + c.ToString())",
 			input));
+	}
+
+	/// <summary>
+	/// A name a guard reads, inside a repetition whose turn is read in more than one way, cannot be joined turn by turn where
+	/// it stands: told, rather than left to the C# compiler.
+	/// </summary>
+	[Fact]
+	public void A_name_a_guard_reads_in_a_turn_of_several_readings_is_told()
+	{
+		var found = Refused("Start : @string = '<' & (',' & ('(' & Esc & ')' | w: Bare))* & '>' & when @(w != null)" +
+			"\nBare : @string = ['a'..'z']{2}\nEsc : @char = '\\\\' & 'n' => @('\\n')");
+
+		Assert.Contains("the name 'w' a guard reads", found.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>An element type that can hold the array itself leaves a call of the array's type with two readings.</summary>

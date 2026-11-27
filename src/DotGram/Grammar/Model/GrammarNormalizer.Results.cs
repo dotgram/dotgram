@@ -632,10 +632,18 @@ sealed partial class GrammarNormalizer
 				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
 			}
 
-			// What a lookahead saw is no part of an implicit value either.
+			// What a lookahead saw is no part of an implicit value either, and its captures are its own: only a name a guard
+			// inside it reads stays.
 			case Node.Lookahead look:
 			{
+				var outer = _namesRead;
+
+				if (outer is not null)
+					_namesRead = NamesReadIn(look.Body, look.Body);
+
 				var inner = Unnamed(look.Body);
+
+				_namesRead = outer;
 
 				return ReferenceEquals(inner, look.Body) ? node : look with { Body = inner };
 			}
@@ -855,7 +863,7 @@ sealed partial class GrammarNormalizer
 							return new WalkStep(new Node.Capture(name,
 								Spreads(call.Rule, value.Type) ? call
 								: !Fits(call, element) ? new Node.Call(ItemsRule(call.Rule, value.Type), call.Arguments)
-								: _extents.ContainsKey(call.Rule) ? new Node.Call(TextRule(call.Rule), call.Arguments)
+								: _extents.ContainsKey(call.Rule) ? new Node.Call(TextRule(call.Rule, rule), call.Arguments)
 								: call), false);
 						}
 
@@ -925,11 +933,11 @@ sealed partial class GrammarNormalizer
 	/// The rule that hands on the text a string matched as a value, for an array that collects it: a capture of text in a
 	/// repetition is the text of the run, and an element is the text of one turn.
 	/// </summary>
-	RuleSymbol TextRule(RuleSymbol text)
+	RuleSymbol TextRule(RuleSymbol text, RuleSymbol owner)
 	{
 		if (!_textValues.TryGetValue(text, out var made))
 			_textValues[text] = made = Synthetic(
-				text, text.Name + "_Value",
+				text.Declaration is null ? owner : text, text.Name + "_Value",
 				new Node.Construct(new Node.Call(text, []), new Construction.Expression("parserText.ToString()")),
 				_language.Spelling(KnownType.Text), ValueSource.Explicit);
 

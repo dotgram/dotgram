@@ -801,8 +801,23 @@ sealed partial class GrammarNormalizer
 	/// <param name="scope">What the names are read in: the whole rule, where only a part of it is unnamed.</param>
 	Node UnnamedUnread(Node node, Node? scope = null)
 	{
+		_namesRead = NamesReadIn(scope ?? node, node);
+
+		try
+		{
+			return Unnamed(node);
+		}
+		finally
+		{
+			_namesRead = null;
+		}
+	}
+
+	/// <summary>The names of captures in <paramref name="node"/> that a guard, a condition, a mark or a switch in <paramref name="scope"/> reads.</summary>
+	HashSet<string> NamesReadIn(Node scope, Node node)
+	{
 		var read  = new HashSet<string>(StringComparer.Ordinal);
-		var texts = NodeWalk.Descendants(scope ?? node).SelectMany(static one => one switch
+		var texts = NodeWalk.Descendants(scope).SelectMany(static one => one switch
 		{
 			Node.Guard(var text, _)                       => [text],
 			Node.Marked(_, var text)                      => [text],
@@ -817,16 +832,7 @@ sealed partial class GrammarNormalizer
 				: System.Text.RegularExpressions.Regex.IsMatch(text, @"\b" + System.Text.RegularExpressions.Regex.Escape(capture.Name) + @"\b")))
 				read.Add(capture.Name);
 
-		_namesRead = read;
-
-		try
-		{
-			return Unnamed(node);
-		}
-		finally
-		{
-			_namesRead = null;
-		}
+		return read;
 	}
 
 	/// <summary>The C# a condition runs.</summary>
@@ -848,11 +854,9 @@ sealed partial class GrammarNormalizer
 		var looks = NodeWalk.Descendants(node).OfType<Node.Lookahead>().ToList();
 		var inner = new HashSet<Node>(looks.SelectMany(static look => NodeWalk.Descendants(look.Body).OfType<Node.Lookahead>()), NodeIdentity.Instance);
 
-		var whole = node;
-
 		foreach (var look in looks)
 			if (!inner.Contains(look) && NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture))
-				node = Replaced(node, look, UnnamedUnread(look, whole));
+				node = Replaced(node, look, UnnamedUnread(look));
 
 		return node;
 	}
@@ -913,8 +917,24 @@ sealed partial class GrammarNormalizer
 
 		var moved       = false;
 		var conditional = 0;
+		var read        = NamesReadIn(_bodies[rule], alternative);
+		var unreachable = (string?)null;
 
 		Walk(alternative, Visit, out var rewritten);
+
+		// A name a guard reads where it stands cannot go with a part to a rule of its own: told, and the alternative is left
+		// its text, so that nothing after this reads a rule half rewritten.
+		if (unreachable is { } name)
+		{
+			if (_unsaid.Add(rule))
+				Report(
+					UnbuiltConstruction,
+					$"'{rule.Name}' is a string joined from its pieces, and the name '{name}' a guard reads stands in a repetition " +
+					"whose turns are read in more than one way, which is joined apart from the guard. Build the value with '=>'.",
+					rule.Declaration!.At);
+
+			return new Node.Construct(alternative, new Construction.Expression("parserText.ToString()"));
+		}
 
 		// A binding is its rule's, so a part that is given a rule of its own cannot hold one: told, and the alternative is
 		// left its text, so that nothing after this reads a rule half rewritten.
@@ -999,6 +1019,45 @@ sealed partial class GrammarNormalizer
 				case Node.Call(var called, var arguments):
 					return Held(ReadThrough(called) ? new Node.Call(ThroughRule(rule, called), arguments) : node);
 
+				// A repetition whose turn holds a name a guard reads is joined turn by turn where it stands, so that the name
+				// stays where the guard reads it: each piece of the turn is captured once per turn.
+				case Node.Repeat(Node.Sequence(var pieces), var min, var max) when Kept(pieces) && pieces.All(InTurn):
+				{
+					var turn    = new List<JoinPart>();
+					var rebuilt = new List<Node>(pieces.Count);
+
+					foreach (var piece in pieces)
+						switch (piece)
+						{
+							case Node.Literal { IgnoreCase: false } literal:
+								turn.Add(JoinPart.Fixed(literal.Text));
+								rebuilt.Add(piece);
+								break;
+
+							case Node.Capture(var named, Node.Call call):
+								turn.Add(JoinPart.Held(named));
+								rebuilt.Add(new Node.Capture(named, Valued(call)));
+								break;
+
+							case Node.Call call when !Silent(call):
+							{
+								var name = Unreserved("item" + reserved.Count, reserved);
+
+								turn.Add(JoinPart.Held(name));
+								rebuilt.Add(new Node.Capture(name, Valued(call)));
+								break;
+							}
+
+							default:
+								rebuilt.Add(piece);
+								break;
+						}
+
+					parts.Add(JoinPart.Turns(turn));
+
+					return new WalkStep(Repeated(node, new Node.Repeat(new Node.Sequence(rebuilt), min, max)), false);
+				}
+
 				// A repetition of one call gives the value of each turn; of more, each turn is joined by a rule of its own.
 				case Node.Repeat(var body, var min, var max):
 					return Held(Repeated(node, new Node.Repeat(Turn(body), min, max)), inside: true);
@@ -1031,6 +1090,35 @@ sealed partial class GrammarNormalizer
 				}, false);
 			}
 
+			// Whether a turn holds a name a guard of the rule reads, one turn at a time.
+			bool Kept(IReadOnlyList<Node> pieces)
+			{
+				return pieces.Any(piece => piece is Node.Capture(var named, _) && read.Contains(named)) &&
+					pieces.Any(piece => piece is Node.Capture or Node.Call && !(piece is Node.Call call && Silent(call)));
+			}
+
+			// What a turn joined where it stands may hold: fixed text, a call, a name on a call, and what gives nothing.
+			bool InTurn(Node piece)
+			{
+				return piece is Node.Literal { IgnoreCase: false } or Node.Call or Node.Capture(_, Node.Call) or Node.Lookahead or Node.Guard or
+					Node.Condition or Node.Behind or Node.Glue or Node.Empty or Node.Reading;
+			}
+
+			// A call that gives nothing: trivia, or what reads nothing.
+			bool Silent(Node.Call call)
+			{
+				return PieceOf(rule, call, empty) == Piece.Nothing || _bodies.TryGetValue(call.Rule, out var called) && ReadsNothing(called);
+			}
+
+			// A call as a value of its own: a string that is its own text through the rule that hands its text on, an
+			// untyped rule read in place.
+			Node Valued(Node.Call call)
+			{
+				return ReadThrough(call.Rule) ? new Node.Call(ThroughRule(rule, call.Rule), call.Arguments)
+					: _extents.ContainsKey(call.Rule) || ValueTypeOf(call.Rule) is null ? new Node.Call(TextRule(call.Rule, rule), call.Arguments)
+					: call;
+			}
+
 			// What one turn reads: the call it is, or a rule of its own that joins it.
 			Node Turn(Node body)
 			{
@@ -1038,6 +1126,8 @@ sealed partial class GrammarNormalizer
 					return ReadThrough(called) ? new Node.Call(ThroughRule(rule, called), arguments) : body;
 
 				moved = true;
+
+				unreachable ??= NodeWalk.Descendants(body).OfType<Node.Capture>().FirstOrDefault(capture => read.Contains(capture.Name))?.Name;
 
 				return Part(rule, body);
 			}

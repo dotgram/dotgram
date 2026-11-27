@@ -4973,24 +4973,35 @@ file.Line("return spare;");
 			// string. Either way the match makes one string, built from what the captures already hold.
 			case Construction.Join(var joinedParts):
 			{
-				var pieces = new List<(string? Text, ResultMember? Member)>();
+				var pieces = new List<(string? Text, ResultMember? Member, List<(string? Text, ResultMember? Member)>? Turn)>();
 
 				foreach (var part in joinedParts)
 				{
 					if (part.Text is { } text)
 					{
-						if (pieces.Count > 0 && pieces[^1].Text is { } before)
-							pieces[^1] = (before + text, null);
+						if (pieces.Count > 0 && pieces[^1] is { Text: { } before })
+							pieces[^1] = (before + text, null, null);
 						else
-							pieces.Add((text, null));
+							pieces.Add((text, null, null));
 
 						continue;
 					}
 
-					var member = factory.Members.FirstOrDefault(one => one.Name == part.Capture) ??
-						throw new InvalidOperationException($"'{rule.Name}' joins a capture it does not have, '{part.Capture}'.");
+					// A repetition joined turn by turn: every capture of it holds one value per turn.
+					if (part.Turn is { } parts)
+					{
+						pieces.Add((null, null, [.. parts.Select(one => one.Text is { } fixedText ? (fixedText, null) : ((string?)null, (ResultMember?)Member(one.Capture!)))]));
 
-					pieces.Add((null, member));
+						continue;
+					}
+
+					pieces.Add((null, Member(part.Capture!), null));
+				}
+
+				ResultMember Member(string name)
+				{
+					return factory.Members.FirstOrDefault(one => one.Name == name) ??
+						throw new InvalidOperationException($"'{rule.Name}' joins a capture it does not have, '{name}'.");
 				}
 
 				file.Line(summary + ": the pieces it read, joined (§4.1).</summary>");
@@ -5002,9 +5013,9 @@ file.Line("return spare;");
 						held is "char" or "System.Char" or "global::System.Char";
 				}
 
-				bool Concatenated((string? Text, ResultMember? Member) piece)
+				bool Concatenated((string? Text, ResultMember? Member, List<(string? Text, ResultMember? Member)>? Turn) piece)
 				{
-					return piece.Member is not { } member || !member.IsSequence && !Character(member) && !SpanText(member);
+					return piece.Turn is null && (piece.Member is not { } member || !member.IsSequence && !Character(member) && !SpanText(member));
 				}
 
 				if (pieces.Count <= 4 && pieces.All(Concatenated))
@@ -5029,12 +5040,33 @@ file.Line("return spare;");
 					var at     = Unreserved("at", taken);
 					var one    = Unreserved("one", taken);
 					var made   = Unreserved("made", taken);
+					var index  = Unreserved("turn", taken);
 					var fixedLength = pieces.Sum(static piece => piece.Text?.Length ?? 0);
 
 					file.Line($"var {length} = {fixedLength.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
 
-					foreach (var (_, member) in pieces)
+					foreach (var (_, member, turn) in pieces)
 					{
+						if (turn is not null)
+						{
+							var first = ResultTypes.ParameterOf(turn.First(static one => one.Member is not null).Member!);
+							var each  = turn.Sum(static one => one.Text?.Length ?? 0);
+
+							file.Line($"if ({first} != null)");
+
+							using (file.Block($"for (var {index} = 0; {index} < {first}.Length; {index}++)"))
+							{
+								if (each > 0)
+									file.Line($"{length} += {each.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+
+								foreach (var (_, held) in turn)
+									if (held is not null)
+										file.Line(Character(held) ? $"{length}++;" : $"{length} += {ResultTypes.ParameterOf(held)}[{index}]?.Length ?? 0;");
+							}
+
+							continue;
+						}
+
 						if (member is null)
 							continue;
 
@@ -5062,8 +5094,45 @@ file.Line("return spare;");
 					file.Line($"var {at} = 0;");
 					file.Line();
 
-					foreach (var (text, member) in pieces)
+					foreach (var (text, member, turn) in pieces)
 					{
+						if (turn is not null)
+						{
+							var first = ResultTypes.ParameterOf(turn.First(static one => one.Member is not null).Member!);
+
+							file.Line($"if ({first} != null)");
+
+							using (file.Block($"for (var {index} = 0; {index} < {first}.Length; {index}++)"))
+								foreach (var (fixedText, held) in turn)
+								{
+									if (fixedText is { Length: 1 })
+									{
+										file.Line($"{buffer}[{at}++] = {Char(fixedText[0])};");
+									}
+									else if (fixedText is not null)
+									{
+										file.Line($"{Quoted(fixedText)}.CopyTo(0, {buffer}, {at}, {fixedText.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+										file.Line($"{at} += {fixedText.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+									}
+									else if (Character(held!))
+									{
+										file.Line($"{buffer}[{at}++] = {ResultTypes.ParameterOf(held!)}[{index}];");
+									}
+									else
+									{
+										var element = $"{ResultTypes.ParameterOf(held!)}[{index}]";
+
+										using (file.Block($"if ({element} != null)"))
+										{
+											file.Line($"{element}.CopyTo(0, {buffer}, {at}, {element}.Length);");
+											file.Line($"{at} += {element}.Length;");
+										}
+									}
+								}
+
+							continue;
+						}
+
 						if (text is { Length: 1 })
 						{
 							file.Line($"{buffer}[{at}++] = {Char(text[0])};");
