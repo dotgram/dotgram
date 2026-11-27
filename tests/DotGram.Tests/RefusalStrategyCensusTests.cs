@@ -8,6 +8,7 @@ using System.Text;
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
+using DotGram.Grammar.Plan;
 using DotGram.Language;
 
 using Xunit;
@@ -242,7 +243,6 @@ public sealed class RefusalStrategyCensusTests
 		var reader = new List<(Node Node, IReadOnlyList<string> Said)>();
 		var other  = new List<(Node Node, IReadOnlyList<string> Said)>();
 
-		DotGram.Grammar.Emit.Machine.DisplaysTold          = (node, said) => reader.Add((node, said));
 		DotGram.Grammar.Emit.Machine.NonReaderDisplaysTold = (node, said) => other.Add((node, said));
 
 		GramCompilation result;
@@ -253,12 +253,20 @@ public sealed class RefusalStrategyCensusTests
 		}
 		finally
 		{
-			DotGram.Grammar.Emit.Machine.DisplaysTold          = null;
 			DotGram.Grammar.Emit.Machine.NonReaderDisplaysTold = null;
 		}
 
 		if (result.HasErrors || result.Graph is not { } graph)
 			return null;
+
+		// What the readers say at each place is the plan's (RecordSites), keyed by the node of the rule a copy
+		// was made from, its items as a refusal says them; a choice said by what it predicts is marked so.
+		foreach (var machine in result.Plan?.Machines ?? [])
+			foreach (var (_, node, _, site) in machine.Sites?.All() ?? [])
+				if (site.Items.Count > 0)
+					reader.Add((node, site is DispatchSite or PredictedSite or OptionalSite or UnguardedSite or GuardedGroupSite
+						? [Predicted, .. site.Items]
+						: site.Items));
 
 		var at     = Paths(graph);
 		var places = new Places();
