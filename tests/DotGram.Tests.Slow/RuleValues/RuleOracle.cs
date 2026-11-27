@@ -408,7 +408,7 @@ sealed partial class Grammar
 			Describe(rule);
 		}
 
-		Decision = _rules.SelectMany(static r => r.Groups).FirstOrDefault(static d => d.Source is Source.Error or Source.Undecided) ?? Start.Groups[0];
+		Decision = _rules.SelectMany(static r => r.Groups).FirstOrDefault(static d => d.Source is Source.Error or Source.Undecided or Source.SamePublished) ?? Start.Groups[0];
 	}
 
 	Decision[] Decide(Rule rule)
@@ -418,7 +418,8 @@ sealed partial class Grammar
 		switch (rule.Kind)
 		{
 			case Kind.Untyped:
-				return [_composites.ContainsValue(rule) ? Decision.Of(Source.Extent, "-") : Decision.Ask("-", "a published rule with no type that writes names: it makes a type of its own, which the oracle does not model")];
+				// An untyped rule that writes names makes a type of its own from them, exactly as the published version does.
+				return [_composites.ContainsValue(rule) ? Decision.Of(Source.Extent, "-") : Decision.Of(Source.SamePublished, "O")];
 
 			case Kind.S:
 				return [Decision.Of(Source.Extent, "S")];
@@ -466,6 +467,10 @@ sealed partial class Grammar
 			if (rule.Type == "object" && routes.Any(static r => r.Operands == 2))
 				Features.Add("O-object-two-calls");
 
+			// A call written only in X{0} reads nothing: it is no call on any route.
+			if (!Walk(alternatives).Any(c => IsOperand(c, rule)) && Walk(alternatives, true).Any(c => IsOperand(c, rule)))
+				Features.Add("O-zero-operand");
+
 			return Decision.Fail("O", rule.LeftRecursive ? "E-LR" : "E-VALUE");
 		}
 
@@ -485,34 +490,7 @@ sealed partial class Grammar
 			return Decision.Fail("O", "E-VALUE");
 		}
 
-		// A name of another type than its parameter's is the C# compiler's to refuse.
-		if (Walk(alternatives, true).OfType<Named>().Any(n => ParameterType(rule.Type, n.Name) is { } expected && NamedType(n.Inner, rule) != expected))
-			return Decision.Fail("O", "CS1503");
-
 		return Decision.Of(Source.Constructed, "O");
-	}
-
-	static string? ParameterType(string? type, string name)
-	{
-		return (type, name) switch
-		{
-			("Box", "name") or ("Pr", "t") or ("Item", "x") => "string",
-			("Box", "inner") or ("Pr", "l") or ("Pr", "r")  => type,
-			("Pair", "a") or ("Pair", "b")                  => "int",
-			_                                               => null,
-		};
-	}
-
-	/// <summary>The type of what a name is on: a call's, or text.</summary>
-	static string NamedType(Expr inner, Rule rule)
-	{
-		return inner switch
-		{
-			Group { Inner: var g }                                                  => NamedType(g, rule),
-			Wrapped { Wrap: Wrap.Optional or Wrap.Plus or Wrap.Star, Inner: var w } => NamedType(w, rule),
-			_ when IsCall(inner)                                                    => CalleeType(inner, rule) ?? "string",
-			_                                                                       => "string",
-		};
 	}
 
 	/// <summary>
@@ -689,6 +667,9 @@ sealed partial class Grammar
 
 		if (Decision.Source == Source.Error)
 			return new Expectation(Source.Error, null, Decision.ErrorId, null, Decision.Row);
+
+		if (Decision.Source == Source.SamePublished)
+			return new Expectation(Source.SamePublished, null, null, null, Decision.Row);
 
 		// Over bytes a string cannot be joined from a built string or a character without decoding.
 		if (mode == Mode.B && _rules.Any(r => r.Kind == Kind.C && Impure(r)))

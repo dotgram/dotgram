@@ -1,8 +1,7 @@
 cells 98154, shapes 19293, cells with no outcome in the files 0
 
 cells by what the oracle says against 0.3.0
-      41  UNEXPLAINED
-   12881  agree
+   12901  agree
        3  allowed: array-call-splices-elements
      238  allowed: array-collects-text-rule
      390  allowed: char-piece-gives-character
@@ -20,12 +19,13 @@ cells by what the oracle says against 0.3.0
       12  allowed: tied-constructor-refused
        8  allowed: trivia-dropped-in-string-rule
        3  allowed: untyped-rule-read-through
+      21  allowed: zero-repetition-operand-refused
       40  oracle reads no match, 0.3.0 csharp
      114  oracle reads no match, 0.3.0 gram
       11  published version did not match the input
-   34387  published version refused, oracle builds
-   25595  refused by both
-   10368  undecided
+   34475  published version refused, oracle builds
+   25519  refused by both
+   10356  same as 0.3.0 by decision (an untyped rule that writes names)
 
 the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs from the oracle on purpose
     2912 differ (  644 shapes),    354 agree  Silent    string-rule-joins-built-value
@@ -42,105 +42,17 @@ the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs fro
     6982 differ ( 1507 shapes),      0 agree  Loud      string-not-built-from-names
     1503 differ (  295 shapes),      0 agree  Loud      non-text-piece-is-error
      159 differ (   25 shapes),      0 agree  Loud      object-rule-reads-two-calls
+      24 differ (    8 shapes),      0 agree  Loud      zero-repetition-operand-refused
      472 differ (  114 shapes),      0 agree  Loud      partial-construction-refused
       12 differ (    2 shapes),      0 agree  Loud      tied-constructor-refused
      951 differ (  256 shapes),      0 agree  WarnOnly  optional-text-route
     1558 differ (  269 shapes),      0 agree  WarnOnly  optional-operand-falls-to-construction
 
-unexplained: 41 cells in 19 distinct shapes
-
-  family :Bx / bare / core / Error: 2 shapes, 4 cells
-    core/:Bx/bare/Other,-/ParameterOnOperand/None/noLR/Itself/written mode D input cd
-    Start : Bx = inner: Word
-    Bx : @Box = name: Nm
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      0.3.0:  box:W:cd (warnings GRAM4018)
-      oracle: error CS1503
-
-  family :Bx / one / core / Error: 2 shapes, 4 cells
-    core/:Bx/one/Other,-/ParameterOnOperand/None/noLR/Itself/written mode D input <cd>
-    Start : Bx = '<' & inner: Word & '>'
-    Bx : @Box = name: Nm
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      0.3.0:  box:W:cd (warnings GRAM4018)
-      oracle: error CS1503
-
-  family :Bx / plus / core / Error: 1 shapes, 1 cells
-    core/:Bx/plus/Plumbing,-/ParameterOnOperand/None/noLR/Itself/written mode D input <efgh>
-    Start : Bx = '<' & (inner: Plain)+ & '>'
-    Bx : @Box = name: Nm
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-    Plain = ['a'..'z']{2}
-      0.3.0:  box:efgh (warnings GRAM4018)
-      oracle: error CS1503
-
-  family :Bx / zero / core / Error: 1 shapes, 1 cells
-    core/:Bx/zero/Plumbing,-/ParameterOnOperand/None/noLR/Itself/written mode D input <#>
-    Start : Bx = '<' & (inner: Plain){0} & '#' & '>'
-    Bx : @Box = name: Nm
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-    Plain = ['a'..'z']{2}
-      0.3.0:  box: (warnings GRAM4018)
-      oracle: error CS1503
-
-  family :O / zero / core / Error: 4 shapes, 12 cells
-    core/:O/zero/Built,-/None/None/noLR/Itself/written mode D input <#>
-    Start : O = '<' & O{0} & '#' & '>'
-    O : @object = c: ['a'..'z']{2} => @((object)("O:" + T(c)))
-      0.3.0:  []
-      oracle: error E-VALUE
-
-  family :O / zero / deviation / Error: 3 shapes, 9 cells
-    deviation/:O/zero/Built,-/None/GuardReadsNone/noLR/Itself/written mode D input <#>
-    Start : O = '<' & O{0} & '#' & '>' & when @(true)
-    O : @object = c: ['a'..'z']{2} => @((object)("O:" + T(c)))
-      0.3.0:  []
-      oracle: error E-VALUE
-
-  family @Box / bare / core / Error: 2 shapes, 4 cells
-    core/@Box/bare/Other,-/ParameterOnOperand/None/noLR/Itself/written mode D input cd
-    Start : @Box = inner: Word
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      0.3.0:  box:W:cd
-      oracle: error CS1503
-
-  family @Box / one / core / Error: 2 shapes, 4 cells
-    core/@Box/one/Other,-/ParameterOnOperand/None/noLR/Itself/written mode D input <cd>
-    Start : @Box = '<' & inner: Word & '>'
-    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
-      0.3.0:  box:W:cd
-      oracle: error CS1503
-
-  family @Box / plus / core / Error: 1 shapes, 1 cells
-    core/@Box/plus/Plumbing,-/ParameterOnOperand/None/noLR/Itself/written mode D input <efgh>
-    Start : @Box = '<' & (inner: Plain)+ & '>'
-    Plain = ['a'..'z']{2}
-      0.3.0:  box:efgh
-      oracle: error CS1503
-
-  family @Box / zero / core / Error: 1 shapes, 1 cells
-    core/@Box/zero/Plumbing,-/ParameterOnOperand/None/noLR/Itself/written mode D input <#>
-    Start : @Box = '<' & (inner: Plain){0} & '#' & '>'
-    Plain = ['a'..'z']{2}
-      0.3.0:  box:
-      oracle: error CS1503
+unexplained: 0 cells in 0 distinct shapes
 
 the oracle reads no match where 0.3.0 gave a value, one per shape
 
 undecided: the rule gives no answer
-
-  12 cells: a name that fills a parameter of the type Box holds a string
-    e.g. core/@Box/zero/Built,-/ParameterOnOperand/None/noLR/Itself/written mode D input <#>
-    Start : @Box = '<' & (inner: Bxa){0} & '#' & '>'
-    Bxa : @Box = n: Nm => @(new Box("A" + n))
-    Nm : @string = n: ['a'..'z']{2} => @(T(n))
-
-  10356 cells: a published rule with no type that writes names: it makes a type of its own, which the oracle does not model
-    e.g. core/:Plain/none/-,-/OnLiteral/None/noLR/Itself/written mode D input <#>
-    Start : Plain = x: '<' & '#' & '>'
-    Plain = ['a'..'z']{2}
 
 allowed cells, one example per class
 
@@ -247,6 +159,13 @@ allowed cells, one example per class
   object-rule-reads-two-calls: a rule of type object takes a call of any typed rule, so two calls on a route are two operands and no value
     core/:O/star/Built,-/None/None/noLR/Itself/written mode D input <>
     Start : O = '<' & (',' & O)* & '>'
+    O : @object = c: ['a'..'z']{2} => @((object)("O:" + T(c)))
+      0.3.0:  []
+      oracle: error E-VALUE
+
+  zero-repetition-operand-refused: a call written only in X{0} reads nothing, so it is no call of the rule's type on any route (0.3.0 gave an empty list)
+    core/:O/zero/Built,-/None/None/noLR/Itself/written mode D input <#>
+    Start : O = '<' & O{0} & '#' & '>'
     O : @object = c: ['a'..'z']{2} => @((object)("O:" + T(c)))
       0.3.0:  []
       oracle: error E-VALUE

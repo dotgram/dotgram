@@ -153,6 +153,10 @@ public sealed class RuleOracleTests
 				category = "undecided";
 				undecided[expected.Question!] = undecided.TryGetValue(expected.Question!, out var seen) ? (seen.Count + 1, seen.Example) : (1, cell);
 			}
+			else if (expected.Source == Source.SamePublished)
+			{
+				category = "same as 0.3.0 by decision (an untyped rule that writes names)";
+			}
 			else if (expected.Source == Source.NoMatch)
 			{
 				category = old.Kind == "fail" ? "agree" : "oracle reads no match, 0.3.0 " + old.Kind;
@@ -269,6 +273,26 @@ public sealed class RuleOracleTests
 			}
 
 			var head = cell.Head;
+
+			// An untyped rule that writes names is held to what the published version gives, whatever that is.
+			if (expected.Source == Source.SamePublished)
+			{
+				if (head.Kind == cell.Package.Kind && head.Text == cell.Package.Text)
+				{
+					counts["green"] = counts.GetValueOrDefault("green") + 1;
+					continue;
+				}
+
+				counts["red"] = counts.GetValueOrDefault("red") + 1;
+
+				var held = "other, rule O: held to 0.3.0 (untyped rule with names), head " + (head.Kind == "value" ? "gave a different value" : head.Kind);
+
+				if (!red.TryGetValue(held, out var heldList))
+					red[held] = heldList = [];
+
+				heldList.Add((cell, expected));
+				continue;
+			}
 
 			if (expected.Source == Source.NoMatch ? !head.Built || head.Kind == "fail" : expected.IsValue ? head.Kind == "value" && head.Text == expected.Value : !head.Built)
 			{

@@ -29,6 +29,9 @@ enum Source
 	/// <summary>The rule gives no answer: <see cref="Expectation.Question"/> says what is missing.</summary>
 	Undecided,
 
+	/// <summary>The rule makes a type of its own from its names, as the published version does: the cell is held to what it gives.</summary>
+	SamePublished,
+
 	/// <summary>The grammar does not read the input (a body that cannot succeed on the way a route was written).</summary>
 	NoMatch,
 }
@@ -44,7 +47,7 @@ enum Source
 sealed record Expectation(Source Source, string? Value, string? ErrorId, string? Question, string Row)
 {
 	/// <summary>The grammar is built and gives <see cref="Value"/>.</summary>
-	public bool IsValue => Value is not null && Source is not (Source.Error or Source.Undecided or Source.NoMatch);
+	public bool IsValue => Value is not null && Source is not (Source.Error or Source.Undecided or Source.NoMatch or Source.SamePublished);
 
 	/// <summary>The grammar is refused.</summary>
 	public bool IsError => Source == Source.Error;

@@ -489,11 +489,10 @@ sealed partial class Grammar
 			switch (rule.Type)
 			{
 				case "Box":
-					if (captured.TryGetValue("inner", out var other) && other.Type != "Box")
-						throw new InvalidOperationException("a name that fills a parameter of the type Box holds a " + other.Type);
-
-					return captured.TryGetValue("inner", out var inner)
+					// The constructor is C#'s to pick: a name `inner` that holds text binds Box(string), as `name` does.
+					return captured.TryGetValue("inner", out var inner) && inner.Type == "Box"
 						? Val.Host("Box", "box:[" + inner.Raw + "]")
+						: captured.TryGetValue("inner", out var text) ? Val.Host("Box", "box:" + text.Raw)
 						: Val.Host("Box", "box:" + captured["name"].Raw);
 
 				case "Pr":
@@ -554,7 +553,11 @@ sealed partial class Grammar
 					var text = IsCall(inner.Expr) ? null : input.Substring(inner.Start, inner.End - inner.Start);
 
 					// A text capture repeated by turns is the turns, joined.
-					into[named.Name] = text is null ? Value(inner) : Val.Str(into.TryGetValue(named.Name, out var earlier) && earlier.Type == "string" ? earlier.Raw + text : text);
+					var value = text is null ? Value(inner) : Val.Str(text);
+
+					into[named.Name] = into.TryGetValue(named.Name, out var earlier) && earlier.Type == value.Type && value.Type is "string" or "bytes"
+						? value.Type == "bytes" ? Val.Bytes(earlier.Raw + value.Raw) : Val.Str(earlier.Raw + value.Raw)
+						: value;
 					break;
 				}
 

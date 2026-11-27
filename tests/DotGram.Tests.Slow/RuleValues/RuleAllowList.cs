@@ -137,6 +137,10 @@ static class RuleAllowList
 			"a rule of type object takes a call of any typed rule, so two calls on a route are two operands and no value",
 			static c => c.Differs && c.Has("O-object-two-calls")),
 
+		new("zero-repetition-operand-refused", Impact.Loud,
+			"a call written only in X{0} reads nothing, so it is no call of the rule's type on any route (0.3.0 gave an empty list)",
+			static c => c.Differs && c.Has("O-zero-operand")),
+
 		new("partial-construction-refused", Impact.Loud,
 			"names choose the construction of the whole rule: an alternative that captures none of them is refused",
 			static c => c.Differs && c.Has("O-partial")),
