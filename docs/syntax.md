@@ -1432,13 +1432,43 @@ Three things are rejected when the grammar is built:
   operands at the next level down, or say what you mean with §4.3.1.
 
 A recognizer of the host is taken at its word that it consumes, so a rule that reaches itself
-only past one, `Nest = @Still & n: Nest & 'b' | 'x'+`, is none of these and compiles, and
-`GRAM5021` says so; but a recognizer may succeed without moving (§7.2), and where it does there
-the rule comes back to itself without having read anything. Where nothing is read after the call
-back, as in `Frames = @ReadFrame & Frames | eof`, that is the same left recursion, found while
-parsing: the entry that came back fails as an alternative that did not match does, and the rule's
-other alternatives are read, as the rewritten left recursion would read them. Where something is,
-as in `Nest`, nothing is checked: the rule is read as it is written (§7.2 says what that does).
+only past one, `Sum = Num | @Ws & Sum & '+' & Num`, is none of these and compiles. But a
+recognizer may succeed without moving (§7.2), and where it does the call back is the rule again
+where it was entered: a left recursion the recognizer only hid. It is read as one. Where the
+prefix before the call back — the recognizer, and whatever stands with it: a lookahead, the trivia
+woven after it (§4.5), a rule that only wraps it — does not move at the rule's entry, the rule is
+read as the rule without the prefix, `Sum = Num | Sum & '+' & Num`: a base, and a loop over the
+steps that takes as many as what follows accepts and gives them back one at a time from the end.
+Where the prefix moves, the call back is a call from a later position, and the rule is read as
+it is written. Whether the prefix stands is asked once, where the rule is entered. `GRAM5021`
+says that a rule is read so.
+
+```dotgram
+T   : @int = s: Sum & ('+' & Num)* & eof => @(s)
+Sum : @int = Num                           => @(1)
+           | @Ws & s: Sum & '+' & Num      => @(s + 1)
+Num = ['0'..'9']+
+```
+
+`1+1+1` is read as the rule without `@Ws` reads it: `Sum` takes all three numbers and is 3, and
+the loop after it has none left. (0.3.0 read the base first, which `1+1+1` goes on from: `Sum` was
+1, and the loop took the other two.) A rule without a prefix that stands, or one whose prefix
+always moves, is read as it was written.
+
+The rule is read so only where the rule without the prefix is a left recursion this section folds,
+with the value this section gives it, and where nothing in the rule, or in a rule that calls into
+it, reads more than the text and the position: a `when` or a `switch` that reads a value the
+rule builds, a hook that names `context`, a binding, a back-reference or a parameter. Where the
+rule without the prefix is refused — it has no alternative to start from, an alternative is
+recursive on both sides, a step may read nothing, it states strengths (§4.3.1), or the call back
+goes through a rule that does more than forward it — `GRAM4066` says which. Where it has no
+value (`Nest = @Still & n: Nest & 'b' | 'x'+`, whose call back is captured, which a left
+recursion does not allow), or something on the way reads more than the text and the position, the
+rule is read as it is written, and `GRAM5021` says what that does (§7.2). Where nothing is read
+after the call back, as in `Frames = @ReadFrame & Frames | eof`, the rule is the same left
+recursion, found while parsing: the entry that came back fails as an alternative that did not
+match does, and the rule's other alternatives are read, as the rewritten left recursion would
+read them.
 
 #### 4.3.1 Binding powers, when levels are not enough
 
@@ -3874,18 +3904,29 @@ ordinary C# rules.
   what the entry already standing there reads, so wherever the parse would end without the cut it
   answers the same with it, and where it would go round it ends, at the cost of a comparison at the
   rule's entry. What such a parse builds is the value read without the entry that came back. Where
-  something is read after the call back, there is no such check: a parse may need the rule entered
-  there more than once — `Sum = Num | @Ws & Sum & '+' & Num` reads `1+2+3` with `Sum` entered
-  three times at 0, once for each `'+' & Num` pending — and no comparison of the rule and the
-  position tells an entry that is needed from one that only goes round. Such a rule is read as it
-  is written: where the parse finds its answer before it has to give up on the recursive
-  alternative, it ends as it always did; where it would have to give up on it — most input it
-  refuses — it goes round, and ends only where the stack or the memory does. The same holds for a
-  cycle with nothing read after the call back where a `when` or a `switch`, in the cycle or in a rule that calls into it, reads a value the
-  cycle builds, or a hook names `context`: what it reads then depends on more than the position,
-  and it is not cut. `GRAM5021` says which of the two a cycle is. The repetition, `Frames = @ReadFrame* & eof`, or a
-  recognizer that moves whenever it succeeds, needs no check; write the progress into the input
-  position.
+  something is read after the call back, no such check can tell: a parse may need the rule entered
+  there more than once — `Sum = Num | @Ws & Sum & '+' & Num` reads `1+2+3` with `Sum` entered three
+  times at 0, once for each `'+' & Num` pending — and no comparison of the rule and the position
+  tells an entry that is needed from one that only goes round. Such a rule is read, where the
+  recognizer does not move at its entry, as the left recursion it is without the recognizer
+  (§4.3): `Sum = Num | Sum & '+' & Num` is a base and a loop over the steps, and the loop takes as
+  many steps as what follows accepts and gives them back one at a time from the end, so `Sum`
+  takes all of `1+2+3` where nothing after it refuses that, and fewer where something does. The
+  recognizer is asked once, where the rule is entered, and the loop enters the rule no more. Where
+  it moves, the rule is read as it is written: the call back is then a call from a later
+  position. `GRAM5021` says that a rule is read so, and `GRAM4066` says why where the rule
+  without the recognizer is no left recursion §4.3 folds. In 0.3.0 such a rule was read as it is
+  written wherever the recognizer stood, which gave the base first and the steps to what
+  follows: `Sum` was the fewest steps that let the rest be read, and where the parse had to give
+  up on the recursive alternative it went round, and ended only where the stack or the memory
+  did. Where the rule is read as it is written still — a `when` or a `switch`, in the cycle or in
+  a rule that calls into it, reads a value the cycle builds, or a hook names `context`, or the
+  rule without the recognizer has no value §4.3 gives it — a parse that has to give up on
+  the recursive alternative still goes round where the recognizer does not move, and
+  `GRAM5021` says so. The same holds for a cycle with nothing read after the call back where such a
+  `when`, `switch` or hook is on the way: what it reads then depends on more than the position,
+  and the entry is not cut. The repetition, `Frames = @ReadFrame* & eof`, or a recognizer that
+  moves whenever it succeeds, needs no check; write the progress into the input position.
 - An external recognizer and a `when` guard execute during recognition. Ordered choice
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects
