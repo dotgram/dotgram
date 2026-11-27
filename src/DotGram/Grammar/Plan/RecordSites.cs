@@ -131,8 +131,9 @@ sealed class ShortSite : RecordSite;
 
 /// <summary>
 /// A repetition's door: a turn past the fewest not tried where the item in hand cannot begin it, and
-/// nothing recorded there; what follows the repetition records where it refuses. Where a turn is owed
-/// below the fewest and not tried, what it would have begun with is noted at the door (<see cref="RecordSite.Noted"/>).
+/// nothing recorded there; what follows the repetition records where it refuses. Where the door shuts
+/// below the fewest, what the turn would have begun with is said there (<see cref="RecordSite.Items"/>):
+/// noted, where the reading goes on to fail after the loop, or refused at the door.
 /// </summary>
 sealed class DoorSite : RecordSite
 {

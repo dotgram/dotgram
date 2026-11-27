@@ -200,5 +200,5 @@ public class RecordSiteTests
 
 	/// <summary>The places of the snapshot readers, by kind.</summary>
 	const string ExpectedKinds =
-		"DispatchSite 55, DoorSite 79, EndSite 39, NamedSite 3, OverSite 40, PredictedSite 3, RunSite 2, ShortSite 1, SilentSite 11, TailsSite 2, TerminalSite 330";
+		"DispatchSite 55, DoorSite 79, EndSite 39, NamedSite 3, OverSite 40, PredictedSite 3, RunSite 2, SilentSite 11, TailsSite 2, TerminalSite 330";
 }
