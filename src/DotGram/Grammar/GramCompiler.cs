@@ -84,23 +84,27 @@ static partial class GramCompiler
 		// so that the file is the one it would have been.
 		if (options.SettleRunTails && !options.Lexical && options.Direct && !options.BufferedInput && !options.BufferedBytes)
 		{
-			var settled = Compile(language, grammarText, options, settle: true, out var leftTheReaders);
+			var settled = Compile(language, grammarText, options, settle: true, dropped: null, out var left);
 
-			if (!leftTheReaders)
+			if (left is null)
 				return settled;
+
+			return Compile(language, grammarText, options, settle: false, left, out _);
 		}
 
-		return Compile(language, grammarText, options, settle: false, out _);
+		return Compile(language, grammarText, options, settle: false, dropped: null, out _);
 	}
 
 	/// <summary>
 	/// The same, with settled copies or without; with them, nothing where a machine of the file is not a
-	/// reader over a string, and <paramref name="leftTheReaders"/> set.
+	/// reader over a string, and <paramref name="left"/> what the author is told of the copies that
+	/// were then dropped (<see cref="Dropped"/>). A grammar compiled again without them says it too.
 	/// </summary>
 	static GramCompilation Compile(
-		ITargetLanguage language, string grammarText, GramCompilerOptions options, bool settle, out bool leftTheReaders)
+		ITargetLanguage language, string grammarText, GramCompilerOptions options, bool settle,
+		IReadOnlyList<GramDiagnostic>? dropped, out IReadOnlyList<GramDiagnostic>? left)
 	{
-		leftTheReaders = false;
+		left = null;
 
 		var sources     = new List<GeneratedSource>();
 		var diagnostics = new List<GramDiagnostic>();
@@ -136,11 +140,9 @@ static partial class GramCompiler
 		// What the publications ask for alone says that some machine will not be a reader over a string.
 		var readersOnly = graph.Settled.Count > 0;
 
-		if (readersOnly && (graph.Segmented || graph.Publications.Any(static publication =>
-			publication.Kind != PublishKind.Parse || publication.Yield || publication.Positional ||
-			publication.BufferedInput || publication.BufferedBytes)))
+		if (readersOnly && (graph.Segmented || graph.Publications.Any(OnTheEngine)))
 		{
-			leftTheReaders = true;
+			left = Dropped(graph, graph.Publications.FirstOrDefault(OnTheEngine) ?? graph.Publications.FirstOrDefault());
 
 			return new GramCompilation([], []);
 		}
@@ -155,6 +157,11 @@ static partial class GramCompiler
 		foreach (var diagnostic in model.Diagnostics)
 			if (!Inside(broken, diagnostic))
 				diagnostics.Add(diagnostic);
+
+		if (dropped is not null)
+			foreach (var diagnostic in dropped)
+				if (!Inside(broken, diagnostic))
+					diagnostics.Add(diagnostic);
 
 		foreach (var diagnostic in graph.Diagnostics)
 			if (!Inside(broken, diagnostic))
@@ -295,7 +302,7 @@ static partial class GramCompiler
 
 		if (context.LeftTheReaders)
 		{
-			leftTheReaders = true;
+			left = Dropped(graph, context.LeftBy);
 
 			return new GramCompilation([], []);
 		}
@@ -315,6 +322,48 @@ static partial class GramCompiler
 			Names = sources.Count == 0 ? null : language.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source], options),
 		};
+	}
+
+	/// <summary>Whether what a publication asks for alone is not read by methods over a string.</summary>
+	static bool OnTheEngine(Publication publication)
+	{
+		return publication.Kind != PublishKind.Parse || publication.Yield || publication.Positional ||
+			publication.BufferedInput || publication.BufferedBytes;
+	}
+
+	/// <summary>
+	/// What the author is told of the settled copies a file is compiled without, because a machine of it
+	/// is not a reader over a string: one message for each rule whose copy would have settled a run with
+	/// no upper bound, at the rule, naming the publication that put the machine on the engine.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Without the copy, a refusal inside a long run of the rule is read again for every place the run
+	/// can be cut, as many as the run has characters, and each of them reads the rest of the run:
+	/// time quadratic in its length. A run with an upper bound costs no more than the bound, so it is
+	/// not told. The publication is the first, in the order written, whose machine is not a reader; a
+	/// grammar that names <c>eos</c> without one puts them all on the engine, and the first is named.
+	/// Nothing is said where no publication is to be named.
+	/// </para>
+	/// </remarks>
+	static IReadOnlyList<GramDiagnostic> Dropped(RecognitionGraph graph, Publication? by)
+	{
+		if (by is null)
+			return [];
+
+		var told = new List<GramDiagnostic>();
+
+		foreach (var rule in graph.SettledRuns)
+			told.Add(new GramDiagnostic(
+				SettledDropped,
+				$"Rule '{rule.Name}' is read without its settled copy because publication '{by.MethodName}' runs on the engine, " +
+				$"so a refusal inside a long run of '{rule.Name}' takes time quadratic in its length. " +
+				$"Read '{by.MethodName}' by methods, or move it into its own grammar.",
+				rule.Declaration?.At.Position ?? 0,
+				rule.Declaration?.At.Length ?? 0,
+				GramSeverity.Warning));
+
+		return told;
 	}
 
 	/// <summary>A grammar cut in two, or null with a word about why it was not.</summary>
@@ -483,6 +532,9 @@ static partial class GramCompiler
 
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>
 	public const string NotCut = "GRAM5004";
+
+	/// <summary>A rule ending in a run with no upper bound is read without its settled copy, because a publication runs on the engine.</summary>
+	public const string SettledDropped = "GRAM5022";
 
 	/// <summary>A repetition can read one run of text in two ways, so a refused input is read again for every way of cutting it.</summary>
 	public const string ExponentialRepetitions = "GRAM4052";

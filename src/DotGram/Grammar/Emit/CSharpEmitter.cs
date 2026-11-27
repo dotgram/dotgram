@@ -715,11 +715,15 @@ static partial class CSharpEmitter
 		// — an engine (a jump or a flat machine), one over a buffer, one read from a position, the one
 		// that values tokens — and a copy, told less of what follows it, may be printed another way
 		// there and refused in other words. The compiler then compiles the grammar without the copies.
-		if (context is { ReadersOnly: true } &&
-			(valuing is not null || printed.Exists(static compiled =>
-				compiled.Plan.Strategy != ReadingStrategy.Reader || compiled.Plan.PositionalOnly || compiled.Machine.BufferedInput)))
+		if (context is { ReadersOnly: true } && (valuing is not null || printed.Exists(NotAReader)))
 		{
 			context.LeftTheReaders = true;
+
+			context.LeftBy = printed
+				.Where(NotAReader)
+				.SelectMany(static compiled => compiled.Plan.Publications)
+				.OrderBy(static publication => publication.At.Position)
+				.FirstOrDefault();
 
 			return null;
 		}
@@ -6261,6 +6265,12 @@ file.Line("return spare;");
 	}
 
 	static readonly IReadOnlyDictionary<Publication, bool> Unvalued = new Dictionary<Publication, bool>();
+
+	/// <summary>Whether a machine is read as anything but methods over a string: what a graph with settled copies is not printed for.</summary>
+	static bool NotAReader(Compiled compiled)
+	{
+		return compiled.Plan.Strategy != ReadingStrategy.Reader || compiled.Plan.PositionalOnly || compiled.Machine.BufferedInput;
+	}
 
 	/// <summary>
 	/// The plan of a file (<see cref="ReadingPlan"/>), made from the machines the planning stage settled
