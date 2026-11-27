@@ -105,7 +105,7 @@ public sealed class RefusalSpikeTests
 
 	static IrProgram Planned(string grammar)
 	{
-		return _planned.GetOrAdd(grammar, static text => RefusalPlan.AsTheCSharpReader(IrLowering.Lower(Graphs.Of(text))));
+		return _planned.GetOrAdd(grammar, static text => IrLowering.Lower(Graphs.Of(text), new IrLowering.Options(AsRecorded: true)));
 	}
 
 	/// <summary>What the generated parser kept of a refusal, set by set in its order.</summary>

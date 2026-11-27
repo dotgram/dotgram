@@ -2948,7 +2948,10 @@ sealed partial class Machine
 				machine.OpeningCount(owner, counted);
 
 			if (machine.RunTest(body) is { } test)
+			{
+				Site(counted, 0, () => new DoorSite { Begins = FirstSets.Of(body, _graph).Ranges, PastFewest = true, Scanned = true });
 				EmitRun(code, body, test, least, most, settled);
+			}
 			else
 				EmitTurns(code, body, null, least, most, inside, settled);
 		}
@@ -3605,10 +3608,13 @@ sealed partial class Machine
 
 			if (machine.Dispatchable(alternatives, least: 2) is { } groups)
 			{
-				var name = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
+				var widest = Widest(groups);
+				var name   = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
 				{
-					Items  = Said(machine.ReaderPredicted(alternatives)),
-					Begins = [.. groups.Select(static group => group.Set.Ranges)],
+					Items   = Said(machine.ReaderPredicted(alternatives)),
+					Begins  = [.. groups.Select(static group => group.Set.Ranges)],
+					Members = [.. groups.Select(group => Indexes(alternatives, group.Members))],
+					Called  = widest,
 				});
 
 				// A group that is one alternative led by a guard is named in a refusal only where
@@ -3619,7 +3625,6 @@ sealed partial class Machine
 
 				// The groups whose alternatives are all words are tried through a table of them, as
 				// they would have been tried one after another (Machine.Words).
-				var widest = Widest(groups);
 				var words  = asked is null && widest < 0 ? PlanWords(alternatives, groups, following, look) : null;
 				var chosen = words is null ? null : $"wg{_calls++}";
 
@@ -3788,8 +3793,9 @@ sealed partial class Machine
 		{
 			var name  = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
 			{
-				Items  = Said(machine.ReaderPredicted(alternatives)),
-				Begins = [.. groups.Select(static group => group.Set.Ranges)],
+				Items   = Said(machine.ReaderPredicted(alternatives)),
+				Begins  = [.. groups.Select(static group => group.Set.Ranges)],
+				Members = [.. groups.Select(group => Indexes(alternatives, group.Members))],
 			});
 			var asked = Asked(alternatives, groups);
 
@@ -3911,8 +3917,10 @@ sealed partial class Machine
 		{
 			var name  = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
 			{
-				Items  = Said(machine.ReaderPredicted(alternatives)),
-				Begins = [.. chain.Select(static one => one.Set.Ranges)],
+				Items   = Said(machine.ReaderPredicted(alternatives)),
+				Begins  = [.. chain.Select(static one => one.Set.Ranges)],
+				Members = [.. chain.Select(one => Indexes(alternatives, [one.Node]))],
+				Seam    = true,
 			});
 			var began = $"k{_ways++}";
 
@@ -3956,8 +3964,10 @@ sealed partial class Machine
 		{
 			var name = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
 			{
-				Items  = Said(machine.ReaderPredicted(alternatives)),
-				Begins = [.. chain.Select(static one => one.Set.Ranges)],
+				Items   = Said(machine.ReaderPredicted(alternatives)),
+				Begins  = [.. chain.Select(static one => one.Set.Ranges)],
+				Members = [.. chain.Select(one => Indexes(alternatives, [one.Node]))],
+				Called  = Leads(chain[^1].Node) is { } leading && machine.Decidable(leading) is { Ends: false } ? chain.Count - 1 : -1,
 			});
 
 			_character = true;
@@ -4144,7 +4154,7 @@ sealed partial class Machine
 			if (alternatives[alternatives.Count - 1] is not Node.Empty &&
 				Doorway(alternatives) is { } gate && !(loaded && Chosen(gate)))
 			{
-				var whole = Expected(alternatives[0], alternatives.Count, () => new PredictedSite { Items = Said(machine.ReaderPredicted(alternatives)) });
+				var whole = Expected(alternatives[0], alternatives.Count, () => new PredictedSite { Items = Said(machine.ReaderPredicted(alternatives)), Begins = gate.Ranges });
 
 				if (!loaded)
 				{
@@ -4200,8 +4210,9 @@ sealed partial class Machine
 				// but it is a note and not a failure: the reading goes on with nothing.
 				var wanted = Expected(alternatives[0], alternatives.Count, () => new OptionalSite
 				{
-					Items = Said(machine.ReaderPredicted(alternatives.Take(alternatives.Count - 1).ToList())),
-					Noted = true,
+					Items  = Said(machine.ReaderPredicted(alternatives.Take(alternatives.Count - 1).ToList())),
+					Noted  = true,
+					Begins = Doorway(alternatives.Take(alternatives.Count - 1))!.Ranges,
 				});
 
 				if (!loaded)
@@ -4990,7 +5001,10 @@ sealed partial class Machine
 				if (settled && delimiter is { } scanned)
 					EmitScan(code, repeat, scanned.Padding, scanned.Stop, following);
 				else if (machine.RunTest(body) is { } test)
+				{
+					Site(repeat, 0, () => new DoorSite { Begins = FirstSets.Of(body, _graph).Ranges, PastFewest = true, Scanned = true });
 					EmitRun(code, body, test, min, max, settled);
+				}
 				else
 					EmitTurns(code, repeat, inside, settled);
 
@@ -5047,7 +5061,7 @@ sealed partial class Machine
 				// allocates. This is the door the rendering beside this one has always had.
 				if (Door([body]) is { } door && TriesBehindTheDoor(body, repeat))
 				{
-					Site(repeat, 0, static () => new DoorSite { Tried = true });
+					Site(repeat, 0, () => new DoorSite { Begins = Doorway([body])!.Ranges, QuietOnly = true });
 
 					// The reading that records tries the turn anyway, as EmitTurns does and for
 					// the same reason: where the loop ends and what follows it refuses too, the
@@ -5078,7 +5092,9 @@ sealed partial class Machine
 					// (SaysBehindTheDoor) is the rule failing here: the reading that records says
 					// what the turn would have begun with, as EmitTurns says it — noted at the door.
 					var owed = min > 0 && SaysBehindTheDoor(body, repeat);
-					var shut = Site(repeat, 0, () => owed ? new DoorSite { Items = Said(machine.ReaderPredicted([body])), Noted = true } : new DoorSite());
+					var shut = Site(repeat, 0, () => owed
+						? new DoorSite { Begins = Doorway([body])!.Ranges, Items = Said(machine.ReaderPredicted([body])), Noted = true }
+						: new DoorSite { Begins = Doorway([body])!.Ranges });
 					var said = owed
 						? $"if ({turns} < {min}) " + Noted(machine.DeclareExpected(shut.Items))
 						: null;
@@ -6186,8 +6202,6 @@ sealed partial class Machine
 				// tried is a call not made.
 				if (Door([body]) is { } door)
 				{
-					Site(repeat ?? body, 0, () => new DoorSite { Tried = tries });
-
 					var open = $"o{_ways++}";
 
 					code.Line($"var {open} = {machine.RawWithin("p")};");
@@ -6208,6 +6222,14 @@ sealed partial class Machine
 					// what its string form answered from the turn (§7.5).
 					var quietly = tries && machine.Quiets;
 					var loudly  = min is not null && (tries && !machine.Quiets || silent);
+
+					Site(repeat ?? body, 0, () => new DoorSite
+					{
+						Begins     = Doorway([body])!.Ranges,
+						QuietOnly  = quietly,
+						PastFewest = loudly,
+						Items      = min is not null && !loudly ? Said(machine.ReaderDisplays(body)) : [],
+					});
 
 					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
 					// there is wiped when the furthest refusal moves on.
@@ -6657,6 +6679,25 @@ sealed partial class Machine
 		static RecordSites PlannedSites(MachinePlan plan)
 		{
 			return plan.Sites ?? throw new InvalidOperationException("A machine planned without readers prints a reader.");
+		}
+
+		/// <summary>Where each of <paramref name="members"/> stands among <paramref name="alternatives"/>, by identity.</summary>
+		static IReadOnlyList<int> Indexes(IReadOnlyList<Node> alternatives, IReadOnlyList<Node> members)
+		{
+			var indexes = new List<int>(members.Count);
+
+			foreach (var member in members)
+			{
+				var at = -1;
+
+				for (var i = 0; i < alternatives.Count && at < 0; i++)
+					if (ReferenceEquals(alternatives[i], member))
+						at = i;
+
+				indexes.Add(at);
+			}
+
+			return indexes;
 		}
 
 		/// <summary>The items of a display as a refusal says them: the same list where saying changes none of them.</summary>
@@ -7207,6 +7248,8 @@ sealed partial class Machine
 			// too, a look refused where the grammar called it is recorded as any look's.
 			if (!named && machine.SeamReached.Contains(owner))
 			{
+				Site(node, 0, static () => new SilentSite { Records = false });
+
 				using (code.Block($"if ({seen} {(positive ? "<" : ">=")} 0)"))
 				{
 					if (machine.Shared.Contains(owner))
@@ -7222,6 +7265,8 @@ sealed partial class Machine
 
 			if (!named && machine._quietLooks.Contains(node))
 			{
+				Site(node, 0, static () => new SilentSite { Records = false });
+
 				code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
 				code.Then(Fails());
 
@@ -7244,7 +7289,7 @@ sealed partial class Machine
 
 			// A negative look refused says nothing it expected either, as the engine's on the arena
 			// says nothing: what is said there is left to what else is read that far.
-			var said = named ? Expected(node, 0, () => new NamedSite { Items = [owner.Name] }) : "null";
+			var said = named ? Expected(node, 0, () => new NamedSite { Items = Said([owner.Name]) }) : "null";
 
 			if (named)
 				machine._expectedUsed.Add(said);
