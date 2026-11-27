@@ -122,7 +122,7 @@ public class RecordSiteTests
 
 		Assert.Throws<InvalidOperationException>(() => other.Record(rule, node, 0, new TerminalSite { Items = ["'y'"] }));
 		Assert.Throws<InvalidOperationException>(() => other.Record(rule, node, 0, new TerminalSite { Items = ["'x'"], Noted = true }));
-		Assert.Throws<InvalidOperationException>(() => other.Record(rule, node, 0, new DoorSite { Tried = true }));
+		Assert.Throws<InvalidOperationException>(() => other.Record(rule, node, 0, new DoorSite { QuietOnly = true }));
 		Assert.Throws<InvalidOperationException>(() => other.Of<PredictedSite>(rule, node, 0));
 		Assert.Equal(["'x'"], other.Of<TerminalSite>(rule, node, 0).Items);
 		Assert.Equal(2, other.Count);
