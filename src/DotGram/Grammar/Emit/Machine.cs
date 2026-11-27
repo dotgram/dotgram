@@ -368,6 +368,12 @@ sealed partial class Machine
 	/// </summary>
 	internal WriteDecisions Writes { get; } = new();
 
+	/// <summary>
+	/// What each place of the readers records where it refuses, as the first pass over the rules found
+	/// it; what the printing pass reads once the machine is planned (<see cref="MachinePlan.Sites"/>).
+	/// </summary>
+	internal RecordSites RefusalSites { get; } = new();
+
 	/// <summary>One call per distinct set, so the same list is not numbered twice.</summary>
 	readonly Dictionary<string,string>                     _expectedByItems = new(StringComparer.Ordinal);
 
@@ -6428,9 +6434,6 @@ sealed partial class Machine
 		{
 			var said = Predicted(alternatives);
 
-			if (DisplaysTold is { } told && _reading && !predicting && alternatives.Count > 0)
-				told(alternatives[0], ["(predicted)", .. said]);
-
 			return said;
 		}
 		finally
@@ -8902,30 +8905,13 @@ sealed partial class Machine
 	{
 		var said = Displays(node, leading: true);
 
-		if (DisplaysTold is { } told && _reading && !_predicting)
-			told(node, said);
-
 		return said;
 	}
 
-	/// <summary>
-	/// For a test that holds what a refusal can say at each place to the same grammar compiled another
-	/// way: told every node a display is asked of on this thread, and what it was said as — for a choice
-	/// said by what it predicts, its first alternative. Not a setting; null tells nothing.
-	/// </summary>
-	internal static Action<Node, IReadOnlyList<string>>? DisplaysTold
-	{
-		get { return _said; }
-		set { _said = value; }
-	}
-
-	[ThreadStatic]
-	static Action<Node, IReadOnlyList<string>>? _said;
-
-	/// <summary>Whether a choice is being said by what it predicts, whose own display is asked inside and told once.</summary>
+	/// <summary>Whether a choice is being said by what it predicts, whose own display is asked inside.</summary>
 	bool _predicting;
 
-	/// <summary>Whether a reader is asking: what <see cref="DisplaysTold"/> is told, since a reader's displays are the ones printed.</summary>
+	/// <summary>Whether a reader is asking, whose displays are the ones its places record (<see cref="RefusalSites"/>).</summary>
 	bool _reading;
 
 	/// <summary><see cref="Displays(Node)"/>, asked by a reader.</summary>

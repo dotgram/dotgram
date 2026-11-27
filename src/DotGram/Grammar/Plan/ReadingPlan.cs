@@ -92,6 +92,15 @@ sealed class MachinePlan
 
 	/// <summary>Whether each choice and repetition its readers read writes a way on the tape, and the proof where not; null where it has no readers.</summary>
 	public WriteDecisions? Writes { get; init; }
+
+	/// <summary>What each place its readers can record what was expected at records there; null where it has no readers.</summary>
+	public RecordSites? Sites { get; init; }
+
+	/// <summary>
+	/// The rules its readers read where they are called rather than as a call: what they ask of such a
+	/// call, they ask of the rule's body. Null where it has no readers.
+	/// </summary>
+	public IReadOnlyCollection<RuleSymbol>? ReadInPlace { get; init; }
 }
 
 /// <summary>How a machine's readers carry what they read.</summary>

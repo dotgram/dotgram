@@ -632,9 +632,9 @@ public sealed class SettledRunTailTests
 
 	/// <summary>
 	/// What a refusal can say at each place of a reader, held to the same grammar without copies: for
-	/// every node a display is asked of — a node of a copy taken as the node of its rule it was copied
-	/// from — the displays said there with the copies are the ones said there without. A place that
-	/// a copy reads another way, and refuses in other words, is a display the place did not have.
+	/// every place the plan says a reader records at — a node of a copy taken as the node of its rule it
+	/// was copied from — what is recorded there with the copies is what is recorded there without. A
+	/// place that a copy reads another way, and refuses in other words, is a place the rule did not have.
 	/// </summary>
 	[Fact]
 	public void Every_place_of_a_reader_says_what_it_said_without_the_copies()
@@ -688,41 +688,35 @@ public sealed class SettledRunTailTests
 
 		static (HashSet<string> Said, RecognitionGraph? Graph) Places(string text, bool settle)
 		{
-			var told = new List<(Node Node, IReadOnlyList<string> Said)>();
-
-			DotGram.Grammar.Emit.Machine.DisplaysTold = (node, said) => told.Add((node, said));
-
-			GramCompilation result;
-
-			try
+			var result = GramCompiler.Compile(text, new GramCompilerOptions
 			{
-				result = GramCompiler.Compile(text, new GramCompilerOptions
-				{
-					ClassName      = "Grammar",
-					CSharpScanner  = RoslynCSharpScanner.Instance,
-					SymbolResolver = PermissiveSymbolResolver.Instance,
-					SettleRunTails = settle,
-				});
-			}
-			finally
-			{
-				DotGram.Grammar.Emit.Machine.DisplaysTold = null;
-			}
+				ClassName      = "Grammar",
+				CSharpScanner  = RoslynCSharpScanner.Instance,
+				SymbolResolver = PermissiveSymbolResolver.Instance,
+				SettleRunTails = settle,
+			});
 
 			var graph = result.Graph;
 			var at    = graph is null ? [] : Paths(graph);
 			var said  = new HashSet<string>(StringComparer.Ordinal);
 
-			foreach (var (node, displays) in told)
-			{
-				// A node of a copy is the node of its rule it was copied from, where that rule is still read.
-				var origin = at.ContainsKey(graph!.Original(node)) ? graph.Original(node) : node;
-				var where  = at.TryGetValue(origin, out var place)
-					? $"{Qualified(graph.Counted(place.Rule))} {place.Path}"
-					: $"? {node}";
+			// The plan keys a place of a copy by the node of the rule it was copied from; where that rule
+			// is no longer read, the node is said where the copy's stands.
+			if (graph is not null)
+				foreach (var (node, place) in at.ToList())
+					at.TryAdd(graph.Original(node), place);
 
-				said.Add($"{where}: {string.Join(" | ", displays)}");
-			}
+			// What a place records, where it names anything: the displays a refusal can say there.
+			foreach (var machine in result.Plan?.Machines ?? [])
+				foreach (var (_, node, _, site) in machine.Sites?.All() ?? [])
+					if (site.Items.Count > 0)
+					{
+						var where = at.TryGetValue(node, out var place)
+							? $"{Qualified(graph!.Counted(place.Rule))} {place.Path}"
+							: $"? {node}";
+
+						said.Add($"{where}: {string.Join(" | ", site.Items)}");
+					}
 
 			return (said, graph);
 		}
