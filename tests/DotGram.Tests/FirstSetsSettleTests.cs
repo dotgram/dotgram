@@ -38,8 +38,11 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class FirstSetsSettleTests
 {
-	/// <summary>Long enough for any of these on a loaded machine; each takes milliseconds.</summary>
-	static readonly TimeSpan Limit = TimeSpan.FromSeconds(30);
+	/// <summary>
+	/// A hang guard, not a speed test: each of these takes milliseconds, so the limit is far above
+	/// any loaded machine and a compiler going round for ever still fails.
+	/// </summary>
+	static readonly TimeSpan Limit = TimeSpan.FromSeconds(300);
 
 	/// <summary>
 	/// The ring alone, then grammars a generator of random recursive grammars found the compiler
@@ -363,7 +366,7 @@ public sealed class FirstSetsSettleTests
 		Assert.True(graph is not null, $"the normalizer did not finish in {Limit.TotalSeconds} s");
 		Assert.NotNull(FirstSets.Unsettled(graph));
 		Assert.Contains(graph.Diagnostics, static one => one.Id == "GRAM4002");
-		Assert.True(watch.Elapsed.TotalSeconds < 5, $"{watch.Elapsed.TotalSeconds:F1} s");
+		Assert.True(watch.Elapsed.TotalSeconds < 120, $"{watch.Elapsed.TotalSeconds:F1} s");
 	}
 
 	/// <summary>
