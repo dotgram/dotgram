@@ -272,7 +272,8 @@ static class RulePrinter
 
 			case Wrapped wrapped:
 			{
-				var inner = Simple(wrapped.Inner) ? Write(wrapped.Inner, self, called) : "(" + Write(wrapped.Inner, self, called) + ")";
+				// A suffix cannot follow a quantifier: a quantified atom is parenthesised like any other compound.
+				var inner = Simple(wrapped.Inner) && wrapped.Inner is not Lexeme { Pattern: [.., '}' or '?' or '*' or '+'] } ? Write(wrapped.Inner, self, called) : "(" + Write(wrapped.Inner, self, called) + ")";
 
 				return wrapped.Wrap switch
 				{
