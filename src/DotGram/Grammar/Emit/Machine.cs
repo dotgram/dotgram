@@ -539,7 +539,7 @@ sealed partial class Machine
 		_expectedUsed     = _expectedSets.Used;
 		_graph            = graph;
 		_proofs           = new WriteProofs(graph);
-		_results          = results;
+		_results          = settings.BufferedBytes ? results.ForBytes() : results;
 		_rules            = settings.Only ?? graph.Rules;
 		_guardValues      = HasTypedGuards(graph);
 
@@ -550,7 +550,7 @@ sealed partial class Machine
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
 				lifted: graph.LiftedBody);
-			var factories = CSharpEmitter.FactoriesOf(graph, results, rule);
+			var factories = CSharpEmitter.FactoriesOf(graph, _results, rule);
 			if (BufferedBytes) factories = factories.Select(factory => factory with { Method = factory.BytesMethod }).ToArray();
 
 			// A rule lifted out of an element keeps its captures in the slots of the rule it was
@@ -1776,7 +1776,7 @@ sealed partial class Machine
 		foreach (var entry in _factories)
 			foreach (var one in entry.Value)
 				if (ReferenceEquals(one, factory) || one.Method == factory.Method)
-					return _graph.Types[entry.Key];
+					return _results.TypeOf(entry.Key);
 
 		throw new InvalidOperationException($"'{factory.Method}' belongs to no rule.");
 	}
@@ -4175,7 +4175,7 @@ sealed partial class Machine
 
 				if (accumulator is not null)
 				{
-					parameters.Add($"{_graph.Types[rule]} {ResultTypes.ParameterOf(accumulator)}");
+					parameters.Add($"{_results.TypeOf(rule)} {ResultTypes.ParameterOf(accumulator)}");
 					arguments.Add("guardAccumulated");
 				}
 

@@ -92,12 +92,21 @@ static partial class CSharpEmitter
 			}
 		}
 
+		// An array that would hold the bytes of one text and a string another builds.
+		if (ByteValues.Mixed(graph, rules) is var (array, bytesOf, builtBy))
+		{
+			return $"'{array.Declaration?.Name ?? array.Name}' collects the bytes '{bytesOf.Declaration?.Name ?? bytesOf.Name}' matched and the string '{builtBy.Declaration?.Name ?? builtBy.Name}' builds, and over bytes one " +
+				"array cannot hold both without decoding the bytes; build the array with '=>'";
+		}
+
 		// The same, written out: a rule declared a string whose `=>` is a raw capture or the text it
 		// matched and nothing else, `=> @(t)`, hands the span itself back as the string, and nothing
 		// decodes it (§6.3). What the C# makes of a span otherwise is the C#'s to say; this one is
 		// certain, and was CS0029 in the byte form of a grammar every other form compiles.
+		var asBytes = ByteValues.Of(graph);
+
 		foreach (var rule in rules)
-			if (graph.Types.TryGetValue(rule, out var type) && type is "string" or "System.String" or "global::System.String")
+			if (!asBytes.ContainsKey(rule) && graph.Types.TryGetValue(rule, out var type) && type is "string" or "System.String" or "global::System.String")
 				foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 					if (node is Node.Construct(var built, Construction.Expression { Text: var text }) &&
 						(text.Trim() == "parserText.ToString()" ? "parserText" : Bare(text)) is { } name &&
@@ -415,8 +424,8 @@ static partial class CSharpEmitter
 		string inputType, bool buffered, TraceTables? tracing)
 	{
 		var machine    = compiled.Machine;
-		var type       = results.QualifiedOf(publication.Rule);
 		var bytes      = machine.BufferedBytes;
+		var type       = (bytes ? results.ForBytes() : results).QualifiedOf(publication.Rule);
 		var parameters = buffered ? ", int? bufferSize = null, int? maxRetained = null" : "";
 		var construct  = buffered ? "(input, bufferSize ?? DefaultBufferSize, maxRetained ?? Limits.MaxBufferedInputLength)" : "(input)";
 		var forward    = buffered ? ", bufferSize, maxRetained" : "";
