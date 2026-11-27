@@ -59,6 +59,12 @@ sealed partial class GrammarNormalizer
 	readonly HashSet<RuleSymbol> _standing = [];
 
 	/// <summary>
+	/// The records read past a prefix that stands, folded in place (<see cref="Folded"/>): a fold the rule keeps, which no
+	/// copy of it is made for (<see cref="Settles"/>), since a copy would build a record of its own, named for the copy.
+	/// </summary>
+	readonly HashSet<RuleSymbol> _folded = [];
+
+	/// <summary>
 	/// The loop a rule made by the split reads its tails in: the one place the order of a standing cycle is chosen.
 	/// </summary>
 	/// <remarks>
@@ -631,6 +637,8 @@ sealed partial class GrammarNormalizer
 			if (record)
 			{
 				inline[set] = Folded(built, made);
+
+				_folded.Add(rule);
 
 				continue;
 			}
