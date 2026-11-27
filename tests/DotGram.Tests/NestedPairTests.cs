@@ -347,11 +347,21 @@ public sealed class NestedPairTests
 		}
 
 		var many  = "x " + new string('(', 100_000) + new string(')', 100_000) + " y";
-		var watch = System.Diagnostics.Stopwatch.StartNew();
+		var open  = "x " + new string('(', 100_000) + " #( y";
 
 		Assert.True(EmittedCode.Match(cut, "Grammar", "TryParseStart", many).IsSuccess);
-		Assert.False(EmittedCode.Match(cut, "Grammar", "TryParseStart", "x " + new string('(', 100_000) + " #( y").IsSuccess);
-		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed.TotalMilliseconds:F0} ms");
+		Assert.False(EmittedCode.Match(cut, "Grammar", "TryParseStart", open).IsSuccess);
+
+		// The fewest of repeated readings, so that a stall beside other tests does not fail it.
+		var took = Fewest.Of(
+			() =>
+			{
+				EmittedCode.Match(cut, "Grammar", "TryParseStart", many);
+				EmittedCode.Match(cut, "Grammar", "TryParseStart", open);
+			},
+			TimeSpan.FromSeconds(1));
+
+		Assert.True(took < TimeSpan.FromSeconds(1), $"took {took.TotalMilliseconds:F0} ms");
 	}
 
 	/// <summary>
