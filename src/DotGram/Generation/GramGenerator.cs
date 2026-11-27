@@ -518,7 +518,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				!method.IsStatic &&
 				method.ReturnsVoid &&
 				method.TypeParameters.Length == 0 &&
-				method.Parameters.Length == arity &&
+				(method.Parameters.Length == arity || arity == 3 && method.Parameters.Length == 2) &&
 				method.Parameters.All(static parameter => parameter.RefKind == RefKind.None && parameter.Type.SpecialType == SpecialType.System_Int32));
 
 		return declared ? null : (named, locate);
