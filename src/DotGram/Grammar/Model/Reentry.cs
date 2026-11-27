@@ -137,9 +137,12 @@ static class Reentry
 			var said = cut
 				? "An entry of it where one already stands, with nothing read after the call back, would only repeat that " +
 					"one, and fails as an alternative does instead of going round for ever."
-				: "Something is read after the call back, or what is read depends on more than the position, so nothing " +
-					"checks the entry: the rule is read as it is written, and where the recognizer does not move, a parse " +
-					"that has to give up on that alternative goes round until the stack or memory runs out.";
+				: "Something is read after the call back, so no check of the entry tells one that is needed from one that only " +
+					"goes round, and the rule is not read as its left recursion without the recognizer either: that needs " +
+					"the rule without it to be one §4.3 folds, with a value as §4.3 gives one, and nothing on the way to read " +
+					"more than the text and the position, which a 'when' or 'switch' reading a value the cycle builds, or a " +
+					"hook that names 'context', does. The rule is read as it is written, and where the recognizer does not " +
+					"move, a parse that has to give up on that alternative goes round until the stack or memory runs out.";
 
 			told.Add(new GramDiagnostic(
 				Reenters,

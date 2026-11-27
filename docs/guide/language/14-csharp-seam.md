@@ -226,9 +226,11 @@ Notes:
   past its fewest turns, a turn that does not move ends the repetition. A rule that comes back to itself
   through such a recognizer, `Frames = @ReadFrame & Frames | eof`, compiles (`GRAM5021` says so), and an entry
   of it where it already stands is cut as an alternative that did not match. Where something is read after
-  the call back, as in `Sum = Num | @Ws & Sum & '+' & Num`, nothing is checked: the rule is read as written,
-  and where `@Ws` does not move, input the parse has to refuse through that alternative goes round until the
-  stack or the memory runs out. The repetition, `Frames = @ReadFrame* & eof`, needs no such check.
+  the call back, as in `Sum = Num | @Ws & Sum & '+' & Num`, the rule is read, where `@Ws` does not move at its
+  entry, as the left recursion it is without it, `Sum = Num | Sum & '+' & Num`: as many steps as what follows
+  accepts, given back one at a time from the end (`GRAM5021` says so; `GRAM4066` says why where the rule
+  without `@Ws` is no left recursion the language folds). The repetition, `Frames = @ReadFrame* & eof`, needs
+  no check at all.
 - **Nothing is caught.** An exception from the C# leaves the parse, from `TryParse…` too.
 
 ## Names the generated code keeps

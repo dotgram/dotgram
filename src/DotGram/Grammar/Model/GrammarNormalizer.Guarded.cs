@@ -237,10 +237,10 @@ sealed partial class GrammarNormalizer
 		{
 			Told(new GramDiagnostic(
 				StandingRefused,
-				$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2); " +
-				$"where it does not move, this is left recursion the rewrite cannot take: {refusal} (§4.3). It is read as " +
-				"written there, and a parse that has to give up on that alternative goes round until the stack or memory " +
-				$"runs out. Make the rule without {shown} one §4.3 accepts, or let {shown} always move.",
+				$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2). " +
+				$"Where it does not move, this is left recursion the rewrite cannot take: {refusal} (§4.3). The rule is " +
+				"read as it is written there, and a parse that has to give up on that alternative goes round until the " +
+				$"stack or memory runs out. Make the rule without {shown} one §4.3 accepts, or let {shown} always move.",
 				declaration.At.Position,
 				declaration.At.Length,
 				GramSeverity.Warning));
@@ -467,11 +467,13 @@ sealed partial class GrammarNormalizer
 					if (!ReferenceEquals(source, rule))
 						bases.Add(new Node.Sequence([new Node.Call(source, []), .. one.Operands.Skip(one.Head + 1)]));
 
-		if (bases.Count == 0)
-			return "it has no alternative to start from";
-
+		// The way back first: where the call back goes through a rule that does more than forward it, that rule is what
+		// a reader can change, and "no alternative to start from" is only what is left of this one without it.
 		if (recursive.FirstOrDefault(static one => one.Through is not null && !one.Forwards) is { Through: { } indirect })
 			return $"the call back goes through '{indirect.Name}', which does more than forward what it calls";
+
+		if (bases.Count == 0)
+			return "it has no alternative to start from";
 
 		if (alternatives.Any(one => BoundOn(one) is not null))
 			return "it states strengths ('<<', '>>', §4.3.1), and a rule past a prefix is not climbed";
