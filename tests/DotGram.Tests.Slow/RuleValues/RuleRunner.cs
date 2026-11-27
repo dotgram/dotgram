@@ -133,6 +133,9 @@ static class RuleRunner
 	/// <summary>Diagnostics that could not be given to a job (no location in a job's tree).</summary>
 	public static int Unattributed;
 
+	/// <summary>The message of the first warning of each id that a shape drew, by shape and id.</summary>
+	public static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> WarningMessages = new();
+
 	/// <summary>Told the class of each job before its parser runs.</summary>
 	public static Action<string>? Trace;
 
@@ -237,6 +240,9 @@ static class RuleRunner
 			else if (diagnostic.Severity == DiagnosticSeverity.Warning)
 			{
 				warnings[job].Add(diagnostic.Id);
+
+				if (diagnostic.Id.StartsWith("GRAM", StringComparison.Ordinal))
+					WarningMessages.TryAdd(job.Shape.Id + "\t" + diagnostic.Id, OneLine(diagnostic.GetMessage(CultureInfo.InvariantCulture)));
 			}
 
 			return true;
@@ -380,13 +386,13 @@ static class RuleRunner
 			return "<null>";
 
 		if (value is string text)
-			return "\"" + text + "\"";
+			return "\"" + Escape(text) + "\"";
 
 		if (value is char c)
-			return "'" + c + "'";
+			return "'" + Escape(c.ToString()) + "'";
 
 		if (value is byte[] bytes)
-			return "bytes\"" + Encoding.UTF8.GetString(bytes) + "\"";
+			return "bytes\"" + Escape(Encoding.UTF8.GetString(bytes)) + "\"";
 
 		if (value is IEnumerable sequence)
 			return "[" + string.Join(",", sequence.Cast<object?>().Select(Show)) + "]";
@@ -410,6 +416,12 @@ static class RuleRunner
 				.Select(p => p.Name + "=" + Show(p.GetValue(value))));
 
 		return type.Name + "{" + string.Join(",", members) + "}";
+	}
+
+	/// <summary>A backslash and a line break as two characters each, so that a value stays on one line and a slice is told from a character.</summary>
+	public static string Escape(string text)
+	{
+		return text.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\n", "\\n", StringComparison.Ordinal);
 	}
 
 	static string OneLine(string text)

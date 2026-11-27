@@ -343,5 +343,6 @@ public sealed class RuleValueGateTests
 		}
 
 		File.WriteAllText(Path.Combine(output, "summary.txt"), summary.ToString());
+		File.WriteAllLines(Path.Combine(output, "warnings.txt"), RuleRunner.WarningMessages.OrderBy(static p => p.Key, StringComparer.Ordinal).Select(static p => p.Key + "\t" + p.Value));
 	}
 }
