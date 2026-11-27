@@ -422,6 +422,18 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>
+	/// The rules the readers of these publications read where they are called (<see cref="MachinePlan.ReadInPlace"/>):
+	/// a call of one is read by what its body is — one character of a run, a test of it — as the
+	/// analyses of the machine read it (<see cref="MeantInPlace"/>).
+	/// </summary>
+	internal IReadOnlyCollection<RuleSymbol> ReadInPlace(IReadOnlyList<Publication> publications)
+	{
+		var rules = _directRules ?? DirectRules(publications);
+
+		return new HashSet<RuleSymbol>(rules.Where(MeantInPlace));
+	}
+
 	/// <summary>The sets the pass over the rules asked for ahead of printing, in the order it asked; null where nothing is held.</summary>
 	List<(IReadOnlyList<string> Display, string Pending)>? _pendingSets;
 
@@ -2295,7 +2307,10 @@ sealed partial class Machine
 			{
 				using (code.Block($"if ({machine.NotAtEnd("p")})"))
 				{
-					code.Line(Refusal(machine.EndOfInputExpected()));
+					var end = Expected(body, 0, () => new EndSite { Items = [EndOfInputSaid] });
+
+					machine._expectedUsed.Add(end);
+					code.Line(Refusal(end));
 					code.Line(Fails());
 				}
 			}
@@ -2642,7 +2657,7 @@ sealed partial class Machine
 							"if (p > 0 && p < text.Length && " +
 							"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])"))
 						{
-							Refused(code, machine.DeclareExpected(machine.ReaderDisplays(node)));
+							Refused(code, Expected(node, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(node)) }));
 						}
 					}
 
@@ -2763,7 +2778,7 @@ sealed partial class Machine
 				// hand was in `c`, it is put back after.
 				case Node.Behind(var boundary):
 				{
-					var name = machine.DeclareExpected(machine.ReaderDisplays(node));
+					var name = Expected(node, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(node)) });
 
 					_character = true;
 
@@ -2895,7 +2910,7 @@ sealed partial class Machine
 		void EmitSame(Writer code, Node node, TextBinding binding)
 		{
 			var slot = machine.BindingSlot(owner, binding);
-			var name = machine.DeclareExpected(machine.ReaderDisplays(node));
+			var name = Expected(node, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(node)) });
 
 			using (code.Block($"if (!{machine.SameText()}(text, p, a{slot}, b{slot}))"))
 				Refused(code, name);
@@ -3204,7 +3219,9 @@ sealed partial class Machine
 			if (text.Length == 0)
 				return;
 
-			var name    = machine.DeclareExpected(machine.ReaderDisplays(node));
+			// One of a run, or the last of it, which refuses for the run: named, and recorded by none of them.
+			var quiet   = _closing is not null || ReferenceEquals(node, _quiet);
+			var name    = Expected(node, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(node)), Records = !quiet });
 			var closing = _closing;
 
 			_closing = null;
@@ -3222,7 +3239,7 @@ sealed partial class Machine
 				using (code.Block($"if ({machine.LacksRoom(text.Length, text, folded)} || {mismatch})"))
 				{
 					if (closing is not null)
-						RefusedRun(code, closing);
+						RefusedRun(code, node, closing);
 					else
 						code.Line(Fails());
 				}
@@ -3332,10 +3349,10 @@ sealed partial class Machine
 		/// as the engine places it. The literals themselves record nothing (<see cref="_quiet"/>),
 		/// so what the message says, and in what order, is what the engine's does.
 		/// </summary>
-		void RefusedRun(Writer code, List<string> texts)
+		void RefusedRun(Writer code, Node last, List<string> texts)
 		{
 			var displays = texts.Select(text => machine.Display(new Node.Literal(text))).ToList();
-			var all      = machine.DeclareExpected(displays);
+			var all      = Expected(last, 0, () => new RunSite { Items = Said(displays) });
 			var shared   = texts[0];
 
 			foreach (var text in texts)
@@ -3414,7 +3431,7 @@ sealed partial class Machine
 
 		void EmitElement(Writer code, Node.Element element, bool loaded = false)
 		{
-			var name  = machine.DeclareExpected(machine.ReaderDisplays(element));
+			var name  = Expected(element, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(element)) });
 			var first = FirstSets.Of(element, _graph);
 
 			_character = true;
@@ -3481,7 +3498,7 @@ sealed partial class Machine
 			// something it wanted, and what it wanted there is the better answer.
 			if (machine.SaysOf(called) is { } spoken)
 			{
-				var said = machine.DeclareExpected([Spoken(spoken)]);
+				var said = Expected(call, 0, () => new MessageSite { Items = Said([Spoken(spoken)]) });
 
 				machine._expectedUsed.Add(said);
 
@@ -3588,7 +3605,11 @@ sealed partial class Machine
 
 			if (machine.Dispatchable(alternatives, least: 2) is { } groups)
 			{
-				var name = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
+				var name = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
+				{
+					Items  = Said(machine.ReaderPredicted(alternatives)),
+					Begins = [.. groups.Select(static group => group.Set.Ranges)],
+				});
 
 				// A group that is one alternative led by a guard is named in a refusal only where
 				// its guard would let it read: tried in order, that alternative would have asked
@@ -3707,8 +3728,10 @@ sealed partial class Machine
 							// group's own first set, which the choice's set holds: said once, in
 							// the choice's words, as the engine says it.
 							_refuseWith = name;
-							_refuseOver = machine.DeclareExpected(machine.ReaderDisplays(
-								new Node.Element(false, [.. groups[widest].Set.Ranges], [], [])));
+							_refuseOver = Expected(alternatives[0], alternatives.Count, () => new OverSite
+							{
+								Items = Said(machine.ReaderDisplays(new Node.Element(false, [.. groups[widest].Set.Ranges], [], []))),
+							});
 							_refuseUnless = asked;
 							apart.Next();
 							Emit(code, groups[widest].Members[0], following);
@@ -3763,7 +3786,11 @@ sealed partial class Machine
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, List<Node> Members)> groups,
 			(string Name, int From) table, FollowSets.Continuation following)
 		{
-			var name  = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
+			var name  = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
+			{
+				Items  = Said(machine.ReaderPredicted(alternatives)),
+				Begins = [.. groups.Select(static group => group.Set.Ranges)],
+			});
 			var asked = Asked(alternatives, groups);
 
 			_character = true;
@@ -3818,8 +3845,10 @@ sealed partial class Machine
 			var guarded = groups.Where(one => one.Members.Count == 1 && LeadingGuard(one.Members[0]) is not null).ToList();
 
 			return guarded.Count == 1
-				? (LeadingGuard(guarded[0].Members[0])!, machine.DeclareExpected(machine.ReaderPredicted(
-					alternatives.Where(one => !ReferenceEquals(one, guarded[0].Members[0])).ToList())))
+				? (LeadingGuard(guarded[0].Members[0])!, Expected(guarded[0].Members[0], 0, () => new UnguardedSite
+				{
+					Items = Said(machine.ReaderPredicted(alternatives.Where(one => !ReferenceEquals(one, guarded[0].Members[0])).ToList())),
+				}))
 				: null;
 		}
 
@@ -3840,8 +3869,10 @@ sealed partial class Machine
 		string? GuardRefuses(IReadOnlyList<Node> alternatives, List<Node> members)
 		{
 			return members.Any(LeadsWithGuard)
-				? machine.DeclareExpected(machine.ReaderPredicted(
-					alternatives.Where(one => !members.Contains(one)).ToList()))
+				? Expected(members[0], members.Count, () => new GuardedGroupSite
+				{
+					Items = Said(machine.ReaderPredicted(alternatives.Where(one => !members.Contains(one)).ToList())),
+				})
 				: null;
 		}
 
@@ -3878,7 +3909,11 @@ sealed partial class Machine
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
 			FollowSets.Continuation following)
 		{
-			var name  = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
+			var name  = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
+			{
+				Items  = Said(machine.ReaderPredicted(alternatives)),
+				Begins = [.. chain.Select(static one => one.Set.Ranges)],
+			});
 			var began = $"k{_ways++}";
 
 			code.Line($"var {began} = p;");
@@ -3919,7 +3954,11 @@ sealed partial class Machine
 			Writer code, IReadOnlyList<Node> alternatives, List<(FirstSets.First Set, Node Node)> chain,
 			FollowSets.Continuation following)
 		{
-			var name = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
+			var name = Expected(alternatives[0], alternatives.Count, () => new DispatchSite
+			{
+				Items  = Said(machine.ReaderPredicted(alternatives)),
+				Begins = [.. chain.Select(static one => one.Set.Ranges)],
+			});
 
 			_character = true;
 
@@ -4105,7 +4144,7 @@ sealed partial class Machine
 			if (alternatives[alternatives.Count - 1] is not Node.Empty &&
 				Doorway(alternatives) is { } gate && !(loaded && Chosen(gate)))
 			{
-				var whole = machine.DeclareExpected(machine.ReaderPredicted(alternatives));
+				var whole = Expected(alternatives[0], alternatives.Count, () => new PredictedSite { Items = Said(machine.ReaderPredicted(alternatives)) });
 
 				if (!loaded)
 				{
@@ -4159,8 +4198,11 @@ sealed partial class Machine
 				// — the rendering beside this one records the first test of the alternative
 				// it did not take, and a message that leaves it out is a worse message —
 				// but it is a note and not a failure: the reading goes on with nothing.
-				var wanted = machine.DeclareExpected(
-					machine.ReaderPredicted(alternatives.Take(alternatives.Count - 1).ToList()));
+				var wanted = Expected(alternatives[0], alternatives.Count, () => new OptionalSite
+				{
+					Items = Said(machine.ReaderPredicted(alternatives.Take(alternatives.Count - 1).ToList())),
+					Noted = true,
+				});
 
 				if (!loaded)
 				{
@@ -4486,7 +4528,7 @@ sealed partial class Machine
 					code.Line($"if ({took} > {alternatives.Count - closing.Count})");
 					code.Then(Fails());
 					code.Line();
-					RefusedRun(code, closing);
+					RefusedRun(code, alternatives[^1], closing);
 				}
 			else
 			{
@@ -5005,6 +5047,8 @@ sealed partial class Machine
 				// allocates. This is the door the rendering beside this one has always had.
 				if (Door([body]) is { } door && TriesBehindTheDoor(body, repeat))
 				{
+					Site(repeat, 0, static () => new DoorSite { Tried = true });
+
 					// The reading that records tries the turn anyway, as EmitTurns does and for
 					// the same reason: where the loop ends and what follows it refuses too, the
 					// turn's refusal is half of the message.
@@ -5032,9 +5076,11 @@ sealed partial class Machine
 				{
 					// A turn owed below the minimum and not tried for the code it would run
 					// (SaysBehindTheDoor) is the rule failing here: the reading that records says
-					// what the turn would have begun with, as EmitTurns says it.
-					var said = min > 0 && SaysBehindTheDoor(body, repeat)
-						? $"if ({turns} < {min}) " + Noted(machine.DeclareExpected(machine.ReaderPredicted([body])))
+					// what the turn would have begun with, as EmitTurns says it — noted at the door.
+					var owed = min > 0 && SaysBehindTheDoor(body, repeat);
+					var shut = Site(repeat, 0, () => owed ? new DoorSite { Items = Said(machine.ReaderPredicted([body])), Noted = true } : new DoorSite());
+					var said = owed
+						? $"if ({turns} < {min}) " + Noted(machine.DeclareExpected(shut.Items))
 						: null;
 
 					if (said is null)
@@ -5144,7 +5190,7 @@ sealed partial class Machine
 				if (machine.OverKinds)
 				{
 					using (code.Block($"if ({turns} < {min})"))
-						Refused(code, machine.DeclareExpected(machine.ReaderPredicted([body])));
+						Refused(code, Expected(repeat, 0, () => new ShortSite { Items = Said(machine.ReaderPredicted([body])) }));
 				}
 				else
 				{
@@ -5384,7 +5430,7 @@ sealed partial class Machine
 		/// <param name="max">The most characters, or null where there is no most.</param>
 		void EmitRun(Writer code, Node body, string test, string? min, string? max, bool settled)
 		{
-			var name = machine.DeclareExpected(machine.ReaderDisplays(body));
+			var name = Expected(body, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(body)) });
 			var mark = $"m{_marks++}";
 
 			// Where the run has no ceiling, no floor and nothing to give back, nobody ever
@@ -6140,6 +6186,8 @@ sealed partial class Machine
 				// tried is a call not made.
 				if (Door([body]) is { } door)
 				{
+					Site(repeat ?? body, 0, () => new DoorSite { Tried = tries });
+
 					var open = $"o{_ways++}";
 
 					code.Line($"var {open} = {machine.RawWithin("p")};");
@@ -6181,7 +6229,7 @@ sealed partial class Machine
 						if (min is not null && !loudly)
 						{
 							using (code.Block($"if ({turn} < {min})"))
-								Refused(code, machine.DeclareExpected(machine.ReaderDisplays(body)), furthest: !quietly);
+								Refused(code, Expected(repeat ?? body, 0, () => new ShortSite { Items = Said(machine.ReaderDisplays(body)), Furthest = !quietly }), furthest: !quietly);
 
 							code.Line();
 						}
@@ -6434,7 +6482,7 @@ sealed partial class Machine
 				code.Line();
 
 				using (code.Block($"if ({turn} < {min})"))
-					Refused(code, machine.DeclareExpected(machine.ReaderDisplays(body)));
+					Refused(code, Expected(repeat ?? body, 0, () => new ShortSite { Items = Said(machine.ReaderDisplays(body)) }));
 			}
 		}
 
@@ -6572,6 +6620,53 @@ sealed partial class Machine
 		static WriteDecisions Planned(MachinePlan plan)
 		{
 			return plan.Writes ?? throw new InvalidOperationException("A machine planned without readers prints a reader.");
+		}
+
+		/// <summary>
+		/// The set a place of this reader names where it refuses (<see cref="Site"/>), declared.
+		/// </summary>
+		string Expected<T>(Node at, int count, Func<T> site)
+			where T : RecordSite
+		{
+			return machine.DeclareExpected(Site(at, count, site).Items);
+		}
+
+		/// <summary>
+		/// What a place of this reader records where it refuses: said by the first pass over the rules,
+		/// which notes it for the plan, and read from the plan by every pass once the machine is planned
+		/// — but an entry's, which is printed only (<see cref="RecordSites"/>).
+		/// </summary>
+		/// <param name="at">The node the place stands at: a node of a settled copy is the node it was copied from.</param>
+		/// <param name="count">How many alternatives a choice is read among from <paramref name="at"/>; 0 for any other place.</param>
+		/// <param name="site">What the place records, said where nothing has said it yet.</param>
+		T Site<T>(Node at, int count, Func<T> site)
+			where T : RecordSite
+		{
+			var graph = machine._graph;
+			var rule  = graph.Counted(owner);
+			var node  = graph.Original(at);
+
+			if (machine.Plan is { } plan && !_entry)
+				return PlannedSites(plan).Of<T>(rule, node, count);
+
+			var sites = machine.Plan is { } printed ? PlannedSites(printed) : machine.RefusalSites;
+
+			return sites.Record(rule, node, count, site());
+		}
+
+		static RecordSites PlannedSites(MachinePlan plan)
+		{
+			return plan.Sites ?? throw new InvalidOperationException("A machine planned without readers prints a reader.");
+		}
+
+		/// <summary>The items of a display as a refusal says them: the same list where saying changes none of them.</summary>
+		static IReadOnlyList<string> Said(IReadOnlyList<string> display)
+		{
+			for (var i = 0; i < display.Count; i++)
+				if (!ReferenceEquals(Machine.Said(display[i]), display[i]))
+					return [.. display.Select(Machine.Said)];
+
+			return display;
 		}
 
 		/// <summary>
@@ -7095,7 +7190,7 @@ sealed partial class Machine
 			if (ends)
 			{
 				using (code.Block($"if ({seen} >= 0)"))
-					Refused(code, input ? machine.EndOfInputExpected() : machine.EndOfSegmentExpected());
+					Refused(code, Expected(node, 0, () => new EndSite { Items = [input ? EndOfInputSaid : EndOfSegmentSaid] }));
 
 				return;
 			}
@@ -7133,6 +7228,9 @@ sealed partial class Machine
 				return;
 			}
 
+			if (!named)
+				Site(node, 0, static () => new SilentSite());
+
 			if (!named && positive)
 			{
 				using (code.Block($"if ({seen} < 0)"))
@@ -7146,7 +7244,7 @@ sealed partial class Machine
 
 			// A negative look refused says nothing it expected either, as the engine's on the arena
 			// says nothing: what is said there is left to what else is read that far.
-			var said = named ? machine.DeclareExpected([owner.Name]) : "null";
+			var said = named ? Expected(node, 0, () => new NamedSite { Items = [owner.Name] }) : "null";
 
 			if (named)
 				machine._expectedUsed.Add(said);
@@ -7192,8 +7290,12 @@ sealed partial class Machine
 			if (!machine.IsFoldLoop(repeat) || Doorway([body]) is not { } tails)
 				return;
 
-			code.Line(Noted(machine.DeclareExpected(
-				machine.ReaderDisplays(new Node.Element(false, [.. tails.Ranges], [], []))), furthest));
+			code.Line(Noted(Expected(repeat, 0, () => new TailsSite
+			{
+				Items    = Said(machine.ReaderDisplays(new Node.Element(false, [.. tails.Ranges], [], []))),
+				Noted    = true,
+				Furthest = furthest,
+			}), furthest));
 		}
 
 		/// <summary>A refusal recorded and not acted on: what was wanted here, for the message.</summary>
