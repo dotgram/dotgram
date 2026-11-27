@@ -197,6 +197,10 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	bool Spaceable(RuleSymbol called)
 	{
+		// A rule made for a turn of a joined string is that turn, which carries its seam already.
+		if (InnerTriviaJoins && _joinParts.Contains(called))
+			return false;
+
 		return _types.ContainsKey(called) ||
 		_trivia.TryGetValue(called, out var inner) &&
 		_bodies.TryGetValue(called, out var body) &&

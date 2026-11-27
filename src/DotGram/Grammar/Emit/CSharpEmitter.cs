@@ -5039,7 +5039,7 @@ file.Line("return spare;");
 						file.Line($"return {built}.ToString();");
 						file.Line();
 
-						using (file.Block($"void {piece}(string {one})"))
+						using (file.Block($"void {piece}(string? {one})"))
 						{
 							file.Line($"if (string.IsNullOrEmpty({one}))");
 							file.Then("return;");
@@ -5054,7 +5054,7 @@ file.Line("return spare;");
 
 						file.Line();
 
-						using (file.Block($"void {between}(string {one})"))
+						using (file.Block($"void {between}(string? {one})"))
 						{
 							file.Line($"if ({any})");
 							file.Then($"{gap}.Append({one});");
