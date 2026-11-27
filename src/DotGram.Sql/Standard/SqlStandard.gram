@@ -965,8 +965,8 @@ WindowedFunction : @Expression
 	| w: "ROW_NUMBER"i & '(' & m: RowMarker & ')' => @(Nodes.Call(w, Nodes.Marked(m, null, null)))
 	| "VALUE_OF"i & '(' & v: ValueNode & "AT"i & m: RowMarker & (d: ['+' | '-'] & delta: SimpleOrDynamicValue)? & (',' & otherwise: ValueNode)? & ')' => @(new Expression.ValueOf(v, Nodes.Marked(m, d, delta), otherwise))
 
-// <window name or specification>, after `OVER`.
-WindowOver                : @WindowReference = "OVER"i & r: WindowNameOrSpecification => @(r)
+// <window name or specification>, after `OVER`, spanned with the key word: copied here, where it is read.
+WindowOver                : @WindowReference = "OVER"i & r: WindowNameOrSpecification => @(r with { })
 WindowNameOrSpecification : @WindowReference = n: WindowName => @(new WindowReference.NameRef(n))
                                              | s: WindowSpecification => @(new WindowReference.Specification(s))
 NullTreatment = ("RESPECT"i | "IGNORE"i) & "NULLS"i

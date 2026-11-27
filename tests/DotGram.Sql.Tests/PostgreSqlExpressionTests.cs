@@ -1209,6 +1209,38 @@ public sealed class PostgreSqlExpressionTests
 		Assert.Equal(expected, text.Substring(source.Query.Span.At, source.Query.Span.Length));
 	}
 
+	/// <summary>
+	/// A node that is its brackets or its key word spans them, made where they are read; a query a construct's own
+	/// brackets hold spans the query inside them, as a value handed back keeps the range of the rule that made it.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT (a + b) FROM t",                       typeof(Expression.Parenthesized),   0, "(a + b)")]
+	[InlineData("SELECT ((SELECT 1)) FROM t",                  typeof(Expression.Subquery),        0, "((SELECT 1))")]
+	[InlineData("SELECT (1, 2) FROM t",                        typeof(Expression.Row),             0, "(1, 2)")]
+	[InlineData("SELECT ARRAY[[1], [2]] FROM t",               typeof(Expression.Array),           0, "ARRAY[[1], [2]]")]
+	[InlineData("SELECT ARRAY[[1], [2]] FROM t",               typeof(Expression.Array),           1, "[1]")]
+	[InlineData("COMMENT ON OPERATOR ### (int, int) IS 'x'",   typeof(ObjectReference.Operator),   0, "OPERATOR ### (int, int)")]
+	[InlineData("SELECT EXISTS (SELECT 1) FROM t",             typeof(Expression.Exists),          0, "EXISTS (SELECT 1)")]
+	[InlineData("SELECT EXISTS (SELECT 1) FROM t",             typeof(Query.Select),               1, "SELECT 1")]
+	public void A_located_node_spans_what_made_it(string text, Type type, int nth, string expected)
+	{
+		var located = PostgreSqlParser.Located.ParseStatement(text);
+		var found   = 0;
+		ISqlSpan? node = null;
+
+		SqlWalker.Walk(located, one =>
+		{
+			if (node is null && type.IsInstanceOfType(one) && found++ == nth)
+				node = one;
+
+			return true;
+		});
+
+		Assert.NotNull(node);
+		Assert.True(node.Span.Known, $"{text}: {node}");
+		Assert.Equal(expected, text.Substring(node.Span.At, node.Span.Length));
+	}
+
 	[Theory]
 	[InlineData("SELECT a + b FROM t WHERE c")]
 	[InlineData("SELECT f(x) FILTER (WHERE y) FROM t")]
