@@ -941,6 +941,13 @@ sealed class RecognitionGraph(
 	public IReadOnlyDictionary<RuleSymbol, RuleSymbol> Settled { get; init; } = new Dictionary<RuleSymbol, RuleSymbol>();
 
 	/// <summary>
+	/// The rules a settled copy was made for whose own tail ends in a run with no upper bound that gave
+	/// characters back, in the order of the rules: where the copies are not kept, a refusal inside a
+	/// long run of one of them takes time quadratic in its length. Empty where none was made.
+	/// </summary>
+	public IReadOnlyList<RuleSymbol> SettledRuns { get; init; } = [];
+
+	/// <summary>
 	/// Each node of a settled copy, with the node it was copied or rebuilt from: followed to its end, the
 	/// node of the rule's own body that stands where the copy's does. Empty where no copy was made.
 	/// </summary>
