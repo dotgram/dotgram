@@ -877,7 +877,8 @@ sealed partial class GrammarNormalizer
 		{
 			switch (node)
 			{
-				case Node.Sequence or Node.Capture or Node.Marked:
+				// A group is gone into: what it holds is joined in place, and a brace keeps its commit around the captures.
+				case Node.Sequence or Node.Capture or Node.Marked or Node.Atomic:
 					return null;
 
 				// A binding is a call like any other, and the back-reference a piece that matches text: it gives its text.

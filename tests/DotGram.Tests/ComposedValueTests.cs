@@ -104,6 +104,8 @@ public sealed class ComposedValueTests
 	[InlineData("Start : @string = $q: Word & ',' & $q", "ab,ab", "W:ab,ab")]
 	[InlineData("Start : @string = '\"' & (Esc | Bare)* & '\"'", "\"a\\nb\"", "\"a\nb\"")]
 	[InlineData("Start : @string = '-'? & Bare", "-ab", "-ab")]
+	[InlineData("Start : @string = { '<' & Word & '>' }", "<ab>", "<W:ab>")]
+	[InlineData("Start : @string = { '<' & Word & '>' | Bare }", "cd", "cd")]
 	[InlineData("trivia = [' ']*\nStart : @string = Bare & '.' & Bare", "a . b", "a.b")]
 	public void A_string_is_its_pieces_joined(string grammar, string input, string expected)
 	{
