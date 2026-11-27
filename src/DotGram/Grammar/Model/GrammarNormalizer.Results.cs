@@ -834,9 +834,11 @@ sealed partial class GrammarNormalizer
 							if (Spreads(call.Rule, value.Type))
 								spreads++;
 
-							return new WalkStep(new Node.Capture(name, Fits(call, element) || Spreads(call.Rule, value.Type)
-								? call
-								: new Node.Call(ItemsRule(call.Rule, value.Type), call.Arguments)), false);
+							return new WalkStep(new Node.Capture(name,
+								Spreads(call.Rule, value.Type) ? call
+								: !Fits(call, element) ? new Node.Call(ItemsRule(call.Rule, value.Type), call.Arguments)
+								: _extents.ContainsKey(call.Rule) ? new Node.Call(TextRule(call.Rule), call.Arguments)
+								: call), false);
 						}
 
 						// A repetition that collects through more than one capture: each collects an array of its own, and
@@ -885,6 +887,24 @@ sealed partial class GrammarNormalizer
 	/// text of the whole run (<see cref="HoistTextCaptures"/>).
 	/// </summary>
 	readonly HashSet<(RuleSymbol Rule, string Name)> _listed = [];
+
+	/// <summary>
+	/// The rule that hands on the text a string matched as a value, for an array that collects it: a capture of text in a
+	/// repetition is the text of the run, and an element is the text of one turn.
+	/// </summary>
+	RuleSymbol TextRule(RuleSymbol text)
+	{
+		if (!_textValues.TryGetValue(text, out var made))
+			_textValues[text] = made = Synthetic(
+				text, text.Name + "_Value",
+				new Node.Construct(new Node.Call(text, []), new Construction.Expression("parserText.ToString()")),
+				_language.Spelling(KnownType.Text), ValueSource.Explicit);
+
+		return made;
+	}
+
+	/// <summary>The rules made by <see cref="TextRule"/>, by the string they hand on.</summary>
+	readonly Dictionary<RuleSymbol, RuleSymbol> _textValues = [];
 
 	/// <summary>The array rules made to read through an untyped rule, by the rule they read and the array's type.</summary>
 	readonly Dictionary<(RuleSymbol, string), RuleSymbol> _itemsThrough = [];

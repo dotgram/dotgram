@@ -346,9 +346,11 @@ static class Retention
 	/// </remarks>
 	static bool Yields(Node part, RuleSymbol? seam)
 	{
+		// What never runs is no repetition to hand elements over from, and a built-in, `any{2}`, is no rule with a value of
+		// its own.
 		if (part is
-			Node.Repeat(Node.Capture(_, Node.Call), _, _) or
-			Node.Repeat(Node.Call, _, _))
+			Node.Repeat(Node.Capture(_, Node.Call), _, not 0) or
+			Node.Repeat(Node.Call { Rule.IsBuiltIn: false }, _, not 0))
 			return true;
 
 		return seam is not null &&
@@ -730,6 +732,13 @@ static class Retention
 			graph.Types.TryGetValue(call.Rule, out var held) && graph.Types.TryGetValue(rule, out var own) && held == own) is { } spread)
 			return $"'{rule.Name}' calls '{spread.Rule.Name}', whose value is of its own type and gives its elements in place, " +
 				"and a streamed parse hands over the value of each call it reads as one element. Read it over a string.";
+
+		// An array hands over what it collects, and a name it writes beside them is no element (§4.1): the driver would hand
+		// it over as one.
+		if (graph.Bodies[rule] is Node.Construct(_, Construction.Sequence { Taken: { } taken }) &&
+			parts.SelectMany(static part => NodeWalk.Descendants(part)).OfType<Node.Capture>().FirstOrDefault(capture => !taken.Contains(capture.Name)) is { } named)
+			return $"'{rule.Name}' names '{named.Name}' beside what it collects, and a streamed parse hands over the value of " +
+				"each call it reads as one element. Read it over a string.";
 
 		// The driver steps over a bad element of the repetition it hands back, and of no other:
 		// one marked inside a part it reads whole would recover there against the end of the

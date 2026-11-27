@@ -155,15 +155,13 @@ sealed partial class GrammarNormalizer
 				return (alternatives.Count == 0 ? 0 : least, most);
 			}
 
+			// What never runs is written all the same: it is counted as if it ran once, so that a name in it fills a
+			// construction as it is written.
 			case Node.Repeat(var body, _, 0) when written:
-				Walk(body, visit, out _, written);
-
-				return (0, 0);
+				return Walk(body, visit, out _, written);
 
 			case Node.Counted(var body, _, CountBound.Items(0)) when written:
-				Walk(body, visit, out _, written);
-
-				return (0, 0);
+				return Walk(body, visit, out _, written);
 
 			case Node.Repeat(_, _, 0):
 			case Node.Counted(_, _, CountBound.Items(0)):
@@ -430,9 +428,15 @@ sealed partial class GrammarNormalizer
 				}
 
 		foreach (var rule in strings)
-			_ruleValues[rule] = NonText(rule, joined, []) is { } piece
-				? new RuleValue(ValueSource.Refused, _types[rule], NonTextMessage(rule, piece))
-				: new RuleValue(joined.Contains(rule) ? ValueSource.Joined : ValueSource.Extent, _types[rule]);
+			_ruleValues[rule] =
+
+				// A rule that takes the type of a rule with no type and no names is a string as that rule is, which is the
+				// text it matched where such a rule is not joined.
+				!PublishedPlumbingJoins && _produces.TryGetValue(rule, out var taken) && ReadThrough(taken.Produces)
+					? new RuleValue(ValueSource.Extent, _types[rule])
+				: NonText(rule, joined, []) is { } piece
+					? new RuleValue(ValueSource.Refused, _types[rule], NonTextMessage(rule, piece))
+					: new RuleValue(joined.Contains(rule) ? ValueSource.Joined : ValueSource.Extent, _types[rule]);
 
 		foreach (var rule in _rules)
 			if (rule.Declaration is not null && !_ruleValues.ContainsKey(rule) && _types.TryGetValue(rule, out var type) &&
@@ -460,8 +464,8 @@ sealed partial class GrammarNormalizer
 					"hold: it is one element, or its elements in place, and nothing says which (§4.1). Build the array with '=>', " +
 					$"as in 'x: {both.Rule.Name} & … => @(new {element}[] {{ x, … }})'.");
 
-			// What is written decides, so that one inside what never runs, `X{0}`, gives an array of none.
-			return CallsIn(_bodies[rule], written: true).Any(call => call.Rule != rule && Collects(call, element, type, []))
+			// What is written decides, so that one inside what never runs, `X{0}`, or inside a lookahead gives an array of none.
+			return NodeWalk.Descendants(_bodies[rule]).OfType<Node.Call>().Any(call => call.Rule != rule && Collects(call, element, type, []))
 				? new RuleValue(ValueSource.Collected, type)
 				: new RuleValue(ValueSource.Refused, type, SequenceMessage(rule, element));
 		}
@@ -498,8 +502,22 @@ sealed partial class GrammarNormalizer
 
 			names.UnionWith(named);
 
-			if (named.Count > 0)
+			// Names fill a construction on every route or on none: a route that skips them all, `(name: X)?`, has nothing to
+			// build from.
+			if (named.Count > 0 && Walk(alternative, static part => part switch
+				{
+					Node.Capture => new WalkStep(part, true),
+					Node.Lookahead or Node.Construct => new WalkStep(part, false),
+					_ => null,
+				}, out _, written: true).Least > 0)
 				continue;
+
+			if (named.Count > 0)
+			{
+				unsaid.Add($"a route through {which} names none of them");
+
+				continue;
+			}
 
 			unsaid.Add(
 				tail is not null ? $"step {i + 1} of it adds a call of '{type}' to the value so far, or names it, and names nothing to build from"
@@ -655,7 +673,8 @@ sealed partial class GrammarNormalizer
 			if (!_ruleValues.TryGetValue(rule, out var value))
 				continue;
 
-			var body = _bodies[rule];
+			// What a lookahead saw is no part of an implicit value and fills no construction: its names are dropped.
+			var body = _bodies[rule] = value.Source is ValueSource.Explicit or ValueSource.External ? _bodies[rule] : UnnamedLookaheads(_bodies[rule]);
 
 			switch (value.Source)
 			{
@@ -738,12 +757,23 @@ sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			Walk(alternative, part => OperandStep(part, value.Type, name), out var taken);
+			// One capture per type the operand has on some route: a member holds one type.
+			var held = new Dictionary<string, string>(StringComparer.Ordinal);
 
-			rewritten.Add(new Node.Construct(taken, new Construction.Operand(name)));
+			Walk(alternative, part => OperandStep(part, value.Type, part is Node.Call(var called, _) && Held(called) is { } kind
+				? held.TryGetValue(kind, out var known) ? known : held[kind] = held.Count == 0 ? name : Unreserved(name + "_" + held.Count, reserved)
+				: name), out var taken);
+
+			rewritten.Add(new Node.Construct(taken, new Construction.Operand([.. held.Values.DefaultIfEmpty(name)])));
 		}
 
 		return Rebuilt(_bodies[rule], rewritten);
+
+		// What a member holds the operand by: a declared type, shared by every rule that declares it, or the rule itself.
+		string? Held(RuleSymbol called)
+		{
+			return _types.TryGetValue(called, out var type) ? type : ValueTypeOf(called) is null ? null : "rule " + called.Name;
+		}
 	}
 
 	/// <summary>
@@ -755,6 +785,17 @@ sealed partial class GrammarNormalizer
 		foreach (var rule in _rules)
 			if (_types.TryGetValue(rule, out var type) && IsSpan(type))
 				_types[rule] = _language.Spelling(KnownType.SourceSpan);
+	}
+
+	/// <summary>The node with the names inside its lookaheads taken off.</summary>
+	Node UnnamedLookaheads(Node node)
+	{
+		foreach (var look in NodeWalk.Descendants(node).OfType<Node.Lookahead>().ToList())
+			if (NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture) && !ReadsValues(look.Body) &&
+				NodeWalk.Descendants(node).Any(one => ReferenceEquals(one, look)))
+				node = Replaced(node, look, look with { Body = Unnamed(look.Body) });
+
+		return node;
 	}
 
 	/// <summary>A body with its alternatives replaced, a switch kept a switch.</summary>
