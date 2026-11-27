@@ -49,7 +49,12 @@ sealed partial class IrLowering
 	/// fail after a decision of its own (<see cref="Reopen"/>): the answers are right, the ways and the
 	/// host calls are not the generated reader's.
 	/// </param>
-	public sealed record Options(bool AllResumable = false, bool OmitResets = false, bool KeepsPartsWhole = false, bool ReopensInstead = false);
+	/// <param name="AsRecorded">
+	/// Each place that records a refusal records what the generator's plan says its readers record
+	/// there (<see cref="RecordSites"/>): the set and how, a repetition's door, a choice told apart by the
+	/// next item. Otherwise each terminal says itself and no door is shut.
+	/// </param>
+	public sealed record Options(bool AllResumable = false, bool OmitResets = false, bool KeepsPartsWhole = false, bool ReopensInstead = false, bool AsRecorded = false);
 
 	readonly RecognitionGraph _graph;
 	readonly Options          _options;
@@ -76,8 +81,12 @@ sealed partial class IrLowering
 	/// <summary>Where the readers of every machine of the plan stop building after a second give-back.</summary>
 	readonly IReadOnlyList<DeferralPlan> _deferrals;
 
-	IrLowering(RecognitionGraph graph, Options options, IReadOnlyList<WriteDecisions> decisions, IReadOnlyList<DeferralPlan> deferrals)
+	/// <summary>What every place of the readers of every machine of the plan records; empty where the lowering does not ask.</summary>
+	readonly IReadOnlyList<RecordSites> _sites;
+
+	IrLowering(RecognitionGraph graph, Options options, IReadOnlyList<WriteDecisions> decisions, IReadOnlyList<DeferralPlan> deferrals, IReadOnlyList<RecordSites> sites)
 	{
+		_sites     = sites;
 		_graph     = graph;
 		_options   = options;
 		_follow    = FollowSets.Of(graph);
@@ -92,15 +101,19 @@ sealed partial class IrLowering
 
 		return Lower(graph, options, everyRule: false,
 			[.. machines.Select(static machine => machine.Writes).OfType<WriteDecisions>()],
-			[.. machines.Select(static machine => machine.Deferral).OfType<DeferralPlan>()]);
+			[.. machines.Select(static machine => machine.Deferral).OfType<DeferralPlan>()],
+			options is { AsRecorded: true } ? [.. machines.Select(static machine => machine.Sites).OfType<RecordSites>()] : []);
 	}
 
 	/// <param name="everyRule">Every rule of the graph that has a body, reached or not: what a measurement of the lowering asks.</param>
 	/// <param name="decisions">What the plan decided about ways on the tape (<see cref="Planned"/>); empty asks every node of the lowering's own proofs.</param>
 	/// <param name="deferrals">Where the plan's readers stop building after a second give-back; empty, nowhere.</param>
-	public static IrProgram Lower(RecognitionGraph graph, Options? options, bool everyRule, IReadOnlyList<WriteDecisions> decisions, IReadOnlyList<DeferralPlan>? deferrals = null)
+	/// <param name="sites">What the plan's readers record at each place (<see cref="Options.AsRecorded"/>); empty, each terminal says itself.</param>
+	public static IrProgram Lower(
+		RecognitionGraph graph, Options? options, bool everyRule, IReadOnlyList<WriteDecisions> decisions, IReadOnlyList<DeferralPlan>? deferrals = null,
+		IReadOnlyList<RecordSites>? sites = null)
 	{
-		var lowering = new IrLowering(graph, options ?? new Options(), decisions, deferrals ?? []);
+		var lowering = new IrLowering(graph, options ?? new Options(), decisions, deferrals ?? [], sites ?? []);
 
 		lowering.Run(everyRule);
 
@@ -442,10 +455,10 @@ sealed partial class IrLowering
 			case Node.Element element:
 				return element.Categories.Count > 0 || element.References.Count > 0
 					? Unsupported(node, "a set that names a category or a rule")
-					: new IrStmt.MatchSet(element.Ranges, element.IsNegated, Expect(element.ToString()));
+					: new IrStmt.MatchSet(element.Ranges, element.IsNegated, Recorded<TerminalSite>(node) ?? Expect(element.ToString()));
 
 			case Node.Literal literal:
-				return new IrStmt.MatchText(literal.Text, literal.IgnoreCase, Expect(literal.ToString()));
+				return new IrStmt.MatchText(literal.Text, literal.IgnoreCase, Recorded<TerminalSite>(node) ?? Expect(literal.ToString()));
 
 			case Node.Sequence sequence:
 			{
@@ -484,9 +497,11 @@ sealed partial class IrLowering
 					assigned.UnionWith(inside);
 				}
 
-				return new IrStmt.Choice(alternatives, resets,
+				var lowered = new IrStmt.Choice(alternatives, resets,
 					_options.AllResumable ||
 					(PlannedWay(choice.Nodes[0], choice.Nodes.Count) ?? !Proved(() => Determinism.Of(choice, following, _graph, _seam))));
+
+				return _sites.Count > 0 ? AsRecorded(choice.Nodes, lowered) : lowered;
 			}
 
 			case Node.Atomic atomic:
@@ -507,12 +522,13 @@ sealed partial class IrLowering
 					repeat.Body, new IrExpr.Number(repeat.Min), repeat.Max is { } max ? new IrExpr.Number(max) : null,
 					Preceding(repeat, following), assigned,
 					_options.AllResumable ||
-					(PlannedWay(repeat, 0) ?? !(repeat.Max == repeat.Min || Proved(() => Determinism.NeverGivesBack(repeat, following.Taught, _graph, _seam)))));
+					(PlannedWay(repeat, 0) ?? !(repeat.Max == repeat.Min || Proved(() => Determinism.NeverGivesBack(repeat, following.Taught, _graph, _seam)))),
+					at: repeat);
 
 			case Node.Counted counted:
 				return Repeated(
 					counted.Body, Bound(counted.Min), counted.Max is { } most ? Bound(most) : null,
-					FollowSets.Continuation.All, assigned, resumable: true);
+					FollowSets.Continuation.All, assigned, resumable: true, at: counted);
 
 			case Node.Lookahead look:
 			{
@@ -523,7 +539,7 @@ sealed partial class IrLowering
 
 				var ends = !look.IsPositive && look.Body is Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 };
 
-				return new IrStmt.Look(look.IsPositive, body, Resets(inside),
+				return new IrStmt.Look(look.IsPositive, body, Resets(inside), RecordedLook(look) ??
 					Expect(ends ? "end of input" : (look.IsPositive ? "" : "not ") + look.Body));
 			}
 
@@ -549,7 +565,7 @@ sealed partial class IrLowering
 			{
 				var (from, to) = BindingSlots(same.Binding);
 
-				return new IrStmt.MatchSame(from, to, Expect(same.ToString()));
+				return new IrStmt.MatchSame(from, to, Recorded<TerminalSite>(node) ?? Expect(same.ToString()));
 			}
 
 			case Node.Guard guard:
@@ -567,9 +583,16 @@ sealed partial class IrLowering
 			case Node.Call { Arguments.Count: > 0 }:
 				return Unsupported(node, "a call with arguments");
 
+			// A rule of one character the readers read where it is called (MachinePlan.ReadInPlace) is
+			// tested there as one character, and refused as the call is said.
+			case Node.Call call when Fact<TerminalSite>(call) is { } tested && FirstSets.Of(call, _graph) is { Ends: false, Nothing: false } one:
+				Asked(tested);
+
+				return new IrStmt.MatchSet(one.Ranges, false, tested.Records ? Expect(Label(tested)) : -1);
+
 			case Node.Call call:
 				return _functions.TryGetValue(call.Rule, out var target)
-					? new IrStmt.Call(target, null, false)
+					? new IrStmt.Call(target, null, false) { Says = Saying(call) }
 					: Unsupported(node, "a call of a rule with no body");
 
 			default:
@@ -625,14 +648,182 @@ sealed partial class IrLowering
 	}
 
 	IrStmt Repeated(
-		Node body, IrExpr min, IrExpr? max, FollowSets.Continuation following, HashSet<IrSlot> assigned, bool resumable)
+		Node body, IrExpr min, IrExpr? max, FollowSets.Continuation following, HashSet<IrSlot> assigned, bool resumable, Node? at = null)
 	{
 		var inside = new HashSet<IrSlot>();
 		var turn   = Lower(body, following, inside);
 
 		assigned.UnionWith(inside);
 
-		return new IrStmt.Repeat(turn, min, max, Resets(inside), resumable);
+		var repeat = new IrStmt.Repeat(turn, min, max, Resets(inside), resumable);
+
+		// Behind the door the reader shuts, no turn is read and nothing of it is said.
+		if (_sites.Count > 0 && at is not null && Asked(Fact<DoorSite>(at), misses: false) is { } door)
+			repeat = repeat with
+			{
+				Door          = door.Begins,
+				DoorPastLeast = door.PastFewest,
+				DoorQuietOnly = door.QuietOnly,
+				DoorShort     = door.Items.Count > 0 ? Expect(Label(door)) : -1,
+			};
+
+		return repeat;
+	}
+
+	/// <summary>
+	/// What the plan's readers record at a place of the rule being lowered (<see cref="Options.AsRecorded"/>):
+	/// the place keyed as the generator keys it, the rule a settled copy was made from and the node it was
+	/// copied from. Null where the lowering does not ask, or the plan has no such place there.
+	/// </summary>
+	/// <remarks>
+	/// A terminal and a look always have a place where the readers read them, and one the plan does not
+	/// hold is a miss (<see cref="IrProgram.SiteMisses"/>); a choice or a repetition has one only where the
+	/// readers decide it by the next item, and is counted where it does.
+	/// </remarks>
+	T? Fact<T>(Node node, int count = 0)
+		where T : RecordSite
+	{
+		if (_sites.Count == 0)
+			return null;
+
+		var owner = _graph.Counted(_rule);
+		var at    = _graph.Original(node);
+
+		foreach (var sites in _sites)
+			if (sites.Held<T>(owner, at, count) is { } held)
+				return held;
+
+		return null;
+	}
+
+	/// <summary>Counts a place asked of the plan, and a miss where it had no answer; the answer.</summary>
+	T? Asked<T>(T? site, bool misses = true)
+		where T : class
+	{
+		if (site is not null || misses)
+			_program.SitesAsked++;
+
+		if (site is null && misses)
+			_program.SiteMisses++;
+
+		return site;
+	}
+
+	/// <summary>The rule's own words a call records where the rule refused having read nothing, as the plan says; -1 for none.</summary>
+	int Saying(Node.Call call)
+	{
+		return Asked(Fact<MessageSite>(call), misses: false) is { } said ? Expect(Label(said)) : -1;
+	}
+
+	/// <summary>A set as the readers say it: its items, one label.</summary>
+	static string Label(RecordSite site)
+	{
+		return string.Join(" | ", site.Items);
+	}
+
+	/// <summary>What a terminal records, as the plan says: its set, or nothing where it records for none (-1); null where the plan was not asked.</summary>
+	int? Recorded<T>(Node node)
+		where T : RecordSite
+	{
+		if (_sites.Count == 0)
+			return null;
+
+		return Asked(Fact<T>(node)) is { } site ? site.Records ? Expect(Label(site)) : -1 : null;
+	}
+
+	/// <summary>
+	/// What a look records where it refuses: the end, the rule it is the body of, or nothing named — recorded
+	/// where it stands (-2), or not at all (-1). Null where the plan was not asked or has none of them.
+	/// </summary>
+	int? RecordedLook(Node.Lookahead look)
+	{
+		if (_sites.Count == 0)
+			return null;
+
+		RecordSite? site = Fact<EndSite>(look) ?? Fact<NamedSite>(look) ?? (RecordSite?)Fact<SilentSite>(look);
+
+		return Asked(site) switch
+		{
+			null                       => null,
+			SilentSite { Records: true } => -2,
+			SilentSite                   => -1,
+			var said                     => Expect(Label(said)),
+		};
+	}
+
+	/// <summary>
+	/// A choice as the plan's readers read it where they decide it by the next item: told apart into the
+	/// groups the item tells apart, each tried in order inside, with the widest read by the call it begins
+	/// with; or behind a door, refused (or, an optional, noted) where the item begins no alternative.
+	/// </summary>
+	IrStmt AsRecorded(IReadOnlyList<Node> nodes, IrStmt.Choice choice)
+	{
+		var count = nodes.Count;
+
+		if (Asked(Fact<DispatchSite>(nodes[0], count), misses: false) is { Seam: false } dispatch)
+		{
+			var over         = Fact<OverSite>(nodes[0], count);
+			var otherwise    = Expect(Label(dispatch));
+			var alternatives = new List<IrStmt>();
+			var resets       = new List<IReadOnlyList<IrSlot>>();
+
+			for (var g = 0; g < dispatch.Members.Count; g++)
+			{
+				var members = dispatch.Members[g];
+
+				if (members.Any(static one => one < 0))
+					return choice;
+
+				IrStmt group = members.Count == 1
+					? choice.Alternatives[members[0]]
+					: new IrStmt.Choice([.. members.Select(one => choice.Alternatives[one])], [.. members.Select(one => choice.Resets[one])],
+						_options.AllResumable || (PlannedWay(nodes[members[0]], members.Count) ?? choice.Resumable));
+
+				if (g == dispatch.Called)
+					group = RefusingWith(group, otherwise, over is null ? -1 : Expect(Label(over)));
+
+				alternatives.Add(group);
+				resets.Add([.. members.SelectMany(one => choice.Resets[one]).Distinct()]);
+			}
+
+			return new IrStmt.Choice(alternatives, resets, false)
+			{
+				Dispatch = new IrDispatch(dispatch.Begins, otherwise) { Called = dispatch.Called },
+			};
+		}
+
+		if (Asked(Fact<PredictedSite>(nodes[0], count), misses: false) is { } predicted)
+			return choice with { Gate = new IrGate(predicted.Begins, Expect(Label(predicted)), Empty: false) };
+
+		if (Asked(Fact<OptionalSite>(nodes[0], count), misses: false) is { } optional)
+			return choice with { Gate = new IrGate(optional.Begins, Expect(Label(optional)), Empty: true) };
+
+		// Not every choice is decided by its next item: one tried in order records nothing of its own.
+		return choice;
+	}
+
+	/// <summary>A block whose first step that reads is given <see cref="RefusingWith"/>: a capture's start before it reads nothing.</summary>
+	static IrStmt Leading(IrStmt.Block block, int expected, int over)
+	{
+		var items = block.Items.ToList();
+		var first = items.FindIndex(static one => one is not IrStmt.Assign);
+
+		if (first >= 0)
+			items[first] = RefusingWith(items[first], expected, over);
+
+		return new IrStmt.Block(items);
+	}
+
+	/// <summary>The part, with the call it begins with recording the choice's set where it refuses, over what it said.</summary>
+	static IrStmt RefusingWith(IrStmt part, int expected, int over)
+	{
+		return part switch
+		{
+			IrStmt.Call call                              => call with { RefusesWith = expected, Over = over },
+			IrStmt.Scope scope                            => scope with { Body = RefusingWith(scope.Body, expected, over) },
+			IrStmt.Block block                            => Leading(block, expected, over),
+			_                                             => part,
+		};
 	}
 
 	IrStmt Captured(Node.Capture capture, FollowSets.Continuation following, HashSet<IrSlot> assigned)
@@ -647,7 +838,7 @@ sealed partial class IrLowering
 		{
 			_program.GraphNodes++;
 
-			return new IrStmt.Call(target, slot, slot.Kind == IrSlotKind.List);
+			return new IrStmt.Call(target, slot, slot.Kind == IrSlotKind.List) { Says = Saying(call) };
 		}
 
 		var from = NewSlot(capture.Name + "From", IrSlotKind.Position, null);

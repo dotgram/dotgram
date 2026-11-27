@@ -61,6 +61,36 @@ public sealed class PlanTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
+	/// How often a fixture's lowering asked the plan what a place records (<see cref="IrLowering.Options.AsRecorded"/>),
+	/// and found no answer. A grammar the C# generator reads by its flat machine has no readers, and so no
+	/// places, and is not asked; every place of the others is held.
+	/// </summary>
+	[Fact]
+	public void TheMissesOfTheRecordSitesAreCounted()
+	{
+		var asked  = 0;
+		var missed = 0;
+
+		foreach (var (name, fixture) in Cases.Fixtures.DistinctBy(static one => one.Value.Grammar))
+		{
+			var program = IrLowering.Lower(Graphs.Of(fixture.Grammar), new IrLowering.Options(AsRecorded: true));
+
+			output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{name}: asked {program.SitesAsked}, missed {program.SiteMisses}"));
+
+			asked  += program.SitesAsked;
+			missed += program.SiteMisses;
+		}
+
+		output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"all: asked {asked}, missed {missed}"));
+
+		Assert.Equal((SitesAsked, SitesMissed), (asked, missed));
+	}
+
+	/// <summary>The places of the fixtures that record a refusal, and those the plan has no answer for.</summary>
+	const int SitesAsked  = 529;
+	const int SitesMissed = 0;
+
+	/// <summary>
 	/// The choices and repetitions of the fixtures, and those the plan has no reader's answer for: a
 	/// grammar the C# generator reads by its flat machine has no readers, and so no such decisions.
 	/// </summary>

@@ -905,7 +905,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			? new IrOutcome(true, _p, value, [])
 			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])])
 			{
-				Said = [.. _said.Select(index => program.Expected[index])],
+				Said = [.. _said.Where(static index => index >= 0).Select(index => program.Expected[index])],
 			};
 	}
 
@@ -957,7 +957,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (_quiet > 0 && at > _far && _budget > 0 && !_resumes && !NoLookClause && (_unboundedLooks > 0 || _reach!.Reached.Contains(_current!)))
 			_far = at;
 
-		if (_quiet > 0 || expected < 0)
+		if (_quiet > 0 || expected == Unrecorded)
 			return;
 
 		if (_silent)
@@ -968,6 +968,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			return;
 		}
 
+		// A refusal that names nothing still stands furthest where it is further: what was said short of
+		// it goes, as the generated parser's Refuse_DotGram clears it, and what is said there after it ties.
 		if (at > _refusedAt)
 		{
 			_refusedAt = at;
@@ -975,7 +977,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			_said.Clear();
 			_said.Add(expected);
 		}
-		else if (at == _refusedAt && _said[0] != expected && !(_said.Count > 1 && _said[^1] == expected))
+		else if (expected >= 0 && at == _refusedAt && _said[0] != expected && !(_said.Count > 1 && _said[^1] == expected))
 		{
 			// A guard's set is said once however often it is asked; any other may come again
 			// after something else has.
@@ -983,8 +985,75 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				_said.Add(expected);
 		}
 
-		if (at == _refusedAt)
+		if (at == _refusedAt && expected >= 0)
 			_refused.Add(expected);
+	}
+
+	/// <summary>An expected set no refusal records (<see cref="IrStmt.MatchSet.Expected"/> and the rest).</summary>
+	public const int Unrecorded = -1;
+
+	/// <summary>A refusal recorded where it stands that names nothing, as a look the generated reader refuses with says nothing.</summary>
+	public const int Nothing = -2;
+
+	/// <summary>
+	/// A choice's set recorded where the call that begins its widest part refused at the same place, as the
+	/// generated parser's Refuse_DotGram_Over records it: what the call said there, which the choice's set
+	/// holds, is dropped for it — all of it where nothing was recorded there before the call (<paramref name="stood"/>
+	/// below 0), and otherwise the sets that tied after the first that many — unless what is there holds a
+	/// rule's own words.
+	/// </summary>
+	void RefuseOver(int at, int expected, int covered, int stood)
+	{
+		if (_quiet > 0 || _silent)
+		{
+			Refuse(at, expected);
+
+			return;
+		}
+
+		if (at == _refusedAt && !_said.Any(Spoke))
+		{
+			if (stood < 0)
+			{
+				_said.Clear();
+				_said.Add(expected);
+				_refused.Clear();
+				_refused.Add(expected);
+
+				return;
+			}
+
+			if (_said.Count - 1 > stood)
+				_said.RemoveRange(1 + stood, _said.Count - 1 - stood);
+		}
+
+		if (at == _refusedAt)
+		{
+			if (_said.Count > 0 && _said[0] == covered)
+				_said[0] = expected;
+
+			var tied = _said.IndexOf(covered, 1);
+
+			if (tied > 0)
+				_said.RemoveAt(tied);
+
+			_refused.Clear();
+			_refused.UnionWith(_said.Where(static index => index >= 0));
+		}
+
+		Refuse(at, expected);
+	}
+
+	/// <summary>Whether a set holds a rule's own words, which the generated parser marks.</summary>
+	bool Spoke(int expected)
+	{
+		return expected >= 0 && program.Expected[expected].Split(" | ").Any(static item => item.StartsWith('\u0000'));
+	}
+
+	/// <summary>How many sets tied after the first where the reading stands: -1 where nothing is recorded there yet.</summary>
+	int Stood()
+	{
+		return _refusedAt < _p ? -1 : _said.Count - 1;
 	}
 
 	bool Exec(IrStmt stmt, object?[] frame)
@@ -1086,8 +1155,24 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 			case IrStmt.Call call:
 			{
+				var at    = _p;
+				var stood = call.Over >= 0 ? Stood() : 0;
+
 				if (!Run(call.Target, out var value))
+				{
+					_p = at;
+
+					// The rule's own words, where it read nothing: the furthest refusal has not passed the call.
+					if (call.Says >= 0 && _refusedAt <= at)
+						Refuse(at, call.Says);
+
+					if (call.RefusesWith >= 0 && call.Over >= 0 && call.Over != call.RefusesWith)
+						RefuseOver(at, call.RefusesWith, call.Over, stood);
+					else if (call.RefusesWith >= 0)
+						Refuse(at, call.RefusesWith);
+
 					return false;
+				}
 
 				// Inside a look nothing is built, so there is nothing to take.
 				if (call.Into is { } into && _unbuilt == 0)
@@ -1106,13 +1191,24 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var start = _p;
 				var last  = choice.Alternatives.Count - 1;
 
+				if (choice.Gate is { } gate && !(_p < _text.Length && Within(gate.Begins, _text[_p])))
+				{
+					Refuse(_p, gate.Expected);
+
+					return gate.Empty;
+				}
+
 				if (choice.Dispatch is { } dispatch)
 				{
 					var chosen = -1;
 
 					for (var i = 0; i <= last && chosen < 0; i++)
-						if (_p < _text.Length && Within(dispatch.Begins[i], _text[_p]))
+						if (i != dispatch.Called && _p < _text.Length && Within(dispatch.Begins[i], _text[_p]))
 							chosen = i;
+
+					// What no other alternative begins is the widest's, whose call tests the item itself.
+					if (chosen < 0 && dispatch.Called >= 0 && _p < _text.Length)
+						chosen = dispatch.Called;
 
 					if (chosen < 0)
 					{
@@ -1247,8 +1343,14 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					var start = _p;
 					var way   = -1;
 
-					if (repeat.Door is { } door && turns >= min && !(_p < _text.Length && Within(door, _text[_p])))
+					if (repeat.Door is { } door && (turns >= min || !repeat.DoorPastLeast) && (_silent || !repeat.DoorQuietOnly) &&
+						!(_p < _text.Length && Within(door, _text[_p])))
+					{
+						if (turns < min && repeat.DoorShort >= 0)
+							Refuse(_p, repeat.DoorShort);
+
 						break;
+					}
 
 					// A replay keeps where each turn begins, once: the turn a replay went straight to is kept already.
 					if (owner >= 0 && Ways.Cursor < Ways.Count)
