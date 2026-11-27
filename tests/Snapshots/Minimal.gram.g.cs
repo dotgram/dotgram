@@ -1992,8 +1992,10 @@ namespace DotGram.Snapshots
                                        (t);
 #line default
 
-		static string New_DotGram_Row(string item0) =>
-			item0;
+		static string New_DotGram_Row(string item) =>
+#line 120 "Minimal.gram"
+                                        item;
+#line default
 
 		static string[] New_DotGram_Sheet(string[] item0) =>
 			item0 ?? global::System.Array.Empty<string>();

@@ -72,7 +72,7 @@ sealed partial class GrammarNormalizer
 	/// Whether a published rule with no type and no names is a string, its pieces joined (§4.1), or, as before, the text
 	/// it matched. One with a piece that has no text to join, or that binds a text, is the text it matched either way.
 	/// </summary>
-	const bool PublishedPlumbingJoins = true;
+	static readonly bool PublishedPlumbingJoins = false;
 
 	/// <summary>The decision for every rule that has a type.</summary>
 	readonly Dictionary<RuleSymbol, RuleValue> _ruleValues = [];
