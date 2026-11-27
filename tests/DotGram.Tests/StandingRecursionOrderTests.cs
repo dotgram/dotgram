@@ -644,6 +644,7 @@ public sealed class StandingRecursionOrderTests
 	[InlineData("A = 'a' | @Ws & A & 'b'?", "a step may read nothing")]
 	[InlineData("A = B | @Ws & A & 'x'\nB = 'b' | @Ws & A & 'y'", "goes through 'B'")]
 	[InlineData("A = 'a' | @Ws & B & 'c'\nB = A & 'b'", "goes through 'B'")]
+	[InlineData("A = @Ws & B & 'c'\nB = A | n: 'b'", "goes through 'B'")]
 	public void Where_the_twin_is_refused_the_rule_is_read_as_written(string rules, string reason)
 	{
 		var result = GramCompiler.Compile("T = A & eof\n" + rules + "\nparse T", Options(direct: true, tape: false, buffered: false, lexical: false));
@@ -654,6 +655,63 @@ public sealed class StandingRecursionOrderTests
 		Assert.All(refused, static one => Assert.Equal(GramSeverity.Warning, one.Severity));
 		Assert.Contains(refused, one => one.Message.Contains(reason, StringComparison.Ordinal));
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// The example of docs/syntax.md §4.3: a counting rule past a recognizer, read as the left recursion it is without it
+	/// where the recognizer stands, which takes every step that fits; 0.3.0 took the base and left the rest to the loop.
+	/// </summary>
+	[Theory]
+	[InlineData("1", "ok@1 1", "ok@1 1")]
+	[InlineData("1+1", "ok@3 2", "ok@3 1")]
+	[InlineData("1+1+1", "ok@5 3", "ok@5 1")]
+	[InlineData("1+", "no@2", null)]
+	public void The_example_of_the_specification_reads_as_it_says(string input, string now, string? v030)
+	{
+		var grammar = """
+			T   : @int = s: Sum & ('+' & Num)* & eof => @(s)
+			Sum : @int = Num                           => @(1)
+			           | @Ws & s: Sum & '+' & Num      => @(s + 1)
+			Num = ['0'..'9']+
+			""".ReplaceLineEndings("\n");
+
+		foreach (var (direct, tape, buffered) in Readings)
+		{
+			var reading = $"{(direct ? "direct" : "engine")}/{(tape ? "tape" : "immediate")}/{(buffered ? "view" : "span")}";
+
+			Assert.True(Answer(Build(grammar, direct, tape, buffered, lexical: false, out _), input, typeof(string)) == now, $"{reading}: now");
+
+			if (v030 is not null)
+				Assert.True(Answer(Unchecked(() => Build(grammar, direct, tape, buffered, lexical: false, out _)), input, typeof(string)) == v030, $"{reading}: 0.3.0");
+		}
+	}
+
+	/// <summary>
+	/// A valid input of some hundreds of characters is answered in a bounded number of calls of the recognizer, in every
+	/// reading: the twin is a loop, and the recognizer is not asked again for each step it takes (in 0.3.0 these go
+	/// round). The bound is linear in the length, and by methods, where a refusal that gives steps back asks again for
+	/// each, as the twin's reader does, quadratic.
+	/// </summary>
+	[Theory]
+	[InlineData("T = A & eof\nA = B | @Ws & A & '+' & B\nB = Num | @Ws & B & '*' & Num\nNum = ['0'..'9']+", 15, 40)]
+	[InlineData("T = Z* & eof\nZ = Sum & ';' | '1' | '+'\nSum = Num | @Ws & Sum & '+' & Num\nNum = ['0'..'9']+", 100, 0)]
+	public void A_long_valid_input_costs_calls_in_proportion_to_its_length(string grammar, int terms, int factors)
+	{
+		var input = "1" + string.Concat(Enumerable.Repeat("+1" + string.Concat(Enumerable.Repeat("*1", factors)), terms));
+		var wrong = new List<string>();
+
+		foreach (var (direct, tape, buffered) in Readings)
+		{
+			var read   = Build(grammar, direct, tape, buffered, lexical: false, out _);
+			var answer = Answer(read, input, typeof(string));
+			var asked  = (int)read.GetType("Probe")!.GetMethod("Calls")!.Invoke(null, null)!;
+
+			// By methods the reader asks again for each step it takes where a refusal gives them back, as its twin does.
+			if (!answer.StartsWith("ok@", StringComparison.Ordinal) || asked > (direct ? input.Length * input.Length / 4 : 3 * input.Length))
+				wrong.Add($"{(direct ? "direct" : "engine")}/{(tape ? "tape" : "immediate")}/{(buffered ? "view" : "span")}: {answer}, {asked} calls for {input.Length} characters");
+		}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
 	}
 
 	/// <summary>
@@ -702,7 +760,10 @@ public sealed class StandingRecursionOrderTests
 
 		static string[] Types(string source)
 		{
-			return [.. Regex.Matches(source, @"public sealed class \w+\s*\{.*?\r?\n\t\}\r?\n", RegexOptions.Singleline).Select(static one => one.Value)];
+			// The class of a rule that is read through a copy of it (GrammarNormalizer.Settling.cs) is the copy's, which 0.3.0's
+			// reading of these rules gets and a record folded in place does not: named alike, in the same order.
+			return [.. Regex.Matches(source, @"public sealed class \w+\s*\{.*?\r?\n\t\}\r?\n", RegexOptions.Singleline)
+				.Select(static one => one.Value.Replace("_Settled", "", StringComparison.Ordinal)).OrderBy(static one => one, StringComparer.Ordinal)];
 		}
 	}
 
@@ -760,6 +821,95 @@ public sealed class StandingRecursionOrderTests
 		{
 			return (int)parser.GetType("Probe")!.GetMethod("Calls")!.Invoke(null, null)!;
 		}
+	}
+
+	/// <summary>
+	/// The counter over bytes: the host's recognizer for bytes is code of its own, and the rule past it answers as over
+	/// characters, over a <c>Stream</c> and over bytes held, in the reading by methods and in the engine.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(CountGrammars))]
+	public void A_rule_past_a_recognizer_that_stands_answers_the_same_over_bytes(string name)
+	{
+		var marked = Grammar("count", name);
+		var rows   = Rows.Where(row => row.Family == "count" && row.Grammar == name).ToArray();
+		var wrong  = new List<string>();
+
+		foreach (var direct in new[] { true, false })
+			foreach (var tape in new[] { false, true })
+			{
+				var result = GramCompiler.Compile(marked + "\nparse T stream bytes", new GramCompilerOptions
+				{
+					ClassName      = "Probe",
+					Direct         = direct,
+					Carrier        = tape ? CarrierKind.Deferred : CarrierKind.Auto,
+					BufferedInput  = true,
+					BufferedBytes  = true,
+					SymbolResolver = StandingTurnTests.ViewResolver.Instance,
+					CSharpScanner  = RoslynCSharpScanner.Instance,
+				});
+
+				EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id is not (GramCompiler.BufferedUnsupported or GramCompiler.NotCut or "GRAM4016")));
+
+				var parser = EmittedCode.Compile(
+					result.Sources[0].Text, className: "Probe", declarationMembers: ViewHost,
+					sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+
+				foreach (var row in rows)
+					foreach (var form in new[] { "Stream", "byte[]", "ReadOnlyMemory<byte>" })
+					{
+						var answer = AnswerBytes(parser, row.Input, form);
+
+						if (answer != row.C1)
+							wrong.Add($"count {name} {(direct ? "direct" : "engine")}/{(tape ? "tape" : "immediate")} {form} \"{row.Input}\": {answer}, expected {row.C1}");
+					}
+			}
+
+		Assert.True(wrong.Count == 0, string.Join("\n", wrong));
+	}
+
+	public static TheoryData<string> CountGrammars()
+	{
+		var names = new TheoryData<string>();
+
+		foreach (var name in Rows.Where(static row => row.Family == "count").Select(static row => row.Grammar).Distinct())
+			names.Add(name);
+
+		return names;
+	}
+
+	/// <summary>Where the parse ended and the value, or where it stopped, over bytes in one of the forms that read them.</summary>
+	static string AnswerBytes(Assembly parser, string input, string form)
+	{
+		var type  = parser.GetType("Probe")!;
+		var bytes = System.Text.Encoding.ASCII.GetBytes(input);
+
+		type.GetMethod("Reset")!.Invoke(null, null);
+
+		object match;
+
+		try
+		{
+			match = form switch
+			{
+				"Stream"  => type.GetMethod("TryParseT", [typeof(Stream), typeof(int?), typeof(int?)])!.Invoke(null, [new MemoryStream(bytes), 1, 1 << 16])!,
+				"byte[]"  => type.GetMethod("TryParseT", [typeof(byte[])])!.Invoke(null, [bytes])!,
+				_         => type.GetMethod("TryParseT", [typeof(ReadOnlyMemory<byte>)])!.Invoke(null, [new ReadOnlyMemory<byte>(bytes)])!,
+			};
+		}
+		catch (TargetInvocationException thrown) when (thrown.InnerException?.Message == "went round" || thrown.InnerException is InsufficientExecutionStackException)
+		{
+			return "LOOP";
+		}
+
+		object? Read(string name)
+		{
+			return match.GetType().GetProperty(name)!.GetValue(match);
+		}
+
+		return (bool)Read("IsSuccess")!
+			? $"ok@{(long)Read("Position")! + (int)Read("Length")!} {Read("Value")}"
+			: $"no@{Read("Position")}";
 	}
 
 	/// <summary>

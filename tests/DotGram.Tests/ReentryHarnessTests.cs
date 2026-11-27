@@ -39,6 +39,13 @@ namespace DotGram.Tests;
 /// Run on request (<c>DOTGRAM_REENTRY_HARNESS=1</c>; <c>DOTGRAM_REENTRY_HARNESS_OUT</c> for the report): it compiles
 /// thousands of parsers. <c>Fixtures</c> runs the short list on every request too.
 /// </para>
+/// <para>
+/// A rule read past a recognizer that stands, as the left recursion it is without it (GrammarNormalizer.Guarded.cs),
+/// takes the most steps what follows accepts; the oracle takes the fewest and leaves the rest to what follows. Where
+/// the top reads the same steps after the rule (<see cref="ValuedTop"/>), the two answer one verdict at one end with the
+/// text split between the rule and what follows in another place, and that, told apart from the rest by
+/// <see cref="Resplit"/>, is the one disagreement the harness allows; anything else is a defect.
+/// </para>
 /// </remarks>
 public sealed class ReentryHarnessTests
 {
@@ -53,6 +60,9 @@ public sealed class ReentryHarnessTests
 
 	const string Context = """
 		public sealed class Ctx { public int Depth; public int Bump() { return ++Depth; } }
+		static string Join(string a, string b) { return a + "|" + b; }
+		static string Join(System.ReadOnlySpan<char> a, System.ReadOnlySpan<char> b) { return a.ToString() + "|" + b.ToString(); }
+		static string Join(System.ReadOnlySpan<byte> a, System.ReadOnlySpan<byte> b) { return System.Text.Encoding.ASCII.GetString(a) + "|" + System.Text.Encoding.ASCII.GetString(b); }
 		""";
 
 	const string SpanHost = Counter + Context + """
@@ -130,6 +140,13 @@ public sealed class ReentryHarnessTests
 		// Two recursive alternatives: the search is exponential in the input left, accepted or not.
 		"T = A & 'c'\nA = 'a' | @Still & A & 'b' | @Still & A & 'd'",
 
+		// The rule's text and what a loop after it reads: where the steps are split between the two.
+		ValuedTop + "\nA = 'a' | @Still & A & 'b'",
+		ValuedTop + "\nA = 'a' | @Half & A & 'b'",
+		ValuedTop + "\nA = @Still & A & 'b' | 'a'",
+		ValuedTop + "\nA = 'a' | @Still & A & 'b' | @Still & A & 'c'",
+		ValuedTop + "\nA = 'a' | @Still & C & 'b'\nC = ?='a' & A | ?!'a' & A",
+
 		// Nothing read after the call back, cut at once: by itself, mutual, moving at some positions, as the second
 		// alternative, given back into by the caller, behind a lookahead, and a list with what follows it optional.
 		"T = @Still & T | 'a' & T | eof",
@@ -190,7 +207,13 @@ public sealed class ReentryHarnessTests
 
 	static string[] Segments => Wide ? ["'b'", "'b'?", "('b')*", "'b' & 'b'?"] : ["'b'", "'b'?"];
 
-	static string[] Tops => Wide ? ["T = A", "T = A & 'c'", "T = A & A & 'c'"] : ["T = A & 'c'", "T = A & A & 'c'"];
+	/// <summary>
+	/// A top that reads the steps again after the rule and answers how the text was split between the two: the rule's
+	/// text, a bar, and what the loop after it read.
+	/// </summary>
+	const string ValuedTop = "T : @string = r: A & t: ('b')* & eof => @(Join(r, t))";
+
+	static string[] Tops => Wide ? ["T = A", "T = A & 'c'", "T = A & A & 'c'", ValuedTop] : ["T = A & 'c'", "T = A & A & 'c'", ValuedTop];
 
 	static IEnumerable<string> Enumerated()
 	{
@@ -351,6 +374,8 @@ public sealed class ReentryHarnessTests
 		public long Loops;
 		public long Slow;
 		public long Same;
+		public long Resplit;
+		public int Valued;
 		public readonly ConcurrentQueue<string> Problems = new();
 	}
 
@@ -423,6 +448,8 @@ public sealed class ReentryHarnessTests
 							}
 							else if (expected == got)
 								System.Threading.Interlocked.Increment(ref tally.Equal);
+							else if (grammar.StartsWith("T : @string", StringComparison.Ordinal) && Resplit(expected, got))
+								System.Threading.Interlocked.Increment(ref tally.Resplit);
 							else
 							{
 								System.Threading.Interlocked.Increment(ref tally.Differ);
@@ -433,8 +460,36 @@ public sealed class ReentryHarnessTests
 
 		System.Threading.Interlocked.Increment(ref tally.Grammars);
 
+		if (grammar.StartsWith("T : @string", StringComparison.Ordinal))
+			System.Threading.Interlocked.Increment(ref tally.Valued);
+
 		if (marked)
 			System.Threading.Interlocked.Increment(ref tally.Marked);
+	}
+
+	/// <summary>
+	/// Whether two answers of a <see cref="ValuedTop"/> are one verdict at one end with the text split elsewhere: both
+	/// accepted, at the same place, the rule's text and what the loop read making the same text, the rule's text no
+	/// shorter where the rule reads as the left recursion it is, which takes the most steps.
+	/// </summary>
+	static bool Resplit(string oracle, string checkedOne)
+	{
+		if (!oracle.StartsWith("ok@", StringComparison.Ordinal) || !checkedOne.StartsWith("ok@", StringComparison.Ordinal))
+			return false;
+
+		var (end, split) = Cut(oracle);
+		var (now, again) = Cut(checkedOne);
+
+		return end == now && split is { } one && again is { } other && one.Whole == other.Whole && one.Rule.Length <= other.Rule.Length;
+
+		static (string End, (string Rule, string Whole)? Split) Cut(string answer)
+		{
+			var space = answer.IndexOf(' ', StringComparison.Ordinal);
+			var value = answer[(space + 1)..];
+			var bar   = value.LastIndexOf('|');
+
+			return bar < 0 ? (answer[..space], null) : (answer[..space], (value[..bar], value[..bar] + value[(bar + 1)..]));
+		}
 	}
 
 	static Tally Run(IEnumerable<string> grammars, int longest, int longestStreamed, string report)
@@ -472,14 +527,14 @@ public sealed class ReentryHarnessTests
 			worker.Join();
 
 		foreach (var one in thrown)
-			tally.Problems.Enqueue("THREW " + one.InnerException!.GetType().Name + ": " + one.InnerException.Message.Split('\n')[0] + "\n" + one.Message);
+			tally.Problems.Enqueue("THREW " + one.InnerException!.GetType().Name + ": " + string.Join(" | ", one.InnerException.Message.Split('\n').Take(4)) + "\n" + one.Message);
 
 		var problems = tally.Problems.ToArray();
 
 		File.WriteAllText(
 			Path.Combine(Out, report),
 			$"grammars {tally.Grammars}, marked {tally.Marked}; readings generated as without the check {tally.Same}; " +
-			$"answers equal {tally.Equal}, oracle went round {tally.Loops} " +
+			$"answers equal {tally.Equal}, same verdict and end with the steps split elsewhere {tally.Resplit} (of {tally.Valued} grammars with a top that shows it), oracle went round {tally.Loops} " +
 			$"(checked ended {tally.Ended}, checked past its cap {tally.Slow}); differing {tally.Differ}\n\n" + string.Join("\n\n", problems));
 
 		return tally;
@@ -645,6 +700,9 @@ public sealed class ReentryHarnessTests
 
 		Assert.Equal(only.Length, tally.Grammars);
 		Assert.True(tally.Differ == 0, string.Join("\n\n", tally.Problems.Take(10)));
+
+		if (only.Any(static one => one.StartsWith(ValuedTop, StringComparison.Ordinal)))
+			Assert.True(tally.Resplit > 0, "no valued fixture was split differently from the oracle: the classifier saw nothing");
 	}
 
 	/// <summary>The grammars a check on the position would answer otherwise: found, told and generated as without the check, in every reading.</summary>
@@ -673,6 +731,7 @@ public sealed class ReentryHarnessTests
 		var tally = Run(Enumerated(), Wide ? 4 : 3, 2, Wide ? "reentry-harness-wide.txt" : "reentry-harness-enumeration.txt");
 
 		Assert.True(tally.Marked > 0);
+		Assert.True(tally.Valued > 0 && tally.Resplit > 0, "no valued top was built and split differently from the oracle: the classifier saw nothing");
 		Assert.True(tally.Differ == 0, string.Join("\n\n", tally.Problems.Take(10)));
 	}
 }
