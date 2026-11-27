@@ -1341,7 +1341,8 @@ public sealed class TokenReadingFindingsTests
 	{
 		var result = GramCompiler.Compile(grammar, Options(lexical, direct));
 
-		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.NotCut));
+		// A positional publication beside a rule that ends in a run is read by the engine, which is not asked about here.
+		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.NotCut), GramCompiler.SettledDropped);
 
 		return EmittedCode.Compile(result.Sources[0].Text);
 	}

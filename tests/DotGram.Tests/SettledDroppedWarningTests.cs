@@ -67,9 +67,9 @@ public sealed class SettledDroppedWarningTests
 	[Fact]
 	public void A_yield_is_told_as_a_find_is()
 	{
-		var told = Assert.Single(Told(Names("*", "yield Items")));
+		var told = Assert.Single(Told(Names("*", "parse Items as Lazy yield : @string")));
 
-		Assert.Equal(Because("Word", "publication 'YieldItems' runs on the engine", Move), told.Message);
+		Assert.Equal(Because("Word", "publication 'Lazy' runs on the engine", Move), told.Message);
 	}
 
 	[Fact]

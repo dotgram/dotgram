@@ -366,6 +366,7 @@ static partial class GramCompiler
 		var by   = block.By?.MethodName;
 		var move = "Move it into its own grammar.";
 		var told = new List<GramDiagnostic>();
+
 		var (reason, remedy) = block.Cause switch
 		{
 			SettleCause.Engine   => ($"publication '{by}' runs on the engine", $"Read '{by}' by methods, or move it into its own grammar."),
