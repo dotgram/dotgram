@@ -52,8 +52,24 @@ sealed partial class GrammarNormalizer
 	/// <summary>A rule comes back to itself past a prefix that may stand, and its twin is a left recursion §4.3 refuses.</summary>
 	public const string StandingRefused = "GRAM4066";
 
-	/// <summary>The most different prefixes a rule is split for: each doubles the rules it is split into.</summary>
+	/// <summary>
+	/// How a rule the rewrite cannot take is told (GRAM4066): the one place its level is chosen, and null for not at all.
+	/// </summary>
+	/// <remarks>
+	/// A Warning, because where the prefix does not move such a rule goes round on an input that needs the recursive
+	/// alternative given up. But the build cannot know that a recognizer ever stands, and for one that always moves
+	/// the grammar is sound and was clean in 0.3.0: whether that is worth a Warning is a choice of level only.
+	/// </remarks>
+	internal static readonly GramSeverity? StandingRefusedLevel = GramSeverity.Warning;
+
+	/// <summary>
+	/// The most different prefixes a rule is split for: the split makes one rule for each set of them that may stand
+	/// together, so each doubles the rules it is split into, and a rule past more is not taken (GRAM4066).
+	/// </summary>
 	const int MostPrefixes = 3;
+
+	/// <summary>The rules told GRAM4066, which GRAM5021 then says nothing more of (<see cref="Reentry.Check"/>).</summary>
+	readonly HashSet<RuleSymbol> _standingRefused = [];
 
 	/// <summary>The rules a split made that are folded as left recursion: their loop is <see cref="StandingLoop"/>.</summary>
 	readonly HashSet<RuleSymbol> _standing = [];
@@ -241,15 +257,15 @@ sealed partial class GrammarNormalizer
 
 		if (TwinRefusal(rule, alternatives, recursive) is { } refusal)
 		{
-			Told(new GramDiagnostic(
-				StandingRefused,
-				$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2). " +
-				$"Where it does not move, this is left recursion the rewrite cannot take: {refusal} (§4.3). The rule is " +
-				"read as it is written there, and a parse that has to give up on that alternative goes round until the " +
-				$"stack or memory runs out. Make the rule without {shown} one §4.3 accepts, or let {shown} always move.",
-				declaration.At.Position,
-				declaration.At.Length,
-				GramSeverity.Warning));
+			Refused(rule, declaration, shown, refusal + " (§4.3)");
+
+			return;
+		}
+
+		// One rule for each set of prefixes that may stand together: past more than a few, the rule is not split.
+		if (keys.Count > MostPrefixes)
+		{
+			Refused(rule, declaration, shown, $"it is read past {keys.Count} different prefixes, and a rule is split for at most {MostPrefixes}");
 
 			return;
 		}
@@ -258,9 +274,15 @@ sealed partial class GrammarNormalizer
 
 		foreach (var prefix in prefixes)
 			if (StandsTest(new Node.Sequence(prefix), []) is { } test)
+			{
 				tests.Add(test);
+			}
 			else
+			{
+				Refused(rule, declaration, shown, "whether what is read before the call back moves cannot be asked of it where the rule is entered");
+
 				return;
+			}
 
 		Split(rule, alternatives, recursive, keys, tests, builds, record);
 
@@ -273,6 +295,25 @@ sealed partial class GrammarNormalizer
 			declaration.At.Position,
 			declaration.At.Length,
 			GramSeverity.Info));
+	}
+
+	/// <summary>A rule the rewrite cannot take, told so (GRAM4066) at the level <see cref="StandingRefusedLevel"/> chooses.</summary>
+	void Refused(RuleSymbol rule, Parsing.Decl.Rule declaration, string shown, string why)
+	{
+		_standingRefused.Add(rule);
+
+		if (StandingRefusedLevel is not { } level)
+			return;
+
+		Told(new GramDiagnostic(
+			StandingRefused,
+			$"'{rule.Name}' comes back to itself past {shown}, which may succeed without moving (docs/syntax.md §7.2). " +
+			$"Where it does not move, this is left recursion the rewrite cannot take: {why}. The rule is read as it is " +
+			"written there, and a parse that has to give up on that alternative goes round until the stack or memory " +
+			$"runs out. Make the rule without {shown} one §4.3 accepts, or let {shown} always move.",
+			declaration.At.Position,
+			declaration.At.Length,
+			level));
 	}
 
 	/// <summary>Said once: a rule and the copies a specialization made of it say the same thing at the same place.</summary>
@@ -450,8 +491,25 @@ sealed partial class GrammarNormalizer
 			case Node.Repeat(var body, 0, _) when !MayStand(body):
 				return new Node.Lookahead(false, CloneAndRewrite(body, NoTargets, [], "Standing"));
 
-			case Node.Call(var called, _) when seen.Add(called) && _bodies.TryGetValue(called, out var body):
-				return StandsTest(body, seen);
+			// A body that may stand: a turn that stands ends the repetition where it began, so the first reading stands
+			// where the first turn does, and, where none has to be read, where the body does not match either.
+			case Node.Repeat(var body, var least, _) when StandsTest(body, seen) is { } turn:
+				return least > 0
+					? turn
+					: new Node.Choice([turn, new Node.Lookahead(false, CloneAndRewrite(body, NoTargets, [], "Standing"))]);
+
+			// The rules on the way to this one, not every rule asked: a rule read twice in a prefix — the seam of trivia
+			// woven after each of its parts, a wrapper written twice — is asked each time.
+			case Node.Call(var called, _) when !seen.Contains(called) && _bodies.TryGetValue(called, out var body):
+			{
+				seen.Add(called);
+
+				var test = StandsTest(body, seen);
+
+				seen.Remove(called);
+
+				return test;
+			}
 
 			default:
 				return null;
@@ -747,13 +805,24 @@ sealed partial class GrammarNormalizer
 		if (DeepStack.Low)
 			return DeepStack.Run(() => MovingPrefix(node, seen));
 
+		// The rules on the way to this one, as in StandsTest: a wrapper read twice is read in place each time.
+		if (node is Node.Call(var called, _) && Hosted([node]) && !seen.Contains(called) && _bodies.TryGetValue(called, out var body))
+		{
+			seen.Add(called);
+
+			var moving = MovingPrefix(body, seen);
+
+			seen.Remove(called);
+
+			return moving;
+		}
+
 		return node switch
 		{
 			Node.External external => external with { Moves = true },
-			Node.Call(var called, _) when Hosted([node]) && seen.Add(called) && _bodies.TryGetValue(called, out var body) => MovingPrefix(body, seen),
 			Node.Sequence(var nodes) => new Node.Sequence([.. nodes.Select(one => MovingPrefix(one, seen))]),
 			Node.Choice choice       => choice.Rebuild([.. choice.Nodes.Select(one => MovingPrefix(one, seen))]),
-			Node.Atomic(var body)    => new Node.Atomic(MovingPrefix(body, seen)),
+			Node.Atomic(var inner)   => new Node.Atomic(MovingPrefix(inner, seen)),
 			_                        => CloneAndRewrite(node, NoTargets, [], "Standing"),
 		};
 	}

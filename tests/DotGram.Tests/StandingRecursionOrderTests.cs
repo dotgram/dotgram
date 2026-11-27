@@ -586,6 +586,41 @@ public sealed class StandingRecursionOrderTests
 			  | ':' & n: Num
 			Num : string = ['0'..'9']+
 			""", "", ["1=2:3", "1=2:3*4", "1=2:3*4+:5*6", "1=2:3+", "1=2:*"]),
+
+		// A prefix of two parts with the trivia woven after each, and a wrapper written twice: a rule read twice in one
+		// prefix is asked each time.
+		("trivia lookahead", """
+			trivia = [' ']*
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | ?!'#' & @Ws & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "?!'#' & @Ws & ", ["1+2", "1 + 2 + 3", "1/ 12", "1+", "1 +"]),
+
+		("trivia lookahead after", """
+			trivia = [' ']*
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | @Ws & ?!'#' & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "@Ws & ?!'#' & ", ["1+2", "1 + 2 + 3", "1+", "1 +"]),
+
+		("trivia twice", """
+			trivia = [' ']*
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | @Ws & @Ws & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			    | ?!'#' & @Ws & l: Sum & '-' & r: Num => @("(" + l + "-" + r + ")")
+			Num : string = ['0'..'9']+
+			""", "@Ws & @Ws & |?!'#' & @Ws & ", ["1+2", "1 - 2 + 3", "1+2-3", "1+", "1 -"]),
+
+		("wrapped twice", """
+			T : @string = s: Sum & eof => @(s)
+			Sum : @string = n: Num => @(n)
+			    | W & W & l: Sum & '+' & r: Num => @("(" + l + "+" + r + ")")
+			W = @Ws
+			Num : string = ['0'..'9']+
+			""", "W & W & |W = @Ws\n", ["1+2", "1+2+3", "1+"]),
 	];
 
 	public static TheoryData<string> ShapeNames()
@@ -655,6 +690,32 @@ public sealed class StandingRecursionOrderTests
 		Assert.All(refused, static one => Assert.Equal(GramSeverity.Warning, one.Severity));
 		Assert.Contains(refused, one => one.Message.Contains(reason, StringComparison.Ordinal));
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+
+		// What GRAM4066 said is the reason; the cycle is not told again with another one.
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == "GRAM5021");
+	}
+
+	/// <summary>
+	/// The split makes one rule for each set of prefixes that may stand together: a rule past more than three different
+	/// prefixes is not split, and is told so, and its generation costs what one past a single prefix does.
+	/// </summary>
+	[Fact]
+	public void A_rule_past_many_prefixes_is_not_split()
+	{
+		var (one, oneSize) = Generated(1);
+		var (many, manySize) = Generated(8);
+
+		Assert.Contains(one.Diagnostics, static told => told.Id == "GRAM5021" && told.Message.Contains("is read as the left recursion", StringComparison.Ordinal));
+		Assert.Contains(many.Diagnostics, static told => told.Id == GrammarNormalizer.StandingRefused && told.Message.Contains("8 different prefixes", StringComparison.Ordinal));
+		Assert.True(manySize < oneSize * 3, $"{manySize} chars past 8 prefixes, {oneSize} past one");
+
+		static (GramCompilation Result, int Size) Generated(int prefixes)
+		{
+			var steps  = Enumerable.Range(0, prefixes).Select(static i => $"?!'{(char)('a' + i)}' & @Ws & Sum & '{(char)('a' + i)}'");
+			var result = GramCompiler.Compile("T = Sum & eof\nSum = '1' | " + string.Join(" | ", steps) + "\nparse T", Options(direct: true, tape: false, buffered: false, lexical: false));
+
+			return (result, result.Sources.Sum(static source => source.Text.Length));
+		}
 	}
 
 	/// <summary>

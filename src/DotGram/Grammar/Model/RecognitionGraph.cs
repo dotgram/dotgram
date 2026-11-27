@@ -637,6 +637,12 @@ sealed class RecognitionGraph(
 		new Dictionary<RuleSymbol, Lift>();
 
 	/// <summary>
+	/// The rules that come back to themselves past a prefix that may stand and that the rewrite of such a rule could
+	/// not take, each told why (GRAM4066): a cycle through one is not told again (<see cref="Reentry.Check"/>).
+	/// </summary>
+	public IReadOnlyCollection<RuleSymbol> StandingRefused { get; init; } = [];
+
+	/// <summary>
 	/// The body of a rule lifted out of another one's element, which keeps its captures in the slots
 	/// of the rule it was lifted from (<see cref="Lift.Transparent"/>); null for every other rule.
 	/// </summary>
