@@ -6462,6 +6462,7 @@ sealed partial class Machine
 		try
 		{
 			var said = Predicted(alternatives);
+
 			TellNonReaderPredicted(alternatives, said, predicting);
 
 			return said;
@@ -8934,6 +8935,7 @@ sealed partial class Machine
 	IReadOnlyList<string> Displays(Node node)
 	{
 		var said = Displays(node, leading: true);
+
 		TellNonReader(node, said);
 
 		return said;

@@ -6223,17 +6223,16 @@ sealed partial class Machine
 					var quietly = tries && machine.Quiets;
 					var loudly  = min is not null && (tries && !machine.Quiets || silent);
 
-					// Below the fewest a shut door is the rule failing, said at the door (below).
-					var owed = min is not null && !loudly
-						? Site(repeat ?? body, 0, () => new ShortSite { Items = Said(machine.ReaderDisplays(body)), Furthest = !quietly })
-						: null;
-
-					Site(repeat ?? body, 0, () => new DoorSite
+					// Below the fewest a shut door is the rule failing, and what the turn would have begun with is
+					// said at the door (below): the door's own items.
+					var owed = min is not null && !loudly;
+					var closed = Site(repeat ?? body, 0, () => new DoorSite
 					{
 						Begins     = Doorway([body])!.Ranges,
 						QuietOnly  = quietly,
 						PastFewest = loudly,
-						Items      = owed?.Items ?? [],
+						Items      = owed ? Said(machine.ReaderDisplays(body)) : [],
+						Furthest   = !owed || !quietly,
 					});
 
 					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
@@ -6253,10 +6252,10 @@ sealed partial class Machine
 						// records tries the turn instead, this is the quiet reading's path alone,
 						// and the furthest it writes down is not written here: the turn tried may
 						// say nothing at all, refused by a look before its first item.
-						if (owed is not null)
+						if (owed)
 						{
 							using (code.Block($"if ({turn} < {min})"))
-								Refused(code, machine.DeclareExpected(owed.Items), furthest: !quietly);
+								Refused(code, machine.DeclareExpected(closed.Items), furthest: !quietly);
 
 							code.Line();
 						}
