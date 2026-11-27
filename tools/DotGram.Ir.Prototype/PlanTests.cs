@@ -62,33 +62,44 @@ public sealed class PlanTests(ITestOutputHelper output)
 
 	/// <summary>
 	/// How often a fixture's lowering asked the plan what a place records (<see cref="IrLowering.Options.AsRecorded"/>),
-	/// and found no answer. A grammar the C# generator reads by its flat machine has no readers, and so no
-	/// places, and is not asked; every place of the others is held.
+	/// and found no answer, or held one the lowering does not read. A grammar the C# generator reads by its flat
+	/// machine has no readers, and so no places, and is not asked.
 	/// </summary>
 	[Fact]
 	public void TheMissesOfTheRecordSitesAreCounted()
 	{
 		var asked  = 0;
 		var missed = 0;
+		var kinds  = new SortedDictionary<string, int>(StringComparer.Ordinal);
 
 		foreach (var (name, fixture) in Cases.Fixtures.DistinctBy(static one => one.Value.Grammar))
 		{
 			var program = IrLowering.Lower(Graphs.Of(fixture.Grammar), new IrLowering.Options(AsRecorded: true));
 
-			output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{name}: asked {program.SitesAsked}, missed {program.SiteMisses}"));
+			output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+				$"{name}: asked {program.SitesAsked}, missed {program.SiteMisses} {string.Join(", ", program.UnreadKinds.Select(static one => $"{one.Key} {one.Value}"))}"));
 
 			asked  += program.SitesAsked;
 			missed += program.SiteMisses;
+
+			foreach (var (kind, count) in program.UnreadKinds)
+				kinds[kind] = kinds.GetValueOrDefault(kind) + count;
 		}
 
-		output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"all: asked {asked}, missed {missed}"));
+		var unread = string.Join(", ", kinds.Select(static one => $"{one.Key} {one.Value}"));
 
-		Assert.Equal((SitesAsked, SitesMissed), (asked, missed));
+		output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"all: asked {asked}, missed {missed}; not read: {unread}"));
+
+		Assert.Equal((SitesAsked, SitesMissed, SitesUnread), (asked, missed, unread));
 	}
 
-	/// <summary>The places of the fixtures that record a refusal, and those the plan has no answer for.</summary>
-	const int SitesAsked  = 529;
-	const int SitesMissed = 0;
+	/// <summary>
+	/// The places of the fixtures that record a refusal, those the plan has no answer for or the lowering does not
+	/// read, and of these the kinds: the last literal of a run, which refuses for the run, in Csv and ListsInSequence.
+	/// </summary>
+	const int    SitesAsked  = 532;
+	const int    SitesMissed = 2;
+	const string SitesUnread = "RunSite 2";
 
 	/// <summary>
 	/// The choices and repetitions of the fixtures, and those the plan has no reader's answer for: a

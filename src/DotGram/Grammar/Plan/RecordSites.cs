@@ -200,9 +200,30 @@ sealed class SilentSite : RecordSite;
 /// reading is printed only, around a call of its rule made for it, and its places are noted as it is
 /// printed.
 /// </para>
+/// <para>
+/// Unlike <see cref="WriteDecisions"/>, the key holds nothing of what follows the node: what a place
+/// records is said by the node — its display, what it begins with — and by the rule it is read in, and
+/// not by its continuation, so a node read in two places of one rule is one place. Were an answer to
+/// depend on more, the two readings of it would differ, and the pass over the rules throws where it
+/// reads both; a test also says every place again where it is printed and holds it to the plan's
+/// (<see cref="CheckedWhilePrinting"/>).
+/// </para>
 /// </remarks>
 sealed class RecordSites
 {
+	/// <summary>
+	/// For a test: whether the printer says each place again where it prints it and holds it to what the
+	/// plan says, on this thread. Not a setting; false checks nothing, and nothing printed depends on it.
+	/// </summary>
+	internal static bool CheckedWhilePrinting
+	{
+		get { return _checked; }
+		set { _checked = value; }
+	}
+
+	[ThreadStatic]
+	static bool _checked;
+
 	readonly Dictionary<Key, (RuleSymbol Owner, Node Node, int Count, RecordSite Site)> _sites = [];
 
 	/// <summary>How many places are held.</summary>

@@ -286,7 +286,7 @@ public sealed class RecordSiteParityTests
 			.Append(Totals("all but Json", counts.Where(static one => one.Key != "Json").Select(static one => one.Value), classes))
 			.Append(Totals("give-back grammars", counts.Where(one => family.Contains(one.Key)).Select(static one => one.Value), classes))
 			.Append(string.Create(CultureInfo.InvariantCulture,
-				$"give-back family members without inputs, skipped\t{GiveBackFamily.Members.Length}\n"));
+				$"give-back family members, not read here (TheGiveBackFamilyIsSaidAsTheGeneratedParserSaysIt)\t{GiveBackFamily.Members.Length}\n"));
 
 		foreach (var strategy in counts.Values.Select(static one => one.Strategy).Distinct().Order(StringComparer.Ordinal))
 			summary.Append(Totals("strategy " + strategy, counts.Values.Where(one => one.Strategy == strategy), classes));
@@ -314,6 +314,68 @@ public sealed class RecordSiteParityTests
 
 		Assert.Empty(apart);
 	}
+
+	/// <summary>
+	/// Every member of the give-back family, over every text of <c>0a,;</c> up to <see cref="FamilyLongest"/> characters: the
+	/// evaluator, lowered as the plan's readers record, answers as the generated parser does, and where both refuse, says its
+	/// sets, set for set in order. Every member is read by the generator's readers.
+	/// </summary>
+	[Fact]
+	public void TheGiveBackFamilyIsSaidAsTheGeneratedParserSaysIt()
+	{
+		var inputs  = new List<string> { "" };
+		var level   = new List<string> { "" };
+		var faults  = new ConcurrentQueue<string>();
+		var refused = 0;
+
+		for (var length = 1; length <= FamilyLongest; length++)
+		{
+			level = [.. level.SelectMany(static text => "0a,;".Select(unit => text + unit))];
+			inputs.AddRange(level);
+		}
+
+		Parallel.ForEach(GiveBackFamily.Members, member =>
+		{
+			var fixture = new Cases.Fixture(member.Grammar, member.Parser, "ParseStart");
+
+			if (Strategy(fixture) != "reader")
+				faults.Enqueue($"{member.Name}: read by the {Strategy(fixture)} machine");
+
+			var program = Lowered(member.Grammar);
+
+			foreach (var input in inputs)
+			{
+				var theirs     = Theirs(member.Parser, "ParseStart", input);
+				var (ours, _, _) = new IrEvaluator(program, new RecordingHost()).ParseQuietlyFirst("ParseStart", input);
+
+				if (theirs.Accepted != ours.Accepted)
+				{
+					faults.Enqueue($"{member.Name} {Quote(input)}: accepted {theirs.Accepted} against {ours.Accepted}");
+
+					continue;
+				}
+
+				if (theirs.Accepted)
+					continue;
+
+				Interlocked.Increment(ref refused);
+
+				var kept = Kept(theirs.First, theirs.Tied).ToString();
+
+				if (Canon(Said(ours)) != kept)
+					faults.Enqueue($"{member.Name} {Quote(input)}: C# {kept}, evaluator {Canon(Said(ours))}");
+			}
+		});
+
+		TestContext.Current.SendDiagnosticMessage(string.Create(CultureInfo.InvariantCulture,
+			$"give-back family: {GiveBackFamily.Members.Length} members, {inputs.Count} inputs each, {refused} refused"));
+
+		Assert.True(refused > 10_000, "refused " + refused);
+		Assert.True(faults.IsEmpty, string.Join("\n", faults.Take(40)));
+	}
+
+	/// <summary>How long the family's inputs grow: every text of four characters keeps the test to seconds.</summary>
+	const int FamilyLongest = 4;
 
 	/// <summary>The grammars of <see cref="GiveBackGrammars"/>, which are the fixtures of the give-back family that have inputs.</summary>
 	static readonly HashSet<string> GiveBackGrammarTexts = new(StringComparer.Ordinal)

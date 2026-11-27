@@ -29,16 +29,26 @@ public class RecordSiteTests
 	{
 		var kinds = new SortedDictionary<string, int>(StringComparer.Ordinal);
 
-		foreach (var plan in Plans())
-			foreach (var machine in plan.Machines)
-			{
-				Assert.Equal(machine.Strategy == ReadingStrategy.Reader, machine.Sites is not null);
-				Assert.Equal(machine.Strategy == ReadingStrategy.Reader, machine.ReadInPlace is not null);
+		// Every place is said again where it is printed, and held to the plan's: no answer depends on what the key does not hold.
+		RecordSites.CheckedWhilePrinting = true;
 
-				if (machine.Sites is { } sites)
-					foreach (var (_, _, _, site) in sites.All())
-						kinds[site.GetType().Name] = kinds.TryGetValue(site.GetType().Name, out var count) ? count + 1 : 1;
-			}
+		try
+		{
+			foreach (var plan in Plans())
+				foreach (var machine in plan.Machines)
+				{
+					Assert.Equal(machine.Strategy == ReadingStrategy.Reader, machine.Sites is not null);
+					Assert.Equal(machine.Strategy == ReadingStrategy.Reader, machine.ReadInPlace is not null);
+
+					if (machine.Sites is { } sites)
+						foreach (var (_, _, _, site) in sites.All())
+							kinds[site.GetType().Name] = kinds.TryGetValue(site.GetType().Name, out var count) ? count + 1 : 1;
+				}
+		}
+		finally
+		{
+			RecordSites.CheckedWhilePrinting = false;
+		}
 
 		Assert.Equal(ExpectedKinds, string.Join(", ", kinds.Select(static one => $"{one.Key} {one.Value}")));
 	}
@@ -57,9 +67,17 @@ public class RecordSiteTests
 			ExponentialRepetitionTests.Grammars(SourceRoot.Directory).Where(static one => one.Modes.Contains(false) && one.Included.Count == 0),
 			grammar =>
 			{
+				// And each place said again where it is printed, held to the plan's (RecordSites.CheckedWhilePrinting).
+				RecordSites.CheckedWhilePrinting = true;
+
 				try
 				{
 					var result = GramCompiler.Compile(grammar.Text, Options(settle: true));
+
+					// A generator that throws is told as a diagnostic.
+					foreach (var told in result.Diagnostics)
+						if (told.Message.Contains("place of", StringComparison.Ordinal))
+							faults.Add($"{grammar.Name}: {told.Message}");
 
 					foreach (var machine in result.Plan?.Machines ?? [])
 						if (machine.Sites is { } sites)
@@ -68,6 +86,10 @@ public class RecordSiteTests
 				catch (InvalidOperationException error) when (error.Message.Contains("place of", StringComparison.Ordinal))
 				{
 					faults.Add($"{grammar.Name}: {error.Message}");
+				}
+				finally
+				{
+					RecordSites.CheckedWhilePrinting = false;
 				}
 			});
 
@@ -101,6 +123,25 @@ public class RecordSiteTests
 		var plain = GramCompiler.Compile(Settling, Options(settle: false));
 
 		Assert.Equal(Keys(plain.Plan!.Machines.Single(static one => one.Sites is not null).Sites!.All(), plain.Graph!), Keys(sites, graph));
+	}
+
+	/// <summary>
+	/// A count of a text owes its turns below the fewest: where its door shuts there, what a turn begins with is said
+	/// by the door itself, and the refusal where the count's bounds cross is a place of its own. Both used to be one
+	/// place said two ways, and the grammar did not compile.
+	/// </summary>
+	[Theory]
+	[InlineData("R = $q: 'a'* & '-' & \"xy\"{#q}\nparse R")]
+	[InlineData("R = $q: 'a'* & '-' & $r: 'c'* & '-' & \"xy\"{#q,#r}\nparse R")]
+	public void A_count_says_its_owed_turn_at_its_door(string grammar)
+	{
+		var result = GramCompiler.Compile(grammar, Options(settle: true));
+
+		Assert.False(result.HasErrors, string.Join("\n", result.Diagnostics));
+
+		var sites = result.Plan!.Machines.Single(static one => one.Sites is not null).Sites!.All().Select(static one => one.Site).ToList();
+
+		Assert.Contains(sites, static site => site is DoorSite { Items: ["\"xy\""] });
 	}
 
 	/// <summary>A place the plan does not hold throws when it is asked for, and one place is never answered two ways.</summary>
