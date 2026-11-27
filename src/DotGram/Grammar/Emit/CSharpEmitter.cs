@@ -6348,6 +6348,8 @@ file.Line("return spare;");
 				BackEdges      = settled && candidate.Direct ? machine.SettledBackEdges : null,
 				Deferral       = settled && candidate.Direct ? machine.PlanDeferral() : null,
 				Writes         = settled && candidate.Direct ? machine.Writes : null,
+				Sites          = settled && candidate.Direct ? machine.RefusalSites : null,
+				ReadInPlace    = settled && candidate.Direct ? machine.ReadInPlace(candidate.Publications) : null,
 			};
 
 			machine.Plan = entry;
