@@ -3613,7 +3613,7 @@ sealed partial class Machine
 				{
 					Items   = Said(machine.ReaderPredicted(alternatives)),
 					Begins  = [.. groups.Select(static group => group.Set.Ranges)],
-					Members = [.. groups.Select(group => Indexes(alternatives, group.Members))],
+					Members = Grouped(alternatives, groups.Select(static group => (IReadOnlyList<Node>)group.Members)),
 					Called  = widest,
 				});
 
@@ -3795,7 +3795,7 @@ sealed partial class Machine
 			{
 				Items   = Said(machine.ReaderPredicted(alternatives)),
 				Begins  = [.. groups.Select(static group => group.Set.Ranges)],
-				Members = [.. groups.Select(group => Indexes(alternatives, group.Members))],
+				Members = Grouped(alternatives, groups.Select(static group => (IReadOnlyList<Node>)group.Members)),
 			});
 			var asked = Asked(alternatives, groups);
 
@@ -3919,7 +3919,7 @@ sealed partial class Machine
 			{
 				Items   = Said(machine.ReaderPredicted(alternatives)),
 				Begins  = [.. chain.Select(static one => one.Set.Ranges)],
-				Members = [.. chain.Select(one => Indexes(alternatives, [one.Node]))],
+				Members = Grouped(alternatives, chain.Select(static one => (IReadOnlyList<Node>)[one.Node])),
 				Seam    = true,
 			});
 			var began = $"k{_ways++}";
@@ -3966,7 +3966,7 @@ sealed partial class Machine
 			{
 				Items   = Said(machine.ReaderPredicted(alternatives)),
 				Begins  = [.. chain.Select(static one => one.Set.Ranges)],
-				Members = [.. chain.Select(one => Indexes(alternatives, [one.Node]))],
+				Members = Grouped(alternatives, chain.Select(static one => (IReadOnlyList<Node>)[one.Node])),
 				Called  = Leads(chain[^1].Node) is { } leading && machine.Decidable(leading) is { Ends: false } ? chain.Count - 1 : -1,
 			});
 
@@ -6223,12 +6223,17 @@ sealed partial class Machine
 					var quietly = tries && machine.Quiets;
 					var loudly  = min is not null && (tries && !machine.Quiets || silent);
 
+					// Below the fewest a shut door is the rule failing, said at the door (below).
+					var owed = min is not null && !loudly
+						? Site(repeat ?? body, 0, () => new ShortSite { Items = Said(machine.ReaderDisplays(body)), Furthest = !quietly })
+						: null;
+
 					Site(repeat ?? body, 0, () => new DoorSite
 					{
 						Begins     = Doorway([body])!.Ranges,
 						QuietOnly  = quietly,
 						PastFewest = loudly,
-						Items      = min is not null && !loudly ? Said(machine.ReaderDisplays(body)) : [],
+						Items      = owed?.Items ?? [],
 					});
 
 					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
@@ -6248,10 +6253,10 @@ sealed partial class Machine
 						// records tries the turn instead, this is the quiet reading's path alone,
 						// and the furthest it writes down is not written here: the turn tried may
 						// say nothing at all, refused by a look before its first item.
-						if (min is not null && !loudly)
+						if (owed is not null)
 						{
 							using (code.Block($"if ({turn} < {min})"))
-								Refused(code, Expected(repeat ?? body, 0, () => new ShortSite { Items = Said(machine.ReaderDisplays(body)), Furthest = !quietly }), furthest: !quietly);
+								Refused(code, machine.DeclareExpected(owed.Items), furthest: !quietly);
 
 							code.Line();
 						}
@@ -6681,23 +6686,15 @@ sealed partial class Machine
 			return plan.Sites ?? throw new InvalidOperationException("A machine planned without readers prints a reader.");
 		}
 
-		/// <summary>Where each of <paramref name="members"/> stands among <paramref name="alternatives"/>, by identity.</summary>
-		static IReadOnlyList<int> Indexes(IReadOnlyList<Node> alternatives, IReadOnlyList<Node> members)
+		/// <summary>Where each member of each group stands among <paramref name="alternatives"/>, by identity; -1 where it is none of them.</summary>
+		static IReadOnlyList<IReadOnlyList<int>> Grouped(IReadOnlyList<Node> alternatives, IEnumerable<IReadOnlyList<Node>> groups)
 		{
-			var indexes = new List<int>(members.Count);
+			var at = new Dictionary<Node, int>(alternatives.Count, NodeIdentity.Instance);
 
-			foreach (var member in members)
-			{
-				var at = -1;
+			for (var i = alternatives.Count - 1; i >= 0; i--)
+				at[alternatives[i]] = i;
 
-				for (var i = 0; i < alternatives.Count && at < 0; i++)
-					if (ReferenceEquals(alternatives[i], member))
-						at = i;
-
-				indexes.Add(at);
-			}
-
-			return indexes;
+			return [.. groups.Select(group => (IReadOnlyList<int>)[.. group.Select(one => at.TryGetValue(one, out var index) ? index : -1)])];
 		}
 
 		/// <summary>The items of a display as a refusal says them: the same list where saying changes none of them.</summary>
