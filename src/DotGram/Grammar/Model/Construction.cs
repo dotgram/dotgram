@@ -75,6 +75,22 @@ abstract record Construction
 	}
 
 	/// <summary>
+	/// §4.1's string without <c>=&gt;</c> where a piece is not its own text: the pieces the route read, joined in order.
+	/// </summary>
+	/// <param name="Parts">
+	/// What is joined, in order: text the grammar fixes (a literal that matches its own case), or a capture, which holds
+	/// the text of a piece, the value of a string rule, the character of a char rule, or the values of the turns of a
+	/// repetition. Trivia, lookaheads and guards are no part.
+	/// </param>
+	public sealed record Join(IReadOnlyList<JoinPart> Parts) : Construction
+	{
+		public override string ToString()
+		{
+			return "<join>";
+		}
+	}
+
+	/// <summary>
 	/// §7.3's first way: the declared type's constructor, with the captures that fill it
 	/// in the constructor's own order.
 	/// </summary>
@@ -96,6 +112,22 @@ abstract record Construction
 		{
 			return "<initializer>";
 		}
+	}
+}
+
+/// <summary>One part of a <see cref="Construction.Join"/>: fixed text, or the capture that holds the part.</summary>
+/// <param name="Text">The text, where the grammar fixes it; null for a capture.</param>
+/// <param name="Capture">The capture, where the part is one; null for fixed text.</param>
+readonly record struct JoinPart(string? Text, string? Capture)
+{
+	public static JoinPart Fixed(string text)
+	{
+		return new JoinPart(text, null);
+	}
+
+	public static JoinPart Held(string capture)
+	{
+		return new JoinPart(null, capture);
 	}
 }
 

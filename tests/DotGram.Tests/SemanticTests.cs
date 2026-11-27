@@ -2765,21 +2765,18 @@ public sealed class SemanticTests
 	}
 
 	[Fact]
-	public void An_operand_captured_by_hand_is_not_collected_and_the_message_says_so()
+	public void An_operand_captured_by_hand_is_collected_as_any_other()
 	{
-		// The likeliest way to write §4.1 case 2 wrong, because naming things is what a
-		// grammar author does everywhere else. A sequence result collects the operands
-		// nothing has spoken for, so a captured one leaves it with nothing — and the
-		// message used to say no operand produces one, which is untrue of a rule that does.
-		var reported = Compile(
+		// A name changes nothing in an array (§4.1): the calls of the element type are its
+		// elements, named or not.
+		var value = Parsed(
 			"""
-			Feed : @string[] = rows: Row*
+			Start : @string[] = rows: Row*
 			Row : @string = text: ['a'..'z']+ & eol => @(text)
-			parse Feed
-			""").Diagnostics;
+			""",
+			"ab\ncd\n").Value;
 
-		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, reported[0].Id);
-		Assert.Contains("captured as 'rows'", reported[0].Message, StringComparison.Ordinal);
+		Assert.Equal(["ab", "cd"], (string[])value!);
 	}
 
 	// ── What `recover` recovers from (§8.2) ─────────────────────────────────────
@@ -3399,10 +3396,10 @@ public sealed class SemanticTests
 	[Fact]
 	public void And_the_scalar_form_of_it_works_the_same_way()
 	{
-		// §4.2's `: item` is §4.1 case 3 said of a parameter, and is the same rewrite: the
-		// operand the specialization was given becomes the value handed back.
+		// §4.2's `: item` is the type of the argument, here a string: the specialization's pieces
+		// joined, the spaces it read and the value of the operand it was given.
 		Assert.Equal(
-			"ab",
+			"  ab",
 			Parsed(
 				"Lex(item) : item = ' '* & item\n"
 				+ "Word : @string = text: ['a'..'z']+ => @(text)\n"

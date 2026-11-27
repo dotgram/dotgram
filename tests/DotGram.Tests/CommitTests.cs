@@ -49,7 +49,8 @@ public sealed class CommitTests
 			parse Start
 			""",
 			["Given.=>: Rule(Given)", "Given.Item: Rule(Given)", "Item.=>: Rule(Item)",
-				"Kept.=>: Rule(Kept)", "Kept.Item: Turn(Kept)", "Start.Given: Rule(Start)", "Start.Kept: Rule(Start)"]
+				"Kept.=>: Rule(Kept)", "Kept.Item: Turn(Kept)", "Start.=>: Rule(Start)", "Start.=>: Rule(Start)",
+				"Start.Given: Rule(Start)", "Start.Kept: Rule(Start)"]
 		},
 
 		// An atomic group is a point where what follows it can only fail the parse; in a rule

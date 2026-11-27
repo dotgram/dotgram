@@ -46,6 +46,13 @@ static partial class CSharpEmitter
 				}
 		}
 
+		// A string whose pieces are not all its own text is their join (§4.1), and over bytes a piece of the input is bytes
+		// that nothing decodes into the characters a built string or a char is made of.
+		foreach (var rule in rules)
+			if (NodeWalk.Descendants(graph.Bodies[rule]).Any(static node => node is Node.Construct { How: Construction.Join }))
+				return $"'{rule.Name}' is a string joined from its pieces, and some are not their own text: over bytes a piece of " +
+					"the input cannot be joined to a built string or a character without decoding; build the value with '=>'";
+
 		// A rule that takes the value of its operand or collects its operands (§4.1 cases 2 and 3) hands back what
 		// it captured, and where that is the raw text of a rule that builds nothing it is the same span.
 		foreach (var rule in rules)

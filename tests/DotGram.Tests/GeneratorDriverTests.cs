@@ -2787,22 +2787,21 @@ public sealed class GeneratorDriverTests
 	/// parameterized one.
 	/// </summary>
 	/// <remarks>
-	/// The grammar is wrong — `List` produces `int[]` and a sequence of `int` collects
-	/// operands that produce `int` — and what it earns is GRAM4008. What it used to earn
-	/// was GRAM0001: the questions a grammar could ask the host are collected from its
-	/// text, and `int[]` is a name that text never contains. It is what `item[]` becomes
-	/// where the call specializes it, so the collector foresees the array form of every
-	/// declared type now.
+	/// `List` produces `int[]`, and a call of a rule of the array's own type gives its
+	/// elements in place (§4.1). What it once earned was GRAM0001: the questions a grammar
+	/// could ask the host are collected from its text, and `int[]` is a name that text never
+	/// contains. It is what `item[]` becomes where the call specializes it, so the collector
+	/// foresees the array form of every declared type now.
 	/// </remarks>
 	[Fact]
-	public void A_sequence_of_a_rule_built_by_a_call_is_refused_and_not_a_crash()
+	public void A_sequence_of_a_rule_built_by_a_call_gives_its_elements_and_not_a_crash()
 	{
 		var run = RunGenerator("""
 			[DotGram.Gram("Number : @int = ['0'..'9']+ => @(int.Parse(parserText))\nList(item, sep) : item[] = item & (sep & item)*\nNumbers : Number[] = List(Number, ',')\nparse Numbers")]
 			public partial class Specialized { }
 			""");
 
-		Assert.Contains(run.Diagnostics, diagnostic => diagnostic.Id == "GRAM4008");
+		Assert.DoesNotContain(run.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
 		Assert.DoesNotContain(run.Diagnostics, diagnostic => diagnostic.Id == "GRAM0001");
 	}
 

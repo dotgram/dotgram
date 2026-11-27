@@ -2229,7 +2229,7 @@ static partial class CSharpEmitter
 			if (node is Node.Guard)
 				return false;
 
-			if (node is Node.Construct { How: not (Construction.Sequence or Construction.Operand) })
+			if (node is Node.Construct { How: not (Construction.Sequence or Construction.Operand or Construction.Join) })
 				return false;
 		}
 
@@ -4968,6 +4968,169 @@ file.Line("return spare;");
 				break;
 			}
 
+			// §4.1's string: the pieces the route read, joined in order. Fixed pieces and strings, four at most, are one
+			// `string.Concat`; anything else is copied into a buffer borrowed from the pool, measured first, and made one
+			// string. Either way the match makes one string, built from what the captures already hold.
+			case Construction.Join(var joinedParts):
+			{
+				var pieces = new List<(string? Text, ResultMember? Member)>();
+
+				foreach (var part in joinedParts)
+				{
+					if (part.Text is { } text)
+					{
+						if (pieces.Count > 0 && pieces[^1].Text is { } before)
+							pieces[^1] = (before + text, null);
+						else
+							pieces.Add((text, null));
+
+						continue;
+					}
+
+					var member = factory.Members.FirstOrDefault(one => one.Name == part.Capture) ??
+						throw new InvalidOperationException($"'{rule.Name}' joins a capture it does not have, '{part.Capture}'.");
+
+					pieces.Add((null, member));
+				}
+
+				file.Line(summary + ": the pieces it read, joined (§4.1).</summary>");
+
+				// What a piece is: a string, or, in the buffer, a character, text of the input, or the strings of turns.
+				bool Character(ResultMember member)
+				{
+					return member.Rule is { } called && graph.Types.TryGetValue(called, out var held) &&
+						held is "char" or "System.Char" or "global::System.Char";
+				}
+
+				bool Concatenated((string? Text, ResultMember? Member) piece)
+				{
+					return piece.Member is not { } member || !member.IsSequence && !Character(member) && !SpanText(member);
+				}
+
+				if (pieces.Count <= 4 && pieces.All(Concatenated))
+				{
+					var operands = pieces.Select(piece => piece.Text is { } text ? Quoted(text) : Held(piece.Member!)).ToList();
+
+					file.Line(head + " =>");
+					file.Line(operands.Count switch
+					{
+						0 => "	\"\";",
+						1 => $"	{operands[0]} ?? \"\";",
+						_ => $"	string.Concat({string.Join(", ", operands)});",
+					});
+
+					break;
+				}
+
+				using (file.Block(head))
+				{
+					var length = Unreserved("length", taken);
+					var buffer = Unreserved("buffer", taken);
+					var at     = Unreserved("at", taken);
+					var one    = Unreserved("one", taken);
+					var made   = Unreserved("made", taken);
+					var fixedLength = pieces.Sum(static piece => piece.Text?.Length ?? 0);
+
+					file.Line($"var {length} = {fixedLength.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+
+					foreach (var (_, member) in pieces)
+					{
+						if (member is null)
+							continue;
+
+						var value = ResultTypes.ParameterOf(member);
+
+						if (member.IsSequence)
+						{
+							file.Line($"if ({value} != null)");
+							file.Then(Character(member)
+								? $"{length} += {value}.Length;"
+								: $"foreach (var {one} in {value}) {length} += {one}?.Length ?? 0;");
+						}
+						else if (Character(member))
+						{
+							file.Line(member.IsOptional ? $"if ({value} != null) {length}++;" : $"{length}++;");
+						}
+						else
+						{
+							file.Line(SpanText(member) ? $"{length} += {value}.Length;" : $"{length} += {value}?.Length ?? 0;");
+						}
+					}
+
+					file.Line();
+					file.Line($"var {buffer} = global::System.Buffers.ArrayPool<char>.Shared.Rent({length});");
+					file.Line($"var {at} = 0;");
+					file.Line();
+
+					foreach (var (text, member) in pieces)
+					{
+						if (text is { Length: 1 })
+						{
+							file.Line($"{buffer}[{at}++] = {Char(text[0])};");
+
+							continue;
+						}
+
+						if (text is not null)
+						{
+							file.Line($"{Quoted(text)}.CopyTo(0, {buffer}, {at}, {text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)});");
+							file.Line($"{at} += {text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)};");
+
+							continue;
+						}
+
+						var value = ResultTypes.ParameterOf(member!);
+
+						if (member!.IsSequence && Character(member))
+						{
+							using (file.Block($"if ({value} != null)"))
+							{
+								file.Line($"{value}.CopyTo({buffer}, {at});");
+								file.Line($"{at} += {value}.Length;");
+							}
+						}
+						else if (member.IsSequence)
+						{
+							using (file.Block($"if ({value} != null)"))
+							using (file.Block($"foreach (var {one} in {value})"))
+							{
+								file.Line($"if ({one} == null)");
+								file.Then("continue;");
+								file.Line();
+								file.Line($"{one}.CopyTo(0, {buffer}, {at}, {one}.Length);");
+								file.Line($"{at} += {one}.Length;");
+							}
+						}
+						else if (Character(member))
+						{
+							file.Line(member.IsOptional ? $"if ({value} != null) {buffer}[{at}++] = {value}.Value;" : $"{buffer}[{at}++] = {value};");
+						}
+						else if (SpanText(member))
+						{
+							file.Line($"{value}.CopyTo(new global::System.Span<char>({buffer}, {at}, {value}.Length));");
+							file.Line($"{at} += {value}.Length;");
+						}
+						else
+						{
+							using (file.Block($"if ({value} != null)"))
+							{
+								file.Line($"{value}.CopyTo(0, {buffer}, {at}, {value}.Length);");
+								file.Line($"{at} += {value}.Length;");
+							}
+						}
+					}
+
+					file.Line();
+					file.Line($"var {made} = new string({buffer}, 0, {length});");
+					file.Line();
+					file.Line($"global::System.Buffers.ArrayPool<char>.Shared.Return({buffer});");
+					file.Line();
+					file.Line($"return {made};");
+				}
+
+				break;
+			}
+
 			// §4.1 case 2: the grammar wrote no expression, so there is none to write out.
 			// A body rather than an expression, because a repetition contributes an unknown
 			// number of elements and an optional operand contributes none.
@@ -4981,10 +5144,16 @@ file.Line("return spare;");
 
 				file.Line($"/// <summary>Everything <c>{rule.Name}</c> is made of, in order (§4.1 case 2).</summary>");
 
+				// A call of a rule of this rule's own type gives its elements in place (§4.1).
+				bool Spread(ResultMember member)
+				{
+					return member.Rule is { } called && graph.Types.TryGetValue(called, out var held) && held == graph.Types[rule];
+				}
+
 				// One repetition and nothing else means the array handed in already is the
 				// result, fresh from the materializer and shared with nobody: hand it back
 				// rather than counting it into a copy of itself.
-				if (gathered.Count == 1 && gathered[0].IsSequence &&
+				if (gathered.Count == 1 && gathered[0].IsSequence && !Spread(gathered[0]) &&
 					results.ValueOf(gathered[0]) == element)
 				{
 					var only = ResultTypes.ParameterOf(gathered[0]);
@@ -5010,6 +5179,7 @@ file.Line("return spare;");
 					var count = Unreserved("count", taken);
 					var items = Unreserved("items", taken);
 					var at    = Unreserved("at", taken);
+					var one   = Unreserved("one", taken);
 
 					file.Line($"var {count} = 0;");
 
@@ -5017,7 +5187,12 @@ file.Line("return spare;");
 					{
 						var value = Held(member);
 
-						if (member.IsSequence)
+						if (member.IsSequence && Spread(member))
+						{
+							file.Line($"if ({value} != null)");
+							file.Then($"foreach (var {one} in {value}) {count} += {one}?.Length ?? 0;");
+						}
+						else if (member.IsSequence || Spread(member))
 							file.Line($"if ({value} != null) {count} += {value}.Length;");
 						else if (member.IsOptional)
 							file.Line($"if ({value} != null) {count}++;");
@@ -5034,9 +5209,23 @@ file.Line("return spare;");
 					{
 						var value = Held(member);
 
-						// A sequence capture already has its exact array. Copy it into this
-						// rule's exact result rather than introducing a typed accumulator.
-						if (member.IsSequence)
+						// The arrays of the turns of a repetition of a call of this rule's type, each in place.
+						if (member.IsSequence && Spread(member))
+						{
+							using (file.Block($"if ({value} != null)"))
+							using (file.Block($"foreach (var {one} in {value})"))
+							{
+								file.Line($"if ({one} == null)");
+								file.Then("continue;");
+								file.Line();
+								file.Line($"global::System.Array.Copy({one}, 0, {items}, {at}, {one}.Length);");
+								file.Line($"{at} += {one}.Length;");
+							}
+						}
+
+						// A sequence capture already has its exact array, and so has a call of this rule's type. Copy it
+						// into this rule's exact result rather than introducing a typed accumulator.
+						else if (member.IsSequence || Spread(member))
 						{
 							using (file.Block($"if ({value} != null)"))
 							{

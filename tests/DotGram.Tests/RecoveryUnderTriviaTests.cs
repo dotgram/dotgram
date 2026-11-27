@@ -46,7 +46,7 @@ public sealed class RecoveryUnderTriviaTests
 	public void While_a_repetition_of_text_under_trivia_is_still_refused_its_factory()
 	{
 		var result = GramCompiler.Compile(
-			"trivia = { ' '* }\nWord = ['a'..'z']+ & ';'\nScript : @string = Word* recover ';' => @(\"?\")\nparse Script",
+			"trivia = { ' '* }\nWord = ['a'..'z']+ ~ ';'\nScript : @string = Word* recover ';' => @(\"?\")\nparse Script",
 			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
 
 		Assert.Contains(result.Diagnostics, static one => one.Id == "GRAM4010");

@@ -108,8 +108,8 @@ public sealed class NestedRecoveryTests
 			Words + "Start : @string[] = ('{' & ('[' & (Word & ';')* recover ';' & ']')* recover ',' & '}' & eol)* recover eol",
 			Words +
 				"Inner : @string[] = (Word & ';')* recover ';'\n" +
-				"Middle : @object[] = ('[' & Inner & ']')* recover ','\n" +
-				"Start : @object[] = ('{' & Middle & '}' & eol)* recover eol",
+				"Middle : @string[] = ('[' & Inner & ']')* recover ','\n" +
+				"Start : @string[] = ('{' & Middle & '}' & eol)* recover eol",
 			["Inner", "Middle"],
 			[
 				// `[9]` is stepped over by the innermost, whose `;` is the one in `[e;]`; `{x}` by

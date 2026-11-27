@@ -349,30 +349,33 @@ public sealed class StreamedParseTests
 	}
 
 	/// <summary>
-	/// A sequence of <c>T</c> does not collect a rule that builds a <c>T[]</c> (§4.1 case 2): the
-	/// grammar is refused with GRAM4008, as a compilation refuses it. Without a compilation to ask,
-	/// the array used to be taken for an element and the parser did not compile (CS0029).
+	/// A call of a rule of the array's own type gives its elements in place (§4.1); the stream, which hands over the value
+	/// of each call it reads as one element, is not offered, and the whole form reads the elements. Without a compilation to
+	/// ask, the array was once taken for an element and the parser did not compile (CS0029).
 	/// </summary>
 	[Theory]
 	[InlineData(
 		"Block(Open, Close) : @string[] = (Open & Word & Close & eol)* recover eol\n" +
-		"Start : @string[] = Block('[', ']') & '-' & eol & Block('(', ')')")]
+		"Start : @string[] = Block('[', ']') & '-' & eol & Block('(', ')')",
+		"[a]\n[b]\n-\n(c)\n",
+		"a,b,c")]
 	[InlineData(
 		"Block : @string[] = ('[' & Word & ']' & eol)*\n" +
-		"Start : @string[] = Block & '-' & eol")]
-	public void An_array_is_not_collected_as_its_own_element(string rules)
+		"Start : @string[] = Block & '-' & eol",
+		"[a]\n[b]\n-\n",
+		"a,b")]
+	public void An_array_of_its_own_type_gives_its_elements_in_place(string rules, string input, string expected)
 	{
 		var grammar = "Word : @string = t: ['a'..'z']+ => @(t)\n" + rules;
 
 		foreach (var carrier in Carriers)
-			Assert.Contains(Compiled(grammar, carrier, direct: true).Diagnostics, static one => one.Id == "GRAM4008");
-
-		var host = "[DotGram.Gram(\"\"\"\"\n" + grammar + "\nparse Start\n\"\"\"\")]\npublic partial class Host { }\n";
-
-		Assert.Contains(GeneratorDriverTests.RunGenerator(host).Diagnostics, static one => one.Id == "GRAM4008");
+		{
+			Assert.DoesNotContain(Compiled(grammar, carrier, direct: true).Diagnostics, static one => one.Severity == GramSeverity.Error);
+			Assert.Equal(expected, Whole(Host(grammar, carrier, true, streams: false), input));
+		}
 	}
 
-	/// <summary>
+	/// <summary>	/// <summary>
 	/// Without a compilation to ask, an array is still taken for the types every array is, and for
 	/// no other element of its own.
 	/// </summary>

@@ -19,12 +19,15 @@ namespace DotGram.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <c>Name : Quoted = Quoted | Bare</c> says that <c>Name</c> has the value of whichever operand matched.
-/// Each alternative has to hand that operand back, and an operand is one that has a value: a rule that
-/// builds one, and also a rule that builds nothing and captures nothing, whose value is the extent it
-/// matched. The extent was not counted, so one alternative with such a rule handed back nothing, the
-/// rewrite was dropped for the whole rule, and the generated file built <c>new string()</c> for it
-/// (CS1729) or called a method with an argument too many (CS1501).
+/// <c>Name : Quoted = Quoted | Bare</c> takes the type of <c>Quoted</c>, a string, and is a string as one that declares
+/// <c>: @string</c> is (§4.1): its pieces joined, in order — a call of a string rule gives that rule's value, an untyped rule
+/// is read as if written in place, trivia gives nothing, anything else its own text. A rule whose every piece is its own
+/// text is the text it matched, and the generator gives it the slice it always did.
+/// </para>
+/// <para>
+/// The value of one operand was once all a rule typed by a text rule could have, and an alternative with no such operand
+/// was refused or built <c>new string()</c> (CS1729); a string has no operand of its own, so every one of those shapes now
+/// has a value.
 /// </para>
 /// </remarks>
 public sealed class RuleTypedByTextTests
@@ -39,35 +42,46 @@ public sealed class RuleTypedByTextTests
 	[InlineData("Start : Quoted = Quoted | Bare" + Quoted + Words, "abc", "abc")]
 	[InlineData("Start : Quoted = Bare | Quoted" + Quoted + Words, "[abc]", "abc")]
 	[InlineData("Start : Quoted = Quoted | Word" + Quoted + Words + "\nWord : @string = ['a'..'z']+", "abc", "abc")]
-	[InlineData("Start : Quoted = Quoted | Bare | '-' & Bare" + Quoted + Words, "-abc", "abc")]
+	[InlineData("Start : Quoted = Quoted | Bare | '-' & Bare" + Quoted + Words, "-abc", "-abc")]
 	[InlineData("Start : Quoted = Quoted" + Quoted + Words, "[abc]", "abc")]
+	[InlineData("Start : Quoted = '<' & Quoted & '>'" + Quoted + Words, "<[abc]>", "<abc>")]
 
-	// Neither operand builds a value, and each declares text: what an alternative says is the operand's, not its own extent.
-	[InlineData("Start : Bare = '<' & Bare & '>' | Bare" + Words, "<abc>", "abc")]
+	// Neither operand builds a value: the pieces are all their own text, and the rule is the text it matched.
+	[InlineData("Start : Bare = '<' & Bare & '>' | Bare" + Words, "<abc>", "<abc>")]
 	[InlineData("Start : Bare = '<' & Bare & '>' | Bare" + Words, "abc", "abc")]
-	[InlineData("Start : Bare = '<' & Bare & '>'" + Words, "<abc>", "abc")]
+	[InlineData("Start : Bare = '<' & Bare & '>'" + Words, "<abc>", "<abc>")]
 	[InlineData("Start : Bare = Bare | Other" + Words + "\nOther : @string = ['0'..'9']+", "123", "123")]
-	[InlineData("Start : Bare = '(' & Bare & ')' | Bare" + Words, "(abc)", "abc")]
-
-	// Written in two branches of a group, of which one runs: one operand on every route.
-	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)" + Words, "-<abc>", "abc")]
+	[InlineData("Start : Bare = '(' & Bare & ')' | Bare" + Words, "(abc)", "(abc)")]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)" + Words, "-<abc>", "-<abc>")]
 	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)" + Words, "abc", "abc")]
-
-	// A repetition that never runs is nobody's operand.
-	[InlineData("Start : Bare = '<' & Bare{0} & Bare & '>'" + Words, "<abc>", "abc")]
-
-	// Through a rule that is itself typed by a rule.
-	[InlineData("Start : Mid = Mid | Bare\nMid : Bare = Bare | '!' & Bare" + Words, "!abc", "abc")]
+	[InlineData("Start : Bare = '<' & Bare{0} & Bare & '>'" + Words, "<abc>", "<abc>")]
+	[InlineData("Start : Mid = Mid | Bare\nMid : Bare = Bare | '!' & Bare" + Words, "!abc", "!abc")]
 	[InlineData("Start : Mid = Mid | Bare\nMid : Bare = Bare | '!' & Bare" + Words, "abc", "abc")]
-	public void Gives_the_text_of_the_operand_that_matched(string grammar, string input, string expected)
+
+	// What the rule that gave one operand refused: an untyped piece, several, a repetition, an option, a recursion.
+	[InlineData("Start : Quoted = Quoted | Bare" + Quoted + Plain, "abc", "abc")]
+	[InlineData("Start : Quoted = Quoted | Word" + Quoted + Words + "\nWord = ['a'..'z']+", "abc", "abc")]
+	[InlineData("Start : Mid = Mid | Bare\nMid : Bare = Bare | '!' & Bare" + Plain, "!abc", "!abc")]
+	[InlineData("Start : Bare = Bare & ' ' & Bare" + Words, "ab cd", "ab cd")]
+	[InlineData("Start : Bare = (Bare & ',')+" + Words, "a,b,", "a,b,")]
+	[InlineData("Start : Bare = '<' & (Bare & ';')* recover ';' & '>'" + Words, "<a;b;>", "<a;b;>")]
+	[InlineData("Start : Bare = '<' & Bare? & '>'" + Words, "<>", "<>")]
+	[InlineData("Start : Bare = Start & '+' & Bare | Bare" + Words, "a+b", "a+b")]
+	[InlineData("Start : Bare = Start & '+' & Bare | Bare" + Plain, "a+b", "a+b")]
+	[InlineData("Start : Bare = Start & '+' & Plain | Bare" + Words + Letters, "a+b", "a+b")]
+	[InlineData("Start : Quoted = Start & '+' & Quoted | Quoted" + Quoted + Words, "[a]+[b]", "a+b")]
+
+	// A name changes nothing in a string.
+	[InlineData("Start : Bare = '<' & x: Bare & '>'" + Words, "<abc>", "<abc>")]
+	[InlineData("Start : Bare = '<' & x: Bare & '>' | '[' & x: Bare & ']'" + Words, "[abc]", "[abc]")]
+	[InlineData("Start : Bare = '<' & b: Bare & '>'" + Words, "<abc>", "<abc>")]
+	[InlineData("Start : Quoted = '<' & q: Quoted & '>'" + Quoted + Words, "<[abc]>", "<abc>")]
+	public void Gives_its_pieces_joined(string grammar, string input, string expected)
 	{
 		Assert.Equal(expected, Parsed(grammar, input));
 	}
 
-	/// <summary>
-	/// Operands that declare nothing say nothing of their value, so the rule's is case 4's: the extent it
-	/// matched, however many alternatives it has.
-	/// </summary>
+	/// <summary>Operands that declare nothing are read as written in place: the rule is the extent it matched.</summary>
 	[Theory]
 	[InlineData("Start : Bare = Bare | Other" + Plain + "\nOther = ['0'..'9']+", "123", "123")]
 	[InlineData("Start : Bare = '<' & Bare & '>' | Bare" + Plain, "<abc>", "<abc>")]
@@ -78,63 +92,20 @@ public sealed class RuleTypedByTextTests
 		Assert.Equal(expected, Parsed(grammar, input));
 	}
 
-	/// <summary>
-	/// Some alternatives have an operand that produces the value and some have none, so there is no one value
-	/// to give: told on the rule, not left to the C# compiler.
-	/// </summary>
-	[Theory]
-	[InlineData("Start : Quoted = Quoted | Bare" + Quoted + Plain)]
-	[InlineData("Start : Quoted = Quoted | Word" + Quoted + Words + "\nWord = ['a'..'z']+")]
-	[InlineData("Start : Quoted = Quoted | Bare & Bare" + Quoted + Words)]
-	[InlineData("Start : Mid = Mid | Bare\nMid : Bare = Bare | '!' & Bare" + Plain)]
-	[InlineData("Start : Span = Span | Digits\nSpan : @SourceSpan = ['a'..'z']+\nDigits = ['0'..'9']+")]
-
-	// An operand that is not one on every route: several, repeated, optional, or written in two branches of a group.
-	[InlineData("Start : Bare = Bare & ' ' & Bare" + Words)]
-	[InlineData("Start : Bare = (Bare & ',')+" + Words)]
-	[InlineData("Start : Bare = '<' & (Bare & ';')* recover ';' & '>'" + Words)]
-	[InlineData("Start : Bare = Bare{2}" + Words)]
-	[InlineData("Start : Bare = '<' & Bare? & '>'" + Words)]
-	[InlineData("Start : Span = Span & ' ' & Span\nSpan : @SourceSpan = ['a'..'z']+")]
-
-	// A left-recursive rule says how it is built with a '=>' of its own.
-	[InlineData("Start : Bare = Start & '+' & Bare | Bare" + Words)]
-	[InlineData("Start : Bare = Start & '+' & Bare | Bare" + Plain)]
-	[InlineData("Start : Span = Start & '+' & Span | Span\nSpan : @SourceSpan = ['a'..'z']+")]
-	public void Is_told_where_the_alternatives_do_not_each_give_the_value(string grammar)
-	{
-		var result = Compile(grammar + "\nparse Start");
-		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
-
-		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
-		Assert.Contains("'Start' takes the type of the rule it names", found.Message, StringComparison.Ordinal);
-	}
-
-	/// <summary>
-	/// A name speaks for the operand it names, so the declared type is not given up for the extent where an operand
-	/// is named: it is refused, and the rule does not become a generated type.
-	/// </summary>
-	[Theory]
-	[InlineData("Start : Bare = '<' & x: Bare & '>'" + Words)]
-	[InlineData("Start : Bare = '<' & x: Bare & '>' | '[' & x: Bare & ']'" + Words)]
-	public void A_capture_without_a_construction_does_not_change_the_type(string grammar)
-	{
-		var result = Compile(grammar + "\nparse Start");
-		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
-
-		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
-	}
-
-	/// <summary>
-	/// A left-recursive rule that declares the type of its extent gives its extent, as one that is not left-recursive
-	/// does: the text for <c>: @string</c>, and the bounds for <c>: @SourceSpan</c>.
-	/// </summary>
+	/// <summary>A span is the bounds of what it matched, whatever it calls, left-recursive or not.</summary>
 	[Theory]
 	[InlineData("Start : @SourceSpan = Start & '+' & Plain | Plain" + Letters, "a+bc", 4)]
 	[InlineData("Start : @SourceSpan = Start & '+' & Span | Span\nSpan : @SourceSpan = ['a'..'z']+", "a+bc", 4)]
 	[InlineData("Start : @SourceSpan = '(' & Start & ')' | Start & '+' & Plain | Plain" + Letters, "(a+b)+c", 7)]
-	[InlineData("Start : Expr = '(' & Expr & ')'\nExpr : @SourceSpan = Expr & '+' & Plain | Plain" + Letters, "(a+b)", 3)]
-	public void A_left_recursive_SourceSpan_rule_gives_its_extent(string grammar, string input, int length)
+	[InlineData("Start : Expr = '(' & Expr & ')'\nExpr : @SourceSpan = Expr & '+' & Plain | Plain" + Letters, "(a+b)", 5)]
+	[InlineData("Start : Span = Span | Digits\nSpan : @SourceSpan = ['a'..'z']+\nDigits = ['0'..'9']+", "123", 3)]
+	[InlineData("Start : Span = Span & ' ' & Span\nSpan : @SourceSpan = ['a'..'z']+", "ab cd", 5)]
+	[InlineData("Start : Span = Start & '+' & Span | Span\nSpan : @SourceSpan = ['a'..'z']+", "a+bc", 4)]
+	[InlineData("Start : Span = Span | Digits\nSpan : @SourceSpan = ['a'..'z']+\nDigits : @SourceSpan = ['0'..'9']+", "123", 3)]
+	[InlineData("Start : Span = '<' & Span & '>' | Span\nSpan : @SourceSpan = ['a'..'z']+", "<abc>", 5)]
+	[InlineData("Start : Span = '-'? & ('<' & Span & '>' | Span)\nSpan : @SourceSpan = ['a'..'z']+", "-<ab>", 5)]
+	[InlineData("Start : @SourceSpan = start: N1 & length: N1\nN1 : @int = d: ['0'..'9'] => @(d.Length)", "12", 2)]
+	public void A_span_gives_its_own_bounds(string grammar, string input, int length)
 	{
 		var value = Parsed(grammar, input, kind: true)!;
 
@@ -148,18 +119,17 @@ public sealed class RuleTypedByTextTests
 	}
 
 	/// <summary>
-	/// A rule that takes another's type and is left-recursive says which operand it hands on with a <c>=&gt;</c>
-	/// of its own, and says so for every type.
+	/// A left-recursive rule of another type hands the value so far on from a step that reads no other call of its type;
+	/// one that does says which with a <c>=&gt;</c> of its own.
 	/// </summary>
-	[Theory]
-	[InlineData("Start : Num = Start & '+' & Num | Num\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))")]
-	[InlineData("Start : Bare = Start & '+' & Plain | Plain" + Words + Letters)]
-	public void A_left_recursive_rule_typed_by_a_rule_is_told_why(string grammar)
+	[Fact]
+	public void A_left_recursive_rule_typed_by_a_rule_is_told_why()
 	{
-		var result = Compile(grammar + "\nparse Start");
+		var result = Compile("Start : Num = Start & '+' & Num | Num\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))\nparse Start");
 		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
 
-		Assert.Contains("'=>' of its own to say", found.Message, StringComparison.Ordinal);
+		Assert.Contains("which value a step hands on is not said", found.Message, StringComparison.Ordinal);
+		Assert.Contains("Write '=>", found.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -167,9 +137,10 @@ public sealed class RuleTypedByTextTests
 	/// type is a number or a class.
 	/// </summary>
 	[Theory]
-	[InlineData("Start : Num = '<' & Num? & '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "may have none")]
-	[InlineData("Start : Num = Num+\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "may have more than one")]
-	[InlineData("Start : Item = '<' & Item? & '>'\nItem = x: ['a'..'z']+", "may have none")]
+	[InlineData("Start : Num = '<' & Num? & '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "may read none")]
+	[InlineData("Start : Num = Num+\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "may read more than one")]
+	[InlineData("Start : Item = '<' & Item? & '>'\nItem = x: ['a'..'z']+", "may read none")]
+	[InlineData("Start : Num = '<' & n: Num & '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "No constructor of 'int'")]
 	public void A_non_text_operand_that_is_not_one_is_told_why(string grammar, string why)
 	{
 		var result = Compile(grammar + "\nparse Start");
@@ -188,19 +159,20 @@ public sealed class RuleTypedByTextTests
 	}
 
 	/// <summary>
-	/// The operand is held by a capture of the rule's own making, which no name the author wrote can be: a capture
-	/// named like it, <c>item0</c> or <c>items</c>, is the author's and is not what the rule hands back.
+	/// A piece is held by a capture of the rule's own making, which no name the author wrote can be: a capture named like
+	/// it, <c>item0</c> or <c>items</c>, is the author's, and changes nothing in a string.
 	/// </summary>
 	[Theory]
-	[InlineData("Start : Bare = item0: '<' & Bare & '>'" + Words, "<abc>")]
-	[InlineData("Start : Bare = '<' & Bare & items: '>'" + Words, "<abc>")]
-	[InlineData("Start : Bare = '<' & Bare & item: '>'" + Words, "<abc>")]
-	[InlineData("Start : Bare = '<' & Bare & item1: '>' | Bare" + Words, "<abc>")]
-	[InlineData("Start : Quoted = Quoted | '!' & Bare & items: '!'" + Quoted + Words, "!abc!")]
-	[InlineData("Start : Num = '<' & Num & item0: '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "<1>")]
-	public void A_capture_the_author_names_like_the_operand_is_not_the_operand(string grammar, string input)
+	[InlineData("Start : Bare = item0: '<' & Bare & '>'" + Words, "<abc>", "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & items: '>'" + Words, "<abc>", "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & item: '>'" + Words, "<abc>", "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & item1: '>' | Bare" + Words, "<abc>", "<abc>")]
+	[InlineData("Start : Quoted = Quoted | '!' & Bare & items: '!'" + Quoted + Words, "!abc!", "!abc!")]
+	[InlineData("Start : Quoted = item0: '<' & Quoted & item1: '>'" + Quoted + Words, "<[abc]>", "<abc>")]
+	[InlineData("Start : Num = '<' & Num & item0: '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "<1>", "1")]
+	public void A_capture_the_author_names_like_the_operand_is_not_the_operand(string grammar, string input, string expected)
 	{
-		Assert.Contains(Convert.ToString(Parsed(grammar, input, kind: true)), new[] { "abc", "1" });
+		Assert.Equal(expected, Convert.ToString(Parsed(grammar, input, kind: true), System.Globalization.CultureInfo.InvariantCulture));
 	}
 
 	/// <summary>A name on what is no operand, a rule that declared nothing, adds nothing: the rule is the extent it matched.</summary>
@@ -210,59 +182,64 @@ public sealed class RuleTypedByTextTests
 		Assert.Equal("<abc>", Parsed("Start : Bare = '<' & x: Bare & '>'" + Plain, "<abc>"));
 	}
 
-	/// <summary>
-	/// A group that has a rule that builds the value in one branch and a rule that only matched it in another is
-	/// one operand on each route: what the route that ran read is what is handed back.
-	/// </summary>
+	/// <summary>A choice of a built piece and a matched one gives, on each route, what that route read, joined.</summary>
 	[Theory]
-	[InlineData("-<abc>")]
-	[InlineData("abc")]
-	public void A_group_of_a_built_operand_and_a_matched_one_gives_the_operand(string input)
+	[InlineData("-<abc>", "-<abc>")]
+	[InlineData("abc", "abc")]
+	public void A_group_of_a_built_operand_and_a_matched_one_gives_the_route_joined(string input, string expected)
 	{
-		Assert.Equal("abc", Parsed("Start : Bare = '-'? & ('<' & Quoted & '>' | Bare)\nQuoted : @string = x: ['a'..'z']+ => @(x)" + Words, input));
+		Assert.Equal(expected, Parsed("Start : Bare = '-'? & ('<' & Quoted & '>' | Bare)\nQuoted : @string = x: ['a'..'z']+ => @(x)" + Words, input));
 	}
 
 	/// <summary>
-	/// What a rule hands back from a text operand is the same in every mode that reads characters: a capture is a
-	/// span under <c>UseSpanCaptures</c>, and the string it is handed back as is made of it.
+	/// A string is the same in every mode that reads characters: a capture is a span under <c>UseSpanCaptures</c>, and the
+	/// string is made of it.
 	/// </summary>
 	[Theory]
-	[InlineData("Start : Bare = '<' & Bare & '>'", "<abc>")]
-	[InlineData("Start : Bare = x: '<' & Bare & '>'", "<abc>")]
-	[InlineData("Start : Bare = '<' & Bare & items: '>'", "<abc>")]
-	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)", "-<abc>")]
-	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)", "abc")]
-	[InlineData("Start : Word = '-'? & ('<' & Word & '>' | Bare)\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "-<abc>")]
-	[InlineData("Start : Word = '-'? & ('<' & Word & '>' | Bare)\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "abc")]
-	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())", "[abc]")]
-	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())", "abc")]
-	public void A_text_operand_gives_its_text_under_span_captures(string grammar, string input)
+	[InlineData("Start : Bare = '<' & Bare & '>'", "<abc>", "<abc>")]
+	[InlineData("Start : Bare = x: '<' & Bare & '>'", "<abc>", "<abc>")]
+	[InlineData("Start : Bare = '<' & Bare & items: '>'", "<abc>", "<abc>")]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)", "-<abc>", "-<abc>")]
+	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)", "abc", "abc")]
+	[InlineData("Start : Word = '-'? & ('<' & Word & '>' | Bare)\nWord : @string = c: ['a'..'z']+ => @(\"W:\" + c.ToString())", "-<abc>", "-<W:abc>")]
+	[InlineData("Start : Word = '-'? & ('<' & Word & '>' | Bare)\nWord : @string = c: ['a'..'z']+ => @(\"W:\" + c.ToString())", "abc", "abc")]
+	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())", "[abc]", "abc")]
+	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())", "abc", "abc")]
+	[InlineData("Start : @string = Bare & Esc & 'x'\nEsc : @char = '\\\\' & 'n' => @('\\n')", "ab\\nx", "ab\nx")]
+	public void A_string_is_the_same_under_span_captures(string grammar, string input, string expected)
 	{
 		foreach (var option in new[] { "", ", UseSpanCaptures = true" })
 		{
 			var type = GeneratorDriverTests.Build(
-				"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nBare : @string = ['a'..'z']+\\nparse Start\"" + option + ")]\npublic partial class Spanned { }")
+				"[DotGram.Gram(\"" + grammar.Replace("\\", "\\\\").Replace("\n", "\\n").Replace("\"", "\\\"") + "\\nBare : @string = ['a'..'z']+\\nparse Start\"" + option + ")]\npublic partial class Spanned { }")
 				.GetType("Spanned")!;
 
-			Assert.Equal("abc", (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!);
+			Assert.Equal(expected, (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!);
 		}
 	}
 
-	/// <summary>
-	/// Over bytes a raw capture is a span that nothing decodes (§6.3), so a rule that hands back a text operand is
-	/// refused there, in the grammar's terms, as a type made of a raw capture is.
-	/// </summary>
+	/// <summary>Over bytes a string that is its own text is the bytes it matched, as it always was.</summary>
 	[Theory]
 	[InlineData("Start : Bare = '<' & Bare & '>'")]
 	[InlineData("Start : Bare = x: '<' & Bare & '>'")]
 	[InlineData("Start : Bare = '-'? & ('<' & Bare & '>' | Bare)")]
+	public void A_string_of_its_own_text_is_read_over_bytes(string grammar)
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nBare : @string = ['a'..'z']+\\nparse Start\\nparse Start as Bytes stream bytes\")]\npublic partial class Spanned { }");
 
-	// Each route of a rule has a construction of its own, and the refusal is of every one: a built operand first and
-	// a raw text one after it.
-	[InlineData("Start : Quoted = Quoted | Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())")]
-	[InlineData("Start : Word = Word | Bare\nWord : @string = c: ['a'..'z'] => @(c.ToString())")]
+		Assert.DoesNotContain(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
+	}
+
+	/// <summary>
+	/// Over bytes a piece of the input is bytes that nothing decodes, so a string joined from a built piece and the input's
+	/// own is refused there, in the grammar's terms, with the rule's name.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : Quoted = Quoted | '-' & Bare\nQuoted : @string = '[' & b: Bare & ']' => @(b.ToString())")]
+	[InlineData("Start : Word = '<' & Word & '>'\nWord : @string = c: ['a'..'z'] => @(c.ToString())")]
 	[InlineData("Start : Word = Word | '!' & Bare\nWord : @string = c: ['a'..'z'] => @(c.ToString())")]
-	public void A_text_operand_over_bytes_is_refused(string grammar)
+	public void A_joined_string_over_bytes_is_refused(string grammar)
 	{
 		var run   = GeneratorDriverTests.RunGenerator(
 			"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nBare : @string = ['a'..'z']+\\nparse Start\\nparse Start as Bytes stream bytes\")]\npublic partial class Spanned { }");
@@ -271,9 +248,8 @@ public sealed class RuleTypedByTextTests
 		var message = found.GetMessage();
 
 		Assert.Equal("GRAM4026", found.Id);
-
-		// The operand's rule is the name the grammar has for it; the capture the compiler made of it is nobody's.
-		Assert.Contains("hands back the text of 'Bare'", message, StringComparison.Ordinal);
+		Assert.Contains("'Start' is a string joined from its pieces", message, StringComparison.Ordinal);
+		Assert.Contains("'=>'", message, StringComparison.Ordinal);
 		Assert.DoesNotContain("item", message, StringComparison.Ordinal);
 	}
 
@@ -328,27 +304,12 @@ public sealed class RuleTypedByTextTests
 		Assert.Single(value.Cast<object>());
 	}
 
-	/// <summary>
-	/// A name speaks for what it names (§4.1): an operand that is named is no longer one the implicit value is made of, and
-	/// where that leaves nothing the rule is told, with the name.
-	/// </summary>
+	/// <summary>Names change nothing in an array: a call of the element type is collected whether the author named it or not.</summary>
 	[Theory]
-	[InlineData("Start : @string[] = rows: Word+\nWord : @string = c: ['a'..'z']+ => @(c.ToString())")]
-	[InlineData("Start : Bare = '<' & b: Bare & '>'\nBare : @string = ['a'..'z']+")]
-	[InlineData("Start : Num = '<' & n: Num & '>'\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))")]
-	public void A_named_operand_leaves_the_implicit_value_and_the_rule_is_told(string grammar)
-	{
-		var result = Compile(grammar + "\nparse Start");
-		var found  = result.Diagnostics.First(static one => one.Severity == GramSeverity.Error);
-
-		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
-		Assert.Contains("A name speaks for what it names", found.Message, StringComparison.Ordinal);
-	}
-
-	[Theory]
-	[InlineData("Start : @string[] = w: Word & Word\nWord : @string = c: ['a'..'z'] => @(c.ToString())", "ab", "b")]
-	[InlineData("Start : @int[] = n: Num & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "12", "2")]
-	public void A_named_operand_beside_another_is_not_collected(string grammar, string input, string expected)
+	[InlineData("Start : @string[] = w: Word & Word\nWord : @string = c: ['a'..'z'] => @(c.ToString())", "ab", "a;b")]
+	[InlineData("Start : @int[] = n: Num & Num\nNum : @int = ['0'..'9'] => @(int.Parse(parserText))", "12", "1;2")]
+	[InlineData("Start : @string[] = rows: Word+\nWord : @string = c: ['a'..'z'] => @(c.ToString())", "abc", "a;b;c")]
+	public void A_named_operand_is_collected(string grammar, string input, string expected)
 	{
 		var value = (System.Collections.IEnumerable)Parsed(grammar, input, kind: true)!;
 
@@ -530,8 +491,8 @@ public sealed class RuleTypedByTextTests
 	/// would unnamed, in a rule that takes an operand's value as in a sequence.
 	/// </summary>
 	[Theory]
-	[InlineData("Start : Word = x: ('<' & Word & '>')\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "<abc>", "abc")]
-	[InlineData("Start : Bare = x: ('<' & Bare & '>')\nBare : @string = ['a'..'z']+", "<abc>", "abc")]
+	[InlineData("Start : Word = x: ('<' & Word & '>')\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "<abc>", "<abc>")]
+	[InlineData("Start : Bare = x: ('<' & Bare & '>')\nBare : @string = ['a'..'z']+", "<abc>", "<abc>")]
 	public void A_name_on_a_group_adds_nothing_to_the_value_of_an_operand(string grammar, string input, string expected)
 	{
 		Assert.Equal(expected, Parsed(grammar, input));
@@ -540,7 +501,7 @@ public sealed class RuleTypedByTextTests
 	[Theory]
 	[InlineData("Start : @string[] = Word & x: (',' & Word)*", "ab,cd,ef", "ab;cd;ef")]
 	[InlineData("Start : @string[] = x: (Word & ',' & Word)", "ab,cd", "ab;cd")]
-	[InlineData("Start : @string[] = Word & (',' & x: Word)*", "ab,cd,ef", "ab")]
+	[InlineData("Start : @string[] = Word & (',' & x: Word)*", "ab,cd,ef", "ab;cd;ef")]
 	public void A_name_on_a_group_adds_nothing_to_a_sequence(string rules, string input, string expected)
 	{
 		var value = (System.Collections.IEnumerable)Parsed(rules + "\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", input, kind: true)!;
@@ -551,33 +512,32 @@ public sealed class RuleTypedByTextTests
 	/// <summary>A name that a guard reads is read, and the rule is the one it would be unnamed: an extent of text as an extent of bounds.</summary>
 	[Theory]
 	[InlineData("Start : @string = x: ['a'..'z']+ & when @(x.Length > 1)", "abc", "abc")]
-	[InlineData("Start : Bare = x: '<' & when @(x.Length == 1) & Bare & '>'\nBare : @string = ['a'..'z']+", "<abc>", "abc")]
+	[InlineData("Start : Bare = x: '<' & when @(x.Length == 1) & Bare & '>'\nBare : @string = ['a'..'z']+", "<abc>", "<abc>")]
 	public void A_name_read_by_a_guard_leaves_the_value_as_it_is(string grammar, string input, string expected)
 	{
 		Assert.Equal(expected, Parsed(grammar, input));
 	}
 
-	/// <summary>A name on an operand of another type is no operand's name: it adds nothing, whatever the rule declared.</summary>
+	/// <summary>A piece of a string that is of another type has no text to join, whatever it is named.</summary>
 	[Theory]
-	[InlineData("Start : @string = n: Num & ['a'..'z']+\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "12abc", "12abc")]
-	[InlineData("Start : @string = i: Item & '!'\nItem = x: ['a'..'z']+", "abc!", "abc!")]
-	public void A_name_on_an_operand_of_another_type_adds_nothing(string grammar, string input, string expected)
+	[InlineData("Start : @string = n: Num & ['a'..'z']+\nNum : @int = ['0'..'9']+ => @(int.Parse(parserText))", "'Num' is 'int'")]
+	[InlineData("Start : @string = i: Item & '!'\nItem = x: ['a'..'z']+", "'Item' is 'Item'")]
+	public void A_named_piece_of_another_type_is_told(string grammar, string fact)
 	{
-		// Through the real generator: whether `int` fits a `string` is a question the host answers.
-		var type = GeneratorDriverTests.Build(
-			"[DotGram.Gram(\"" + grammar.Replace("\n", "\\n") + "\\nparse Start\")]\npublic partial class Typed { }")
-			.GetType("Typed")!;
+		var result = Compile(grammar + "\nparse Start");
+		var found  = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
 
-		Assert.Equal(expected, (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!);
+		Assert.Equal(GrammarNormalizer.UnbuiltConstruction, found.Id);
+		Assert.Contains(fact, found.Message, StringComparison.Ordinal);
 	}
 
-	/// <summary>A left-recursive rule that collects has no saying which operand a step hands on: it is told, and the generator does not throw.</summary>
+	/// <summary>A left-recursive array is its seed and its steps: the value so far is the elements so far.</summary>
 	[Fact]
-	public void A_left_recursive_sequence_is_told()
+	public void A_left_recursive_sequence_collects_its_steps()
 	{
-		var result = Compile("Start : @string[] = Start & ',' & Word | Word\nWord : @string = c: ['a'..'z']+ => @(c.ToString())\nparse Start");
+		var value = (string[])Parsed("Start : @string[] = Start & ',' & Word | Word\nWord : @string = c: ['a'..'z']+ => @(c.ToString())", "ab,cd,ef", kind: true)!;
 
-		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.UnbuiltConstruction);
+		Assert.Equal(["ab", "cd", "ef"], value);
 	}
 
 	/// <summary>
@@ -597,33 +557,21 @@ public sealed class RuleTypedByTextTests
 	}
 
 	/// <summary>
-	/// A name that a §7.3 constructor of the declared type reads is read, as one a <c>=&gt;</c> reads is: the value is the
-	/// one the constructor builds, <c>new string('c', 3)</c>, and not the extent.
+	/// A string is never built from names (§7.3): a piece of a string that is no text, a number, is told, with the
+	/// construction to write instead.
 	/// </summary>
-	[Fact]
-	public void A_string_built_by_its_own_constructor_from_the_names_keeps_that_value()
-	{
-		var type = GeneratorDriverTests.Build(
-			"[DotGram.Gram(\"Start : @string = c: Ch & count: Num\\nCh : @char = x: ['a'..'z'] => @('c')\\n" +
-			"Num : @int = d: ['0'..'9']+ => @(d.Length)\\nparse Start\")]\npublic partial class Ctor { }")
-			.GetType("Ctor")!;
-
-		Assert.Equal("ccc", (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["a123"])!);
-	}
-
-	/// <summary>A rule that takes the type of a text rule asks the same of its names as one that declares it.</summary>
 	[Theory]
-	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num\\nBare : @string = ['a'..'z']+\\n", "a123,de", "ccc")]
-	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num & when @(count > 0)\\nBare : @string = ['a'..'z']+\\n", "a123,de", "ccc")]
-	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num & Bare\\nBare : @string = ['a'..'z']+\\n", "a123xy,de", "ccc")]
-	public void A_rule_typed_by_a_text_rule_asks_the_constructor(string grammar, string input, string expected)
+	[InlineData("Start : @string = c: Ch & count: Num\\n")]
+	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num\\nBare : @string = ['a'..'z']+\\n")]
+	[InlineData("Start : @string[] = Inner & ',' & Bare\\nInner : Bare = c: Ch & count: Num & when @(count > 0)\\nBare : @string = ['a'..'z']+\\n")]
+	public void A_string_is_not_built_from_its_names(string grammar)
 	{
-		var type = GeneratorDriverTests.Build(
-			"[DotGram.Gram(\"" + grammar + "Ch : @char = x: ['a'..'z'] => @('c')\\nNum : @int = d: ['0'..'9']+ => @(d.Length)\\nparse Start\")]\npublic partial class Typed2 { }")
-			.GetType("Typed2")!;
-		var value = type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input])!;
+		var run   = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"" + grammar + "Ch : @char = x: ['a'..'z'] => @('c')\\nNum : @int = d: ['0'..'9']+ => @(d.Length)\\nparse Start\")]\npublic partial class Typed2 { }");
+		var found = Assert.Single(run.Diagnostics, static one => one.Severity == DiagnosticSeverity.Error);
 
-		Assert.Equal(expected, value is string[] many ? string.Join(",", many) : (string)value);
+		Assert.Equal("GRAM4008", found.Id);
+		Assert.Contains("'Num' is 'int'", found.GetMessage(), StringComparison.Ordinal);
 	}
 
 	/// <summary>A name that several constructors of the type tie on (<c>string(char[] value)</c>, <c>string(ReadOnlySpan&lt;char&gt; value)</c>) builds nothing, so it is read by nothing and the rule is the extent, as with any other name.</summary>
@@ -637,16 +585,6 @@ public sealed class RuleTypedByTextTests
 			.GetType("Tied")!;
 
 		Assert.Equal("abc", (string)type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"])!);
-	}
-
-	/// <summary>The names of the generated span's own constructor are told, as they were, and are not silently the extent.</summary>
-	[Fact]
-	public void A_SourceSpan_rule_named_like_the_span_constructor_is_told()
-	{
-		var run = GeneratorDriverTests.RunGenerator(
-			"[DotGram.Gram(\"Start : @SourceSpan = start: N1 & length: N1\\nN1 : @int = d: ['0'..'9'] => @(d.Length)\\nparse Start\")]\npublic partial class Spans { }");
-
-		Assert.Contains(run.Diagnostics, static one => one.Id == "GRAM4008");
 	}
 
 	/// <summary>The word <c>context</c> in a literal, or after a dot, is no name the code of the rule writes.</summary>
@@ -665,15 +603,6 @@ public sealed class RuleTypedByTextTests
 	public void A_left_recursive_rule_builds_with_its_own_construction()
 	{
 		Assert.Equal("b", Parsed("Start : Bare = Start & '+' & b: Bare => @(b) | b: Bare => @(b)" + Words, "a+b"));
-	}
-
-	[Theory]
-	[InlineData("Start : Span = Span | Digits\nSpan : @SourceSpan = ['a'..'z']+\nDigits : @SourceSpan = ['0'..'9']+", "123", "3")]
-	[InlineData("Start : Span = '<' & Span & '>' | Span\nSpan : @SourceSpan = ['a'..'z']+", "<abc>", "3")]
-	[InlineData("Start : Span = '-'? & ('<' & Span & '>' | Span)\nSpan : @SourceSpan = ['a'..'z']+", "-<ab>", "2")]
-	public void Gives_the_extent_of_the_operand_that_matched(string grammar, string input, string expected)
-	{
-		Assert.Equal(expected, Length(grammar, input));
 	}
 
 	[Theory]

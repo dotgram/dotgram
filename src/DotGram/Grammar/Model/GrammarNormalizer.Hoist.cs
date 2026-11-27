@@ -67,6 +67,7 @@ sealed partial class GrammarNormalizer
 		List<string> optional = [];
 		Node? loop = null;
 		var looking = 0;
+		var current = (RuleSymbol?)null;
 
 		foreach (var rule in _rules)
 		{
@@ -76,6 +77,7 @@ sealed partial class GrammarNormalizer
 
 			optional = OptionalText(_bodies[rule]);
 
+			current       = rule;
 			_bodies[rule] = Hoist(_bodies[rule]);
 		}
 
@@ -102,6 +104,7 @@ sealed partial class GrammarNormalizer
 					when (min > 0 || max != 1) &&
 						!_recoveries.ContainsKey(node) &&
 						!ReferenceEquals(node, loop) &&
+						!_listed.Contains((current!, name)) &&
 						PureText(captured):
 					return new Node.Capture(name, Placed(node, new Node.Repeat(Hoist(captured), min, max)));
 
@@ -109,7 +112,7 @@ sealed partial class GrammarNormalizer
 				// the option `{0,1}`, since a length is not a number the parser is generated with,
 				// so every count moves.
 				case Node.Counted(Node.Capture(var name, var captured), var min, var max)
-					when PureText(captured):
+					when !_listed.Contains((current!, name)) && PureText(captured):
 					return new Node.Capture(name, Placed(node, new Node.Counted(Hoist(captured), min, max)));
 
 				case Node.Sequence(var parts):

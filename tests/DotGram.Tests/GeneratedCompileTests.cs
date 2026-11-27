@@ -298,24 +298,27 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
-	/// The repro as first reported: a rule that is a sequence of <c>int</c> made of one operand that
-	/// is an <c>int[]</c>. The operand does not join the sequence (§4.1 case 2), so the rule has
-	/// nothing to build from, and is told so by the grammar's own diagnostic rather than by an
-	/// exception or a C# error.
+	/// The repro as first reported: a rule that is a sequence of <c>int</c> made of one operand that is an <c>int[]</c>,
+	/// once refused and before that an exception. A call of a rule of the array's own type gives its elements in place
+	/// (§4.1), the recovered one among them.
 	/// </summary>
 	[Theory]
-	[InlineData("R0 : @int[] = R2", true)]
-	[InlineData("R0 : @int[] = R2", false)]
-	[InlineData("R0 : @int[] = 'a' & R2", true)]
-	[InlineData("R0 : @int[] = 'a' & R2", false)]
-	public void A_sequence_of_a_recovering_sequence_is_refused(string rule, bool direct)
+	[InlineData("R0 : @int[] = R2", "z;x;z;", true)]
+	[InlineData("R0 : @int[] = R2", "z;x;z;", false)]
+	[InlineData("R0 : @int[] = 'a' & R2", "az;x;z;", true)]
+	[InlineData("R0 : @int[] = 'a' & R2", "az;x;z;", false)]
+	public void A_sequence_of_a_recovering_sequence_gives_its_elements(string rule, string input, bool direct)
 	{
 		var result = Compiled(
 			"R1 : @int = 'z' & ';' => @(1)\nR2 : @int[] = R1* recover ';' => @(0)\n" + rule + "\nparse R0",
 			Host, direct);
 
-		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.UnbuiltConstruction);
-		Assert.Empty(result.Sources);
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var (success, value) = Read(Build(result, Host), "TryParseR0", input);
+
+		Assert.True(success);
+		Assert.Equal([1, 0, 1], (int[])value!);
 	}
 
 	/// <summary>
@@ -327,7 +330,6 @@ public sealed class GeneratedCompileTests
 	/// </summary>
 	[Theory]
 	[InlineData("R2 = 'a' & R1* recover ';' => @(0) & 'b'", true, null)]
-	[InlineData("R2 : @string = 'a' & R1* recover ';' => @(0) & 'b'", true, null)]
 	[InlineData("R2 : @int[] = 'a' & R1* recover ';' => @(0) & 'b'", false, "1,0,1")]
 	[InlineData("R2 : @int[] = ('a' & R1* recover ';' => @(0) & 'b')* recover 'b'", false, "1,0,1")]
 	[InlineData("R2 : @int[] = 'a' & xs: R1* recover ';' => @(0) & 'b' => @xs", false, "1,0,1")]

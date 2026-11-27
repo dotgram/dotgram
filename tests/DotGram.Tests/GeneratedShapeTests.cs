@@ -199,8 +199,6 @@ public sealed class GeneratedShapeTests
 				"E = E & '+' & d: N | c: N & '=' & N",
 				"E = E & '+' & d: M | c: N & '=' & N\nM = n: N",
 				"E = l: E & '+' & N & when @(l.c != null) | c: N & '=' & N",
-				"E : @string = l: E & '+' & N & when @(l.Length > 0) | N",
-				"E : @string = l: E & '+' & N | N",
 				"E = l: E & '+' & N | c: N & '=' & N",
 				"E = E & '+' & d: N << 1 | c: N",
 			})
@@ -228,6 +226,16 @@ public sealed class GeneratedShapeTests
 		var text = Compiled("E : @string = E & '+' & N | N\nN = ['0'..'9']+\nparse E", carrier, direct);
 
 		Assert.Equal("1+2+34", EmittedCode.Match(text, "Grammar", "TryParseE", "1+2+34").Value);
+
+		// A name changes nothing in a string: a step that names the value so far is the text all the same, and a guard may
+		// read the name.
+		var named = Compiled("E : @string = l: E & '+' & N | N\nN = ['0'..'9']+\nparse E", carrier, direct);
+
+		Assert.Equal("1+2+34", EmittedCode.Match(named, "Grammar", "TryParseE", "1+2+34").Value);
+
+		var guarded = Compiled("E : @string = l: E & '+' & N & when @(l.Length > 0) | N\nN = ['0'..'9']+\nparse E", carrier, direct);
+
+		Assert.Equal("1+2+34", EmittedCode.Match(guarded, "Grammar", "TryParseE", "1+2+34").Value);
 
 		var folded = Compiled(
 			"E : @string = l: E & '+' & n: N & when @(l.Length < 3) => @(l + n) | n: N => @(n)\nN = ['0'..'9']\nparse E",

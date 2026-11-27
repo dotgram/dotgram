@@ -51,6 +51,8 @@ public sealed class WalkGuardTests
 		["GrammarBinder.ResolveExpression"] = "one expression; a reference is resolved, not followed (GramParser.MaxNesting)",
 		["GrammarNormalizer.Ethereal"] = "one tail's tree; a call is a leaf",
 		["GrammarNormalizer.Called"] = "one body's tree; a call is collected, not followed",
+		["GrammarNormalizer.NamesACall"] = "one capture's tree; a call is a leaf",
+		["GrammarNormalizer.Gather | GrammarNormalizer.Step"] = "one alternative's tree; a call is collected, not followed",
 		["GramParser.ParseDeclaration | GramParser.ParseNamespace | GramParser.ParseNamespaceWithin"] =
 			"namespaces inside namespaces, counted toward GramParser.MaxNesting",
 		["Language.Shortest"] = "at most Language.Deep levels",

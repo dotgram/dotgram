@@ -268,11 +268,13 @@ sealed partial class GrammarNormalizer
 		// Group factories need their contextual type before recursion introduces its
 		// own nested constructions, which remain part of the enclosing fold.
 		normalizer.ComputeTypes();
-
-		// A rule that declared `: @SourceSpan` and builds nothing is given its construction before the
-		// left-recursive rules are rewritten, which makes a fold of the construction on each alternative.
-		normalizer.ExtentValues(declared: true);
 		normalizer.LowerGroupValues();
+
+		// Once every type is known, and the groups that build a value have become rules: one decision per rule, before
+		// anything rewrites a body (GrammarNormalizer.RuleValues.cs). A span, an operand and a construction are written
+		// before the left-recursive rules are rewritten, which makes a fold of the construction on each alternative.
+		normalizer.DecideValues();
+		normalizer.RealiseBeforeRecursion();
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();
 
@@ -285,12 +287,10 @@ sealed partial class GrammarNormalizer
 		// writes captures the results are then computed from (§4.1 case 2).
 		normalizer.CollectSequences();
 
-		// After the types and before the results, the same as the sequence rewrite above:
-		// it writes captures that the results are then computed from (§4.1 case 3).
-		// The pass-through first: a rule typed by one that gives an extent takes the operand's, and
-		// what takes none is left for the extent.
-		normalizer.PassThrough();
-		normalizer.ExtentValues(declared: false);
+		// After the types and before the results, the same as the sequence rewrite above: it writes captures that the
+		// results are then computed from (§4.1's string).
+		normalizer.RealiseJoins();
+		normalizer.SpellSpans();
 
 		// After the types — valuedness is what tells a collected thing from the inside
 		// of a lexeme — and after the sequence captures exist, so the implicit capture
@@ -321,10 +321,6 @@ sealed partial class GrammarNormalizer
 		// After the results: what a rebinding's replacement must be compatible with is the
 		// result each rule was just worked out to have.
 		normalizer.CheckRebindingReplacements();
-
-		// After the results, because what a constructor is matched against is the members
-		// they worked out (§7.3).
-		normalizer.BuildByConstructor();
 
 		// After the results and the constructors, which are what a value is held to: whether what a
 		// construction hands back can be the type it is declared to give.
@@ -787,6 +783,17 @@ sealed partial class GrammarNormalizer
 				else if (Tail(alternative, rule) is var (step, _))
 					RefuseFoldStep(rule, step);
 
+			// A string or an array without '=>' is its seed and its steps, read as a loop: the value so far is what the
+			// steps add to, and a step's call of the rule itself is the value so far, so there is nothing to fold.
+			if (_ruleValues.TryGetValue(rule, out var value) && value.Source is ValueSource.Joined or ValueSource.Collected &&
+				Looped(rule, alternatives) is { } looped)
+			{
+				_bodies[rule] = looped;
+				_forwarders   = null;
+
+				continue;
+			}
+
 			// And a step that captures, where no alternative builds: there is no fold to hand
 			// the capture to (§4.3).
 			if (!NodeWalk.Descendants(alternatives).Any(static one => one is Node.Construct))
@@ -856,6 +863,31 @@ sealed partial class GrammarNormalizer
 		}
 
 		_forwarders = null;
+	}
+
+	/// <summary>
+	/// A left-recursive rule as its seeds and the loop over its steps, each step's leading call of the rule taken off; null
+	/// for a rule that is not left-recursive, or one whose alternatives all are.
+	/// </summary>
+	static Node? Looped(RuleSymbol rule, IReadOnlyList<Node> alternatives)
+	{
+		var bases = new List<Node>();
+		var tails = new List<Node>();
+
+		foreach (var alternative in alternatives)
+			if (Tail(alternative, rule) is var (tail, _) && !EndsWith(tail, rule))
+				tails.Add(tail);
+			else
+				bases.Add(alternative);
+
+		if (tails.Count == 0 || bases.Count == 0)
+			return null;
+
+		return new Node.Sequence(
+		[
+			bases.Count == 1 ? bases[0] : new Node.Choice(bases),
+			new Node.Repeat(tails.Count == 1 ? tails[0] : new Node.Choice(tails), 0, null),
+		]);
 	}
 
 	/// <summary>The forwarders as the bodies stand, while <see cref="RewriteLeftRecursion"/> leaves them standing.</summary>

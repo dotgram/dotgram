@@ -112,12 +112,12 @@ Wrapped : @string = '<' & v: Either & '>' => @(v)
 
 // ── A collection, with recovery ─────────────────────────────────────────────────────
 //
-// §4.1 case 2: every `Item` joins the array in reading order. The `recover` keeps a bad
-// element from sinking the sheet: the repetition scans to the next ';' and carries on,
-// and the failure is reported, not swallowed.
+// §4.1: every `Row` joins the array in reading order, as the `Item` it reads. The
+// `recover` keeps a bad element from sinking the sheet: the repetition scans to the
+// next ';' and carries on, and the failure is reported, not swallowed.
 
 Item  : @string   = t: ['a'..'z']+ => @(t)
-Row   : Item      = Item & ';'
+Row   : Item      = item: Item & ';' => item
 Sheet : @string[] = Row* recover ';' & eof
 
 // ── Case folding and categories ─────────────────────────────────────────────────────

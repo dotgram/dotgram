@@ -724,6 +724,13 @@ static class Retention
 				"would have nothing to give the caller between reads. Give the repeated part its " +
 				"own rule (docs/syntax.md §6.3).";
 
+		// A call of a rule of the collection's own type gives its elements in place (§4.1), and the driver hands over the
+		// value of each call as one element.
+		if (parts.SelectMany(static part => NodeWalk.Descendants(part)).OfType<Node.Call>().FirstOrDefault(call =>
+			graph.Types.TryGetValue(call.Rule, out var held) && graph.Types.TryGetValue(rule, out var own) && held == own) is { } spread)
+			return $"'{rule.Name}' calls '{spread.Rule.Name}', whose value is of its own type and gives its elements in place, " +
+				"and a streamed parse hands over the value of each call it reads as one element. Read it over a string.";
+
 		// The driver steps over a bad element of the repetition it hands back, and of no other:
 		// one marked inside a part it reads whole would recover there against the end of the
 		// part rather than against what follows it, and hand back nothing it collected.
