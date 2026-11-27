@@ -4995,6 +4995,75 @@ file.Line("return spare;");
 
 				file.Line(summary + ": the pieces it read, joined (§4.1).</summary>");
 
+				// Trivia gives its text only between two pieces that matched anything, which only the match can tell.
+				if (joinedParts.Any(static part => part.Trivia))
+				{
+					using (file.Block(head))
+					{
+						var built   = Unreserved("built", taken);
+						var gap     = Unreserved("gap", taken);
+						var any     = Unreserved("any", taken);
+						var one     = Unreserved("one", taken);
+						var piece   = Unreserved("Piece", taken);
+						var between = Unreserved("Between", taken);
+
+						file.Line($"var {built} = new global::System.Text.StringBuilder();");
+						file.Line($"var {gap} = new global::System.Text.StringBuilder();");
+						file.Line($"var {any} = false;");
+						file.Line();
+
+						foreach (var part in joinedParts)
+						{
+							if (part.Text is { } text)
+							{
+								file.Line($"{piece}({Quoted(text)});");
+
+								continue;
+							}
+
+							var member = factory.Members.First(candidate => candidate.Name == part.Capture);
+							var value  = ResultTypes.ParameterOf(member);
+							var call   = part.Trivia ? between : piece;
+
+							if (member.IsSequence && Character(member))
+								file.Line($"if ({value} != null) {call}(new string({value}));");
+							else if (member.IsSequence)
+								file.Line($"if ({value} != null) foreach (var {one} in {value}) {call}({one});");
+							else if (Character(member))
+								file.Line(member.IsOptional ? $"if ({value} != null) {call}({value}.Value.ToString());" : $"{call}({value}.ToString());");
+							else
+								file.Line($"{call}({Held(member)});");
+						}
+
+						file.Line();
+						file.Line($"return {built}.ToString();");
+						file.Line();
+
+						using (file.Block($"void {piece}(string {one})"))
+						{
+							file.Line($"if (string.IsNullOrEmpty({one}))");
+							file.Then("return;");
+							file.Line();
+							file.Line($"if ({any})");
+							file.Then($"{built}.Append({gap});");
+							file.Line();
+							file.Line($"{gap}.Clear();");
+							file.Line($"{built}.Append({one});");
+							file.Line($"{any} = true;");
+						}
+
+						file.Line();
+
+						using (file.Block($"void {between}(string {one})"))
+						{
+							file.Line($"if ({any})");
+							file.Then($"{gap}.Append({one});");
+						}
+					}
+
+					break;
+				}
+
 				// What a piece is: a string, or, in the buffer, a character, text of the input, or the strings of turns.
 				bool Character(ResultMember member)
 				{

@@ -118,8 +118,17 @@ abstract record Construction
 /// <summary>One part of a <see cref="Construction.Join"/>: fixed text, or the capture that holds the part.</summary>
 /// <param name="Text">The text, where the grammar fixes it; null for a capture.</param>
 /// <param name="Capture">The capture, where the part is one; null for fixed text.</param>
-readonly record struct JoinPart(string? Text, string? Capture)
+/// <param name="Trivia">
+/// Whether the capture holds trivia, which gives its text between two pieces that matched anything and nothing at either
+/// edge of the rule.
+/// </param>
+readonly record struct JoinPart(string? Text, string? Capture, bool Trivia = false)
 {
+	public static JoinPart Seam(string capture)
+	{
+		return new JoinPart(null, capture, true);
+	}
+
 	public static JoinPart Fixed(string text)
 	{
 		return new JoinPart(text, null);

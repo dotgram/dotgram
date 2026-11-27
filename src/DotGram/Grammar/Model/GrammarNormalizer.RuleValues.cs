@@ -72,7 +72,14 @@ sealed partial class GrammarNormalizer
 	/// Whether a published rule with no type and no names is a string, its pieces joined (§4.1), or, as before, the text
 	/// it matched. One with a piece that has no text to join, or that binds a text, is the text it matched either way.
 	/// </summary>
-	static readonly bool PublishedPlumbingJoins = false;
+	static readonly bool PublishedPlumbingJoins = true;
+
+	/// <summary>
+	/// Whether trivia in a joined string gives its text where it stands between two pieces that matched anything, and nothing
+	/// before the first such piece or after the last. A rule made for a part of another, or for an untyped rule read in place,
+	/// keeps all its trivia: its edges are not its owner's.
+	/// </summary>
+	static readonly bool InnerTriviaJoins = true;
 
 	/// <summary>The decision for every rule that has a type.</summary>
 	readonly Dictionary<RuleSymbol, RuleValue> _ruleValues = [];
@@ -887,6 +894,19 @@ sealed partial class GrammarNormalizer
 
 				// What reads nothing, a call of `eof` as a lookahead, gives nothing.
 				case Node.Call(var called, _) when _bodies.TryGetValue(called, out var read) && ReadsNothing(read):
+					return new WalkStep(node, false);
+
+				// Trivia gives its text between two pieces; a rule made for a part of another gives all of it, and its owner
+				// trims the edges.
+				case Node.Call call when InnerTriviaJoins && _trivia.TryGetValue(rule, out var seam) && IsSeam(call, seam):
+				{
+					var name = Unreserved("item" + reserved.Count, reserved);
+
+					parts.Add(Owned(rule) ? JoinPart.Seam(name) : JoinPart.Held(name));
+
+					return new WalkStep(new Node.Capture(name, node), false);
+				}
+
 				case Node.Call call when PieceOf(rule, call, empty) == Piece.Nothing:
 				case Node.Lookahead or Node.Guard or Node.Condition or Node.Behind or Node.Glue or Node.Empty or Node.Reading:
 				case Node.Repeat(_, _, 0):
@@ -959,6 +979,12 @@ sealed partial class GrammarNormalizer
 				_ => false,
 			});
 		}
+	}
+
+	/// <summary>Whether a joined rule is the grammar's own, not one made for a part of another or for a rule read in place.</summary>
+	bool Owned(RuleSymbol rule)
+	{
+		return !_joinParts.Contains(rule) && !_readThrough.ContainsValue(rule);
 	}
 
 	/// <summary>Whether an untyped rule a string reads through holds a piece that is not its text, as the decision found.</summary>
