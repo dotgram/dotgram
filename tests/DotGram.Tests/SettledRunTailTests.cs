@@ -111,6 +111,104 @@ public sealed class SettledRunTailTests
 		parse Start
 		""";
 
+	/// <summary>
+	/// A rule whose value is a record the generator writes, called where its run settles and where it
+	/// does not: in its own body one call reads the copy and one the rule, and the record either builds
+	/// is the rule's, captured as the rule's; the one call of <c>Start</c> reads the copy alone, and the
+	/// member it fills is still of the rule's type.
+	/// </summary>
+	const string Records = """
+		trivia = none
+
+		Num   : string = ['0'..'9']+
+		Start : @string = e: Pair & eof => @(e.A + "=" + e.B + "[" + e.Inner?.A + "=" + e.Inner?.B + "[" + e.Inner?.Inner?.A + "]]")
+		Pair  = a: Num & '=' & b: Num
+		      | '(' & inner: Pair & ')'
+		      | 'x' & Pair & '5'
+
+		parse Start
+		""";
+
+	static readonly string[] RecordInputs = ["(1=2)", "1=2", "((1=2))", "x1=25", "x(1=2)5", "(1=2", "(x1=25)", "((12=34))", "(1=2)x", ""];
+
+	/// <summary>The value a record rule builds through its copy: what the parser without the copies builds.</summary>
+	[Theory]
+	[InlineData("Records", "(1=2)", "ok =[1=2[]]")]
+	[InlineData("Records", "((1=2))", "ok =[=[1]]")]
+	[InlineData("Records", "x(1=2)5", "ok =[=[]]")]
+	public void A_record_read_by_a_copy_is_the_rules_record(string name, string input, string expected)
+	{
+		var subject = Of(name);
+
+		Assert.Equal(expected, Answer(Build(subject, settle: false, Door.Reader), subject, Door.Reader, input));
+		Assert.Equal(expected, Answer(Build(subject, settle: true, Door.Reader), subject, Door.Reader, input));
+		Assert.Contains("_Settled(", Source(subject.Grammar, settle: true, Door.Reader), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// What the generated class shows its user — its types, their members, the methods it publishes —
+	/// names no copy: a copy is a reading of its rule, and has nothing of its own to show.
+	/// </summary>
+	[Theory]
+	[InlineData("Records")]
+	[InlineData("Xml")]
+	[InlineData("Gram")]
+	[InlineData("Chained")]
+	public void Nothing_the_generated_class_shows_is_named_for_a_copy(string name)
+	{
+		var subject = Of(name);
+		var copies  = Graph(subject.Grammar).Settled.Keys.Select(static copy => copy.Name).ToList();
+		var shown   = new List<string>();
+
+		Assert.NotEmpty(copies);
+
+		foreach (var door in Four)
+		{
+			var source = Compiled(subject.Grammar, settle: true, door, counts: false, subject.Class, subject.Namespace).Sources;
+
+			foreach (var file in source)
+				foreach (var node in Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(file.Text, cancellationToken: TestContext.Current.CancellationToken)
+					.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MemberDeclarationSyntax>())
+				{
+					if (!Shown(node))
+						continue;
+
+					var said = node switch
+					{
+						Microsoft.CodeAnalysis.CSharp.Syntax.BaseTypeDeclarationSyntax type => type.Identifier.ValueText,
+						Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax method => method.Identifier.ValueText + " " + method.ReturnType + " " + method.ParameterList,
+						Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax property => property.Identifier.ValueText + " " + property.Type,
+						Microsoft.CodeAnalysis.CSharp.Syntax.FieldDeclarationSyntax field => field.Declaration.ToString(),
+						_ => "",
+					};
+
+					foreach (var copy in copies)
+						if (System.Text.RegularExpressions.Regex.IsMatch(said, $@"\b{copy}\b"))
+							shown.Add($"{door}: {said}");
+				}
+		}
+
+		Assert.True(shown.Count == 0, string.Join("\n", shown.Distinct()));
+
+		// Public or internal, and inside nothing private.
+		static bool Shown(Microsoft.CodeAnalysis.SyntaxNode node)
+		{
+			for (var at = node; at is Microsoft.CodeAnalysis.CSharp.Syntax.MemberDeclarationSyntax member; at = at.Parent)
+			{
+				// The host's class, whose access its own declaration says.
+				if (member.Parent is Microsoft.CodeAnalysis.CSharp.Syntax.CompilationUnitSyntax or Microsoft.CodeAnalysis.CSharp.Syntax.BaseNamespaceDeclarationSyntax)
+					return true;
+
+				var modifiers = member.Modifiers.Select(static one => one.ValueText).ToList();
+
+				if (modifiers.Contains("private") || !modifiers.Contains("public") && !modifiers.Contains("internal") && !modifiers.Contains("protected"))
+					return false;
+			}
+
+			return true;
+		}
+	}
+
 	/// <summary>A name before <c>'='</c> and a value a guard of the host reads, which throws where the value holds <c>#</c>.</summary>
 	const string Thrown = """
 		trivia = none
@@ -178,7 +276,7 @@ public sealed class SettledRunTailTests
 
 	public static TheoryData<string> Grammars()
 	{
-		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering", "Url", "Gram", "SharedStart");
+		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering", "Url", "Gram", "SharedStart", "Records");
 	}
 
 	/// <summary>How a parser is read: by methods or by the engine, with a trace build of each, or from a reader of text.</summary>
@@ -821,6 +919,7 @@ public sealed class SettledRunTailTests
 			"Url"         => new(UrlGrammar, null, UrlInputs, "htp:/1.2[]:a@?#%f", 3000, 20, "TryParseUrl", Four),
 			"Gram"        => GramSubject(),
 			"SharedStart" => new(SharedStart, null, ["abc=", "abc!", "ab!"], "abc=! ", 2000, 10, "TryParseStart", Four),
+			"Records"     => new(Records, null, RecordInputs, "()=x125", 3000, 12, "TryParseStart", Four),
 			_             => throw new ArgumentOutOfRangeException(nameof(name)),
 		};
 	}
