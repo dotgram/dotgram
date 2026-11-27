@@ -57,7 +57,7 @@ public sealed class RecordSiteParityTests
 	/// <summary>The lowering a refusal is read through today; the one place to change it for another.</summary>
 	static IrProgram Lowered(string grammar)
 	{
-		return _lowered.GetOrAdd(grammar, static text => RefusalPlan.AsTheCSharpReader(IrLowering.Lower(Graphs.Of(text))));
+		return _lowered.GetOrAdd(grammar, static text => IrLowering.Lower(Graphs.Of(text), new IrLowering.Options(AsRecorded: true)));
 	}
 
 	static readonly ConcurrentDictionary<string, IrProgram> _lowered = new();
@@ -306,6 +306,13 @@ public sealed class RecordSiteParityTests
 
 		// On JSON every refusal is said as the generated parser says it, set for set in its order.
 		Assert.Equal((183, 183), (counts["Json"].Refused, counts["Json"].LoweredEqual));
+
+		// And so on every fixture the generated parser reads by its readers, the give-back grammars among
+		// them: the lowering records what the plan says those readers record. The engine's are reported.
+		var apart = counts.Where(static one => one.Value.Strategy == "reader" && one.Value.LoweredEqual != one.Value.Refused)
+			.Select(static one => $"{one.Key}: {one.Value.LoweredEqual} of {one.Value.Refused}");
+
+		Assert.Empty(apart);
 	}
 
 	/// <summary>The grammars of <see cref="GiveBackGrammars"/>, which are the fixtures of the give-back family that have inputs.</summary>

@@ -71,11 +71,26 @@ sealed class DispatchSite : RecordSite
 	/// <summary>What each group the item tells apart begins with, in the order they are tried.</summary>
 	public IReadOnlyList<IReadOnlyList<CharRange>> Begins { get; init; } = [];
 
+	/// <summary>The alternatives of each group, by where they stand in the choice, tried in that order.</summary>
+	public IReadOnlyList<IReadOnlyList<int>> Members { get; init; } = [];
+
+	/// <summary>
+	/// The group read by the call its one alternative begins with, which tests the item itself, and
+	/// where that call refuses at the choice's place the choice's set is recorded there (over what the
+	/// call said, where an <see cref="OverSite"/> says so); -1 where every group is tested.
+	/// </summary>
+	public int Called { get; init; } = -1;
+
+	/// <summary>Whether the item told apart is the one past the seam every alternative begins with.</summary>
+	public bool Seam { get; init; }
+
 	/// <inheritdoc/>
 	public override bool SaysAs(RecordSite other)
 	{
-		return base.SaysAs(other) && other is DispatchSite { Begins: var begins } && begins.Count == Begins.Count &&
-			begins.Zip(Begins, static (one, two) => one.SequenceEqual(two)).All(static same => same);
+		return base.SaysAs(other) && other is DispatchSite { Begins: var begins, Members: var members } && begins.Count == Begins.Count &&
+			begins.Zip(Begins, static (one, two) => one.SequenceEqual(two)).All(static same => same) &&
+			members.Count == Members.Count && members.Zip(Members, static (one, two) => one.SequenceEqual(two)).All(static same => same) &&
+			((DispatchSite)other).Called == Called && ((DispatchSite)other).Seam == Seam;
 	}
 }
 
@@ -98,10 +113,18 @@ sealed class GuardedGroupSite : RecordSite;
 /// A choice tried in order, looked at first: the item in hand begins none of its alternatives, and it is
 /// refused as one, with what they begin with merged into one display.
 /// </summary>
-sealed class PredictedSite : RecordSite;
+sealed class PredictedSite : RecordSite
+{
+	/// <summary>What the alternatives begin with together: the item in hand outside it refuses the choice.</summary>
+	public IReadOnlyList<CharRange> Begins { get; init; } = [];
+}
 
 /// <summary>An optional's door that does not open: what its alternatives begin with, noted, and the reading goes on with nothing.</summary>
-sealed class OptionalSite : RecordSite;
+sealed class OptionalSite : RecordSite
+{
+	/// <summary>What the alternatives but the empty one begin with: the item in hand outside it shuts the door.</summary>
+	public IReadOnlyList<CharRange> Begins { get; init; } = [];
+}
 
 /// <summary>A repetition short of its fewest turns: what a turn would have begun with.</summary>
 sealed class ShortSite : RecordSite;
@@ -113,16 +136,26 @@ sealed class ShortSite : RecordSite;
 /// </summary>
 sealed class DoorSite : RecordSite
 {
+	/// <summary>What a turn must begin with to be tried past the fewest.</summary>
+	public IReadOnlyList<CharRange> Begins { get; init; } = [];
+
 	/// <summary>
-	/// Whether the reading that records tries the turn anyway, so that what refused it is said: the door
-	/// is then shut on the quiet reading alone, or, where every reading records, past the fewest turns.
+	/// Whether the door is shut on the quiet reading alone: the reading that records tries the turn
+	/// anyway, so that what refused it is said.
 	/// </summary>
-	public bool Tried { get; init; }
+	public bool QuietOnly { get; init; }
+
+	/// <summary>Whether the door is shut only once the fewest turns are read; below them the turn is tried.</summary>
+	public bool PastFewest { get; init; }
+
+	/// <summary>Whether the repetition is a run of characters read by one test a character.</summary>
+	public bool Scanned { get; init; }
 
 	/// <inheritdoc/>
 	public override bool SaysAs(RecordSite other)
 	{
-		return base.SaysAs(other) && other is DoorSite { Tried: var tried } && tried == Tried;
+		return base.SaysAs(other) && other is DoorSite door && door.QuietOnly == QuietOnly && door.PastFewest == PastFewest &&
+			door.Scanned == Scanned && door.Begins.SequenceEqual(Begins);
 	}
 }
 
@@ -141,7 +174,11 @@ sealed class MessageSite : RecordSite;
 /// </summary>
 sealed class EndSite : RecordSite;
 
-/// <summary>A look whose refusal names nothing: what is said there is left to what else is read that far.</summary>
+/// <summary>
+/// A look whose refusal names nothing: what is said there is left to what else is read that far. Where
+/// it is not <see cref="RecordSite.Records"/>, the refusal is not recorded at all — a look in the seam, or
+/// one that begins a turn — and otherwise it is recorded where the look stands, naming nothing.
+/// </summary>
 sealed class SilentSite : RecordSite;
 
 /// <summary>
@@ -196,6 +233,13 @@ sealed class RecordSites
 		_sites.Add(key, (owner, node, count, site));
 
 		return site;
+	}
+
+	/// <summary>What a place records, where it is held; null where it is not.</summary>
+	public T? Held<T>(RuleSymbol owner, Node node, int count)
+		where T : RecordSite
+	{
+		return _sites.TryGetValue(new Key(owner, node, count, typeof(T)), out var held) ? (T)held.Site : null;
 	}
 
 	/// <summary>What a place records.</summary>
