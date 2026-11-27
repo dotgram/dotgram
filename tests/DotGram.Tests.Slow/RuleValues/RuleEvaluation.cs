@@ -393,19 +393,40 @@ sealed partial class Grammar
 		}
 
 		// An untyped rule that writes names is a type of its own: one member per name, in the order the names are written,
-		// each holding what its name captured (the text, or the value of the call). A name the route did not take is null; a name
-		// written under a repetition is not modelled: the caller then has no exact value.
+		// each holding what its name captured (the text, or the value of the call). A name the route did not take is null. A
+		// name captured more than once, or written under a repetition, accumulates over the captures: text is joined and spans
+		// make an array; a capture of another type is not modelled, and the caller then has no exact value.
 		Val EvalGenerated(Rule rule, Node node)
 		{
-			var captured = new Dictionary<string, Val>(StringComparer.Ordinal);
+			var captures = new Dictionary<string, List<(Val Value, bool Text)>>(StringComparer.Ordinal);
+			var visited  = new HashSet<string>(StringComparer.Ordinal);
+
+			void Capture(Node at)
+			{
+				var one = new Dictionary<string, Val>(StringComparer.Ordinal);
+
+				Captures(at, null, one);
+
+				foreach (var (name, value) in one)
+				{
+					if (!captures.TryGetValue(name, out var list))
+						captures[name] = list = [];
+
+					list.Add((value, at.Expr is not Named named || KindOfCapture(named.Inner, rule) == "text"));
+				}
+			}
 
 			// Every name of the route counts, those written inside another name's expression too.
 			void Gather(Node at)
 			{
 				switch (at.Expr)
 				{
-					case Named:
-						Captures(at, null, captured);
+					case Named own:
+						// A name written inside its own expression is not modelled.
+						if (Walk([own.Inner], true).OfType<Named>().Any(n => n.Name == own.Name))
+							throw new InvalidOperationException("the oracle does not model a name inside its own expression: " + own.Name);
+
+						Capture(at);
 
 						foreach (var kid in at.Kids)
 							Gather(kid);
@@ -413,10 +434,18 @@ sealed partial class Grammar
 						break;
 
 					case Wrapped { Wrap: Wrap.Zero }:
-						Captures(at, null, captured);
+						Capture(at);
 						break;
 
 					case Wrapped { Wrap: Wrap.Ahead or Wrap.NotAhead }:
+						break;
+
+					case Wrapped { Wrap: Wrap.Star or Wrap.Plus } turns:
+						visited.UnionWith(Walk([turns.Inner], true).OfType<Named>().Select(static n => n.Name));
+
+						foreach (var kid in at.Kids)
+							Gather(kid);
+
 						break;
 
 					default:
@@ -429,17 +458,51 @@ sealed partial class Grammar
 
 			Gather(node);
 
-			var written = Walk(rule.Alternatives, true).OfType<Named>().Select(static n => n.Name).Distinct().ToList();
+			var named   = Walk(rule.Alternatives, true).OfType<Named>().ToList();
+			var written = named.Select(static n => n.Name).Distinct().ToList();
 
-			// A name written under a repetition is an array or the last turn: not modelled.
 			var repeated = Walk(rule.Alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus)
 				.SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Select(static n => n.Name).ToHashSet(StringComparer.Ordinal);
 
-			if (written.Count == 0 || written.Any(repeated.Contains))
-				throw new InvalidOperationException("the oracle does not model the generated type of " + rule.Name + " on this route");
+			if (written.Count == 0)
+				throw new InvalidOperationException("the oracle does not model the generated type of " + rule.Name);
 
-			// A name the route did not take is null.
-			var members = written.Select(n => char.ToUpperInvariant(n[0]) + n[1..] + "=" + (captured.TryGetValue(n, out var value) ? value.Print : "<null>"));
+			string Member(string name)
+			{
+				var list = captures.GetValueOrDefault(name) ?? [];
+				var many = repeated.Contains(name);
+
+				if (list.Count == 0)
+				{
+					// A name of an alternative the route did not take is null; a repetition that took no turn gives an empty text.
+					var text = named.Where(n => n.Name == name).All(n => KindOfCapture(n.Inner, rule) == "text");
+
+					if (!many || !visited.Contains(name) && text)
+						return "<null>";
+
+					if (text)
+						return "\"\"";
+
+					throw new InvalidOperationException("the oracle does not model an empty repetition of " + name);
+				}
+
+				if (list.Count == 1 && !many)
+					return list[0].Value.Print;
+
+				// Over the turns text is joined and spans make an array; what else a call gives is not modelled.
+				if (list.All(static c => c.Text && c.Value.Type == "string"))
+					return Val.Str(string.Concat(list.Select(static c => c.Value.Raw))).Print;
+
+				if (list.All(static c => c.Text && c.Value.Type == "bytes"))
+					return Val.Bytes(string.Concat(list.Select(static c => c.Value.Raw))).Print;
+
+				if (list.All(static c => c.Value.Type == "SourceSpan"))
+					return Val.Array([.. list.Select(static c => c.Value)]).Print;
+
+				throw new InvalidOperationException("the oracle does not model the accumulation of " + name);
+			}
+
+			var members = written.Select(n => char.ToUpperInvariant(n[0]) + n[1..] + "=" + Member(n)).ToList();
 
 			return Val.Host(rule.Name, rule.Name + "{" + string.Join(",", members) + "}");
 		}

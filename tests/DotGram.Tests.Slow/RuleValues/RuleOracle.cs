@@ -417,17 +417,24 @@ sealed partial class Grammar
 
 	Decision[] Decide(Rule rule)
 	{
-		var calls = Walk(rule.Alternatives).Where(IsCall).ToList();
-		var row   = rule.Kind switch { Kind.C => "C", Kind.S => "S", Kind.A => "A", _ => "O" };
+		var row = rule.Kind switch { Kind.C => "C", Kind.S => "S", Kind.A => "A", _ => "O" };
 
 		// A name written inside a lookahead is refused, whatever the rule is.
 		if (Walk(rule.Alternatives, true).OfType<Wrapped>().Any(static w => w.Wrap is Wrap.Ahead or Wrap.NotAhead && Walk([w.Inner], true).OfType<Named>().Any()))
 			return [Decision.Fail(row, "GRAM4006")];
 
-		// A name that captures different kinds (text, the value of one rule, the value of another) anywhere in the rule is
-		// refused before the rule's own decision. A span rule does not check a name that nothing reads.
-		if (CapturesDifferentKinds(rule))
+		var decisions = DecideRule(rule);
+
+		// A name that is read must capture one kind. The rule's own decision tells which names it reads.
+		if (CapturesDifferentKinds(rule, decisions))
 			return [Decision.Fail(row, "GRAM4007")];
+
+		return decisions;
+	}
+
+	Decision[] DecideRule(Rule rule)
+	{
+		var calls = Walk(rule.Alternatives).Where(IsCall).ToList();
 
 		switch (rule.Kind)
 		{
@@ -512,16 +519,24 @@ sealed partial class Grammar
 		return Decision.Of(Source.Constructed, "O");
 	}
 
-	/// <summary>A name that nothing reads in a span rule (no guard, no selector) is not checked for the kind it captures: names change nothing there.</summary>
-	const bool SpanUnreadNamesAreNotChecked = true;
+	/// <summary>A name that nothing reads is not checked for the kind it captures, in any kind of rule.</summary>
+	const bool UnreadNamesAreNotChecked = true;
 
-	static bool CapturesDifferentKinds(Rule rule)
+	// A name is read by a guard or a selector, by a construction (it fills a parameter of the type the rule builds) and as a
+	// member of a generated type.
+	bool CapturesDifferentKinds(Rule rule, Decision[] decisions)
 	{
 		var reads = Walk(rule.Alternatives, true).Select(static e => e switch { Guard g => g.Reads, SwitchOn o => o.Reads, _ => null }).OfType<string>().ToHashSet(StringComparer.Ordinal);
+		var all   = false;
+
+		if (rule.Kind == Kind.Untyped && !_composites.ContainsValue(rule))
+			all = true;
+		else if (rule.Kind == Kind.O && !decisions.All(static d => d.Source == Source.Operand))
+			reads.UnionWith(Parameters(rule.Type));
 
 		foreach (var group in Walk(rule.Alternatives, true).OfType<Named>().GroupBy(static n => n.Name))
 		{
-			if (SpanUnreadNamesAreNotChecked && rule.Kind == Kind.S && !reads.Contains(group.Key))
+			if (UnreadNamesAreNotChecked && !all && !reads.Contains(group.Key))
 				continue;
 
 			if (group.Select(n => KindOfCapture(n.Inner, rule)).Distinct().Count() > 1)
@@ -531,7 +546,8 @@ sealed partial class Grammar
 		return false;
 	}
 
-	// What a name captures: the text its expression matched, or the value of the call it names (told by the type).
+	// What a name captures: the text its expression matched, or the value of the rule it calls (two rules of one type are
+	// two kinds).
 	static string KindOfCapture(Expr inner, Rule self)
 	{
 		while (true)
@@ -547,13 +563,13 @@ sealed partial class Grammar
 					continue;
 
 				case Call { Atom: not null } call:
-					return "value of " + LeafInfo(call.Rule.Name).Type;
+					return "value of " + call.Rule.Name;
 
 				case RuleRef reference:
-					return "value of " + (reference.Rule.Kind == Kind.Untyped ? "(untyped)" : reference.Rule.Type);
+					return "value of " + reference.Rule.Name;
 
 				case SelfCall:
-					return "value of " + self.Type;
+					return "value of " + self.Name;
 
 				default:
 					return "text";
