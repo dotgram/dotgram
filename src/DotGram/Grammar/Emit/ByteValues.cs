@@ -80,8 +80,10 @@ static class ByteValues
 	}
 
 	/// <summary>
-	/// The rules whose value is read where a publication is: its own, and the value of every rule that a rule read holds as a
-	/// member. A call nothing holds is only recognized.
+	/// The rules whose value is read where a publication is: its own; of a rule the grammar generates a type for, the value of
+	/// each rule it holds as a member, and a call it does not name is only recognized; and of any other rule, a string, an array
+	/// or one that builds with <c>=&gt;</c>, the value of every rule it calls, for what it joins, collects or hands the
+	/// construction is read as it stands.
 	/// </summary>
 	internal static HashSet<RuleSymbol> Read(RecognitionGraph graph, RuleSymbol root)
 	{
@@ -91,10 +93,20 @@ static class ByteValues
 		queue.Enqueue(root);
 
 		while (queue.Count > 0)
-			if (graph.Results.TryGetValue(queue.Dequeue(), out var members))
-				foreach (var member in members)
-					if (member.Rule is { } held && read.Add(held))
-						queue.Enqueue(held);
+		{
+			var rule = queue.Dequeue();
+
+			if (!graph.Results.TryGetValue(rule, out var members) || !graph.Bodies.TryGetValue(rule, out var body))
+				continue;
+
+			var held = members.Count > 0 && !graph.Types.ContainsKey(rule)
+				? members.Select(static member => member.Rule)
+				: NodeWalk.Descendants(body).OfType<Node.Call>().Select(static call => (RuleSymbol?)call.Rule);
+
+			foreach (var one in held)
+				if (one is not null && read.Add(one))
+					queue.Enqueue(one);
+		}
 
 		return read;
 	}

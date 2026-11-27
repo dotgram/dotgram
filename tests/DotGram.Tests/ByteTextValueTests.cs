@@ -82,8 +82,8 @@ public sealed class ByteTextValueTests
 	}
 
 	/// <summary>
-	/// A join no one reads is not built over bytes, as a value nothing holds is not made over characters. Read, it is refused as
-	/// before.
+	/// A join that a rule the grammar generates a type for does not name is not built over bytes, as a value nothing holds is not
+	/// made over characters. A string reads what it calls as it stands, and one that is read is refused as before.
 	/// </summary>
 	[Fact]
 	public void A_join_no_rule_holds_is_not_built_over_bytes()
@@ -96,10 +96,14 @@ public sealed class ByteTextValueTests
 
 		Assert.Equal(3, value.GetType().GetProperty("N")!.GetValue(value));
 
-		var refused = Compiled("Start : @string = '<' & Ow & '>'\nOw : @string = '(' & Word & ')'\nWord : @string = c: ['a'..'z']{2} => @(\"W:\" + Text(c))\nparse Start stream bytes", Host, bytes: true);
-		var said    = Assert.Single(refused.Diagnostics, static one => one.Severity == GramSeverity.Error);
+		// A string reads what it calls as it stands, whether it joins it or not.
+		foreach (var call in new[] { "Ow", "Ow{0}", "?=(Ow)" })
+		{
+			var refused = Compiled($"Start : @string = '<' & {call} & '>'\nOw : @string = '(' & Word & ')'\nWord : @string = c: ['a'..'z']{{2}} => @(\"W:\" + Text(c))\nparse Start stream bytes", Host, bytes: true);
+			var said    = Assert.Single(refused.Diagnostics, static one => one.Severity == GramSeverity.Error);
 
-		Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
+			Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
+		}
 	}
 
 	[Fact]
