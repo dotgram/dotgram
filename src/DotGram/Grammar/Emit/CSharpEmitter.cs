@@ -4853,9 +4853,10 @@ file.Line("return spare;");
 
 		// What the generator assembles a value of, an operand it hands back or an element it collects, is made of a
 		// text member as a string, where captures are spans: the rule's own type is the string, and nothing the
-		// author wrote takes it. What the author wrote takes the span as it is, and so does a host's constructor
-		// or initializer: which overload it has is the host's, and a conversion here would be a copy it did not ask
-		// for (§6.3). Over bytes there is no string to make: BufferedEmitter refuses the grammar.
+		// author wrote takes it. What the author wrote takes the span as it is. A host's constructor or initializer
+		// takes what its parameter says: the span where it takes one, and else the string, as where captures are
+		// strings, with the overload still the host's to pick (§6.3). Over bytes there is no string to make:
+		// BufferedEmitter refuses the grammar.
 		string Held(ResultMember member)
 		{
 			var name = ResultTypes.ParameterOf(member);
