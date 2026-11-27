@@ -129,13 +129,36 @@ public sealed class SettledRunTailTests
 		parse Start
 		""";
 
+	/// <summary>
+	/// A record rule every call of which settles, so that only its copy is read and the rule itself is
+	/// pruned; its run gives back only because another rule reads two numbers in a row: the copy's
+	/// record is still of the rule's type, named for the rule.
+	/// </summary>
+	const string RecordsPruned = """
+		trivia = none
+
+		Num   : string = ['0'..'9']+
+		Wd    : string = ['a'..'z']+
+		R0    = c0: Wd & Wd & c1: Num
+		      | '(' & c2: R0? & R0
+		      | 'x' & R0 & 'a' & c3: Num
+		R1    = Num & c0: Num
+		      | '(' & R1 & '=' & R1
+		      | 'x' & R1 & Wd
+		Start = e: R0 & eof
+		      | '!' & f: R1 & eof
+
+		parse Start
+		""";
+
+	static readonly string[] RecordsPrunedInputs = ["xaba5a601", "ab1", "(ab1ab2", "xab1a2", "((ab1ab2", "(ab1", "(", "x", "xaba5a", "!12", "!(1=2)", "!x12ab"];
+
 	static readonly string[] RecordInputs = ["(1=2)", "1=2", "((1=2))", "x1=25", "x(1=2)5", "(1=2", "(x1=25)", "((12=34))", "(1=2)x", ""];
 
 	/// <summary>The value a record rule builds through its copy: what the parser without the copies builds.</summary>
 	[Theory]
 	[InlineData("Records", "(1=2)", "ok =[1=2[]]")]
 	[InlineData("Records", "((1=2))", "ok =[=[1]]")]
-	[InlineData("Records", "x(1=2)5", "ok =[=[]]")]
 	public void A_record_read_by_a_copy_is_the_rules_record(string name, string input, string expected)
 	{
 		var subject = Of(name);
@@ -151,9 +174,7 @@ public sealed class SettledRunTailTests
 	/// </summary>
 	[Theory]
 	[InlineData("Records")]
-	[InlineData("Xml")]
-	[InlineData("Gram")]
-	[InlineData("Chained")]
+	[InlineData("RecordsPruned")]
 	public void Nothing_the_generated_class_shows_is_named_for_a_copy(string name)
 	{
 		var subject = Of(name);
@@ -276,7 +297,7 @@ public sealed class SettledRunTailTests
 
 	public static TheoryData<string> Grammars()
 	{
-		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering", "Url", "Gram", "SharedStart", "Records");
+		return new TheoryData<string>("Xml", "Chained", "Standing", "Overlapping", "Guarded", "Recovering", "Url", "Gram", "SharedStart", "Records", "RecordsPruned");
 	}
 
 	/// <summary>How a parser is read: by methods or by the engine, with a trace build of each, or from a reader of text.</summary>
@@ -920,6 +941,7 @@ public sealed class SettledRunTailTests
 			"Gram"        => GramSubject(),
 			"SharedStart" => new(SharedStart, null, ["abc=", "abc!", "ab!"], "abc=! ", 2000, 10, "TryParseStart", Four),
 			"Records"     => new(Records, null, RecordInputs, "()=x125", 3000, 12, "TryParseStart", Four),
+			"RecordsPruned" => new(RecordsPruned, null, RecordsPrunedInputs, "(xab15", 3000, 12, "TryParseStart", Four),
 			_             => throw new ArgumentOutOfRangeException(nameof(name)),
 		};
 	}
