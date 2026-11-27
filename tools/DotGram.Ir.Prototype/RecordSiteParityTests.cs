@@ -57,7 +57,7 @@ public sealed class RecordSiteParityTests
 	/// <summary>The lowering a refusal is read through today; the one place to change it for another.</summary>
 	static IrProgram Lowered(string grammar)
 	{
-		return _lowered.GetOrAdd(grammar, static text => RefusalPlan.AsTheCSharpReader(IrLowering.Lower(Graphs.Of(text))));
+		return _lowered.GetOrAdd(grammar, static text => IrLowering.Lower(Graphs.Of(text), new IrLowering.Options(AsRecorded: true)));
 	}
 
 	static readonly ConcurrentDictionary<string, IrProgram> _lowered = new();

@@ -126,7 +126,26 @@ abstract record IrStmt
 	/// Another function, read from here. Its value goes into <paramref name="Into"/>, or is added
 	/// to it where <paramref name="Appends"/>.
 	/// </summary>
-	public sealed record Call(IrFunction Target, IrSlot? Into, bool Appends) : IrStmt;
+	public sealed record Call(IrFunction Target, IrSlot? Into, bool Appends) : IrStmt
+	{
+		/// <summary>
+		/// The set recorded where the call was made, where the call fails: what the choice it begins the
+		/// widest part of wanted there (<see cref="IrDispatch.Called"/>); -1 for none.
+		/// </summary>
+		public int RefusesWith { get; init; } = -1;
+
+		/// <summary>
+		/// The set the call says where it refuses at the place it was made, which <see cref="RefusesWith"/> is
+		/// said over: dropped for it there; -1 for none.
+		/// </summary>
+		public int Over { get; init; } = -1;
+
+		/// <summary>
+		/// The rule's own words, recorded where the call was made where it fails and the furthest refusal
+		/// has not passed that place: the rule refused there, having read nothing; -1 for none.
+		/// </summary>
+		public int Says { get; init; } = -1;
+	}
 
 	/// <summary>
 	/// The first alternative that reads, each from where the choice began. An alternative that
@@ -145,6 +164,13 @@ abstract record IrStmt
 		/// read, and where it begins none the choice says one set of its own and nothing is tried.
 		/// </summary>
 		public IrDispatch? Dispatch { get; init; }
+
+		/// <summary>
+		/// What the next input item must begin for the alternatives to be tried at all: where it begins
+		/// none, the set is recorded and the choice fails (or, an optional's door, the set is noted and the
+		/// choice reads nothing).
+		/// </summary>
+		public IrGate? Gate { get; init; }
 
 		/// <summary>
 		/// Whether an alternative that fails is read again in place with each of its own decisions that
@@ -176,6 +202,15 @@ abstract record IrStmt
 		/// turn is read and nothing of it is said.
 		/// </summary>
 		public IReadOnlyList<CharRange>? Door { get; init; }
+
+		/// <summary>Whether the door is shut only once the least turns are read (otherwise at every turn).</summary>
+		public bool DoorPastLeast { get; init; } = true;
+
+		/// <summary>Whether the door is shut on the reading that records nothing alone (<c>ParseQuietlyFirst</c>'s first).</summary>
+		public bool DoorQuietOnly { get; init; }
+
+		/// <summary>What is recorded where the door shuts below the least turns; -1 for nothing.</summary>
+		public int DoorShort { get; init; } = -1;
 
 		/// <summary>
 		/// Whether a turn that fails is read again in place with each of its own decisions that can still
@@ -250,7 +285,17 @@ abstract record IrStmt
 }
 
 /// <summary>What each alternative of a choice begins with, and the set said where the input begins none of them.</summary>
-sealed record IrDispatch(IReadOnlyList<IReadOnlyList<CharRange>> Begins, int Otherwise);
+sealed record IrDispatch(IReadOnlyList<IReadOnlyList<CharRange>> Begins, int Otherwise)
+{
+	/// <summary>
+	/// The alternative read where the next item begins none of the others, by the call it begins with,
+	/// which tests the item itself; -1 where every alternative is tested.
+	/// </summary>
+	public int Called { get; init; } = -1;
+}
+
+/// <summary>A choice's door: what the next item must begin, the set said where it does not, and whether that ends the choice as nothing read.</summary>
+sealed record IrGate(IReadOnlyList<CharRange> Begins, int Expected, bool Empty);
 
 /// <summary>
 /// One rule (or one specialization of one) as a function from a position to the position its
@@ -300,6 +345,10 @@ sealed class IrProgram
 	public int PlanAsked { get; set; }
 
 	public int PlanMisses { get; set; }
+
+	/// <summary>How many places that record a refusal the lowering asked the plan about, and how many of them the plan had no answer for.</summary>
+	public int SitesAsked { get; set; }
+	public int SiteMisses { get; set; }
 
 	/// <summary>
 	/// How many repetitions the plan left without a way that the lowering opened all the same: a turn
