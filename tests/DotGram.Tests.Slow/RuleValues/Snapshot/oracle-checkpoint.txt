@@ -1,10 +1,10 @@
 cells 98154, shapes 19293, cells with no outcome in the files 0
 
 cells by what the oracle says against 0.3.0
-   12901  agree
+   12970  agree
        3  allowed: array-call-splices-elements
-     238  allowed: array-collects-text-rule
-     390  allowed: char-piece-gives-character
+     247  allowed: array-collects-text-rule
+     411  allowed: char-piece-gives-character
       56  allowed: named-text-not-collected
      252  allowed: non-text-piece-is-error
      150  allowed: object-rule-reads-two-calls
@@ -12,40 +12,40 @@ cells by what the oracle says against 0.3.0
     1404  allowed: optional-operand-falls-to-construction
       36  allowed: optional-text-route
      472  allowed: partial-construction-refused
-    2725  allowed: string-not-built-from-names
+    3134  allowed: string-not-built-from-names
     2912  allowed: string-rule-joins-built-value
     1068  allowed: taken-span-names-own-bounds
-    4262  allowed: taken-string-rule-keeps-own-literals
+    5612  allowed: taken-string-rule-keeps-own-literals
       12  allowed: tied-constructor-refused
        8  allowed: trivia-dropped-in-string-rule
        3  allowed: untyped-rule-read-through
       21  allowed: zero-repetition-operand-refused
       40  oracle reads no match, 0.3.0 csharp
-     114  oracle reads no match, 0.3.0 gram
+     120  oracle reads no match, 0.3.0 gram
       11  published version did not match the input
-   34475  published version refused, oracle builds
-   25519  refused by both
-   10356  same as 0.3.0 by decision (an untyped rule that writes names)
+   35481  published version refused, oracle builds
+   27806  refused by both
+    5199  same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)
 
 the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs from the oracle on purpose
     2912 differ (  644 shapes),    354 agree  Silent    string-rule-joins-built-value
-    4262 differ (  887 shapes),     22 agree  Silent    taken-string-rule-keeps-own-literals
-     700 differ (  164 shapes),   1129 agree  Silent    array-collects-text-rule
+    5612 differ ( 1161 shapes),     22 agree  Silent    taken-string-rule-keeps-own-literals
+     769 differ (  179 shapes),   1129 agree  Silent    array-collects-text-rule
        9 differ (    3 shapes),      9 agree  Silent    array-call-splices-elements
-    1068 differ (  261 shapes),   2805 agree  Silent    taken-span-names-own-bounds
+    1068 differ (  261 shapes),   2838 agree  Silent    taken-span-names-own-bounds
       16 differ (    7 shapes),      2 agree  Silent    trivia-dropped-in-string-rule
-     448 differ (   90 shapes),     38 agree  Silent    char-piece-gives-character
-     515 differ (  116 shapes),     46 agree  Silent    untyped-rule-read-through
+     469 differ (   94 shapes),     38 agree  Silent    char-piece-gives-character
+     611 differ (  136 shapes),     46 agree  Silent    untyped-rule-read-through
       69 differ (   48 shapes),     13 agree  Silent    named-text-not-collected
      774 differ (  184 shapes),    771 agree  Silent    operand-beats-construction
        1 differ (    1 shapes),      0 agree  Silent    compiler-named-capture
-    6982 differ ( 1507 shapes),      0 agree  Loud      string-not-built-from-names
-    1503 differ (  295 shapes),      0 agree  Loud      non-text-piece-is-error
+    8573 differ ( 1846 shapes),      0 agree  Loud      string-not-built-from-names
+    1728 differ (  338 shapes),      0 agree  Loud      non-text-piece-is-error
      159 differ (   25 shapes),      0 agree  Loud      object-rule-reads-two-calls
       24 differ (    8 shapes),      0 agree  Loud      zero-repetition-operand-refused
      472 differ (  114 shapes),      0 agree  Loud      partial-construction-refused
       12 differ (    2 shapes),      0 agree  Loud      tied-constructor-refused
-     951 differ (  256 shapes),      0 agree  WarnOnly  optional-text-route
+    1209 differ (  329 shapes),      0 agree  WarnOnly  optional-text-route
     1558 differ (  269 shapes),      0 agree  WarnOnly  optional-operand-falls-to-construction
 
 unexplained: 0 cells in 0 distinct shapes

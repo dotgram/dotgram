@@ -155,7 +155,7 @@ public sealed class RuleOracleTests
 			}
 			else if (expected.Source == Source.SamePublished)
 			{
-				category = "same as 0.3.0 by decision (an untyped rule that writes names)";
+				category = "same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)";
 			}
 			else if (expected.Source == Source.NoMatch)
 			{
@@ -285,7 +285,7 @@ public sealed class RuleOracleTests
 
 				counts["red"] = counts.GetValueOrDefault("red") + 1;
 
-				var held = "other, rule O: held to 0.3.0 (untyped rule with names), head " + (head.Kind == "value" ? "gave a different value" : head.Kind);
+				var held = "other, rule O: held to 0.3.0 (untyped rule with names, or a name captured twice), head " + (head.Kind == "value" ? "gave a different value" : head.Kind);
 
 				if (!red.TryGetValue(held, out var heldList))
 					red[held] = heldList = [];

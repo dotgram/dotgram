@@ -81,8 +81,9 @@ sealed class Rule
 static class RuleOracle
 {
 	/// <summary>
-	/// A published rule with no type and no names (<c>Start = '&lt;' &amp; Word &amp; '&gt;'</c>, <c>Start : Plain = …</c>) is a
-	/// string rule: its value is its pieces joined. False reads it as the published version did, its own text.
+	/// A published rule with no type written and no names (<c>Start = '&lt;' &amp; Word &amp; '&gt;'</c>) is a string rule: its
+	/// value is its pieces joined. False reads it as the published version did, its own text. A rule typed by an untyped
+	/// helper (<c>Start : Plain = …</c>) is a string rule under either value.
 	/// </summary>
 	public static bool UntypedPublishedJoins { get; } = Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES_UNTYPED_JOINS") is not ("0" or "false");
 
@@ -141,12 +142,15 @@ sealed partial class Grammar
 		var type = shape.Type;
 		var body = shape.Alternatives.Select(Replace).ToList();
 
-		var untyped = type.How == TypeSaid.None || type.Taken is { Type: null };
+		// A rule with no type written is untyped: with no names it is a string rule, with names it makes a type of its own,
+		// which is not modelled. A rule typed by an untyped helper (which writes no names) follows the helper: a string rule,
+		// whatever names the taking rule writes.
+		var unsaid = type.How == TypeSaid.None;
+		var takesUntyped = type.Taken is { Type: null };
+		var untyped = unsaid && Walk(body, true).OfType<Named>().Any();
+		var string_ = takesUntyped || (unsaid && !untyped);
 
-		// An untyped rule with no names is a string rule; with names it makes a type of its own, which is not modelled.
-		var string_ = untyped && !Walk(body, true).OfType<Named>().Any();
-
-		Tested = Make(shape.RuleName, string_ ? "string" : TypeOf(type), type.How == TypeSaid.Sequence, untyped && !string_, body, shape.LeftRecursive, string_ && !RuleOracle.UntypedPublishedJoins);
+		Tested = Make(shape.RuleName, string_ ? "string" : TypeOf(type), type.How == TypeSaid.Sequence, untyped, body, shape.LeftRecursive, unsaid && string_ && !RuleOracle.UntypedPublishedJoins);
 
 		_rules.Add(Tested);
 
@@ -490,7 +494,31 @@ sealed partial class Grammar
 			return Decision.Fail("O", "E-VALUE");
 		}
 
+		// A name captured more than once on one route is not modelled: the published version decides (the first capture, or a
+		// refusal where the captures differ in type).
+		if (CapturesTwice(alternatives, parameters))
+			return Decision.Of(Source.SamePublished, "O");
+
 		return Decision.Of(Source.Constructed, "O");
+	}
+
+	static bool CapturesTwice(IReadOnlyList<Expr> alternatives, string[] parameters)
+	{
+		foreach (var sequence in Walk(alternatives).OfType<Sequence>())
+		{
+			var seen = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var item in sequence.Items)
+			{
+				foreach (var name in Walk([item]).OfType<Named>().Select(static n => n.Name).Where(parameters.Contains).Distinct())
+				{
+					if (!seen.Add(name))
+						return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/// <summary>

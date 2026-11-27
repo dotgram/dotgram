@@ -1,26 +1,26 @@
-shapes 19293, jobs 57879, cells 98154, batches 905, seed 20261125, elapsed 2266 s, whole-batch crashes 0, unattributed errors 0, head warns new 0
+shapes 19293, jobs 57879, cells 98154, batches 905, seed 20261125, elapsed 2074 s, whole-batch crashes 0, unattributed errors 0, head warns new 0
 the bounded enumeration: core 7918, deviations 2754, atoms 1890, left recursion 42, extraction pairs in this run 4597
 
-same	22807
-relaxed	15493
-refused-now	4311
+same	22943
+relaxed	15718
+refused-now	4320
 value-changed	1888
 warn-only	3465
-error-to-error	50190
+error-to-error	49820
 
 by mode
-error-to-error	B	18095
-error-to-error	D	15602
-error-to-error	S	16493
-refused-now	B	1493
-refused-now	D	1428
-refused-now	S	1390
-relaxed	B	4200
-relaxed	D	5619
-relaxed	S	5674
-same	B	7218
-same	D	8197
-same	S	7392
+error-to-error	B	17973
+error-to-error	D	15476
+error-to-error	S	16371
+refused-now	B	1496
+refused-now	D	1431
+refused-now	S	1393
+relaxed	B	4275
+relaxed	D	5694
+relaxed	S	5749
+same	B	7262
+same	D	8245
+same	S	7436
 value-changed	B	524
 value-changed	D	728
 value-changed	S	636
@@ -33,7 +33,7 @@ error-to-error	atoms	3232
 error-to-error	core	18198
 error-to-error	deviation	6750
 error-to-error	fixed	30
-error-to-error	inlined	11213
+error-to-error	inlined	10843
 error-to-error	landmark	33
 error-to-error	leftrec	188
 error-to-error	random	10546
@@ -41,14 +41,14 @@ refused-now	atoms	270
 refused-now	core	1592
 refused-now	deviation	1115
 refused-now	fixed	3
-refused-now	inlined	846
+refused-now	inlined	855
 refused-now	landmark	30
 refused-now	random	455
 relaxed	atoms	2277
 relaxed	core	5313
 relaxed	deviation	912
 relaxed	fixed	24
-relaxed	inlined	4951
+relaxed	inlined	5176
 relaxed	landmark	14
 relaxed	leftrec	50
 relaxed	random	1952
@@ -56,7 +56,7 @@ same	atoms	2591
 same	core	8595
 same	deviation	3396
 same	fixed	116
-same	inlined	6618
+same	inlined	6754
 same	landmark	39
 same	leftrec	32
 same	random	1420
@@ -77,20 +77,20 @@ warn-only	random	147
 
 by operand kind (the helpers a shape reads as operands: text, making, both, or none)
 error-to-error	both	5778
-error-to-error	making	29183
-error-to-error	none	8578
-error-to-error	text	6651
+error-to-error	making	29144
+error-to-error	none	8262
+error-to-error	text	6636
 refused-now	both	843
-refused-now	making	2985
+refused-now	making	2994
 refused-now	none	36
 refused-now	text	447
 relaxed	both	2438
-relaxed	making	6762
-relaxed	none	3278
-relaxed	text	3015
+relaxed	making	6792
+relaxed	none	3458
+relaxed	text	3030
 same	both	2451
 same	making	13237
-same	none	3621
+same	none	3757
 same	text	3498
 value-changed	both	435
 value-changed	making	1105
@@ -102,7 +102,7 @@ warn-only	none	36
 warn-only	text	36
 
 by operand helper (a cell counts once for each helper it reads)
-error-to-error	(none)	3732
+error-to-error	(none)	3416
 error-to-error	Bare (text)	5188
 error-to-error	Bx (making)	1986
 error-to-error	Bxa (making)	2628
@@ -118,15 +118,15 @@ error-to-error	Mids (text)	591
 error-to-error	Mw (making)	1034
 error-to-error	Mws (making)	1113
 error-to-error	Mx (making)	2001
-error-to-error	Num (making)	8367
+error-to-error	Num (making)	8349
 error-to-error	O (making)	1950
 error-to-error	Ow (text)	812
 error-to-error	Ows (text)	624
 error-to-error	P(Word) (plumbing)	692
 error-to-error	P2 (plumbing)	724
-error-to-error	Plain (plumbing)	10885
-error-to-error	Sp (making)	5637
-error-to-error	Span (text)	3546
+error-to-error	Plain (plumbing)	10873
+error-to-error	Sp (making)	5616
+error-to-error	Span (text)	3531
 error-to-error	Word (making)	12521
 refused-now	(none)	36
 refused-now	Bare (text)	579
@@ -143,10 +143,10 @@ refused-now	O (making)	120
 refused-now	Ow (text)	6
 refused-now	Ows (text)	111
 refused-now	Plain (plumbing)	378
-refused-now	Sp (making)	825
+refused-now	Sp (making)	834
 refused-now	Span (text)	549
 refused-now	Word (making)	1713
-relaxed	(none)	1493
+relaxed	(none)	1673
 relaxed	Bare (text)	1789
 relaxed	Bx (making)	97
 relaxed	Bxa (making)	91
@@ -162,17 +162,17 @@ relaxed	Mids (text)	291
 relaxed	Mw (making)	376
 relaxed	Mws (making)	345
 relaxed	Mx (making)	1098
-relaxed	Num (making)	3177
+relaxed	Num (making)	3195
 relaxed	O (making)	24
 relaxed	Ow (text)	292
 relaxed	Ows (text)	255
 relaxed	P(Word) (plumbing)	322
 relaxed	P2 (plumbing)	303
-relaxed	Plain (plumbing)	2746
-relaxed	Sp (making)	2145
-relaxed	Span (text)	1896
+relaxed	Plain (plumbing)	2758
+relaxed	Sp (making)	2157
+relaxed	Span (text)	1911
 relaxed	Word (making)	2555
-same	(none)	1297
+same	(none)	1433
 same	Bare (text)	3939
 same	Bx (making)	840
 same	Bxa (making)	1090
@@ -229,27 +229,27 @@ warn-only	Plain (plumbing)	582
 warn-only	Word (making)	2278
 
 by type
-error-to-error	:Bare	3137
+error-to-error	:Bare	3089
 error-to-error	:Bx	2228
 error-to-error	:Item	1630
 error-to-error	:Lf	1829
 error-to-error	:Num	1599
 error-to-error	:O	1224
 error-to-error	:Pair	6
-error-to-error	:Plain	4529
-error-to-error	:Sp	3645
-error-to-error	:Span	3624
-error-to-error	:Word	3505
+error-to-error	:Plain	4517
+error-to-error	:Sp	3609
+error-to-error	:Span	3579
+error-to-error	:Word	3457
 error-to-error	@Box	2866
 error-to-error	@Pr	2320
-error-to-error	@SourceSpan	3282
-error-to-error	@SourceSpan[]	2541
+error-to-error	@SourceSpan	3213
+error-to-error	@SourceSpan[]	2529
 error-to-error	@int	1713
 error-to-error	@int[]	885
 error-to-error	@object	1731
-error-to-error	@string	1532
+error-to-error	@string	1484
 error-to-error	@string[]	4565
-error-to-error	none	1799
+error-to-error	none	1747
 refused-now	:Bare	469
 refused-now	:Bx	388
 refused-now	:Item	240
@@ -257,42 +257,42 @@ refused-now	:Lf	502
 refused-now	:O	171
 refused-now	:Plain	477
 refused-now	:Sp	807
-refused-now	:Span	726
+refused-now	:Span	735
 refused-now	:Word	531
-relaxed	:Bare	1590
+relaxed	:Bare	1626
 relaxed	:Bx	140
 relaxed	:Item	64
 relaxed	:Lf	134
 relaxed	:Num	27
 relaxed	:O	39
-relaxed	:Plain	951
-relaxed	:Sp	918
-relaxed	:Span	927
-relaxed	:Word	1693
-relaxed	@SourceSpan	1773
-relaxed	@SourceSpan[]	2388
+relaxed	:Plain	963
+relaxed	:Sp	942
+relaxed	:Span	951
+relaxed	:Word	1729
+relaxed	@SourceSpan	1830
+relaxed	@SourceSpan[]	2400
 relaxed	@int[]	315
-relaxed	@string	2006
+relaxed	@string	2030
 relaxed	@string[]	1881
 relaxed	none	647
-same	:Bare	1623
+same	:Bare	1635
 same	:Bx	737
 same	:Item	528
 same	:Lf	792
 same	:Num	141
 same	:O	153
 same	:Plain	966
-same	:Sp	747
-same	:Span	771
-same	:Word	1645
+same	:Sp	759
+same	:Span	783
+same	:Word	1657
 same	@Box	1241
 same	@Pr	1349
-same	@SourceSpan	1425
+same	@SourceSpan	1437
 same	@SourceSpan[]	756
 same	@int[]	333
-same	@string	4304
+same	@string	4328
 same	@string[]	647
-same	none	4649
+same	none	4701
 value-changed	:Bare	108
 value-changed	:Bx	85
 value-changed	:Item	48

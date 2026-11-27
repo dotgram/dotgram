@@ -1,9 +1,9 @@
 
 ===== oracle: 0 violations =====
 
-===== published version 0.3.0: 12715 violations =====
+===== published version 0.3.0: 12859 violations =====
 
-     225 extraction-keeps-the-value (55 shapes)
+     282 extraction-keeps-the-value (67 shapes)
     fixed/string array, an untyped wrapper of a built string / inlined/fixed/string array, an untyped wrapper of a built string mode D input (ef);gh
     Start : @string[] = P2 & ';' & Word
     P2 = '(' & Word & ')'
@@ -31,7 +31,7 @@
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       "ccc"  vs  "W:cd"
 
-    3853 name-changes-nothing (810 shapes)
+    3916 name-changes-nothing (823 shapes)
     core/@string/none/-,-/OnLiteral/None/noLR/Itself/written / core/@string/none/-,-/None/None/noLR/Itself/written mode D input <#>
     Start : @string = x: '<' & '#' & '>'
       REFUSED  vs  "<#>"
@@ -48,7 +48,7 @@
     Num : @int = d: ['0'..'9']{2} => @(N(d))
       REFUSED  vs  "34"
 
-    8637 taken-is-declared (1897 shapes)
+    8661 taken-is-declared (1903 shapes)
     landmark/:Word/one/OwnOverMaking,-/None/None/noLR/Itself/written / landmark/@string/one/OwnOverMaking,-/None/None/noLR/Itself/written mode D input <(cd)>
     Start : Word = '<' & Ow & '>'
     Ow : @string = '(' & Word & ')'
@@ -67,9 +67,9 @@
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       "W:cd"  vs  "cd"
 
-===== this build: 15465 violations =====
+===== this build: 15707 violations =====
 
-     864 extraction-keeps-the-value (288 shapes)
+     927 extraction-keeps-the-value (307 shapes)
     landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written / inlined/landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written mode D input <cd>
     Start : Span = '<' & Span & '>'
     Span : @SourceSpan = ['a'..'z']{2}
@@ -90,7 +90,7 @@
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       "cd"  vs  "(cd)"
 
-    1177 name-changes-nothing (284 shapes)
+    1356 name-changes-nothing (334 shapes)
     core/@string/bare/Built,-/OnOperand/None/noLR/Itself/written / core/@string/bare/Built,-/None/None/noLR/Itself/written mode D input cd
     Start : @string = w: Word
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
