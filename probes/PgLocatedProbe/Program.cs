@@ -4,6 +4,7 @@ using System.Text;
 using DotGram.Benchmarks;
 using DotGram.Sql;
 using DotGram.Sql.PostgreSql;
+using DotGram.Sql.TransactSql;
 
 // `spans <corpus-dir>... --out <file>`: one line per node of every statement the located reading reads.
 // `time <rounds> <corpus-dir>...`: the plain and the located reading over the same statements, interleaved.
@@ -18,7 +19,7 @@ for (var at = 1; at < args.Length; at++)
 	{
 		output = args[++at];
 	}
-	else if (mode == "time" && rounds == 0)
+	else if (mode is "time" or "ttime" && rounds == 0)
 	{
 		rounds = int.Parse(args[at]);
 	}
@@ -30,7 +31,7 @@ for (var at = 1; at < args.Length; at++)
 
 var statements = new List<(string Where, string Text)>();
 
-foreach (var dir in dirs)
+foreach (var dir in mode is "tspans" or "tplain" or "ttime" ? [] : dirs)
 {
 	foreach (var file in Directory.GetFiles(dir, "*.sql", SearchOption.AllDirectories).OrderBy(static one => one, StringComparer.Ordinal))
 	{
@@ -44,29 +45,56 @@ foreach (var dir in dirs)
 	}
 }
 
-if (mode == "spans")
+if (mode is "spans" or "plain" or "tspans" or "tplain")
 {
 	using var writer = new StreamWriter(output!, false, new UTF8Encoding(false));
 	var read    = 0;
 	var refused = 0;
 	var nodes   = 0;
+	var tsql    = mode is "tspans" or "tplain";
+	var located = mode.EndsWith("spans", StringComparison.Ordinal);
+	var inputs  = tsql ? Scripts() : statements;
 
-	foreach (var (where, text) in statements)
+	foreach (var (where, text) in inputs)
 	{
-		var made = PostgreSqlParser.Located.TryParseSql(text);
+		IEnumerable<ISqlSpan> roots;
 
-		if (!made.IsSuccess)
+		if (tsql)
 		{
-			refused++;
-			continue;
+			var made = located ? TransactSqlParser.Located.TryParseScript(text) : TransactSqlParser.TryParseScript(text);
+
+			if (!made.IsSuccess)
+			{
+				refused++;
+				writer.Write($"{where}\trefused\t{made.Position}\t{made.Error}\n");
+				continue;
+			}
+
+			roots = made.Value.SelectMany(static batch => batch.Statements).Cast<ISqlSpan>();
+		}
+		else
+		{
+			var made = located ? PostgreSqlParser.Located.TryParseSql(text) : PostgreSqlParser.TryParseSql(text);
+
+			if (!made.IsSuccess)
+			{
+				refused++;
+				writer.Write($"{where}\trefused\t{made.Position}\t{made.Error}\n");
+				continue;
+			}
+
+			roots = made.Value.Cast<ISqlSpan>();
 		}
 
 		read++;
 
 		var index = 0;
 
-		foreach (var root in made.Value)
+		foreach (var root in roots)
 		{
+			// The whole tree as its record prints it, hashed stably: equal trees across builds and processes.
+			writer.Write($"{where}\troot\t{Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(root.ToString()!)))}\n");
+
 			SqlWalker.Walk(root, node =>
 			{
 				var span = node.Span;
@@ -84,6 +112,8 @@ if (mode == "spans")
 				writer.Write(span.GapStart);
 				writer.Write('\t');
 				writer.Write(span.Known ? Excerpt(text, span) : "-");
+				writer.Write('\t');
+				writer.Write(node.GetHashCode());
 				writer.Write('\n');
 				nodes++;
 
@@ -92,7 +122,40 @@ if (mode == "spans")
 		}
 	}
 
-	Console.WriteLine($"statements {statements.Count}, read {read}, refused {refused}, nodes {nodes}");
+	Console.WriteLine($"inputs {inputs.Count}, read {read}, refused {refused}, nodes {nodes}");
+
+	return 0;
+}
+
+if (mode == "ttime")
+{
+	var scripts = Scripts();
+
+	for (var warm = 0; warm < int.Parse(Environment.GetEnvironmentVariable("PROBE_WARM") ?? "5"); warm++)
+	{
+		TPlain(scripts);
+		TLocated(scripts);
+	}
+
+	var plain   = new List<double>();
+	var located = new List<double>();
+
+	for (var round = 0; round < rounds; round++)
+	{
+		var clock = Stopwatch.StartNew();
+
+		TPlain(scripts);
+		plain.Add(clock.Elapsed.TotalMilliseconds);
+		clock.Restart();
+		TLocated(scripts);
+		located.Add(clock.Elapsed.TotalMilliseconds);
+	}
+
+	Console.WriteLine("plain   " + string.Join(" ", plain.Select(static one => one.ToString("F0"))));
+	Console.WriteLine("located " + string.Join(" ", located.Select(static one => one.ToString("F0"))));
+	plain.Sort();
+	located.Sort();
+	Console.WriteLine($"scripts {scripts.Count}; plain median {plain[plain.Count / 2]:F1} ms min {plain[0]:F1}; located median {located[located.Count / 2]:F1} ms min {located[0]:F1}");
 
 	return 0;
 }
@@ -176,6 +239,29 @@ void Located()
 {
 	foreach (var (_, text) in statements)
 		PostgreSqlParser.Located.TryParseSql(text);
+}
+
+List<(string Where, string Text)> Scripts()
+{
+	var scripts = new List<(string Where, string Text)>();
+
+	foreach (var dir in dirs)
+		foreach (var file in Directory.GetFiles(dir, "*.sql", SearchOption.AllDirectories).OrderBy(static one => one, StringComparer.Ordinal))
+			scripts.Add((Path.GetRelativePath(dir, file).Replace('\\', '/'), File.ReadAllText(file)));
+
+	return scripts;
+}
+
+static void TPlain(List<(string Where, string Text)> scripts)
+{
+	foreach (var (_, text) in scripts)
+		TransactSqlParser.TryParseScript(text);
+}
+
+static void TLocated(List<(string Where, string Text)> scripts)
+{
+	foreach (var (_, text) in scripts)
+		TransactSqlParser.Located.TryParseScript(text);
 }
 
 static string TypeName(Type type)
