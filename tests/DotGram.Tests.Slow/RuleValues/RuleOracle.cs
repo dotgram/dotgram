@@ -1,0 +1,637 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace DotGram.Tests.RuleValues;
+
+// The oracle of the rule-value gate: what a grammar of the gate must give, written from the rule alone and never from the
+// generator. A rule without => is one of four kinds, by its type:
+//   C (string): the pieces it matched on the route taken, joined: a call of a string rule gives its value, a call of a char
+//               rule its character, an untyped rule is read through, trivia and lookaheads give nothing, anything else gives
+//               its text; a piece of another type is an error.
+//   S (span):   the bounds of what it matched.
+//   A (array):  the value of every call of a rule of the element type, in order; untyped rules are read through.
+//   O (other):  the one unnamed call of a rule of its type on every route; else the constructor its names fill; else an error.
+// A left-recursive rule is its loop, a seed and steps: the value so far is the step's first piece (C), elements (A) or
+// operand (O); a span is the rule's own bounds. Names change nothing in C, S and A. The oracle parses the input by the
+// grammar (ordered choice, greedy repetition), then reads the value off the route the parse took.
+
+
+/// <summary>The kind of a rule without =&gt;.</summary>
+enum Kind
+{
+	C,
+	S,
+	A,
+	O,
+	Untyped,
+}
+
+/// <summary>A call of a rule of the grammar that is not a helper: a composite helper, or the rule under test from its caller.</summary>
+sealed class RuleRef(Rule rule) : Expr
+{
+	public Rule Rule { get; } = rule;
+}
+
+/// <summary>A rule of the grammar under reading.</summary>
+sealed class Rule
+{
+	public required string Name { get; init; }
+
+	public required Kind Kind { get; init; }
+
+	/// <summary>The C# type, of the element for an array; null for no type.</summary>
+	public required string? Type { get; init; }
+
+	public required IReadOnlyList<Expr> Alternatives { get; init; }
+
+	public bool LeftRecursive { get; init; }
+
+	/// <summary>The decision of the alternatives of the rule; for a left-recursive rule, of its seeds and then of its steps.</summary>
+	public Decision[] Groups { get; set; } = [];
+
+	static bool IsStep(Expr alternative)
+	{
+		return alternative is Sequence { Items: [SelfCall, ..] };
+	}
+
+	public IEnumerable<Expr> Seeds
+	{
+		get
+		{
+			return LeftRecursive ? Alternatives.Where(static a => !IsStep(a)) : Alternatives;
+		}
+	}
+
+	public IEnumerable<Expr> Steps
+	{
+		get
+		{
+			return LeftRecursive ? Alternatives.Where(IsStep) : [];
+		}
+	}
+}
+
+/// <summary>
+/// The oracle.
+/// </summary>
+static class RuleOracle
+{
+	/// <summary>What the oracle expects of the input.</summary>
+	public static Expectation Expected(RuleShape shape, Mode mode, string input)
+	{
+		return Describe(shape).Expected(mode, input);
+	}
+
+	/// <summary>The static reading of a shape (a decision per rule, and the features the allow-list asks for).</summary>
+	public static Grammar Describe(RuleShape shape)
+	{
+		return Analyses.GetOrAdd(shape, static s => new Grammar(s));
+	}
+
+	static readonly System.Collections.Concurrent.ConcurrentDictionary<RuleShape, Grammar> Analyses = new();
+}
+
+/// <summary>
+/// The reading of one shape: its rules, the decision for each, and the evaluation of an input.
+/// </summary>
+sealed partial class Grammar
+{
+	enum Piece
+	{
+		Text,
+		Built,
+		Char,
+		Other,
+		ReadThrough,
+	}
+
+	static readonly HashSet<string> Composites = ["Mid", "C4", "Mids", "Ow", "Ows", "Mw", "Mws", "Mx", "P2", "P(Word)"];
+
+	readonly RuleShape _shape;
+	readonly List<Rule> _rules = [];
+	readonly Dictionary<string, Rule> _composites = [];
+	readonly HashSet<Rule> _inProgress = [];
+
+	/// <summary>The rule the shape is published through: <c>Start</c>.</summary>
+	public Rule Start { get; }
+
+	/// <summary>The rule under test (the same as <see cref="Start"/> for a shape nobody calls).</summary>
+	public Rule Tested { get; }
+
+	/// <summary>The first error or question among the rules, or the decision of <see cref="Start"/>.</summary>
+	public Decision Decision { get; private set; }
+
+	/// <summary>What the grammar holds that the classes of the allow-list are told by.</summary>
+	public HashSet<string> Features { get; } = [];
+
+	public Grammar(RuleShape shape)
+	{
+		_shape = shape;
+
+		var type = shape.Type;
+		var body = shape.Alternatives.Select(Replace).ToList();
+
+		Tested = Make(shape.RuleName, TypeOf(type), type.How == TypeSaid.Sequence, type.How == TypeSaid.None || type.Taken is { Type: null }, body, shape.LeftRecursive);
+
+		_rules.Add(Tested);
+
+		if (shape.Template)
+		{
+			Start = Make("Start", Tested.Type, false, Tested.Kind == Kind.Untyped, [new RuleRef(Tested)], false);
+		}
+		else
+		{
+			switch (shape.SeenFrom)
+			{
+				case SeenFrom.InSequence:
+					Start = Make("Start", type.ClrType, true, false,
+						[new Sequence(new RuleRef(Tested), new Literal(";"), new Call(RulePrinter.BesideInSequence(type), Atom.Built))], false);
+					break;
+
+				case SeenFrom.TakenBy:
+					Start = Make("Start", Tested.Type, false, false, [new Sequence(new Literal("["), new RuleRef(Tested), new Literal("]"))], false);
+					break;
+
+				case SeenFrom.BesideFilling:
+					Start = Make("Start", Tested.Type, false, false, [new Sequence([.. RuleShapes.Filling(type.Family)!, new RuleRef(Tested)])], false);
+					break;
+
+				default:
+					Start = Tested;
+					break;
+			}
+		}
+
+		if (!ReferenceEquals(Start, Tested))
+			_rules.Add(Start);
+
+		Decision = Decision.Of(Source.Extent, "");
+		Read();
+	}
+
+	static string? TypeOf(RuleType type)
+	{
+		if (type.How == TypeSaid.None)
+			return null;
+
+		return type.Taken is { } taken ? LeafInfo(taken.Name).Type : type.ClrType;
+	}
+
+	static Rule Make(string name, string? type, bool array, bool untyped, IReadOnlyList<Expr> body, bool leftRecursive)
+	{
+		var kind = untyped || type is null ? Kind.Untyped : array ? Kind.A : type switch
+		{
+			"string"     => Kind.C,
+			"SourceSpan" => Kind.S,
+			_            => Kind.O,
+		};
+
+		return new Rule { Name = name, Kind = kind, Type = type, Alternatives = body, LeftRecursive = leftRecursive };
+	}
+
+	/// <summary>The type of a helper that is read as a single token, and whether it builds its value.</summary>
+	static (string? Type, bool Builds) LeafInfo(string name)
+	{
+		return name switch
+		{
+			"Word" or "Nm" or "Dg" => ("string", true),
+			"Bare" or "G"          => ("string", false),
+			"Plain"                => (null, false),
+			"Span" or "Gs"         => ("SourceSpan", false),
+			"Sp"                   => ("SourceSpan", true),
+			"Bx" or "Bxa"          => ("Box", true),
+			"Lf" or "Lfa"          => ("Pr", true),
+			"Item"                 => ("Item", true),
+			"Pair"                 => ("Pair", true),
+			"Num"                  => ("int", true),
+			"O"                    => ("object", true),
+			"Ch" or "Esc"          => ("char", true),
+			_                      => throw new InvalidOperationException(name),
+		};
+	}
+
+	// A helper that has a body of its own: a rule of the grammar, called through a reference.
+	Rule Composite(Helper helper)
+	{
+		if (_composites.TryGetValue(helper.Name, out var known))
+			return known;
+
+		IReadOnlyList<Expr> body = helper.Name switch
+		{
+			"Mw"  => [new Sequence(new Literal("("), new Call(Helper.Word, Atom.Built), new Literal(")"))],
+			"Mws" => [new Sequence(new Literal("("), new Call(Helper.Sp, Atom.Built), new Literal(")"))],
+			"Mx"  => [new Call(Helper.Word, Atom.Built), new Sequence(new Literal("["), new Call(Helper.Bare, Atom.Implicit), new Literal("]"))],
+			_     => [helper.Inline!(0)],
+		};
+
+		var rule = Make(helper.Name, helper.Type, false, helper.Type is null, [.. body.Select(Replace)], false);
+
+		_composites[helper.Name] = rule;
+		_rules.Insert(0, rule);
+
+		return rule;
+	}
+
+	// The parameter of a template stands for a call of the rule passed for it, and a helper with a body of its own for a
+	// reference to the rule it is.
+	Expr Replace(Expr expr)
+	{
+		switch (expr)
+		{
+			case Parameter:
+				return Replace(new Call(_shape.TemplateArgument!, Atom.Implicit));
+
+			case Call call when Composites.Contains(call.Rule.Name):
+				return new RuleRef(Composite(call.Rule));
+
+			case Named named:
+				return new Named(named.Name, Replace(named.Inner));
+
+			case Bind bind:
+				return new Bind(bind.Name, Replace(bind.Inner));
+
+			case Sequence sequence:
+				return new Sequence([.. sequence.Items.Select(Replace)]);
+
+			case Choice choice:
+				return new Choice([.. choice.Alternatives.Select(Replace)]);
+
+			case Group group:
+				return new Group(Replace(group.Inner));
+
+			case Wrapped wrapped:
+				return new Wrapped(wrapped.Wrap, Replace(wrapped.Inner));
+
+			default:
+				return expr;
+		}
+	}
+
+	// ---- What a rule reads ----
+
+	static bool IsCall(Expr expr)
+	{
+		return expr is Call or RuleRef or SelfCall;
+	}
+
+	/// <summary>Every node of the alternatives outside lookaheads and <c>{0}</c>, reading through the untyped rules they call.</summary>
+	static IEnumerable<Expr> Walk(IEnumerable<Expr> alternatives)
+	{
+		foreach (var alternative in alternatives)
+			foreach (var node in WalkOne(alternative))
+				yield return node;
+	}
+
+	static IEnumerable<Expr> WalkOne(Expr expr)
+	{
+		yield return expr;
+
+		IEnumerable<Expr> inner = expr switch
+		{
+			Named named                                                   => [named.Inner],
+			Bind bind                                                     => [bind.Inner],
+			Sequence sequence                                             => sequence.Items,
+			Choice choice                                                 => choice.Alternatives,
+			Group group                                                   => [group.Inner],
+			Wrapped { Wrap: not (Wrap.Ahead or Wrap.NotAhead or Wrap.Zero) } wrapped => [wrapped.Inner],
+			RuleRef { Rule.Kind: Kind.Untyped } reference                 => reference.Rule.Alternatives,
+			_                                                             => [],
+		};
+
+		foreach (var node in Walk(inner))
+			yield return node;
+	}
+
+	/// <summary>The type a call gives; null for an untyped rule.</summary>
+	static string? CalleeType(Expr call, Rule self)
+	{
+		return call switch
+		{
+			Call c      => LeafInfo(c.Rule.Name).Type,
+			RuleRef r   => r.Rule.Kind == Kind.Untyped ? null : r.Rule.Type,
+			SelfCall    => self.Type,
+			_           => null,
+		};
+	}
+
+	Piece Classify(Expr call, Rule self)
+	{
+		var callee = call switch
+		{
+			RuleRef r => r.Rule,
+			SelfCall  => self,
+			_         => null,
+		};
+
+		if (callee is not null)
+		{
+			return callee.Kind switch
+			{
+				Kind.Untyped => Piece.ReadThrough,
+				Kind.C       => Impure(callee) ? Piece.Built : Piece.Text,
+				_            => Piece.Other,
+			};
+		}
+
+		var (type, builds) = LeafInfo(((Call)call).Rule.Name);
+
+		return type switch
+		{
+			"string" => builds ? Piece.Built : Piece.Text,
+			"char"   => Piece.Char,
+			null     => Piece.Text,
+			_        => Piece.Other,
+		};
+	}
+
+	/// <summary>
+	/// A string rule is not its own text where a piece builds a value that differs from its text: a built string, a
+	/// character, or a rule that is not pure itself (a least fixpoint over its calls), or a woven seam that can be non-empty.
+	/// </summary>
+	bool Impure(Rule rule)
+	{
+		if (!_inProgress.Add(rule))
+			return false;
+
+		try
+		{
+			var nodes = Walk(rule.Alternatives).ToList();
+
+			if (_shape.Trivia && nodes.OfType<Sequence>().Any(static s => s.Items.Length >= 2))
+				return true;
+
+			return nodes.Where(IsCall).Any(c => Classify(c, rule) is Piece.Built or Piece.Char);
+		}
+		finally
+		{
+			_inProgress.Remove(rule);
+		}
+	}
+
+	static string[] Parameters(string? type)
+	{
+		return type switch
+		{
+			"Box"  => ["name", "inner", "value"],
+			"Pr"   => ["t", "l", "r"],
+			"Item" => ["x"],
+			"Pair" => ["a", "b"],
+			_      => [],
+		};
+	}
+
+	// ---- The decision per rule ----
+
+	void Read()
+	{
+		foreach (var rule in _rules)
+		{
+			rule.Groups = Decide(rule);
+			Describe(rule);
+		}
+
+		Decision = _rules.SelectMany(static r => r.Groups).FirstOrDefault(static d => d.Source is Source.Error or Source.Undecided) ?? Start.Groups[0];
+	}
+
+	Decision[] Decide(Rule rule)
+	{
+		var calls = Walk(rule.Alternatives).Where(IsCall).ToList();
+
+		switch (rule.Kind)
+		{
+			case Kind.Untyped:
+				return [_composites.ContainsValue(rule) ? Decision.Of(Source.Extent, "-") : Decision.Ask("-", "a published rule with no type: the rule gives its value no source")];
+
+			case Kind.S:
+				return [Decision.Of(Source.Extent, "S")];
+
+			case Kind.C:
+				if (calls.Any(c => Classify(c, rule) == Piece.Other))
+					return [Decision.Fail("C", "E-NONTEXT")];
+
+				return [Decision.Of(Impure(rule) ? Source.Joined : Source.Extent, "C")];
+
+			case Kind.A:
+				if (!calls.Any(c => c is not SelfCall && CalleeType(c, rule) == rule.Type))
+					return [Decision.Fail("A", "E-SEQ")];
+
+				// An object collects any call, so a call of an array of objects is one element or many: it is not told.
+				if (rule.Type == "object" && calls.Any(c => c is SelfCall || c is RuleRef { Rule.Kind: Kind.A }))
+					return [Decision.Fail("A", "E-AMBIGUOUS")];
+
+				return [Decision.Of(Source.Collected, "A")];
+
+			default:
+				return rule.LeftRecursive
+					? [DecideO(rule, rule.Seeds.ToList()), DecideO(rule, rule.Steps.ToList())]
+					: [DecideO(rule, rule.Alternatives)];
+		}
+	}
+
+	Decision DecideO(Rule rule, IReadOnlyList<Expr> alternatives)
+	{
+		var routes = alternatives.SelectMany(a => RoutesOf(a, rule, false)).Distinct().ToList();
+
+		if (routes.All(static r => r.Operands == 1))
+			return Decision.Of(Source.Operand, "O");
+
+		// An object holds any value, so which calls are its operands, and whether a repetition of them is one, is not told.
+		if (rule.Type == "object")
+			return Decision.Ask("O", "a rule of type object that does not read one call of type object on every route: whether a call of another type fits it, and whether repeated calls are gathered, is not told");
+
+		var parameters = Parameters(rule.Type);
+		var sets       = routes.Select(r => r.Names.Split(',', StringSplitOptions.RemoveEmptyEntries).Where(n => parameters.Contains(n)).Order(StringComparer.Ordinal).ToArray()).ToList();
+
+		if (!sets.Any(static s => s.Length > 0))
+			return Decision.Fail("O", rule.LeftRecursive ? "E-LR" : "E-VALUE");
+
+		if (sets.Select(static s => string.Join(",", s)).Distinct().Count() > 1)
+			return Decision.Ask("O", "names that fill a construction written on some routes of the rule and not on others");
+
+		if (sets[0].Contains("value"))
+			return Decision.Ask("O", "a name that two constructors of the type take equally");
+
+		return Decision.Of(Source.Constructed, "O");
+	}
+
+	/// <summary>The call is of a rule of the type the rule under reading takes as an operand.</summary>
+	bool IsOperand(Expr expr, Rule rule)
+	{
+		return IsCall(expr) && rule.Type is not null && CalleeType(expr, rule) == rule.Type && !(expr is RuleRef { Rule.Kind: Kind.A });
+	}
+
+	/// <summary>A name directly on a call: <c>x: R</c>, <c>x: R?</c>, <c>x: R+</c>, <c>x: (R)</c>.</summary>
+	static bool NamesACall(Expr inner)
+	{
+		return inner switch
+		{
+			Group { Inner: var g }                                                  => NamesACall(g),
+			Wrapped { Wrap: Wrap.Optional or Wrap.Plus or Wrap.Star, Inner: var w } => NamesACall(w),
+			_                                                                       => IsCall(inner),
+		};
+	}
+
+	static string Join(string a, string b)
+	{
+		if (a.Length == 0)
+			return b;
+
+		if (b.Length == 0 || a == b)
+			return a;
+
+		return string.Join(",", (a + "," + b).Split(',').Distinct().Order(StringComparer.Ordinal));
+	}
+
+	static HashSet<(int Operands, string Names)> Product(HashSet<(int Operands, string Names)> a, HashSet<(int Operands, string Names)> b)
+	{
+		return [.. a.SelectMany(x => b.Select(y => (Math.Min(2, x.Operands + y.Operands), Join(x.Names, y.Names))))];
+	}
+
+	/// <summary>
+	/// The ways through an expression: how many operands each reads (two stand for more than one) and the names it writes.
+	/// A name directly on a call makes the call the author's, not an operand.
+	/// </summary>
+	HashSet<(int Operands, string Names)> RoutesOf(Expr expr, Rule rule, bool author)
+	{
+		switch (expr)
+		{
+			case Call or RuleRef or SelfCall:
+				return !author && IsOperand(expr, rule) ? [(1, "")] : [(0, "")];
+
+			case Named named:
+				return [.. RoutesOf(named.Inner, rule, author || NamesACall(named.Inner)).Select(r => (r.Operands, Join(r.Names, named.Name)))];
+
+			case Bind bind:
+				return RoutesOf(bind.Inner, rule, author);
+
+			case Sequence sequence:
+				return sequence.Items.Aggregate(new HashSet<(int Operands, string Names)> { (0, "") }, (all, item) => Product(all, RoutesOf(item, rule, author)));
+
+			case Choice choice:
+				return [.. choice.Alternatives.SelectMany(a => RoutesOf(a, rule, author))];
+
+			case Group group:
+				return RoutesOf(group.Inner, rule, author);
+
+			case Wrapped { Wrap: Wrap.Optional } optional:
+				return [.. RoutesOf(optional.Inner, rule, author), (0, "")];
+
+			case Wrapped { Wrap: Wrap.Star } star:
+			{
+				var inner = RoutesOf(star.Inner, rule, author);
+
+				return [.. Product(inner, inner), (0, "")];
+			}
+
+			case Wrapped { Wrap: Wrap.Plus } plus:
+			{
+				var inner = RoutesOf(plus.Inner, rule, author);
+
+				return Product(inner, inner);
+			}
+
+			default:
+				return [(0, "")];
+		}
+	}
+
+	// The features the allow-list asks for: what the grammar holds, whatever the input.
+	void Describe(Rule rule)
+	{
+		var nodes = Walk(rule.Alternatives).ToList();
+		var calls = nodes.Where(IsCall).ToList();
+
+		if (nodes.OfType<Named>().Any(static n => n.Name == "items"))
+			Features.Add("compiler-name");
+
+		switch (rule.Kind)
+		{
+			case Kind.C:
+			{
+				var taken = _shape.Type.How == TypeSaid.Taken;
+
+				foreach (var call in calls.Where(static c => c is not Call { Atom: null }))
+				{
+					switch (Classify(call, rule))
+					{
+						case Piece.Built:
+							Features.Add(taken ? "C-taken-built" : "C-built");
+							break;
+
+						case Piece.Char:
+							Features.Add("C-char");
+							break;
+
+						case Piece.Other:
+							Features.Add("C-non-text");
+							break;
+					}
+				}
+
+				if (_shape.Trivia && nodes.OfType<Sequence>().Any(static s => s.Items.Length >= 2))
+					Features.Add("C-seam");
+
+				if (nodes.OfType<Named>().Any(static n => n.Inner is Call { Atom: null }))
+					Features.Add("C-names-of-constructor");
+
+				if (nodes.OfType<Wrapped>().Any(static w => w is { Wrap: Wrap.Optional, Inner: Call or RuleRef }))
+					Features.Add("C-optional-call");
+
+				if (calls.OfType<RuleRef>().Any(r => r.Rule.Kind == Kind.Untyped && Walk(r.Rule.Alternatives).Where(IsCall).Any(c => Classify(c, rule) == Piece.Built)))
+					Features.Add("C-read-through");
+
+				break;
+			}
+
+			case Kind.A:
+				if (calls.Any(c => c is not SelfCall && CalleeType(c, rule) == rule.Type && !(c is Call { Rule.Name: "Word" or "Nm" or "Dg" or "Sp" or "Num" })))
+					Features.Add("A-text-rule");
+
+				if (nodes.OfType<Named>().Any(static n => n.Inner is Literal))
+					Features.Add("A-named-literal");
+
+				if (nodes.OfType<Named>().Any(static n => n.Inner is Call { Rule.Name: "Plain" } or Lexeme))
+					Features.Add("A-named-untyped");
+
+				if (calls.Any(c => c is SelfCall || c is RuleRef { Rule.Kind: Kind.A }))
+					Features.Add("A-splice");
+
+				if (calls.OfType<RuleRef>().Any(r => r.Rule.Kind == Kind.Untyped))
+					Features.Add("A-read-through");
+
+				break;
+
+			case Kind.O:
+				if (rule.Groups.Any(static d => d.Source == Source.Operand) && nodes.OfType<Named>().Any(n => Parameters(rule.Type).Contains(n.Name)))
+					Features.Add("O-operand-beats-construction");
+
+				break;
+		}
+	}
+
+	// ---- The value of an input ----
+
+	/// <summary>The expectation for one input in one mode.</summary>
+	public Expectation Expected(Mode mode, string input)
+	{
+		if (Decision.Source == Source.Undecided)
+			return new Expectation(Source.Undecided, null, null, Decision.Question, Decision.Row);
+
+		if (Decision.Source == Source.Error)
+			return new Expectation(Source.Error, null, Decision.ErrorId, null, Decision.Row);
+
+		// Over bytes a string cannot be joined from a built string or a character without decoding.
+		if (mode == Mode.B && _rules.Any(r => r.Kind == Kind.C && Impure(r)))
+			return new Expectation(Source.Error, null, "GRAM4026", null, "C");
+
+		try
+		{
+			return new Evaluation(this, mode, input).Run();
+		}
+		catch (Exception e) when (e is InvalidOperationException or KeyNotFoundException)
+		{
+			return new Expectation(Source.Undecided, null, null, e.Message, Start.Groups[0].Row);
+		}
+	}
+}
