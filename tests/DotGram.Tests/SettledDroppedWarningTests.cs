@@ -11,10 +11,12 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// A file compiled without its settled copies, because a publication is read by the engine, says of
-/// each rule whose run has no upper bound that a refusal inside a long run of it takes time quadratic
-/// in its length (GRAM5022): once for each such rule, naming the first publication that put the file
-/// on the engine, and nowhere a copy is kept or a bounded run gives back.
+/// A file compiled without its settled copies, because a machine of it is not a reader over a string,
+/// says of each rule whose run has no upper bound that a refusal inside a long run of it takes time
+/// quadratic in its length (GRAM5022, and GRAM5023 for a grammar that reads segments): once for each
+/// such rule, with the cause the plan gives and the one remedy that can be done, naming the first
+/// publication of that cause; and nowhere a copy is kept, a bounded run gives back, or the author's own
+/// options leave no copies.
 /// </summary>
 public sealed class SettledDroppedWarningTests
 {
@@ -22,7 +24,7 @@ public sealed class SettledDroppedWarningTests
 	/// A name ending in a run, called where an attribute may follow and before an attribute's <c>'='</c>:
 	/// the name gives characters back at the first and nothing could take them at the second.
 	/// </summary>
-	static string Names(string run, string publications)
+	static string Names(string run, string publications, string start = "Start : @string = p: Pair & (';' & Pair)* & eof => @(p)")
 	{
 		return $$"""
 			trivia = none
@@ -32,36 +34,129 @@ public sealed class SettledDroppedWarningTests
 			Path  : @string = n: Name => @(n)
 			                | '/' & p: Path => @("/" + p)
 			Pair  : @string = k: Path & '=' & a: Path & b: Name? & '!' => @(k + "=" + a + "|" + b)
-			Start : @string = p: Pair & (';' & Pair)* & eof => @(p)
+			Items : @string[] = Pair*
+			{{start}}
 
-			parse Start
 			{{publications}}
 			""";
 	}
 
-	[Fact]
-	public void A_find_puts_the_file_on_the_engine_and_the_unbounded_run_is_told()
+	/// <summary>A start rule that captures what a lookahead saw, which methods do not read: the engine does.</summary>
+	const string Peeking = "Start : @string = p: Pair & (';' & Pair)* & peek: ?=Word & eof => @(p)";
+
+	const string Move = "Move it into its own grammar.";
+
+	static string Because(string rule, string reason, string remedy)
 	{
-		var grammar = Names("*", "find Pair");
+		return $"Rule '{rule}' is read without its settled copy because {reason}, " +
+			$"so a refusal inside a long run of '{rule}' takes time quadratic in its length." +
+			(remedy.Length == 0 ? "" : " " + remedy);
+	}
+
+	[Fact]
+	public void A_find_is_always_read_by_the_engine_and_is_only_moved()
+	{
+		var grammar = Names("*", "parse Start\nfind Pair");
 		var told    = Assert.Single(Told(grammar));
 
-		Assert.Equal(
-			"Rule 'Word' is read without its settled copy because publication 'FindPair' runs on the engine, " +
-			"so a refusal inside a long run of 'Word' takes time quadratic in its length. " +
-			"Read 'FindPair' by methods, or move it into its own grammar.",
-			told.Message);
-
+		Assert.Equal(Because("Word", "publication 'FindPair' runs on the engine", Move), told.Message);
 		Assert.Equal(GramSeverity.Warning, told.Severity);
 		Assert.Equal(grammar.IndexOf("Word  =", StringComparison.Ordinal), told.Position);
 	}
 
 	[Fact]
-	public void The_first_publication_in_source_order_that_is_not_read_by_methods_is_named()
+	public void A_yield_is_told_as_a_find_is()
 	{
-		var told = Assert.Single(Told(Names("*", "find Path\nfind Pair")));
+		var told = Assert.Single(Told(Names("*", "yield Items")));
 
-		Assert.Contains("publication 'FindPath' runs", told.Message, StringComparison.Ordinal);
-		Assert.Contains("Read 'FindPath' by methods", told.Message, StringComparison.Ordinal);
+		Assert.Equal(Because("Word", "publication 'YieldItems' runs on the engine", Move), told.Message);
+	}
+
+	[Fact]
+	public void A_parse_that_methods_cannot_read_keeps_the_approved_words()
+	{
+		var told = Assert.Single(Told(Names("*", "parse Start", Peeking)));
+
+		Assert.Equal(
+			"Rule 'Word' is read without its settled copy because publication 'ParseStart' runs on the engine, " +
+			"so a refusal inside a long run of 'Word' takes time quadratic in its length. " +
+			"Read 'ParseStart' by methods, or move it into its own grammar.",
+			told.Message);
+	}
+
+	[Fact]
+	public void A_parse_with_no_result_type_is_also_read_a_window_at_a_time_and_is_told_to_give_it_one()
+	{
+		var told = Assert.Single(Told(Names("*", "parse Items")));
+
+		Assert.Equal(
+			Because("Word", "publication 'ParseItems' is also read a window at a time, on the engine",
+				"Give 'Items' a result type, or move it into its own grammar."),
+			told.Message);
+
+		Assert.Empty(Told(Names("*", "parse Items : @string[]")));
+	}
+
+	[Fact]
+	public void A_positional_parse_is_read_from_a_position()
+	{
+		var told = Assert.Single(Told(Names("*", "parse Start\npositional parse Pair")));
+
+		Assert.Equal(Because("Word", "publication 'ParsePair' is read from a position", Move), told.Message);
+	}
+
+	[Fact]
+	public void A_stream_is_read_from_a_buffer()
+	{
+		var told = Assert.Single(Told(Names("*", "parse Start\nparse Pair as Streamed : @string stream")));
+
+		Assert.Equal(Because("Word", "publication 'Streamed' reads a stream", Move), told.Message);
+	}
+
+	[Fact]
+	public void A_plain_parse_the_plan_compiles_flat_is_not_told_to_be_read_by_methods()
+	{
+		var told = Assert.Single(Told(Names("*", "parse Start\nparse Name")));
+
+		Assert.Equal(Because("Word", "publication 'ParseName' is compiled flat", Move), told.Message);
+	}
+
+	[Fact]
+	public void A_grammar_that_reads_segments_is_informed_and_no_publication_is_blamed()
+	{
+		var result = Compile(Names("*", "parse Start", "Start : @string = p: Pair & (eos & Pair)* & eos => @(p)"), settle: true);
+		var told   = Assert.Single(result.Diagnostics, static one => one.Id == GramCompiler.SettledDroppedSegments);
+
+		Assert.Equal(Because("Word", "the grammar reads segments ('eos')", ""), told.Message);
+		Assert.Equal(GramSeverity.Info, told.Severity);
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GramCompiler.SettledDropped);
+	}
+
+	[Fact]
+	public void A_publication_that_asks_for_it_is_named_before_a_plain_parse_of_the_plan()
+	{
+		var told = Assert.Single(Told(Names("*", "parse Name\nfind Pair", Peeking)));
+
+		Assert.Contains("publication 'FindPair' runs", told.Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void The_first_publication_in_source_order_of_the_cause_is_named()
+	{
+		Assert.Contains("publication 'FindPath' runs", Assert.Single(Told(Names("*", "find Path\nfind Pair"))).Message, StringComparison.Ordinal);
+		Assert.Contains("publication 'ParseName' is compiled flat", Assert.Single(Told(Names("*", "parse Name\nparse Start", Peeking))).Message, StringComparison.Ordinal);
+		Assert.Contains("publication 'ParseStart' runs on the engine", Assert.Single(Told(Names("*", "parse Start\nparse Name", Peeking))).Message, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_run_at_the_end_of_a_rule_the_tail_calls_is_told_at_the_rule_it_ends_and_once()
+	{
+		var grammar = Names("*", "find Pair");
+		var told    = Assert.Single(Told(grammar));
+
+		// `Name` and `Path` end in a call that ends in the run: they are copied, and are not what is told.
+		Assert.StartsWith("Rule 'Word' ", told.Message, StringComparison.Ordinal);
+		Assert.Equal(grammar.IndexOf("Word  =", StringComparison.Ordinal), told.Position);
 	}
 
 	[Theory]
@@ -69,7 +164,7 @@ public sealed class SettledDroppedWarningTests
 	[InlineData("{2,}")]
 	public void Any_run_with_no_upper_bound_is_told(string run)
 	{
-		Assert.Equal(["GRAM5022"], Told(Names(run, "find Pair")).Select(static one => one.Id));
+		Assert.Equal(["GRAM5022"], Told(Names(run, "parse Start\nfind Pair")).Select(static one => one.Id));
 	}
 
 	[Theory]
@@ -77,28 +172,53 @@ public sealed class SettledDroppedWarningTests
 	[InlineData("{1,3}")]
 	public void A_bounded_run_is_never_told(string run)
 	{
-		Assert.Empty(Told(Names(run, "find Pair")));
+		Assert.Empty(Told(Names(run, "parse Start\nfind Pair")));
 	}
 
 	[Fact]
 	public void Nothing_is_told_where_every_machine_is_a_reader_and_the_copies_are_kept()
 	{
-		var result = Compile(Names("*", ""), settle: true);
+		var result = Compile(Names("*", "parse Start"), settle: true);
 
-		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == "GRAM5022");
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id is GramCompiler.SettledDropped or GramCompiler.SettledDroppedSegments);
 		Assert.Contains("_Settled(", Assert.Single(result.Sources).Text, StringComparison.Ordinal);
 	}
 
 	[Fact]
 	public void Nothing_is_told_where_the_copies_are_not_asked_for()
 	{
-		Assert.DoesNotContain(Compile(Names("*", "find Pair"), settle: false).Diagnostics, static one => one.Id == "GRAM5022");
+		Assert.DoesNotContain(Compile(Names("*", "parse Start\nfind Pair"), settle: false).Diagnostics, static one => one.Id == "GRAM5022");
+	}
+
+	/// <summary>
+	/// Where the author's own options leave no copies there is nothing to drop and nothing is said. Over
+	/// kinds it is the one place a machine that only reads a token again is made, and it settles nothing: that
+	/// machine is never the cause of a dropped copy.
+	/// </summary>
+	[Theory]
+	[InlineData("lexical")]
+	[InlineData("methods")]
+	[InlineData("buffered")]
+	public void Nothing_is_told_where_the_options_leave_no_copies(string option)
+	{
+		var result = GramCompiler.Compile(Names("*", "parse Start\nfind Pair"), new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = PermissiveSymbolResolver.Instance,
+			Lexical        = option == "lexical",
+			Direct         = option != "methods",
+			BufferedInput  = option == "buffered",
+		});
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id is GramCompiler.SettledDropped or GramCompiler.SettledDroppedSegments);
+		Assert.True(result.Graph is null || result.Graph.Settled.Count == 0);
 	}
 
 	[Fact]
 	public void Telling_it_changes_nothing_in_the_file()
 	{
-		var grammar = Names("*", "find Pair");
+		var grammar = Names("*", "parse Start\nfind Pair");
 		var with    = Compile(grammar, settle: true);
 		var without = Compile(grammar, settle: false);
 
@@ -159,7 +279,7 @@ public sealed class SettledDroppedWarningTests
 					var result = GramCompiler.Compile(text, options);
 
 					foreach (var diagnostic in result.Diagnostics)
-						if (diagnostic.Id == GramCompiler.SettledDropped)
+						if (diagnostic.Id is GramCompiler.SettledDropped or GramCompiler.SettledDroppedSegments)
 							told.Add($"{grammar.Name}: {diagnostic.Message}");
 						else if (diagnostic.Severity == GramSeverity.Error)
 							faults.Add($"{grammar.Name}: {diagnostic.Id} {diagnostic.Message}");

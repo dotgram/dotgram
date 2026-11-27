@@ -4517,18 +4517,16 @@ public sealed class GeneratorDriverTests
 	/// host class, and what that C# is — a guard, a transformation, one that may refuse —
 	/// is a question only a real compilation answers (§8.1).
 	/// </remarks>
-	internal static Assembly Build(string source, string? permittedWarning = null)
+	internal static Assembly Build(string source, string? permittedWarning = null, string? alsoPermitted = null)
 	{
 		var run = RunGenerator(source, out var output);
 
 		// Anything but information. A grammar that is told what it did not get is still a
-		// grammar worth building — §6.3's "no reader overload" is exactly that. So is one told that a
-		// publication on the engine leaves a run without its settled copy (GRAM5022): these grammars are
-		// written to be run, and the message is SettledDroppedWarningTests' to hold.
+		// grammar worth building — §6.3's "no reader overload" is exactly that. What a test lets through
+		// it names, one or two identifiers.
 		Assert.Empty(run.Diagnostics.Where(
 			diagnostic => diagnostic.Severity != DiagnosticSeverity.Info &&
-				!(diagnostic.Severity == DiagnosticSeverity.Warning && diagnostic.Id is "GRAM5022") &&
-				!(diagnostic.Severity == DiagnosticSeverity.Warning && diagnostic.Id == permittedWarning)));
+				!(diagnostic.Severity == DiagnosticSeverity.Warning && (diagnostic.Id == permittedWarning || diagnostic.Id == alsoPermitted))));
 
 		using var stream = new MemoryStream();
 

@@ -942,7 +942,7 @@ sealed class RecognitionGraph(
 
 	/// <summary>
 	/// The rules a settled copy was made for whose own tail ends in a run with no upper bound that gave
-	/// characters back, in the order of the rules: where the copies are not kept, a refusal inside a
+	/// characters back, in the order they are declared: where the copies are not kept, a refusal inside a
 	/// long run of one of them takes time quadratic in its length. Empty where none was made.
 	/// </summary>
 	public IReadOnlyList<RuleSymbol> SettledRuns { get; init; } = [];

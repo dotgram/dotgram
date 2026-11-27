@@ -145,7 +145,7 @@ public sealed class StreamedPositionTests
 	[InlineData("Immediate")]
 	public void A_located_value_read_through_a_window_is_told_its_place_in_the_input(string carrier)
 	{
-		var host = GeneratorDriverTests.Build(Source(carrier), permittedWarning: "GRAM5007").GetType("StreamedLocationProbe.P")!;
+		var host = GeneratorDriverTests.Build(Source(carrier), permittedWarning: "GRAM5007", alsoPermitted: "GRAM5022").GetType("StreamedLocationProbe.P")!;
 
 		// Past the window a reader starts with, so that what was read first has been let go of.
 		var text  = string.Concat(Enumerable.Range(0, 1_500).Select(static i => new string(' ', i % 3) + "k" + (char)('a' + i % 26) + " = v\n"));

@@ -75,18 +75,22 @@ static class EmittedCode
 	/// there, and the slow suite drives what it tells.
 	/// </para>
 	/// <para>
-	/// GRAM5022 likewise: a grammar with a <c>find</c>, a <c>yield</c> or a position beside a run is
-	/// how these tests reach the engine, and a long run refused at its end is not their question.
+	/// GRAM5022 is not let through: it names a publication that is not read by methods, and a test that
+	/// reaches the engine on purpose — a <c>find</c>, a stream, a position beside a run — says so with
+	/// <paramref name="allowed"/>, so that the message on a grammar that should have none is seen.
 	/// <c>SettledDroppedWarningTests</c> asserts on it, and holds every shipped grammar free of it.
 	/// </para>
 	/// </remarks>
-	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
+	/// <param name="diagnostics">What the compiler said.</param>
+	/// <param name="allowed">Identifiers this one test lets through too.</param>
+	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics, params string[] allowed)
 	{
 		Assert.DoesNotContain(
 			diagnostics,
-			static one => one.Severity != GramSeverity.Info &&
+			one => one.Severity != GramSeverity.Info &&
 				one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused or GrammarNormalizer.SpacedLexeme or
-					GramCompiler.ExponentialRepetitions or GramCompiler.SettledDropped));
+					GramCompiler.ExponentialRepetitions) &&
+				Array.IndexOf(allowed, one.Id) < 0);
 	}
 
 	public static Assembly Compile(
