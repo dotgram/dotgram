@@ -160,7 +160,8 @@ public sealed class PositionalPublicationTests
 			Rules(directives.Contains("Pair", StringComparison.Ordinal) ? "Pair" : "Nested") + directives,
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Direct = direct });
 
-		EmittedCode.Quiet(result.Diagnostics);
+		// These grammars put a find or a position beside a rule that ends in a run: the engine reads those.
+		EmittedCode.Quiet(result.Diagnostics, GramCompiler.SettledDropped);
 
 		var source = Assert.Single(result.Sources).Text;
 

@@ -75,8 +75,8 @@ sealed class EmitContext
 	public bool LeftTheReaders { get; set; }
 
 	/// <summary>
-	/// The publication whose machine is not a reader over a string, where <see cref="LeftTheReaders"/> is
-	/// set: the first of them in the order they are written. Null where none of the publications asked.
+	/// What put a machine beyond the readers, where <see cref="LeftTheReaders"/> is set: null where no
+	/// publication is of a cause the author could be told.
 	/// </summary>
-	public Publication? LeftBy { get; set; }
+	public SettleBlock? Blocked { get; set; }
 }

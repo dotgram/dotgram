@@ -66,7 +66,8 @@ static class NestedLookahead
 				PositionalFollow = rendering == "positional",
 			});
 
-		EmittedCode.Quiet(result.Diagnostics);
+		// A shape that reads a stream is on the engine beside its run, and what that costs a refusal is not asked here.
+		EmittedCode.Quiet(result.Diagnostics, GramCompiler.SettledDropped);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 		var host     = assembly.GetType("Grammar")!;

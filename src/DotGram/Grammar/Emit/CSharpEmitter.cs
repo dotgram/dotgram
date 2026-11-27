@@ -719,11 +719,7 @@ static partial class CSharpEmitter
 		{
 			context.LeftTheReaders = true;
 
-			context.LeftBy = printed
-				.Where(NotAReader)
-				.SelectMany(static compiled => compiled.Plan.Publications)
-				.OrderBy(static publication => publication.At.Position)
-				.FirstOrDefault();
+			context.Blocked = BlockedBy(graph, printed, lexical is not null);
 
 			return null;
 		}
@@ -6265,6 +6261,37 @@ file.Line("return spare;");
 	}
 
 	static readonly IReadOnlyDictionary<Publication, bool> Unvalued = new Dictionary<Publication, bool>();
+
+	/// <summary>
+	/// What put the machines of a graph with settled copies beyond the readers, and the publication to name:
+	/// the first, in the order written, of a publication that asks for it or is given a window form beside
+	/// it, and only where there is none, the first plain <c>parse</c> of a machine that is not one — read
+	/// as the plan says it is read, the engine's where methods refuse it, a flat machine where it lowers.
+	/// Null where nothing is of a cause an author could be told of: a machine that reads tokens again is
+	/// made only over kinds, where nothing is settled.
+	/// </summary>
+	static SettleBlock? BlockedBy(RecognitionGraph graph, List<Compiled> printed, bool overKinds)
+	{
+		var held = printed
+			.Where(NotAReader)
+			.SelectMany(static compiled => compiled.Plan.Publications.Select(publication => (Publication: publication, compiled.Plan.Strategy)))
+			.OrderBy(static one => one.Publication.At.Position)
+			.ToList();
+
+		foreach (var (publication, _) in held)
+		{
+			if (SettleBlock.Asked(publication) is { } asked)
+				return new SettleBlock(asked, publication);
+
+			if (Streams(graph, publication, overKinds))
+				return new SettleBlock(SettleCause.Window, publication);
+		}
+
+		if (held.Count == 0)
+			return null;
+
+		return new SettleBlock(held[0].Strategy == ReadingStrategy.Flat ? SettleCause.Flat : SettleCause.Engine, held[0].Publication);
+	}
 
 	/// <summary>Whether a machine is read as anything but methods over a string: what a graph with settled copies is not printed for.</summary>
 	static bool NotAReader(Compiled compiled)
