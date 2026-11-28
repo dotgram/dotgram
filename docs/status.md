@@ -1207,9 +1207,12 @@ could read.
 Without `=>` the declared type alone says what a rule's value is (§4.1): a string is its pieces joined, a
 span its bounds, an array the values of the calls of its element type, and any other type the one call of
 that type on each route, or the construction its names fill. Names change nothing in the first three, and a
-name nothing reads is held to no type. A string joined from built pieces is one string per match, made by
-`string.Concat` where it has few pieces and in a pooled buffer otherwise; a string all of whose pieces are
-their own text is still the slice, and its generated code is unchanged. A left-recursive rule is its seed
+name nothing reads is held to no type. A string joined from built pieces is made once per match from the
+strings its pieces hold, by `string.Concat` where it has few pieces and in a pooled buffer otherwise. Those
+pieces are strings of their own first: a piece of text is cut out of the input (a span under
+`UseSpanCaptures`), and a repetition whose turns are read more than one way is joined a turn at a time, each
+turn a string. A string all of whose pieces are their own text is still the slice, and its generated code is
+unchanged. A left-recursive rule is its seed
 and its steps: a loop for a string and an array, the value so far handed to the step for another type.
 What 0.3.0 gave differently is listed under BREAKING in the release notes.
 

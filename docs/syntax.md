@@ -1165,11 +1165,13 @@ Quote : Bare       = '"' & Bare & '"'          // "\"ab\"", the quotes included
 `Header`, `Row` and `Trailer` declare types assignable to `FeedItem` and enter the result in order; `eof` declares none and
 contributes nothing. `Quote` is a string because `Bare` is, and keeps its own literals; to have the inner `Bare` alone,
 write `'"' & b: Bare & '"' => b`.
+
 Over bytes (`stream bytes`, §6.3) a string that is its own text is the bytes it matched, and nothing decodes them: a string
 joined from a built string or a character, and an array that collects both pieces of the input and built strings or
-characters, are `GRAM4026` there. A `@string` whose names a guard or a `switch` reads is built from the text
-(`parserText.ToString()`), which over bytes is `GRAM4026` as any construction of the text is. Under `UseSpanCaptures` the
-string is made of the span.
+characters, are `GRAM4026` there. A `@string` whose names a guard or a `switch` reads is the bytes it matched as well, and
+an array of such strings an array of their bytes; it is `GRAM4026` only where C# the author wrote is handed it as a string
+(a `=>` or a construction that reads it). Under `UseSpanCaptures` the string is made of the span.
+
 **What a construction hands back has to be the declared type.** Where the grammar can tell
 that it cannot be — a capture handed back whole, `=> x` or `=> @(x)`, that holds text where
 an array is declared or a generated type where another is, between types that declare no
