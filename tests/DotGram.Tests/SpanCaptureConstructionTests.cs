@@ -4,6 +4,7 @@ using System.Reflection;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Model;
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis.CSharp;
@@ -86,6 +87,29 @@ public sealed class SpanCaptureConstructionTests
 
 		Assert.True(read.IsSuccess);
 		Assert.Equal(expected, read.Value!.ToString());
+	}
+
+	/// <summary>
+	/// Names choose the construction for the whole rule, so a route on which none of them stands is refused: an option that took
+	/// no turn is no name, where a repetition that took none still fills the constructor with an empty text.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @Box = '<' & (name: Plain)? & '>'\nPlain = ['a'..'z']{2}\nparse Start")]
+	[InlineData("Start : @Box = name: Plain & '<' & '>' | '!' & Plain\nPlain = ['a'..'z']{2}\nparse Start")]
+	public void A_route_on_which_no_name_of_the_constructor_stands_is_refused(string grammar)
+	{
+		var host   = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {Boxes} }}", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References);
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+		});
+
+		Assert.Contains(result.Diagnostics, static one => one.Severity == GramSeverity.Error && one.Id == GrammarNormalizer.UnbuiltConstruction);
 	}
 
 	static Assembly Build(string grammar, string members, bool spans = false)
