@@ -32,7 +32,7 @@ sealed partial class Machine
 		if (!_bindingLayouts.TryGetValue(rule, out var layout))
 		{
 			layout = CaptureLayout.Of(
-				_graph.Bodies[rule], other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+				_graph.Bodies[rule], other => _graph.BuildsValue(other),
 				lifted: _graph.LiftedBody);
 
 			_bindingLayouts[rule] = layout;

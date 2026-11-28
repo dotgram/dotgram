@@ -406,6 +406,7 @@ sealed partial class GrammarNormalizer
 			Language   = normalizer._language,
 			Folds      = normalizer._folds,
 			NamedTypes = [.. normalizer._namedTypes.Values.Where(normalizer.HasGeneratedType).Distinct()],
+			OwnText    = normalizer._ownText,
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
 			Lifted     = normalizer._lifted

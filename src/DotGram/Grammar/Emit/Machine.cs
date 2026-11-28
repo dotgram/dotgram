@@ -579,7 +579,7 @@ sealed partial class Machine
 		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
-				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
+				graph.Bodies[rule], other => graph.BuildsValue(other),
 				lifted: graph.LiftedBody);
 			var factories = CSharpEmitter.FactoriesOf(graph, _results, rule);
 			if (BufferedBytes) factories = factories.Select(factory => factory with { Method = factory.BytesMethod }).ToArray();
@@ -877,7 +877,7 @@ sealed partial class Machine
 			// lifted from (§8.2), numbered there.
 			var rule   = graph.ValueOwner(own);
 			var layout = CaptureLayout.Of(
-				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
+				graph.Bodies[rule], other => graph.BuildsValue(other),
 				graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null, graph.LiftedBody);
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[own]))
@@ -4139,7 +4139,7 @@ sealed partial class Machine
 				var rule   = _graph.ValueOwner(own);
 				var layout = CaptureLayout.Of(
 					_graph.Bodies[rule],
-					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+					other => _graph.BuildsValue(other),
 					_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null,
 					_graph.LiftedBody);
 				var before = layout.Before(node);
@@ -4151,7 +4151,7 @@ sealed partial class Machine
 				var shape  = ReferenceEquals(own, rule)
 					? null
 					: CaptureLayout.Of(
-						_graph.Bodies[own], other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+						_graph.Bodies[own], other => _graph.BuildsValue(other),
 						lifted: _graph.LiftedBody);
 				var guard      = _guards++;
 				var method     = Tag.Named("RecognizeGuard", guard);

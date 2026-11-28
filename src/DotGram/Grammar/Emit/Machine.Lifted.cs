@@ -57,7 +57,7 @@ sealed partial class Machine
 			return known;
 
 		var layout  = CaptureLayout.Of(
-			_graph.Bodies[rule], other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+			_graph.Bodies[rule], other => _graph.BuildsValue(other),
 			lifted: _graph.LiftedBody);
 		var members = new List<ResultMember>();
 
@@ -95,7 +95,7 @@ sealed partial class Machine
 			.First(node => node is Node.Call(var called, _) && called == rule);
 		var layout = CaptureLayout.Of(
 			_graph.Bodies[owner],
-			other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+			other => _graph.BuildsValue(other),
 			_graph.Folds.TryGetValue(owner, out var fold) ? fold.Loop : null,
 			_graph.LiftedBody);
 

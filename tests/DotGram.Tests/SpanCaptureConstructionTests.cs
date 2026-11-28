@@ -90,6 +90,32 @@ public sealed class SpanCaptureConstructionTests
 	}
 
 	/// <summary>
+	/// A name that captures a string rule that is its own text is text, a guard on the rule's own name or not: the turns of a
+	/// repetition are concatenated, and where none captured it is null, or the empty text where the repetition itself was
+	/// read. The same as the same name on a rule with no guard.
+	/// </summary>
+	[Theory]
+	[InlineData("<>", "<null>", false)]
+	[InlineData("!#", "", false)]
+	[InlineData("!,rs,tu#", "rstu", false)]
+	[InlineData("<>", "<null>", true)]
+	[InlineData("!#", "", true)]
+	[InlineData("!,rs,tu#", "rstu", true)]
+	public void A_name_that_captures_a_string_rule_with_a_guard_is_text_as_one_without_is(string input, string expected, bool spans)
+	{
+		const string members = "static bool Seen(string v) { return true; } static bool Seen(System.ReadOnlySpan<char> v) { return true; }";
+
+		foreach (var rule in new[] { "G : @string = g: ['a'..'z']{2} & when @(Seen(g))", "G : @string = ['a'..'z']{2}" })
+		{
+			var parser = Build($"Start = '<' & '>' | '!' & (',' & w: G)* & '#'\n{rule}\nparse Start", members, spans);
+			var read   = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+
+			Assert.True(read.IsSuccess);
+			Assert.Equal(expected, read.Value!.GetType().GetProperty("W")!.GetValue(read.Value) ?? "<null>");
+		}
+	}
+
+	/// <summary>
 	/// Names choose the construction for the whole rule, so a route on which none of them stands is refused: an option that took
 	/// no turn is no name, where a repetition that took none still fills the constructor with an empty text.
 	/// </summary>

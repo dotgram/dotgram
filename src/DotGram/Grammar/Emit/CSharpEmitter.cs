@@ -4517,7 +4517,7 @@ file.Line("return spare;");
 	{
 		return CaptureLayout.Of(
 			graph.Bodies[rule],
-			other => results.QualifiedOf(other) is not null,
+			other => !graph.OwnText.Contains(other) && results.QualifiedOf(other) is not null,
 			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null,
 			graph.LiftedBody);
 	}

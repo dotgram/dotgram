@@ -700,6 +700,12 @@ sealed partial class GrammarNormalizer
 	readonly HashSet<RuleSymbol> _unsaid = [];
 
 	/// <summary>
+	/// The string rules that are their own text but are typed all the same, because a guard reads a name of theirs: a capture of one
+	/// is text, as of any rule that is its own text, and not the value of a rule that builds.
+	/// </summary>
+	readonly HashSet<RuleSymbol> _ownText = [];
+
+	/// <summary>
 	/// Whether a declared type is one of C#'s keyword types, by its keyword or by its name in
 	/// <c>System</c>, nullable or not: what a resolver that cannot see the host still knows about.
 	/// </summary>
@@ -860,7 +866,7 @@ sealed partial class GrammarNormalizer
 							return new WalkStep(new Node.Capture(name,
 								Spreads(call.Rule, value.Type) ? call
 								: !Fits(call, element) ? new Node.Call(ItemsRule(call.Rule, value.Type), call.Arguments)
-								: _extents.ContainsKey(call.Rule) ? new Node.Call(TextRule(call.Rule, rule), call.Arguments)
+								: _extents.ContainsKey(call.Rule) || _ownText.Contains(call.Rule) ? new Node.Call(TextRule(call.Rule, rule), call.Arguments)
 								: call), false);
 						}
 
@@ -1264,7 +1270,7 @@ sealed partial class GrammarNormalizer
 	/// </remarks>
 	bool BuildsValue(RuleSymbol rule)
 	{
-		return _types.ContainsKey(rule) || (_bodies.TryGetValue(rule, out var body) && HasCapture(body));
+		return !_ownText.Contains(rule) && (_types.ContainsKey(rule) || (_bodies.TryGetValue(rule, out var body) && HasCapture(body)));
 	}
 
 	static bool HasCapture(Node node)

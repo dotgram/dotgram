@@ -592,6 +592,18 @@ sealed class RecognitionGraph(
 	/// </summary>
 	public IReadOnlyCollection<RuleSymbol> NamedTypes { get; init; } = [];
 
+	/// <summary>
+	/// The string rules that are their own text and are typed only so that the names a guard of theirs reads are kept: a capture of
+	/// one holds text, as a capture of any rule that builds nothing does.
+	/// </summary>
+	public IReadOnlyCollection<RuleSymbol> OwnText { get; init; } = [];
+
+	/// <summary>Whether a capture of this rule holds the value it builds, rather than the text it matched.</summary>
+	public bool BuildsValue(RuleSymbol rule)
+	{
+		return !OwnText.Contains(rule) && (Results[rule].Count > 0 || Types.ContainsKey(rule));
+	}
+
 	/// <summary>The grammar's <c>@using</c> directives, which the generated file needs.</summary>
 	public IReadOnlyList<string> HostImports { get; } = cSharpImports;
 

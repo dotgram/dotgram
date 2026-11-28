@@ -142,7 +142,7 @@ static partial class CSharpEmitter
 		{
 			foreach (var node in NodeWalk.Descendants(built))
 				if (node is Node.Capture(var captured, var body) && captured == name)
-					return CaptureLayout.ValuedCall(body, rule => graph.Results[rule].Count > 0 || graph.Types.ContainsKey(rule)) is null;
+					return CaptureLayout.ValuedCall(body, rule => graph.BuildsValue(rule)) is null;
 
 			return false;
 		}

@@ -720,6 +720,9 @@ sealed partial class GrammarNormalizer
 						_extents.Remove(rule);
 						_types[rule]  = value.Type;
 						_bodies[rule] = Extended(UnnamedUnread(body), "parserText.ToString()");
+
+						// Typed only so that the names its guard reads are kept: it is still the text it matched.
+						_ownText.Add(rule);
 					}
 					else
 					{

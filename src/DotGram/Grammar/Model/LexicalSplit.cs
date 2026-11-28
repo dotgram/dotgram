@@ -302,6 +302,7 @@ sealed class LexicalSplit
 
 				// By spelling and not by rule, so what the host said of a type is said of it here.
 				ReferenceTypes = graph.ReferenceTypes,
+				OwnText        = graph.OwnText,
 
 				// Keyed by node — said again in the terms of the graph that now holds those
 				// nodes, see `_became`. A fold is keyed by rule and holds nodes inside it,
