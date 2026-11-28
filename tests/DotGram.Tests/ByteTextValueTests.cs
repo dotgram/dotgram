@@ -99,6 +99,31 @@ public sealed class ByteTextValueTests
 		Assert.Contains("'Start' collects into one array a piece of the input, from 'Bare', and a built string, from 'Word'", said.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// The same where the built string comes through a call of another array, which gives its elements in place: a rule the
+	/// author wrote, or a template's specialization. Over characters the two are one array of strings.
+	/// </summary>
+	[Theory]
+	[InlineData("W : @string[] = Word", "W", "'Start'")]
+	[InlineData("L(x) : @string[] = x", "L(Word)", "'Start'")]
+	public void An_array_mixing_the_two_through_an_array_it_calls_is_refused_over_bytes(string array, string call, string named)
+	{
+		var grammar = "Start : @string[] = '<' & Bare & ',' & " + call + " & '>'\n" + array + "\nBare : @string = ['a'..'z']{2}\n" +
+			"Word : @string = c: ['a'..'z']{2} => @(\"W:\" + Text(c))\nparse Start";
+
+		var refused = Compiled(grammar + " stream bytes", Host, bytes: true);
+		var said    = Assert.Single(refused.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
+		Assert.Contains(named + " collects into one array a piece of the input, from 'Bare', and a built string, from 'Word'", said.Message, StringComparison.Ordinal);
+
+		var parser = Build(grammar, Host);
+		var read   = EmittedCode.Match(parser, "Grammar", "TryParseStart", "<ab,cd>");
+
+		Assert.True(read.IsSuccess);
+		Assert.Equal("ab|W:cd", string.Join("|", (string[])read.Value!));
+	}
+
 	/// <summary>The same in a specialization of a template: the message names the rules the author wrote, not one made for them.</summary>
 	[Fact]
 	public void An_array_of_a_template_mixing_the_two_is_refused_over_bytes_by_the_names_written()

@@ -138,8 +138,7 @@ static class ByteValues
 			if (text is not null && built is not null)
 				return (rule, text, built, isChar);
 
-			// The calls an array collects, in the order its members are; a rule the compiler made to read one in place is
-			// gone into.
+			// The calls an array collects, in the order its members are; an array of the same element it calls is gone into.
 			void Visit(RuleSymbol array, string elementType, HashSet<RuleSymbol> seen)
 			{
 				// A rule read in place may read another in place, as deep as the grammar nests them.
@@ -167,7 +166,9 @@ static class ByteValues
 
 					foreach (var one in Held(array, member))
 					{
-						if (graph.Made.Contains(one) && Collects(one, out var inner) && inner == elementType)
+						// A call of an array of the same element gives its elements in place, whoever wrote it: the author,
+						// a specialization of a template, or the compiler reading a rule in place.
+						if (Collects(one, out var inner) && inner == elementType)
 							Visit(one, elementType, seen);
 						else if (texts.Contains(one))
 							text ??= one;
