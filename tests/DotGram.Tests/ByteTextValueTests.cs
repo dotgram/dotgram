@@ -99,6 +99,21 @@ public sealed class ByteTextValueTests
 		Assert.Contains("'Start' collects into one array a piece of the input, from 'Bare', and a built string, from 'Word'", said.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>The same in a specialization of a template: the message names the rules the author wrote, not one made for them.</summary>
+	[Fact]
+	public void An_array_of_a_template_mixing_the_two_is_refused_over_bytes_by_the_names_written()
+	{
+		var result = Compiled(
+			"Start = xs: L(Word)\nL(x) : @string[] = '<' & Bare & ',' & x & '>'\nBare : @string = ['a'..'z']{2}\n" +
+			"Word : @string = c: ['a'..'z']{2} => @(\"W:\" + Text(c))\nparse Start stream bytes",
+			Host, bytes: true);
+		var said = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
+		Assert.Contains("'L' collects into one array a piece of the input, from 'Bare', and a built string, from 'Word'", said.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain("_Value", said.Message, StringComparison.Ordinal);
+	}
+
 	/// <summary>
 	/// A join that a rule the grammar generates a type for does not name is not built over bytes, as a value nothing holds is not
 	/// made over characters. A string reads what it calls as it stands, and one that is read is refused as before.
