@@ -177,16 +177,45 @@ public sealed class ComposedValueTests
 	}
 
 	/// <summary>
-	/// A name a guard reads, inside a repetition whose turn is read in more than one way, cannot be joined turn by turn where
-	/// it stands: told, rather than left to the C# compiler.
+	/// A repetition whose turns are read in more than one way and hold a name a guard reads is joined where it stands: the
+	/// join reads no names, and the guard reads the name as it accumulates over the turns that capture it, text joined
+	/// over them where the name is on a text, the strings built where it is on a built string.
 	/// </summary>
-	[Fact]
-	public void A_name_a_guard_reads_in_a_turn_of_several_readings_is_told()
+	[Theory]
+	[InlineData("<>", "<>")]
+	[InlineData("<,(\\n),ab,(\\n)>", "<,(\n),ab,(\n)>")]
+	[InlineData("<,ab,cd>", "<,ab,cd>")]
+	public void A_name_a_guard_reads_in_a_turn_of_several_readings_is_read_as_it_accumulates(string input, string expected)
 	{
-		var found = Refused("Start : @string = '<' & (',' & ('(' & Esc & ')' | w: Bare))* & '>' & when @(w != null)" +
-			"\nBare : @string = ['a'..'z']{2}\nEsc : @char = '\\\\' & 'n' => @('\\n')");
+		Assert.Equal(expected, Parsed(
+			"Start : @string = '<' & (',' & ('(' & Esc & ')' | w: Bare))* & '>' & when @(w == null || w.Length % 2 == 0)" +
+			"\nBare : @string = ['a'..'z']{2}\nEsc : @char = '\\\\' & 'n' => @('\\n')",
+			input));
+	}
 
-		Assert.Contains("the name 'w' a guard reads", found.Message, StringComparison.Ordinal);
+	[Theory]
+	[InlineData("<:>", "<:>")]
+	[InlineData("<:(gh):(ij)>", "<:(W:gh):(W:ij)>")]
+	[InlineData("<::(gh):>", "<::(W:gh):>")]
+	public void A_name_on_a_built_string_in_an_option_of_a_turn_is_the_strings_built(string input, string expected)
+	{
+		Assert.Equal(expected, Parsed(
+			"Start : @string = '<' & (':' & (w: Mw)?)+ & '>' & when @(w.Length < 3)\nMw : Word = '(' & Word & ')'\n" +
+			"Word : @string = c: ['a'..'z']{2} => @(\"W:\" + c.ToString())",
+			input));
+	}
+
+	/// <summary>A guard that reads a name on a rule read through reads its text, as the rule with no type of its own has it.</summary>
+	[Theory]
+	[InlineData("<,,(ab),(cd),,(ef)>", "<,,(W:ab),(W:cd),,(W:ef)>")]
+	[InlineData("<,,(ab)>", "<,,(W:ab)>")]
+	[InlineData("<>", "<>")]
+	public void A_name_on_a_rule_read_through_holds_its_text(string input, string expected)
+	{
+		Assert.Equal(expected, Parsed(
+			"Start : @string = '<' & (',' & (',' & w: P(Word))*)* & '>' & when @(w.Length == 0 || w.StartsWith(\"(\"))\n" +
+			"P(x) = '(' & x & ')'\nWord : @string = c: ['a'..'z']{2} => @(\"W:\" + c.ToString())",
+			input));
 	}
 
 	/// <summary>

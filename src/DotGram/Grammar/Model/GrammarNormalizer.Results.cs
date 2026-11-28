@@ -1154,7 +1154,43 @@ sealed partial class GrammarNormalizer
 				};
 
 			_results[rule] = _joined.TryGetValue(rule, out var joined) ? Joined(members, joined.Element, joined.Groups) : members;
+
+			if (_gatheredJoins.TryGetValue(rule, out var gathered))
+				_results[rule] = Gathered([.. _results[rule]], gathered);
 		}
+	}
+
+	/// <summary>
+	/// The pieces of each repetition a string joins where it stands (<see cref="Joined(RuleSymbol, Node, HashSet{string})"/>),
+	/// made one member that gathers their slots in the order they were read.
+	/// </summary>
+	/// <remarks>
+	/// The member is named by the first piece the compiler made; the others it made are gone into it. A name the author
+	/// wrote that is one of the pieces stays a member of its own as well, holding what it held, for a guard to read: the
+	/// gathering member reads its slots too.
+	/// </remarks>
+	static List<ResultMember> Gathered(List<ResultMember> members, IReadOnlyList<(string Name, List<string> Captures, List<string> Made)> groups)
+	{
+		foreach (var (name, captures, made) in groups)
+		{
+			var found = members.Where(member => captures.Contains(member.Name)).ToList();
+			var head  = found.Find(member => member.Name == name);
+
+			if (head is null)
+				continue;
+
+			members[members.IndexOf(head)] = head with
+			{
+				IsSequence = true,
+				IsOptional = false,
+				Slots      = [.. found.SelectMany(static member => member.Slots).Distinct().OrderBy(static slot => slot)],
+				Joins      = [.. found.Where(member => member != head).Select(static member => member.Name)],
+			};
+
+			members.RemoveAll(member => member.Name != name && made.Contains(member.Name));
+		}
+
+		return members;
 	}
 
 	/// <summary>

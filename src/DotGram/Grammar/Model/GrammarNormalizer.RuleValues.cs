@@ -1067,6 +1067,18 @@ sealed partial class GrammarNormalizer
 								rebuilt.Add(piece);
 								break;
 
+							// A name on a call that hands its text on keeps that text, and the turn joins the string the call
+							// is read as, under a capture of its own.
+							case Node.Capture(var named, Node.Call call) when HandsText(call):
+							{
+								var name = Unreserved("item" + reserved.Count, reserved);
+
+								turn.Add(JoinPart.Held(name));
+								rebuilt.Add(new Node.Capture(named, new Node.Capture(name, Valued(call))));
+								_listed.Add((rule, name));
+								break;
+							}
+
 							case Node.Capture(var named, Node.Call call):
 								turn.Add(JoinPart.Held(named));
 								rebuilt.Add(new Node.Capture(named, Valued(call)));
@@ -1090,6 +1102,14 @@ sealed partial class GrammarNormalizer
 
 					return new WalkStep(Repeated(node, new Node.Repeat(new Node.Sequence(rebuilt), min, max)), false);
 				}
+
+				// A repetition whose turns hold a name a guard reads and are not read one way each is joined where it stands,
+				// its pieces gathered in the order they were read.
+				case Node.Repeat(var repeated, _, _) when repeated is not Node.Call && HoldsRead(repeated):
+					return Gathered(node);
+
+				case Node.Counted(var counted, _, _) when counted is not Node.Call && HoldsRead(counted):
+					return Gathered(node);
 
 				// A repetition of one call gives the value of each turn; of more, each turn is joined by a rule of its own.
 				case Node.Repeat(var body, var min, var max):
@@ -1121,6 +1141,118 @@ sealed partial class GrammarNormalizer
 					Node.Counted counted => Placed(held, counted with { Body = new Node.Capture(name, counted.Body) }),
 					_                    => new Node.Capture(name, held),
 				}, false);
+			}
+
+			// Whether a node holds a name a guard of the rule reads.
+			bool HoldsRead(Node body)
+			{
+				return NodeWalk.Descendants(body).OfType<Node.Capture>().Any(capture => read.Contains(capture.Name));
+			}
+
+			// A repetition joined where it stands: every piece it reads is made a string captured in its place, and the pieces
+			// are gathered into one sequence in the order they were read, which is one part of the join. Nothing moves to a
+			// rule of its own, and a name the author wrote holds what it held, where the guard reads it: one on what hands its
+			// text on is the text of the string it is made a name of, one on a built string is that string.
+			WalkStep Gathered(Node repeated)
+			{
+				var group = new List<string>();
+				var made  = new List<string>();
+				var first = (string?)null;
+
+				Walk(repeated, Gather, out var rewritten);
+
+				if (group.Count > 0)
+				{
+					parts.Add(JoinPart.Held(first ?? group[0]));
+
+					if (first is not null)
+						(_gatheredJoins.TryGetValue(rule, out var groups) ? groups : _gatheredJoins[rule] = []).Add((first, group, made));
+				}
+
+				return new WalkStep(rewritten, false);
+
+				WalkStep? Gather(Node node)
+				{
+					switch (node)
+					{
+						case Node.Call(var called, _) when _bodies.TryGetValue(called, out var reads) && ReadsNothing(reads):
+						case Node.Call call when Silent(call):
+						case Node.Lookahead or Node.Guard or Node.Condition or Node.Behind or Node.Glue or Node.Empty or Node.Reading:
+						case Node.Repeat(_, _, 0):
+						case Node.Counted(_, _, CountBound.Items(0)):
+							return new WalkStep(node, false);
+
+						case Node.Sequence or Node.Choice or Node.Repeat or Node.Counted or Node.Marked or Node.Atomic or Node.Bind:
+							return null;
+
+						// A terminal is the text it matched.
+						case var _ when node is not (Node.Call or Node.Same or Node.Capture) && !node.Children.Any():
+							return new WalkStep(Taken(new Node.Call(MatchedRule(rule, node), [])), false);
+
+						case Node.Call call when PieceOf(rule, call, empty) is Piece.Text or Piece.Built or Piece.Char or Piece.Through:
+							return new WalkStep(Taken(Stringed(call)), false);
+
+						// A name on a call that hands its text on holds that text: it is made a name of the string the call is
+						// read as. A name on a built string is that string, one of the gathered pieces as it stands.
+						case Node.Capture(var named, Node.Call call) when HandsText(call):
+							return new WalkStep(new Node.Capture(named, Taken(Stringed(call))), false);
+
+						case Node.Capture(var named, Node.Call call) when PieceOf(rule, call, empty) == Piece.Built:
+							group.Add(named);
+
+							return new WalkStep(node, false);
+
+						// A name on a group holds its text; what the group reads is gathered inside it.
+						case Node.Capture(_, var held) when held is not Node.Call:
+							return null;
+
+						default:
+							unreachable ??= read.First(HoldsReadName);
+
+							return new WalkStep(node, false);
+					}
+				}
+
+				// A piece of the join, as a capture of its own gathered with the others.
+				Node Taken(Node.Call call)
+				{
+					var name = Unreserved("item" + reserved.Count, reserved);
+
+					first ??= name;
+					group.Add(name);
+					made.Add(name);
+					_listed.Add((rule, name));
+
+					return new Node.Capture(name, call);
+				}
+
+				bool HoldsReadName(string name)
+				{
+					return NodeWalk.Descendants(repeated).OfType<Node.Capture>().Any(capture => capture.Name == name);
+				}
+			}
+
+			// Whether a name on a call holds its text rather than a value of it.
+			bool HandsText(Node.Call call)
+			{
+				return PieceOf(rule, call, empty) switch
+				{
+					Piece.Text    => true,
+					Piece.Through => !BuildsValue(call.Rule),
+					_             => false,
+				};
+			}
+
+			// A call as a string: what it is where it is one, the string a character makes, the text or the string read
+			// through otherwise.
+			Node.Call Stringed(Node.Call call)
+			{
+				return PieceOf(rule, call, empty) switch
+				{
+					Piece.Built => call,
+					Piece.Char  => new Node.Call(CharRule(call.Rule), call.Arguments),
+					_           => (Node.Call)Valued(call),
+				};
 			}
 
 			// Whether a turn holds a name a guard of the rule reads, one turn at a time.
@@ -1207,6 +1339,43 @@ sealed partial class GrammarNormalizer
 		var made = Synthetic(owner, owner.Name + "_Part" + (_joinParts.Count + 1), node, _language.Spelling(KnownType.Text), ValueSource.Joined);
 
 		_joinParts.Add(made);
+
+		return made;
+	}
+
+	/// <summary>
+	/// The pieces of a repetition a string joins where it stands, by rule: the member that gathers them, named by the first
+	/// of them, and the captures it gathers in the order they were read.
+	/// </summary>
+	readonly Dictionary<RuleSymbol, List<(string Name, List<string> Captures, List<string> Made)>> _gatheredJoins = [];
+
+	/// <summary>The rules made to hand on the text a terminal matched as a string, by the rule and the terminal as written.</summary>
+	readonly Dictionary<(RuleSymbol, string), RuleSymbol> _matchedTexts = [];
+
+	/// <summary>The rules made to hand on a character as a string, by the rule that builds it.</summary>
+	readonly Dictionary<RuleSymbol, RuleSymbol> _charTexts = [];
+
+	/// <summary>A string rule that reads a terminal and is the text it matched, for a piece gathered with others.</summary>
+	RuleSymbol MatchedRule(RuleSymbol owner, Node terminal)
+	{
+		var key = (owner, terminal.ToString());
+
+		if (!_matchedTexts.TryGetValue(key, out var made))
+			_matchedTexts[key] = made = Synthetic(
+				owner, owner.Name + "_Matched", new Node.Construct(terminal, new Construction.Expression("parserText.ToString()")),
+				_language.Spelling(KnownType.Text), ValueSource.Explicit);
+
+		return made;
+	}
+
+	/// <summary>A string rule that reads a character's rule and is that character, for a piece gathered with strings.</summary>
+	RuleSymbol CharRule(RuleSymbol character)
+	{
+		if (!_charTexts.TryGetValue(character, out var made))
+			_charTexts[character] = made = Synthetic(
+				character, character.Name + "_String",
+				new Node.Construct(new Node.Capture("character", new Node.Call(character, [])), new Construction.Expression("character.ToString()")),
+				_language.Spelling(KnownType.Text), ValueSource.Explicit);
 
 		return made;
 	}
