@@ -95,11 +95,13 @@ static partial class CSharpEmitter
 			}
 		}
 
-		// An array that would hold the bytes of one text and a string another builds.
-		if (ByteValues.Mixed(graph, rules) is var (array, bytesOf, builtBy))
+		// An array that would hold a piece of the input and a string or a character a rule builds.
+		if (ByteValues.Mixed(graph, rules) is var (array, textCall, builtCall, character))
 		{
-			return $"'{array.Declaration?.Name ?? array.Name}' collects the bytes '{bytesOf.Declaration?.Name ?? bytesOf.Name}' matched and the string '{builtBy.Declaration?.Name ?? builtBy.Name}' builds, and over bytes one " +
-				"array cannot hold both without decoding the bytes; build the array with '=>'";
+			return $"'{array.Declaration?.Name ?? array.Name}' collects into one array a piece of the input, from " +
+				$"'{textCall.Declaration?.Name ?? textCall.Name}', and a built {(character ? "character" : "string")}, from " +
+				$"'{builtCall.Declaration?.Name ?? builtCall.Name}': over bytes the two are not one element type without decoding; " +
+				"build the elements with '=>'";
 		}
 
 		// The same, written out: a rule declared a string whose `=>` is a raw capture or the text it

@@ -112,10 +112,12 @@ static class ByteValues
 	}
 
 	/// <summary>
-	/// The first of these rules that is an array collecting the bytes of a text and a string something builds, with the two it
-	/// collects; null where there is none. One array cannot hold both over bytes without decoding the one.
+	/// The first of these rules that is an array collecting both a piece of the input, the value of a text rule, and a string
+	/// or a character a rule builds, on any route and through what it reads in place; with the first call of each kind and
+	/// whether the built one is a character. Null where there is none. Over bytes the piece is its bytes and the built value a
+	/// string, and one array cannot hold both without decoding the one.
 	/// </summary>
-	internal static (RuleSymbol Array, RuleSymbol Bytes, RuleSymbol Built)? Mixed(RecognitionGraph graph, IEnumerable<RuleSymbol> rules)
+	internal static (RuleSymbol Array, RuleSymbol Text, RuleSymbol Built, bool Character)? Mixed(RecognitionGraph graph, IEnumerable<RuleSymbol> rules)
 	{
 		var language = graph.Language;
 		var texts    = Candidates(graph).Texts;
@@ -123,32 +125,80 @@ static class ByteValues
 
 		foreach (var rule in rules)
 		{
-			if (kept.ContainsKey(rule) || !graph.Types.TryGetValue(rule, out var type) || language.ElementOf(type) is not { } element ||
-				!IsText(language, element) || !graph.Results.TryGetValue(rule, out var members))
-			{
+			if (Made(rule) || kept.ContainsKey(rule) || !Collects(rule, out var element))
 				continue;
-			}
 
-			var collected = CollectedBy(graph.Bodies[rule]);
-			var bytes     = (RuleSymbol?)null;
-			var built     = (RuleSymbol?)null;
+			var text  = (RuleSymbol?)null;
+			var built = (RuleSymbol?)null;
+			var isChar = false;
 
-			foreach (var member in members)
+			Visit(rule, element, []);
+
+			if (text is not null && built is not null)
+				return (rule, text, built, isChar);
+
+			// The calls an array collects, in the order its members are; a rule the compiler made to read one in place is
+			// gone into.
+			void Visit(RuleSymbol array, string elementType, HashSet<RuleSymbol> seen)
 			{
-				if (member.Rule is not { } held || collected is not null && !collected.Contains(member.Name))
-					continue;
+				if (!seen.Add(array) || !graph.Results.TryGetValue(array, out var members))
+					return;
 
-				if (texts.Contains(held))
-					bytes ??= held;
-				else if (graph.Types.TryGetValue(held, out var heldType) && IsText(language, heldType))
-					built ??= held;
+				var collected = CollectedBy(graph.Bodies[array]);
+
+				foreach (var member in members)
+				{
+					if (member.Rule is not { } held || collected is not null && !collected.Contains(member.Name) && !member.Joins.Any(collected.Contains))
+						continue;
+
+					foreach (var one in Held(array, member))
+					{
+						if (Made(one) && Collects(one, out var inner) && inner == elementType)
+							Visit(one, elementType, seen);
+						else if (texts.Contains(one))
+							text ??= one;
+						else if (graph.Types.TryGetValue(one, out var heldType) && built is null &&
+							(IsText(language, heldType) || language.Classify(heldType, out _) == KnownType.Char))
+							(built, isChar) = (one, !IsText(language, heldType));
+					}
+				}
 			}
-
-			if (bytes is not null && built is not null)
-				return (rule, bytes, built);
 		}
 
 		return null;
+
+		// A rule the compiler made for a part of another, which bears the name of the one it was made from.
+		static bool Made(RuleSymbol rule)
+		{
+			return rule.Declaration is { } declaration && declaration.Name != rule.Name;
+		}
+
+		bool Collects(RuleSymbol rule, out string element)
+		{
+			element = "";
+
+			if (!graph.Types.TryGetValue(rule, out var type) || language.ElementOf(type) is not { } of || !IsText(language, of))
+				return false;
+
+			element = of;
+
+			return true;
+		}
+
+		// The rules a member's slots hold: its own and those of every capture it gathers.
+		IEnumerable<RuleSymbol> Held(RuleSymbol array, ResultMember member)
+		{
+			if (member.Joins.Count == 0)
+				return [member.Rule!];
+
+			var names = new HashSet<string>([member.Name, .. member.Joins], System.StringComparer.Ordinal);
+
+			return NodeWalk.Descendants(graph.Bodies[array])
+				.OfType<Node.Capture>()
+				.Where(capture => names.Contains(capture.Name))
+				.Select(static capture => (capture.Body as Node.Call)?.Rule)
+				.OfType<RuleSymbol>();
+		}
 	}
 
 	/// <summary>The rules the compiler gave a string of the text they matched, and the arrays of strings that collect only values.</summary>

@@ -78,7 +78,25 @@ public sealed class ByteTextValueTests
 		var said = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
 
 		Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
-		Assert.Contains("'Start' collects the bytes 'Bare' matched and the string 'Word' builds", said.Message, StringComparison.Ordinal);
+		Assert.Contains(
+			"'Start' collects into one array a piece of the input, from 'Bare', and a built string, from 'Word': over bytes the two " +
+			"are not one element type without decoding; build the elements with '=>'",
+			said.Message,
+			StringComparison.Ordinal);
+	}
+
+	/// <summary>The same where the two are read through a rule with no type of its own, on one route of several.</summary>
+	[Fact]
+	public void An_array_mixing_the_two_through_a_rule_read_in_place_is_refused_over_bytes()
+	{
+		var result = Compiled(
+			"Start : @string[] = '<' & U & '>' | Bare\nU = Bare & ',' & Word\nBare : @string = ['a'..'z']{2}\n" +
+			"Word : @string = c: ['a'..'z']{2} => @(\"W:\" + Text(c))\nparse Start stream bytes",
+			Host, bytes: true);
+		var said = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
+		Assert.Contains("'Start' collects into one array a piece of the input, from 'Bare', and a built string, from 'Word'", said.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>
