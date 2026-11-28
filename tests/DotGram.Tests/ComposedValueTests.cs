@@ -189,6 +189,24 @@ public sealed class ComposedValueTests
 		Assert.Contains("the name 'w' a guard reads", found.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A span whose guard reads a name is the bounds of what it matched however long its log grows: its record was handed
+	/// to the walk that builds values by where it stands in the log, which the walk took for the record's number, and an
+	/// input of more than a few turns threw.
+	/// </summary>
+	[Theory]
+	[InlineData("<:(gh):>", "[0..8)")]
+	[InlineData("<:(gh):(ij)>", "[0..12)")]
+	[InlineData("<:(ab):(cd):(ef):(gh):(ij):(kl)>", "[0..32)")]
+	public void A_span_a_guard_reads_a_name_of_is_its_bounds_however_long(string input, string expected)
+	{
+		Assert.Equal(expected, Parsed(
+			"Start : @SourceSpan = '<' & (':' & (w: Mids)?)+ & '>' & when @(w.Length > 0)\n" +
+			"Mids : Span = '(' & Span & ')'\nSpan : @SourceSpan = ['a'..'z']{2}",
+			input,
+			true)?.ToString());
+	}
+
 	/// <summary>An element type that can hold the array itself leaves a call of the array's type with two readings.</summary>
 	[Fact]
 	public void A_call_that_is_an_element_and_an_array_of_them_is_told()

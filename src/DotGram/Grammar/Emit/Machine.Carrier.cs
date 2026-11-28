@@ -1537,13 +1537,19 @@ sealed partial class Machine
 
 		/// <remarks>
 		/// An extent's value is the span its record stands on; every other value is in the
-		/// tables the walk filled.
+		/// tables the walk filled. An extent reads nothing it holds, so there is no walk for
+		/// it: its record is named by where it stands in the log (<c>EndAt</c>), not by the
+		/// number the walk's tables are indexed by, and the walk handed that marks a slot past
+		/// their end once the log is longer than the records are many.
 		/// </remarks>
 		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
-			yield return machine.Materializing(
-				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, default" +
-				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});");
+			if (!extent)
+			{
+				yield return machine.Materializing(
+					$"{machine.DirectMaterializer}(ways, text, values, ways.Last, default" +
+					$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});");
+			}
 
 			yield return
 				$"value = {(extent ? machine.RecordValue(type, "ways.Last").Replace("log[", "ways.Log[") : ValueOfType(type, "ways.Last"))};";
