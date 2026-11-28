@@ -110,14 +110,15 @@ static partial class CSharpEmitter
 		// certain, and was CS0029 in the byte form of a grammar every other form compiles.
 		var asBytes = ByteValues.Of(graph);
 
+		// A rule the compiler made to give a part its text is no construction of the author's: what reads it is told above.
 		foreach (var rule in rules)
-			if (!asBytes.ContainsKey(rule) && graph.Types.TryGetValue(rule, out var type) && type is "string" or "System.String" or "global::System.String")
+			if (!asBytes.ContainsKey(rule) && !graph.Made.Contains(rule) && graph.Types.TryGetValue(rule, out var type) && type is "string" or "System.String" or "global::System.String")
 				foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 					if (node is Node.Construct(var built, Construction.Expression { Text: var text }) &&
-						(text.Trim() == "parserText.ToString()" ? "parserText" : Bare(text)) is { } name &&
+						(text.Trim() == ByteValues.MatchedText ? "parserText" : Bare(text)) is { } name &&
 						(name == "parserText" || RawCapture(built, name, graph)))
 					{
-						return $"'{rule.Name}' builds its string with '=> @({name})', and over bytes '{name}' is a " +
+						return $"'{rule.Name}' builds its string with '=> @({text.Trim()})', and over bytes '{name}' is a " +
 							"ReadOnlySpan<byte> that nothing decodes; build the string with a method the host declares " +
 							"for each input (one over ReadOnlySpan<byte>, one over the characters)";
 					}

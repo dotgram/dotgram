@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Grammar.Binding;
@@ -125,7 +126,7 @@ static class ByteValues
 
 		foreach (var rule in rules)
 		{
-			if (Made(rule) || kept.ContainsKey(rule) || !Collects(rule, out var element))
+			if (graph.Made.Contains(rule) || kept.ContainsKey(rule) || !Collects(rule, out var element))
 				continue;
 
 			var text  = (RuleSymbol?)null;
@@ -166,7 +167,7 @@ static class ByteValues
 
 					foreach (var one in Held(array, member))
 					{
-						if (Made(one) && Collects(one, out var inner) && inner == elementType)
+						if (graph.Made.Contains(one) && Collects(one, out var inner) && inner == elementType)
 							Visit(one, elementType, seen);
 						else if (texts.Contains(one))
 							text ??= one;
@@ -179,12 +180,6 @@ static class ByteValues
 		}
 
 		return null;
-
-		// A rule the compiler made for a part of another, which bears the name of the one it was made from.
-		static bool Made(RuleSymbol rule)
-		{
-			return rule.Declaration is { } declaration && declaration.Name != rule.Name;
-		}
 
 		bool Collects(RuleSymbol rule, out string element)
 		{
@@ -204,7 +199,7 @@ static class ByteValues
 			if (member.Joins.Count == 0)
 				return [member.Rule!];
 
-			var names = new HashSet<string>([member.Name, .. member.Joins], System.StringComparer.Ordinal);
+			var names = new HashSet<string>([member.Name, .. member.Joins], StringComparer.Ordinal);
 
 			return NodeWalk.Descendants(graph.Bodies[array])
 				.OfType<Node.Capture>()
@@ -249,7 +244,7 @@ static class ByteValues
 	/// <summary>The captures an array rule collects, whichever route is read; null where it collects every one it has.</summary>
 	static HashSet<string>? CollectedBy(Node body)
 	{
-		var names = new HashSet<string>(System.StringComparer.Ordinal);
+		var names = new HashSet<string>(StringComparer.Ordinal);
 
 		foreach (var node in NodeWalk.Descendants(body))
 			switch ((node as Node.Construct)?.How)
@@ -326,6 +321,6 @@ static class ByteValues
 
 	static bool IsText(ITargetLanguage language, string type)
 	{
-		return language.Classify(type, out var form) == KnownType.Text && form is TypeSpellingForm.Syntax or TypeSpellingForm.Global;
+		return GrammarNormalizer.IsText(language, type);
 	}
 }

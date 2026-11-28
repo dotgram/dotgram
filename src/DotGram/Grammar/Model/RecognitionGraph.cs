@@ -598,6 +598,12 @@ sealed class RecognitionGraph(
 	/// </summary>
 	public IReadOnlyCollection<RuleSymbol> OwnText { get; init; } = [];
 
+	/// <summary>
+	/// The rules the compiler made for a part of another to give that part a value (the text a string matched, a rule read in
+	/// place, a turn of a repetition), which the author did not write and is never told of by their own name.
+	/// </summary>
+	public IReadOnlyCollection<RuleSymbol> Made { get; init; } = [];
+
 	/// <summary>Whether a capture of this rule holds the value it builds, rather than the text it matched.</summary>
 	public bool BuildsValue(RuleSymbol rule)
 	{
