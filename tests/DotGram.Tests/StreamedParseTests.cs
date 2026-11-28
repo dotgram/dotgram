@@ -375,7 +375,7 @@ public sealed class StreamedParseTests
 		}
 	}
 
-	/// <summary>	/// <summary>
+	/// <summary>
 	/// Without a compilation to ask, an array is still taken for the types every array is, and for
 	/// no other element of its own.
 	/// </summary>

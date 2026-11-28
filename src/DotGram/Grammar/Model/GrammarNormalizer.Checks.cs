@@ -384,8 +384,9 @@ sealed partial class GrammarNormalizer
 		else if (declared && building < offered.Count)
 			Report(
 				UnbuiltConstruction,
-				$"'{Shown(rule)}' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' " +
-				"can be left to the shape of the rule — §4.1 case 4, the extent it matched. " +
+				$"'{Shown(rule)}' declares a type and does not say how to build it. Without a '=>' the type says the value " +
+				"(§4.1): a string is its pieces joined, a span its bounds, an array the calls of its element type, and any other " +
+				"type the one call of it on each route or the constructor its names fill. " +
 				(HasCapture(body)
 					? $"No constructor of '{_types[rule]}' has every parameter covered by a capture " +
 						"of this rule, which is what §7.3 matches against, so give every alternative " +
@@ -871,13 +872,9 @@ sealed partial class GrammarNormalizer
 			_ => false,
 		});
 
-		// The names the code leaves free, as the emitter asks them: a word in a literal, a comment or after a dot is
-		// none. Where the code cannot be read, the spelling answers.
 		bool Names(string text)
 		{
-			return _language.NamesUsed(text) is { } free
-				? free.Contains("context")
-				: System.Text.RegularExpressions.Regex.IsMatch(text, @"\bcontext\b");
+			return CodeReads(text, "context");
 		}
 	}
 

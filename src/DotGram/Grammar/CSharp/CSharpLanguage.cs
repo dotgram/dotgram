@@ -574,7 +574,7 @@ sealed class CSharpLanguage : ITargetLanguage
 
 	public bool TakesCharacterView(string type)
 	{
-		return type.Contains("Span<char>") || type.Contains("Span<global::System.Char>") || type.Contains("Span<System.Char>");
+		return type.Contains("ReadOnlySpan<char>") || type.Contains("ReadOnlySpan<global::System.Char>") || type.Contains("ReadOnlySpan<System.Char>");
 	}
 
 	public bool TrySettableMembers(string type, out IReadOnlyList<ObjectMember> members)

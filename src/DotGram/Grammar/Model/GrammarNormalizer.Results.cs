@@ -98,14 +98,7 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	Node Extended(Node body, string expression)
 	{
-		var rewritten = new List<Node>();
-
-		foreach (var alternative in ValueAlternatives(body))
-			rewritten.Add(new Node.Construct(alternative, new Construction.Expression(expression)));
-
-		return body is Node.Choice { Selection: not null } selected
-			? selected.Rebuild(rewritten)
-			: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+		return Rebuilt(body, [.. ValueAlternatives(body).Select(alternative => new Node.Construct(alternative, new Construction.Expression(expression)))]);
 	}
 
 	/// <summary>
@@ -1148,10 +1141,10 @@ sealed partial class GrammarNormalizer
 					Slots = slots[members[i].Name].Select(slot => slot.Index).ToList(),
 				};
 
-			_results[rule] = _joined.TryGetValue(rule, out var joined) ? Joined(members, joined.Element, joined.Groups) : members;
+			_results[rule] = _joined.TryGetValue(rule, out var joined) ? MergedMembers(members, joined.Element, joined.Groups) : members;
 
 			if (_gatheredJoins.TryGetValue(rule, out var gathered))
-				_results[rule] = Gathered([.. _results[rule]], gathered);
+				_results[rule] = GatheredMembers([.. _results[rule]], gathered);
 		}
 	}
 
@@ -1164,7 +1157,7 @@ sealed partial class GrammarNormalizer
 	/// wrote that is one of the pieces stays a member of its own as well, holding what it held, for a guard to read: the
 	/// gathering member reads its slots too.
 	/// </remarks>
-	static List<ResultMember> Gathered(List<ResultMember> members, IReadOnlyList<(string Name, List<string> Captures, List<string> Made)> groups)
+	static List<ResultMember> GatheredMembers(List<ResultMember> members, IReadOnlyList<(string Name, List<string> Captures, List<string> Made)> groups)
 	{
 		foreach (var (name, captures, made) in groups)
 		{
@@ -1189,7 +1182,7 @@ sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// The captures of each repetition that collects through more than one (<see cref="Gather"/>),
+	/// The captures of each repetition that collects through more than one (gathered by <see cref="CollectSequences"/>),
 	/// made one member that gathers their slots in the order they were read.
 	/// </summary>
 	/// <remarks>
@@ -1197,7 +1190,7 @@ sealed partial class GrammarNormalizer
 	/// what changes is only that their values arrive as one sequence. Where the operands build
 	/// values of different types the member holds the sequence's element, which each of them is.
 	/// </remarks>
-	List<ResultMember> Joined(List<ResultMember> members, string element, IReadOnlyList<List<string>> groups)
+	List<ResultMember> MergedMembers(List<ResultMember> members, string element, IReadOnlyList<List<string>> groups)
 	{
 		foreach (var group in groups)
 		{
@@ -1221,7 +1214,7 @@ sealed partial class GrammarNormalizer
 		return members;
 	}
 
-	/// <summary>The captures <see cref="Gather"/> listed together, per rule, with the sequence's element.</summary>
+	/// <summary>The captures <see cref="CollectSequences"/> listed together, per rule, with the sequence's element.</summary>
 	readonly Dictionary<RuleSymbol, (string Element, List<List<string>> Groups)> _joined = [];
 
 	/// <summary>How many operands of this node would be collected into the sequence.</summary>

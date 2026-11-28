@@ -5055,7 +5055,7 @@ file.Line("return spare;");
 				bool Character(ResultMember member)
 				{
 					return member.Rule is { } called && graph.Types.TryGetValue(called, out var held) &&
-						held is "char" or "System.Char" or "global::System.Char";
+						graph.Language.Classify(held, out _) == KnownType.Char;
 				}
 
 				bool Concatenated((string? Text, ResultMember? Member, List<(string? Text, ResultMember? Member)>? Turn) piece)
