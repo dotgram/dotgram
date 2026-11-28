@@ -1,4 +1,4 @@
-shapes 19293, jobs 57879, cells 98154, batches 905, seed 20261125, elapsed 1391 s, whole-batch crashes 0, unattributed errors 0, head warns new 0
+shapes 19293, jobs 57879, cells 98154, batches 905, seed 20261125, elapsed 2022 s, whole-batch crashes 0, unattributed errors 0, head warns new 0
 the bounded enumeration: core 7918, deviations 2754, atoms 1890, left recursion 42, extraction pairs in this run 4597
 
 same	22943

@@ -2,9 +2,9 @@ cells 98154, shapes 19293, cells with no outcome in the files 0
 
 cells by what the oracle says against 0.3.0
     1839  0.3.0 failed: the generated type's value is expected
-   12973  agree
+   12939  agree
        3  allowed: array-call-splices-elements
-     247  allowed: array-collects-text-rule
+     255  allowed: array-collects-text-rule
      411  allowed: char-piece-gives-character
       56  allowed: named-text-not-collected
      252  allowed: non-text-piece-is-error
@@ -24,14 +24,15 @@ cells by what the oracle says against 0.3.0
       46  oracle reads no match, 0.3.0 csharp
       74  oracle reads no match, 0.3.0 gram
       11  published version did not match the input
-   34164  published version refused, oracle builds
-   29415  refused by both
+   33868  published version refused, oracle builds
+   29617  refused by both
+     120  same as 0.3.0 by decision (a name of the constructor written under a repetition)
     3105  same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)
 
 the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs from the oracle on purpose
     2912 differ (  644 shapes),    354 agree  Silent    string-rule-joins-built-value
     5612 differ ( 1161 shapes),     22 agree  Silent    taken-string-rule-keeps-own-literals
-     769 differ (  179 shapes),   1129 agree  Silent    array-collects-text-rule
+     777 differ (  179 shapes),   1121 agree  Silent    array-collects-text-rule
        9 differ (    3 shapes),      9 agree  Silent    array-call-splices-elements
     1068 differ (  261 shapes),   2838 agree  Silent    taken-span-names-own-bounds
       16 differ (    7 shapes),      2 agree  Silent    trivia-dropped-in-string-rule
@@ -45,6 +46,7 @@ the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs fro
      159 differ (   25 shapes),      0 agree  Loud      object-rule-reads-two-calls
       24 differ (    8 shapes),      0 agree  Loud      zero-repetition-operand-refused
      472 differ (  114 shapes),      0 agree  Loud      partial-construction-refused
+      38 differ (   23 shapes),      0 agree  Loud      mixed-array-over-bytes-refused
       12 differ (    2 shapes),      0 agree  Loud      tied-constructor-refused
     1209 differ (  329 shapes),      0 agree  WarnOnly  optional-text-route
     1558 differ (  269 shapes),      0 agree  WarnOnly  optional-operand-falls-to-construction
@@ -178,6 +180,14 @@ allowed cells, one example per class
     Nm : @string = n: ['a'..'z']{2} => @(T(n))
       0.3.0:  box:[box:Acd] (warnings CS8604)
       oracle: error E-PARTIAL
+
+  mixed-array-over-bytes-refused: over bytes an array rule that collects both a text call (its bytes) and a building one (a string) has no one element type: refused (0.3.0 collected only the building call)
+    landmark/@string[]/two/Implicit,Built/None/None/noLR/Itself/written mode B input <ef,gh>
+    Start : @string[] = '<' & Bare & ',' & Word & '>'
+    Bare : @string = ['a'..'z']{2}
+    Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
+      0.3.0:  ["W:gh"]
+      oracle: error GRAM4026
 
   tied-constructor-refused: a name that two constructors take equally chooses none
     core/:Bx/optional/Built,-/Tie/None/noLR/Itself/written mode D input 34<cd>

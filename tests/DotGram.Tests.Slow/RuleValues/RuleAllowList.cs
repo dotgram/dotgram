@@ -145,6 +145,10 @@ static class RuleAllowList
 			"names choose the construction of the whole rule: an alternative that captures none of them is refused",
 			static c => c.Differs && c.Has("O-partial")),
 
+		new("mixed-array-over-bytes-refused", Impact.Loud,
+			"over bytes an array rule that collects both a text call (its bytes) and a building one (a string) has no one element type: refused (0.3.0 collected only the building call)",
+			static c => c.Differs && c.Mode == Mode.B && c.Has("A-mixed-bytes")),
+
 		new("tied-constructor-refused", Impact.Loud,
 			"a name that two constructors take equally chooses none",
 			static c => c.Differs && c.Has("O-tie")),
