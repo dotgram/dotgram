@@ -141,6 +141,19 @@ static class ByteValues
 			// gone into.
 			void Visit(RuleSymbol array, string elementType, HashSet<RuleSymbol> seen)
 			{
+				// A rule read in place may read another in place, as deep as the grammar nests them.
+				if (DeepStack.Low)
+				{
+					DeepStack.Run(() =>
+					{
+						Visit(array, elementType, seen);
+
+						return true;
+					});
+
+					return;
+				}
+
 				if (!seen.Add(array) || !graph.Results.TryGetValue(array, out var members))
 					return;
 
