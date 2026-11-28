@@ -415,7 +415,7 @@ sealed partial class Grammar
 					if (!captures.TryGetValue(name, out var list))
 						captures[name] = list = [];
 
-					list.Add((value, at.Expr is not Named named || KindOfCapture(named.Inner, rule) == "text"));
+					list.Add((value, at.Expr is not Named named || grammar.KindOfCapture(named.Inner, rule) == "text"));
 				}
 			}
 
@@ -478,7 +478,7 @@ sealed partial class Grammar
 				if (list.Count == 0)
 				{
 					// A name of an alternative the route did not take is null; a repetition that took no turn gives an empty text.
-					var text = named.Where(n => n.Name == name).All(n => KindOfCapture(n.Inner, rule) == "text");
+					var text = named.Where(n => n.Name == name).All(n => grammar.KindOfCapture(n.Inner, rule) == "text");
 
 					if (!many || !visited.Contains(name) && text)
 						return "<null>";
@@ -608,7 +608,7 @@ sealed partial class Grammar
 			Captures(node, Parameters(rule.Type), captured);
 
 			// Over bytes a text capture is a span of bytes: no constructor of a host type takes it, and C# says so.
-			if (captured.Values.Any(static v => v.Type == "bytes"))
+			if (mode == Mode.B && captured.Keys.Any(n => grammar.NameIsText(rule, n)))
 				throw new BytesIntoConstructor();
 
 			switch (rule.Type)
@@ -691,6 +691,14 @@ sealed partial class Grammar
 					foreach (var named in Walk([zero.Inner], true).OfType<Named>())
 						if (parameters is null || parameters.Contains(named.Name))
 							into[named.Name] = Val.Str("");
+
+					break;
+
+				// A repetition with no turn: a name written in it is an empty capture.
+				case Wrapped { Wrap: Wrap.Star } star when node.Kids.Count == 0:
+					foreach (var named in Walk([star.Inner], true).OfType<Named>())
+						if (parameters is null || parameters.Contains(named.Name))
+							into.TryAdd(named.Name, Val.Str(""));
 
 					break;
 

@@ -70,6 +70,33 @@ public sealed class RuleOracleTests
 		return RulePrinter.Print(shape).Rules.TrimEnd('\n').Replace("\n", "\n    ", StringComparison.Ordinal);
 	}
 
+	enum PublishedFailure
+	{
+		/// <summary>A defect of 0.3.0: a C# error in generated code, GRAM0001, or a GRAM4008 that came from building a string from names.</summary>
+		Defect,
+
+		/// <summary>A refusal 0.3.0 documents: GRAM4026, GRAM4006, GRAM4007, GRAM3004.</summary>
+		Documented,
+
+		/// <summary>Anything else.</summary>
+		Other,
+	}
+
+	static PublishedFailure Failure(Outcome published)
+	{
+		if (published.Kind is "csharp" or "crash")
+			return PublishedFailure.Defect;
+
+		if (published.Kind != "gram")
+			return PublishedFailure.Other;
+
+		foreach (var id in new[] { "GRAM4026", "GRAM4006", "GRAM4007", "GRAM3004" })
+			if (published.Text.StartsWith(id, StringComparison.Ordinal))
+				return PublishedFailure.Documented;
+
+		return published.Text.StartsWith("GRAM4008", StringComparison.Ordinal) ? PublishedFailure.Defect : PublishedFailure.Other;
+	}
+
 	static void Example(StringBuilder report, Cell cell, string older, Expectation expected, string label)
 	{
 		report.Append("    ").Append(cell.Shape.Id).Append(" mode ").Append(cell.Mode).Append(" input ").Append(cell.Input).Append('\n');
@@ -155,8 +182,13 @@ public sealed class RuleOracleTests
 			}
 			else if (expected.Source == Source.SamePublished)
 			{
-				category = expected.Row == "O-repeat" ? "same as 0.3.0 by decision (a name of the constructor written under a repetition)"
-					: old.Kind == "value" ? "same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)" : "0.3.0 failed: the generated type's value is expected";
+				category = old.Kind == "value" ? "same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)"
+					: Failure(old) switch
+					{
+						PublishedFailure.Documented => "refused by both: a documented refusal of 0.3.0 is held",
+						PublishedFailure.Defect     => "0.3.0 failed: the generated type's value is expected",
+						_                           => "STOP: 0.3.0 gave a diagnostic not on the list",
+					};
 			}
 			else if (expected.Source == Source.NoMatch)
 			{
@@ -278,9 +310,16 @@ public sealed class RuleOracleTests
 			// An untyped rule that writes names is held to what the published version gives, whatever that is.
 			if (expected.Source == Source.SamePublished)
 			{
-				// Where the published version gave a value, the head gives the same; where it failed, an untyped rule with names
-				// gives a value of its generated type, and a name captured twice on one route has nothing to be held to.
-				if (cell.Package.Kind == "value" ? head.Kind == "value" && head.Text == cell.Package.Text : expected.Row == "O-repeat" ? !head.Built : expected.Value is not null ? head.Kind == "value" && head.Text == expected.Value : expected.Row == "O-twice" || head.Kind == "value")
+				// Where the published version gave a value, the head gives the same. Where it refused with a documented diagnostic,
+				// the head refuses. Where it failed by a defect of its own, an untyped rule with names gives a value of its
+				// generated type (over bytes a raw capture is refused), and a name captured twice on one route has nothing to be
+				// held to. A diagnostic that is on neither list is a stop.
+				var failure = Failure(cell.Package);
+				var other   = cell.Package.Kind != "value" && failure == PublishedFailure.Other;
+
+				if (!other && (cell.Package.Kind == "value" ? head.Kind == "value" && head.Text == cell.Package.Text
+					: failure == PublishedFailure.Documented || expected.ErrorId is not null ? !head.Built
+					: expected.Value is not null ? head.Kind == "value" && head.Text == expected.Value : expected.Row == "O-twice" || head.Kind == "value"))
 				{
 					counts["green"] = counts.GetValueOrDefault("green") + 1;
 					continue;
@@ -288,7 +327,8 @@ public sealed class RuleOracleTests
 
 				counts["red"] = counts.GetValueOrDefault("red") + 1;
 
-				var held = "other, rule O: held to 0.3.0 (untyped rule with names, or a name captured twice), head " + (head.Kind == "value" ? "gave a different value" : head.Kind);
+				var held = (other ? "STOP, 0.3.0 gave a diagnostic not on the list (" + cell.Package.Kind + " " + (cell.Package.Text.Length > 40 ? cell.Package.Text[..40] : cell.Package.Text) + "): " : "other, rule O: held to 0.3.0 (untyped rule with names, or a name captured twice), ")
+					+ "head " + (head.Kind == "value" ? "gave a different value" : head.Kind);
 
 				if (!red.TryGetValue(held, out var heldList))
 					red[held] = heldList = [];
