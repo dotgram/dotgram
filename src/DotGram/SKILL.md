@@ -333,11 +333,16 @@ Bare    = List(Number, ',')                     // string: the text it matched
 Written : Number[] = Number & (',' & Number)*   // int[], if Number is `: @int`
 ```
 
-**So is a choice of rules with no `=>`, even under a declared type**: `Field : @string = QuotedField
-| BareField` is the text matched, quotes and all, not what `QuotedField` built. Capture each alternative:
+**Under a declared type the type says the value** (§4.1): a string is its pieces joined — the value
+of each string or `@char` rule it calls, the text of the rest — a span the bounds it matched, an array
+the values of the calls of its element type, and any other type the one call of that type on each
+route, or the constructor its names fill. Names change nothing in a string, a span or an array, and a
+string is never built from names. So `Field : @string = QuotedField | BareField` is what the one that
+matched built, and `Tag : @string = '<' & Word & '>'` keeps its brackets around what `Word` built. A
+piece with no text, `Num : @int`, is `GRAM4008` with the `=>` to write:
 
 ```dotgram
-Field : @string = q: QuotedField => @(q) | b: BareField => @(b)
+Sized : @string = '<' & n: Num & '>' => @("<" + n + ">")
 ```
 
 ## Namespaces
@@ -910,7 +915,7 @@ its number and the rest are still read (below).
 | `GRAM3004` | a `@Type` the grammar names is not in view — add `@using Ns;` inside the grammar, which is separate from the file's |
 | `GRAM4001` | a repetition's body can match nothing (an empty row): make each turn read something, `?!eof` before an optional part |
 | `GRAM4003` | `trivia` must accept empty input |
-| `GRAM4008` | a `=>` on a rule that does not say what type it builds, or on some alternatives only, or a declared type no operand builds |
+| `GRAM4008` | a `=>` on a rule that does not say what type it builds, or on some alternatives only; a string with a piece that has no text (a number, a span); a type no route builds or names the constructor of |
 | `GRAM4018` | a rule nothing reaches, and so nothing compiled — publish it or delete it |
 | `GRAM4051` | `trivia` without braces beside a class that reads its characters: write `trivia = { … }` |
 | `GRAM4052` | a repetition reads some text two ways, exponential on refusal — usually `eol` beside an empty line: `{ eol }` |

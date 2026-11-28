@@ -1125,72 +1125,51 @@ is about. Over characters a rule earns its own commit only by being written insi
 ### 4.1 A rule's result
 
 1. There is `=> expr` — the expression gives the result.
-2. The result type is `T[]` — a sequence. Every operand that **declares** a type
-   assignable to `T` joins it in order; `X*`, `X+` and `X{n,m}` contribute all of
-   their elements. Everything else contributes nothing: an operand of some other
-   type, and equally a rule that declares no type at all — which is how whitespace,
-   separators and other plumbing are written. A rule with no contributing operand is
-   a build error.
-3. There are captures — they are matched to the result type by name (§7.3). A rule that
-   declares no type gets one generated, named after it, with a member for each capture; a
-   rule may name it as its own, `Swapped : Pair`, and gives back a value of that type: one
-   its `=>` builds (`=> Pair(right, left)`), the value of the one operand that produces it,
-   or one its captures fill by name.
-4. None of the above — the result is the matched extent: `string` gives the text,
-   `@SourceSpan` gives the bounds. Any other type requires an explicit `=>`. The extent is
-   the rule's own: the trivia a `parse` reads before and after a published rule is not in
-   it (§6).
+2. The result type is `T[]` — an array. It collects, in order, the values of the calls of rules of type `T` on the
+   route that was read; `X*`, `X+` and `X{n,m}` contribute all of theirs, a call of the array's own type gives its
+   elements in place, and a rule that declares no type and captures nothing is read through, as if written in place.
+   Every other call contributes nothing — which is how whitespace, separators and other plumbing are written. An
+   element type that could hold the array itself (`@object[]`) is `GRAM4008`: say which you mean with `=>`.
+3. A rule that declares no type and captures gets one generated, named after it, with a member for each capture
+   (§7.3). A rule of any other type that is not a string, a span or an array takes the value of the one call of its
+   type on each route: `Name : Quoted = Quoted | Bare` is whichever matched. Where a route has none or more than one,
+   the rule's names fill a constructor or the settable properties of the type, by name (§7.3), and a name written
+   directly on a call, `x: Quoted`, makes the call one of them; a route that names none is `GRAM4008`.
+4. A string or a span — `@string`, `@SourceSpan`, or a rule typed by a rule that is one; a rule typed by a rule that
+   declares no type and captures nothing is a `string`. A **string** is its pieces joined, in order: a call of a string
+   or a `@char` rule gives its value, a rule that declares no type is read through, trivia gives nothing, and a literal
+   or any other piece of the input gives its text. Where every piece is its own text the value is the text the rule
+   matched, which is what most string rules are. A piece of another type, a number or a span, has no text to join and is
+   `GRAM4008`, which names it and shows the `=>` to write. A **span** is the bounds of what the rule matched. The
+   value is the rule's own: the trivia a `parse` reads before and after a published rule is not in it (§6).
+
+A left-recursive rule, `Sum : T = Seed | Sum & Step`, is its seed and its steps read in turn: a string joins them, an
+array collects them, a span is its own bounds, and for another type the step's call of the rule itself is the value so
+far, which a construction of the step is handed by name. A rule that reaches itself on the left through another rule is
+refused.
+
+**Names change nothing in an implicit string, span or array.** A capture's name is read only where a value goes
+(§3.5): after a `=>`, in a guard or a `switch`, by a §7.3 constructor or initializer, or as a member of a generated type.
+A string, a span and an array write no construction, so a name in one is read by nothing, or by a guard or a `switch`,
+which then reads the name as it would anywhere — a name in a repetition holds what every turn that captured it read, the
+text joined or the values one after another — and the value is the same as without the name. A name nothing reads is held
+to no type: the same name on two kinds of thing is `GRAM4007` only where something reads it.
 
 ```dotgram
-Feed : FeedItem[] = Header & Row* & Trailer & eof
+Feed  : FeedItem[] = Header & Row* & Trailer & eof
+Tag   : @string    = '<' & Word & '>'          // "<W:ab>": Word builds "W:ab"
+Bare  : @string    = ['a'..'z']+
+Quote : Bare       = '"' & Bare & '"'          // "\"ab\"", the quotes included
 ```
 
-`Header`, `Row` and `Trailer` declare types assignable to `FeedItem` and enter the
-result in order; `eof` declares none and contributes nothing. A sequence of a type the
-grammar generates, `Pairs : Pair[]`, is joined by the calls of that rule and of rules typed
-by it. A separator written as
-`Space = [' ']+` is silent for the same reason, and needs no keyword to say so.
-
-A rule typed by another, `Name : Quoted = Quoted | Bare`, has the value of the operand that matched, so
-on every route through each alternative there is exactly one operand that declares the type: a rule that
-builds it, or one that declares `: @string` or `: @SourceSpan` over an extent, as
-`Bare : @string = ['a'..'z']+` does. It may be written in more than one place when only one of them can
-run, `'-'? & ('<' & Bare & '>' | Bare)`. An operand that may be absent (`Bare?`), repeated
-(`(Bare & ',')+`) or more than one (`Bare & ' ' & Bare`) is not one, and a left-recursive rule has no
-saying which operand it hands on at each step: that is `GRAM4008` on the rule, which names the route that
-has none or several, or the recursion, and asks for a `=>` of its own. A rule none of whose alternatives
-has an operand that declares the type, and that captures nothing, is case 4's, and its value is its own
-extent. For `@SourceSpan` the value is the operand's bounds, not the rule's own. A sequence
-(case 2) collects only the operands that build a value: a rule that declares `: @string` over an extent
-contributes nothing to `Words : @string[]`, as a rule that declares none.
-A rule that hands back the text of a rule that builds nothing is refused for a `stream bytes` publication
-(`GRAM4026`), as a type made of a raw capture is: over bytes a capture is a `ReadOnlySpan<byte>` that nothing
-decodes. Under `UseSpanCaptures` the string is made of the span.
-A `@string` extent whose names a guard or a `switch` reads is the one case where the byte form differs from the same rule without
-the reader: the value is then built by a construction from the text (`parserText.ToString()`), which over bytes is `GRAM4026`
-as any construction of the text is, while the rule without the reader hands back its bytes.
-
-**A name never adds anything to an implicit value, and speaks for what it names.** A capture's name is read only
-where a value goes (§3.5): after a `=>`, in a guard or a `switch`, as a member of a generated type, or by a §7.3
-constructor or initializer. A rule whose value is implicit, a sequence (case 2), the value of one operand (case 3) or its
-own extent (case 4), writes no construction that reads a name, so for such a rule a name is either read by nothing, or read
-by a guard or a `switch` of the rule, which keeps it a member of the rule and changes nothing against the same name without
-the guard, or says that the author will read the operand himself; or by a §7.3 constructor or initializer of the declared type
-(`Start : @string = c: Ch & count: Num` calls `new string('c', 3)`), which builds the value from the names and so is no
-extent at all. One rule, in every shape:
-
-| What is named | The implicit value |
-| --- | --- |
-| something that is not an operand: a literal, an extent, a rule of another type, a repetition or an option of any of them, a group, a choice of operands in a group, `x: (Word \| Quoted)` | nothing is added, whatever the name and the element type and whether a guard reads it; what is inside a group counts as it would unnamed, the operands in it included; the rule is the one it would be unnamed |
-| an operand: a call of a rule that declared the type the value has, or a repetition of one | it leaves the value (it is *spoken for*); a rule left with no operand to take its value from is `GRAM4008`, which names the capture: drop the name, or build the value with `=>` |
-
-So `Start : @int[] = Num & x: ',' & Num` is the array of its two `Num`, `Start : Bare = x: '<' & Bare & '>'` and
-`Start : Word = x: ('<' & Word & '>')` are the value of their `Bare` and of their `Word`, and
-`Start : @string[] = Word & x: (',' & Word)*` collects all its `Word`; `Start : @string[] = w: Word & Word` is the
-array of its second `Word`, and `Start : @string[] = rows: Word+` and `Start : Bare = '<' & b: Bare & '>'` are refused. A
-rule that declares the type of its extent and names an operand of that type is refused too; one that names something
-else, `Start : @string = n: Num & ['a'..'z']+`, is the text it matched. In a rule of a generated type the names are its
-members, and a `=>` reads what it reads: both as before.
+`Header`, `Row` and `Trailer` declare types assignable to `FeedItem` and enter the result in order; `eof` declares none and
+contributes nothing. `Quote` is a string because `Bare` is, and keeps its own literals; to have the inner `Bare` alone,
+write `'"' & b: Bare & '"' => b`.
+Over bytes (`stream bytes`, §6.3) a string that is its own text is the bytes it matched, and nothing decodes them: a string
+joined from a built string or a character, and an array that collects both pieces of the input and built strings or
+characters, are `GRAM4026` there. A `@string` whose names a guard or a `switch` reads is built from the text
+(`parserText.ToString()`), which over bytes is `GRAM4026` as any construction of the text is. Under `UseSpanCaptures` the
+string is made of the span.
 **What a construction hands back has to be the declared type.** Where the grammar can tell
 that it cannot be — a capture handed back whole, `=> x` or `=> @(x)`, that holds text where
 an array is declared or a generated type where another is, between types that declare no
@@ -2812,8 +2791,8 @@ host. C# selects the overload directly; the generator does not insert conversion
 or a runtime interface. The author controls validation, overflow, encoding and
 ownership. Missing or incompatible overloads are normal C# compilation errors.
 
-What the generator itself assembles is the exception, since the rule's own type is `string`: the operand that a rule
-typed by a text rule hands back (§4.1 case 3) and an element a sequence collects are made strings from the span, and an
+What the generator itself assembles is the exception, since the rule's own type is `string`: a piece a string joins
+(§4.1 case 4) and an element a sequence collects are made strings from the span, and an
 optional operand that was not read is left out of the sequence, as it is where captures are strings. What a host's
 constructor or initializer (§7.3) is handed is the span as captured: which overload it has is the host's, and the
 generator writes no conversion for it.
@@ -3943,6 +3922,10 @@ Captures are matched to the result type by name, in a fixed order:
 
 Names are matched by one mechanical casing transform: the capture `symbol` fits the
 parameter `symbol` and the property `Symbol`.
+
+This is for a type that is not a string, a span or an array: those are never built from names
+(§4.1), and `Start : @string = c: Ch & count: Num` is the pieces it read joined, not
+`new string(c, count)` — write that `=>` where it is meant.
 
 A handful of names are **supplied rather than captured**: declare a parameter with one
 of them and the generator fills it in. They are listed in §8.2, where the same names

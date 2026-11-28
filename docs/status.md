@@ -50,15 +50,16 @@ then quietly mean nothing.
 | nested constructing groups with contextual result types | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a generic C# type, `: @KeyValuePair<string, Row>`, asked about as its definition and arguments | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `: @string` as the extent §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `: @string` as its pieces joined, the text it matched where every piece is its own text §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @SourceSpan` as the bounds §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publishing a rule whose value is a `SourceSpan` §6.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a span reaching a streamed publication, refused §8.2 | — | — | ✓ | — | — |
-| rule types naming another rule §4.1 case 3 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| rule types naming another rule: that rule's type, a string where it declares none §4.1 cases 3 and 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a sequence result `: T[]` §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same collecting operands inside a group §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same with several operands in one repetition, in the order read §4.1 case 2 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| an operand of one captured by hand, reported §4.1 case 2 | — | — | ✓ | — | — |
+| a name in an array, a string or a span, which changes nothing §4.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a left-recursive string, array, span or other type, its seed and its steps §4.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | guards `when` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `when` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a condition about the grammar, `when A is B` §3.6 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -1200,6 +1201,17 @@ partial helper declaration is generated and no intended signature is guessed. On
 on the grammar instead: a rule's parameter that stands for a piece of grammar, read by the
 rule's own C#, where nothing in the host answers to the name (`GRAM4058`); it holds no value C#
 could read.
+
+## A rule's value follows its type
+
+Without `=>` the declared type alone says what a rule's value is (§4.1): a string is its pieces joined, a
+span its bounds, an array the values of the calls of its element type, and any other type the one call of
+that type on each route, or the construction its names fill. Names change nothing in the first three, and a
+name nothing reads is held to no type. A string joined from built pieces is one string per match, made by
+`string.Concat` where it has few pieces and in a pooled buffer otherwise; a string all of whose pieces are
+their own text is still the slice, and its generated code is unchanged. A left-recursive rule is its seed
+and its steps: a loop for a string and an array, the value so far handed to the step for another type.
+What 0.3.0 gave differently is listed under BREAKING in the release notes.
 
 ## A rule can be a sequence of what it is made of
 
