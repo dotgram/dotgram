@@ -686,8 +686,8 @@ sealed partial class GrammarNormalizer
 			if (!_ruleValues.TryGetValue(rule, out var value))
 				continue;
 
-			// What a lookahead saw is no part of an implicit value and fills no construction: its names are dropped.
-			var body = _bodies[rule] = value.Source is ValueSource.Explicit or ValueSource.External ? _bodies[rule] : UnnamedLookaheads(_bodies[rule]);
+			// A name inside a lookahead is refused in every rule (GRAM4006): what a lookahead records is dropped.
+			var body = _bodies[rule];
 
 			switch (value.Source)
 			{
@@ -878,20 +878,6 @@ sealed partial class GrammarNormalizer
 			Test.Any(var items)    => items.SelectMany(Runs),
 			_                      => [],
 		};
-	}
-
-	/// <summary>The node with the names inside its lookaheads taken off.</summary>
-	Node UnnamedLookaheads(Node node)
-	{
-		// The outermost ones: a lookahead inside another goes with it.
-		var looks = NodeWalk.Descendants(node).OfType<Node.Lookahead>().ToList();
-		var inner = new HashSet<Node>(looks.SelectMany(static look => NodeWalk.Descendants(look.Body).OfType<Node.Lookahead>()), NodeIdentity.Instance);
-
-		foreach (var look in looks)
-			if (!inner.Contains(look) && NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture))
-				node = Replaced(node, look, UnnamedUnread(look));
-
-		return node;
 	}
 
 	/// <summary>A body with its alternatives replaced, a switch kept a switch.</summary>

@@ -632,21 +632,10 @@ sealed partial class GrammarNormalizer
 				return ReferenceEquals(inner, body) ? node : new Node.Marked(inner, text);
 			}
 
-			// What a lookahead saw is no part of an implicit value either, and its captures are its own: only a name a guard
-			// inside it reads stays.
-			case Node.Lookahead look:
-			{
-				var outer = _namesRead;
-
-				if (outer is not null)
-					_namesRead = NamesReadIn(look.Body, look.Body);
-
-				var inner = Unnamed(look.Body);
-
-				_namesRead = outer;
-
-				return ReferenceEquals(inner, look.Body) ? node : look with { Body = inner };
-			}
+			// A name inside a lookahead is not dropped: it is refused in every rule, as what a lookahead records never
+			// reaches the rule (GRAM4006).
+			case Node.Lookahead:
+				return node;
 
 			case Node.Bind bind:
 			{

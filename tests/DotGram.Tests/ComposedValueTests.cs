@@ -130,7 +130,7 @@ public sealed class ComposedValueTests
 	[InlineData("Start : @string = '<' & (Word & ',' & P(Word))? & '>'\nP(x) = '(' & x & ')'", "<ab,(cd)>", "<W:ab,(W:cd)>")]
 	[InlineData("Start : @string = '-'? & ('<' & ('(' & Word & ')' | Bare) & '>' | Bare)", "-<(ab)>", "-<(W:ab)>")]
 	[InlineData("Start : @string = '-'? & ('<' & ('(' & Word & ')' | Bare) & '>' | Bare)", "cd", "cd")]
-	[InlineData("Start : @string = '<' & ?!(?!(w: Bare) & '#') & Bare & '>'", "<ab>", "<ab>")]
+	[InlineData("Start : @string = '<' & ?!(?!(Bare) & '#') & Bare & '>'", "<ab>", "<ab>")]
 	[InlineData("Start : @string = '<' & (w: Bare & ',' & Esc)? & '>' & when @(w == null || w.Length > 0)", "<ab,\\n>", "<ab,\n>")]
 	[InlineData("Start : @string = '<' & (w: Bare & ',' & Esc)? & '>' & when @(w == null || w.Length > 0)", "<>", "<>")]
 	[InlineData("Start : Word = '<' & ((',' & w: P(Word))*)? & '>' & when @(w != null)\nP(x) = '(' & x & ')'", "<,(ab),(cd)>", "<,(W:ab),(W:cd)>")]
@@ -261,6 +261,15 @@ public sealed class ComposedValueTests
 			"Word : @string = c: ['a'..'z']{2} => @(c.ToString())\nparse Start");
 
 		Assert.Contains(result.Diagnostics, static one => one.Severity == GramSeverity.Error && one.Id == GrammarNormalizer.CaptureTypeMismatch);
+	}
+
+	/// <summary>A name inside a lookahead is refused in a string as in any rule: what a lookahead records never reaches it.</summary>
+	[Fact]
+	public void A_name_inside_a_lookahead_of_a_string_is_refused()
+	{
+		var result = Compile("Start : @string = '<' & ?!(?!(w: Bare) & '#') & Bare & '>'\nBare : @string = ['a'..'z']{2}\nparse Start");
+
+		Assert.Contains(result.Diagnostics, static one => one.Severity == GramSeverity.Error && one.Id == GrammarNormalizer.UnbuiltCapture);
 	}
 
 	/// <summary>An element type that can hold the array itself leaves a call of the array's type with two readings.</summary>
