@@ -499,8 +499,12 @@ sealed partial class Grammar
 		var sets       = routes.Select(r => r.Names.Split(',', StringSplitOptions.RemoveEmptyEntries).Where(n => parameters.Contains(n)).Order(StringComparer.Ordinal).ToArray()).ToList();
 
 		// A name of a value written under a repetition is an array, and no constructor takes an array for a string.
-		if (Walk(alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus).SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Any(n => parameters.Contains(n.Name) && KindOfCapture(n.Inner, rule) != "text"))
+		if (Walk(alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus or Wrap.Zero).SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Any(n => parameters.Contains(n.Name) && KindOfCapture(n.Inner, rule) != "text"))
 			return Decision.Fail("O", "CS1503");
+
+		// A name of l or r fills a property of the host type Pr, and C# takes no text or other value for it.
+		if (rule.Type == "Pr" && Walk(alternatives, true).OfType<Named>().Any(n => n.Name is "l" or "r" && KindOfCapture(n.Inner, rule) != "value of Pr"))
+			return Decision.Fail("O", "CS0029");
 
 		if (!sets.Any(static s => s.Length > 0))
 		{
@@ -554,16 +558,58 @@ sealed partial class Grammar
 		else if (rule.Kind == Kind.O && !decisions.All(static d => d.Source == Source.Operand))
 			reads.UnionWith(Parameters(rule.Type));
 
+		// A value captured over the turns of a repetition is a sequence of it: T and T[] are two kinds.
+		var repeated = Walk(rule.Alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus)
+			.SelectMany(w => Walk([w.Inner], true).OfType<Named>()).ToHashSet();
+
+		string KindIn(Named n)
+		{
+			var kind = KindOfCapture(n.Inner, rule);
+
+			return kind != "text" && (repeated.Contains(n) || IsSequence(n.Inner)) ? kind + "[]" : kind;
+		}
+
 		foreach (var group in Walk(rule.Alternatives, true).OfType<Named>().GroupBy(static n => n.Name))
 		{
 			if (UnreadNamesAreNotChecked && !all && !reads.Contains(group.Key))
 				continue;
 
-			if (group.Select(n => KindOfCapture(n.Inner, rule)).Distinct().Count() > 1)
+			if (group.Select(KindIn).Distinct().Count() > 1)
 				return true;
 		}
 
 		return false;
+	}
+
+	static Expr UnwrapSequence(Expr inner)
+	{
+		while (true)
+		{
+			switch (inner)
+			{
+				case Group group:
+					inner = group.Inner;
+					continue;
+
+				case Wrapped { Wrap: Wrap.Optional or Wrap.Star or Wrap.Plus } wrapped:
+					inner = wrapped.Inner;
+					continue;
+
+				default:
+					return inner;
+			}
+		}
+	}
+
+	static bool IsSequence(Expr inner)
+	{
+		return inner switch
+		{
+			Group group                                   => IsSequence(group.Inner),
+			Wrapped { Wrap: Wrap.Optional } optional      => IsSequence(optional.Inner),
+			Wrapped { Wrap: Wrap.Star or Wrap.Plus }      => true,
+			_                                             => false,
+		};
 	}
 
 	// What a name captures: text (a literal, a group, a call of an untyped or an own-text string rule), or a value of the type
@@ -821,12 +867,22 @@ sealed partial class Grammar
 			// An untyped published rule with names: what its generated type holds, where the oracle can say it.
 			if (Decision.Row == "O" && ReferenceEquals(Start, Tested) && Start.Kind == Kind.Untyped)
 			{
+				// The generated type keeps its members and what they accumulate, but a member that captures a rule whose value this
+				// line changed (a string rule that joins what it calls) takes the new value.
+				var changed = Walk(Start.Alternatives, true).OfType<Named>().Any(n => UnwrapSequence(n.Inner) is RuleRef { Rule.Kind: Kind.C } r && Impure(r.Rule));
+
+				if (changed && mode == Mode.B)
+					return new Expectation(Source.Error, null, "GRAM4026", null, "C");
+
 				try
 				{
 					var run = new Evaluation(this, mode, input).Run();
 
-					if (run.Source is Source.NoMatch or Source.SamePublished)
+					if (run.Source == Source.NoMatch)
 						return run;
+
+					if (run.Source == Source.SamePublished)
+						return changed && run.Value is not null ? new Expectation(Source.Joined, run.Value, null, null, "O") : run;
 				}
 				catch (Exception e) when (e is InvalidOperationException or KeyNotFoundException)
 				{

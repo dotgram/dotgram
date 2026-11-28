@@ -313,12 +313,12 @@ public sealed class RuleOracleTests
 				// Where the published version gave a value, the head gives the same. Where it refused with a documented diagnostic,
 				// the head refuses. Where it failed by a defect of its own, an untyped rule with names gives a value of its
 				// generated type (over bytes a raw capture is refused), and a name captured twice on one route has nothing to be
-				// held to. A diagnostic that is on neither list is a stop.
+				// held to. A diagnostic that is on neither list is a stop. Over bytes any refusal of the published version is held.
 				var failure = Failure(cell.Package);
 				var other   = cell.Package.Kind != "value" && failure == PublishedFailure.Other;
 
 				if (!other && (cell.Package.Kind == "value" ? head.Kind == "value" && head.Text == cell.Package.Text
-					: failure == PublishedFailure.Documented || expected.ErrorId is not null ? !head.Built
+					: failure == PublishedFailure.Documented || expected.ErrorId is not null || cell.Mode == Mode.B && cell.Package.Kind == "gram" ? !head.Built
 					: expected.Value is not null ? head.Kind == "value" && head.Text == expected.Value : expected.Row == "O-twice" || head.Kind == "value"))
 				{
 					counts["green"] = counts.GetValueOrDefault("green") + 1;
