@@ -466,6 +466,10 @@ sealed partial class Grammar
 				return [Decision.Of(Impure(rule) ? Source.Joined : Source.Extent, "C")];
 
 			case Kind.A:
+				// `@Item` names a C# type, and the type a rule generates is not one in view.
+				if (rule.Type == "Item")
+					return [Decision.Fail("A", "GRAM3004")];
+
 				// No call of the element type written: one in X{0} is written, and gives no element.
 				if (!Walk(rule.Alternatives, true).Where(IsCall).Any(c => c is not SelfCall && CalleeType(c, rule) == rule.Type))
 					return [Decision.Fail("A", "E-SEQ")];
@@ -493,6 +497,10 @@ sealed partial class Grammar
 
 		var parameters = Parameters(rule.Type);
 		var sets       = routes.Select(r => r.Names.Split(',', StringSplitOptions.RemoveEmptyEntries).Where(n => parameters.Contains(n)).Order(StringComparer.Ordinal).ToArray()).ToList();
+
+		// A name of a value written under a repetition is an array, and no constructor takes an array for a string.
+		if (Walk(alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus).SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Any(n => parameters.Contains(n.Name) && KindOfCapture(n.Inner, rule) != "text"))
+			return Decision.Fail("O", "CS1503");
 
 		if (!sets.Any(static s => s.Length > 0))
 		{
@@ -527,9 +535,6 @@ sealed partial class Grammar
 		if (CapturesTwice(alternatives, parameters))
 			return Decision.Of(Source.SamePublished, "O-twice");
 
-		// A name of the constructor written under a repetition accumulates as the published version does: held to it.
-		if (Walk(alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus).SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Any(n => parameters.Contains(n.Name)))
-			return Decision.Of(Source.SamePublished, "O-repeat");
 
 		return Decision.Of(Source.Constructed, "O");
 	}
@@ -561,9 +566,9 @@ sealed partial class Grammar
 		return false;
 	}
 
-	// What a name captures: the text its expression matched, or the value of the rule it calls (two rules of one type are
-	// two kinds).
-	static string KindOfCapture(Expr inner, Rule self)
+	// What a name captures: text (a literal, a group, a call of an untyped or an own-text string rule), or a value of the type
+	// of the building rule it calls. Two rules of one type give one kind; text and a value are two kinds.
+	string KindOfCapture(Expr inner, Rule self)
 	{
 		while (true)
 		{
@@ -577,14 +582,23 @@ sealed partial class Grammar
 					inner = wrapped.Inner;
 					continue;
 
-				case Call { Atom: not null } call:
-					return "value of " + call.Rule.Name;
+				case Call call:
+				{
+					var (type, builds) = LeafInfo(call.Rule.Name);
+
+					return type is null || type == "string" && !builds ? "text" : "value of " + type;
+				}
 
 				case RuleRef reference:
-					return "value of " + reference.Rule.Name;
+					return reference.Rule.Kind switch
+					{
+						Kind.Untyped => "text",
+						Kind.C       => Impure(reference.Rule) ? "value of string" : "text",
+						_            => "value of " + reference.Rule.Type,
+					};
 
 				case SelfCall:
-					return "value of " + self.Name;
+					return self.Kind == Kind.C ? Impure(self) ? "value of string" : "text" : "value of " + self.Type;
 
 				default:
 					return "text";
@@ -682,7 +696,8 @@ sealed partial class Grammar
 			{
 				var inner = RoutesOf(star.Inner, rule, author);
 
-				return [.. Product(inner, inner), (0, "")];
+				// With no turn a name written in the repetition is an empty capture.
+				return [.. Product(inner, inner), (0, inner.Aggregate("", static (all, r) => Join(all, r.Names)))];
 			}
 
 			case Wrapped { Wrap: Wrap.Plus } plus:
@@ -780,6 +795,18 @@ sealed partial class Grammar
 
 	// ---- The value of an input ----
 
+	// An untyped rule's generated type holds a raw capture where a name captures text: over bytes that is refused.
+	bool RawCapture(Rule rule)
+	{
+		return Walk(rule.Alternatives, true).OfType<Named>().Any(n => KindOfCapture(n.Inner, rule) == "text");
+	}
+
+	/// <summary>A name of the rule captures text.</summary>
+	internal bool NameIsText(Rule rule, string name)
+	{
+		return Walk(rule.Alternatives, true).OfType<Named>().Any(n => n.Name == name && KindOfCapture(n.Inner, rule) == "text");
+	}
+
 	/// <summary>The expectation for one input in one mode.</summary>
 	public Expectation Expected(Mode mode, string input)
 	{
@@ -806,7 +833,7 @@ sealed partial class Grammar
 				}
 			}
 
-			return new Expectation(Source.SamePublished, null, null, null, Decision.Row);
+			return new Expectation(Source.SamePublished, null, mode == Mode.B && RawCapture(Tested) ? "GRAM4026" : null, null, Decision.Row);
 		}
 
 		// Over bytes a string cannot be joined from a built string or a character without decoding.
