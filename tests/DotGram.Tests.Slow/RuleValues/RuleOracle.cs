@@ -882,7 +882,7 @@ sealed partial class Grammar
 						return run;
 
 					if (run.Source == Source.SamePublished)
-						return changed && run.Value is not null ? new Expectation(Source.Joined, run.Value, null, null, "O") : run;
+						return changed && run.Value is not null ? new Expectation(Source.Joined, run.Value, null, null, "O") : mode == Mode.B && RawCapture(Tested) ? run with { ErrorId = "GRAM4026" } : run;
 				}
 				catch (Exception e) when (e is InvalidOperationException or KeyNotFoundException)
 				{

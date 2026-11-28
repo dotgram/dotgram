@@ -1,339 +1,352 @@
-shapes 19293, jobs 57879, cells 98154, batches 905, seed 20261125, elapsed 1852 s, whole-batch crashes 0, unattributed errors 0, head warns new 0
+shapes 19293, jobs 57879, cells 98154, batches 905, seed 20261125, elapsed 1333 s, whole-batch crashes 0, unattributed errors 0, head warns new 0
 the bounded enumeration: core 7918, deviations 2754, atoms 1890, left recursion 42, extraction pairs in this run 4597
 
-same	22943
-relaxed	15718
-refused-now	4320
-value-changed	1888
-warn-only	3465
-error-to-error	49820
+same	16907
+relaxed	34915
+refused-now	9053
+value-changed	3034
+warn-only	3622
+error-to-error	30623
 
 by mode
-error-to-error	B	17973
-error-to-error	D	15476
-error-to-error	S	16371
-refused-now	B	1496
-refused-now	D	1431
-refused-now	S	1393
-relaxed	B	4275
-relaxed	D	5694
-relaxed	S	5749
-same	B	7262
-same	D	8245
-same	S	7436
-value-changed	B	524
-value-changed	D	728
-value-changed	S	636
-warn-only	B	1188
-warn-only	D	1144
-warn-only	S	1133
+error-to-error	B	12698
+error-to-error	D	8923
+error-to-error	S	9002
+refused-now	B	3468
+refused-now	D	2812
+refused-now	S	2773
+relaxed	B	9550
+relaxed	D	12247
+relaxed	S	13118
+same	B	5198
+same	D	6239
+same	S	5470
+value-changed	B	610
+value-changed	D	1263
+value-changed	S	1161
+warn-only	B	1194
+warn-only	D	1234
+warn-only	S	1194
 
 by tier
-error-to-error	atoms	3232
-error-to-error	core	18198
-error-to-error	deviation	6750
-error-to-error	fixed	30
-error-to-error	inlined	10843
-error-to-error	landmark	33
-error-to-error	leftrec	188
-error-to-error	random	10546
-refused-now	atoms	270
-refused-now	core	1592
-refused-now	deviation	1115
-refused-now	fixed	3
-refused-now	inlined	855
-refused-now	landmark	30
-refused-now	random	455
-relaxed	atoms	2277
-relaxed	core	5313
-relaxed	deviation	912
-relaxed	fixed	24
-relaxed	inlined	5176
-relaxed	landmark	14
-relaxed	leftrec	50
-relaxed	random	1952
-same	atoms	2591
-same	core	8595
-same	deviation	3396
-same	fixed	116
-same	inlined	6754
-same	landmark	39
-same	leftrec	32
-same	random	1420
-value-changed	atoms	294
-value-changed	core	482
-value-changed	deviation	583
-value-changed	fixed	21
-value-changed	inlined	366
-value-changed	landmark	16
-value-changed	random	126
-warn-only	atoms	96
-warn-only	core	1892
-warn-only	deviation	540
-warn-only	fixed	28
+error-to-error	atoms	1665
+error-to-error	core	11804
+error-to-error	deviation	3219
+error-to-error	fixed	9
+error-to-error	inlined	5957
+error-to-error	landmark	6
+error-to-error	leftrec	24
+error-to-error	random	7939
+refused-now	atoms	1286
+refused-now	core	2852
+refused-now	deviation	1360
+refused-now	fixed	44
+refused-now	inlined	3053
+refused-now	landmark	26
+refused-now	leftrec	6
+refused-now	random	426
+relaxed	atoms	3844
+relaxed	core	11707
+relaxed	deviation	4443
+relaxed	fixed	45
+relaxed	inlined	10062
+relaxed	landmark	41
+relaxed	leftrec	214
+relaxed	random	4559
+same	atoms	1559
+same	core	6733
+same	deviation	2844
+same	fixed	40
+same	inlined	4167
+same	landmark	33
+same	leftrec	14
+same	random	1517
+value-changed	atoms	298
+value-changed	core	1006
+value-changed	deviation	830
+value-changed	fixed	54
+value-changed	inlined	755
+value-changed	landmark	26
+value-changed	leftrec	12
+value-changed	random	53
+warn-only	atoms	108
+warn-only	core	1970
+warn-only	deviation	600
+warn-only	fixed	30
 warn-only	inlined	750
 warn-only	landmark	12
-warn-only	random	147
+warn-only	random	152
 
 by operand kind (the helpers a shape reads as operands: text, making, both, or none)
-error-to-error	both	5778
-error-to-error	making	29144
-error-to-error	none	8262
-error-to-error	text	6636
-refused-now	both	843
-refused-now	making	2994
-refused-now	none	36
-refused-now	text	447
-relaxed	both	2438
-relaxed	making	6792
-relaxed	none	3458
-relaxed	text	3030
-same	both	2451
-same	making	13237
-same	none	3757
-same	text	3498
-value-changed	both	435
-value-changed	making	1105
-value-changed	none	9
-value-changed	text	339
-warn-only	both	346
-warn-only	making	3047
-warn-only	none	36
+error-to-error	both	2645
+error-to-error	making	20194
+error-to-error	none	6006
+error-to-error	text	1778
+refused-now	both	1431
+refused-now	making	4644
+refused-now	none	1484
+refused-now	text	1494
+relaxed	both	5571
+relaxed	making	15742
+relaxed	none	5714
+relaxed	text	7888
+same	both	1598
+same	making	10516
+same	none	2257
+same	text	2536
+value-changed	both	590
+value-changed	making	2143
+value-changed	none	47
+value-changed	text	254
+warn-only	both	456
+warn-only	making	3080
+warn-only	none	50
 warn-only	text	36
 
 by operand helper (a cell counts once for each helper it reads)
-error-to-error	(none)	3416
-error-to-error	Bare (text)	5188
-error-to-error	Bx (making)	1986
-error-to-error	Bxa (making)	2628
-error-to-error	C4 (text)	937
-error-to-error	Esc (making)	1122
-error-to-error	G (text)	1023
-error-to-error	Gs (text)	825
-error-to-error	Item (making)	1101
-error-to-error	Lf (making)	1601
-error-to-error	Lfa (making)	2046
-error-to-error	Mid (text)	918
-error-to-error	Mids (text)	591
-error-to-error	Mw (making)	1034
-error-to-error	Mws (making)	1113
-error-to-error	Mx (making)	2001
-error-to-error	Num (making)	8349
-error-to-error	O (making)	1950
-error-to-error	Ow (text)	812
-error-to-error	Ows (text)	624
-error-to-error	P(Word) (plumbing)	692
-error-to-error	P2 (plumbing)	724
-error-to-error	Plain (plumbing)	10873
-error-to-error	Sp (making)	5616
-error-to-error	Span (text)	3531
-error-to-error	Word (making)	12521
-refused-now	(none)	36
-refused-now	Bare (text)	579
-refused-now	Bx (making)	223
-refused-now	Bxa (making)	249
-refused-now	Item (making)	240
-refused-now	Lf (making)	306
-refused-now	Lfa (making)	289
-refused-now	Mids (text)	126
-refused-now	Mw (making)	106
-refused-now	Mws (making)	189
-refused-now	Num (making)	261
+error-to-error	(none)	2108
+error-to-error	Bare (text)	2581
+error-to-error	Bx (making)	1623
+error-to-error	Bxa (making)	2047
+error-to-error	C4 (text)	632
+error-to-error	Esc (making)	866
+error-to-error	G (text)	642
+error-to-error	Gs (text)	78
+error-to-error	Item (making)	861
+error-to-error	Lf (making)	1238
+error-to-error	Lfa (making)	1463
+error-to-error	Mid (text)	574
+error-to-error	Mids (text)	48
+error-to-error	Mw (making)	774
+error-to-error	Mws (making)	126
+error-to-error	Mx (making)	1674
+error-to-error	Num (making)	6157
+error-to-error	O (making)	1659
+error-to-error	Ow (text)	576
+error-to-error	Ows (text)	57
+error-to-error	P(Word) (plumbing)	455
+error-to-error	P2 (plumbing)	469
+error-to-error	Plain (plumbing)	8226
+error-to-error	Sp (making)	201
+error-to-error	Span (text)	168
+error-to-error	Word (making)	9922
+refused-now	(none)	593
+refused-now	Bare (text)	2653
+refused-now	Bx (making)	3
+refused-now	C4 (text)	40
+refused-now	Esc (making)	361
+refused-now	Item (making)	3
+refused-now	Lf (making)	203
+refused-now	Lfa (making)	114
+refused-now	Mid (text)	34
+refused-now	Mids (text)	3
+refused-now	Mw (making)	371
+refused-now	Num (making)	1344
 refused-now	O (making)	120
-refused-now	Ow (text)	6
-refused-now	Ows (text)	111
-refused-now	Plain (plumbing)	378
-refused-now	Sp (making)	834
-refused-now	Span (text)	549
-refused-now	Word (making)	1713
-relaxed	(none)	1673
-relaxed	Bare (text)	1789
-relaxed	Bx (making)	97
-relaxed	Bxa (making)	91
-relaxed	C4 (text)	590
-relaxed	Esc (making)	487
-relaxed	G (text)	561
-relaxed	Gs (text)	567
-relaxed	Item (making)	64
-relaxed	Lf (making)	91
-relaxed	Lfa (making)	91
-relaxed	Mid (text)	434
-relaxed	Mids (text)	291
-relaxed	Mw (making)	376
-relaxed	Mws (making)	345
-relaxed	Mx (making)	1098
-relaxed	Num (making)	3195
-relaxed	O (making)	24
-relaxed	Ow (text)	292
-relaxed	Ows (text)	255
-relaxed	P(Word) (plumbing)	322
-relaxed	P2 (plumbing)	303
-relaxed	Plain (plumbing)	2758
-relaxed	Sp (making)	2157
-relaxed	Span (text)	1911
-relaxed	Word (making)	2555
-same	(none)	1433
-same	Bare (text)	3939
-same	Bx (making)	840
-same	Bxa (making)	1090
-same	C4 (text)	120
-same	Esc (making)	671
-same	Item (making)	301
-same	Lf (making)	946
-same	Lfa (making)	1139
-same	Mid (text)	112
-same	Mids (text)	159
-same	Mw (making)	600
-same	Mws (making)	273
-same	Num (making)	3315
+refused-now	Ow (text)	307
+refused-now	P(Word) (plumbing)	283
+refused-now	P2 (plumbing)	265
+refused-now	Plain (plumbing)	1033
+refused-now	Sp (making)	3
+refused-now	Span (text)	6
+refused-now	Word (making)	4183
+relaxed	(none)	2981
+relaxed	Bare (text)	4396
+relaxed	Bx (making)	460
+relaxed	Bxa (making)	672
+relaxed	C4 (text)	895
+relaxed	Esc (making)	743
+relaxed	G (text)	942
+relaxed	Gs (text)	1314
+relaxed	Item (making)	304
+relaxed	Lf (making)	454
+relaxed	Lfa (making)	674
+relaxed	Mid (text)	778
+relaxed	Mids (text)	834
+relaxed	Mw (making)	636
+relaxed	Mws (making)	1332
+relaxed	Mx (making)	1425
+relaxed	Num (making)	5387
+relaxed	O (making)	315
+relaxed	Ow (text)	528
+relaxed	Ows (text)	822
+relaxed	P(Word) (plumbing)	559
+relaxed	P2 (plumbing)	558
+relaxed	Plain (plumbing)	5405
+relaxed	Sp (making)	7572
+relaxed	Span (text)	5274
+relaxed	Word (making)	5154
+same	(none)	872
+same	Bare (text)	1576
+same	Bx (making)	883
+same	Bxa (making)	1151
+same	C4 (text)	92
+same	Esc (making)	268
+same	Item (making)	532
+same	Lf (making)	865
+same	Lfa (making)	1106
+same	Mid (text)	84
+same	Mids (text)	372
+same	Mw (making)	223
+same	Mws (making)	600
+same	Num (making)	2180
 same	O (making)	126
-same	Ow (text)	459
-same	Ows (text)	258
-same	P(Word) (plumbing)	471
-same	P2 (plumbing)	446
-same	Plain (plumbing)	3196
-same	Sp (making)	1698
-same	Span (text)	1269
-same	Word (making)	7369
-value-changed	(none)	9
-value-changed	Bare (text)	144
-value-changed	Bx (making)	77
-value-changed	Bxa (making)	56
-value-changed	C4 (text)	12
-value-changed	Item (making)	48
-value-changed	Lf (making)	68
-value-changed	Lfa (making)	59
-value-changed	Mid (text)	6
-value-changed	Mids (text)	120
-value-changed	Mw (making)	38
-value-changed	Mws (making)	192
-value-changed	Num (making)	84
-value-changed	Ow (text)	6
-value-changed	Ows (text)	42
-value-changed	Plain (plumbing)	45
-value-changed	Sp (making)	636
-value-changed	Span (text)	516
-value-changed	Word (making)	435
+same	Ow (text)	128
+same	Ows (text)	387
+same	P(Word) (plumbing)	154
+same	P2 (plumbing)	150
+same	Plain (plumbing)	2442
+same	Sp (making)	2364
+same	Span (text)	1863
+same	Word (making)	4239
+value-changed	(none)	13
+value-changed	Bare (text)	323
+value-changed	Bx (making)	246
+value-changed	Bxa (making)	239
+value-changed	Esc (making)	42
+value-changed	Item (making)	54
+value-changed	Lf (making)	252
+value-changed	Lfa (making)	267
+value-changed	Mids (text)	30
+value-changed	Mw (making)	138
+value-changed	Mws (making)	54
+value-changed	Num (making)	136
+value-changed	Ow (text)	36
+value-changed	Ows (text)	24
+value-changed	P(Word) (plumbing)	34
+value-changed	P2 (plumbing)	31
+value-changed	Plain (plumbing)	130
+value-changed	Sp (making)	801
+value-changed	Span (text)	465
+value-changed	Word (making)	974
 warn-only	(none)	36
-warn-only	Bare (text)	382
-warn-only	Bx (making)	287
-warn-only	Bxa (making)	323
+warn-only	Bare (text)	492
+warn-only	Bx (making)	295
+warn-only	Bxa (making)	328
 warn-only	Esc (making)	15
 warn-only	Item (making)	289
 warn-only	Lf (making)	267
 warn-only	Lfa (making)	297
-warn-only	Mw (making)	111
+warn-only	Mw (making)	123
 warn-only	Num (making)	240
 warn-only	O (making)	135
-warn-only	Plain (plumbing)	582
-warn-only	Word (making)	2278
+warn-only	Plain (plumbing)	596
+warn-only	Word (making)	2399
 
 by type
-error-to-error	:Bare	3089
-error-to-error	:Bx	2228
-error-to-error	:Item	1630
-error-to-error	:Lf	1829
-error-to-error	:Num	1599
-error-to-error	:O	1224
-error-to-error	:Pair	6
-error-to-error	:Plain	4517
-error-to-error	:Sp	3609
-error-to-error	:Span	3579
-error-to-error	:Word	3457
-error-to-error	@Box	2866
-error-to-error	@Pr	2320
-error-to-error	@SourceSpan	3213
-error-to-error	@SourceSpan[]	2529
-error-to-error	@int	1713
-error-to-error	@int[]	885
-error-to-error	@object	1731
-error-to-error	@string	1484
-error-to-error	@string[]	4565
-error-to-error	none	1747
-refused-now	:Bare	469
-refused-now	:Bx	388
-refused-now	:Item	240
-refused-now	:Lf	502
+error-to-error	:Bare	2297
+error-to-error	:Bx	1982
+error-to-error	:Item	1335
+error-to-error	:Lf	1553
+error-to-error	:Num	1572
+error-to-error	:O	1137
+error-to-error	:Plain	3042
+error-to-error	:Sp	189
+error-to-error	:Span	186
+error-to-error	:Word	2560
+error-to-error	@Box	2330
+error-to-error	@Pr	1846
+error-to-error	@SourceSpan	204
+error-to-error	@SourceSpan[]	1701
+error-to-error	@int	1542
+error-to-error	@int[]	573
+error-to-error	@object	1479
+error-to-error	@string	1787
+error-to-error	@string[]	2354
+error-to-error	none	954
+refused-now	:Bare	2012
+refused-now	:Lf	193
 refused-now	:O	171
-refused-now	:Plain	477
-refused-now	:Sp	807
-refused-now	:Span	735
-refused-now	:Word	531
-relaxed	:Bare	1626
-relaxed	:Bx	140
-relaxed	:Item	64
-relaxed	:Lf	134
-relaxed	:Num	27
-relaxed	:O	39
-relaxed	:Plain	963
-relaxed	:Sp	942
-relaxed	:Span	951
-relaxed	:Word	1729
-relaxed	@SourceSpan	1830
-relaxed	@SourceSpan[]	2400
-relaxed	@int[]	315
-relaxed	@string	2030
-relaxed	@string[]	1881
-relaxed	none	647
-same	:Bare	1635
-same	:Bx	737
-same	:Item	528
-same	:Lf	792
+refused-now	:Plain	1357
+refused-now	:Word	2091
+refused-now	@Pr	167
+refused-now	@string	2948
+refused-now	@string[]	58
+refused-now	none	56
+relaxed	:Bare	2418
+relaxed	:Bx	386
+relaxed	:Item	359
+relaxed	:Lf	410
+relaxed	:Num	54
+relaxed	:O	126
+relaxed	:Pair	6
+relaxed	:Plain	2438
+relaxed	:Sp	4362
+relaxed	:Span	4344
+relaxed	:Word	2626
+relaxed	@Box	536
+relaxed	@Pr	474
+relaxed	@SourceSpan	4839
+relaxed	@SourceSpan[]	3228
+relaxed	@int	171
+relaxed	@int[]	627
+relaxed	@object	252
+relaxed	@string	1727
+relaxed	@string[]	4092
+relaxed	none	1440
+same	:Bare	6
+same	:Bx	1113
+same	:Item	752
+same	:Lf	1101
 same	:Num	141
 same	:O	153
-same	:Plain	966
-same	:Sp	759
-same	:Span	783
-same	:Word	1657
-same	@Box	1241
-same	@Pr	1349
+same	:Plain	6
+same	:Sp	1497
+same	:Span	1434
+same	:Word	10
+same	@Box	966
+same	@Pr	912
 same	@SourceSpan	1437
-same	@SourceSpan[]	756
-same	@int[]	333
-same	@string	4328
-same	@string[]	647
-same	none	4701
-value-changed	:Bare	108
+same	@SourceSpan[]	951
+same	@int[]	348
+same	@string	868
+same	@string[]	571
+same	none	4641
+value-changed	:Bare	158
 value-changed	:Bx	85
-value-changed	:Item	48
+value-changed	:Item	54
 value-changed	:Lf	79
-value-changed	:Plain	112
-value-changed	:Sp	450
-value-changed	:Span	426
-value-changed	:Word	146
+value-changed	:Plain	156
+value-changed	:Sp	519
+value-changed	:Span	510
+value-changed	:Word	195
+value-changed	@Box	250
+value-changed	@Pr	270
 value-changed	@SourceSpan	81
-value-changed	@SourceSpan[]	201
-value-changed	@int[]	15
-value-changed	@string[]	137
-warn-only	:Bare	636
-warn-only	:Bx	550
-warn-only	:Item	289
+value-changed	@SourceSpan[]	6
+value-changed	@string	512
+value-changed	@string[]	155
+value-changed	none	4
+warn-only	:Bare	672
+warn-only	:Bx	562
+warn-only	:Item	299
 warn-only	:Lf	507
 warn-only	:O	165
-warn-only	:Plain	630
-warn-only	:Word	688
+warn-only	:Plain	666
+warn-only	:Word	726
+warn-only	@Box	25
 
 landmarks (mode D)
-named operand beside filling names, host type (A04)	34<cd>	refused-now	box:34	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'Box', and the operand that would give its value is captured as 'w'. A name speaks for what it names (§4.1): drop the name and let the operand be the value, or keep it and build the value with '=>'.
+named operand beside filling names, host type (A04)	34<cd>	same	box:34	->	box:34
 	Start : Bx = name: Dg & '<' & w: Bx & '>'
 	Bx : @Box = name: Nm
 	Dg : @string = d: ['0'..'9']{2} => @(T(d))
 	Nm : @string = n: ['a'..'z']{2} => @(T(n))
 	
-two operands beside filling names, host type (A03)	34<ef,gh>	refused-now	box:34	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'Box', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have more than one. Give each alternative one operand that declares 'Box', or a '=>' of its own.
+two operands beside filling names, host type (A03)	34<ef,gh>	same	box:34	->	box:34
 	Start : Bx = name: Dg & '<' & Bx & ',' & Bx & '>'
 	Bx : @Box = name: Nm
 	Dg : @string = d: ['0'..'9']{2} => @(T(d))
 	Nm : @string = n: ['a'..'z']{2} => @(T(n))
 	
-an alternative without an operand, filling names (A06)	56<cd>	refused-now	box:56	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'Box', and so the value of the one operand that produces it on every route (§4.1 case 3): alternative 2 of its 2 has none. Give each alternative one operand that declares 'Box', or a '=>' of its own.
-an alternative without an operand, filling names (A06)	78!#	refused-now	box:78	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'Box', and so the value of the one operand that produces it on every route (§4.1 case 3): alternative 2 of its 2 has none. Give each alternative one operand that declares 'Box', or a '=>' of its own.
+an alternative without an operand, filling names (A06)	56<cd>	same	box:56	->	box:56
+an alternative without an operand, filling names (A06)	78!#	same	box:78	->	box:78
 	Start : Bx = name: Dg & '<' & Bx & '>' | name: Dg & '!' & '#'
 	Bx : @Box = name: Nm
 	Dg : @string = d: ['0'..'9']{2} => @(T(d))
 	Nm : @string = n: ['a'..'z']{2} => @(T(n))
 	
-named operand beside filling names, generated type (A10)	34<cd>	refused-now	Item{X="34"}	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'Item', and the operand that would give its value is captured as 'w'. A name speaks for what it names (§4.1): drop the name and let the operand be the value, or keep it and build the value with '=>'.
+named operand beside filling names, generated type (A10)	34<cd>	same	Item{X="34"}	->	Item{X="34"}
 	Start : Item = x: Dg & '<' & w: Item & '>'
 	Dg : @string = d: ['0'..'9']{2} => @(T(d))
 	Item = x: Nm
@@ -344,42 +357,42 @@ filling names on a group holding the operand (A16)	<(cd)>	value-changed	box:(cd)
 	Bx : @Box = name: Nm
 	Nm : @string = n: ['a'..'z']{2} => @(T(n))
 	
-named built operand beside filling names, text (B01)	k03<cd>	refused-now	"ccc"	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and the operand that would give its value is captured as 'w'. A name speaks for what it names (§4.1): drop the name and let the operand be the value, or keep it and build the value with '=>'.
+named built operand beside filling names, text (B01)	k03<cd>	refused-now	"ccc"	->	GRAM GRAM4008 'Start' is a string, which is the join of its pieces, and 'Num' is 'int', which has no text to join (§4.1). Build the value with '=>', as in '<' & n: Num & '>' => @("<" + n + ">").
 	Start : Word = c: Ch & count: Num & '<' & w: Word & '>'
 	Ch : @char = x: ['a'..'z'] => @('c')
 	Num : @int = d: ['0'..'9']{2} => @(N(d))
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-two built operands beside filling names, text (B04)	k03<ef,gh>	refused-now	"ccc"	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have more than one. Give each alternative one operand that declares 'string', or a '=>' of its own.
+two built operands beside filling names, text (B04)	k03<ef,gh>	refused-now	"ccc"	->	GRAM GRAM4008 'Start' is a string, which is the join of its pieces, and 'Num' is 'int', which has no text to join (§4.1). Build the value with '=>', as in '<' & n: Num & '>' => @("<" + n + ">").
 	Start : Word = c: Ch & count: Num & '<' & Word & ',' & Word & '>'
 	Ch : @char = x: ['a'..'z'] => @('c')
 	Num : @int = d: ['0'..'9']{2} => @(N(d))
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-a built operand only in a lookahead, filling names (B09)	k03<cd>	value-changed	"ccc"	->	"k03<cd>"
+a built operand only in a lookahead, filling names (B09)	k03<cd>	refused-now	"ccc"	->	GRAM GRAM4008 'Start' is a string, which is the join of its pieces, and 'Num' is 'int', which has no text to join (§4.1). Build the value with '=>', as in '<' & n: Num & '>' => @("<" + n + ">").
 	Start : Word = c: Ch & count: Num & '<' & ?=(Word) & any{2} & '>'
 	Ch : @char = x: ['a'..'z'] => @('c')
 	Num : @int = d: ['0'..'9']{2} => @(N(d))
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-a built operand only in a negative lookahead (B10)	k03<#>	value-changed	"ccc"	->	"k03<#>"
+a built operand only in a negative lookahead (B10)	k03<#>	refused-now	"ccc"	->	GRAM GRAM4008 'Start' is a string, which is the join of its pieces, and 'Num' is 'int', which has no text to join (§4.1). Build the value with '=>', as in '<' & n: Num & '>' => @("<" + n + ">").
 	Start : Word = c: Ch & count: Num & '<' & ?!(Word) & '#' & '>'
 	Ch : @char = x: ['a'..'z'] => @('c')
 	Num : @int = d: ['0'..'9']{2} => @(N(d))
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-a built and an extent operand, no names (T01)	<ef,gh>	refused-now	"W:ef"	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have more than one. Give each alternative one operand that declares 'string', or a '=>' of its own.
+a built and an extent operand, no names (T01)	<ef,gh>	value-changed	"W:ef"	->	"<W:ef,gh>"
 	Start : Word = '<' & Word & ',' & Bare & '>'
 	Bare : @string = ['a'..'z']{2}
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-a built operand and an optional extent one (T03)	<ef,gh>	refused-now	"W:ef"	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have more than one. Give each alternative one operand that declares 'string', or a '=>' of its own.
-a built operand and an optional extent one (T03)	<ef>	refused-now	"W:ef"	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have more than one. Give each alternative one operand that declares 'string', or a '=>' of its own.
+a built operand and an optional extent one (T03)	<ef,gh>	value-changed	"W:ef"	->	"<W:ef,gh>"
+a built operand and an optional extent one (T03)	<ef>	value-changed	"W:ef"	->	"<W:ef>"
 	Start : Word = '<' & Word & (',' & Bare)? & '>'
 	Bare : @string = ['a'..'z']{2}
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-own text around one built operand	<cd>	same	"<cd>"	->	"<cd>"
+own text around one built operand	<cd>	value-changed	"<cd>"	->	"<W:cd>"
 	Start : @string = '<' & Word & '>'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
@@ -391,52 +404,52 @@ own span around one extent operand	<cd>	same	[0..4)	->	[0..4)
 	Start : @SourceSpan = '<' & Span & '>'
 	Span : @SourceSpan = ['a'..'z']{2}
 	
-taken span around one extent operand	<cd>	value-changed	[0..4)	->	[1..3)
+taken span around one extent operand	<cd>	same	[0..4)	->	[0..4)
 	Start : Span = '<' & Span & '>'
 	Span : @SourceSpan = ['a'..'z']{2}
 	
-own host type, filling names and one operand	34<cd>	same	box:34	->	box:34
+own host type, filling names and one operand	34<cd>	value-changed	box:34	->	box:cd
 	Start : @Box = name: Dg & '<' & Bx & '>'
 	Bx : @Box = name: Nm
 	Dg : @string = d: ['0'..'9']{2} => @(T(d))
 	Nm : @string = n: ['a'..'z']{2} => @(T(n))
 	
-own text, filling names and one built operand	k03<cd>	same	"ccc"	->	"ccc"
+own text, filling names and one built operand	k03<cd>	refused-now	"ccc"	->	GRAM GRAM4008 'Start' is a string, which is the join of its pieces, and 'Num' is 'int', which has no text to join (§4.1). Build the value with '=>', as in '<' & n: Num & '>' => @("<" + n + ">").
 	Start : @string = c: Ch & count: Num & '<' & Word & '>'
 	Ch : @char = x: ['a'..'z'] => @('c')
 	Num : @int = d: ['0'..'9']{2} => @(N(d))
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-sequence of an extent and a built operand	<ef,gh>	same	["W:gh"]	->	["W:gh"]
+sequence of an extent and a built operand	<ef,gh>	value-changed	["W:gh"]	->	["ef","W:gh"]
 	Start : @string[] = '<' & Bare & ',' & Word & '>'
 	Bare : @string = ['a'..'z']{2}
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-sequence, a named operand	<ef,gh>	value-changed	["W:ef","W:gh"]	->	["W:gh"]
+sequence, a named operand	<ef,gh>	same	["W:ef","W:gh"]	->	["W:ef","W:gh"]
 	Start : @string[] = '<' & w: Word & ',' & Word & '>'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-taken text, an optional built operand	<cd>	warn-only	"W:cd" (warnings CS8603)	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have none. Give each alternative one operand that declares 'string', or a '=>' of its own.
-taken text, an optional built operand	<>	warn-only	<null> (warnings CS8603)	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have none. Give each alternative one operand that declares 'string', or a '=>' of its own.
+taken text, an optional built operand	<cd>	warn-only	"W:cd" (warnings CS8603)	->	"<W:cd>"
+taken text, an optional built operand	<>	warn-only	<null> (warnings CS8603)	->	"<>"
 	Start : Word = '<' & Word? & '>'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-taken host type, filling names and an optional operand	34<cd>	warn-only	box:cd (warnings CS8603)	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'Box', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have none. Give each alternative one operand that declares 'Box', or a '=>' of its own.
-taken host type, filling names and an optional operand	34<>	warn-only	<null> (warnings CS8603)	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'Box', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have none. Give each alternative one operand that declares 'Box', or a '=>' of its own.
+taken host type, filling names and an optional operand	34<cd>	warn-only	box:cd (warnings CS8603)	->	box:34
+taken host type, filling names and an optional operand	34<>	warn-only	<null> (warnings CS8603)	->	box:34
 	Start : Bx = name: Dg & '<' & Bx? & '>'
 	Bx : @Box = name: Nm
 	Dg : @string = d: ['0'..'9']{2} => @(T(d))
 	Nm : @string = n: ['a'..'z']{2} => @(T(n))
 	
-own int around one operand	<34>	error-to-error	GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' can be left to the shape of the rule — §4.1 case 4, the extent it matched. Give every alternative a '=>', or declare 'Start' as ': @string'.	->	GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' and ': @SourceSpan' can be left to the shape of the rule — §4.1 case 4, the extent it matched. Give every alternative a '=>', or declare 'Start' as ': @string'.
+own int around one operand	<34>	relaxed	GRAM GRAM4008 'Start' declares a type and does not say how to build it. Only ': @string' can be left to the shape of the rule — §4.1 case 4, the extent it matched. Give every alternative a '=>', or declare 'Start' as ': @string'.	->	34
 	Start : @int = '<' & Num & '>'
 	Num : @int = d: ['0'..'9']{2} => @(N(d))
 	
-taken text, two built operands	<ef,gh>	error-to-error	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): its only alternative may have more than one. Give each alternative one operand that declares 'string', or a '=>' of its own.
+taken text, two built operands	<ef,gh>	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"<W:ef,W:gh>"
 	Start : Word = '<' & Word & ',' & Word & '>'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-own text around an own text rule that calls a building one	<(cd)>	same	"<(cd)>"	->	"<(cd)>"
+own text around an own text rule that calls a building one	<(cd)>	value-changed	"<(cd)>"	->	"<(W:cd)>"
 	Start : @string = '<' & Ow & '>'
 	Ow : @string = '(' & Word & ')'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
@@ -446,61 +459,61 @@ own span around an own span rule that calls a building one	<(cd)>	same	[0..6)	->
 	Ows : @SourceSpan = '(' & Sp & ')'
 	Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
 	
-taken text around an own text rule that calls a building one	<(cd)>	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"(cd)"
+taken text around an own text rule that calls a building one	<(cd)>	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"<(W:cd)>"
 	Start : Word = '<' & Ow & '>'
 	Ow : @string = '(' & Word & ')'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-taken text around a taken rule over a building one	<(cd)>	same	"W:cd"	->	"W:cd"
+taken text around a taken rule over a building one	<(cd)>	value-changed	"W:cd"	->	"<(W:cd)>"
 	Start : Word = '<' & Mw & '>'
 	Mw : Word = '(' & Word & ')'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-taken span around a taken rule over a building one	<(cd)>	value-changed	[0..6)	->	[102..104)
+taken span around a taken rule over a building one	<(cd)>	same	[0..6)	->	[0..6)
 	Start : Sp = '<' & Mws & '>'
 	Mws : Sp = '(' & Sp & ')'
 	Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
 	
-taken text around a rule with a building and a text route	<ef>	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"W:ef"
-taken text around a rule with a building and a text route	<[gh]>	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"gh"
+taken text around a rule with a building and a text route	<ef>	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"<W:ef>"
+taken text around a rule with a building and a text route	<[gh]>	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"<[gh]>"
 	Start : Word = '<' & Mx & '>'
 	Bare : @string = ['a'..'z']{2}
 	Mx : Word = Word | '[' & Bare & ']'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-sequence of an own text rule over a building one and a built	<(ef),gh>	same	["W:gh"]	->	["W:gh"]
+sequence of an own text rule over a building one and a built	<(ef),gh>	value-changed	["W:gh"]	->	["(W:ef)","W:gh"]
 	Start : @string[] = '<' & Ow & ',' & Word & '>'
 	Ow : @string = '(' & Word & ')'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-sequence of a taken rule over a building one and a built	<(ef),gh>	same	["W:ef","W:gh"]	->	["W:ef","W:gh"]
+sequence of a taken rule over a building one and a built	<(ef),gh>	value-changed	["W:ef","W:gh"]	->	["(W:ef)","W:gh"]
 	Start : @string[] = '<' & Mw & ',' & Word & '>'
 	Mw : Word = '(' & Word & ')'
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-left-recursive taken text over a text operand	cdef	error-to-error	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments (warnings GRAM4018)	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
-left-recursive taken text over a text operand	gh	error-to-error	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments (warnings GRAM4018)	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
+left-recursive taken text over a text operand	cdef	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments (warnings GRAM4018)	->	"cdef" (warnings GRAM4018)
+left-recursive taken text over a text operand	gh	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments (warnings GRAM4018)	->	"gh" (warnings GRAM4018)
 	Start : Word = Start & Bare | Bare
 	Bare : @string = ['a'..'z']{2}
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-left-recursive taken text over a building operand	cdef	error-to-error	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
-left-recursive taken text over a building operand	gh	error-to-error	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'string', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
+left-recursive taken text over a building operand	cdef	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"W:cdW:ef"
+left-recursive taken text over a building operand	gh	relaxed	CSHARP CS1729 'string' does not contain a constructor that takes 0 arguments	->	"W:gh"
 	Start : Word = Start & Word | Word
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
-left-recursive taken span over an extent operand	cdef	error-to-error	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
-left-recursive taken span over an extent operand	gh	error-to-error	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
+left-recursive taken span over an extent operand	cdef	relaxed	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	[0..4)
+left-recursive taken span over an extent operand	gh	relaxed	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	[0..2)
 	Start : Span = Start & Span | Span
 	Span : @SourceSpan = ['a'..'z']{2}
 	
-left-recursive taken span over a building operand	cdef	error-to-error	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
-left-recursive taken span over a building operand	gh	error-to-error	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	GRAM GRAM4008 'Start' takes the type of the rule it names, 'SourceSpan', and so the value of the one operand that produces it on every route (§4.1 case 3): it is left-recursive, so which operand it hands on at each step is for a '=>' of its own to say.
+left-recursive taken span over a building operand	cdef	relaxed	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	[0..4)
+left-recursive taken span over a building operand	gh	relaxed	CRASH GRAM0001 The generator failed during compiling the recognition graph: System.InvalidCastException: Unable to cast object of type 'Construct' to type 'Sequence'.	->	[0..2)
 	Start : Sp = Start & Sp | Sp
 	Sp : @SourceSpan = x: ['a'..'z']{2} => @(Shift(parserSpan))
 	
-left-recursive own text over a building operand	cdef	same	"cdef"	->	"cdef"
-left-recursive own text over a building operand	gh	same	"gh"	->	"gh"
+left-recursive own text over a building operand	cdef	value-changed	"cdef"	->	"W:cdW:ef"
+left-recursive own text over a building operand	gh	value-changed	"gh"	->	"W:gh"
 	Start : @string = Start & Word | Word
 	Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
 	
