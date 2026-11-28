@@ -1,7 +1,8 @@
 cells 98154, shapes 19293, cells with no outcome in the files 0
 
 cells by what the oracle says against 0.3.0
-   12970  agree
+    1839  0.3.0 failed: the generated type's value is expected
+   12973  agree
        3  allowed: array-call-splices-elements
      247  allowed: array-collects-text-rule
      411  allowed: char-piece-gives-character
@@ -20,12 +21,12 @@ cells by what the oracle says against 0.3.0
        8  allowed: trivia-dropped-in-string-rule
        3  allowed: untyped-rule-read-through
       21  allowed: zero-repetition-operand-refused
-      40  oracle reads no match, 0.3.0 csharp
-     120  oracle reads no match, 0.3.0 gram
+      46  oracle reads no match, 0.3.0 csharp
+      74  oracle reads no match, 0.3.0 gram
       11  published version did not match the input
-   35481  published version refused, oracle builds
-   27806  refused by both
-    5199  same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)
+   34164  published version refused, oracle builds
+   29415  refused by both
+    3105  same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)
 
 the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs from the oracle on purpose
     2912 differ (  644 shapes),    354 agree  Silent    string-rule-joins-built-value

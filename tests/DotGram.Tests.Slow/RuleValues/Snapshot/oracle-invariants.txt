@@ -1,7 +1,7 @@
 
 ===== oracle: 0 violations =====
 
-===== published version 0.3.0: 12859 violations =====
+===== published version 0.3.0: 12763 violations =====
 
      282 extraction-keeps-the-value (67 shapes)
     fixed/string array, an untyped wrapper of a built string / inlined/fixed/string array, an untyped wrapper of a built string mode D input (ef);gh
@@ -31,7 +31,7 @@
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       "ccc"  vs  "W:cd"
 
-    3916 name-changes-nothing (823 shapes)
+    3820 name-changes-nothing (791 shapes)
     core/@string/none/-,-/OnLiteral/None/noLR/Itself/written / core/@string/none/-,-/None/None/noLR/Itself/written mode D input <#>
     Start : @string = x: '<' & '#' & '>'
       REFUSED  vs  "<#>"
@@ -67,7 +67,7 @@
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       "W:cd"  vs  "cd"
 
-===== this build: 15707 violations =====
+===== this build: 15539 violations =====
 
      927 extraction-keeps-the-value (307 shapes)
     landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written / inlined/landmark/:Span/one/Implicit,-/None/None/noLR/Itself/written mode D input <cd>
@@ -90,7 +90,7 @@
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))
       "cd"  vs  "(cd)"
 
-    1356 name-changes-nothing (334 shapes)
+    1188 name-changes-nothing (278 shapes)
     core/@string/bare/Built,-/OnOperand/None/noLR/Itself/written / core/@string/bare/Built,-/None/None/noLR/Itself/written mode D input cd
     Start : @string = w: Word
     Word : @string = c: ['a'..'z']{2} => @("W:" + T(c))

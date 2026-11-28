@@ -126,6 +126,10 @@ static class RuleInvariants
 			if (shape.Tier is "inlined" or "random" or "fixed" || RuleOracle.Describe(shape).Tested.Kind is not (Kind.C or Kind.S or Kind.A))
 				continue;
 
+			// A name written inside a lookahead is refused, so that no twin without it is the same.
+			if (RuleOracle.Describe(shape).Decision is { Source: Source.Error, ErrorId: "GRAM4006" })
+				continue;
+
 			var neutral = shape.Names is NameKind.None or NameKind.OnLiteral or NameKind.OnOperand;
 
 			if (shape.Reader != ReaderKind.None && neutral)
