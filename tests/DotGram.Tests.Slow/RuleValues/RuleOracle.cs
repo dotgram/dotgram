@@ -83,9 +83,10 @@ static class RuleOracle
 	/// <summary>
 	/// A published rule with no type written and no names (<c>Start = '&lt;' &amp; Word &amp; '&gt;'</c>) is a string rule: its
 	/// value is its pieces joined. False reads it as the published version did, its own text. A rule typed by an untyped
-	/// helper (<c>Start : Plain = …</c>) is a string rule under either value.
+	/// helper (<c>Start : Plain = …</c>) is a string rule under either value. False by default, which is what the generator
+	/// does until the published rule is decided; <c>DOTGRAM_RULEVALUES_UNTYPED_JOINS=1</c> reads the other way.
 	/// </summary>
-	public static bool UntypedPublishedJoins { get; } = Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES_UNTYPED_JOINS") is not ("0" or "false");
+	public static bool UntypedPublishedJoins { get; } = Environment.GetEnvironmentVariable("DOTGRAM_RULEVALUES_UNTYPED_JOINS") is "1" or "true";
 
 	/// <summary>What the oracle expects of the input.</summary>
 	public static Expectation Expected(RuleShape shape, Mode mode, string input)

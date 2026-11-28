@@ -21,7 +21,8 @@ namespace DotGram.Tests.RuleValues;
 /// Environment:
 /// <list type="bullet">
 /// <item><c>DOTGRAM_RULEVALUES</c>: <c>full</c> (the bounded enumeration and the random tier), a number (that many shapes
-/// spread evenly over the enumeration), or unset (only the landmarks below).</item>
+/// spread evenly over the enumeration), <c>landmarks</c> (only the landmarks below and the fixed grammars), or unset (the
+/// sample a build runs, <see cref="BuildSample"/> shapes).</item>
 /// <item><c>DOTGRAM_RULEVALUES_FILTER</c>: only shapes whose id contains this text.</item>
 /// <item><c>DOTGRAM_RULEVALUES_SEED</c>, <c>DOTGRAM_RULEVALUES_RANDOM</c>: the random tier's seed (printed) and size.</item>
 /// <item><c>DOTGRAM_RULEVALUES_BATCH</c>, <c>DOTGRAM_RULEVALUES_PARALLEL</c>: jobs per compilation, compilations at once.</item>
@@ -30,6 +31,9 @@ namespace DotGram.Tests.RuleValues;
 /// </remarks>
 public sealed class RuleValueGateTests
 {
+	/// <summary>The shapes of the enumeration a run with no setting takes, spread evenly over it: a few minutes of a build.</summary>
+	internal const int BuildSample = 300;
+
 	/// <summary>
 	/// Shapes a reader can recognise, each with the probe it stands for. The ones marked as differences must come out as
 	/// differences on the head the gate was built on, or the dimensions do not reach them.
@@ -152,6 +156,27 @@ public sealed class RuleValueGateTests
 		Assert.Empty(failures);
 		Assert.All(jobs, static j => Assert.True(j.Package.Length == j.Printed.Routes.Length && j.Head.Length == j.Printed.Routes.Length, j.Shape.Id + " " + j.Mode));
 		Assert.All(jobs, static j => Assert.NotEmpty(j.Printed.Routes));
+
+		// The cells just made, held: this build to the oracle, and the oracle to the published version through the allow-list.
+		var cells = jobs.SelectMany(static j => j.Printed.Routes.Select((route, r) => new RuleCell(j.Shape, j.Mode, route.Input, j.Package[r], j.Head[r]))).ToList();
+		var head  = RuleOracleCheck.HoldHead(cells);
+		var held  = RuleOracleCheck.HoldPublished(cells, shapes.Select(static s => s.Id).Distinct().Count(), 0);
+
+		File.WriteAllText(Path.Combine(output, "oracle-head.txt"), head.Report);
+		File.WriteAllText(Path.Combine(output, "oracle-checkpoint.txt"), held.Report);
+
+		Assert.True(head.Red == 0, head.Red + " cells of this build disagree with the oracle; see " + Path.Combine(output, "oracle-head.txt") + "\n" + Shortened(head.Report));
+		Assert.True(held.Unexplained == 0 && held.Stops == 0, "the oracle differs from 0.3.0 where no entry of the allow-list says why; see " + Path.Combine(output, "oracle-checkpoint.txt"));
+
+		// An entry that covers nothing is dead only where the whole enumeration was run.
+		if (setting == "full")
+			Assert.Empty(held.Dead);
+	}
+
+	/// <summary>The head of a report, for a failure message.</summary>
+	static string Shortened(string report)
+	{
+		return report.Length > 4000 ? report[..4000] + "…" : report;
 	}
 
 	/// <summary>Whether the operands a shape reads are text rules, making rules, both, or none.</summary>
@@ -197,7 +222,7 @@ public sealed class RuleValueGateTests
 			shapes.AddRange(RuleShapes.Bounded());
 			shapes.AddRange(RuleShapes.Random(seed, randomCount));
 		}
-		else if (int.TryParse(setting, NumberStyles.None, CultureInfo.InvariantCulture, out var sample))
+		else if (setting != "landmarks" && (string.IsNullOrEmpty(setting) ? BuildSample : int.TryParse(setting, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : 0) is var sample and > 0)
 		{
 			var all  = RuleShapes.Bounded();
 			var step = Math.Max(1, all.Count / Math.Max(1, sample));
