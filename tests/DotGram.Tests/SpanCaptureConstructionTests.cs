@@ -13,8 +13,8 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Where captures are spans, a type the host declares is handed the text as the parameter it fills takes it: a string, or the
-/// characters as a span.
+/// Where captures are spans, a type the grammar generates holds the text of its captures as strings, and a type the host
+/// declares is handed the text as the parameter it fills takes it: a string, or the characters as a span.
 /// </summary>
 public sealed class SpanCaptureConstructionTests
 {
@@ -50,6 +50,24 @@ public sealed class SpanCaptureConstructionTests
 
 		Assert.True(read.IsSuccess);
 		Assert.Equal(expected, read.Value!.ToString());
+	}
+
+	[Fact]
+	public void A_type_the_grammar_generates_holds_the_text_of_its_captures_as_strings_over_spans()
+	{
+		var parser = Build("Start = x: ['a'..'z']{2} & '<' & y: ('(' & ['a'..'z']{2} & ')')? & ws: (',' & ['a'..'z']{2})* & '>'\nparse Start", Host, spans: true);
+
+		string Members(string input)
+		{
+			var read = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+
+			Assert.True(read.IsSuccess);
+
+			return string.Join("|", read.Value!.GetType().GetProperties().Select(one => one.Name + "=" + (one.GetValue(read.Value) ?? "null")));
+		}
+
+		Assert.Equal("X=ab|Y=(cd)|Ws=,ef,gh", Members("ab<(cd),ef,gh>"));
+		Assert.Equal("X=ab|Y=null|Ws=", Members("ab<>"));
 	}
 
 	static Assembly Build(string grammar, string members, bool spans = false)

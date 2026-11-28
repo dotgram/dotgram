@@ -1889,6 +1889,13 @@ sealed partial class Machine
 	/// <summary>What one arm does, without the label or the jump that make it a case of the walk.</summary>
 	void MaterializeDirectArmBody(Writer file, RuleSymbol rule, int factory)
 	{
+		// A rule that builds nothing of its own is a type the grammar generates, which holds the text of its captures as strings.
+		using (OwnText(factory < 0))
+			MaterializeDirectArmValue(file, rule, factory);
+	}
+
+	void MaterializeDirectArmValue(Writer file, RuleSymbol rule, int factory)
+	{
 		var type = _results.QualifiedOf(rule)!;
 
 		if (IsExtent(rule))
