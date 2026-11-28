@@ -980,7 +980,8 @@ static partial class CSharpEmitter
 			file.Line("/// <summary>What a located construction builds, told where it was written; null is no value made, and nothing is told of it.</summary>");
 
 			// Not `is not null`, which a consumer on C# 8 cannot compile. A struct is never null, and the test costs
-			// it nothing.
+			// it nothing. It is what the factory once did with a local of its own: the same value, the same test and one
+			// call of Locate, so a parse gives what it gave; what is gone is a name of the generator's beside the C#.
 			using (file.Block($"static T {Named("Written")}<T>(T made, int at, int length) where T : {(options.LocationTypeIsClass ? "class" : rooted)}"))
 			{
 				file.Line("if (!(made is null))");
