@@ -28,6 +28,12 @@ namespace DotGram.Tests.RuleValues;
 /// <item><c>DOTGRAM_RULEVALUES_BATCH</c>, <c>DOTGRAM_RULEVALUES_PARALLEL</c>: jobs per compilation, compilations at once.</item>
 /// <item><c>DOTGRAM_RULEVALUES_OUT</c>: where the cells, the summary and the printed grammars are written.</item>
 /// </list>
+/// <para>
+/// A build runs the sample. The whole enumeration, with the allow-list's dead entries asked too, is one command, after a
+/// Release build:
+/// <c>DOTGRAM_RULEVALUES=full dotnet test --project tests/DotGram.Tests.Slow -c Release --no-build --filter-method "*The_gate_compiles_every_shape_with_both_generators"</c>
+/// (about twenty minutes on sixteen compilations at once, several gigabytes).
+/// </para>
 /// </remarks>
 public sealed class RuleValueGateTests
 {
