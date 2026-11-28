@@ -78,7 +78,6 @@ public sealed class EditorBuildAgreementTests
 	/// say so: the editor still tells a rule that declares one and does not build it.
 	/// </summary>
 	[Theory]
-	[InlineData("@string")]
 	[InlineData("@int")]
 	[InlineData("@System.Int32")]
 	[InlineData("@long")]
@@ -92,6 +91,20 @@ public sealed class EditorBuildAgreementTests
 			""";
 
 		Assert.Contains(Shown(Host(grammar, "", "")), static diagnostic => diagnostic.Id == "GRAM4008");
+	}
+
+	/// <summary>A string needs no construction: it is its pieces joined, its names or not, and the editor tells it nothing.</summary>
+	[Fact]
+	public void A_string_rule_with_names_is_not_told_it_does_not_build_it()
+	{
+		var grammar = """
+			trivia = none
+			Row : @string = a: Name & ',' & b: Name
+			Name : @string = t: ['a'..'z']+ => @(t)
+			parse Row
+			""";
+
+		Assert.DoesNotContain(Shown(Host(grammar, "", "")), static diagnostic => diagnostic.Id == "GRAM4008");
 	}
 
 	/// <summary>
