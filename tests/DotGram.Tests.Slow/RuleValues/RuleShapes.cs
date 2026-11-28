@@ -667,6 +667,10 @@ static class RuleShapes
 			Direct("text array, a text rule, then a repetition of text rules", "@string[]",
 				new Sequence(C(Helper.Bare), new Wrapped(Wrap.Star, new Sequence(L(","), C(Helper.Bare))))),
 			Direct("text array, a text rule and a built one", "@string[]", new Sequence(C(Helper.Bare), L(","), C(Helper.Word, Atom.Built))),
+			Direct("text array, a text rule and an array of a built one", "@string[]",
+				new Sequence(L("<"), C(Helper.Bare), L(","), C(Helper.Ws, Atom.Built), L(">"))),
+			Direct("text array, a text rule and a template array of a built one", "@string[]",
+				new Sequence(L("<"), C(Helper.Bare), L(","), C(Helper.Lw, Atom.Built), L(">"))),
 
 			// A host or generated type: a name that the compiler uses.
 			Direct("box, a name that the compiler uses on the last literal", ":Bx", new Sequence(L("<"), C(Helper.Bx), new Named("items", L(">")))),

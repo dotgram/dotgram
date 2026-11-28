@@ -174,6 +174,9 @@ sealed class Helper
 	/// </summary>
 	public Func<int, Expr>? Inline { get; private init; }
 
+	/// <summary>Whether the rule declares an array of <see cref="Type"/>, which gives its elements in place to an array that calls it.</summary>
+	public bool IsArray { get; private init; }
+
 	/// <summary>What the rule hands to its caller.</summary>
 	public HelperKind Kind
 	{
@@ -364,6 +367,22 @@ sealed class Helper
 		Inline = static _ => new Sequence(new Literal("("), new Call(Word, RuleValues.Atom.Built), new Literal(")")),
 	};
 
+	// An array of a built string, and a template that is an array of what it is handed: an array that calls them takes
+	// their elements in place.
+	public static readonly Helper Ws = new(
+		"Ws", "Ws : @string[] = Word", Making.Arrow, RuleValues.Family.Text, "string", ["Word"],
+		static s => s.Letters(), null)
+	{
+		IsArray = true,
+	};
+
+	public static readonly Helper Lw = new(
+		"L(Word)", "L(x) : @string[] = x", Making.Arrow, RuleValues.Family.Text, "string", ["Word"],
+		static s => s.Letters(), null)
+	{
+		IsArray = true,
+	};
+
 	// A type the generator makes from two integers.
 	public static readonly Helper Pair = new(
 		"Pair", "Pair = a: Num & '=' & b: Num", Making.Generated, RuleValues.Family.Generated, "Pair", ["Num"],
@@ -379,7 +398,7 @@ sealed class Helper
 
 	/// <summary>Every helper, by name.</summary>
 	public static readonly IReadOnlyDictionary<string, Helper> All =
-		new[] { Word, Bare, Plain, Mid, C4, G, Sp, Span, Mids, Gs, Ow, Ows, Mw, Mws, Mx, Nm, Dg, Bx, Bxa, Lf, Lfa, Item, Num, O, Ch, Esc, P2, Pw, Pair }.ToDictionary(static h => h.Name);
+		new[] { Word, Bare, Plain, Mid, C4, G, Sp, Span, Mids, Gs, Ow, Ows, Mw, Mws, Mx, Nm, Dg, Bx, Bxa, Lf, Lfa, Item, Num, O, Ch, Esc, P2, Pw, Ws, Lw, Pair }.ToDictionary(static h => h.Name);
 }
 
 /// <summary>

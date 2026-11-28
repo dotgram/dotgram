@@ -53,6 +53,8 @@ public sealed class RuleOracleTests
 					else
 						missing++;
 
+		Assert.NotEmpty(cells);
+
 		return (cells, shapes.GroupBy(static x => x.Id).ToDictionary(static g => g.Key, static g => g.First()), missing, Path.GetDirectoryName(files[0])!);
 	}
 

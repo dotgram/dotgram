@@ -113,6 +113,8 @@ public sealed class RuleValueGateTests
 			var keep = ranges.Split(',').Select(static r => r.Split('-')).Select(static r => (From: int.Parse(r[0], CultureInfo.InvariantCulture), To: int.Parse(r[1], CultureInfo.InvariantCulture))).ToList();
 
 			jobs.RemoveAll(j => !keep.Any(r => int.Parse(j.ClassName.AsSpan(1), CultureInfo.InvariantCulture) is var n && n >= r.From && n <= r.To));
+
+			Assert.True(jobs.Count > 0, "DOTGRAM_RULEVALUES_JOBS=" + ranges + " names no job of this run, which has " + shapes.Count * 3 + ".");
 		}
 
 		var size     = Number("DOTGRAM_RULEVALUES_BATCH", 64);
@@ -158,9 +160,15 @@ public sealed class RuleValueGateTests
 		Assert.All(jobs, static j => Assert.NotEmpty(j.Printed.Routes));
 
 		// The cells just made, held: this build to the oracle, and the oracle to the published version through the allow-list.
+		// A run with no cell, or with none held green, has held nothing.
 		var cells = jobs.SelectMany(static j => j.Printed.Routes.Select((route, r) => new RuleCell(j.Shape, j.Mode, route.Input, j.Package[r], j.Head[r]))).ToList();
+
+		Assert.NotEmpty(cells);
+
 		var head  = RuleOracleCheck.HoldHead(cells);
 		var held  = RuleOracleCheck.HoldPublished(cells, shapes.Select(static s => s.Id).Distinct().Count(), 0);
+
+		Assert.True(head.Green > 0, "no cell of this run was held green: " + cells.Count + " cells");
 
 		File.WriteAllText(Path.Combine(output, "oracle-head.txt"), head.Report);
 		File.WriteAllText(Path.Combine(output, "oracle-checkpoint.txt"), held.Report);
@@ -214,6 +222,11 @@ public sealed class RuleValueGateTests
 	{
 		var shapes = new List<RuleShape>();
 
+		// A setting that names no run is refused, rather than read as the landmarks.
+		if (!string.IsNullOrEmpty(setting) && setting is not ("full" or "landmarks") &&
+			!(int.TryParse(setting, NumberStyles.None, CultureInfo.InvariantCulture, out var asked) && asked > 0))
+			throw new ArgumentException("DOTGRAM_RULEVALUES is 'full', 'landmarks', a number of shapes above 0, or unset; it is '" + setting + "'.");
+
 		shapes.AddRange(Landmarks.Select(static l => l.Shape));
 		shapes.AddRange(RuleShapes.Fixed());
 
@@ -234,7 +247,12 @@ public sealed class RuleValueGateTests
 		shapes.AddRange(shapes.Select(RuleShapes.Inlined).OfType<RuleShape>().ToList());
 
 		if (filter is not null)
+		{
 			shapes.RemoveAll(s => !s.Id.Contains(filter, StringComparison.Ordinal));
+
+			if (shapes.Count == 0)
+				throw new ArgumentException("DOTGRAM_RULEVALUES_FILTER='" + filter + "' matches no shape of the run.");
+		}
 
 		return shapes;
 	}

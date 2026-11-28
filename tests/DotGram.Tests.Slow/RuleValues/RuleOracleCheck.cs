@@ -82,17 +82,39 @@ static class RuleOracleCheck
 	/// at a place, so any of them is the refusal. A C# error or a crash where the generator was to refuse is a generator that
 	/// left the author code that does not compile, not a refusal.
 	/// </summary>
+	/// <remarks>
+	/// A name inside a lookahead is told before anything else of the rule, so where the oracle finds one the head names it
+	/// (GRAM4006), whatever else is wrong. A refusal of the rule's own whose message says its cause apart (a piece with no
+	/// text, an array no call fills or one that could hold itself, a left-recursive value) is held to that cause too, where it
+	/// is the only diagnostic the head gave; the rest are one GRAM4008.
+	/// </remarks>
 	static bool Refuses(Outcome head, Expectation expected)
 	{
 		var said     = Ids(head);
 		var refusals = expected.Refusals.Count > 0 ? expected.Refusals : [expected.ErrorId!];
 
-		return refusals.Select(DiagnosticOf).Any(id => id.StartsWith("CS", StringComparison.Ordinal)
+		if (refusals[0] == "GRAM4006")
+			return head.Kind == "gram" && said.Contains("GRAM4006");
+
+		return refusals.Any(refusal => DiagnosticOf(refusal) is var id && (id.StartsWith("CS", StringComparison.Ordinal)
 			? head.Kind == "csharp" && said.Contains(id)
-			: head.Kind == "gram" && said.Contains(id));
+			: head.Kind == "gram" && said.Contains(id) && (said.Length > 1 || Cause(refusal) is not { } cause || head.Text.Contains(cause, StringComparison.Ordinal))));
 	}
 
-	/// <summary>Whether this build refused with every documented diagnostic the published version gave.</summary>
+	/// <summary>What the message of a refusal of the rule's own says of its cause, where the cause is told apart.</summary>
+	static string? Cause(string refusal)
+	{
+		return refusal switch
+		{
+			"E-NONTEXT"   => "which has no text to join",
+			"E-SEQ"       => "and no call it reads gives one",
+			"E-AMBIGUOUS" => "it is one element, or its elements in place",
+			"E-LR"        => "is left-recursive and declares",
+			_             => null,
+		};
+	}
+
+	/// <summary>Whether this build refused with one of the documented diagnostics the published version gave.</summary>
 	static bool RefusesAsPublished(Outcome head, Outcome published)
 	{
 		var wanted = Ids(published).Where(static id => id is "GRAM4026" or "GRAM4006" or "GRAM4007" or "GRAM3004").ToList();
@@ -172,7 +194,7 @@ static class RuleOracleCheck
 				continue;
 			}
 
-			if (expected.Source == Source.NoMatch ? head.Kind == "fail" || head.Kind == "gram"
+			if (expected.Source == Source.NoMatch ? head.Kind == "fail"
 				: expected.IsValue ? head.Kind == "value" && head.Text == expected.Value
 				: Refuses(head, expected))
 			{

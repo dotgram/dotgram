@@ -117,7 +117,7 @@ sealed partial class Grammar
 		ReadThrough,
 	}
 
-	static readonly HashSet<string> Composites = ["Mid", "C4", "Mids", "Ow", "Ows", "Mw", "Mws", "Mx", "P2", "P(Word)"];
+	static readonly HashSet<string> Composites = ["Mid", "C4", "Mids", "Ow", "Ows", "Mw", "Mws", "Mx", "P2", "P(Word)", "Ws", "L(Word)"];
 
 	readonly RuleShape _shape;
 	readonly List<Rule> _rules = [];
@@ -241,10 +241,11 @@ sealed partial class Grammar
 			"Mw"  => [new Sequence(new Literal("("), new Call(Helper.Word, Atom.Built), new Literal(")"))],
 			"Mws" => [new Sequence(new Literal("("), new Call(Helper.Sp, Atom.Built), new Literal(")"))],
 			"Mx"  => [new Call(Helper.Word, Atom.Built), new Sequence(new Literal("["), new Call(Helper.Bare, Atom.Implicit), new Literal("]"))],
+			"Ws" or "L(Word)" => [new Call(Helper.Word, Atom.Built)],
 			_     => [helper.Inline!(0)],
 		};
 
-		var rule = Make(helper.Name, helper.Type, false, helper.Type is null, [.. body.Select(Replace)], false);
+		var rule = Make(helper.Name, helper.Type, helper.IsArray, helper.Type is null, [.. body.Select(Replace)], false);
 
 		_composites[helper.Name] = rule;
 		_rules.Insert(0, rule);
@@ -367,15 +368,30 @@ sealed partial class Grammar
 		};
 	}
 
-	// An array rule whose collected calls, on any route, hold a call that gives text over bytes and one that builds a string.
+	// An array rule whose collected calls, on any route, hold a call that gives text over bytes and one that builds a string,
+	// the calls of an array of the same element it splices included.
 	bool MixedOverBytes(Rule rule)
 	{
 		if (rule.Kind != Kind.A)
 			return false;
 
-		var pieces = Walk(rule.Alternatives).Where(IsCall).Where(c => c is not SelfCall && CalleeType(c, rule) == rule.Type).Select(c => Classify(c, rule)).ToList();
+		var pieces = new List<Piece>();
+
+		Gather(rule, []);
 
 		return pieces.Contains(Piece.Text) && pieces.Any(static p => p is Piece.Built or Piece.Char);
+
+		void Gather(Rule array, HashSet<Rule> seen)
+		{
+			if (!seen.Add(array))
+				return;
+
+			foreach (var call in Walk(array.Alternatives).Where(IsCall).Where(c => c is not SelfCall && CalleeType(c, array) == array.Type))
+				if (call is RuleRef { Rule: { Kind: Kind.A } spliced })
+					Gather(spliced, seen);
+				else
+					pieces.Add(Classify(call, array));
+		}
 	}
 
 	/// <summary>
