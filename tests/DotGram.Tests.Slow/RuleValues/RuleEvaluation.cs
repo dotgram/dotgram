@@ -477,14 +477,11 @@ sealed partial class Grammar
 
 				if (list.Count == 0)
 				{
-					// A name of an alternative the route did not take is null; a repetition that took no turn gives an empty text.
+					// A name no turn and no alternative of the route captured is null.
 					var text = named.Where(n => n.Name == name).All(n => grammar.KindOfCapture(n.Inner, rule) == "text");
 
-					if (!many || !visited.Contains(name) && text)
+					if (!many || text)
 						return "<null>";
-
-					if (text)
-						return "\"\"";
 
 					throw new InvalidOperationException("the oracle does not model an empty repetition of " + name);
 				}

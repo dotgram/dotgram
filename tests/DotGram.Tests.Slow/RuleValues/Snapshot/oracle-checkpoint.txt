@@ -1,8 +1,8 @@
 cells 98154, shapes 19293, cells with no outcome in the files 0
 
 cells by what the oracle says against 0.3.0
-    1153  0.3.0 failed: the generated type's value is expected
-   13019  agree
+    1141  0.3.0 failed: the generated type's value is expected
+   13021  agree
        3  allowed: array-call-splices-elements
      255  allowed: array-collects-text-rule
      411  allowed: char-piece-gives-character
@@ -14,7 +14,7 @@ cells by what the oracle says against 0.3.0
       36  allowed: optional-text-route
      418  allowed: partial-construction-refused
     3134  allowed: string-not-built-from-names
-    2912  allowed: string-rule-joins-built-value
+    2917  allowed: string-rule-joins-built-value
     1068  allowed: taken-span-names-own-bounds
     5612  allowed: taken-string-rule-keeps-own-literals
       12  allowed: tied-constructor-refused
@@ -24,13 +24,13 @@ cells by what the oracle says against 0.3.0
       46  oracle reads no match, 0.3.0 csharp
       74  oracle reads no match, 0.3.0 gram
       11  published version did not match the input
-   33737  published version refused, oracle builds
-   29905  refused by both
-     623  refused by both: a documented refusal of 0.3.0 is held
-    3105  same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)
+   33671  published version refused, oracle builds
+   29991  refused by both
+     615  refused by both: a documented refusal of 0.3.0 is held
+    3098  same as 0.3.0 by decision (an untyped rule that writes names, or a name captured twice on one route)
 
 the allow-list, silent classes first: cells (and shapes) where 0.3.0 differs from the oracle on purpose
-    2912 differ (  644 shapes),    354 agree  Silent    string-rule-joins-built-value
+    2917 differ (  646 shapes),    356 agree  Silent    string-rule-joins-built-value
     5612 differ ( 1161 shapes),     22 agree  Silent    taken-string-rule-keeps-own-literals
      777 differ (  179 shapes),   1121 agree  Silent    array-collects-text-rule
        9 differ (    3 shapes),      9 agree  Silent    array-call-splices-elements
