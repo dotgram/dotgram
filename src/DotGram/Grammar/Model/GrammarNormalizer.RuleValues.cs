@@ -748,13 +748,25 @@ sealed partial class GrammarNormalizer
 		var reserved     = ReservedNames(rule);
 		var rewritten    = new List<Node>(alternatives.Count);
 
+		// A name is read by a guard, a condition, a mark or a switch, or by the construction it fills; one nothing reads is
+		// dropped, so that it is held to no type (GRAM4007 asks only of a name that is read).
+		var guarded = NamesReadIn(_bodies[rule], _bodies[rule]);
+		var filled  = new HashSet<string>(guarded, StringComparer.Ordinal);
+
+		filled.UnionWith(value.Fill switch
+		{
+			Construction.Constructor(var order)    => order,
+			Construction.Initializer(var bindings) => bindings.Select(static one => one.Capture),
+			_                                      => [],
+		});
+
 		for (var i = 0; i < alternatives.Count; i++)
 		{
 			var alternative = alternatives[i];
 
 			if (!value.Ways![i])
 			{
-				rewritten.Add(new Node.Construct(alternative, value.Fill!));
+				rewritten.Add(new Node.Construct(Tail(alternative, rule) is null ? Unread(alternative, filled) : alternative, value.Fill!));
 
 				continue;
 			}
@@ -778,7 +790,9 @@ sealed partial class GrammarNormalizer
 				? held.TryGetValue(kind, out var known) ? known : held[kind] = held.Count == 0 ? name : Unreserved(name + "_" + held.Count, reserved)
 				: name), out var taken);
 
-			rewritten.Add(new Node.Construct(taken, new Construction.Operand([.. held.Values.DefaultIfEmpty(name)])));
+			// A name the author wrote on a call is not the operand, whether or not it is read: dropped only once the operand
+			// is found.
+			rewritten.Add(new Node.Construct(Unread(taken, [.. guarded, .. held.Values]), new Construction.Operand([.. held.Values.DefaultIfEmpty(name)])));
 		}
 
 		return Rebuilt(_bodies[rule], rewritten);
@@ -799,6 +813,21 @@ sealed partial class GrammarNormalizer
 		foreach (var rule in _rules)
 			if (_types.TryGetValue(rule, out var type) && IsSpan(type))
 				_types[rule] = _language.Spelling(KnownType.SourceSpan);
+	}
+
+	/// <summary>The node with every name taken off but the ones given.</summary>
+	Node Unread(Node node, HashSet<string> kept)
+	{
+		_namesRead = kept;
+
+		try
+		{
+			return Unnamed(node);
+		}
+		finally
+		{
+			_namesRead = null;
+		}
 	}
 
 	/// <summary>The node with the names nothing in it reads taken off: a guard's, a condition's, a mark's or a switch's text reads one.</summary>

@@ -207,6 +207,33 @@ public sealed class ComposedValueTests
 			true)?.ToString());
 	}
 
+	/// <summary>
+	/// A name nothing reads is held to no type in a rule of another type, as in a string or an array: the value is the one
+	/// call of the type, and the two kinds the name captures on two routes are no question. One a guard reads is.
+	/// </summary>
+	[Theory]
+	[InlineData("<ab>7", "7")]
+	[InlineData("[12]8", "8")]
+	public void A_name_nothing_reads_in_a_rule_of_another_type_is_held_to_no_type(string input, string expected)
+	{
+		Assert.Equal(expected, Parsed(
+			"Start : @int = '<' & a: Word & '>' & Num | '[' & a: Two & ']' & Num\nNum : @int = d: ['0'..'9'] => @(d[0] - '0')\n" +
+			"Two : @int = d: ['0'..'9']{2} => @(d.Length)\nWord : @string = c: ['a'..'z']{2} => @(c.ToString())",
+			input,
+			true)?.ToString());
+	}
+
+	[Fact]
+	public void A_name_a_guard_reads_in_a_rule_of_another_type_is_held_to_one_type()
+	{
+		var result = Compile(
+			"Start : @int = '<' & a: Word & '>' & Num & when @(a != null) | '[' & a: Two & ']' & Num\n" +
+			"Num : @int = d: ['0'..'9'] => @(d[0] - '0')\nTwo : @int = d: ['0'..'9']{2} => @(d.Length)\n" +
+			"Word : @string = c: ['a'..'z']{2} => @(c.ToString())\nparse Start");
+
+		Assert.Contains(result.Diagnostics, static one => one.Severity == GramSeverity.Error && one.Id == GrammarNormalizer.CaptureTypeMismatch);
+	}
+
 	/// <summary>An element type that can hold the array itself leaves a call of the array's type with two readings.</summary>
 	[Fact]
 	public void A_call_that_is_an_element_and_an_array_of_them_is_told()
