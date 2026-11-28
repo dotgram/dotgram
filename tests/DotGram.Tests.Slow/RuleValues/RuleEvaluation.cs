@@ -28,6 +28,9 @@ sealed partial class Grammar
 		public bool Step { get; init; }
 	}
 
+	/// <summary>A capture of bytes fills a constructor parameter that takes no bytes.</summary>
+	sealed class BytesIntoConstructor : Exception;
+
 	sealed class Evaluation(Grammar grammar, Mode mode, string input)
 	{
 		readonly Dictionary<string, string> _bound = [];
@@ -603,6 +606,10 @@ sealed partial class Grammar
 			var captured = new Dictionary<string, Val>(StringComparer.Ordinal);
 
 			Captures(node, Parameters(rule.Type), captured);
+
+			// Over bytes a text capture is a span of bytes: no constructor of a host type takes it, and C# says so.
+			if (captured.Values.Any(static v => v.Type == "bytes"))
+				throw new BytesIntoConstructor();
 
 			switch (rule.Type)
 			{

@@ -366,6 +366,17 @@ sealed partial class Grammar
 		};
 	}
 
+	// An array rule whose collected calls, on any route, hold a call that gives text over bytes and one that builds a string.
+	bool MixedOverBytes(Rule rule)
+	{
+		if (rule.Kind != Kind.A)
+			return false;
+
+		var pieces = Walk(rule.Alternatives).Where(IsCall).Where(c => c is not SelfCall && CalleeType(c, rule) == rule.Type).Select(c => Classify(c, rule)).ToList();
+
+		return pieces.Contains(Piece.Text) && pieces.Any(static p => p is Piece.Built or Piece.Char);
+	}
+
 	/// <summary>
 	/// A string rule is not its own text where a piece builds a value that differs from its text: a built string, a
 	/// character, or a rule that is not pure itself (a least fixpoint over its calls), or a woven seam that can be non-empty.
@@ -515,6 +526,10 @@ sealed partial class Grammar
 		// refusal where the captures differ in type).
 		if (CapturesTwice(alternatives, parameters))
 			return Decision.Of(Source.SamePublished, "O-twice");
+
+		// A name of the constructor written under a repetition accumulates as the published version does: held to it.
+		if (Walk(alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus).SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Any(n => parameters.Contains(n.Name)))
+			return Decision.Of(Source.SamePublished, "O-repeat");
 
 		return Decision.Of(Source.Constructed, "O");
 	}
@@ -741,6 +756,9 @@ sealed partial class Grammar
 				if (calls.Any(c => c is not SelfCall && CalleeType(c, rule) == rule.Type && !(c is Call { Rule.Name: "Word" or "Nm" or "Dg" or "Sp" or "Num" })))
 					Features.Add("A-text-rule");
 
+				if (MixedOverBytes(rule))
+					Features.Add("A-mixed-bytes");
+
 				if (nodes.OfType<Named>().Any(static n => n.Inner is Literal or Lexeme or Call { Rule.Name: "Plain" }))
 					Features.Add("A-named-text");
 
@@ -795,9 +813,17 @@ sealed partial class Grammar
 		if (mode == Mode.B && _rules.Any(r => r.Kind == Kind.C && Impure(r)))
 			return new Expectation(Source.Error, null, "GRAM4026", null, "C");
 
+		// Over bytes one array cannot hold both the bytes of a text call and the string of a building one.
+		if (mode == Mode.B && _rules.Any(MixedOverBytes))
+			return new Expectation(Source.Error, null, "GRAM4026", null, "A");
+
 		try
 		{
 			return new Evaluation(this, mode, input).Run();
+		}
+		catch (BytesIntoConstructor)
+		{
+			return new Expectation(Source.Error, null, "CS1503", null, "O");
 		}
 		catch (Exception e) when (e is InvalidOperationException or KeyNotFoundException)
 		{

@@ -176,7 +176,7 @@ static class RuleInvariants
 		return found;
 	}
 
-	/// <summary>(d) The value's source is the same in the default, the span-capture and the byte modes; over bytes only GRAM4026, a string that cannot be joined, differs.</summary>
+	/// <summary>(d) The value's source is the same in the default, the span-capture and the byte modes; over bytes only GRAM4026 (a string that cannot be joined) and CS1503 (a capture of bytes into a constructor) differ.</summary>
 	public static List<Violation> SourceIsTheSameInEveryMode(IReadOnlyDictionary<string, RuleShape> shapes)
 	{
 		var found = new List<Violation>();
@@ -191,7 +191,7 @@ static class RuleInvariants
 				if (d.Source != s.Source || d.Value != s.Value)
 					found.Add(new Violation("same-in-D-and-S", shape.Id, shape.Id, Mode.S, route.Input, d.ToString(), s.ToString()));
 
-				var refused = b.ErrorId == "GRAM4026";
+				var refused = b.ErrorId is "GRAM4026" or "CS1503";
 
 				if (!refused && (d.Source != b.Source || Normalize(d.Value) != Normalize(b.Value)) && !d.IsUnknown && !b.IsUnknown)
 					found.Add(new Violation("same-in-D-and-B", shape.Id, shape.Id, Mode.B, route.Input, d.ToString(), b.ToString()));
