@@ -70,6 +70,24 @@ public sealed class SpanCaptureConstructionTests
 		Assert.Equal("X=ab|Y=null|Ws=", Members("ab<>"));
 	}
 
+	/// <summary>
+	/// A name of the constructor under a repetition fills it on every route, the one with no turns included: a run of no
+	/// turns is no text, not no name. Over characters and over spans alike.
+	/// </summary>
+	[Theory]
+	[InlineData("<>", "box:", false)]
+	[InlineData("<,ef,gh>", "box:efgh", false)]
+	[InlineData("<>", "box:", true)]
+	[InlineData("<,ef,gh>", "box:efgh", true)]
+	public void A_name_of_the_constructor_under_a_repetition_fills_it_with_no_turns_too(string input, string expected, bool spans)
+	{
+		var parser = Build("Start : @Box = '<' & (',' & name: Plain)* & '>'\nPlain = ['a'..'z']{2}\nparse Start", Boxes, spans);
+		var read   = EmittedCode.Match(parser, "Grammar", "TryParseStart", input);
+
+		Assert.True(read.IsSuccess);
+		Assert.Equal(expected, read.Value!.ToString());
+	}
+
 	static Assembly Build(string grammar, string members, bool spans = false)
 	{
 		var host   = CSharpCompilation.Create(
