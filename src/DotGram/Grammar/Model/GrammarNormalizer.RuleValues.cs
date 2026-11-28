@@ -529,28 +529,14 @@ sealed partial class GrammarNormalizer
 				_                                      => [],
 			}, StringComparer.Ordinal);
 
-			// A name under a repetition is never absent: no turns are a run of no text, or no values.
 			foreach (var (alternative, which) in building)
 				if (Walk(alternative, part => part switch
 					{
 						Node.Capture(var name, _) when taken.Contains(name) => new WalkStep(part, true),
-						Node.Repeat(var body, _, var max) when max != 1 && Names(body) => new WalkStep(part, true),
-						Node.Counted(var body, _, var max) when max is not CountBound.Items(1) && Names(body) => new WalkStep(part, true),
 						Node.Lookahead or Node.Construct => new WalkStep(part, false),
 						_ => null,
 					}, out _, written: true).Least == 0)
 					unsaid.Add($"a route through {which} names none of them");
-
-			// Whether a node writes a name the construction takes, outside a lookahead.
-			bool Names(Node node)
-			{
-				return Walk(node, part => part switch
-				{
-					Node.Capture(var name, _) when taken.Contains(name) => new WalkStep(part, true),
-					Node.Lookahead or Node.Construct => new WalkStep(part, false),
-					_ => null,
-				}, out _, written: true).Most > 0;
-			}
 		}
 
 		if (fill is not null && unsaid.Count == 0)
