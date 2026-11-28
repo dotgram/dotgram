@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -70,7 +71,8 @@ sealed partial class GrammarNormalizer
 {
 	/// <summary>
 	/// Whether a published rule with no type and no names is a string, its pieces joined (§4.1), or, as before, the text
-	/// it matched. One with a piece that has no text to join, or that binds a text, is the text it matched either way.
+	/// it matched. One with a piece that has no text to join, or that binds a text, is the text it matched either way. Off
+	/// until the published rule is decided: the switch is the whole of the change, and the gate reads the same setting.
 	/// </summary>
 	static readonly bool PublishedPlumbingJoins = false;
 
@@ -282,7 +284,13 @@ sealed partial class GrammarNormalizer
 	/// </summary>
 	bool IsText(string type)
 	{
-		return _language.Classify(type, out var form) == KnownType.Text && form is TypeSpellingForm.Syntax or TypeSpellingForm.Global;
+		return IsText(_language, type);
+	}
+
+	/// <summary>The same, of a type as a language spells it, wherever a type is asked whether it is the string.</summary>
+	internal static bool IsText(ITargetLanguage language, string type)
+	{
+		return language.Classify(type, out var form) == KnownType.Text && form is TypeSpellingForm.Syntax or TypeSpellingForm.Global;
 	}
 
 	bool IsSpan(string type)
@@ -417,6 +425,8 @@ sealed partial class GrammarNormalizer
 		var candidates = strings.Concat(_rules.Where(ReadThrough).Where(_bodies.ContainsKey)).ToList();
 		var joined     = NotOwnText(candidates);
 
+		_joinedThrough = joined;
+
 		// A published rule with no type and no names is a string: its value is its pieces joined, where they are all text.
 		if (PublishedPlumbingJoins)
 			foreach (var publication in _publications)
@@ -522,12 +532,7 @@ sealed partial class GrammarNormalizer
 		// build from.
 		if (fill is not null)
 		{
-			var taken = new HashSet<string>(fill switch
-			{
-				Construction.Constructor(var order)    => order,
-				Construction.Initializer(var bindings) => bindings.Select(static one => one.Capture),
-				_                                      => [],
-			}, StringComparer.Ordinal);
+			var taken = new HashSet<string>(Taken(fill), StringComparer.Ordinal);
 
 			// A name under a repetition is never absent: no turns are a run of no text, or no values.
 			foreach (var (alternative, which) in building)
@@ -688,6 +693,17 @@ sealed partial class GrammarNormalizer
 		return _language.HostUnseen && !BuiltIn(type) ? new Construction.Constructor([.. names]) : null;
 	}
 
+	/// <summary>The names a construction from names takes: the arguments of its constructor, or the captures it sets.</summary>
+	static IEnumerable<string> Taken(Construction? fill)
+	{
+		return fill switch
+		{
+			Construction.Constructor(var order)    => order,
+			Construction.Initializer(var bindings) => bindings.Select(static one => one.Capture),
+			_                                      => [],
+		};
+	}
+
 	/// <summary>
 	/// What is decided before the left-recursive rules are rewritten: a string that is its own text and a span are left the
 	/// extent they matched, and a rule of another type is given its operand or its construction on each alternative, a step its
@@ -747,9 +763,14 @@ sealed partial class GrammarNormalizer
 					_bodies[rule] = Operated(rule, value);
 					break;
 
+				// A name inside a lookahead is told first, where the rule is (GRAM4006), as the published version tells it: one
+				// error is said at one place, and that one is the author's to fix before the value is a question.
 				case ValueSource.Refused:
 					_unsaid.Add(rule);
-					Report(UnbuiltConstruction, value.Refusal!, rule.Declaration!.At);
+
+					if (!NodeWalk.Descendants(body).OfType<Node.Lookahead>().Any(static look => NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture)))
+						Report(UnbuiltConstruction, value.Refusal!, rule.Declaration!.At);
+
 					break;
 			}
 		}
@@ -770,12 +791,7 @@ sealed partial class GrammarNormalizer
 		var guarded = NamesReadIn(_bodies[rule], _bodies[rule]);
 		var filled  = new HashSet<string>(guarded, StringComparer.Ordinal);
 
-		filled.UnionWith(value.Fill switch
-		{
-			Construction.Constructor(var order)    => order,
-			Construction.Initializer(var bindings) => bindings.Select(static one => one.Capture),
-			_                                      => [],
-		});
+		filled.UnionWith(Taken(value.Fill));
 
 		for (var i = 0; i < alternatives.Count; i++)
 		{
@@ -877,12 +893,19 @@ sealed partial class GrammarNormalizer
 		}).ToList();
 
 		foreach (var capture in NodeWalk.Descendants(node).OfType<Node.Capture>())
-			if (texts.Any(text => _language.NamesUsed(text) is { } used
-				? used.Contains(capture.Name)
-				: System.Text.RegularExpressions.Regex.IsMatch(text, @"\b" + System.Text.RegularExpressions.Regex.Escape(capture.Name) + @"\b")))
+			if (texts.Any(text => CodeReads(text, capture.Name)))
 				read.Add(capture.Name);
 
 		return read;
+	}
+
+	/// <summary>
+	/// Whether C# the author wrote reads a name, as the emitter asks it: a word in a literal, a comment or after a dot is none.
+	/// Where the code cannot be read, the spelling answers.
+	/// </summary>
+	bool CodeReads(string text, string name)
+	{
+		return _language.NamesUsed(text) is { } used ? used.Contains(name) : Regex.IsMatch(text, @"\b" + Regex.Escape(name) + @"\b");
 	}
 
 	/// <summary>The C# a condition runs.</summary>
@@ -942,8 +965,8 @@ sealed partial class GrammarNormalizer
 	/// <summary>The string rules made to read through an untyped rule, by the rule they read.</summary>
 	readonly Dictionary<RuleSymbol, RuleSymbol> _readThrough = [];
 
-	/// <summary>The rules made to join a part of another that can be read in more than one way.</summary>
-	readonly HashSet<RuleSymbol> _joinParts = [];
+	/// <summary>How many rules were made to join a part of another that can be read in more than one way, for their names.</summary>
+	int _parts;
 
 	/// <summary>One alternative of a string that is not its own text, given the construction that joins it.</summary>
 	Node Joined(RuleSymbol rule, Node alternative, HashSet<string> reserved)
@@ -1053,7 +1076,7 @@ sealed partial class GrammarNormalizer
 
 				// A call of a string or a char is its value; one of an untyped rule is that rule read in place.
 				case Node.Call(var called, var arguments):
-					return Held(ReadThrough(called) ? new Node.Call(ThroughRule(rule, called), arguments) : node);
+					return Held(ReadThrough(called) ? new Node.Call(ThroughRule(called), arguments) : node);
 
 				// A repetition whose turn holds a name a guard reads is joined turn by turn where it stands, so that the name
 				// stays where the guard reads it: each piece of the turn is captured once per turn.
@@ -1282,7 +1305,7 @@ sealed partial class GrammarNormalizer
 			// untyped rule read in place.
 			Node Valued(Node.Call call)
 			{
-				return ReadThrough(call.Rule) ? new Node.Call(ThroughRule(rule, call.Rule), call.Arguments)
+				return ReadThrough(call.Rule) ? new Node.Call(ThroughRule(call.Rule), call.Arguments)
 					: _extents.ContainsKey(call.Rule) || ValueTypeOf(call.Rule) is null ? new Node.Call(TextRule(call.Rule, rule), call.Arguments)
 					: call;
 			}
@@ -1291,7 +1314,7 @@ sealed partial class GrammarNormalizer
 			Node Turn(Node body)
 			{
 				if (body is Node.Call(var called, var arguments))
-					return ReadThrough(called) ? new Node.Call(ThroughRule(rule, called), arguments) : body;
+					return ReadThrough(called) ? new Node.Call(ThroughRule(called), arguments) : body;
 
 				moved = true;
 
@@ -1316,15 +1339,14 @@ sealed partial class GrammarNormalizer
 	/// <summary>Whether an untyped rule a string reads through holds a piece that is not its text, as the decision found.</summary>
 	bool JoinedThrough(RuleSymbol rule)
 	{
-		_joinedThrough ??= NotOwnText([.. _rules.Where(ReadThrough).Where(_bodies.ContainsKey)]);
-
 		return _joinedThrough.Contains(rule);
 	}
 
-	HashSet<RuleSymbol>? _joinedThrough;
+	/// <summary>The strings and the untyped rules they read through that are not their own text, as the decision found them.</summary>
+	HashSet<RuleSymbol> _joinedThrough = [];
 
 	/// <summary>The string rule that reads an untyped rule in place, made once per rule it reads.</summary>
-	RuleSymbol ThroughRule(RuleSymbol owner, RuleSymbol read)
+	RuleSymbol ThroughRule(RuleSymbol read)
 	{
 		if (_readThrough.TryGetValue(read, out var made))
 			return made;
@@ -1339,11 +1361,7 @@ sealed partial class GrammarNormalizer
 	/// <summary>A rule of its own for a part of a string that is joined from more than one reading.</summary>
 	RuleSymbol PartRule(RuleSymbol owner, Node node)
 	{
-		var made = Synthetic(owner, owner.Name + "_Part" + (_joinParts.Count + 1), node, _language.Spelling(KnownType.Text), ValueSource.Joined);
-
-		_joinParts.Add(made);
-
-		return made;
+		return Synthetic(owner, owner.Name + "_Part" + ++_parts, node, _language.Spelling(KnownType.Text), ValueSource.Joined);
 	}
 
 	/// <summary>
@@ -1399,6 +1417,9 @@ sealed partial class GrammarNormalizer
 	/// A rule the compiler makes for a part of another, of the type and with the value given; added where the rules are being
 	/// realised, so that it is realised in turn.
 	/// </summary>
+	/// <summary>The rules <see cref="Synthetic"/> made.</summary>
+	readonly HashSet<RuleSymbol> _made = [];
+
 	RuleSymbol Synthetic(RuleSymbol from, string stem, Node body, string type, ValueSource source)
 	{
 		var name = stem;
@@ -1416,11 +1437,12 @@ sealed partial class GrammarNormalizer
 		};
 		var made = new RuleSymbol(name, from.Namespace, declaration);
 
+		_made.Add(made);
 		_rules.Add(made);
-		_bodies[made]   = body;
-		_types[made]    = type;
-		_nullable[made] = FirstSets.Nullable(body, _ruleIsNullable);
-		_ruleValues[made]   = new RuleValue(source, type);
+		_bodies[made]     = body;
+		_types[made]      = type;
+		_nullable[made]   = FirstSets.Nullable(body, _ruleIsNullable);
+		_ruleValues[made] = new RuleValue(source, type);
 
 		if (_trivia.TryGetValue(from, out var trivia))
 			_trivia[made] = trivia;
@@ -1435,7 +1457,7 @@ sealed partial class GrammarNormalizer
 
 		return $"'{rule.Name}' is a string, which is the join of its pieces, and '{piece.Rule.Name}' is " +
 			(type is null ? "a rule whose value is no text" : $"'{type}'") +
-			", which has no text to join (§4.1). Build the value with '=>', as in '<' & n: Num & '>' => @(\"<\" + n + \">\").";
+			$", which has no text to join (§4.1). Build the value with '=>', as in '<' & n: {piece.Rule.Declaration?.Name ?? piece.Rule.Name} & '>' => @(\"<\" + n + \">\").";
 	}
 
 	/// <summary>An array none of whose calls gives an element.</summary>
