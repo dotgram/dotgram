@@ -47,6 +47,8 @@ static class RightsPlan
 
 		List<Declared>? last = null;
 
+		var row = new List<Declared>();
+
 		void Walk(ExprSyntax node, Place place, Declared? into)
 		{
 			switch (node)
@@ -158,6 +160,8 @@ static class RightsPlan
 					if (!scope.ContainsKey(let.Name.Text))
 						scope[let.Name.Text] = column;
 
+					row.Add(column);
+
 					break;
 				}
 
@@ -167,10 +171,39 @@ static class RightsPlan
 
 					last = [];
 
-					if (select.Items is null)
+					var starAt = -1;
+
+					for (var i = 0; i < (select.Items?.Length ?? 1); i++)
 					{
-						// `*` after a `select`: the same columns again, each reading the one it copies. Before one, the
-						// fields with Select, each a column whose needs say whether the binder may take it.
+						if (select.Items is null || select.Items[i].Value is StarExpr)
+						{
+							starAt = i;
+							break;
+						}
+					}
+
+					var explicitItems = select.Items ?? [];
+
+					foreach (var item in explicitItems)
+					{
+						if (item.Value is StarExpr)
+							continue;
+
+						var column = Declare(item.Value);
+
+						last.Add(column);
+
+						if ((item.Alias?.Text ?? DefaultName(item.Value, qualifier, selected, scope)) is { } name && !columns.ContainsKey(name))
+							columns[name] = column;
+					}
+
+					if (starAt >= 0)
+					{
+						// `*`: the fields with Select before any `select`, each a column whose needs say whether the binder
+						// may take it, then the `let`s and columns in scope, each a column reading the one it copies. A name
+						// the list gives itself is not taken from the `*`.
+						var taken = new Dictionary<string, Declared>(Names.Comparer);
+
 						if (!selected)
 						{
 							foreach (var field in selectable)
@@ -179,44 +212,44 @@ static class RightsPlan
 
 								declared.Add(column);
 								stars.Add((select, field, column));
-								columns[field] = column;
-								last.Add(column);
+								taken[field] = column;
 							}
 						}
-						else
+
+						foreach (var previous in scope)
 						{
-							foreach (var previous in scope)
+							var copy = new Declared();
+
+							copy.Reads.Add(previous.Value);
+							declared.Add(copy);
+							taken[previous.Key] = copy;
+						}
+
+						// Only a column the list does not replace is returned, so only it needs Select.
+						foreach (var pair in taken)
+						{
+							if (!columns.ContainsKey(pair.Key))
 							{
-								var copy = new Declared();
-
-								copy.Reads.Add(previous.Value);
-								declared.Add(copy);
-								columns[previous.Key] = copy;
-								last.Add(copy);
+								columns[pair.Key] = pair.Value;
+								last.Add(pair.Value);
 							}
-						}
-					}
-					else
-					{
-						foreach (var item in select.Items)
-						{
-							var column = Declare(item.Value);
-
-							last.Add(column);
-
-							if ((item.Alias?.Text ?? DefaultName(item.Value, qualifier, selected, scope)) is { } name && !columns.ContainsKey(name))
-								columns[name] = column;
 						}
 					}
 
 					scope    = columns;
 					selected = true;
+
+					row.Clear();
 					break;
 				}
 			}
 		}
 
 		foreach (var column in last ?? [])
+			column.Needs |= QlUse.Select;
+
+		// The row is returned with the `let`s made since the last `select`, as `*` would spread it.
+		foreach (var column in row)
 			column.Needs |= QlUse.Select;
 
 		// A column reads only columns declared before it: from the last back, each passes on what it needs.

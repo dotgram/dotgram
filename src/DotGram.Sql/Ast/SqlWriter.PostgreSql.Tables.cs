@@ -307,6 +307,13 @@ public static partial class SqlWriter
 						if (options.Options.Scope is not null)
 							throw Misplaced(options, "Options.Scope", "which PostgreSQL does not read");
 
+						// Default and Generation are one slot: a default with no name is Default, and reads back there.
+						if (options.Options.Default is not null && options.Options.Generation is not null)
+							throw Both(options.Options, "Default", "Generation");
+
+						if (options.Options.Generation is ColumnGeneration.Default { Name: null })
+							throw Misplaced(options.Options, "Generation", "that is a default with no name, which reads back as Default");
+
 						PutIdentifier(options.Name);
 
 						if (!options.WithOptionsOmitted)
@@ -315,6 +322,7 @@ public static partial class SqlWriter
 						if (options.Options.Default is { } value)
 							PutPostgreSqlDefault(value);
 
+						PutPostgreSqlGeneration(options.Options.Generation);
 						PutColumnConstraints(options.Options.Constraints);
 						PutCollate(options.Options.Collation);
 						break;
@@ -433,13 +441,21 @@ public static partial class SqlWriter
 				PutIdentifier(compression);
 			}
 
-			if (column.Generation?.Name is { } named)
+			PutPostgreSqlGeneration(column.Generation);
+			PutColumnConstraints(column.Constraints);
+			PutCollate(column.Collation);
+		}
+
+		/// <summary>gram.y ColConstraintElem: a default, an identity or a generated expression, after its name where it has one.</summary>
+		void PutPostgreSqlGeneration(ColumnGeneration? generation)
+		{
+			if (generation?.Name is { } named)
 			{
 				Word("CONSTRAINT");
 				PutOnePartName(named, "a default's or a generation's name");
 			}
 
-			switch (column.Generation)
+			switch (generation)
 			{
 				case null:
 					break;
@@ -475,11 +491,8 @@ public static partial class SqlWriter
 					break;
 
 				default:
-					throw Misplaced(column.Generation, "Kind", "a row start or end, which PostgreSQL does not read");
+					throw Misplaced(generation, "Kind", "a row start or end, which PostgreSQL does not read");
 			}
-
-			PutColumnConstraints(column.Constraints);
-			PutCollate(column.Collation);
 		}
 
 		/// <summary>
@@ -897,6 +910,10 @@ public static partial class SqlWriter
 			switch (option)
 			{
 				case SequenceOption.DataTypeOption type:
+					// gram.y SimpleTypename, which has no SETOF.
+					if (type.Type is DataType.SetOf)
+						throw Misplaced(type, "Type", "that is a SETOF, which a sequence's AS does not take");
+
 					Word("AS");
 					PutType(type.Type);
 					break;

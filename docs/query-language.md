@@ -65,7 +65,7 @@ JSON document of the refusal.
 ## The language
 
 ```text
-from orders o
+from o in orders
 where o.status in @statuses && total between @low and @high
 let net = total - total / 6
 order by net desc, id
@@ -73,17 +73,30 @@ take 20
 select id, status, net
 ```
 
-- **`from <entity> [[as] alias]`** comes first. Then any number of clauses in any order, each
-  applied where it is written, as a call of its own:
+- **The head** comes first, in any of three spellings that mean the same: `from orders`,
+  `from orders o` or `from orders as o` (the entity, then an alias), and `from o in orders` (the name,
+  then the entity). Every source has a name: its alias or the entity's name; fields are written after it
+  (`o.total`) or alone. Then any number of clauses in any order, each applied where it is written, as a
+  call of its own:
 
   | Clause | Does |
   | --- | --- |
   | `where <condition>` | keeps the rows where the condition is true |
   | `let <name> = <value>` | adds a named value to the row |
-  | `select <value> [as <name>], …` or `select *` | replaces the row with these columns; after it only they can be named |
-  | `order by <value> [asc \| desc] [nulls first \| nulls last], …` | sorts; a second `order by` sorts again |
+  | `select <value> [as <name>], …` | replaces the row with these columns; after it only they can be named |
+  | `order by <value> [asc \| desc] [nulls first \| nulls last], …` | sorts; a second `order by` sorts again; `orderby` is `order by`, `ascending` is `asc` and `descending` is `desc` |
   | `skip <count>`, `take <count>` | pages, where the query's paging belongs; a count is a number or a parameter |
 
+- **`*`** — the projection of the last method — is an item of a `select` list like any other: it
+  stands for the columns of the row as it stands, the entity's fields with Select, then the `let`s
+  after the head, or the columns of the last `select`, then its `let`s. `select 1 as one, *, total` is one
+  column, the fields, then `total`. It stands once in a list; `select *` alone returns the row as it is.
+  A query with no `select` returns the same row, `let`s included: `from orders let t = total * 2` is
+  `from orders let t = total * 2 select *`. A name the list writes itself wins over any column `*` would give — a
+  field, a `let`, or a column of an earlier `select` — that column is left out, and the written one keeps its
+  place. A field the rest of the text uses without the right it needs (`order by status` where `status` has no
+  Sort) is not given by `*` either, and naming it later is refused as a field the model does not have.
+  A column that is not a name still needs `as`. `*` stands alone: not `o.*`, not `* as x`.
 - **Values**: the entity's fields, by name or after the alias (`o.total`); names of `let`s and
   `select` columns; parameters `@name`; numbers, which take the type of what they meet (`total > 1.5`);
   strings in `'…'` or `"…"` with the escapes `\\`, `\'`, `\"` and `\uXXXX`; `true`, `false`, `null`;
@@ -104,7 +117,9 @@ select id, status, net
 - **Null** compares as in C#, not as in SQL: `x == null` tests for null, `x != 1` holds where `x` is
   null.
 - **Words** of the language are words only where a name cannot stand, so a field may be called
-  `order` or `select`; `null`, `true` and `false` are reserved. Names and words ignore case.
+  `order` or `select`; `null`, `true` and `false` are reserved. An alias written without `as` is
+  never a word that starts a clause (`where`, `let`, `order`, `orderby`, `select`, `skip`, `take`, `join`, `left`, `on`)
+  and never `in`; after `as` any name will do. Names and words ignore case.
   Comments are `--` to the end of the line and `/* … */`.
 - A name declared and never used is reported in `Describe(text).Warnings` (`UnusedName`) and is
   not built into the query.
@@ -213,8 +228,9 @@ A refused text or value is a document of its own, `QlError.ToJson()`:
 - `columns` is there in both forms, so a client knows the columns of a result with no rows.
   `count` is the number of rows in `rows`.
 - `truncated` is true only where `MaxRows` cut the result: `ToJsonAsync` reads one row past the
-  bound to tell, and drops it. A `take` of the text is what was asked for, not a cut. With
-  `MaxRows` null it is always false.
+  bound to tell, and drops it. That extra row is formatted like the others, so a host `Format<T>`
+  that throws on it fails the document, though the row is not written. A `take` of the text is what
+  was asked for, not a cut. With `MaxRows` null it is always false.
 - `warnings`, after `columns`, only where the text has any:
   ``"warnings":[{"code":"UnusedName","message":"`x` is never used.","position":19}]``. A warning is a
   hint, not a status.
@@ -229,14 +245,16 @@ A refused text or value is a document of its own, `QlError.ToJson()`:
 - The document is not `application/problem+json`, whose `status` is a number. A host that wraps it
   in problem details puts it in a member of its own.
 
-`Describe(text).ToJson()` describes a text with the same first member. A description reads no row,
-so it is whole when it is written: it opens with `"ok"` and has no `result`.
+`Describe(text).ToJson()` describes a text in the same envelope: `status` first, `"started"`, and
+`result` last, `"completed"`. A description reads no row, so it is whole when it is written, and
+its `result` is always `"completed"`.
 
 ```json
-{"status":"ok","columns":[{"name":"id","type":"Int","nullable":false},{"name":"total","type":"Decimal","nullable":true}],"parameters":[{"name":"low","type":"Decimal","nullable":true,"list":false}]}
+{"status":"started","columns":[{"name":"id","type":"Int","nullable":false},{"name":"total","type":"Decimal","nullable":true}],"parameters":[{"name":"low","type":"Decimal","nullable":true,"list":false}],"result":"completed"}
 ```
 
-A `type` is the name of the `QlType`, and `warnings` follow the parameters where there are any.
+A `type` is the name of the `QlType`, and `warnings` follow the parameters, before `result`, where
+there are any.
 
 Values are written the same way everywhere:
 

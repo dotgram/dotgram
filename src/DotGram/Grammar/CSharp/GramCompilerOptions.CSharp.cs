@@ -30,6 +30,9 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="CSharpHostShape.LocationTypeIsClass"/>
 	public bool LocationTypeIsClass { get => Host.LocationTypeIsClass; set => Host.LocationTypeIsClass = value; }
 
+	/// <inheritdoc cref="CSharpHostShape.LocationTakesGap"/>
+	public bool LocationTakesGap { get => Host.LocationTakesGap; set => Host.LocationTakesGap = value; }
+
 	/// <inheritdoc cref="CSharpHostShape.LocatedFacade"/>
 	public string? LocatedFacade { get => Host.LocatedFacade; set => Host.LocatedFacade = value; }
 
@@ -56,6 +59,12 @@ sealed partial class GramCompilerOptions
 
 	/// <inheritdoc cref="CSharpHostShape.MembersDeclared"/>
 	public IReadOnlyList<string> MembersDeclared { get => Host.MembersDeclared; set => Host.MembersDeclared = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.SharesLimits"/>
+	public bool SharesLimits { get => Host.SharesLimits; set => Host.SharesLimits = value; }
+
+	/// <inheritdoc cref="CSharpHostShape.MembersDeclaredInReading"/>
+	public IReadOnlyList<string> MembersDeclaredInReading { get => Host.MembersDeclaredInReading; set => Host.MembersDeclaredInReading = value; }
 
 	/// <inheritdoc cref="CSharpHostShape.SharedTypes"/>
 	public bool SharedTypes { get => Host.SharedTypes; set => Host.SharedTypes = value; }

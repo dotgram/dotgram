@@ -25,7 +25,7 @@ namespace DotGram.Sql.PostgreSql;
 // One parser, read through two doors: the methods below, and the same methods in `Located`, which
 // tell every value where it was written. The second door is a second compilation of the grammar
 // for now: a door asked per call, as T-SQL's is, compiles, but does not yet give every node this
-// grammar builds its span. Carried immediately, by name: a
+// grammar builds its span. Both doors read one Limits, this class's. Carried immediately, by name: a
 // node is built the moment its rule has been read, and the factories of `Nodes` build records from
 // what they are given and read no host state, so a derivation given up leaves nothing a later one
 // could read.

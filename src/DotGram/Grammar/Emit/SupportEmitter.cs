@@ -224,7 +224,7 @@ static class SupportEmitter
 				/// <remarks>
 				/// Nothing written here changes what is read; it changes what a value knows
 				/// about itself. Name an interface declaring <c>void Locate(int at, int length)</c>
-				/// — with <c>UsePerCallLocations</c>, <c>void Locate(int at, int length, int gapStart)</c>
+				/// — with <c>UsePerCallLocations</c>, that or <c>void Locate(int at, int length, int gapStart)</c>
 				/// — and every rule whose value implements it is handed the range of input it was
 				/// built from: the rule's own text, without the trivia around it, so that a
 				/// comment falls between two of them rather than inside one. It is called through
@@ -238,7 +238,9 @@ static class SupportEmitter
 				/// grammars are recognizers.
 				///
 				/// <c>Locate</c> is called once, by the reader, on a value it has just made and
-				/// nothing has yet seen.
+				/// nothing has yet seen. A rule that hands back a value another rule made
+				/// (<c>=&gt; @(e)</c>) tells it nothing: the value keeps the range of the rule that
+				/// built it.
 				/// </remarks>
 				public global::System.Type LocationType { get; set; }
 
@@ -321,9 +323,11 @@ static class SupportEmitter
 				/// nested class of that name holds the same published methods, each of them asking. A call that does
 				/// not ask pays a test per construction and nothing else.
 				///
-				/// The interface then offers <c>Locate(int at, int length, int gapStart)</c>, where
+				/// The interface may then offer <c>Locate(int at, int length, int gapStart)</c>, where
 				/// the gap start is where the text between the value and the token before it
-				/// begins: the end of that token, or where the reading began.
+				/// begins: the end of that token, or where the reading began. One that offers only
+				/// <c>Locate(int at, int length)</c> is told no gap; one that offers both is told
+				/// through the three-argument form.
 				/// </remarks>
 				public bool UsePerCallLocations { get; set; }
 			}

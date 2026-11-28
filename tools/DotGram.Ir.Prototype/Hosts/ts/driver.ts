@@ -34,6 +34,10 @@ const batch = readFileSync(batchPath);
 const count = batch.readInt32LE(0);
 const out: string[] = [];
 const P = new Runtime();
+const counting = process.env.IR_COUNTS !== undefined;
+
+P.anyOwner = process.env.IR_ANY_OWNER !== undefined;
+P.noCutCheck = process.env.IR_NO_CUT_CHECK !== undefined;
 
 let at = 4;
 
@@ -74,8 +78,18 @@ for (let i = 0; i < count; i++)
 		out.push("T " + (thrown instanceof RangeError ? "stack" : String((thrown as Error).message)));
 	}
 
-	for (const call of takeLog())
-		out.push("L " + call);
+	const calls = takeLog();
+
+	// Where only the counts are asked for, the calls are counted and not written.
+	const peak = P.held();
+
+	P.release(4096);
+
+	if (counting)
+		out.push("K " + P.kSteps + " " + P.kEntered + " " + P.retries + " " + P.kJumps + " " + calls.length + " " + peak + " " + P.held());
+	else
+		for (const call of calls)
+			out.push("L " + call);
 
 	out.push(".");
 }

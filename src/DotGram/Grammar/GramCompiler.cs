@@ -76,6 +76,47 @@ static partial class GramCompiler
 		if (options is null)
 			throw new ArgumentNullException(nameof(options));
 
+		// Settled copies only where every machine of the file is a reader over a string: an engine, a
+		// machine over a buffer, from a position or over tokens records what a refusal expected from
+		// how each place was printed, and a copy can be printed another way. What cannot be read so is
+		// known before anything is compiled where the options say it; the rest is known from the plan,
+		// and where it is not all readers the grammar is compiled again as though there were no copies,
+		// so that the file is the one it would have been.
+		if (Settles(options))
+		{
+			var settled = Compile(language, grammarText, options, settle: true, told: null, out var dropped);
+
+			if (dropped is null)
+				return settled;
+
+			return Compile(language, grammarText, options, settle: false, dropped, out _);
+		}
+
+		return Compile(language, grammarText, options, settle: false, told: null, out _);
+	}
+
+	/// <summary>
+	/// Whether the options leave room for settled copies: not where the author asked for another reading
+	/// — over kinds, by the engine, or over a buffer — and nothing is said then. Where they are not asked
+	/// for, no file is compiled with copies, so no machine that reads tokens again can be one of a file that has them.
+	/// </summary>
+	internal static bool Settles(GramCompilerOptions options)
+	{
+		return options.SettleRunTails && !options.Lexical && options.Direct && !options.BufferedInput && !options.BufferedBytes;
+	}
+
+	/// <summary>
+	/// The same, with settled copies or without; with them, nothing where a machine of the file is not a
+	/// reader over a string, and <paramref name="dropped"/> what the author is told of the copies that
+	/// were then dropped (<see cref="Dropped"/>), which the grammar compiled again without them says
+	/// as <paramref name="told"/>.
+	/// </summary>
+	static GramCompilation Compile(
+		ITargetLanguage language, string grammarText, GramCompilerOptions options, bool settle,
+		IReadOnlyList<GramDiagnostic>? told, out IReadOnlyList<GramDiagnostic>? dropped)
+	{
+		dropped = null;
+
 		var sources     = new List<GeneratedSource>();
 		var diagnostics = new List<GramDiagnostic>();
 
@@ -105,7 +146,17 @@ static partial class GramCompiler
 		options.Bound?.Invoke(model);
 
 		var graph = GrammarNormalizer.NormalizeIn(
-			model, language, options.PositionalFollow, options.PositionalFollowSplit, options.CollapseForwarders);
+			model, language, options.PositionalFollow, options.PositionalFollowSplit, options.CollapseForwarders, settle);
+
+		// What the publications ask for alone says that some machine will not be a reader over a string.
+		var readersOnly = graph.Settled.Count > 0;
+
+		if (readersOnly && Blocked(graph) is { } blocked)
+		{
+			dropped = Dropped(graph, blocked);
+
+			return new GramCompilation([], []);
+		}
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
@@ -117,6 +168,11 @@ static partial class GramCompiler
 		foreach (var diagnostic in model.Diagnostics)
 			if (!Inside(broken, diagnostic))
 				diagnostics.Add(diagnostic);
+
+		if (told is not null)
+			foreach (var diagnostic in told)
+				if (!Inside(broken, diagnostic))
+					diagnostics.Add(diagnostic);
 
 		foreach (var diagnostic in graph.Diagnostics)
 			if (!Inside(broken, diagnostic))
@@ -192,6 +248,12 @@ static partial class GramCompiler
 
 		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics, language) : null;
 
+		// A rule that can come back to itself through a recognizer that does not move, said of the graph
+		// over characters: in a grammar cut in two its terminals are read over them by the tokenizer, and
+		// its syntactic half calls no recognizer (GRAM5004 keeps a cut from one).
+		if (!HasErrors(diagnostics))
+			diagnostics.AddRange(Reentry.Check(graph));
+
 		// Trivia that gives back characters a class beside it also reads: exponential on a refused
 		// input. Over characters only — a grammar cut in two reads its trivia with a scanner, which
 		// never gives back what it took.
@@ -241,12 +303,20 @@ static partial class GramCompiler
 			SourceParts   = sourceParts,
 			Carriers      = carriers,
 			SharedChoices = shared,
+			ReadersOnly   = readersOnly,
 		};
 
 		// Nothing where the plan refused what the grammar asks of the target: that is said, and no
 		// parser is written.
 		if (!HasErrors(diagnostics) && language.Emit(lexical?.Syntax ?? graph, options, context) is { } text)
 			sources.Add(new GeneratedSource(language.SourceName(options, 0), text));
+
+		if (context.LeftTheReaders)
+		{
+			dropped = Dropped(graph, context.Blocked);
+
+			return new GramCompilation([], []);
+		}
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(language.SourceName(options, part + 1), sourceParts[part]));
@@ -259,9 +329,96 @@ static partial class GramCompiler
 			Carriers = carriers,
 			Plan = context.Plan,
 			Printed = context.Printed,
+			Graph = graph,
 			Names = sources.Count == 0 ? null : language.NamesOf(
 				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source], options),
 		};
+	}
+
+	/// <summary>
+	/// What puts a file beyond the readers before anything is planned: a grammar that reads segments, or
+	/// the first publication, in the order written, that asks for what no reader over a string can give or
+	/// is given a window form beside it, a <c>parse</c> with no result type. Null where the plan has to say:
+	/// it is the plain <c>parse</c>, which is not a reader for a reason of its own.
+	/// </summary>
+	static SettleBlock? Blocked(RecognitionGraph graph)
+	{
+		if (graph.Segmented)
+			return new SettleBlock(SettleCause.Segments, null);
+
+		foreach (var publication in graph.Publications)
+		{
+			if (SettleBlock.Asked(publication) is { } asked)
+				return new SettleBlock(asked, publication);
+
+			if (Retention.Streams(graph, publication))
+				return new SettleBlock(SettleCause.Window, publication);
+		}
+
+		return null;
+	}
+
+	/// <summary>
+	/// The directive that gives a <c>parse</c> a result type, as the author writes it: <c>parse Items</c>,
+	/// and <c>parse Items as Many</c> where the publication is not called what the directive calls it by default.
+	/// </summary>
+	static string Directive(Publication publication)
+	{
+		var named = publication.MethodName == Publication.DefaultMethodName(publication.Kind, publication.Rule.Name);
+
+		return $"parse {publication.Rule.Name}" + (named ? "" : $" as {publication.MethodName}");
+	}
+
+	/// <summary>
+	/// What the author is told of the settled copies a file is compiled without, because a machine of it
+	/// is not a reader over a string: one message for each rule whose copy would have settled a run with
+	/// no upper bound, at the rule, with the cause (<see cref="SettleBlock"/>) and what can be done about it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Without the copy, a refusal inside a long run of the rule is read again for every place the run
+	/// can be cut, as many as the run has characters, and each of them reads the rest of the run:
+	/// time quadratic in its length. A run with an upper bound costs no more than the bound, so it is
+	/// not told. The publication named is the first, in the order written, of the cause; the remedy is
+	/// only one that can be done: a <c>find</c> is always read by the engine, so it is moved; a grammar
+	/// that reads segments has no publication to blame and nothing to move, so it is only informed
+	/// (<see cref="SettledDroppedSegments"/>). Nothing is said where no publication is of a cause.
+	/// </para>
+	/// </remarks>
+	static IReadOnlyList<GramDiagnostic> Dropped(RecognitionGraph graph, SettleBlock? block)
+	{
+		if (block is null)
+			return [];
+
+		var by   = block.By?.MethodName;
+		var move = $"Move '{by}' into its own grammar.";
+		var told = new List<GramDiagnostic>();
+
+		var (reason, remedy) = block.Cause switch
+		{
+			SettleCause.Engine   => ($"publication '{by}' runs on the engine", $"Read '{by}' by methods, or move it into its own grammar."),
+			SettleCause.Find     => ($"publication '{by}' runs on the engine", move),
+			SettleCause.Window   => ($"publication '{by}' is also read a window at a time, on the engine",
+				$"Give '{by}' a result type ({Directive(block.By!)} : @T), or move it into its own grammar."),
+			SettleCause.Position => ($"publication '{by}' is read from a position", move),
+			SettleCause.Stream   => ($"publication '{by}' reads a stream", move),
+			SettleCause.Flat     => ($"publication '{by}' is compiled flat", move),
+			_                    => ("the grammar reads segments ('eos')", ""),
+		};
+
+		foreach (var rule in graph.SettledRuns)
+		{
+			var text = $"Rule '{rule.Name}' is read without its settled copy because {reason}, " +
+				$"so a refusal inside a long run of '{rule.Name}' takes time quadratic in its length." +
+				(remedy.Length == 0 ? "" : " " + remedy);
+			var at   = rule.Declaration?.At ?? default;
+
+			told.Add(block.Cause == SettleCause.Segments
+				? new GramDiagnostic(SettledDroppedSegments, text, at.Position, at.Length, GramSeverity.Info)
+				: new GramDiagnostic(SettledDropped, text, at.Position, at.Length, GramSeverity.Warning));
+		}
+
+		return told;
 	}
 
 	/// <summary>A grammar cut in two, or null with a word about why it was not.</summary>
@@ -430,6 +587,12 @@ static partial class GramCompiler
 
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>
 	public const string NotCut = "GRAM5004";
+
+	/// <summary>A rule ending in a run with no upper bound is read without its settled copy, because a publication is not read by methods over a string.</summary>
+	public const string SettledDropped = "GRAM5022";
+
+	/// <summary>The same, said as information, of a grammar that reads segments: nothing is to be moved or changed.</summary>
+	public const string SettledDroppedSegments = "GRAM5023";
 
 	/// <summary>A repetition can read one run of text in two ways, so a refused input is read again for every way of cutting it.</summary>
 	public const string ExponentialRepetitions = "GRAM4052";

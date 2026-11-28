@@ -871,6 +871,10 @@ public static partial class SqlWriter
 					break;
 
 				case DataType.Array array:
+					// SETOF stands before the whole type: `SETOF int[]` reads back as a set of arrays.
+					if (array.ElementType is DataType.SetOf)
+						throw Misplaced(array, "ElementType", "that is a SETOF, which stands before a whole type and its bounds and reads back around the array");
+
 					PutType(array.ElementType);
 
 					// PostgreSQL's `t[n]` and `t[]`, against the standard's `t ARRAY[n]`.
@@ -905,6 +909,9 @@ public static partial class SqlWriter
 					break;
 
 				case DataType.Multiset multiset:
+					if (multiset.ElementType is DataType.SetOf)
+						throw Misplaced(multiset, "ElementType", "that is a SETOF, which no reading takes inside a type");
+
 					PutType(multiset.ElementType);
 					Word("MULTISET");
 					break;
@@ -966,15 +973,15 @@ public static partial class SqlWriter
 
 					break;
 
-				// PostgreSQL: SETOF before a type, which the tree holds as an extension until a record of its own says it.
-				case DataType.Extension { Dialect: "PostgreSQL", Name: "SETOF", Arguments: [DataType element] } setOf:
+				// PostgreSQL: SETOF before a type written in full, gram.y's Typename, and nowhere inside one.
+				case DataType.SetOf setOf:
 					OnlyPostgreSql(setOf);
 
-					if (element is DataType.Extension)
-						throw Misplaced(setOf, "Arguments", "of another extension, which SETOF does not take");
+					if (setOf.ElementType is DataType.SetOf)
+						throw Misplaced(setOf, "ElementType", "that is another SETOF, which gram.y does not read after SETOF");
 
 					Word("SETOF");
-					PutType(element);
+					PutType(setOf.ElementType);
 					break;
 
 				default:
@@ -1711,6 +1718,10 @@ public static partial class SqlWriter
 
 						if (cast.Value is not LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.Escaped or StringLiteralKind.Dollar or StringLiteralKind.Unicode, CharacterSet: null } typed)
 							throw Misplaced(cast, "Value", "other than a plain string on a typed literal, which is a type and a string");
+
+						// gram.y ConstTypename, which has no SETOF.
+						if (cast.Target is DataType.SetOf)
+							throw Misplaced(cast, "Target", "that is a SETOF, which a typed literal's type does not take");
 
 						// `INTERVAL E'1' DAY`: the qualifier stands after the string, as the interval literal's does.
 						if (cast.Target is DataType.Interval { Qualifier: { } typedQualifier, Precision: null })

@@ -41,6 +41,11 @@
 	</ItemGroup>
 
 	<PropertyGroup>
+		<!-- The playground is written to try the extension's tooling on every directive, a find among them
+		     (ToolingFound, over the rule Row). A file with a find is read by the engine, so a rule that ends
+		     in a run is read without its settled copy (GRAM5022); nothing here reads a long run refused at
+		     its end, and the grammars are shown to Visual Studio, not run. -->
+		<NoWarn>$(NoWarn);GRAM5022</NoWarn>
 		<MeziantouPolyfill_IncludedPolyfills>T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
 	</PropertyGroup>
 

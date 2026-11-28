@@ -210,9 +210,15 @@ sealed partial class GrammarNormalizer
 	/// (<see cref="CollapseTransparent"/>). Always, but for a test that holds a trace build's frames
 	/// of the forwarding rules to a parser that calls them as written.
 	/// </param>
+	/// <param name="settle">
+	/// Whether a rule that ends in a run giving characters back gets a copy that does not, for the
+	/// calls where nothing could take them (<see cref="SettleRunTails"/>). Asked by the compiler for a
+	/// grammar read over characters where its options settle (the editor's do not, since the copies
+	/// change only the parser printed); not by a question about the graph itself.
+	/// </param>
 	public static RecognitionGraph NormalizeIn(
 		GrammarModel model, ITargetLanguage language,
-		bool positionalFollow = false, bool positionalSplit = false, bool collapse = true)
+		bool positionalFollow = false, bool positionalSplit = false, bool collapse = true, bool settle = false)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -222,7 +228,9 @@ sealed partial class GrammarNormalizer
 
 		var normalizer = new GrammarNormalizer(model, language)
 		{
-			_segmented = NamesEndOfSegment(model),
+			_segmented        = NamesEndOfSegment(model),
+			_positionalFollow = positionalFollow,
+			_positionalSplit  = positionalSplit,
 		};
 
 		normalizer.Collect(model.Root);
@@ -360,6 +368,11 @@ sealed partial class GrammarNormalizer
 		normalizer.LiftNestedRecoveries();
 		normalizer.LiftTabledSyncs();
 
+		// After every pass that rewrites or makes a rule, so that a copy is made of the body as it is
+		// emitted; before pruning, which drops a rule every call of which went to its copy.
+		if (settle)
+			normalizer.SettleRunTails();
+
 		normalizer.Prune();
 
 		// After pruning, because a rule nothing reaches is never emitted, and a mark in one
@@ -428,6 +441,15 @@ sealed partial class GrammarNormalizer
 
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
 			ReferenceTypes = ReferenceTypes(normalizer, model.Root, Imports(model.Root)),
+
+			Settled    = normalizer._settledFrom
+				.Where(pair => normalizer._rules.Contains(pair.Key))
+				.ToDictionary(pair => pair.Key, pair => pair.Value),
+			SettledNodes = normalizer._settledNodes,
+			SettledRuns  = [.. normalizer._settledFrom
+				.Where(pair => normalizer._rules.Contains(pair.Key) && normalizer._settledRuns.Contains(pair.Key))
+				.Select(static pair => pair.Value)
+				.OrderBy(static rule => rule.Declaration?.At.Position ?? 0)],
 
 			// Not read here: carried for FollowSets, which every later stage asks.
 			PositionalFollow = positionalFollow,

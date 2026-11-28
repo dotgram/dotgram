@@ -9,6 +9,9 @@ namespace DotGram.Ir.Prototype;
 /// <summary>Thrown where a program does what the tree's own rules say it never does.</summary>
 sealed class IrContractViolation(string message) : Exception(message);
 
+/// <summary>Thrown where a reading ran more statements than it was given: what stops a reading that would not end.</summary>
+sealed class IrStepsExceeded(long steps) : Exception("The reading ran more than " + steps.ToString(CultureInfo.InvariantCulture) + " statements.");
+
 /// <summary>The host's side of a program: its fragments, called by number.</summary>
 interface IIrHost
 {
@@ -63,6 +66,15 @@ sealed class IrWays
 {
 	int[] _items = new int[32];
 
+	// When each entry was last written fresh: an entry read at an index is the same one only while this holds.
+	int[] _stamps = new int[16];
+	int   _stamp;
+
+	public int StampAt(int way)
+	{
+		return _stamps[way];
+	}
+
 	public int Count  { get; set; }
 	public int Cursor { get; set; }
 
@@ -72,8 +84,13 @@ sealed class IrWays
 	/// <summary>How many times a reading was asked for again.</summary>
 	public int Retries { get; private set; }
 
+	/// <summary>How many decisions were opened or read back.</summary>
+	public long Entered { get; private set; }
+
 	public (int Way, int Decision) Enter(int last)
 	{
+		Entered++;
+
 		if (Cursor < Count)
 		{
 			var replayed = Cursor++;
@@ -86,6 +103,11 @@ sealed class IrWays
 
 		_items[Count * 2]     = 0;
 		_items[Count * 2 + 1] = last;
+
+		if (Count >= _stamps.Length)
+			Array.Resize(ref _stamps, _stamps.Length * 2);
+
+		_stamps[Count] = ++_stamp;
 		Count++;
 		Cursor = Count;
 		Most   = Math.Max(Most, Count);
@@ -162,55 +184,594 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	public IrWays Ways { get; private set; } = new();
 
 	/// <summary>
-	/// Whether a repetition read again goes straight to the turn the reading is asked for, rather
-	/// than through every turn before it: each repetition that may give turns back then opens a
-	/// decision of its own that can never be moved, which names this entry of it on the tape, and
-	/// each turn leaves what the repetition held as it began.
+	/// Whether a replay goes straight to where the reading before it stood, rather than reading
+	/// again everything before the decision it was asked to change: each statement
+	/// <see cref="ResumptionSites"/> keeps opens a decision of its own that can never be moved —
+	/// its sentinel, which names this entry of it on the tape — and a replay that reads a sentinel
+	/// back takes what was kept of it: where a repetition's last kept turn began, or where the
+	/// statement ended and what it left in the slots it writes.
 	/// </summary>
-	public bool Resumes { get; init; }
+	/// <remarks>
+	/// <para>
+	/// What a reading keeps it keeps only while it reads decisions back (the cursor short of the
+	/// tape's end): the first reading of anything keeps nothing, so a reading that is accepted
+	/// pays a sentinel at each kept statement and nothing a turn. The first replay to pass a
+	/// statement keeps it; the replays after go straight past.
+	/// </para>
+	/// <para>
+	/// A record is good while every decision read before the place it names is still on the
+	/// tape: its key is the cursor at that place (the start of a turn, the end of a statement),
+	/// and wherever the tape is cut below a key the record goes. Records are kept on one stack in
+	/// the order of their keys, which is what lets a cut pop them from the top; a record pushed
+	/// below the top is a broken promise and stops the reading (<see cref="IrContractViolation"/>).
+	/// </para>
+	/// </remarks>
+	public bool Resumes { get => _resumes; init => _resumes = _configured = value; }
 
-	/// <summary>How many times a repetition read again went straight to a turn.</summary>
-	public long Jumps { get; private set; }
+	bool _resumes;
+	bool _configured;
 
-	/// <summary>What a repetition held as one of its turns began.</summary>
-	sealed record Turn(int Way, int Position, int Turns, object?[] Held, int[] Counts);
+	/// <summary>
+	/// Restart by budget, where above nought: a reading that does not resume charges every reading
+	/// again of a region (a replay, braces, a look, a choice's alternative, a turn, an attempt that
+	/// stood read once more) with what it reads again — the furthest position inspected less where the
+	/// region began, at least one — and once the charges pass this many times the furthest position
+	/// inspected (inside looks too) plus one, it is given up and the input read again from the start,
+	/// resuming. What the printed C parser of <see cref="SliceAblation.RestartByBudget"/> does, so that
+	/// its host calls are these.
+	/// </summary>
+	public int RestartBudget { get; init; }
 
-	/// <summary>One entry of a repetition, named by the decision it opened as it began.</summary>
-	sealed class Loop(int sentinel)
+	/// <summary>
+	/// The budget of a refusal's second reading (<see cref="ParseQuietlyFirst"/>), where not
+	/// <see cref="RestartBudget"/>'s: a test's way to make that reading give up where the first did not.
+	/// </summary>
+	public int? SecondReadingBudget { get; init; }
+
+	/// <summary>How many readings were given up and read again from the start, resuming (<see cref="RestartBudget"/>).</summary>
+	public int Restarts { get; private set; }
+
+	/// <summary>The statements run before the last reading given up was (<see cref="Steps"/> counts them too).</summary>
+	public long StepsGivenUp { get; private set; }
+
+	/// <summary>What the reading under way has been charged, and the furthest position it has inspected.</summary>
+	public long ReRead => _reread;
+
+	public int Furthest => _far;
+
+	/// <summary>The furthest position inspected when the last reading given up was.</summary>
+	public int FurthestAtRestart { get; private set; }
+
+	long _reread;
+	int  _far = -1;
+	int  _budget;
+	bool _startResuming;
+	bool _second;
+
+	sealed class RestartReading : Exception;
+
+	/// <summary>A region read again from <paramref name="start"/>: charged, and the reading given up past the budget.</summary>
+	void Charge(int start)
 	{
-		public int        Sentinel { get; } = sentinel;
-		public List<Turn> Turns    { get; } = [];
+		if (_budget == 0 || _resumes)
+			return;
+
+		if (_refusedAt < _lastRefusedAt)
+			throw new IrContractViolation("Restart by budget: the furthest refusal moved back.");
+
+		_lastRefusedAt = _refusedAt;
+
+		var position = Math.Max(_refusedAt, _far);
+
+		_reread += Math.Max(1, position - start);
+
+		if (_reread > (long)_budget * (_text.Length + 1))
+			throw new RestartReading();
 	}
 
-	readonly Dictionary<int, Loop>   _loops   = [];
-	readonly List<Loop>              _entered = [];
-	readonly List<(Loop Of, Turn At)> _begun  = [];
+	int _lastRefusedAt = -1;
 
-	/// <summary>The tape was cut: what was kept of decisions no longer on it goes with them.</summary>
+	// How far each look reads (restart by budget), the function being read, and how many looks without
+	// a bound to their reach the reading stands in.
+	LookReach?  _reach;
+	IrFunction? _current;
+	int         _unboundedLooks;
+
+	/// <summary>
+	/// Restart by budget without the looks' reach (wrong on purpose): a reading again whose work is a
+	/// long failed look is charged as if it had read nothing, which a ladder of such looks shows.
+	/// </summary>
+	public bool NoLookClause { get; init; }
+
+	/// <summary>Called as a reading is given up, before it is read again: where a test marks the host's calls so far.</summary>
+	public Action? Restarting { get; init; }
+
+	/// <summary>
+	/// Wrong on purpose: a sentinel takes the latest record of any owner kept past it, as a store
+	/// keyed by the position on the tape alone would, rather than its own; and nothing checks the
+	/// owner. What the test of the owner check runs to show that the check is what holds.
+	/// </summary>
+	public bool AnyOwner { get; init; }
+
+	/// <summary>
+	/// Whether the reading builds throughout, where the plan says a loop that asks for another
+	/// reading stops building after its second give-back (<see cref="IrStmt.Replay.Defers"/>):
+	/// what a reading is held to where the reading it is compared with does not defer.
+	/// </summary>
+	public bool BuildsThroughout { get; init; }
+
+	/// <summary>How many times a replay went straight to a turn of a repetition.</summary>
+	public long Jumps { get; private set; }
+
+	/// <summary>How many times a replay went straight past a statement it had read before.</summary>
+	public long Skips { get; private set; }
+
+	/// <summary>Of the sentinels a reading opened, how many at each kind of statement and why it keeps a record.</summary>
+	public Dictionary<string, long> SentinelsBy { get; } = new(StringComparer.Ordinal);
+
+	void Opened(IrStmt stmt)
+	{
+		Sentinels++;
+
+		var kind = stmt.GetType().Name + ": " + _sites.Sites[stmt];
+
+		SentinelsBy[kind] = SentinelsBy.GetValueOrDefault(kind) + 1;
+	}
+
+	/// <summary>Whether a kept statement opens its sentinel here: where the next item can begin what it reads (<see cref="ResumptionSites.Doors"/>).</summary>
+	bool Opens(IrStmt stmt)
+	{
+		return !_sites.Doors.TryGetValue(stmt, out var door) || _p < _text.Length && Within(door, _text[_p]);
+	}
+
+	/// <summary>
+	/// Measured: how many times a sentinel was entered whose (cursor before it, statement, position)
+	/// was the same as that of another sentinel still on the tape — two entries a key of those three
+	/// alone could not tell apart.
+	/// </summary>
+	public long Collisions { get; private set; }
+
+	readonly Dictionary<(int Site, int Cursor, int Position), (int Sentinel, int Stamp)> _byKey = [];
+	readonly Dictionary<IrStmt, int> _siteIds = new(ReferenceEqualityComparer.Instance);
+
+	void Collide(IrStmt stmt, int cursor, int position, int sentinel)
+	{
+		if (!_siteIds.TryGetValue(stmt, out var site))
+			_siteIds.Add(stmt, site = _siteIds.Count);
+
+		var key = (site, cursor, position);
+
+		if (_byKey.TryGetValue(key, out var other) && other.Sentinel != sentinel && other.Sentinel < Ways.Count && Ways.StampAt(other.Sentinel) == other.Stamp)
+			Collisions++;
+
+		_byKey[key] = (sentinel, Ways.StampAt(sentinel));
+	}
+
+	/// <summary>How many times a reading entered a kept statement, a sentinel opened or not.</summary>
+	public long SiteEntries { get; private set; }
+
+	/// <summary>Of the entries into kept statements, how many at each statement.</summary>
+	public Dictionary<IrStmt, long> EntriesBy { get; } = new(ReferenceEqualityComparer.Instance);
+
+	/// <summary>Of each entry into a kept repetition: the turns it took and the items it read.</summary>
+	public List<(int Turns, int Read)> LoopEntries { get; } = [];
+
+	/// <summary>Measured, resuming or not: the calls a reading makes, and of them those made where the tape is read back.</summary>
+	public long Calls { get; private set; }
+
+	/// <inheritdoc cref="Calls"/>
+	public long CallsBack { get; private set; }
+
+	/// <summary>Measured: the calls into a function that keeps a statement, the entries a form with a twin a function compares.</summary>
+	public long CallsWithPlaces { get; private set; }
+
+	readonly Dictionary<IrFunction, bool> _places = [];
+
+	bool HasPlaces(IrFunction function)
+	{
+		if (!_places.TryGetValue(function, out var has))
+			_places.Add(function, has = Keeps(function.Body));
+
+		return has;
+
+		bool Keeps(IrStmt stmt)
+		{
+			return _sites.Keeps(stmt) || stmt.Children.Any(Keeps);
+		}
+	}
+
+	/// <summary>Measured, resuming or not: the entries into kept statements, and of them those made where the tape is read back.</summary>
+	public long KeptEntries { get; private set; }
+
+	/// <inheritdoc cref="KeptEntries"/>
+	public long KeptEntriesBack { get; private set; }
+
+	void Entered(IrStmt stmt)
+	{
+		SiteEntries++;
+		EntriesBy[stmt] = EntriesBy.GetValueOrDefault(stmt) + 1;
+	}
+
+	/// <summary>How many records a reading kept, in all.</summary>
+	public long Records { get; private set; }
+
+	/// <summary>The most records a reading kept at once.</summary>
+	public int MostKept { get; private set; }
+
+	/// <summary>How many sentinels a reading opened, read back ones apart: what a reading pays for being resumable.</summary>
+	public long Sentinels { get; private set; }
+
+	/// <summary>Where a turn of a repetition began, or where a kept statement ended, and what it held there.</summary>
+	/// <param name="Owner">The sentinel of the statement's entry.</param>
+	/// <param name="Key">The cursor at that place: the record is good while the tape is not cut below it.</param>
+	/// <param name="Prev">The owner's record before this one, or -1.</param>
+	sealed record Kept(
+		bool IsEnd, int Owner, IrStmt Site, int Key, int Prev, int Position, int Turns, bool Read, int Unbuilt, object?[] Held, int[] Counts)
+	{
+		/// <summary>How many cuts were remembered before it was made: a cut remembered after it, to or below its key, makes it stale.</summary>
+		public long Serial { get; init; }
+
+		/// <summary>How many lists had been shortened before it was made (<see cref="Gathered"/>).</summary>
+		public long Shortened { get; init; }
+	}
+
+	/// <summary>
+	/// A list a slot gathers, and the lengths it was shortened to: a record holds the list itself and
+	/// how long it was, so it stands for what the list held only while the list was never shortened
+	/// below that length after it was made — once it was, the items it held are gone, or are others
+	/// added since.
+	/// </summary>
+	/// <remarks>
+	/// Kept as the tape's cuts are (<see cref="_cuts"/>): a later shortening to a length no longer than
+	/// an earlier one's takes its place, so the lengths rise from the bottom and so do the serials.
+	/// </remarks>
+	sealed class Gathered : List<object?>
+	{
+		public readonly List<(long Serial, int Length)> Cuts = [];
+	}
+
+	long _shortened;
+
+	/// <summary>A list shortened to <paramref name="length"/>, the shortening remembered where it took anything away.</summary>
+	void Shorten(List<object?> items, int length)
+	{
+		if (items.Count <= length)
+			return;
+
+		items.RemoveRange(length, items.Count - length);
+
+		if (items is not Gathered gathered)
+			return;
+
+		while (gathered.Cuts.Count > 0 && gathered.Cuts[^1].Length >= length)
+			gathered.Cuts.RemoveAt(gathered.Cuts.Count - 1);
+
+		gathered.Cuts.Add((++_shortened, length));
+	}
+
+	/// <summary>Whether every list a record holds still holds, at its front, what it held when the record was made.</summary>
+	bool ListsHold(Kept kept)
+	{
+		for (var i = 0; i < kept.Held.Length; i++)
+		{
+			if (kept.Held[i] is not Gathered { Cuts: var cuts } || cuts.Count == 0 || cuts[^1].Serial <= kept.Shortened)
+				continue;
+
+			// The shortest the list was cut to since the record is the first cut remembered after it.
+			int low = 0, high = cuts.Count - 1;
+
+			while (low < high)
+			{
+				var middle = (low + high) / 2;
+
+				if (cuts[middle].Serial > kept.Shortened)
+					high = middle;
+				else
+					low = middle + 1;
+			}
+
+			if (cuts[low].Length < kept.Counts[i])
+				return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// The cuts made while any record is kept, those that matter only: a later cut to a lower or
+	/// equal place takes the place of an earlier one, so that the places rise from the bottom and
+	/// so do the serials. A record is stale once a cut remembered after it went to its key or below.
+	/// </summary>
+	readonly List<(long Serial, int Key)> _cuts = [];
+
+	long _serial;
+
+	/// <summary>
+	/// Wrong on purpose: a record is taken as good whatever was cut after it was made. What the
+	/// test of the cut check runs to show that the check is what keeps a stale record from standing.
+	/// </summary>
+	public bool NoCutCheck { get; init; }
+
+	/// <summary>How many times a lookup passed over a record made stale by a cut below its key.</summary>
+	public long Stale { get; private set; }
+
+	/// <summary>The most records the store held at once, stale ones still in it included.</summary>
+	public int MostStored { get; private set; }
+
+	/// <summary>Whether a cut remembered after the serial went to the key or below.</summary>
+	bool CutAfter(long serial, int key)
+	{
+		if (_cuts.Count == 0)
+			return false;
+
+		var top = _cuts[^1];
+
+		if (top.Serial <= serial)
+			return false;
+
+		if (top.Key <= key)
+			return true;
+
+		// The lowest cut remembered after the serial is the lowest place cut to since then.
+		int low = 0, high = _cuts.Count - 1;
+
+		while (low < high)
+		{
+			var middle = (low + high) / 2;
+
+			if (_cuts[middle].Serial > serial)
+				high = middle;
+			else
+				low = middle + 1;
+		}
+
+		return _cuts[low].Key <= key;
+	}
+
+	bool Good(Kept kept)
+	{
+		return NoCutCheck || kept.Key < Ways.Count && !CutAfter(kept.Serial, kept.Key) && ListsHold(kept);
+	}
+
+	readonly List<Kept>           _kept  = [];
+	readonly Dictionary<int, int> _heads = [];
+
+	ResumptionSites  _sites    = null!;
+	ResumptionSites? _measured;
+
+	/// <summary>Which statements keep a record (<see cref="ResumptionSites"/>).</summary>
+	public ResumptionCriterion Criterion { get; init; } = ResumptionCriterion.FailsBack;
+
+	/// <summary>A criterion the reading is measured against: <see cref="WouldHaveJumped"/> counts where it would have left a record out.</summary>
+	public ResumptionCriterion? Measured { get; init; }
+
+	/// <summary>How many times a replay went straight to a turn or past a statement that <see cref="Measured"/> would have left without a record.</summary>
+	public long WouldHaveJumped { get; private set; }
+
+	/// <summary>
+	/// Of <see cref="WouldHaveJumped"/>, the records taken where the reading again is a retry's (a
+	/// replay, braces, an alternative or a turn read again over a decision moved): a statement
+	/// <see cref="Measured"/> leaves out that such a reading would read again in full.
+	/// </summary>
+	public long WouldHaveReRead { get; private set; }
+
+	/// <summary>
+	/// Of <see cref="WouldHaveJumped"/>, the records taken where the reading again is a deferred
+	/// attempt read once more, built, over the decisions it took (<see cref="Stood"/>).
+	/// </summary>
+	public long ReReadByStood { get; private set; }
+
+	/// <summary>How many times an attempt that stood was read once more; at most once an entry into its loop.</summary>
+	public long StoodReReads { get; private set; }
+
+	// Of every loop that reads its body again, innermost last: 0 on its first reading, 1 read again
+	// after a retry, 2 read again after an attempt stood.
+	readonly List<int> _readings = [];
+
+	void Took(IrStmt site)
+	{
+		if (_measured is null || _measured.Keeps(site))
+			return;
+
+		WouldHaveJumped++;
+
+		var cause = 0;
+
+		for (var i = _readings.Count - 1; i >= 0 && cause == 0; i--)
+			cause = _readings[i];
+
+		if (cause == 2)
+			ReReadByStood++;
+		else
+			WouldHaveReRead++;
+	}
+
+	/// <summary>The tape was cut: what was kept of places no longer behind it goes.</summary>
 	void Cut()
 	{
-		if (!Resumes)
+		if (!_resumes)
 			return;
 
 		var count = Ways.Count;
 
-		while (_begun.Count > 0 && _begun[^1].At.Way >= count)
+		while (_kept.Count > 0 && _kept[^1].Key >= count)
 		{
-			var (of, _) = _begun[^1];
+			var kept = _kept[^1];
 
-			of.Turns.RemoveAt(of.Turns.Count - 1);
-			_begun.RemoveAt(_begun.Count - 1);
+			_heads[kept.Owner] = kept.Prev;
+			_kept.RemoveAt(_kept.Count - 1);
 		}
 
-		while (_entered.Count > 0 && _entered[^1].Sentinel >= count)
+		// A record below the top may be stale by this cut: the cut is remembered while any is kept.
+		if (_kept.Count == 0)
 		{
-			_loops.Remove(_entered[^1].Sentinel);
-			_entered.RemoveAt(_entered.Count - 1);
+			_cuts.Clear();
+
+			return;
 		}
+
+		while (_cuts.Count > 0 && _cuts[^1].Key >= count)
+			_cuts.RemoveAt(_cuts.Count - 1);
+
+		_cuts.Add((++_serial, count));
+
+		if (_cuts.Count > 1 && !(_cuts[^2].Key < _cuts[^1].Key && _cuts[^2].Serial < _cuts[^1].Serial))
+			throw new IrContractViolation("The cuts remembered are out of order.");
+	}
+
+	/// <summary>The latest record of a sentinel's entry, or null.</summary>
+	Kept? Head(int sentinel, IrStmt site)
+	{
+		if (AnyOwner)
+			return _kept.Count > 0 && _kept[^1].Key > sentinel ? _kept[^1] : null;
+
+		if (!_heads.TryGetValue(sentinel, out var head) || head < 0)
+			return null;
+
+		// The latest good record of the owner: stale ones on the way are passed over, and the
+		// owner's head moves to the first good one (nothing is taken out of the middle of the store).
+		for (var at = head; at >= 0;)
+		{
+			var found = _kept[at];
+
+			// A head is never cleared, as in the printed parsers: what it names may be left from an
+			// earlier entry at the same place on the tape, made stale by the cut that took that entry
+			// away. A good record is the entry's own.
+			if (Good(found))
+			{
+				if (found.Owner != sentinel || !ReferenceEquals(found.Site, site))
+					throw new IrContractViolation("A sentinel found a record that is not its own.");
+
+				_heads[sentinel] = at;
+
+				return found;
+			}
+
+			Stale++;
+			at = found.Prev;
+		}
+
+		_heads[sentinel] = -1;
+
+		return null;
+	}
+
+	/// <summary>
+	/// Whether a record can stand for what the reading would do: one made while building can, in
+	/// any reading — a reading that builds nothing reads no slot a record restores, but those its
+	/// guards read, which are filled alike; one made unbuilt only in a reading that builds nothing.
+	/// </summary>
+	bool Usable(Kept kept)
+	{
+		return kept.Unbuilt == 0 || _unbuilt > 0;
+	}
+
+	void Record(Kept kept)
+	{
+		var prev = _heads.TryGetValue(kept.Owner, out var head) ? head : -1;
+
+		Records++;
+
+		_heads[kept.Owner] = _kept.Count;
+		_kept.Add(kept with { Prev = prev, Serial = _serial, Shortened = _shortened });
+		MostKept   = Math.Max(MostKept, _kept.Count);
+		MostStored = Math.Max(MostStored, _kept.Count);
+	}
+
+	/// <summary>What the slots a statement writes hold now: values, and the length of each list with the list itself.</summary>
+	static (object?[] Held, int[] Counts) Hold(object?[] frame, IReadOnlyList<IrSlot> slots)
+	{
+		var held   = new object?[slots.Count];
+		var counts = new int[held.Length];
+
+		for (var i = 0; i < held.Length; i++)
+		{
+			held[i]   = frame[slots[i].Index];
+			counts[i] = held[i] is List<object?> items ? items.Count : 0;
+		}
+
+		return (held, counts);
+	}
+
+	/// <summary>
+	/// Wrong on purpose: going straight to a turn or past a statement leaves the slots as the
+	/// replay found them rather than as they were kept. What the test of the turns that write and
+	/// put back their slots runs to show that the record is what holds them.
+	/// </summary>
+	public bool IgnoresHeld { get; init; }
+
+	void Restore(object?[] frame, IReadOnlyList<IrSlot> slots, Kept kept)
+	{
+		if (IgnoresHeld)
+			return;
+
+		// As many as both have: a record of another statement's (taken only where the owner check is off on purpose) may hold others.
+		for (var i = 0; i < Math.Min(kept.Held.Length, slots.Count); i++)
+		{
+			if (kept.Held[i] is List<object?> items)
+				Shorten(items, kept.Counts[i]);
+
+			frame[slots[i].Index] = kept.Held[i];
+		}
+	}
+
+	/// <summary>The slots a kept statement writes: what is restored where a replay goes past it.</summary>
+	static IReadOnlyList<IrSlot> Writes(IrStmt stmt)
+	{
+		return stmt switch
+		{
+			IrStmt.Repeat repeat => repeat.Resets,
+			IrStmt.Commit commit => commit.Resets,
+			IrStmt.Look look     => look.Resets,
+			IrStmt.Call { Into: { } into } => [into],
+			_                    => [],
+		};
+	}
+
+	/// <summary>
+	/// A kept statement other than a repetition: its sentinel, and either what was kept of where
+	/// it ended, or the statement read and kept where the reading is a replay.
+	/// </summary>
+	bool Site(IrStmt stmt, object?[] frame)
+	{
+		var again  = Ways.Cursor < Ways.Count;
+		var before = Ways.Cursor;
+		var (sentinel, _) = Ways.Enter(0);
+		var writes = Writes(stmt);
+
+		Collide(stmt, before, _p, sentinel);
+
+		if (!again)
+			Opened(stmt);
+		else if (Head(sentinel, stmt) is { IsEnd: true } found && Usable(found))
+		{
+			_p          = found.Position;
+			Ways.Cursor = found.Key;
+			Restore(frame, writes, found);
+			Skips++;
+			Took(stmt);
+
+			return found.Read;
+		}
+
+		var read = ExecInner(stmt, frame);
+
+		// Kept once a reading; again only where what was kept was made unbuilt and this reading builds.
+		if (Ways.Cursor < Ways.Count && Head(sentinel, stmt) is var head && (head is null || !Usable(head)))
+		{
+			var (held, counts) = Hold(frame, writes);
+
+			Record(new Kept(true, sentinel, stmt, Ways.Cursor, -1, _p, 0, read, _unbuilt, held, counts));
+		}
+
+		return read;
 	}
 
 	/// <summary>How many statements ran: what a replay costs, counted and not timed.</summary>
 	public long Steps { get; private set; }
+
+	/// <summary>How many statements a reading may run before it is stopped (<see cref="IrStepsExceeded"/>).</summary>
+	public long StepBudget { get; init; } = long.MaxValue;
 
 	/// <summary>Reads the whole input as a publication.</summary>
 	/// <remarks>
@@ -272,7 +833,10 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		if (quiet.Accepted)
 			return (quiet, quiet, steps);
 
-		_unasked = 1;
+		// The second reading has a budget of its own; where the quiet reading gave up, it resumes from the start.
+		_unasked       = 1;
+		_second        = true;
+		_startResuming = Restarts > 0;
 
 		try
 		{
@@ -280,7 +844,9 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		}
 		finally
 		{
-			_unasked = 0;
+			_unasked       = 0;
+			_second        = false;
+			_startResuming = false;
 		}
 	}
 
@@ -288,6 +854,63 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	{
 		var function = program.Entries[entry];
 
+		_resumes = _configured || _startResuming;
+		_budget  = _second && SecondReadingBudget is { } second ? second : RestartBudget;
+		_reread  = 0;
+		_far     = -1;
+
+		_lastRefusedAt  = -1;
+		_unboundedLooks = 0;
+		_current        = null;
+		_reach        ??= new LookReach(program);
+
+		if (!_second)
+		{
+			Restarts     = 0;
+			StepsGivenUp = 0;
+		}
+
+		Begin(input);
+
+		WouldHaveJumped = 0;
+		Ways      = new IrWays();
+		Steps     = 0;
+		Jumps     = 0;
+		Skips     = 0;
+		Sentinels = 0;
+
+		bool   read;
+		object? value;
+
+		try
+		{
+			read = Run(function, out value);
+		}
+		catch (RestartReading)
+		{
+			// Given up: read again from the start, resuming; the host has seen what the reading given up called.
+			Restarts++;
+			Restarting?.Invoke();
+			StepsGivenUp      = Steps;
+			FurthestAtRestart = _far;
+			_resumes     = true;
+
+			Begin(input);
+			Ways = new IrWays();
+
+			read = Run(function, out value);
+		}
+
+		return read
+			? new IrOutcome(true, _p, value, [])
+			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])])
+			{
+				Said = [.. _said.Where(static index => index >= 0).Select(index => program.Expected[index])],
+			};
+	}
+
+	void Begin(string input)
+	{
 		_text      = input;
 		_p         = 0;
 		_quiet     = 0;
@@ -295,37 +918,46 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		_refusedAt = -1;
 		_refused.Clear();
 		_said.Clear();
-		_loops.Clear();
-		_entered.Clear();
-		_begun.Clear();
-		Ways  = new IrWays();
-		Steps = 0;
-		Jumps = 0;
-
-		return Run(function, out var value)
-			? new IrOutcome(true, _p, value, [])
-			: new IrOutcome(false, _refusedAt, null, [.. _refused.Select(index => program.Expected[index])])
-			{
-				Said = [.. _said.Select(index => program.Expected[index])],
-			};
+		_kept.Clear();
+		_heads.Clear();
+		_cuts.Clear();
+		_byKey.Clear();
+		_readings.Clear();
+		_sites    = ResumptionSites.Of(program, Criterion);
+		_measured = Measured is { } measured ? ResumptionSites.Of(program, measured) : null;
 	}
 
 	bool Run(IrFunction function, out object? value)
 	{
 		var frame = new object?[function.SlotCount];
+		var outer = _current;
+
+		_current = function;
+		Calls++;
+
+		if (Ways.Cursor < Ways.Count)
+			CallsBack++;
+
+		if (HasPlaces(function))
+			CallsWithPlaces++;
 
 		Array.Fill(frame, Unset);
 
 		var read = Exec(function.Body, frame);
 
-		value = read && function.Result is { } result && frame[result.Index] != Unset ? frame[result.Index] : null;
+		_current = outer;
+		value    = read && function.Result is { } result && frame[result.Index] != Unset ? frame[result.Index] : null;
 
 		return read;
 	}
 
 	void Refuse(int at, int expected)
 	{
-		if (_quiet > 0 || expected < 0)
+		// Restart by budget: inside a look without a bound to its reach, a refusal raises the reach.
+		if (_quiet > 0 && at > _far && _budget > 0 && !_resumes && !NoLookClause && (_unboundedLooks > 0 || _reach!.Reached.Contains(_current!)))
+			_far = at;
+
+		if (_quiet > 0 || expected == Unrecorded)
 			return;
 
 		if (_silent)
@@ -336,6 +968,8 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			return;
 		}
 
+		// A refusal that names nothing still stands furthest where it is further: what was said short of
+		// it goes, as the generated parser's Refuse_DotGram clears it, and what is said there after it ties.
 		if (at > _refusedAt)
 		{
 			_refusedAt = at;
@@ -343,7 +977,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			_said.Clear();
 			_said.Add(expected);
 		}
-		else if (at == _refusedAt && _said[0] != expected && !(_said.Count > 1 && _said[^1] == expected))
+		else if (expected >= 0 && at == _refusedAt && _said[0] != expected && !(_said.Count > 1 && _said[^1] == expected))
 		{
 			// A guard's set is said once however often it is asked; any other may come again
 			// after something else has.
@@ -351,14 +985,103 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				_said.Add(expected);
 		}
 
-		if (at == _refusedAt)
+		if (at == _refusedAt && expected >= 0)
 			_refused.Add(expected);
+	}
+
+	/// <summary>An expected set no refusal records (<see cref="IrStmt.MatchSet.Expected"/> and the rest).</summary>
+	public const int Unrecorded = -1;
+
+	/// <summary>A refusal recorded where it stands that names nothing, as a look the generated reader refuses with says nothing.</summary>
+	public const int Nothing = -2;
+
+	/// <summary>
+	/// A choice's set recorded where the call that begins its widest part refused at the same place, as the
+	/// generated parser's Refuse_DotGram_Over records it: what the call said there, which the choice's set
+	/// holds, is dropped for it — all of it where nothing was recorded there before the call (<paramref name="stood"/>
+	/// below 0), and otherwise the sets that tied after the first that many — unless what is there holds a
+	/// rule's own words.
+	/// </summary>
+	void RefuseOver(int at, int expected, int covered, int stood)
+	{
+		if (_quiet > 0 || _silent)
+		{
+			Refuse(at, expected);
+
+			return;
+		}
+
+		if (at == _refusedAt && !_said.Any(Spoke))
+		{
+			if (stood < 0)
+			{
+				_said.Clear();
+				_said.Add(expected);
+				_refused.Clear();
+				_refused.Add(expected);
+
+				return;
+			}
+
+			if (_said.Count - 1 > stood)
+				_said.RemoveRange(1 + stood, _said.Count - 1 - stood);
+		}
+
+		if (at == _refusedAt)
+		{
+			if (_said.Count > 0 && _said[0] == covered)
+				_said[0] = expected;
+
+			var tied = _said.IndexOf(covered, 1);
+
+			if (tied > 0)
+				_said.RemoveAt(tied);
+
+			_refused.Clear();
+			_refused.UnionWith(_said.Where(static index => index >= 0));
+		}
+
+		Refuse(at, expected);
+	}
+
+	/// <summary>Whether a set holds a rule's own words, which the generated parser marks.</summary>
+	bool Spoke(int expected)
+	{
+		return expected >= 0 && program.Expected[expected].Split(" | ").Any(static item => item.StartsWith('\u0000'));
+	}
+
+	/// <summary>How many sets tied after the first where the reading stands: -1 where nothing is recorded there yet.</summary>
+	int Stood()
+	{
+		return _refusedAt < _p ? -1 : _said.Count - 1;
 	}
 
 	bool Exec(IrStmt stmt, object?[] frame)
 	{
-		Steps++;
+		if (++Steps > StepBudget)
+			throw new IrStepsExceeded(StepBudget);
 
+		if (_sites.Keeps(stmt))
+		{
+			KeptEntries++;
+
+			if (Ways.Cursor < Ways.Count)
+				KeptEntriesBack++;
+		}
+
+		if (_resumes && stmt is not IrStmt.Repeat && _sites.Keeps(stmt))
+		{
+			Entered(stmt);
+
+			if (Opens(stmt))
+				return Site(stmt, frame);
+		}
+
+		return ExecInner(stmt, frame);
+	}
+
+	bool ExecInner(IrStmt stmt, object?[] frame)
+	{
 		switch (stmt)
 		{
 			case IrStmt.Block block:
@@ -432,8 +1155,24 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 			case IrStmt.Call call:
 			{
+				var at    = _p;
+				var stood = call.Over >= 0 ? Stood() : 0;
+
 				if (!Run(call.Target, out var value))
+				{
+					_p = at;
+
+					// The rule's own words, where it read nothing: the furthest refusal has not passed the call.
+					if (call.Says >= 0 && _refusedAt <= at)
+						Refuse(at, call.Says);
+
+					if (call.RefusesWith >= 0 && call.Over >= 0 && call.Over != call.RefusesWith)
+						RefuseOver(at, call.RefusesWith, call.Over, stood);
+					else if (call.RefusesWith >= 0)
+						Refuse(at, call.RefusesWith);
+
 					return false;
+				}
 
 				// Inside a look nothing is built, so there is nothing to take.
 				if (call.Into is { } into && _unbuilt == 0)
@@ -452,13 +1191,24 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var start = _p;
 				var last  = choice.Alternatives.Count - 1;
 
+				if (choice.Gate is { } gate && !(_p < _text.Length && Within(gate.Begins, _text[_p])))
+				{
+					Refuse(_p, gate.Expected);
+
+					return gate.Empty;
+				}
+
 				if (choice.Dispatch is { } dispatch)
 				{
 					var chosen = -1;
 
 					for (var i = 0; i <= last && chosen < 0; i++)
-						if (_p < _text.Length && Within(dispatch.Begins[i], _text[_p]))
+						if (i != dispatch.Called && _p < _text.Length && Within(dispatch.Begins[i], _text[_p]))
 							chosen = i;
+
+					// What no other alternative begins is the widest's, whose call tests the item itself.
+					if (chosen < 0 && dispatch.Called >= 0 && _p < _text.Length)
+						chosen = dispatch.Called;
 
 					if (chosen < 0)
 					{
@@ -482,13 +1232,55 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 
 				for (var i = decision; i <= last; i++)
 				{
-					var kept = Keep(frame, choice.Resets[i]);
+					var kept     = Keep(frame, choice.Resets[i]);
+					var mark     = Ways.Cursor;
+					var retries  = choice.Resumable && (i < last || choice.Retries);
+					var deferral = new Deferral();
 
-					if (Exec(choice.Alternatives[i], frame))
-						return true;
+					_readings.Add(0);
 
-					_p = start;
-					PutBack(frame, choice.Resets[i], kept);
+					while (true)
+					{
+						if (Exec(choice.Alternatives[i], frame))
+						{
+							if (choice.Defers && Stood(ref deferral, mark))
+							{
+								_p = start;
+								PutBack(frame, choice.Resets[i], kept);
+								_readings[^1] = 2;
+
+								continue;
+							}
+
+							_readings.RemoveAt(_readings.Count - 1);
+
+							return true;
+						}
+
+						_p = start;
+						PutBack(frame, choice.Resets[i], kept);
+
+						// Before the choice moves on and drops what the alternative decided, the
+						// alternative is read again with each of its own decisions that can still
+						// move: the next alternative is the choice's own next decision, after them.
+						// The last is read so too where the choice retries its parts, before it fails.
+						if (!(retries && Ways.Cursor > mark && Ways.Retry(mark)))
+						{
+							if (choice.Defers)
+								Undeferred(deferral);
+
+							break;
+						}
+
+						Cut();
+						_readings[^1] = 1;
+						Charge(start);
+
+						if (choice.Defers && !BuildsThroughout)
+							Retried(ref deferral);
+					}
+
+					_readings.RemoveAt(_readings.Count - 1);
 
 					if (choice.Resumable && i < last)
 					{
@@ -505,39 +1297,43 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var min   = (int)Eval(repeat.Min, frame)!;
 				var max   = repeat.Max is null ? int.MaxValue : (int)Eval(repeat.Max, frame)!;
 				var turns = 0;
+				var owner = -1;
 
-				Loop? loop = null;
+				var counted = _resumes && _sites.Keeps(repeat);
+				var entry   = _p;
 
-				if (Resumes && repeat.Resumable)
+				if (counted)
+					Entered(repeat);
+
+				if (counted && Opens(repeat))
 				{
-					var again = Ways.Cursor < Ways.Count;
-					var (sentinel, _) = Ways.Enter(0);
+					var again  = Ways.Cursor < Ways.Count;
+					var before = Ways.Cursor;
+
+					(owner, _) = Ways.Enter(0);
+
+					Collide(repeat, before, _p, owner);
 
 					if (!again)
+						Opened(repeat);
+					else if (Head(owner, repeat) is { } found && Usable(found))
 					{
-						_loops.Add(sentinel, loop = new Loop(sentinel));
-						_entered.Add(loop);
-					}
-					else if (!_loops.TryGetValue(sentinel, out loop))
-						throw new IrContractViolation("A repetition is read again and nothing was kept of its entry.");
-					else if (loop.Turns.Count > 0)
-					{
-						// Every turn still kept began at a decision still on the tape, and nothing
-						// before the last of them has changed: the reading goes on from where it began.
-						var turn = loop.Turns[^1];
+						// Every decision read before the place kept is still on the tape, so the
+						// reading goes on from there: past the whole repetition, or from a turn.
+						_p          = found.Position;
+						turns       = found.Turns;
+						Ways.Cursor = found.Key;
+						Restore(frame, repeat.Resets, found);
 
-						_p    = turn.Position;
-						turns = turn.Turns;
+						Took(repeat);
 
-						for (var i = 0; i < turn.Held.Length; i++)
+						if (found.IsEnd)
 						{
-							if (turn.Held[i] is List<object?> items)
-								items.RemoveRange(turn.Counts[i], items.Count - turn.Counts[i]);
+							Skips++;
 
-							frame[repeat.Resets[i].Index] = turn.Held[i];
+							return found.Read;
 						}
 
-						Ways.Cursor = turn.Way;
 						Jumps++;
 					}
 				}
@@ -547,39 +1343,88 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 					var start = _p;
 					var way   = -1;
 
-					if (repeat.Door is { } door && turns >= min && !(_p < _text.Length && Within(door, _text[_p])))
+					if (repeat.Door is { } door && (turns >= min || !repeat.DoorPastLeast) && (_silent || !repeat.DoorQuietOnly) &&
+						!(_p < _text.Length && Within(door, _text[_p])))
+					{
+						if (turns < min && repeat.DoorShort >= 0)
+							Refuse(_p, repeat.DoorShort);
+
 						break;
+					}
+
+					// A replay keeps where each turn begins, once: the turn a replay went straight to is kept already.
+					if (owner >= 0 && Ways.Cursor < Ways.Count)
+					{
+						var latest = Head(owner, repeat);
+
+						if (latest is null || !latest.IsEnd && latest.Turns < turns || !Usable(latest))
+						{
+							var (held, counts) = Hold(frame, repeat.Resets);
+
+							Record(new Kept(false, owner, repeat, Ways.Cursor, -1, start, turns, false, _unbuilt, held, counts));
+						}
+					}
 
 					if (repeat.Resumable && turns >= min)
 					{
-						var fresh = Ways.Cursor == Ways.Count;
-
 						(way, var decision) = Ways.Enter(1);
-
-						if (loop is not null && fresh)
-						{
-							var held   = new object?[repeat.Resets.Count];
-							var counts = new int[held.Length];
-
-							for (var i = 0; i < held.Length; i++)
-							{
-								held[i]   = frame[repeat.Resets[i].Index];
-								counts[i] = held[i] is List<object?> items ? items.Count : 0;
-							}
-
-							var turn = new Turn(way, start, turns, held, counts);
-
-							loop.Turns.Add(turn);
-							_begun.Add((loop, turn));
-						}
 
 						if (decision == 1)
 							break;
 					}
 
-					var kept = Keep(frame, repeat.Resets);
+					var kept     = Keep(frame, repeat.Resets);
+					var mark     = Ways.Cursor;
+					var retries  = way >= 0 || repeat.Retries;
+					var deferral = new Deferral();
 
-					if (!Exec(repeat.Body, frame))
+					_readings.Add(0);
+
+					var read = Exec(repeat.Body, frame);
+
+					// A turn that fails is read again with each of its own decisions that can still
+					// move before the repetition gives the turn up: its own decision comes before them.
+					// Where the repetition retries its turns, every turn is, below the fewest too.
+					while (true)
+					{
+						if (read)
+						{
+							if (repeat.Defers && Stood(ref deferral, mark))
+							{
+								_p = start;
+								PutBack(frame, repeat.Resets, kept);
+								_readings[^1] = 2;
+								read = Exec(repeat.Body, frame);
+
+								continue;
+							}
+
+							break;
+						}
+
+						if (!(retries && Ways.Cursor > mark && Ways.Retry(mark)))
+						{
+							if (repeat.Defers)
+								Undeferred(deferral);
+
+							break;
+						}
+
+						Cut();
+						Charge(start);
+						_p = start;
+						PutBack(frame, repeat.Resets, kept);
+						_readings[^1] = 1;
+
+						if (repeat.Defers && !BuildsThroughout)
+							Retried(ref deferral);
+
+						read = Exec(repeat.Body, frame);
+					}
+
+					_readings.RemoveAt(_readings.Count - 1);
+
+					if (!read)
 					{
 						_p = start;
 						PutBack(frame, repeat.Resets, kept);
@@ -599,7 +1444,19 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 						break;
 				}
 
-				return turns >= min;
+				var stood = turns >= min;
+
+				if (counted)
+					LoopEntries.Add((turns, _p - entry));
+
+				if (owner >= 0 && Ways.Cursor < Ways.Count && Head(owner, repeat) is var last && (last is not { IsEnd: true } || !Usable(last)))
+				{
+					var (held, counts) = Hold(frame, repeat.Resets);
+
+					Record(new Kept(true, owner, repeat, Ways.Cursor, -1, _p, turns, stood, _unbuilt, held, counts));
+				}
+
+				return stood;
 			}
 
 			case IrStmt.Look look:
@@ -607,20 +1464,32 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 				var start = _p;
 				var kept  = Keep(frame, look.Resets);
 
+				var unbounded = _reach!.Unbounded.Contains(look);
+
 				_quiet++;
 				_unbuilt++;
+
+				if (unbounded)
+					_unboundedLooks++;
 
 				bool read;
 
 				try
 				{
-					read = Sealed(look.Body, frame, look.Resets, kept);
+					read = Sealed(look.Body, frame, look.Resets, kept, defers: false);
 				}
 				finally
 				{
 					_quiet--;
 					_unbuilt--;
+
+					if (unbounded)
+						_unboundedLooks--;
 				}
+
+				// Restart by budget: a look with a bound to its reach raises the charge's position to it as it ends.
+				if (_budget > 0 && !_resumes && !NoLookClause && !unbounded && _reach.Of(look.Body) is { } reach && start + reach > _far)
+					_far = start + reach;
 
 				_p = start;
 				PutBack(frame, look.Resets, kept);
@@ -637,27 +1506,60 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 			{
 				var kept = Keep(frame, commit.Resets);
 
-				return Sealed(commit.Body, frame, commit.Resets, kept);
+				return Sealed(commit.Body, frame, commit.Resets, kept, commit.Defers);
 			}
 
 			case IrStmt.Replay replay:
 			{
-				var start   = _p;
-				var segment = Ways.Cursor;
+				var start    = _p;
+				var segment  = Ways.Cursor;
+				var deferral = new Deferral();
+
+				_readings.Add(0);
 
 				while (true)
 				{
 					_p = start;
 
 					if (Exec(replay.Body, frame))
+					{
+						if (Stood(ref deferral, segment))
+						{
+							_readings[^1] = 2;
+							Charge(start);
+
+							continue;
+						}
+
+						_readings.RemoveAt(_readings.Count - 1);
+
 						return true;
+					}
 
 					if (!(Ways.Cursor > segment && Ways.Retry(segment)))
+					{
+						Undeferred(deferral);
+						_readings.RemoveAt(_readings.Count - 1);
+
 						return false;
+					}
 
 					Cut();
+					_readings[^1] = 1;
+					Charge(start);
+
+					if (replay.Defers && !BuildsThroughout)
+						Retried(ref deferral);
 				}
 			}
+
+			// A reading that builds nothing takes no text and no list where only a construction would
+			// read it: a guard decides, and is handed what it reads in any reading.
+			case IrStmt.Assign { Value: IrExpr.Text or IrExpr.Items } assign when _unbuilt > 0 && !BuildsThroughout && !_sites.ReadByGuards.Contains(assign.Slot):
+				return true;
+
+			case IrStmt.Append { Value: IrExpr.Text } append when _unbuilt > 0 && !BuildsThroughout && !_sites.ReadByGuards.Contains(append.List):
+				return true;
 
 			case IrStmt.Assign assign:
 				Set(frame, assign.Slot, Eval(assign.Value, frame));
@@ -692,36 +1594,130 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	/// A body whose decisions are nobody's but its own: they are written past everything on the
 	/// tape, the body is run again over them until it reads or they run out, and then they are gone.
 	/// </summary>
-	bool Sealed(IrStmt body, object?[] frame, IReadOnlyList<IrSlot> resets, object?[] kept)
+	bool Sealed(IrStmt body, object?[] frame, IReadOnlyList<IrSlot> resets, object?[] kept, bool defers)
 	{
-		var start  = _p;
-		var cursor = Ways.Cursor;
-		var count  = Ways.Count;
+		var start    = _p;
+		var cursor   = Ways.Cursor;
+		var count    = Ways.Count;
+		var deferral = new Deferral();
 
 		Ways.Cursor = count;
 
 		bool read;
+
+		_readings.Add(0);
 
 		while (true)
 		{
 			_p = start;
 
 			if (read = Exec(body, frame))
-				break;
+			{
+				if (!Stood(ref deferral, count))
+					break;
+
+				PutBack(frame, resets, kept);
+				_readings[^1] = 2;
+				Charge(start);
+
+				continue;
+			}
 
 			PutBack(frame, resets, kept);
 
 			if (!(Ways.Count > count && Ways.Retry(count)))
+			{
+				Undeferred(deferral);
+
 				break;
+			}
 
 			Cut();
+			_readings[^1] = 1;
+			Charge(start);
+
+			if (defers && !BuildsThroughout)
+				Retried(ref deferral);
 		}
 
+		_readings.RemoveAt(_readings.Count - 1);
 		Ways.Count  = count;
 		Ways.Cursor = cursor;
 		Cut();
 
 		return read;
+	}
+
+	/// <summary>
+	/// Where a loop that asks for another reading stands since it gave a way back, as the generated
+	/// parser keeps it: 0 building, as every loop begins; 1 building still, one way given back; 2
+	/// reading unbuilt, the count raised by this loop; 3 reading once more, built, the attempt that
+	/// stood — with what was refused kept from before that reading, to be put back after it.
+	/// </summary>
+	struct Deferral
+	{
+		public int State;
+
+		public int RefusedAt;
+
+		public int[]? Refused;
+		public int[]? Said;
+	}
+
+	/// <summary>A way given back: the first is read building still; the second, where the reading was building, stops building.</summary>
+	void Retried(ref Deferral deferral)
+	{
+		if (deferral.State == 1)
+		{
+			_unbuilt       = 1;
+			deferral.State = 2;
+		}
+		else if (deferral.State == 0 && _unbuilt == 0)
+			deferral.State = 1;
+	}
+
+	/// <summary>
+	/// An attempt stood: where it was read unbuilt, it is to be read once more from the loop's
+	/// start, building, over the decisions it took (true); where that reading has stood, what it
+	/// said of a refusal is taken back, for the attempt it read again had said it already.
+	/// </summary>
+	bool Stood(ref Deferral deferral, int segment)
+	{
+		if (deferral.State == 2)
+		{
+			StoodReReads++;
+			deferral.RefusedAt = _refusedAt;
+			deferral.Refused   = [.. _refused];
+			deferral.Said      = [.. _said];
+			deferral.State     = 3;
+			_unbuilt           = 0;
+			Ways.Cursor        = segment;
+
+			return true;
+		}
+
+		if (deferral.State == 3)
+			Replayed(deferral);
+
+		return false;
+	}
+
+	/// <summary>A loop that ends without an answer puts back what it raised: the count, or what was refused before the reading once more.</summary>
+	void Undeferred(Deferral deferral)
+	{
+		if (deferral.State == 2)
+			_unbuilt = 0;
+		else if (deferral.State == 3)
+			Replayed(deferral);
+	}
+
+	void Replayed(Deferral deferral)
+	{
+		_refusedAt = deferral.RefusedAt;
+		_refused.Clear();
+		_refused.UnionWith(deferral.Refused!);
+		_said.Clear();
+		_said.AddRange(deferral.Said!);
 	}
 
 	static bool Within(IrStmt.MatchSet set, char unit)
@@ -767,7 +1763,7 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 	static void Add(object?[] frame, IrSlot list, object? value)
 	{
 		if (frame[list.Index] is not List<object?> items)
-			frame[list.Index] = items = [];
+			frame[list.Index] = items = new Gathered();
 
 		items.Add(value);
 	}
@@ -786,12 +1782,12 @@ sealed class IrEvaluator(IrProgram program, IIrHost host)
 		return kept;
 	}
 
-	static void PutBack(object?[] frame, IReadOnlyList<IrSlot> slots, object?[] kept)
+	void PutBack(object?[] frame, IReadOnlyList<IrSlot> slots, object?[] kept)
 	{
 		for (var i = 0; i < kept.Length; i++)
 		{
 			if (frame[slots[i].Index] is List<object?> items && kept[i] is int count)
-				items.RemoveRange(count, items.Count - count);
+				Shorten(items, count);
 			else
 				frame[slots[i].Index] = kept[i];
 		}

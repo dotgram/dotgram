@@ -71,6 +71,8 @@ sealed class ResultTypes
 		var taken  = CSharpEmitter.TypeNamesTaken(classes ?? [SimpleNameOf(className)], graph, lexical);
 		var wanted = new List<(RuleSymbol Rule, string Name)>();
 		var spans  = BuildsSpans(graph);
+		var shared = new List<(RuleSymbol Copy, RuleSymbol From)>();
+		var read   = new HashSet<RuleSymbol>(graph.Rules);
 
 		foreach (var rule in graph.Rules)
 		{
@@ -86,10 +88,22 @@ sealed class ResultTypes
 			if (graph.Results[rule].Count == 0)
 				continue;
 
+			// A settled copy is another reading of its rule and builds the rule's value: one type, the
+			// rule's. Where the rule is read too, the copy takes the type the rule gets; where every call
+			// went to the copy, the type is generated for the copy under the rule's name.
+			var from = graph.Settled.TryGetValue(rule, out var made) ? made : null;
+
+			if (from is not null && read.Contains(from))
+			{
+				shared.Add((rule, from));
+
+				continue;
+			}
+
 			// Prefixed by namespace, because two namespaces may each declare a rule of the
 			// same name — that is what a namespace is for — and two types of the same name
 			// is a compile error in the consumer's build rather than a shadowing.
-			wanted.Add((rule, CSharpEmitter.IdentifierOf(rule)));
+			wanted.Add((rule, CSharpEmitter.IdentifierOf(from ?? rule)));
 		}
 
 		// A member may not be named after the type that contains it, and a host class
@@ -119,6 +133,10 @@ sealed class ResultTypes
 
 		foreach (var (rule, _) in wanted)
 			_built.Add(rule);
+
+		foreach (var (copy, from) in shared)
+			if (_names.TryGetValue(from, out var name))
+				_names[copy] = name;
 	}
 
 	/// <summary>The types again as the byte form has them, where the grammar holds the bytes a string matched as they are (<see cref="ByteValues"/>).</summary>

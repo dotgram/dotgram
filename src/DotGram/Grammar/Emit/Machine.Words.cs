@@ -6,6 +6,7 @@ using System.Text;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
+using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar.Emit;
 
@@ -297,7 +298,7 @@ sealed partial class Machine
 						!Plain(beyond) || machine.ElementUnder(beyond.Body) is not { } after)
 						return null;
 
-					var set = machine.DeclareExpected(machine.Displays(before));
+					var set = Expected(before, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(before)) });
 
 					if (continues is null)
 					{
@@ -337,7 +338,7 @@ sealed partial class Machine
 				foreach (var member in members)
 				{
 					var literal = WordOf(member, look)!;
-					var set     = machine.DeclareExpected(machine.Displays(literal));
+					var set     = Expected(literal, 0, () => new TerminalSite { Items = Said(machine.ReaderDisplays(literal)) });
 
 					machine._expectedUsed.Add(set);
 

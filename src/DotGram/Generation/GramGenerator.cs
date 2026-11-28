@@ -247,6 +247,10 @@ sealed class GramGenerator : IIncrementalGenerator
 		// And one that defines DOTGRAM_NO_COLLAPSE calls every rule that only forwards another's value
 		// as written, so that a test can hold a trace build's frames of those rules to the rules
 		// themselves (GramCompilerOptions.CollapseForwarders).
+		//
+		// And one that defines DOTGRAM_NO_SETTLE reads every call of a rule that ends in a run giving
+		// characters back through the rule itself, so that a comparison can hold the parser with the
+		// settled copies to the one without them (GramCompilerOptions.SettleRunTails).
 		var counting = context.ParseOptionsProvider.Combine(tracing).Select(static (input, _) =>
 			new BuildSwitches
 			{
@@ -255,6 +259,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				Keeps     = !input.Left.PreprocessorSymbolNames.Contains(NoSuccessMemoSymbol),
 				Traces    =  input.Right,
 				Collapses = !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
+				Settles   = !input.Left.PreprocessorSymbolNames.Contains(NoSettleSymbol),
 				Utf8      =  input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
 				Checks    =  input.Left.PreprocessorSymbolNames.Contains(ChecksSymbol),
 				Steps     =  input.Left.PreprocessorSymbolNames.Contains(StepsSymbol),
@@ -427,7 +432,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			// than as a compiler error in every generated construction that would tell one.
 			// It is said where the type is named: on the per-call reading's attribute, where the
 			// locations are that reading's.
-			if (LocationRefused(grammar.Host, compilation, out var locatesClass) is { } refused)
+			if (LocationRefused(grammar.Host, compilation, out var locatesClass, out var locatesGap) is { } refused)
 				return grammar with
 				{
 					Text    = null,
@@ -444,6 +449,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			return grammar with
 			{
 				LocatesClass = locatesClass,
+				LocatesGap   = locatesGap,
 				Answers = new EquatableArray<Answer>(Questions.Ask(
 					grammar.Questions.Items,
 					new RoslynSymbolResolver(
@@ -463,19 +469,24 @@ sealed class GramGenerator : IIncrementalGenerator
 
 	/// <summary>
 	/// The location type a reading is compiled with, where it cannot be told a place: neither an
-	/// interface nor a class that declares the <c>Locate</c> the reading calls — two integers, or three
-	/// where the locations are asked for per call. Null where there is none, where it can, or where it
-	/// cannot be found.
+	/// interface nor a class that declares the <c>Locate</c> the reading calls — two integers, or,
+	/// where the locations are asked for per call, two or three. Null where there is none, where it
+	/// can, or where it cannot be found.
 	/// </summary>
 	/// <remarks>
 	/// An interface's own <c>Locate</c> or one it inherits, which generated code calls through the
 	/// interface, so an explicit implementation serves; or a class's, its own or a base's, which it
-	/// calls on the class.
+	/// calls on the class. Found by the method's parameters, never by the type's name.
 	/// </remarks>
 	/// <param name="isClass">Whether the type is a class, which the constructions call it through.</param>
-	static (string Type, string Locate)? LocationRefused(Host host, Compilation compilation, out bool isClass)
+	/// <param name="takesGap">
+	/// Whether a per-call reading tells the start of the gap in front of a value: the type declares
+	/// the three-integer <c>Locate</c>, which is called where it declares both.
+	/// </param>
+	static (string Type, string Locate)? LocationRefused(Host host, Compilation compilation, out bool isClass, out bool takesGap)
 	{
-		isClass = false;
+		isClass  = false;
+		takesGap = true;
 
 		if (host.LocationType is not { } named)
 			return null;
@@ -491,8 +502,10 @@ sealed class GramGenerator : IIncrementalGenerator
 		if (type is null || type.TypeKind == TypeKind.Error)
 			return null;
 
-		var arity  = host.LocatedFacade is null ? 2 : 3;
-		var locate = arity == 2 ? "void Locate(int at, int length)" : "void Locate(int at, int length, int gapStart)";
+		var perCall = host.LocatedFacade is not null;
+		var locate  = perCall
+			? "void Locate(int at, int length) or void Locate(int at, int length, int gapStart)"
+			: "void Locate(int at, int length)";
 
 		IEnumerable<ISymbol> candidates;
 
@@ -507,16 +520,24 @@ sealed class GramGenerator : IIncrementalGenerator
 		else
 			return (named, locate);
 
-		var declared = candidates
-			.OfType<IMethodSymbol>()
-			.Any(method =>
+		var methods = candidates.OfType<IMethodSymbol>().ToList();
+
+		if (perCall && Declares(methods, 3))
+			return null;
+
+		takesGap = false;
+
+		return Declares(methods, 2) ? null : (named, locate);
+
+		static bool Declares(List<IMethodSymbol> methods, int arity)
+		{
+			return methods.Exists(method =>
 				!method.IsStatic &&
 				method.ReturnsVoid &&
 				method.TypeParameters.Length == 0 &&
 				method.Parameters.Length == arity &&
 				method.Parameters.All(static parameter => parameter.RefKind == RefKind.None && parameter.Type.SpecialType == SpecialType.System_Int32));
-
-		return declared ? null : (named, locate);
+		}
 
 		static IEnumerable<INamedTypeSymbol> Bases(INamedTypeSymbol type)
 		{
@@ -562,6 +583,9 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which a test compiles a parser that calls its forwarding rules as written.</summary>
 	const string NoCollapseSymbol = "DOTGRAM_NO_COLLAPSE";
 
+	/// <summary>The symbol under which a comparison compiles a parser without settled copies.</summary>
+	const string NoSettleSymbol = "DOTGRAM_NO_SETTLE";
+
 	/// <summary>
 	/// What the consuming project's parse options say about how every grammar of it is compiled:
 	/// the preprocessor symbols a test or a build defines, and the language version.
@@ -586,6 +610,9 @@ sealed class GramGenerator : IIncrementalGenerator
 
 		/// <summary>Whether a rule that only forwards another's value is collapsed (not <c>DOTGRAM_NO_COLLAPSE</c>).</summary>
 		public bool Collapses { get; init; }
+
+		/// <summary>Whether a rule ending in a run that gives back gets settled copies (not <c>DOTGRAM_NO_SETTLE</c>).</summary>
+		public bool Settles { get; init; }
 
 		/// <summary>Whether the consumer's C# has UTF-8 literals (C# 11 or later).</summary>
 		public bool Utf8 { get; init; }
@@ -1203,7 +1230,9 @@ sealed class GramGenerator : IIncrementalGenerator
 	/// </summary>
 	/// <param name="HintName">The file they are written into, one a host.</param>
 	/// <param name="SpanDeclared">Whether the host declares a part of the span itself.</param>
-	readonly record struct SharedTypesOf(string HintName, string? Namespace, string ClassName, SharedNeeds Needs, bool SpanDeclared);
+	/// <param name="MaxRetained">The default of the limits this reading reads from the host, where it shares them.</param>
+	/// <param name="Stacks">The same, of the extra stacks.</param>
+	readonly record struct SharedTypesOf(string HintName, string? Namespace, string ClassName, SharedNeeds Needs, bool SpanDeclared, int MaxRetained, int Stacks);
 
 	/// <summary>
 	/// The files of the hosts with several readings: each host's types, each written where one of
@@ -1221,9 +1250,12 @@ sealed class GramGenerator : IIncrementalGenerator
 			foreach (var reading in host)
 				needs |= reading.Needs;
 
+			// Every reading that shares the limits says the same defaults, the first reading's (Host.SharesLimits).
+			var limits = host.FirstOrDefault(static reading => (reading.Needs & SharedNeeds.Limits) != 0);
+
 			if (needs != SharedNeeds.None)
 				files.Add(new GeneratedSource(
-					host.Key, CSharpEmitter.SharedTypes(first.Namespace, first.ClassName, needs, first.SpanDeclared)));
+					host.Key, CSharpEmitter.SharedTypes(first.Namespace, first.ClassName, needs, first.SpanDeclared, limits.MaxRetained, limits.Stacks)));
 		}
 
 		return new EquatableArray<GeneratedSource>(files.ToImmutable());
@@ -1296,6 +1328,7 @@ sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Piece>    Pieces = default,
 		EquatableArray<string>   Published = default,
 		bool                     LocatesClass = false,
+		bool                     LocatesGap = true,
 		bool                     PublishesAny = false);
 
 	/// <summary>
@@ -1589,6 +1622,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			LineMap               = MapOf(grammar, text, marked),
 			LocationType          = host.LocationType,
 			LocationTypeIsClass   = grammar.LocatesClass,
+			LocationTakesGap      = grammar.LocatesGap,
 			LocatedFacade         = host.LocatedFacade,
 			LocatedFacadeDeclared = host.LocatedFacadeDeclared,
 
@@ -1600,7 +1634,9 @@ sealed class GramGenerator : IIncrementalGenerator
 			Readings       = host.Readings.Items,
 			SpanDeclared   = host.SpanDeclared,
 			SpanDeclaredInReading = host.SpanDeclaredInReading,
-			MembersDeclared = host.MembersDeclared.Items,
+			MembersDeclared = host.SharesLimits ? host.HostMembersDeclared.Items : host.MembersDeclared.Items,
+			MembersDeclaredInReading = host.SharesLimits && host.Options.Name is { Length: > 0 } ? host.MembersDeclared.Items : [],
+			SharesLimits   = host.SharesLimits,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
@@ -1616,6 +1652,7 @@ sealed class GramGenerator : IIncrementalGenerator
 			MemoiseFailures    = counting.Memoises,
 			MemoiseSuccesses   = counting.Keeps,
 			CollapseForwarders = counting.Collapses,
+			SettleRunTails     = counting.Settles,
 			Utf8Literals       = counting.Utf8,
 			Checks             = counting.Checks,
 			Steps              = counting.Steps,
@@ -1672,7 +1709,9 @@ sealed class GramGenerator : IIncrementalGenerator
 					host.Namespace,
 					host.ClassName,
 					result.SharedNeeds,
-					host.SpanDeclared)
+					host.SpanDeclared,
+					host.Options.MaxBufferedInputLength,
+					host.Options.MaxExtraStacks)
 				: null);
 	}
 
@@ -2012,8 +2051,10 @@ sealed class GramGenerator : IIncrementalGenerator
 		bool    SpanDeclared   = false,
 		bool    SpanDeclaredInReading = false,
 		EquatableArray<string> MembersDeclared = default,
+		EquatableArray<string> HostMembersDeclared = default,
 		bool    Repeated       = false,
 		bool    Shared         = false,
+		bool    SharesLimits   = false,
 		string? LocationType   = null,
 		string? LocatedFacade  = null,
 		bool    LocatedFacadeDeclared = false,
@@ -2147,6 +2188,12 @@ sealed class GramGenerator : IIncrementalGenerator
 						// What the host's own C# names is written once for every reading, in a file of
 						// the host's own, from what each says it needs (SharedTypes).
 						Shared   = readings.Count > 1,
+
+						// And the limits a caller sets, by every reading that leaves their defaults the
+						// first's: one setting bounds them all (CSharpHostShape.SharesLimits).
+						SharesLimits = readings.Count > 1 &&
+							options.MaxBufferedInputLength == firstOptions.MaxBufferedInputLength &&
+							options.MaxExtraStacks         == firstOptions.MaxExtraStacks,
 					},
 					site));
 			}
@@ -2249,6 +2296,11 @@ sealed class GramGenerator : IIncrementalGenerator
 					.Where(name => into.GetMembers(name).Length > 0)
 					.ToArray();
 
+			// The same in the host, where a reading of several shares the host's limits.
+			var hostMembersDeclared = CSharpEmitter.LimitsNames
+				.Where(name => type.GetMembers(name).Length > 0)
+				.ToArray();
+
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
 			// The literal as written, kept beside the value it decodes to. A diagnostic
@@ -2348,6 +2400,7 @@ sealed class GramGenerator : IIncrementalGenerator
 				SpanDeclared:   spanDeclared,
 				SpanDeclaredInReading: spanDeclaredInReading,
 				MembersDeclared: new EquatableArray<string>([.. membersDeclared]),
+				HostMembersDeclared: new EquatableArray<string>([.. hostMembersDeclared]),
 				// The reading's own until the per-call facade's is given to the first (All).
 				LocationType:   options.LocationType,
 				Variant:        variant,

@@ -17,6 +17,8 @@ DotGram.Sql.Ast.ColumnGeneration.Name.get -> DotGram.Sql.Ast.QualifiedName?
 DotGram.Sql.Ast.ColumnGeneration.Name.init -> void
 DotGram.Sql.Ast.ColumnOptionList.Collation.get -> DotGram.Sql.Ast.CollationName?
 DotGram.Sql.Ast.ColumnOptionList.Collation.init -> void
+DotGram.Sql.Ast.ColumnOptionList.Generation.get -> DotGram.Sql.Ast.ColumnGeneration?
+DotGram.Sql.Ast.ColumnOptionList.Generation.init -> void
 DotGram.Sql.Ast.CommonTableExpression.Materialized.get -> bool?
 DotGram.Sql.Ast.CommonTableExpression.Materialized.init -> void
 DotGram.Sql.Ast.ConflictClause
@@ -110,6 +112,12 @@ DotGram.Sql.Ast.DataType.Interval.Interval(DotGram.Sql.Ast.IntervalQualifier? Qu
 DotGram.Sql.Ast.DataType.Interval.Precision.get -> int?
 DotGram.Sql.Ast.DataType.Interval.Precision.init -> void
 DotGram.Sql.Ast.DataType.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier?
+DotGram.Sql.Ast.DataType.SetOf
+DotGram.Sql.Ast.DataType.SetOf.Deconstruct(out DotGram.Sql.Ast.DataType! ElementType) -> void
+DotGram.Sql.Ast.DataType.SetOf.ElementType.get -> DotGram.Sql.Ast.DataType!
+DotGram.Sql.Ast.DataType.SetOf.ElementType.init -> void
+DotGram.Sql.Ast.DataType.SetOf.Equals(DotGram.Sql.Ast.DataType.SetOf? other) -> bool
+DotGram.Sql.Ast.DataType.SetOf.SetOf(DotGram.Sql.Ast.DataType! ElementType) -> void
 DotGram.Sql.Ast.DiscardTarget
 DotGram.Sql.Ast.DiscardTarget.All = 0 -> DotGram.Sql.Ast.DiscardTarget
 DotGram.Sql.Ast.DiscardTarget.Plans = 1 -> DotGram.Sql.Ast.DiscardTarget
@@ -975,6 +983,10 @@ override DotGram.Sql.Ast.Constraint.Null.<Clone>$() -> DotGram.Sql.Ast.Constrain
 override DotGram.Sql.Ast.Constraint.Null.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Constraint.Null.GetHashCode() -> int
 override DotGram.Sql.Ast.Constraint.Null.ToString() -> string!
+override DotGram.Sql.Ast.DataType.SetOf.<Clone>$() -> DotGram.Sql.Ast.DataType!
+override DotGram.Sql.Ast.DataType.SetOf.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.DataType.SetOf.GetHashCode() -> int
+override DotGram.Sql.Ast.DataType.SetOf.ToString() -> string!
 override DotGram.Sql.Ast.ExclusionElement.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.ExclusionElement.GetHashCode() -> int
 override DotGram.Sql.Ast.ExclusionElement.ToString() -> string!
@@ -1211,6 +1223,7 @@ override sealed DotGram.Sql.Ast.ConflictTarget.Columns.Equals(DotGram.Sql.Ast.Co
 override sealed DotGram.Sql.Ast.ConflictTarget.Constraint.Equals(DotGram.Sql.Ast.ConflictTarget? other) -> bool
 override sealed DotGram.Sql.Ast.Constraint.Exclude.Equals(DotGram.Sql.Ast.Constraint? other) -> bool
 override sealed DotGram.Sql.Ast.Constraint.Null.Equals(DotGram.Sql.Ast.Constraint? other) -> bool
+override sealed DotGram.Sql.Ast.DataType.SetOf.Equals(DotGram.Sql.Ast.DataType? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.IsDocument.Equals(DotGram.Sql.Ast.Expression? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.OperatorCall.Equals(DotGram.Sql.Ast.Expression? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(DotGram.Sql.Ast.Expression? other) -> bool
@@ -1279,6 +1292,8 @@ static DotGram.Sql.Ast.Constraint.Exclude.operator !=(DotGram.Sql.Ast.Constraint
 static DotGram.Sql.Ast.Constraint.Exclude.operator ==(DotGram.Sql.Ast.Constraint.Exclude? left, DotGram.Sql.Ast.Constraint.Exclude? right) -> bool
 static DotGram.Sql.Ast.Constraint.Null.operator !=(DotGram.Sql.Ast.Constraint.Null? left, DotGram.Sql.Ast.Constraint.Null? right) -> bool
 static DotGram.Sql.Ast.Constraint.Null.operator ==(DotGram.Sql.Ast.Constraint.Null? left, DotGram.Sql.Ast.Constraint.Null? right) -> bool
+static DotGram.Sql.Ast.DataType.SetOf.operator !=(DotGram.Sql.Ast.DataType.SetOf? left, DotGram.Sql.Ast.DataType.SetOf? right) -> bool
+static DotGram.Sql.Ast.DataType.SetOf.operator ==(DotGram.Sql.Ast.DataType.SetOf? left, DotGram.Sql.Ast.DataType.SetOf? right) -> bool
 static DotGram.Sql.Ast.ExclusionElement.operator !=(DotGram.Sql.Ast.ExclusionElement? left, DotGram.Sql.Ast.ExclusionElement? right) -> bool
 static DotGram.Sql.Ast.ExclusionElement.operator ==(DotGram.Sql.Ast.ExclusionElement? left, DotGram.Sql.Ast.ExclusionElement? right) -> bool
 static DotGram.Sql.Ast.Expression.IsDocument.operator !=(DotGram.Sql.Ast.Expression.IsDocument? left, DotGram.Sql.Ast.Expression.IsDocument? right) -> bool

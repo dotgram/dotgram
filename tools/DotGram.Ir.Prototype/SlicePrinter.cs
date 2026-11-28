@@ -1,10 +1,109 @@
 ﻿using System;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Model;
 
 namespace DotGram.Ir.Prototype;
+
+/// <summary>
+/// What of a kept statement's code a parser printed to be measured carries: all of it, or one part
+/// of it alone — the decision it opens, or the code round it with no decision opened. Only the
+/// whole is a parser; the parts read accepted inputs as it does and are timed against it.
+/// </summary>
+enum SliceAblation
+{
+	Whole,
+
+	/// <summary>The sentinel opened, nothing else: what the longer tape costs.</summary>
+	SentinelOnly,
+
+	/// <summary>Every line of the kept code but the sentinel, which is never opened.</summary>
+	WrapperOnly,
+
+	/// <summary>The whole, with every sentinel opened whatever the next item: what the door's test costs.</summary>
+	NoDoors,
+
+	/// <summary>The whole but the calls, printed bare: the most that moving a call's code into the function called can save.</summary>
+	NoCallSites,
+
+	/// <summary>
+	/// The least any design with the same kept statements can cost a reading read for the first
+	/// time: every entry one compare of the cursor with the tape's end, the rest out of line and
+	/// doing nothing (no door, no flag, no sentinel). Not a parser that resumes.
+	/// </summary>
+	Ceiling,
+
+	/// <summary>
+	/// The form a replay mode that owns the whole reading of a kept statement would print: on the
+	/// first reading one compare and the statement as it is; where the tape is read back, a second
+	/// copy with the whole of the kept statement's code (opening no sentinel, so that the tape stays
+	/// the first reading's). Not a parser that resumes: what the code and its size cost.
+	/// </summary>
+	SecondCopy,
+
+	/// <summary>
+	/// Each function printed twice (C only): the first reading's copy with no kept statement's code at
+	/// all, and, where the function keeps a statement, one compare of the cursor with the tape's end on
+	/// entry; such an entry where the tape is read back, and every reading again of such a function's
+	/// replay, goes to the twin, which is the whole but opens no sentinel (as <see cref="SecondCopy"/>'s
+	/// copy does not) and calls only twins. Not a parser that resumes: what the code and its size cost.
+	/// </summary>
+	ReplayTwin,
+
+	/// <summary>
+	/// <see cref="ReplayTwin"/> with a twin that keeps nothing either: what sending the reading back
+	/// to a copy of its own costs without what the copy does there.
+	/// </summary>
+	ReplayTwinBare,
+
+	/// <summary>
+	/// <see cref="ReplayTwin"/> where every function's first-reading copy reads its replay once and
+	/// sends any reading again to the twin, whether it keeps a statement or not; printed without
+	/// resumption, the parser without it with every replay's readings again out of line.
+	/// </summary>
+	ReplayTwinEvery,
+
+	/// <summary>
+	/// <see cref="Ceiling"/> with every replay's readings again out of line as <see cref="ReplayTwinEvery"/>
+	/// has them: the ceiling against the parser without resumption printed so.
+	/// </summary>
+	CeilingEvery,
+
+	/// <summary>
+	/// <see cref="ReplayTwinEvery"/> whose twin resumes, with places that have no slot of their own
+	/// on the tape: where the tape is read back, an entry into a place is named by its key (the
+	/// place, the cursor and the position) and its records are found by the key, kept and judged
+	/// stale as a sentinel's are. A parser that resumes.
+	/// </summary>
+	ReplayTwinKeyed,
+
+	/// <summary>
+	/// <see cref="ReplayTwinKeyed"/> printed over a split runtime (see <c>hotRuntime</c> of
+	/// <see cref="SlicePrinter.Print"/>): the helpers gcc leaves out of line in the first-reading
+	/// copies are inlined there always, and the twins call cold instances of their own. A parser that resumes.
+	/// </summary>
+	ReplayTwinKeyedSplit,
+
+	/// <summary>
+	/// The twins of <see cref="ReplayTwinKeyed"/> alone (C only), entered at the top for the whole
+	/// input: no first-reading copy is printed. The resuming set a parser that restarts by budget reads
+	/// again with, and what it costs on its own. A parser that resumes.
+	/// </summary>
+	ResumingSetAlone,
+
+	/// <summary>
+	/// Restart by budget (C only): the first reading is <see cref="ReplayTwinEvery"/> printed without
+	/// resumption, with a counter on every reading again of a region (a replay, braces, a look, a
+	/// choice's alternative, a turn, and an attempt that stood read once more): each charges what it
+	/// reads again, at least one, and past the budget (a constant times the furthest position
+	/// inspected, plus one) the reading is given up and the input read again from the start by
+	/// <see cref="ResumingSetAlone"/>'s twins, printed apart (<see cref="SlicePrinter.PrintResumingSet"/>)
+	/// into a translation unit of their own. A parser that resumes where it has to.
+	/// </summary>
+	RestartByBudget,
+}
 
 enum SliceLanguage
 {
@@ -70,6 +169,67 @@ sealed class SlicePrinter
 
 	readonly SliceFrames _frames;
 
+	// Whether the parser counts what it does (for the ladders, never for a parser that is timed).
+	readonly bool _counted;
+
+	// What a resuming reading keeps (the evaluator's own fact), and the statement being printed
+	// inside its own record, which is not to be wrapped again.
+	readonly ResumptionSites _sites;
+	readonly bool            _resumes;
+
+	IrStmt? _bare;
+
+	// Printing the copy a replay reads (SecondCopy): nothing in it is copied again, and no sentinel is opened.
+	bool _inCopy;
+
+	bool NoSentinel => _ablation == SliceAblation.WrapperOnly || Unopened || Keyed;
+
+	// A copy that opens no sentinel and prints its lookup never taken, so that the tape stays the
+	// first reading's: SecondCopy's copy, and ReplayTwin's twin (whose records would be found by a
+	// key with no sentinel of their own, which is not printed).
+	bool Unopened => _inCopy || _twin && !Keyed;
+
+	// Printing ReplayTwinKeyed's twin: an entry is named by its key, and opens nothing on the tape.
+	bool Keyed => _twin && _ablation == SliceAblation.ReplayTwinKeyed;
+
+	// The number each place is keyed by.
+	readonly Dictionary<IrStmt, int> _placeIds = new(ReferenceEqualityComparer.Instance);
+
+	// Printing a function's first-reading copy (ReplayTwin), which keeps nothing, or its twin, which keeps all.
+	bool _plain;
+	bool _twin;
+
+	IrFunction? _function;
+
+	readonly SliceAblation _ablation;
+
+	// Printed over the split runtime (C, a measurement): the runtime's hot helpers are inlined always
+	// wherever they are called, and a twin calls their cold instances instead, so that no out-of-line
+	// copy of a helper is shared by the first reading and the twins (whose many calls otherwise
+	// spend gcc's growth budget and leave the helpers out of line in the first-reading code too).
+	bool _hotRuntime;
+
+	// ResumingSetAlone: the twins alone, entered at the top, under the entry's name given.
+	bool   _entersTwins;
+	string _parseName = "parse";
+
+	// RestartByBudget: the counter on every reading again, the furthest refusal inside looks too,
+	// and the budget's constant.
+	bool _budget;
+	int  _budgetTimes;
+
+	// RestartByBudget: how far each look reads, and how many looks without a bound the statement being
+	// printed stands in (their refusals raise the reach themselves); NoLookClause, the reach left out.
+	LookReach? _looks;
+	int        _unboundedLooks;
+	bool       _noLookClause;
+
+	// The helpers gcc's inliner report names as left out of line in first-reading code (with what
+	// they call that it also leaves out, and the two whose late inlining printed other code than
+	// inlining them always), each with a cold instance in runtime.h under RT_SPLIT. RT_REFUSE_FAR, a
+	// refusal of a parser that restarts by budget, is a macro over one of them.
+	static readonly Regex HotHelpers = new(@"\b(RT_REFUSE_FAR|rt_enter|rt_next|rt_cut|rt_retry|rt_refuse|rt_stood|rt_undeferred|rt_replayed|rt_starts|rt_agree|list_add|val_items)\(", RegexOptions.CultureInvariant);
+
 	// What each function reaches by one call or more, and the functions printed as machines.
 	readonly Dictionary<IrFunction, HashSet<IrFunction>> _reach    = [];
 	readonly HashSet<IrFunction>                         _machines = [];
@@ -88,11 +248,16 @@ sealed class SlicePrinter
 	int _indent;
 	int _temp;
 
-	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames)
+	SlicePrinter(IrProgram program, SliceLanguage language, SliceFrames frames, bool counted, bool resumes, ResumptionCriterion criterion, SliceAblation ablation)
 	{
+		_ablation = ablation;
+
 		_program  = program;
 		_language = language;
 		_frames   = language == SliceLanguage.TypeScript ? frames : SliceFrames.None;
+		_counted  = counted;
+		_sites    = ResumptionSites.Of(program, criterion);
+		_resumes  = resumes && _sites.Sites.Count > 0;
 
 		if (_frames == SliceFrames.None)
 			return;
@@ -128,13 +293,82 @@ sealed class SlicePrinter
 	bool C => _language == SliceLanguage.C;
 
 	/// <summary>The parser's source: one file, which its language's runtime file stands beside.</summary>
-	public static string Print(IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None)
+	/// <param name="counted">
+	/// Whether the parser counts the functions it enters, the turns it reads and the decisions it
+	/// opens or reads back, into the runtime's counters: what a ladder of refusals reads, and
+	/// never what a timing does.
+	/// </param>
+	/// <param name="resumes">
+	/// Whether a replay goes straight past what it read before (<see cref="ResumptionSites"/>);
+	/// without, the parser is what it was before it did, which is what the cost of it is measured against.
+	/// </param>
+	/// <param name="criterion">Which statements keep a record (<see cref="ResumptionSites"/>).</param>
+	/// <param name="hotRuntime">C only, a measurement: print over the split runtime (<c>RT_SPLIT</c> in runtime.h).</param>
+	public static string Print(
+		IrProgram program, SliceLanguage language, SliceFrames frames = SliceFrames.None, bool counted = false, bool resumes = true,
+		ResumptionCriterion criterion = ResumptionCriterion.FailsBack, SliceAblation ablation = SliceAblation.Whole, bool hotRuntime = false,
+		int budget = 8, string parseName = "parse", bool noLookClause = false, bool hotTwins = false)
 	{
-		var printer = new SlicePrinter(program, language, frames);
+		// The split is a way of printing the runtime's calls, not a form of its own: the keyed twin printed over it.
+		if (ablation == SliceAblation.ReplayTwinKeyedSplit)
+		{
+			ablation   = SliceAblation.ReplayTwinKeyed;
+			hotRuntime = true;
+		}
+
+		var entersTwins = ablation == SliceAblation.ResumingSetAlone;
+		var restarts    = ablation == SliceAblation.RestartByBudget;
+
+		if ((entersTwins || restarts) && language != SliceLanguage.C)
+			throw new NotSupportedException("Only the C slice prints " + ablation + ".");
+
+		if (entersTwins)
+			ablation = SliceAblation.ReplayTwinKeyed;
+
+		if (restarts)
+		{
+			// Read from the top again, a lazy publication would hand over again what it handed over
+			// already: restart is for a publication of the whole input, which is all the tree lowers.
+			foreach (var (entry, function) in program.Entries)
+			{
+				if (!ReadsToTheEnd(function.Body))
+					throw new NotSupportedException("A parser that restarts by budget reads only publications of the whole input; " + entry + " is not one.");
+			}
+
+			ablation = SliceAblation.ReplayTwinEvery;
+			resumes  = false;
+		}
+
+		var printer = new SlicePrinter(program, language, frames, counted, resumes, criterion, ablation)
+		{
+			_hotRuntime  = hotRuntime && language == SliceLanguage.C,
+			_entersTwins = entersTwins,
+			_parseName   = parseName,
+			_budget      = restarts,
+			_budgetTimes = budget,
+			_looks       = restarts ? new LookReach(program) : null,
+			_noLookClause = noLookClause,
+			_hotTwins    = hotTwins && entersTwins,
+		};
 
 		printer.Run();
 
 		return printer._text.ToString();
+	}
+
+	/// <summary>
+	/// The resuming set of a parser that restarts by budget: <see cref="SliceAblation.ResumingSetAlone"/>
+	/// under the entry <c>parse_resuming</c>, a translation unit of its own (its functions are static).
+	/// </summary>
+	public static string PrintResumingSet(IrProgram program, bool counted = false, bool hotTwins = false)
+	{
+		return Print(program, SliceLanguage.C, counted: counted, ablation: SliceAblation.ResumingSetAlone, parseName: "parse_resuming", hotTwins: hotTwins);
+	}
+
+	// Whether an entry reads to the end of the input itself (the tree's publications all do).
+	static bool ReadsToTheEnd(IrStmt stmt)
+	{
+		return stmt is IrStmt.MatchEnd || stmt is not IrStmt.Call && stmt.Children.Any(ReadsToTheEnd);
 	}
 
 	/// <summary>
@@ -164,6 +398,22 @@ sealed class SlicePrinter
 		return text.ToString();
 	}
 
+	/// <summary>A host in C that builds nothing and whose every guard says yes: what a timing of the reading alone is run with.</summary>
+	public static string PrintNullHostInC(IrProgram program)
+	{
+		var text = new StringBuilder("#include \"runtime.h\"\n#include \"parser.h\"\n\n");
+
+		foreach (var fragment in program.Fragments)
+		{
+			var parameters = string.Concat(fragment.Parameters.Select(static (_, index) => ", Val a" + index.ToString(CultureInfo.InvariantCulture)));
+
+			text.Append(fragment.IsGuard ? "bool" : "Val").Append(" host_").Append(fragment.Name).Append("(Parser *P").Append(parameters).Append(")\n{\n\t(void)P;\n\n");
+			text.Append("\treturn ").Append(fragment.IsGuard ? "true" : "VAL_NONE").Append(";\n}\n\n");
+		}
+
+		return text.ToString();
+	}
+
 	/// <summary>What the C parser declares to its host and its driver.</summary>
 	public static string PrintHeaderInC(IrProgram program)
 	{
@@ -187,12 +437,42 @@ sealed class SlicePrinter
 		if (C)
 		{
 			Line("#include <string.h>");
+
+			if (_hotRuntime)
+				Line("#define RT_SPLIT");
+
+			if (_budget)
+			{
+				Line("#define RT_RESTART");
+				Line("#ifndef RT_BUDGET");
+				Line($"#define RT_BUDGET {_budgetTimes.ToString(CultureInfo.InvariantCulture)}");
+				Line("#endif");
+			}
+
 			Line("#include \"runtime.h\"");
 			Line("#include \"parser.h\"");
 			Line();
 
+			if (_budget)
+			{
+				Line("int32_t parse_resuming(Parser *P, const char *entry);");
+				Line();
+			}
+
+			if (_parseName != "parse")
+			{
+				Line($"int32_t {_parseName}(Parser *P, const char *entry);");
+				Line();
+			}
+
 			foreach (var function in _program.Functions)
-				Line($"static int32_t {Name(function)}(Parser *P, int32_t p);");
+			{
+				if (!(_entersTwins && Twinned(function)))
+					Line($"static int32_t {Name(function)}(Parser *P, int32_t p);");
+
+				if (Twinned(function))
+					Line($"static {TwinAttributes} int32_t {Name(function)}_r(Parser *P, int32_t p, int32_t u0);");
+			}
 		}
 		else
 		{
@@ -269,13 +549,29 @@ sealed class SlicePrinter
 			_text.Insert(body, tables.Append('\n').ToString());
 		}
 
+		// The doors' tables, before the functions too (TypeScript reads them only once a parse runs).
+		if (_doorTables.Count > 0)
+		{
+			var tables = new StringBuilder();
+
+			foreach (var (bits, name) in _doorTables)
+				tables.Append(C ? $"static const uint32_t {name}[4] = {{ {bits.Replace(",", "u, ", StringComparison.Ordinal)}u }};\n" : $"const {name} = new Int32Array([{bits.Replace(",", " | 0, ", StringComparison.Ordinal)} | 0]);\n");
+
+			_text.Insert(body, tables.Append('\n').ToString());
+		}
+
 		if (C)
 		{
-			Line("int32_t parse(Parser *P, const char *entry)");
+			Line($"int32_t {_parseName}(Parser *P, const char *entry)");
 			Line("{");
 
+			// Restart by budget: the first reading, and one test after it whether it was given up (rt_first).
 			foreach (var (entry, function) in _program.Entries)
-				Line($"\tif (strcmp(entry, \"{entry}\") == 0) return {Name(function)}(P, 0);");
+			{
+				var read = Name(function) + (_entersTwins && Twinned(function) ? "_r(P, 0, 0)" : "(P, 0)");
+
+				Line($"\tif (strcmp(entry, \"{entry}\") == 0) return {(_budget ? $"rt_first(P, {read}, entry)" : read)};");
+			}
 
 			Line("\treturn -2;");
 			Line("}");
@@ -357,6 +653,319 @@ sealed class SlicePrinter
 		return C ? $"P->text[{at}]" : $"text.charCodeAt({at})";
 	}
 
+	/// <summary>A decision opened or read back, counted where the parser counts.</summary>
+	string Enter(string last)
+	{
+		return _counted ? Runtime("enterCounted", last) : Runtime("enter", last);
+	}
+
+	/// <summary>What counts one more step, where the parser counts: a function entered, a turn begun.</summary>
+	void Step()
+	{
+		if (_counted)
+			Line(C ? "P->kSteps++;" : "P.kSteps++;");
+	}
+
+	// The doors' tables: the items below 128 a door lets through, a bit an item, by the ranges' spelling.
+	readonly Dictionary<string, string> _doorTables = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// Whether the next item can begin what a kept statement reads: below 128 one bit of a table,
+	/// above it the ranges there are, compared one by one (rare in the inputs that pay for this).
+	/// </summary>
+	string DoorTest(IReadOnlyList<CharRange> door)
+	{
+		var bits = new uint[4];
+		var high = new List<CharRange>();
+
+		foreach (var range in door)
+		{
+			for (int unit = range.From; unit <= Math.Min((int)range.To, 127); unit++)
+				bits[unit >> 5] |= 1u << (unit & 31);
+
+			if (range.To >= 128)
+				high.Add(new CharRange((char)Math.Max(128, (int)range.From), range.To));
+		}
+
+		var spelled = string.Join(",", bits.Select(static word => word.ToString(CultureInfo.InvariantCulture)));
+
+		if (!_doorTables.TryGetValue(spelled, out var table))
+			_doorTables.Add(spelled, table = "D" + _doorTables.Count.ToString(CultureInfo.InvariantCulture));
+
+		var above = high.Count == 0 ? (C ? "0" : "false") : Within(new IrStmt.MatchSet(high, false, 0));
+
+		return C
+			? $"p < len && (c = {Unit("p")}, c < 128 ? ({table}[c >> 5] >> (c & 31)) & 1u : {above})"
+			: $"p < len && (c = {Unit("p")}, c < 128 ? (({table}[c >> 5] >> (c & 31)) & 1) !== 0 : {above})";
+	}
+
+	/// <summary>Whether the statement opens a sentinel and keeps a record.</summary>
+	bool Kept(IrStmt stmt)
+	{
+		return _resumes && !_plain && !(_twin && _ablation == SliceAblation.ReplayTwinBare) && _ablation is not (SliceAblation.SentinelOnly or SliceAblation.Ceiling or SliceAblation.CeilingEvery) && !(_ablation == SliceAblation.NoCallSites && stmt is IrStmt.Call) &&
+			!ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt);
+	}
+
+	/// <summary>For <see cref="SliceAblation.SentinelOnly"/>: the decision a kept statement opens, and the statement as it is.</summary>
+	bool SentinelAlone(IrStmt stmt)
+	{
+		if (!(_resumes && _ablation is SliceAblation.SentinelOnly or SliceAblation.Ceiling or SliceAblation.CeilingEvery && !ReferenceEquals(stmt, _bare) && _sites.Keeps(stmt)))
+			return false;
+
+		if (_ablation is SliceAblation.Ceiling or SliceAblation.CeilingEvery)
+			Line($"if ({Member("cursor")} < {Member("count")}) {Runtime("slow", "")};");
+		else if (_sites.Doors.TryGetValue(stmt, out var door))
+			Line($"if ({DoorTest(door)}) {Enter("0")};");
+		else
+			Line($"{Enter("0")};");
+
+		return true;
+	}
+
+	/// <summary>The slots a kept statement writes: what a record holds and gives back (the evaluator's own list).</summary>
+	static IReadOnlyList<IrSlot> Writes(IrStmt stmt)
+	{
+		return stmt switch
+		{
+			IrStmt.Repeat repeat => repeat.Resets,
+			IrStmt.Commit commit => commit.Resets,
+			IrStmt.Look look     => look.Resets,
+			IrStmt.Call { Into: { } into } => [into],
+			_                    => [],
+		};
+	}
+
+	/// <summary>A record's slots written from the slots, at the record <paramref name="record"/> where it was kept.</summary>
+	void Hold(IReadOnlyList<IrSlot> slots, string record)
+	{
+		if (slots.Count == 0)
+			return;
+
+		var b = Temp("kb");
+
+		Line(C ? $"int32_t {b} = P->kept[{record}].base;" : $"const {b} = P.kBase[{record}];");
+
+		for (var i = 0; i < slots.Count; i++)
+		{
+			var slot = Slot(slots[i]);
+			var at   = i.ToString(CultureInfo.InvariantCulture);
+
+			if (C)
+			{
+				Line(slots[i].Kind switch
+				{
+					IrSlotKind.List  => $"P->kv[{b} + {at}] = (Val){{ V_LIST, {slot} == NULL ? 0 : {slot}->count, 0, {slot} }};",
+					IrSlotKind.Value => $"P->kv[{b} + {at}] = {slot};",
+					_                => $"P->kv[{b} + {at}] = (Val){{ V_NONE, {slot}, 0, NULL }};",
+				});
+			}
+			else
+			{
+				Line($"P.kv[{b} + {(i * 2).ToString(CultureInfo.InvariantCulture)}] = {slot};");
+
+				if (slots[i].Kind == IrSlotKind.List)
+					Line($"P.kv[{b} + {(i * 2 + 1).ToString(CultureInfo.InvariantCulture)}] = {slot} === undefined ? 0 : {slot}.length;");
+			}
+		}
+	}
+
+	/// <summary>The slots put back as the record <paramref name="record"/> holds them.</summary>
+	void Give(IReadOnlyList<IrSlot> slots, string record)
+	{
+		if (slots.Count == 0)
+			return;
+
+		var b = Temp("kb");
+
+		Line(C ? $"int32_t {b} = P->kept[{record}].base;" : $"const {b} = P.kBase[{record}];");
+
+		for (var i = 0; i < slots.Count; i++)
+		{
+			var slot = Slot(slots[i]);
+			var at   = i.ToString(CultureInfo.InvariantCulture);
+
+			if (C)
+			{
+				Line(slots[i].Kind switch
+				{
+					IrSlotKind.List  => $"{slot} = (List *)P->kv[{b} + {at}].ptr; if ({slot} != NULL) rt_shorten(P, {slot}, P->kv[{b} + {at}].from);",
+					IrSlotKind.Value => $"{slot} = P->kv[{b} + {at}];",
+					_                => $"{slot} = P->kv[{b} + {at}].from;",
+				});
+			}
+			else
+			{
+				Line($"{slot} = P.kv[{b} + {(i * 2).ToString(CultureInfo.InvariantCulture)}];");
+
+				if (slots[i].Kind == IrSlotKind.List)
+					Line($"if ({slot} !== undefined) P.shorten({slot}, P.kv[{b} + {(i * 2 + 1).ToString(CultureInfo.InvariantCulture)}]);");
+			}
+		}
+	}
+
+	/// <summary>A record kept where the reading is a replay: of where a turn begins, or of where the statement ended.</summary>
+	void Record(string owner, bool end, string position, string turns, string read, IReadOnlyList<IrSlot> slots)
+	{
+		var r = Temp("kr");
+
+		Line($"if ({Member("cursor")} < {Member("count")} && {owner} >= 0)");
+		Line("{");
+		_indent++;
+		Line(Int(r, Runtime("keep", $"{owner}, {(end ? "true" : "false")}, {position}, {turns}, {read}, {slots.Count.ToString(CultureInfo.InvariantCulture)}")));
+
+		if (slots.Count > 0)
+		{
+			Line($"if ({r} >= 0)");
+			Line("{");
+			_indent++;
+			Hold(slots, r);
+			_indent--;
+			Line("}");
+		}
+		else if (C)
+			Line($"(void){r};");
+
+		_indent--;
+		Line("}");
+	}
+
+	/// <summary>
+	/// A sentinel opened (into <paramref name="owner"/>, a local declared before or a place of the frame),
+	/// and where it is read back, the latest record of its entry taken if it stands for this
+	/// reading — any record of a repetition, only where a statement ended of anything else.
+	/// </summary>
+	void Sentinel(IrStmt stmt, string owner, Action<string> taken, bool endOnly)
+	{
+		var h = Temp("h");
+
+		// Where the next item cannot begin what the statement reads, its work is bounded and it opens nothing.
+		if (_ablation != SliceAblation.NoDoors && _sites.Doors.TryGetValue(stmt, out var door))
+			Line($"if ({DoorTest(door)})");
+
+		Line("{");
+		_indent++;
+
+		if (NoSentinel)
+			Line($"{owner} = -1;");
+
+		// Read for the first time, a sentinel is opened and nothing else is asked; read back, its
+		// latest record is looked for. (In the copy a replay reads, the lookup is printed but never
+		// taken: there is no sentinel to read back.)
+		Line(Unopened ? $"if ({Member("cursor")} < {Member("count")} && {Member("noCutCheck")})" : $"if ({Member("cursor")} < {Member("count")})");
+		Line("{");
+		_indent++;
+
+		if (Keyed)
+		{
+			if (!_placeIds.TryGetValue(stmt, out var place))
+				_placeIds.Add(stmt, place = _placeIds.Count);
+
+			Line($"{owner} = rt_key(P, {place.ToString(CultureInfo.InvariantCulture)}, P->cursor, p);");
+		}
+		else
+			Line($"{owner} = {(_counted ? Enter("0") : (C ? "P->cursor++" : "P.cursor++"))};");
+
+		Line(Int(h, Runtime("head", owner)));
+		Line($"if ({h} >= 0 && {Runtime("usable", h)}{(endOnly ? $" && ({Field(h, "flags")} & 1) != 0" : "")})");
+		Line("{");
+		_indent++;
+		taken(h);
+		_indent--;
+		Line("}");
+		_indent--;
+		Line("}");
+
+		if (!NoSentinel)
+			Line($"else {owner} = {(_counted ? Enter("0") : Runtime("sentinel", ""))};");
+
+		_indent--;
+		Line("}");
+	}
+
+	/// <summary>A kept statement other than a repetition: its sentinel, and past it where a record of its end stands, or it read and its end kept.</summary>
+	void Site(IrStmt stmt, string fail)
+	{
+		var owner  = Temp("o");
+		var read   = Temp("ok");
+		var taken  = Temp("taken");
+		var writes = Writes(stmt);
+
+		Line("{");
+		_indent++;
+		Line(Int(owner, "-1"));
+		Line(Flag(read));
+		Line(Flag(taken));
+		Sentinel(stmt, owner, h =>
+		{
+			Line($"p = {Field(h, "pos")};");
+			Line($"{Member("cursor")} = {Field(h, "key")};");
+			Give(writes, h);
+			Line($"{read} = ({Field(h, "flags")} & 2) != 0;");
+			Line($"{taken} = true;");
+			Jumped();
+		}, endOnly: true);
+		Line($"if (!{taken})");
+		Line("{");
+		_indent++;
+
+		var outer = _bare;
+
+		_bare = stmt;
+		Attempt(stmt, read);
+		_bare = outer;
+
+		Record(owner, end: true, "p", "0", read, writes);
+		_indent--;
+		Line("}");
+		Line($"if (!{read}) {fail}");
+		_indent--;
+		Line("}");
+	}
+
+	/// <summary><see cref="Site"/> for a statement with a call out of the machine in it: its sentinel in the frame, its end and its failure states of their own.</summary>
+	void FlatSite(IrStmt stmt, int fail)
+	{
+		var owner  = FrameNumber();
+		var after  = State();
+		var failed = State();
+		var writes = Writes(stmt);
+
+		Line($"{owner} = -1;");
+		Sentinel(stmt, owner, h =>
+		{
+			Line($"p = {Field(h, "pos")};");
+			Line($"{Member("cursor")} = {Field(h, "key")};");
+			Give(writes, h);
+			Jumped();
+			Line($"if (({Field(h, "flags")} & 2) != 0) {Jump(after)}");
+			Line(FailTo(fail));
+		}, endOnly: true);
+
+		var outer = _bare;
+
+		_bare = stmt;
+		Flat(stmt, failed);
+		_bare = outer;
+
+		Record(owner, end: true, "p", "0", "true", writes);
+		Line(Jump(after));
+		Place(failed);
+		Record(owner, end: true, "p", "0", "false", writes);
+		Line(FailTo(fail));
+		Place(after);
+	}
+
+	string Field(string record, string name)
+	{
+		return C ? $"P->kept[{record}].{name}" : $"P.k{char.ToUpperInvariant(name[0])}{name[1..]}[{record}]";
+	}
+
+	void Jumped()
+	{
+		if (_counted)
+			Line(C ? "P->kJumps++;" : "P.kJumps++;");
+	}
+
 	string Decision(string way)
 	{
 		return C ? $"P->ways[{way} * 2]" : $"P.ways[{way} * 2]";
@@ -377,19 +986,92 @@ sealed class SlicePrinter
 		};
 	}
 
+	/// <summary>
+	/// Whether the function is printed with a twin (<see cref="SliceAblation.ReplayTwin"/>): every one is,
+	/// so that twins call only twins and the first reading's functions only each other, and the first
+	/// reading's calls are what they were without resumption (a twin calling them would make each a
+	/// function called twice, which the compiler stops inlining).
+	/// </summary>
+	bool Twinned(IrFunction function)
+	{
+		return C && _ablation is SliceAblation.ReplayTwin or SliceAblation.ReplayTwinBare or SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery or SliceAblation.ReplayTwinKeyed &&
+			(_resumes || _ablation == SliceAblation.ReplayTwinEvery);
+	}
+
+	/// <summary>Whether the function keeps a statement: where its first reading's copy sends a reading back to the twin.</summary>
+	bool Places(IrFunction function)
+	{
+		return _resumes && Keeps(function.Body);
+
+		bool Keeps(IrStmt stmt)
+		{
+			return _sites.Keeps(stmt) || stmt.Children.Any(Keeps);
+		}
+	}
+
+	// A twin is out of line and cold: inlined into the first reading's copy, the whole of it widened
+	// every entry's frame; not cold, its call was laid out among the first reading's code (measured).
+	// The resuming set alone, printed for speed in a unit of its own (hotTwins): nothing to keep out of line.
+	string TwinAttributes => _hotTwins ? "" : "__attribute__((noinline, cold))";
+
+	bool _hotTwins;
+
 	void Function(IrFunction function)
 	{
-		_temp = 0;
+		if (!Twinned(function))
+		{
+			Copy(function);
 
-		Line(C ? $"static int32_t {Name(function)}(Parser *P, int32_t p)" : $"function {Name(function)}(P: Runtime, p: number): number");
+			return;
+		}
+
+		if (!_entersTwins)
+		{
+			_plain = true;
+			Copy(function);
+			_plain = false;
+		}
+
+		_twin  = true;
+
+		var start = _text.Length;
+
+		Copy(function);
+		_twin = false;
+
+		if (_hotRuntime)
+		{
+			var twin = HotHelpers.Replace(_text.ToString(start, _text.Length - start), "$1_cold(");
+
+			_text.Length = start;
+			_text.Append(twin);
+		}
+	}
+
+	void Copy(IrFunction function)
+	{
+		_temp     = 0;
+		_function = function;
+
+		if (_twin)
+			Line($"static {TwinAttributes} int32_t {Name(function)}_r(Parser *P, int32_t p, int32_t u0)");
+		else
+			Line(C ? $"static int32_t {Name(function)}(Parser *P, int32_t p)" : $"function {Name(function)}(P: Runtime, p: number): number");
+
 		Line("{");
 		_indent++;
+
+		if (_plain && Places(function) && _ablation != SliceAblation.CeilingEvery)
+			Line($"if (P->cursor < P->count) return {Name(function)}_r(P, p, 0);");
+		else if (_twin)
+			Line("(void)u0;");
 
 		if (!C)
 			Line("const text = P.text;");
 
 		Line(C ? "const int32_t len = P->len;" : "const len = P.len;");
 		Line(C ? "uint16_t c = 0;" : "let c = 0;");
+		Step();
 
 		foreach (var slot in Slots(function.Body).Distinct().OrderBy(static slot => slot.Index))
 		{
@@ -427,6 +1109,11 @@ sealed class SlicePrinter
 
 	string Refuse(string at, int expected)
 	{
+		// Restart by budget: a refusal inside a look says nothing, but the position it inspected is
+		// the furthest the reading has reached, where it is further than any before.
+		if (_budget && !_noLookClause && (_unboundedLooks > 0 || _looks!.Reached.Contains(_function!)))
+			return $"RT_REFUSE_FAR(P, {at}, {expected.ToString(CultureInfo.InvariantCulture)});";
+
 		return $"if ({Member("quiet")} == 0 && {at} >= {Member("refusedAt")}) {Runtime("refuse", at + ", " + expected.ToString(CultureInfo.InvariantCulture))};";
 	}
 
@@ -498,9 +1185,54 @@ sealed class SlicePrinter
 			var slot = slots[i];
 
 			Line(slot.Kind == IrSlotKind.List
-				? C ? $"if ({kept[i]} < 0) {Slot(slot)} = NULL; else {Slot(slot)}->count = {kept[i]};" : $"if ({kept[i]} < 0) {Slot(slot)} = undefined; else {Slot(slot)}!.length = {kept[i]};"
+				? C ? $"if ({kept[i]} < 0) {Slot(slot)} = NULL; else rt_shorten(P, {Slot(slot)}, {kept[i]});" : $"if ({kept[i]} < 0) {Slot(slot)} = undefined; else P.shorten({Slot(slot)}!, {kept[i]});"
 				: $"{Slot(slot)} = {kept[i]};");
 		}
+	}
+
+	/// <summary>
+	/// A part read again in place over its own decisions until it reads or none can move: a turn or an
+	/// alternative, from <paramref name="start"/>, with what it writes put back before each attempt
+	/// after the first. Where it <paramref name="defers"/>, the second decision given back stops
+	/// building, and an attempt that stood unbuilt is read once more, built (<see cref="IrStmt.Replay.Defers"/>).
+	/// </summary>
+	/// <param name="guard">What must hold besides for a retry to be asked for: the repetition's own way taken.</param>
+	void InPlace(IrStmt part, string read, string start, IReadOnlyList<IrSlot> resets, string[] kept, string guard, bool defers)
+	{
+		var mark = Temp("m");
+		var u    = defers ? Temp("u") : "";
+
+		Line(Int(mark, Member("cursor")));
+
+		if (defers)
+			Line(Int(u, "0"));
+
+		Line("for (;;)");
+		Line("{");
+		_indent++;
+		Attempt(part, read);
+
+		if (defers)
+		{
+			Line($"if ({read})");
+			Line("{");
+			Line($"\tif ({u} > 1) {{ {u} = {Runtime("stood", $"{u}, {mark}")}; if ({u} > 0{Charged(start)}) {{ {read} = false; p = {start};");
+			_indent += 2;
+			PutBack(resets, kept);
+			_indent -= 2;
+			Line("\t\tcontinue; } }");
+			Line("\tbreak;");
+			Line("}");
+			Line($"if (!({guard}{Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
+			Line($"{u} = {Runtime("retried", u)};");
+		}
+		else
+			Line($"if ({read} || !({guard}{Member("cursor")} > {mark} && {Runtime("retry", mark)}{Charged(start)})) break;");
+
+		Line($"p = {start};");
+		PutBack(resets, kept);
+		_indent--;
+		Line("}");
 	}
 
 	/// <summary>A body that answers for its own failures: run once, with a flag that says whether it read.</summary>
@@ -518,6 +1250,48 @@ sealed class SlicePrinter
 	/// <param name="fail">What a failure of this statement is, where it stands: a <c>break</c> or a <c>return</c>.</param>
 	void Statement(IrStmt stmt, string fail)
 	{
+		if (_ablation == SliceAblation.SecondCopy && !_inCopy && Kept(stmt))
+		{
+			var outer = _bare;
+
+			Line($"if ({Member("cursor")} < {Member("count")})");
+			Line("{");
+			_indent++;
+			_inCopy = true;
+			Statement(stmt, fail);
+			_inCopy = false;
+			_indent--;
+			Line("}");
+			Line("else");
+			Line("{");
+			_indent++;
+			_bare = stmt;
+			Statement(stmt, fail);
+			_bare = outer;
+			_indent--;
+			Line("}");
+
+			return;
+		}
+
+		if (SentinelAlone(stmt))
+		{
+			var outer = _bare;
+
+			_bare = stmt;
+			Statement(stmt, fail);
+			_bare = outer;
+
+			return;
+		}
+
+		if (stmt is not IrStmt.Repeat && Kept(stmt))
+		{
+			Site(stmt, fail);
+
+			return;
+		}
+
 		switch (stmt)
 		{
 			case IrStmt.Block block:
@@ -599,7 +1373,7 @@ sealed class SlicePrinter
 
 				Line("{");
 				_indent++;
-				Line(Int(end, $"{Name(call.Target)}(P, p)"));
+				Line(Int(end, _twin ? $"{Name(call.Target)}_r(P, p, 0)" : $"{Name(call.Target)}(P, p)"));
 
 				// A machine further down may have outgrown the array of numbers and left another in its place.
 				if (_machine is not null && (_machines.Contains(call.Target) || _reach[call.Target].Overlaps(_machines)))
@@ -634,7 +1408,7 @@ sealed class SlicePrinter
 				Line(Flag(read));
 
 				if (choice.Resumable)
-					Line(Int(way, Runtime("enter", last.ToString(CultureInfo.InvariantCulture))));
+					Line(Int(way, Enter(last.ToString(CultureInfo.InvariantCulture))));
 
 				for (var i = 0; i <= last; i++)
 				{
@@ -646,7 +1420,14 @@ sealed class SlicePrinter
 
 					var kept = Keep(choice.Resets[i]);
 
-					Attempt(choice.Alternatives[i], read);
+					// The alternative is read again with each of its own decisions that can still move
+					// before the choice moves on: its next alternative comes after them. The last too,
+					// where the choice retries its parts and the alternative can decide.
+					if (choice.Resumable && (i < last || choice.Retries && IrLowering.Decides(choice.Alternatives[i])))
+						InPlace(choice.Alternatives[i], read, start, choice.Resets[i], kept, "", choice.Defers);
+					else
+						Attempt(choice.Alternatives[i], read);
+
 					Line($"if (!{read})");
 					Line("{");
 					_indent++;
@@ -670,7 +1451,7 @@ sealed class SlicePrinter
 			}
 
 			// A run of one set that nothing is ever asked back from: a loop over the input.
-			case IrStmt.Repeat { Body: IrStmt.MatchSet set, Resumable: false, Resets.Count: 0, Min: IrExpr.Number min, Max: null or IrExpr.Number } run:
+			case IrStmt.Repeat { Body: IrStmt.MatchSet set, Resumable: false, Resets.Count: 0, Min: IrExpr.Number min, Max: null or IrExpr.Number } run when !Kept(run):
 			{
 				var turns = Temp("n");
 				var most  = run.Max is IrExpr.Number max ? max.Value.ToString(CultureInfo.InvariantCulture) : "2147483647";
@@ -680,6 +1461,10 @@ sealed class SlicePrinter
 				Line(Int(turns, "0"));
 				Line($"while ({turns} < {most})");
 				Line("{");
+
+				if (_counted)
+					Line(C ? "\tP->kSteps++;" : "\tP.kSteps++;");
+
 				Line($"\tif (p >= len) {{ {Refuse("p", set.Expected)} break; }}");
 				Line($"\tc = {Unit("p")};");
 				Line($"\tif (!{Within(set)}) {{ {Refuse("p", set.Expected)} break; }}");
@@ -705,35 +1490,63 @@ sealed class SlicePrinter
 				var read  = Temp("ok");
 				var way   = Temp("w");
 
+				var kept   = Kept(repeat);
+				var owner  = Temp("o");
+
 				Line("{");
 				_indent++;
 				Line(Int(turns, "0"));
 				Line(Int(least, Expression(repeat.Min)));
 				Line(Int(most, repeat.Max is null ? "2147483647" : Expression(repeat.Max)));
+
+				if (kept)
+				{
+					Line(Int(owner, "-1"));
+					Sentinel(repeat, owner, (h) =>
+					{
+						Line($"p = {Field(h, "pos")};");
+						Line($"{turns} = {Field(h, "turns")};");
+						Line($"{Member("cursor")} = {Field(h, "key")};");
+						Give(repeat.Resets, h);
+						Line($"if (({Field(h, "flags")} & 1) != 0) {most} = {turns};");
+						Jumped();
+					}, endOnly: false);
+				}
+
 				Line($"while ({turns} < {most})");
 				Line("{");
 				_indent++;
+				Step();
 				Line(Int(start, "p"));
 				Line(Flag(read));
+
+				if (kept)
+					Record(owner, end: false, start, turns, "false", repeat.Resets);
 
 				if (repeat.Resumable)
 				{
 					Line(Int(way, "-1"));
 					Line($"if ({turns} >= {least})");
 					Line("{");
-					Line($"\t{way} = {Runtime("enter", "1")};");
+					Line($"\t{way} = {Enter("1")};");
 					Line($"\tif ({Decision(way)} == 1) break;");
 					Line("}");
 				}
 
-				var kept = Keep(repeat.Resets);
+				var held = Keep(repeat.Resets);
 
-				Attempt(repeat.Body, read);
+				// A turn that fails is read again with each of its own decisions that can still move
+				// before the repetition gives it up: its own decision comes before them. Every turn,
+				// below the fewest too, where the repetition retries its turns.
+				if (repeat.Resumable || repeat.Retries)
+					InPlace(repeat.Body, read, start, repeat.Resets, held, repeat.Retries ? "" : $"{way} >= 0 && ", repeat.Defers);
+				else
+					Attempt(repeat.Body, read);
 				Line($"if (!{read})");
 				Line("{");
 				_indent++;
 				Line($"p = {start};");
-				PutBack(repeat.Resets, kept);
+				PutBack(repeat.Resets, held);
 
 				if (repeat.Resumable)
 					Line($"if ({way} >= 0) {Runtime("next", way + ", 1")};");
@@ -745,6 +1558,10 @@ sealed class SlicePrinter
 				Line($"if (p == {start}) break;");
 				_indent--;
 				Line("}");
+
+				if (kept)
+					Record(owner, end: true, "p", turns, $"{turns} >= {least}", repeat.Resets);
+
 				Line($"if ({turns} < {least}) {fail}");
 				_indent--;
 				Line("}");
@@ -763,7 +1580,7 @@ sealed class SlicePrinter
 				break;
 
 			case IrStmt.Commit commit:
-				Sealed(commit.Body, commit.Resets, fail, null);
+				Sealed(commit.Body, commit.Resets, fail, null, commit.Defers);
 
 				break;
 
@@ -775,16 +1592,57 @@ sealed class SlicePrinter
 
 				Line("{");
 				_indent++;
+				var u       = Temp("u");
+
 				Line(Int(start, "p"));
 				Line(Int(segment, Member("cursor")));
 				Line(Flag(read));
+
+				if (replay.Defers)
+					Line(Int(u, _twin ? "u0" : "0"));
+
+				if (_plain && (Places(_function!) || _ablation is SliceAblation.ReplayTwinEvery or SliceAblation.CeilingEvery or SliceAblation.ReplayTwinKeyed))
+				{
+					// One reading; any reading again is the twin's, from where this one began.
+					Line($"p = {start};");
+					Attempt(replay.Body, read);
+					Line($"if (!{read})");
+					Line("{");
+					_indent++;
+					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)}{Charged(start)})) {fail}");
+					Line($"return {Name(_function!)}_r(P, {start}, {(replay.Defers ? Runtime("retried", u) : "0")});");
+					_indent--;
+					Line("}");
+					_indent--;
+					Line("}");
+
+					break;
+				}
+
 				Line("for (;;)");
 				Line("{");
 				_indent++;
 				Line($"p = {start};");
 				Attempt(replay.Body, read);
-				Line($"if ({read}) break;");
-				Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)})) break;");
+
+				if (replay.Defers)
+				{
+					// The deferral of building as the generated parser keeps it: an attempt that stood
+					// unbuilt is read once more, built; the second way given back stops building.
+					Line($"if ({read})");
+					Line("{");
+					Line($"\tif ({u} > 1) {{ {u} = {Runtime("stood", $"{u}, {segment}")}; if ({u} > 0{Charged(start)}) {{ {read} = false; continue; }} }}");
+					Line("\tbreak;");
+					Line("}");
+					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)}{Charged(start)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
+					Line($"{u} = {Runtime("retried", u)};");
+				}
+				else
+				{
+					Line($"if ({read}) break;");
+					Line($"if (!({Member("cursor")} > {segment} && {Runtime("retry", segment)}{Charged(start)})) break;");
+				}
+
 				_indent--;
 				Line("}");
 				Line($"if (!{read}) {fail}");
@@ -793,6 +1651,12 @@ sealed class SlicePrinter
 
 				break;
 			}
+
+			// A list taken whole is a copy; a reading that builds nothing takes none but what a guard reads.
+			case IrStmt.Assign { Value: IrExpr.Items } assign when !_sites.ReadByGuards.Contains(assign.Slot):
+				Line($"if ({Member("unbuilt")} == 0) {Slot(assign.Slot)} = {Expression(assign.Value)};");
+
+				break;
 
 			case IrStmt.Assign assign:
 				Line($"{Slot(assign.Slot)} = {Expression(assign.Value)};");
@@ -838,12 +1702,13 @@ sealed class SlicePrinter
 	/// past everything on the tape, the body run again over them until it reads or they run out,
 	/// and the tape as it was afterwards.
 	/// </summary>
-	void Sealed(IrStmt body, IReadOnlyList<IrSlot> resets, string fail, IrStmt.Look? look)
+	void Sealed(IrStmt body, IReadOnlyList<IrSlot> resets, string fail, IrStmt.Look? look, bool defers = false)
 	{
 		var start  = Temp("l");
 		var cursor = Temp("lc");
 		var count  = Temp("ln");
 		var read   = Temp("ok");
+		var u      = Temp("u");
 
 		Line("{");
 		_indent++;
@@ -851,6 +1716,9 @@ sealed class SlicePrinter
 		Line(Int(cursor, Member("cursor")));
 		Line(Int(count, Member("count")));
 		Line(Flag(read));
+
+		if (defers)
+			Line(Int(u, "0"));
 
 		var kept = Keep(resets);
 
@@ -862,14 +1730,46 @@ sealed class SlicePrinter
 			Line($"{Member("unbuilt")}++;");
 		}
 
+		// Restart by budget: a look without a bound to its reach has its refusals raise the reach themselves.
+		var unbounded = _budget && !_noLookClause && look is not null && _looks!.Unbounded.Contains(look);
+
 		Line("for (;;)");
 		Line("{");
 		_indent++;
 		Line($"p = {start};");
+
+		if (unbounded)
+			_unboundedLooks++;
+
 		Attempt(body, read);
-		Line($"if ({read}) break;");
-		PutBack(resets, kept);
-		Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)})) break;");
+
+		if (unbounded)
+			_unboundedLooks--;
+
+		if (defers)
+		{
+			// An attempt that stood unbuilt is read once more, built; any other that read ends the loop.
+			Line($"if ({read})");
+			Line("{");
+			_indent++;
+			Line($"if ({u} > 1) {u} = {Runtime("stood", $"{u}, {count}")};");
+			Line($"if ({u} < 2{(_budget ? $" RT_OR_NOT_CHARGE(P, {start})" : "")}) break;");
+			Line($"{read} = false;");
+			PutBack(resets, kept);
+			Line("continue;");
+			_indent--;
+			Line("}");
+			PutBack(resets, kept);
+			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)}{Charged(start)})) {{ if ({u} > 1) {Runtime("undeferred", u)}; break; }}");
+			Line($"{u} = {Runtime("retried", u)};");
+		}
+		else
+		{
+			Line($"if ({read}) break;");
+			PutBack(resets, kept);
+			Line($"if (!({Member("count")} > {count} && {Runtime("retry", count)}{Charged(start)})) break;");
+		}
+
 		_indent--;
 		Line("}");
 
@@ -877,10 +1777,17 @@ sealed class SlicePrinter
 		{
 			Line($"{Member("quiet")}--;");
 			Line($"{Member("unbuilt")}--;");
+
+			// Restart by budget: where a look's reach is bounded, its end raises the charge's position to it.
+			if (_budget && !_noLookClause && _looks!.Of(look.Body) is { } reach)
+				Line($"RT_LOOK(P, {start}, {reach.ToString(CultureInfo.InvariantCulture)})");
 		}
 
 		Line($"{Member("count")} = {count};");
 		Line($"{Member("cursor")} = {cursor};");
+
+		if (_resumes)
+			Line($"if ({Member("kCount")} > 0) {Runtime("cut", "")};");
 
 		if (look is not null)
 		{
@@ -893,6 +1800,15 @@ sealed class SlicePrinter
 
 		_indent--;
 		Line("}");
+	}
+
+	/// <summary>
+	/// Restart by budget: a region read again from <paramref name="start"/>, charged in the edge's own
+	/// test of whether a retry was found — a reading given up declines it, as if none had been.
+	/// </summary>
+	string Charged(string start)
+	{
+		return _budget ? $" RT_AND_CHARGE(P, {start})" : "";
 	}
 
 	// ---- Frames of the parser's own ----
@@ -979,6 +1895,9 @@ sealed class SlicePrinter
 		Line("let c = 0;");
 		Line("let st = I[b];");
 
+		if (_counted)
+			Line("if (st == 0) P.kSteps++;");
+
 		foreach (var (slot, place) in _places.OrderBy(static pair => pair.Key.Index))
 			Line($"// {place}: {slot.Name}{(slot.Type is null ? "" : " : " + slot.Type)}");
 
@@ -1035,6 +1954,24 @@ sealed class SlicePrinter
 			return;
 		}
 
+		if (SentinelAlone(stmt))
+		{
+			var outer = _bare;
+
+			_bare = stmt;
+			Flat(stmt, fail);
+			_bare = outer;
+
+			return;
+		}
+
+		if (stmt is not IrStmt.Repeat && Kept(stmt))
+		{
+			FlatSite(stmt, fail);
+
+			return;
+		}
+
 		switch (stmt)
 		{
 			case IrStmt.Block block:
@@ -1083,7 +2020,7 @@ sealed class SlicePrinter
 				Line($"{start} = p;");
 
 				if (choice.Resumable)
-					Line($"{way} = {Runtime("enter", last.ToString(CultureInfo.InvariantCulture))};");
+					Line($"{way} = {Enter(last.ToString(CultureInfo.InvariantCulture))};");
 
 				for (var i = 0; i <= last; i++)
 				{
@@ -1093,16 +2030,38 @@ sealed class SlicePrinter
 					if (choice.Resumable)
 						Line($"if ({Decision(way)} > {index}) {Jump(after)}");
 
+					var retries = choice.Resumable && (i < last || choice.Retries && IrLowering.Decides(choice.Alternatives[i]));
+
 					if (Leaves(choice.Alternatives[i]))
 					{
 						var failed = State();
 						var kept   = Keep(choice.Resets[i], inFrame: true);
+						var mark   = retries ? FrameNumber() : "";
+						var begin  = retries ? State() : -1;
+						var u      = retries && choice.Defers ? FrameNumber() : "";
+
+						if (retries)
+						{
+							Line($"{mark} = P.cursor;");
+
+							if (u.Length > 0)
+								Line($"{u} = 0;");
+
+							Place(begin);
+						}
 
 						Flat(choice.Alternatives[i], failed);
+
+						if (u.Length > 0)
+							FlatStood(u, mark, start, choice.Resets[i], kept, begin);
+
 						Line(Jump(done));
 						Place(failed);
 						Line($"p = {start};");
 						PutBack(choice.Resets[i], kept);
+
+						if (retries)
+							FlatRetried(u, mark, "", begin);
 
 						if (choice.Resumable && i < last)
 							Line(Runtime("next", $"{way}, {(i + 1).ToString(CultureInfo.InvariantCulture)}") + ";");
@@ -1117,7 +2076,11 @@ sealed class SlicePrinter
 
 						var kept = Keep(choice.Resets[i]);
 
-						Attempt(choice.Alternatives[i], read);
+						if (retries)
+							InPlace(choice.Alternatives[i], read, start, choice.Resets[i], kept, "", choice.Defers);
+						else
+							Attempt(choice.Alternatives[i], read);
+
 						Line($"if ({read}) {Jump(done)}");
 						Line($"p = {start};");
 						PutBack(choice.Resets[i], kept);
@@ -1149,26 +2112,66 @@ sealed class SlicePrinter
 				var failed = State();
 				var done   = State();
 
+				var keeps = Kept(repeat);
+				var owner = keeps ? FrameNumber() : "";
+
 				Line($"{turns} = 0;");
 				Line($"{least} = {Expression(repeat.Min)};");
 				Line($"{most} = {(repeat.Max is null ? "2147483647" : Expression(repeat.Max))};");
+
+				if (keeps)
+				{
+					Line($"{owner} = -1;");
+					Sentinel(repeat, owner, h =>
+					{
+						Line($"p = {Field(h, "pos")};");
+						Line($"{turns} = {Field(h, "turns")};");
+						Line($"{Member("cursor")} = {Field(h, "key")};");
+						Give(repeat.Resets, h);
+						Jumped();
+						Line($"if (({Field(h, "flags")} & 1) != 0) {Jump(done)}");
+					}, endOnly: false);
+				}
+
 				Place(again);
+				Step();
 				Line($"if ({turns} >= {most}) {Jump(done)}");
 				Line($"{start} = p;");
+
+				if (keeps)
+					Record(owner, end: false, start, turns, "false", repeat.Resets);
 
 				if (repeat.Resumable)
 				{
 					Line($"{way} = -1;");
 					Line($"if ({turns} >= {least})");
 					Line("{");
-					Line($"\t{way} = {Runtime("enter", "1")};");
+					Line($"\t{way} = {Enter("1")};");
 					Line($"\tif ({Decision(way)} == 1) {Jump(done)}");
 					Line("}");
 				}
 
-				var kept = Keep(repeat.Resets, inFrame: true);
+				var loops = repeat.Resumable || repeat.Retries;
+				var kept  = Keep(repeat.Resets, inFrame: true);
+				var mark  = loops ? FrameNumber() : "";
+				var begin = loops ? State() : -1;
+				var u     = repeat.Defers ? FrameNumber() : "";
+
+				if (loops)
+				{
+					Line($"{mark} = P.cursor;");
+
+					if (u.Length > 0)
+						Line($"{u} = 0;");
+
+					Place(begin);
+				}
 
 				Flat(repeat.Body, failed);
+
+				if (u.Length > 0)
+					FlatStood(u, mark, start, repeat.Resets, kept, begin);
+
 				Line($"{turns}++;");
 				Line($"if (p == {start}) {Jump(done)}");
 				Line(Jump(again));
@@ -1176,10 +2179,17 @@ sealed class SlicePrinter
 				Line($"p = {start};");
 				PutBack(repeat.Resets, kept);
 
+				if (loops)
+					FlatRetried(u, mark, repeat.Retries ? "" : $"{way} >= 0 && ", begin);
+
 				if (repeat.Resumable)
 					Line($"if ({way} >= 0) {Runtime("next", way + ", 1")};");
 
 				Place(done);
+
+				if (keeps)
+					Record(owner, end: true, "p", turns, $"{turns} >= {least}", repeat.Resets);
+
 				Line($"if ({turns} < {least}) {FailTo(fail)}");
 
 				break;
@@ -1196,7 +2206,7 @@ sealed class SlicePrinter
 				break;
 
 			case IrStmt.Commit commit:
-				FlatSealed(commit.Body, commit.Resets, fail, null);
+				FlatSealed(commit.Body, commit.Resets, fail, null, commit.Defers);
 
 				break;
 
@@ -1208,14 +2218,32 @@ sealed class SlicePrinter
 				var failed  = State();
 				var done    = State();
 
+				var u = replay.Defers ? FrameNumber() : "";
+
 				Line($"{start} = p;");
 				Line($"{segment} = P.cursor;");
+
+				if (replay.Defers)
+					Line($"{u} = 0;");
+
 				Place(again);
 				Line($"p = {start};");
 				Flat(replay.Body, failed);
+
+				if (replay.Defers)
+					Line($"if ({u} > 1) {{ {u} = P.stood({u}, {segment}); if ({u} > 0) {Jump(again)} }}");
+
 				Line(Jump(done));
 				Place(failed);
-				Line($"if (P.cursor > {segment} && {Runtime("retry", segment)}) {Jump(again)}");
+
+				if (replay.Defers)
+				{
+					Line($"if (P.cursor > {segment} && {Runtime("retry", segment)}) {{ {u} = P.retried({u}); {Jump(again)} }}");
+					Line($"if ({u} > 1) P.undeferred({u});");
+				}
+				else
+					Line($"if (P.cursor > {segment} && {Runtime("retry", segment)}) {Jump(again)}");
+
 				Line(FailTo(fail));
 				Place(done);
 
@@ -1227,13 +2255,38 @@ sealed class SlicePrinter
 		}
 	}
 
+	/// <summary>A part read in place that read: where it was read unbuilt, read once more from its start, built (<see cref="InPlace"/>).</summary>
+	void FlatStood(string u, string mark, string start, IReadOnlyList<IrSlot> resets, string[] kept, int begin)
+	{
+		Line($"if ({u} > 1) {{ {u} = P.stood({u}, {mark}); if ({u} > 0) {{ p = {start};");
+		_indent++;
+		PutBack(resets, kept);
+		_indent--;
+		Line($"\t{Jump(begin)} }} }}");
+	}
+
+	/// <summary>A part read in place that failed, put back already: read again where a decision of its own can move (<see cref="InPlace"/>).</summary>
+	void FlatRetried(string u, string mark, string guard, int begin)
+	{
+		if (u.Length == 0)
+		{
+			Line($"if ({guard}P.cursor > {mark} && {Runtime("retry", mark)}) {Jump(begin)}");
+
+			return;
+		}
+
+		Line($"if ({guard}P.cursor > {mark} && {Runtime("retry", mark)}) {{ {u} = P.retried({u}); {Jump(begin)} }}");
+		Line($"if ({u} > 1) P.undeferred({u});");
+	}
+
 	/// <summary><see cref="Sealed"/>, with a call out of the machine somewhere in the body.</summary>
-	void FlatSealed(IrStmt body, IReadOnlyList<IrSlot> resets, int fail, IrStmt.Look? look)
+	void FlatSealed(IrStmt body, IReadOnlyList<IrSlot> resets, int fail, IrStmt.Look? look, bool defers = false)
 	{
 		var start  = FrameNumber();
 		var cursor = FrameNumber();
 		var count  = FrameNumber();
 		var read   = FrameNumber();
+		var u      = defers ? FrameNumber() : "";
 		var again  = State();
 		var failed = State();
 		var done   = State();
@@ -1241,6 +2294,9 @@ sealed class SlicePrinter
 		Line($"{start} = p;");
 		Line($"{cursor} = P.cursor;");
 		Line($"{count} = P.count;");
+
+		if (defers)
+			Line($"{u} = 0;");
 
 		var kept = Keep(resets, inFrame: true);
 
@@ -1255,11 +2311,37 @@ sealed class SlicePrinter
 		Place(again);
 		Line($"p = {start};");
 		Flat(body, failed);
+
+		if (defers)
+		{
+			Line($"if ({u} > 1)");
+			Line("{");
+			_indent++;
+			Line($"{u} = P.stood({u}, {count});");
+			Line($"if ({u} > 0)");
+			Line("{");
+			_indent++;
+			PutBack(resets, kept);
+			Line(Jump(again));
+			_indent--;
+			Line("}");
+			_indent--;
+			Line("}");
+		}
+
 		Line($"{read} = 1;");
 		Line(Jump(done));
 		Place(failed);
 		PutBack(resets, kept);
-		Line($"if (P.count > {count} && {Runtime("retry", count)}) {Jump(again)}");
+
+		if (defers)
+		{
+			Line($"if (P.count > {count} && {Runtime("retry", count)}) {{ {u} = P.retried({u}); {Jump(again)} }}");
+			Line($"if ({u} > 1) P.undeferred({u});");
+		}
+		else
+			Line($"if (P.count > {count} && {Runtime("retry", count)}) {Jump(again)}");
+
 		Line($"{read} = 0;");
 		Place(done);
 
@@ -1271,6 +2353,9 @@ sealed class SlicePrinter
 
 		Line($"P.count = {count};");
 		Line($"P.cursor = {cursor};");
+
+		if (_resumes)
+			Line("if (P.kCount > 0) P.cut();");
 
 		if (look is not null)
 		{

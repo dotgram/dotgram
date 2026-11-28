@@ -1450,6 +1450,15 @@ Three things are rejected when the grammar is built:
   changes none of that: `E = E & '+' & E & when @(…)` is refused the same. Write the
   operands at the next level down, or say what you mean with §4.3.1.
 
+A recognizer of the host is taken at its word that it consumes, so a rule that reaches itself
+only past one, `Nest = @Still & n: Nest & 'b' | 'x'+`, is none of these and compiles, and
+`GRAM5021` says so; but a recognizer may succeed without moving (§7.2), and where it does there
+the rule comes back to itself without having read anything. Where nothing is read after the call
+back, as in `Frames = @ReadFrame & Frames | eof`, that is the same left recursion, found while
+parsing: the entry that came back fails as an alternative that did not match does, and the rule's
+other alternatives are read, as the rewritten left recursion would read them. Where something is,
+as in `Nest`, nothing is checked: the rule is read as it is written (§7.2 says what that does).
+
 #### 4.3.1 Binding powers, when levels are not enough
 
 An alternative may state its own strength instead:
@@ -3031,9 +3040,9 @@ then answers with the failure it remembered.
 #### Limits at run time
 
 `MaxExtraStacks` and `MaxBufferedInputLength` are written when the parser is generated; the
-program that uses it may change them while it runs. Every class a reading is compiled into —
-the host, and the class of each `[GramParserVariant]` — declares a static property and the
-immutable value it holds:
+program that uses it may change them while it runs. The host declares a static property and the
+immutable value it holds, one for all of its readings — and the class of a `[GramParserVariant]`
+that says other defaults of either, its own beside it:
 
 ```csharp
 public static ParserLimits Limits { get; set; }      // ParserLimits.Default until set; null is refused
@@ -3062,13 +3071,19 @@ Which value applies, first to last: a call's own `maxRetained`, where a buffered
 given one; then `Limits`; then the attribute's value, which is what `ParserLimits.Default` holds.
 `MaxExtraStacks` has no argument of a call.
 
-The setting is the process's, one for each reading of each grammar class: two parts of a
-program that want different limits for the same grammar share them, and a test that changes
-them runs apart from the tests that read them. A reading whose locations are asked for per call
-(`UsePerCallLocations`) is the same reading, and reads its host's `Limits`. A class whose
-readings publish nothing declares none. `Limits` and `ParserLimits` are names the class keeps:
-a publication or a rule's type called either, a class a reading is compiled into called either,
-and a member `Limits` or `ParserLimits` the author declares in that class are `GRAM5018`.
+The setting is the process's, one for each grammar class: two parts of a program that want
+different limits for the same grammar share them, and a test that changes them runs apart from
+the tests that read them. Every reading of the class reads the host's `Limits` — the first, a
+reading whose locations are asked for per call (`UsePerCallLocations`), which is the same
+reading, and a `[GramParserVariant]` compiled into a class of its own, from which the host's
+are in reach by their simple names — so one setting bounds the grammar however it is read. A
+variant whose `MaxExtraStacks` or `MaxBufferedInputLength` differs from the `[Gram]`'s cannot
+take its default from one value with the others, and its class declares `Limits` of its own. A
+class whose readings publish nothing declares none. `Limits` and `ParserLimits` are names the
+class keeps: a publication or a rule's type called either, a class a reading is compiled into
+called either, a member `Limits` or `ParserLimits` the author declares in the class the limits
+are declared in, and one declared in the class of a reading that reads the host's, which would
+stand between it and the host's, are `GRAM5018`.
 
 A library whose grammar classes are internal says so in its own words: the SQL parsers are
 public classes, and `TransactSqlParser.Limits` is theirs; `DotGram.Web` sets every one of its
@@ -3327,12 +3342,19 @@ carrier is what a reader holds; left to the generator, the fallback is silent.
 ```
 
 Name an interface declaring `void Locate(int at, int length)` — with `UsePerCallLocations`,
-`void Locate(int at, int length, int gapStart)` (below) — and every rule whose value
+that or `void Locate(int at, int length, int gapStart)` (below) — and every rule whose value
 implements it is handed the range of input it was built from: the rule's own text, without
 the trivia around it, so that a comment falls between two values rather than inside one.
 `Locate` is called once, by the reader, on a value it has just made and nothing has yet seen,
 and it is called through the interface, so an explicit implementation serves as well as a
-public one. A class declaring `Locate`, or inheriting it, may be named instead, and is called on
+public one.
+
+A rule that hands back a value another rule made, `=> @(e)` where `e` captured a call, makes
+nothing, and tells the value nothing: the value keeps the range of the rule that built it. In
+`Paren = '(' & e: Expr & ')' => @(e)` the value read from `(1+2)` spans `1+2`. A rule that wants
+its delimiters inside the span makes a value of its own where it reads them — a node for the
+brackets, or a copy, `=> @(e with { })` for a record — and that value is told the rule's range.
+The two ways of asking for locations, compiled in and per call, give the same spans. A class declaring `Locate`, or inheriting it, may be named instead, and is called on
 the class. A type that is neither is `GRAM0011`.
 
 An implementor may be a class or a struct; a struct is told on the value the rule returns. A rule
@@ -3359,9 +3381,12 @@ written need not be a second parser. With `UsePerCallLocations`, the `[GramParse
 its own: the grammar is compiled once, its constructions are told where they were written only
 when a call asks, and the nested class it names — `TransactSqlParser.Located` — holds
 the same published methods, each of them asking. A call through the class itself does not ask,
-and pays a test per construction for the choice. The interface must then declare a three-argument
+and pays a test per construction for the choice. The interface may then declare a three-argument
 `Locate(int at, int length, int gapStart)`, where the gap start is where the text between the
-value and the token before it begins: the end of that token, or where the reading began.
+value and the token before it begins: the end of that token, or where the reading began. A type
+that declares only `Locate(int at, int length)` is told no gap, as a reading compiled with
+locations in tells none; one that declares both is called through the three-argument form. The
+form is chosen by the methods the type declares or inherits, not by its name.
 
 The nested class holds the forms over a string and over segments. The forms over a buffered
 input — a `TextReader`, a `Stream`, bytes — are written on the class itself only; a grammar that
@@ -3881,7 +3906,27 @@ ordinary C# rules.
   its fewest are read and counted however far each moved, as the repetition written out turn by
   turn would read them (§3.3: `xs: V{3}` holds three values); past the fewest, a turn that ends
   where it began is not taken, and the repetition ends before it. So `(@M){3,}` over an `M` that
-  does not move reads `M` three times, and `(@M)*` none.
+  does not move reads `M` three times, and `(@M)*` none. In a recursion it is the other half of the
+  same rule: a rule that comes back to itself where it already stands, through a recognizer that
+  did not move — `Frames = @ReadFrame & Frames | eof` where `ReadFrame` read nothing — would come
+  back the same way for ever, since the recognizer will not move on the next entry either. Where
+  nothing is read after the call back, as in `Frames`, such an entry is cut instead, as an
+  alternative that did not match, and the rule's other alternatives are read: it could only read
+  what the entry already standing there reads, so wherever the parse would end without the cut it
+  answers the same with it, and where it would go round it ends, at the cost of a comparison at the
+  rule's entry. What such a parse builds is the value read without the entry that came back. Where
+  something is read after the call back, there is no such check: a parse may need the rule entered
+  there more than once — `Sum = Num | @Ws & Sum & '+' & Num` reads `1+2+3` with `Sum` entered
+  three times at 0, once for each `'+' & Num` pending — and no comparison of the rule and the
+  position tells an entry that is needed from one that only goes round. Such a rule is read as it
+  is written: where the parse finds its answer before it has to give up on the recursive
+  alternative, it ends as it always did; where it would have to give up on it — most input it
+  refuses — it goes round, and ends only where the stack or the memory does. The same holds for a
+  cycle with nothing read after the call back where a `when` or a `switch`, in the cycle or in a rule that calls into it, reads a value the
+  cycle builds, or a hook names `context`: what it reads then depends on more than the position,
+  and it is not cut. `GRAM5021` says which of the two a cycle is. The repetition, `Frames = @ReadFrame* & eof`, or a
+  recognizer that moves whenever it succeeds, needs no check; write the progress into the input
+  position.
 - An external recognizer and a `when` guard execute during recognition. Ordered choice
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects

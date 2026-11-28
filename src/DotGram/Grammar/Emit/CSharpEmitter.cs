@@ -380,6 +380,7 @@ static partial class CSharpEmitter
 			Reporting             = carriers is not null,
 			CountsRules           = options.CountRules,
 			ConstructionsMayThrow = options.ConstructionsMayThrow,
+			RemembersRunEnds      = options.RememberRunEnds,
 		};
 
 		// And what the machines over the file's own input add, which a buffered machine does not.
@@ -708,6 +709,20 @@ static partial class CSharpEmitter
 
 		if (context is not null)
 			context.Plan = plan;
+
+		// A graph with settled copies is printed only where every machine reads by methods over a
+		// string. Any other machine records what a refusal expected from how each place was printed
+		// — an engine (a jump or a flat machine), one over a buffer, one read from a position, the one
+		// that values tokens — and a copy, told less of what follows it, may be printed another way
+		// there and refused in other words. The compiler then compiles the grammar without the copies.
+		if (context is { ReadersOnly: true } && (valuing is not null || printed.Exists(NotAReader)))
+		{
+			context.LeftTheReaders = true;
+
+			context.Blocked = BlockedBy(printed);
+
+			return null;
+		}
 
 		// What the target cannot read is said, and not printed: no parser comes out for it.
 		if (plan.Refused)
@@ -1271,7 +1286,7 @@ static partial class CSharpEmitter
 			// The thread's list for a reading's ties, where some machine writes ties at all.
 			if (moreField)
 			{
-				file.Write(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null));
+				file.Write(Region(Region(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null), "counted", options.CountRules), "direct", machines.Exists(static compiled => compiled.Direct)));
 				file.Line();
 			}
 
@@ -1292,6 +1307,13 @@ static partial class CSharpEmitter
 		if (!options.SharedTypes && inputNeeded)
 			file.Write(ParserInputTypes);
 
+		// The limits a caller may change at run time: what the readers and the buffered overloads read as a
+		// parse begins, defaulting to the [Gram] values written below. One set for every reading of a host that
+		// agrees with the first on those values, in the host, which the classes of the others read by its simple
+		// name; a reading that says other values declares its own.
+		var limitsNeeded = graph.Publications.Count > 0 || machines.Count > 0;
+		var limitsShared = options.SharedTypes && options.SharesLimits;
+
 		// What this reading reads from the host, where the host writes it for all of its readings.
 		if (options.SharedTypes && context is not null)
 			context.SharedNeeds =
@@ -1300,11 +1322,10 @@ static partial class CSharpEmitter
 				(graph.Publications.Count > 0 ? SharedNeeds.Match : 0) |
 				(graph.Publications.Count > 0 && graph.LocationsPerCall ? SharedNeeds.ReadingEnd : 0) |
 				(inputNeeded ? SharedNeeds.Input : 0) |
-				(options.Inherits ? SharedNeeds.Hides : 0);
+				(options.Inherits ? SharedNeeds.Hides : 0) |
+				(limitsNeeded && limitsShared ? SharedNeeds.Limits : 0);
 
-		// The limits a caller may change at run time, one set per reading: what its readers and its buffered
-		// overloads read as a parse begins, defaulting to the [Gram] values written below.
-		if (graph.Publications.Count > 0 || machines.Count > 0)
+		if (limitsNeeded && !limitsShared)
 		{
 			file.Write(LimitsSupport(options.MaxRetained, options.Stacks));
 			file.Line();
@@ -1434,7 +1455,7 @@ static partial class CSharpEmitter
 			var tape     = machines.FindAll(static compiled => compiled.Direct && compiled.Plan.Carrier?.Immediate != true);
 			var builds   = tape.Exists(static compiled => compiled.Machine.BuildsDuringRecognition);
 			var rewinds  = tape.Exists(static compiled => !compiled.Machine.BuildsDuringRecognition);
-			var regioned = Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0);
+			var regioned = Region(Region(Region(Region(DirectSupport, "rewind", rewinds), "rewindbuilt", builds), "snap", tape.Count > 0), "counted", options.CountRules);
 
 			// A reading that is quiet writes down how far it got where the reading after it tries the
 			// turns behind shut doors from there (Machine.KeepsDoors); a trace build keeps every reading as it was.
@@ -4452,7 +4473,9 @@ file.Line("return spare;");
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
 					: null,
-				graph.Located.Contains(rule)) { BytesMethod = Named("NewBytes" + number, name) });
+
+				// Not where it hands back a value another rule made, which that rule located.
+				graph.Located.Contains(rule) && !Machine.HandsBack(node, visible)) { BytesMethod = Named("NewBytes" + number, name) });
 		}
 
 		return found;
@@ -4873,10 +4896,10 @@ file.Line("return spare;");
 			case Construction.Expression when factory.Located && !graph.LocationsPerCall:
 
 				// Offered the range it was read over, which is a statement and not an
-				// expression. Offered rather than written: a rule may hand back a value another
-				// rule made, and the range it was read over is then wider than the value's own.
-				// What the offer does with it is the named interface's business, not this
-				// file's — see `LocationType` on the attribute.
+				// expression. What the offer does with it is the named interface's business, not
+				// this file's — see `LocationType` on the attribute. A construction that hands back
+				// a value another rule made is not located (Machine.HandsBack), so a value is
+				// offered once, by the rule that made it, as a per-call reading offers it.
 				//
 				// A block body rather than a helper, so that nothing at all is emitted for the
 				// grammars — most of them — that ask for no locations.
@@ -5462,7 +5485,7 @@ file.Line("return spare;");
 
 	/// <summary>
 	/// The file a host with several readings has of its own: the types its readings read from the
-	/// host — the span, the match and the input a recognizer reads — each written where at least
+	/// host — the span, the match, the limits and the input a recognizer reads — each written where at least
 	/// one reading needs it (<see cref="GramCompilation.SharedNeeds"/>), in the host's namespace
 	/// and chain of classes.
 	/// </summary>
@@ -5473,7 +5496,9 @@ file.Line("return spare;");
 	/// a second reading adds a type to the host only where it needs one the first did not.
 	/// </remarks>
 	/// <param name="spanDeclared">Whether the host declares a part of the span itself (GramCompilerOptions.SpanDeclared).</param>
-	internal static string SharedTypes(string? @namespace, string className, SharedNeeds needs, bool spanDeclared)
+	/// <param name="maxRetained">The default of the limits the readings that share them read (<see cref="SharedNeeds.Limits"/>).</param>
+	/// <param name="stacks">The same, of the extra stacks.</param>
+	internal static string SharedTypes(string? @namespace, string className, SharedNeeds needs, bool spanDeclared, int maxRetained, int stacks)
 	{
 		var file  = new Writer(0);
 		var scope = new Stack<IDisposable>();
@@ -5504,6 +5529,12 @@ file.Line("return spare;");
 			file.Write(OutcomeEnum);
 			file.Line();
 			file.Write(MatchStructOf((needs & SharedNeeds.ReadingEnd) != 0));
+			file.Line();
+		}
+
+		if ((needs & SharedNeeds.Limits) != 0)
+		{
+			file.Write(LimitsSupport(maxRetained, stacks));
 			file.Line();
 		}
 
@@ -6565,6 +6596,33 @@ file.Line("return spare;");
 	static readonly IReadOnlyDictionary<Publication, bool> Unvalued = new Dictionary<Publication, bool>();
 
 	/// <summary>
+	/// What put the machines of a graph with settled copies beyond the readers, where nothing a publication
+	/// asks for or is given beside it did (<see cref="GramCompiler.Blocked"/> says those before the plan is
+	/// made): the first plain <c>parse</c>, in the order written, of a machine that is not one, read as the
+	/// plan says it is read — the engine's where methods refuse it, a flat machine where it lowers. Null where
+	/// there is none: a machine that reads tokens again is made only over kinds, where nothing is settled.
+	/// </summary>
+	static SettleBlock? BlockedBy(List<Compiled> printed)
+	{
+		var held = printed
+			.Where(NotAReader)
+			.SelectMany(static compiled => compiled.Plan.Publications.Select(publication => (Publication: publication, compiled.Plan.Strategy)))
+			.OrderBy(static one => one.Publication.At.Position)
+			.ToList();
+
+		if (held.Count == 0)
+			return null;
+
+		return new SettleBlock(held[0].Strategy == ReadingStrategy.Flat ? SettleCause.Flat : SettleCause.Engine, held[0].Publication);
+	}
+
+	/// <summary>Whether a machine is read as anything but methods over a string: what a graph with settled copies is not printed for.</summary>
+	static bool NotAReader(Compiled compiled)
+	{
+		return compiled.Plan.Strategy != ReadingStrategy.Reader || compiled.Plan.PositionalOnly || compiled.Machine.BufferedInput;
+	}
+
+	/// <summary>
 	/// The plan of a file (<see cref="ReadingPlan"/>), made from the machines the planning stage settled
 	/// on, and those machines as the printer takes them.
 	/// </summary>
@@ -6623,6 +6681,8 @@ file.Line("return spare;");
 				BackEdges      = settled && candidate.Direct ? machine.SettledBackEdges : null,
 				Deferral       = settled && candidate.Direct ? machine.PlanDeferral() : null,
 				Writes         = settled && candidate.Direct ? machine.Writes : null,
+				Sites          = settled && candidate.Direct ? machine.RefusalSites : null,
+				ReadInPlace    = settled && candidate.Direct ? machine.ReadInPlace(candidate.Publications) : null,
 			};
 
 			machine.Plan = entry;

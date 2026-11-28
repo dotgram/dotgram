@@ -47,7 +47,42 @@ static class Reader
 		if (position == 0 && text.TrimStart().StartsWith("select", StringComparison.OrdinalIgnoreCase))
 			return "A query starts with `from` and the entity: `from orders where … select …`.";
 
+		// SQL's habits with `*`: `o.*` and `* as x`; `*` is a list item that stands alone, without a qualifier or a name.
+		if (position < text.Length && text[position] is '*' && position > 0 && text[position - 1] == '.')
+			return "`*` stands alone: write `select *`, not after a name.";
+
+		var before = text.AsSpan(0, Math.Min(position, text.Length)).TrimEnd();
+
+		if (before.Length > 0 && before[^1] == '*' && position < text.Length && (text[position] == '*' || IsWord(text, position, "as")) && IsStarItem(before))
+			return "`*` takes no name and no operator: it stands for the columns of the row; write `select *, x as y` for more.";
+
+		// `from orders in where …`: before there was `from b in books`, a bare alias `in` was read; now it needs `as`.
+		if (IsWord(text, position, "in") && StartsWithHead(before))
+			return "`in` is not an alias without `as`: write `from orders as in`, or `from o in orders`.";
+
 		return error ?? "This is not a query.";
+	}
+
+	static bool IsWord(string text, int position, string word)
+	{
+		return position >= 0
+			&& position + word.Length <= text.Length
+			&& string.Compare(text, position, word, 0, word.Length, StringComparison.OrdinalIgnoreCase) == 0
+			&& (position + word.Length == text.Length || !(char.IsLetterOrDigit(text[position + word.Length]) || text[position + word.Length] == '_'));
+	}
+
+	/// <summary>Whether the text read so far ends with a `*` that is an item of a `select`: the one before it is `select` or a comma.</summary>
+	static bool IsStarItem(ReadOnlySpan<char> before)
+	{
+		var rest = before[..^1].TrimEnd();
+
+		return rest.EndsWith(",", StringComparison.Ordinal) || (rest.Length >= 6 && rest[^6..].Equals("select", StringComparison.OrdinalIgnoreCase));
+	}
+
+	/// <summary>Whether the text read so far is a head of the form `from x in y`, and nothing more.</summary>
+	static bool StartsWithHead(ReadOnlySpan<char> before)
+	{
+		return System.Text.RegularExpressions.Regex.IsMatch(before.ToString(), @"^\s*from\s+\w+\s+in\s+\w+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 	}
 
 	/// <summary>The bounds on the text as written: its nesting, its size, its arithmetic, its lists and its columns.</summary>

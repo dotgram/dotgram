@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using DotGram.Grammar.Model;
 using DotGram.Grammar.Plan;
 
 namespace DotGram.Grammar;
@@ -44,6 +45,9 @@ sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IReadOnlyLi
 
 	/// <summary>Whether the plan was printed (<see cref="EmitContext.Printed"/>): false where it refused what was asked.</summary>
 	public bool Printed { get; init; }
+
+	/// <summary>The graph the file was printed from, for a test that asks which rule a place of it is in.</summary>
+	internal RecognitionGraph? Graph { get; init; }
 
 	public bool HasErrors
 	{
@@ -94,6 +98,9 @@ enum SharedNeeds
 
 	/// <summary>A reading of a host that inherits a grammar, whose types hide the base's (CS0108).</summary>
 	Hides = 32,
+
+	/// <summary><c>Limits</c> and <c>ParserLimits</c>, which a reading that shares the host's reads (CSharpHostShape.SharesLimits).</summary>
+	Limits = 64,
 }
 
 /// <summary>
@@ -223,6 +230,12 @@ sealed partial class GramCompilerOptions
 	/// <inheritdoc cref="GrammarOptions.CollapseForwarders"/>
 	public bool CollapseForwarders { get => Grammar.CollapseForwarders; set => Grammar.CollapseForwarders = value; }
 
+	/// <inheritdoc cref="GrammarOptions.SettleRunTails"/>
+	public bool SettleRunTails { get => Grammar.SettleRunTails; set => Grammar.SettleRunTails = value; }
+
+	/// <inheritdoc cref="GrammarOptions.RememberRunEnds"/>
+	public bool RememberRunEnds { get => Grammar.RememberRunEnds; set => Grammar.RememberRunEnds = value; }
+
 	/// <inheritdoc cref="AuthorOptions.MemoiseFailures"/>
 	public bool MemoiseFailures { get => Author.MemoiseFailures; set => Author.MemoiseFailures = value; }
 
@@ -321,6 +334,28 @@ sealed class GrammarOptions
 	/// refusal's expected list can differ.
 	/// </remarks>
 	public bool CollapseForwarders { get; set; } = true;
+
+	/// <summary>
+	/// Whether a rule that ends in a run giving characters back is read, where it is called before
+	/// something that could take none of them, by a copy of it that gives none back. On by default
+	/// and not offered in the attribute; off is for a test that holds the parser with the copies to
+	/// the parser without them, which answers every input alike.
+	/// </summary>
+	/// <remarks>
+	/// Never over tokens: a grammar that asks to be cut in two is normalized without the copies,
+	/// whether the cut then succeeds or not. Nor where any machine of the file is not a reader over a
+	/// string: the file is then the one without copies. The generator sets it off where the
+	/// compilation defines <c>DOTGRAM_NO_SETTLE</c>, and nowhere else.
+	/// </remarks>
+	public bool SettleRunTails { get; set; } = true;
+
+	/// <summary>
+	/// Whether a reader keeps, while it reads one input, where a run of a settled copy's class ended,
+	/// so that a run of it begun inside that one takes its end and reads nothing (<c>Machine.RunEnds</c>).
+	/// On by default, not offered in the attribute, and meaningless without <see cref="SettleRunTails"/>;
+	/// off is for a test that holds the parser keeping them to the one that does not.
+	/// </summary>
+	public bool RememberRunEnds { get; set; } = true;
 
 	/// <summary>
 	/// Whether the shared-recursion analysis runs (GRAM4054, and what <see cref="MemoiseSuccesses"/>

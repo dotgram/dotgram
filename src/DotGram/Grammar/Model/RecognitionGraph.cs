@@ -942,6 +942,45 @@ sealed class RecognitionGraph(
 	public IReadOnlyCollection<RuleSymbol> Located { get; init; } = [];
 
 	/// <summary>
+	/// The rule each settled copy was made from: a copy of a rule ending in a run that gives characters
+	/// back, called where nothing could take one (<c>GrammarNormalizer.SettleRunTails</c>). Empty where
+	/// none was made.
+	/// </summary>
+	/// <remarks>
+	/// The copy keeps the rule's declaration, so it is named as the rule is wherever a refusal or a
+	/// trace names it; what counts entries to rules counts the copy's as the rule's (<see cref="Counted"/>).
+	/// </remarks>
+	public IReadOnlyDictionary<RuleSymbol, RuleSymbol> Settled { get; init; } = new Dictionary<RuleSymbol, RuleSymbol>();
+
+	/// <summary>
+	/// The rules a settled copy was made for whose own tail ends in a run with no upper bound that gave
+	/// characters back, in the order they are declared: where the copies are not kept, a refusal inside a
+	/// long run of one of them takes time quadratic in its length. Empty where none was made.
+	/// </summary>
+	public IReadOnlyList<RuleSymbol> SettledRuns { get; init; } = [];
+
+	/// <summary>
+	/// Each node of a settled copy, with the node it was copied or rebuilt from: followed to its end, the
+	/// node of the rule's own body that stands where the copy's does. Empty where no copy was made.
+	/// </summary>
+	public IReadOnlyDictionary<Node, Node> SettledNodes { get; init; } = new Dictionary<Node, Node>();
+
+	/// <summary>The node of a rule's own body a node of a settled copy stands for; the node itself for any other.</summary>
+	public Node Original(Node node)
+	{
+		while (SettledNodes.TryGetValue(node, out var from))
+			node = from;
+
+		return node;
+	}
+
+	/// <summary>The rule a count of entries counts <paramref name="rule"/> as: the rule a settled copy was made from.</summary>
+	public RuleSymbol Counted(RuleSymbol rule)
+	{
+		return Settled.TryGetValue(rule, out var from) ? from : rule;
+	}
+
+	/// <summary>
 	/// Whether locations are decided per call rather than compiled in (<see cref="ITargetLanguage.LocationsPerCall"/>).
 	/// </summary>
 	/// <remarks>

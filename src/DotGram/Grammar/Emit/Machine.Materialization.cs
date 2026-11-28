@@ -1896,7 +1896,7 @@ sealed partial class Machine
 		file.Then(
 			"throw new global::System.InvalidOperationException(" +
 			$"\"DotGram invariant: capture '{Escape(member.Name)}' of rule " +
-			$"'{Escape(rule.Name)}' has its end before its start (\" + " +
+			$"'{Escape(Spoken(rule).Name)}' has its end before its start (\" + " +
 			$"{name}From.ToString() + \"..\" + {name}To.ToString() + " +
 			"\"). This is a generator defect; please report the grammar.\");");
 		file.Line("#endif");

@@ -227,6 +227,8 @@ sealed partial class GrammarNormalizer
 		["GrammarNormalizer._powers"]             = "Index",
 		["GrammarNormalizer._refused"]            = "Index",
 		["GrammarNormalizer._repetitionsAt"]      = "Index",
+		// A node of a settled copy, keyed and held: the node of its rule's body it stands for is walked there.
+		["GrammarNormalizer._settledNodes"]       = "Index",
 		["GrammarNormalizer._withRoots"]          = "Index",
 
 		["GrammarNormalizer._arguments"]          = "Lowering",

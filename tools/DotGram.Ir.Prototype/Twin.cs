@@ -17,6 +17,21 @@ sealed class V(string text)
 	}
 }
 
+/// <summary>
+/// The same as <see cref="V"/>, a type of its own: what a rule builds where the generated C#
+/// parser has to tell it from <see cref="V"/> — two lists of one type in one rule are carried
+/// only deferred there, and the grammars that are to be held to the immediate carrier keep them apart.
+/// </summary>
+sealed class W(string text)
+{
+	public string Text { get; } = text;
+
+	public override string ToString()
+	{
+		return Text;
+	}
+}
+
 /// <summary>Thrown by a construction a test has asked to fail.</summary>
 sealed class TwinException(string call) : Exception(call);
 
@@ -67,6 +82,12 @@ static class Twin
 		return new V(call);
 	}
 
+	/// <summary><see cref="C"/>, building a <see cref="W"/>.</summary>
+	public static W D(int id, params object?[] args)
+	{
+		return new W(C(id, args).Text);
+	}
+
 	public static bool G(int id, bool answer, params object?[] args)
 	{
 		_log?.Add(GuardCall(id, args.Select(Canon)) + "=" + (answer ? "true" : "false"));
@@ -85,6 +106,7 @@ static class Twin
 		{
 			null                => "null",
 			V built             => built.Text,
+			W other             => other.Text,
 			string text         => Quoted(text),
 			int number          => number.ToString(CultureInfo.InvariantCulture),
 			bool flag           => flag ? "true" : "false",

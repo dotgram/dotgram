@@ -147,6 +147,390 @@ static class Grammars
 		parse File
 		""";
 
+	/// <summary>
+	/// Two lists in sequence: each item opens a way that outlives its turn, so a failure after the
+	/// second list asks the first for another reading. Of two types, which the tree does not see:
+	/// of one, the generated C# parser carries them only deferred.
+	/// </summary>
+	public const string ListsInSequence = """
+		Start : @V = a: X* & 'y' & b: Y* & eof => @(Twin.C(0, a, b))
+		X     : @V = t: ("xy" | "x")           => @(Twin.C(1, t))
+		Y     : @W = t: ("xy" | "x")           => @(Twin.D(2, t))
+
+		parse Start
+		""";
+
+	/// <summary>The same list rule read twice, and a failure after the second that asks the first again.</summary>
+	public const string ListRuleTwice = """
+		Start : @V = a: Body & 'y' & b: Body & eof => @(Twin.C(0, a, b))
+		Body  : @V = items: X*                     => @(Twin.C(1, (object)items))
+		X     : @V = t: ("xy" | "x")               => @(Twin.C(2, t))
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// Repetitions the proofs settle, one inside the other: the inner one's last turn, which
+	/// fails, begins where the outer one's next turn does. A repetition after them gives turns back.
+	/// </summary>
+	public const string NestedSettled = """
+		Start : @V = groups: Group* & rest: Pair* & last: Letter & eof => @(Twin.C(0, groups, rest, last))
+		Group : @V = items: Item* & ';'                                 => @(Twin.C(1, (object)items))
+		Item  : @V = t: Digit                                           => @(Twin.C(2, t))
+		Pair  : @W = t: Letter & ','?                                   => @(Twin.D(3, t))
+		Letter     = ['a'..'z']
+		Digit      = ['0'..'9']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// Constructions that throw: one in a turn that builds and is then given up, one in a turn
+	/// that stands, before and inside a repetition that gives turns back.
+	/// </summary>
+	public const string Throwing = """
+		Start : @V = ps: P* & ls: L* & last: Letter & eof => @(Twin.C(0, ps, ls, last))
+		P     : @V = d: D & ':'                            => @(Twin.C(1, d))
+		D     : @V = t: Digit                              => @(Twin.C(2, t))
+		L     : @W = t: Letter & ','?                      => @(Twin.D(3, t))
+		Letter     = ['a'..'z']
+		Digit      = ['0'..'9']
+
+		parse Start
+		""";
+
+	/// <summary>A repetition that gives a turn back twice and then stands.</summary>
+	public const string GivenBackTwice = """
+		Start : @V = items: Item* & a: Letter & b: Letter & eof => @(Twin.C(0, items, a, b))
+		Item  : @V = t: Letter & ','?                            => @(Twin.C(1, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// A calculator without folds: each level of precedence a repetition over the next, the power
+	/// right-associative by recursion, and parentheses.
+	/// </summary>
+	public const string Arithmetic = """
+		Expr     : @V = first: Term & rest: AddOp*  => @(Twin.C(0, first, rest))
+		AddOp    : @V = op: ['+' | '-'] & t: Term   => @(Twin.C(1, op, t))
+		Term     : @V = first: Power & rest: MulOp* => @(Twin.C(2, first, rest))
+		MulOp    : @V = op: ['*' | '/'] & f: Power  => @(Twin.C(3, op, f))
+		Power    : @V = b: Atom & e: Exponent?      => @(Twin.C(4, b, e))
+		Exponent : @V = '^' & p: Power              => @(Twin.C(5, p))
+		Atom     : @V
+			= '(' & e: Expr & ')'     => @(Twin.C(6, e))
+			| d: ['0'..'9']+          => @(Twin.C(7, d))
+
+		parse Expr
+		""";
+
+	/// <summary>
+	/// A repetition the proofs settle, each of whose turns opens a way that outlives it: a failure
+	/// at the end gives the turns back one by one, each through a way inside a turn.
+	/// </summary>
+	public const string Config = """
+		File  : @V = entries: Entry* & eof                 => @(Twin.C(0, (object)entries))
+		Entry : @V = k: Key & '=' & v: Value & ';'          => @(Twin.C(1, k, v))
+		Value : @V = t: ("ab" | "a" & ['a'..'z']* & 'x')    => @(Twin.C(2, t))
+		Key        = ['a'..'z']+
+
+		parse File
+		""";
+
+	/// <summary>A settled repetition with no way in its turns, before one that gives turns back.</summary>
+	public const string SettledBefore = """
+		Start : @V = xs: A* & bs: B* & last: Letter & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                      => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>The same in braces: whatever the repetition kept of its turns goes with the braces.</summary>
+	public const string SealedBefore = """
+		Start : @V = { xs: A* } & bs: B* & last: Letter & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                    => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                          => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A long call that decides nothing, before a repetition that gives turns back.</summary>
+	public const string CalledBefore = """
+		Start : @V = Pad & bs: B* & last: Letter & eof => @(Twin.C(0, bs, last))
+		Pad        = ' '*
+		B     : @V = t: Letter & ','?                   => @(Twin.C(1, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// A settled repetition whose one turn reads a long run and then fails, before a repetition
+	/// that gives turns back: the failed turn lies in every replayed prefix.
+	/// </summary>
+	/// <summary>
+	/// A negative look whose body reads a long run and gives its turns back one by one, every
+	/// attempt read again from the look's start: what a reading again costs inside a look, where
+	/// nothing is refused aloud, so that only the look's own reach says how far it read.
+	/// </summary>
+	public const string FailedLookInRetry = """
+		Start : @V = ?!(Xs & 'x' & 'z') & t: Xs & '!' & eof => @(Twin.C(0, t))
+		Xs         = 'x'*
+
+		parse Start
+		""";
+
+	public const string FailedTurnBefore = """
+		Start : @V = ws: Pair* & bs: B* & last: Letter & eof => @(Twin.C(0, ws, bs, last))
+		Pair  : @V = w: Word & ';'                           => @(Twin.C(1, w))
+		B     : @W = t: Letter & ','?                        => @(Twin.D(2, t))
+		Word       = Letter+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>Braces inside braces, the inner round a long repetition, before a repetition that gives turns back.</summary>
+	public const string NestedSealedBefore = """
+		Start : @V = { '<' & { xs: A* } & '>' } & bs: B* & last: Letter & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                                  => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                        => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A look that reads a long run, before a repetition that gives turns back.</summary>
+	public const string LongLookBefore = """
+		Start : @V = ?=('0'* & 'a') & z: Zeros & bs: B* & last: Letter & eof => @(Twin.C(0, z, bs, last))
+		B     : @W = t: Letter & ','?                                          => @(Twin.D(1, t))
+		Zeros      = '0'*
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>Braces round a long repetition and a long text, both captured, before a repetition that gives turns back.</summary>
+	public const string SealedCaptureBefore = """
+		Start : @V = { xs: A* & t: Word } & ';' & bs: B* & last: Letter & eof => @(Twin.C(0, xs, t, bs, last))
+		A     : @V = t: '0'                                                  => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                        => @(Twin.D(2, t))
+		Word       = Letter+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A recursion that decides at every level, read whole before a repetition that gives turns back.</summary>
+	public const string DecidingNestBefore = """
+		Start : @V = Nest & bs: B* & last: Letter & eof => @(Twin.C(0, bs, last))
+		Nest       = '(' & Nest & ')' | '(' & 'y'
+		B     : @W = t: Letter & ','?                    => @(Twin.D(1, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A long text read again by reference, before a repetition that gives turns back.</summary>
+	public const string SameBefore = """
+		Start : @V = $q: Zeros & '=' & $q & bs: B* & last: Letter & eof => @(Twin.C(0, bs, last))
+		B     : @W = t: Letter & ','?                                    => @(Twin.D(1, t))
+		Zeros      = '0'+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A line as a YAML reader reads it: a long indent and a long key, each a text, before a repetition that gives turns back.</summary>
+	public const string YamlLineBefore = """
+		Start : @V = i: Indent & k: Key & ':' & bs: B* & last: Letter & eof => @(Twin.C(0, i, k, bs, last))
+		B     : @W = t: Letter & ','?                                        => @(Twin.D(1, t))
+		Indent     = ' '*
+		Key        = ['0'..'9']+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// A deep nest whose innermost reading can be split many ways, each of which stands inside:
+	/// a failure at the top asks the innermost again, and every replay goes down the whole nest to it.
+	/// </summary>
+	public const string DeepSplit = """
+		Start = P & '!'
+		P     = '(' & P & ')' | Bs & Cs
+		Bs    = 'b'*
+		Cs    = 'b'*
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// <see cref="DeepSplit"/> with nothing to read on the way back up: what a replay pays to go
+	/// down the nest, apart from what it pays to come back.
+	/// </summary>
+	public const string DeepSplitOpen = """
+		Start = P & '!'
+		P     = '(' & P | Bs & Cs
+		Bs    = 'b'*
+		Cs    = 'b'*
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// The XML subset as the example read it before its runs were made atomic: the name of an
+	/// element gives characters back to an attribute written against it (<c>&lt;ab="1"&gt;</c> is
+	/// <c>a</c> with the attribute <c>b</c>), inside the first of two alternatives that begin alike.
+	/// </summary>
+	public const string XmlNameGivesBack = """
+		trivia = none
+
+		Xml     = Element & eof
+		Element = '<' & $name: Name & Attribute* & Space & '>' & Content* & "</" & $name & Space & '>'
+		        | '<' & Name & Attribute* & Space & "/>"
+		Content = Element | Chars
+		Chars   = { [^ '<']+ }
+		Attribute = Space & Name & '=' & Value
+		Value   = '"' & Quoted & '"' | '\'' & Quoted & '\''
+		Name    = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']*
+		Space   = [' ' | '\t' | '\r' | '\n']*
+		Quoted  = [^ '"' | '\'']*
+
+		parse Xml
+		""";
+
+	/// <summary>
+	/// A turn that fails after a choice inside it took its first alternative, where the second
+	/// would have let the turn read: the turn's own decision is moved only once the choice's is spent.
+	/// </summary>
+	public const string TurnGivesBack = """
+		Start = (("a" | "ab") & 'c')* & Y? & eof
+		Y     = "ab"
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// A replay inside <c>G</c> keeps records of its repetition before the replay of <c>Start</c>
+	/// walks the repetition in front of it and keeps records below them; a later decision of the
+	/// choice <c>X</c>, between the two, cuts below the buried records, and the repetition in
+	/// <c>G</c> is entered again at the same place on the tape from another position.
+	/// </summary>
+	public const string StaleRecord = """
+		Start : @V = a: As & x: X & g: G & '!' => @(Twin.C(0, a, x, g))
+		As         = 'a'*
+		X          = "bb" | "b"
+		G     : @V = t: L & 'c'                => @(Twin.C(1, t))
+		L          = ['b' | 'c']*
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// In braces, a long repetition, then a choice told by its first item whose alternative gives
+	/// turns back and can fail after them: the failure is inside the statement that decides, and a
+	/// retry of the braces moves a turn of it and reads the repetition before it again.
+	/// </summary>
+	public const string FailsInsideDecider = """
+		Start : @V = { xs: A* & ('q' & bs: B* & last: Letter & eof | 'z') } => @(Twin.C(0, xs, bs))
+		A     : @V = t: '0'                                                => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                      => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>The decision in a rule called in braces, and what fails after it in the caller, past the end of the rule's replay.</summary>
+	public const string FailsInCaller = """
+		Start : @V = { n: Inner & last: Letter & eof } => @(Twin.C(0, n, last))
+		Inner : @V = xs: A* & bs: B*                   => @(Twin.C(1, xs, bs))
+		A     : @V = t: '0'                            => @(Twin.C(2, t))
+		B     : @W = t: Letter & ','?                  => @(Twin.D(3, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// In braces, a decision with nothing after it that can fail, only a repetition that may take no
+	/// turn: nothing fails back to it, and the repetition before it, kept as decided, keeps nothing.
+	/// </summary>
+	public const string LastInBraces = """
+		Start : @V = { xs: A* & bs: B* & C* } & last: Letter & eof     => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                            => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                  => @(Twin.D(2, t))
+		C          = Letter & ';'
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>The decision in a rule of a mutual recursion, and what fails after it only in the callers, round the cycle.</summary>
+	public const string FailsRoundACycle = """
+		Start : @V = { p: P & last: Letter & eof } => @(Twin.C(0, p, last))
+		P     : @V = xs: A* & q: Q                 => @(Twin.C(1, xs, q))
+		Q     : @V = bs: B*                        => @(Twin.C(2, (object)bs))
+		           | '(' & p: P & ')'              => @(Twin.C(3, p))
+		A     : @V = t: '0'                        => @(Twin.C(4, t))
+		B     : @W = t: Letter & ','?              => @(Twin.D(5, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>A look after the decision, in braces: its failure moves the decision.</summary>
+	public const string LookAfterDecider = """
+		Start : @V = { xs: A* & bs: B* & ?=(Letter & '!') } & last: Letter & '!' & eof => @(Twin.C(0, xs, bs, last))
+		A     : @V = t: '0'                                                            => @(Twin.C(1, t))
+		B     : @W = t: Letter & ','?                                                  => @(Twin.D(2, t))
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// An attempt read unbuilt that stands, read once more built, at every depth of a recursion: each
+	/// level gives two turns back after the recursive call, and ends in braces whose repetition stands
+	/// before a decision nothing can fail back to.
+	/// </summary>
+	public const string StoodInRecursion = """
+		Start : @V = n: Nest & eof                                                                      => @(Twin.C(0, n))
+		Nest  : @V = '(' & n: Nest & ')' & items: Item* & a: Letter & b: Letter & { A* & Y* & Z* }      => @(Twin.C(1, items, a, b))
+		           | 'x'                                                                                => @(Twin.C(2))
+		Item  : @V = t: Letter & ','?                                                                   => @(Twin.C(3, t))
+		A          = '0'
+		Y          = 'y'
+		Z          = 'y' & ';'
+
+		Letter     = ['a'..'z']
+
+		parse Start
+		""";
+
+	/// <summary>
+	/// A rule entered again at the same place while its earlier entry is still being read. Every
+	/// other way of reaching a rule again before reading anything is left recursion, which the
+	/// generator either folds into a loop or refuses (a guard, a look, an optional or repeated
+	/// prefix before the call alike); a recognizer of the host is taken at its word that it
+	/// moves, and may not. One that does not move answers the same at the same place, so the
+	/// recursion would never end; <see cref="ReentersAtOnceParser.Still"/> stops it by remembering
+	/// that it was asked, which the contract of a recognizer does not allow, to have a reading
+	/// that ends.
+	/// </summary>
+	public const string ReentersAtOnce = """
+		Start : @V = n: Nest & eof          => @(Twin.C(0, n))
+		Nest  : @V = @Still & n: Nest & 'b' => @(Twin.C(1, n))
+		           | t: 'x'+                 => @(Twin.C(2, t))
+
+		parse Start
+		""";
+
 	/// <summary>RFC 8259 as DotGram.Web writes it, every construction a numbered call.</summary>
 	public const string Json = """
 		trivia = none
@@ -188,6 +572,66 @@ static class Grammars
 
 		parse JsonText as ParseJson
 		""";
+
+	// The grammars of the examples that used to refuse a long input in a time that grew with its square, kept as they were written before
+	// they were rewritten (the same text, with the constructions taken out: what is read is the same). They are the fixtures the refusal
+	// plan is held to: a refusal that re-reads a prefix for every turn it gives back is the class the resumable replay is for, and the
+	// seal of a group the one the descent work is for. DotGram.Tests.Slow keeps the whole sources and counts them in C#. The calculator and
+	// the filter language are not here: both are one rule with binding powers, which the sketch does not read yet.
+
+	/// <summary>The YAML subset before its runs were made atomic.</summary>
+	public const string ShapeYaml = """
+		trivia = none
+
+		Doc    = Lines & eof
+		Lines  = (Line | Blank)*
+		Line   = Indent & Key & ':' & Space & Rest & (Eol | ?=eof)
+		Blank  = Space & Comment? & Eol
+		Eol    = { eol }
+		Comment = '#' & [^ '\n' | '\r']*
+		Indent = ' '*
+		Key    = ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']+
+		Rest   = [^ '\n' | '\r']*
+		Space  = { ' '* }
+
+		parse Doc
+		""";
+
+	/// <summary>The XML subset before its attributes, values and spaces were made atomic. The closing tag names the element by a binding.</summary>
+	public const string ShapeXml = """
+		trivia = none
+
+		Xml     = Element & eof
+		Element = '<' & $name: Name & Attribute* & Space & '>' & Content* & "</" & $name & Space & '>'
+		        | '<' & Name & Attribute* & Space & "/>"
+		Content = Element | Chars
+		Chars   = { [^ '<']+ }
+		Attribute = Space & Name & '=' & Value
+		Value   = '"' & Quoted & '"' | '\'' & Quoted & '\''
+		Name    = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']*
+		Space   = [' ' | '\t' | '\r' | '\n']*
+		Quoted  = [^ '"' | '\'']*
+
+		parse Xml
+		""";
+
+	/// <summary>The same with braces on the attributes and on the children, the form that was written and rolled back.</summary>
+	public const string ShapeXmlBraced = """
+		trivia = none
+
+		Xml     = Element & eof
+		Element = '<' & $name: Name & { Attribute* } & Space & '>' & { Content* } & "</" & $name & Space & '>'
+		        | '<' & Name & { Attribute* } & Space & "/>"
+		Content = Element | Chars
+		Chars   = { [^ '<']+ }
+		Attribute = Space & Name & '=' & Value
+		Value   = '"' & Quoted & '"' | '\'' & Quoted & '\''
+		Name    = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '-' | '.']*
+		Space   = { [' ' | '\t' | '\r' | '\n']* }
+		Quoted  = { [^ '"' | '\'']* }
+
+		parse Xml
+		""";
 }
 
 [Gram(Grammars.Resumption)]            static partial class ResumptionParser;
@@ -204,4 +648,47 @@ static class Grammars
 [Gram(Grammars.Rebinding)]             static partial class RebindingParser;
 [Gram(Grammars.Look)]                  static partial class LookParser;
 [Gram(Grammars.Csv)]                   static partial class CsvParser;
+[Gram(Grammars.ListsInSequence, Carrier = GramCarrier.Immediate)]       static partial class ListsInSequenceParser;
+[Gram(Grammars.ListRuleTwice, Carrier = GramCarrier.Immediate)]         static partial class ListRuleTwiceParser;
+[Gram(Grammars.NestedSettled, Carrier = GramCarrier.Immediate)]         static partial class NestedSettledParser;
+[Gram(Grammars.Throwing, Carrier = GramCarrier.Immediate)]              static partial class ThrowingParser;
+[Gram(Grammars.GivenBackTwice, Carrier = GramCarrier.Immediate)]        static partial class GivenBackTwiceParser;
+[Gram(Grammars.Arithmetic, Carrier = GramCarrier.Immediate)]            static partial class ArithmeticParser;
+[Gram(Grammars.Config, Carrier = GramCarrier.Immediate)]                static partial class ConfigParser;
+[Gram(Grammars.SettledBefore, Carrier = GramCarrier.Immediate)]         static partial class SettledBeforeParser;
+[Gram(Grammars.SealedBefore, Carrier = GramCarrier.Immediate)]          static partial class SealedBeforeParser;
+[Gram(Grammars.CalledBefore, Carrier = GramCarrier.Immediate)]          static partial class CalledBeforeParser;
+[Gram(Grammars.FailedTurnBefore, Carrier = GramCarrier.Immediate)]    static partial class FailedTurnBeforeParser;
+[Gram(Grammars.FailedLookInRetry, Carrier = GramCarrier.Immediate)]   static partial class FailedLookInRetryParser;
+[Gram(Grammars.NestedSealedBefore, Carrier = GramCarrier.Immediate)]  static partial class NestedSealedBeforeParser;
+[Gram(Grammars.LongLookBefore, Carrier = GramCarrier.Immediate)]      static partial class LongLookBeforeParser;
+[Gram(Grammars.SealedCaptureBefore, Carrier = GramCarrier.Immediate)] static partial class SealedCaptureBeforeParser;
+[Gram(Grammars.DecidingNestBefore, Carrier = GramCarrier.Immediate)]  static partial class DecidingNestBeforeParser;
+[Gram(Grammars.SameBefore, Carrier = GramCarrier.Immediate)]          static partial class SameBeforeParser;
+[Gram(Grammars.YamlLineBefore, Carrier = GramCarrier.Immediate)]      static partial class YamlLineBeforeParser;
+[Gram(Grammars.DeepSplit)]                                            static partial class DeepSplitParser;
+[Gram(Grammars.XmlNameGivesBack)]                                     static partial class XmlNameGivesBackParser;
+[Gram(Grammars.TurnGivesBack)]                                        static partial class TurnGivesBackParser;
+[Gram(Grammars.StaleRecord, Carrier = GramCarrier.Immediate)]       static partial class StaleRecordParser;
+[Gram(Grammars.ReentersAtOnce)]                                       static partial class ReentersAtOnceParser
+{
+	/// <summary>How many times <see cref="Still"/> was asked; reset before each reading.</summary>
+	[ThreadStatic] internal static int Asked;
+
+	/// <summary>Succeeds without moving the first time it is asked, and fails after.</summary>
+	internal static bool Still(ReadOnlySpan<char> input, ref int pos)
+	{
+		return Asked++ == 0;
+	}
+}
+[Gram(Grammars.FailsInsideDecider, Carrier = GramCarrier.Immediate)]   static partial class FailsInsideDeciderParser;
+[Gram(Grammars.FailsInCaller, Carrier = GramCarrier.Immediate)]        static partial class FailsInCallerParser;
+[Gram(Grammars.LastInBraces, Carrier = GramCarrier.Immediate)]         static partial class LastInBracesParser;
+[Gram(Grammars.FailsRoundACycle, Carrier = GramCarrier.Immediate)]     static partial class FailsRoundACycleParser;
+[Gram(Grammars.LookAfterDecider, Carrier = GramCarrier.Immediate)]     static partial class LookAfterDeciderParser;
+[Gram(Grammars.StoodInRecursion, Carrier = GramCarrier.Immediate)]     static partial class StoodInRecursionParser;
+[Gram(Grammars.DeepSplitOpen)]                                        static partial class DeepSplitOpenParser;
 [Gram(Grammars.Json)]                  static partial class JsonTwinParser;
+[Gram(Grammars.ShapeYaml)]             static partial class ShapeYamlParser;
+[Gram(Grammars.ShapeXml)]              static partial class ShapeXmlParser;
+[Gram(Grammars.ShapeXmlBraced)]        static partial class ShapeXmlBracedParser;

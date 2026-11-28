@@ -60,6 +60,17 @@ sealed class CSharpHostShape
 	public bool LocationTypeIsClass { get; set; }
 
 	/// <summary>
+	/// Whether a reading whose locations are asked for per call tells <see cref="LocationType"/>
+	/// the start of the gap in front of a value, through <c>Locate(int at, int length, int gapStart)</c>;
+	/// false where the type declares only <c>Locate(int at, int length)</c>, which is then called.
+	/// </summary>
+	/// <remarks>
+	/// The generator answers it from the type's methods; where it declares both, the three-integer
+	/// one is called. A reading that compiles its locations in calls the two-integer one either way.
+	/// </remarks>
+	public bool LocationTakesGap { get; set; } = true;
+
+	/// <summary>
 	/// The nested class whose published methods call this parser with locations on, where
 	/// <see cref="LocationType"/> is decided per call rather than by a second compilation
 	/// (<c>[GramParserVariant("Located", UsePerCallLocations = true)]</c>). Null compiles locations in, as before.
@@ -150,11 +161,29 @@ sealed class CSharpHostShape
 	public bool SpanDeclaredInReading { get; set; }
 
 	/// <summary>
-	/// The members the author already declares, in the class this reading is compiled into, under a
-	/// name the generated part declares for its callers (<c>Limits</c>, <c>ParserLimits</c>): two of one
-	/// name in one class, refused (GRAM5018).
+	/// The members the author already declares, in the class the limits of this reading are declared
+	/// in — the class it is compiled into, or the host where it shares the host's (<see cref="SharesLimits"/>)
+	/// — under a name the generated part declares for its callers (<c>Limits</c>, <c>ParserLimits</c>):
+	/// two of one name in one class, refused (GRAM5018).
 	/// </summary>
 	public IReadOnlyList<string> MembersDeclared { get; set; } = [];
+
+	/// <summary>
+	/// Whether this reading reads the limits a caller sets from the host, declared there once for every
+	/// reading of the host whose defaults are the first reading's, rather than declaring limits of its
+	/// own (docs/syntax.md §6.5). Only where the host has several readings (<see cref="SharedTypes"/>),
+	/// and then for each that leaves <c>MaxBufferedInputLength</c> and <c>MaxExtraStacks</c> as the first
+	/// says them: one setting bounds every reading of the grammar, and a reading that says other defaults
+	/// keeps a setting of its own, since one value cannot default to two.
+	/// </summary>
+	public bool SharesLimits { get; set; }
+
+	/// <summary>
+	/// The members the author declares in the class of this reading (<see cref="Suffix"/>) under a name
+	/// of the limits, where the reading shares the host's (<see cref="SharesLimits"/>): a member there
+	/// would stand between the reading and the host's, and is refused (GRAM5018).
+	/// </summary>
+	public IReadOnlyList<string> MembersDeclaredInReading { get; set; } = [];
 
 	/// <summary>
 	/// Whether the host has several readings, so that the types the host's own C# names — the

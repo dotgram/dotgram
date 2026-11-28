@@ -8,6 +8,8 @@
 --- GRAM5020 needs a target language that cannot do what the publication asks; C#, the one the editor compiles for, can do all of it
 --- GRAM4057 no grammar is known to reach it that is not refused already (GRAM4002); it guards the first-set fixed point against going round
 --- GRAM4054 the shared-recursion analysis is a second on a grammar of a thousand rules; the editor leaves it to the build (GramCompilerOptions.AnalyseSharedRecursion)
+--- GRAM5022 the settled copies are left to the build (GramCompilerOptions.SettleRunTails), so the editor, which compiles without them, has no copy to say it of
+--- GRAM5023 the settled copies are left to the build (GramCompilerOptions.SettleRunTails), so the editor, which compiles without them, has no copy to say it of
 --- GRAM0003 Roslyn shell: needs the [Gram] class and the project's AdditionalFiles to find a grammar file; the editor is handed the file
 --- GRAM0004 Roslyn shell: needs several AdditionalFiles matching one [Gram] name
 --- GRAM0005 Roslyn shell: needs the [Gram(DefaultAlias = ...)] attribute option
@@ -619,3 +621,6 @@ namespace Tokens
 }
 Start : @string = n: Tokens.Num => @(n)
 parse Start
+=== GRAM5021
+T = @Still & T & 'b' | 'x'
+parse T

@@ -98,6 +98,76 @@ public sealed class LimitsTests
 	}
 
 	/// <summary>
+	/// The readings of one class share one set of limits, declared in the host: a variant compiled into a class of its
+	/// own reads the host's, and setting them bounds it as it bounds the first. A variant that says other defaults keeps
+	/// limits of its own, since one setting cannot default to two values.
+	/// </summary>
+	[Fact]
+	public void The_readings_of_a_class_share_its_limits()
+	{
+		const string Grammar = "Row : @int = t: ['a'..'z']+ & ';' => @(t.Length)\\nRows : @int[] = Row*\\nparse Rows as All stream";
+
+		var assembly = GeneratorDriverTests.Build(
+			$"[DotGram.Gram(\"{Grammar}\", MaxBufferedInputLength = 4)]\n" +
+			"[DotGram.GramParserVariant(\"Deferred\", Carrier = DotGram.GramCarrier.Deferred)]\n" +
+			"[DotGram.GramParserVariant(\"Own\", Carrier = DotGram.GramCarrier.Deferred, MaxBufferedInputLength = 6)]\n" +
+			"public static partial class Host\n" +
+			"{\n" +
+			"\tpublic static void SetRetained(int most) { Limits = Limits.WithMaxBufferedInputLength(most); }\n" +
+			"}\n");
+		var host     = assembly.GetType("Host")!;
+		var deferred = host.GetNestedType("Deferred")!;
+		var own      = host.GetNestedType("Own")!;
+
+		object? Read(Type reading)
+		{
+			var method = reading.GetMethod("All", [typeof(TextReader), typeof(int?), typeof(int?)])!;
+
+			return method.Invoke(null, [new StringReader("abcdefghij;"), null, null]);
+		}
+
+		string Refused(Type reading)
+		{
+			return Assert.IsType<IOException>(Thrown(() => Read(reading))).Message;
+		}
+
+		// One setting, the host's: the variant that leaves the defaults declares none of its own.
+		Assert.NotNull(host.GetProperty("Limits"));
+		Assert.Null(deferred.GetProperty("Limits"));
+		Assert.Null(deferred.GetNestedType("ParserLimits"));
+		Assert.NotNull(own.GetProperty("Limits"));
+
+		Assert.Contains("more than 4 retained", Refused(host), StringComparison.Ordinal);
+		Assert.Contains("more than 4 retained", Refused(deferred), StringComparison.Ordinal);
+		Assert.Contains("more than 6 retained", Refused(own), StringComparison.Ordinal);
+
+		// Raised on the host, it lets both of its readings through, and leaves the one with its own alone.
+		Call(host, "SetRetained", 64);
+		Assert.Equal(new[] { 10 }, (int[])Read(host)!);
+		Assert.Equal(new[] { 10 }, (int[])Read(deferred)!);
+		Assert.Contains("more than 6 retained", Refused(own), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A variant that shares the host's limits may not declare either name in its own class, where the member would
+	/// stand between its reading and the host's; one with limits of its own may not either, as any reading's class.
+	/// </summary>
+	[Theory]
+	[InlineData("public static int Limits;", "",                     true)]
+	[InlineData("public static int Limits;", ", MaxExtraStacks = 2", true)]
+	[InlineData("public static int Other;",  "",                     false)]
+	public void A_variant_declaring_the_limits_itself_is_refused(string member, string options, bool refused)
+	{
+		var run = GeneratorDriverTests.RunGenerator(
+			"[DotGram.Gram(\"R = 'a'\\nparse R\")]\n" +
+			"[DotGram.GramParserVariant(\"Reading\", Carrier = DotGram.GramCarrier.Deferred" + options + ")]\n" +
+			"public static partial class Host\n{\n\tpublic static partial class Reading\n\t{\n\t\t" + member + "\n\t}\n}");
+		var clash = run.Diagnostics.Any(static one => one.Id == CSharpEmitter.GeneratedNameClash);
+
+		Assert.Equal(refused, clash);
+	}
+
+	/// <summary>
 	/// A value that is no limit at all, or none to hold, is refused where it is made.
 	/// </summary>
 	[Fact]

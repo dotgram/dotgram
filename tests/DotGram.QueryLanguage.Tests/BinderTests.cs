@@ -74,6 +74,17 @@ public sealed class BinderTests
 	}
 
 	[Fact]
+	public void EverySourceHasANameItsAliasOrTheEntitys()
+	{
+		Describe("from o in orders where o.qty > 1 && qty > 1 select o.id, total");
+		Describe("from orders as o where o.qty > 1 select o.id");
+		Describe("from orders where orders.qty > 1 select orders.id");
+
+		Fails("from o in orders where orders.qty > 1", QlErrorCode.UnknownName, 23);
+		Fails("from total in orders", QlErrorCode.Syntax, 5);
+	}
+
+	[Fact]
 	public void TheEntityIsNotAValue()
 	{
 		Fails("from orders o where o > 1", QlErrorCode.Type, 20);
@@ -120,6 +131,143 @@ public sealed class BinderTests
 	{
 		Assert.Equal(18, Describe("from orders select *").Columns.Count);
 		Assert.Equal(["id", "t"], Describe("from orders select id, total as t select *").Columns.Select(c => c.Name));
+	}
+
+	static string[] Names(string text)
+	{
+		return [.. Describe(text).Columns.Select(c => c.Name)];
+	}
+
+	static readonly string[] Fields = ["id", "status", "total", "qty", "big", "score", "created", "shipped", "stamp", "priority", "customer", "note", "ref", "active", "flag", "day", "kind", "blob"];
+
+	[Fact]
+	public void StarIsAnItemOfTheListAndSpreadsTheRowWhereItStands()
+	{
+		Assert.Equal(["one", .. Fields], Names("from orders select 1 as one, *"));
+		Assert.Equal([.. Fields, "one"], Names("from orders select *, 1 as one"));
+		Assert.Equal(["a", .. Fields, "b"], Names("from orders select 1 as a, *, 2 as b"));
+		Assert.Equal(["id", "t", "one"], Names("from orders select id, total as t select *, 1 as one"));
+	}
+
+	[Fact]
+	public void AnExplicitItemWinsOverAStarFieldOfItsNameAndKeepsItsPlace()
+	{
+		// `total` is written last, so it is last; the `*` gives the rest.
+		Assert.Equal(["one", .. Fields.Where(f => f != "total"), "total"], Names("from orders select 1 as one, *, total"));
+		Assert.Equal(["a", .. Fields.Where(f => f != "total"), "total"], Names("from orders select 1 as a, *, total"));
+
+		// A column named as a field is the written one, not the field.
+		var info = Describe("from orders select *, qty as status");
+
+		Assert.Equal([.. Fields.Where(f => f != "status"), "status"], info.Columns.Select(c => c.Name));
+		Assert.Equal(QlType.Int, info.Columns[^1].Type);
+
+		Assert.Equal(["total", .. Fields.Where(f => f != "total")], Names("from orders select total, *"));
+	}
+
+	[Fact]
+	public void StarAfterALetTakesTheLetToo()
+	{
+		Assert.Equal([.. Fields, "t"], Names("from orders let t = total * 2 select *"));
+		Assert.Equal([.. Fields, "t", "one"], Names("from orders let t = total * 2 select *, 1 as one"));
+		Assert.Equal(["id", "t", "n"], Names("from orders select id, total as t let n = t * 2 select *"));
+
+		// A `let` of a field's name hides the field, as it does anywhere.
+		Assert.Equal([.. Fields.Where(f => f != "total"), "total"], Names("from orders let total = qty select *"));
+	}
+
+	/// <summary>A `*` column an explicit item replaces is not returned, so it needs no Select: its fields are used by their own rights.</summary>
+	[Theory]
+	[InlineData("from orders let s = salary where s > 1 select *, 1 as s", "s")]
+	[InlineData("from orders let s = salary where s > 1 select 1 as s, *", "s")]
+	[InlineData("from orders let r = rank order by r select *, 1 as r", "r")]
+	[InlineData("from orders let s = salary where s > 1 select id, s > 1 as t select *, 1 as t", "t")]
+	public void AStarColumnAnExplicitItemReplacesNeedsNoSelect(string text, string replaced)
+	{
+		Assert.Contains(replaced, Names(text));
+	}
+
+	[Fact]
+	public void AnExplicitItemWinsOverALetAndOverAColumnOfAnEarlierSelectToo()
+	{
+		var info = Describe("from orders let t = 1 select *, 2 as t");
+
+		Assert.Equal("t", info.Columns[^1].Name);
+		Assert.Single(info.Columns, c => c.Name == "t");
+		Assert.Contains(info.Warnings, w => w.Message == "`t` is never used.");
+
+		Assert.Equal(["id", "t"], Names("from orders select id, total as t select *, id + 1 as t"));
+	}
+
+	[Fact]
+	public void WithoutASelectTheRowIsWhatStarWouldGive()
+	{
+		Assert.Equal(Names("from orders let t = total * 2 select *"), Names("from orders let t = total * 2"));
+		Assert.Equal(Names("from orders let total = qty select *"), Names("from orders let total = qty"));
+		Assert.Equal(Names("from orders select id let t = id * 2 select *"), Names("from orders select id let t = id * 2"));
+		Assert.Equal([.. Fields, "t"], Names("from orders let t = total * 2"));
+
+		// What the row returns is read, so it is not unused.
+		Assert.Empty(Describe("from orders let t = total * 2").Warnings);
+	}
+
+	[Fact]
+	public void ALetTheRowReturnsNeedsSelect()
+	{
+		Fails("from orders let s = salary", QlErrorCode.UnknownName, 20);
+		Fails("from orders let r = rank where r > 1", QlErrorCode.UnknownName, 20);
+		Describe("from orders let s = salary where s > 1 select id");
+	}
+
+	[Fact]
+	public void StarColumnsThatNothingReadsAreNotReportedOneByOne()
+	{
+		Assert.Empty(Describe("from orders select * select id").Warnings);
+		Assert.Single(Describe("from orders let t = 1 select * select id").Warnings);
+	}
+
+	[Fact]
+	public void StarStandsOnceInASelect()
+	{
+		Fails("from orders select *, *", QlErrorCode.Syntax, 22);
+		Fails("from orders select 1 as a, *, id, *", QlErrorCode.Syntax, 34);
+	}
+
+	[Fact]
+	public void StarNeedsNoNameButTheOtherItemsDo()
+	{
+		Fails("from orders select *, 1", QlErrorCode.Syntax, 22);
+		Fails("from orders select *, total * 2", QlErrorCode.Syntax, 22);
+	}
+
+	[Fact]
+	public void StarIsNotAggregated()
+	{
+		Fails("from orders select *, Count(*) as c", QlErrorCode.Type, 19);
+	}
+
+	[Fact]
+	public void AStarListTakesOnlyWhatTheModelPermitsToSelect()
+	{
+		var names = Names("from orders select 1 as one, *");
+
+		Assert.DoesNotContain("rank", names);
+		Assert.DoesNotContain("salary", names);
+
+		// Named in the list, a field without Select is refused as ever.
+		Fails("from orders select *, rank as r", QlErrorCode.UnknownName, 22);
+		Fails("from orders select 1 as one, *, note where note == 'x'", QlErrorCode.UnknownName, 32);
+	}
+
+	[Fact]
+	public void AStarListTakesNoFieldTheRestUsesWithoutItsRight()
+	{
+		Assert.Equal(["one"], Names("from orders select 1 as one, * where status == 'x' select one"));
+
+		var error  = Refused("from orders select 1 as one, * where note == 'x' select id");
+		var absent = Refused("from orders select 1 as one, * where nosuch == 'x' select id");
+
+		Assert.Equal((absent.Code, absent.Position), (error.Code, error.Position));
 	}
 
 	[Fact]

@@ -166,6 +166,12 @@ sealed record MachineSettings
 	/// </summary>
 	public bool ConstructionsMayThrow { get; init; }
 
+	/// <summary>
+	/// Whether a reader keeps where a run of a settled copy's class ended, for a run begun inside it
+	/// (<see cref="GramCompilerOptions.RememberRunEnds"/>).
+	/// </summary>
+	public bool RemembersRunEnds { get; init; }
+
 	/// <summary>Whether the reader may remember where its rules failed (<see cref="GramCompilerOptions.MemoiseFailures"/>).</summary>
 	public bool MemoisesFailures { get; init; }
 

@@ -721,7 +721,7 @@ public sealed class ExponentialRepetitionTests
 	}
 
 	/// <summary>The graph a grammar compiles to, with the grammars it includes spliced on; the library itself is read as it is, with nothing spliced onto it.</summary>
-	static RecognitionGraph Built(CorpusGrammar grammar, bool lexical, out LexicalSplit? split)
+	internal static RecognitionGraph Built(CorpusGrammar grammar, bool lexical, out LexicalSplit? split, bool settle = false)
 	{
 		var text = grammar.Text;
 
@@ -747,7 +747,7 @@ public sealed class ExponentialRepetitionTests
 		}
 
 		var model = GrammarBinder.Bind(parsed.File, null, grammar.Text.Length);
-		var graph = GrammarNormalizer.Normalize(model, scanner: RoslynCSharpScanner.Instance);
+		var graph = GrammarNormalizer.Normalize(model, scanner: RoslynCSharpScanner.Instance, settle: settle);
 
 		split = lexical ? LexicalSplit.Of(graph) : null;
 
@@ -757,7 +757,7 @@ public sealed class ExponentialRepetitionTests
 	/// <summary>A grammar of the repository: what the report calls it, its own text, what it includes, and the ways it is read.</summary>
 	/// <param name="Included">Every grammar it is built on, each once, with the namespace it is reached under.</param>
 	/// <param name="Modes">Over characters (false), over kinds (true), or both.</param>
-	sealed record CorpusGrammar(string Name, string Text, IReadOnlyList<(string Name, string Text)> Included, bool[] Modes);
+	internal sealed record CorpusGrammar(string Name, string Text, IReadOnlyList<(string Name, string Text)> Included, bool[] Modes);
 
 	/// <summary>A class that carries a <c>[Gram]</c>, as its source writes it.</summary>
 	/// <param name="Where">Where it was written: the file, and the line of the attribute.</param>
@@ -780,7 +780,7 @@ public sealed class ExponentialRepetitionTests
 	/// with it. A class's grammar is joined with what it is built on, by <c>[GramInclude]</c> or
 	/// by its base, found by class name: in the same string or file first, then anywhere.
 	/// </remarks>
-	static IEnumerable<CorpusGrammar> Grammars(string root)
+	internal static IEnumerable<CorpusGrammar> Grammars(string root)
 	{
 		var hosts = new List<Host>();
 

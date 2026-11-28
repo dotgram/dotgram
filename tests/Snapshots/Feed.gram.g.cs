@@ -358,7 +358,7 @@ namespace DotGram.Snapshots
 				failure = replayed;
 
 				if (more != null && more.Count > replayedMore)
-					more.RemoveRange(replayedMore, more.Count - replayedMore);
+					Untied_DotGram(more, replayedMore);
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -2461,7 +2461,7 @@ namespace DotGram.Snapshots
 			var ties = _spareTies;
 
 			if (ties == null)
-				return new global::System.Collections.Generic.List<string[]>();
+				return new TieList_DotGram();
 
 			_spareTies = null;
 
@@ -2472,6 +2472,121 @@ namespace DotGram.Snapshots
 
 		private static readonly string[] Truncated_DotGram = new string[] { "\u0001" };
 
+		private const int TiesCounted_DotGram = 32;
+
+		private sealed class TieList_DotGram : global::System.Collections.Generic.List<string[]>
+		{
+			internal bool Counted;
+
+			internal global::System.Collections.Generic.Dictionary<string[], int>? Held;
+
+			internal int Worded;
+		}
+
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		private static bool Counting_DotGram(global::System.Collections.Generic.List<string[]> more)
+		{
+			if (more.Count < TiesCounted_DotGram || !(more is TieList_DotGram list))
+				return false;
+
+			if (list.Counted)
+				return true;
+
+			return Count_DotGram(list);
+		}
+
+		private static bool Count_DotGram(TieList_DotGram list)
+		{
+			var held = list.Held ??= new global::System.Collections.Generic.Dictionary<string[], int>();
+
+			held.Clear();
+			list.Worded = 0;
+			list.Counted = true;
+
+			foreach (var one in list)
+				Tally_DotGram(list, one, 1);
+
+			return true;
+		}
+
+		private static void Tally_DotGram(TieList_DotGram list, string[] set, int by)
+		{
+			var held = list.Held!;
+
+			held.TryGetValue(set, out var times);
+
+			times += by;
+
+			if (times == 0)
+				held.Remove(set);
+			else
+				held[set] = times;
+
+			if (Spoke_DotGram(set))
+				list.Worded += by;
+		}
+
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		private static bool HoldsTie_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
+		{
+			if (Counting_DotGram(more))
+				return ((TieList_DotGram)more).Held!.ContainsKey(set);
+
+			return more.Contains(set);
+		}
+
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		private static void Added_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
+		{
+			if (more is TieList_DotGram { Counted: true } list)
+			{
+				if (list.Count == 0)
+					list.Counted = false;
+				else
+					Tally_DotGram(list, set, 1);
+			}
+
+			more.Add(set);
+		}
+
+		private static void Removed_DotGram(global::System.Collections.Generic.List<string[]> more, int at)
+		{
+			if (more is TieList_DotGram { Counted: true } list)
+				Tally_DotGram(list, list[at], -1);
+
+			more.RemoveAt(at);
+		}
+
+		private static void Untied_DotGram(global::System.Collections.Generic.List<string[]> more, int from)
+		{
+			if (more is TieList_DotGram { Counted: true } list)
+				for (var at = from; at < list.Count; at++)
+					Tally_DotGram(list, list[at], -1);
+
+			more.RemoveRange(from, more.Count - from);
+		}
+
+		private static void Untie_DotGram(global::System.Collections.Generic.List<string[]> more, string[] set)
+		{
+			if (Counting_DotGram(more) && !((TieList_DotGram)more).Held!.ContainsKey(set))
+				return;
+
+			var at = more.IndexOf(set);
+
+			if (at >= 0)
+				Removed_DotGram(more, at);
+		}
+
+		static bool Spoke_DotGram(string[]? expected)
+		{
+			if (expected != null)
+				foreach (var one in expected)
+					if (one.Length > 0 && one[0] == '\u0000')
+						return true;
+
+			return false;
+		}
+
 		private static void Tie_DotGram(ref Failure failure, string[] expected)
 		{
 			var more = failure.ExpectedMore;
@@ -2481,30 +2596,39 @@ namespace DotGram.Snapshots
 
 			if (Guarding_DotGram(expected))
 			{
-				if (more.Count < TieCap_DotGram && !ReferenceEquals(failure.Expected, expected) && !more.Contains(expected))
-					more.Add(expected);
+				if (more.Count < TieCap_DotGram && !ReferenceEquals(failure.Expected, expected) && !HoldsTie_DotGram(more, expected))
+					Added_DotGram(more, expected);
 
 				return;
 			}
 
 			if (more.Count < TieCap_DotGram)
 			{
-				more.Add(expected);
+				Added_DotGram(more, expected);
 
 				return;
 			}
 
+			// Past the cap the list holds no guard, and a tie there is dropped without a search: a guard
+			// enters only below the cap, and the mark of the cut is appended only at the cap, once a search
+			// found none. Only this method appends to the list (through Added_DotGram); everything else
+			// takes sets out of it, and whatever comes to append elsewhere has to keep this so. A search on
+			// every tie past the cap was the whole list per way, seconds for a refusal reached a few hundred
+			// thousand ways.
+			if (more.Count > TieCap_DotGram)
+				return;
+
 			for (var at = more.Count - 1; at >= 0; at--)
 				if (Guarding_DotGram(more[at]))
 				{
-					more.RemoveAt(at);
-					more.Add(expected);
+					Removed_DotGram(more, at);
+					Added_DotGram(more, expected);
 
 					return;
 				}
 
 			if (more.Count == TieCap_DotGram)
-				more.Add(Truncated_DotGram);
+				Added_DotGram(more, Truncated_DotGram);
 		}
 
 		private static bool Guarding_DotGram(string[] set)
@@ -3207,7 +3331,7 @@ namespace DotGram.Snapshots
 				var more = failure.ExpectedMore;
 
 				if (more != null && more.Count > stood)
-					more.RemoveRange(stood, more.Count - stood);
+					Untied_DotGram(more, stood);
 			}
 
 			if (at == failure.Position)
@@ -3215,28 +3339,26 @@ namespace DotGram.Snapshots
 				if (ReferenceEquals(failure.Expected, covered))
 					failure.Expected = expected;
 
-				failure.ExpectedMore?.Remove(covered);
+				var tied = failure.ExpectedMore;
+
+				if (tied != null)
+					Untie_DotGram(tied, covered);
 			}
 
 			Refuse_DotGram(ref failure, at, expected);
 		}
 
-		static bool Spoke_DotGram(string[]? expected)
-		{
-			if (expected != null)
-				foreach (var one in expected)
-					if (one.Length > 0 && one[0] == '\u0000')
-						return true;
-
-			return false;
-		}
-
 		static bool Spoke_DotGram(global::System.Collections.Generic.List<string[]>? tied)
 		{
-			if (tied != null)
-				foreach (var one in tied)
-					if (Spoke_DotGram(one))
-						return true;
+			if (tied == null)
+				return false;
+
+			if (Counting_DotGram(tied))
+				return ((TieList_DotGram)tied).Worded > 0;
+
+			foreach (var one in tied)
+				if (Spoke_DotGram(one))
+					return true;
 
 			return false;
 		}

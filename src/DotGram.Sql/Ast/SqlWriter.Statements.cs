@@ -924,8 +924,8 @@ public static partial class SqlWriter
 				default:
 					var options = (TableElement.ColumnOptions)element;
 
-					if (options.WithOptionsOmitted || options.Options.Collation is not null)
-						throw Misplaced(options, "WithOptionsOmitted or Options.Collation", "which only PostgreSQL reads on a typed table's column");
+					if (options.WithOptionsOmitted || options.Options.Collation is not null || options.Options.Generation is not null)
+						throw Misplaced(options, "WithOptionsOmitted, Options.Collation or Options.Generation", "which only PostgreSQL reads on a typed table's column");
 
 					PutIdentifier(options.Name);
 					Word("WITH OPTIONS");

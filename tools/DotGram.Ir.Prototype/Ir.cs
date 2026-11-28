@@ -57,6 +57,12 @@ sealed class IrSlot(int index, string name, IrSlotKind kind, string? type)
 /// <param name="Rule">The rule it was written in.</param>
 sealed record IrFragment(int Id, bool IsGuard, string Text, int At, IReadOnlyList<string> Parameters, string Rule)
 {
+	/// <summary>
+	/// Whether the text names what the parser supplies — its context or its own state — which no
+	/// record of a reading holds: what reads it is read again on every replay, never gone past.
+	/// </summary>
+	public bool NamesParser { get; init; }
+
 	public string Name => (IsGuard ? "g" : "c") + Id.ToString(CultureInfo.InvariantCulture);
 }
 
@@ -120,7 +126,26 @@ abstract record IrStmt
 	/// Another function, read from here. Its value goes into <paramref name="Into"/>, or is added
 	/// to it where <paramref name="Appends"/>.
 	/// </summary>
-	public sealed record Call(IrFunction Target, IrSlot? Into, bool Appends) : IrStmt;
+	public sealed record Call(IrFunction Target, IrSlot? Into, bool Appends) : IrStmt
+	{
+		/// <summary>
+		/// The set recorded where the call was made, where the call fails: what the choice it begins the
+		/// widest part of wanted there (<see cref="IrDispatch.Called"/>); -1 for none.
+		/// </summary>
+		public int RefusesWith { get; init; } = -1;
+
+		/// <summary>
+		/// The set the call says where it refuses at the place it was made, which <see cref="RefusesWith"/> is
+		/// said over: dropped for it there; -1 for none.
+		/// </summary>
+		public int Over { get; init; } = -1;
+
+		/// <summary>
+		/// The rule's own words, recorded where the call was made where it fails and the furthest refusal
+		/// has not passed that place: the rule refused there, having read nothing; -1 for none.
+		/// </summary>
+		public int Says { get; init; } = -1;
+	}
 
 	/// <summary>
 	/// The first alternative that reads, each from where the choice began. An alternative that
@@ -139,6 +164,24 @@ abstract record IrStmt
 		/// read, and where it begins none the choice says one set of its own and nothing is tried.
 		/// </summary>
 		public IrDispatch? Dispatch { get; init; }
+
+		/// <summary>
+		/// What the next input item must begin for the alternatives to be tried at all: where it begins
+		/// none, the set is recorded and the choice fails (or, an optional's door, the set is noted and the
+		/// choice reads nothing).
+		/// </summary>
+		public IrGate? Gate { get; init; }
+
+		/// <summary>
+		/// Whether an alternative that fails is read again in place with each of its own decisions that
+		/// can still move before the choice moves on — the last alternative too, before the choice
+		/// fails: what the generated reader does around every alternative that writes a way. Only of a
+		/// choice that is <paramref name="Resumable"/>; the reader reads a closed one once through.
+		/// </summary>
+		public bool Retries { get; init; }
+
+		/// <summary>Whether that reading again stops building after the second decision it gives back (<see cref="Replay.Defers"/>).</summary>
+		public bool Defers { get; init; }
 
 		public override IEnumerable<IrStmt> Children => Alternatives;
 	}
@@ -160,6 +203,26 @@ abstract record IrStmt
 		/// </summary>
 		public IReadOnlyList<CharRange>? Door { get; init; }
 
+		/// <summary>Whether the door is shut only once the least turns are read (otherwise at every turn).</summary>
+		public bool DoorPastLeast { get; init; } = true;
+
+		/// <summary>Whether the door is shut on the reading that records nothing alone (<c>ParseQuietlyFirst</c>'s first).</summary>
+		public bool DoorQuietOnly { get; init; }
+
+		/// <summary>What is recorded where the door shuts below the least turns; -1 for nothing.</summary>
+		public int DoorShort { get; init; } = -1;
+
+		/// <summary>
+		/// Whether a turn that fails is read again in place with each of its own decisions that can still
+		/// move before it is given up — every turn, below the fewest too, and whether or not the
+		/// repetition is <paramref name="Resumable"/>: what the generated reader does around every turn
+		/// that writes a way, whatever it decided about the repetition's own.
+		/// </summary>
+		public bool Retries { get; init; }
+
+		/// <summary>Whether that reading again stops building after the second decision it gives back (<see cref="Replay.Defers"/>).</summary>
+		public bool Defers { get; init; }
+
 		public override IEnumerable<IrStmt> Children => [Body];
 	}
 
@@ -179,6 +242,9 @@ abstract record IrStmt
 	/// </summary>
 	public sealed record Commit(IrStmt Body, IReadOnlyList<IrSlot> Resets) : IrStmt
 	{
+		/// <summary>Whether its own reading again stops building after the second decision it gives back (<see cref="Replay.Defers"/>).</summary>
+		public bool Defers { get; init; }
+
 		public override IEnumerable<IrStmt> Children => [Body];
 	}
 
@@ -189,6 +255,15 @@ abstract record IrStmt
 	/// </summary>
 	public sealed record Replay(IrStmt Body) : IrStmt
 	{
+		/// <summary>
+		/// Whether, once it has given a decision back twice, the region reads on without building —
+		/// and where a reading then stands, reads it once more to build it, with what that reading
+		/// says of a refusal taken back: so a refused list builds its first two attempts and no more.
+		/// What the plan decided for the region's rule and the kind of its loop, as the generated
+		/// parser decides it.
+		/// </summary>
+		public bool Defers { get; init; }
+
 		public override IEnumerable<IrStmt> Children => [Body];
 	}
 
@@ -210,7 +285,17 @@ abstract record IrStmt
 }
 
 /// <summary>What each alternative of a choice begins with, and the set said where the input begins none of them.</summary>
-sealed record IrDispatch(IReadOnlyList<IReadOnlyList<CharRange>> Begins, int Otherwise);
+sealed record IrDispatch(IReadOnlyList<IReadOnlyList<CharRange>> Begins, int Otherwise)
+{
+	/// <summary>
+	/// The alternative read where the next item begins none of the others, by the call it begins with,
+	/// which tests the item itself; -1 where every alternative is tested.
+	/// </summary>
+	public int Called { get; init; } = -1;
+}
+
+/// <summary>A choice's door: what the next item must begin, the set said where it does not, and whether that ends the choice as nothing read.</summary>
+sealed record IrGate(IReadOnlyList<CharRange> Begins, int Expected, bool Empty);
 
 /// <summary>
 /// One rule (or one specialization of one) as a function from a position to the position its
@@ -260,6 +345,31 @@ sealed class IrProgram
 	public int PlanAsked { get; set; }
 
 	public int PlanMisses { get; set; }
+
+	/// <summary>How many places that record a refusal the lowering asked the plan about, the places the plan holds that it did not read among them.</summary>
+	public int SitesAsked { get; set; }
+
+	/// <summary>
+	/// How many of those the plan had no answer for, or held an answer the lowering does not read: a place of
+	/// a kind it does not lower is said otherwise than the generated reader says it (<see cref="UnreadKinds"/>).
+	/// </summary>
+	public int SiteMisses { get; set; }
+
+	/// <summary>The places the plan holds and the lowering did not read, by their kind.</summary>
+	public SortedDictionary<string, int> UnreadKinds { get; } = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// How many repetitions the plan left without a way that the lowering opened all the same: a turn
+	/// past the fewest that can fail after a decision of its own is read again with that decision moved
+	/// before it is given up, and the tree has no such reading but the repetition's own way.
+	/// </summary>
+	public int Reopened { get; set; }
+
+	/// <summary>How many turns and alternatives are read again in place over their own decisions (<see cref="IrStmt.Repeat.Retries"/>, <see cref="IrStmt.Choice.Retries"/>).</summary>
+	public int Retrying { get; set; }
+
+	/// <summary>How many loops that ask for another reading the plan had no single answer for, whether they stop building: those build throughout.</summary>
+	public int DeferralMisses { get; set; }
 
 	public Dictionary<string, int> UnsupportedKinds { get; } = new(StringComparer.Ordinal);
 

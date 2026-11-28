@@ -1,5 +1,6 @@
 ﻿using System;
 
+using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Plan;
 
@@ -62,4 +63,20 @@ sealed class EmitContext
 	/// refused what was asked and nothing was written.
 	/// </summary>
 	public bool Printed { get; set; }
+
+	/// <summary>
+	/// Whether the file may be printed only where every machine of its plan is a reader over a string:
+	/// asked of a graph with settled copies (<see cref="RecognitionGraph.Settled"/>), and answered by
+	/// <see cref="LeftTheReaders"/> instead of a file where one is not.
+	/// </summary>
+	public bool ReadersOnly { get; init; }
+
+	/// <summary>Set where <see cref="ReadersOnly"/> was asked and the plan holds another machine: nothing is printed.</summary>
+	public bool LeftTheReaders { get; set; }
+
+	/// <summary>
+	/// What put a machine beyond the readers, where <see cref="LeftTheReaders"/> is set: null where no
+	/// publication is of a cause the author could be told.
+	/// </summary>
+	public SettleBlock? Blocked { get; set; }
 }

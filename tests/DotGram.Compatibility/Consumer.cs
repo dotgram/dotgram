@@ -82,6 +82,10 @@ namespace DotGram.Compatibility
 	// the generated one can be judged. That is exactly what happened the first time this
 	// was measured: the grammar below used to be a raw string literal, the file failed to
 	// parse, the attribute went unrecognized, and the generator produced nothing to check.
+	// The find and the stream publications put this file on the engine, so `Key` is read without its
+	// settled copy and a refusal inside a long key takes quadratic time (GRAM5022). The grammar is here
+	// to exercise every kind of publication, not to read long keys, and nothing reads one.
+#pragma warning disable GRAM5022
 	/// <summary>A document of several publications: parses, a find, and a rule that recurses.</summary>
 	[Gram(
 		"@using System;\n" +
@@ -109,6 +113,7 @@ namespace DotGram.Compatibility
 	public partial class Settings
 	{
 	}
+#pragma warning restore GRAM5022
 
 	// A host whose own public API hands out the span its grammar measures, and so declares its
 	// part of the span public: the generated part is `readonly partial` and says nothing of who

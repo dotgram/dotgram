@@ -82,13 +82,25 @@ public sealed class ExampleBlowUpTests
 	/// </remarks>
 	static void Refused(string what, Action read, int count = 64)
 	{
-		var watch = Stopwatch.StartNew();
-
 		Assert.ThrowsAny<Exception>(read);
 
+		// The fewest of repeated readings, so that a stall beside other tests does not fail it.
+		var took = Fewest.Of(
+			() =>
+			{
+				try
+				{
+					read();
+				}
+				catch (Exception)
+				{
+				}
+			},
+			TimeSpan.FromSeconds(5));
+
 		Assert.True(
-			watch.Elapsed.TotalSeconds < 5,
-			$"The {what} example took {watch.Elapsed.TotalSeconds:F1} s to refuse {count} of them.");
+			took.TotalSeconds < 5,
+			$"The {what} example took {took.TotalSeconds:F1} s to refuse {count} of them.");
 	}
 
 	static string Joined(string piece, string separator, int times)

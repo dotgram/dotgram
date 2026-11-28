@@ -160,7 +160,7 @@ public sealed class LikeTests(Databases databases)
 	{
 		var info = Model.Describe("from orders where status like @p && customer not like @q || status like customer select id, status like 'p%' as paid let x = paid where !x");
 
-		Assert.Equal([QlType.Int, QlType.Bool], info.Columns.Select(c => c.Type));
+		Assert.Equal([QlType.Int, QlType.Bool, QlType.Bool], info.Columns.Select(c => c.Type));
 		Assert.False(info.Columns[1].IsNullable);
 		Assert.Equal([("p", QlType.String, true), ("q", QlType.String, true)], info.Parameters.Select(p => (p.Name, p.Type, p.IsNullable)));
 	}

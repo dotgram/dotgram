@@ -49,7 +49,7 @@ public sealed class SliceTests
 		for (var i = 0; i < expected.Count; i++)
 		{
 			Assert.True(expected[i].Head == actual[i].Head, $"On {Twin.Quoted(inputs[i])}: expected {expected[i].Head}, read {actual[i].Head}");
-			Assert.Equal(expected[i].Log, actual[i].Log);
+			Assert.True(SliceAnswer.SameCalls(expected[i], actual[i]), $"On {Twin.Quoted(inputs[i])}: the host calls differ");
 		}
 	}
 

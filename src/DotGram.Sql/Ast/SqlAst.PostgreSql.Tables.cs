@@ -133,6 +133,15 @@ public sealed partial record ColumnOptionList
 {
 	/// <summary>PostgreSQL: CREATE TABLE. A typed table's or a partition's column's <c>COLLATE c</c>.</summary>
 	public CollationName? Collation { get; init; }
+
+	/// <summary>
+	/// PostgreSQL: CREATE TABLE. What a typed table's or a partition's column says of its value that <see cref="Default"/>
+	/// cannot hold, in the slot a column holds it in (<see cref="ColumnDefinition.Generation"/>): a default with a name,
+	/// <c>CONSTRAINT n DEFAULT 1</c>; a partition's own expression for a column its parent generates, <c>GENERATED ALWAYS
+	/// AS (a * 3) STORED</c>; an identity. A default with no name is <see cref="Default"/>, as the standard reads it, and
+	/// never this; null where nothing of the kind was written.
+	/// </summary>
+	public ColumnGeneration? Generation { get; init; }
 }
 
 public abstract partial record TableElement
