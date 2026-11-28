@@ -109,6 +109,7 @@ public sealed class RuleOracleTests
 	public void The_oracle_agrees_with_the_published_version_where_the_rule_says_the_same()
 	{
 		var (cells, shapes, missing, directory) = Load();
+
 		var held = RuleOracleCheck.HoldPublished(cells, shapes.Count, missing);
 
 		File.WriteAllText(Path.Combine(directory, "oracle-checkpoint.txt"), held.Report);
@@ -125,6 +126,7 @@ public sealed class RuleOracleTests
 	public void This_build_is_held_to_the_oracle()
 	{
 		var (cells, _, _, directory) = Load();
+
 		var held = RuleOracleCheck.HoldHead(cells);
 
 		File.WriteAllText(Path.Combine(directory, "oracle-head.txt"), held.Report);

@@ -118,7 +118,7 @@ static partial class CSharpEmitter
 						(text.Trim() == ByteValues.MatchedText ? "parserText" : Bare(text)) is { } name &&
 						(name == "parserText" || RawCapture(built, name, graph)))
 					{
-						return $"'{rule.Name}' builds its string with '=> @({text.Trim()})', and over bytes '{name}' is a " +
+						return $"'{rule.Name}' builds its string with '=> @({(text.Trim() == ByteValues.MatchedText ? ByteValues.MatchedText : name)})', and over bytes '{name}' is a " +
 							"ReadOnlySpan<byte> that nothing decodes; build the string with a method the host declares " +
 							"for each input (one over ReadOnlySpan<byte>, one over the characters)";
 					}
