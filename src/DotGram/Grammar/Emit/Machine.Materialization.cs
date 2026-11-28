@@ -573,13 +573,6 @@ sealed partial class Machine
 
 	void MaterializeRule(Writer file, RuleSymbol rule, int firstFactory = -1)
 	{
-		// A rule that builds nothing of its own is a type the grammar generates, which holds the text of its captures as strings.
-		using (OwnText(_factories[rule].Count == 0))
-			MaterializeRuleBody(file, rule, firstFactory);
-	}
-
-	void MaterializeRuleBody(Writer file, RuleSymbol rule, int firstFactory)
-	{
 		var offset    = _captureOffsets[rule];
 		var members   = _graph.Results[rule];
 		var type      = _results.QualifiedOf(rule)!;
