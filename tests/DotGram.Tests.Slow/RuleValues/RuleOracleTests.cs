@@ -90,11 +90,18 @@ public sealed class RuleOracleTests
 		if (published.Kind != "gram")
 			return PublishedFailure.Other;
 
-		foreach (var id in new[] { "GRAM4026", "GRAM4006", "GRAM4007", "GRAM3004" })
-			if (published.Text.StartsWith(id, StringComparison.Ordinal))
-				return PublishedFailure.Documented;
+		// The identifiers the published version gave, in the order it gave them.
+		var ids = published.Text.Split(' ')[0].Split(',');
 
-		return published.Text.StartsWith("GRAM4008", StringComparison.Ordinal) ? PublishedFailure.Defect : PublishedFailure.Other;
+		if (ids.Any(static id => id is "GRAM4026" or "GRAM4006" or "GRAM3004"))
+			return PublishedFailure.Documented;
+
+		// A GRAM4008 about a helper comes from building a string from names, which the rule removes. A GRAM4007 beside it is
+		// held only where the oracle itself finds two kinds, and then the oracle does not ask for a value.
+		if (ids.Contains("GRAM4008"))
+			return PublishedFailure.Defect;
+
+		return ids.Contains("GRAM4007") ? PublishedFailure.Documented : PublishedFailure.Other;
 	}
 
 	static void Example(StringBuilder report, Cell cell, string older, Expectation expected, string label)
@@ -313,12 +320,12 @@ public sealed class RuleOracleTests
 				// Where the published version gave a value, the head gives the same. Where it refused with a documented diagnostic,
 				// the head refuses. Where it failed by a defect of its own, an untyped rule with names gives a value of its
 				// generated type (over bytes a raw capture is refused), and a name captured twice on one route has nothing to be
-				// held to. A diagnostic that is on neither list is a stop. Over bytes any refusal of the published version is held.
+				// held to. A diagnostic that is on neither list is a stop.
 				var failure = Failure(cell.Package);
 				var other   = cell.Package.Kind != "value" && failure == PublishedFailure.Other;
 
 				if (!other && (cell.Package.Kind == "value" ? head.Kind == "value" && head.Text == cell.Package.Text
-					: failure == PublishedFailure.Documented || expected.ErrorId is not null || cell.Mode == Mode.B && cell.Package.Kind == "gram" ? !head.Built
+					: failure == PublishedFailure.Documented || expected.ErrorId is not null ? !head.Built
 					: expected.Value is not null ? head.Kind == "value" && head.Text == expected.Value : expected.Row == "O-twice" || head.Kind == "value"))
 				{
 					counts["green"] = counts.GetValueOrDefault("green") + 1;

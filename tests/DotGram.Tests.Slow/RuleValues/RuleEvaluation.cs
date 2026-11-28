@@ -464,6 +464,37 @@ sealed partial class Grammar
 			var named   = Walk(rule.Alternatives, true).OfType<Named>().ToList();
 			var written = named.Select(static n => n.Name).Distinct().ToList();
 
+			// The names written in a repetition with no choice or option between them and the repetition.
+			var direct = new HashSet<string>(StringComparer.Ordinal);
+
+			void Straight(Expr at)
+			{
+				switch (at)
+				{
+					case Named own:
+						direct.Add(own.Name);
+						Straight(own.Inner);
+						break;
+
+					case Sequence sequence:
+						foreach (var item in sequence.Items)
+							Straight(item);
+
+						break;
+
+					case Group group:
+						Straight(group.Inner);
+						break;
+
+					case Wrapped { Wrap: Wrap.Star or Wrap.Plus } inner:
+						Straight(inner.Inner);
+						break;
+				}
+			}
+
+			foreach (var turns in Walk(rule.Alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus))
+				Straight(turns.Inner);
+
 			var repeated = Walk(rule.Alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus)
 				.SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Select(static n => n.Name).ToHashSet(StringComparer.Ordinal);
 
@@ -477,11 +508,15 @@ sealed partial class Grammar
 
 				if (list.Count == 0)
 				{
-					// A name no turn and no alternative of the route captured is null.
+					// A name of an alternative or option the route did not take is null. A text name written straight in a repetition
+					// that took no turn is an empty text.
 					var text = named.Where(n => n.Name == name).All(n => grammar.KindOfCapture(n.Inner, rule) == "text");
 
-					if (!many || text)
+					if (!many)
 						return "<null>";
+
+					if (text)
+						return visited.Contains(name) && direct.Contains(name) ? "\"\"" : "<null>";
 
 					throw new InvalidOperationException("the oracle does not model an empty repetition of " + name);
 				}
