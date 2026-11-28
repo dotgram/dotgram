@@ -281,6 +281,7 @@ sealed partial class GrammarNormalizer
 		// Once every type is known, and the groups that build a value have become rules: one decision per rule, before
 		// anything rewrites a body (GrammarNormalizer.RuleValues.cs). A span, an operand and a construction are written
 		// before the left-recursive rules are rewritten, which makes a fold of the construction on each alternative.
+		normalizer.CheckLookaheadCaptures();
 		normalizer.DecideValues();
 		normalizer.RealiseBeforeRecursion();
 		normalizer.RewriteLeftRecursion();

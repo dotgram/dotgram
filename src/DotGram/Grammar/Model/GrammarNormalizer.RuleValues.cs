@@ -763,14 +763,11 @@ sealed partial class GrammarNormalizer
 					_bodies[rule] = Operated(rule, value);
 					break;
 
-				// A name inside a lookahead is told first, where the rule is (GRAM4006), as the published version tells it: one
-				// error is said at one place, and that one is the author's to fix before the value is a question.
+				// A name inside a lookahead has been told already, where the rule is (CheckLookaheadCaptures): one error is said at
+				// one place, and that one comes first.
 				case ValueSource.Refused:
 					_unsaid.Add(rule);
-
-					if (!NodeWalk.Descendants(body).OfType<Node.Lookahead>().Any(static look => NodeWalk.Descendants(look.Body).Any(static one => one is Node.Capture)))
-						Report(UnbuiltConstruction, value.Refusal!, rule.Declaration!.At);
-
+					Report(UnbuiltConstruction, value.Refusal!, rule.Declaration!.At);
 					break;
 			}
 		}
@@ -1413,13 +1410,13 @@ sealed partial class GrammarNormalizer
 			one is Node.Bind or Node.Same || one is Node.Counted(_, var min, var max) && (min is CountBound.Length || max is CountBound.Length));
 	}
 
+	/// <summary>The rules <see cref="Synthetic"/> made.</summary>
+	readonly HashSet<RuleSymbol> _made = [];
+
 	/// <summary>
 	/// A rule the compiler makes for a part of another, of the type and with the value given; added where the rules are being
 	/// realised, so that it is realised in turn.
 	/// </summary>
-	/// <summary>The rules <see cref="Synthetic"/> made.</summary>
-	readonly HashSet<RuleSymbol> _made = [];
-
 	RuleSymbol Synthetic(RuleSymbol from, string stem, Node body, string type, ValueSource source)
 	{
 		var name = stem;

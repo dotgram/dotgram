@@ -948,20 +948,39 @@ sealed partial class GrammarNormalizer
 			// never quite the rule it read as — it looked only at the innermost repetition,
 			// so `(t: A+ & '-'){2}` passed it and answered with the dashes in.
 			if (inLookahead)
-				Report(
-					UnbuiltCapture,
-					$"'{name}' is captured inside a lookahead in '{rule.Name}', which is not built: " +
-					"what a lookahead records on the way is dropped whether it matched or not, so " +
-					$"the capture would never reach '{rule.Name}'. Capture the lookahead itself — " +
-					"'?=X' produces X's value (docs/syntax.md §3.4) — or read the same thing again " +
-					"after it.",
-					rule.Declaration!.At);
+				ReportCapturedInLookahead(name, rule);
 		}
 
 		var lookings = inLookahead || node is Node.Lookahead;
 
 		foreach (var child in node.Children)
 			CheckCaptures(child, rule, lookings);
+	}
+
+	/// <summary>
+	/// Every name inside a lookahead of every rule, told (GRAM4006) before the rules' values are decided: one error is said at
+	/// one place, and this is the one the author fixes first, as the published version tells it. <see cref="CheckCaptures"/>
+	/// tells the same of a rule as the passes left it, which says nothing twice.
+	/// </summary>
+	void CheckLookaheadCaptures()
+	{
+		foreach (var rule in _rules)
+			if (rule.Declaration is not null && !_refusedPairs.Contains(rule) && _bodies.TryGetValue(rule, out var body))
+				foreach (var look in NodeWalk.Descendants(body).OfType<Node.Lookahead>())
+					foreach (var capture in NodeWalk.Descendants(look.Body).OfType<Node.Capture>())
+						ReportCapturedInLookahead(capture.Name, rule);
+	}
+
+	void ReportCapturedInLookahead(string name, RuleSymbol rule)
+	{
+		Report(
+			UnbuiltCapture,
+			$"'{name}' is captured inside a lookahead in '{rule.Name}', which is not built: " +
+			"what a lookahead records on the way is dropped whether it matched or not, so " +
+			$"the capture would never reach '{rule.Name}'. Capture the lookahead itself — " +
+			"'?=X' produces X's value (docs/syntax.md §3.4) — or read the same thing again " +
+			"after it.",
+			rule.Declaration!.At);
 	}
 
 	/// <summary>
