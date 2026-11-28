@@ -46,6 +46,9 @@ enum Source
 /// <param name="Row">The kind of the rule that decided it: C, S, A or O.</param>
 sealed record Expectation(Source Source, string? Value, string? ErrorId, string? Question, string Row)
 {
+	/// <summary>Every refusal that holds, <see cref="ErrorId"/> first (<see cref="Decision.Refusals"/>).</summary>
+	public IReadOnlyList<string> Refusals { get; init; } = ErrorId is null ? [] : [ErrorId];
+
 	/// <summary>The grammar is built and gives <see cref="Value"/>.</summary>
 	public bool IsValue => Value is not null && Source is not (Source.Error or Source.Undecided or Source.NoMatch or Source.SamePublished);
 
@@ -112,6 +115,12 @@ sealed record Val(string Type, string Raw, string Print, IReadOnlyList<Val>? Ite
 /// <summary>The source and the decision of one rule, before any input.</summary>
 sealed record Decision(Source Source, string Row, string? ErrorId, string? Question)
 {
+	/// <summary>
+	/// Every refusal that holds of the rule, <see cref="ErrorId"/> first: a grammar with more than one fault at one place is
+	/// told one of them, and which comes first is the generator's order, not the rule's.
+	/// </summary>
+	public IReadOnlyList<string> Refusals { get; init; } = [];
+
 	public static Decision Of(Source source, string row)
 	{
 		return new Decision(source, row, null, null);
@@ -119,7 +128,13 @@ sealed record Decision(Source Source, string Row, string? ErrorId, string? Quest
 
 	public static Decision Fail(string row, string id)
 	{
-		return new Decision(Source.Error, row, id, null);
+		return new Decision(Source.Error, row, id, null) { Refusals = [id] };
+	}
+
+	/// <summary>Refused, for the first of several faults; the rest may be told in its place.</summary>
+	public static Decision Fail(string row, IReadOnlyList<string> ids)
+	{
+		return new Decision(Source.Error, row, ids[0], null) { Refusals = ids };
 	}
 
 	public static Decision Ask(string row, string question)

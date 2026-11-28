@@ -431,17 +431,46 @@ sealed partial class Grammar
 	{
 		var row = rule.Kind switch { Kind.C => "C", Kind.S => "S", Kind.A => "A", _ => "O" };
 
-		// A name written inside a lookahead is refused, whatever the rule is.
-		if (Walk(rule.Alternatives, true).OfType<Wrapped>().Any(static w => w.Wrap is Wrap.Ahead or Wrap.NotAhead && Walk([w.Inner], true).OfType<Named>().Any()))
-			return [Decision.Fail(row, "GRAM4006")];
+		// A name written inside a lookahead is refused, whatever the rule is; and a name that is read must capture one kind,
+		// which the rule's own decision tells. Either is told before the rule's value; the faults the rule has besides are
+		// kept beside it, as the generator may tell any of them at the one place.
+		var ahead = Walk(rule.Alternatives, true).OfType<Wrapped>().Any(static w => w.Wrap is Wrap.Ahead or Wrap.NotAhead && Walk([w.Inner], true).OfType<Named>().Any());
+		var seen  = Features.ToList();
+		var refusals = new List<string>();
 
-		var decisions = DecideRule(rule);
+		if (ahead)
+			refusals.Add("GRAM4006");
 
-		// A name that is read must capture one kind. The rule's own decision tells which names it reads.
-		if (CapturesDifferentKinds(rule, decisions))
-			return [Decision.Fail(row, "GRAM4007")];
+		Decision[] decisions;
 
-		return decisions;
+		// Asked after a name inside a lookahead only for what else is wrong: a rule the decision cannot read is refused for that
+		// name alone.
+		try
+		{
+			decisions = DecideRule(rule);
+
+			if (CapturesDifferentKinds(rule, decisions))
+				refusals.Add("GRAM4007");
+		}
+		catch (Exception e) when (ahead && e is InvalidOperationException or KeyNotFoundException)
+		{
+			decisions = [];
+		}
+
+		if (refusals.Count == 0)
+			return decisions;
+
+		// What the rule's decision added to the features is the decision's, which a name inside a lookahead, told before it,
+		// has not taken.
+		if (ahead)
+		{
+			Features.Clear();
+			Features.UnionWith(seen);
+		}
+
+		refusals.AddRange(decisions.SelectMany(static d => d.Refusals));
+
+		return [Decision.Fail(row, refusals)];
 	}
 
 	Decision[] DecideRule(Rule rule)
@@ -499,13 +528,18 @@ sealed partial class Grammar
 		var parameters = Parameters(rule.Type);
 		var sets       = routes.Select(r => r.Names.Split(',', StringSplitOptions.RemoveEmptyEntries).Where(n => parameters.Contains(n)).Order(StringComparer.Ordinal).ToArray()).ToList();
 
-		// A name of a value written under a repetition is an array, and no constructor takes an array for a string.
+		// The faults in the order they are told: the first is the decision, and the rest may be told in its place.
+		var refusals = new List<string>();
+		var seen     = Features.ToList();
+
+		// A name of a value written under a repetition is an array, and no constructor takes an array for a string (CS1503),
+		// nor does a property of the host type Pr, which an initializer sets (CS0029).
 		if (Walk(alternatives, true).OfType<Wrapped>().Where(static w => w.Wrap is Wrap.Star or Wrap.Plus or Wrap.Zero).SelectMany(w => Walk([w.Inner], true).OfType<Named>()).Any(n => parameters.Contains(n.Name) && KindOfCapture(n.Inner, rule) != "text"))
-			return Decision.Fail("O", "CS1503");
+			refusals.Add(rule.Type == "Pr" ? "CS0029" : "CS1503");
 
 		// A name of l or r fills a property of the host type Pr, and C# takes no text or other value for it.
 		if (rule.Type == "Pr" && Walk(alternatives, true).OfType<Named>().Any(n => n.Name is "l" or "r" && KindOfCapture(n.Inner, rule) != "value of Pr"))
-			return Decision.Fail("O", "CS0029");
+			refusals.Add("CS0029");
 
 		if (!sets.Any(static s => s.Length > 0))
 		{
@@ -516,23 +550,35 @@ sealed partial class Grammar
 			if (!Walk(alternatives).Any(c => IsOperand(c, rule)) && Walk(alternatives, true).Any(c => IsOperand(c, rule)))
 				Features.Add("O-zero-operand");
 
-			return Decision.Fail("O", rule.LeftRecursive ? "E-LR" : "E-VALUE");
+			refusals.Add(rule.LeftRecursive ? "E-LR" : "E-VALUE");
 		}
 
 		// Names choose the construction of the whole rule: an alternative that captures none of them is refused.
-		if (sets.Select(static s => string.Join(",", s)).Distinct().Count() > 1)
+		else if (sets.Select(static s => string.Join(",", s)).Distinct().Count() > 1)
 		{
 			Features.Add("O-partial");
 
-			return Decision.Fail("O", "E-PARTIAL");
+			refusals.Add("E-PARTIAL");
 		}
 
 		// A name two constructors take equally chooses none.
-		if (sets[0].Contains("value"))
+		else if (sets[0].Contains("value"))
 		{
 			Features.Add("O-tie");
 
-			return Decision.Fail("O", "E-VALUE");
+			refusals.Add("E-VALUE");
+		}
+
+		if (refusals.Count > 0)
+		{
+			// A C# error told first was the decision before the rest were asked: what they add to the features is not its.
+			if (refusals[0].StartsWith("CS", StringComparison.Ordinal))
+			{
+				Features.Clear();
+				Features.UnionWith(seen);
+			}
+
+			return Decision.Fail("O", refusals);
 		}
 
 		// A name captured more than once on one route is not modelled: the published version decides (the first capture, or a
@@ -861,7 +907,7 @@ sealed partial class Grammar
 			return new Expectation(Source.Undecided, null, null, Decision.Question, Decision.Row);
 
 		if (Decision.Source == Source.Error)
-			return new Expectation(Source.Error, null, Decision.ErrorId, null, Decision.Row);
+			return new Expectation(Source.Error, null, Decision.ErrorId, null, Decision.Row) { Refusals = Decision.Refusals };
 
 		if (Decision.Source == Source.SamePublished)
 		{
@@ -883,7 +929,7 @@ sealed partial class Grammar
 						return run;
 
 					if (run.Source == Source.SamePublished)
-						return changed && run.Value is not null ? new Expectation(Source.Joined, run.Value, null, null, "O") : mode == Mode.B && RawCapture(Tested) ? run with { ErrorId = "GRAM4026" } : run;
+						return changed && run.Value is not null ? new Expectation(Source.Joined, run.Value, null, null, "O") : mode == Mode.B && RawCapture(Tested) ? run with { ErrorId = "GRAM4026", Refusals = ["GRAM4026"] } : run;
 				}
 				catch (Exception e) when (e is InvalidOperationException or KeyNotFoundException)
 				{
@@ -905,9 +951,10 @@ sealed partial class Grammar
 		{
 			return new Evaluation(this, mode, input).Run();
 		}
+		// C# takes no bytes for a string, an argument of a constructor (CS1503) or a property an initializer sets (CS0029).
 		catch (BytesIntoConstructor)
 		{
-			return new Expectation(Source.Error, null, "CS1503", null, "O");
+			return new Expectation(Source.Error, null, "CS1503", null, "O") { Refusals = ["CS1503", "CS0029"] };
 		}
 		catch (Exception e) when (e is InvalidOperationException or KeyNotFoundException)
 		{

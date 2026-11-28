@@ -77,18 +77,19 @@ static class RuleOracleCheck
 	}
 
 	/// <summary>
-	/// Whether this build refused as the oracle expects: with the diagnostic it names, the generator's for a refusal of the
-	/// generator and the C# compiler's for one of the compiler. A C# error or a crash where the generator was to refuse is a
-	/// generator that left the author code that does not compile, not a refusal.
+	/// Whether this build refused as the oracle expects: with a diagnostic of a fault the oracle finds, the generator's for a
+	/// refusal of the generator and the C# compiler's for one of the compiler. A grammar with more than one fault is told one
+	/// at a place, so any of them is the refusal. A C# error or a crash where the generator was to refuse is a generator that
+	/// left the author code that does not compile, not a refusal.
 	/// </summary>
-	static bool Refuses(Outcome head, string errorId)
+	static bool Refuses(Outcome head, Expectation expected)
 	{
-		var id = DiagnosticOf(errorId);
+		var said     = Ids(head);
+		var refusals = expected.Refusals.Count > 0 ? expected.Refusals : [expected.ErrorId!];
 
-		if (id.StartsWith("CS", StringComparison.Ordinal))
-			return head.Kind == "csharp" && Ids(head).Contains(id);
-
-		return head.Kind == "gram" && Ids(head).Contains(id);
+		return refusals.Select(DiagnosticOf).Any(id => id.StartsWith("CS", StringComparison.Ordinal)
+			? head.Kind == "csharp" && said.Contains(id)
+			: head.Kind == "gram" && said.Contains(id));
 	}
 
 	/// <summary>Whether this build refused with every documented diagnostic the published version gave.</summary>
@@ -149,7 +150,7 @@ static class RuleOracleCheck
 				var other   = cell.Package.Kind != "value" && failure == PublishedFailure.Other;
 
 				if (!other && (cell.Package.Kind == "value" ? head.Kind == "value" && head.Text == cell.Package.Text
-					: expected.ErrorId is { } id ? Refuses(head, id)
+					: expected.ErrorId is not null ? Refuses(head, expected)
 					: failure == PublishedFailure.Documented ? RefusesAsPublished(head, cell.Package)
 					: expected.Value is not null ? head.Kind == "value" && head.Text == expected.Value
 					: expected.Row == "O-twice" ? head.Kind is "value" or "fail" or "gram"
@@ -173,7 +174,7 @@ static class RuleOracleCheck
 
 			if (expected.Source == Source.NoMatch ? head.Kind == "fail" || head.Kind == "gram"
 				: expected.IsValue ? head.Kind == "value" && head.Text == expected.Value
-				: Refuses(head, expected.ErrorId!))
+				: Refuses(head, expected))
 			{
 				counts["green"] = counts.GetValueOrDefault("green") + 1;
 				continue;
